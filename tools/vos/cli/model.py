@@ -39,6 +39,7 @@ into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 """
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -46,6 +47,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -59,6 +61,7 @@ from vos import (
     differential,
     env,
     freezeschema,
+    receipts,
     sailbundle,
     trace,
 )
@@ -92,6 +95,69 @@ SAIL_HOW = "the Sail toolchain lives in the opam default switch: opam install sa
 # What `cmd_build` writes after each stage, and what `wait` reads a finished run's
 # verdict back out of. One spelling, at both ends.
 STAGE_EXIT = re.compile(r"^\w+_EXIT=(\d+)$")
+
+BUILD_INPUTS = ("model", "tools/run.py", "tools/vos", "tools/generated", "interfaces", "corpus",
+                "upstream", ".gitmodules")
+BUILD_ARTIFACTS = ("c_emulator/sail_riscv_sim", "test/unit_tests/unit_tests",
+                   "CMakeCache.txt", "build.ninja")
+
+
+def build_identity(e: env.Environment) -> dict[str, object]:
+    """The source closure, selected tools and build options of a model run."""
+    if e.model.resolve() != (e.root / "model").resolve():
+        raise ValueError("recorded builds require this checkout's model; unset VOS_MODEL")
+    version = subprocess.run(
+        ["git", "describe", "--tags", "--always", "--dirty", "--broken"],
+        cwd=e.model, capture_output=True, text=True, check=False, timeout=60,
+        env={**os.environ, **env.git_env(e.root)})
+    if version.returncode or not version.stdout.strip():
+        raise ValueError("git could not identify the model for its build receipt")
+    compilers = [arg.split("=", 1)[1] for arg in e.compilers if "=" in arg]
+    return {
+        "inputs": receipts.inputs(e.root, *BUILD_INPUTS),
+        "tools": receipts.executables("sail", "z3", "cmake", "ctest", "ninja",
+                                      *(compilers or ["cc", "c++"])),
+        "compiler_options": e.compilers, "cache_options": e.ccache,
+        "model_revision": version.stdout.strip(),
+    }
+
+
+def build_artifacts(directory: Path) -> dict[str, str]:
+    """Build products and the exact downloaded ELF inputs the profile sweep consumes."""
+    return receipts.snapshot(directory, [*(directory / rel for rel in BUILD_ARTIFACTS),
+                                          *sweep_inputs(directory)])
+
+
+def sweep_inputs(directory: Path, xlen: str = "64") -> list[Path]:
+    """The nonempty physical-variant suite selected by both the runner and its receipt."""
+    suites = sorted(directory.glob("test/*/riscv-tests"))
+    if not suites:
+        raise ValueError(f"no downloaded riscv-tests under {directory}/test")
+    elves = [path for path in sorted(suites[0].glob(f"rv{xlen}*-p-*"))
+             if path.is_file() and path.suffix != ".dump"]
+    if not elves:
+        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {suites[0]}")
+    return elves
+
+
+def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, object]:
+    """Read a successful build receipt and reject stale sources or artifacts."""
+    log = e.log("model-build-fast" if fast else "model-build")
+    path = log.with_suffix(".json")
+    raw: object = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise TypeError(f"invalid build receipt: {path}")
+    record = cast("dict[str, object]", raw)
+    if (record.get("schema") != 1 or record.get("exit_code") != 0
+            or record.get("stages") != {"configure": 0, "build": 0, "ctest": 0}):
+        raise ValueError("the build receipt does not record a successful complete build")
+    if record.get("identity") != build_identity(e):
+        raise ValueError("the build receipt is stale: sources, tools or options changed")
+    if record.get("artifacts") != build_artifacts(e.fast_build_dir if fast else e.build_dir):
+        raise ValueError("the build receipt is stale: built artifacts changed")
+    if record.get("log_sha256") != receipts.digest(log):
+        raise ValueError("the build receipt is stale: its test log changed")
+    return record
 
 ORACLE_SRC = "upstream/sail-cheri-riscv"
 ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
@@ -329,9 +395,24 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
     # Before the log is opened, so that a refused build cannot truncate the log of the
     # run it was refused in favour of.
     lock = env.build_lock(build_dir)
-    _seed_tree(e, build_dir)
-    if args.background:
-        return _detach(args, log, lock)
+    try:
+        _seed_tree(e, build_dir)
+        if args.background:
+            return _detach(args, log, lock)
+        return _build_locked(e, build_dir, log, extra)
+    finally:
+        if lock is not None:
+            lock.close()
+
+
+def _build_locked(e: env.Environment, build_dir: Path, log: Path,
+                  extra: list[str]) -> int:
+    """Run the stages while cmd_build holds the lane, then publish their identity."""
+    record_path = log.with_suffix(".json")
+    record_path.unlink(missing_ok=True)
+    identity = build_identity(e)
+    stages: dict[str, int] = {}
+    run_id = uuid.uuid4().hex
 
     e.log_dir.mkdir(parents=True, exist_ok=True)
     version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
@@ -359,11 +440,22 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
         ):
             code = (_configure(e, build_dir, extra, handle) if argv is None
                     else env.stage(name, argv, stdout=handle, stderr=handle))
+            stages[name] = code
             handle.write(f"{name.upper()}_EXIT={code}\n")
             handle.flush()
             if code:
                 break
         handle.write("ALL_DONE\n")
+
+    if code == 0 and build_identity(e) != identity:
+        print("the inputs changed during the build; its evidence is stale", file=sys.stderr)
+        code = 1
+    receipts.write(record_path, {
+        "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
+        "identity": identity,
+        "artifacts": build_artifacts(build_dir) if code == 0 else {},
+        "log_sha256": receipts.digest(log), "extra_options": extra,
+    })
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")
     return code
@@ -378,20 +470,26 @@ def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
     gives it back when the child exits. `BUILD_LOCK_HELD` is what tells the child not to
     take a second one on a descriptor of its own, which would fail against the first.
 
-    The previous run's log is removed only once the child exists, so a `Popen` that
-    raises leaves that evidence standing; it is still gone before a reader can take it
-    for this run's, because the child's first write sits behind its own interpreter
-    start and `env.load`, and `wait` blocks on the lock before it looks at the log at
-    all. Nothing else deletes it: the child recreates it.
+    Move the old log aside before launching. The parent never removes the new log:
+    the child can open it before Popen returns. A failed launch restores the old log.
     """
     argv = cli.entry("model", "build", *(["--fast"] if args.fast else []))
     log.parent.mkdir(parents=True, exist_ok=True)
-    child = subprocess.Popen(
-        argv, start_new_session=True,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        pass_fds=() if lock is None else (lock.fileno(),),
-        env={**os.environ, env.BUILD_LOCK_HELD: "1"})
-    log.unlink(missing_ok=True)
+    with tempfile.TemporaryDirectory(prefix="previous-build-", dir=log.parent) as td:
+        previous = Path(td) / log.name
+        if log.exists():
+            log.replace(previous)
+        try:
+            child = subprocess.Popen(
+                argv, start_new_session=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                pass_fds=() if lock is None else (lock.fileno(),),
+                env={**os.environ, env.BUILD_LOCK_HELD: "1"})
+        except OSError as err:
+            if previous.exists():
+                previous.replace(log)
+            print(f"the background build could not start: {err}", file=sys.stderr)
+            return 1
     if lock is not None:
         env.record_lock_holder(lock, child.pid)
     print(f"== background: pid {child.pid}")
@@ -521,7 +619,15 @@ def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
     log = e.log("model-build-fast" if args.fast else "model-build")
     lock = env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
     try:
-        return _report_build(log)
+        code = _report_build(log)
+        if code:
+            return code
+        try:
+            verified_build(e, fast=args.fast)
+        except (OSError, ValueError, TypeError, RuntimeError) as err:
+            print(f"the build evidence is not current: {err}", file=sys.stderr)
+            return 1
+        return 0
     finally:
         if lock is not None:
             lock.close()
@@ -641,7 +747,11 @@ def solver_verdict(output: str) -> tuple[str | None, list[str]]:
     lines = [line for line in output.splitlines() if line.strip()]
     if not lines:
         return None, []
-    return SOLVER_VERDICTS.get(lines[0].strip()), lines[1:]
+    verdict = SOLVER_VERDICTS.get(lines[0].strip())
+    if ((verdict in (PROVED, UNDECIDED) and len(lines) != 1)
+            or any(line.lstrip().startswith("(error") for line in lines[1:])):
+        return None, []
+    return verdict, lines[1:]
 
 
 def auto_verdicts(text: str) -> dict[str, str]:
@@ -790,12 +900,19 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
             done = subprocess.run(["z3", f"-T:{timeout}", "-model", str(smt2)],
                                   capture_output=True, text=True, check=False,
                                   timeout=timeout + 60)
-            said = done.stdout or done.stderr
-            verdict, model = solver_verdict(done.stdout)
+            said = f"{done.stdout}\n{done.stderr}".strip()
+            if done.returncode != 0 or done.stderr.strip():
+                verdict, model = None, []
+                said = f"z3 exited {done.returncode}: {said}"
+            else:
+                verdict, model = solver_verdict(done.stdout)
         except subprocess.TimeoutExpired:
             # the solver's own -T is the timeout; this is the guard on a solver that
             # ignored it, and it is the same verdict
             verdict, model = UNDECIDED, []
+        except OSError as err:
+            verdict, model = None, []
+            said = f"z3 could not run: {err}"
         wall = time.perf_counter() - started
         label = verdict or UNRECOGNIZED
         counts[label] += 1
@@ -820,7 +937,7 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
           f"--timeout {timeout} s, {counts[UNRECOGNIZED]} unrecognized or missing; "
           f"{_solver_version('sail')}; {_solver_version('z3')}; "
           f"lane {e.lane or 'primary'} in {out}")
-    return 0 if counts[PROVED] == len(picked) else 1
+    return 0 if picked and counts[PROVED] == len(picked) else 1
 
 
 def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
@@ -950,14 +1067,13 @@ def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
         print(missing, file=sys.stderr)
         return 1
     sim = e.simulator
-    suites = sorted(e.build_dir.glob("test/*/riscv-tests"))
-    if not suites:
-        print(f"no downloaded riscv-tests under {e.build_dir}/test", file=sys.stderr)
+    try:
+        elves = sweep_inputs(e.build_dir, args.xlen)
+    except ValueError as err:
+        print(str(err), file=sys.stderr)
         return 1
 
     profile = e.profile
-    elves = [p for p in sorted(suites[0].glob(f"rv{args.xlen}*-p-*"))
-             if p.suffix != ".dump"]
 
     def classify(elf: Path) -> tuple[str, str]:
         try:
@@ -1128,6 +1244,9 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     which is downstream of everything this corpus gates.
     """
     corpus = differential.load(e.root)
+    if not corpus.members:
+        print("the differential corpus contains no member to execute", file=sys.stderr)
+        return 1
     # Lane-scoped like the build trees, so two lanes' runs cannot write one ELF path;
     # the manifest's digests are over the traces, not the paths, so nothing downstream
     # cares where the images landed.
@@ -1337,6 +1456,10 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
         # ELF load, so a member of the corpus stands in as the thing that makes the
         # emulator get that far.
         corpus = differential.load(e.root)
+        if not corpus.members:
+            print("the differential corpus contains no member for the devicetree check",
+                  file=sys.stderr)
+            return 1
         elf = differential.assemble(corpus, corpus.members[0], Path(tmp))
         try:
             fits = subprocess.run([str(sim), "--config", str(profile),
@@ -1387,6 +1510,10 @@ def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
 
     info = subprocess.run([str(e.simulator), "--build-info"],
                           capture_output=True, text=True, check=False)
+    if info.returncode:
+        print(f"the emulator's build-info probe failed: {info.stderr.strip()}",
+              file=sys.stderr)
+        return 1
     fields = dict(
         line.split(": ", 1) for line in info.stdout.splitlines() if ": " in line)
     revision = fields.get("Sail RISC-V git", "unknown commit")
@@ -1402,16 +1529,28 @@ def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
     # are what remains and both are this repository's own.
     harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
     properties = 0
-    if harness.exists():
-        try:
-            run = subprocess.run([str(harness)], capture_output=True, text=True,
-                                 timeout=300, check=False)
-        except subprocess.TimeoutExpired:
-            print(f"the property harness at {harness} did not exit within 300 s",
-                  file=sys.stderr)
-            return 1
-        properties = sum(1 for line in run.stdout.splitlines()
-                         if line.startswith("Testing "))
+    if not harness.is_file():
+        print(f"the property harness is missing: {harness}", file=sys.stderr)
+        return 1
+    try:
+        run = subprocess.run([str(harness)], capture_output=True, text=True,
+                             timeout=300, check=False)
+    except subprocess.TimeoutExpired:
+        print(f"the property harness at {harness} did not exit within 300 s",
+              file=sys.stderr)
+        return 1
+    except OSError as err:
+        print(f"the property harness could not run: {err}", file=sys.stderr)
+        return 1
+    if run.returncode:
+        print(f"the property harness failed (exit {run.returncode}):\n"
+              f"{run.stdout}\n{run.stderr}", file=sys.stderr)
+        return 1
+    properties = sum(1 for line in run.stdout.splitlines()
+                     if line.startswith("Testing "))
+    if not properties:
+        print("the property harness reported no tests", file=sys.stderr)
+        return 1
 
     print(f"model revision   {revision}")
     print(f"sail compiler    {fields.get('Sail', 'unknown')}")
@@ -1587,4 +1726,3 @@ def main(argv: list[str] | None = None) -> int:
     # whichever subcommand nobody ran lately.
     run = cast("Command", args.run)
     return run(e, args)
-

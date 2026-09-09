@@ -1,190 +1,210 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The whole exit-evidence sweep over the curated model, as one run and one block.
+"""Run the evidence sweep against current build receipts and record its verdicts.
 
-Every landed item in the plan quotes the same measurements: the build and its
-bundled suite, the model's own property harness, the profile sweep, the differential
-corpus, the attested devicetree, the golden model's identity, and the proof gate.
-Taking them was six commands into the guest and then a hand-transcription of six
-figures into a completion note, which is six chances to quote a figure from a run
-that is not the one being reported.
-
-This is that sweep as one command. Each member runs in order, prints its own report
-under its own heading exactly as it does alone, and the block at the end states the
-figures those runs produced, read back out of what they printed rather than
-re-derived. A member that did not report a figure says so; nothing here invents one.
-
-    python tools/run.py evidence              # build, then measure
-    python tools/run.py evidence --no-build   # measure what is already built
-
-The build comes first because everything after it reads the simulator it produces,
-so a failed build makes every later member a second symptom of the first, and it is
-the one member whose output is not held back: it is a quarter of an hour long and
-prints where its log is, which a caller wants when it is printed and not when the
-sweep is over. The proof gate is the one member that reads none of the model, and it
-runs last rather than first because it is the one a model change cannot move.
-
-Exit 0 when every member exits 0, 1 otherwise.
+--no-build requires matching sources, tools, artifacts and test log. Model consumers
+hold the build lock. Proofs run in a separate process alongside those consumers;
+each member preserves its output and exit status in a unique JSON execution record.
 """
 
 import argparse
 import contextlib
-import io
+import json
+import os
 import re
-from collections.abc import Callable
-from dataclasses import dataclass
+import signal
+import subprocess
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import IO
 
-from vos import env
+from vos import cli, env, receipts
 from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.report import Reporter
 
 HEADING = "=== evidence: the exit-evidence sweep over the curated model ==="
-
-# The bundled suite's tally, as ctest itself writes it into the build log.
 _CTEST_RE = re.compile(r"(\d+)% tests passed, (\d+) tests failed out of (\d+)")
 
 
 @dataclass(frozen=True)
 class Member:
-    """One member of the sweep: what it is called, what it runs, and whether its
-    output is held back for the block or streamed as it goes."""
-
     name: str
-    decides: str
-    run: Callable[[], int]
-    captured: bool = True
+    command: tuple[str, ...]
 
 
-MEMBERS: tuple[Member, ...] = (
-    Member("build", "the model built and its bundled suite run",
-           lambda: model_cli.main(["build"]), captured=False),
-    Member("reference", "what the frozen golden model is",
-           lambda: model_cli.main(["reference"])),
-    Member("sweep", "the downloaded riscv-tests against the frozen profile",
-           lambda: model_cli.main(["sweep"])),
-    Member("corpus", "the differential corpus, assembled and run",
-           lambda: model_cli.main(["corpus"])),
-    Member("devicetree", "the attested devicetree, compiled and sized",
-           lambda: model_cli.main(["devicetree"])),
-    Member("proofs", "every shipped proof and its assumptions",
-           lambda: proofs_cli.main([])),
+@dataclass(frozen=True)
+class Result:
+    name: str
+    command: tuple[str, ...]
+    exit_code: int
+    stdout: str
+    stderr: str
+    seconds: float
+
+
+MEMBERS = (
+    Member("build", ("model", "build")),
+    Member("reference", ("model", "reference")),
+    Member("sweep", ("model", "sweep")),
+    Member("corpus", ("model", "corpus")),
+    Member("devicetree", ("model", "devicetree")),
+    Member("proofs", ("proofs",)),
 )
 
+TIMEOUTS = {"build": 7200, "proofs": 3600}
 
-def _one(rep: Reporter, member: Member) -> tuple[int, str]:
-    """One member, under its own heading, as its exit code and what it printed."""
-    rep.line(f"--- {member.name}: {member.decides} ---")
-    kept = io.StringIO()
+
+def _launch(member: Member) -> Result:
+    started = time.perf_counter()
+    print(f"running evidence member: {member.name}", flush=True)
     try:
-        if member.captured:
-            with contextlib.redirect_stdout(kept):
-                code = member.run()
-        else:
-            code = member.run()
-    except SystemExit as refusal:
-        # A member that refuses by raising is a finding here rather than the end of
-        # the sweep: the block still has to say which member stopped, and why.
-        code = 1 if refusal.code is None else int(refusal.code)
-        kept.write(f"{member.name} refused: {refusal}\n")
-    text = kept.getvalue()
-    rep.out.extend(text.splitlines() or ["(this member reported as it ran, above)"])
-    rep.line()
-    return code, text
+        with subprocess.Popen(
+                cli.entry(*member.command), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                encoding="utf-8", errors="replace", start_new_session=True) as child:
+            try:
+                stdout, stderr = child.communicate(timeout=TIMEOUTS.get(member.name, 900))
+            except subprocess.TimeoutExpired:
+                # This command runs in the guest. End its process group as well, so
+                # a hung compiler cannot keep writing after the sweep releases locks.
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(child.pid, signal.SIGKILL)
+                stdout, stderr = child.communicate()
+                return Result(member.name, member.command, 1, stdout,
+                              stderr + "\nevidence member timed out", time.perf_counter() - started)
+            return Result(member.name, member.command, child.returncode,
+                          stdout, stderr, time.perf_counter() - started)
+    except OSError as err:
+        return Result(member.name, member.command, 1, "", str(err),
+                      time.perf_counter() - started)
 
 
 def _ctest(log: Path) -> str:
-    """The bundled suite's tally, out of the build log the run wrote.
-
-    Read from the log rather than from what `build` printed, because a build prints
-    only where its log is: the tally is in the log whether this run built or an
-    earlier one did, which is what makes `--no-build` state the same figure.
-    """
-    if not log.is_file():
-        return "not reported (no build log in this lane)"
-    found = _CTEST_RE.search(log.read_text(encoding="utf-8", errors="replace"))
-    if found is None:
-        return "not reported (the log carries no ctest tally)"
-    failed, total = int(found.group(2)), int(found.group(3))
-    return f"{total - failed} of {total}"
+    """A complete successful test tally from the verified build's own log."""
+    text = log.read_text(encoding="utf-8")
+    matches = list(_CTEST_RE.finditer(text))
+    if not matches or not text.rstrip().endswith("ALL_DONE"):
+        raise ValueError("the verified build log carries no complete ctest result")
+    found = matches[-1]
+    percentage, failed, total = map(int, found.groups())
+    if percentage != 100 or failed or total == 0:
+        raise ValueError("the build's ctest result is empty or failing")
+    return f"{total} of {total}"
 
 
-def _figure(text: str, pattern: str, wording: Callable[[re.Match[str]], str]) -> str:
-    """One figure out of one member's output, or the sentence saying it is absent."""
-    found = re.search(pattern, text)
-    return wording(found) if found else "not reported by its member"
+def _figures(results: list[Result], log: Path) -> dict[str, str]:
+    """Display measurements only after every producing process succeeded."""
+    said = {result.name: result.stdout for result in results}
+    fields: tuple[tuple[str, str, str], ...] = (
+        ("model revision", "reference", r"model revision\s+(\S+)"),
+        ("$[test] harness", "reference", r"properties\s+(\d+)"),
+        ("profile sweep", "sweep", r"TOTAL pass=\d+ refuse=\d+ hang=\d+ of \d+"),
+        ("differential corpus", "corpus", r"TOTAL pass=\d+ fail=\d+ of \d+"),
+        ("corpus size", "reference", r"corpus\s+v\d+, \d+ members, \d+ checks, \d+ records"),
+        ("devicetree", "devicetree", r"at (\d+) bytes"),
+        ("proof gate", "proofs", r"ok: (\d+) constant"),
+    )
+    figures: dict[str, str] = {"ctest": _ctest(log)}
+    for label, member, pattern in fields:
+        found = re.search(pattern, said.get(member, ""))
+        if found is None:
+            raise ValueError(f"{member} produced no {label} measurement")
+        figures[label] = found.group(1) if found.lastindex else found.group(0)
+    return figures
 
 
-def _block(rep: Reporter, said: dict[str, str], log: Path) -> None:
-    """The figures the sweep produced, in the order a completion note states them."""
-    reference, sweep = said.get("reference", ""), said.get("sweep", "")
-    corpus, tree = said.get("corpus", ""), said.get("devicetree", "")
-    proofs = said.get("proofs", "")
-
-    rows = [
-        ("model revision", _figure(reference, r"model revision\s+(\S+)",
-                                   lambda m: m.group(1))),
-        ("ctest", _ctest(log)),
-        ("$[test] harness", _figure(reference, r"properties\s+(\d+)",
-                                    lambda m: f"{int(m.group(1)):,} properties")),
-        ("profile sweep", _figure(
-            sweep, r"TOTAL pass=(\d+) refuse=(\d+) hang=(\d+) of (\d+)",
-            lambda m: f"{int(m.group(2)):,} refusals of {int(m.group(4)):,}"
-                      + (f", {m.group(3)} hang(s)" if m.group(3) != "0" else ""))),
-        ("differential corpus", _figure(
-            corpus, r"TOTAL pass=(\d+) fail=(\d+) of (\d+) \(corpus v(\d+)",
-            lambda m: f"{m.group(1)} of {m.group(3)} at manifest version {m.group(4)}"
-                      + (f", {m.group(2)} failing" if m.group(2) != "0" else ""))),
-        ("corpus size", _figure(
-            reference, r"corpus\s+v\d+, \d+ members, (\d+) checks, (\d+) records",
-            lambda m: f"{int(m.group(1)):,} checks over {int(m.group(2)):,} records")),
-        ("devicetree", _figure(tree, r"at (\d+) bytes",
-                               lambda m: f"{int(m.group(1)):,} bytes, no warning")),
-        ("proof gate", _figure(proofs, r"ok: (\d+) constant",
-                               lambda m: f"{int(m.group(1)):,} constants closed")),
-    ]
-
-    rep.line("=== exit evidence ===")
-    width = max(len(label) for label, _ in rows)
-    for label, value in rows:
-        rep.line(f"  {label:<{width}}  {value}")
-    rep.line()
+def _proof_record(root: Path) -> dict[str, object]:
+    """Revalidate compiled proofs after every consumer finishes, under their lock."""
+    held = proofs_cli._hold(root / proofs_cli.PROOFS)
+    try:
+        proofs_cli._validate_receipt(root)
+        path = root / proofs_cli.RECEIPT
+        return {"sha256": receipts.digest(path),
+                "receipt": json.loads(path.read_text(encoding="utf-8"))}
+    finally:
+        os.close(held)
 
 
-def run(build: bool = True) -> Reporter:
-    """One whole sweep, as data, on the convention `check.py` set."""
+def run(build: bool = True, out: Path | None = None) -> Reporter:
     e = env.load()
     rep = Reporter()
     rep.line(HEADING)
+    run_id = uuid.uuid4().hex
+    record_path = out or e.root / "out" / "evidence" / f"{run_id}.json"
+    results: list[Result] = []
+    faults: list[str] = []
+    figures: dict[str, str] = {}
+    build_record: dict[str, object] = {}
+    proof_record: dict[str, object] = {}
+    consumer_tools: dict[str, str] = {}
+    sources: dict[str, str] = {}
+    held: IO[str] | None = None
+    try:
+        held = env.hold_lock(e.lane_root / "exit-evidence", "an evidence sweep")
+        sources = receipts.inputs(e.root, *model_cli.BUILD_INPUTS,
+                                  "proofs", "docs/requirements-register.md")
+        consumer_tools = receipts.executables("dtc")
+        if build:
+            print(f"model build log: {e.log('model-build')}", flush=True)
+            results.append(_launch(MEMBERS[0]))
+            if results[-1].exit_code:
+                faults.append("build failed; no model evidence was collected")
+        if not faults:
+            lock = env.build_lock(e.build_dir)
+            try:
+                build_record = model_cli.verified_build(e)
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    proof = pool.submit(_launch, MEMBERS[-1])
+                    results.extend(_launch(member) for member in MEMBERS[1:-1])
+                    results.append(proof.result())
+                faults.extend(f"{result.name}: exited {result.exit_code}"
+                              for result in results if result.exit_code)
+                if model_cli.verified_build(e) != build_record:
+                    faults.append("the build identity changed during the sweep")
+                if not faults:
+                    proof_record = _proof_record(e.root)
+                    figures = _figures(results, e.log("model-build"))
+            finally:
+                if lock is not None:
+                    lock.close()
+        if receipts.inputs(e.root, *model_cli.BUILD_INPUTS,
+                           "proofs", "docs/requirements-register.md") != sources:
+            faults.append("the evidence inputs changed during the sweep")
+        if receipts.executables("dtc") != consumer_tools:
+            faults.append("the evidence consumer tools changed during the sweep")
+    except (OSError, ValueError, TypeError, RuntimeError, SystemExit) as err:
+        faults.append(str(err))
+    finally:
+        if held is not None:
+            held.close()
 
-    said: dict[str, str] = {}
-    stopped: list[str] = []
-    for member in MEMBERS:
-        if member.name == "build" and not build:
-            continue
-        code, text = _one(rep, member)
-        said[member.name] = text
-        if code != 0:
-            stopped.append(f"{member.name}: exited {code}, reported above")
-            # Everything after the build reads the simulator it produces, so a
-            # failed build makes every later member a second symptom of the first.
-            if member.name == "build":
-                break
-
-    _block(rep, said, e.log("model-build"))
-    rep.report("evidence", "member(s) that did not come back clean:", stopped,
-               f"all {len(said)} member(s) of the sweep green")
+    for result in results:
+        rep.line(f"--- {result.name}: exit {result.exit_code}, {result.seconds:.1f} s ---")
+        rep.out.extend((result.stdout + result.stderr).splitlines())
+    if not faults:
+        rep.line("=== exit evidence ===")
+        rep.out.extend(f"  {label}: {value}" for label, value in figures.items())
+    rep.report("evidence", "incomplete or stale evidence:", faults,
+               f"all {len(results)} executed member(s) green")
+    receipts.write(record_path, {
+        "schema": 1, "run_id": run_id, "exit_code": 1 if faults else 0,
+        "inputs": sources, "build": build_record, "proofs": proof_record,
+        "consumer_tools": consumer_tools,
+        "members": [asdict(result) for result in results],
+        "measurements": figures if not faults else {}, "failures": faults,
+    })
+    rep.line(f"execution record: {record_path}")
     return rep
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="run.py evidence",
-        description="Take the whole exit-evidence sweep over the curated model.")
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-build", action="store_true",
-                        help="measure the tree as it is built, without rebuilding it")
+                        help="require current build evidence without rebuilding")
+    parser.add_argument("--out", type=Path, help="where to write the JSON execution record")
     args = parser.parse_args(argv)
-
-    report = run(build=not args.no_build)
+    report = run(build=not args.no_build, out=args.out)
     print("\n".join(report.out))
     return 1 if report.findings else 0
