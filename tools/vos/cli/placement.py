@@ -39,7 +39,7 @@ from vos.cli import Table, dispatch
 
 # The rules a reader of the report is pointed at, by name and never by a figure
 # copied out of them: the register entries the checks decide for are in the export.
-DOCUMENT = "docs/placement-search.md"
+DOCUMENT = "docs/implementation/placement-search.md"
 
 
 def _emit(args: argparse.Namespace) -> int:

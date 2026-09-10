@@ -67,32 +67,32 @@ class View(TypedDict):
 # no other rule: renumber a subsection and a view's membership silently narrows to
 # nothing while the check over it goes on reporting that everything is carried.
 VIEWS: list[View] = [
-    View(file="docs/isa-profile.md", governing="R-15-001a",
+    View(file="docs/hardware/isa-profile.md", governing="R-15-001a",
          secs=["15.1", "15.3", "15.4", "15.5", "15.6", "15.7", "15.8",
                "15.9", "15.10", "15.11", "15.12"],
          csr_rows=True),
-    View(file="docs/absence-contract.md", governing="R-15-100a", secs=["15.14"]),
-    View(file="docs/crown-jewels.md", governing="R-17-016a",
+    View(file="docs/hardware/absence-contract.md", governing="R-15-100a", secs=["15.14"]),
+    View(file="docs/assurance/crown-jewels.md", governing="R-17-016a",
          body=r"crown.jewel spec", targets=True),
-    View(file="docs/coverage-matrix.md", governing="R-17-001b", cells=True),
+    View(file="docs/assurance/coverage-matrix.md", governing="R-17-001b", cells=True),
     # the freeze's second act is the one place a requirement defers its own decision
     # to a measurement, so the entries naming that deferral are what the contract must
     # carry: each either puts a choice into the measured act or states the act's
     # gating artifacts
-    View(file="docs/freeze-measurement-contract.md", governing="R-15-014a",
+    View(file="docs/implementation/freeze-measurement-contract.md", governing="R-15-014a",
          body=r"R-15-014a|the freeze from measurement|re-derived at the freeze"),
     # the welded block size is one parameter four instructions share, so what the
     # constraint document must carry is the entries that decide any of them: the
     # instructions themselves, the granule and codeword they are quantized against,
     # and the two classes the geometry has to satisfy at once
-    View(file="docs/block-geometry-constraint.md", governing="R-15-014a",
+    View(file="docs/hardware/block-geometry-constraint.md", governing="R-15-014a",
          body=r"welded CBO block|CBO block of R-15-007q|allocates whole lines|"
               r"one validity tag per|atomic write unit is the ECC codeword"),
     # the bank count is admitted against three quantities and constrained by the
     # schedule wrapped around it, so what the contract must carry is the entry that
     # names the three, the envelope one of them is, the cadence rules the schedule
     # answers to, and the measurement every coefficient waits on
-    View(file="docs/bank-count-dse-contract.md", governing="R-15-247p",
+    View(file="docs/hardware/bank-count-dse-contract.md", governing="R-15-247p",
          body=r"Bank granularity on the second class|"
               r"Bank discharge and refresh phases are fixed and staggered|"
               r"Retention figures are lower bounds|"
@@ -103,7 +103,7 @@ VIEWS: list[View] = [
     # plane in the array, the codeword as the write unit, the discharge through the
     # write devices and its completion read, the phase schedule, the register slave
     # that drives both, and the measurement every figure is owed to
-    View(file="docs/second-class-macro-architecture.md", governing="R-15-247m",
+    View(file="docs/hardware/second-class-macro-architecture.md", governing="R-15-247m",
          body=r"Validity tags are native to each class's own array|"
               r"No sub-granule write exists at the array|"
               r"Discharge is realized through the cells' existing write devices|"
@@ -322,7 +322,7 @@ def _standing(ctx: Context, reg: Register, art: Artifacts) -> Standing:
     return result
 
 
-ABSENCE_CONTRACT = "docs/absence-contract.md"
+ABSENCE_CONTRACT = "docs/hardware/absence-contract.md"
 _ABSENCE_ID_RE = re.compile(r"\*\*(A-\d+[a-z]?)\*\*")
 
 

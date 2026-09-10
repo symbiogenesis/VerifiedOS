@@ -55,10 +55,10 @@ _BINDINGS = """\
 
 | Field | Consumed by | Semantics | Instantiated by |
 | --- | --- | --- | --- |
-| `alpha` | seam_one | prose (R-07-015) | [proofs/Alpha.v](../proofs/Alpha.v) (`AlphaProof`) |
+| `alpha` | seam_one | prose (R-07-015) | [proofs/Alpha.v](../../proofs/Alpha.v) (`AlphaProof`) |
 | `beta` | seam_one, seam_two | prose | none yet |
 | `gamma` | seam_two | prose | none yet |
-| `delta` | seam_one | prose | [proofs/Delta.v](../proofs/Delta.v) (`DeltaProof`) |
+| `delta` | seam_one | prose | [proofs/Delta.v](../../proofs/Delta.v) (`DeltaProof`) |
 """
 
 # A fixture development citing one entry twice and defining two constants, so the
@@ -81,7 +81,7 @@ def _fixture() -> dict[str, str]:
     files["docs/requirements-register.md"] = "# register stub for find_root\n"
     files["proofs/ApexTheorem.v"] = _APEX
     files["proofs/Alpha.v"] = _ALPHA
-    files["docs/field-bindings.md"] = _BINDINGS
+    files["docs/assurance/field-bindings.md"] = _BINDINGS
     return files
 
 
@@ -190,7 +190,7 @@ def _whole_token_artifact() -> None:
 def _drifted_row() -> None:
     done = _run(_root(), "--artifact", "proofs/Delta.v")
     ensure(done.returncode == 1
-           and "FAIL: docs/field-bindings.md row(s) naming no Prop field of the "
+           and "FAIL: docs/assurance/field-bindings.md row(s) naming no Prop field of the "
                "record: delta" in done.stdout,
            f"a bindings row naming no field is a worded finding, got {done.returncode}: "
            f"{done.stdout!r}")
@@ -260,7 +260,7 @@ def _missing_bindings() -> None:
     with sandbox_tree(files) as root:
         done = _run(root, "--artifact", "proofs/Alpha.v")
         ensure(done.returncode == 1
-               and "FAIL: docs/field-bindings.md is not in the repository" in done.stdout,
+               and "FAIL: docs/assurance/field-bindings.md is not in the repository" in done.stdout,
                f"a missing bindings view is a worded finding, got {done.returncode}: "
                f"{done.stdout!r} {done.stderr!r}")
 

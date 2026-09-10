@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 
 HEADING = "=== estimates: every total and share against the item hours beneath it ==="
 
-PLAN = "docs/implementation-checklist.md"
+PLAN = "docs/implementation/implementation-checklist.md"
 
 # an item line or a subtotal line, in document order: the subtotal closes the run of
 # items above it, which is the whole of how an item finds the total it belongs to

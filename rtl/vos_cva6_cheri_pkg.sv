@@ -28,7 +28,7 @@
 // figure is measured by compiling the package rather than stated here, and
 // R1b's evidence quotes it beside the imported register form's.
 //
-// **Every deletion row of docs/rtl-reparameterization-delta.md §2.1 is a member
+// **Every deletion row of docs/hardware/rtl-reparameterization-delta.md §2.1 is a member
 // this package does not have.** No software-defined permission field, no reserved
 // field, no exponent half, no guest cause, no `int_mode` flag, no `EF` format bit,
 // no compressed-bounds union, no implied or embedded packing, no

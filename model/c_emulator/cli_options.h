@@ -48,7 +48,7 @@ struct CLIOptions {
   bool config_print_htif = false;
   bool config_print_pma = false;
   bool config_print_rvfi = false;
-  // The capability-widened commit trace of docs/differential-corpus.md (M0.12).
+  // The capability-widened commit trace of docs/assurance/differential-corpus.md (M0.12).
   bool config_print_commit = false;
   bool config_print_step = false;
   bool config_print_gdbserver = false;

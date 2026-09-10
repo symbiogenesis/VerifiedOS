@@ -41,8 +41,8 @@ HEADING = "=== costated: every fact stated across pairs, at each site stating it
 
 SPEC = "docs/spec.md"
 REGISTER = "docs/requirements-register.md"
-CHECKLIST = "docs/implementation-checklist.md"
-INSPIRATIONS = "docs/inspirations.md"
+CHECKLIST = "docs/implementation/implementation-checklist.md"
+INSPIRATIONS = "docs/background/inspirations.md"
 
 # One row per fact: what it is, and the sites that state it. A site names a register
 # entry (held against that entry's own lines: body, criteria, conferrals) or a

@@ -326,7 +326,7 @@ function revocation_store(paddr, width, data) =
 // composition declares the slave and an auditor checks it is unreachable, which
 // is a different fact from its not existing: A-17 is the search of the decode
 // surface for a maintenance instruction, and this is the search of the address
-// map for a door (docs/absence-contract.md). Refusing here rather than leaving
+// map for a door (docs/hardware/absence-contract.md). Refusing here rather than leaving
 // the window unclaimed is also what makes the refusal real: an IO address no
 // device claims falls through to the RAM path and reads as zero (sys/mem.sail),
 // which is silence and not a refusal.

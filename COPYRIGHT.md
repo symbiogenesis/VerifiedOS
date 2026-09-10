@@ -41,7 +41,7 @@ Files under `model/` keep whatever header they arrived with, and a new file auth
 
 ## Terms this tree does not carry
 
-No tracked file is subject to a reciprocal or non-commercial term. That is a property of today's tree rather than a standing guarantee, and the [implementation plan](docs/implementation-checklist.md)'s milestone gates are what preserve it: an upstream's license is read at the milestone that would incorporate it, never at release.
+No tracked file is subject to a reciprocal or non-commercial term. That is a property of today's tree rather than a standing guarantee, and the [implementation plan](docs/implementation/implementation-checklist.md)'s milestone gates are what preserve it: an upstream's license is read at the milestone that would incorporate it, never at release.
 
 Three planned upstreams carry terms that would decide what the composed system could be licensed as, and all three calls are taken without moving a row of the map. The verified compiler and the control-plane compiler are **contained**: each is a build-time producer this repository never redistributes, so its non-commercial term reaches nothing offered here. The kernel specification is **authored instead**: no `GPL-2.0-only` object is translated, that being the one term of the three that would have reached the shipped image, and a derivation once written is not undone by a later decision. [THIRD-PARTY.md](THIRD-PARTY.md) quotes each instrument, and what containment costs is recorded at the milestones that spend it.
 

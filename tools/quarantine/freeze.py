@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The profile-freeze measurement instrument: what it carries, and what it waits on.
 
-[docs/freeze-measurement-contract.md](../../docs/freeze-measurement-contract.md) is
+[docs/implementation/freeze-measurement-contract.md](../../docs/implementation/freeze-measurement-contract.md) is
 the specification: the versioned corpus manifest, the composition recipe, the
 emitter-provenance schema, the admitted region classes, the nine decisions of the
 freeze's single measured act, the declared parameters, the report's two renderings,
@@ -57,7 +57,7 @@ from pathlib import Path
 from vos import freezemodel, freezeschema
 from vos.jsonc import Json
 
-CONTRACT = "docs/freeze-measurement-contract.md"
+CONTRACT = "docs/implementation/freeze-measurement-contract.md"
 MODULE = "tools/quarantine/freeze.py"
 
 # =====================================================================================

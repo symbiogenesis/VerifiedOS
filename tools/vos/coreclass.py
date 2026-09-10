@@ -268,7 +268,7 @@ def read(root: Path, register_body: str) -> CoreClasses:
     spec = text("docs/spec.md")
     cc.stated["the specification's core-class table"] = _table(spec, 1)
     cc.stated["the profile's core-class table"] = _table(
-        text("docs/isa-profile.md"), 0)
+        text("docs/hardware/isa-profile.md"), 0)
     cc.stated["the register's class enumeration"] = _register(register_body)
     cc.counts = _counts(spec)
     cc.declared, cc.roster = _composition(root)

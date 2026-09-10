@@ -7,7 +7,7 @@ bandwidth ceiling §11 consumes, the read energy per bit that bitline capacitanc
 and the R-15-247g simultaneous-activation envelope, with the droop envelope a hard
 admission constraint and the other two objectives. Six of the seven coefficients those
 three need are pending on a measurement nobody has taken, which
-docs/bank-count-dse-contract.md states one row at a time.
+docs/hardware/bank-count-dse-contract.md states one row at a time.
 
 So this tool is not the search. It is the part of the search that can be run before the
 coefficients arrive: the shape constraints a candidate must satisfy whatever the

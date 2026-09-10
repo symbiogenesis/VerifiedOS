@@ -21,7 +21,7 @@
 // the watchdog are register slaves because R-15-194 makes them the management
 // processor's duties rather than any core's instruction set. That is the same
 // claim A-17 is an auditor's search of the decode surface for
-// (docs/absence-contract.md).
+// (docs/hardware/absence-contract.md).
 //
 // **These windows are the die's and the RoT's answer to them is the composed
 // hart's.** The peripherals sit in the address map of every composition,

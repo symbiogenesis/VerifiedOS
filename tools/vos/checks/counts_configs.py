@@ -376,7 +376,7 @@ def aperture_placements(ctx: Context) -> None:
 BY_NAME_ROW_RE = re.compile(r"(?m)^\|([^|\n]*)\|[^|\n]*excluded \*\*by name rather than "
                             r"by silence\*\*")
 BACKTICKED_RE = re.compile(r"`(\w+)`")
-PROFILE = "docs/isa-profile.md"
+PROFILE = "docs/hardware/isa-profile.md"
 
 
 def excluded_by_name_keys(ctx: Context) -> None:

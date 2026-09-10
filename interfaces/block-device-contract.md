@@ -4,7 +4,7 @@ This is M5.3's reviewed composition interface for an executable storage image an
 an R1c-ii simulation wrapper. The integrator accepts the bounded PIO abstraction,
 write-through durable success, complete-access refusals and reset ordering after
 independent review of commits `7c35a98` and `4396c77`. These are composition choices
-for implementation under the [M5.3 acceptance predicate](../docs/implementation-checklist.md),
+for implementation under the [M5.3 acceptance predicate](../docs/implementation/implementation-checklist.md),
 not an implemented device or new architectural requirements. Recovery policy
 receives a separate review. Neither M5.3 nor R1c-ii lands with this document.
 

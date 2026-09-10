@@ -46,9 +46,9 @@ def run(ctx: Context) -> None:
         # the absence token carries the suffix for the same reason the requirement one
         # does: `A-12a` is an id, and a pattern stopping at the digits does not report
         # it as unknown but fails the right boundary and skips the citation entirely
-        ("absence", r"A-\d+[a-z]?", art.absence_ids, "docs/absence-contract.md"),
-        ("boundary", r"B-\d+", art.cm_bounds, "docs/coverage-matrix.md"),
-        ("property", r"P-\d+", art.cm_props, "docs/coverage-matrix.md"),
+        ("absence", r"A-\d+[a-z]?", art.absence_ids, "docs/hardware/absence-contract.md"),
+        ("boundary", r"B-\d+", art.cm_bounds, "docs/assurance/coverage-matrix.md"),
+        ("property", r"P-\d+", art.cm_props, "docs/assurance/coverage-matrix.md"),
     ]
 
     # the five tokens start with five different letters, so one alternation walks the

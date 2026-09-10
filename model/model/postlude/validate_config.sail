@@ -406,7 +406,7 @@ private function check_apertures_disjoint(aps : list((string, bits(64), bits(64)
 // byte, and no other entry does either. So the ground here is that two devices
 // cannot answer at one address and that a tree naming one address twice states a
 // map no die has. That no entry requires it is filed as a gap against the
-// register rather than read into R-15-002b (docs/findings-register.md).
+// register rather than read into R-15-002b (docs/assurance/findings-register.md).
 private function check_aperture_map() -> bool = {
   var valid : bool = check_apertures_disjoint(declared_apertures());
 

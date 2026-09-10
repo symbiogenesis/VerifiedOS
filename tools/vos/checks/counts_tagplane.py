@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from . import Context
 
 SPEC = "docs/spec.md"
-ALTERNATIVES = "docs/architectural-alternatives.md"
-ESTIMATES = "docs/performance-estimates.md"
+ALTERNATIVES = "docs/background/architectural-alternatives.md"
+ESTIMATES = "docs/performance/performance-estimates.md"
 
 # file, key, and the pattern capturing the stated figure alone. Each pattern holds
 # exactly one site in its own file, which a claim owes because a repair rewrites every

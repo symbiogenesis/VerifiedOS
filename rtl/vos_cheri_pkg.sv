@@ -6,7 +6,7 @@
 // `cap_common.sail`, which are the definition. It is not derived from the
 // imported CHERI-CVA6 datapath's own capability package: that one implements the
 // ISAv8/v9 128-bit lineage, and the delta between the two is enumerated in
-// [docs/rtl-reparameterization-delta.md]. Where this file and the Sail model
+// [docs/hardware/rtl-reparameterization-delta.md]. Where this file and the Sail model
 // disagree the model wins and this file is defective.
 //
 // **What has been checked and what has not.** The widths and the packed field
@@ -690,7 +690,7 @@ package vos_cheri_pkg;
 
   // The length, as the model states it: a **wrapping** quantity and not the
   // saturating one the imported datapath computes, whose own comment there calls
-  // that saturation short of being correct (docs/rtl-reparameterization-delta.md
+  // that saturation short of being correct (docs/hardware/rtl-reparameterization-delta.md
   // §2.1, line 493). For a tagged capability top is at or above base and this is
   // the plain difference; the representation admits top below base for some
   // untagged ones, and there the difference wraps at 2^cap_len_width, which is
@@ -729,7 +729,7 @@ package vos_cheri_pkg;
   // `setCapBounds` of `cap_common.sail`, which is the CHERI Concentrate paper's
   // ideal narrowing at the frozen widths. It is authored against that statement
   // rather than re-parameterized from the imported `set_cap_reg_bounds`, for the
-  // reason [docs/rtl-reparameterization-delta.md] §2.1 gives at that row: the
+  // reason [docs/hardware/rtl-reparameterization-delta.md] §2.1 gives at that row: the
   // frozen format has no internal-exponent flag and steals no mantissa bits, so
   // the imported function's `int_exp`, `lmask_lo`, `lmask_lo_ovflw`,
   // `len_carry_in`, `len_max` and `len_max_less_1` family has nothing to compute

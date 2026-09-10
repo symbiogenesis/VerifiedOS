@@ -3,7 +3,7 @@
 
 M1.4 excludes general dynamic linking by its own first line, so *the linker* here is an
 image composer, which [image.py](image.py) already is for the emulator's ELF. What this
-module adds is the half [the measurement contract](../../docs/freeze-measurement-contract.md)'s
+module adds is the half [the measurement contract](../../docs/implementation/freeze-measurement-contract.md)'s
 §4 declares and M1.8b joins into its one table: the **link map** from S5, one row per
 site with the bundle and slot that carry it, and the **encoded image** from S7 as its
 bytes beside a per-site entry-and-escape table.

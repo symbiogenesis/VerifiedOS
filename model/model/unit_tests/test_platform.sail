@@ -9,7 +9,7 @@
 // Each of these is net-new here, so there is no oracle to differentially test
 // it against and a property asserted about it and a program that runs it are
 // different evidence. These are the first half; the corpus is the second
-// (docs/differential-corpus.md).
+// (docs/assurance/differential-corpus.md).
 
 // *****************************************************************
 // `fence.t`.

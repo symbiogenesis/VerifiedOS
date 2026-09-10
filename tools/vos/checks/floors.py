@@ -96,7 +96,7 @@ BOOKED_OPEN: list[tuple[str, str, str]] = [
      "(viii) the per-class bank count (R-15-247p)"),
     ("register", "R-15-247p",
      "the per-class bank count is in R-15-014a's frozen parameter set"),
-    ("docs/freeze-measurement-contract.md", "",
+    ("docs/implementation/freeze-measurement-contract.md", "",
      "the per-class bank count (R-15-247p) are re-derived at the final freeze"),
 ]
 

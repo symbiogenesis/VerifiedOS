@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """§4's emitter-provenance schema, owned once and read from both ends.
 
-[The measurement contract](../../docs/freeze-measurement-contract.md)'s §4 fixes three
+[The measurement contract](../../docs/implementation/freeze-measurement-contract.md)'s §4 fixes three
 record shapes and the analyzer refuses to read any of them positionally: a header naming
 exactly these fields in exactly this order is required, because a stream whose columns
 moved would be read into the wrong labels and *a mis-stratified hit rate that is precise

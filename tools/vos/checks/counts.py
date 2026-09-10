@@ -72,13 +72,13 @@ __all__ = ["CLAIMS", "GRANULE_RE", "HEADING", "PAYLOAD_RE", "TAG_PLANE", "run"]
 HEADING = "=== counts: every asserted figure against its artifact ==="
 
 SPEC = "docs/spec.md"
-TAL = "docs/typed-assembly-language.md"
+TAL = "docs/languages/typed-assembly-language.md"
 TOOLS_README = "tools/README.md"
-PLAN = "docs/implementation-checklist.md"
+PLAN = "docs/implementation/implementation-checklist.md"
 # the completion log carries every landed item's note from S10b, so a claim a note
 # states is read there rather than in the plan
-LOG = "docs/completion-log.md"
-FINDINGS = "docs/findings-register.md"
+LOG = "docs/implementation/completion-log.md"
+FINDINGS = "docs/assurance/findings-register.md"
 
 # file, quantity, style, and the pattern that captures the stated figure alone
 CLAIMS = [
@@ -88,20 +88,20 @@ CLAIMS = [
     (REGISTER, "lettered", "digits", r"(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)"),
 
     # the crown-jewel inventory states its own status ratio
-    ("docs/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= entries, all used)"),
-    ("docs/crown-jewels.md", "cj-theorems", "words", r"(?<=The remaining )[\w-]+(?= `CJ-` targets name)"),
-    ("docs/crown-jewels.md", "cj-unauthored", "words", r"[\w-]+(?= of those [\w-]+ are not authored)"),
-    ("docs/crown-jewels.md", "cj-specs", "words", r"(?<=of those )[\w-]+(?= are not authored)"),
-    ("docs/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= targets, every one used)"),
-    ("docs/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= coarse targets)"),
-    ("docs/crown-jewels.md", "cj-specs", "digits", r"[\d]+(?= specifications, per-member)"),
-    ("docs/crown-jewels.md", "cj-authored", "words", r"[\w-]+(?= of [\w-]+ are authored outright)"),
-    ("docs/crown-jewels.md", "cj-specs", "words", r"(?<=of )[\w-]+(?= are authored outright)"),
-    ("docs/crown-jewels.md", "cj-partial", "words", r"(?<=and )[\w-]+(?= more are partial)"),
-    ("docs/crown-jewels.md", "cj-specs", "words", r"(?<=because these )[\w-]+(?= are \*named)"),
-    ("docs/crown-jewels.md", "cj-unauthored", "words", r"[\w-]+(?= of them are not yet written)"),
-    ("docs/crown-jewels.md", "cj-theorems", "words", r"(?<=the )[\w-]+(?= theorem targets above cannot start)"),
-    ("docs/crown-jewels.md", "cj-conferring", "words", r"(?<=There are )[\w-]+(?= such entries)"),
+    ("docs/assurance/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= entries, all used)"),
+    ("docs/assurance/crown-jewels.md", "cj-theorems", "words", r"(?<=The remaining )[\w-]+(?= `CJ-` targets name)"),
+    ("docs/assurance/crown-jewels.md", "cj-unauthored", "words", r"[\w-]+(?= of those [\w-]+ are not authored)"),
+    ("docs/assurance/crown-jewels.md", "cj-specs", "words", r"(?<=of those )[\w-]+(?= are not authored)"),
+    ("docs/assurance/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= targets, every one used)"),
+    ("docs/assurance/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= coarse targets)"),
+    ("docs/assurance/crown-jewels.md", "cj-specs", "digits", r"[\d]+(?= specifications, per-member)"),
+    ("docs/assurance/crown-jewels.md", "cj-authored", "words", r"[\w-]+(?= of [\w-]+ are authored outright)"),
+    ("docs/assurance/crown-jewels.md", "cj-specs", "words", r"(?<=of )[\w-]+(?= are authored outright)"),
+    ("docs/assurance/crown-jewels.md", "cj-partial", "words", r"(?<=and )[\w-]+(?= more are partial)"),
+    ("docs/assurance/crown-jewels.md", "cj-specs", "words", r"(?<=because these )[\w-]+(?= are \*named)"),
+    ("docs/assurance/crown-jewels.md", "cj-unauthored", "words", r"[\w-]+(?= of them are not yet written)"),
+    ("docs/assurance/crown-jewels.md", "cj-theorems", "words", r"(?<=the )[\w-]+(?= theorem targets above cannot start)"),
+    ("docs/assurance/crown-jewels.md", "cj-conferring", "words", r"(?<=There are )[\w-]+(?= such entries)"),
 
     # the prose states the size of each seam register it carries
     ("docs/spec.md", "fc-seams", "words", r"[\w-]+(?= fail-closed seams are named with owners)"),
@@ -113,14 +113,14 @@ CLAIMS = [
 
     # the coverage matrix states the shape of its own product, and the partition of
     # its cells by the standing K-95 computes for each
-    ("docs/coverage-matrix.md", "boundaries", "words", r"(?<=below are )[\w-]+(?= boundaries)"),
-    ("docs/coverage-matrix.md", "properties", "words", r"(?<=boundaries and )[\w-]+(?= properties)"),
-    ("docs/coverage-matrix.md", "cells", "words", r"(?<=carries all )[\w-]+(?= of their pairs)"),
-    ("docs/coverage-matrix.md", "cells-authored", "digits",
+    ("docs/assurance/coverage-matrix.md", "boundaries", "words", r"(?<=below are )[\w-]+(?= boundaries)"),
+    ("docs/assurance/coverage-matrix.md", "properties", "words", r"(?<=boundaries and )[\w-]+(?= properties)"),
+    ("docs/assurance/coverage-matrix.md", "cells", "words", r"(?<=carries all )[\w-]+(?= of their pairs)"),
+    ("docs/assurance/coverage-matrix.md", "cells-authored", "digits",
      r"(?<=partitions the cells into )\d+(?= authored)"),
-    ("docs/coverage-matrix.md", "cells-partial", "digits",
+    ("docs/assurance/coverage-matrix.md", "cells-partial", "digits",
      r"(?<=partitions the cells into \d authored, )\d+(?= partial)"),
-    ("docs/coverage-matrix.md", "cells-unauthored", "digits",
+    ("docs/assurance/coverage-matrix.md", "cells-unauthored", "digits",
      r"(?<=partial, and )\d+(?= not authored)"),
 
     # the README summarizes them
@@ -132,30 +132,30 @@ CLAIMS = [
     ("README.md", "cj-theorems", "words", r"(?<=plus the )[\w-]+(?= theorem targets)"),
 
     # the gap catalogue argues from them
-    ("docs/critique.md", "views", "words", r"(?<=register and the )[\w-]+(?= derived views)"),
-    ("docs/critique.md", "fc-conferrals", "words", r"[\w-]+(?= conferrals against)"),
-    ("docs/critique.md", "fc-seams", "words", r"(?<=conferrals against )[\w-]+(?= seams)"),
-    ("docs/critique.md", "dispositions", "words", r"[\w-]+(?= candidates stand dispositioned)"),
-    ("docs/critique.md", "rot-cases", "words", r"(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)"),
-    ("docs/critique.md", "cj-specs", "words", r"[\w-]+(?= crown-jewel specifications are named)"),
-    ("docs/critique.md", "cj-theorems", "words", r"[\w-]+(?= theorem targets are named)"),
-    ("docs/critique.md", "cj-specs", "words", r"(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)"),
-    ("docs/critique.md", "cj-authored", "words", r"(?<=are named; \*\*)[\w-]+(?=\*\* are authored)"),
-    ("docs/critique.md", "cj-authored", "words", r"[\w-]+(?= are authored\*\* \(the frozen)"),
-    ("docs/critique.md", "cj-partial", "words", r"(?<=machine-checked statement\), )[\w-]+(?= are partial)"),
-    ("docs/critique.md", "cj-unauthored", "words", r"(?<=\*\*)[\w-]+(?= are not authored\*\*)"),
-    ("docs/critique.md", "cj-theorems", "words", r"(?<=The )[\w-]+(?= theorem targets each depend)"),
-    ("docs/critique.md", "cj-unauthored", "words", r"[\w-]+(?= of those premises do not exist)"),
-    ("docs/critique.md", "cj-specs", "words", r"[\w-]+(?= crown jewels, each a small oracle)"),
-    ("docs/critique.md", "requirements", "digits", r"(?<=of )[\d,]+(?= acceptance criteria)"),
-    ("docs/critique.md", "requirements", "digits", r"(?<=of the )[\d,]+(?= requirements has yet been booked)"),
-    ("docs/critique.md", "lettered", "digits", r"[\d,]+(?= of [\d,]+ entries are post-hoc insertions)"),
-    ("docs/critique.md", "requirements", "digits", r"(?<= of )[\d,]+(?= entries are post-hoc insertions)"),
+    ("docs/background/critique.md", "views", "words", r"(?<=register and the )[\w-]+(?= derived views)"),
+    ("docs/background/critique.md", "fc-conferrals", "words", r"[\w-]+(?= conferrals against)"),
+    ("docs/background/critique.md", "fc-seams", "words", r"(?<=conferrals against )[\w-]+(?= seams)"),
+    ("docs/background/critique.md", "dispositions", "words", r"[\w-]+(?= candidates stand dispositioned)"),
+    ("docs/background/critique.md", "rot-cases", "words", r"(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)"),
+    ("docs/background/critique.md", "cj-specs", "words", r"[\w-]+(?= crown-jewel specifications are named)"),
+    ("docs/background/critique.md", "cj-theorems", "words", r"[\w-]+(?= theorem targets are named)"),
+    ("docs/background/critique.md", "cj-specs", "words", r"(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)"),
+    ("docs/background/critique.md", "cj-authored", "words", r"(?<=are named; \*\*)[\w-]+(?=\*\* are authored)"),
+    ("docs/background/critique.md", "cj-authored", "words", r"[\w-]+(?= are authored\*\* \(the frozen)"),
+    ("docs/background/critique.md", "cj-partial", "words", r"(?<=machine-checked statement\), )[\w-]+(?= are partial)"),
+    ("docs/background/critique.md", "cj-unauthored", "words", r"(?<=\*\*)[\w-]+(?= are not authored\*\*)"),
+    ("docs/background/critique.md", "cj-theorems", "words", r"(?<=The )[\w-]+(?= theorem targets each depend)"),
+    ("docs/background/critique.md", "cj-unauthored", "words", r"[\w-]+(?= of those premises do not exist)"),
+    ("docs/background/critique.md", "cj-specs", "words", r"[\w-]+(?= crown jewels, each a small oracle)"),
+    ("docs/background/critique.md", "requirements", "digits", r"(?<=of )[\d,]+(?= acceptance criteria)"),
+    ("docs/background/critique.md", "requirements", "digits", r"(?<=of the )[\d,]+(?= requirements has yet been booked)"),
+    ("docs/background/critique.md", "lettered", "digits", r"[\d,]+(?= of [\d,]+ entries are post-hoc insertions)"),
+    ("docs/background/critique.md", "requirements", "digits", r"(?<= of )[\d,]+(?= entries are post-hoc insertions)"),
 
     # the reviewer's onramp restates the register's shape to the person it teaches
-    ("docs/reviewer-onramp.md", "lettered", "digits",
+    ("docs/assurance/reviewer-onramp.md", "lettered", "digits",
      r"[\d,]+(?= of the register's [\d,]+ entries are post-hoc insertions)"),
-    ("docs/reviewer-onramp.md", "requirements", "digits",
+    ("docs/assurance/reviewer-onramp.md", "requirements", "digits",
      r"(?<=of the register's )[\d,]+(?= entries are post-hoc insertions)"),
 
     # the type-obligation menu: owned by R-05-029's enumeration, its count restated
@@ -242,7 +242,7 @@ CLAIMS = [
     # are, so a program added to the manifest and described in the document left
     # this sentence behind with every rule green; and the counted-noun sweep does
     # not reach it either, `programs` not being one of the nouns it proposes.
-    ("docs/differential-corpus.md", "corpus-members", "words",
+    ("docs/assurance/differential-corpus.md", "corpus-members", "words",
      r"[\w-]+(?= purecap programs)"),
 
     # the lane's own shape, owned by the provisioner's fact table. Three figures are

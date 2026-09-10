@@ -119,7 +119,7 @@ def _fixture(config: str | None, contract: str) -> dict[str, str]:
     files["docs/requirements-register.md"] = "# register stub for find_root\n"
     if config is not None:
         files["model/config/verifiedos.json"] = config
-    files["docs/bank-count-dse-contract.md"] = contract
+    files["docs/hardware/bank-count-dse-contract.md"] = contract
     return files
 
 
@@ -248,7 +248,7 @@ def _no_candidate_set() -> None:
         done = _run(root)
         ensure(done.returncode == 1
                and done.stdout.rstrip() == (
-                   "FAIL: docs/bank-count-dse-contract.md declares no candidate set "
+                   "FAIL: docs/hardware/bank-count-dse-contract.md declares no candidate set "
                    "this tool reads"),
                f"a contract with no candidate set is a finding, got "
                f"{done.returncode}: {done.stdout!r}")
@@ -258,7 +258,7 @@ def _live_tree_facts() -> None:
     # Golden values from the live contract and configuration as of 2026-08-22:
     # 11 candidates (64 through 65,536), 8 clearing the shape constraints, 4,096
     # declared. Rerecord by running `python tools/quarantine/bank-dse.py` after a
-    # deliberate change to docs/bank-count-dse-contract.md or
+    # deliberate change to docs/hardware/bank-count-dse-contract.md or
     # model/config/verifiedos.json and carrying the new figures here.
     done = subprocess.run(
         [sys.executable, str(TOOLS / "quarantine" / "bank-dse.py")],

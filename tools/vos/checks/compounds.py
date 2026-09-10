@@ -76,7 +76,7 @@ if TYPE_CHECKING:
 
 HEADING = "=== compounds: the archetype band against the product of the rows it rests on ==="
 
-PERF = "docs/performance-estimates.md"
+PERF = "docs/performance/performance-estimates.md"
 
 # The column is one shape, stated in the document's own how-to-read: clauses joined by
 # '; ', each a range over the scope it names, or `n/a` where the row carries no figure

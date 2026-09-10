@@ -12,7 +12,7 @@
 // by whether a model of architectural state can express them at all (R-15-089).
 // The **absence** obligations, no speculation, no out-of-order issue, no dynamic
 // predictor, no prefetcher, no cache, no frequency control, are invisible here
-// and ride the [absence contract](../../../docs/absence-contract.md) instead
+// and ride the [absence contract](../../../docs/hardware/absence-contract.md) instead
 // (R-15-098, R-15-021). The **refinement** obligations, the `Zkt`/`Zvkt`
 // data-independent-timing contract, the Ztso store-buffer ordering, static-only
 // fetch timing, and the fixed-latency divide, vector-FPU and AMO contracts, are
@@ -82,7 +82,7 @@
 //     (R-15-007s), and of whether anything was corrected (R-15-177a, R-15-179).
 //     They share the welded block size (R-15-007q), so the four are one
 //     parameter's four consumers here as they are everywhere else
-//     (docs/block-geometry-constraint.md).
+//     (docs/hardware/block-geometry-constraint.md).
 //   - `Timing_CapSelect` is the conditional capability move at one latency
 //     independent of the operand values **and of which arm is taken**
 //     (R-15-054a), which the architectural write cannot show and which is

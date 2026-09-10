@@ -7,8 +7,8 @@
 | Path | What it is |
 | --- | --- |
 | [freeze.py](freeze.py) | The profile-freeze measurement instrument: the corpus, the recipe, the ordered act, the region classes and their refusals, the report's two renderings, and the twelve CI predicates of §9 as predicates over the record |
-| [freeze-report.py](freeze-report.py) | The instrument, run against [the contract that defines it](../../docs/freeze-measurement-contract.md), in three renderings |
-| [banks.py](banks.py) | The second class's bank grant, out of the composition and out of [the exploration contract](../../docs/bank-count-dse-contract.md) |
+| [freeze-report.py](freeze-report.py) | The instrument, run against [the contract that defines it](../../docs/implementation/freeze-measurement-contract.md), in three renderings |
+| [banks.py](banks.py) | The second class's bank grant, out of the composition and out of [the exploration contract](../../docs/hardware/bank-count-dse-contract.md) |
 | [bank-dse.py](bank-dse.py) | Every candidate bank count, scored against the arithmetic that exists without a coefficient, admitting none |
 | [checks/](checks/) | K-77 and K-58, the two rules that hold each instrument against the contract it answers |
 | [check-rules.md](check-rules.md) | This directory's own rule registry, held against those checks in both directions |

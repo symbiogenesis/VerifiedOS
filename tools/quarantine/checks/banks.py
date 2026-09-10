@@ -4,7 +4,7 @@
 The per-class bank count is item (viii) of R-15-014a's closed final-freeze delta, so
 it is a decision nobody has taken written down in two places that both look like they
 have taken it. `model/config/verifiedos.json` declares a number because the emulator
-needs one; `docs/bank-count-dse-contract.md` declares the same number because the
+needs one; `docs/hardware/bank-count-dse-contract.md` declares the same number because the
 instrument that will decide it has to say what it is starting from. Two copies of one
 fact is the defect this repository is built to catch, and this group is that catch
 applied to the one figure whose two copies are in different languages.

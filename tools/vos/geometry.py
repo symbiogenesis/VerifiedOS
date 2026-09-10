@@ -35,7 +35,7 @@ from pathlib import Path
 
 from . import capformat, config, sailbundle
 
-DOCUMENT = "docs/block-geometry-constraint.md"
+DOCUMENT = "docs/hardware/block-geometry-constraint.md"
 
 # The two type synonyms the bundle resolves by name, and which figure each one is.
 GRANULE = "log2_cap_size"

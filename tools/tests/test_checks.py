@@ -154,7 +154,7 @@ def _bindings_truncated_row_is_a_finding() -> None:
                "| `temporal_safety` | truncated |\n")
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                        "proofs/ApexTheorem.v": apex_v,
-                       "docs/field-bindings.md": bind_md}) as root:
+                       "docs/assurance/field-bindings.md": bind_md}) as root:
         ctx = _context(root)
         bindings.run(ctx)
         found = _findings_under(ctx, "K-42")
@@ -173,7 +173,7 @@ def _counts_overflow_is_a_finding() -> None:
     absences = "# Absences\n\n" + "".join(f"| **A-{n}** | row |\n"
                                           for n in range(1, 101))
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                       "docs/absence-contract.md": absences}) as root:
+                       "docs/hardware/absence-contract.md": absences}) as root:
         ctx = _context(root)
         # the shared keys confers and views would have produced; counts reads
         # them positionally and this test runs counts alone

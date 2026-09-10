@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """The findings register, the notes' own findings blocks, and the relation between them.
 
-Three artifacts, one relation. `docs/implementation-checklist.md` carries every item
-and, for a landed one, a single line and a link; `docs/completion-log.md` carries the
+Three artifacts, one relation. `docs/implementation/implementation-checklist.md` carries every item
+and, for a landed one, a single line and a link; `docs/implementation/completion-log.md` carries the
 note each landed item recorded, under a heading spelling the item's label, and a note
 records a finding under a count with its bullets beneath it or as a bullet that opens
-`Finding`; `docs/findings-register.md` gives that finding an id, a type, the item that
+`Finding`; `docs/assurance/findings-register.md` gives that finding an id, a type, the item that
 raised it, and a disposition. This module reads all three and states where they
 disagree, so that the rule over them and any later tool asking the same question share
 one parse rather than two.
@@ -46,9 +46,9 @@ from dataclasses import dataclass, field
 from vos import figures
 from vos.corpus import fence_lines
 
-REGISTER = "docs/findings-register.md"
-PLAN = "docs/implementation-checklist.md"
-LOG = "docs/completion-log.md"
+REGISTER = "docs/assurance/findings-register.md"
+PLAN = "docs/implementation/implementation-checklist.md"
+LOG = "docs/implementation/completion-log.md"
 
 # The closed vocabularies. A type says what a reader does with the finding and a
 # disposition says whether anything is owed; an entry carrying neither in the words

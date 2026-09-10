@@ -5,7 +5,7 @@
 R-15-014a's second freeze act is a closed delta of nine items, six of which are
 re-derived from measurement against generated output that does not exist until a
 backend and a composed image do (R-18-003c).
-docs/freeze-measurement-contract.md fixes what is measured, against what, and which
+docs/implementation/freeze-measurement-contract.md fixes what is measured, against what, and which
 number separates a win from noise; this tool is the instrument it specifies.
 
 **It cannot be run end to end and it says so.** §4's join takes three inputs, the

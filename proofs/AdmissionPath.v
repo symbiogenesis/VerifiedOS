@@ -249,7 +249,7 @@
 
    a. Where the judgment forms and the phase order are closed. R-05-135a puts
       the type theory in
-      [typed-assembly-language.md](../docs/typed-assembly-language.md), whose
+      [typed-assembly-language.md](../docs/languages/typed-assembly-language.md), whose
       section 8.4 block fixes seven judgment forms and whose TAL-074 closes
       and orders six checker phases, and no register entry states either
       number in its own words. The register's review gate audits the register,
@@ -343,7 +343,7 @@
       R-05-163 R-05-164 R-05-165 R-05-166 R-06-008 R-06-009 R-06-014 R-06-015b R-06-015d
       R-10-026 R-11-005 R-11-005a R-13-001 R-13-001a R-13-001c R-13-003 R-13-007 R-13-010a
       R-13-010b R-13-011 R-13-012 R-13-013 R-13-014 R-13-022 R-13-025 R-13-026 R-17-033
-   SHA256: 027aeb15bc6bc218f5e7b069a094b5ef24ef0cf9ec4787b06a5c8db6a289a4c8
+   SHA256: 81b2f6ac8a7d929fcbcccf7206f4f673c07744fb73a9496b65f4bc2ba47936ee
    (*| END derived |*)
    ========================================================================= *)
 

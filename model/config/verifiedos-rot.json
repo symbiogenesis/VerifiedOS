@@ -1,4 +1,4 @@
-// The **RoT** composition of the profile configuration (docs/isa-profile.md,
+// The **RoT** composition of the profile configuration (docs/hardware/isa-profile.md,
 // verifiedos.json). It is the same machine as verifiedos.json and the same
 // composed die: the identical sixteen-entry roster, the identical five-row core
 // class table, the identical address map, and the identical four Root of Trust

@@ -610,24 +610,24 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
 
 REGISTER = "docs/requirements-register.md"
 SPEC = "docs/spec.md"
-CRITIQUE = "docs/critique.md"
-CROWN = "docs/crown-jewels.md"
-MATRIX = "docs/coverage-matrix.md"
-PROFILE = "docs/isa-profile.md"
-PERF = "docs/performance-estimates.md"
-PLAN = "docs/implementation-checklist.md"
+CRITIQUE = "docs/background/critique.md"
+CROWN = "docs/assurance/crown-jewels.md"
+MATRIX = "docs/assurance/coverage-matrix.md"
+PROFILE = "docs/hardware/isa-profile.md"
+PERF = "docs/performance/performance-estimates.md"
+PLAN = "docs/implementation/implementation-checklist.md"
 # every landed item's note, and so every findings block, holder citation and landing
 # declaration a landed item wrote, lives here from S10b
-LOG = "docs/completion-log.md"
-BINDINGS = "docs/field-bindings.md"
-ABSENCE = "docs/absence-contract.md"
-CORPUS_DOC = "docs/differential-corpus.md"
-CONTRACT = "docs/freeze-measurement-contract.md"
-GEOMETRY = "docs/block-geometry-constraint.md"
-IDL_PROFILE = "docs/idl-profile.md"
+LOG = "docs/implementation/completion-log.md"
+BINDINGS = "docs/assurance/field-bindings.md"
+ABSENCE = "docs/hardware/absence-contract.md"
+CORPUS_DOC = "docs/assurance/differential-corpus.md"
+CONTRACT = "docs/implementation/freeze-measurement-contract.md"
+GEOMETRY = "docs/hardware/block-geometry-constraint.md"
+IDL_PROFILE = "docs/languages/idl-profile.md"
 THIRD_PARTY = "THIRD-PARTY.md"
-DELTA = "docs/rtl-reparameterization-delta.md"
-FINDINGS = "docs/findings-register.md"
+DELTA = "docs/hardware/rtl-reparameterization-delta.md"
+FINDINGS = "docs/assurance/findings-register.md"
 RING_ARTIFACT = "proofs/RingContract.v"
 KECCAK_GALLINA = "proofs/Keccak.v"
 AESGCM_GALLINA = "proofs/AesGcm.v"
@@ -1129,7 +1129,7 @@ CASES: list[Case] = [
     ("K-49", "a view the register obliges and the repository does not carry", _k49),
 
     ("K-50", "a corpus member the manifest lists and the document does not describe",
-     _literal(CORPUS_DOC, "(../corpus/cap-trap.s)", "(../corpus/cap-trap-moved.s)")),
+     _literal(CORPUS_DOC, "(../../corpus/cap-trap.s)", "(../../corpus/cap-trap-moved.s)")),
 
     ("K-51", "a corpus member whose program no longer assembles",
      _literal("corpus/cap-trap.s", "cmove   c8, c1", "cmove   c8, c1, c2")),
@@ -1723,7 +1723,7 @@ CASES: list[Case] = [
     # and the calibration record carry it, and K-96 rewrites both from the cells rather
     # than from this sentence, so a roster missing it is exactly one rule's finding.
     ("K-102", "a completed item the summary's roster stops naming",
-     _literal("docs/implementation-checklist.md",
+     _literal("docs/implementation/implementation-checklist.md",
               "S25, S26, S27, S28, S29, S30, Q1", "S25, S26, S27, S28, S29, Q1")),
 
     # A transposition rather than an invented id, because that is the shape the defect

@@ -5,7 +5,7 @@ The corpus is versioned (M0.12) because it is evidence rather than scaffolding:
 every executor of the frozen profile is checked against it, and a member added
 or changed after a milestone reported a figure against it changes what that
 figure said. So the manifest carries a version, one row per member, and what
-each member exercises; [docs/differential-corpus.md](../../docs/differential-corpus.md)
+each member exercises; [docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md)
 carries the same rows in prose and `tools/check.py` holds the two equal in both
 directions.
 

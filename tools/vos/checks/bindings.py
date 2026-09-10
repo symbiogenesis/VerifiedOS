@@ -4,7 +4,7 @@
 proofs/ApexTheorem.v is R-18-031(a)'s coverage checklist: every side-property some
 seam consumes or concludes is a Prop field of the Vocabulary record, a proof
 workstream lands by instantiating its field, and a field nothing instantiates is an
-uncovered obligation with exactly one name. docs/field-bindings.md is the view that
+uncovered obligation with exactly one name. docs/assurance/field-bindings.md is the view that
 makes the checklist readable and queryable: one row per Prop field, carrying what the
 statement does with the field (mechanical, recomputed here from the .v), which
 artifact authors its meaning (semantic, hand-authored, the register wins), and which
