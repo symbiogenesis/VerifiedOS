@@ -536,7 +536,7 @@ K-67 holds this table and the lockfile against the manifest. Global checker shim
 and an unrelated activated environment cannot select different tools.
 
 The Python project lives in `tools/`. From the repository root, add a dependency
-with `uv add --project tools PACKAGE`, or edit the manifest and run
+with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run
 `uv lock --project tools`. Update this checker table when its pins change, and run
 the Windows and Linux gates. Review and commit the manifest and lockfile together.
 To refresh resolution within the declared constraints, use
