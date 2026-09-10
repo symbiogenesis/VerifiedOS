@@ -43,7 +43,7 @@ the interesting case is not the drift but which owner moved.
 that the artifact agrees with its *owners*, the declaration and the four register
 entries the emitter reads, and that is the whole of what it decides: the emitter also
 states the wire encoding, and where it takes that from is [the typed IDL
-profile](../../../docs/idl-profile.md)'s §4, which is not an owner the emitter reads at
+profile](../../../docs/languages/idl-profile.md)'s §4, which is not an owner the emitter reads at
 all. So a row edited in §4.2 moves neither side of K-89, and the drift is silent in both
 directions. That gap is what that document's own *what nothing holds* section reported,
 and this rule is the binding it said was owed.
@@ -97,7 +97,7 @@ HEADING = "=== ring: the generated interface artifact against its owners ==="
 
 REPAIR = "run.py ring emit"
 
-PROFILE = "docs/idl-profile.md"
+PROFILE = "docs/languages/idl-profile.md"
 
 LADDER_ENTRY = "IDL-023"
 DESCRIPTOR_ENTRY = "IDL-053"

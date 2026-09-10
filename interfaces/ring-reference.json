@@ -1,6 +1,6 @@
 {
   "schema": "vos.idl.ring/1",
-  "profile": "docs/idl-profile.md",
+  "profile": "docs/languages/idl-profile.md",
   "profile_version": 1,
   "world": "ring_reference",
 

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from . import Context
 
 SPEC = "docs/spec.md"
-CONTRACT = "docs/bank-count-dse-contract.md"
+CONTRACT = "docs/hardware/bank-count-dse-contract.md"
 
 # K-69: a figure one entry fixes and other sites restate verbatim, with no arithmetic
 # between them: the K-54 shape without the ratio. Each row is the figure's key, the

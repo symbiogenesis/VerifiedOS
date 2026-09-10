@@ -12,10 +12,10 @@ from dataclasses import dataclass, field
 from .corpus import Corpus
 
 REGISTER = "docs/requirements-register.md"
-CROWN_JEWELS = "docs/crown-jewels.md"
-ABSENCE_CONTRACT = "docs/absence-contract.md"
-ISA_PROFILE = "docs/isa-profile.md"
-COVERAGE_MATRIX = "docs/coverage-matrix.md"
+CROWN_JEWELS = "docs/assurance/crown-jewels.md"
+ABSENCE_CONTRACT = "docs/hardware/absence-contract.md"
+ISA_PROFILE = "docs/hardware/isa-profile.md"
+COVERAGE_MATRIX = "docs/assurance/coverage-matrix.md"
 
 REQ_TOKEN_RE = re.compile(r"R-\d\d-\d+[a-z]?")
 

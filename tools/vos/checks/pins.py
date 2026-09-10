@@ -8,7 +8,7 @@ were read at. The row is hand-copied from the gitlink and the copy had no owner.
 
 **That copy is the one derived fact in this repository whose defect cannot be
 repaired downstream.** [AGENTS.md](../../../AGENTS.md) and [the plan's
-§12](../../../docs/implementation-checklist.md#12-build-order-milestones-and-execution-state)
+§12](../../../docs/implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state)
 both say it: a licence is a property of the *arrival*, read at the milestone that
 would incorporate the upstream, and work built on terms that forbid the composition
 is not re-licensed by finding out later. A gitlink advanced without its row moving
@@ -178,7 +178,7 @@ HEADING = "=== pins: every upstream pin against the artifact that owns it ==="
 VERILATOR_SRC = "tools/vos/cli/rtl.py"
 _VERILATOR_SRC_RE = re.compile(r'(?m)^VERILATOR_PIN = "([^"\r\n]*)"')
 
-PLAN = "docs/implementation-checklist.md"
+PLAN = "docs/implementation/implementation-checklist.md"
 
 # Each row is a site, the file carrying it, and the pattern that reads the figure out of
 # it. Every pattern is anchored on the sentence's own words rather than on the number, so
@@ -216,24 +216,24 @@ RESIDUE: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
-    ("docs/completion-log.md", "b5894db641d36616cdfce49352ec1d9833fcb411"):
+    ("docs/implementation/completion-log.md", "b5894db641d36616cdfce49352ec1d9833fcb411"):
         "the Rupicola edition recorded in the completed environment measurement",
-    ("docs/completion-log.md", "beaf4499"):
+    ("docs/implementation/completion-log.md", "beaf4499"):
         "the Sail reconciliation edition recorded at the completed M0 gate",
-    ("docs/rtl-reparameterization-delta.md", "173646d5"):
+    ("docs/hardware/rtl-reparameterization-delta.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("THIRD-PARTY.md", "5691ca0d"):
         "the Fiat-Crypto generator edition whose recorded build and licence reading "
         "the dependency measurements describe",
-    ("docs/proof-reuse/crypto.md", "af03839247c545987c20e99342ab2bbfcd517863"):
+    ("docs/assurance/proof-reuse/crypto.md", "af03839247c545987c20e99342ab2bbfcd517863"):
         "the Fiat-Crypto dependency selected by the external verified-NTT artifact, "
         "not this repository's Fiat-Crypto gitlink",
-    ("docs/proof-reuse/crypto.md", "0b07a19be15a23cb1c679e70f60d5b6e280caf7a"):
+    ("docs/assurance/proof-reuse/crypto.md", "0b07a19be15a23cb1c679e70f60d5b6e280caf7a"):
         "the EasyCrypt dependency selected by Formosa ML-KEM's shell.nix, "
         "not the libjade gitlink named earlier in that licence paragraph",
-    ("docs/proof-reuse/languages.md", "14537282"):
+    ("docs/assurance/proof-reuse/languages.md", "14537282"):
         "the numeral of the archived SECOMP artifact's Zenodo record, "
         "not an object id",
 }

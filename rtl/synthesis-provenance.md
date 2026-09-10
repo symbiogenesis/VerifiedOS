@@ -1,8 +1,8 @@
 # The Synthesis-Configuration Provenance Record
 
-*What binds each claimed absence to a build rather than to a reading. R-15-103 requires the imported-core half of [the absence contract](../docs/absence-contract.md) to be discharged by a state enumeration over the elaborated netlist **plus** the synthesis-configuration provenance, and this is that second half: one row per absence, naming the parameters whose values remove it, or stating that no parameter does and why.*
+*What binds each claimed absence to a build rather than to a reading. R-15-103 requires the imported-core half of [the absence contract](../docs/hardware/absence-contract.md) to be discharged by a state enumeration over the elaborated netlist **plus** the synthesis-configuration provenance, and this is that second half: one row per absence, naming the parameters whose values remove it, or stating that no parameter does and why.*
 
-> **Precedence.** [The absence contract](../docs/absence-contract.md) is the register of absences and this record says how each is taken in one build. Where the two disagree the contract wins and this record is defective. Rule K-76 holds the two against each other in both directions, and holds every parameter named here against the configuration package that states it.
+> **Precedence.** [The absence contract](../docs/hardware/absence-contract.md) is the register of absences and this record says how each is taken in one build. Where the two disagree the contract wins and this record is defective. Rule K-76 holds the two against each other in both directions, and holds every parameter named here against the configuration package that states it.
 
 ## 1. How to read this
 
@@ -15,7 +15,7 @@ A row whose binding is neither is a finding, because an absence bound to nothing
 
 **`n/a` is not a lesser answer, and three different things wear it.** A structure the imported core never had needs no parameter and gets one kind of ground. A structure the core has and no parameter removes gets another, and that one is authoring work rather than configuration. A structure that is not in this netlist at all, sitting in the interconnect or the memory controller instead, gets a third. The column says which.
 
-**Every value here is one this configuration sets, and every one of them removes.** Nothing in this record adds hardware to the stock core, which is the property [the profile](../docs/isa-profile.md) and the contract share and the reason the record can be read as a list of deletions.
+**Every value here is one this configuration sets, and every one of them removes.** Nothing in this record adds hardware to the stock core, which is the property [the profile](../docs/hardware/isa-profile.md) and the contract share and the reason the record can be read as a list of deletions.
 
 ## 2. The absences the contract enumerates
 
@@ -69,7 +69,7 @@ These are not absence-contract rows. An RTL implementing any of them fails ordin
 
 It is not. The three-route ladder exists so a block can stand at evidence tier before it stands at proof tier, and R-15-092's *authored* is a statement about the artifact of record rather than about every artifact that stands where it will stand; the plan's §11 says of route (a) that nothing is owed before it opens, well after the co-simulation gate. So the fabric is elaborated and differentially tested now, and the authored, proven block is the closing act it always was.
 
-**The functional reference is the edition the imported datapath selects.** CVA6-CHERI's nested `vendor/zero-day/axi_tagcontroller` gitlink selects `Capabilities-Limited/axi_cheri_tagcontroller` at `173646d5`; Mocha's `hw/vendor/tagctrl.lock.hjson` selects the same edition with its own patches. That edition carries the flat tag store and `axi_tagctrl_reg_wrap.sv` read by [the delta's §2.4](../docs/rtl-reparameterization-delta.md). The standalone `upstream/axi-cheri-tagcontroller` gitlink follows current upstream work, whose root-and-leaf table and per-stream caches require a different curation. Advancing that survey pin does not change the nested reference selected by the datapath or establish evidence for the newer fabric.
+**The functional reference is the edition the imported datapath selects.** CVA6-CHERI's nested `vendor/zero-day/axi_tagcontroller` gitlink selects `Capabilities-Limited/axi_cheri_tagcontroller` at `173646d5`; Mocha's `hw/vendor/tagctrl.lock.hjson` selects the same edition with its own patches. That edition carries the flat tag store and `axi_tagctrl_reg_wrap.sv` read by [the delta's §2.4](../docs/hardware/rtl-reparameterization-delta.md). The standalone `upstream/axi-cheri-tagcontroller` gitlink follows current upstream work, whose root-and-leaf table and per-stream caches require a different curation. Advancing that survey pin does not change the nested reference selected by the datapath or establish evidence for the newer fabric.
 
 **What that means for an auditor reading this record.** The fabric carries no row in §2 and owes none: those rows bind an absence to the parameters that remove it, and a curated fabric is a structure the build *contains*. What it carries instead is this disposition, and the thing to check against it is that the co-simulation evidence never reads as refinement evidence. No FEV, no Kôika or Kami refinement, and no RTL ⊑ Sail claim covers this block today; what covers it is the corpus agreeing through the capability-widened commit trace, which is agreement with the golden model and not proof against it.
 

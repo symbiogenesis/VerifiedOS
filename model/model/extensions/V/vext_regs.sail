@@ -141,7 +141,7 @@ function rV (Vregno(r) : vregno) -> vlenbits = {
 // the *geometry* into the commit trace of a program whose behaviour does not
 // depend on it. The record count of a vector program would then be a fact about
 // which class it ran on rather than about what it did, which is the reverse of
-// what the trace is for (docs/differential-corpus.md §4), and no second
+// what the trace is for (docs/assurance/differential-corpus.md §4), and no second
 // executor of this profile would agree with it.
 //
 // So the write is conditional on the value moving, which is the idiom

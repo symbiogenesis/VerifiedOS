@@ -61,11 +61,11 @@ CAP_COMMON = "model/model/core/cap_common.sail"
 XLEN_FILE = "model/model/core/xlen.sail"
 PACKAGE = "rtl/vos_cheri_pkg.sv"
 CONFIG = "rtl/vos_c_class_config_pkg.sv"
-PROFILE = "docs/isa-profile.md"
-DELTA = "docs/rtl-reparameterization-delta.md"
+PROFILE = "docs/hardware/isa-profile.md"
+DELTA = "docs/hardware/rtl-reparameterization-delta.md"
 SPEC = "docs/spec.md"
-MATRIX = "docs/cheri-version-matrix.md"
-BLOCK = "docs/block-geometry-constraint.md"
+MATRIX = "docs/hardware/cheri-version-matrix.md"
+BLOCK = "docs/hardware/block-geometry-constraint.md"
 
 # The figure a Sail declaration ends in, whichever of the two forms it takes:
 # `type cap_addr_width : Int = 36` and `let reserved_otypes = 3` differ in everything

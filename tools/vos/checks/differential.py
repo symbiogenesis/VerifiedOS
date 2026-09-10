@@ -3,7 +3,7 @@
 
 The differential corpus is two artifacts with one membership. [the
 manifest](../../../corpus/manifest.json) carries what has been measured about
-each member; [the document](../../../docs/differential-corpus.md) carries what
+each member; [the document](../../../docs/assurance/differential-corpus.md) carries what
 each member exercises and how a member is written. Nothing appears in both, so
 the failure to catch is not a disagreement in a restated fact but a **member in
 one and not the other**: a program added to the corpus and never described, or
@@ -74,6 +74,7 @@ packet cannot hold rather than a kind it cannot name.
 """
 
 import json
+import posixpath
 import re
 from typing import TYPE_CHECKING
 
@@ -87,7 +88,8 @@ if TYPE_CHECKING:
 
 HEADING = "=== differential: the corpus manifest, its document, and its programs ==="
 
-DOC = "docs/differential-corpus.md"
+DOC = "docs/assurance/differential-corpus.md"
+CORPUS_LINK = posixpath.relpath(differential.CORPUS_DIR, posixpath.dirname(DOC))
 
 # The document's §4 heading, which is the one place it writes the record grammar's
 # version. The section number is a wildcard because renumbering the section is not
@@ -129,7 +131,7 @@ def run(ctx: Context) -> None:
     # while still resolving: the links group already holds the link itself.
     doc = ctx.text(DOC)
     described = {m.name for m in corpus.members
-                 if f"(../{differential.CORPUS_DIR}/{m.source})" in doc}
+                 if f"({CORPUS_LINK}/{m.source})" in doc}
     listed = {m.name for m in corpus.members}
     linked = _linked_sources(doc)
     gaps = [f"{name} is in the manifest and {DOC} does not carry it"
@@ -213,7 +215,8 @@ GROUNDS = {"cannot": False, "refuses": False, "reader": True}
 
 # One row of §3's table: the member's link, the word, the ground, and the reading.
 _ROW = re.compile(
-    r"^\| \[(?P<member>[\w-]+)\]\(\.\./corpus/(?P<source>[\w.-]+)\) "
+    r"^\| \[(?P<member>[\w-]+)\]\(" + re.escape(CORPUS_LINK)
+    + r"/(?P<source>[\w.-]+)\) "
     r"\| `0x(?P<word>[0-9A-Fa-f]{8})` "
     r"\| (?P<ground>[^|]+?) "
     r"\| `(?P<reading>[^`]+)` \|$", re.MULTILINE)
@@ -409,7 +412,7 @@ def _record_kinds(ctx: Context) -> None:
 
 
 def _linked_sources(doc: str) -> set[str]:
-    prefix = f"(../{differential.CORPUS_DIR}/"
+    prefix = f"({CORPUS_LINK}/"
     found = set()
     at = doc.find(prefix)
     while at != -1:

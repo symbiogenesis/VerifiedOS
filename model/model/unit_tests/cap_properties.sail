@@ -107,7 +107,7 @@
 // answer is satisfiability rather than a proof. The bodies are written out so a
 // reader restores one and runs `run.py model smt --property` on it. Nothing in
 // the tree holds either answer: what the landing's own run got is in the Q3a
-// note of docs/completion-log.md, with the revision and the solver it was taken
+// note of docs/implementation/completion-log.md, with the revision and the solver it was taken
 // at.
 //
 //   $[property]

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The field-bindings table, parsed once for the two tools that read it.
 
-docs/field-bindings.md is one table, one row per Prop field of the apex statement's
+docs/assurance/field-bindings.md is one table, one row per Prop field of the apex statement's
 Vocabulary record, and two tools read its cells: the checker's bindings group holds
 the mechanical cells against the `.v`, and [run.py blast](cli/blast.py) reads the
 Instantiated-by column to find which fields an artifact discharges and the Authored-by
@@ -19,7 +19,7 @@ the checker can report it rather than crash on it.
 import re
 from dataclasses import dataclass
 
-BINDINGS = "docs/field-bindings.md"
+BINDINGS = "docs/assurance/field-bindings.md"
 
 # the field cell is code-formatted, so the leading backtick is required and is what
 # tells a row from the header above it; the closing one is optional only because the

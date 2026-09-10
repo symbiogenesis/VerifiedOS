@@ -1,5 +1,5 @@
 // The **V-class** composition of the profile configuration
-// (docs/isa-profile.md, verifiedos.json). It is the same machine as
+// (docs/hardware/isa-profile.md, verifiedos.json). It is the same machine as
 // verifiedos.json in every row but two, and those two say which core of the one
 // composed roster this emulator is: the composed hart is `6`, which the roster
 // puts on the V class, and the vector geometry is that class's, VLEN=4096 at

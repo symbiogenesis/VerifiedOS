@@ -1,6 +1,6 @@
-// The profile configuration (docs/isa-profile.md). Every row the JSON config
+// The profile configuration (docs/hardware/isa-profile.md). Every row the JSON config
 // system can express is set to the frozen profile; rows it cannot express are
-// the source-level worklist recorded in docs/implementation-checklist.md.
+// the source-level worklist recorded in docs/implementation/implementation-checklist.md.
 // Keys disappear from this file as M0.6c deletes the surface behind them: an
 // extension cut out of the model has no `supported` switch left to set.
 // The F/D residue is gone: the c4 batch took scalar floating point out of the

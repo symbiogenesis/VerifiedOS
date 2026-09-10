@@ -7,7 +7,7 @@ check group beside it, which holds the contract's declared point against the
 configuration's.
 
 Everything here is a parse and never a decision, as it is in `vos`.
-What is admissible is `docs/bank-count-dse-contract.md`'s and the check group's; what
+What is admissible is `docs/hardware/bank-count-dse-contract.md`'s and the check group's; what
 is *stated* is the model configuration's, and the configuration says on its own face
 that every one of these figures is a placeholder until R-15-247m measures it.
 """
@@ -20,7 +20,7 @@ from vos import config
 from vos.jsonc import Json
 
 CONFIG = "model/config/verifiedos.json"
-DOCUMENT = "docs/bank-count-dse-contract.md"
+DOCUMENT = "docs/hardware/bank-count-dse-contract.md"
 
 SECOND_CLASS = ("memory", "classes", "second")
 SEQUENCER = ("platform", "memory_sequencer")

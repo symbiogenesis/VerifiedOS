@@ -4,7 +4,7 @@
 Two dialects, and they answer different questions.
 
 The **commit trace** is the schema of M0.12, versioned in
-[docs/differential-corpus.md](../../docs/differential-corpus.md) and emitted by
+[docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md) and emitted by
 the curated model under `--trace-commit`. It is capability-widened: a register
 write carries the tag beside the 64 data bits, a memory access carries the tag
 of the access, and the four capability registers outside the merged file get
@@ -48,7 +48,7 @@ from dataclasses import dataclass
 #   T <interrupt> <cause>                  a trap
 #
 # The emitter is c_emulator/riscv_callbacks_commit.cpp; the schema and what each
-# field means is docs/differential-corpus.md.
+# field means is docs/assurance/differential-corpus.md.
 COMMIT_RE = re.compile(r"^(?:I \d+ [0-9A-F]{16} [0-9A-F]{8}"
                        r"|X \d+ [01] [0-9A-F]{16}"
                        r"|S \d+ [01] [0-9A-F]{16}"

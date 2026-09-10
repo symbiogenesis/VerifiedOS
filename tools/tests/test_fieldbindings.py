@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The field-bindings row parse, held to what its two consumers rely on.
 
-`vos/fieldbindings.py` is the one parse of docs/field-bindings.md's table, and its
+`vos/fieldbindings.py` is the one parse of docs/assurance/field-bindings.md's table, and its
 contract has three load-bearing edges: a data row is told from the header by the
 leading backtick on the field cell, a truncated row is skipped from `rows()` and
 surfaced by `malformed()` instead of crashing an index, and the five-segment width
@@ -16,7 +16,7 @@ from vos import fieldbindings
 _WELL_FORMED = """\
 | Field | Consumed by | Semantics | Instantiated by |
 | --- | --- | --- | --- |
-| `alpha` | seam_one | prose here | [proofs/Alpha.v](../proofs/Alpha.v) (`AlphaProof`) |
+| `alpha` | seam_one | prose here | [proofs/Alpha.v](../../proofs/Alpha.v) (`AlphaProof`) |
 | ``beta`` | seam_one, seam_two | more prose | none yet |
 """
 
@@ -28,7 +28,7 @@ def _well_formed_rows() -> None:
            f"fields read back as {[r.field for r in rows]}, backticks not stripped")
     ensure(rows[0].consumers == "seam_one",
            f"the Consumed-by cell read back as {rows[0].consumers!r}")
-    ensure(rows[0].instantiated_by == "[proofs/Alpha.v](../proofs/Alpha.v) (`AlphaProof`)",
+    ensure(rows[0].instantiated_by == "[proofs/Alpha.v](../../proofs/Alpha.v) (`AlphaProof`)",
            f"the Instantiated-by cell read back as {rows[0].instantiated_by!r}")
     ensure(rows[1].instantiated_by == "none yet",
            f"the named absence read back as {rows[1].instantiated_by!r}")

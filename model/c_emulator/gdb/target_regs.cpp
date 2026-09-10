@@ -7,7 +7,7 @@
 
 register_map get_register_map() {
   // The floating-point annex is gone with scalar floating point
-  // (docs/isa-profile.md, R-15-039): there are no `f0`-`f31` and no `fcsr`,
+  // (docs/hardware/isa-profile.md, R-15-039): there are no `f0`-`f31` and no `fcsr`,
   // so the debugger sees the integer registers and the PC and nothing after
   // them.  Vector state is not exposed here either, as upstream does not.
   register_map map = {

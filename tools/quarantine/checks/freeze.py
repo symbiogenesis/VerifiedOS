@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """freeze: the measurement instrument against the contract that defines it.
 
-`docs/freeze-measurement-contract.md` fixes the instrument M1.8 builds: the corpus
+`docs/implementation/freeze-measurement-contract.md` fixes the instrument M1.8 builds: the corpus
 members, the recipe steps, the operand classes, the region classes with their
 enumerated refusal reasons, the decisions, the report blocks, the declared
 parameters, and the CI predicates. `tools/quarantine/freeze.py` is that instrument, and

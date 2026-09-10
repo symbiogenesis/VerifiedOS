@@ -1,6 +1,6 @@
 # The CertiCoq → Wasm host-side oracle
 
-This is the inner loop of the three-loop discipline ([implementation-checklist §0/§10](../../docs/implementation-checklist.md)): Gallina components run at native-ish speed on a stock Wasm engine with no cross-toolchain, no image, and no machine model in the loop. It is the functional spec-oracle the on-device GC-free lowerings are differentially tested against; capability *enforcement* is never tested here.
+This is the inner loop of the three-loop discipline ([implementation-checklist §0/§10](../../docs/implementation/implementation-checklist.md)): Gallina components run at native-ish speed on a stock Wasm engine with no cross-toolchain, no image, and no machine model in the loop. It is the functional spec-oracle the on-device GC-free lowerings are differentially tested against; capability *enforcement* is never tested here.
 
 ## Pinned environment
 
@@ -61,7 +61,7 @@ $ sh node.sh --stack-size=10000000 run_demo.mjs ipc_oracle.ipc_oracle.wasm
 true
 ```
 
-The two `Compute` lines are the check count and the answer *inside* the kernel, so a run reports the same verdict twice, once by conversion and once through the compiled pipeline, and a disagreement between them is the finding this staging exists to produce. **A green line is only worth having if a red one is reachable**, so the run is repeated over a source seeded to answer `false`: `sed 's/(upto 31)./(upto 32)./' ipc_oracle.v` widens one mask family past the one mask that is the frozen surface, and the emitted module prints `false` and exits non-zero. No `run.py` command reaches any of this, which is what the [checklist's conventions](../../docs/implementation-checklist.md) mean by the label naming a validator the entry point does not carry.
+The two `Compute` lines are the check count and the answer *inside* the kernel, so a run reports the same verdict twice, once by conversion and once through the compiled pipeline, and a disagreement between them is the finding this staging exists to produce. **A green line is only worth having if a red one is reachable**, so the run is repeated over a source seeded to answer `false`: `sed 's/(upto 31)./(upto 32)./' ipc_oracle.v` widens one mask family past the one mask that is the frozen surface, and the emitted module prints `false` and exits non-zero. No `run.py` command reaches any of this, which is what the [checklist's conventions](../../docs/implementation/implementation-checklist.md) mean by the label naming a validator the entry point does not carry.
 
 ## Keeping the VM under a long build
 

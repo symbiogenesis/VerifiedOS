@@ -16,7 +16,7 @@ format's only written statement, and TestRIG's own issue tracker records that
 the v2 protocol is undocumented.
 
 **The commit trace is this repository's**, versioned in
-[docs/differential-corpus.md](../../docs/differential-corpus.md) §4 and parsed
+[docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md) §4 and parsed
 by [trace.py](trace.py). It is the dialect the corpus is versioned against and
 the one every executor of the frozen profile emits.
 

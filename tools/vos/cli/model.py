@@ -1270,7 +1270,7 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     the rig's: the run emits the capability-widened commit trace, and its digest
     is held against the manifest's, so a model change that alters what a program
     does is a finding here rather than a surprise later
-    (docs/differential-corpus.md).
+    (docs/assurance/differential-corpus.md).
 
     The programs are purecap and hand-written, and the assembler that reads them
     is [vos/asm.py](vos/asm.py) rather than a toolchain: none exists until M1.4,

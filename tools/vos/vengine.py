@@ -212,7 +212,7 @@ def _mem(pick: Choices) -> int:
 # for a block, so under `--rvfi-dii` those instructions **stop the emulator**
 # rather than reporting something narrower. The commit trace carries them and
 # the packet does not, which is exactly what
-# [docs/differential-corpus.md](../../docs/differential-corpus.md) §5 says, seen
+# [docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md) §5 says, seen
 # from the side that has to generate around it.
 _BLOCK_MASK: Final = ~(0x1F << 15) & 0xFFFFFFFF
 _BLOCK_WORDS: Final = frozenset({

@@ -2,7 +2,7 @@
 """Both trace dialects: recognition, normalization, alignment, adjudication.
 
 `COMMIT_RE` is coupled byte-for-byte to the emulator's emitter and to the
-schema docs/differential-corpus.md versions, and every recorded digest stands
+schema docs/assurance/differential-corpus.md versions, and every recorded digest stands
 on the normalization here: a record shape that silently stops matching drops
 records from the stream and moves every digest at once. The fixture lines are
 the ones the module's own docstrings carry.

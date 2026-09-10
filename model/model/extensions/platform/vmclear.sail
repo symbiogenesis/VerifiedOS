@@ -53,7 +53,7 @@
 //     ISA; the ACE/SME architectural tile file is evaluated and **not imported**
 //     for the same reason, a dedicated tile state being context to save, state
 //     to zeroize, and Sail and switch-proof surface
-//     ([architectural-alternatives.md](../../../../docs/architectural-alternatives.md));
+//     ([architectural-alternatives.md](../../../../docs/background/architectural-alternatives.md));
 //     and R-15-118's coprocessor line leaves the unit no state of its own to
 //     hold operands in, every byte it moves being core-issued against an
 //     explicit capability operand. What is left for a partition to dirty is the

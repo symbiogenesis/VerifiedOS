@@ -627,7 +627,7 @@ def _live_run() -> None:
            f"{done.stderr!r}")
     ensure(done.stdout.startswith(
         "=== the profile-freeze measurement instrument, against "
-        "docs/freeze-measurement-contract.md ===\n"),
+        "docs/implementation/freeze-measurement-contract.md ===\n"),
         f"the header names the contract, got {done.stdout[:120]!r}")
     # The sentence a reader takes from the run, pinned because nothing else holds it.
     ensure(done.stdout.rstrip().endswith(

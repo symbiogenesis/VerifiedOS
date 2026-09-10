@@ -7,7 +7,7 @@
 
 // The capability-widened commit trace: one record per retired instruction and
 // one per effect under it, in the schema
-// docs/differential-corpus.md versions (M0.12).
+// docs/assurance/differential-corpus.md versions (M0.12).
 //
 // It rides the same plumbing RVFI does and for the same reason: the generic
 // callbacks already report every effect, and a callbacks class is where a

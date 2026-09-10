@@ -203,8 +203,8 @@ _PIN_SITES: list[tuple[str, str, re.Pattern[str], str]] = [
 TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
 
-PLAN = "docs/implementation-checklist.md"
-LOG = "docs/completion-log.md"
+PLAN = "docs/implementation/implementation-checklist.md"
+LOG = "docs/implementation/completion-log.md"
 
 # A holder citation, in the form the landed items write it: the rule id in bold, on the
 # sentence saying what that rule holds. Bold is the whole of what separates a claim

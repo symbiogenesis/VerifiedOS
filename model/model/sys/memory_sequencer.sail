@@ -16,7 +16,7 @@
 // application core, DMA engine, and capability-bearing fabric initiator is held
 // in reset. No opcode is spent because there is no instruction stream in flight
 // to carry one, which is what the absence contract's A-17 is an auditor's search
-// of the decode surface for (docs/absence-contract.md). The slave's window sits
+// of the decode surface for (docs/hardware/absence-contract.md). The slave's window sits
 // in the address map and answers no requester at all (sys/platform.sail); the
 // door these functions sit behind is the RoT's, and until the RoT core arrives
 // (M3.1) it is the harness's and the model's own properties'.

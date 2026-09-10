@@ -11,7 +11,7 @@
 // This file carries the *parameters* of CHERI Concentrate and nothing else, so
 // that the algebra in cap_common.sail is a re-parameterization of the upstream
 // functions rather than a rewrite (R-15-007, R-15-007a). The widths are the
-// frozen dialect's ([isa-profile.md](../../../docs/isa-profile.md) §4.1) and
+// frozen dialect's ([isa-profile.md](../../../docs/hardware/isa-profile.md) §4.1) and
 // they spend the 64 bits exactly, which is why no reserved field, no
 // software-defined permission field, no capability-mode flag, and no revocation
 // colour appears below: each would need a bit the table has already spent

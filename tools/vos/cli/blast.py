@@ -9,7 +9,7 @@
 
 The mechanical facts come from proofs/ApexTheorem.v alone, through the one parse
 vos/apex.py holds, which the checker's bindings group also reads, so the answer here
-and the checked view in docs/field-bindings.md cannot disagree. A statement that parse
+and the checked view in docs/assurance/field-bindings.md cannot disagree. A statement that parse
 cannot read whole is refused rather than answered short, an answer over the fields it
 could name being the one way this tool can be wrong and sound. The artifact form
 reads that view's Instantiated-by column, through the one row parse

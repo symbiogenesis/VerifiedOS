@@ -14,7 +14,7 @@
 # is on the one ground the corpus admits for writing one: the `vkeccak.vi` row
 # refuses a round count other than 12 or 24, so the check that an unassigned one
 # traps writes the word the table will not build
-# ([differential-corpus.md](../docs/differential-corpus.md) §3). Every other
+# ([differential-corpus.md](../docs/assurance/differential-corpus.md) §3). Every other
 # instruction this member executes is a mnemonic the table encodes, the RVV
 # configuration and the unit-stride access included: those are the V-class
 # datapath's surface and the table carries them.

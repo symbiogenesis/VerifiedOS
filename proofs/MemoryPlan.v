@@ -577,7 +577,7 @@ Qed.
    proofs are by the Rocq Development Team, INRIA, CNRS and contributors;
    PeanoNat credits Evgeny Makarov (INRIA, 2007). Stdlib V9.2.0 is fixed by
    tools/opam/rocq.lock; source and licensing are recorded in
-   docs/proof-reuse/foundations.md and THIRD-PARTY.md. No upstream source
+   docs/assurance/proof-reuse/foundations.md and THIRD-PARTY.md. No upstream source
    is copied here. R-05-163's native assumption audit follows these theorem
    references transitively, including dependencies outside the prelude.
    ------------------------------------------------------------------------- *)
