@@ -6,7 +6,7 @@ Each `.lock` file records the complete compiler, root-package and installed-pack
 | --- | --- | --- |
 | [sail.lock](sail.lock) | `verifiedos-sail-0.20.2-ocaml-5.4.1` | Sail 0.20.2 |
 | [rocq.lock](rocq.lock) | `verifiedos-rocq-9.2.0-ocaml-5.4.1` | Rocq 9.2.0, rocq-sail-stdpp 0.20.2 |
-| [certirocq.lock](certirocq.lock) | `verifiedos-certirocq-0.9.1-ocaml-5.4.1` | CertiRocq 0.9.1+9.1, Rocq 9.1.1 |
+| `certirocq.lock` (export pending the compiler build) | `verifiedos-certirocq-0.9.1-ocaml-5.4.1` | CertiRocq 0.9.1+9.1, Rocq 9.1.1 |
 | [quickchick.lock](quickchick.lock) | `verifiedos-quickchick-9.1.1-ocaml-5.4.1` | QuickChick 2.2.0, Rocq 9.1.1 |
 | [rupicola.lock](rupicola.lock) | `verifiedos-rupicola-9.2.0-ocaml-5.4.1` | Rupicola 0.0.11, bedrock2 compiler 0.0.9, Rocq 9.2.0 |
 
