@@ -371,6 +371,7 @@
    ========================================================================= *)
 
 Require Import CyclicExecutive.
+From Stdlib Require Arith.PeanoNat.
 
 (* -------------------------------------------------------------------------
    List and boolean helpers, defined here rather than imported: the prelude
@@ -573,69 +574,38 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------
-   The arithmetic this file needs and the prelude does not carry. Proved
-   rather than imported: the stdlib modules holding these are outside the
-   prelude, and an assumption reachable through an import is an assumption
-   inside R-05-163's gate.
+   Arithmetic adapters to Rocq Stdlib's PeanoNat.Nat theorems. The upstream
+   proofs are by the Rocq Development Team, INRIA, CNRS and contributors;
+   PeanoNat credits Evgeny Makarov (INRIA, 2007). Stdlib V9.2.0 is fixed by
+   tools/opam/rocq.lock; source and licensing are recorded in
+   docs/proof-reuse/foundations.md and THIRD-PARTY.md. No upstream source
+   is copied here. R-05-163's native assumption audit follows these theorem
+   references transitively, including dependencies outside the prelude.
    ------------------------------------------------------------------------- *)
 
 Lemma add_0_r : forall n : nat, n + 0 = n.
-Proof.
-  intros n. induction n as [ | k IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact PeanoNat.Nat.add_0_r. Qed.
 
 Lemma add_succ_r : forall n m : nat, n + S m = S (n + m).
-Proof.
-  intros n m. induction n as [ | k IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact PeanoNat.Nat.add_succ_r. Qed.
 
 Lemma add_comm : forall n m : nat, n + m = m + n.
-Proof.
-  intros n m. induction n as [ | k IH ].
-  - simpl. rewrite add_0_r. reflexivity.
-  - simpl. rewrite IH. rewrite add_succ_r. reflexivity.
-Qed.
+Proof. exact PeanoNat.Nat.add_comm. Qed.
 
 Lemma add_assoc : forall n m k : nat, n + (m + k) = n + m + k.
-Proof.
-  intros n m k. induction n as [ | a IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact PeanoNat.Nat.add_assoc. Qed.
 
 Lemma mul_add_distr_l : forall a b c : nat, a * (b + c) = a * b + a * c.
-Proof.
-  intros a b c. induction a as [ | k IH ].
-  - reflexivity.
-  - simpl. rewrite IH.
-    rewrite <- (add_assoc b c (k * b + k * c)).
-    rewrite (add_assoc c (k * b) (k * c)).
-    rewrite (add_comm c (k * b)).
-    rewrite <- (add_assoc (k * b) c (k * c)).
-    rewrite (add_assoc b (k * b) (c + k * c)).
-    reflexivity.
-Qed.
+Proof. exact PeanoNat.Nat.mul_add_distr_l. Qed.
 
 Lemma sub_diag : forall n : nat, n - n = 0.
-Proof.
-  intros n. induction n as [ | k IH ].
-  - reflexivity.
-  - simpl. exact IH.
-Qed.
+Proof. exact PeanoNat.Nat.sub_diag. Qed.
 
 Lemma sub_0_r : forall n : nat, n - 0 = n.
-Proof. intros n. destruct n as [ | k ]; reflexivity. Qed.
+Proof. exact PeanoNat.Nat.sub_0_r. Qed.
 
 Lemma mul_0_r : forall n : nat, n * 0 = 0.
-Proof.
-  intros n. induction n as [ | k IH ].
-  - reflexivity.
-  - simpl. exact IH.
-Qed.
+Proof. exact PeanoNat.Nat.mul_0_r. Qed.
 
 Lemma add_sub_cancel : forall n m : nat, Nat.leb n m = true -> n + (m - n) = m.
 Proof.
@@ -654,7 +624,7 @@ Proof.
 Qed.
 
 Lemma leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. exact PeanoNat.Nat.leb_refl. Qed.
 
 Lemma leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
@@ -700,15 +670,10 @@ Proof.
 Qed.
 
 Lemma eqb_true : forall n m : nat, Nat.eqb n m = true -> n = m.
-Proof.
-  intros n. induction n as [ | k IH ]; intros m H.
-  - destruct m as [ | j ]; [ reflexivity | discriminate H ].
-  - destruct m as [ | j ]; [ discriminate H | ].
-    simpl in H. rewrite (IH j H). reflexivity.
-Qed.
+Proof. intros n m. exact (proj1 (PeanoNat.Nat.eqb_eq n m)). Qed.
 
 Lemma eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. exact PeanoNat.Nat.eqb_refl. Qed.
 
 (* A refused comparison read the other way, which is what a search that
    stops needs: the step it declined is the step past its own bound. *)

@@ -133,6 +133,22 @@ No condition of that license is presently triggered, because every one of them a
 
 ### Development tools, contained by use
 
+**The arithmetic proof dependency is used by reference.**
+[MemoryPlan.v](proofs/MemoryPlan.v) uses the separately installed Rocq Stdlib
+`PeanoNat.Nat` theorems. The reviewed V9.2.0 edition is
+`8dd155bc10529814202f8f4c643e5ae6c2c88fa6`; its
+[LICENSE](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/LICENSE)
+and [source header](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/theories/Arith/PeanoNat.v)
+state LGPL version 2.1 and credit the Rocq Development Team, INRIA, CNRS and
+contributors, with Evgeny Makarov credited in PeanoNat. The proof-switch lock
+fixes the installed version. The Apache-2.0 adapters contain no copied
+upstream proof scripts, and neither Stdlib nor compiled proof objects are
+conveyed here. Conveying that library or a combined compiled artifact would
+engage the LGPL's source, notice and modification/relinking conditions; this
+use makes no Apache-2.0 claim over upstream material. The
+[reuse record](docs/proof-reuse/foundations.md#f01-rocq-stdlib-arithmetic-integrated-by-reference)
+names the exact theorem references and the transitive assumption audit.
+
 Reciprocity under these licenses runs to derivative and combined works rather than to whatever a program is used to produce. Each tool below observes, accelerates, or executes a build, or is a library one of them is built against, without entering the work the build emits, so its terms reach nothing this repository conveys. **One of them carries a non-commercial term rather than a reciprocal one**, and conveyance does not bound that at all, so it is read against the act of use below and not against the output alone.
 
 | Tool | License | Standing |
