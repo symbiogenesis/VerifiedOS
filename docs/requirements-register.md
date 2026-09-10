@@ -3626,7 +3626,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-RTL-SAIL
 
 **R-15-022** IS: Fetch runs ahead only down the statically determined path, so wrong-path fetch is a deterministic function of the instruction stream and never of prior execution history.
-· Accept: with no I-cache, fetch reads flat SRAM at fixed latency; the only run-ahead structure is the static-path fetch buffer (R-15-152).
+· Accept: with no I-cache, fetch reads flat SRAM at fixed latency; the only run-ahead structure is the static-path fetch buffer (R-15-165).
 · Trace: CJ-WCET, CJ-ISOL
 
 **R-15-023** IS: The accepted cost is full pipeline-latency mispredict-equivalent penalties on forward conditional, indirect, and call/return dispatch, priced into WCET; the RAS is excluded despite its IPC value because it is per-core mutable return history.
@@ -4265,6 +4265,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **R-15-104** MUST: The prefetcher/fetch-buffer boundary is decided by table-freeness, not by size or run-ahead depth: a state element in the fetch path whose write data depends on a prior *execution* is a prefetcher and fails the contract; one whose contents are a function of the fetched stream is fetch pipelining and passes.
 · Accept: the audit is a table search, not a judgment call.
+· Trace: CJ-ISOL
+
+**R-15-104a** MUST: Before a run-ahead fetch request is issued into the memory fabric, its complete byte footprint is checked against the currently executing PCC and the executable attributes of the composed physical address map (R-15-002d). The PCC is tagged, unsealed and execute-permitted, the entire footprint lies inside its bounds without address wraparound, and every byte belongs to a declared executable memory region. A failed or unresolved check suppresses that request without issuing it or raising an architectural exception solely for the run-ahead refusal. No independent limit on the number of static-path successor steps or fetch-buffer depth is imposed: range is bounded by authority at issue, while every implementation remains subject to R-15-104's stream-dependence test, R-15-095 and R-15-096's timing obligations, and R-15-217's pipeline drain.
+· Accept: the issue gate checks every byte the memory request reads, including bundle alignment or burst rounding, under the PCC current at issue rather than an authorization cached when the request was queued. A successor request whose complete footprint is in bounds and executable passes this range check; one whose first byte alone is in bounds, whose extent wraps, or whose destination includes an unmapped or non-executable byte issues no memory traffic. A PCC authority change invalidates the earlier authorization even at an unchanged cursor: unissued requests are rechecked, and a buffered or in-flight response is discarded or revalidated against the current PCC and current static path before use. A previously issued request remains an outstanding timing and drain obligation until completion or cancellation; refusing further run-ahead does not erase it from that accounting.
+· Accept: this check applies to run-ahead: a boundary bundle that cannot pass it waits for architectural demand, whose existing fetch checks still apply, so no new alignment or widening of capability bounds is required. R-15-002d's device regions therefore receive no run-ahead fetch even under a broadly bounded PCC. Additional finite depth is admitted on the same conditions; no numerical cap or member of R-15-108's frozen parameter set is added, because depth alone decides neither authority nor history dependence and no measured candidate supplies a separate bound. Passing the range check does not discharge the outstanding-fetch timing or drain obligations.
 · Trace: CJ-ISOL
 
 **R-15-105** IS: Every microarchitectural removal converts a correctness obligation into an absence obligation, moving work out of the least-built arrow; this is the argument *for* the removals, not merely their consequence.
