@@ -16,19 +16,20 @@ mis-emitted, at each of the shapes `owned()` and `declaration()` name.
 
 The third is K-89's own: a generator that raises is that rule's finding and never that
 rule's crash. `checks/ring.py` catches the emitter's refusal and every other exception
-alike, and the last case holds it to that by handing it a declaration whose shape no
-guard is written against.
+alike, and a test injects an unexpected emitter failure to exercise that last arm.
 """
 
 import json
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos.checks import Context
 from vos.checks import ring as rule
 from vos.cli import ring
+from vos.jsonc import Json
 from vos.register import Register, read_artifacts
 from vos.report import Reporter
 
@@ -145,15 +146,10 @@ def _declaration_names_every_key_the_emitter_reads() -> None:
 
 
 def _the_rule_reports_rather_than_crashes() -> None:
-    # A declaration carrying every key the guards name, whose scalar width is a word
-    # rather than a number: no guard is written against it, `emit()` raises something
-    # other than a RingError, and K-89's claim is that this is one red rule and not a
-    # dead run.
-    base = _declaration()
-    base["operations"][0]["scalars"] = [
-        {"name": "extent_index", "width_bytes": "four", "validated_at_use": True}]
+    # The schema now refuses malformed values itself. An unrelated emitter defect
+    # still must be one red rule rather than a dead checker run.
     files = {
-        ring.DECLARATION: json.dumps(base),
+        ring.DECLARATION: json.dumps(_declaration()),
         ring.ARTIFACT: "(* whatever a person typed *)\n",
         "docs/requirements-register.md": "# R\n\n## 1\n\n**R-01-001** MUST x.\n"
                                          "· Trace: t\n",
@@ -162,15 +158,68 @@ def _the_rule_reports_rather_than_crashes() -> None:
         corpus = corpus_mod.load(root)
         ctx = Context(root=root, corpus=corpus, reg=_register(),
                       art=read_artifacts(corpus), rep=Reporter())
-        rule.run(ctx)
+        with patch.object(ring, "emit", side_effect=TypeError("unexpected emitter defect")):
+            rule.run(ctx)
         said = "\n".join(ctx.rep.out)
     ensure("FAIL K-89" in said,
            f"a generator that raises must be this rule's finding; the rule said:\n{said}")
     # Named, so the case decides the arm it exists for: catching the emitter's own
     # RingError would satisfy the line above and leave the new arm untested.
     ensure("TypeError" in said,
-           f"the finding must name the exception no guard is written against, and so "
+           f"the finding must name the unexpected exception, and so "
            f"must come from the arm past RingError; got:\n{said}")
+
+
+def _declaration_refuses_wrong_types() -> None:
+    # Every malformed value must be refused at load time, before the emitter can
+    # sum it, interpolate it as Gallina, or mistake truthiness for a boolean.
+    malformed: list[tuple[tuple[str | int, ...], Json]] = [
+        (("ring",), []),
+        (("ring", "capacity"), True),
+        (("encoding", "request_id_bytes"), "4"),
+        (("label_levels",), 4.0),
+        (("flags",), "notify"),
+        (("directions", 0), 3),
+        (("operations",), {}),
+        (("operations",), []),
+        (("operations", 0), False),
+        (("operations", 0, "name"), 3),
+        (("operations", 0, "scalars", 0, "width_bytes"), "four"),
+        (("operations", 0, "scalars", 0, "width_bytes"), 4.0),
+        (("operations", 0, "scalars", 0, "validated_at_use"), 1),
+        (("operations", 0, "deadline"), 1),
+        (("operations", 0, "labels", "integrity"), "2"),
+        (("operations", 0, "record", 0), False),
+        (("operations", 0, "record"), [1]),
+        (("operations", 0, "cancellation"), {}),
+        (("operations", 0, "cancellation", "points"), []),
+        (("operations", 0, "refinement"), [0]),
+        (("operations", 0, "fill"), "24"),
+    ]
+    with sandbox_tree({ring.DECLARATION: "null"}) as root:
+        path = root / ring.DECLARATION
+        for malformed_root in (None, [], "declaration", 1):
+            path.write_text(json.dumps(malformed_root), encoding="utf-8")
+            _refused(lambda: ring.declaration(root),
+                     f"a non-object declaration was accepted: {malformed_root!r}")
+        for keys, value in malformed:
+            base = _declaration()
+            node: Any = base  # Deliberately cross types while constructing invalid input.
+            for key in keys[:-1]:
+                node = node[key]
+            node[keys[-1]] = value
+            path.write_text(json.dumps(base), encoding="utf-8")
+            _refused(lambda: ring.declaration(root),
+                     f"a malformed value was accepted at {keys}: {value!r}")
+
+
+def _declaration_preserves_metadata() -> None:
+    base = _declaration()
+    base["extra_metadata"] = {"version": 1.5, "reviewed": False}
+    base["operations"][0]["scalars"][0]["extra_metadata"] = ["unconsumed", 1.5]
+    with sandbox_tree({ring.DECLARATION: json.dumps(base)}) as root:
+        ensure(ring.declaration(root) == base,
+               "validation must preserve fields the emitter does not consume")
 
 
 def _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail() -> None:
@@ -201,6 +250,8 @@ def cases() -> list[Case]:
         Case("owned-fails-closed-on-each-shape", _owned_fails_closed_on_each_shape),
         Case("declaration-names-every-key-the-emitter-reads",
              _declaration_names_every_key_the_emitter_reads),
+        Case("declaration-refuses-wrong-types", _declaration_refuses_wrong_types),
+        Case("declaration-preserves-metadata", _declaration_preserves_metadata),
         Case("the-rule-reports-rather-than-crashes",
              _the_rule_reports_rather_than_crashes),
     ]
