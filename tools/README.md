@@ -568,6 +568,29 @@ addresses ty's recursive-JSON narrowing behavior, not
 package discovery. The negative test in [tests/test_mutate.py](tests/test_mutate.py)
 also suppresses `invalid-argument-type`. Unresolved imports remain errors.
 
+## Cleaning local output
+
+`out/` holds disposable output alongside environments and retained evidence. Before
+removing an entry, use `run.py worktree list --json` to identify registered work,
+check running processes for consumers, and search tracked documents for evidence
+paths. Age alone does not establish that an output is unused. Keep each checkout's
+active `venv-*` environments, unfinished work's inputs and reproduction recipes,
+and evidence that a current completion record explicitly retains.
+
+Completed migration scripts, copied validation checkouts, superseded bootstrap
+executables and redundant logs can be removed after their changes are accounted
+for in Git and their outputs have no remaining consumer. Review scripts before
+discarding them: recurring assertions belong in the tools' behavioral suite with
+private fixtures and inputs discovered from the repository. The
+[proof-header corpus regression](tests/test_proofheaders_corpus.py) applies this to
+stale manifests, authored-source preservation and dependent-export convergence;
+`run.py test --only proofheaders` runs it with the focused fixture tests.
+
+Keep a cleanup inventory and its retention reasons with the task's local output.
+Use explicit paths beneath the inspected `out/` root, recheck them before deletion,
+and do not follow links into other directories. Worktree retirement remains the
+separate [owned-lane procedure](#worktree-isolation-during-fan-out).
+
 ## Current evidence and generated documentation
 
 A model build records the selected source bytes and git revision, tool executable hashes,
