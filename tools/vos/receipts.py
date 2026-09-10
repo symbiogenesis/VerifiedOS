@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Iterable
+from contextlib import ExitStack
 from pathlib import Path
 
 from vos import env
@@ -74,17 +75,14 @@ disappearing from the manifest. Git's own pathspecs select each command's closur
 def write(path: Path, payload: object) -> None:
     """Replace a complete receipt atomically, preserving the old one on failure."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary: Path | None = None
-    try:
+    with ExitStack() as cleanup:
         with tempfile.NamedTemporaryFile(
                 mode="w", encoding="utf-8", newline="", dir=path.parent,
                 prefix=f".{path.name}.", suffix=".tmp", delete=False) as stream:
             temporary = Path(stream.name)
+            cleanup.callback(temporary.unlink, missing_ok=True)
             json.dump(payload, stream, indent=2, sort_keys=True, ensure_ascii=False)
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
         temporary.replace(path)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)

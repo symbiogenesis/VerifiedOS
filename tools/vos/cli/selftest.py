@@ -1294,9 +1294,9 @@ CASES: list[Case] = [
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
     ("K-67", "a README pin drifted from the manifest",
-     _literal("tools/README.md", "| 0.0.75 |", "| 0.0.74 |")),
+     _literal("tools/README.md", "| 0.0.80 |", "| 0.0.74 |")),
     ("K-67", "a resolved checker pin drifted from the manifest",
-     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.5"',
+     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.6"',
               'name = "ruff"\nversion = "0.16.4"')),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which
