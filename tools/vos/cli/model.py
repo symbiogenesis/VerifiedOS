@@ -90,7 +90,7 @@ _NO_GIT = "/nonexistent/the-bundle-describes-the-model-not-the-checkout"
 
 # How the one binary every Sail loop starts with is installed, for the refusal that
 # names it.
-SAIL_HOW = "the Sail toolchain lives in the opam default switch: opam install sail"
+SAIL_HOW = env.install_line(env.SAIL_INSTALL)
 
 # What `cmd_build` writes after each stage, and what `wait` reads a finished run's
 # verdict back out of. One spelling, at both ends.
