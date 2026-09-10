@@ -190,15 +190,16 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     # here for the reason the rest are: the masking obligation's nearest start-from
     # is a fact about the outside world, so it moves without any act of this
     # repository moving it, and it is stated wherever that obligation is priced. The
-    # Coq half still imports nothing at every site; what drifts is *which* half has a
-    # machine-checked source and in whose prover, which is the part a costing reads.
-    # The critique held a site while the cost was owed; the plan's own cells price it
-    # now, so the sites are the two that state the split and the one that reads it.
+    # source's checked statement and the missing local connection must stay aligned:
+    # a cardinality theorem is not already the required probabilistic composition
+    # theorem. The source inventory, plan and rationale state that same limitation.
     ("the masking obligation's nearest start-froms", [
-        (CHECKLIST, "Lean prime-field PINI development"),
-        (CHECKLIST, "arithmetic masking over prime fields"),
-        (CHECKLIST, "arithmetic composition half"),
-        (INSPIRATIONS, "PINI-class composition over prime fields"),
+        (CHECKLIST, "Lean arithmetic source proves a cardinality statement"),
+        (CHECKLIST, "Its translation to a conditional-probability bound is informal"),
+        (CHECKLIST, "prove the cardinality-to-probability connection"),
+        (INSPIRATIONS, "Its probability interpretation is informal"),
+        ("docs/proof-reuse/crypto.md",
+         "informal translation to a conditional-probability bound"),
     ]),
 ]
 
