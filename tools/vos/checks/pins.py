@@ -88,6 +88,12 @@ abbreviated commit looks like, so any narrowing tight enough to exclude a decima
 figure would one day stop reading a pin whose own id took that shape, silently, where
 a residue is loud and asks for a decision.
 
+Historical measurements and a superproject's nested dependencies have narrower
+residues, keyed by both file and exact id. Their meaning belongs to the recorded
+reading, so the same id in another file remains a restatement to check. Each entry
+carries that reading's reason and must still name a scanned site outside the pin
+table. The current table is held against the index without either kind of exception.
+
 **What this rule cannot attribute it does not decide.** An id is paired with the last
 upstream *named on its own line*, so an id standing on a line that names none is read
 by nothing here: the RTL delta's `Read at ...` sentence and its second table's
@@ -207,6 +213,22 @@ RESIDUE: dict[str, str] = {
     "435618bf": "the tag object `v0.1.1` names, recorded beside the commit it points "
                 "at because transcribing the tag is the trap that row warns of",
     "11007678": "the numeral of SECOMP's Zenodo DOI, which is not an object id",
+}
+
+# These sites retain the editions measured at a completed gate or selected by an
+# upstream integration. They do not state this repository's current top-level pin.
+SITE_RESIDUE: dict[tuple[str, str], str] = {
+    ("docs/completion-log.md", "b5894db641d36616cdfce49352ec1d9833fcb411"):
+        "the Rupicola edition recorded in the completed environment measurement",
+    ("docs/completion-log.md", "beaf4499"):
+        "the Sail reconciliation edition recorded at the completed M0 gate",
+    ("docs/rtl-reparameterization-delta.md", "173646d5"):
+        "the tag controller edition selected by the imported core's nested gitlink",
+    ("rtl/synthesis-provenance.md", "173646d5"):
+        "the tag controller edition selected by the imported core's nested gitlink",
+    ("THIRD-PARTY.md", "5691ca0d"):
+        "the Fiat-Crypto generator edition whose recorded build and licence reading "
+        "the dependency measurements describe",
 }
 
 
@@ -385,11 +407,19 @@ def _pins(ctx: Context) -> None:
                  "no row for it, so an upstream this repository pins has no terms on "
                  "the page" for path in sorted(set(gitlinks) - {p.path for p in read.rows})]
 
-    held, used = _restatements(ctx, read.rows, settled, findings)
+    held, used, site_used = _restatements(ctx, read.rows, settled, findings)
 
     findings += [f"{ident} is declared here as {why}, and no site states it any more; "
                  "a residue that suppresses nothing is a carve-out nobody audits"
                  for ident, why in RESIDUE.items() if ident not in used]
+    for (file, ident), why in SITE_RESIDUE.items():
+        if not why.strip():
+            findings.append(f"{file} at {ident} has a scoped residue with no reason")
+        elif (file, ident) not in site_used:
+            findings.append(
+                f"{file} at {ident} is declared here as {why}, and no site outside "
+                "the pin table states it any more; a scoped residue that suppresses "
+                "nothing is a carve-out nobody audits")
 
     sh["record_pins"] = len(read.rows)
     sh["pin_restatements"] = held
@@ -401,7 +431,7 @@ def _pins(ctx: Context) -> None:
 
 def _restatements(ctx: Context, rows: list[pins_mod.Pin],
                   settled: dict[str, tuple[pins_mod.Pin, str]],
-                  findings: list[str]) -> tuple[int, set[str]]:
+                  findings: list[str]) -> tuple[int, set[str], set[tuple[str, str]]]:
     """Every site that restates a pin, held against the record's row.
 
     The record's own table rows are skipped, because holding them here would price
@@ -422,6 +452,7 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     named = pins_mod.spellings(rows)
     table = {(pins_mod.RECORD, pin.line) for pin in rows}
     used: set[str] = set()
+    site_used: set[tuple[str, str]] = set()
     held = 0
 
     for file, lines, fenced in _sources(ctx):
@@ -431,7 +462,12 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
             if site.ident in RESIDUE:
                 used.add(site.ident)
                 continue
-            if (file, site.line) in table or site.pin.path not in settled:
+            if (file, site.line) in table:
+                continue
+            if (file, site.ident) in SITE_RESIDUE:
+                site_used.add((file, site.ident))
+                continue
+            if site.pin.path not in settled:
                 continue
             held += 1
             pin, oid = settled[site.pin.path]
@@ -441,4 +477,4 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
                 f"{site.where()} states the {site.pin.path} pin as {site.ident}, "
                 f"{pins_mod.RECORD} records {pin.short}; the sentence around it says "
                 "what was done at that commit, so the edit is a person's")
-    return held, used
+    return held, used, site_used

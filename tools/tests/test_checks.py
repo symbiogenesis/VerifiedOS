@@ -14,10 +14,11 @@ and K-75 decides the one floor site its single mutant does not seed.
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
-from vos.checks import Context, bindings, counts, estimates, meta
+from vos.checks import Context, bindings, counts, estimates, meta, pins
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
 
@@ -344,6 +345,66 @@ def _k75_project_floor_is_held() -> None:
                         f"a drifted or missing project constraint must report: {found!r}")
 
 
+def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
+         table_id: str = "1234abcd") -> Context:
+    record = ("# Components\n\n## Pinned as submodules\n\n"
+              "| Submodule | Upstream | Pin |\n| --- | --- | --- |\n"
+              f"| `upstream/example-core` | `example/example-core` | `{table_id}` |\n")
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       "THIRD-PARTY.md": record, **files}) as root:
+        ctx = _context(root)
+        ctx.corpus.gitlinks["upstream/example-core"] = "1234abcd" + "0" * 32
+        ctx.shared["citation_window"] = []
+        with (patch.object(pins, "RESIDUE", {}),
+              patch.object(pins, "SITE_RESIDUE", residues)):
+            pins._pins(ctx)
+        return ctx
+
+
+def _k81_historical_residue_is_scoped() -> None:
+    site = ("docs/history.md", "abcd1234")
+    recorded = {site[0]: "example-core measured at abcd1234\n"}
+    residue = {site: "the completed fixture measurement"}
+    ensure(not _findings_under(_k81(recorded, residue), "K-81"),
+           "the declared historical edition is accepted at its own site")
+    ctx = _k81({**recorded, "docs/current.md": "example-core pins abcd1234\n"}, residue)
+    found = _findings_under(ctx, "K-81")
+    ensure(len(found) == 1 and "docs/current.md:1 states" in found[0],
+           f"the same id elsewhere must still fail: {found!r}")
+    ensure(ctx.shared["pin_restatements"] == 1,
+           "only current restatements contribute to the held-site count")
+    changed = _k81({site[0]: "example-core measured at abcd1234 and deadbeef\n"}, residue)
+    ensure(any("pin as deadbeef" in item for item in _findings_under(changed, "K-81")),
+           "an exception for one id must not cover another id in the same file")
+
+
+def _k81_unused_historical_residue_fails() -> None:
+    site = ("docs/history.md", "abcd1234")
+    for files in ({}, {site[0]: "```text\nexample-core measured at abcd1234\n```\n"}):
+        found = _findings_under(_k81(files, {site: "the completed fixture measurement"}),
+                                "K-81")
+        ensure(len(found) == 1 and "no site outside the pin table states it" in found[0],
+               f"a removed or displayed site must leave an unused residue: {found!r}")
+
+
+def _k81_historical_residue_cannot_exempt_table() -> None:
+    ctx = _k81({}, {("THIRD-PARTY.md", "abcd1234"): "an old fixture pin"},
+               table_id="abcd1234")
+    found = _findings_under(ctx, "K-81")
+    ensure(any("pins upstream/example-core at abcd1234" in item for item in found),
+           f"the current table is unconditionally held against the index: {found!r}")
+    ensure(any("no site outside the pin table states it" in item for item in found),
+           f"a table row cannot exercise a historical exception: {found!r}")
+
+
+def _k81_historical_residue_requires_reason() -> None:
+    ctx = _k81({"docs/history.md": "example-core measured at abcd1234\n"},
+               {("docs/history.md", "abcd1234"): " "})
+    found = _findings_under(ctx, "K-81")
+    ensure(len(found) == 1 and "scoped residue with no reason" in found[0],
+           f"a historical exception needs an explicit reading: {found!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("estimates-refused-edit-writes-nothing",
@@ -372,4 +433,9 @@ def cases() -> list[Case]:
         Case("k75-unreadable-provisioner-fails-closed",
              _k75_unreadable_provisioner_fails_closed),
        Case("k75-project-floor-is-held", _k75_project_floor_is_held),
+        Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
+        Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
+        Case("k81-historical-residue-cannot-exempt-table",
+             _k81_historical_residue_cannot_exempt_table),
+        Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
     ]
