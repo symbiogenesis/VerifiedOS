@@ -30,9 +30,10 @@ class HeaderError(ValueError):
     """An artifact whose header cannot be regenerated without guessing."""
 
 
-def selected(text: str, reg: Register) -> list[str]:
+def selected(text: str, reg: Register, region: proofcites.Derived | None = None) -> list[str]:
     """Authored citations in register order, excluding every generated region."""
-    region = proofcites.derived(text)
+    if region is None:
+        region = proofcites.derived(text)
     if region.faults:
         raise HeaderError("; ".join(region.faults))
     cited = set(proofcites.ids(text, region))
@@ -45,13 +46,17 @@ def selected(text: str, reg: Register) -> list[str]:
 
 
 def manifest(text: str, reg: Register) -> str:
+    """The compact manifest for this source's canonical authored citations."""
+    return _manifest(selected(text, reg), reg)
+
+
+def _manifest(cited: list[str], reg: Register) -> str:
     """A compact LF manifest; hash exact normative bodies with framed UTF-8 fields.
 
     The schema prefix and NUL separators distinguish identities and boundaries.
     Parsed entry bodies contain no line endings, so host and guest hash identically.
     Criteria and transitive citations do not enter this normative-body fingerprint.
     """
-    cited = selected(text, reg)
     payload = "vos-proof-requirements-v1\0" + "".join(
         ident + "\0" + reg.body[ident] + "\0" for ident in cited)
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -82,9 +87,9 @@ def render(text: str, reg: Register) -> str:
             header.end() <= region.spans[0][0] < region.spans[0][1] <= end.start()):
         raise HeaderError("the derived region is outside the opening header")
 
-    cited = set(selected(text, reg))
+    cited = selected(text, reg, region)
     newline = "\r\n" if "\r\n" in text else "\n"
-    body = newline + manifest(text, reg).replace("\n", newline) + newline + "   "
+    body = newline + _manifest(cited, reg).replace("\n", newline) + newline + "   "
     if region.spans:
         start, stop = region.spans[0]
         result = text[:start] + body + text[stop:]
@@ -92,7 +97,7 @@ def render(text: str, reg: Register) -> str:
         block = ("   " + proofcites.DERIVED_BEGIN + body + proofcites.DERIVED_END
                  + newline)
         result = text[:end.start()] + block + text[end.start():]
-    if set(proofcites.ids(result)) != cited:
+    if set(proofcites.ids(result)) != set(cited):
         raise HeaderError("regeneration changed the authored requirement citation set")
     return result
 
