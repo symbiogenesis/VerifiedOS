@@ -22,10 +22,12 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import env
 from vos.cli import provision, rtl, typecheck
+from vos.report import Reporter
 
 _ROOT = TOOLS.parent
 
@@ -168,6 +170,42 @@ def _number_reads_the_banners() -> None:
            "a banner with no dotted number yields none rather than a fragment")
 
 
+def _opam_probe_preserves_build_suffix() -> None:
+    with (patch.object(provision, "switches", return_value={"oracle"}),
+          patch.object(provision, "_installed", return_value="0.9.1+9.1")):
+        ensure(provision._switch_at("oracle", "rocq-certirocq", "0.9.1+9.1").present,
+               "an exact opam version including its Rocq suffix must satisfy the pin")
+        ensure(not provision._switch_at("oracle", "rocq-certirocq", "0.9.1+9.2").present,
+               "the same release built for another Rocq version must be rejected")
+
+
+def _failed_import_can_retry() -> None:
+    registered: set[str] = set()
+    seen: list[tuple[str, ...]] = []
+    create = ("opam", "switch", "create", "verifiedos-fixture", "--empty")
+    restore = ("opam", "switch", "import", "fixture.lock", "--switch=verifiedos-fixture")
+    fact = _fact("fixture", present=False, install=(create, restore))
+
+    def run(argv: list[str], *, check: bool) -> subprocess.CompletedProcess[str]:
+        del check
+        seen.append(tuple(argv))
+        if tuple(argv) == create:
+            registered.add("verifiedos-fixture")
+        return subprocess.CompletedProcess(argv, 1 if tuple(argv) == restore else 0)
+
+    with (patch.object(provision, "switches", side_effect=lambda: tuple(registered)),
+          patch.object(provision.subprocess, "run", side_effect=run)):
+        provision._apply(Reporter(), [(fact, fact.install)])
+        provision._apply(Reporter(), [(fact, fact.install)])
+    ensure(seen == [create, restore, restore],
+           f"a failed import must retry in its existing switch, ran {seen}")
+    with (patch.object(provision, "switches", return_value=()),
+          patch.object(provision.subprocess, "run",
+                       return_value=subprocess.CompletedProcess(create, 1)) as invoked):
+        provision._apply(Reporter(), [(fact, fact.install)])
+        ensure(invoked.call_count == 1, "an unrelated create failure must stop before import")
+
+
 def _run(*argv: str) -> tuple[int, str, str]:
     done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=300, cwd=_ROOT)
@@ -244,6 +282,8 @@ def cases() -> list[Case]:
         Case("every-row-is-actionable", _every_row_is_actionable),
         Case("versions-are-read-and-not-typed", _versions_are_read_and_not_typed),
         Case("number-reads-the-banners", _number_reads_the_banners),
+        Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
+        Case("failed-import-can-retry", _failed_import_can_retry),
         # guest-only: the command hops there, so on the host this case would pay for a
         # WSL launch to decide about a lane the host is not
         Case("check-is-read-only", _check_is_read_only, lane="guest"),

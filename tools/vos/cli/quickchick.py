@@ -49,39 +49,22 @@ from pathlib import Path
 from vos import cli, env, freezemodel, gallina
 from vos.corpus import find_root
 
-# The opam package, and what installing it costs. Measured on 2026-08-29 rather than
-# estimated, because the cost is the whole reason this is a priced step and the three
-# routes price very differently.
-#
-# **Into the oracle's own `certirocq-0.9.1` switch**, the solver downgrades dune from
-# 3.23.1 to 3.21.1 and **recompiles 59 packages**, the whole MetaRocq stack and
-# `rocq-certirocq` itself among them: a rebuild of the M1.5 oracle's own environment to
-# add a test library to it. Holding dune where it is does not help, the solver then
-# removing `rocq-core`, `rocq-certirocq` and the twenty packages above them outright,
-# `coq` conflicting with `rocq-runtime` at the versions that route admits.
-#
-# **Into the proof gate's `rocq-9.1.1`**, not at any price: that switch carries
-# `rocq-core` and nothing else on purpose, an assumption reachable through an import
-# being an assumption inside R-05-163's gate.
-#
-# **Into a switch of its own** is the route this constant states, and the finding worth
-# recording is what the *obvious* spelling of it does: `opam install coq-quickchick`
-# into a clean 4.14.2 switch resolves **Coq 8.16.1**, not Rocq 9.1.1, so the harness
-# would be compiled by a prover five years from the one this tree pins and against a
-# standard library whose modules are still named `Coq.`. The prover has to be asked for
-# by name, which is why `rocq-core` and `coq` are asked for below at the version
-# `env.ROCQ_VERSION` fixes rather than left to the solver.
+# QuickChick's latest release needs coq-simple-io, which caps Coq below 9.2~ and dune
+# below 3.22. Give it an independent Rocq 9.1 environment while the proof gate uses
+# Rocq 9.2 and the CertiRocq oracle uses dune 3.23.1. The explicit prover request also
+# prevents a solver from satisfying the package through an older Coq generation.
 #
 # Public and stated as argv rather than as a sentence, for the reason `env.ROCQ_INSTALL`
 # is: `run.py provision` stands this switch up and the two refusals below print it, and
 # a recipe written once as a message and once as a command is a recipe only one reader
 # ever runs. `env.install_line` composes the sentence from the argv.
 PACKAGE = "coq-quickchick"
+VERSION = "2.2.0"
 INSTALL: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", gallina.QUICKCHICK_SWITCH,
-     "--repos=rocq-released,default", "--packages=ocaml-base-compiler.4.14.2", "-y"),
-    ("opam", "install", "-y", f"--switch={gallina.QUICKCHICK_SWITCH}",
-     f"rocq-core.{env.ROCQ_VERSION}", f"coq.{env.ROCQ_VERSION}", PACKAGE),
+     "--repos=rocq-released,default", "--empty", "--no-switch", "-y"),
+    ("opam", "switch", "import", str(env.OPAM_LOCKS / "quickchick.lock"),
+     f"--switch={gallina.QUICKCHICK_SWITCH}", "-y"),
 )
 
 
@@ -119,8 +102,10 @@ def cmd_check(args: argparse.Namespace) -> int:
         # Both halves in one switch or neither counts: a switch holding the library and
         # no `rocq` is Coq 8 under another name, which compiles neither the shipped
         # proofs nor a harness that Requires them.
-        if version and found:
+        if version == VERSION and found:
             where.append(f"{switch} at {version} under {said}")
+        elif version and version != VERSION:
+            out.append(f"     requires {PACKAGE} {VERSION}; installed {version}")
         elif version:
             out.append("     and no prover this repository can call: `rocq c` is Rocq "
                        "9's spelling and Coq 8 ships `coqc` alone")
@@ -130,7 +115,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                    "`run.py quickchick properties` runs the randomized half")
         print("\n".join(out))
         return 0
-    out.append(f"FAIL {PACKAGE} is installed in no switch this repository reaches, so "
+    out.append(f"FAIL {PACKAGE} {VERSION} is installed in no switch this repository reaches, so "
                "the randomized half does not run")
     out.append("     the enumerative half does: `run.py quickchick vectors`")
     out.append("     the install, as one priced step:")
@@ -184,11 +169,14 @@ def cmd_properties(args: argparse.Namespace) -> int:
 
 def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: Path) -> int:
     del args, e
-    switch = next((s for s in (gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH)
-                   if installed(s) and gallina.prover(s) is not None), None)
+    versions = {s: installed(s) for s in (gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH)}
+    switch = next((s for s, version in versions.items()
+                   if version == VERSION and gallina.prover(s) is not None), None)
     if switch is None:
-        print(f"FAIL no switch this repository reaches holds both {PACKAGE} and a "
-              f"prover it can call\n     the install, as one priced step:\n"
+        found_versions = ", ".join(f"{s}: {v or 'not installed'}" for s, v in versions.items())
+        print(f"FAIL no switch this repository reaches holds both {PACKAGE} {VERSION} and a "
+              f"prover it can call\n     installed versions: {found_versions}\n"
+              f"     the install, as one priced step:\n"
               f"       {env.install_line(INSTALL)}")
         return 1
     found = gallina.prover(switch)

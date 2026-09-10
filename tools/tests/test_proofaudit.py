@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import os
+import subprocess
 import tempfile
 import threading
 from pathlib import Path
@@ -193,6 +194,30 @@ def _native_gate_regressions() -> None:
                            "an unqueried axiom, admitted obligation or non-Prop claim passed")
 
 
+def _release_version_banner_is_exact() -> None:
+    """A missing zero patch is a release spelling, not permission for version drift."""
+    samples = [("9.2.0", "9.2", True), ("9.2.0", "9.2.0", True),
+               ("9.2.0", "9.2.1", False), ("9.2.0", "9.2+dev", False),
+               ("9.2.0", "9.2~rc1", False), ("9.2.0", "9.1.1", False),
+               ("9.2.1", "9.2", False), ("9.2.1", "9.2.1", True)]
+    for pin, banner, accepted in samples:
+        answer = subprocess.CompletedProcess(
+            ["rocq", "c", "--version"], 0,
+            stdout=f"The Rocq Prover, version {banner}\ncompiled with OCaml 5.4.1\n")
+        with patch.object(gate.env, "ROCQ_VERSION", pin), \
+                patch.object(gate.env, "rocq_command", return_value=["rocq", "c"]), \
+                patch.object(gate.env, "rocqchk_command", return_value=["rocqchk"]), \
+                patch.object(gate.subprocess, "run", return_value=answer), \
+                patch.object(gate.receipts, "digest", return_value="fixture"):
+            try:
+                record = gate._toolchain()
+            except proofaudit.AuditError:
+                ensure(not accepted, f"release banner {banner} was refused for {pin}")
+            else:
+                ensure(accepted and record["pin"] == pin,
+                       f"release banner {banner} incorrectly satisfied {pin}")
+
+
 def cases() -> list[Case]:
     return [Case("native-inventory-filters-and-framing", _inventory_filters_and_framing),
             Case("every-native-query-needs-an-answer", _every_query_needs_one_answer),
@@ -203,4 +228,5 @@ def cases() -> list[Case]:
             Case("inaccessible-modules-fail-closed", _inaccessible_modules_fail_closed),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
+            Case("release-version-banner-is-exact", _release_version_banner_is_exact),
             Case("native-proof-gate-regressions", _native_gate_regressions, lane="toolchain")]

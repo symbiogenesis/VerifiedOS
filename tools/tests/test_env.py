@@ -20,6 +20,7 @@ win32 returns at the platform refusal before it gets to the preparations, so wha
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -150,9 +151,9 @@ def _hoisted_lane_constants() -> None:
         str(env.Z3_PREFIX / "bin").replace("\\", "/") == "/root/z3-5.1.0/bin",
         f"the pinned solver's prefix must compose to the unpacked one, got "
         f"{env.Z3_PREFIX}"))
-    ensure(env.SAIL_SWITCH == "default",
-           f"the Sail switch is opam's own default, got {env.SAIL_SWITCH!r}")
-    ensure(env.ROCQ_SWITCH == "rocq-9.1.1",
+    ensure(env.SAIL_SWITCH == "verifiedos-sail-0.20.2-ocaml-5.4.1",
+           f"the Sail switch is project-specific and versioned, got {env.SAIL_SWITCH!r}")
+    ensure(env.ROCQ_SWITCH == "verifiedos-rocq-9.2.0-ocaml-5.4.1",
            f"the prover switch carries its pin in its name, got {env.ROCQ_SWITCH!r}")
     with_env("VOS_BUILD_ROOT", None, lambda: ensure(
         str(env.build_root()).replace("\\", "/") == "/root/build",
@@ -174,13 +175,24 @@ def _install_recipes_compose() -> None:
     ensure(line.startswith(f"opam switch create {env.ROCQ_SWITCH} "),
            f"the recipe opens by creating the switch, said {line!r}")
     ensure(" && " in line, "two steps compose into one line a person can paste")
-    ensure(f"rocq-core.{env.ROCQ_VERSION}" in line,
-           f"the prover is asked for at its pin, said {line!r}")
-    ensure(env.install_line(env.SAIL_INSTALL)
-           == f"opam install -y --switch=default sail.{env.SAIL_VERSION}",
-           f"the Sail install spells the pin M0.2 found is dropped without it, said "
-           f"{env.install_line(env.SAIL_INSTALL)!r}")
+    for recipe, lock, package in (
+            (env.ROCQ_INSTALL, "rocq.lock", f"rocq-core.{env.ROCQ_VERSION}"),
+            (env.SAIL_INSTALL, "sail.lock", f"sail.{env.SAIL_VERSION}")):
+        ensure("--no-switch" in recipe[0], "provisioning must preserve the active switch")
+        ensure(recipe[1][:3] == ("opam", "switch", "import"),
+               "provisioning must restore the complete tested package closure")
+        path = Path(recipe[1][3])
+        ensure(path == env.OPAM_LOCKS / lock and path.is_absolute(),
+               "the snapshot belongs to this checkout regardless of the caller's cwd")
+        snapshot = path.read_text(encoding="utf-8")
+        ensure(f'"{package}"' in snapshot,
+               f"{lock} must contain the configured package pin {package}")
+        ensure(f'"ocaml-base-compiler.{env.OCAML_VERSION}"' in snapshot,
+               f"{lock} must contain the configured compiler pin")
     ensure(env.install_line(()) == "", "no steps compose to no sentence")
+    spaced = ("opam", "switch", "import", "/a checkout/rocq.lock", "--switch=proofs")
+    ensure(tuple(shlex.split(env.install_line((spaced,)))) == spaced,
+           "a printed install recipe must preserve a checkout path containing spaces")
 
 
 def _run_git(cwd: Path, *args: str, overlay: dict[str, str] | None = None) -> str:

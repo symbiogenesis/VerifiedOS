@@ -13,7 +13,7 @@ Five invariants every loop needs, and used to carry its own copy of:
   1. Sail's C++ emission overflows the default 8 MB stack on the full model (the M0.3
      finding, twice reproduced). The limit is raised here, in the parent, and every
      child inherits it.
-  2. The Sail toolchain lives in the opam `default` switch, which a bare
+  2. The Sail toolchain lives in a dedicated opam switch, which a bare
      `wsl -e python3 tools/run.py model` does not put on PATH.
   3. The Z3 that discharges Sail's typechecking obligations is the pinned one, not the
      distribution's. This is the one invariant whose absence is silent rather than
@@ -63,6 +63,7 @@ ext4 under /root/build.
 import contextlib
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -100,16 +101,19 @@ BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
 # the simulator inside it derive from this, so the pin is written once.
 ORACLE_TREE = "sail-cheri-riscv-bb07488d"
 
-# The switch the Sail toolchain lives in, which is opam's own default rather than a name
-# this repository chose, and the Sail that switch has to carry. Both were literals at
-# their one use below until a second reader wanted them: `run.py provision` probes the
-# switch `_apply_opam_env` applies. The install spells the pin because a bare
-# `opam install sail` drops it silently (M0.2), and a Sail other than this one emits a
-# model no evidence in this tree was taken under.
-SAIL_SWITCH = "default"
+# OCaml 5.5.1 requires ocamlfind 1.9.9~preview; the latest stable findlib release
+# constrains OCaml below 5.5.0~. Keep a released toolchain until findlib supports
+# the newer compiler. Project-specific switches leave other projects' environments
+# alone, including opam's default switch.
+OCAML_VERSION = "5.4.1"
+OCAMLFIND_VERSION = "1.9.8"
+OPAM_LOCKS = Path(__file__).resolve().parents[1] / "opam"
 SAIL_VERSION = "0.20.2"
+SAIL_SWITCH = f"verifiedos-sail-{SAIL_VERSION}-ocaml-{OCAML_VERSION}"
 SAIL_INSTALL: tuple[tuple[str, ...], ...] = (
-    ("opam", "install", "-y", f"--switch={SAIL_SWITCH}", f"sail.{SAIL_VERSION}"),
+    ("opam", "switch", "create", SAIL_SWITCH, "--empty", "--no-switch", "-y"),
+    ("opam", "switch", "import", str(OPAM_LOCKS / "sail.lock"),
+     f"--switch={SAIL_SWITCH}", "-y"),
 )
 
 # The pinned solver: its version, where it is unpacked, and the version of the
@@ -121,24 +125,21 @@ Z3_VERSION = "5.1.0"
 Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
 Z3_DISTRIBUTION = "4.13.3"
 
-# The prover, in a switch of its own and carrying its pin in the name for the same reason
-# ORACLE_TREE does. It cannot share the Sail switch: `rocq-core` caps dune below the
-# version the Sail packages are built against, so installing it into `default` wants dune
-# downgraded from 3.24.2 to 3.23.1 and all twenty-seven of them rebuilt.
-#
-# 9.1.1 rather than the newer 9.2.0 because every consumer of a Rocq artifact here
-# converges on 9.1: CertiRocq constrains `rocq >= 9.1 & < 9.2~`, SECOMP states 9.1, and
-# sail-riscv's own Rocq lane pins `rocq_core_version` 9.1.1. One prover version serves the
-# host gate and the M1.5 container both.
-ROCQ_VERSION = "9.1.1"
-ROCQ_SWITCH = f"rocq-{ROCQ_VERSION}"
+# The proof gate uses the newest released prover independently of oracle libraries.
+# CertiRocq and QuickChick retain their own 9.1 compatibility constraints in gallina.py;
+# neither limits proofs compiled in this switch. Rocq runtime caps dune below 3.24,
+# so the prover and Sail keep separate dependency resolutions.
+ROCQ_VERSION = "9.2.0"
+ROCQ_SWITCH = f"verifiedos-rocq-{ROCQ_VERSION}-ocaml-{OCAML_VERSION}"
 
 # What creates that switch, as the argv a tool runs rather than as the sentence a person
 # reads: `rocq_command` prints it to a caller that has no prover and `run.py provision`
 # runs it, and a recipe stated twice is the defect these tools exist to catch.
 ROCQ_INSTALL: tuple[tuple[str, ...], ...] = (
-    ("opam", "switch", "create", ROCQ_SWITCH, "ocaml-base-compiler.5.4.0", "--no-switch"),
-    ("opam", "install", "-y", f"--switch={ROCQ_SWITCH}", f"rocq-core.{ROCQ_VERSION}"),
+    ("opam", "switch", "create", ROCQ_SWITCH, "--repos=rocq-released,default",
+     "--empty", "--no-switch", "-y"),
+    ("opam", "switch", "import", str(OPAM_LOCKS / "rocq.lock"),
+     f"--switch={ROCQ_SWITCH}", "-y"),
 )
 
 
@@ -149,7 +150,7 @@ def install_line(steps: tuple[tuple[str, ...], ...]) -> str:
     provisioner that stands one up. Written the other way round, a message and a
     command are two copies of one recipe and only one of them is ever run.
     """
-    return " && ".join(" ".join(step) for step in steps)
+    return " && ".join(shlex.join(step) for step in steps)
 
 
 def _env_path(name: str, default: Path) -> Path:

@@ -1,6 +1,6 @@
 # The Bedrock2 lowering loop, on one wire parser
 
-One Gallina source, one mechanically regenerated C implementation, one checked relation between them, run by hand in the switch M1.6 stood up. This is Q2a's host-only experiment: the component is a wire-parser-shaped check over the ring descriptor the [generated interface artifact](../../proofs/RingContract.v) fixes, the imperative output is bedrock2 code Rupicola derives from the source with its functional relation closed at `Qed`, and the C is what bedrock2's printer emits from that code, cut out of the prover's output and never edited. What stops here is the device leg: the C reaches M1.2's contained `ccomp` and comes out as plain RV64 with the capability arms stubbed, which is the exit M1.6 measured and what Q2b closes after M1.2f. Nothing in this directory is sold as compilation of the golden model, and no theorem here reaches the Sail model, constant-time behaviour, resource bounds or the hardware refinement.
+One Gallina source, one mechanically regenerated C implementation, one checked relation between them, run by hand in a dedicated Rupicola switch. This is Q2a's host-only experiment: the component is a wire-parser-shaped check over the ring descriptor the [generated interface artifact](../../proofs/RingContract.v) fixes, the imperative output is bedrock2 code Rupicola derives from the source with its functional relation closed at `Qed`, and the C is what bedrock2's printer emits from that code, cut out of the prover's output and never edited. What stops here is the device leg: the C reaches M1.2's contained `ccomp` and comes out as plain RV64 with the capability arms stubbed, which is the exit M1.6 measured and what Q2b closes after M1.2f. Nothing in this directory is sold as compilation of the golden model, and no theorem here reaches the Sail model, constant-time behaviour, resource bounds or the hardware refinement.
 
 ## What is here
 
@@ -16,7 +16,7 @@ The precedent is [the Wasm oracle's](../wasm-oracle/README.md): a loop a later r
 
 ## Pinned environment
 
-* **The switch** is `rupicola-9.1.1`, M1.6's, created over `ocaml-base-compiler.5.4.0` for the reason M1.6's note records, and this directory does not re-create it. What it must hold, and what `regenerate.py` prints at the top of every run, is `coq-rupicola` **0.0.11**, `coq-bedrock2` and `coq-bedrock2-compiler` **0.0.9**, `coq-coqutil` **0.0.7**, `coq-riscv` **0.0.6**, `rocq-core` **9.1.1** and the `coq` **9.1.1** compatibility metapackage, whose terms are read at [THIRD-PARTY.md](../../THIRD-PARTY.md). The prover is Rocq 9.1.1 spelled `coqc`, the metapackage supplying that name where the proof gate's switch has only `rocq`.
+* **The switch** is `verifiedos-rupicola-9.2.0-ocaml-5.4.1`, created over `ocaml-base-compiler.5.4.1` with `ocamlfind.1.9.8`. OCaml 5.5 requires findlib's preview package, so 5.4.1 is the newest compiler compatible with its stable release. What it must hold, and what `regenerate.py` prints at the top of every run, is `coq-rupicola` **0.0.11**, `coq-bedrock2` and `coq-bedrock2-compiler` **0.0.9**, `coq-coqutil` **0.0.7**, `coq-riscv` **0.0.6**, `rocq-core` **9.2.0** and the `coq` **9.2.0** compatibility metapackage, whose terms are read at [THIRD-PARTY.md](../../THIRD-PARTY.md). The prover is Rocq 9.2.0 spelled `coqc`, the metapackage supplying that name where the proof gate's switch has only `rocq`.
 * **The owner** is [proofs/RingContract.v](../../proofs/RingContract.v), which `run.py ring emit` writes from [interfaces/ring-reference.json](../../interfaces/ring-reference.json) and rule K-89 holds byte-identical to its generator. It carries no `Require` of its own, so it compiles in this switch as it stands; the driver copies it into the stage beside the component.
 * **The reaching exit** is the contained purecap `ccomp` of M1.2's build lane, `/root/build/secomp-m12/ccomp`, reporting *The CompCert C verified compiler, version 3.17*, with the preprocessor line of its `compcert.ini` relaxed as M1.2's cell records. It is not in this tree and never conveyed; the driver runs it only when handed its path, and its terms are the ones [THIRD-PARTY.md](../../THIRD-PARTY.md) decomposes under CompCert and SECOMP.
 * **The stage** is a directory under `/root`, outside every checkout, named on the command line. Every path the driver takes is absolute: a relative write from the guest lands in the primary checkout.
@@ -32,6 +32,8 @@ What it does not decide is stated so that the claim stays the size of the artifa
 **The transcription, against M1.6's six moves.** The source is authored inside the subset rather than transcribed from a `nat`-and-`list` twin, so most of the moves are avoided rather than paid: the scalar is `word` throughout, the buffer is `ListArray.t byte` with its length an argument, there is no higher-order site (`fun` occurs zero times), no inductive is declared, and the result is a word carrying a case index rather than a `bool`. What is paid is the hand-supplied part: the `spec_of` with its `listarray_value AccessByte` footprint and the two length preconditions (10 lines), three `Hint` commands over nine lines, and an eight-line `Ltac` that turns each `word.ltu` branch hypothesis into the arithmetic the array lemma wants, which with the eight-line `Derive` block is the whole of the glue, 35 lines. The predicate for a glue figure here and in the table below is each command's own lines with a bare attribute line on its own excluded, taken the same way in both columns so that the two are comparable. The four lemmas in the file are about the owner and not about the derivation.
 
 ## Build and run
+
+Install the switch from [the released package snapshot](../opam/README.md). Rocq 9.2 reproduces both [C digests](DIGESTS.md) and the verified exit's 257 instructions. The transcript below retains Q2a's original compiler and timing evidence.
 
 Keep the VM up first; a derivation is minutes long and WSL tears the utility VM down between commands, which [the Wasm oracle's README](../wasm-oracle/README.md) explains and prices.
 
@@ -68,7 +70,7 @@ From the host the driver re-launches itself in WSL with every Windows path trans
 The verified exit is one more compile in the stage, after the driver has left `DescriptorCheck.vo` there:
 
 ```console
-$ wsl -e bash -lc 'cd /root/q2-stage && eval $(opam env --switch=rupicola-9.1.1 --set-switch) \
+$ wsl -e bash -lc 'cd /root/q2-stage && eval $(opam env --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 --set-switch) \
     && cp /mnt/c/<repo>/tools/bedrock2-lowering/VerifiedExit.v . && coqc VerifiedExit.v'
 === INSTRUCTION COUNT ===
      = 257%nat
