@@ -8,6 +8,7 @@ query contributes to this inventory or to the verdict.
 """
 
 import re
+from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
@@ -75,9 +76,13 @@ def bind_claims(text: str, symbols: list[Symbol]) -> None:
     claims, faults = proofcites.discharges(text)
     if faults:
         raise AuditError("; ".join(faults))
+    if not claims:
+        return
+    by_name: dict[str, list[Symbol]] = defaultdict(list)
+    for symbol in symbols:
+        by_name[symbol["name"].rpartition(".")[2]].append(symbol)
     for name, entries in claims:
-        matches = [symbol for symbol in symbols
-                   if symbol["name"].endswith(f".{name}")]
+        matches = by_name.get(name, [])
         if len(matches) != 1:
             raise AuditError(f"claim {name} resolves to {len(matches)} native symbols; "
                              "a claim must identify one compiled declaration")

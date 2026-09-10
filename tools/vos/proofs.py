@@ -18,6 +18,8 @@ string literal outside one is kept whole, and that is the whole of what they are
 """
 
 import re
+from contextlib import suppress
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 
 # What a source Requires. `From X Require Import Y` and the bare forms all land here,
@@ -27,46 +29,44 @@ REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(
 # A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
 # `m.(field)` and `Nat.add` inside their sentence.
 SENTENCE_END = re.compile(r"\.(?=\s|$)")
+_COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
 
 def strip_comments(text: str) -> str:
     """The source with its comments blanked. Rocq comments nest, and a string literal
-    outside one is kept whole so a `(*` inside it does not open one."""
+    outside one is kept whole so a `(*` inside it does not open one.
+
+    The regex engine skips ordinary text; Python visits only delimiters. Each complete
+    outer comment contributes its newlines in one count, preserving source line numbers.
+    """
     out: list[str] = []
-    depth = 0
-    i = 0
-    n = len(text)
-    while i < n:
-        if text.startswith("(*", i):
-            depth += 1
-            i += 2
+    depth = start = quoted_until = 0
+    for token in _COMMENT_TOKEN.finditer(text):
+        if token.start() < quoted_until:
             continue
-        if depth and text.startswith("*)", i):
-            depth -= 1
-            i += 2
-            continue
-        if depth == 0 and text[i] == '"':
-            j = text.find('"', i + 1)
-            j = n - 1 if j < 0 else j
-            out.append(text[i:j + 1])
-            i = j + 1
-            continue
-        if depth == 0 or text[i] == "\n":
-            out.append(text[i])
-        i += 1
+        if depth:
+            if token.group() == "(*":
+                depth += 1
+            elif token.group() == "*)":
+                depth -= 1
+                if not depth:
+                    out.append("\n" * text.count("\n", start, token.end()))
+                    start = token.end()
+        elif token.group() == '"':
+            quoted_until = text.find('"', token.end()) + 1
+            if not quoted_until:
+                break
+        elif token.group() == "(*":
+            out.append(text[start:token.start()])
+            start = token.start()
+            depth = 1
+    out.append("\n" * text.count("\n", start) if depth else text[start:])
     return "".join(out)
 
 
 def sentences(text: str) -> list[str]:
-    """Every sentence the source states, comments gone and whitespace trimmed.
-
-    A character walk over the whole file, so it is priced per megabyte rather than per
-    sentence: measured over the shipped `proofs/` tree it is about four hundred
-    milliseconds, which is nothing beside the prover run the gate pays it inside and is
-    two orders of magnitude above what a rule of `check.py` may spend. A caller on the
-    host wave reads what it can read without this.
-    """
-    return [s.strip() for s in SENTENCE_END.split(strip_comments(text)) if s.strip()]
+    """Every sentence the source states, comments gone and whitespace trimmed."""
+    return [trimmed for s in SENTENCE_END.split(strip_comments(text)) if (trimmed := s.strip())]
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:
@@ -102,24 +102,38 @@ def marker_depths(text: str, marker: str) -> dict[int, int]:
     return found
 
 
+def _dependencies(sources: list[Path]) -> dict[Path, set[Path]]:
+    """Read each source once, resolving local names against the supplied directory."""
+    by_stem = {source.stem: source for source in sources}
+    stems = set(by_stem)
+    return {source: {by_stem[stem] for stem in local_requires(source, stems)}
+            for source in sources}
+
+
+def _waves(needs: dict[Path, set[Path]]) -> list[list[Path]]:
+    sorter = TopologicalSorter(needs)
+    # Drain independent nodes even after a cycle, so the refusal names the same
+    # blocked sources as an acyclic prefix would leave, including cycle consumers.
+    with suppress(CycleError):
+        sorter.prepare()
+    out: list[list[Path]] = []
+    remaining = set(needs)
+    while sorter.is_active():
+        ready = sorted(sorter.get_ready())
+        out.append(ready)
+        sorter.done(*ready)
+        remaining.difference_update(ready)
+    if remaining:
+        stuck = ", ".join(source.name for source in sorted(remaining))
+        raise SystemExit(f"FAIL: a Require cycle among {stuck}; "
+                         f"no compile order satisfies it")
+    return out
+
+
 def waves(sources: list[Path]) -> list[list[Path]]:
     """The sources in dependency order: each wave Requires only what earlier waves
     compiled, and is name-sorted within itself so the order is deterministic."""
-    stems = {source.stem for source in sources}
-    needs = {source: local_requires(source, stems) for source in sources}
-    out: list[list[Path]] = []
-    done: set[str] = set()
-    remaining = sorted(sources)
-    while remaining:
-        ready = [source for source in remaining if needs[source] <= done]
-        if not ready:
-            stuck = ", ".join(source.name for source in remaining)
-            raise SystemExit(f"FAIL: a Require cycle among {stuck}; "
-                             f"no compile order satisfies it")
-        out.append(ready)
-        done |= {source.stem for source in ready}
-        remaining = [source for source in remaining if source not in ready]
-    return out
+    return _waves(_dependencies(sources))
 
 
 def dependents(sources: list[Path], stem: str) -> list[list[Path]]:
@@ -136,14 +150,15 @@ def dependents(sources: list[Path], stem: str) -> list[list[Path]]:
     A stem no source carries returns nothing, and the caller is the one that decides
     what that means; this function will not guess a closure for a name it cannot find.
     """
-    stems = {source.stem for source in sources}
-    needs = {source: local_requires(source, stems) for source in sources}
-    reach = {stem}
-    while True:
-        grown = reach | {source.stem for source in sources if needs[source] & reach}
-        if grown == reach:
-            break
-        reach = grown
-    narrowed = ([source for source in wave if source.stem in reach]
-                for wave in waves(sources))
-    return [wave for wave in narrowed if wave]
+    needs = _dependencies(sources)
+    reach = {source for source in sources if source.stem == stem}
+    out: list[list[Path]] = []
+    # Every predecessor is settled before its consumer's wave, so one pass computes
+    # the complete closure without reparsing sources or repeatedly scanning the graph.
+    for wave in _waves(needs):
+        affected = [source for source in wave
+                    if source in reach or not needs[source].isdisjoint(reach)]
+        if affected:
+            reach.update(affected)
+            out.append(affected)
+    return out

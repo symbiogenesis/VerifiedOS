@@ -12,6 +12,7 @@ last entry would compare two files that agree on everything they carry.
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import gallina, proofs
@@ -88,6 +89,61 @@ def _a_require_cycle_is_refused() -> None:
             ensure("Require cycle" in str(err), f"the refusal said {err!r}")
             return
     raise AssertionError("a cycle was given a compile order")
+
+
+def _branched_dependencies_keep_sorted_waves() -> None:
+    files = {"A.v": _A, "B.v": _B, "C.v": "Require A.\n", "X.v": "",
+             "D.v": "Require B C X.\n"}
+    with _tree(files) as td:
+        sources = sorted(Path(td).glob("*.v"), reverse=True)
+        waves = [[p.stem for p in wave] for wave in proofs.waves(sources)]
+        with patch.object(proofs, "local_requires", wraps=proofs.local_requires) as read:
+            closure = [[p.stem for p in wave] for wave in proofs.dependents(sources, "B")]
+        ensure(read.call_count == len(sources), "the closure reparsed its source graph")
+    ensure(waves == [["A", "X"], ["B", "C"], ["D"]],
+           f"independent branches lost deterministic waves: {waves}")
+    ensure(closure == [["B"], ["D"]], f"a mutation pulled unrelated branches in: {closure}")
+    ensure(proofs.waves([]) == [] and proofs.dependents([], "Absent") == [],
+           "an empty source directory gained a compile wave")
+
+
+def _cycle_refusals_include_only_blocked_sources() -> None:
+    files = {"A.v": "", "B.v": "Require C.\n", "C.v": "Require B.\n",
+             "D.v": "Require B.\n", "Z.v": "Require A.\n"}
+    expected = "FAIL: a Require cycle among B.v, C.v, D.v; no compile order satisfies it"
+    with _tree(files) as td:
+        sources = sorted(Path(td).glob("*.v"), reverse=True)
+        for stem in ("A", "Absent"):
+            try:
+                proofs.dependents(sources, stem)
+            except SystemExit as err:
+                ensure(str(err) == expected, f"the cycle refusal changed: {err}")
+            else:
+                raise AssertionError("narrowing to an unrelated source hid a Require cycle")
+    with _tree({"A.v": "Require A.\n"}) as td:
+        try:
+            proofs.waves(list(Path(td).glob("*.v")))
+        except SystemExit as err:
+            ensure("among A.v;" in str(err), f"a self-cycle refusal changed: {err}")
+        else:
+            raise AssertionError("a self-Require was given a compile order")
+
+
+def _comment_lexing_preserves_source_and_newlines() -> None:
+    fixtures = {
+        "before(* hidden *)after": "beforeafter",
+        "a(* first\n(* nested\n*)tail\n*)b": "a\n\n\nb",
+        'Definition s := "(* literal *)". (* hidden *)': 'Definition s := "(* literal *)". ',
+        'Definition s := "a ""(* literal *)"" b".': 'Definition s := "a ""(* literal *)"" b".',
+        '"unterminated (* literal': '"unterminated (* literal',
+        "before(* first\n(* second\n*)": "before\n\n",
+        'a(* " *)b': "ab",
+        "a *) b": "a *) b",
+        "a(* one\r\ntwo *)b": "a\nb",
+    }
+    for source, expected in fixtures.items():
+        ensure(proofs.strip_comments(source) == expected,
+               f"comment boundaries changed for {source!r}")
 
 
 def _a_library_require_is_not_ordered() -> None:
@@ -168,6 +224,9 @@ def cases() -> list[Case]:
         Case("a stem no source carries has no closure",
              _a_stem_no_source_carries_has_no_closure),
         Case("a Require cycle is refused", _a_require_cycle_is_refused),
+        Case("branched dependencies keep sorted waves", _branched_dependencies_keep_sorted_waves),
+        Case("cycle refusals include only blocked sources", _cycle_refusals_include_only_blocked_sources),
+        Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),
