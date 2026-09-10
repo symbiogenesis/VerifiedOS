@@ -14,6 +14,13 @@ The general frontend has no identified retiring interim, so [R-05-020's translat
 
 ## Inputs and their actual subjects
 
+The source inspection uses repository revision
+`e6391c6aacb5a89141250d133f8875efa41a994e`. The
+[foundation map](cheri-foundation-map.md) records available constants and missing
+connections; the [workflow contract](language-workflow-contract.md) owns the
+pilot comparison, and the [compiler-route contract](compiler-route-contract.md)
+owns its separate full-artifact comparison.
+
 | Input | Inspected subject | Design use and limit |
 | --- | --- | --- |
 | [DescriptorCheck.v](../tools/bedrock2-lowering/DescriptorCheck.v) | `Descriptor.descriptor_check`, `spec_of_descriptor_check`, `descriptor_check_br2fn_ok` | The header check reads bytes within declared length, returns a status word and preserves its byte-array footprint and frame. Its relation uses `BasicC64Semantics`; it neither copies bytes nor proves a CHERI memory rule. Request identifiers, offsets, lengths and session permissions remain validated at use. |

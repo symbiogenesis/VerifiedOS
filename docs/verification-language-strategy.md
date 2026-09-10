@@ -78,6 +78,15 @@ Q21b fixes equivalent clients, target, artifact endpoint and budgets before an e
 
 ## Experiments and Stop Conditions
 
+The [component foundation map](cheri-foundation-map.md) supplies Q2c's current
+source inspection and missing-connection record. The
+[workflow comparison contract](language-workflow-contract.md),
+[bounded core design](language-core-design.md) and
+[compiler-route contract](compiler-route-contract.md) develop the scheduled
+Q20a/Q21 design work. Their source inspections and proposed acceptance cases
+provide no executed trial, checked primitive instance or new admission authority;
+the checklist records each item's remaining review and entry conditions.
+
 Q19a/Q19b start with [CopyRingService.v](../proofs/CopyRingService.v)'s existing helpers and invariant proofs. Q19c starts with parser destination initialization and reserves copy-service staging for independent reuse. Q2c scopes missing foundations, Q2b owns device lowering, Q3c specifies the protected-sequence fault model and Q3b owns its slice evidence. A completed scoping act supplies none of their checked prerequisites.
 
 | Experiment | Decisive evidence | Stop or blocking result |

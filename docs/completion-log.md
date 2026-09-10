@@ -623,6 +623,49 @@ The checklist's current summary carried the paragraphs below on the day the note
     * **The comparison on admitted workload is Q5b's and owed behind Q1 and a composed roster.** No composed roster exists to compare on: the demo figures are witness values, R-18-004d's demonstration set is unauthored, R-18-004b's per-class resident bytes are summed by a whole-program plan that does not yet exist, and the absolute limits are Q1's to state. The report's status line says so and the cost inputs print as symbols, none read and none rounded, the two fetch constants being witness values and the bank-count contract's coefficients pending.
   * Landed: Tier A.
 
+#### Q20a · Author the combined acceptance and benchmark contract
+
+The [workflow contract](language-workflow-contract.md) fixes parser destination
+initialization as the development client and private service staging as the
+held-out consumer. It specifies all ordinary exit states, composed positive and
+negative cases, semantic-change and weakened-postcondition probes, independent
+expected behavior, evidence identities, sampling and separately attributed costs.
+Source-workflow and final-artifact decisions have predeclared thresholds at their
+own endpoints. The contract is authored; neither implementation trial is open.
+
+The source inspection uses `e6391c6aacb5a89141250d133f8875efa41a994e`.
+The authoring lane returns `7d69c710622e19d58ee94b717baa7b19a8fc1c95`;
+an independent isolated reviewer reads that revision against the checklist and
+the complete selected parser and service statements. Its review identifies no
+blocking contradiction. Integration clarifies the service's accepted extent
+separately from staging headroom and requires an inhabited valid descriptor for
+the changed-bound success case. The compiler-contract join preserves the
+staging suffix and the same held-out independence rule. Q2c and Q21 retain their
+missing-foundation and pricing obligations.
+
+The actual uses the agent-parallel clock: the recorded authoring interval is
+02:15:52 to 02:25:47 UTC and the independent review is 02:28:02 to 02:30:37 UTC
+on 2026-09-10. The primary contract review and shared document integration pass
+runs from 02:23:46 to 02:37:35 UTC; its cost is assigned here once, with no
+completion credit or second actual at the other open design items. The item's
+actual rounds those summed recorded session intervals upward to one decimal
+hour, not a human attended figure
+or a claim about the productivity of the proposed language.
+
+Exit validation uses `python tools/run.py --check` on the integrated document batch,
+with the authored inputs settled before its checker, complete mutation selftest
+and pinned typecheck run. The integration diff from the inspection revision is
+confined to documents; the register, co-read ledger, proof statements, model and
+generated interfaces are unchanged. No guest proof compilation or target
+measurement is claimed by this contract landing. The host gate checks corpus
+consistency and its own refusals, not the unimplemented trial's semantics.
+
+Landed: Tier A. The independent read covers the intended outputs, every exit,
+negative-case obligations, semantic invalidation and full-cost comparison.
+Mechanical document checks cannot decide those contracts, and no Tier-B holder
+is claimed. The absence of copying baselines is an explicit trial-entry condition,
+per Q20a's permission to prepare its contract before those implementations exist.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models
