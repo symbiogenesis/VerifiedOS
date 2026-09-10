@@ -664,6 +664,88 @@ checker cannot decide theorem adequacy or affordability.
     * **The comparison on admitted workload is Q5b's and owed behind Q1 and a composed roster.** No composed roster exists to compare on: the demo figures are witness values, R-18-004d's demonstration set is unauthored, R-18-004b's per-class resident bytes are summed by a whole-program plan that does not yet exist, and the absolute limits are Q1's to state. The report's status line says so and the cost inputs print as symbols, none read and none rounded, the two fetch constants being witness values and the bank-count contract's coefficients pending.
   * Landed: Tier A.
 
+### Q11 · Bound the reach of a run-ahead fetch, or record that it is unbounded
+
+R-15-104a bounds a run-ahead request's complete footprint, including rounded bus
+transfers, against the currently executing PCC and the composed map's executable
+attributes before fabric issue. A failed check suppresses anticipation without
+an early architectural exception. A PCC authority change invalidates queued
+authorization even at the same cursor; stale responses are discarded or rechecked
+against current authority and the current static path. Issued requests remain
+timing and drain obligations until completion or cancellation.
+
+Depth has no independent frozen cap. Additional finite depth still owes the
+stream-dependence, timing and pipeline-drain obligations; a boundary bundle waits
+for architectural demand under its existing checks. This changes no capability
+alignment, absence row or frozen parameter. The spec and absence contract agree,
+and R-15-022 cites R-15-165's buffer rather than the camera-shutter entry.
+
+Authoring commit `92b72bb5449f24f95f39567ef0380d89315a7fe1` changes three documents.
+The attended integration read checks whole-transfer bounds, wraparound,
+non-executable destinations, authority changes at an unchanged cursor, stale
+responses and uncancelable requests against the criterion. Both changed pairs,
+R-15-022 and R-15-104a, are read together and blessed. K-23's named disposition
+records optional run-ahead suppression as no new running-unit fail-stop seam.
+The range rule supplies a separate ground against fetch into a non-executable
+boot-ROM region; it closes neither R1c-ii's boot-flow work nor a fence-cost bound.
+No new finding is raised.
+
+The authoring interval is 17:14:36.997–17:21:19.194 UTC on 2026-09-10, 402.197
+seconds, measured separately from Q18. Its actual includes the integrator's
+focused review, co-reading, shared landing edits and final host wave, rounded
+upward to one decimal hour. The original 6 h estimate and this document-act scope
+are comparable; Q18's validation-only closing pass is excluded from that fit.
+The batch's other outputs are M5.3's independently reviewed device contract and
+the corrected open F-318 disposition. The contained compiler's build evidence
+belongs to M1.2b and is not charged here.
+
+Landed: Tier A. This is a register decision, with no Sail fetch-buffer execution
+claimed. The final integrated host gate and its tested scope are recorded below.
+
+The batch's complete host command is `python tools/run.py --check --tests`, over
+integration HEAD `92b72bb5449f24f95f39567ef0380d89315a7fe1`, the pending merge of
+`4396c7769afa01988c471a431f2647de23cb6001`, and the integrator's shared records,
+K-23 disposition, co-read ledger and generated arithmetic. The exact changed-file
+hashes and complete report are retained as `out/fanout-20260910/tested-input.json`
+and `out/fanout-20260910/host-gate.log` in the integration checkout. Model, RTL and
+Gallina sources are unchanged by this batch; the separate compiler run above its
+M1.2b findings block supplies the affected guest evidence.
+
+### Q18 · Bind proof headers to requirement references without copying normative text
+
+The existing writer and **K-108**/**K-109** meet the acceptance predicates without
+an implementation repair. The register owns the normative text; each authored
+proof's generated manifest carries references and a fingerprint. Authored rationale
+stays in the proof, and RingContract retains its separate generator.
+
+Focused evidence at `23213c295b149cd01118b1960983bdd4c34b7468`: `run.py test --only
+proofheaders --jobs 1` passes 8 cases and `--only proofcites --jobs 1` passes 16.
+The K-108 and K-109 selected selftests each kill their mutant with no survivor or
+stillborn. The repair-path sweep is a pristine no-op, repairs its 15 seeded figures
+and changes no byte on its second repair.
+
+A real-corpus measurement changes one digest nibble in each authored manifest:
+21 findings over 21 manifests. One header repair restores those sources and the
+MemoryPlan dependent export; the next pass queues no files. The exact authored
+citation sets and every parsed Gallina sentence agree across all 22 proof sources,
+including the generated RingContract. Every original proof and export byte is
+restored. MemoryPlan's exported `source_md5` matches
+`12d9a1e242ecb26fd8268dd41679a564`, and `proofs headers --show
+proofs/PartitionContext.v` returns its 38 current owner entries without a write.
+The measurement body takes 1.803 seconds; its script and per-file evidence are
+retained under `out/fanout-20260910/` in the integration checkout.
+
+The closing validation interval is 17:05:39–17:11:43 UTC on 2026-09-10, including
+provisioning and tool setup. The actual rounds that interval and the integrator's
+focused review upward to 0.2 h. Earlier implementation is an existing input, so
+the calibration row is n/a rather than comparing closing validation to the full
+implementation estimate. Shared integration and the final host wave are charged
+once at Q11. No new finding is raised.
+
+Landed: Tier A. The existing holder rules decide manifest equality and exclusion;
+the attended read also checks the unchanged authored meaning. Final batch evidence
+is recorded with Q11.
+
 #### Q20a · Author the combined acceptance and benchmark contract
 
 The [workflow contract](language-workflow-contract.md) fixes parser destination

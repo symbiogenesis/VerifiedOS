@@ -120,6 +120,7 @@ AGENDAS: list[Agenda] = [
             "R-12-099": "the teardown half of the ring contract: stale-generation refusal is the R-12-095-conferred discipline seen from restart, and its fail-stop is an instance of the §16 supervision policy",
             "R-13-014": "the policy name for the admission refusal composed at R-17-030e",
             "R-14-010": "a designed non-refusal, kept for the contrast: past the ceiling the browser evicts and the platform does not refuse",
+            "R-15-104a": "run-ahead suppression postpones an optional request until architectural demand under its existing checks; no running unit or service stops, and outstanding requests remain timing and drain obligations",
             "R-15-155": "the countermeasure, whose caught-fault path is the refusal composed at R-17-030n",
             "R-15-177a": "an instance of the uncorrectable-ECC fail-stop R-15-179 specifies, composed at R-17-030n",
             "R-15-238b": "a block excluded at specification time under admission test 5; no runtime failure action, nothing stops",
