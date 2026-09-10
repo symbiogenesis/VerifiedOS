@@ -178,6 +178,7 @@ AGENDAS: list[Agenda] = [
             "R-07-005": "a build-time decision procedure over one composition, as its criterion states: it decides an instance and establishes no property a specification could be wrong about",
             "R-07-025": "the same build-time decision over one composed topology; the specification a wrong answer would betray is the policy model R-08-028 and R-17-012 confer",
             "R-10-002": "names the prover and the lineage of the four storage layers; each layer's specification is its curated upstream's, and the criterion tests only that no foreign-prover proof enters the trust base",
+            "R-10-004": "compares candidate index refinements under R-10-003's existing parametric-index contract; the specifications are the curated upstreams' and the comparison confers no new locally authored specification or completed theorem",
             "R-10-006": "an upstream property consumed as an admission precondition: the proof is RefFS's, and what this entry states is that §11 may not admit a task without it",
             "R-10-007": "the compilation and prover route for those same layers, declining Dafny/Z3 and Rosette as bases; it fixes which artifacts are trusted rather than what any of them says",
             "R-11-006": "the admission proof over one task set, decided per composition against the schedule R-11-017 confers; its Coq artifact is an instance witness and not a specification",
