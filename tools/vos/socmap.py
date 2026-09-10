@@ -49,8 +49,9 @@ this emits is the map all three declare and reading the other two would be readi
 the same fact twice.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Self
 
 from . import jsonc
 from .jsonc import Json
@@ -74,19 +75,14 @@ class MapError(ValueError):
     """
 
 
-def _int(node: Json, *keys: str) -> int:
-    """One whole number out of a configuration node, by the key path naming it."""
-    here: Json = node
-    for key in keys:
-        if not isinstance(here, dict) or key not in here:
-            raise MapError(f"{COMPOSITION} carries no {'.'.join(keys)}")
-        # `Json` is recursive and a walk that re-binds through it leaves the checker
-        # holding the alias expanded one level, which is the same type spelled
-        # longer; narrowed back to what it is at every step, as `config.value` does.
-        here = cast("Json", here[key])  # ty: ignore[redundant-cast]
-    if isinstance(here, bool) or not isinstance(here, int):
-        raise MapError(f"{COMPOSITION}'s {'.'.join(keys)} is not a whole number")
-    return here
+def _int(node: dict[str, Json], key: str) -> int:
+    """One required integer field, excluding JSON booleans."""
+    if key not in node:
+        raise MapError(f"{COMPOSITION} carries no {key}")
+    found = node[key]
+    if isinstance(found, bool) or not isinstance(found, int):
+        raise MapError(f"{COMPOSITION}'s {key} is not a whole number")
+    return found
 
 
 def _bitvector(node: Json, name: str) -> int:
@@ -108,9 +104,9 @@ def _bitvector(node: Json, name: str) -> int:
                        f"which is not a numeral") from exc
 
 
-def _flag(node: Json, key: str, where: str) -> bool:
+def _flag(node: dict[str, Json], key: str, where: str) -> bool:
     """One PMA bit of a region, which has to be stated and has to be a boolean."""
-    if not isinstance(node, dict) or key not in node:
+    if key not in node:
         raise MapError(f"{COMPOSITION}'s {where} states no {key}")
     found = node[key]
     if not isinstance(found, bool):
@@ -128,16 +124,24 @@ def _identifier(key: str) -> str:
     return "".join(part.capitalize() for part in key.split("_"))
 
 
+@dataclass(frozen=True, slots=True)
 class Region:
     """One declared memory region: where it is, and what it permits."""
 
-    def __init__(self, index: int, node: Json) -> None:
+    base: int
+    size: int
+    io: bool
+    executable: bool
+    readable: bool
+    writable: bool
+
+    @classmethod
+    def from_json(cls, index: int, node: Json) -> Self:
         where = f"memory.regions[{index}]"
         if not isinstance(node, dict):
             raise MapError(f"{COMPOSITION}'s {where} is not a region")
-        self.index = index
-        self.base = _bitvector(node.get("base"), f"{where}.base")
-        self.size = _bitvector(node.get("size"), f"{where}.size")
+        base = _bitvector(node.get("base"), f"{where}.base")
+        size = _bitvector(node.get("size"), f"{where}.size")
         attributes = node.get("attributes")
         if not isinstance(attributes, dict):
             raise MapError(f"{COMPOSITION}'s {where} declares no attributes")
@@ -145,23 +149,31 @@ class Region:
         if kind not in ("IOMemory", "MainMemory"):
             raise MapError(f"{COMPOSITION}'s {where}.attributes.mem_type is "
                            f"{kind!r}, which is neither of the two kinds a region is")
-        self.io = kind == "IOMemory"
-        self.executable = _flag(attributes, "executable", f"{where}.attributes")
-        self.readable = _flag(attributes, "readable", f"{where}.attributes")
-        self.writable = _flag(attributes, "writable", f"{where}.attributes")
+        return cls(base=base, size=size, io=kind == "IOMemory",
+                   executable=_flag(attributes, "executable", f"{where}.attributes"),
+                   readable=_flag(attributes, "readable", f"{where}.attributes"),
+                   writable=_flag(attributes, "writable", f"{where}.attributes"))
 
 
+@dataclass(frozen=True, slots=True)
 class Aperture:
     """One declared MMIO window: the key that names it and the extent it claims.
 
     `size` is `None` for the one window whose extent the composition does not state.
     """
 
-    def __init__(self, key: str, node: dict[str, Json]) -> None:
-        self.key = key
-        self.name = _identifier(key)
-        self.base = _int(node, "base")
-        self.size = _int(node, "size") if "size" in node else None
+    key: str
+    base: int
+    size: int | None
+
+    @property
+    def name(self) -> str:
+        return _identifier(self.key)
+
+    @classmethod
+    def from_json(cls, key: str, node: dict[str, Json]) -> Self:
+        return cls(key=key, base=_int(node, "base"),
+                   size=_int(node, "size") if "size" in node else None)
 
 
 def _apertures(platform: Json) -> list[Aperture]:
@@ -184,7 +196,7 @@ def _apertures(platform: Json) -> list[Aperture]:
         if not isinstance(base, int):
             continue
         if supported:
-            found.append(Aperture(key, node))
+            found.append(Aperture.from_json(key, node))
     if not found:
         raise MapError(f"{COMPOSITION} declares no aperture at all, so a map "
                        "emitted from it would state a die with no device on it")
@@ -257,7 +269,7 @@ def _regions(regions: list[Region]) -> list[str]:
 
 def _aperture_table(apertures: list[Aperture]) -> list[str]:
     """The aperture table, and the residue the composition does not size."""
-    sized = [a for a in apertures if a.size is not None]
+    sized = [(a, size) for a in apertures if (size := a.size) is not None]
     unsized = [a for a in apertures if a.size is None]
     out = [
         "  // Every window the composition declares and gives an extent, in its own",
@@ -274,14 +286,14 @@ def _aperture_table(apertures: list[Aperture]) -> list[str]:
         "",
         "  localparam vos_soc_aperture_t VosApertures [VosApertureCount] = '{",
     ]
-    rows = [f"    '{{ base: {_hex64(a.base)}, size: {_hex64(a.size or 0)} }}"
-            for a in sized]
+    rows = [f"    '{{ base: {_hex64(a.base)}, size: {_hex64(size)} }}"
+            for a, size in sized]
     out += [row + ("," if i + 1 < len(rows) else "") for i, row in enumerate(rows)]
     out += ["  };", ""]
     out += ["  // The index each window sits at, so that a reader naming one window in",
             "  // this package can find it in the composition under the same name."]
     out += [f"  localparam int unsigned VosAp{a.name} = {i};"
-            for i, a in enumerate(sized)]
+            for i, (a, _) in enumerate(sized)]
     if unsized:
         # Written about *any* unsized window and never about the one that is unsized
         # today, which is the same discipline the finding above it keeps: this emitter
@@ -322,7 +334,7 @@ def emit(root: Path) -> str:
     raw_regions = memory.get("regions")
     if not isinstance(raw_regions, list) or not raw_regions:
         raise MapError(f"{COMPOSITION} declares no memory region")
-    regions = [Region(i, node) for i, node in enumerate(raw_regions)]
+    regions = [Region.from_json(i, node) for i, node in enumerate(raw_regions)]
     apertures = _apertures(loaded.get("platform"))
 
     lines = [_HEADER, f"package {PACKAGE};", ""]

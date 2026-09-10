@@ -12,6 +12,7 @@ failure mode of widening it is a run that still prints "key sets agree".
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import config
@@ -122,8 +123,7 @@ def _compare_keys_both_directions() -> None:
 
 
 def _memo_sees_mtime() -> None:
-    # The parse memo is keyed on (path, mtime_ns), so a rewrite whose mtime moved
-    # must be re-read rather than answered from the earlier parse. The bump is
+    # A rewrite whose mtime moved must be reread. The bump is
     # explicit `os.utime` because a same-instant rewrite is below the filesystem
     # clock's resolution, and that case is deliberately not promised.
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -135,6 +135,42 @@ def _memo_sees_mtime() -> None:
         os.utime(path, ns=(stamp + 1_000_000_000, stamp + 1_000_000_000))
         ensure(config.value(path, "k") == 2,
                "an mtime-visible rewrite must be re-read, not served from the memo")
+
+
+def _memo_reuses_successful_parses() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "c.json"
+        path.write_text('{"k": 1}', encoding="utf-8")
+        with patch.object(config.jsonc, "load", wraps=config.jsonc.load) as load:
+            ensure(config.value(path, "k") == 1, "value must read the configuration")
+            ensure(config.flat_of(path) == {"k": 1}, "flat_of must read the same data")
+            ensure(load.call_count == 1, "queries of one unchanged file must share a parse")
+
+        path.write_text("{ not json", encoding="utf-8")
+        with patch.object(config.jsonc, "load", wraps=config.jsonc.load) as load:
+            ensure(config.value(path) is None, "a broken configuration must answer None")
+            ensure(config.flat_of(path) == {}, "a broken configuration has no leaves")
+            ensure(load.call_count == 2, "failed parses must be retried")
+
+
+def _memo_sees_changes_with_preserved_mtime() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "c.json"
+        path.write_text('{"k": 1}', encoding="utf-8")
+        ensure(config.value(path, "k") == 1, "the first parse must answer the file")
+        stat = path.stat()
+
+        path.write_text('{"k": 200}', encoding="utf-8")
+        os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        ensure(config.value(path, "k") == 200,
+               "a different size must invalidate a parse even with its mtime restored")
+
+        replacement = Path(td) / "replacement.json"
+        replacement.write_text('{"k": 300}', encoding="utf-8")
+        os.utime(replacement, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        replacement.replace(path)
+        ensure(config.value(path, "k") == 300,
+               "an atomic replacement must invalidate a parse with equal size and mtime")
 
 
 def _undeclared_walk() -> None:
@@ -158,5 +194,7 @@ def cases() -> list[Case]:
         Case("flat-of-contract", _flat_of_contract),
         Case("compare-keys-both-directions", _compare_keys_both_directions),
         Case("memo-sees-mtime", _memo_sees_mtime),
+        Case("memo-reuses-successful-parses", _memo_reuses_successful_parses),
+        Case("memo-sees-changes-with-preserved-mtime", _memo_sees_changes_with_preserved_mtime),
         Case("undeclared-walk", _undeclared_walk),
     ]
