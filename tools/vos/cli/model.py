@@ -122,21 +122,43 @@ def build_identity(e: env.Environment) -> dict[str, object]:
     }
 
 
-def build_artifacts(directory: Path) -> dict[str, str]:
+def test_corpus_version(model_root: Path) -> str:
+    """The release declared by the model, shared by configure and corpus consumers."""
+    source = model_root / "test/CMakeLists.txt"
+    try:
+        text = source.read_text(encoding="utf-8")
+    except OSError as err:
+        raise ValueError(f"cannot read the test corpus pin from {source}: {err}") from err
+    versions = list(re.finditer(
+        r'^set\(TEST_DOWNLOAD_VERSION "([0-9]{4}-[0-9]{2}-[0-9]{2})" '
+        r'CACHE STRING "[^"\r\n]*"\)$', text, re.MULTILINE))
+    if len(versions) != 1 or len(re.findall(r"^set\(TEST_DOWNLOAD_VERSION\b", text,
+                                           re.MULTILINE)) != 1:
+        raise ValueError(f"{source} must declare exactly one dated TEST_DOWNLOAD_VERSION")
+    return cast("str", versions[0].group(1))
+
+
+def _test_corpus(directory: Path, model_root: Path) -> Path:
+    """Select the declared release even when older or newer donor caches coexist."""
+    suite = directory / "test" / test_corpus_version(model_root) / "riscv-tests"
+    if not suite.is_dir():
+        raise ValueError(f"no downloaded riscv-tests at the pinned release: {suite}")
+    return suite
+
+
+def build_artifacts(directory: Path, model_root: Path) -> dict[str, str]:
     """Build products and the exact downloaded ELF inputs the profile sweep consumes."""
     return receipts.snapshot(directory, [*(directory / rel for rel in BUILD_ARTIFACTS),
-                                          *sweep_inputs(directory)])
+                                          *sweep_inputs(directory, model_root)])
 
 
-def sweep_inputs(directory: Path, xlen: str = "64") -> list[Path]:
+def sweep_inputs(directory: Path, model_root: Path, xlen: str = "64") -> list[Path]:
     """The nonempty physical-variant suite selected by both the runner and its receipt."""
-    suites = sorted(directory.glob("test/*/riscv-tests"))
-    if not suites:
-        raise ValueError(f"no downloaded riscv-tests under {directory}/test")
-    elves = [path for path in sorted(suites[0].glob(f"rv{xlen}*-p-*"))
+    suite = _test_corpus(directory, model_root)
+    elves = [path for path in sorted(suite.glob(f"rv{xlen}*-p-*"))
              if path.is_file() and path.suffix != ".dump"]
     if not elves:
-        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {suites[0]}")
+        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {suite}")
     return elves
 
 
@@ -153,7 +175,8 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
         raise ValueError("the build receipt does not record a successful complete build")
     if record.get("identity") != build_identity(e):
         raise ValueError("the build receipt is stale: sources, tools or options changed")
-    if record.get("artifacts") != build_artifacts(e.fast_build_dir if fast else e.build_dir):
+    if record.get("artifacts") != build_artifacts(
+            e.fast_build_dir if fast else e.build_dir, e.model):
         raise ValueError("the build receipt is stale: built artifacts changed")
     if record.get("log_sha256") != receipts.digest(log):
         raise ValueError("the build receipt is stale: its test log changed")
@@ -191,13 +214,21 @@ def _configure(e: env.Environment, build_dir: Path,
     records itself against. Both halves of it ride, the directory and the work tree, and
     the second is what makes the `-dirty` suffix a reading of the lane rather than a
     constant: see `env.git_env`. It is scoped to this one child and no further.
+    Passing the declared test release replaces an older CMake cache entry; direct
+    CMake callers can still override the default in the model's declaration.
     """
+    try:
+        test_version = test_corpus_version(e.model)
+    except ValueError as err:
+        print(str(err), file=sys.stderr)
+        return 1
     return env.stage("configure", [
         "cmake", "-S", str(e.model), "-B", str(build_dir), "-GNinja",
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
         "-DDOWNLOAD_GMP=FALSE",
         "-DENABLE_RISCV_TESTS=TRUE",
         *e.compilers, *e.ccache, *(extra or []),
+        f"-DTEST_DOWNLOAD_VERSION={test_version}",
     ], stdout=out, stderr=out, add_env=env.git_env(e.root) or None)
 
 
@@ -453,7 +484,7 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
         "identity": identity,
-        "artifacts": build_artifacts(build_dir) if code == 0 else {},
+        "artifacts": build_artifacts(build_dir, e.model) if code == 0 else {},
         "log_sha256": receipts.digest(log), "extra_options": extra,
     })
 
@@ -1068,7 +1099,7 @@ def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
         return 1
     sim = e.simulator
     try:
-        elves = sweep_inputs(e.build_dir, args.xlen)
+        elves = sweep_inputs(e.build_dir, e.model, args.xlen)
     except ValueError as err:
         print(str(err), file=sys.stderr)
         return 1
@@ -1130,11 +1161,13 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
 
     elves = [Path(p) for p in args.elf]
     if args.corpus:
-        suites = sorted(e.build_dir.glob("test/*/riscv-tests"))
-        if not suites:
-            print(f"no downloaded riscv-tests under {e.build_dir}/test", file=sys.stderr)
+        try:
+            suite = _test_corpus(e.build_dir, e.model)
+        except ValueError as err:
+            print(str(err), file=sys.stderr)
             return 1
-        elves = sorted(p for p in suites[0].glob("rv64ui-p-*") if p.suffix != ".dump")
+        elves = sorted(p for p in suite.glob("rv64ui-p-*")
+                       if p.is_file() and p.suffix != ".dump")
     if not elves:
         print("nothing to compare: pass one or more ELFs, or --corpus", file=sys.stderr)
         return 1
