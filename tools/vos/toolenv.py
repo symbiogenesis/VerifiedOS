@@ -10,10 +10,12 @@ import tomllib
 from pathlib import Path
 
 READY = "_VOS_TOOL_ENV"
+PROJECT = "tools/pyproject.toml"
+LOCK = "tools/uv.lock"
 
 
 def checker_pins(root: Path) -> dict[str, str]:
-    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    project = tomllib.loads((root / PROJECT).read_text(encoding="utf-8"))
     dependencies = project["dependency-groups"]["dev"]
     if not isinstance(dependencies, list):
         raise TypeError("dependency-groups.dev must be a list of exact checker pins")
@@ -36,7 +38,7 @@ def environment(root: Path, platform: str) -> Path:
 
 def identity(root: Path, platform: str) -> str:
     digest = hashlib.sha256(str(environment(root, platform)).encode("utf-8"))
-    for name in ("pyproject.toml", "uv.lock"):
+    for name in (PROJECT, LOCK):
         digest.update((root / name).read_bytes())
     return digest.hexdigest()
 
@@ -47,13 +49,13 @@ def bootstrap(root: Path, argv: list[str]) -> int | None:
     try:
         token = identity(root, sys.platform)
     except OSError as err:
-        print(f"the tools require pyproject.toml and uv.lock: {err}", file=sys.stderr)
+        print(f"the tools require {PROJECT} and {LOCK}: {err}", file=sys.stderr)
         return 1
     if Path(sys.prefix) == target and os.environ.get(READY) == token:
         return None
     uv = shutil.which("uv")
     if uv is None:
-        print("uv is required; install the version in pyproject.toml's "
+        print(f"uv is required; install the version in {PROJECT}'s "
               "tool.uv.required-version, then rerun this command", file=sys.stderr)
         return 1
     child_env = os.environ.copy()
@@ -63,7 +65,7 @@ def bootstrap(root: Path, argv: list[str]) -> int | None:
     child_env[READY] = token
     try:
         return subprocess.run(
-            [uv, "run", "--project", str(root), "--locked", "--exact",
+            [uv, "run", "--project", str((root / PROJECT).parent), "--locked", "--exact",
              "--no-python-downloads", "python",
              str(root / "tools" / "run.py"), *argv],
             env=child_env, check=False).returncode

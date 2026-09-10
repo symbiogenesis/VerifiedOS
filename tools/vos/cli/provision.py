@@ -15,7 +15,7 @@ there.
 below is imported from the module or the document that fixes it, so this file is a
 table of *rows* and not a second copy of the tree's pins. The one figure written here
 as a literal is the interpreter floor; K-75 holds this explicit restatement against
-`tools/ty.toml`. Python packages are synchronized from uv.lock before dispatch,
+`tools/ty.toml`. Python packages are synchronized from tools/uv.lock before dispatch,
 so their rows probe the settled environment and carry no separate install recipes.
 
 **Native rather than containerized, which is what makes it arch-agnostic.** I8's
@@ -352,19 +352,19 @@ FACTS: tuple[Fact, ...] = (
          _interpreter),
     Fact("uv", GATE,
             "run.py's locked Python environment",
-            "pyproject.toml's tool.uv.required-version, enforced by uv at startup",
+            "tools/pyproject.toml's tool.uv.required-version, enforced by uv at startup",
          partial(_on_path, "uv")),
     Fact("ty", GATE,
          "run.py typecheck",
-            f"pyproject.toml's dependency-groups.dev (ty {typecheck.TY_VERSION})",
+            f"tools/pyproject.toml's dependency-groups.dev (ty {typecheck.TY_VERSION})",
             partial(_checker, "ty", typecheck.TY_VERSION)),
     Fact("ruff", GATE,
          "run.py typecheck",
-            f"pyproject.toml's dependency-groups.dev (ruff {typecheck.RUFF_VERSION})",
+            f"tools/pyproject.toml's dependency-groups.dev (ruff {typecheck.RUFF_VERSION})",
             partial(_checker, "ruff", typecheck.RUFF_VERSION)),
     Fact("jsonschema", GATE,
          "run.py model validate-config, and ty on every lane",
-            "pyproject.toml's project.dependencies; synchronized by run.py",
+            "tools/pyproject.toml's project.dependencies; synchronized by run.py",
             partial(_importable, "jsonschema", "jsonschema")),
     Fact("opam", TOOLCHAIN,
          "every switch below, and vos/env.py's _apply_opam_env",

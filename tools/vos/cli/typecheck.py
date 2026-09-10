@@ -89,7 +89,7 @@ def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
     if exe is None:
         rep.report(name, "not installed:",
                    [f"{name} {pin} is not in {sysconfig.get_path('scripts')}: "
-                    "rerun python tools/run.py typecheck to synchronize uv.lock"])
+                    "rerun python tools/run.py typecheck to synchronize tools/uv.lock"])
         return None
     try:
         found = _version(exe)
@@ -103,7 +103,7 @@ def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
     if found != pin:
         rep.report(name, "version(s) other than the pinned one:",
                    [f"{name} {found} is installed and this tree pins {pin}: "
-                    "rerun python tools/run.py typecheck to synchronize uv.lock"])
+                    "rerun python tools/run.py typecheck to synchronize tools/uv.lock"])
         return None
     return exe
 

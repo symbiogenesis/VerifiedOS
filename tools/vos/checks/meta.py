@@ -15,7 +15,7 @@ would make this agreement trivially true and stop deciding anything. What no sca
 decides is whether a registered claim is the right claim, which is the same residue
 every conferral declares.
 
-K-67 holds the README's checker pins and the resolved lockfile against pyproject.toml.
+K-67 holds the README's checker pins and the resolved lockfile against tools/pyproject.toml.
 The runtime reads the same manifest. Missing, malformed and duplicate declarations
 are findings, so an unreadable side cannot silently remove the comparison.
 
@@ -30,7 +30,7 @@ sites are enumerated rather than counted here, because the count is `_FLOOR_SITE
 state. The two dialects are why the rule is worth having rather than obvious: `3.14`
 and `py314` are one figure in two spellings, so a bump applied to one of them does not
 read as a disagreement with the other, and every prose site was a hand-copy nothing
-owned. The provisioner explicitly restates the floor, while pyproject.toml constrains
+owned. The provisioner explicitly restates the floor, while tools/pyproject.toml constrains
 the interpreter used for dependency resolution. Both are held against ty's target.
 
 The window is the enumerated sites rather than a directory, as K-67's is: `tools/`
@@ -181,8 +181,8 @@ RULE_ID_RE = re.compile(r"\bK-\d{2,3}\b")
 REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 
 README = "tools/README.md"
-PROJECT = "pyproject.toml"
-LOCK = "uv.lock"
+PROJECT = toolenv.PROJECT
+LOCK = toolenv.LOCK
 PROVISION = "tools/vos/cli/provision.py"
 
 _README_TY_ROW_RE = re.compile(r"(?m)^\| \[ty\]\([^)]*\) \| ([^ |]+) \|")
@@ -496,7 +496,7 @@ def _pins(ctx: Context) -> None:
         except (ValueError, TypeError, KeyError) as err:
             findings.append(f"{LOCK} cannot supply resolved checker pins: {err}")
 
-    rep.report("K-67", "pin site(s) disagreeing with the versions pyproject.toml "
+    rep.report("K-67", f"pin site(s) disagreeing with the versions {PROJECT} "
                "fixes:", findings,
                f"the README and lockfile state ty {pins.get('ty')} and "
                f"ruff {pins.get('ruff')}, the versions {PROJECT} fixes")

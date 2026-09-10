@@ -236,7 +236,7 @@ def _pin_gate_refusals() -> None:
         with_stderr=False, parse=typecheck._parse_ruff, label="lint finding(s):",
         ok="clean")
     ensure("not installed:" in "\n".join(absent.out)
-            and "synchronize uv.lock" in "\n".join(absent.out),
+            and "synchronize tools/uv.lock" in "\n".join(absent.out),
            f"an absent tool must name the uv remedy, got {absent.out!r}")
 
 

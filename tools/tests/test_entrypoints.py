@@ -48,6 +48,10 @@ def _locked_bootstrap() -> None:
                 "bootstrap enforces the lock and lets the project select Python",
             )
             ensure(argv[-2:] == ["check", "--fix"], "arguments must survive verbatim")
+            ensure(argv[argv.index("--project") + 1] == str(TOOLS),
+                   "bootstrap must select the tools project")
+            ensure(argv[-3] == str(TOOLS / "run.py"),
+                   "the entry point must stay rooted at the repository's tools directory")
             environment = launch.call_args.kwargs["env"]
             ensure(environment["UV_PROJECT_ENVIRONMENT"] == str(
                 toolenv.environment(_ROOT, platform)), "the environment is OS-specific")
@@ -70,39 +74,47 @@ def _settled_children_do_not_sync() -> None:
 
 def _bootstrap_prerequisites() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-bootstrap-") as temporary:
-     root = Path(temporary)
-     for name in ("pyproject.toml", "uv.lock"):
-         (root / name).write_text("initial", encoding="utf-8")
-     token = toolenv.identity(root, sys.platform)
-     launch = Mock(return_value=SimpleNamespace(returncode=7))
-     errors = StringIO()
-     with patch.object(toolenv, "sys", SimpleNamespace(
-          platform=sys.platform, prefix=str(toolenv.environment(root, sys.platform)),
-          stderr=errors)), \
-          patch.object(toolenv, "os", SimpleNamespace(environ={toolenv.READY: token})), \
-          patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")), \
-          patch.object(toolenv, "subprocess", SimpleNamespace(run=launch)):
-         ensure(toolenv.bootstrap(root, ["check"]) is None,
-             "unchanged setup state permits direct dispatch")
-         (root / "uv.lock").write_text("changed", encoding="utf-8")
-         ensure(toolenv.bootstrap(root, ["check"]) == 7,
-             "a changed lock must synchronize even inside the environment")
-         launch.assert_called_once()
-         launch.reset_mock()
-         (root / "uv.lock").unlink()
-         ensure(toolenv.bootstrap(root, ["check"]) == 1,
-             "a missing lock must refuse dispatch")
-         launch.assert_not_called()
-         (root / "uv.lock").write_text("changed", encoding="utf-8")
-         with patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: None)):
-          ensure(toolenv.bootstrap(root, ["check"]) == 1,
-              "missing uv must refuse dispatch")
-         launch.assert_not_called()
-         launch.side_effect = OSError("cannot launch")
-         ensure(toolenv.bootstrap(root, ["check"]) == 1,
-             "an OS launch error must be a reported failure")
-         ensure("could not be started" in errors.getvalue(),
-             "the launch failure must include an actionable diagnostic")
+        root = Path(temporary)
+        project = root / "tools"
+        project.mkdir()
+        for name in ("pyproject.toml", "uv.lock"):
+            (project / name).write_text("initial", encoding="utf-8")
+        token = toolenv.identity(root, sys.platform)
+        # A file left at the old location must neither select dependencies nor
+        # hide the loss of the tools project's lockfile.
+        for name in ("pyproject.toml", "uv.lock"):
+            (root / name).write_text("unrelated root metadata", encoding="utf-8")
+        ensure(toolenv.identity(root, sys.platform) == token,
+               "only the tools project's files determine environment freshness")
+        launch = Mock(return_value=SimpleNamespace(returncode=7))
+        errors = StringIO()
+        with patch.object(toolenv, "sys", SimpleNamespace(
+                platform=sys.platform, prefix=str(toolenv.environment(root, sys.platform)),
+                stderr=errors)), \
+                patch.object(toolenv, "os", SimpleNamespace(environ={toolenv.READY: token})), \
+                patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")), \
+                patch.object(toolenv, "subprocess", SimpleNamespace(run=launch)):
+            ensure(toolenv.bootstrap(root, ["check"]) is None,
+                   "unchanged setup state permits direct dispatch")
+            (project / "uv.lock").write_text("changed", encoding="utf-8")
+            ensure(toolenv.bootstrap(root, ["check"]) == 7,
+                   "a changed lock must synchronize even inside the environment")
+            launch.assert_called_once()
+            launch.reset_mock()
+            (project / "uv.lock").unlink()
+            ensure(toolenv.bootstrap(root, ["check"]) == 1,
+                   "a missing tools lock must refuse dispatch despite a root lockfile")
+            launch.assert_not_called()
+            (project / "uv.lock").write_text("changed", encoding="utf-8")
+            with patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: None)):
+                ensure(toolenv.bootstrap(root, ["check"]) == 1,
+                       "missing uv must refuse dispatch")
+            launch.assert_not_called()
+            launch.side_effect = OSError("cannot launch")
+            ensure(toolenv.bootstrap(root, ["check"]) == 1,
+                   "an OS launch error must be a reported failure")
+            ensure("could not be started" in errors.getvalue(),
+                   "the launch failure must include an actionable diagnostic")
 
 
 def _run(*argv: str, env: dict[str, str] | None = None) -> tuple[int, str, str]:

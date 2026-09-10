@@ -13,8 +13,8 @@
 # The checker's corpus is the git index, and the upstream/ entries it reads are
 # gitlinks, so the checkout deliberately initializes no submodule: an empty upstream/
 # directory is the tree the checker is written for. K-75 holds the interpreter floor
-# below against tools/ty.toml and pyproject.toml. setup-uv reads its own version from
-# that manifest; run.py synchronizes uv.lock into a checkout-local, OS-specific
+# below against tools/ty.toml and tools/pyproject.toml. setup-uv reads its own version
+# from that manifest; run.py synchronizes tools/uv.lock into a checkout-local, OS-specific
 # environment before dispatch. The cache stores downloads, never a shared venv.
 # No global Python packages are installed. K-67 holds the documented checker pins
 # and lockfile against the manifest, and uv refuses stale resolution under --locked.
@@ -61,11 +61,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
         with:
-          version-file: pyproject.toml
+          version-file: tools/pyproject.toml
           enable-cache: true
           cache-dependency-glob: |
-            pyproject.toml
-            uv.lock
+            tools/pyproject.toml
+            tools/uv.lock
 
       - name: Host gates and behavioral tests, read-only
         run: python tools/run.py --check --tests

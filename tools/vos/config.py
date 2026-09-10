@@ -191,7 +191,7 @@ def validate(schema_path: Path, config_path: Path) -> tuple[int, list[str]]:
     try:
         import jsonschema  # noqa: PLC0415
     except ModuleNotFoundError:
-        return 1, ["jsonschema is not installed: use tools/run.py to synchronize uv.lock"]
+        return 1, ["jsonschema is not installed: use tools/run.py to synchronize tools/uv.lock"]
 
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     config = jsonc.load(config_path)

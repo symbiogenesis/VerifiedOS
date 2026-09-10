@@ -253,9 +253,9 @@ def _k67(readme: str, project: str | None,
          lock: str = _LOCK_PINNED) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": readme,
-             "uv.lock": lock}
+             "tools/uv.lock": lock}
     if project is not None:
-        files["pyproject.toml"] = project
+        files["tools/pyproject.toml"] = project
     with sandbox_tree(files) as root:
         ctx = _context(root)
         meta.run(ctx)
@@ -265,14 +265,14 @@ def _k67(readme: str, project: str | None,
 def _k67_agreement_is_ok() -> None:
     ctx = _k67(_README_PINNED, _PROJECT_PINNED)
     ensure("ok K-67: the README and lockfile state ty 1.2.3 and "
-           "ruff 4.5.6, the versions pyproject.toml fixes" in ctx.rep.out,
+           "ruff 4.5.6, the versions tools/pyproject.toml fixes" in ctx.rep.out,
            f"agreement names both pins: {ctx.rep.out!r}")
 
 
 def _k67_lock_drift_is_a_finding() -> None:
     ctx = _k67(_README_PINNED, _PROJECT_PINNED,
                _LOCK_PINNED.replace('version = "4.5.6"', 'version = "4.5.5"'))
-    ensure("uv.lock's ruff versions are ['4.5.5'], pyproject.toml pins 4.5.6"
+    ensure("tools/uv.lock's ruff versions are ['4.5.5'], tools/pyproject.toml pins 4.5.6"
            in _findings_under(ctx, "K-67"),
            f"a drifted lock pin names the two figures: "
            f"{_findings_under(ctx, 'K-67')!r}")
@@ -282,7 +282,7 @@ def _k67_disagreement_names_both_figures() -> None:
     ctx = _k67(_README_PINNED.replace("| 1.2.3 |", "| 9.9.9 |"), _PROJECT_PINNED)
     found = _findings_under(ctx, "K-67")
     ensure("tools/README.md's ty checker-table row states 9.9.9, "
-           "pyproject.toml pins 1.2.3" in found,
+           "tools/pyproject.toml pins 1.2.3" in found,
            f"a drifted site names the two figures and nothing else: {found!r}")
 
 
@@ -306,7 +306,7 @@ def _k75(provision: str, project: str =
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": _README_PINNED,
              "tools/ty.toml": _TY_CONF,
-             "pyproject.toml": project,
+             "tools/pyproject.toml": project,
              "tools/vos/cli/provision.py": provision}
     with sandbox_tree(files) as root:
         ctx = _context(root)

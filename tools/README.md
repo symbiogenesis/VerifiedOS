@@ -132,7 +132,7 @@ Two more are the RVFI-DII rig's and sit beside them for the same reason: [rvfi.p
 ## Running them
 
 Install Python at the floor above and [uv](https://docs.astral.sh/uv/getting-started/installation/)
-at the version declared by [pyproject.toml](../pyproject.toml)'s
+at the version declared by [pyproject.toml](pyproject.toml)'s
 `tool.uv.required-version`. Both must be available in each OS where commands run;
 Windows installations do not supply WSL's prerequisites. No activation, global
 package installation, or separate checker installation is needed.
@@ -143,7 +143,7 @@ configuration for the manual install. The project keeps `python-downloads = "nev
 and normal commands never download Python. Ensure uv is on the non-interactive PATH
 used by WSL as well as your interactive shell.
 
-The first command synchronizes [uv.lock](../uv.lock), then runs inside the managed
+The first command synchronizes [uv.lock](uv.lock), then runs inside the managed
 environment. Windows uses `out/venv-win32`; Linux, including WSL and CI, uses
 `out/venv-linux`. Each checkout has its own environments. Only the manifest,
 lockfile, and each OS's uv download cache are shared, never Windows and Linux
@@ -525,9 +525,9 @@ annotations contradicts nothing and is invisible to it; ruff's `ANN` group is wh
 coverage a rule. Both are pinned for the reason Rocq and z3 are pinned, and a version
 other than the pinned one is a finding rather than a warning.
 
-The exact checker pins live in [pyproject.toml](../pyproject.toml)'s development
+The exact checker pins live in [pyproject.toml](pyproject.toml)'s development
 group. `jsonschema` is a runtime dependency in the same project, and
-[uv.lock](../uv.lock) fixes the complete resolution for both operating systems.
+[uv.lock](uv.lock) fixes the complete resolution for both operating systems.
 The ring emitter uses a cached JSON Schema validator to check declaration shapes
 before exposing typed records; fields outside the emitter's scope remain intact.
 [run.py typecheck](vos/cli/typecheck.py) reads the pins from the manifest, runs only
@@ -535,11 +535,13 @@ the environment's executables, and explicitly gives ty that environment's Python
 K-67 holds this table and the lockfile against the manifest. Global checker shims
 and an unrelated activated environment cannot select different tools.
 
-To update dependencies, edit the manifest, run `uv lock` from the repository root,
-update this checker table when its pins change, and run the Windows and Linux
-gates. Review and commit the manifest and lockfile together. To refresh resolution
-within the declared constraints, use `uv lock --upgrade`. Normal commands synchronize each checkout on its
-next invocation, so no manual reinstall window exists across worktrees or OSes.
+The Python project lives in `tools/`. From the repository root, add a dependency
+with `uv add --project tools PACKAGE`, or edit the manifest and run
+`uv lock --project tools`. Update this checker table when its pins change, and run
+the Windows and Linux gates. Review and commit the manifest and lockfile together.
+To refresh resolution within the declared constraints, use
+`uv lock --project tools --upgrade`. Normal commands synchronize each checkout on
+its next invocation, so no manual reinstall window exists across worktrees or OSes.
 
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
 switched off, and that is deliberate: the alternative is a list of opt-ins that silently

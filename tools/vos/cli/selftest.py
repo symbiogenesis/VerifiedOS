@@ -1296,7 +1296,7 @@ CASES: list[Case] = [
     ("K-67", "a README pin drifted from the manifest",
      _literal("tools/README.md", "| 0.0.75 |", "| 0.0.74 |")),
     ("K-67", "a resolved checker pin drifted from the manifest",
-     _literal("uv.lock", 'name = "ruff"\nversion = "0.16.5"',
+     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.5"',
               'name = "ruff"\nversion = "0.16.4"')),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which
@@ -1401,7 +1401,7 @@ CASES: list[Case] = [
      _literal(".github/workflows/host-gates.yml", 'python-version: "3.14"',
               'python-version: "3.13"')),
     ("K-75", "a project admitting an interpreter below the typing target",
-     _literal("pyproject.toml", 'requires-python = ">=3.14,<3.15"',
+     _literal("tools/pyproject.toml", 'requires-python = ">=3.14,<3.15"',
               'requires-python = ">=3.13,<3.15"')),
 
     # The configuration is moved rather than the record, because that is the direction
