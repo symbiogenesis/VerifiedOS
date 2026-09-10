@@ -68,6 +68,8 @@ from queue import Queue
 from typing import cast
 
 from vos import corpus as corpus_mod
+from vos import memplan, proofcites, proofheaders, proofs
+from vos.checks import Context, generated, headers
 from vos.checks.ledger import ARTIFACT as PROOF_LEDGER
 from vos.coread import LEDGER
 from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
@@ -75,6 +77,8 @@ from vos.dialectgen import TABLE as DIALECT_TABLE
 from vos.figures import words
 from vos.memplan import ARTIFACT as MEMORY_PLAN
 from vos.proofcites import DERIVED_BEGIN
+from vos.register import read_artifacts, read_register
+from vos.report import Reporter
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
 from vos.socmap import ARTIFACT as SOC_MAP
@@ -2050,6 +2054,125 @@ def _bytes_moved(before: dict[str, bytes], after: dict[str, bytes]) -> list[str]
     return sorted((before.keys() ^ after.keys()) | differing)
 
 
+def _header_require(condition: bool, message: str) -> None:
+    """A failed corpus assertion is a selftest finding, including under python -O."""
+    if not condition:
+        raise ValueError(message)
+
+
+def _header_context(root: Path, *, fix: bool = False) -> Context:
+    corpus = corpus_mod.load(root)
+    return Context(root=root, corpus=corpus, reg=read_register(corpus),
+                   art=read_artifacts(corpus), rep=Reporter(), fix=fix)
+
+
+def _stale_header_manifest(text: str, rel: str) -> str:
+    region = proofcites.derived(text)
+    _header_require(not region.faults and len(region.spans) == 1,
+                    f"{rel}: the corpus proof does not have one safe manifest: {region.faults}")
+    start, stop = region.spans[0]
+    prefix, marker, digest = text[start:stop].partition("SHA256: ")
+    _header_require(bool(marker) and bool(digest) and digest[0] in "0123456789abcdef",
+                    f"{rel}: cannot seed a stale manifest without its fingerprint")
+    first = "1" if digest[0] == "0" else "0"
+    return text[:start] + prefix + marker + first + digest[1:] + text[stop:]
+
+
+def _proof_header_repair(box: Sandbox) -> int:
+    # The index decides membership; fixture size and proof names follow the corpus.
+    # Private copies include the generated ring, which repair must leave untouched.
+    root = box.path
+    source_corpus = corpus_mod.load(root)
+    rels = sorted(rel for rel in source_corpus.tracked if proofcites.is_source(rel))
+    authored = set(rels) - proofheaders.EXCLUDED
+    _header_require(bool(authored), "an empty proof corpus cannot witness header preservation")
+    original = {rel: (root / rel).read_bytes()
+                for rel in [REGISTER, *rels, memplan.ARTIFACT]}
+    # reset() can relink even a fix-safe lane into its template. Detach the whole
+    # subject before calling the repair planner, so an early-write defect cannot
+    # change the pristine corpus or another worker's inputs.
+    for rel, data in original.items():
+        box.touched.add(rel)
+        target = root / rel
+        target.unlink()
+        target.write_bytes(data)
+    files = {rel: data.decode("utf-8") for rel, data in original.items()}
+    identities = {rel: (set(proofcites.ids(files[rel])), proofs.sentences(files[rel]))
+                  for rel in rels}
+    row = next(row for row in generated.GENERATED if row.path == memplan.ARTIFACT)
+
+    baseline = _header_context(root)
+    changed, faults = proofheaders.plan(root, baseline.reg, rels)
+    _header_require(not changed and not faults,
+                    f"the indexed proof corpus needs repair before mutation: "
+                    f"{sorted(changed)}, {faults}")
+    _header_require(not generated._host_row(baseline, row, None).findings,
+                    "the original memory-plan export disagrees with its proof")
+    for rel in sorted(authored):
+        seeded = _stale_header_manifest(files[rel], rel)
+        _header_require(seeded != files[rel], f"{rel}: no stale fingerprint was seeded")
+        _header_require((set(proofcites.ids(seeded)), proofs.sentences(seeded)) == identities[rel],
+                        f"{rel}: the seed changed authored citations or Gallina sentences")
+        box.write(rel, seeded)
+
+    before = _header_context(root)
+    headers.run(before)
+    _header_require(before.rep.findings == len(authored),
+                    f"each stale proof needs its own finding: {before.rep.out}")
+    _header_require(all(any(f"{rel}: generated requirement header is stale" in line
+                            for line in before.rep.out) for rel in authored),
+                    f"a stale proof was absent from the findings: {before.rep.out}")
+
+    seeded_bytes = {rel: (root / rel).read_bytes() for rel in original}
+    repair = _header_context(root, fix=True)
+    generated._host_row(repair, row, None)
+    headers.run(repair)
+    _header_require(repair.rep.findings == 0,
+                    f"the corpus repair refused a stale proof: {repair.rep.out}")
+    _header_require(set(repair.fixed) == authored | {memplan.ARTIFACT},
+                    f"the repair omitted a proof or crossed ownership: {sorted(repair.fixed)}")
+    _header_require(all((root / rel).read_bytes() == data for rel, data in seeded_bytes.items()),
+                    "repair planning published bytes before the checker flush")
+    for rel, text in repair.fixed.items():
+        if rel in authored:
+            _header_require((set(proofcites.ids(text)), proofs.sentences(text)) == identities[rel],
+                            f"{rel}: repair changed authored citations or Gallina sentences")
+        box.write(rel, text)
+
+    _header_require(all((root / rel).read_bytes() == data for rel, data in original.items()),
+                    "repair failed to restore exact corpus bytes or changed an excluded owner")
+    exported = json.loads((root / memplan.ARTIFACT).read_text(encoding="utf-8"))
+    source_md5 = hashlib.md5((root / memplan.SOURCE).read_bytes(),
+                            usedforsecurity=False).hexdigest()
+    _header_require(exported["header"]["source_md5"] == source_md5,
+                    "the dependent export does not bind the repaired source bytes")
+    for fix in (False, True):
+        after = _header_context(root, fix=fix)
+        reading = generated._host_row(after, row, None)
+        headers.run(after)
+        _header_require(not reading.findings and after.rep.findings == 0,
+                        f"the corpus did not converge after one repair: "
+                        f"{reading.findings}, {after.rep.out}")
+        _header_require(not after.fixed,
+                        f"the converged corpus queued another repair: {sorted(after.fixed)}")
+    return len(authored)
+
+
+def _proof_header_repair_path(box: Sandbox) -> tuple[list[str], list[str]]:
+    """Exercise the indexed proof corpus once inside the repair lane."""
+    out = ["--- the proof-header corpus repair ---"]
+    try:
+        count = _proof_header_repair(box)
+    except (OSError, ValueError, KeyError, RuntimeError) as err:
+        problem = f"proof-header corpus: {err}"
+        return [problem], [*out, f"  {problem}"]
+    finally:
+        box.reset()
+    return [], [*out, f"  ok: {count} stale manifests detected and repaired; authored "
+                "bytes preserved, generated owners untouched, dependent export "
+                "current, and the second repair queues nothing"]
+
+
 def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
     """--fix rewrites the asserted counts, the Coverage rows, the compounded products,
     the checklist's cells and totals, and the tag-plane figures from their artifacts,
@@ -2125,6 +2248,10 @@ def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
                    f"byte, {words(len(REPAIRABLE))} seeded figures failed the checker, "
                    f"--fix rewrote {len(rewrites)} and the tree then passes, and a "
                    f"second --fix rewrote nothing and moved no byte")
+    if not problems:
+        header_problems, header_out = _proof_header_repair_path(box)
+        problems.extend(header_problems)
+        out.extend(header_out)
     return problems, out
 
 
