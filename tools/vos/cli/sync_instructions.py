@@ -5,6 +5,7 @@ import argparse
 import os
 import stat
 import tempfile
+from contextlib import ExitStack
 from pathlib import Path
 
 from vos.corpus import find_root
@@ -56,12 +57,12 @@ def _publish_import(root: Path, expected: dict[str, bytes | None]) -> None:
     editor using atomic replacement, editors must coordinate the final replacement
     window; the content recheck catches changes during preparation.
     """
-    temporary: Path | None = None
     target = root / "CLAUDE.md"
-    try:
+    with ExitStack() as cleanup:
         with tempfile.NamedTemporaryFile(dir=root, prefix=".instruction-sync-",
                                          suffix=".tmp", delete=False) as handle:
             temporary = Path(handle.name)
+            cleanup.callback(temporary.unlink, missing_ok=True)
             handle.write(IMPORT)
             handle.flush()
             os.fsync(handle.fileno())
@@ -72,9 +73,6 @@ def _publish_import(root: Path, expected: dict[str, bytes | None]) -> None:
         else:
             temporary.chmod(stat.S_IMODE(target.stat().st_mode))
             _replace(temporary, target)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
 
 
 def sync(root: Path, *, check: bool = False, source: str | None = None,
