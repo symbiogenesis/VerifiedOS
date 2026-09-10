@@ -12,8 +12,10 @@ Every site below is read from the tree at a pin, not from a description of it.
 | --- | --- | --- | --- |
 | Definition | `model/model/core/cap_format.sail`, `cap_common.sail`, `cap_causes.sail` | this repository's curated model | 2026-08-23 |
 | Implementation | `upstream/cva6-cheri`, `core/` | `36a1dc5c` | 2026-08-23 |
-| Interconnect | `upstream/axi-cheri-tagcontroller` | `173646d5` | 2026-08-23 |
-| Integration | `upstream/mocha`, `hw/top_chip/` | `ef1370c1`, tagged `v0.1.1` | 2026-08-31 |
+| Interconnect | The `axi-cheri-tagcontroller` edition selected by CVA6-CHERI's `vendor/zero-day/axi_tagcontroller` gitlink | `173646d5` | 2026-08-23 |
+| Integration | `upstream/mocha`, `hw/top_chip/` | `b5973217`, on `main` | 2026-09-09 |
+
+The standalone tag-controller gitlink follows current upstream work. The interconnect reading here concerns the nested edition the imported datapath actually selects, which retains the flat store and wrapper described below. Mocha's current pin retains those vendor locks; its platform and testbench changes do not change this capability-format delta.
 
 The two capability formats, stated as their own sources state them:
 

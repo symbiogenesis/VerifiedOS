@@ -49,10 +49,11 @@ implementations, neither is compiled against the other's types, and a disagreeme
 names a line a person can read on both sides. What it decides is agreement over the
 vectors it emitted; it is not the co-simulation gate, which is R2's and runs a core.
 
-**Nothing here is copied out of an imported tree.** `rtl/` holds files this repository
-authored or generated and the imported sources are reached through the gitlinks under
-`upstream/`, so this tool composes a file list across the two rather than a vendored
-tree. The address map under `rtl/` is one of the generated ones: `lint` compiles it
+**Tracked `rtl/` holds files this repository authored or generated.** Imported sources
+are reached through the gitlinks under `upstream/`. The SRAM compatibility step copies
+one imported source into the build lane, retaining its notices and adapting two port
+names for the current OpenTitan primitives in both arms. The address map under `rtl/`
+is one of the generated sources: `lint` compiles it
 because whether a generator's output is *SystemVerilog* is a question K-88's byte
 comparison does not ask, and it is reported apart from the authored sources because the
 repair for a finding in one is an edit and in the other a regeneration.
