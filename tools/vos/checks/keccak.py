@@ -51,8 +51,6 @@ repaired into agreement with itself.
 import re
 from typing import TYPE_CHECKING
 
-from vos.corpus import staged_bytes
-
 # `Context` lives in this package's __init__, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
@@ -130,7 +128,7 @@ def run(ctx: Context) -> None:
     findings: list[str] = []
     texts: dict[str, str] = {}
     for path in (GALLINA, SAIL):
-        if staged_bytes(ctx.root, path) is None:
+        if path not in ctx.corpus.indexed:
             findings.append(f"the git index does not carry {path}, so nothing this rule "
                             f"decides about the pair means anything")
             continue

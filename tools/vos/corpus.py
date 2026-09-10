@@ -238,7 +238,7 @@ class Corpus:
     """The tracked Markdown of the repository, and what a link may name in it."""
 
     def __init__(self, root: Path, docs: list[Document], gitlinks: dict[str, str],
-                 tracked: list[str]) -> None:
+                 tracked: list[str], indexed: set[str] | None = None) -> None:
         self.root = root
         self.docs = docs
         self.by_name = {d.name: d for d in docs}
@@ -257,6 +257,11 @@ class Corpus:
         # So the exclusions the document groups apply by construction are each of
         # those groups' own to state and refuse.
         self.tracked = tracked
+        # Stage-zero files, including working-tree deletions. Rules asking whether
+        # the index carries a file need its membership, not a subprocess reading
+        # its entire blob. Conflicted entries have no stage zero; gitlinks point at
+        # commits rather than blobs. Neither can supply an indexed file.
+        self.indexed = frozenset(tracked if indexed is None else indexed)
 
         # A fragment resolves to a bookmark or to a heading's slug, and Markdown makes
         # no distinction between them, so this is one set per file. The numbering is
@@ -417,10 +422,14 @@ def load(root: Path) -> Corpus:
     # have `upstream/` unpopulated.
     names: list[str] = []
     gitlinks: dict[str, str] = {}
+    indexed: set[str] = set()
     tracked: list[str] = []
     seen: set[str] = set()
     for entry in _git(root, "ls-files", "--stage", "--full-name"):
         staged, _, path = entry.partition("\t")     # `<mode> <object> <stage>\t<path>`
+        mode, oid, stage = staged.split()
+        if stage == "0" and mode != GITLINK_MODE:
+            indexed.add(path)
         # A merge conflict lists an unmerged path once per stage, and the first is
         # taken whatever the entry is. One path read as two documents would report
         # every anchor it declares as declared twice; one gitlink read three times
@@ -429,8 +438,8 @@ def load(root: Path) -> Corpus:
         if path in seen:
             continue
         seen.add(path)
-        if staged.startswith(GITLINK_MODE):
-            gitlinks[path] = staged.split()[1]
+        if mode == GITLINK_MODE:
+            gitlinks[path] = oid
             continue
         if not (root / path).is_file():
             continue
@@ -447,4 +456,4 @@ def load(root: Path) -> Corpus:
             # checkout: dropped exactly as a deletion that landed before the listing
             # is, so its absence stays reportable on every rule's own terms
             continue
-    return Corpus(root, docs, gitlinks, sorted(tracked))
+    return Corpus(root, docs, gitlinks, sorted(tracked), indexed)

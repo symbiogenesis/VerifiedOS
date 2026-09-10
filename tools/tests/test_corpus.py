@@ -151,6 +151,10 @@ def _merge_conflict_one_document() -> None:
         ensure(corpus.declared_twice == [],
                f"one document read once declares its anchor once: "
                f"{corpus.declared_twice!r}")
+        ensure("docs/a.md" not in corpus.indexed,
+               "an unmerged file cannot supply a stage-zero blob")
+        ensure(corpus_mod.staged_bytes(root, "docs/a.md") is None,
+               "the membership must agree with Git's stage-zero blob lookup")
 
 
 def _deleted_but_indexed_dropped() -> None:
@@ -161,7 +165,22 @@ def _deleted_but_indexed_dropped() -> None:
                "a deleted-but-indexed document is dropped, not read")
         ensure("docs/b.md" not in corpus.tracked,
                "the tracked list drops it too, so no rule opens a ghost")
+        ensure(corpus.indexed == {"docs/a.md", "docs/b.md"},
+               "the index still carries a working-tree deletion")
         ensure("docs/a.md" in corpus.by_name, "its neighbours stay in the corpus")
+
+
+def _indexed_files_exclude_gitlinks_and_untracked_files() -> None:
+    with sandbox_tree({"docs/a.md": "# A\n"}) as root:
+        (root / "untracked.txt").write_text("untracked", encoding="utf-8")
+        # A gitlink's commit need not be available in this checkout.
+        _git(root, "update-index", "--add", "--cacheinfo",
+             "160000", "1" * 40, "upstream/example")
+        corpus = corpus_mod.load(root)
+        ensure(corpus.indexed == {"docs/a.md"},
+               f"only stage-zero files supply indexed bytes: {corpus.indexed}")
+        ensure(corpus.gitlinks == {"upstream/example": "1" * 40},
+               "gitlink membership remains separate and checkout-independent")
 
 
 def _non_utf8_names_the_document() -> None:
@@ -274,6 +293,8 @@ def cases() -> list[Case]:
         Case("unfenced-walk", _unfenced_walk),
         Case("merge-conflict-one-document", _merge_conflict_one_document),
         Case("deleted-but-indexed-dropped", _deleted_but_indexed_dropped),
+        Case("indexed-files-exclude-gitlinks-and-untracked-files",
+             _indexed_files_exclude_gitlinks_and_untracked_files),
         Case("non-utf8-names-the-document", _non_utf8_names_the_document),
         Case("reads-a-checkout-git-cannot-find",
              _reads_a_checkout_git_cannot_find_by_itself),

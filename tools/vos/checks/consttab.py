@@ -92,8 +92,6 @@ from collections.abc import Callable
 from math import isqrt
 from typing import TYPE_CHECKING, TypedDict
 
-from vos.corpus import staged_bytes
-
 # `Context` lives in this package's __init__, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
@@ -461,11 +459,8 @@ _SAIL_READINGS: dict[str, Callable[[str, Pair], tuple[list[int] | None, str]]] =
 def _texts(ctx: Context) -> tuple[dict[str, str], list[str]]:
     """Every file the table names, and one finding per file that cannot be read.
 
-    The corpus's tracked list is the index's own, minus the paths the working tree does
-    not carry, so a miss is one of two things and the index is read only to say which.
-    That keeps the green run free of a subprocess per path and keeps the finding exact,
-    which is the difference between a file that left the repository and a file a peer
-    session has staged a deletion of.
+    The corpus keeps indexed files apart from files still in the working tree, so
+    these distinguish an unstaged deletion from an artifact no longer tracked.
     """
     tracked = set(ctx.corpus.tracked)
     texts: dict[str, str] = {}
@@ -474,7 +469,7 @@ def _texts(ctx: Context) -> tuple[dict[str, str], list[str]]:
                           for path in (pair["gallina"], pair["sail"]))
     for path in named:
         if path not in tracked:
-            if staged_bytes(ctx.root, path) is None:
+            if path not in ctx.corpus.indexed:
                 findings.append(f"the git index does not carry {path}, so nothing this "
                                 "rule decides about the pairs it holds means anything")
             else:
