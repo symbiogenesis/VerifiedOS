@@ -36,12 +36,17 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from vos import corpus as corpus_mod
 from vos.cli import Table, dispatch
+from vos.jsonc import Json
 from vos.register import Register, read_register
+
+if TYPE_CHECKING:
+    from jsonschema.protocols import Validator
 
 DECLARATION = "interfaces/ring-reference.json"
 ARTIFACT = "proofs/RingContract.v"
@@ -56,11 +61,8 @@ CANCEL_ENTRY = "R-12-097"
 OWNED_ENTRIES: tuple[str, ...] = (STATUS_ENTRY, LIFECYCLE_ENTRY, FULL_RING_ENTRY,
                                   CANCEL_ENTRY)
 
-# Every key the emitter reads out of the declaration, written down where the reading
-# is checked rather than where it happens. K-89's fail-closed reading is that an owner
-# no longer carrying what the emitter reads out of it is that rule's finding and never
-# that rule's crash, and a key read here but named in no list below is exactly the
-# crash: these four are the emitter's own reach, and `declaration()` refuses on each.
+# Required keys at the JSON boundary. Shape and scalar types are checked before
+# constructing the typed records consumed by the emitter.
 DECL_KEYS: tuple[str, ...] = ("ring", "encoding", "label_levels",
                               "operation_record_fields", "operations",
                               "deadline_classes", "flags", "directions",
@@ -76,6 +78,56 @@ OP_KEYS: tuple[str, ...] = ("scalars", "buffer_refs", "deadline",
                             "payload_slack", "cancellation_slack")
 CANCEL_KEYS: tuple[str, ...] = ("points", "commit_index", "quiescence_bound",
                                 "max_to_terminal")
+RING_KEYS: tuple[str, ...] = (
+    "capacity", "index_width_bytes", "index_span", "descriptor_size_bytes",
+    "descriptor_alignment_bytes", "completion_size_bytes", "completion_fill",
+    "max_batch_size", "session_generation", "completion_capacity", "max_accepted",
+    "max_segments", "segment_max_bytes", "slot_budget")
+
+
+class Scalar(TypedDict):
+    width_bytes: int
+    validated_at_use: bool
+
+
+class Labels(TypedDict):
+    confidentiality: int
+    integrity: int
+
+
+class Cancellation(TypedDict):
+    points: int
+    commit_index: int
+    quiescence_bound: int
+    max_to_terminal: int
+
+
+class Operation(TypedDict):
+    name: str
+    scalars: list[Scalar]
+    buffer_refs: int
+    deadline: bool
+    empty_validation_claim: bool
+    labels: Labels
+    record: list[int]
+    cancellation: Cancellation | None
+    refinement: list[str]
+    fill: int
+    activation_slack: int
+    payload_slack: int
+    cancellation_slack: int
+
+
+class Declaration(TypedDict):
+    ring: dict[str, int]
+    encoding: dict[str, int]
+    label_levels: int
+    operation_record_fields: list[str]
+    operations: list[Operation]
+    deadline_classes: list[str]
+    flags: list[str]
+    directions: list[str]
+    content_types: list[str]
 
 # The register's own spellings, found where each entry states them. A backticked
 # lower-case identifier is how that document writes a wire token, the arrow chain is
@@ -97,10 +149,7 @@ class RingError(Exception):
 def _ordered(names: list[str]) -> list[str]:
     """The names in first-appearance order, each once. An entry writes one token
     twice where its sentence needs it twice, and the enumeration is still one."""
-    seen: dict[str, None] = {}
-    for name in names:
-        seen.setdefault(name, None)
-    return list(seen)
+    return list(dict.fromkeys(names))
 
 
 @dataclass(frozen=True)
@@ -180,52 +229,82 @@ def owned(register: Register) -> Owned:
                  unstarted=unstarted)
 
 
-def declaration(root: Path) -> dict[str, Any]:
-    """The one authored declaration, with the shape checks the emitter depends on."""
+def _object_schema(properties: dict[str, Json], *, required: tuple[str, ...] | None = None,
+                   additional: Json = True) -> dict[str, Json]:
+    return {"type": "object", "properties": properties,
+            "required": list(properties) if required is None else list(required),
+            "additionalProperties": additional}
+
+
+@cache
+def _declaration_validator() -> Validator:
+    # Loading the existing runtime dependency is deferred until this command is used.
+    # The validator and schema are built once per process, including test campaigns.
+    from jsonschema import Draft202012Validator, validators  # noqa: PLC0415
+
+    integer: Json = {"type": "integer"}
+    boolean: Json = {"type": "boolean"}
+    strings: Json = {"type": "array", "items": {"type": "string"}}
+    scalar = _object_schema({"width_bytes": integer, "validated_at_use": boolean})
+    cancellation = _object_schema(dict.fromkeys(CANCEL_KEYS, integer))
+    operation = _object_schema({
+        "name": {"type": "string"},
+        "scalars": {"type": "array", "items": scalar},
+        "buffer_refs": integer, "deadline": boolean, "empty_validation_claim": boolean,
+        "labels": _object_schema(dict.fromkeys(("confidentiality", "integrity"), integer)),
+        "record": {"type": "array", "items": integer},
+        "cancellation": {"anyOf": [{"type": "null"}, cancellation]},
+        "refinement": strings,
+        **dict.fromkeys(("fill", "activation_slack", "payload_slack", "cancellation_slack"),
+                        integer),
+    }, required=("name", *OP_KEYS))
+    schema = _object_schema({
+        "ring": _object_schema(dict.fromkeys(RING_KEYS, integer), additional=integer),
+        "encoding": _object_schema(dict.fromkeys(ENCODING_KEYS, integer), additional=integer),
+        "label_levels": integer,
+        "operation_record_fields": strings,
+        "operations": {"type": "array", "minItems": 1, "items": operation},
+        **dict.fromkeys(("deadline_classes", "flags", "directions", "content_types"), strings),
+    }, required=DECL_KEYS)
+    # JSON Schema also calls 1.0 an integer. Gallina numerals and the typed records
+    # need Python integers, so reject floats and bools without coercing input data.
+    checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", _is_integer)
+    validator = validators.extend(Draft202012Validator, type_checker=checker)
+    validator.check_schema(schema)
+    return validator(schema)
+
+
+def _is_integer(checker: object, value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def declaration(root: Path) -> Declaration:
+    """Validate JSON shapes once, preserving additional declaration metadata.
+
+    Numeric relationships remain the generated conformance campaign's obligations.
+    This boundary decides representation types and the record's declared width.
+    """
     path = root / DECLARATION
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise RingError(f"{DECLARATION} is not readable: {exc}") from exc
     try:
-        decl: dict[str, Any] = json.loads(text)
+        loaded: object = json.loads(text)
     except json.JSONDecodeError as exc:
         raise RingError(f"{DECLARATION} is not JSON: {exc}") from exc
 
-    for key in DECL_KEYS:
-        if key not in decl:
-            raise RingError(f"{DECLARATION} declares no `{key}`")
-    for key in ENCODING_KEYS:
-        if key not in decl["encoding"]:
-            raise RingError(f"{DECLARATION} declares no encoding width `{key}`")
-    if not decl["operations"]:
-        raise RingError(f"{DECLARATION} declares no operation, so the artifact would "
-                        f"carry an empty tag set and every obligation over it would "
-                        f"hold vacuously")
+    error = next(iter(_declaration_validator().iter_errors(loaded)), None)
+    if error is not None:
+        where = "/".join(str(part) for part in error.absolute_path) or "<root>"
+        raise RingError(f"{DECLARATION} at {where}: {error.message}")
+    # The schema checks every field the emitter reads; this cast marks that boundary.
+    decl = cast("Declaration", loaded)
     width = len(decl["operation_record_fields"])
-    for index, op in enumerate(decl["operations"]):
-        if "name" not in op:
-            raise RingError(f"the operation at position {index} of {DECLARATION} "
-                            f"declares no `name`")
-        for key in OP_KEYS:
-            if key not in op:
-                raise RingError(f"operation `{op['name']}` declares no `{key}`")
+    for op in decl["operations"]:
         if len(op["record"]) != width:
             raise RingError(f"operation `{op['name']}` supplies {len(op['record'])} "
                             f"record values where the declared field set has {width}")
-        for scalar in op["scalars"]:
-            for key in ("width_bytes", "validated_at_use"):
-                if key not in scalar:
-                    raise RingError(f"a scalar of operation `{op['name']}` declares no "
-                                    f"`{key}`")
-        for key in ("confidentiality", "integrity"):
-            if key not in op["labels"]:
-                raise RingError(f"operation `{op['name']}` declares no `{key}` label")
-        if op["cancellation"]:
-            for key in CANCEL_KEYS:
-                if key not in op["cancellation"]:
-                    raise RingError(f"operation `{op['name']}` is cancellable and its "
-                                    f"declaration carries no `{key}`")
     return decl
 
 
@@ -266,7 +345,7 @@ def _live(own: Owned) -> str:
     return own.states[own.states.index(own.unstarted) + 1]
 
 
-def _attains(ops: list[dict[str, Any]], names: list[str], field: int) -> str:
+def _attains(ops: list[Operation], names: list[str], field: int) -> str:
     """The operation whose declared record is largest at `field`.
 
     A ring constant declared above every operation's use of it is a constant nothing
@@ -274,7 +353,7 @@ def _attains(ops: list[dict[str, Any]], names: list[str], field: int) -> str:
     witness is this operation, and naming it is what turns a bound into a figure a
     weakening moves.
     """
-    best = max(range(len(ops)), key=lambda i: int(ops[i]["record"][field]))
+    best = max(range(len(ops)), key=lambda i: ops[i]["record"][field])
     return names[best]
 
 
@@ -410,14 +489,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "   ------------------------------------------------------------------------- *)",
         "",
     ]
-    ring_keys = ["capacity", "index_width_bytes", "index_span",
-                 "descriptor_size_bytes", "descriptor_alignment_bytes",
-                 "completion_size_bytes", "completion_fill", "max_batch_size",
-                 "session_generation", "completion_capacity", "max_accepted",
-                 "max_segments", "segment_max_bytes", "slot_budget"]
-    for key in ring_keys:
-        if key not in ring:
-            raise RingError(f"{DECLARATION} declares no ring constant `{key}`")
+    for key in RING_KEYS:
         lines.append(f"Definition ring_{key} : nat := {ring[key]}.")
     lines.append("")
     for key in sorted(enc):
