@@ -21,6 +21,8 @@ import subprocess
 from itertools import zip_longest
 from pathlib import Path
 
+from vos import env
+
 # Sail's own C runtime, named rather than globbed: a runtime file arriving under a new
 # name should be a failed build with a message and not a silent change of what was
 # linked.
@@ -28,8 +30,7 @@ RUNTIME: tuple[str, ...] = (
     "sail.c", "rts.c", "elf.c", "sail_failure.c", "cJSON.c", "sail_config.c",
 )
 
-SAIL_HOW = ("the Sail toolchain lives in the opam `default` switch, which `vos/env.py` "
-            "puts on PATH")
+SAIL_HOW = env.install_line(env.SAIL_INSTALL)
 
 # `<kind> <inputs> -> <outputs>`, and the kind is the first token. Read out of the file
 # rather than from a list a caller would have to keep in step with the harness.
