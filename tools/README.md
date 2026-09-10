@@ -233,9 +233,10 @@ The entry-point spellings differ by OS. Use `python` on Windows, or `py -3.14` w
 
 `run.py model build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 
-`run.py test` leaves the cases marked slow to `--slow`. Test modules run in separate
-spawned processes, so environment overrides, patches and redirected output cannot
-interfere with another module. Cases within a module remain sequential, and reports
+`run.py test` leaves the cases marked slow to `--slow`. Concurrent test modules run
+in separate spawned processes, isolating their environment overrides, patches and
+redirected output. Workers may run later modules, so tests still restore temporary
+state. Cases within a module remain sequential, and reports
 retain module order, including captured output when a module fails.
 `test --jobs N` limits concurrent workers; the default uses
 available CPUs up to eight. Imports happen inside each worker, so test callbacks
@@ -527,6 +528,8 @@ other than the pinned one is a finding rather than a warning.
 The exact checker pins live in [pyproject.toml](../pyproject.toml)'s development
 group. `jsonschema` is a runtime dependency in the same project, and
 [uv.lock](../uv.lock) fixes the complete resolution for both operating systems.
+The ring emitter uses a cached JSON Schema validator to check declaration shapes
+before exposing typed records; fields outside the emitter's scope remain intact.
 [run.py typecheck](vos/cli/typecheck.py) reads the pins from the manifest, runs only
 the environment's executables, and explicitly gives ty that environment's Python.
 K-67 holds this table and the lockfile against the manifest. Global checker shims

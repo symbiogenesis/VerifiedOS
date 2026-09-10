@@ -9,9 +9,10 @@ docstring promises, that a CLI's exit code means what the conventions say. The
 modules under `tools/tests/` hold exactly that, one subject per module, and this is
 their runner.
 
-Modules run in separate processes so environment overrides, patched modules and
-redirected streams cannot interfere with another module's cases. Cases inside a
-module run in order, and reports merge in sorted-module order regardless of
+Concurrent modules run in separate processes so environment overrides, patched
+modules and redirected streams cannot interfere with each other. Workers may be
+reused for later modules; tests still restore their temporary state. Cases inside
+a module run in order, and reports merge in sorted-module order regardless of
 scheduling. Discovering no modules is a failure: an empty suite decides nothing.
 
 Exit 0 clean, 1 on any failure. It may be run from anywhere: the modules are found
