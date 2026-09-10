@@ -286,6 +286,10 @@ print(json.dumps({"code": code, "argv": seen["argv"], "add_env": seen["add_env"]
 
 
 def _probe_configure(root: Path, admin: Path | None) -> dict[str, object]:
+    declaration = root / "model/test/CMakeLists.txt"
+    declaration.parent.mkdir(parents=True, exist_ok=True)
+    declaration.write_text('set(TEST_DOWNLOAD_VERSION "2031-02-03" CACHE STRING "tests")\n',
+                           encoding="utf-8")
     environment: dict[str, str] = {**os.environ, "PYTHONPATH": str(TOOLS)}
     if admin is None:
         environment.pop("VOS_GIT_DIR", None)
@@ -320,6 +324,8 @@ def _configure_hands_the_child_the_work_tree() -> None:
         ensure(argv[0] == "cmake" and str(root / "build" / "tree") in argv,
                f"precondition: the stage under test is the cmake configure, got "
                f"{argv[:4]}")
+        ensure("-DTEST_DOWNLOAD_VERSION=2031-02-03" in argv,
+               "configure must override a warm cache with the model's current corpus pin")
         overlay = answered["add_env"]
         ensure(overlay == {"GIT_DIR": str(admin), "GIT_WORK_TREE": str(root)},
                f"the configure must hand its child both halves, the work tree being "
