@@ -17,28 +17,30 @@ batch.
 """
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
 from . import jsonc
 from .jsonc import Json
 
-# One parse per file per process, keyed on the file's identity and mtime so an edit
-# between two calls is still seen. In memory only, deliberately: a cache file on disk
-# would land inside the selftest's sandboxes and change what their baseline reads. The
-# memo is why eleven queries of one configuration in one run cost one strip-and-parse
-# rather than eleven; nothing here rewrites a configuration, so a parse cannot go
-# stale within a run.
-_PARSED: dict[tuple[str, int], Json] = {}
+
+@lru_cache(maxsize=128)
+def _parse(path: Path, identity: tuple[int, int, int, int]) -> Json:
+    """Keep recent parses in memory, bounded across edits and temporary trees.
+
+    Metadata participates in the cache key: size changes and file replacements
+    remain visible when a writer restores the mtime. Failed parses are not cached.
+    """
+    return jsonc.load(path)
 
 
 def _load(path: Path) -> Json:
     """`jsonc.load`, memoized. A parse error is not memoized, so a broken file is
     re-read on every query and stays the caller's finding each time."""
-    key = (str(path), path.stat().st_mtime_ns)
-    if key not in _PARSED:
-        _PARSED[key] = jsonc.load(path)
-    return _PARSED[key]
+    path = path.absolute()
+    stat = path.stat()
+    return _parse(path, (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino))
 
 
 def value(path: Path, *keys: str) -> Json:
