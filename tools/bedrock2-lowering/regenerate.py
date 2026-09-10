@@ -3,7 +3,7 @@
 """Regenerate the descriptor check's C from its Gallina source, and hold its digest.
 
 The loop Q2a stood up, run by hand rather than through `run.py`: the Gallina source
-beside this file is compiled in the `rupicola-9.1.1` switch, where `Derive` closes the
+beside this file is compiled in its dedicated Rupicola switch, where `Derive` closes the
 functional relation and `c_module` prints the bedrock2 function as C; the C is cut out
 of the prover's `Redirect` output, never edited, and its SHA-256, size and line count
 are printed beside the timings the derivation took. `--check` recomputes the digest and
@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-SWITCH = "rupicola-9.1.1"
+SWITCH = "verifiedos-rupicola-9.2.0-ocaml-5.4.1"
 SOURCE = HERE / "DescriptorCheck.v"
 BASELINE = HERE / "IpChecksumBaseline.v"
 OWNER = HERE.parent.parent / "proofs" / "RingContract.v"

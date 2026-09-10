@@ -15,12 +15,12 @@ a later run believes, the tree is shared with whatever else is running, and a mu
 is by definition a file this repository must not carry. A run stages the proofs and
 the harness into the lane's own directory and compiles there.
 
-**Two switches, and the difference is the stdlib.** The proof gate's `rocq-9.1.1`
-carries `rocq-core` and nothing else, which is why the shipped proofs use the prelude
-alone and name no library: an assumption reachable through an import is an assumption
-inside R-05-163's gate. A vector harness has to render a number as text, so it wants
-`Stdlib.Strings`, and the switch that already carries it is the CertiRocq oracle's own
-`certirocq-0.9.1`. That is the right switch on its own terms as well, being the one the
+**Separate proof and oracle environments.** The proof gate uses Rocq 9.2, while
+CertiRocq and QuickChick depend on packages that still require Rocq 9.1. The shipped
+proofs use the prelude alone and name no library: an assumption reachable through an
+import is an assumption inside R-05-163's gate. A vector harness has to render a number
+as text, so it wants `Stdlib.Strings` from the CertiRocq oracle's switch. That is the
+right switch on its own terms as well, being the one the
 Wasm oracle runs in and so the one the Gallina front is exercised in. It is **read**
 here and never written.
 """
@@ -36,13 +36,13 @@ from vos import env, proofs
 
 # The switch the Gallina front is compiled in: the CertiRocq oracle's own, which
 # carries the standard library the shipped proofs deliberately do not need.
-ORACLE_SWITCH = "certirocq-0.9.1"
+ORACLE_ROCQ_VERSION = "9.1.1"
+CERTIROCQ_VERSION = "0.9.1+9.1"
+ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{env.OCAML_VERSION}"
 
-# And the one QuickChick would be installed into, which is a decision this repository
-# has not taken: see `quickchick.py` for what the install costs and why it is priced
-# rather than made. Named here so the probe that reports its absence and the harness
-# that would use it spell it once.
-QUICKCHICK_SWITCH = "quickchick-9.1.1"
+# QuickChick's coq-simple-io dependency caps Coq below 9.2~ independently of CertiRocq.
+# Its dune < 3.22 constraint warrants a separate resolution from the Wasm oracle.
+QUICKCHICK_SWITCH = f"verifiedos-quickchick-{ORACLE_ROCQ_VERSION}-ocaml-{env.OCAML_VERSION}"
 
 # Where the shipped proofs are, and where this repository's own Gallina harnesses are.
 # The second is not under `proofs/` on purpose: the proof gate compiles everything it
@@ -121,8 +121,9 @@ def switch_env(switch: str) -> dict[str, str]:
 def prover(switch: str) -> Prover | None:
     """The prover in one named switch, or None where that switch is not installed.
 
-    Rocq 9 ships no `coqc` at any version, its switch holding `rocq`, `rocq.byte` and
-    `rocqchk`, so compilation is spelled `rocq c`. Resolved by switch and never off
+    Rocq's core package provides `rocq`; the legacy `coqc` command requires the Coq
+    compatibility package, so compilation is consistently spelled `rocq c`.
+    Resolved by switch and never off
     PATH: a bare `rocq` is whichever switch the shell was last told about, and a run
     that compiled in one switch and reported the other's version is evidence about
     nothing.

@@ -10,12 +10,16 @@ it was supposed to recompute; and a reading of the printed vectors that dropped 
 last entry would compare two files that agree on everything they carry.
 """
 
+import argparse
+import io
 import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tests.harness import Case, ensure
 from vos import gallina, proofs
+from vos.cli import quickchick
 
 _A = "Definition a : nat := 1.\n"
 _B = "Require Import A.\nDefinition b : nat := a.\n"
@@ -214,6 +218,27 @@ def _the_two_switches_are_named_apart() -> None:
            "the harness would live inside the proof gate's own subject")
 
 
+def _quickchick_rejects_other_versions() -> None:
+    with (patch.object(quickchick, "installed", return_value="2.1.0"),
+          patch.object(gallina, "prover", return_value=["rocq", "c"]),
+          patch.object(gallina, "version", return_value="9.1.1"),
+          patch.object(gallina, "stage") as stage,
+          redirect_stdout(io.StringIO()) as output):
+        ensure(quickchick.cmd_check(argparse.Namespace()) == 1,
+               "an old installed QuickChick must not pass the check")
+        ensure(quickchick._properties(argparse.Namespace(), Mock(), Path(), Path()) == 1,
+               "an old installed QuickChick must not run the properties")
+        ensure(stage.call_count == 0, "the wrong version must be refused before staging")
+        ensure("2.1.0" in output.getvalue() and quickchick.VERSION in output.getvalue(),
+               "a wrong-version refusal must name installed and required versions")
+    with (patch.object(quickchick, "installed", return_value=quickchick.VERSION),
+          patch.object(gallina, "prover", return_value=["rocq", "c"]),
+          patch.object(gallina, "version", return_value="9.1.1"),
+          redirect_stdout(io.StringIO())):
+        ensure(quickchick.cmd_check(argparse.Namespace()) == 0,
+               "the configured QuickChick release must pass the check")
+
+
 def cases() -> list[Case]:
     return [
         Case("the waves follow the Requires", _waves_follow_requires),
@@ -236,4 +261,5 @@ def cases() -> list[Case]:
              _an_unterminated_quote_yields_nothing_more),
         Case("written vectors are one per line", _written_vectors_are_one_per_line),
         Case("the two switches are named apart", _the_two_switches_are_named_apart),
+        Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
     ]

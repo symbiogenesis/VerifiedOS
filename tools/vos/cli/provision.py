@@ -273,23 +273,6 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
-def _switch_has(switch: str, package: str) -> Found:
-    """A switch carrying one package at whatever version it carries it at.
-
-    Presence rather than a number, and deliberately: nothing in this tree fixes a
-    version for either package this probe is used on, so a number written here would be
-    a pin no artifact owns and the next upstream release would make this file the only
-    thing disagreeing with the machine. What the report carries is the version found,
-    which is what a run's evidence wants anyway.
-    """
-    if switch not in switches():
-        return Found(False, f"opam has no {switch} switch")
-    found = _installed(switch, package)
-    if not found:
-        return Found(False, f"the {switch} switch carries no {package}")
-    return Found(True, f"{package} {found} in {switch}")
-
-
 def _pinned_z3() -> Found:
     """The solver Sail's typechecker discharges its obligations with.
 
@@ -398,12 +381,14 @@ FACTS: tuple[Fact, ...] = (
     Fact("the CertiRocq oracle switch", TOOLCHAIN,
          "run.py quickchick vectors, and the M1.5 Wasm oracle",
          "tools/vos/gallina.py's ORACLE_SWITCH, its recipe in tools/wasm-oracle/README.md",
-         partial(_switch_has, gallina.ORACLE_SWITCH, "rocq-certirocq")),
+         partial(_switch_at, gallina.ORACLE_SWITCH, "rocq-certirocq",
+                 gallina.CERTIROCQ_VERSION)),
     Fact("the QuickChick switch", TOOLCHAIN,
          "run.py quickchick properties",
          "tools/vos/gallina.py's QUICKCHICK_SWITCH and "
-         "tools/vos/cli/quickchick.py's PACKAGE",
-         partial(_switch_has, gallina.QUICKCHICK_SWITCH, quickchick.PACKAGE),
+         "tools/vos/cli/quickchick.py's PACKAGE and VERSION",
+         partial(_switch_at, gallina.QUICKCHICK_SWITCH, quickchick.PACKAGE,
+                 quickchick.VERSION),
          quickchick.INSTALL),
     Fact("verilator", TOOLCHAIN,
          "run.py rtl lint, elaborate and crosscheck",
@@ -522,6 +507,13 @@ def _apply(rep: Reporter, steps: Sequence[tuple[Fact, tuple[tuple[str, ...], ...
     """
     for fact, commands in steps:
         for argv in commands:
+            # A failed import leaves its empty or partial switch registered. On a
+            # retry, restore the snapshot there instead of failing at creation.
+            # Only a confirmed existing name skips creation; other failures stand.
+            if (len(argv) > 3 and argv[:3] == ("opam", "switch", "create")
+                    and argv[3] in switches()):
+                rep.line(f"   {fact.name}: {argv[3]} already exists; restoring its snapshot")
+                continue
             rep.line(f"   {fact.name}: {' '.join(argv)}")
             try:
                 code = subprocess.run(list(argv), check=False).returncode

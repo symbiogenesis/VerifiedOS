@@ -5,31 +5,39 @@ This is the inner loop of the three-loop discipline ([implementation-checklist ย
 ## Pinned environment
 
 * **Compiler**: CertiRocq **0.9.1 for Rocq 9.1**, the released `rocq-certirocq.0.9.1+9.1` from the `rocq-released` opam repository, MIT. It is a release rather than a source pin because the release now carries both things a pin used to buy: the merged CertiCoq-Wasm backend (`theories/CodegenWasm`, mechanized against WasmCert-Coq, CPP 2025) that the `coq-certicoq` 0.9 release predated, and `rocq-metarocq-erasure-plugin` and `rocq-metarocq-safechecker-plugin` at `>= 1.5.1`, which is *released* MetaRocq rather than the unreleased 9.1 branch main tracked. There is therefore no clone, no checkout and no compatibility patch; the erasure inlining toggle a patch used to move already sits in `unsafe_passes` here.
-* **Prover**: Rocq 9.1.1. Not the newest Rocq by *constraint*, not oversight: the release's own `depends` field reads `rocq-core {>= "9.1" & < "9.2~"}`, and SECOMP ([upstream/SECOMP](../../upstream/SECOMP), M1.2) states Rocq 9.1 as well, so one prover version serves both legs.
-* **Engine**: Node.js (stock `WebAssembly.instantiate`; the emitted module is import-free). `wasmtime` works equally for modules that need no result pretty-printing.
+* **Prover**: Rocq 9.1.1. CertiRocq requires `rocq-core {>= "9.1" & < "9.2~"}`, and its `coq-wasm` dependency also requires Coq below 9.2. The [proof gate](../vos/cli/proofs.py) independently uses Rocq 9.2.0.
+* **OCaml**: 5.4.1 with ocamlfind 1.9.8. The latest released findlib requires OCaml below 5.5; OCaml 5.5.1 currently needs the `1.9.9~preview` package marked `avoid-version`. This keeps the toolchain on released packages. The container creates the same switch because its published Rocq 9.1 image still carries OCaml 4.14.2.
+* **Engine**: Node.js 26.8.2 through [node.sh](node.sh), which verifies the official archive checksum and installs into a versioned toolchain directory. It uses stock `WebAssembly.instantiate`; the emitted module is import-free. `wasmtime` works equally for modules that need no result pretty-printing.
 
 ## Build and run
 
 Two environments install the same opam package. The container is the portable one and the opam switch is the one that runs on an arm64 host, because `rocq/rocq-prover` publishes `linux/amd64` alone at every 9.1 tag.
 
 ```console
-$ docker build -t wasm-oracle tools/wasm-oracle
+$ docker build -t wasm-oracle -f tools/wasm-oracle/Dockerfile tools
 $ docker run --rm wasm-oracle bash -lc \
-    'rocq c demo.v && node --stack-size=10000000 run_demo.mjs demo.oracle_demo.wasm'
+    'rocq c demo.v && sh node.sh --stack-size=10000000 run_demo.mjs demo.oracle_demo.wasm'
 true
 ```
 
 ```console
 $ opam repo add rocq-released https://rocq-prover.org/opam/released --dont-select
-$ opam switch create certirocq-0.9.1 --repos=rocq-released,default \
-    --packages=ocaml-base-compiler.4.14.2
-$ eval $(opam env --switch=certirocq-0.9.1 --set-switch)
-$ opam install -y rocq-certirocq.0.9.1+9.1
-$ rocq c demo.v && node --stack-size=10000000 run_demo.mjs demo.oracle_demo.wasm
+$ opam update --all
+$ opam switch create verifiedos-certirocq-0.9.1-ocaml-5.4.1 \
+    --repos=rocq-released,default --empty --no-switch
+$ opam switch import tools/opam/certirocq.lock \
+    --switch=verifiedos-certirocq-0.9.1-ocaml-5.4.1 -y
+$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.4.1 --set-switch)
+$ mkdir -p out/wasm-oracle
+$ cp tools/wasm-oracle/demo.v tools/wasm-oracle/run_demo.mjs tools/wasm-oracle/node.sh out/wasm-oracle/
+$ cd out/wasm-oracle
+$ rocq c demo.v && sh node.sh --stack-size=10000000 run_demo.mjs demo.oracle_demo.wasm
 true
 ```
 
-The switch is its own rather than the [proof gate](../vos/cli/proofs.py)'s `rocq-9.1.1`, which the gate reads while this installs, and it takes the distribution's OCaml 4.14.2 without flambda: the round trip is a functional check on one boolean, so nothing it decides turns on the optimizer the emitted OCaml is compiled with.
+The switch is separate from the proof gate and from other projects' environments. The round trip is a functional check on one boolean, so nothing it decides turns on the optimizer the emitted OCaml is compiled with.
+
+Run the native setup from the repository root. If an import fails after its switch is created, rerun the import command without repeating creation; it resumes the partial installation.
 
 `demo.v` is the M1.5 smoke program in the oracle's intended shape: a pure Gallina computation checked against a known answer *inside* Gallina (the ยง4 crypto module's KAT pattern), so only one boolean crosses the Wasm boundary. `run_demo.mjs` decodes it per the upstream value representation (nullary constructors are odd-tagged unboxed scalars). The `--stack-size` flag matches the upstream harness: the generated code recurses deeply and overflows V8's default stack.
 
@@ -40,14 +48,14 @@ The switch is its own rather than the [proof gate](../vos/cli/proofs.py)'s `rocq
 ```console
 $ mkdir -p /root/wasm-stage && cd /root/wasm-stage
 $ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
-     <repo>/tools/wasm-oracle/run_demo.mjs .
-$ eval $(opam env --switch=certirocq-0.9.1 --set-switch)
+     <repo>/tools/wasm-oracle/run_demo.mjs <repo>/tools/wasm-oracle/node.sh .
+$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.4.1 --set-switch)
 $ rocq c EndpointIPC.v && rocq c ipc_oracle.v
      = 84
      : nat
      = true
      : bool
-$ node --stack-size=10000000 run_demo.mjs ipc_oracle.ipc_oracle.wasm
+$ sh node.sh --stack-size=10000000 run_demo.mjs ipc_oracle.ipc_oracle.wasm
 true
 ```
 
