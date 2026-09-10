@@ -7,6 +7,7 @@ dependencies = ["jsonschema"]
 
 [dependency-groups]
 dev = ["ty==0.0.80", "ruff==0.16.6"]
+model = ["pre-commit==4.6.2"]
 
 [tool.uv]
 package = false

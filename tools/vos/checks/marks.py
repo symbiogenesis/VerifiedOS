@@ -78,6 +78,7 @@ MARKABLE: dict[str, tuple[str, str]] = {
     ".py": ("# ", ""),
     ".v": ("(* ", " *)"),
     ".mjs": ("// ", ""),
+    ".sh": ("# ", ""),
     ".s": ("# ", ""),
     # Sail, in the one place this repository writes any outside `model/`: the
     # cross-check's generator, which calls the curated model's own functions and is

@@ -13,3 +13,5 @@ model/** -text -eol
 # generated netlist landing under rtl/ is a thing review should refuse rather than a
 # thing an attribute should quietly normalize.
 rtl/**/*.sv text eol=lf
+
+/tools/wasm-oracle/node.sh text eol=lf
