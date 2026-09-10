@@ -213,8 +213,8 @@ RESIDUE: dict[str, str] = {
     "11007678": "the numeral of SECOMP's Zenodo DOI, which is not an object id",
 }
 
-# These sites retain the editions measured at a completed gate or selected by an
-# upstream integration. They do not state this repository's current top-level pin.
+# These sites retain measured or external editions, or record identifiers that
+# resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("docs/completion-log.md", "b5894db641d36616cdfce49352ec1d9833fcb411"):
         "the Rupicola edition recorded in the completed environment measurement",
@@ -227,6 +227,15 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("THIRD-PARTY.md", "5691ca0d"):
         "the Fiat-Crypto generator edition whose recorded build and licence reading "
         "the dependency measurements describe",
+    ("docs/proof-reuse/crypto.md", "af03839247c545987c20e99342ab2bbfcd517863"):
+        "the Fiat-Crypto dependency selected by the external verified-NTT artifact, "
+        "not this repository's Fiat-Crypto gitlink",
+    ("docs/proof-reuse/crypto.md", "0b07a19be15a23cb1c679e70f60d5b6e280caf7a"):
+        "the EasyCrypt dependency selected by Formosa ML-KEM's shell.nix, "
+        "not the libjade gitlink named earlier in that licence paragraph",
+    ("docs/proof-reuse/languages.md", "14537282"):
+        "the numeral of the archived SECOMP artifact's Zenodo record, "
+        "not an object id",
 }
 
 

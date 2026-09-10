@@ -59,7 +59,7 @@
    (model/model/core/memory_class.sail) with `qualified` false in every
    shipped configuration, and this file states no magnitude for either.
 
-   The one Require, and why it is a dependency rather than a citation.
+   The required modules and the assumptions their use must preserve.
    R-15-247j's own acceptance clause makes the delta an input to section
    11 admission rather than a report about it, and section 11 admission in
    this tree is CyclicExecutive.v's R-11-006 interval arithmetic with
@@ -67,15 +67,14 @@
    charged into the declared bound of the slot the region's code runs in,
    and the margin below moves `admits` itself: at the composed constants
    one unit more of delta turns an admitted frame into a refused one.
-   Nothing else is reachable. Classical and FunctionalExtensionality are
-   unavailable, and every equality below is stated pointwise or over a
-   decidable boolean for that reason; `all_of` and `count_of` are consumed
-   from the required artifact rather than restated, and the helpers this
-   file adds are defined here rather than imported, the prelude carrying
-   the list type and not the library over it. The arithmetic lemmas below
-   are proved rather than imported for the same reason: the stdlib module
-   carrying them is outside the prelude, and adding zero axioms is the
-   point of the gate.
+   `all_of` and `count_of` are consumed from CyclicExecutive; the list
+   helpers this file adds are defined here. Elementary arithmetic helpers
+   reference the locked Stdlib's PeanoNat proofs at identical local
+   statements, with authorship and licence recorded beside the arithmetic
+   section. Equalities remain pointwise or over decidable booleans. The
+   gate follows transitive dependencies of every shipped constant and
+   confirms that these references introduce no axioms, including no
+   classical or functional-extensionality assumptions.
 
    Readings of the register this statement takes, each a reviewable
    judgment rather than a neutral transcription:
