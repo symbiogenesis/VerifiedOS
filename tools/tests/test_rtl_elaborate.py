@@ -435,8 +435,71 @@ def _drop_in_replacement_moves_nothing() -> None:
            f"a drop-in replacement partitions to nothing, got {diff!r}")
 
 
+# Authored fixture in Verilator 5.052's NETLIST/modulesp schema. Two middle
+# instances each contain two leaves, so four CELL declarations represent seven
+# elaborated instances including the top. The two leaf specializations are one
+# kind; package variables are declarations, but internal constant-pool nodes are not.
+_JSON_INVENTORY = """{
+  "type":"NETLIST", "modulesp":[
+    {"type":"MODULE", "name":"top", "level":1, "stmtsp":[
+      {"type":"VAR", "name":"signal"},
+      {"type":"VARREF", "name":"signal"},
+      {"type":"CELL", "name":"m0", "modName":"middle"},
+      {"type":"CELL", "name":"m1", "modName":"middle"}]},
+    {"type":"MODULE", "name":"middle", "level":2, "stmtsp":[
+      {"type":"VAR", "name":"signal"},
+      {"type":"BEGIN", "stmtsp":[
+        {"type":"CELL", "name":"l0", "modName":"leaf__W1"},
+        {"type":"CELL", "name":"l1", "modName":"leaf__W2"}]}]},
+    {"type":"MODULE", "name":"leaf__W1", "level":3,
+      "stmtsp":[{"type":"VAR", "name":"signal"}]},
+    {"type":"MODULE", "name":"leaf__W2", "level":3,
+      "stmtsp":[{"type":"VAR", "name":"signal"}]},
+    {"type":"PACKAGE", "name":"config_pkg",
+      "stmtsp":[{"type":"VAR", "name":"Width"}]}
+  ], "miscsp":[{"type":"CONSTPOOL", "modulep":[
+    {"type":"MODULE", "name":"@CONST-POOL@",
+      "stmtsp":[{"type":"VAR", "name":"internal"}]}]}]
+} """
+
+
+def _json_inventory_preserves_hierarchy_and_declarations() -> None:
+    with sandbox_tree({"inventory.json": _JSON_INVENTORY}) as root:
+        actual = rtl._inventory(root / "inventory.json")
+    ensure(actual == ({"top", "middle", "leaf"}, 7, 5),
+           f"module kinds, expanded cells and declaration counts differ: {actual!r}")
+
+
+def _json_inventory_rejects_unresolved_hierarchy() -> None:
+    broken = _JSON_INVENTORY.replace('"modName":"leaf__W1"', '"modName":"missing"')
+    with sandbox_tree({"inventory.json": broken}) as root:
+        try:
+            rtl._inventory(root / "inventory.json")
+        except ValueError as error:
+            ensure("unresolved module 'missing'" in str(error),
+                   f"an unresolved cell should be named, got {error}")
+        else:
+            raise AssertionError("an unresolved instance yielded an incomplete cell count")
+
+
+def _json_inventory_rejects_absent_netlist() -> None:
+    with sandbox_tree({"inventory.json": "{}"}) as root:
+        try:
+            rtl._inventory(root / "inventory.json")
+        except ValueError as error:
+            ensure("NETLIST" in str(error), "the refusal should identify the missing AST")
+        else:
+            raise AssertionError("an absent netlist yielded an empty inventory")
+
+
 def cases() -> list[Case]:
     return [
+        Case("json-inventory-preserves-hierarchy-and-declarations",
+             _json_inventory_preserves_hierarchy_and_declarations),
+        Case("json-inventory-rejects-unresolved-hierarchy",
+             _json_inventory_rejects_unresolved_hierarchy),
+        Case("json-inventory-rejects-absent-netlist",
+             _json_inventory_rejects_absent_netlist),
         Case("substitution-placed-once-at-the-first-line",
              _substitution_placed_once_at_the_first_line),
         Case("configuration-and-unreached-still-apply",
