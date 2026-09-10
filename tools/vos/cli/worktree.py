@@ -165,7 +165,7 @@ def create(root: Path, lane: str, base: str, *, branch: str | None = None
     _branch(owner, name)
     if _git(owner, "rev-parse", "--verify", "--quiet", f"refs/heads/{name}", allowed=(0, 1)):
         raise WorktreeError(f"branch already exists; choose a fresh branch: {name}")
-    expected = _commit(owner, base)
+    expected = _commit(root, base)
     # mkdir is deliberately non-recursive: the resolved primary owns this one root.
     worktrees.mkdir(exist_ok=True)
     if worktrees.is_symlink() or worktrees.is_junction() or worktrees.resolve() != worktrees:

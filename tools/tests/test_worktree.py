@@ -46,9 +46,12 @@ def _create_and_nested() -> None:
         ensure(first == {"path": str(path), "base": base, "head": base,
                          "branch": "work/first-lane", "exact_base": True},
                "dispatch receives the exact commit and assigned absolute checkout")
-        second = worktree.create(path, "second-lane", base, branch="review/second-lane")
+        advanced = _commit(path)
+        second = worktree.create(path, "second-lane", "HEAD", branch="review/second-lane")
         ensure(second["path"] == str(root / ".worktrees" / "second-lane"),
                "nested provisioning resolves the primary's root rather than nesting")
+        ensure(second["base"] == advanced and second["head"] == advanced,
+               "symbolic base resolves in the invoking lane, not the primary checkout")
         ensure(not (path / ".worktrees").exists(), "no worktree is placed inside another lane")
         ensure(not _git(root, "status", "--porcelain"), "ignored lanes do not dirty the primary")
 
