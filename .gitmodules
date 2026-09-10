@@ -1,66 +1,88 @@
 [submodule "upstream/sail-riscv"]
 	path = upstream/sail-riscv
 	url = https://github.com/riscv/sail-riscv
+	branch = master
 [submodule "upstream/sail-cheri-riscv"]
 	path = upstream/sail-cheri-riscv
 	url = https://github.com/CTSRD-CHERI/sail-cheri-riscv
+	branch = master
 [submodule "upstream/SECOMP"]
 	path = upstream/SECOMP
 	url = https://github.com/secure-compilation/SECOMP
+	branch = ccs-main
 [submodule "upstream/llvm-project"]
 	path = upstream/llvm-project
 	url = https://github.com/llvm/llvm-project
+	branch = main
 [submodule "upstream/mocha"]
 	path = upstream/mocha
 	url = https://github.com/lowRISC/mocha
+	branch = main
 [submodule "upstream/cva6-cheri"]
 	path = upstream/cva6-cheri
 	url = https://github.com/lowRISC/cva6-cheri
+	branch = mocha
 [submodule "upstream/axi-cheri-tagcontroller"]
 	path = upstream/axi-cheri-tagcontroller
 	url = https://github.com/Capabilities-Limited/axi_cheri_tagcontroller
+	branch = main
 [submodule "upstream/opentitan"]
 	path = upstream/opentitan
 	url = https://github.com/lowRISC/opentitan
+	branch = master
 [submodule "upstream/ibex"]
 	path = upstream/ibex
 	url = https://github.com/lowRISC/ibex
+	branch = master
 [submodule "upstream/cheriot-ibex"]
 	path = upstream/cheriot-ibex
 	url = https://github.com/microsoft/cheriot-ibex
+	branch = main
 [submodule "upstream/cheri-compressed-cap"]
 	path = upstream/cheri-compressed-cap
 	url = https://github.com/CTSRD-CHERI/cheri-compressed-cap
+	branch = master
 [submodule "upstream/qemu"]
 	path = upstream/qemu
 	url = https://github.com/CTSRD-CHERI/qemu
+	branch = qemu-cheri
 [submodule "upstream/rupicola"]
 	path = upstream/rupicola
 	url = https://github.com/mit-plv/rupicola
+	branch = master
 [submodule "upstream/katamaran"]
 	path = upstream/katamaran
 	url = https://github.com/katamaran-project/katamaran
+	branch = main
 [submodule "upstream/sail-katamaran-backend"]
 	path = upstream/sail-katamaran-backend
 	url = https://github.com/katamaran-project/sail-backend
+	branch = master
 [submodule "upstream/cerise"]
 	path = upstream/cerise
 	url = https://github.com/logsem/cerise
+	branch = main
 [submodule "upstream/cerisier"]
 	path = upstream/cerisier
 	url = https://github.com/logsem/cerisier
+	branch = main
 [submodule "upstream/sail-cheri-riscv-verif"]
 	path = upstream/sail-cheri-riscv-verif
 	url = https://github.com/CTSRD-CHERI/sail-cheri-riscv-verif
+	branch = master
 [submodule "upstream/TestRIG"]
 	path = upstream/TestRIG
 	url = https://github.com/CTSRD-CHERI/TestRIG
+	branch = master
 [submodule "upstream/fiat-crypto"]
 	path = upstream/fiat-crypto
 	url = https://github.com/mit-plv/fiat-crypto
+	branch = master
 [submodule "upstream/hacl-star"]
 	path = upstream/hacl-star
 	url = https://github.com/hacl-star/hacl-star
+	branch = main
 [submodule "upstream/libjade"]
 	path = upstream/libjade
 	url = https://github.com/formosa-crypto/libjade
+	branch = main
