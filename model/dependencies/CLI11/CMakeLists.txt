@@ -4,9 +4,9 @@ include(FetchContent)
 option(DOWNLOAD_CLI11 "Download CLI11" ON)
 
 FetchContent_Declare(cli11_hpp
-  URL "https://github.com/CLIUtils/CLI11/releases/download/v2.6.2/CLI11.hpp"
+  URL "https://github.com/CLIUtils/CLI11/releases/download/v2.7.2/CLI11.hpp"
   DOWNLOAD_NO_EXTRACT YES
-  URL_HASH SHA256=227a16fe5f9f8ada80c3c409492475536f597e7bd83a6c26eacc3c8c149a9295
+  URL_HASH SHA256=ffa9a30da295c5858fb5f91f9f45771bab09471d7010a34c7c68c857a330dd76
 )
 
 if(DOWNLOAD_CLI11)

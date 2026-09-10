@@ -1,7 +1,7 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 exclude: "^(dependencies/)"
-minimum_pre_commit_version: 3.2.0
+minimum_pre_commit_version: 4.6.2
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -17,25 +17,25 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: "v21.1.8"
+    rev: "v23.1.0"
     hooks:
       - id: clang-format
         types_or: [c, c++] # Don't try running clang-format on .json files
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
+    rev: v1.5.6
     hooks:
       - id: forbid-tabs
         exclude: '.*\.(diff|dump|patch|svg|S|old)|Makefile*'
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.7.4
+    rev: v3.9.6
     hooks:
       - id: prettier
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.3
     hooks:
       - id: codespell
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.14.2
+    rev: v3.15.0
     hooks:
       - id: markdown-link-check
         args: [-q, -c .markdown-link-check.config]

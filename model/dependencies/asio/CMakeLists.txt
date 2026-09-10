@@ -2,8 +2,8 @@ include(FetchContent)
 
 FetchContent_Declare(
   asio
-  URL https://downloads.sourceforge.net/project/asio/asio/1.36.0%20%28Stable%29/asio-1.36.0.tar.bz2
-  URL_HASH SHA3_256=5979be31450b6e8d09ab7e766f62f4f7e1be85f090f2a9a773e12203922e5ce9
+  URL https://github.com/chriskohlhoff/asio/archive/refs/tags/asio-1-38-2.tar.gz
+  URL_HASH SHA3_256=5ea1dd86c63a2d5ab87ab20ff24992d2e1aaba327363d68966552482f60da1a1
 )
 
 # Allow downloads to be turned off (in particular, for targets that don't need it).
