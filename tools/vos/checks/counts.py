@@ -266,7 +266,7 @@ CLAIMS = [
     (FINDINGS, "provision-switches", "words",
      r"(?<=where the lane now carries )[\w-]+"),
     (TOOLS_README, "provision-switches", "words",
-     r"(?<=a particular thing, )[\w-]+(?= opam switches)"),
+     r"(?<=Its probes cover )[\w-]+(?= opam switches)"),
 
     # the encoder table's own size, owned by the artifact its generator writes. This is
     # the derived-fact rule turned on the item that argued it: M1.4-prime replaced a

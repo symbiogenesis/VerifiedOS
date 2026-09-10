@@ -8,7 +8,7 @@ The tools run in two places. The documents, the proofs metadata, and the checker
 
 | Interpreter | Windows host | WSL guest |
 | --- | --- | --- |
-| Python | 3.14.7 | 3.14.5 |
+| Python | 3.14.7 | 3.14.7 |
 | `pwsh` | present | absent |
 | `bash` | the guest's | present |
 
@@ -209,6 +209,7 @@ $ python tools/run.py model corpus --refresh
 $ python tools/run.py model devicetree
 $ python tools/run.py model reference
 $ python tools/run.py model trace-diff --corpus --floor 67
+$ python tools/run.py rtl install                # verified release in the project toolchain prefix
 $ python tools/run.py rtl lint                   # this repository's own RTL, alone
 $ python tools/run.py rtl vectors                # the model's own answers, as text
 $ python tools/run.py rtl crosscheck             # and the RTL reproducing them
@@ -266,7 +267,7 @@ A lane standing up for the first time is seeded from the primary worktree's tree
 
 ## The lane as a fact list, and what no provisioner reaches
 
-[run.py provision](vos/cli/provision.py) is that machine written down. The guest is a particular thing, four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor and a handful of distribution packages. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself.
+[run.py provision](vos/cli/provision.py) is that machine written down. Its probes cover four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor and a handful of distribution packages. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself. [The opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch, which has its own [installation recipe](bedrock2-lowering/README.md).
 
 It is native rather than containerized: the prover and model toolchains are built on the guest. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. Creating an opam root and the CertiRocq oracle switch remains manual; the latter's recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
 
@@ -517,8 +518,8 @@ before adding work to every gate run.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | 0.0.75 | Every expression, against the types it can infer, with `--error all` |
-| [ruff](https://github.com/astral-sh/ruff) | 0.16.5 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
+| [ty](https://github.com/astral-sh/ty) | 0.0.80 | Every expression, against the types it can infer, with `--error all` |
+| [ruff](https://github.com/astral-sh/ruff) | 0.16.6 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
 annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
@@ -542,6 +543,12 @@ the Windows and Linux gates. Review and commit the manifest and lockfile togethe
 To refresh resolution within the declared constraints, use
 `uv lock --project tools --upgrade`. Normal commands synchronize each checkout on
 its next invocation, so no manual reinstall window exists across worktrees or OSes.
+
+The optional `model` group pins the pre-commit runner used by the curated model's
+hook configuration. On Linux, run it with
+`UV_PROJECT_ENVIRONMENT="$PWD/out/venv-linux" uv run --project tools --locked --group model pre-commit --version`;
+on Windows, set `UV_PROJECT_ENVIRONMENT` to the checkout's `out/venv-win32` first.
+The ordinary host gates synchronize only their default dependency groups.
 
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
 switched off, and that is deliberate: the alternative is a list of opt-ins that silently

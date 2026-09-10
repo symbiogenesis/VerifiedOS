@@ -18,7 +18,8 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
-from vos.checks import Context, bindings, counts, estimates, meta, pins
+from vos import sailbundle
+from vos.checks import Context, bindings, counts, estimates, generated, meta, pins
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
 
@@ -405,6 +406,18 @@ def _k81_historical_residue_requires_reason() -> None:
            f"a historical exception needs an explicit reading: {found!r}")
 
 
+def _k88_foreign_library_is_a_finding() -> None:
+    raw: dict[str, object] = {key: {} for key in sailbundle._TOP_LEVEL}
+    raw.update(version=1, embedding="plain",
+               hashes={"/root/.opam/unselected-switch/share/sail/lib/arith.sail":
+                       {"md5": "0" * 32}})
+    bundle = sailbundle.Bundle(raw)
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN}) as root:
+        owners, findings = generated._owners(_context(root), generated.GENERATED[0], bundle)
+    ensure(owners == 0 and len(findings) == 1 and "unselected-switch" in findings[0],
+           f"a foreign Sail library must be a finding, not a crash or silent omission: {findings}")
+
+
 def cases() -> list[Case]:
     return [
         Case("estimates-refused-edit-writes-nothing",
@@ -438,4 +451,5 @@ def cases() -> list[Case]:
         Case("k81-historical-residue-cannot-exempt-table",
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
+        Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
     ]

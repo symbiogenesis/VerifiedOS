@@ -247,7 +247,12 @@ def _owners(ctx: Context, row: Row, bundle: sailbundle.Bundle) -> tuple[int, lis
                             f"this checkout hashes {got}, so the artifact describes a "
                             f"model that has moved; regenerate it with "
                             f"`{row.generator}`")
-    return len(bundle.owners()) + len(bundle.library_owners()), findings
+    try:
+        libraries = len(bundle.library_owners())
+    except sailbundle.BundleError as err:
+        findings.append(str(err))
+        libraries = 0
+    return len(bundle.owners()) + libraries, findings
 
 
 def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Reading:

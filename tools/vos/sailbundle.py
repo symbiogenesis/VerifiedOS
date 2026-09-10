@@ -31,15 +31,15 @@ whether the bundle still describes the sources in this checkout.
 
 Of the 158 files the emitter hashes, most are keyed relative to `model/model/` and
 resolve in this checkout. The rest are the Sail library's own, keyed by the **absolute
-host path** they were read from, `/root/.opam/default/share/sail/lib/arith.sail` and its
-neighbours. Those keys are the emitter's output and the tracked artifact is exactly what
+host path** they were read from, under the selected switch's `share/sail/lib/`.
+Those keys are the emitter's output and the tracked artifact is exactly what
 the emitter wrote, which is the property the whole generated-artifact discipline buys,
 so they are not rewritten here: a normalizer would make the tracked bytes a function of
 this module rather than of Sail.
 
 What stands in place of a normalizer is a stated precondition. The comparison below
 holds **under the layout `vos/env.py` fixes**: the guest lane runs as root against the
-default opam switch, so the library prefix is `LIBRARY_PREFIX`. A hashes key that is
+opam switch named by `env.SAIL_SWITCH`, so the library prefix is `LIBRARY_PREFIX`. A hashes key that is
 neither relative nor under that prefix means the bundle was emitted against a Sail
 library this repository does not fix, and `library_owners` **fails closed** on it,
 naming the key, rather than dropping it and reporting agreement over the rest.
@@ -53,6 +53,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, override
+
+from vos import env
 
 BUNDLE_NAME = "sail_riscv_model.json"
 
@@ -69,10 +71,9 @@ SOURCE_ROOT = "model/model"
 # The only version whose shapes are written down here.
 VERSION = 1
 
-# The layout the comparison holds under: see this module's docstring. Stated as the
-# literal it is, because the running lane's own opam root is not the one the tracked
-# artifact was emitted under.
-LIBRARY_PREFIX = "/root/.opam/default/share/sail/"
+# The emitted artifact uses the canonical guest root on both host and guest readers.
+# Its switch name comes from the same owner that selects the compiler for emission.
+LIBRARY_PREFIX = f"/root/.opam/{env.SAIL_SWITCH}/share/sail/"
 
 # The maps this reader knows how to open, and the key each one's members are indexed by
 # inside its own entry. `spans` and `anchors` are top-level too and nothing here reads

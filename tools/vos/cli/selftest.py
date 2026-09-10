@@ -1419,7 +1419,7 @@ CASES: list[Case] = [
     # the paragraph carries no link, no id and no count, and K-81 reads object ids alone,
     # so a dotted version is not a restatement it can see.
     ("K-97", "an elaborator pin the record states and the lane's own constant refuses",
-     _literal(THIRD_PARTY, "The pin is **5.032**", "The pin is **5.036**")),
+     _literal(THIRD_PARTY, "The pin is **5.052**", "The pin is **5.036**")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
