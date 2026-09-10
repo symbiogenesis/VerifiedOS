@@ -38,7 +38,11 @@ from vos import env, proofs
 # carries the standard library the shipped proofs deliberately do not need.
 ORACLE_ROCQ_VERSION = "9.1.1"
 CERTIROCQ_VERSION = "0.9.1+9.1"
-ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{env.OCAML_VERSION}"
+# CertiRocq's bootstrap C wrapper collides with the inline Hd_val introduced in
+# OCaml 5.2; the wrapper and Gallina vectors pass with the 5.1.1 headers.
+# The full CertiRocq bootstrap and Wasm smoke checks remain pending.
+ORACLE_OCAML_VERSION = "5.1.1"
+ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 
 # QuickChick's coq-simple-io dependency caps Coq below 9.2~ independently of CertiRocq.
 # Its dune < 3.22 constraint warrants a separate resolution from the Wasm oracle.
