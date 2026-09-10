@@ -89,6 +89,23 @@ def _claim_names_resolve_uniquely_across_nested_modules() -> None:
             raise AssertionError("an ambiguous or repeated claim was accepted")
 
 
+def _unqualified_native_names_cannot_bind_claims() -> None:
+    annotation = "(*| discharges: R-05-163 |*)\nTheorem claim : True.\n"
+    unqualified: proofaudit.Symbol = {
+        "name": "claim", "type": "True", "assumptions": [], "claims": []}
+    try:
+        proofaudit.bind_claims(annotation, [unqualified])
+    except proofaudit.AuditError as err:
+        ensure("0 native symbols" in str(err), f"unqualified-name refusal changed: {err}")
+    else:
+        raise AssertionError("an unqualified native name bound a discharge claim")
+    qualified = proofaudit.inventory(
+        proofaudit.EMPTY_BLACKLIST + "\nM.claim: True\n", "M")
+    proofaudit.bind_claims(annotation, [unqualified, *qualified])
+    ensure(not unqualified["claims"] and qualified[0]["claims"] == ["R-05-163"],
+           "an unqualified name must neither receive nor make a valid claim ambiguous")
+
+
 def _inaccessible_modules_fail_closed() -> None:
     ensure(not proofaudit.unsupported_abstractions("Module N. Definition x := 0. End N."),
            "ordinary nested modules are supported")
@@ -181,6 +198,7 @@ def cases() -> list[Case]:
             Case("every-native-query-needs-an-answer", _every_query_needs_one_answer),
             Case("claims-need-real-declarations", _claims_need_real_declarations),
             Case("claim-names-resolve-uniquely", _claim_names_resolve_uniquely_across_nested_modules),
+            Case("unqualified-native-names-cannot-bind", _unqualified_native_names_cannot_bind_claims),
             Case("requires-follow-vernacular", _requires_follow_vernacular),
             Case("inaccessible-modules-fail-closed", _inaccessible_modules_fail_closed),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),

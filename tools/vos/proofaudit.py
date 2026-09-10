@@ -80,7 +80,9 @@ def bind_claims(text: str, symbols: list[Symbol]) -> None:
         return
     by_name: dict[str, list[Symbol]] = defaultdict(list)
     for symbol in symbols:
-        by_name[symbol["name"].rpartition(".")[2]].append(symbol)
+        _, separator, name = symbol["name"].rpartition(".")
+        if separator:
+            by_name[name].append(symbol)
     for name, entries in claims:
         matches = by_name.get(name, [])
         if len(matches) != 1:
