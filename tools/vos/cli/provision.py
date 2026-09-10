@@ -491,7 +491,7 @@ def _verdict(rep: Reporter, fact: Fact, found: Found) -> None:
 
 
 def _apply(rep: Reporter, steps: Sequence[tuple[Fact, tuple[tuple[str, ...], ...]]]) -> None:
-    """Run exactly the plan, and say what each step answered.
+    """Run the plan, reusing any switch an earlier attempt already created.
 
     Streamed to the caller's own terminal rather than captured, because these are opam
     and apt installs that take minutes and a caller watching a silent process cannot

@@ -6,7 +6,7 @@ This is the inner loop of the three-loop discipline ([implementation-checklist Â
 
 * **Compiler**: CertiRocq **0.9.1 for Rocq 9.1**, the released `rocq-certirocq.0.9.1+9.1` from the `rocq-released` opam repository, MIT. It is a release rather than a source pin because the release now carries both things a pin used to buy: the merged CertiCoq-Wasm backend (`theories/CodegenWasm`, mechanized against WasmCert-Coq, CPP 2025) that the `coq-certicoq` 0.9 release predated, and `rocq-metarocq-erasure-plugin` and `rocq-metarocq-safechecker-plugin` at `>= 1.5.1`, which is *released* MetaRocq rather than the unreleased 9.1 branch main tracked. There is therefore no clone, no checkout and no compatibility patch; the erasure inlining toggle a patch used to move already sits in `unsafe_passes` here.
 * **Prover**: Rocq 9.1.1. CertiRocq requires `rocq-core {>= "9.1" & < "9.2~"}`, and its `coq-wasm` dependency also requires Coq below 9.2. The [proof gate](../vos/cli/proofs.py) independently uses Rocq 9.2.0.
-* **OCaml**: 5.4.1 with ocamlfind 1.9.8. The latest released findlib requires OCaml below 5.5; OCaml 5.5.1 currently needs the `1.9.9~preview` package marked `avoid-version`. This keeps the toolchain on released packages. The container creates the same switch because its published Rocq 9.1 image still carries OCaml 4.14.2.
+* **OCaml**: 5.1.1 with ocamlfind 1.9.8. CertiRocq's unmodified bootstrap C wrapper fails with OCaml 5.4.1 because its `Hd_val` macro collides with the inline function introduced in OCaml 5.2. The wrapper compiles against 5.1.1, the latest release before that header change. The [package snapshot guide](../opam/README.md) records this boundary and the independent 5.4.1 switches. The container imports the same oracle snapshot because its published Rocq 9.1 image still carries OCaml 4.14.2.
 * **Engine**: Node.js 26.8.2 through [node.sh](node.sh), which verifies the official archive checksum and installs into a versioned toolchain directory. It uses stock `WebAssembly.instantiate`; the emitted module is import-free. `wasmtime` works equally for modules that need no result pretty-printing.
 
 ## Build and run
@@ -23,11 +23,11 @@ true
 ```console
 $ opam repo add rocq-released https://rocq-prover.org/opam/released --dont-select
 $ opam update --all
-$ opam switch create verifiedos-certirocq-0.9.1-ocaml-5.4.1 \
+$ opam switch create verifiedos-certirocq-0.9.1-ocaml-5.1.1 \
     --repos=rocq-released,default --empty --no-switch
 $ opam switch import tools/opam/certirocq.lock \
-    --switch=verifiedos-certirocq-0.9.1-ocaml-5.4.1 -y
-$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.4.1 --set-switch)
+    --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 -y
+$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 --set-switch)
 $ mkdir -p out/wasm-oracle
 $ cp tools/wasm-oracle/demo.v tools/wasm-oracle/run_demo.mjs tools/wasm-oracle/node.sh out/wasm-oracle/
 $ cd out/wasm-oracle
@@ -49,7 +49,7 @@ Run the native setup from the repository root. If an import fails after its swit
 $ mkdir -p /root/wasm-stage && cd /root/wasm-stage
 $ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
      <repo>/tools/wasm-oracle/run_demo.mjs <repo>/tools/wasm-oracle/node.sh .
-$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.4.1 --set-switch)
+$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 --set-switch)
 $ rocq c EndpointIPC.v && rocq c ipc_oracle.v
      = 84
      : nat

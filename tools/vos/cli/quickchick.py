@@ -16,10 +16,9 @@ model-as-oracle rigs crossed in.
 [quickchick/Properties.v](quickchick/Properties.v) is the half that needs an install:
 random generators, `forAll` over them, and the thing no enumeration has, **automatic
 counterexample shrinking**. The install is made, in a switch of its own, and `check`
-reports which switch holds it and at what version. That the switch is its own is the
-priced part rather than an aesthetic: the two routes into a switch this repository
-already had cost a rebuild of a landed environment apiece, which is what `INSTALL`
-below records.
+reports which switch holds it and at what version. QuickChick's Coq and dune constraints
+require an environment independent of the proof gate and CertiRocq compiler; `INSTALL`
+below restores its tested package snapshot.
 
 [quickchick/FreezeModel.v](quickchick/FreezeModel.v) is a third harness and a different
 question: not *what does this artifact answer* but *do the two statements of one
@@ -85,11 +84,9 @@ def installed(switch: str) -> str | None:
 def cmd_check(args: argparse.Namespace) -> int:
     """Whether the randomized half can run, and what it costs to make it able to.
 
-    Deliberately not an install, though one has been made. A tool that installed a
-    package into a switch a landed milestone depends on would be spending someone
-    else's environment on its own convenience, and the measurement above says what that
-    spend is; what this reports is which switch holds what, so a run's evidence carries
-    the prover and the library version it was taken under.
+    Reports the package and prover in each reachable switch, so a run's evidence
+    carries the versions it was taken under. Installation is the provisioner's
+    separate command.
     """
     del args
     out: list[str] = ["== the Gallina front's switches"]
