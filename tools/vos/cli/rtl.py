@@ -75,24 +75,31 @@ file being exactly the kind of artifact two checkouts must not share.
 """
 
 import argparse
+import hashlib
+import json
 import re
 import shutil
 import subprocess
+import tarfile
+import urllib.error
+import urllib.request
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from vos import cli, env, provenance, sailrig, socmap
 from vos.corpus import find_root
 
-# The pinned simulator, and the ground the pin stands on. Ubuntu 26.04 packages this
-# version, which is what keeps a lane reproducible without a source build: a simulator
-# built from source is a second toolchain to keep, and the guest already carries one
-# interpreter floor for exactly this reason. The bring-up SoC this lane's imported
-# sources come from pins 5.040 through nix; that difference is recorded rather than
-# chased, because nothing here runs the reference's own flow and an elaborator's
-# version is evidence about which tool reported, not about what it reported.
-VERILATOR_PIN = "5.032"
-VERILATOR_HOW = "apt-get install verilator on Ubuntu 26.04"
+# The release is built from its verified archive into a versioned project prefix.
+# Every RTL loop and the provisioner select that binary before consulting PATH.
+VERILATOR_PIN = "5.052"
+VERILATOR_URL = ("https://github.com/verilator/verilator/archive/refs/tags/"
+                 f"v{VERILATOR_PIN}.tar.gz")
+VERILATOR_SHA256 = "8c8d2e11e6ad32f641dd250742a94195ddecb912e2e2dabe2f42ddbbb99c1092"
+VERILATOR_HOW = "python tools/run.py rtl install"
+VERILATOR_PREREQUISITES = ("autoconf", "bison", "flex", "g++", "make", "help2man")
+VERILATOR_PACKAGES = (*VERILATOR_PREREQUISITES, "libfl-dev")
 
 # The capability format's own package, named apart from the set below because the
 # cross-check compiles this and nothing else: the harness replays vectors about the
@@ -264,16 +271,9 @@ BASELINE_EDITS: tuple[tuple[str, str], ...] = (
     ("CVA6ConfigRVD = 1", "CVA6ConfigRVD = 0"),
 )
 
-# A `<module ... name="foo__Cz1_Tz37">` in Verilator's XML: the parameter hash after the
-# double underscore distinguishes two elaborations of one module, which is noise for a
-# question about which modules exist at all.
-MODULE_RE = re.compile(r'<module [^>]*name="([^"]*)"')
-CELL_RE = re.compile(r"<cell ")
-VAR_RE = re.compile(r"<var ")
-
 # What a SystemVerilog source declares, read so that the diff's attribution is computed
 # from the files rather than copied into a table beside them. A `package` declaration is
-# deliberately not read: the elaborator's own inventory above counts `<module>` elements
+# deliberately not read: the elaborator's inventory counts MODULE nodes
 # and a package is not one, so a substituted package introduces no kind and is owed no
 # appearance in the netlist. Comments go first, both kinds, because a commented-out
 # module declaration is the one shape that would otherwise be read as a declaration.
@@ -284,9 +284,24 @@ MODULE_DECL_RE = re.compile(r"^[ \t]*module[ \t]+([A-Za-z_]\w*)", re.MULTILINE)
 MARKER = "ALL_DONE"
 
 
+def verilator_prefix() -> Path:
+    """The shared, versioned installation under the project's guest build root."""
+    return env.build_root() / "toolchains" / f"verilator-{VERILATOR_PIN}"
+
+
+def _installed_verilator() -> str | None:
+    """An installation is complete only after make install has written every file."""
+    local = verilator_prefix() / "bin" / "verilator"
+    receipt = verilator_prefix() / "source.sha256"
+    if (local.is_file() and receipt.is_file()
+            and receipt.read_text(encoding="utf-8").strip() == VERILATOR_SHA256):
+        return str(local)
+    return None
+
+
 def _verilator() -> str | None:
-    """The simulator's own path, or None where it is not installed."""
-    return shutil.which("verilator")
+    """Use the project installation, retaining PATH support for an exact-version tool."""
+    return _installed_verilator() or shutil.which("verilator")
 
 
 def _verilator_version(binary: str) -> str:
@@ -314,6 +329,78 @@ def _require_verilator(out: list[str]) -> str | None:
                    f"{VERILATOR_PIN}; a version other than the pin is a finding")
         return None
     return binary
+
+
+def _extract_verilator(archive: Path, work: Path) -> Path:
+    """Authenticate the complete source archive before extracting any member."""
+    with archive.open("rb") as stream:
+        actual = hashlib.file_digest(stream, "sha256").hexdigest()
+    if actual != VERILATOR_SHA256:
+        raise ValueError(f"{archive}: SHA256 {actual}, expected {VERILATOR_SHA256}")
+    with tarfile.open(archive) as source:
+        source.extractall(work, filter="data")
+    return work / f"verilator-{VERILATOR_PIN}"
+
+
+def cmd_install(args: argparse.Namespace) -> int:
+    """Build one verified release without changing the distribution's simulator."""
+    prefix = verilator_prefix()
+    with env.hold_lock(prefix, "Verilator installation"):
+        binary = prefix / "bin" / "verilator"
+        if _installed_verilator() and _verilator_version(str(binary)) == VERILATOR_PIN:
+            print(f"ok verilator {VERILATOR_PIN} at {binary}")
+            return 0
+        missing = [name for name in VERILATOR_PREREQUISITES if not shutil.which(name)]
+        if not missing:
+            header = subprocess.run(("g++", "-x", "c++", "-E", "-include", "FlexLexer.h", "-"),
+                                    input="", text=True, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.PIPE, check=False)
+            if header.returncode:
+                missing.append("FlexLexer.h (libfl-dev)")
+        if missing:
+            print(f"FAIL missing build prerequisites: {', '.join(missing)}; "
+                  "apt-get install -y --no-upgrade --no-install-recommends "
+                  + " ".join(VERILATOR_PACKAGES))
+            return 1
+        lane = env._lane(find_root())
+        lane_root = env.build_root() / f"lane-{lane}" if lane else env.build_root()
+        work = lane_root / f"verilator-{VERILATOR_PIN}-source"
+        work.mkdir(parents=True, exist_ok=True)
+        archive = work / f"verilator-{VERILATOR_PIN}.tar.gz"
+        log_path = work / "build.log"
+        print(f"== verilator {VERILATOR_PIN}: source and log {work}; install {prefix}",
+              flush=True)
+        try:
+            if not archive.is_file():
+                # The URL is an owned HTTPS constant; the whole download is hashed
+                # before tarfile sees it, and a partial download is never the cache.
+                pending = archive.with_suffix(".download")
+                with (urllib.request.urlopen(VERILATOR_URL, timeout=120) as response,  # noqa: S310
+                      pending.open("wb") as stream):
+                    shutil.copyfileobj(response, stream)
+                pending.replace(archive)
+            source = _extract_verilator(archive, work)
+            steps = (("autoconf",), ("./configure", f"--prefix={prefix}"),
+                     ("make", f"-j{args.jobs}"), ("make", "install"))
+            with log_path.open("w", encoding="utf-8") as log:
+                for argv in steps:
+                    print(f"== {' '.join(argv)}; log {log_path}", flush=True)
+                    log.write(f"== {' '.join(argv)}\n")
+                    log.flush()
+                    code = subprocess.run(argv, cwd=source, stdout=log, stderr=log,
+                                          check=False).returncode
+                    if code:
+                        print(f"FAIL {argv[0]} exited {code}; see {log_path}")
+                        return 1
+        except (OSError, ValueError, tarfile.TarError, urllib.error.URLError) as error:
+            print(f"FAIL Verilator installation: {error}")
+            return 1
+        if _verilator_version(str(binary)) != VERILATOR_PIN:
+            print(f"FAIL {binary} did not report Verilator {VERILATOR_PIN}")
+            return 1
+        (prefix / "source.sha256").write_text(VERILATOR_SHA256 + "\n", encoding="utf-8")
+        print(f"ok verilator {VERILATOR_PIN} at {binary}")
+        return 0
 
 
 def _settings(row: provenance.Row) -> str:
@@ -494,14 +581,9 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
     work = _equiv_dir(e)
     out: list[str] = []
 
-    binary = sailrig.require("verilator", VERILATOR_HOW, out)
+    binary = _require_verilator(out)
     if binary is None:
         print("\n".join(out))
-        return 1
-    version = _verilator_version(binary)
-    if version != VERILATOR_PIN:
-        print(f"FAIL verilator is {version} where this lane pins {VERILATOR_PIN}; a "
-              "version other than the pin is a finding")
         return 1
 
     vectors = work / VECTORS
@@ -777,7 +859,7 @@ def _baseline_config(root: Path, work: Path) -> Path:
     return path
 
 
-def _elaborate(binary: str, root: Path, files: FileList, xml: Path) -> tuple[int, str]:
+def _elaborate(binary: str, root: Path, files: FileList, ast: Path) -> tuple[int, str]:
     """One elaboration of the imported core, its AST written where the caller says.
 
     Run from the lane's own working directory rather than from the checkout, for two
@@ -788,30 +870,73 @@ def _elaborate(binary: str, root: Path, files: FileList, xml: Path) -> tuple[int
     is a missing package, several files away from the cause.
     """
     prim = root / PRIM
-    listing = xml.with_suffix(".f")
+    listing = ast.with_suffix(".f")
     listing.write_text("\n".join(files.lines) + "\n", encoding="utf-8")
-    argv = [binary, "--xml-only", "--timescale", "1ns/1ps", "-Wno-fatal",
+    argv = [binary, "--json-only", "--timescale", "1ns/1ps", "-Wno-fatal",
             "-y", str(prim / "prim/rtl"), "-y", str(prim / "prim_generic/rtl"),
             f"+incdir+{prim / 'prim/rtl'}",
             "+define+PRIM_DEFAULT_IMPL=prim_pkg::ImplGeneric",
-            "--top-module", "cva6", "--xml-output", str(xml), "-f", str(listing)]
+            "--top-module", "cva6", "--json-only-output", str(ast),
+            "--json-only-meta-output", str(ast.with_suffix(".meta.json")),
+            "-f", str(listing)]
     done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
-                          check=False, cwd=xml.parent)
+                          check=False, cwd=ast.parent)
     return done.returncode, done.stdout + done.stderr
 
 
-def _inventory(xml: Path) -> tuple[set[str], int, int]:
+def _json_nodes(value: object) -> Iterator[dict[str, object]]:
+    """Walk owned AST children; cross-references are strings and are not followed."""
+    if isinstance(value, dict):
+        node = cast("dict[str, object]", value)
+        yield node
+        for child in node.values():
+            yield from _json_nodes(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _json_nodes(child)
+
+
+def _inventory(ast: Path) -> tuple[set[str], int, int]:
     """What one elaboration instantiated: its module kinds, its cells, and its
     declared variables.
 
     The module *kind* is the name with its parameter hash removed, because two
     elaborations of one module at different parameters are one structure and the
     question this answers is which structures exist. It is `_kind` that removes it, the
-    same reduction the attribution maps are keyed by, so the two sets join.
+    same reduction the attribution maps are keyed by, so the two sets join. JSON's
+    CELL nodes describe module templates, whereas the former XML cells section
+    expanded the hierarchy. Count each instantiation recursively, including the top,
+    to retain that meaning when one module template is instantiated more than once.
+    Variables are declarations, counted once per emitted module or package template.
+    The internal constant-pool module under miscsp is not part of either inventory.
     """
-    text = xml.read_text(encoding="utf-8", errors="replace")
-    kinds: set[str] = {_kind(str(name)) for name in MODULE_RE.findall(text)}
-    return kinds, len(CELL_RE.findall(text)), len(VAR_RE.findall(text))
+    tree = json.loads(ast.read_text(encoding="utf-8"))
+    if not isinstance(tree, dict) or tree.get("type") != "NETLIST":
+        raise ValueError(f"{ast}: expected a Verilator NETLIST")
+    definitions = tree.get("modulesp")
+    if not isinstance(definitions, list):
+        raise TypeError(f"{ast}: NETLIST has no module definitions")
+    modules = {str(node["name"]): node for node in definitions
+               if isinstance(node, dict) and node.get("type") in {"MODULE", "IFACE"}
+               and isinstance(node.get("name"), str)}
+    roots = [name for name, node in modules.items()
+             if node.get("type") == "MODULE" and node.get("level") == 1]
+    if len(roots) != 1:
+        raise ValueError(f"{ast}: expected one top module, found {len(roots)}")
+    kinds = {_kind(name) for name, node in modules.items() if node.get("type") == "MODULE"}
+    variables = sum(node.get("type") == "VAR" for node in _json_nodes(definitions))
+    counts: dict[str, int] = {}
+
+    def cells(name: str, ancestors: frozenset[str]) -> int:
+        if name in ancestors or name not in modules:
+            raise ValueError(f"{ast}: recursive or unresolved module {name!r}")
+        if name not in counts:
+            children = [str(node.get("modName", "")) for node in _json_nodes(modules[name])
+                        if node.get("type") == "CELL"]
+            counts[name] = 1 + sum(cells(child, ancestors | {name}) for child in children)
+        return counts[name]
+
+    return kinds, cells(roots[0], frozenset()), variables
 
 
 def cmd_filelist(args: argparse.Namespace) -> int:
@@ -934,13 +1059,18 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
 
     inventories: dict[str, tuple[set[str], int, int]] = {}
     for name, files in arms.items():
-        code, text = _elaborate(binary, root, files, work / f"{name}.xml")
+        ast = work / f"{name}.json"
+        code, text = _elaborate(binary, root, files, ast)
         if code != 0:
             print(text)
             out.append(f"FAIL the {name} configuration did not elaborate")
             print("\n".join(out))
             return 1
-        inventories[name] = _inventory(work / f"{name}.xml")
+        try:
+            inventories[name] = _inventory(ast)
+        except (OSError, TypeError, ValueError) as error:
+            print(f"FAIL the {name} elaboration inventory could not be read: {error}")
+            return 1
 
     curated_kinds, curated_cells, curated_vars = inventories["curated"]
     stock_kinds, stock_cells, stock_vars = inventories["baseline"]
@@ -1031,6 +1161,7 @@ def cmd_wait(args: argparse.Namespace) -> int:
 
 
 COMMANDS: cli.Table = {
+    "install": (cmd_install, "build the verified Verilator release in a project prefix"),
     "provenance": (cmd_provenance, "parse and print the synthesis-provenance record"),
     "filelist": (cmd_filelist,
                  "the curated arm's file list, and every substitution's verdict"),
@@ -1046,6 +1177,9 @@ COMMANDS: cli.Table = {
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "install":
+        sub.add_argument("--jobs", type=int, choices=range(1, 33), default=3,
+                         metavar="N", help="source-build workers (default: 3)")
     if name == "filelist":
         sub.add_argument("--show", action="store_true",
                          help="print the composed list itself, entry by entry")
@@ -1072,4 +1206,3 @@ def main(argv: list[str] | None = None) -> int:
     if args[:1] == ["elaborate"] and "--background" not in args:
         print(MARKER, flush=True)
     return code
-

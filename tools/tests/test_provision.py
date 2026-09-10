@@ -22,6 +22,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import env
@@ -168,6 +169,15 @@ def _number_reads_the_banners() -> None:
            "a banner with no dotted number yields none rather than a fragment")
 
 
+def _opam_probe_preserves_build_suffix() -> None:
+    with (patch.object(provision, "switches", return_value={"oracle"}),
+          patch.object(provision, "_installed", return_value="0.9.1+9.1")):
+        ensure(provision._switch_at("oracle", "rocq-certirocq", "0.9.1+9.1").present,
+               "an exact opam version including its Rocq suffix must satisfy the pin")
+        ensure(not provision._switch_at("oracle", "rocq-certirocq", "0.9.1+9.2").present,
+               "the same release built for another Rocq version must be rejected")
+
+
 def _run(*argv: str) -> tuple[int, str, str]:
     done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=300, cwd=_ROOT)
@@ -244,6 +254,7 @@ def cases() -> list[Case]:
         Case("every-row-is-actionable", _every_row_is_actionable),
         Case("versions-are-read-and-not-typed", _versions_are_read_and_not_typed),
         Case("number-reads-the-banners", _number_reads_the_banners),
+        Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
         # guest-only: the command hops there, so on the host this case would pay for a
         # WSL launch to decide about a lane the host is not
         Case("check-is-read-only", _check_is_read_only, lane="guest"),

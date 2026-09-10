@@ -220,6 +220,14 @@ def _checker(name: str, pin: str) -> Found:
     return Found(found == pin, f"{found} at {exe}")
 
 
+def _verilator() -> Found:
+    """Probe the same project-local simulator that every RTL loop selects."""
+    binary = rtl._verilator()
+    if binary is None:
+        return Found(False, "no project Verilator or verilator on PATH")
+    return _at_version((binary, "--version"), rtl.VERILATOR_PIN)
+
+
 def _importable(module: str, distribution: str) -> Found:
     """A library this directory imports, in the environment the interpreter and ty both
     resolve against. Presence is the import path and the number is the distribution's
@@ -262,7 +270,7 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     found = _installed(switch, package)
     if not found:
         return Found(False, f"the {switch} switch carries no {package}")
-    return Found(_number(found) == pin, f"{package} {found} in {switch}")
+    return Found(found == pin, f"{package} {found} in {switch}")
 
 
 def _switch_has(switch: str, package: str) -> Found:
@@ -401,8 +409,10 @@ FACTS: tuple[Fact, ...] = (
          "run.py rtl lint, elaborate and crosscheck",
          f"tools/vos/cli/rtl.py's VERILATOR_PIN, which is {rtl.VERILATOR_PIN} and "
          f"arrives by {rtl.VERILATOR_HOW}",
-         partial(_at_version, ("verilator", "--version"), rtl.VERILATOR_PIN),
-         ((*APT, "verilator"),)),
+         _verilator,
+         ((*APT, "--no-upgrade", "--no-install-recommends", *rtl.VERILATOR_PACKAGES),
+          (sys.executable, str(Path(__file__).resolve().parents[2] / "run.py"),
+           "rtl", "install"))),
     Fact("clang and clang++", TOOLCHAIN,
          "the model build's compiler, which I10 flipped to it",
          "tools/vos/env.py's _compiler_args",
