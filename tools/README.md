@@ -580,11 +580,13 @@ and evidence that a current completion record explicitly retains.
 Completed migration scripts, copied validation checkouts, superseded bootstrap
 executables and redundant logs can be removed after their changes are accounted
 for in Git and their outputs have no remaining consumer. Review scripts before
-discarding them: recurring assertions belong in the tools' behavioral suite with
-private fixtures and inputs discovered from the repository. The
-[proof-header corpus regression](tests/test_proofheaders_corpus.py) applies this to
-stale manifests, authored-source preservation and dependent-export convergence;
-`run.py test --only proofheaders` runs it with the focused fixture tests.
+discarding them: recurring assertions belong in maintained validation with private
+fixtures and inputs discovered from the repository. The [selftest repair
+phase](vos/cli/selftest.py) checks stale manifests across the indexed proof corpus,
+authored-source preservation and dependent-export convergence. It runs under plain
+`run.py`, `run.py --check` and `run.py --fix`; `run.py selftest --rule K-109` is the
+focused route. `run.py test --only proofheaders` covers the smaller fixtures,
+including missed findings and premature writes, without repeating the corpus sweep.
 
 Keep a cleanup inventory and its retention reasons with the task's local output.
 Use explicit paths beneath the inspected `out/` root, recheck them before deletion,
