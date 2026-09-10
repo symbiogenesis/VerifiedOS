@@ -237,6 +237,14 @@ CORE_FLIST = "core/Flist.cva6"
 CORE_VAR = "${CVA6_REPO_DIR}"
 PRIM = "upstream/opentitan/hw/ip"
 
+# The imported SRAM wrapper uses the earlier OpenTitan response-port spelling.
+# Both elaboration arms stage this source with only those two connections renamed;
+# the memory implementation remains the pinned OpenTitan primitive.
+RAM_PORT_SOURCE = f"{CORE}/common/local/util/sram.sv"
+RAM_PORT_OLD = ".cfg_rsp_o("
+RAM_PORT_NEW = ".cfg_o("
+RAM_PORT_CONNECTIONS = 2
+
 # Three OpenTitan primitives the imported core instantiates that its own manifest does
 # not list, because the bring-up SoC supplies them from a vendored tree. Named here
 # rather than globbed, so that a primitive arriving under a new name is a failed
@@ -337,9 +345,14 @@ def _extract_verilator(archive: Path, work: Path) -> Path:
         actual = hashlib.file_digest(stream, "sha256").hexdigest()
     if actual != VERILATOR_SHA256:
         raise ValueError(f"{archive}: SHA256 {actual}, expected {VERILATOR_SHA256}")
+    source_dir = work / f"verilator-{VERILATOR_PIN}"
+    if source_dir.is_symlink() or source_dir.resolve().parent != work.resolve():
+        raise ValueError(f"{source_dir}: source directory escapes its build workspace")
+    if source_dir.exists():
+        shutil.rmtree(source_dir)
     with tarfile.open(archive) as source:
         source.extractall(work, filter="data")
-    return work / f"verilator-{VERILATOR_PIN}"
+    return source_dir
 
 
 def cmd_install(args: argparse.Namespace) -> int:
@@ -362,6 +375,9 @@ def cmd_install(args: argparse.Namespace) -> int:
                   "apt-get install -y --no-upgrade --no-install-recommends "
                   + " ".join(VERILATOR_PACKAGES))
             return 1
+        # A failed repair must not leave the previous receipt advertising a prefix
+        # that make install may have only partly rewritten.
+        (prefix / "source.sha256").unlink(missing_ok=True)
         lane = env._lane(find_root())
         lane_root = env.build_root() / f"lane-{lane}" if lane else env.build_root()
         work = lane_root / f"verilator-{VERILATOR_PIN}-source"
@@ -859,6 +875,23 @@ def _baseline_config(root: Path, work: Path) -> Path:
     return path
 
 
+def _stage_ram_compatibility(root: Path, files: FileList, work: Path) -> tuple[str, ...]:
+    """Rename only the two obsolete SRAM response connections in a build-lane copy."""
+    original = root / RAM_PORT_SOURCE
+    if not any(Path(line) == original for line in files.lines):
+        return files.lines
+    source = original.read_text(encoding="utf-8")
+    count = source.count(RAM_PORT_OLD)
+    if count != RAM_PORT_CONNECTIONS:
+        raise ValueError(f"{original}: expected {RAM_PORT_CONNECTIONS} {RAM_PORT_OLD} "
+                         f"connections for OpenTitan compatibility, found {count}")
+    staged = work / "compatibility" / "cva6-sram.sv"
+    staged.parent.mkdir(parents=True, exist_ok=True)
+    staged.write_text(source.replace(RAM_PORT_OLD, RAM_PORT_NEW),
+                      encoding="utf-8", newline="")
+    return tuple(str(staged) if Path(line) == original else line for line in files.lines)
+
+
 def _elaborate(binary: str, root: Path, files: FileList, ast: Path) -> tuple[int, str]:
     """One elaboration of the imported core, its AST written where the caller says.
 
@@ -871,7 +904,11 @@ def _elaborate(binary: str, root: Path, files: FileList, ast: Path) -> tuple[int
     """
     prim = root / PRIM
     listing = ast.with_suffix(".f")
-    listing.write_text("\n".join(files.lines) + "\n", encoding="utf-8")
+    try:
+        lines = _stage_ram_compatibility(root, files, ast.parent)
+    except (OSError, ValueError) as error:
+        return 1, f"FAIL SRAM dependency compatibility: {error}"
+    listing.write_text("\n".join(lines) + "\n", encoding="utf-8")
     argv = [binary, "--json-only", "--timescale", "1ns/1ps", "-Wno-fatal",
             "-y", str(prim / "prim/rtl"), "-y", str(prim / "prim_generic/rtl"),
             f"+incdir+{prim / 'prim/rtl'}",
@@ -916,26 +953,45 @@ def _inventory(ast: Path) -> tuple[set[str], int, int]:
     definitions = tree.get("modulesp")
     if not isinstance(definitions, list):
         raise TypeError(f"{ast}: NETLIST has no module definitions")
-    modules = {str(node["name"]): node for node in definitions
-               if isinstance(node, dict) and node.get("type") in {"MODULE", "IFACE"}
-               and isinstance(node.get("name"), str)}
+    modules: dict[str, dict[str, object]] = {}
+    for definition in definitions:
+        if not isinstance(definition, dict) or not isinstance(definition.get("type"), str):
+            raise TypeError(f"{ast}: malformed module definition")
+        if definition.get("type") not in {"MODULE", "IFACE"}:
+            continue
+        name = definition.get("name")
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"{ast}: module definition has no name")
+        if name in modules:
+            raise ValueError(f"{ast}: duplicate module definition {name!r}")
+        modules[name] = definition
     roots = [name for name, node in modules.items()
              if node.get("type") == "MODULE" and node.get("level") == 1]
     if len(roots) != 1:
         raise ValueError(f"{ast}: expected one top module, found {len(roots)}")
     kinds = {_kind(name) for name, node in modules.items() if node.get("type") == "MODULE"}
     variables = sum(node.get("type") == "VAR" for node in _json_nodes(definitions))
+    children: dict[str, list[str]] = {}
+    for name, module in modules.items():
+        children[name] = []
+        for node in _json_nodes(module):
+            if node.get("type") != "CELL":
+                continue
+            target = node.get("modName")
+            if not isinstance(target, str) or target not in modules:
+                raise ValueError(f"{ast}: unresolved module {target!r} in {name!r}")
+            children[name].append(target)
     counts: dict[str, int] = {}
 
     def cells(name: str, ancestors: frozenset[str]) -> int:
         if name in ancestors or name not in modules:
             raise ValueError(f"{ast}: recursive or unresolved module {name!r}")
         if name not in counts:
-            children = [str(node.get("modName", "")) for node in _json_nodes(modules[name])
-                        if node.get("type") == "CELL"]
-            counts[name] = 1 + sum(cells(child, ancestors | {name}) for child in children)
+            counts[name] = 1 + sum(cells(child, ancestors | {name}) for child in children[name])
         return counts[name]
 
+    for name in modules:
+        cells(name, frozenset())
     return kinds, cells(roots[0], frozenset()), variables
 
 
@@ -968,6 +1024,9 @@ def cmd_filelist(args: argparse.Namespace) -> int:
     files = _file_list(root, config, SUBSTITUTIONS)
     introduced_by, displaced_by = _substitution_modules(root, files.taken)
     out.append(f"== the curated arm's file list, {len(files.lines)} entries")
+    if any(Path(line) == root / RAM_PORT_SOURCE for line in files.lines):
+        out.append(f"   dependency compatibility: {RAM_PORT_SOURCE} is staged with "
+                   "cfg_rsp_o renamed to cfg_o in both elaboration arms")
     out.append(f"   {len(SUBSTITUTIONS)} declared substitution(s), {len(files.taken)} "
                "of them standing in the imported manifest's place")
     out.extend(f"   {'ok  ' if sub in files.taken else 'FAIL'} {sub.authored} "
