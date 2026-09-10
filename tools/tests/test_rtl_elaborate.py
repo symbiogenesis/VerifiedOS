@@ -33,6 +33,7 @@ declaration is not one. And a declared name is reduced the way a netlist name is
 two name spaces join rather than reporting one module as two findings.
 """
 
+import json
 import re
 from pathlib import Path
 
@@ -492,8 +493,55 @@ def _json_inventory_rejects_absent_netlist() -> None:
             raise AssertionError("an absent netlist yielded an empty inventory")
 
 
+def _json_inventory_validates_all_definitions() -> None:
+    defects = (
+        {"type": "MODULE", "level": 3},
+        {"type": "MODULE", "name": "leaf__W1", "level": 3},
+        {"type": "MODULE", "name": "orphan", "level": 3,
+         "stmtsp": [{"type": "CELL", "modName": "missing"}]},
+        {"type": "MODULE", "name": "orphan", "level": 3,
+         "stmtsp": [{"type": "CELL", "modName": "orphan"}]},
+        "malformed definition",
+    )
+    for defect in defects:
+        tree = json.loads(_JSON_INVENTORY)
+        tree["modulesp"].append(defect)
+        with sandbox_tree({"inventory.json": json.dumps(tree)}) as root:
+            try:
+                rtl._inventory(root / "inventory.json")
+            except (TypeError, ValueError):
+                pass
+            else:
+                raise AssertionError(f"invalid module definition was silently accepted: {defect!r}")
+
+
+def _ram_compatibility_is_shared_and_preserves_upstream() -> None:
+    source = "// upstream notice\nmodule sram;\n.cfg_rsp_o( ),\n.cfg_rsp_o( )\nendmodule\n"
+    tree = {**_TREE, rtl.RAM_PORT_SOURCE: source,
+            _FLIST: _MANIFEST + "${CVA6_REPO_DIR}/common/local/util/sram.sv\n"}
+    with sandbox_tree(tree) as root:
+        for arm, files in (("baseline", _compose(root)), ("curated", _compose(root, _SRAM))):
+            lines = rtl._stage_ram_compatibility(root, files, root / arm)
+            staged = root / arm / "compatibility/cva6-sram.sv"
+            ensure(str(staged) in lines, f"{arm} must compile the staged compatibility source")
+            ensure(staged.read_text() == source.replace(".cfg_rsp_o(", ".cfg_o("),
+                   "only the two named-port spellings may change")
+        ensure((root / rtl.RAM_PORT_SOURCE).read_text() == source,
+               "the upstream source must remain untouched")
+        (root / rtl.RAM_PORT_SOURCE).write_text(source.replace(".cfg_rsp_o(", ".cfg_o(", 1))
+        try:
+            rtl._stage_ram_compatibility(root, _compose(root), root / "unexpected")
+        except ValueError as error:
+            ensure("expected 2" in str(error), "upstream interface drift must be reported")
+        else:
+            raise AssertionError("changed upstream interface silently entered the build")
+
+
 def cases() -> list[Case]:
     return [
+        Case("json-inventory-validates-all-definitions", _json_inventory_validates_all_definitions),
+        Case("ram-compatibility-shared-and-upstream-preserved",
+             _ram_compatibility_is_shared_and_preserves_upstream),
         Case("json-inventory-preserves-hierarchy-and-declarations",
              _json_inventory_preserves_hierarchy_and_declarations),
         Case("json-inventory-rejects-unresolved-hierarchy",
