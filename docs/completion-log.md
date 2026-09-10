@@ -552,6 +552,47 @@ The checklist's current summary carried the paragraphs below on the day the note
     * **The proof gate's switch no longer carries its prover and nothing else, and two tracked sites still say it does.** An inventory of that switch today lists four Rocq libraries beside the prover, installed by other work, where the page recording the lowering stack's terms states the emptiness as a deliberate property. The instance inside this landing's own rewritten line is repaired here; the instance in the page's QuickChick paragraph and the one restating it in the QuickChick command's own source sit outside this landing's edit and the repair is owed at each site.
   * Landed: Tier A.
 
+#### Q2c · Scope and assign the CHERI primitive and representation foundation
+
+The [foundation map](cheri-foundation-map.md) takes the predeclared rejection arm:
+if the missing foundation cannot be responsibly bounded or repaid by named
+consumers, decline its commissioning and leave the generic pilot unopened.
+Inspection at `4aeaceedf4626ef64583a4680c19da29a469df4f` distinguishes the
+read-only Bedrock2 byte-memory theorem, abstract copy-service statements and
+slot-plan narrowing from concrete CHERI operation and resource laws. The ledger
+identifies owning deliverables, discriminating cases, representation joins,
+cost boundaries and reopening evidence. No implementation estimate is invented
+for the common logic or contextual proof.
+
+Authoring commit `8dc68a3ffdb020b32b3ba419cccc6e261940dc07` receives independent
+compiler-lane review at 06:04:49–06:05:45 UTC on 2026-09-10. Integration applies
+its correction: R-13-016's current Katamaran/μSail translation-agreement duty is
+required; replacing the route needs the applicable amendment. The source-only
+pilot requires its actual used laws, without adding every production theory to
+that gate. M1, Q2b, M7.1 and mandatory hardening retain ownership; finite emission
+removes no adversarial-context quantifier.
+
+The closing-pass actual uses the agent-parallel clock, conservatively bounding
+this lane from recorded branch creation at 05:54:27 through handoff at 06:03:11
+UTC, plus that independent review. Shared source review, document integration
+and arithmetic preparation are charged here once, from 05:54:27 to
+06:14:52 UTC, with the sum rounded upward to one decimal hour.
+This measures rejection review over an existing artifact; it does not reconstruct
+earlier design authoring or measure foundation implementation. The calibration
+row is n/a because the original estimate prices a different scope. Host gate
+execution is separate machine time, with its validation stated below.
+
+Exit validation is `python tools/run.py check --fix` followed by
+`python tools/run.py --check` on the settled batch. Each authoring lane returns
+focused checker evidence; the integrated gate supplies corpus consistency,
+complete mutation selftesting and pinned typechecking. The register, co-read
+ledger, proof statements, model and generated interfaces are unchanged. No guest
+proof run, implemented primitive or target measurement is claimed.
+
+Landed: Tier A. Independent and integrator reads accept the reasoned rejection,
+its required-route correction and preserved implementation obligations. The
+checker cannot decide theorem adequacy or affordability.
+
 ### Q3a · Connect the capability-helper property suite to the narrowed model
 
   * **The pin does not load, so connecting it is a transcription and its Use cell moves to `read`.** `CTSRD-CHERI/sail-cheri-riscv-verif` at `4da8fd10` states 24 `$property` functions over the 128-bit helpers this model transplanted and then narrowed, and not one of them loads here: `EXTZ` is a type error under Sail 0.20.2, and the bodies read `internal_E`, `reserved`, the flags field through `getCapFlags` and `setCapFlags`, and `uperms`, none of which the frozen record carries (R-15-007, R-15-007n). [The transcribed suite](../model/model/unit_tests/cap_properties.sail) restates them at the frozen widths as a BSD-2-Clause derivative, [THIRD-PARTY.md](../THIRD-PARTY.md) carries it as a vendored row, and [model/LICENCE.cheri-verif](../model/LICENCE.cheri-verif) retains the upstream notice, whose five holders and four funding acknowledgements are not [model/LICENCE.cheri](../model/LICENCE.cheri)'s. The retained notice is the pin's `LICENSE` line for line with its CRLF endings normalized to LF, which is what [.gitattributes](../.gitattributes) leaves as the only admitted difference under `model/`, and the two agree on every one of the 48 lines.
@@ -665,6 +706,86 @@ negative-case obligations, semantic invalidation and full-cost comparison.
 Mechanical document checks cannot decide those contracts, and no Tier-B holder
 is claimed. The absence of copying baselines is an explicit trial-entry condition,
 per Q20a's permission to prepare its contract before those implementations exist.
+
+#### Q21 · Scope the unified language core and compiler-route comparison
+
+The child decisions retain their bounded contracts and decline commissioning the
+present core qualification and paired compiler experiment. Their common source
+and representation boundary joins Q2c's rejected foundation commissioning and
+Q20a's unchanged protocol. Each decision names reopening evidence; no current
+compiler duty, parser waypoint or checked-law gate is amended. This parent has
+no separate estimate or actual.
+
+Landed: Tier A. The integrated read distinguishes a commissioning decision from
+an implemented trial or production theorem.
+
+#### Q21a · Specify the core design and its qualification contract
+
+The [core design](language-core-design.md) takes its predeclared reasoned-rejection
+arm at the unresolved composed returned-view obligation. Concrete split,
+suspension and restoration entailments are neither checked nor separately priced,
+and a new frontend lacks R-05-020's admission disposition. This is an unavailable
+premise, not a counterexample to the calculus or a language-feasibility verdict.
+Conditional syntax, frontend, diagnostic and fixture packages supply none of
+those missing laws.
+
+Authoring commit `7f1460ed164e3d43fd80245f77091d123b6c0bf6` makes source extent an
+independently guarded value, initializes both refused-length exits, fixes their
+precedence and separates the extended fixture from Q20a's P/S. It requires
+inhabited intended negatives, preserves runtime lengths/tags and states precise
+returned-loan, disjoint-field and cleanup predicates. Diagnostic results carry
+their generation so a late success cannot accept changed source.
+
+Independent compiler-lane review runs 06:08:36–06:10:15 UTC on 2026-09-10.
+Integration explicitly classifies `keep_view` and admitted callback captures as
+public and completes the inclusive-guard diagnostic with the source-extent
+premise. The read covers ordinary exits, loop joins, captured reborrows, source
+correspondence, observations, intended negatives and missing-law pricing.
+Q20a's callback benchmark remains unchanged.
+
+The closing-pass actual conservatively bounds authoring from recorded branch
+creation at 05:54:33 to commit at 06:07:58 UTC, plus that independent review,
+rounded upward to one decimal hour. Earlier design authoring is an existing
+input, not reconstructed effort, so the calibration row is n/a. Shared
+integration and the final host wave are recorded at Q2c without a second charge.
+
+Landed: Tier A. The reasoned rejection closes this decision while preserving
+its conditional contract and reopening evidence. No metatheory, frontend
+implementation or executed qualification case is claimed.
+
+#### Q21b · Price the compiler alternatives and define their artifact trial
+
+The [compiler-route contract](compiler-route-contract.md) takes its predeclared
+reasoned-rejection arm: the shared canonical logic and contextual foundation,
+direct producer and recurring maintenance lack a defensible full-endpoint price.
+M1's functional-bring-up estimates cannot price deferred hardening. Finite
+emission supplies no checked substitute for arbitrary-context preservation. The
+retained paired-trial budget is conditional and unbooked; missing implementation
+is neither commissioned nor charged to measurement.
+
+Authoring commit `4045cd1d7b7eec80b98671da18482e8383a63de5` aligns P's zero fill,
+refused lengths, initialized owner and staged-header behavior with Q20a; S retains
+its suffix and held-out independence. The common graph interface cannot make
+`PrepareAndInspect` a P/S baseline. Source/IR and machine trace transport, exact
+image evidence, cost allocation, compiler/decoder duties and conditional
+amendment obligations remain explicit. Re-entry dossiers identify owners,
+checks, joins and stopping conditions at equivalent endpoints.
+
+Independent foundation-lane review runs 06:05:23–06:06:49 UTC on 2026-09-10 and
+identifies no blocking contradiction. Integration targets ownership and rejection
+links at their exact foundation passages. The read preserves Q19c's actual-law
+gate and R-05-019b, R-05-020, R-05-023a, R-05-024, R-05-026, R-05-032,
+R-13-017 and R-18-014; unavailable artifacts give neither route a victory.
+
+The closing-pass actual conservatively bounds authoring from recorded branch
+creation at 05:54:40 to handoff at 06:04:31 UTC, plus that independent review,
+rounded upward to one decimal hour. This is rejection review over the existing
+contract, so the calibration row is n/a. Shared integration and the final host
+wave are recorded at Q2c without a second charge.
+
+Landed: Tier A. The read accepts this commissioning rejection and reopening
+contract. It establishes no performance comparison, route infeasibility, licence
+grant or production theorem.
 
 ## M0 · Hardware reference
 
