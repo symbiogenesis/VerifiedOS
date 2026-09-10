@@ -28,9 +28,10 @@ USER rocq
 # source pin and a compat patch used to buy here. The release is the whole
 # environment: no clone, no checkout, no patch.
 # The snapshot is pending the full compiler build and Wasm smoke checks.
-# Once exported, it fixes OCaml 5.1.1 and every package version. This argument changes
-# only the installed switch's name, not its compiler or package resolution.
-ARG TOOLCHAIN_SWITCH=verifiedos-certirocq-0.9.1-ocaml-5.1.1
+# Once exported, it fixes OCaml 5.1.1 and every package version. These arguments
+# name the switch; changing the compiler also requires updating the snapshot.
+ARG OCAML_VERSION=5.1.1
+ARG TOOLCHAIN_SWITCH=verifiedos-certirocq-0.9.1-ocaml-${OCAML_VERSION}
 COPY --chown=rocq:rocq opam/certirocq.lock /tmp/certirocq.lock
 RUN opam repo list --all | grep -q rocq-released \
     || opam repo add rocq-released https://rocq-prover.org/opam/released
