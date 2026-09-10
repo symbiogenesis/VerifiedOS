@@ -34,7 +34,9 @@ dispatches the device; RVFI-only runs with that bypass cannot supply the evidenc
 
 ## Composition input
 
-The accepted composition supplies `base` and `size` from `platform.blkdev`, a
+This interface is active only when `platform.blkdev.supported=true`; a disabled
+composition supplies no device evidence and is outside this interface's acceptance
+run. The accepted composition supplies `base` and `size` from `platform.blkdev`, a
 logical block length `B`, a block count `N`, and positive integer service bounds
 `read_steps`, `write_steps` and `flush_steps`. The model records these inputs with
 the image identity and input-event trace. No current configuration key is claimed
@@ -139,6 +141,13 @@ events even when software does not poll. The harness records their order relativ
 to bus accesses and reset. These steps are functional sequencing inputs, not a
 measured NAND latency or an admitted WCET.
 
+A nonfinal progress event only decrements the pending step count and never
+changes the persistent medium. Each trace orders media-fault events, progress
+events and bus accesses explicitly; only the reset/final-step tie below has a
+priority rule. A normal final `READ` samples the medium then, and a normal final
+`WRITE` replaces the selected block then, even if a separate earlier media-fault
+event changed it while the command was busy.
+
 At the final step, exactly one terminal outcome occurs:
 
 | Command | `DONE`, `RESULT=OK` | `ERROR`, `RESULT=IO` |
@@ -175,6 +184,13 @@ no sector, word or multi-block atomicity is assumed. A reset during `READ` or
 `FLUSH` changes no medium byte. A reset after a successful write preserves its
 bytes even if software never read `STATUS` or never acknowledged the completion.
 
+For both reset tears and `WRITE` errors, `old` is the selected block's persistent
+value immediately before that event, after any earlier explicitly ordered media
+fault, rather than a snapshot from command submission. `new` remains the payload
+latched at submission. Thus an earlier media fault and a later tear have a single
+specified composition for a given trace and mask; no unrecorded background write
+can alter that result.
+
 Reset wins over a final-step event at the same harness boundary: that operation
 is in flight and may tear; a final step ordered earlier has already completed.
 There is no completion after reset for the canceled command, including a delayed
@@ -199,12 +215,22 @@ torn record, stop at one, replay a transaction or clear durable regions. Feed th
 same crashed image to either recovery parameter in `JournalIndex.v`: the device
 answer is identical. Which recovered store is accepted still belongs to the
 independent recovery-policy decision and the subsequent crash-refinement proof.
+Storage integration owns the separately reviewed bytes-to-`Rec` decoder and
+verification bridge for that experiment, including the representation of a
+transaction's closing record. The statement artifact's `rec_landed` length check
+alone cannot interpret arbitrary non-prefix bit tears or authenticate serialized
+records. I-recovery needs the actual decoder over the device-produced bytes; a
+harness that invents record validity flags in place of decoding those bytes does
+not take that case. Authoring this bridge must leave the open record-verification
+and commit-representation decisions explicit until their owners settle them.
 
 ## Decisive acceptance cases
 
 These are predicates for the future real Sail device and wrapper, not passing
 test results. The harness derives addresses and iteration bounds from a valid
-fixture with `N >= 2`; payloads distinguish every byte and both blocks. It compares
+fixture with `N >= 2`; a generated payload family collectively distinguishes each
+byte location and bit across the selected blocks. This is a family of patterns,
+not a claim that one byte can uniquely name every location. It compares
 full medium and volatile state where a case says unchanged. Every architectural
 case emits its observed verdict through the existing HTIF test path, while the
 harness records injected events and the before/after image identity. A host-only
