@@ -1745,8 +1745,8 @@ CASES: list[Case] = [
      _literal(SEAM_WITNESSES, "   SeamWitnesses.v\n",
               f"   SeamWitnesses.v\n\n   {DERIVED_BEGIN}\n")),
     ("K-109", "a generated proof header changing its owner's fingerprint", _k109),
-    ("K-110", "an agent instruction edited without synchronizing its companion",
-     _literal("CLAUDE.md", "# Working rules", "# Changed working rules")),
+    ("K-110", "the Claude entry point importing a different instruction source",
+     _literal("CLAUDE.md", "@AGENTS.md", "@OTHER.md")),
     # A discharge annotation above a `Definition`, which is the one of this rule's four
     # refusals that renders perfectly and reads as correct: the annotation parses, its id
     # is live, and what it claims is that a *term* answers an obligation. The other three

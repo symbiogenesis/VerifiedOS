@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The one way into this repository's tools.
 
-    python tools/run.py                      sync instructions, then every host gate
+    python tools/run.py                      prepare instructions, then every host gate
     python tools/run.py --fix                also repair derived artifacts, then validate
     python tools/run.py --check --tests      complete read-only CI validation
     python tools/run.py check                one gate alone, after a document edit

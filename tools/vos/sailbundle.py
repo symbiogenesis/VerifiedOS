@@ -60,7 +60,7 @@ BUNDLE_NAME = "sail_riscv_model.json"
 # .gitattributes and vendored byte-identically from its upstream pin, so a generated
 # artifact there would break both properties at once; `tools/` already carries four
 # directories that are inputs to the tools rather than commands, and this is a fifth of
-# exactly that kind. Neither placement adds a top-level directory to CLAUDE.md's map.
+# exactly that kind. Neither placement adds a top-level directory to AGENTS.md's map.
 BUNDLE = f"tools/generated/{BUNDLE_NAME}"
 
 # What a hashes key and a source slot's `file` are relative to.

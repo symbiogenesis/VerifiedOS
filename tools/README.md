@@ -59,12 +59,13 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Synchronizes agent instructions, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. A bare `run.py` selects this workflow. |
+| `gate` | host | Validates shared agent instructions and restores a missing import, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
-| `sync-instructions` | host | Synchronizes root AGENTS.md and CLAUDE.md from either side. `--check` verifies equality without writing; `--from AGENTS.md` or `--from CLAUDE.md` explicitly selects a source when edits conflict. |
+| `sync-instructions` | host | Validates AGENTS.md and its CLAUDE.md import; creates a missing import. `--check` only validates; `--migrate` converts identical legacy copies without discarding independent edits. |
+| `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data. |
 | `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
 | `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
@@ -338,31 +339,82 @@ against. The run says so on its first line.
 
 **Every subagent in a fan-out performs all repository work inside its own dedicated
 Git worktree.** This includes implementation, document work, read-only scouting,
-review, repair and any nested subagents. Each agent gets its own checkout even when
-several agents work on the same item. The integration checkout belongs to the
-integrator; subagents return their changes and evidence for integration there.
+review, repair and nested subagents, including several agents on the same item.
+The integration checkout belongs to the integrator; workers return changes and
+focused evidence for integration there.
 
-Before dispatch, the parent creates each worktree serially under
-`.Codex/worktrees/<lane>` on a fresh branch from the intended input revision. Inspect
-`git worktree list` before choosing names, use
-`git worktree add -b <fresh-branch> .Codex/worktrees/<lane> <base>`, and prove the base
-with `git merge-base --is-ancestor <base> <fresh-branch>`. Follow
-[the worktree lifecycle rules](../AGENTS.md#before-standing-up-a-worktree) when
-retiring a lane. If a worktree cannot be created, keep that subagent undispatched
-until it can be isolated. A reviewer receives the revision under review in its own
-worktree, and a parent assigning nested work provisions a separate worktree for
-each child before it starts.
+**The repository provisions worktrees under the primary checkout's `.worktrees/`,
+independent of OS, model or instruction filename.** The [worktree command](vos/cli/worktree.py)
+finds the primary checkout through `git worktree list --porcelain -z`, so invocation
+from a linked checkout still creates a sibling lane under the same root. It never
+derives that root from the caller's working directory or creates nested lane roots.
+Worktrees containing unfinished work survive sessions and are retired explicitly;
+the OS temporary directory remains appropriate for disposable test fixtures.
 
-Every brief names the absolute worktree path, branch, base revision, owned files,
-focused checks and integrator. The agent verifies its checkout with
+Creation uses Git's `--relative-paths` support, which requires **Git 2.48 or newer**.
+Relative links between the checkout and its Git metadata remain usable when the same
+Windows directory is accessed through WSL. Git records `extensions.relativeWorktrees`
+when creating the first such lane, so every Git installation opening that repository
+must support the extension. There is no silent fallback to absolute links. See
+[Git's worktree documentation](https://git-scm.com/docs/git-worktree/2.48.0).
+
+Before dispatch, the parent creates each lane serially from the intended committed
+input revision. Uncommitted integration changes are not part of that revision; land
+the needed input first or explicitly transfer and record the intended changes.
+
+```console
+$ python tools/run.py worktree list --json
+$ python tools/run.py worktree create review-20260909-a --base HEAD --json
+$ python tools/run.py worktree verify <absolute-worktree> --base <revision> --exact --json
+```
+
+Use a unique lowercase lane name, for example a task, date and short suffix. Creation
+requires a fresh destination and a fresh branch, defaults the branch to `work/<lane>`,
+and checks that its initial HEAD is exactly the resolved base commit. Symbolic bases
+such as `HEAD` resolve in the invoking checkout. An existing
+branch or path is a refusal, never an instruction to reuse old work. The JSON output
+provides the actual checkout and revision data for the handoff.
+
+A dedicated worktree already provisioned by a host application may retain its
+assigned location and branch or detached HEAD. The parent verifies its Git membership,
+expected revision and exclusive assignment before dispatch; directory names alone
+establish none of those facts. Use `--exact` for an unchanged starting revision;
+without it, verification allows commits descended from the declared base. Review any
+uncommitted changes separately. Provider settings and hooks govern native creation;
+these instructions do not relocate a checkout or override filesystem permissions.
+
+Every nested checkout must be excluded from corpus scans. Creation and verification
+require the target to be ignored and absent from the index of each containing
+registered checkout. [.gitignore](../.gitignore) reserves `/.worktrees/`
+while retaining narrow exclusions for existing and native provider worktrees. This
+keeps duplicate documents and linked checkouts' `.git` pointer files out of the
+selftest, which includes untracked non-ignored files as well as indexed files.
+The worktree command refuses a `VOS_GIT_DIR` override: verification must discover
+each checkout's own Git metadata rather than use one administrative directory for
+every lane. Existing Windows absolute paths are translated when verified in WSL;
+native host worktrees otherwise retain their existing metadata and lifecycle.
+
+Every brief names the absolute worktree path, branch or detached HEAD, base revision,
+owned files, focused checks and integrator. The worker verifies its checkout with
 `git -C <worktree> rev-parse --show-toplevel` before starting. All repository reads,
 edits, checks, staging and commits target that checkout: set the shell's working
-directory on every call, use `git -C <worktree>`, and use absolute paths rooted in
-that worktree for file tools and scripted writes. A previous `Set-Location` is not
-a guarantee about the next tool call's directory. Build and log outputs use that
-worktree's own lane; coordinate any shared mutable toolchain state separately.
-Report an accidental write outside the lane to the integrator, who resolves its
-ownership before integration.
+directory on every call, use `git -C <worktree>`, and use absolute paths rooted there
+for file tools and scripted writes. A previous `Set-Location` is not a guarantee
+about the next tool call's directory. Build and log outputs use that checkout's lane,
+which [the build environment](vos/env.py) derives from Git's administrative identity.
+Coordinate shared mutable toolchain state separately. Report an accidental write
+outside the lane to the integrator, who resolves ownership before integration.
+If isolation cannot be established, keep the worker undispatched. Nested fan-outs
+follow the same procedure, with a distinct checkout per child.
+
+Retire only lanes owned by this batch. Inspect `git -C <worktree> status --short`,
+preserve needed local outputs, and confirm the lane's commits are integrated with
+`git merge-base --is-ancestor <lane-branch> <integration-revision>`. Then use
+`git worktree remove <absolute-worktree>` and `git branch -d <lane-branch>` from the
+integration checkout. A refusal leaves the lane or branch for review; do not force
+removal or reset a branch to reuse its name. A squash or cherry-pick may require a
+separate equivalence review. Host-managed checkout cleanup belongs to that host;
+do not rename or remove another active session's worktree.
 
 ## Check scheduling during fan-out
 
@@ -389,8 +441,8 @@ arithmetic drift, instruction disagreement or owed co-reads, resolve those findi
 before running a selftest: its baseline runs the whole checker even under `--rule`,
 and a failed baseline supplies no mutation verdict. Workers report deferred repair
 and checks explicitly. They do not run `--fix` or bare `run.py`; the latter also
-synchronizes AGENTS.md and CLAUDE.md. A separately justified full lane gate uses
-`--check` and a slot agreed with the integrator.
+validates AGENTS.md and restores a missing CLAUDE.md import. A separately justified
+full lane gate uses `--check` and a slot agreed with the integrator.
 
 **Budget workers across the machine.** The full runner already parallelizes its
 gates; selftest, behavioral tests and typecheck also run internal workers. Keep one
@@ -406,10 +458,10 @@ The integrator closes the batch in this order:
 1. Join the lane outputs, resolve shared edits, read the affected prose, and record
    required co-read judgments. Inspect `git status --short --untracked-files=all`
    and each intended diff; track new deliverables by path so the checker sees them.
-   Finish instruction sync, generated artifacts and other writes before gate readers
+   Finish instruction maintenance, generated artifacts and other writes before gate readers
    start. Keep the validated checkout stable until its readers finish.
 2. Resolve known findings cheaply. Use `python tools/run.py sync-instructions` for
-   instruction sync and `python tools/run.py check --fix` for arithmetic repair
+   import validation and `python tools/run.py check --fix` for arithmetic repair
    alone when more editing or co-reading remains. Repair once after the batch's
    authored inputs settle; repeat only if new input changes or findings require it.
    An intermediate merge needs a targeted check only when its answer affects the
@@ -441,14 +493,15 @@ one artifact here with no proof, no model, and no reader but their author.
 checkers because one cannot do the whole job; what a type cannot decide, the behavior, is
 [run.py test](vos/cli/test.py)'s to hold.
 
-A bare `run.py` first synchronizes the root instruction files, then runs `check`,
-`selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
+A bare `run.py` first validates the shared instructions and restores a missing
+import, then runs `check`, `selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
 is the same complete validation without tracked writes and is the CI invocation.
 
-`--fix` synchronizes instructions and repairs derived artifacts before starting
-the readers. The checker runs again afterward, so a repaired finding does not leave
-a stale failure as the final verdict. A sync conflict or crashed repair stops before the validation wave.
+`--fix` validates instructions, restores a missing import and repairs derived
+artifacts before starting the readers. The checker runs again afterward, so a
+repaired finding does not leave a stale failure as the final verdict. An invalid
+instruction entry point or crashed repair stops before the validation wave.
 
 The selftest copies the working tree into its sandboxes, so mutations finish before
 it starts. Each sandbox runs the generated-artifact checks too: a generator's cost
@@ -551,21 +604,35 @@ that declared grid, not arbitrary placements or all natural-language requirement
 
 ## Synchronizing agent instructions
 
-A normal `python tools/run.py` synchronizes the root instruction files before any
-readers start. The same operation is available as `python tools/run.py sync-instructions`.
-It copies a one-sided edit and merges independent edits against their last agreed
-text. An ignored checkpoint in `out/` preserves that baseline between edits before a
-commit; it is tied to the current HEAD. Without a usable checkpoint, the tool uses
-identical committed copies. Equal files are not rewritten; one missing file is restored from
-its companion. Overlapping changes, unsafe paths and a missing common baseline are
-reported without guessing which file wins.
+[AGENTS.md](../AGENTS.md) is the shared instruction source. [CLAUDE.md](../CLAUDE.md)
+contains only `@AGENTS.md` and a final newline, the
+[documented import](https://code.claude.com/docs/en/memory#agentsmd) Claude Code loads
+at session start. Both files are tracked regular files. LF and CRLF import line endings
+are accepted, so checkout normalization on Windows does not change the contract.
+Edit shared rules in AGENTS.md; directory placement and lifecycle rules are the same
+for every agent. Personal standing preferences defer repository-specific paths and
+procedures to this repository instead of repeating them in a global configuration.
 
-For an intentional conflict resolution, use `sync-instructions --from AGENTS.md` or
-`sync-instructions --from CLAUDE.md`, or reconcile both files by hand. `run.py --check`
-performs the full read-only gate; CI adds `--tests` to that invocation. K-110 also checks
-equality inside `check.py`. `run.py --fix` synchronizes first, repairs derived artifacts
-next, then runs fresh checks in parallel. The tool runs on Windows and in WSL and
-installs no hooks.
+`python tools/run.py sync-instructions` validates the nonempty UTF-8 source and its
+import, creating CLAUDE.md only when it is missing. It leaves valid files untouched
+and refuses unexpected content or unsafe paths. `--check` validates without writes.
+The retained command name supports existing callers; it performs no bidirectional
+merge, writes no checkpoint and never replaces the shared source from CLAUDE.md.
+
+For a checkout with identical legacy copies, `sync-instructions --migrate` converts
+CLAUDE.md to the import. If the copies differ, review and preserve their intended
+shared rules in AGENTS.md first; the tool does not discard an independent edit.
+The old `--from` options are refused with migration guidance. Existing ignored
+instruction-sync checkpoints are no longer read and may be removed when no older
+session needs them.
+
+A normal `python tools/run.py` performs validation and missing-import restoration
+before starting readers. K-110 checks the tracked source and import inside check.py.
+`run.py --check` performs the full read-only gate; CI adds `--tests`. `run.py --fix`
+performs the same instruction preparation, repairs derived artifacts, then runs a
+fresh validation wave. The tools run on Windows and Linux and install no hooks.
+Start a fresh agent session after changing instructions so its loaded guidance
+matches the files; existing worktrees retain the instructions at their own revision.
 
 ## The conventions
 

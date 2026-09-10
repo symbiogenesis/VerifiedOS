@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Synchronize instructions, then validate the checkout with one host-gate verdict.
+"""Validate shared instructions, then validate the checkout with one host-gate verdict.
 
-The default synchronizes AGENTS.md and CLAUDE.md before any reader starts. `--check`
-is read-only and leaves disagreement for K-110. `--fix` synchronizes, repairs derived
-facts alone, then runs a fresh read-only checker alongside the selftest and typecheck.
+The default validates AGENTS.md and its CLAUDE.md import, restoring a missing import
+before any reader starts. `--check` is read-only and leaves findings for K-110.
+`--fix` prepares instructions, repairs derived facts alone, then runs a fresh
+read-only checker alongside the selftest and typecheck.
 Repair findings describe the old tree; only the final wave decides the repaired tree.
-A failed sync or a repair without a verdict stops before that wave.
+Invalid instructions or a repair without a verdict stop before that wave.
 
 Independent gates run concurrently and report in declaration order. `--tests` adds the
 tools' behavioral tests; those stay optional to keep document checks small and avoid
@@ -150,7 +151,7 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False)
         try:
             rep.line(sync_instructions.sync(root))
         except (sync_instructions.SyncError, OSError, subprocess.SubprocessError) as err:
-            rep.report("gate", "instruction synchronization failed:", [str(err)])
+            rep.report("gate", "instruction preparation failed:", [str(err)])
             return rep
 
     plan = _plan(fix, tests)
@@ -176,9 +177,10 @@ def main(argv: list[str] | None = None) -> int:
         description="Run the host's gates together and answer with one verdict.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--fix", action="store_true",
-                      help="synchronize instructions, repair derived facts, then validate again")
+                      help="validate instructions, restore a missing import, "
+                           "repair derived facts, then validate")
     mode.add_argument("--check", action="store_true",
-                      help="validate without synchronizing instructions or repairing files")
+                      help="validate without restoring the instruction import or repairing files")
     parser.add_argument("--tests", action="store_true",
                         help="add the tools' own behavioral tests to the wave")
     args = parser.parse_args(argv)
@@ -187,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
     # Printed rather than accumulated, which the report itself is not: the longest
     # member is most of a minute and this is the only line that can say what is
     # being waited for while it runs.
-    preflight = ("" if args.check else "synchronizing instructions; ")
+    preflight = ("" if args.check else "preparing shared instructions; ")
     if args.fix:
         preflight += "repairing derived facts; "
     print(preflight + f"running {len(plan[-1])} host gate(s): "

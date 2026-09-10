@@ -1,12 +1,15 @@
-# The default location the worktree tooling stands isolation checkouts up in, so
-# it recurs rather than happening once. A linked worktree carries a `.git`
-# pointer *file*, whose kind no ruling in tools/vos/checks/marks.py covers, and
-# the selftest's sandbox reads untracked files where check.py reads the git
-# index: the checker stays green and the selftest's baseline goes red, which
-# stops every mutant from deciding anything. Ignored here rather than refused as
-# a tree, so that anything else unruled landing under `.claude/` is still loud.
-.Codex/worktrees/
-.claude/worktrees/
+# Repository-provisioned worktrees use this provider-neutral root on every OS.
+# Excluding nested checkouts keeps their .git pointer files and duplicate corpus
+# out of the selftest, which includes untracked, non-ignored files.
+/.worktrees/
+
+# Existing and host-provisioned worktrees may retain their assigned locations.
+# Keep these narrow: other files under provider configuration directories remain
+# visible to the corpus and its file-kind rules. The case variants are distinct
+# on Linux even when the host filesystem treats them as the same directory.
+/.Codex/worktrees/
+/.codex/worktrees/
+/.claude/worktrees/
 
 # The generated reading view tools/read-view.py rebuilds on demand: a derived
 # artifact of the two documents and never a source, kept out of the index and,

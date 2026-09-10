@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Sync and repair finish before parallel readers, whose final verdict is authoritative.
+"""Instruction preparation and repair finish before parallel readers.
 
 Temporary state and synchronized workers exercise ordering, conflict refusal, read-only
 behavior and a repair that leaves either a clean or still-failing tree. Real subprocess
@@ -97,7 +97,7 @@ def _readonly_mode_never_synchronizes() -> None:
     def launch(root: Path, member: gate.Launch) -> gate.Result:
         ensure(root == _ROOT and not member.args, "read-only validation launched a repair")
         code = 1 if member.tool == "check" else 0
-        return gate.Result(member, code, ["FAIL K-110: instruction files differ"] if code else [])
+        return gate.Result(member, code, ["FAIL K-110: invalid instruction import"] if code else [])
 
     isolated = SimpleNamespace(sync=sync, SyncError=gate.sync_instructions.SyncError)
     with patch.object(gate, "sync_instructions", isolated), patch.object(gate, "_launch", launch):
@@ -106,11 +106,11 @@ def _readonly_mode_never_synchronizes() -> None:
            "read-only mode must preserve the checker's instruction-drift failure")
 
 
-def _sync_conflict_prevents_every_reader() -> None:
+def _invalid_import_prevents_every_reader() -> None:
     error = gate.sync_instructions.SyncError
 
     def sync(root: Path) -> str:
-        raise error(f"both instruction files changed at {root}")
+        raise error(f"unexpected CLAUDE.md content at {root}")
 
     def launch(root: Path, member: gate.Launch) -> gate.Result:
         raise AssertionError(f"{member.name} read {root} after synchronization failed")
@@ -119,8 +119,8 @@ def _sync_conflict_prevents_every_reader() -> None:
     with patch.object(gate, "sync_instructions", isolated), patch.object(gate, "_launch", launch):
         for fix in (False, True):
             rep = gate.run(_ROOT, fix=fix)
-            ensure(rep.findings == 1 and "both instruction files changed" in "\n".join(rep.out),
-                   "the synchronization conflict must be the final failed verdict")
+            ensure(rep.findings == 1 and "unexpected CLAUDE.md content" in "\n".join(rep.out),
+                   "the invalid import must be the final failed verdict")
 
 
 def _repair_verdict_comes_from_the_fresh_wave() -> None:
@@ -267,7 +267,7 @@ def cases() -> list[Case]:
              _tests_join_the_wave_only_when_asked),
         Case("sync-precedes-parallel-readers", _sync_precedes_parallel_readers),
         Case("readonly-mode-never-synchronizes", _readonly_mode_never_synchronizes),
-        Case("sync-conflict-prevents-every-reader", _sync_conflict_prevents_every_reader),
+        Case("invalid-import-prevents-every-reader", _invalid_import_prevents_every_reader),
         Case("repair-verdict-comes-from-the-fresh-wave", _repair_verdict_comes_from_the_fresh_wave),
         Case("crashed-repair-stops-before-readers", _crashed_repair_stops_before_readers),
         Case("repair-and-readonly-flags-are-exclusive", _repair_and_readonly_flags_are_exclusive),

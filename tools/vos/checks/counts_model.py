@@ -97,7 +97,7 @@ def model_citations(ctx: Context, window: list[tuple[str, str]],
     The count itself is this rule's own `ok` line and is never written down here.
 
     Ids are permanent and a retired requirement is struck rather than removed
-    (CLAUDE.md), so what this catches is not renumbering. It is the typo, the id
+    (AGENTS.md), so what this catches is not renumbering. It is the typo, the id
     invented while writing prose about a requirement that turned out to be numbered
     something else, and the citation carried across from an upstream that had its own.
     """

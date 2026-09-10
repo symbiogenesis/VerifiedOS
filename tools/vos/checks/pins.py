@@ -7,7 +7,7 @@ record over those pins, one row per submodule, each stating the short id its ter
 were read at. The row is hand-copied from the gitlink and the copy had no owner.
 
 **That copy is the one derived fact in this repository whose defect cannot be
-repaired downstream.** [CLAUDE.md](../../../CLAUDE.md) and [the plan's
+repaired downstream.** [AGENTS.md](../../../AGENTS.md) and [the plan's
 §12](../../../docs/implementation-checklist.md#12-build-order-milestones-and-execution-state)
 both say it: a licence is a property of the *arrival*, read at the milestone that
 would incorporate the upstream, and work built on terms that forbid the composition
