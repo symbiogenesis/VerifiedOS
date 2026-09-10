@@ -18,9 +18,12 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 # Where the real tools live, for a test that runs one as a subprocess.
 TOOLS = Path(__file__).resolve().parents[1]
+
+type Lane = Literal["any", "host", "guest", "toolchain"]
 
 
 @dataclass(frozen=True)
@@ -37,7 +40,7 @@ class Case:
     name: str
     fn: Callable[[], None]
     slow: bool = False
-    lane: str = "any"
+    lane: Lane = "any"
 
 
 def ensure(cond: bool, msg: str) -> None:

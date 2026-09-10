@@ -16,10 +16,8 @@ rather than a flag. argparse exits during parsing, before a module reaches its
 environment at all, so a subcommand that would refuse still prints its usage and exits
 0; reaching the handler is the only thing that decides.
 
-The modules are imported at this module's own import rather than inside a case, because
-[the runner](../vos/cli/test.py) loads modules serially from the main thread and runs
-the cases in a pool, and an import raced against another module's is the one thing it
-takes care to avoid.
+The command modules are imported once in this test module's worker process. The
+runner isolates its patches and redirected streams from other test modules.
 """
 
 import io

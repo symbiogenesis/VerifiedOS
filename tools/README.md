@@ -233,7 +233,13 @@ The entry-point spellings differ by OS. Use `python` on Windows, or `py -3.14` w
 
 `run.py model build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 
-`run.py test` leaves the cases marked slow to `--slow`, so the default run answers in seconds.
+`run.py test` leaves the cases marked slow to `--slow`. Test modules run in separate
+spawned processes, so environment overrides, patches and redirected output cannot
+interfere with another module. Cases within a module remain sequential, and reports
+retain module order, including captured output when a module fails.
+`test --jobs N` limits concurrent workers; the default uses
+available CPUs up to eight. Imports happen inside each worker, so test callbacks
+may be closures without requiring serialization.
 
 `trace-diff` bounds each executor run with `--timeout`, so an emulator that hangs without retiring instructions becomes a SHORT finding instead of a command that never returns.
 
@@ -449,8 +455,8 @@ gates; selftest, behavioral tests and typecheck also run internal workers. Keep 
 full host wave active across the fan-out by default, including across worktrees.
 Schedule costly guest work against the same CPU and memory budget. Focused checks
 may overlap on independent stable inputs when capacity permits; `selftest --jobs N`
-bounds that command's workers, not the whole gate. Default selftest sandboxes are
-private; never share an explicit `--sandbox` directory between live runs. Builds,
+and `test --jobs N` bound their command's workers, not the whole gate. Default selftest
+sandboxes are private; never share an explicit `--sandbox` directory between live runs. Builds,
 proofs and oracle runs retain their own output ownership and locking rules.
 
 The integrator closes the batch in this order:
@@ -545,8 +551,8 @@ select `out/venv-win32/Scripts/python.exe` on Windows or
 dependencies as the gate. The Linux typing target is intentional: the guest modules
 use POSIX APIs, even when the host checks them. It does not move execution into Linux.
 
-The local `redundant-cast` suppressions in [vos/config.py](vos/config.py) and
-[vos/socmap.py](vos/socmap.py) address ty's recursive-JSON narrowing behavior, not
+The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
+addresses ty's recursive-JSON narrowing behavior, not
 package discovery. The negative test in [tests/test_mutate.py](tests/test_mutate.py)
 also suppresses `invalid-argument-type`. Unresolved imports remain errors.
 
