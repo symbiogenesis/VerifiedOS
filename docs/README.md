@@ -16,5 +16,8 @@ strategy, core design and workflow contract share the `languages/` directory.
 | Performance | [Performance estimates](performance/performance-estimates.md), [inference demand](performance/inference-demand.md) and its [measurement artifacts](performance/inference-demand/) |
 | Background and design assessment | [Inspirations and prior art](background/inspirations.md), [architectural alternatives](background/architectural-alternatives.md), [critique](background/critique.md) |
 
+The [matrix margin contract](implementation/matrix-margin-contract.md) defines
+the M-class comparison and its strongest-RVV denominator before instruction admission.
+
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
