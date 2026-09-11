@@ -6,6 +6,10 @@ where occupancy includes its issue cycle. Banks accept at most one request per
 cycle; phase grants bound total injection. Empty arrivals are explicit alternatives.
 The initial state is phase zero with empty banks. No queue or stalled transition
 is modeled: the first permitted set that cannot issue refutes universal zero wait.
+Refresh reservations start before arrivals in their phase and occupy whole banks
+for the stated duration, including that cycle. They must start on idle banks;
+neither refresh nor requests may preempt a residual operation. Refresh uses no
+injection grant in this synthetic contract; shared refresh ports are not modeled.
 """
 
 from collections import deque
@@ -21,6 +25,7 @@ class Contract:
     grants: tuple[int, ...]
     arrivals: tuple[tuple[Batch, ...], ...]
     banks: int = 1
+    refresh: tuple[Batch, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -29,6 +34,7 @@ class Result:
     states: int
     trace: tuple[Batch, ...] = ()
     failure: State | None = None
+    reason: str | None = None
 
 
 def check(contract: Contract) -> Result:
@@ -48,19 +54,32 @@ def check(contract: Contract) -> Result:
             if any(bank < 0 or bank >= contract.banks or duration < 1
                    for bank, duration in batch):
                 raise ValueError("invalid bank or occupancy")
+    refresh = contract.refresh or ((),) * len(contract.grants)
+    if len(refresh) != len(contract.grants):
+        raise ValueError("refresh must cover every phase")
+    for batch in refresh:
+        if (len({bank for bank, _ in batch}) != len(batch)
+                or any(bank < 0 or bank >= contract.banks or duration < 1
+                       for bank, duration in batch)):
+            raise ValueError("invalid refresh bank or occupancy")
     initial: State = (0, (0,) * contract.banks)
     pending = deque([initial])
     paths: dict[State, tuple[Batch, ...]] = {initial: ()}
     while pending:
         state = pending.popleft()
         phase, busy = state
+        reserved = list(busy)
+        for bank, duration in refresh[phase]:
+            if busy[bank]:
+                return Result(False, len(paths), paths[state], state, "refresh-overlap")
+            reserved[bank] = duration
         for batch in contract.arrivals[phase]:
             trace = (*paths[state], batch)
             banks = [bank for bank, _ in batch]
             if (len(batch) > contract.grants[phase] or len(set(banks)) != len(banks)
-                    or any(busy[bank] for bank in banks)):
-                return Result(False, len(paths), trace, state)
-            residue = [max(0, remaining - 1) for remaining in busy]
+                    or any(reserved[bank] for bank in banks)):
+                return Result(False, len(paths), trace, state, "arrival-blocked")
+            residue = [max(0, remaining - 1) for remaining in reserved]
             for bank, duration in batch:
                 residue[bank] = duration - 1
             successor = ((phase + 1) % len(contract.grants), tuple(residue))
@@ -79,4 +98,12 @@ def scenarios() -> dict[str, Contract]:
         "frame-wrap": Contract((1, 1), (((), one), ((), write))),
         "restricted-arrivals": Contract((1, 1), (((),), ((), write))),
         "independent-banks": Contract((2,), (((), ((0, 1), (1, 1))),), banks=2),
+        "refresh-arrival": Contract((1,), (((), one),), refresh=(one,)),
+        "refresh-write-overlap": Contract((1, 1), (((),), ((), write)),
+                                          refresh=(one, ())),
+        "refresh-wrap": Contract((1, 1), (((), one), ((),)), refresh=((), write)),
+        "refresh-quiet-window": Contract((1, 1, 1), (((),), ((),), ((), one)),
+                                         refresh=(write, (), ())),
+        "refresh-other-bank": Contract((1,), (((), ((1, 1),)),), banks=2,
+                                       refresh=(one,)),
     }

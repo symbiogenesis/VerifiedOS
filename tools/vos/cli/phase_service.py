@@ -16,7 +16,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     contracts = scenarios()
     results = {name: check(contract) for name, contract in contracts.items()}
-    expected = {"restricted-arrivals", "independent-banks"}
+    expected = {"restricted-arrivals", "independent-banks",
+                "refresh-quiet-window", "refresh-other-bank"}
     passed = all(result.zero_wait == (name in expected) for name, result in results.items())
     root = Path(__file__).resolve().parents[3]
     sources = ("tools/vos/phase_service.py", "tools/vos/cli/phase_service.py",
@@ -34,6 +35,6 @@ def main(argv: list[str] | None = None) -> int:
     else:
         for name, result in results.items():
             print(f"{name}: zero_wait={result.zero_wait}, states={result.states}, "
-                  f"trace={result.trace}, failure={result.failure}")
+                  f"trace={result.trace}, failure={result.failure}, reason={result.reason}")
         print("synthetic predicate assessment only; target comparison remains open")
     return 0 if passed else 1

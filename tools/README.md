@@ -94,6 +94,16 @@ preamble and its own `__main__` block. [vos/cli/\_\_init\_\_.py](vos/cli/__init_
 is the table `run.py` reads, and it is the only place a command's name, its module and
 its lane are written down.
 
+`phase-service` models refresh as fixed per-phase bank reservations with occupancy
+including the starting cycle. A reservation requires an idle bank, blocks arrivals
+to that bank, and carries its residue across frame wrap. Other banks remain usable;
+refresh consumes no injection grant in this synthetic contract. Shared refresh ports,
+target refresh timing and correspondence to an actual arbiter remain unqualified.
+An `arrival-blocked` trace includes the rejected arrival batch; a `refresh-overlap`
+trace contains only the accepted prefix, with `failure` naming the phase and bank
+residue before the mandatory refresh that cannot start. Quiet-window fixtures state
+arrival restrictions as inputs; they supply no emitted-code certificate.
+
 Six directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. [oracle-specs/](oracle-specs/) is
 one JSON file per oracle: the sources to compile, and per line kind the parameters,
 the domain that walks them, the Sail that calls the model, and what to print.
