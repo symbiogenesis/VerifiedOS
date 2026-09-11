@@ -1067,6 +1067,16 @@ The honest cost is residual judder for unknown or varying non-divisor content ra
 
 ---
 
+## Wayland security-context protocol: declined
+
+The staging [security-context protocol](https://raw.githubusercontent.com/wayland-mirror/wayland-protocols/main/staging/security-context/security-context-v1.xml) attaches sandbox-engine, application and instance metadata to connections accepted from a client-supplied listening socket. A second file descriptor signals hangup to stop accepting new connections; disconnecting the creating client does not stop the listener. The metadata lets a compositor apply its own accept-list policy to the globals it exposes. The protocol defines no universal list of privileged globals or restrictions: authority remains obtained through registry discovery subject to compositor policy.
+
+The platform's display interface instead carries explicit capability delegation through typed IDL (R-12-010). Neither the supplied listening socket nor its hangup file descriptor has an expression in the target's per-session descriptor table, whose entries designate pre-delegated objects rather than ambient references (R-12-006). Per-surface and per-input capabilities separately delimit observation (R-12-075).
+
+**Disposition:** decline the security-context wire protocol with the Wayland wire protocol at the [reference compositor](../implementation/userspace-porting.md#cosmic-desktop-the-shell-and-the-reference-compositor). Composition and capability possession determine authority; sandbox metadata does not grant it. The honest cost is losing direct compatibility with existing Wayland sandbox launchers and clients, whose source-level re-targets must express their sessions and delegation through the platform IDL.
+
+---
+
 ## Dedicated firmware-driven NPUs: declined
 
 A dedicated NPU uses one or more control cores and mutable firmware to master a separate matrix engine.
