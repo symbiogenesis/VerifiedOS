@@ -103,7 +103,8 @@ PARENT_RE = re.compile(r"[a-z]?\u2032?$")
 # after the software gate without being deferred past anything
 AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "M0.8c", "M1.3", "M1.3a", "M1.4", "M1.8b",
-             "M3.4b", "M3.6b", "M5.4", "M6.1b", "M6.2b-i", "M6.2b-ii",
+             "M3.4b", "M3.6b", "M5.4", "M5.5", "M6.1b", "M6.2b-i", "M6.2b-ii",
+             "M6.2c", "M6.9a", "M6.9b", "M6.9c",
              "M6.3b", "M6.5b",
              "M6.6", "M6.7", "M6.8", "S5", "S6",
              # the assessment's decision items, each a decision over measurements Q4 and Q5

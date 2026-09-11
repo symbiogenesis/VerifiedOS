@@ -869,6 +869,119 @@ Landed: Tier A. The read accepts this commissioning rejection and reopening
 contract. It establishes no performance comparison, route infeasibility, licence
 grant or production theorem.
 
+### Q22a · Qualify revocation completion and reuse
+
+The [qualification](../assurance/revocation-qualification.md) connects a bounded
+host model to the actual Sail load, dereference, restore and reclamation paths.
+It separates bitmap publication, semantic completion and physical reuse. Its
+premises are an exhaustive TAL-admitted holder/base map and loan footprint, one
+core per island, a rooted proxy star and admitted symbolic service costs. Missing
+service jobs or a missing acknowledgement refuse the bound or completion; timeout
+retains quarantine and makes no physical-containment claim. M4.4 and R2 retain the
+single-hart and distributed implementation, admission and proof connections.
+
+Authoring revision `e384832bb3e94b7c087aa9341f43b7506e9b9848` passes 11 focused
+behavioral cases. The integrated `python tools/run.py revocation --json` checks
+360 generated cleanup orders and 41 refusal cases, covering resident and saved
+authority, narrowed bases, loans, remote delegation, device completion and reuse
+resurrection. The schedule's job inventory and the loading-island restriction
+also have deciding negative cases. Independent review accepts this bounded scope.
+
+* **Finding: an exact context restore is not a revocation barrier.** `PartitionContext.v`
+  restores saved values and tags and supplies no revocation sanitation. M4.4 must
+  connect a sanitized saved image or the defined filtered-load result to that
+  relation; R2 must establish the actual proxy and device completion boundary.
+
+The batch starts from `73cc27dd5674f8fd0853ee96438214011e6e48a0` and merges the
+three assessment lanes. Each JSON receipt under `out/fanout-20260911/` identifies
+its tested source bytes. The final integration gate is
+`python tools/run.py --check --tests`, recorded in that directory with the authored
+diff and index tree identity. It checks the whole corpus, every checker mutant,
+both Python checkers and the behavioral suite, including repeated read-only CLI
+invocation. No model, RTL or Gallina source changes; no guest evidence is claimed
+or substituted by these host experiments. The co-read ledger is unchanged.
+
+The authoring interval is 14:29:12–14:57:50 UTC on 2026-09-11; independent review
+starts at 14:58:02 and finishes before 15:00:36. The actual is a conservative
+rounded allowance for those measured lane intervals and the integrator's setup,
+source review, shared document work and final gate. Shared integration is charged
+once here, with no duplicate charge at Q22b or Q22c.
+
+Landed: Tier A. The attended read covers the source/model relation, the admission
+and scheduling premises and the bounded result's limits; behavioral tests do not
+become a universal temporal-safety theorem.
+
+### Q22b · Qualify the witness policy and its transitions
+
+The [qualification](../assurance/witness-policy-qualification.md) fixes the
+Byzantine, authentication, persistent-history and recovery assumptions of a flat
+witness policy. A shared prefix alone fails the disjoint-policy counterexample.
+Continuous replacement requires an old terminal quorum binding the destination
+and exact anchor, plus new-policy acceptance of that anchor. Authenticated
+rebootstrap starts a fresh trust scope and records loss of prior continuity.
+Availability and selective delivery of separately valid variants remain distinct.
+M5.5 owns the formal model/theorem, M6.2c the local validator and refinement, and
+M5.4 its update-transactor consumer; the new estimates buy no external service.
+
+Authoring revision `720ab3dcbaca85c795b3e2b2abe774c377b9d7ff` passes 13 focused
+behavioral cases, including every length-seven sequence over the signing/crash
+test's five actions, 78,125 schedules. The integrated
+`python tools/run.py witness qualify --json` compares 91 policies and 199,753
+quorum/fault assignments with the policy's actual acceptance predicate, rather
+than a second copy of its formula. Independent review accepts the scope and
+supplies that last strengthening. Ideal authentication and protected antirollback
+state remain explicit premises, not verified primitives.
+
+* **Finding: individually safe witness populations do not establish continuity between
+  them.** Ordinary certificates at a shared prefix leave both epochs able to grow
+  conflicting histories. Terminal closure, or explicit authenticated rebootstrap
+  with a replaced trust scope, is required by the qualified interface.
+
+The authoring interval is 14:29:15–14:53:07 UTC on 2026-09-11; independent review
+starts at 14:53:52 and finishes before 15:00:36. The actual rounds these recorded
+intervals upward. Q22a records and charges the shared integration gate once.
+
+Landed: Tier A. The read accepts the bounded model, counterexamples and downstream
+assignments. CJ-WITNESS's machine-checked model and theorem remain open at M5.5.
+
+### Q22c · Bind attestation to the application session
+
+The [qualification](../assurance/session-binding-qualification.md) selects the
+existing TLS protocol and an application binding over its completed-handshake
+exporter. Evidence issuance derives the exporter from the protected local context
+owning the keys. Appraisal binds the fresh challenge, origin, role, measured state
+and chosen software-only or relying-party-specific unit policy. A protected
+connection-owned lifecycle refuses a reconstructed appraiser after the first
+authentication attempt. Ideal cryptography, valid typed handles and the defined
+endpoint/compromise boundary remain premises. M6.9a, M6.9b and M6.9c own protocol
+realization, implementation connection and theorem respectively; M6.3b retains the
+credential-handle interface and the session-refusal residual remains explicit.
+
+Authoring revision `4cda1c21f32c3e02cdc8114bc9bd5dfaeb493f20` passes seven focused
+behavioral cases. The integrated `python tools/run.py session-binding --json`
+classifies 2,304 deliveries: 24 accepted and 2,280 refused, with every repeated
+decision and reconstructed-appraiser attempt refused. Its independent issuance
+observer finds no relation failure. The population includes another correctly
+measured endpoint, accepted under software policy with its own quote, refused
+under the other unit's policy and unable to accept a substituted quote. Explicit
+compromise cases retain their accepted attacks; a transparent relay to the intended
+key holder is not misreported as endpoint substitution. Independent review accepts
+this scope and no protocol or implementation proof is claimed.
+
+* **Finding: a public exporter value is not evidence of local key custody.** A quote issuer
+  that accepts a caller-provided exporter can attest a different endpoint's
+  connection. Protected local context lookup and its authentication lifetime are
+  therefore part of M6.9a/M6.9b's required connection to the model.
+
+The provision-to-commit interval is 14:29:19–14:57:08 UTC on 2026-09-11 and includes
+the source/RFC reading outside the implementation timer. Independent review starts
+at 14:57:24 and finishes before 15:00:36. The actual rounds those intervals upward;
+Q22a records and charges shared integration. The JSON receipt binds the model,
+CLI, tests and assessment bytes; normative source and co-read records are unchanged.
+
+Landed: Tier A. This accepts a bounded qualification and its remaining owners;
+CJ-ATTEST's formal model, theorem and implementation connection remain open.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models

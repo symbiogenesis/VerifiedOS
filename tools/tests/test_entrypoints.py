@@ -15,6 +15,7 @@ The doubled runs read the live documents, so nothing here asserts on their
 content, only on agreement between the two runs and on the exit code's meaning.
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -181,6 +182,15 @@ def _typecheck_twice() -> None:
     ensure(code == 0, f"the tools hold to their own discipline, got {code}: {out!r}")
 
 
+def _assessment_commands_twice() -> None:
+    for command, arguments in (("revocation", ()), ("witness", ("qualify",)),
+                               ("session-binding", ())):
+        code, out, err = _twice_identical(command, *arguments, "--json")
+        ensure(code == 0, f"{command} qualification failed: {out!r} {err!r}")
+        ensure(isinstance(json.loads(out), dict),
+               f"{command} must return a structured qualification report")
+
+
 def _check_twice() -> None:
     code, out, _ = _twice_identical("check")
     ensure(code == 0, f"the live tree checks clean, got {code}: {out!r}")
@@ -227,6 +237,7 @@ def cases() -> list[Case]:
         Case("unicode-pipe-twice", _unicode_pipe_twice, lane="host"),
         Case("blast-radius-twice", _blast_radius_twice, lane="host"),
         Case("typecheck-twice", _typecheck_twice, lane="host"),
+        Case("assessment-commands-twice", _assessment_commands_twice, lane="host"),
         Case("check-twice", _check_twice, slow=True, lane="host"),
            Case("direct-check-unicode-twice", _direct_check_unicode_twice,
                slow=True, lane="host"),

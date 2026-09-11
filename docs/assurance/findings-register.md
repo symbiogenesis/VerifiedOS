@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 648 of them across 104 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 651 of them across 107 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -707,6 +707,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-339** method: the lane's report quoted K-63 as resolving 1,689 requirement citations across 98 model files, and three readings taken since give 1,661 across 97 in the completion log, 1,665 across 97 on main without this suite and 1,690 across 98 at the merge, so the pair matches no tree this repository has had while the file count it was quoted beside did match, and it survived a figure sweep because it sat inside a sentence of evidence rather than in a table, where a number reads as rhetoric rather than as a claim
 · Raised: Q3a
 · Disposition: closed at landing, the note citing the rule as green rather than carrying a count `check.py` recomputes, on the ground that such a figure moves with work the item never touched and a note is frozen where the rule is not
+
+**F-345** owed-act: exact restoration of a saved merged-register image does not establish revocation sanitation
+· Raised: Q22a
+· Disposition: open; M4.4 connects the sanitized image or filtered load result to PartitionContext's restore relation, and R2 establishes the actual distributed acknowledgement and device boundary. The bounded host qualification supplies no runtime or universal theorem.
+
+**F-346** measurement: independently safe witness policies can grow conflicting histories after signing a shared prefix
+· Raised: Q22b
+· Disposition: closed at qualification by requiring bound terminal-quorum continuity or explicitly authenticated rebootstrap under a fresh trust scope. M5.5's formal theorem and M6.2c's production validator remain separate open work.
+
+**F-347** owed-act: a caller-provided public TLS exporter can bind a valid measurement quote to another endpoint's connection
+· Raised: Q22c
+· Disposition: open at implementation; the qualified model obtains the exporter through the protected local key-owning context and retains one authentication lifetime per connection. M6.9a/M6.9b must realize that boundary, with the theorem at M6.9c.
 
 ## M0 · Hardware reference
 
