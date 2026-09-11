@@ -1200,7 +1200,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-COMPCERT
 
 **R-06-014** IS: The one irreducible residual is the bootstrap: the checkers are the admitters no admission certificate can cover, and they co-bootstrap with the CompCert that compiles them, so their binaries' trust rests on reproducible build plus DDC plus RoT measurement into the boot chain: the De Bruijn root, named as an axiom rather than hidden.
-· Accept: the axiom is stated in §6 and §17, not implied.
+· Accept: the axiom is stated in §6 and §17. The bootstrap's diversity scope covers every tool that can alter its inputs, intermediate executables or final checker bytes, including assemblers, linkers, archive tools, strippers and image constructors. Release evidence inventories their source and binary identities, dependencies and build ancestry, and supplies an independently established build path for each; rebuilding a shared seed with itself does not establish diversity. It also names the trusted execution environments, input acquisition and comparer, with the grounds for trusting them and any shared ancestry. DDC compares the final checker bytes after all transformations, binding the result to the bytes measured by the RoT. Matching outputs with an unevidenced shared binary-touching utility do not satisfy this criterion. DDC supplies conditional source correspondence, not proof of benign source or elimination of the named bootstrap assumptions.
 · Trace: CJ-T
 
 **R-06-015** IS: The toolchain is untrusted evidence-producing machinery: a compromised compiler cannot mint a valid proof of a property its output lacks, so at worst it emits a binary genuinely satisfying the spec, confining trojans to spec slack.
@@ -2097,8 +2097,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: it is per-generation and ML-DSA-signed, rides the A/B signed-generation machinery, and is served beside the quote by the sealing and attestation service; TCG RIM or IETF CoRIM encodings may be emitted for interop.
 · Trace: CJ-DEVTREE
 
-**R-09-027** IS: What differs from a vendor RIM is the source of trust: because the base image is bit-for-bit reproducible from source, the reference values are *reproduced, not asserted*, and DDC bounds trusting-trust.
-· Accept: any party regenerates the golden set from source; the manifest is trusted by reconstruction rather than by a manufacturer's signature over opaque blobs.
+**R-09-027** IS: What differs from a vendor RIM is the source of trust: because the base image is bit-for-bit reproducible from source, the reference values are *reproduced, not asserted*, and DDC bounds trusting-trust under R-06-014's whole-build scope and stated assumptions.
+· Accept: any party regenerates the golden set from source; the manifest is trusted by reconstruction rather than by a manufacturer's signature over opaque blobs, and its DDC claim cites the bootstrap evidence R-06-014 requires.
 · Trace: CJ-T
 
 **R-09-028** MUST: The platform carries A/B images, RoT boot counting with automatic revert, and a monotonic anti-rollback floor for security updates.
@@ -3278,7 +3278,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-13-026** MUST: Bit-for-bit reproducibility is mandatory only for the base image, whose exact regeneration underwrites the reference integrity manifest, and with DDC for the two checker binaries no admission certificate can cover; every other binary is admitted on source correspondence rather than reproducibility.
-· Accept: a nondeterministic producer may be admitted when its final image carries a valid correspondence theorem; the base image and checker bootstrap remain reproducible and DDC-checked.
+· Accept: a nondeterministic producer may be admitted when its final image carries a valid correspondence theorem; the base image and checker bootstrap remain reproducible and DDC-checked under R-06-014's scope, with the comparison covering the final transformed checker bytes.
 · Trace: CJ-T
 
 **R-13-027** MUST: Compilation and proving both stay off-device: on-device admission type-checks the CHERI-TAL derivation, CIC-checks the artifact-local source-correspondence theorem, then performs capability wiring; the certifying toolchain is a build path, not an on-device service.
