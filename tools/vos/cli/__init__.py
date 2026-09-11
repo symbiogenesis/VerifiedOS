@@ -124,6 +124,8 @@ COMMANDS: tuple[Command, ...] = (
             "bounded index cost, visibility and shared redo-recovery comparison"),
     Command("assembly-compare", "vos.cli.assembly_compare",
             "stock assembly bytes under the compartment-annotation-only contract"),
+    Command("matrix-margin", "vos.cli.matrix_margin",
+            "sustained GEMM ratios and strongest-RVV campaign bindings"),
     Command("provision", "vos.cli.provision",
             "the lane this repository builds in, as an executable fact list",
             lane="guest"),

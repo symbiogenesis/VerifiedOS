@@ -42,7 +42,9 @@ Do not charge different work to the two GEMM arms or hide it in warm-up.
 
 ## Review representation
 
-The planned host checker consumes two strict JSON files. Unknown or duplicate
+Run `python tools/run.py matrix-margin PLAN REPORT --json` to check the pair;
+`python tools/run.py test --only matrix_margin` exercises the instrument.
+The [host checker](../../tools/vos/matrix_margin.py) consumes two strict JSON files. Unknown or duplicate
 keys, floats, booleans in integer fields, empty sets and duplicate members are
 refused. Digests are full lowercase SHA-256 identities of retained artifacts.
 They bind supplied bytes by identity; the checker does not authenticate receipts,
