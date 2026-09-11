@@ -105,3 +105,9 @@ A quoted `# Compartment` string must remain data and differ when its digits
 change. File/CLI controls cover unreadable inputs, error exit status and byte
 hashes. These tests qualify the comparison mechanism; they do not substitute
 synthetic programs for the compiler campaign.
+
+Run `python tools/run.py assembly-compare baseline.s candidate.s --json` for one
+pair and `python tools/run.py test --only assembly_compare` for the qualification
+controls. The command returns 0 for `equal`, 1 for `different`, and 2 for
+`unsupported` or unreadable input. Its `milestone_acceptance` field remains
+`open`: the command does not run compilers or verify campaign receipts.
