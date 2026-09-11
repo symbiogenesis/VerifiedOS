@@ -122,6 +122,8 @@ COMMANDS: tuple[Command, ...] = (
             "bounded attestation freshness, session substitution and relay cases"),
     Command("storage-index", "vos.cli.storage_index",
             "bounded index cost, visibility and shared redo-recovery comparison"),
+    Command("assembly-compare", "vos.cli.assembly_compare",
+            "stock assembly bytes under the compartment-annotation-only contract"),
     Command("provision", "vos.cli.provision",
             "the lane this repository builds in, as an executable fact list",
             lane="guest"),

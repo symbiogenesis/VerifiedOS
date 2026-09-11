@@ -1597,7 +1597,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-146** owed-act: a seeded generator evades the deterministic-replay obligation rather than discharging it, a seed in a configuration file replacing nondeterminism with determinism
 · Raised: M3.1
-· Disposition: open, no item owning the replay nondeterminism record R-15-241 and R-16-015 onward specify; S6 is the act
+· Disposition: open; S6 owns the [record contract](../implementation/replay-record-contract.md), its structural host reader, and the remaining producer/adapters and replay qualification. A seeded configuration still supplies no original draw record; real capture, sealing/authentication and CT-scoped Sail replay remain unimplemented.
 
 **F-147** method: one validator arm was dead the moment it was written, the ceiling being the type's and refused at schema conformance before the validator runs
 · Raised: M3.1

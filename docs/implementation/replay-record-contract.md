@@ -6,6 +6,12 @@ register wins wherever this view disagrees. The contract specifies the logical
 record and its acceptance cases before a producer or replay adapter implements
 them. It does not claim an operational recorder, authenticated export, or replay.
 
+The [host reader](../../tools/vos/replay_record.py) implements structural decoding
+and a fixture demand cursor. Run `python tools/run.py test --only replay_record`
+for its [positive and refusal controls](../../tools/tests/test_replay_record.py).
+The supplied identities, counts and endpoint profiles are independent fixture
+inputs; these checks supply no authentication or production replay evidence.
+
 ## Sources and existing interfaces
 
 The source tags below implement R-16-015's closed set. Adding a source requires
