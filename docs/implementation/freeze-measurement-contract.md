@@ -180,7 +180,7 @@ Each decision states its question, its corpus, its unit, its procedure, its thre
 
 **The bar is met or missed on `FM-1`, and `FM-1` is never a deployed image** (§3, R-18-003c). The density figure the report carries is therefore a property of the corpus and not of what ships: a shipped image is encoded at the second act under the same realized dictionary but over its own histogram, and its bits per instruction are a fact about that image that this report does not state and no threshold here reads.
 
-The register's break-even in *p*, 0.804 against the optimistic figure and 0.728 against the pessimistic one, is the same bar expressed through R-15-036h's slot model and R-15-036j's packing term. It is a **diagnostic here and not the acceptance test**, because the bytes are observed and the model is not: the report carries measured bits per instruction against the bar, and carries modelled bits per instruction beside it as the residual check of §8.
+R-15-036k fixes the optimistic break-even in *p*; the [packing-corrected model](../spec.md#r-15-036j) is the sole source for the pessimistic break-even value. Both express their respective counterfactuals through R-15-036h's slot model and R-15-036j's packing term. They are **diagnostics here and not the acceptance test**, because the bytes are observed and the model is not: the report carries measured bits per instruction against the bar, and carries modelled bits per instruction beside it as the residual check of §8.
 
 **Selection policy.** Whichever policy is realized, it is recorded with the freeze (R-15-036k). The report carries both policies' curves, because the difference between them is exactly the site-varying class's fate and that class is the density model's dominant risk factor.
 
