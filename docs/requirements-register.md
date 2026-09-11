@@ -2841,8 +2841,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the zero-click baseband class lands in a verified parser inside a compartment instead of a proprietary RTOS with DMA.
 · Trace: CJ-FORMAT
 
-**R-12-041** MUST: The cellular stack implements only NR RRC and 5G-core NAS and their 6G successors: no 2G/3G/4G protocol state machine exists in it, so legacy attach, fallback, and silent downgrade are unexpressible rather than merely refused.
-· Accept: the software floor matches the hardware generation floor (R-15-129).
+**R-12-041** MUST: The cellular radio-access and mobility control planes implement only NR RRC and 5G-core NAS and their 6G successors: no 2G/3G/4G protocol state machine exists in the cellular stack, so legacy attach, fallback, and silent downgrade are unexpressible rather than merely refused.
+· Accept: the software floor matches the hardware generation floor (R-15-129). The IMS session client, its verified wire grammars and its session/control-plane obligations remain owed by R-18-004a(i)'s ordinary and emergency voice calls; R-12-040's L2/L3 servers alone do not meet that member, and R-17-051a's messaging refusal removes none of it.
 · Trace: CJ-FORMAT
 
 **R-12-042** MUST: Within 5G/6G a null or broken cipher is rejected and mutual authentication (5G-AKA) is required, so *no downgrade, no null cipher, mutual authentication* is a verified property of the L2/L3 servers for all non-emergency service, not a user toggle.
@@ -5792,6 +5792,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the trade is stated in §15, §12, and here.
 · Trace: CJ-SAIL · [§17](spec.md#r-17-051), [§17](spec.md#r-17-051-2)
 
+**R-17-051a** MUST NOT: The first-release composed system admits no SMS, MMS, RCS or bundled Internet messaging service. This release-scope refusal forfeits ordinary texting, text-delivered verification codes, messaging conversations and their group or attachment exchange, and text-to-emergency service. It makes no claim that general networking or ordinary files cannot carry a user's message.
+· Accept: the composed manifests, signed handler graph and wire-format inventory carry no compartment, service endpoint, handler, durable queue or credential/trust-anchor role serving a declined messaging service; any such member fails the first-release composition review. Generic data transport, ordinary document storage, kernel IPC and the control signaling required for voice do not fail this criterion merely by carrying bytes or protocol messages. R-18-004a(i)'s IMS session client and its proofs remain owed under R-12-041. Adding messaging requires an explicit release-scope amendment with its capability, measurable floor, admission obligations and gate entered together under R-18-004a, R-18-004c and R-18-004d before implementation; a data-rate or secure-session result alone cannot satisfy that amendment.
+· Trace: CJ-FORMAT, CJ-NI
+
 **R-17-052** IS: The emergency-calling seam admits an unauthenticated, possibly null-ciphered session (the one place the radio's verified crypto posture is deliberately not in force), contained by non-interference and zero standing authority rather than excepted.
 · Accept: it is also the one place a sensitive peripheral is granted at Before First Unlock, and the residual runs the *other* way: the sealed cutoffs are not overridden, because a software override for the emergency case is a software override.
 · Trace: CJ-NI
@@ -5961,7 +5965,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the resulting order is acyclic, the provisional freeze and its Sail curation preceding the backend, the backend and the stripping levers preceding the corpus, and the corpus preceding the final freeze and the proof taken with it. Images built under the provisional baseline are measurement artifacts, neither deployed nor stored, so no item in R-15-014a's delta invalidates a shipped object; and no proof is taken with the provisional profile (R-15-014), so Coq and Sail work authored between the acts is re-checked against a closed delta rather than re-authored. A gating artifact absent from this list is a finding against this requirement, exactly as an unbuilt prerequisite is one against R-18-003b.
 · Trace: CJ-SAIL, CJ-COMPCERT
 
-**R-18-004** IS: First release carries the radio roster whole (cellular, the eUICC, carrier certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy arrive with the first parts alongside 802.11 and Bluetooth), and the single roster deferral is the browser, the largest porting program.
+**R-18-004** IS: First release carries the radio roster whole (cellular, the eUICC, carrier certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy arrive with the first parts alongside 802.11 and Bluetooth). The browser is the roster's deferred port, the largest porting program; messaging is a release-scope refusal under R-17-051a.
 · Accept: the radio program is staged inside the release, so FEC-unit bring-up (R-18-005) and carrier certification are on the critical path to first parts rather than behind them; the browser's deferral is not a design cut, its no-JIT per-origin design remaining in the specification.
 · Trace: CJ-T
 
@@ -6187,7 +6191,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1412 requirements. §19 is non-normative and yields none. Counts include the 459 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1413 requirements. §19 is non-normative and yields none. Counts include the 460 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6207,7 +6211,7 @@ All eighteen normative sections are extracted, at 1412 requirements. §19 is non
 | **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **415** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **135** |
+| **§17 Residual Risks** | **extracted** | **136** |
 | **§18 Realization** | **extracted** | **58** |
 
 §19 is non-normative and yields no requirements.

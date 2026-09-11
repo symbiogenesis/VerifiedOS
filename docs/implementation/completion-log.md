@@ -723,6 +723,16 @@ Authoring commit `1bc51b5` passes the focused checker. The lane interval is boun
 
 Landed: Tier A. The integration read accepts the bounded comparison and citation correction; no matrix surface or pin is admitted.
 
+### Q16 · Decide whether the first release carries messaging
+
+R-17-051a takes the refusal arm: the first-release composition includes no SMS, MMS, RCS or bundled Internet messaging service. Its criterion audits manifests, the signed handler graph and the wire-format inventory for dedicated compartments, endpoints, handlers, queues and credential roles. Ordinary texting, text-delivered verification codes, conversation/group attachments and emergency text are explicit usability losses. Generic networking and ordinary files retain their ability to carry user bytes; this is a service-roster decision.
+
+The [alternatives record](../background/architectural-alternatives.md#first-release-messaging-refused) prices bounded text-only SMS over IMS as the smaller admission candidate, separately from the versioned RCS comparison. Its incremental parser, sequencing, persistence, notification and composition work is refused on release scope, without charging messaging for the IMS substrate already owed by the voice floor. R-12-041 now scopes its generation restriction to radio-access and mobility control planes and preserves the existing IMS session client and proof obligations. R-18-004 distinguishes messaging's refusal from the browser's deferred port. A provider certificate anchor requires an authority and custody decision; its presence alone is not a second foreign computer under R-04-011.
+
+Authoring commit `2ca232c` supplies the decision at base `add2ba9459b9de3b38e3e26b3e76ce813257c52a`. The source readings bind SMS to TS 24.341 v19.0.0 and RCS to UP 3.0/RCC.16 v1.0; later revisions receive no compatibility verdict. The authoring interval is bounded by provisioning at 16:15:20 UTC and commit at 16:24:29 UTC on 2026-09-11. The actual adds root review and shared integration, rounded to the checklist's tenths; the open compiler/replay work receives no completion credit. Integrated validation uses `python tools/run.py --fix --tests`; the input diff and host verdict remain under `out/fanout-contracts-20260911/`. No model, proof or device execution is claimed.
+
+Landed: Tier A. The register/prose read covers R-12-041, R-12-042, R-17-051a and R-18-004, including a messaging-service counterexample, generic-byte exceptions and the preserved voice obligation. Future messaging requires the register amendment and composed acceptance the new entry states.
+
 ### Q17 · Name the display-protocol decline at its target and rule the clipboard's grantable class
 
 Commit `cf6f751` states the display target's typed-IDL control plane and explicit delegation grounds, the source-retargeting consequence and the security-context protocol's declined compatibility. Presentation feedback revealing another surface's completion remains excluded by R-15-236c; the scanout reservation owns the line-period deadline.

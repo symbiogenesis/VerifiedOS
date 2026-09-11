@@ -129,8 +129,10 @@ AGENDAS: list[Agenda] = [
             "R-17-013e": "a consent residual: the refusing party is the user on reflection, and the refused mechanisms are declined at specification time; no failure action, nothing stops",
             "R-17-034": "the sharpest instance of the admission refusal composed at R-17-030e",
             "R-17-047": "a tooling choice refused at specification time, with no runtime failure action",
+            "R-17-051a": "a first-release service exclusion fixed at specification time; no runtime messaging service stops",
             "R-17-053a": "the residual booking the R-15-238c ceiling and the R-15-238e exclusion; specifies no refusal of its own",
             "R-17-058b": "the residual beyond the R-16-008f fault model behind R-17-030n detectors, not a refusal of its own",
+            "R-18-004": "the release roster points at R-17-051a's specification-time messaging exclusion and adds no runtime failure action",
         },
     ),
     Agenda(
