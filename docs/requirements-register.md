@@ -1862,6 +1862,18 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no grant is minted without a witnessed consent act (R-06-017), and R-06-017's two clauses are mint-on-witness and bound-to-the-named-object, neither of which requires the act to be contemporaneous, so the persistent scope is inside this entry rather than in contradiction with it.
 · Trace: CJ-NI, CJ-CERISE
 
+**R-08-036a** MUST: A clipboard item is an ordinary object designated by R-08-036, represented by a bounded immutable snapshot of bytes and a canonical type, with its source compartment identity established by the authenticated submission endpoint. Copying data the caller already holds and reading its own snapshot mint no authority; reading another compartment's snapshot requires the R-08-036 witnessed grant.
+· Accept: the snapshot carries no capabilities, executable action, lazy fetch or authority-bearing reference; a source write after submission cannot change the item a grant names. An ungranted peer observes neither content nor clipboard metadata or change notifications. Snapshot slots and pending transfers obey R-08-046 and R-08-047, including composition-fixed per-source quotas and the declared exhausted arm. No privilege class or grantable-type enumeration is added, and R-07-027a's kernel-object enumeration is unchanged.
+· Trace: CJ-NI, CJ-CERISE, CJ-MEMPLAN
+
+**R-08-036b** MUST: A cross-compartment paste uses the existing trusted-path agent to bind one source snapshot and one authenticated destination compartment to a fresh local act of designation under R-08-036; the act authorizes the transfer itself without a separate permission decision.
+· Accept: the agent's fixed-format surface identifies the source and destination from their authenticated endpoint identities, and identifies the frozen snapshot by its immutable identity, canonical type and byte extent, with app-supplied labels never substituting for those identities. Confirmation is a new press and minimum dwell beginning only after the R-12-078 latch owns the front-end and the trusted framebuffer is presented; a press held across entry must be released first. The positive minimum dwell and finite confirmation timeout are composition-time constants in the trusted path's admitted budget. App toolbar, input-method, accessibility, compositor-focus and external USB HID events may request the surface but cannot witness the grant. Changing the snapshot, recipient, lock state or request lifetime cancels confirmation; cancellation, timeout or failure to establish the trusted path mints nothing. The R-12-076 and R-12-080 whole-panel and application-touch takeover remains mandatory for this act; no prompt-free fresh grant or measured interaction latency is claimed.
+· Trace: CJ-NI, CJ-CERISE, CJ-DEVTREE
+
+**R-08-036c** MUST: The clipboard instance of R-08-036 uses R-08-037's one-shot scope: its capability authorizes one bounded delivery of the designated snapshot to the designated destination's receive buffer through the powerbox's existing endpoint, with no standing authority over future clipboard contents.
+· Accept: the verified delivery transition checks the recipient and receive-buffer capability, consumes the grant before publishing bytes, and rejects a repeated or substituted invocation, so one-shot counts mediated deliveries rather than CPU loads through an unrestricted pointer. Completion, cancellation, trusted expiry, lock or either endpoint's teardown retires the transfer through the existing revocation and zeroization protocol before its slots are reused. A delivered copy belongs to the recipient's authority and cannot be made unread by revoking the transfer. No consent record or R-08-037f persistent-store slot is consumed; the snapshot, grant, bounded copy and trusted rendering costs remain in the existing components' R-08-046 storage and §11 execution budgets, and no clipboard server or consent-TCB member is added.
+· Trace: CJ-NI, CJ-CERISE, CJ-MEMPLAN, CJ-WCET
+
 **R-08-037** IS: A grant carries a temporal scope (one-shot, valid for a single use; while-active, bounded by a trusted-expiring lease; or persistent, valid across the app's own sessions and across the power cycle on the R-08-037a consent record) enforced by the same first-class revocation, so *only this time* and *while using the app* are the capability model expressing itself, not a separate permission subsystem.
 · Accept: no permission subsystem exists beside the capability model.
 · Accept: the persistent scope outlives the boot only through a record carrying no authority, so R-10-037's prohibition stands and storage originates a decision at that one enumerated point and authority at none.
@@ -6175,7 +6187,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1409 requirements. §19 is non-normative and yields none. Counts include the 456 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1412 requirements. §19 is non-normative and yields none. Counts include the 459 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6186,7 +6198,7 @@ All eighteen normative sections are extracted, at 1409 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **213** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **65** |
-| **§8 Authority Model** | **extracted** | **87** |
+| **§8 Authority Model** | **extracted** | **90** |
 | **§9 Boot & Root of Trust** | **extracted** | **44** |
 | **§10 Storage & State** | **extracted** | **54** |
 | **§11 Updates** | **extracted** | **38** |

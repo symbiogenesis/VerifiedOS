@@ -711,6 +711,30 @@ and `out/fanout-20260910/host-gate.log` in the integration checkout. Model, RTL 
 Gallina sources are unchanged by this batch; the separate compiler run above its
 M1.2b findings block supplies the affected guest evidence.
 
+### Q14 · Reach the third matrix track, and record what already answers in-memory compute
+
+The [matrix comparison](../background/architectural-alternatives.md#x86-acearm-sme-architectural-state-not-imported) records AME's separate tile state, IME's vector-file reuse and VME's vector operands with separate accumulators. Each reaches the fixed-latency eager-zeroize obligation, with architectural state, independent mastership and scale state attributed to their respective constraints. VME is judged nearest the declared vector-plus-systolic geometry; no track is selected or claimed cheapest. The live M0.8c note now uses the profile's recorded inventories, replacing its obsolete no-CSR/no-tile-memory claim. Matrix oracle coverage remains a conditional re-pin benefit: the strongest-RVV-denominator measurement may delete the unit first, and the conditional RVY amendment stays with its existing owner.
+
+The compute-in-memory determination follows live entries. R-15-185 admits deterministic digital compute-in-SRAM and refuses autonomous or analog compute; R-15-244 carries the analog semantics and power/calibration grounds, and R-12-004 supplies the sorting rule. Non-execution in the second-class decks is a derived consequence of R-17-022 and R-17-063b, preserving R-17-028's logic-die inspection scope. A digital unit beside the banks on that tier still answers all R-04-010a conditions, R-15-010 and R-15-118; a numbered-test refusal derives from the commitment R-15-010a maps to it. The nonvolatile-plaintext ground is not attributed to charge-based IGZO. No new register entry, alternatives entry or absence row is needed for this determination.
+
+The gain-cell citation now gives Li et al.'s complete paper title and describes its 64 cells, each spanning read and write transistor layers, rather than complete memory decks. It distinguishes measured column-current summation from the simulated network result and keeps the lab-scale array size visible. The lane's primary-article XML reading and checker evidence are retained with the integration record.
+
+Authoring commit `1bc51b5` passes the focused checker. The lane interval is bounded by its Git provisioning record at 15:35:54 UTC and handoff at 15:44:11 UTC on 2026-09-11. This item's actual also charges the shared integrator session from its first recorded clock at 15:36:15 UTC through final validation; Q17 and Q22f do not charge it again. Integration uses `python tools/run.py --check --tests` after the shared repairs and co-reads. The input patch, gate transcript and interval record are retained under `out/fanout-q14-q17-q22f-20260911/` against base `8cfee9f7f4493471f714e5890ed6670eab8b1572` and the three lane heads. No model, RTL or proof execution claim changes.
+
+Landed: Tier A. The integration read accepts the bounded comparison and citation correction; no matrix surface or pin is admitted.
+
+### Q17 · Name the display-protocol decline at its target and rule the clipboard's grantable class
+
+Commit `cf6f751` states the display target's typed-IDL control plane and explicit delegation grounds, the source-retargeting consequence and the security-context protocol's declined compatibility. Presentation feedback revealing another surface's completion remains excluded by R-15-236c; the scanout reservation owns the line-period deadline.
+
+The separate clipboard commit `4353af4` takes the ordinary-object arm in R-08-036a/b/c. Copy and same-source read mint nothing. A cross-compartment paste designates an immutable snapshot and authenticated recipient, with fresh local input only after trusted scanout and RoT-latched input ownership. The one-shot transition consumes authority before publishing the bounded delivery and rejects replay or substitution. Revocation retires the transfer, not bytes already delivered. The existing components carry the snapshot, grant, copying and rendering budgets; no clipboard server, grantable-class enumeration or persistent consent record is added.
+
+The prompt-free aspiration is declined because the existing consent contract takes the panel and input together. One trusted designation removes a separate permission decision while preserving that takeover, with composition-fixed dwell and timeout. Latency and usability remain unmeasured. GrapheneOS is credited for item-and-recipient designation in its proposed Paste-only mode, with its compatibility controls and unshipped status stated accurately. The editor's inconsistent authority descriptions and the powerbox lineage's unowned type enumeration are repaired.
+
+The focused checker reports only the new pairs and derived arithmetic at the authoring head. The integration read checks source mutation, recipient substitution, carried-over input, untrusted input witnesses, repeated delivery and post-delivery revocation against the paired criteria. Its final host wave is recorded with Q14. The actual bounds provisioning at 15:36:00 UTC through the completed handoff by 15:48:00 UTC on 2026-09-11; shared integration is charged once at Q14.
+
+Landed: Tier A. This closes the document decision, with implementation and usability evidence still owed by the existing component owners.
+
 ### Q18 · Bind proof headers to requirement references without copying normative text
 
 The existing writer and **K-108**/**K-109** meet the acceptance predicates without
@@ -981,6 +1005,18 @@ CLI, tests and assessment bytes; normative source and co-read records are unchan
 
 Landed: Tier A. This accepts a bounded qualification and its remaining owners;
 CJ-ATTEST's formal model, theorem and implementation connection remain open.
+
+### Q22f · Compare the storage index under one contract
+
+The [comparison predicate](storage-index-comparison.md) is committed at `38cebaa` before either executable arm. A height-two buffered index and plain CoW B+ candidate share useful capacity, block size, authenticated-prefix redo policy, retained snapshot and conservative device/RAM reservations. Both pay journal, commit, home and checkpoint writes, persistence barriers and final drain. This conditional policy neither chooses production recovery nor executes `JournalIndex.v`.
+
+At authoring head `130b58c`, `python tools/run.py storage-index --json` emits 66 measurement rows, 1,092 exhaustive small-key streams and 3,119 crash/recovery checks. Direct ordered-map replay checks lookups and drains independently. Crash cases include every redo length through seventeen changed nodes, interrupted full drains and replay, and corrupted, truncated or misdirected committed payloads. Five focused behavioral cases and both type checkers pass. Independent read-only review at that exact head accepts the map oracle, shared accounting and refusal boundaries without rerunning gates; final integration validation is recorded with Q14.
+
+At the four-program endurance budget, singleton-update cases reject both arms; at five they admit only the buffered arm; at six both pass. Larger transaction widths admit both throughout the sweep. Retain Bε provisionally: B+ removes message-refinement obligations in this fixture but does not meet the central singleton envelope. No target composition is admitted. Integrity equality, fresh-block ownership and fixed reservations are assumptions; NAND amplification, target service/crypto costs, final geometry and batching, multilevel operations and implementation/refinement remain M5.3's inputs. Its production recovery decision remains open. The source-bound JSON receipt owns the measurements; no end-to-end proof or target WCET is claimed.
+
+The authoring interval is bounded by provisioning at 15:36:12 UTC and handoff by 15:52:00 UTC on 2026-09-11. Independent review adds 15:50:25–15:51:49 UTC, measured separately because the agent sessions overlap. The actual rounds their sum upward; shared integration is charged once at Q14. The integrated receipt is retained under `out/fanout-q14-q17-q22f-20260911/storage-index.json`.
+
+Landed: Tier A. Behavioral checks hold the executable comparison; the finite experiment supplies no target proof or general index selection.
 
 ## M0 · Hardware reference
 

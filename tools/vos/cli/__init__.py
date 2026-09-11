@@ -120,6 +120,8 @@ COMMANDS: tuple[Command, ...] = (
             "bounded witness quorum, recovery and policy-transition cases"),
     Command("session-binding", "vos.cli.session_binding",
             "bounded attestation freshness, session substitution and relay cases"),
+    Command("storage-index", "vos.cli.storage_index",
+            "bounded index cost, visibility and shared redo-recovery comparison"),
     Command("provision", "vos.cli.provision",
             "the lane this repository builds in, as an executable fact list",
             lane="guest"),
