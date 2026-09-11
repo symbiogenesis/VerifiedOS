@@ -1,6 +1,6 @@
 # Storage index comparison
 
-Q22f qualifies a bounded comparison for [R-10-004](../requirements-register.md#r-10-004). The result is a design experiment; [M5.3](implementation-checklist.md) owns the executable storage path and its target measurements. The current Bε design remains the incumbent until the actual composition satisfies the selection predicate. A successful synthetic case admits no product configuration.
+Q22f qualifies a bounded comparison for R-10-004 in the [requirements register](../requirements-register.md). The result is a design experiment; [M5.3](implementation-checklist.md) owns the executable storage path and its target measurements. The current Bε design remains the incumbent until the actual composition satisfies the selection predicate. A successful synthetic case admits no product configuration.
 
 ## Predicate fixed before measurement
 
