@@ -120,6 +120,8 @@ COMMANDS: tuple[Command, ...] = (
             "bounded witness quorum, recovery and policy-transition cases"),
     Command("session-binding", "vos.cli.session_binding",
             "bounded attestation freshness, session substitution and relay cases"),
+    Command("phase-service", "vos.cli.phase_service",
+            "synthetic joint issue acceptance and frame-state closure for Q22e"),
     Command("storage-index", "vos.cli.storage_index",
             "bounded index cost, visibility and shared redo-recovery comparison"),
     Command("assembly-compare", "vos.cli.assembly_compare",
