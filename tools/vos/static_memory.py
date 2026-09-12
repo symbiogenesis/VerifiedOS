@@ -394,14 +394,22 @@ def compare_heuristics(case: Case, work_budget: int = 100_000) -> list[dict[str,
                 endpoints = {0} | {((base + prev.size + obj.alignment - 1)
                                    // obj.alignment) * obj.alignment
                                   for prev, base in conflicts}
+                # Both scans move forward. The earliest blocker not ending before
+                # this base decides overlap; later blockers cannot start earlier.
+                # This preserves every endpoint, node and tie break while avoiding
+                # rescanning all conflicts at every rejected candidate (cubic in a
+                # dense lifetime family over the whole placement).
+                blockers = sorted((base, base + prev.size) for prev, base in conflicts)
+                cursor = 0
                 found: int | None = None
                 for base in sorted(endpoints):
                     if not budget.step():
                         status = "incomplete"
                         break
-                    if base + obj.size <= arena.capacity and not any(
-                            base < offset + prev.size and offset < base + obj.size
-                            for prev, offset in conflicts):
+                    while cursor < len(blockers) and blockers[cursor][1] <= base:
+                        cursor += 1
+                    overlaps = cursor < len(blockers) and blockers[cursor][0] < base + obj.size
+                    if base + obj.size <= arena.capacity and not overlaps:
                         found = base
                         break
                 if found is None:
