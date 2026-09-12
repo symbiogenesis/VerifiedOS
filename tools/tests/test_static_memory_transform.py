@@ -57,6 +57,26 @@ def counters_and_addresses_do_not_depend_on_frame_values() -> None:
                "entry or retirement erasure is uncharged")
         ensure(first["counts"]["descriptor_writes"] == len(resources) * t.DESCRIPTOR_BYTES,
                "descriptor binding writes omitted")
+        ensure(first["counts"]["control_reads"] == 2 * program.length
+               and first["counts"]["control_writes"] == program.length,
+               "persistent checksum accesses are not charged")
+
+
+def omitted_control_scrub_leaves_observable_modeled_state() -> None:
+    original = t.emit_program("phased-cache", 3)
+    mutant = replace(original, instructions=tuple(ins for ins in original.instructions
+                                                 if ins.op != "control-exit"))
+    frame = bytes([0, 1, 255])  # The mapped values leave checksum 3, not zero.
+    intact, broken = t.execute(original, frame), t.execute(mutant, frame)
+    ensure(intact["all_released_and_zero"] and intact["control_nonzero_bytes"] == 0,
+           "the emitted exit instruction did not erase control backing")
+    ensure(broken["output"] == t.reference(frame), "mutant changes the value contract")
+    ensure(broken["control_nonzero_bytes"] == 1 and not broken["all_released_and_zero"],
+           "un-erased modeled checksum was hidden in an initially zero reserve")
+    ensure(intact["counts"]["zeroization_writes"] - broken["counts"]["zeroization_writes"]
+           == t.WORKSPACE_BYTES, "omitted scrub was still charged")
+    ensure(any("backing survives" in finding for finding in t.equivalence_findings(mutant, [frame])),
+           "erasure oracle accepted a value-correct control-scrub mutant")
 
 
 def independent_reference_detects_a_functional_mutant() -> None:
@@ -131,6 +151,7 @@ def cases() -> list[Case]:
         bounded_equivalence_and_receipt_are_replayable,
         every_byte_has_exactly_one_charge,
         counters_and_addresses_do_not_depend_on_frame_values,
+        omitted_control_scrub_leaves_observable_modeled_state,
         independent_reference_detects_a_functional_mutant,
         inactive_alias_and_narrowing_mutants_are_rejected,
         independent_placement_checker_rejects_early_reuse,

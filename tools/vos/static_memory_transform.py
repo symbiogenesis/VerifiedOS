@@ -70,7 +70,7 @@ def emit_program(variant: str, length: int, tile: int = 8) -> Program:
     _positive(length, "length", MAX_LENGTH)
     _positive(tile, "tile", MAX_LENGTH)
     tile = min(tile, length)
-    code: list[Instruction] = []
+    code: list[Instruction] = [Instruction("control-enter")]
 
     def add(op: str, buffer: str = "", index: int = 0, other: str = "",
             other_index: int = 0, size: int = 0, role: str = "") -> None:
@@ -106,6 +106,7 @@ def emit_program(variant: str, length: int, tile: int = 8) -> Program:
             add("xor", "mapped", index, "result", index)
         add("retire", "mapped")
         emit("result")
+        add("control-exit")
         return Program(variant, length, tile, tuple(code))
 
     reserve("input", length, "input")
@@ -171,6 +172,7 @@ def emit_program(variant: str, length: int, tile: int = 8) -> Program:
         for index in range(length):
             add("xor", "input", index, "input", index)
         emit("input")
+    add("control-exit")
     return Program(variant, length, tile, tuple(code))
 
 
@@ -184,6 +186,8 @@ def layout(program: Program) -> dict[str, Any]:
     resources: list[dict[str, Any]] = []
     opened: dict[str, dict[str, Any]] = {}
     for tick, ins in enumerate(program.instructions):
+        if ins.op in {"control-enter", "control-exit"}:
+            continue
         if ins.op == "reserve":
             if ins.buffer in opened or any(r["id"] == ins.buffer for r in resources):
                 raise ValueError("duplicate resource identity")
@@ -221,14 +225,16 @@ def layout(program: Program) -> dict[str, Any]:
         placed.append(row)
     span = max((r["base"] + r["size"] for r in resources), default=WORKSPACE_BYTES)
     horizon = len(program.instructions)
+    control_exit = next((tick for tick, ins in enumerate(program.instructions)
+                         if ins.op == "control-exit"), horizon)
     objects = [{key: row[key] for key in ("id", "base", "size", "payload", "alignment",
                                          "start", "payload_end", "authority_end",
                                          "sweep_end", "reuse")} | {"arena": "frame"}
                for row in resources]
     objects.append({"id": "control-workspace", "arena": "frame", "base": 0,
                     "size": WORKSPACE_BYTES, "payload": WORKSPACE_BYTES,
-                    "alignment": ALIGNMENT, "start": 0, "payload_end": horizon,
-                    "authority_end": horizon, "sweep_end": horizon, "reuse": horizon})
+                    "alignment": ALIGNMENT, "start": 0, "payload_end": control_exit,
+                    "authority_end": control_exit, "sweep_end": control_exit, "reuse": horizon})
     raw = {"name": program.variant, "mode": f"exact-public-length-{program.length}",
            "provenance": "executable-host-witness",
            "arenas": [{"id": "frame", "owner": "frame-service", "capacity": span}],
@@ -238,12 +244,15 @@ def layout(program: Program) -> dict[str, Any]:
     if findings:
         raise ValueError("invalid static layout: " + "; ".join(findings))
     snapshots: list[dict[str, Any]] = []
-    times = sorted({0} | {row[key] for row in resources
+    times = sorted({0, control_exit, horizon} | {row[key] for row in resources
                          for key in ("start", "payload_end", "authority_end", "reuse")})
     for tick in times:
         charges = dict.fromkeys(("input", "mapped", "output", "staging", "descriptors",
                                 "padding", "retained", "zeroizing", "control", "idle"), 0)
-        charges["control"] = WORKSPACE_BYTES if tick < horizon else 0
+        if tick < control_exit:
+            charges["control"] = WORKSPACE_BYTES
+        elif tick < horizon:
+            charges["zeroizing"] = WORKSPACE_BYTES
         for row in resources:
             if row["start"] <= tick < row["reuse"]:
                 if tick >= row["authority_end"]:
@@ -273,10 +282,19 @@ def execute(program: Program, frame: bytes) -> dict[str, Any]:
     active: set[str] = set()
     counts: Counter[str] = Counter()
     result = bytearray()
-    checksum = 0
-    # Fixed workspace is reserved for scalar state, including the checksum and
-    # instruction temporaries. Its entry/exit erasure is charged explicitly.
-    counts["zeroization_writes"] = 2 * WORKSPACE_BYTES
+    control_live = False
+
+    def control(value: int | None = None) -> int:
+        # Persistent checksum state really occupies the reserved byte. Interpreter
+        # temporaries are Python values, whose erasure this witness does not test.
+        if not control_live:
+            raise ValueError("checksum access outside the control lifetime")
+        if value is None:
+            counts["control_reads"] += 1
+            return memory[0]
+        counts["control_writes"] += 1
+        memory[0] = value
+        return value
 
     def access(name: str, index: int, value: int | None = None) -> int:
         if name not in active:
@@ -303,7 +321,14 @@ def execute(program: Program, frame: bytes) -> dict[str, Any]:
 
     for ins in program.instructions:
         counts["instructions"] += 1
-        if ins.op in {"reserve", "retire"}:
+        if ins.op in {"control-enter", "control-exit"}:
+            entering = ins.op == "control-enter"
+            if entering == control_live:
+                raise ValueError("invalid control lifetime transition")
+            memory[:WORKSPACE_BYTES] = bytes(WORKSPACE_BYTES)
+            counts["zeroization_writes"] += WORKSPACE_BYTES
+            control_live = entering
+        elif ins.op in {"reserve", "retire"}:
             row = by_id[ins.buffer]
             base, end = row["base"], row["base"] + row["size"]
             memory[base:end] = bytes(row["size"])
@@ -327,7 +352,7 @@ def execute(program: Program, frame: bytes) -> dict[str, Any]:
             value = access(ins.buffer, ins.index)
             if ins.op == "map-sum":
                 value = mapped(value)
-            checksum = (checksum + value) & 255
+            control((control() + value) & 255)
             counts["add"] += 1
             counts["mask"] += 1
         elif ins.op in {"map", "map-xor", "xor", "copy"}:
@@ -335,7 +360,7 @@ def execute(program: Program, frame: bytes) -> dict[str, Any]:
             if ins.op in {"map", "map-xor"}:
                 value = mapped(value)
             if ins.op in {"xor", "map-xor"}:
-                value ^= checksum
+                value ^= control()
                 counts["xor"] += 1
             if ins.op == "copy":
                 counts["staging_copies"] += 1
@@ -344,11 +369,12 @@ def execute(program: Program, frame: bytes) -> dict[str, Any]:
             raise ValueError(f"unknown instruction {ins.op}")
     counts["memory_traffic_bytes"] = sum(counts[key] for key in (
         "zeroization_writes", "descriptor_reads", "descriptor_writes", "data_reads",
-        "data_writes", "ingress_reads", "egress_writes"))
+        "data_writes", "control_reads", "control_writes", "ingress_reads", "egress_writes"))
     counts["arithmetic_operations"] = sum(counts[key] for key in (
         "shift_left", "add", "mask", "xor"))
     return {"output": bytes(result), "counts": dict(sorted(counts.items())),
-            "all_released_and_zero": not active and not any(memory)}
+            "control_nonzero_bytes": sum(value != 0 for value in memory[:WORKSPACE_BYTES]),
+            "all_released_and_zero": not active and not control_live and not any(memory)}
 
 
 def equivalence_findings(program: Program, frames: list[bytes]) -> list[str]:
@@ -444,4 +470,5 @@ def transformation_report(source_revision: str = "unspecified") -> dict[str, Any
                       "Erasure before reuse is executable; target revocation is not proved.",
                       "All addresses are fixed before execution; no packing optimum is claimed.",
                       "Ingress source and egress consumer backing are outside this service arena.",
+                      "Erasure checks interpreter backing, not Python locals or host allocations.",
                       "In-place legality depends on this service's disposable-input contract."]}
