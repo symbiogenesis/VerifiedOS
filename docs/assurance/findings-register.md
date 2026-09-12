@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 655 of them across 108 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 659 of them across 109 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1574,7 +1574,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-318** measurement: on nine programs compiled by the pin's `ccomp` and by this one from their own output directories with the preprocessor line relaxed identically, no output is byte-identical, contrary to the acceptance predicate's clause. Every output shifts its `# Compartment n` comment by exactly 6 on all nine, which is the number of builtin declarations `riscV/CBuiltins.ml` no longer makes, so the global identifier table is shorter by that many names; with those comments masked, seven of nine are identical. The other two, `d_ptr.c` over 4 lines and `base.c` over 8, differ further in which integer register the allocator picked, with identical line counts and an identical opcode multiset, `Conventions1.allocatable_registers` and `backend/IRC.ml`'s class table having lost the float class that ordered the colouring
 · Raised: M1.2b
-· Disposition: open; the reviewed [assembly comparison contract](../implementation/compiler-assembly-comparison.md) exempts only the decimal identifier in an exact full-line compartment annotation. All registers, instruction order, operands, control flow and other bytes stay fixed. The register-changing pairs remain refused, and the historical prose measurement supplies no fresh producer receipts or comparator verdict. A stronger relation requires its own ABI and dataflow qualification before use.
+· Disposition: closed; the allocator repair is retained in the contained compiler and a fresh campaign at `a826d5f17bb09742940cb66f7c986c55ccfbf6de` passes all nine source-identified pairs under the reviewed [assembly comparison contract](../implementation/compiler-assembly-comparison.md), which admits only decimal metadata changes on exact standalone or named-label annotations. Fresh producer receipts, source/output hashes, a clean build and the scalar-FP refusal are retained. The three missing historical sources have explicitly reviewed replacements; the lost outputs are not claimed equal.
 
 **F-319** owed-act: the ruling puts float-typed values in integer registers under the ABI cost R-15-040 accepts, on the way to the VL=1 vector lowering R-18-014i fixes as the end state, and that half holds and is exhibited: `double id(double x){return x;}`, `double k(double x){return h(x);}` and a variadic `void w(double x){p("%f", x);}` compile at exit 0 with zero `f` registers in the output, the variadic case passing its argument with `mv x11, x10` where the pin emits `fmv.d f1, f10` then `fmv.x.d x11, f1`. The other half does not: `Asmgen`'s `transl_load` and `transl_store` refuse the `Mfloat32` and `Mfloat64` chunks and `loadind`/`storeind` refuse `Tfloat` and `Tsingle`, so `double ld(double *p){return *p;}` and a `double` live across a call are refused by name at exit 2, and any `double` that spills is refused with them. R-18-014i states the compiler's disposition of scalar-float source and R-15-040 the calling-convention cost, and neither reaches a `Mfloat32` or `Mfloat64` chunk, so no entry says what the compiler must do with a float in memory before M1.3 lands
 · Raised: M1.2b
@@ -2714,3 +2714,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-344** method: the proof gate now reports 5,180 constants over 21 files where it reported 4,656 over 18, which puts its runtime past the 120-second default an agent session applies to a foreground command, and a killed run prints neither a `FAIL:` line nor a rocq diagnostic so it presents as a proof defect; the diagnostic has three arms and rests on an enumeration taken over every spelling of a non-zero exit, six `return 1` sites at 383, 418, 423, 426, 433 and 448 with no `sys.exit` and no `raise SystemExit` in the module, so a `FAIL:` line is a verdict from the gate, a traceback is a defect in the tool, and neither with no diagnostic is upstream of the command entirely
 · Raised: M3.4c-i
 · Disposition: standing, recorded because the invariant outlives the figure that occasioned it; the timeout is the invoking session's and not the repository's, so the guard is an explicit timeout or a detached run rather than a change to the gate
+
+**F-349** method: the proof map inferred unusability or admissibility from source metadata without a locked-prover build and assumption closure, and a referenced Islaris lineage had no local acquisition owner
+· Raised: Q22g
+· Disposition: closed at review, unsupported conclusions removed; qualification remains the explicit work of the numbered foundation decisions and U-22 owns the missing lineage acquisition
+
+**F-350** method: the priced Bluetooth pairing slice did not enumerate the rest of the mandatory Bluetooth row, and the unowned wire-format mapping could disappear between inventory rows
+· Raised: Q22g
+· Disposition: closed at review, the map keeps the Bluetooth procedures outside pairing as unpriced work and U-12 explicitly includes the wire-format mapping; no protocol row is retired by the pairing slice
+
+**F-351** owed-act: the full certifying compiler, CHERI-TAL soundness and masked-datapath authoring route are mandatory obligations without implementation cells in the priced proof map
+· Raised: Q22g
+· Disposition: open, the map's mandatory-work table names the required plan or register acts; accepting the map neither commissions these implementations nor assigns them a zero cost
+
+**F-352** method: a statement-only marker concealed U-19's proof obligation and an unqualified direct logic route could bypass the register's mandatory Katamaran route
+· Raised: Q22g
+· Disposition: closed at review, U-19 carries both statement and proof scope; U-22 requires a register amendment before an alternative replaces the required route

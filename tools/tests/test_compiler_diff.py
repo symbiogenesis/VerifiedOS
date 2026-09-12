@@ -362,7 +362,8 @@ def _recorded_run_disagreements() -> None:
         changed["source_sha256"] = "0" * 64
         ensure("source digest" in cd.disagreements([passed], {"programs": [changed]})[0],
                "the same program name with a different source is a different input")
-        duplicated = {"programs": [cd.report_json(passed), cd.report_json(passed)]}
+        duplicated: dict[str, Json] = {
+            "programs": [cd.report_json(passed), cd.report_json(passed)]}
         ensure("duplicate name" in cd.disagreements([passed], duplicated)[0],
                "a duplicate name cannot overwrite an earlier recorded result")
         missing = json.loads(json.dumps(cd.report_json(passed)))
