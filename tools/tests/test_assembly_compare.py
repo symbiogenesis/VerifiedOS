@@ -167,6 +167,38 @@ def _difference_positions() -> None:
     ensure(compare(original, b"").verdict == "unsupported", "a missing side is not a diff")
 
 
+def _annotation_marker_collisions() -> None:
+    for prefix in (b"# Compartment ", b"deref: # Compartment "):
+        for ending in (b"", b"\n", b"\r\n"):
+            header = b".text\nret\n"
+            original = header + prefix + b"42" + ending
+            literal = header + prefix + b"<compartment>" + ending
+            for left, right in ((original, literal), (literal, original)):
+                result = compare(left, right)
+                ensure(result.verdict == "different" and result.exit_code == 1,
+                       "literal marker must not equal a decimal annotation")
+                ensure(result.first_difference == len(header + prefix)
+                       and result.left_line == 3 and result.right_line == 3,
+                       "mismatched annotation eligibility must report the raw differing byte")
+            result = compare(literal, literal)
+            ensure(result.verdict == "equal" and result.left.annotations == 0,
+                   "literal marker identity is ordinary byte equality")
+        left = b".text\nret\n" + prefix + b"42\n" + prefix + b"<compartment>\n"
+        right = b".text\nret\n" + prefix + b"<compartment>\n" + prefix + b"42\n"
+        result = compare(left, right)
+        ensure(result.verdict == "different" and result.left.annotations == 1
+               and result.right.annotations == 1,
+               "equal annotation counts do not authorize shifted eligibility")
+        # A prior eligible pair changes length while the later collision stays raw.
+        left = b".text\n# Compartment 1\nret\n" + prefix + b"42\n"
+        right = b".text\n# Compartment 000001\nret\n" + prefix + b"<compartment>\n"
+        result = compare(left, right)
+        expected = len(b".text\n# Compartment <compartment>\nret\n" + prefix)
+        ensure(result.verdict == "different" and result.first_difference == expected
+               and result.left_line == 4 and result.right_line == 4,
+               "difference offsets retain normalization of prior eligible pairs")
+
+
 def _generated_byte_changes() -> None:
     labeled = _PROGRAM.replace(b"# Compartment 42\nexample:\n",
                                b".L17: # Compartment 42\n")
@@ -217,5 +249,6 @@ def cases() -> list[Case]:
             Case("no-vacuous-equality", _no_vacuous_equality),
             Case("unsupported-syntax", _unsupported_syntax),
             Case("difference-positions", _difference_positions),
+            Case("annotation-marker-collisions", _annotation_marker_collisions),
             Case("generated-byte-changes", _generated_byte_changes),
             Case("cli-evidence", _cli_evidence)]

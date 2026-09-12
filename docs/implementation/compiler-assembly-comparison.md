@@ -19,6 +19,11 @@ Preserve the leading and trailing whitespace, comment spelling,
 line ending and position in the line sequence. The sequence of annotation and
 ordinary lines must agree. The identifier is compiler diagnostic metadata;
 compartment identifiers embedded in instructions, symbols or data stay exact.
+Normalize a line only when both inputs carry an eligible annotation at that
+position. Otherwise compare both lines' original bytes. A literal marker such
+as `# Compartment <compartment>` remains ordinary text, even when annotation
+counts agree elsewhere. Difference offsets use the streams produced by this
+paired normalization.
 
 Every other byte must agree. This includes instruction order, register numbers,
 all operands, immediate values, memory widths and offsets, branch and call
@@ -108,6 +113,8 @@ or a comment outside the permitted grammar. They also insert/delete a line,
 alter line endings, and supply empty, data-only or unsupported lexical forms.
 A quoted `# Compartment` string, numeric local label, directive, or comment
 containing a named-label annotation remains exact when its digits change.
+Literal-marker collisions and shifted annotation positions with equal counts
+must differ, with byte offsets preserved after earlier eligible annotations.
 File/CLI controls cover unreadable inputs, error exit status and byte
 hashes. These tests qualify the comparison mechanism; they do not substitute
 synthetic programs for the compiler campaign.
