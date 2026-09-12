@@ -6,9 +6,11 @@ register wins wherever this view disagrees. The contract specifies the logical
 record and its acceptance cases before a producer or replay adapter implements
 them. It does not claim an operational recorder, authenticated export, or replay.
 
-The [host reader](../../tools/vos/replay_record.py) implements structural decoding
-and a fixture demand cursor. Run `python tools/run.py test --only replay_record`
-for its [positive and refusal controls](../../tools/tests/test_replay_record.py).
+The [host fixtures](../../tools/vos/replay_record.py) implement structural decoding,
+a demand cursor, and bounded callback capture. Run
+`python tools/run.py test --only replay_record` for the
+[reader controls](../../tools/tests/test_replay_record.py) and
+[recorder controls](../../tools/tests/test_replay_record_recorder.py).
 The supplied identities, counts and endpoint profiles are independent fixture
 inputs; these checks supply no authentication or production replay evidence.
 
@@ -100,6 +102,49 @@ declared window. The consumer rejects exhaustion before a required event and
 leftover events after the declared window. A structurally valid prefix does not
 establish complete capture; completeness needs the actual execution adapter.
 
+## Host fixture producer interface
+
+`FixtureRecorder` fixes a single-caller callback interface for bounded synthetic
+capture. Its constructor receives a binding, limits, and endpoint profiles,
+plus one semantic validator for each public endpoint. It snapshots both mappings;
+changing the caller's dictionaries cannot change a capture already admitted.
+The supplied validators decide a fixture's public byte language. Their presence
+does not implement a time-service precision grant, address format, or sentinel
+schema, and there is no entropy validator that purports to authenticate a seal.
+
+`record(point, interface, produce)` takes its source classification from the
+endpoint profile. It checks the coordinates, endpoint, and event capacity, then
+reserves the endpoint's maximum payload length as hex plus the exact compact JSON
+overhead before invoking `produce`. The body bound includes its binding, array
+commas, and closing delimiters. A maximum reservation may refuse an operation
+whose eventual smaller value would fit: reading that value to decide admission
+would already consume it. After success, actual encoded size determines the room
+available to later operations; unused reservation does not remain charged.
+
+The callback returns immutable bytes: the public value at that fixture boundary,
+or opaque entropy-commitment bytes whose actual production is still absent.
+Public bytes must satisfy the endpoint validator before an event is appended or
+returned. The callback may instead return `None` only under the explicit adapter
+promise that it consumed no source value and owes no nondeterminism event; that
+outcome consumes neither a sequence index nor capacity. The host cannot verify
+that promise inside an arbitrary callback. A future real adapter owes it for
+each failed request and must route its fault through the existing fault path.
+
+Any refusal, invalid callback result, or callback or validator exception latches
+the entire capture unusable. Exceptions propagate, while finalization of the
+uncertain prefix remains refused. Recording or finalizing from inside a callback
+is also a refusal; swallowing that nested exception cannot make the outer call
+succeed. No event or body is returned from a failed operation. Earlier successful
+events are provisional and cannot supply a finalized partial body after refusal.
+This host latch does not implement R-16-023's reserved terminal fault path.
+
+`finish(expected, expected_events)` checks the independent expected binding and
+capture-window count through the existing structural reader before returning
+body bytes. Success closes the recorder, and any refusal permanently prevents
+retry with a weaker binding or count. These fixture inputs establish only the
+declared fixture window; actual execution coverage, input-trace authentication,
+and interception of every source remain the production adapter's obligations.
+
 ## Reuse and security boundary
 
 The existing [commit-trace grammar](../assurance/differential-corpus.md) and
@@ -163,8 +208,9 @@ A paired Sail run must then reproduce the public values and the observations
 within the proved CT scope using independently substituted secret entropy.
 A draw-dependent fault is an explicit unsupported result without the separately
 gated evidence, never successful reproduction. Until those producers, proofs,
-and security primitives exist, structural fixture tests discharge only the
-reader's stated predicate. S6 remains open as owner of recording, adapters,
+and security primitives exist, fixture tests discharge only the reader's stated
+predicate and the callback recorder's admission and refusal behavior. S6 remains
+open as owner of operational recording, adapters,
 and integration qualification against this contract. The completed firmware and
 crypto statements supply dependencies, not operational recording or sealing
 credit; S6 owes their actual implementations before claiming replay.
