@@ -26,7 +26,7 @@ _Expand a section to jump straight to it._
 - [Verified cores and qualified devices](#verified-cores-and-qualified-devices)
 - [On-die OpenTitan-class root of trust](#on-die-opentitan-class-root-of-trust)
 - [The device holder owns the root](#the-device-holder-owns-the-root)
-- [No allocator waste](#no-allocator-waste)
+- [Memory planned before boot](#memory-planned-before-boot)
 
 </details>
 
@@ -97,9 +97,9 @@ A scalar CHERI-enabled RV64 core under the same ISA, capability model, and proof
 
 The key that decides which software may be installed belongs to whoever holds the device, not to its manufacturer. The boot ROM's own immutable key verifies just the two firmware images beneath it; the keys that admit a whole system generation are [a set the holder edits](docs/spec.md#r-09-036a) at the consent prompt, and the manufacturer's is one member they may remove. Signing decides who may publish and the admission proofs decide what may run, so a holder who signs their own build keeps every guarantee this page claims, and one who removes the manufacturer's key ends its authority over the device. Nobody else can change that set: there is no unlock token, no remote enrolment, and no escrowed key. What the holder does not get is the debug port, which stays shut in production silicon, or a way back below the security-update floor.
 
-### No allocator waste
+### Memory planned before boot
 
-Nothing is allocated while the system runs: every buffer, table, and stack is placed before boot, and the deepest the stack can ever get is proved by the same check that proves worst-case timing. Code that overruns its declared bound is rejected at build time, and a set of bounds too large for the chip is rejected before anything runs, so neither is a failure a user can hit. Placing memory ahead of time is also the cheaper choice: an allocator deciding as it goes can waste a factor that grows with the spread of object sizes, while a plan made offline comes within a constant factor of the best possible, and is exactly optimal for the nested lifetimes this design produces. What replaces the page tables, swap, and allocator bookkeeping is small and itemized: error correction and capability tags at about 8% of stored data, and a revocation bitmap no structure doing that job could beat. Optimality in general is not claimed: pools sized for their peak sit mostly empty, the one case a run-time heap wins on average, and every floor here is measured against this project's own specification rather than a universal one.
+Every buffer, table, and stack has backing storage assigned before boot, with bounds checked before a system image is admitted. Runtime requests bind preassigned pool slots, and a full pool returns a declared exhaustion result. This removes online placement and global memory-pressure recovery, while preserving fixed memory budgets and predictable timing. Idle reservations, alignment, layout gaps, and memory awaiting safe reuse still cost capacity; free space in one pool cannot necessarily serve another. The non-normative [static-memory research agenda](docs/background/static-memory-research.md) examines these limits and ways to improve useful capacity while preserving the design's isolation and lack of address translation.
 
 ## 🧱 Bug classes removed by construction <a id="bug-classes-removed-by-construction"></a>
 
