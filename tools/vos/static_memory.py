@@ -295,8 +295,8 @@ def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
         best_span = max((o.base + o.size for o in objects), default=0) if valid else None
         lower = peak_load(case, arena.id)
         result: dict[str, Any] = {
-            "arena": arena.id, "owner": arena.owner, "lower_bound": lower,
-            "best_span": best_span, "remaining_gap": None, "status": "incomplete",
+            "arena": arena.id, "owner": arena.owner, "charged_load_lower_bound": lower,
+            "best_span": best_span, "status": "incomplete",
             "certificate": None, "attempts": [],
         }
         if best_span == lower:
@@ -341,7 +341,12 @@ def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
         if best is not None:
             selected.update(best)
         result["best_span"] = best_span
-        result["remaining_gap"] = best_span - lower if best_span is not None else None
+        # An unfinished run retains the independently computable load bound.
+        # A completed optimum can exceed that load due to placement restrictions.
+        proved = best_span if result["status"] == "optimal" and best_span is not None else lower
+        result["proven_lower_bound"] = proved
+        result["optimality_gap"] = best_span - proved if best_span is not None else None
+        result["best_span_over_load"] = best_span - lower if best_span is not None else None
         results.append(result)
     statuses = {r["status"] for r in results}
     status = "infeasible" if "infeasible" in statuses else (
@@ -438,7 +443,9 @@ def verify_optimality(case: Case, receipt: object,
 
     def answer(status: str, findings: list[str]) -> dict[str, Any]:
         return {"status": status, "findings": findings, "nodes": budget.nodes,
-                "work_budget": budget.limit}
+                "work_budget": budget.limit,
+                "scope": "primary placement, per-arena owners, bounds and optimality; "
+                         "search traces and timing are not replayed"}
 
     try:
         report = _mapping(receipt, "receipt")
@@ -452,6 +459,8 @@ def verify_optimality(case: Case, receipt: object,
             return answer("rejected", findings)
         if not isinstance(witness, list):
             return answer("rejected", ["receipt witness is not a list"])
+        if report.get("placement") != witness:
+            return answer("rejected", ["optimal receipt placement differs from its best witness"])
         spans = placement_spans(case, witness)
         rows = report.get("arenas")
         if not isinstance(rows, list) or len(rows) != len(case.arenas):
@@ -469,10 +478,16 @@ def verify_optimality(case: Case, receipt: object,
             row = indexed[arena.id]
             lower = peak_load(case, arena.id)
             height = spans[arena.id]
-            reported_lower = _integer(row.get("lower_bound"), "receipt lower_bound")
+            reported_lower = _integer(row.get("charged_load_lower_bound"),
+                                      "receipt charged_load_lower_bound")
             reported_height = _integer(row.get("best_span"), "receipt best_span")
+            reported_proved = _integer(row.get("proven_lower_bound"), "receipt proven_lower_bound")
+            reported_gap = _integer(row.get("optimality_gap"), "receipt optimality_gap")
+            reported_excess = _integer(row.get("best_span_over_load"), "receipt best_span_over_load")
             if (row.get("status") != "optimal" or reported_lower != lower
-                    or reported_height != height):
+                    or reported_height != height or reported_proved != height
+                    or reported_gap != 0 or reported_excess != height - lower
+                    or row.get("owner") != arena.owner):
                 return answer("rejected", [f"{arena.id}: false span, bound or status"])
             certificate = _mapping(row.get("certificate"), "certificate")
             _fields(certificate, {"method", "infeasible_through"}, "certificate")
