@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 _ANNOTATION = re.compile(rb"([ \t]*# Compartment )[0-9]+([ \t]*(?:\r?\n)?)")
+_LABEL_ANNOTATION = re.compile(
+    rb"([A-Za-z_.$][A-Za-z_.$0-9]*: # Compartment )[0-9]+((?:\r?\n)?)")
 _REGISTER = r"x(?:[0-9]|[12][0-9]|3[01])"
 _WITNESSES = (
     re.compile(r"ret"),
@@ -136,7 +138,7 @@ def _prepare(data: bytes) -> tuple[bytes, InputIdentity]:
                 in_text = section == ".text"
             elif in_text and _witness(statement):
                 witnesses += 1
-        if annotation := _ANNOTATION.fullmatch(raw):
+        if annotation := _ANNOTATION.fullmatch(raw) or _LABEL_ANNOTATION.fullmatch(raw):
             normalized.append(annotation[1] + b"<compartment>" + annotation[2])
             annotations += 1
         else:
