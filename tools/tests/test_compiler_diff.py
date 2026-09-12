@@ -348,12 +348,27 @@ def _recorded_run_disagreements() -> None:
                f"a moved digest is named with both digests: {said}")
         stock = json.loads(json.dumps(cd.report_json(passed)))
         stock["name"] = "r-stock"
+        stock["source_sha256"] = refused.source_sha256
         said = cd.disagreements([refused], {"programs": [stock]})
         ensure(said == ["r-stock: verdict 'dialect-refused' against the recorded 'pass'"],
                f"a stream refused here and run there is a verdict disagreement: {said}")
         ensure(cd.disagreements([passed], {"programs": []}) == ["r-pass: not in the recorded run"]
                and cd.disagreements([passed], {}) == ["the recorded run carries no `programs` list"],
                "an absent program and an absent list are each named")
+        ensure(cd.disagreements([passed], recorded)
+               == ["r-fail2: not in the current run", "r-stock: not in the current run"],
+               "dropping a recorded program cannot make the campaign agree")
+        changed = json.loads(json.dumps(cd.report_json(passed)))
+        changed["source_sha256"] = "0" * 64
+        ensure("source digest" in cd.disagreements([passed], {"programs": [changed]})[0],
+               "the same program name with a different source is a different input")
+        duplicated = {"programs": [cd.report_json(passed), cd.report_json(passed)]}
+        ensure("duplicate name" in cd.disagreements([passed], duplicated)[0],
+               "a duplicate name cannot overwrite an earlier recorded result")
+        missing = json.loads(json.dumps(cd.report_json(passed)))
+        missing["run"] = None
+        ensure("emulator evidence" in cd.disagreements([passed], {"programs": [missing]})[0],
+               "a pass label alone cannot stand for missing emulator evidence")
 
 
 def _component_encoding_and_comparator() -> None:
@@ -432,6 +447,12 @@ def _cli_program() -> None:
         ensure(payload["ccomp"]["sha256"] is not None and payload["simulator"] is None,
                "the compiler is identified and the absent emulator is said")
         ensure(_run_cli(base)[0] == 1, "without --expect-refusal a refused stream is not green")
+        baseline = scratch / "refused.json"
+        baseline.write_text(first[1], encoding="utf-8")
+        code, out, _ = _run_cli([*base, "--expect-refusal", "--against", str(baseline),
+                                 "--seed", "6"])
+        ensure(code == 1 and not json.loads(out)["green"],
+               "--expect-refusal must still fail a requested comparison that disagrees")
 
         given = scratch / "given.c"
         given.write_text(DIALECT_C, encoding="utf-8")
@@ -455,6 +476,61 @@ def _cli_program() -> None:
         ensure(_run_cli(["program", "--ccomp", str(ccomp)])[0] == 2, "nothing to compile is 2")
         ensure(_run_cli(["program", "--ccomp", str(ccomp), str(scratch / "absent.c")])[0] == 2,
                "an unreadable source is 2")
+        ensure(_run_cli(["program", "--ccomp", str(ccomp), str(given), str(given)])[0] == 2,
+               "duplicate input names must be refused before they reuse output paths")
+
+
+def _fresh_compilation_and_complete_execution() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        source = scratch / "kept.c"
+        source.write_text(DIALECT_C, encoding="utf-8")
+        compiler = [sys.executable, str(_script(scratch, "compiler", FAKE_CCOMP))]
+        fresh = scratch / "kept"
+        ensure(cd.compile_c(compiler, source, fresh).stream is not None,
+               "the first compiler invocation leaves an assembly stream")
+        silent = [sys.executable, str(_script(scratch, "silent", "pass\n"))]
+        got = cd.compile_c(silent, source, fresh)
+        ensure(got.stream is None and not (fresh / "kept.s").exists(),
+               "a compiler that writes nothing cannot reuse a kept assembly stream")
+        ensure(cd.htif_verdict("SUCCESS\n", 1)[0] == "no-verdict",
+               "a crashed emulator cannot pass using an earlier success line")
+        ensure(cd.htif_verdict("NOT SUCCESS\n", 0)[0] == "no-verdict",
+               "a success substring is not the HTIF success line")
+        ensure(cd.htif_verdict("SUCCESS\nFAILURE: 2\n", 0)[0] == "fail",
+               "a failure cannot be masked by a success line")
+        simulator = [sys.executable, str(_script(scratch, "no_trace", "print('SUCCESS')\n"))]
+        run = cd.run_image(simulator, scratch / "p.json", scratch / "x.elf", scratch)
+        ensure(run.verdict == "no-verdict" and run.code is None and "commit trace" in run.detail,
+               "HTIF success alone cannot supply the trace half of a program result")
+
+
+def _component_rejects_missing_or_wrong_evidence() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        host, purecap = scratch / "host.json", scratch / "purecap.json"
+        absent_host = cd.output_of("wasm-host", None, b"", "failed to launch")
+        absent_purecap = cd.output_of("purecap", None, b"", "failed to launch")
+        host.write_text(json.dumps(absent_host.to_json()), encoding="utf-8")
+        purecap.write_text(json.dumps(absent_purecap.to_json()), encoding="utf-8")
+        args = ["component", "--host-record", str(host), "--purecap-record", str(purecap)]
+        for extra in ([], ["--json"]):
+            code, _, _ = _run_cli([*args, *extra])
+            ensure(code == 1, "two failed runs with no verdict cannot agree")
+            ensure(_run_cli(["component", "--host-record", str(host), *extra])[0] == 1,
+                   "an incomplete single-side capture must also report failure")
+        valid = cd.output_of("wasm-host", 0, b"true\n", "node")
+        host.write_text(json.dumps(valid.to_json()), encoding="utf-8")
+        ensure(_run_cli(["component", "--host-record", str(host), "--purecap-record",
+                         str(host)])[0] == 2,
+               "a host record cannot stand in for an independent purecap result")
+        for field, value in (("verdict", False), ("output_length", True),
+                             ("output_length", -1), ("output_sha256", "")):
+            malformed = valid.to_json()
+            malformed[field] = value
+            host.write_text(json.dumps(malformed), encoding="utf-8")
+            ensure(_run_cli(["component", "--host-record", str(host)])[0] == 2,
+                   f"malformed {field} must be rejected before comparison")
 
 
 def _cli_component_and_generate() -> None:
@@ -509,5 +585,7 @@ def cases() -> list[Case]:
         Case("recorded-run-disagreements", _recorded_run_disagreements),
         Case("component-encoding-and-comparator", _component_encoding_and_comparator),
         Case("cli-program", _cli_program),
+        Case("fresh-compilation-and-complete-execution", _fresh_compilation_and_complete_execution),
+        Case("component-rejects-missing-or-wrong-evidence", _component_rejects_missing_or_wrong_evidence),
         Case("cli-component-and-generate", _cli_component_and_generate),
     ]
