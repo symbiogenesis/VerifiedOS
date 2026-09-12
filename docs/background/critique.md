@@ -92,6 +92,8 @@ What that costs is critical-path exposure rather than compatibility, and R-01-00
 
 ### The memory question, read as a product question
 
+**Static placement leaves stranded capacity.** R-08-012's elimination claim needs a narrower theorem: contiguous offline placement need not attain peak live payload, and fixed owners, size classes, alignment and delayed reuse leave additional capacity unavailable to a request. R-08-018b and R-08-019 already acknowledge parts of this cost. The [static-memory research agenda](static-memory-research.md) states the mathematical distinctions, relevant research and proposed experiments; Q5 owns the placement comparison, Q22 the reclamation boundaries, and Q10 the useful-workload judgment. These comparisons preserve the value of fixed budgets and no MMU while testing how much capacity those choices strand.
+
 **More transistors per cell buy stability and voltage margin, not capacity.**
 A latch-based all-SRAM machine has the simpler retention story, and read-decoupled cells can raise read stability and lower the minimum operating voltage, which at one operating point repays their area in energy and at another does not; extra ports, longer lines, sensing choices and periphery all count, and [the performance estimates](../performance/performance-estimates.md) already qualify both the density and the access speed of the low-leakage option.
 All-SRAM becomes the right answer by choosing a workload that fits it, never by assuming better SRAM circuits deliver dense-memory capacity: a bigger latch does not cure a shortage of bits, and stacking latches on this monolithic process wants complementary-device manufacturing that R-15-173a's grading does not treat as solved.
