@@ -321,6 +321,40 @@ def _cli_json() -> None:
                    "a refused CLI action exits one")
 
 
+def _cli_explicit_repo() -> None:
+    with sandbox_tree(FILES) as default, sandbox_tree(FILES) as contained, \
+            patch.object(worktree, "find_root", return_value=default) as discover:
+        _commit(default, "default checkout")
+        base = _commit(contained, "contained checkout")
+        output = io.StringIO()
+        with redirect_stdout(output):
+            ensure(worktree.main(["create", "contained-lane", "--repo", str(contained),
+                                  "--base", "HEAD", "--json"]) == 0, "explicit create succeeds")
+        created = json.loads(output.getvalue())
+        ensure(created["base"] == base
+               and created["path"] == str(contained / ".worktrees" / "contained-lane"),
+               "both the symbolic revision and lane destination belong to the requested repository")
+        output = io.StringIO()
+        with redirect_stdout(output):
+            ensure(worktree.main(["verify", created["path"], "--repo", str(contained),
+                                  "--base", base, "--exact", "--json"]) == 0,
+                   "explicit verify succeeds")
+        ensure(json.loads(output.getvalue()) == created, "explicit verification preserves identity")
+        output = io.StringIO()
+        with redirect_stdout(output):
+            ensure(worktree.main(["list", "--repo", created["path"], "--json"]) == 0,
+                   "listing from the contained lane succeeds")
+        ensure(json.loads(output.getvalue())["primary"] == str(contained),
+               "explicit linked checkout resolves its own primary")
+        with redirect_stderr(io.StringIO()):
+            ensure(worktree.main(["create", "missing-lane", "--repo", str(contained / "missing"),
+                                  "--base", "HEAD"]) == 1,
+                   "a missing explicit repository refuses without falling back")
+        discover.assert_not_called()
+        ensure(not (default / ".worktrees").exists(), "default checkout receives no lane")
+        ensure(not _git(default, "status", "--porcelain"), "default checkout stays clean")
+
+
 def cases() -> list[Case]:
     return [Case("create-and-nested", _create_and_nested), Case("freshness", _freshness),
             Case("stale-registration", _stale_registration), Case("ignore-required", _ignore_required),
@@ -332,4 +366,5 @@ def cases() -> list[Case]:
             Case("foreign-repository", _foreign_repository),
             Case("replaced-registration", _replaced_registration),
             Case("symlink", _symlink, lane="guest"),
-            Case("junction", _junction, lane="host"), Case("cli-json", _cli_json)]
+            Case("junction", _junction, lane="host"), Case("cli-json", _cli_json),
+            Case("cli-explicit-repo", _cli_explicit_repo)]

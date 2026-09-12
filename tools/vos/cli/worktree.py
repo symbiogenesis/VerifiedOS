@@ -257,9 +257,12 @@ def main(argv: list[str] | None = None) -> int:
         sub.add_argument("--branch", help="fresh branch name (create), or expected branch (verify)")
     for sub in (listing, creating, verifying):
         sub.add_argument("--json", action="store_true", help="emit machine-readable absolute paths")
+        sub.add_argument("--repo", type=Path,
+                         help="explicit repository checkout, including a contained compiler; "
+                              "defaults to this VerifiedOS checkout")
     args = parser.parse_args(argv)
     try:
-        root = find_root()
+        root = args.repo.resolve() if args.repo is not None else find_root()
         if args.command == "list":
             owner = primary(root)
             result = {"primary": str(owner), "root": str(owner / DIRECTORY),

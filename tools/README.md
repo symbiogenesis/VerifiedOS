@@ -481,6 +481,13 @@ such as `HEAD` resolve in the invoking checkout. An existing
 branch or path is a refusal, never an instruction to reuse old work. The JSON output
 provides the actual checkout and revision data for the handoff.
 
+For the contained compiler, pass `--repo <absolute-checkout>` to `worktree create`,
+`list` or `verify`. The same isolation checks apply inside that repository: its
+primary checkout must ignore `/.worktrees/`, its symbolic base resolves there,
+and its lane stays under its own `.worktrees/`. This keeps compiler sources inside
+their licensed repository. Omitting `--repo` selects the invoking VerifiedOS
+checkout; an invalid explicit path refuses rather than falling back to it.
+
 A dedicated worktree already provisioned by a host application may retain its
 assigned location and branch or detached HEAD. The parent verifies its Git membership,
 expected revision and exclusive assignment before dispatch; directory names alone
