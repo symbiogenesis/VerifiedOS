@@ -17,7 +17,7 @@ import re
 from typing import TYPE_CHECKING
 
 from vos import proofcites
-from vos.register import REGISTER
+from vos.register import REGISTER, REQ_ID_PATTERN
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotations below cost no import at run time: under PEP 649 an
@@ -51,10 +51,9 @@ _VERNACULAR_RE = re.compile(
     rf"(?:{'|'.join((*proofcites.DEFINERS, *_COMMANDS))})\s+[\w'(]"
     rf"|(?:{'|'.join(_STANDALONE)})\s*\.)")
 
-_ID = r"R-\d\d-\d+[a-z]?"
 _MANIFEST_RE = re.compile(
     rf"\s*Owner: {re.escape(REGISTER)}\r?\n"
-    rf"[ \t]+Requirements: {_ID}(?:[ \t\r\n]+{_ID})*\r?\n"
+    rf"[ \t]+Requirements: {REQ_ID_PATTERN}(?:[ \t\r\n]+{REQ_ID_PATTERN})*\r?\n"
     r"[ \t]+SHA256: [0-9a-f]{64}\s*\Z")
 
 

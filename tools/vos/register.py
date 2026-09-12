@@ -17,11 +17,14 @@ ABSENCE_CONTRACT = "docs/hardware/absence-contract.md"
 ISA_PROFILE = "docs/hardware/isa-profile.md"
 COVERAGE_MATRIX = "docs/assurance/coverage-matrix.md"
 
-REQ_TOKEN_RE = re.compile(r"R-\d\d-\d+[a-z]?")
+# Alphabetic suffixes can grow without renumbering permanent requirement IDs.
+# Numeric -n suffixes belong to repeated prose bookmarks, never to an ID.
+REQ_ID_PATTERN = r"R-\d\d-\d+[a-z]*"
+REQ_TOKEN_RE = re.compile(REQ_ID_PATTERN)
 
 _SECTION_RE = re.compile(r"^## §(\d+)")
 _SUBSECTION_RE = re.compile(r"^### (\d+\.\d+) ")
-_ENTRY_RE = re.compile(r"^\*\*(R-\d\d-\d+[a-z]?)\*\* (?:IS|MUST NOT|MUST)")
+_ENTRY_RE = re.compile(rf"^\*\*({REQ_ID_PATTERN})\*\* (?:IS|MUST NOT|MUST)")
 _CONFER_RE = re.compile(r"^· (Fail-closed|RoT-fresh):")
 _CJ_TARGET_RE = re.compile(r"^\| `(CJ-[A-Z-]+)`")
 

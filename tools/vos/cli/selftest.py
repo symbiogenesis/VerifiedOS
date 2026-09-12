@@ -77,7 +77,7 @@ from vos.dialectgen import TABLE as DIALECT_TABLE
 from vos.figures import words
 from vos.memplan import ARTIFACT as MEMORY_PLAN
 from vos.proofcites import DERIVED_BEGIN
-from vos.register import read_artifacts, read_register
+from vos.register import REQ_ID_PATTERN, REQ_TOKEN_RE, read_artifacts, read_register
 from vos.report import Reporter
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
@@ -708,7 +708,7 @@ def _seed_paragraph(sentence: str) -> Mutation:
 def _strip_requirements(rel: str, pattern: str,
                         replacement: str = "the register") -> Mutation:
     return _first_match(rel, pattern,
-                        lambda m: re.sub(r"R-\d\d-\d+[a-z]?", replacement, m.group()))
+                        lambda m: REQ_TOKEN_RE.sub(replacement, m.group()))
 
 
 def _k14(box: Sandbox) -> bool:
@@ -719,7 +719,7 @@ def _k14(box: Sandbox) -> bool:
     if not sub:
         return False
     view = box.read(ABSENCE)
-    for ident in re.findall(r"(?m)^\*\*(R-\d\d-\d+[a-z]?)\*\* ", sub.group()):
+    for ident in re.findall(rf"(?m)^\*\*({REQ_ID_PATTERN})\*\* ", sub.group()):
         if ident in view:
             # swapped for another live id, so only the membership is wrong
             return box.write(ABSENCE, view.replace(ident, "R-01-001"))
@@ -743,7 +743,7 @@ def _k29(box: Sandbox) -> bool:
     m = re.search(r"(?m)^\| `[^\r\n]*R-\d\d-\d+[^\r\n]*", text[start:])
     if not m:
         return False
-    row = re.sub(r"R-\d\d-\d+[a-z]?", "the profile", m.group())
+    row = REQ_TOKEN_RE.sub("the profile", m.group())
     at = start + m.start()
     return box.write(PROFILE, text[:at] + row + text[at + len(m.group()):])
 
@@ -882,7 +882,7 @@ def _k109(box: Sandbox) -> bool:
 
 
 def _keep_own_id(entry_line: str) -> str:
-    head = re.match(r"^\*\*R-\d\d-\d+[a-z]?\*\* ", entry_line)
+    head = re.match(rf"^\*\*{REQ_ID_PATTERN}\*\* ", entry_line)
     if head is None:
         # The caller picked this line out of the register as an entry, so a line that
         # does not open with an id means the mutation no longer applies. Said here
@@ -890,8 +890,7 @@ def _keep_own_id(entry_line: str) -> str:
         # tool rather than as the drift it actually is.
         raise SystemExit(f"the entry to mutate does not open with a requirement id: "
                          f"{entry_line[:60]!r}")
-    return head.group() + re.sub(r"R-\d\d-\d+[a-z]?", "R-01-001",
-                                 entry_line[len(head.group()):])
+    return head.group() + REQ_TOKEN_RE.sub("R-01-001", entry_line[len(head.group()):])
 
 
 CASES: list[Case] = [
@@ -972,12 +971,12 @@ CASES: list[Case] = [
     # composes refusals no requirement confers while still being the entry it was
     ("K-21", "a seam composing a refusal no requirement confers",
      _first_match(REGISTER,
-                  r"(?m)^\*\*R-\d\d-\d+[a-z]?\*\* [^\r\n]*Fail-closed seam \*\*[^\r\n]*",
+                  rf"(?m)^\*\*{REQ_ID_PATTERN}\*\* [^\r\n]*Fail-closed seam \*\*[^\r\n]*",
                   lambda m: _keep_own_id(m.group()))),
 
     ("K-22", "a freshness conferral that stops naming the enumeration collecting it",
      _first_match(REGISTER, f"(?m)^{MID} RoT-fresh:[^\r\n]*R-10-013[^\r\n]*",
-                  lambda m: re.sub(r"R-10-013[a-z]?", "the enumeration", m.group()))),
+                  lambda m: re.sub(r"R-10-013[a-z]*", "the enumeration", m.group()))),
 
     ("K-23", "an entry speaking the vocabulary of refusal and standing in no column",
      _entry("R-01-001", lambda b: re.sub(
