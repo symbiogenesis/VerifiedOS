@@ -132,6 +132,12 @@ def _load_and_exact_optimum_have_separate_certificates() -> None:
     false["placement"] = []
     ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
            "verified best_placement must not conceal an invalid primary placement")
+    for value in (0.0, False):
+        false = deepcopy(found)
+        false["placement"] = deepcopy(false["best_placement"])
+        false["placement"][0]["base"] = value
+        ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
+               "Python numeric equality must not bypass the primary placement's integer schema")
     false = deepcopy(found)
     false["best_placement"][1]["base"] = 0
     ensure(memory.verify_optimality(gap, false)["status"] == "rejected",

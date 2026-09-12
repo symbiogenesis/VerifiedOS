@@ -459,6 +459,9 @@ def verify_optimality(case: Case, receipt: object,
             return answer("rejected", findings)
         if not isinstance(witness, list):
             return answer("rejected", ["receipt witness is not a list"])
+        primary_findings = check_placement(case, report.get("placement"))
+        if primary_findings:
+            return answer("rejected", primary_findings)
         if report.get("placement") != witness:
             return answer("rejected", ["optimal receipt placement differs from its best witness"])
         spans = placement_spans(case, witness)
