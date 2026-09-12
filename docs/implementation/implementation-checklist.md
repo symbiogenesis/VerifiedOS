@@ -395,7 +395,7 @@ These figures sum the priced reference-build, assessment and named hardening cel
 * Total estimate: 1,923.9 h midpoint, class I 384 h and class X 1,055.5 h over the open items.
 * Calibrated against completed-item outturn (class I 0.71, class X 1.42): approximately 2,255.8 h.
 * Progress by estimate: 484.4 of 1,923.9 h complete (25.2%); 1,439.5 h remaining (74.8%).
-* M8a gate: 558 h of open work falls at or before it, of which 401.5 h is class X.
+* M8a gate: 362 h of open work falls at or before it, of which 295.5 h is class X.
 * M8b gate: a 90.5 h chain of open work running beside the software one, R1b through M8b.
 * Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, and M1.9 with them, its memory plan closed on a population that decided every site, so what remains of it runs M1.2, M1.7, M3.5, M4.4, M5.3, M7.1 and M8a; independent Gallina statement authoring adds none, and M6.5a has left it the same way, its copy-based service landing as a statement artifact that wanted no backend. Over those items the chain sums to 72–155 h at a 113.5 h midpoint, M1.2 entering as its six open children because it carries no estimate cell of its own. The membership is the author's and the sum is arithmetic `tools/check.py` recomputes over those cells like the two gate figures above, so a re-price of anything on the chain moves it in the same edit, and it is read as a serial-path ceiling rather than as a bill.
 
