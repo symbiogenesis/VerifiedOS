@@ -76,6 +76,7 @@ caught by nothing, which is a residue the findings register carries.
 | `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits shortest failing arrival traces for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
 | `storage-index` | host | Compares a fixed-height buffered index and plain CoW B+ tree under one conditional redo contract. Reports bounded block costs, map equivalence and crash cases; [Q22f's predicate](../docs/implementation/storage-index-comparison.md) leaves device qualification and target WCET open. `--json` includes source identities and every measured case. |
 | `matrix-margin` | host | Checks `PLAN REPORT --json` under the [M-class measurement contract](../docs/implementation/matrix-margin-contract.md). Binds the case and RVV extension sets, checks output identities, and reports exact sustained throughput and per-watt ratios. Supplied measurements do not establish producer truth or admit instructions. |
+| `compiler-diff` | host | M1.2f's two acceptance loops, ahead of the backend they accept. `program --ccomp PATH` feeds C, given or `--generate`d, through a contained `ccomp -S` in a fresh directory, then the in-tree assembler, the image composer and the golden emulator under the corpus's two questions, reporting each mnemonic, directive and section the dialect refuses by name and line as the expected pre-backend verdict; `component` holds a Gallina component's Wasm-oracle run against its purecap run under one declared output encoding and names the first disagreement; `generate` writes the deterministic FP-free campaign. Neither loop closes before M1.2's backend is integrated, and every report says so. |
 | `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. |
 | `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `smt`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. `smt` runs the capability-helper property suite ([model/model/unit_tests/cap_properties.sail](../model/model/unit_tests/cap_properties.sail), a transcription of the pinned `sail-cheri-riscv-verif` properties at the frozen widths) through Sail's SMT target with one verdict and one time per property, proved, counterexample or undecided, the last being its own verdict and never a pass; the suite sits behind the project file's `smt_properties` variable so that no build's ctest waits on a solver, and every verdict is evidence about the Sail functions rather than R-15-007a's proof. |
 | `evidence` | wsl | Builds the model, verifies its receipt, and runs the reference, profile sweep, differential corpus, devicetree and proof gate. Proofs overlap the model consumers in a separate process. Each run writes a JSON execution record with input identities, process results and measurements. `--no-build` requires a current successful build receipt; stale logs cannot supply its test evidence. |
@@ -114,6 +115,36 @@ supply no emitted-code certificate. The receipt's `inputs` are read from the
 composition rather than stated, and its `schedule` is null because R-11-017's
 artifact does not exist; `--contract FILE` takes the shape of the `Contract`
 dataclass and exits 0 on zero wait, 1 on a refutation and 2 on a malformed file.
+
+`compiler-diff` is M1.2f's driver, and what it does not yet decide is stated with
+what it does. At the program level it runs the `ccomp` its command line names, which
+stays outside every checkout under M1.1a's containment, with `-S` in a fresh directory,
+scans the emitted stream against [vos/dialect.py](vos/dialect.py)'s table and
+[vos/asm.py](vos/asm.py)'s directives before assembling it, and reports every refused
+mnemonic, directive and section by name and by line of the stream: stock `ccomp -S`
+writes lp64d RV64 carrying no capability mnemonic, which R-18-002 forbids as a target,
+so ahead of the backend the refusal is the expected verdict and `--expect-refusal` makes
+it the green one. A refused mnemonic is the backend's to close and a refused directive
+is the seam between CompCert's printer (`.short`, `.long`, `.quad`, `.comm`, `.local`,
+`.option`, `.section .rodata`) and the assembler's vocabulary (`.byte`, `.half`,
+`.word`, `.dword`, `.text`, `.data`), which the driver reports and does not translate;
+a tab between a mnemonic and its operands is normalized to a space before the scan,
+because the assembler's line parse splits on a space alone. A stream that assembles is
+wrapped in a harness that derives the stack and the `tohost` authority off the
+store-side root (R-15-001c), installs a trap handler and folds `main`'s return into the
+HTIF exit code, and is run with the invocation `model corpus` makes; the HTIF verdict
+and the commit trace's digest are the two questions, `--against FILE` holds them to a
+recorded run, and the trace is also read for one tagged write read back tagged, which is
+M1.7's own test that a capability went through memory. At the component level the
+declared output encoding is a side's exit verdict, the Wasm host's process status or the
+image's HTIF code, plus the SHA-256 and length of the bytes it emitted, the runner's
+standard output on one side and the emulator's terminal log on the other; either side
+is written as a record and the comparator names the first field that disagrees, or the
+first byte where both sides' bytes are in hand. What waits on the backend: no purecap
+component exists to run, so the purecap side is a record whose producer is owed; the
+harness's calling convention at `call main` is a placeholder until M1.2d fixes the
+frame and the sentry pair; and a green run says this machine and this program agree,
+never that a lowering is correct, so every report carries `milestone_acceptance: open`.
 
 Six directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. [oracle-specs/](oracle-specs/) is
 one JSON file per oracle: the sources to compile, and per line kind the parameters,
