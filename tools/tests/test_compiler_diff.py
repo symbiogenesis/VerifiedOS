@@ -67,6 +67,8 @@ main:
 \tla\ta5, cells
 \tli\ta4, 41
 \tsw\ta4, 4(a5)
+1:\tauipc\tx31, %pcrel_hi(cells)
+\tsw\ta4, %pcrel_lo(1b)(x31)
 \tlw\ta4, 4(a5)
 \tsext.w\ta4, a4
 \tli\ta3, 41
@@ -93,10 +95,16 @@ table:
 \t.byte\t1
 """
 
-# What the scan owes over LP64D: each refused head, by kind, found at the line carrying it.
-REFUSED: Final = (("directive", ".option"), ("mnemonic", "sext.w"), ("mnemonic", "jr"),
-                  ("directive", ".local"), ("directive", ".comm"), ("directive", ".quad"),
-                  ("directive", ".long"), ("directive", ".short"))
+# What the scan owes over LP64D: each refused name, by kind, with the text that finds the
+# line carrying it. The PIC pair is the shape the contained ccomp actually emits: a
+# numeric local label ahead of `auipc`, and the two relocation operators around it.
+REFUSED: Final = (("directive", ".option", ".option"), ("mnemonic", "sext.w", "sext.w"),
+                  ("mnemonic", "jr", "jr"), ("directive", ".local", ".local"),
+                  ("directive", ".comm", ".comm"), ("directive", ".quad", ".quad"),
+                  ("directive", ".long", ".long"), ("directive", ".short", ".short"),
+                  ("label", "1:", "1:\tauipc"), ("mnemonic", "auipc", "1:\tauipc"),
+                  ("relocation", "%pcrel_hi", "%pcrel_hi"),
+                  ("relocation", "%pcrel_lo", "%pcrel_lo"))
 
 DIALECT_C: Final = "/* FAKE-CCOMP: dialect */\nint main(void) { return 0; }\n"
 LP64D_C: Final = "int main(void) { return 0; }\n"
@@ -172,9 +180,8 @@ def _wrapper(directory: Path, name: str, script: Path) -> Path:
     return path
 
 
-def _lines_of(stream: str, head: str) -> list[int]:
-    return [n for n, raw in enumerate(stream.splitlines(), 1)
-            if raw.replace("\t", " ").strip().split(" ")[0] == head]
+def _lines_of(stream: str, needle: str) -> list[int]:
+    return [n for n, raw in enumerate(stream.splitlines(), 1) if needle in raw]
 
 
 def _generator_is_deterministic() -> None:
@@ -193,8 +200,8 @@ def _generator_is_deterministic() -> None:
 
 def _scan_names_what_the_dialect_refuses() -> None:
     found = {(r.kind, r.name, r.line) for r in cd.refusals(LP64D)}
-    wanted = {(kind, name, line) for kind, name in REFUSED
-              for line in _lines_of(LP64D, name)}
+    wanted = {(kind, name, line) for kind, name, needle in REFUSED
+              for line in _lines_of(LP64D, needle)}
     ensure(found == wanted, f"the scan must name exactly the refused heads by line:\n"
                             f"found  {sorted(found)}\nwanted {sorted(wanted)}")
     ensure(cd.refusals(DIALECT) == [], "a dialect stream carries nothing to refuse")
@@ -289,12 +296,14 @@ def _loop_over_fake_ccomp_lp64d() -> None:
                              [str(scratch / "no-such-simulator")], scratch / "p.json", "")
         ensure(run.verdict == "dialect-refused" and run.ran is None,
                f"an lp64d stream is the pre-backend refusal, got {run.verdict}: {run.detail}")
-        ensure({(r.kind, r.name) for r in run.refusals} == set(REFUSED),
+        ensure({(r.kind, r.name) for r in run.refusals}
+               == {(kind, name) for kind, name, _ in REFUSED},
                f"the refusals are the stream's, got {run.refusals}")
-        ensure("2 of them mnemonics" in run.detail, f"the detail counts the mnemonics: "
+        ensure("3 of them mnemonics" in run.detail, f"the detail counts the mnemonics: "
                                                      f"{run.detail}")
         rows = cd.grouped(run.refusals)
-        ensure(rows[0][0] == "mnemonic" and rows[0][1] == "jr" and rows[0][2] == [24],
+        ensure(rows[0][0] == "mnemonic" and rows[0][1] == "auipc"
+               and rows[0][2] == _lines_of(LP64D, "1:\tauipc"),
                f"grouped rows put the mnemonics first, by name: {rows[:2]}")
         ensure(not (work / "stock.elf").exists(), "no image is written for a refused stream")
 

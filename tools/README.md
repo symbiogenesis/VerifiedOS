@@ -126,10 +126,12 @@ writes lp64d RV64 carrying no capability mnemonic, which R-18-002 forbids as a t
 so ahead of the backend the refusal is the expected verdict and `--expect-refusal` makes
 it the green one. A refused mnemonic is the backend's to close and a refused directive
 is the seam between CompCert's printer (`.short`, `.long`, `.quad`, `.comm`, `.local`,
-`.option`, `.section .rodata`) and the assembler's vocabulary (`.byte`, `.half`,
-`.word`, `.dword`, `.text`, `.data`), which the driver reports and does not translate;
-a tab between a mnemonic and its operands is normalized to a space before the scan,
-because the assembler's line parse splits on a space alone. A stream that assembles is
+`.option`, `.section .rodata`, numeric local labels, and the `%pcrel_hi`/`%pcrel_lo`
+relocation operators its PIC output addresses through) and the assembler's vocabulary
+(`.byte`, `.half`, `.word`, `.dword`, `.text`, `.data`, named labels, absolute layout),
+which the driver reports and does not translate; a tab between a mnemonic and its
+operands is normalized to a space before the scan, because the assembler's line parse
+splits on a space alone. A stream that assembles is
 wrapped in a harness that derives the stack and the `tohost` authority off the
 store-side root (R-15-001c), installs a trap handler and folds `main`'s return into the
 HTIF exit code, and is run with the invocation `model corpus` makes; the HTIF verdict
