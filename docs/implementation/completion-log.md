@@ -1061,6 +1061,101 @@ Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c49
 
 Landed: Tier A. The register/prose read covers every new entry and every amended one, the four absence rows and the seven B-10 cells, including a peer-on-another-unit counterexample at R-12-015d, a routed-fetch-across-a-link counterexample at R-15-171a, the circular-digest case R-13-001d's identity avoids and the unbounded-drift case R-15-196a's leap answers; the ensemble's gating artifacts are Q23b through Q23g and none is claimed here. Independent review at `6ed2b5b` identifies the establishment bootstrap, within-slot delay and mask-set scope defects; the corrected pairs and coverage cells pass a focused reread before the integrated host gate. Q23b through Q23g remain open.
 
+#### Q25a · Specify the graded dependent foundation
+
+The [rule dossier](../languages/graded-foundation.md) specifies separate computation
+and type-use vectors, dependent context rows, lawful domains, structural rules,
+dependent functions/pairs/modalities, and simultaneous substitution. Identity,
+packet and callback derivations distinguish exact use, erasure and independent
+resource authority. Inference, specialization, ABI and source correspondence have
+explicit boundaries; the `GF-*` laws remain Q25d implementation obligations.
+
+Authoring commit `6d0ee4e` carries the dossier. The focused
+`python tools/run.py check` passes without drift. Integration reads the full
+dossier against the strategy, synchronous core, sibling interfaces and governing
+register/prose pairs. The common client keeps its packet owner and commit token
+outside repeatable capture. No calculus soundness, concrete CHERI instance,
+executed negative or qualified binary is inferred from the paper derivations.
+
+The measured author/check interval is 2026-09-12 22:52:20–23:02:49 UTC,
+629 seconds, rounded upward to 0.2 h. Shared review, integration and the complete
+host gate are charged once to Q25d's open review, with clocks, input identities
+and gate logs retained under `out/fanout-q25-20260912/`. The integrated gate is
+`python tools/run.py --check`; no guest evidence is required for this design item.
+
+  * Finding: the call-by-name grading reference supplies no proof that effectful
+    arguments execute once under the proposed call-by-value rules. Pure value
+    substitution and explicit effectful binding are separated; `GF-cbv` remains
+    the composed-law obligation. F-353.
+
+Landed: Tier A. The full read accepts the rule dossier and its explicitly named
+missing laws at Q25a's design predicate. It opens no frontend implementation.
+
+#### Q25b · Specify handlers and structured async lifecycles
+
+The [control dossier](../languages/handlers-async.md) specifies deep/shallow lookup,
+forwarding, transitive capture, zero/one/multiple resumption and explicit disposal.
+Owned dormant computations lower to bounded represented reactions with ready and
+pending checkpoints, scoped children and outcome-indexed exits. Cancellation
+arrival, authoritative decision, commit, terminal publication and reuse remain
+distinct; complete suffix bounds include child-result collection.
+
+Authoring commit `9503081` carries the dossier. Its focused checker reports only
+the sibling links unavailable in its isolated base; the integrated files resolve
+them. Independent review at `1faa273` checks its resource and cell join and finds
+the cancellation-bound defect below. Integration adds decision delay before both
+cancelled and committed suffixes, independently bounds ordinary completion, and
+makes ready-result collection precede the selected cleanup/continuation dispatch.
+Positive traces and invalid neighbors remain conditional source derivations;
+the `HA-*` laws, target bounds and frontend admission remain unimplemented.
+
+The measured author/check interval is 2026-09-12 22:52:43–23:03:20 UTC,
+637 seconds, rounded upward to 0.2 h. Q25d carries the shared review and final
+`python tools/run.py --check` wave, whose source identities and logs are retained
+under `out/fanout-q25-20260912/`. No guest measurement is claimed.
+
+  * Two findings.
+    * **Language-frame occupancy needs an explicit inventory disposition.**
+      Q25d must classify it under R-08-046 or amend that entry and its prose before
+      runtime implementation opens. F-354.
+    * **Cancellation delay can precede committed work on one path.** A maximum
+      between those terms omits that path; integration composes the decision
+      prefix with the complete selected suffix in one elapsed-time unit. F-355.
+
+Landed: Tier A. The full and independent reads accept the lifecycle design after
+the bound and checkpoint-order corrections, with all target laws still explicit.
+
+#### Q25c · Specify interior mutability and interference guardrails
+
+The [cell dossier](../languages/interior-mutability.md) specifies sealed local and
+dynamic-borrow interfaces, invariant opening/closing, historical snapshots,
+transitive capture and sharing, publication, quiescence and each source exit.
+Its scalar `CountCell` uses conserved `AddOnce` allowances and one AMO commit;
+capability-bearing storage remains private. Functional, race, progress and leakage
+theorems have separate premises and missing `MUT-*` laws.
+
+Authoring commit `1f2d633` passes the focused document checker without drift.
+Independent review at `1faa273` checks the atomic history, conservation,
+publication and cancellation join and finds the frame-release wording below.
+Integration retains the registered frame through terminal collection, aligns the
+initialized backing with the combined witness and distinguishes cancellation
+observation from arrival during the bounded commit region. Concrete CHERI entry
+witnesses and source-to-Sail correspondence remain owed; a source wrapper or
+grade supplies no sharing authority.
+
+The measured author/check interval is 2026-09-12 22:53:08–23:03:02 UTC,
+594 seconds, rounded upward to 0.2 h. Q25d carries shared review, integration and
+the final `python tools/run.py --check` wave, with identities and logs retained
+under `out/fanout-q25-20260912/`. No executed language or guest evidence is claimed.
+
+  * Finding: the registered-but-unstarted cancellation branch must retain its
+    frame while returned inputs await collection in the reserved cancelled
+    completion record. Integration makes collection and the release gate precede
+    frame reuse. F-356.
+
+Landed: Tier A. The full and independent reads accept the interfaces, counter
+protocol and qualification cases with their unmechanized obligations preserved.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models

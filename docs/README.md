@@ -19,6 +19,12 @@ strategy, core design and workflow contract share the `languages/` directory.
 The [matrix margin contract](implementation/matrix-margin-contract.md) defines
 the M-class comparison and its strongest-RVV denominator before instruction admission.
 
+The full-language design has dossiers for the [graded foundation](languages/graded-foundation.md),
+[handlers and async lifecycles](languages/handlers-async.md), and
+[interior mutability](languages/interior-mutability.md). Their
+[composition review](languages/full-language-review.md) records the combined
+client and the implementation and admission decisions still owed at Q25d.
+
 The [static-memory experiments](implementation/static-memory-experiments.md) join
 the [mathematical baseline](implementation/static-memory-baseline.md) and
 [synthetic capacity corpus](implementation/static-memory-corpus.md) to replayable
