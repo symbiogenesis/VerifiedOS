@@ -128,6 +128,8 @@ COMMANDS: tuple[Command, ...] = (
             "stock assembly bytes under the compartment-annotation-only contract"),
     Command("matrix-margin", "vos.cli.matrix_margin",
             "sustained GEMM ratios and strongest-RVV campaign bindings"),
+    Command("compiler-diff", "vos.cli.compiler_diff",
+            "M1.2f's two acceptance loops, against a contained ccomp and the Wasm oracle"),
     Command("provision", "vos.cli.provision",
             "the lane this repository builds in, as an executable fact list",
             lane="guest"),
