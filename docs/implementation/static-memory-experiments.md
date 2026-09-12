@@ -14,6 +14,10 @@ Run from the repository through its ordinary host entry point:
 python tools/run.py static-memory corpus --json
 python tools/run.py static-memory compare --max-nodes 100000 --json
 python tools/run.py static-memory check --contract case.json --candidate candidate.json --json
+python tools/run.py static-memory structure --json
+python tools/run.py static-memory transform --json
+python tools/run.py static-memory reclaim --json
+python tools/run.py static-memory scale --sizes 8 32 128 --max-nodes 100000 --q5-max-leaves 256 --json
 python tools/run.py test --only static_memory
 ```
 
@@ -78,6 +82,29 @@ contract and candidate boundaries. The full host gate checks integration.
 No guest proof, compiled-service equivalence or target execution measurement is
 claimed by these tests.
 
+## Structural, transformation, reclamation and scaling experiments
+
+These actions use declared research fixtures. They reject `--case`, `--contract`
+and `--candidate` instead of silently substituting a built-in input for a supplied
+one. Their outer `static-memory-experiment-v1` receipt records the action, Git
+revision, working-tree state and source hashes; `experiment` contains the action's
+own schema, inputs and results. A failed invariant returns a nonzero exit status;
+an unfavorable comparison or explicitly incomplete bounded search is still a
+valid research result.
+
+| Action | Replay and result | Scope boundary |
+| --- | --- | --- |
+| `structure` | The [laminar constructor and deletion witnesses](static-memory-baseline.md#executable-construction-and-structural-witnesses), including an aligned counterexample checked by the exact oracle | Finite validation and an executable construction; the general mechanized theorem and source-lifetime bridge remain open |
+| `transform` | An [executable bounded frame service](static-memory-transformations.md) with retention, fixed chunks, tiling and recomputation variants | Abstract work and explicit modeled storage; target code, physical costs and deadlines remain unqualified |
+| `reclaim` | [Fixed sweep schedules and retirement phases](static-memory-reclamation.md), with Q22 barrier refusals and byte/service comparisons | Synthetic guaranteed service premises; qualified hardware rates and production holder coverage remain open |
+| `scale` | [Larger deterministic families and the Q5 comparison](static-memory-scaling.md), with feasible spans, lower bounds, gaps and host times | Synthetic workloads and Q5's existing witness; the actual product roster remains absent |
+
+`scale --sizes` selects positive object counts. `--max-nodes` bounds each research
+search and `--q5-max-leaves` bounds the existing Q5 enumerator independently.
+Increasing a budget changes the experiment; elapsed host time is a measurement,
+not reproducible solver evidence. A best candidate does not replace the standing
+plan on incomplete search. No action installs a plan or changes a requirement.
+
 ## Disposition of the remaining experiments
 
 The baseline, witness corpus, ledger and oracle provide inputs for subsequent
@@ -87,8 +114,8 @@ a representative service, a mechanized theorem or a real composed roster.
 | Work | Evidence needed next | Existing consumer |
 | --- | --- | --- |
 | Reconcile the lifetime and peak-equality claims | An admitted-language lifetime extraction theorem and reviewed register wording, including the existing overlap-predicate inversion | Q5 and the memory-plan proof owner |
-| Scale planning | Larger identified inputs and a useful build-time comparison against the existing Q5 enumeration | Q5b |
-| Regions, phases and bounded chunks | One executable service with equivalent outputs, explicit alias and DMA contracts, and all descriptor and staging costs | Q5b with the service owner |
+| Scale planning | A comparison on the actual composed roster and target constraints, following the synthetic scaling and Q5 witness comparison | Q5b |
+| Regions, phases and bounded chunks | Target compilation and equivalence, complete authority/DMA obligations, and qualified physical costs for the executable service experiment | Q5b with the service owner |
 | Rematerialization, tiling and fusion | Emitted-code worst-case work, traffic, image size and unchanged service deadlines | Q4, Q5b and Q8 |
 | Reclamation scheduling | A complete holder and device barrier, a worst-case retirement envelope and qualified sweep and initialization service | Q22a, M4.4 and R2 |
 | Restricted-lifetime complexity | A general algorithm and complexity proof, or a hardness reduction, under the baseline's binary input encoding | Research agenda |

@@ -40,9 +40,9 @@ def reference(env: r.Envelope, policy: r.Policy, cycles: int,
             if tick == begin + policy.sweep_ticks:
                 zeroing[begin] = list(cohort)
         for begin, queue in zeroing.items():
-            if begin + policy.sweep_ticks <= tick < begin + policy.sweep_ticks + policy.zero_ticks:
-                if queue:
-                    done[queue.pop(0)] = tick + 1
+            if (begin + policy.sweep_ticks <= tick < begin + policy.sweep_ticks + policy.zero_ticks
+                    and queue):
+                done[queue.pop(0)] = tick + 1
     return done
 
 
@@ -52,7 +52,7 @@ def periodic_envelope_matches_sliding_window_enumeration() -> None:
         policy = r.Policy("tiny", phases, 12)
         arrivals = [cycle * env.period + phase
                     for cycle in range(-8, 9) for phase in phases]
-        for duration in range(0, 40):
+        for duration in range(40):
             expected = max(sum(start < event <= start + duration for event in arrivals)
                            for start in range(-12, 13)) * env.extent_bytes
             ensure(r.retirement_envelope(env, policy, duration) == expected,

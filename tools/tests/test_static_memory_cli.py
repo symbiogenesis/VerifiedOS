@@ -4,10 +4,11 @@
 import hashlib
 import json
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import static_memory_corpus as witnesses
@@ -89,9 +90,46 @@ def _comparison_cutoff_and_replay() -> None:
            "a proved optimum must not erase the difference from live load")
 
 
+def _experiment_routes_and_source_binding() -> None:
+    selections = [("structure", []), ("transform", []), ("reclaim", []),
+                  ("scale", ["--sizes", "4", "--max-nodes", "100", "--q5-max-leaves", "1"])]
+    root = Path(__file__).resolve().parents[2]
+    for action, settings in selections:
+        code, receipt = _invoke([action, *settings])
+        ensure(code == 0 and receipt["action"] == action,
+               f"{action} research replay failed: {receipt}")
+        ensure(receipt["schema"] == "static-memory-experiment-v1"
+               and receipt["experiment"].get("scope"), "explicit experiment scope")
+        for name in cli.EXPERIMENT_SOURCES[action]:
+            ensure(receipt["sources_sha256"][name]
+                   == hashlib.sha256((root / name).read_bytes()).hexdigest(),
+                   "research action must bind its actual implementation and contract")
+
+
+def _experiment_refuses_ignored_options_and_failures() -> None:
+    invalid = [["structure", "--case", "unused"], ["transform", "--contract", "unused"],
+               ["reclaim", "--max-nodes", "1"], ["structure", "--sizes", "8"],
+               ["scale", "--sizes", "0"], ["scale", "--q5-max-leaves", "0"],
+               ["compare", "--q5-max-leaves", "1"]]
+    for argv in invalid:
+        with redirect_stderr(StringIO()):
+            try:
+                _invoke(argv)
+            except SystemExit as error:
+                ensure(error.code == 2, "unsupported research option is a usage error")
+            else:
+                raise AssertionError(f"research option was silently ignored: {argv}")
+    with patch.object(cli.structure, "report", return_value={"scope": "fixture", "errors": ["bad replay"]}):
+        code, receipt = _invoke(["structure"])
+    ensure(code == 1 and receipt["experiment"]["errors"] == ["bad replay"],
+           "failed experiment invariant must reach the command's exit status")
+
+
 def cases() -> list[Case]:
     return [Case("corpus receipt", _corpus_receipt),
             Case("unknown case", _unknown_case),
             Case("candidate binding and refusal", _candidate_identity_and_refusal),
             Case("malformed input", _malformed_input),
-            Case("comparison cutoff and replay", _comparison_cutoff_and_replay)]
+            Case("comparison cutoff and replay", _comparison_cutoff_and_replay),
+            Case("experiment routes and source binding", _experiment_routes_and_source_binding),
+            Case("experiment option and verdict refusals", _experiment_refuses_ignored_options_and_failures)]

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Replay static-memory research witnesses, byte ledgers and bounded placement search.
+"""Replay static-memory placement, service, structure and reclamation experiments.
 
-This host experiment supplies no target admission or service-equivalence evidence.
+Service equivalence concerns a bounded research interpreter, without target admission.
 Receipts bind the input bytes and working-tree implementation, including local edits.
 """
 
@@ -15,6 +15,10 @@ from typing import Any
 
 from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
+from vos import static_memory_reclaim as reclaim
+from vos import static_memory_scale as scale
+from vos import static_memory_structure as structure
+from vos import static_memory_transform as transform
 
 SOURCES = (
     "tools/vos/static_memory.py", "tools/vos/static_memory_corpus.py",
@@ -23,6 +27,18 @@ SOURCES = (
     "docs/implementation/static-memory-corpus.md",
     "docs/implementation/static-memory-experiments.md",
 )
+
+EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
+    "structure": ("tools/vos/static_memory_structure.py",),
+    "transform": ("tools/vos/static_memory_transform.py",
+                  "docs/implementation/static-memory-transformations.md"),
+    "reclaim": ("tools/vos/static_memory_reclaim.py",
+                "docs/implementation/static-memory-reclamation.md",
+                "tools/vos/revocation.py"),
+    "scale": ("tools/vos/static_memory_scale.py",
+              "docs/implementation/static-memory-scaling.md",
+              "tools/vos/cli/placement.py"),
+}
 
 
 def identity(root: Path, names: tuple[str, ...]) -> dict[str, Any]:
@@ -51,14 +67,44 @@ def read_input(path: Path) -> tuple[object, str]:
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    result.add_argument("action", choices=("corpus", "compare", "check"))
+    result.add_argument("action", choices=("corpus", "compare", "check",
+                                          *EXPERIMENT_SOURCES))
     result.add_argument("--json", action="store_true", help="emit the replayable receipt")
     result.add_argument("--case", help="select one named synthetic witness")
     result.add_argument("--contract", type=Path, help="read one explicit research contract")
     result.add_argument("--candidate", type=Path, help="check a candidate against --contract")
-    result.add_argument("--max-nodes", type=int, default=100000,
+    result.add_argument("--max-nodes", type=int,
                         help="bounded exact-search budget; exhaustion is incomplete")
+    result.add_argument("--sizes", type=int, nargs="+",
+                        help="scale only: positive synthetic family object counts")
+    result.add_argument("--q5-max-leaves", type=int,
+                        help="scale only: bounded existing Q5 enumeration leaves")
     return result
+
+
+def experiment(args: argparse.Namespace, root: Path) -> int:
+    """Keep new research receipts separate from ordinary supplied-plan checking."""
+    receipt = identity(root, (*SOURCES, *EXPERIMENT_SOURCES[args.action]))
+    if args.action == "structure":
+        result = structure.report(receipt["revision"])
+    elif args.action == "transform":
+        result = transform.transformation_report(receipt["revision"])
+    elif args.action == "reclaim":
+        result = reclaim.report(root)
+    else:
+        result = scale.report(root, receipt["revision"],
+                              sizes=tuple(args.sizes or (8, 32, 128)),
+                              work_budget=args.max_nodes or 100000,
+                              q5_max_leaves=args.q5_max_leaves or 256)
+    receipt.update({"schema": "static-memory-experiment-v1", "action": args.action,
+                    "experiment": result})
+    if args.json:
+        print(json.dumps(receipt, indent=2, sort_keys=True))
+    else:
+        print(result.get("scope", "finite host research; no target admission"))
+        print(f"{args.action}: {'refused' if result.get('errors') else 'replayed'}")
+        print("Use --json for contracts, source identities, measurements and open obligations.")
+    return 1 if result.get("errors") else 0
 
 
 def timeline(raw: dict[str, Any]) -> list[dict[str, Any]]:
@@ -106,14 +152,26 @@ def selected(args: argparse.Namespace,
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    if args.max_nodes < 1:
+    if args.max_nodes is not None and args.max_nodes < 1:
         parser().error("--max-nodes must be positive")
+    if args.sizes is not None and (args.action != "scale" or any(n < 1 for n in args.sizes)):
+        parser().error("--sizes requires scale and positive object counts")
+    if args.q5_max_leaves is not None and (args.action != "scale" or args.q5_max_leaves < 1):
+        parser().error("--q5-max-leaves requires scale and a positive budget")
     if args.case and args.contract:
         parser().error("--case and --contract are mutually exclusive")
     if args.candidate and (args.action != "check" or not args.contract):
         parser().error("--candidate requires check --contract")
+    if args.action in EXPERIMENT_SOURCES:
+        if args.case or args.contract or args.candidate:
+            parser().error("this experiment uses declared fixtures; case/contract/candidate are unsupported")
+        if args.max_nodes is not None and args.action != "scale":
+            parser().error("--max-nodes is supported by compare and scale")
     root = Path(__file__).resolve().parents[3]
     try:
+        if args.action in EXPERIMENT_SOURCES:
+            return experiment(args, root)
+        args.max_nodes = args.max_nodes or 100000
         report = identity(root, SOURCES)
         cases, bindings = selected(args, report["revision"])
         report.update(bindings)

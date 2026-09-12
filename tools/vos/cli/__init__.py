@@ -125,7 +125,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("storage-index", "vos.cli.storage_index",
             "bounded index cost, visibility and shared redo-recovery comparison"),
     Command("static-memory", "vos.cli.static_memory",
-            "synthetic capacity ledgers and bounded exact placement comparisons"),
+            "capacity ledgers, placements, service transformations and reclamation research"),
     Command("assembly-compare", "vos.cli.assembly_compare",
             "stock assembly bytes under the compartment-annotation-only contract"),
     Command("matrix-margin", "vos.cli.matrix_margin",
