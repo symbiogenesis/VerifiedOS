@@ -39,6 +39,10 @@ A row whose binding is neither is a finding, because an absence bound to nothing
 | A-15 | Scalar-FP register file and dynamic rounding-mode state | `RVF = 0`, `RVD = 0`, `XF16 = 0`, `XF16ALT = 0`, `XF8 = 0`, `XFVec = 0` | no floating-point unit elaborates |
 | A-16 | Second tag plane | `CheriCapTagWidth = 1` | one tag bit per granule on the data path, and the parameter that would carry a second is set to one rather than left at a default |
 | A-17 | Second-class memory maintenance opcodes | n/a: no such instruction exists in the imported decode surface either, so what the audit looks for is a decoder that has grown a case and not an array a parameter removes | no decode path reaches one |
+| A-18 | Ensemble link retry buffer or acknowledgement state | n/a: the structure would sit in the ensemble link endpoint, which is net-new authored RTL discharged under R-15-102 and neither this core nor this package | none elaborates |
+| A-19 | Ensemble link credit or flow-control counter | n/a: as A-18 | none elaborates |
+| A-20 | Ensemble link arbiter or virtual-channel multiplexer | n/a: as A-18 | none elaborates |
+| A-21 | Autonomous phase or latency tracker in the ensemble link endpoint | n/a: as A-18 | none elaborates |
 
 ## 3. The profile's ISA-visible removals, and the parameters that take them
 
@@ -57,7 +61,7 @@ These are not absence-contract rows. An RTL implementing any of them fails ordin
 
 ## 4. What no parameter reaches, and what that costs
 
-**Three residues, and they arrive by two different doors.** **Two of the eighteen rows above carry `n/a` on the second of the three grounds §1 separates**, which is the one that is work rather than a fact about the imported core: A-09 and A-10, the two caches, which the first item below takes together. The other two items are rows a parameter *does* take, where the value removes the array and leaves the structure around it standing, so the row is bound and a residue sits beside it. All three are authoring work that no configuration reaches, and the count is over the items below rather than over the rows above.
+**Three residues, and they arrive by two different doors.** **Two of the twenty-two rows above carry `n/a` on the second of the three grounds §1 separates**, which is the one that is work rather than a fact about the imported core: A-09 and A-10, the two caches, which the first item below takes together. The other two items are rows a parameter *does* take, where the value removes the array and leaves the structure around it standing, so the row is bound and a residue sits beside it. All three are authoring work that no configuration reaches, and the count is over the items below rather than over the rows above.
 
 - **The caches, A-09 and A-10.** They are the largest single item, and no configuration the imported core admits removes them. What replaces them is flat SRAM at fixed latency, which is authored rather than configured.
 - **The PMP shells.** Zeroing the entries removes the comparator array and leaves two wrapper modules standing.
