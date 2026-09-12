@@ -123,13 +123,13 @@ CLAIMS = [
     ("docs/assurance/coverage-matrix.md", "cells-unauthored", "digits",
      r"(?<=partial, and )\d+(?= not authored)"),
 
-    # the README summarizes them
-    ("README.md", "views", "words", r"[\w-]+(?= \*\*derived views\*\* collect)"),
-    ("README.md", "sections", "words", r"(?<=covers all )[\w-]+(?= normative sections)"),
-    ("README.md", "requirements", "digits", r"(?<=sections as )[\d,]+(?= numbered requirements)"),
-    ("README.md", "absences", "words", r"[\w-]+(?= enumerated absences)"),
-    ("README.md", "cj-specs", "words", r"(?<=the )[\w-]+(?= specifications the review gate audits)"),
-    ("README.md", "cj-theorems", "words", r"(?<=plus the )[\w-]+(?= theorem targets)"),
+    # the documentation index summarizes them
+    ("docs/README.md", "views", "words", r"[\w-]+(?= \*\*derived views\*\* collect)"),
+    ("docs/README.md", "sections", "words", r"(?<=covers all )[\w-]+(?= normative sections)"),
+    ("docs/README.md", "requirements", "digits", r"(?<=sections as )[\d,]+(?= numbered requirements)"),
+    ("docs/README.md", "absences", "words", r"[\w-]+(?= enumerated absences)"),
+    ("docs/README.md", "cj-specs", "words", r"(?<=the )[\w-]+(?= specifications the review gate audits)"),
+    ("docs/README.md", "cj-theorems", "words", r"(?<=plus the )[\w-]+(?= theorem targets)"),
 
     # the gap catalogue argues from them
     ("docs/background/critique.md", "views", "words", r"(?<=register and the )[\w-]+(?= derived views)"),
