@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Small-layout evidence: immutable contracts, independent optima and interrupted work."""
 
+import random
 from copy import deepcopy
 from itertools import product
-import random
 from typing import Any
 
 from tests.harness import Case, ensure
@@ -64,7 +64,7 @@ def _candidate_cannot_change_the_contract() -> None:
     case = memory.parse_case(raw)
     standing = memory.standing_placement(case)
     ensure(not memory.check_placement(case, standing), "equality at reuse must permit sharing")
-    mutants: list[object] = [standing[:-1], standing + [standing[0]],
+    mutants: list[object] = [standing[:-1], [*standing, standing[0]],
                              {"x": 0, "y": 0}]
     for key, value in (("base", 1), ("base", 16), ("base", -1), ("base", True),
                        ("id", "intruder"), ("arena", "b"), ("reuse", 2),
@@ -202,13 +202,14 @@ def _brute_optimum(raw: dict[str, Any]) -> int | None:
                 if simultaneous and occupied:
                     valid = False
         if valid:
-            span = max(base + obj["size"] for base, obj in zip(bases, objects, strict=True))
+            span = max(int(base) + int(obj["size"])
+                       for base, obj in zip(bases, objects, strict=True))
             best = span if best is None else min(best, span)
     return best
 
 
 def _exact_search_matches_an_independent_grid() -> None:
-    rng = random.Random(812014)
+    rng = random.Random(812014)  # noqa: S311 - reproducible test sampling, no security use
     for trial in range(40):
         objects: list[dict[str, Any]] = []
         for i in range(3):
