@@ -74,8 +74,8 @@ machine-checked compiler refinement theorem.
 The report exhausts its declared small alphabet at its declared small lengths and
 also executes deterministic generated full-size frames. Its input digest and
 execution count are computed. The tests additionally exercise partial chunks,
-mutate XOR into a copy, introduce an early retirement and an out-of-bounds view,
-and corrupt placement into overlap. A value test alone would miss the latter
+mutate XOR into a copy, omit the control scrub, introduce an early retirement and
+an out-of-bounds view, and corrupt placement into overlap. A value test alone would miss the latter
 failures, so authority/index checks and the separate placement checker reject
 them independently.
 
@@ -133,16 +133,22 @@ occupancy and conservation against the reservation intervals.
 
 Every newly bound resource is zeroed over its full data, padding and descriptor
 extent, then receives a descriptor binding write. Retirement scrubs that whole
-extent before a later identity may occupy it. The fixed control reserve's entry
-and exit erasure is charged too. The interpreter checks that service backing is
-all zero after return. Scrub instructions cost their actual modeled byte writes;
+extent before a later identity may occupy it. Explicit control-entry and
+control-exit instructions scrub the control reserve, with their actual writes
+charged when executed. The persistent checksum occupies a byte in that reserve;
+each reduction and XOR reads its stored value and each reduction writes it back.
+The omitted-control-exit mutant returns the right result while retaining a
+nonzero checksum byte and failing the erasure witness. The interpreter checks that
+service backing is all zero and all modeled authority is released after return.
+This check does not establish erasure of Python locals or host allocations.
+Scrub instructions cost their actual modeled byte writes;
 counting one abstract scrub instruction never makes it a one-cycle operation.
 
-Data reads/writes, descriptor reads on every modeled data access, descriptor
+Data and checksum reads/writes, descriptor reads on every modeled data access, descriptor
 binding writes, ingress/egress traffic, stage copies and all zeroization writes
 are counted by execution. Arithmetic counts include shift, add, mask and XOR,
-with separate map-evaluation and bounds-check counts. Scalar arithmetic resides
-in abstract temporaries; compiled spills, instruction fetch and bank traffic are
+with separate map-evaluation and bounds-check counts. Transient scalar arithmetic
+resides in abstract temporaries; compiled spills, instruction fetch and bank traffic are
 unmodeled. The memory-traffic figure is a declared interpreter cost model, not a
 target bus trace. The descriptor-lookup setting is particularly consequential:
 a target compiler may keep authority in registers and eliminate those reads.
