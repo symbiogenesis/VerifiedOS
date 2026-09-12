@@ -15,6 +15,8 @@ case to adjudicate.
 import re
 from typing import TYPE_CHECKING
 
+from vos.register import REQ_ID_PATTERN
+
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
 # annotation is not evaluated unless something asks for it, and nothing here does.
@@ -41,7 +43,7 @@ def run(ctx: Context) -> None:
                f"all {len(reg.ids)} register ids are distinct")
 
     vocab = [
-        ("requirement", r"R-\d\d-\d+[a-z]?", reg.ids, "the register"),
+        ("requirement", REQ_ID_PATTERN, reg.ids, "the register"),
         ("crown-jewel target", r"CJ-[A-Z][A-Z-]*", reg.cj_targets, "the register's CJ- table"),
         # the absence token carries the suffix for the same reason the requirement one
         # does: `A-12a` is an id, and a pattern stopping at the digits does not report

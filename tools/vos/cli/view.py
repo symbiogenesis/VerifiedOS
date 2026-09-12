@@ -30,7 +30,7 @@ from pathlib import Path
 from vos import coread
 from vos import corpus as corpus_mod
 from vos.corpus import ANCHOR_RE, PROSE, Corpus
-from vos.register import REGISTER, read_register
+from vos.register import REGISTER, REQ_ID_PATTERN, read_register
 
 BANNER = (
     "*A generated reading view, never a source: the specification's prose with each "
@@ -40,7 +40,7 @@ BANNER = (
     "regenerate.*"
 )
 
-_ENTRY_LEAD_RE = re.compile(r"^\*\*(R-\d\d-\d+[a-z]?)\*\* ")
+_ENTRY_LEAD_RE = re.compile(rf"^\*\*({REQ_ID_PATTERN})\*\* ")
 
 
 def _entry_blocks(corpus: Corpus, ids: set[str]) -> dict[str, list[str]]:

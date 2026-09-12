@@ -56,7 +56,7 @@ import tempfile
 from pathlib import Path
 
 from .corpus import ANCHOR_RE, PROSE, Corpus
-from .register import Register
+from .register import REQ_ID_PATTERN, Register
 
 LEDGER = "tools/co-read.json"
 
@@ -66,7 +66,7 @@ _TRACE_ANCHOR_RE = re.compile(r"\(spec\.md#([^)]+)\)")
 
 # r-15-005-3 is the third place the prose carries r-15-005's bookmark, not a fourth
 # requirement. The suffix is stripped to find the id a span belongs to.
-_CITATION_SUFFIX_RE = re.compile(r"^(r-\d\d-\d+[a-z]?)-\d+$")
+_CITATION_SUFFIX_RE = re.compile(rf"^({REQ_ID_PATTERN.lower()})-\d+$")
 
 _PROSE_ID_RE = re.compile(r"^r-\d\d-\d")
 

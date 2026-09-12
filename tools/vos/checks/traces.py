@@ -30,6 +30,7 @@ import re
 from typing import TYPE_CHECKING
 
 from vos.corpus import PROSE
+from vos.register import REQ_ID_PATTERN
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -41,7 +42,7 @@ HEADING = "=== traces: the register's references against the prose ==="
 
 _TRACE_LINK_RE = re.compile(r"\[§([\d.]+)\]\(spec\.md#([^)]+)\)")
 _PROSE_ID_RE = re.compile(r"^r-\d\d-\d", re.IGNORECASE)
-_CITATION_SUFFIX_RE = re.compile(r"^(r-\d\d-\d\d\d[a-z]?)-\d+$", re.IGNORECASE)
+_CITATION_SUFFIX_RE = re.compile(rf"^({REQ_ID_PATTERN})-\d+$", re.IGNORECASE)
 
 
 def run(ctx: Context) -> None:
@@ -111,8 +112,8 @@ def run(ctx: Context) -> None:
                 for i in dict.fromkeys(reg.late_accept)],
                "every entry states its criteria before its conferrals and its trace")
 
-    # r-ss-nnn, r-ss-nnna (a letter-suffixed requirement) and r-ss-nnn-2 (the nth
-    # citation of one requirement) all resolve to the same register id.
+    # Strip only numeric repeated-citation suffixes: r-ss-nnnza-2 belongs to
+    # R-ss-nnnza, which remains distinct from R-ss-nnnz and R-ss-nnn.
     orphans = []
     for ident in anchors:
         if not _PROSE_ID_RE.match(ident):
