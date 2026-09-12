@@ -8,9 +8,12 @@ transformation and finds a nonempty instruction witness; it is no assembler.
 import hashlib
 import re
 from dataclasses import dataclass
+from itertools import zip_longest
 from typing import Literal
 
 _ANNOTATION = re.compile(rb"([ \t]*# Compartment )[0-9]+([ \t]*(?:\r?\n)?)")
+_LABEL_ANNOTATION = re.compile(
+    rb"([A-Za-z_.$][A-Za-z_.$0-9]*: # Compartment )[0-9]+((?:\r?\n)?)")
 _REGISTER = r"x(?:[0-9]|[12][0-9]|3[01])"
 _WITNESSES = (
     re.compile(r"ret"),
@@ -30,6 +33,12 @@ _UNSUPPORTED = frozenset({
 
 class UnsupportedInputError(ValueError):
     """The input falls outside the contract's lexical or witness envelope."""
+
+
+@dataclass(frozen=True)
+class _Line:
+    raw: bytes
+    annotation: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -106,13 +115,13 @@ def _witness(statement: str) -> bool:
     return len(digits) <= 4 and -2048 <= sign * int(digits) <= 2047
 
 
-def _prepare(data: bytes) -> tuple[bytes, InputIdentity]:
-    """Normalize only eligible comment digits, retaining every other byte."""
+def _prepare(data: bytes) -> tuple[list[_Line], InputIdentity]:
+    """Record each line's bytes and eligible annotation separately."""
     if any(byte > 126 or (byte < 32 and byte not in (9, 10, 13)) for byte in data):
         raise UnsupportedInputError("non-ASCII or unsupported control byte")
     if re.search(rb"\r(?!\n)", data):
         raise UnsupportedInputError("bare CR is not an admitted line ending")
-    normalized: list[bytes] = []
+    lines: list[_Line] = []
     annotations = 0
     witnesses = 0
     in_text = False
@@ -136,14 +145,14 @@ def _prepare(data: bytes) -> tuple[bytes, InputIdentity]:
                 in_text = section == ".text"
             elif in_text and _witness(statement):
                 witnesses += 1
-        if annotation := _ANNOTATION.fullmatch(raw):
-            normalized.append(annotation[1] + b"<compartment>" + annotation[2])
+        if annotation := _ANNOTATION.fullmatch(raw) or _LABEL_ANNOTATION.fullmatch(raw):
+            lines.append(_Line(raw, annotation[1] + b"<compartment>" + annotation[2]))
             annotations += 1
         else:
-            normalized.append(raw)
+            lines.append(_Line(raw))
     if not witnesses:
         raise UnsupportedInputError("no admitted instruction witness in an explicit .text section")
-    return b"".join(normalized), InputIdentity(
+    return lines, InputIdentity(
         hashlib.sha256(data).hexdigest(), len(data), annotations, witnesses)
 
 
@@ -151,18 +160,29 @@ def compare(left: bytes, right: bytes) -> Comparison:
     """Compare one pair, refusing unsupported input even when bytes are identical."""
     identities = [InputIdentity(hashlib.sha256(data).hexdigest(), len(data))
                   for data in (left, right)]
-    normalized: list[bytes] = []
+    prepared: list[list[_Line]] = []
     errors: list[str] = []
     for index, (side, data) in enumerate((("left", left), ("right", right))):
         try:
-            stream, identities[index] = _prepare(data)
+            lines, identities[index] = _prepare(data)
         except UnsupportedInputError as err:
             errors.append(f"{side}: {err}")
         else:
-            normalized.append(stream)
+            prepared.append(lines)
     if errors:
         return Comparison("unsupported", "; ".join(errors), identities[0], identities[1])
-    a, b = normalized
+    left_parts: list[bytes] = []
+    right_parts: list[bytes] = []
+    for x, y in zip_longest(*prepared, fillvalue=_Line(b"")):
+        # A literal marker is ordinary text. Only corresponding annotations
+        # on both sides may normalize; mismatched eligibility keeps raw bytes.
+        if x.annotation is not None and y.annotation is not None:
+            left_parts.append(x.annotation)
+            right_parts.append(y.annotation)
+        else:
+            left_parts.append(x.raw)
+            right_parts.append(y.raw)
+    a, b = b"".join(left_parts), b"".join(right_parts)
     if a == b:
         return Comparison("equal", "all bytes agree under the annotation-only contract",
                           identities[0], identities[1])
