@@ -1210,7 +1210,7 @@ The entry is kept at length because the reasoning generalizes: this is the clear
 Every word decrypts on arrival at the controller before it can be computed on, so the plaintext is reachable to any adversary who reached the core, and the mechanism buys protection at exactly one physical hop.
 A conventional design encrypts DRAM not because DRAM is untrusted but because the *bus* is exposed.
 This design deleted that bus: both the bespoke first-class SRAM and the second-class gain-cell decks are on the same die as the cores (the memory entry in [Inspirations & Prior Art](inspirations.md)), and the second-die entry below declines the chiplet and bonded-stack realizations that would reintroduce a die-to-die interface.
-There is no external hop to protect. Power-loss remanence is a separate potential use, evaluated below rather than excluded by the missing bus.
+There is no external hop to protect on the memory path; the one wire that does leave the die, the ensemble link (§15, and the second-die entry below), carries no memory and is protected as the network interface it is, by an attested session rather than by a cipher on the controller, for exactly the reason this paragraph gives. Power-loss remanence is a separate potential use, evaluated below rather than excluded by the missing bus.
 
 **The existing mechanisms answer different cases.**
 An absent bus removes bus interposers. A completed orderly zeroize answers the storage and key state that construction covers (§9); it does not establish erasure under abrupt power loss. SRAM volatility alone proves no negligible cold-boot window. [Cambridge's SRAM remanence measurements](https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-536.pdf) show device-, temperature- and supply-dependent recovery, including on older low-power parts. They refute a generic inference from SRAM, not demonstrate an attack on this proposed macro. R-15-200 therefore qualifies the actual first-class macros, registers and complete key custody alongside the bulk class, distinguishing measured physical residuals from an erase construction.
@@ -1658,7 +1658,12 @@ The capacity advantage is real and the cost is explicit: without a separately op
 **Logic over logic.**
 Stacking separately fabricated logic multiplies dies, mask sets, fab sources, and hidden interfaces, and it additionally deletes the backside optical path IRIS images through, a ground the shared ledger does not reach and the inspection entry below owns.
 
-**Disposition:** decline the second radio die and the inter-die link; no SRAM chiplet, bonded memory die, die-to-die memory link, or multi-die fallback; and do not stack acting logic over logic.
+**What the ledger prices and does not decline is an ensemble of whole machines.**
+The three proposals above split one machine's functions across two dies, so the link sits inside the machine's trust structure and the second die is a second object of the same machine.
+An ensemble (§2, §15) joins two complete machines that share nothing: each keeps its own address space, memory, root of trust, and signed generation, the link carries ring descriptors and never a load, a store, or a capability, and each machine attests itself and admits a peer only at the composition and on the unit its own composition names.
+The costs the ledger lists are paid there in full, the package, the link protocol, the parser, the clock-domain boundary, the attestation relation, and one more object to inspect, and they buy a second machine rather than half of one, which is why the same ledger declines the bifurcation and admits the ensemble; the attestation relation it calls one more thing to state and prove is stated at the link session (§12) and booked in §17 as carried no further than that session's model.
+
+**Disposition:** decline the second radio die and the inter-die link; no SRAM chiplet, bonded memory die, die-to-die memory link, or multi-die fallback; and do not stack acting logic over logic. An ensemble of whole machines over ensemble links is admitted on the terms §2 and §15 state and is not a second die: it multiplies the one inspected object and joins no die to another inside a machine.
 The adopted top-rung on-die isolation, and the adopted one-die realization with its discrete manufacturability residual, are documented in [Inspirations & Prior Art](inspirations.md).
 
 ---
@@ -1799,7 +1804,7 @@ Its residual density claim, packing five trits into eight bits against 1.585 bit
 **Lever (2) is admitted by R-15-157 already, and the channel that would make it pay does not exist here.**
 Three amplitudes on a wire hold the same architectural state as two, so R-15-157's doctrine applies verbatim, in the form the adiabatic entry above states once and later entries cite.
 Nothing is owed, and nothing is gained either.
-Multi-level signaling buys Nyquist frequency at the cost of SNR and mandatory forward error correction, and an FEC decoder is a variable-latency block against a TDM NoC whose per-hop latency is a constant in the §11 tables; and the long, lossy, expensive channels where halving the baud rate is worth that price barely exist on a machine that refuses logic-over-logic stacking, refuses chiplets, keeps main memory on-die, and draws its trust boundary at the die.
+Multi-level signaling buys Nyquist frequency at the cost of SNR and mandatory forward error correction, and an FEC decoder is a variable-latency block against a TDM NoC whose per-hop latency is a constant in the §11 tables; and the long, lossy, expensive channels where halving the baud rate is worth that price barely exist on a machine that refuses logic-over-logic stacking, refuses chiplets, keeps main memory on-die, and draws its trust boundary at the die, the one such channel it does have, the ensemble link (§15), taking a fixed-iteration decoder in the link endpoint whose latency is a slot constant and which sits on no fabric.
 On-die wires are short, and this design's own answer to wire cost is the flat cacheless array rather than a denser code on the wire.
 
 **Lever (3) is the sharpest future-proof argument in the proposal, and it lands squarely on the residual §17 does not name.**
@@ -2370,7 +2375,7 @@ The proposals below were evaluated as recovery levers and rejected, recorded so 
 - **Adding memory encryption or a memory integrity tree back**, and any capability-scoped variant of either.
   These are not recovery levers at all here: the memory path carries no cryptography (§15), so there is nothing to tune, amortize, or partition.
   They are recorded so they are not re-proposed as a *security* addition either: each would add a controller-side latency term to every access, and the tree would additionally require a node cache whose contents are history-dependent, which fails admission-test-3 (§15) exactly as a data cache does.
-  The full reasoning is this document's own entry above (*Memory encryption and the memory integrity tree*); the short form is that memory cryptography protects an interface and this machine has none.
+  The full reasoning is this document's own entry above (*Memory encryption and the memory integrity tree*); the short form is that memory cryptography protects an interface and this machine's memory path has none, the ensemble link being the interface it does have and protects as one (§15).
 
 ---
 
