@@ -1,0 +1,200 @@
+# Handlers and structured async lifecycle rules
+
+> Non-normative Q25b rule dossier. The [requirements register](../requirements-register.md) governs the platform; this proposal supplies no implemented language, accepted axiom, checked metatheory or admitted binary. [Q25](../implementation/implementation-checklist.md#q-assessment-actions) owns design review and subsequent implementation decisions. The [strategy's control and async commitments](verification-strategy.md#general-handlers-with-resource-safe-resumptions) fix the feature scope.
+
+## Boundary and shared resource interface
+
+The proposed language supports scoped handlers with zero, one or multiple resumptions and owned dormant computations with structured children. Their VerifiedOS realization is a finite represented reaction graph: ordinary control transfers, explicit cleanup and syntactic poll sites. R-05-100 forbids exceptions, unwinding and `longjmp`; R-07-037a forbids blocking, internal threads and an inner scheduler. A source construct qualifies only when its lowering proves those absences and R-11-006's schedule obligation. Generality of source effects supplies no ambient service capability or change to the composition-fixed graph.
+
+The [graded foundation's resource interface](graded-foundation.md#resource-and-computation-interface) supplies the stable telescope `Gamma`, computation-use vector `u`, type-use vector `v`, binder dependency rows and separate resource context `Delta`. A computation has represented, outcome-indexed resources; pure grade constraints do not supply a memory predicate. This dossier uses its proposed proof interfaces `Capture`, `Dup`, `Dispose`, `Suspend`, `Transfer` and `Share`. These names denote obligations to construct over the selected concrete logic, not available lemmas or proposition-valued ownership tokens.
+
+```text
+Gamma ; u ; v ; Delta_in |- e : Exit(A, Delta_out)
+  [captures C, loans L, effects E, source trace bound B, representation rho]
+
+Capture(e, Delta_k, C, L, rho_k)
+  records every transitively retained resource and its exit duties
+Dup(Delta_k, rho_k)
+  permits a represented clone and a separating resource interpretation
+Dispose(Delta_k, reason, Delta_disposed)
+  accounts for cleanup, erasure, terminal protocols and examined verdicts
+Suspend(Delta_k, frame, lifetime, Delta_resumed)
+  preserves stable storage, closed invariants and restoration at activation
+```
+
+`Delta_in = Delta_run * Delta_k * Delta_frame` denotes a proved separating split, including suspended parent permissions and restoration obligations where needed. A descriptor in `Gamma` may name a live loan but does not authorize access without the loan permission in `Delta`. `Dup` includes environments of nested closures, handlers and stored continuations; counting syntactic variables is insufficient. Repeated invocation receives fresh separated input resources `Delta_i` when its contract demands them. An idempotent usage domain cannot duplicate an owner. Source event counts follow the operation contract and compose separately from source use grades and target WCET.
+
+Effectful arguments elaborate through explicit call-by-value sequencing: `bind x <- c; call f(x)` evaluates `c` once with its own trace and resource transition. A zero use grade does not erase those effects, and a repeated use grade does not reevaluate `c`. The foundation's pure scaling rules and its open call-by-value bridge govern this distinction; multiple resumption repeats only the captured continuation under its explicit contract.
+
+The [synchronous core](core-design.md#loans-and-control-flow) remains the qualification slice. Its plain returns, resource-indexed errors and loan restoration embed by using no handler capture or suspended frame. Fallible cleanup and suspended loans below are proposed extensions requiring new laws; they do not retroactively strengthen that slice's evidence. [Soundly Handling Linearity](https://arxiv.org/abs/2307.09383v2) establishes the need to relate continuation use to retained linear resources. [Affect](https://iris-project.org/pdfs/2025-popl-affect.pdf) addresses affine effects, references retaining continuations and transformation validity. Their results do not prove this graded dependent, bounded CHERI combination.
+
+## Handler lookup, capture and return
+
+An effect signature declares represented arguments, a dependent represented reply type, required effect permission, input/output resources and allowed resumptions. A handler declares a finite operation table, deep or shallow mode, its environment representation, operation clauses, return clause, disposal clauses and result/resource transformation. Effect polymorphism quantifies over these contracts; specialization fixes tables, layouts and bounds before emission. A residual operation must appear in the caller's effect contract or be discharged by an injected primitive. An unhandled operation at the composed entry is an unresolved obligation, not a runtime trap or default service.
+
+An execution context `E` identifies the evaluated hole and the frames between that hole and the selected handler. Lookup chooses the nearest enclosing handler whose table contains the operation identity, using identity after resolution, not a string name. The chosen operation clause executes outside that handler and outside the intervening frames. Its own operations therefore seek the outer chain unless it explicitly installs another handler. Intervening frames belong to the captured continuation and are restored on resumption; their cleanup is not run merely because control reaches a clause.
+
+```text
+handle_deep E[perform op(a)] with H
+  -> H.op(a, k), where resume k(b) evaluates handle_deep E[b] with H
+
+handle_shallow E[perform op(a)] with H
+  -> H.op(a, k), where resume k(b) evaluates E[b]
+```
+
+These are proposed source steps with the resource premises below, not textual substitutions of copied environments. Deep resumption reinstalls `H`, including its return transformation. Shallow resumption does not reinstall it: the resumption contract returns the raw body's result/resources, which the operation clause must transform explicitly. An explicit rehandling expression may install a fresh handler under its own premises. Ordinary body completion evaluates `H.return` once. Each deep resumption reaching ordinary completion evaluates its own represented return clause, so multiple resumptions account for each invocation and its resources.
+
+| Rule | Required state and resulting obligation |
+| --- | --- |
+| Enter handler | Split the handler's environment from the body where exclusive resources require it; bind a declared frame and check every operation/return/disposal exit against the handler's result transformation. An immutable descriptor can be shared only through its actual permission. |
+| Capture | Move `Delta_k` into one continuation frame, retaining the whole transitive loan/authority graph, handler chain and pending exit obligations. The running clause cannot use resources moved into it. Every captured identity has a representable extent and lifetime; no unrepresented stack address crosses the delimiter. |
+| Forward unmatched operation | Continue lookup outward, adding the intervening handler frame to `E`. Do not execute its return or disposal clause; it resumes as part of `E`. |
+| Explicit forward from a clause | Move the existing continuation into a forwarding adapter whose contract composes the outer reply with the original resumption. Look up strictly outside the current handler. The adapter owns the original continuation once; it cannot retain an alias or reset its use allowance. The composed capture and disposal obligations include both continuations. |
+| Resume once | Consume the one-shot continuation authority and transfer `Delta_k` and reply resources into the resumed graph. On return, the caller receives precisely the resumption's indexed result. A consumed continuation descriptor cannot be invoked again, even when its first invocation returns an error. |
+| Resume multiple times | Require `Dup` for the retained template and every reinstated handler environment; bind a distinct invocation frame per simultaneously live clone. Check each fresh reply/input context `Delta_i`, each resulting exit and a finite admitted resumption bound. Sequential invocation may reuse storage only after its prior release gate. Shared mutable handles additionally require the [interference rules](interior-mutability.md); copying a descriptor grants no direct mutable access. |
+| Dispose without resumption | Consume the continuation through its declared disposal graph. End descendants before their parent loans; explicitly erase must-erase contents and eliminate mandatory verdicts by named outcome. A continuation owning an in-flight operation requests cancellation where available and joins terminal completion. Disposal may therefore suspend under `Suspend`; it cannot free the frame while waiting. |
+| Leave handler | Every captured continuation is consumed, disposed, or explicitly transferred in the handler's result with its lifetime and exit contract. The handler environment remains live while any transferred continuation retains it. No ordinary return silently abandons it. |
+
+The handler may alter a result type and resources, but all alternatives either establish one common predicate by entailment or retain a represented indexed sum. For example, a disposed packet owner and a resumed result retaining a loan do not join as a freely writable packet. An explicit disposal clause does not execute the abandoned user continuation as cleanup: it follows a separately checked, bounded cleanup graph. Its effects, possible waits and failure exits appear in the same judgment.
+
+Handler nesting, forwarding depth and the number of resumptions have specialization-time bounds or bounded-loop derivations. A recursive forwarding cycle without a decreasing bound cannot pass. Capturing a continuation is an explicit binding operation: if continuation capacity is unavailable, the declared capture-failure branch receives the uncaptured resources and examines `CapacityExhausted(pool)`. There is no partially moved context. A capture site without such a branch requires a proof of reserved available capacity.
+
+## Frames, child ownership and reaction execution
+
+The proposed runtime representation stores each live frame at a preassigned, immovable slot. Its finite state includes a program-counter tag, incarnation identity, represented environment, handler links, child membership, cancellation latch, bounded mask state and an indexed result slot. Loan and ownership proofs may erase; bases, extents, discriminants and identities needed by execution do not. Representation validity tracks initialization of each variant and permits access only to its initialized fields. Incarnation identities distinguish old handles before reuse and have a checked exhaustion/no-wrap policy; they do not create a new kernel epoch mechanism.
+
+The continuation or scope owns the frame; user handles merely provide their declared operations. Losing a handle leaves the owning scope's membership intact. Internal references name the slot plus the live incarnation under `Suspend`; their authority cannot survive moving or retiring that slot. Returning a view into a task frame transfers a pin/loan that prevents reuse until the view ends. A simpler API returns owners or copies values instead. Inter-core transport is outside an ordinary spawn and requires `Transfer`/`Share`, composition grants and the separate publication theorem.
+
+The frame pool follows R-08-046's member lifecycle; the task's logical program-counter states below refine it rather than replacing it. The separate request-slot lifecycle and terminal status vocabulary remain owned by [the IDL profile](idl-profile.md#43-the-ring-schema-and-its-lifecycle) and generated [RingContract.v](../../proofs/RingContract.v). Task completion is not ring reclamation, and a terminal record is not evidence that all readers have ended.
+
+| Source event | Frame and scope transition |
+| --- | --- |
+| Construct async computation | Move captures into a dormant owned value in existing declared storage; execute no body effect. Disposing an unspawned value requires its `Dispose` contract. Construction storage itself must fit the plan. |
+| Scoped spawn | Bind a frame and completion capacity, then transfer the dormant value to the scope's child slot. Body execution starts only at its graph's admitted activation. Failure returns the unchanged dormant value and examined capacity verdict, with no child registered. |
+| Run activation | Execute the declared finite control-flow branch for this frame's state within the compartment reaction. All internal choice is ordinary program control flow with a proved bound; no ready queue selects a task. |
+| Await checkpoint | Require already-closed invariants and released default dynamic guards, then validate suspension/restoration premises and observe the sticky cancellation state and any declared deadline decision. Elaboration may insert only a separately proved close/release operation before this edge. This step occurs even when the awaited result is ready. It records a semantic checkpoint, not a mandatory OS dispatch. |
+| Await ready | Match the current result at the checkpoint and continue only along the graph's declared successor. It may continue in the same bounded reaction if that path is admitted. Cancellation of the enclosing task routes through its cleanup edge while still accounting for an already-produced result. |
+| Await pending | Store the continuation PC and retained resources, then return at a syntactic poll site. Later activations inspect authoritative state in the declared order. Coalesced notifications are hints; the existing ring index/recheck discipline remains required. |
+| Child reaches terminal | Store its result/resources in its reserved completion record; retain scope membership until collection. A local result cannot hide an unexamined service completion. Service terminal publication obeys R-12-093 and R-12-100. |
+| Join child | Consume its mandatory result by named outcome and transfer/restore returned resources. Reclaim the child frame only after loans, readers, erasure and the pool release gate permit it. |
+| Finish scope | Normal exit joins every child. Early return, typed failure or scoped timeout first marks descendants for cancellation and then joins them. The scope releases captured parent storage only after those obligations finish. Detached children are outside this profile. |
+
+The composition fixes the family of activation edges and their order. A pending child never causes an unplanned activation, poll-spin or work donation. R-07-037b's platform rotation may revisit the compartment, but it remains the existing rotation, not a task scheduler. Ready and failed children are collected in declared child-index order; observation order cannot erase a failure already recorded at another index. At each admitted observation site, a discovered child failure marks the owning scope for its early-exit rule. The final indexed result retains every child's outcome or a proved explicit elimination of it, including failures observed after another child has already caused cancellation.
+
+All variable occupancy, including dormant environments requiring pool storage, task/continuation frames, scope membership and completion records, must have an R-08-046 classification and manifest entry. It carries the entry's entire authority, lifecycle, capacity, derivation-source, exhaustion, confidentiality, recovery and generation contract. Frame and completion binding is transactional at the source level: acquire the required preassigned slots together or return every input. Cleanup resources are reserved before the child becomes live. They are charged declared resources, never an emergency allocator. R-08-045's capacity equation includes frame metadata and unused reservations; R-08-047 governs exhaustion without borrowing capacity from another pool.
+
+## Cancellation, commit and all exits
+
+Each cancellable child declares its identity, checkpoints, final commit transition, bounded masking regions, cleanup graph, child-join plan, quiescence obligations and terminal bound. A source-local identity names its owned frame incarnation. A service cancellation additionally uses R-12-097's generation and request identifier through the existing control plane; this proposal adds no wire field or cancellation ring. A local `Task` is not an IDL `future`; the profile's deleted constructor remains deleted.
+
+Cancellation delivery and terminal completion are separate events. A scope request latches a persistent local bit and marks descendants in the graph's bounded order. A service request may need a later scheduled control-plane visit; refusal to transfer is examined and reoffered only according to the declared bounded policy. Receipt alone neither releases a loan nor proves device quiescence. The generated `cancel_answer` and common terminal status have different types: `too_late` and `not_live` are control replies, not new terminal completion statuses. The existing `cancel_cancelled` branch commits the target to its declared cancelled completion path; storage remains owned until that path and its release conditions finish.
+
+| Target state when its cancellation decision runs | Required continuation |
+| --- | --- |
+| Dormant, not registered | The owner may dispose locally under `Dispose`; no nonexistent service request is cancelled. |
+| Registered but not started; service request still Submitted | Cancel before body effects; consume/restore its input resources through the unstarted cleanup path and record one `cancelled` terminal result. |
+| Live before commit | At the declared checkpoint, accept cancellation and enter cleanup. Between checkpoints the bit persists; only the bounded declared segment may run before the next decision. The decision point's operation contract supplies the precommit cancellation semantics. |
+| Commit already linearized | Answer `too_late` and finish the committed protocol normally. The scope may remain cancelled, but cannot undo the operation or retire an already-consumed commit token. |
+| Target no longer live, stale generation, or non-cancellable operation | Use R-12-097's `not_live` control answer where applicable. Examine it and inspect the already-owned terminal/generation state; it is not permission to invent successful cancellation or free the frame. A non-cancellable child requires a bounded normal join contract. |
+| Accepted cancellation during cleanup | Keep cancellation latched and continue the same cleanup; do not restart it, publish another terminal record or reenter ordinary work. Repeated requests have the declared idempotent observation of the same live cleanup decision. |
+
+Each cancellation/commit race has a concrete serialization point. The final cancellable checkpoint tests the latched request before entering a bounded no-capture/no-suspend commit segment. A request observed there wins and the segment does not execute. A request arriving afterward, even before the commit instruction executes, is not yet accepted: it is decided after the commit and receives `too_late`. Commit state is represented before the next checkpoint. If a request meets an already-terminal target, it receives `not_live` and the original completion remains authoritative. In a service implementation these steps must refine its declared R-12-097 points; choosing a new linearization point by language desugaring would violate that contract.
+
+A ready awaited child does not become cancelled retroactively. At the parent's checkpoint, first account for the child's terminal resources, then take the parent's cancellation cleanup edge instead of ordinary continuation where cancellation is pending. For simultaneous observed events, the interface fixes checkpoint ordering as generation validation, cancellation/finite deadline decision for the current task, then result processing in child order. Already-linearized commits and existing terminal records constrain that order: a deadline cannot reclassify them. The interface states whether a precommit deadline decision produces `deadline_expired` directly or requests cancellation and subsequently produces `cancelled`; it cannot leave that visible status ambiguous.
+
+| Exit | Resource and control duty |
+| --- | --- |
+| Fallthrough, return, `break`, `continue`, propagated `Result` | Close local loans and establish the specific return/loop invariant. Crossing a scope boundary elaborates to its explicit join or early-exit graph. All branches retain their reason and resource predicate. |
+| Handler abort by zero resumption | Run the continuation's `Dispose` graph, including child joins and must-examine verdicts; return only its declared disposed resources. It is an explicit typed branch, with no stack walk or unwinding. |
+| Precommit cancellation or scoped timeout | Stop ordinary work after the declared decision, cancel/join children, quiesce device-held references, run cleanup, then publish the chosen terminal result and release according to the pool contract. |
+| Client wait timeout | Stop that wait only. The enclosing scope retains the task, authority and completion obligation; a later join or explicit scope cancellation remains required. It cannot return a loan as if the operation had stopped. |
+| Child failure | Preserve its typed outcome, mark the owning scope, cancel/join affected siblings and keep all resources indexed by actual outcomes. A `too_late` sibling completes normally and is still joined. |
+| Postcommit normal completion | Preserve the committed effect, complete its bounded remaining work, quiesce and return the actual outcome. No cancellation acknowledgement grants earlier storage reuse. |
+| Fallible cleanup | Its declared result graph either reaches a bounded recovery cleanup with the retained resources or takes the existing fail-stop path. A cleanup error is not a returned writable owner. No unbounded retry, cleanup recursion or new cleanup resource request is permitted. |
+| Compartment fault, overrun, session teardown or restart | Source cleanup is not assumed to execute. Existing containment/revocation and generation change govern recovery; an old service request has the R-12-093 logical `peer_restarted` result. Storage remains unavailable until the platform reuse gate, including outstanding device authority, completes. |
+
+Terminal service completion retains no DMA capability under R-12-100. Reclamation additionally consumes every reader under R-12-094 and satisfies the pool's release-to-Reusable contract. Revocable storage follows R-08-007a's barrier and sweep requirements; a local proof cannot skip them by deleting a source handle. If DMA misses its declared quiescence bound, R-12-099's fail-stop applies. Neither an error value nor failure to receive a completion establishes the missing quiescence fact.
+
+## Bounds and progress premises
+
+Each specialized operation provides finite bounds for frame nesting, live children, resumptions, checkpoint distance, masked segments, cleanup steps, control delivery, device quiescence and terminal publication. Each graph segment has a decreasing local measure or an acyclic bound. Service repetition may be indefinite across requests, but the accepted individual request and each cancellation cleanup have a finite terminal contract. A parent cannot cyclically wait on a descendant that waits on the parent's release; the join/resource dependency graph is acyclic.
+
+For a finite path `p`, define `L(p) = sum(C(v)) + sum(G(e)) + sum(D(e))`, counting occurrences, where `C(v)` bounds executed work, `G(e)` bounds scheduled gaps before the next activation and `D(e)` bounds external service waiting not already included. The proposed bound is the maximum over admitted bounded paths, or a conservative sum using loop/visit bounds. Each coefficient comes from its named artifact; grade arithmetic alone cannot certify a machine cycle. The complete graph supplies the max-path cost and storage evidence R-05-102, R-08-017 and R-11-006 require, including ready continuations, polling, cancellation checks and unsuccessful visits.
+
+```text
+B_precommit(t) = B_deliver(t) + B_checkpoint(t)
+                + sum(B_terminal(child)) + B_cleanup(t)
+                + B_quiesce(t) + B_publish(t)
+B_committed(t) = B_normal_remaining(t)
+                + sum(B_terminal(child)) + B_cleanup(t)
+                + B_quiesce(t) + B_publish(t)
+B_terminal(t) >= max(B_precommit(t), B_committed(t), B_unstarted(t))
+```
+
+The sums conservatively serialize child work and include activation gaps; a tighter overlap argument is unnecessary. Terms are maxima for the child's actual precommit/committed state, and child identities range over the fixed scoped bound. `B_checkpoint` includes the maximum masking delay. `B_deliver` includes expiry observation or scope-request propagation and any bounded control-plane reoffers; a request that has already reached the deciding site may use its remaining suffix. The separately declared release bound adds completion collection, readers, required erasure, revocation and sweep to terminal time. A terminal-time claim cannot be substituted for it.
+
+An instantiated witness must state units and show these sums fit the interface's terminal declaration and the composition's slot/cadence and capacity checks. The generated `cancellation_interval` and `op_max_to_terminal` in [RingContract.v](../../proofs/RingContract.v) provide the service-side declaration arithmetic, not a theorem connecting Vela frames, child waits or execution to it. [CopyRingService.v](../../proofs/CopyRingService.v)'s declared cleanup and held-reference obligations are likewise inputs with their own scope. This dossier supplies no measured target constants.
+
+The finite bounds assume admitted reaction WCETs, the promised activation cadence, live generations, bounded device service/quiescence and a control path that delivers within its declaration. An unavailable peer with no such bound yields no normal terminal-time theorem; the interface must provide a bounded failure/teardown branch or refuse that hard progress claim. Hardware faults use their own recovery bounds. Safety and retained ownership do not depend on treating a missed progress assumption as successful completion.
+
+## Positive derivations and invalid neighbors
+
+These are inhabited symbolic source configurations and conditional paper derivations. No Vela checker executes them. Each uses fixed positive capacities sufficient for the stated frames, initialized representations, available injected authority and a live generation; empty resource examples use `emp`. Missing concrete laws are named below rather than assumed accepted. The expected branch and resource change are fixed before implementation.
+
+| Case | Trace and resource derivation |
+| --- | --- |
+| Zero resumption with disposal | `Own(packet) * EraseRequired(packet)` is moved into `k` at a handled choice. The clause selects rejection and `dispose(k)` runs a finite byte-erasure graph, consumes the erasure obligation and returns the cleared owner to the caller. Trace is capture, named reject, erase, disposed return; no resumed body event occurs. This needs capture/disposal and erasure laws; no external operation or verdict is silently omitted. |
+| One resumption with a loan | A pinned outer packet owner lends a shared prefix into `k`; the parent access stays suspended. `resume k(reply)` uses the view, ends the loan and returns its restoration evidence, reconstituting the enclosing parent's access exactly once under the loan-end law. The clause consumes the returned result. A deep handler's return transformation runs once; the shallow variant returns the raw result and the clause explicitly applies its transformation. |
+| Multiple resumptions | A handler around `let b = perform choose(); callback(snapshot,b)` captures only a stable immutable snapshot and a proved repeatable effect-free callback. Its owning packet/frame stays outside the delimiter. Clone with `Dup`, resume with `false`, resume with `true`, collect both scalar results, dispose the template. Each invocation calls the callback once by its contract, so the source callback-event bound is two; each clone has independent local storage and its own result elimination. No unique owner or protocol token is cloned. |
+| Nested lookup and forwarding | An inner handler handles `trace`, an outer handler handles `choose`; performing `choose` captures the intervening inner frame. Deep resumption reinstalls the outer handler and the inner `trace` handler. An explicit forwarding clause instead moves `k` into an adapter to the next outer `choose` handler; disposal of the adapter must dispose `k` too. Neither trace environment is lost at forwarding. |
+| Ready await | Spawn child at its assigned activation; it records `ok` and returned resources. Parent reaches await with cancel bit clear, performs the checkpoint, matches `ok` and continues along its admitted ready edge. With parent cancellation already latched, the same ready result is collected and parent cleanup runs; it is not discarded and ordinary work does not run. |
+| Pending await | Spawn, parent checkpoint, pending PC store, poll-site return; child completes at its admitted activation; parent is revisited, rechecks authoritative completion state, checkpoints and matches the result. All retained loans name pinned live storage and closed invariants across the gap. |
+| Cancellation race | Request observed at the final checkpoint gives cancelled cleanup with commit token unspent; a request after that checkpoint's bounded commit segment gives `too_late`, then the single normal terminal completion. A cancellation arriving after terminal gives `not_live`; collection still consumes the original result. |
+| Child failure and cleanup | Child at lower index fails before commit; the scope observes its outcome, marks its sibling, receives sibling `too_late`, joins that sibling's normal completion and returns the indexed pair of outcomes after cleanup. Parent storage stays pinned throughout. A declared cleanup failure keeps ownership unavailable and takes bounded recovery or fail-stop. |
+| Capacity and timeout | Full frame capacity gives `CapacityExhausted(pool)` and the unchanged dormant computation. A client wait timeout leaves an already-spawned task in its scope. A scoped timeout requests cancellation and joins under `B_terminal`, including a committed child's normal-completion branch. |
+
+The combined Q25d client prepares an initialized private packet and an immutable snapshot under the [synchronous core's copy-once contract](core-design.md#composed-qualification-fixture), then registers a bounded child. Its pure choice handler runs the repeatable graded callback on that snapshot; the packet owner and frame permission stay outside the multi-shot delimiter. The child accesses the guarded scalar `CountCell(c,g)` only through the [mutability dossier](interior-mutability.md)'s `commit_add(handle, AddOnce(c,g,k,n), n)`. The linear `AddOnce` authorization is outside every repeatable capture. Its conserved allowance proves the aggregate count representable.
+
+One concrete data witness has capacity `N = 4`, admitted length `n = 2`, source bytes `[1,2]` and the initialized private destination `[1,2,0,0]`. The pure repeatable callback receives the immutable prefix snapshot and a represented Boolean, returning a scalar without touching the packet owner. The handler resumes on `false` and `true`, giving two source callback events by that contract. A `Ready` parser result additionally needs an actual valid-header witness for the selected encoding; the byte pattern here witnesses storage, ownership and the local counter path, not unspecified parser validity. Q25d must supply its selected packet format and branch expectations before the combined parser case counts as inhabited.
+
+The child's final checkpoint and `commit_add` form a bounded no-capture/no-suspend segment. Precommit cancellation retires `AddOnce` once without addition and disposes the packet under its resource contract. The single aligned scalar AMOADD is the committed effect; the frame records `Added(c,g,k,n,old)` before the next checkpoint. A later cancellation is `too_late`, and normal cleanup returns the packet owner and the actual result. The counter is arithmetic state, not publication of packet contents; any service completion uses its separate release/acquire proof. A second child supplies the simultaneous failure and sibling-join case. This is a proposed local child operation; mapping it to any service interface must explicitly supply that interface's cancellation/commit declaration and current generation, not alter the ring schema.
+
+| Well-formed change to a positive case | First refusing premise |
+| --- | --- |
+| Clone the one-shot `k`, or hide it in a shared cell and invoke both aliases | `Dup` for its transitive owner/loan or one-shot consumption; a duplicable cell descriptor does not duplicate contents. |
+| Keep `AddOnce` inside the multiple-resumption delimiter | `Dup` for the unique commit authorization; callback repeatability is insufficient. |
+| Dispose `k` without erasing its packet or without examining an already-produced child failure | `Dispose`'s erasure or mandatory-verdict elimination obligation, respectively. |
+| Resume after the captured parent frame expires, or move a frame retaining a self-reference | `Suspend`'s live incarnation, stable address and parent-lifetime premise. |
+| Return a parent writable owner while a pending child or returned view retains its loan | Indexed exit restoration and structured-scope extent. |
+| Skip the ready-await checkpoint when the cancel bit is set | Checkpoint trace and cancellation-priority simulation; immediate readiness cannot authorize ordinary continuation. |
+| Clear cancellation in a mask region or resume ordinary work after accepted cancellation | Sticky cancellation invariant and cleanup-only transition graph. |
+| Reuse a terminal slot under a reader, DMA holder or pending required sweep | Request reclamation and pool release-to-Reusable premise; terminal status alone proves none of them. |
+| Ignore sibling failure after another child has failed; overwrite a full completion record | Mandatory outcome elimination or pre-reserved completion capacity. |
+| Free the task on `too_late`, `not_live` or wait timeout | Missing terminal ownership transfer and quiescence/reclamation evidence. |
+| Add an unbounded cleanup retry, forwarding cycle or ready-task selection queue | Finite path/ranking proof or the R-07-037a lowering obligation. |
+| Perform packet mutation after counter-only AMO as if it published the packet | The distinct publication/ownership theorem; counter arithmetic grants no payload access. |
+
+Each negative preserves parsing, resolution, unrelated entry resources and the accepted fixture's operation identities. A missing implementation, unsupported syntax, timeout or unrelated theorem failure is not the intended rejection. Q25d's acceptance packet must instantiate the symbolic resources and expected outcomes over one concrete representation, retaining failing goals at these specific premises.
+
+## Open laws and amendment duties for Q25d
+
+| Open obligation | Required statement and evidence |
+| --- | --- |
+| `HA-capture-substitution` | Moving a transitive resource context into a represented frame preserves graded dependencies, resource separation, capabilities and loans; substituting a reply preserves each deep/shallow/forwarding result contract. Check nested handler environments and explicit forwarding adapters. |
+| `HA-resume-dispose` | One-shot use transfers once; `Dup` yields separated valid invocations with fresh inputs and compositional traces; zero-shot disposal closes erasure, restoration, mandatory verdicts and protocols on every branch. Include continuations stored through mutable interfaces. |
+| `HA-suspend-scope` | Every activation preserves the frame's typed representation, stable addresses and loan tree; no parent owner or frame is released before every child's actual indexed terminal resources and returning views are discharged. |
+| `HA-cancel-progress` | Relate the local sticky-bit/commit machine to the declared R-12-097 service decisions where used, with exactly one terminal result, finite masked distance and explicit delivery/child/quiescence bounds. Prove cleanup failure preserves safety without assuming source cleanup on fail-stop. |
+| `HA-lowering-erasure` | The explicit PC graph simulates the source checkpoints, handler return transformations and indexed exits; erasure preserves discriminants and effects. Cloning or moving an effect across a checkpoint, commit or handler boundary requires its own preservation law. Connect graph costs/storage to the actual TAL derivation and pinned Sail. |
+| `HA-combined-embedding` | Instantiate Q25a's resource interface and Q25c's counter/guard protocol with the packet client, including inhabited states and intended negatives; prove the no-handler/no-suspension restriction retains the synchronous core's behavior and exit predicates. |
+
+These missing laws are design outputs for Q25d to review and assign once. The existing foundation and compiler obligations remain with the [foundation map](../hardware/cheri-foundation-map.md) and [compiler route contract](compiler-route-contract.md); a new title here supplies no new evidence or implementation estimate. No implementation gate opens merely because the names are assigned.
+
+| Requirement boundary | Exact disposition owed before dependent implementation |
+| --- | --- |
+| R-08-046 pool inventory | Its current explicit inventory does not name general task, scope, continuation and completion-frame pools. Q25d must either prove and record their complete classification under an existing named class or amend this entry's inventory and cited prose to include the proposed classes, retaining every existing manifest field. R-08-045's charge and R-08-047's exhaustion semantics remain obligations; a hidden frame allocator cannot qualify. |
+| R-05-020 translator admission | Resolve the Vela frontend's concrete nonduplication and retiring-interim demonstration under the retained Q21 decision. If no such demonstration exists, implementation remains closed; changing this condition requires an explicit register amendment, not handler syntax. |
+| R-05-100 and R-07-037a | Preserve the typed absence and cooperative-reaction shape by the PC-graph proof. No amendment is requested by this proposal. An implementation needing unwinding, an internal thread, dynamic task scheduling or a blocking join fails this design; choosing it would require an explicit amendment to these exact requirements before implementation. |
+| R-12-097, R-12-093 through R-12-095 and R-12-100 | Reuse the declared control replies, terminal ownership, completion capacity and device-quiescence protocol. Local task syntax changes none of them. Any requested new reply/status, cancellation transport or earlier release rule requires amendment of its owning entry and the IDL/generated contract; none is proposed here. |
+| R-05-132 through R-05-134; R-11-006 | Project source reasoning into existing TAL attributes and separately checked CIC obligations, with actual schedule evidence. A new on-device grade or checkpoint interpreter cannot be presumed admitted; the exact attribute criterion would need its own demonstration or amendment. |
+
+Amendments follow R-18-034 and require the register/prose co-read and integration gate. The document checker checks corpus consistency, not these laws. Design acceptance requires an attended read of the rule choices, the common resource/cell interfaces and their limits; mechanization, frontend admission, target execution and timing qualification retain separate acceptance predicates.
