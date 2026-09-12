@@ -20,18 +20,17 @@ R-05-023b); the statement artifacts under [proofs/](../../proofs/) fix what the
 switch restores and what the handoff supplies; this document is read after all
 four and is defective wherever it disagrees with any of them. The start-from is
 read last: SECOMP's `riscV/` backend at the pinned gitlink
-`5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78`, which is the tree M1.1b names and
-M1.2b has since edited in the contained repository. Where this document states a
-role the register does not fix, it states the start-from's and says so, and the
+`5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78`, which is the tree M1.1b names.
+M1.2b's partial backend modifies this start-from in the contained repository.
+Where this document states a role the register does not fix, it states the
+start-from's and says so, and the
 gap section records it.
 
-**Revisions.** Every repository figure below is read at `6c1813e` and every
-start-from figure at the pin above, out of the gitlink's own object store rather
-than a populated checkout. The start-from's five files read are `Conventions1.v`
-(857 lines), `Machregs.v` (259), `Asm.v` (2,115), `Asmgen.v` (905) and
-`Stacklayout.v` (166), each by the line count of `git show <pin>:riscV/<file>`.
-The contained backend M1.2b landed deletes the float bank from four of them; its
-landed note in [the checklist](implementation-checklist.md) carries what moved,
+**Sources.** The repository clauses below are the model and register named at
+each use; the start-from references are `riscV/Conventions1.v`, `Machregs.v`,
+`Asm.v`, `Asmgen.v` and `Stacklayout.v` at the pin above.
+M1.2b's partial backend deletes the float bank; its
+note in [the checklist](implementation-checklist.md) carries what moved,
 and this document cites that note rather than the contained revision where the
 two differ.
 
@@ -46,7 +45,7 @@ authority. There is no capability bank and no instruction moves a value between
 banks. The consequence for an ABI is F-000q's: a role assigned to a register is
 also an authority discipline, an ABI integer name being an authority destroyer,
 so the roles below name which registers may hold authority at a boundary rather
-than which bank a value sits in. The dialect spells one register three ways,
+than which bank a value sits in. The dialect provides integer and capability aliases,
 `x5`, `t0`, `c5` and `ct0` naming one register
 ([dialect.py](../../tools/vos/dialect.py)), and the zero register's capability
 reading is `cnull`, the null capability the all-zeroes granule decodes as
@@ -68,7 +67,7 @@ The roles, and what fixes each:
 
 The allocatable set at the pin is the 26 integer registers `R5` to `R30` of
 `Machregs.v` (the predicate: constructors of `mreg` naming an `X` register), and
-M1.2b's landed backend keeps it at 26 with the float constructors deleted. The
+M1.2b's partial backend keeps that set with the float constructors deleted. The
 reset distribution the roles sit over is the model's: PCC, `nextPCC`, MTCC and
 MEPCC start at `default_cap`, the execute-side root carrying access-system-
 registers over the whole space, MTDC at the null capability, and `x1` at
@@ -147,7 +146,7 @@ R-15-007k nothing per frame; a backend that narrows per frame owes the paragraph
 above at every prologue and gives every callee a capability that reaches no
 caller frame. Each is admissible under the entries as they stand and the choice
 is gap e. Under either, a capability slot is 8 bytes at 8-byte alignment,
-M1.2b's landed backend pinning the capability to one `Mint64`/`Q64` slot, one
+M1.2b's partial backend pinning the capability to one `Mint64`/`Q64` slot, one
 tag per 64-bit granule (R-15-203), and a capability access straddling a granule
 faulting as a misaligned access
 ([cap-trap.s](../../corpus/cap-trap.s) lines 81 to 90); the start-from's 8-byte
@@ -164,8 +163,10 @@ register's name.
   with the capability load**, at an 8-byte-aligned slot, tag-preserving. A spill
   through the integer store clears the granule's tag on the write path, tag
   clearing being a property of that path and not an instruction (R-15-007r), and
-  the reload then yields an untagged value that faults at its next dereference
-  with no cause code and no control-flow term (R-15-007h). The route contract
+  the reload then yields an untagged value whose later dereference raises a
+  tag-violation fault. Clearing the stored tag does not itself raise a fault;
+  R-15-007h's absence of a cause code or control-flow term describes the failed
+  derivation, not the later dereference. The route contract
   refuses integer spill and reload of a capability outright and requires
   tag-preserving spills under the `frame` rule
   ([compiler-route-contract.md](../languages/compiler-route-contract.md)).
@@ -295,7 +296,7 @@ vector-FP instruction is the low `SEW` bits of an integer register, and
 NaN-boxed ([the profile's exclusion notes](../hardware/isa-profile.md#6-exclusions),
 R-15-040). So a float-typed value lives in an integer register, is passed and
 returned in the integer argument and result registers, and spills as an untagged
-integer slot. M1.2b's landed backend exhibits the passing half: `double id(double x)`
+integer slot. M1.2b's partial backend exhibits the passing half: `double id(double x)`
 and a forwarding call compile with no `f` register named and the call's `x10`
 untouched, and a `double` passed to a variadic callee moves with `mv x11, x10`
 where the pin moved through `f1`; the same backend refuses a float load, store
@@ -308,8 +309,8 @@ out, and independent scalar-float work is batched to VL greater than one under
 the SLP duty R-18-014a already owes. Two consequences an author should read here
 rather than derive: a partition that computes any float needs its vector state
 gated on at partition setup (`mstatus.VS`, R-07-012), the kernel itself being
-scalar-only; and the vector registers a chain occupies are clobbered by every
-call and every compartment crossing, no rule preserving any of them (gap d).
+scalar-only; and code cannot rely on vector intermediates surviving a call or
+compartment crossing until the preservation convention is fixed (gap d).
 `Zfinx` is not the route and is excluded on its own ground (R-15-039d), so the
 soft-float convention is the only scalar-float ABI on the machine, and every
 later vector-FP extension defining a scalar-operand form pays the same re-homing
@@ -326,10 +327,12 @@ nothing else, a primitive naming no row is a defect of the compiler, and a
 component naming an instruction no primitive covers does not build. The
 backend's test set carries one positive case per primitive emitting the encoding
 the row states and one negative case rejecting a name no row carries
-(R-18-014a). The emission shape is therefore the same for every primitive: one
-instruction, its operands mapped register for register from the primitive's
-operands, no surrounding sequence, no hidden temporary, and no reordering of a
-memory operation across a barrier primitive.
+(R-18-014a). Each primitive emits its named instruction with the operand form
+below. Operand preparation, result placement and any temporary registers remain
+backend work: their emitted sequence must preserve the Sail meaning and satisfy
+R-05-023a's record. The register does not require every source invocation to be
+one instruction in total. A barrier primitive must preserve the ordering its
+Sail clause states.
 
 The four the M1.2 cell names, each from its own clause:
 
@@ -408,11 +411,9 @@ control-transfer instructions every call lowers to.
 
 **What the rows do not say.** The profile names `fence.t`, `vmclear` and
 `cclear` by mnemonic in its custom-instruction section and its timing contracts,
-and it names neither `cspecialrw` nor `csealentry` anywhere: at `6c1813e` the
-count of lines of [isa-profile.md](../hardware/isa-profile.md) matching
-`specialrw|sealentry` case-insensitively is 0, where `fence.t` matches 9,
-`vmclear` 4 and `cclear` 8, and the CHERI feature table names the trap
-registers and capability jump-and-link by function. R-05-023b's membership is
+and it names neither `cspecialrw` nor `csealentry` by mnemonic. The CHERI feature
+table names the trap registers and capability jump-and-link by function.
+R-05-023b's membership is
 the profile's instruction rows and nothing else, so two of the four primitives
 the M1.2 cell requires have no row to name; that is gap h and not a decision
 this document takes.
