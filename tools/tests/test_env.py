@@ -3,7 +3,7 @@
 
 `vos/env.py` runs its loops in the guest, but it is imported on both lanes, so what
 is held here is everything that must be true before a loop starts: the module
-imports cleanly on win32 and `load()` refuses the lane by name, `_lane` derives the
+imports cleanly on win32 and `load()` refuses the lane by name, `lane_of` derives the
 lane from the checkout's `.git` shape, `_jobs` sizes from cores under the memory
 guard, and the overrides wave 1 moved to validated call-time reads take effect when
 set after the import, which is the hook a test like this one stands on.
@@ -58,7 +58,7 @@ def _lane_shapes() -> None:
         root = Path(td)
         # the primary shape: .git is a directory, so there is no pointer to read
         (root / ".git").mkdir()
-        ensure(env._lane(root) == "", "a .git directory is the primary lane")
+        ensure(env.lane_of(root) == "", "a .git directory is the primary lane")
 
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -66,28 +66,92 @@ def _lane_shapes() -> None:
         # a linked worktree: the pointer names a directory under .git/worktrees/,
         # and git on Windows writes it with either separator
         dot_git.write_text("gitdir: C:/repo/.git/worktrees/LaneX\n", encoding="utf-8")
-        ensure(env._lane(root) == "lanex",
-               f"a worktree pointer must yield its lowercased name, got {env._lane(root)!r}")
+        ensure(env.lane_of(root) == "lanex",
+               f"a worktree pointer must yield its lowercased name, got {env.lane_of(root)!r}")
         dot_git.write_text("gitdir: C:\\repo\\.git\\worktrees\\Mixed\n", encoding="utf-8")
-        ensure(env._lane(root) == "mixed",
+        ensure(env.lane_of(root) == "mixed",
                "a backslash pointer must normalize before it is parsed")
         # a submodule's .git is a file too, pointing into .git/modules/ instead,
         # which is why the parent component and not the file kind decides
         dot_git.write_text("gitdir: ../../.git/modules/sub\n", encoding="utf-8")
-        ensure(env._lane(root) == "", "a submodule pointer is not a lane")
+        ensure(env.lane_of(root) == "", "a submodule pointer is not a lane")
         dot_git.write_text("not a pointer at all\n", encoding="utf-8")
-        ensure(env._lane(root) == "", "a .git file with no gitdir: line is not a lane")
+        ensure(env.lane_of(root) == "", "a .git file with no gitdir: line is not a lane")
 
 
 def _lane_override() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         with_env("VOS_LANE", " MyLane ", lambda: ensure(
-            env._lane(root) == "mylane",
+            env.lane_of(root) == "mylane",
             "VOS_LANE set after import must win, stripped and lowercased"))
         with_env("VOS_LANE", "", lambda: ensure(
-            env._lane(root) == "",
+            env.lane_of(root) == "",
             "an empty VOS_LANE names the primary lane explicitly"))
+        # the handoff reads past the declaration to the checkout's own pointer, so a
+        # parent's shell cannot name every lane it hands out after itself
+        with_env("VOS_LANE", "declared", lambda: ensure(
+            env.lane_of(root, declared=False) == "",
+            "declared=False must read the checkout rather than VOS_LANE"))
+
+
+def _lane_roots_compose() -> None:
+    """One composition for the three readers of where a lane's outputs land, and the
+    log root beside it, both read at call time like every other override here."""
+    with_env("VOS_BUILD_ROOT", None, lambda: ensure(
+        env.lane_root("").as_posix() == "/root/build"
+        and env.lane_root("lanex").as_posix() == "/root/build/lane-lanex",
+        "the primary builds at the root and a linked lane under lane-<name>"))
+    with_env("VOS_BUILD_ROOT", "/root/elsewhere", lambda: ensure(
+        env.lane_root("lanex").as_posix() == "/root/elsewhere/lane-lanex",
+        "VOS_BUILD_ROOT set after import must move every lane with it"))
+    ensure(env.lane_dir(Path("/b"), "x") == Path("/b/lane-x")
+           and env.lane_dir(Path("/b"), "") == Path("/b"),
+           "the composition is the same function the Environment property reads")
+    with_env("VOS_LOG_DIR", None, lambda: ensure(
+        env.log_root().as_posix() == "/root/logs",
+        "logs live under /root and never /tmp, which does not outlive the instance"))
+    with_env("VOS_LOG_DIR", "/root/logs-elsewhere", lambda: ensure(
+        env.log_root().as_posix() == "/root/logs-elsewhere",
+        "VOS_LOG_DIR set after import must win"))
+
+
+# A mount table in the kernel's own shape: the root on ext4, the Windows drive over 9p
+# as WSL 2 mounts it, tmpfs at /tmp, a mount point carrying an escaped space, and a
+# share whose mount point shares a prefix with the drive's without being under it.
+_MOUNTINFO = r"""
+84 69 8:48 / / rw,relatime - ext4 /dev/sdd rw,discard,errors=remount-ro
+133 84 0:71 / /mnt/c rw,noatime - 9p C:\134 rw,aname=drvfs;path=C:\;uid=0;gid=0
+137 84 0:73 / /tmp rw,nosuid,nodev - tmpfs tmpfs rw,size=8058820k
+140 84 0:74 / /mnt/with\040space rw,relatime - xfs /dev/sde rw
+141 84 0:75 / /mnt/cd rw,noatime shared:5 - cifs //share/cd rw,vers=3.1.1
+"""
+
+
+def _mount_type_reads_the_table() -> None:
+    """The placement rule's one reader, held over a table it did not read off this
+    machine: the longest mount point wins, at a separator, escapes decoded."""
+    # the tmpfs path is a fixture read against the table above and never a file this
+    # test touches, which is what the lint the noqa names is for
+    volatile = "/tmp/vos"  # noqa: S108
+    for path, kind in (("/root/build/lane-x", "ext4"), ("/mnt/c", "9p"),
+                       ("/mnt/c/Users/x/VerifiedOS", "9p"), (volatile, "tmpfs"),
+                       ("/mnt/cd/x", "cifs"), ("/mnt/cdrom", "ext4"),
+                       ("/mnt/with space/log", "xfs")):
+        ensure(env.mount_type(_MOUNTINFO, path) == kind,
+               f"{path} must read {kind}, got {env.mount_type(_MOUNTINFO, path)!r}")
+    ensure(env.mount_type(_MOUNTINFO, "relative/path") == "",
+           "a relative path is under no mount point")
+    ensure(env.mount_type("", "/root") == "", "an empty table names no filesystem")
+    ensure("9p" in env.CROSS_OS_FILESYSTEMS and "tmpfs" in env.VOLATILE_FILESYSTEMS
+           and not (env.CROSS_OS_FILESYSTEMS & env.VOLATILE_FILESYSTEMS),
+           "the two verdicts a reader draws are over disjoint sets")
+    # the live reader: the win32 lane has no mount table and says so with an empty
+    # answer, and the guest answers with the type under its own working directory
+    kind = env.filesystem(Path.cwd())
+    ensure(kind == "" if sys.platform == "win32" else kind != "",
+           f"filesystem() must answer empty on win32 and non-empty in the guest, got "
+           f"{kind!r}")
 
 
 def _jobs_arithmetic() -> None:
@@ -350,6 +414,8 @@ def cases() -> list[Case]:
         Case("install-recipes-compose", _install_recipes_compose),
         Case("lane-shapes", _lane_shapes),
         Case("lane-override", _lane_override),
+        Case("lane-roots-compose", _lane_roots_compose),
+        Case("mount-type-reads-the-table", _mount_type_reads_the_table),
         Case("jobs-arithmetic", _jobs_arithmetic),
         Case("jobs-env-reads", _jobs_env_reads),
         Case("keepalive-hours-reads", _keepalive_hours_reads),

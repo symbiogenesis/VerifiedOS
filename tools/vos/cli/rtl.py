@@ -379,8 +379,7 @@ def cmd_install(args: argparse.Namespace) -> int:
         # A failed repair must not leave the previous receipt advertising a prefix
         # that make install may have only partly rewritten.
         (prefix / "source.sha256").unlink(missing_ok=True)
-        lane = env._lane(find_root())
-        lane_root = env.build_root() / f"lane-{lane}" if lane else env.build_root()
+        lane_root = env.lane_root(env.lane_of(find_root()))
         work = lane_root / f"verilator-{VERILATOR_PIN}-source"
         work.mkdir(parents=True, exist_ok=True)
         archive = work / f"verilator-{VERILATOR_PIN}.tar.gz"

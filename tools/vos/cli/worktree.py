@@ -27,7 +27,13 @@ class WorktreeError(ValueError):
 
 @dataclass(frozen=True)
 class Worktree:
-    """Git's registered checkout, including records whose directory is missing."""
+    """Git's registered checkout, including records whose directory is missing.
+
+    `lane` and `lane_root` are the handoff's half of the placement rule: git's own
+    name for the checkout's build lane, and the guest directory every output of that
+    lane lands in, so a brief for guest work names it and a retirement deletes it.
+    Both are `None` for a registration whose directory is gone.
+    """
 
     path: str
     head: str = ""
@@ -35,6 +41,23 @@ class Worktree:
     bare: bool = False
     locked: bool = False
     prunable: bool = False
+    lane: str | None = None
+    lane_root: str | None = None
+
+
+def _lane_fields(path: Path) -> tuple[str | None, str | None]:
+    """Where a checkout's guest outputs land, as the JSON a parent hands a worker: the
+    lane's name, and the guest directory its outputs land in.
+
+    The lane is read off the checkout's own `.git` pointer and never off `VOS_LANE`,
+    which is a declaration for a container with no pointer to read; the primary's lane
+    is empty and its outputs sit at the build root itself. The guest path is spelled
+    POSIX whichever lane spells it, `env.build_root` being a guest path on either.
+    """
+    if not (path / ".git").exists():
+        return None, None
+    lane = env.lane_of(path, declared=False)
+    return lane, env.lane_root(lane).as_posix()
 
 
 def _git(root: Path, *args: str, allowed: tuple[int, ...] = (0,)) -> bytes:
@@ -93,9 +116,12 @@ def registered(root: Path) -> list[Worktree]:
         if "worktree" not in fields:
             raise WorktreeError("Git returned a worktree record without its path")
         branch = fields.get("branch")
-        result.append(Worktree(str(_path(fields["worktree"])), fields.get("HEAD", ""),
+        where = _path(fields["worktree"])
+        lane, lane_root = _lane_fields(where)
+        result.append(Worktree(str(where), fields.get("HEAD", ""),
                                branch.removeprefix("refs/heads/") if branch else None,
-                               "bare" in fields, "locked" in fields, "prunable" in fields))
+                               "bare" in fields, "locked" in fields, "prunable" in fields,
+                               lane=lane, lane_root=lane_root))
     if not result:
         raise WorktreeError("Git returned no worktrees")
     return result
@@ -177,8 +203,9 @@ def verify(root: Path, path: Path, base: str, *, branch: str | None = None,
     _git(path, "merge-base", "--is-ancestor", expected, head)
     if exact and head != expected:
         raise WorktreeError(f"expected exact base {expected}, found HEAD {head}")
+    lane, lane_root = _lane_fields(path)
     return {"path": str(path), "base": expected, "head": head, "branch": actual_branch,
-            "exact_base": head == expected}
+            "exact_base": head == expected, "lane": lane, "lane_root": lane_root}
 
 
 def create(root: Path, lane: str, base: str, *, branch: str | None = None

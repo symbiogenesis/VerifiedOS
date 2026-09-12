@@ -21,7 +21,9 @@ exactly the defect this tool exists not to be.
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
@@ -206,6 +208,42 @@ def _failed_import_can_retry() -> None:
         ensure(invoked.call_count == 1, "an unrelated create failure must stop before import")
 
 
+def _machine(types: dict[str, str]) -> Callable[[Path | str], str]:
+    """A mount table a case chose, keyed by the POSIX spelling of each path."""
+    return lambda path: types.get(Path(path).as_posix(), "")
+
+
+def _placement_probe_decides_by_filesystem() -> None:
+    """The placement rule as a probe, over machines the case describes: the two roots
+    a guest loop writes under must be on the guest's own persistent filesystem, and
+    the checkout is reported beside them and never counted."""
+    build, logs = env.build_root().as_posix(), env.log_root().as_posix()
+    checkout = "/mnt/c/repo"
+    with patch.object(provision, "find_root", return_value=Path(checkout)):
+        with patch.object(env, "filesystem", side_effect=_machine(
+                {build: "ext4", logs: "ext4", checkout: "9p"})):
+            found = provision._outputs_on_the_guest()
+            ensure(found.present and "ext4" in found.saw and "over 9p" in found.saw,
+                   f"the split layout is the lane, and the checkout's crossing is "
+                   f"reported rather than counted, got {found}")
+        with patch.object(env, "filesystem", side_effect=_machine(
+                {build: "9p", logs: "ext4", checkout: "9p"})):
+            found = provision._outputs_on_the_guest()
+            ensure(not found.present and "crosses the boundary" in found.saw,
+                   f"a build root on the Windows mount fails the lane, got {found}")
+        with patch.object(env, "filesystem", side_effect=_machine(
+                {build: "ext4", logs: "tmpfs", checkout: "ext4"})):
+            found = provision._outputs_on_the_guest()
+            ensure(not found.present and "outlive" in found.saw
+                   and "beside them" in found.saw,
+                   f"a log root on tmpfs fails the lane, and a checkout on the guest's "
+                   f"own filesystem is reported as beside it, got {found}")
+        with patch.object(env, "filesystem", return_value=""):
+            found = provision._outputs_on_the_guest()
+            ensure(not found.present and "undecided" in found.saw,
+                   f"an unreadable mount table decides nothing and says so, got {found}")
+
+
 def _run(*argv: str) -> tuple[int, str, str]:
     done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=300, cwd=_ROOT)
@@ -284,6 +322,8 @@ def cases() -> list[Case]:
         Case("number-reads-the-banners", _number_reads_the_banners),
         Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
         Case("failed-import-can-retry", _failed_import_can_retry),
+        Case("placement-probe-decides-by-filesystem",
+             _placement_probe_decides_by_filesystem),
         # guest-only: the command hops there, so on the host this case would pay for a
         # WSL launch to decide about a lane the host is not
         Case("check-is-read-only", _check_is_read_only, lane="guest"),

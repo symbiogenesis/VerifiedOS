@@ -67,6 +67,7 @@ from pathlib import Path
 
 from vos import env, gallina
 from vos.cli import quickchick, rtl, typecheck
+from vos.corpus import find_root
 from vos.report import Reporter
 
 # K-75 holds this probe's floor against the checker targets and project requirement.
@@ -99,7 +100,9 @@ NOT_REACHED: tuple[tuple[str, str], ...] = (
      "global to every distribution and permanent until a human deletes it, which is "
      "the boundary vos/env.py draws around the idle timer beside it"),
     ("the Remote-WSL working posture",
-     "a setting on a person's editor rather than a fact of any machine"),
+     "a setting on a person's editor rather than a fact of any machine, and the one "
+     "that decides which side of the OS boundary the checkout sits on; the placement "
+     "rule tools/README.md states reads the same either way"),
 )
 
 
@@ -332,6 +335,46 @@ def _caches_unshared() -> Found:
                        "inode(s), so no two lanes write one file")
 
 
+def _outputs_on_the_guest() -> Found:
+    """The placement rule tools/README.md states, as a probe: every guest output on the
+    guest's own persistent filesystem.
+
+    A build tree, a work directory or a log on a mount of the Windows filesystem is
+    written across the OS boundary on every call, which vos/env.py's docstring
+    measures, and one on tmpfs is gone when the instance idle-terminates. The two roots
+    every guest loop writes under are probed, and the checkout is reported beside them
+    and never counted: it is read across the boundary by decision, I1 having measured
+    the move and refused it, so a probe that failed the lane for it would be failing a
+    measurement the plan accepted. There is no repair argv, because where a root sits
+    is what `VOS_BUILD_ROOT` and `VOS_LOG_DIR` declare, and the fix for a wrong one is
+    to point it back at the guest.
+    """
+    seen: list[str] = []
+    wrong: list[str] = []
+    for what, path in (("build root", env.build_root()), ("log root", env.log_root())):
+        kind = env.filesystem(path)
+        if not kind:
+            return Found(False, f"no mount table says where {path} sits, so the {what} "
+                                "is undecided")
+        seen.append(f"{what} {path} on {kind}")
+        if kind in env.CROSS_OS_FILESYSTEMS:
+            wrong.append(f"the {what} {path} is on {kind}, a mount of the other OS's "
+                         "filesystem, so every guest write there crosses the boundary")
+        elif kind in env.VOLATILE_FILESYSTEMS:
+            wrong.append(f"the {what} {path} is on {kind}, which does not outlive the "
+                         "instance")
+    checkout = find_root()
+    kind = env.filesystem(checkout)
+    if kind in env.CROSS_OS_FILESYSTEMS:
+        aside = (f"; the checkout {checkout} is read across the boundary over {kind}, "
+                 "the one crossing the layout keeps")
+    else:
+        aside = f"; the checkout {checkout} is on {kind or 'an unread mount'} beside them"
+    if wrong:
+        return Found(False, "; ".join(wrong) + aside)
+    return Found(True, ", ".join(seen) + aside)
+
+
 # The lane, row by row. Each row names the loop that wants the fact and the artifact
 # that fixes it, and every version in it is read from that artifact rather than typed
 # here. The order is the order a machine is built in and the order a report reads in:
@@ -432,6 +475,12 @@ FACTS: tuple[Fact, ...] = (
          "every run.py model typecheck, which rewrites its lane's cache whole",
          "I2's decline, and tools/vos/cli/model.py's _seed_smt_cache",
          _caches_unshared),
+    Fact("guest outputs on the guest's own filesystem", TOOLCHAIN,
+         "run.py model build and every loop that writes a build tree, a work directory "
+         "or a log",
+         "tools/vos/env.py's BUILD_ROOT and LOG_ROOT, and the placement rule "
+         "tools/README.md states",
+         _outputs_on_the_guest),
 )
 
 

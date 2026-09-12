@@ -13,6 +13,7 @@ from pathlib import Path, PureWindowsPath
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from vos import env
 from vos.cli import worktree
 
 FILES = {".gitignore": "/.worktrees/\n", "README.md": "fixture\n"}
@@ -46,12 +47,22 @@ def _create_and_nested() -> None:
         first = worktree.create(root, "first-lane", base)
         path = root / ".worktrees" / "first-lane"
         ensure(first == {"path": str(path), "base": base, "head": base,
-                         "branch": "work/first-lane", "exact_base": True},
-               "dispatch receives the exact commit and assigned absolute checkout")
+                         "branch": "work/first-lane", "exact_base": True,
+                         "lane": "first-lane",
+                         "lane_root": env.lane_root("first-lane").as_posix()},
+               "dispatch receives the exact commit, the assigned absolute checkout, and "
+               "the guest directory the lane's outputs land in")
         advanced = _commit(path)
         second = worktree.create(path, "second-lane", "HEAD", branch="review/second-lane")
         ensure(second["path"] == str(root / ".worktrees" / "second-lane"),
                "nested provisioning resolves the primary's root rather than nesting")
+        ensure(second["lane"] == "second-lane"
+               and second["lane_root"] == env.lane_root("second-lane").as_posix(),
+               "the lane is git's own name for the checkout, whichever lane created it")
+        listed = {record.path: record for record in worktree.registered(root)}
+        ensure(listed[str(root)].lane == "" and listed[str(root)].lane_root
+               == env.lane_root("").as_posix(),
+               "the primary's outputs sit at the build root itself")
         ensure(second["base"] == advanced and second["head"] == advanced,
                "symbolic base resolves in the invoking lane, not the primary checkout")
         ensure(not (path / ".worktrees").exists(), "no worktree is placed inside another lane")

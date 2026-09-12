@@ -687,21 +687,36 @@ def _report_build(log: Path) -> int:
     return exits[-1] if exits else 1
 
 
+def _placed(path: Path) -> str:
+    """A path beside the filesystem under it, so the line says which side of the OS
+    boundary the path sits on. That is the placement rule tools/README.md states,
+    read here through `env.filesystem`: the checkout is the one path a build reads
+    across the boundary, and everything it writes is on the guest's own."""
+    kind = env.filesystem(path)
+    if not kind:
+        return str(path)
+    side = ("read across the OS boundary" if kind in env.CROSS_OS_FILESYSTEMS
+            else "the guest's own filesystem")
+    return f"{path} ({kind}, {side})"
+
+
 def cmd_lane(e: env.Environment, args: argparse.Namespace) -> int:
     """Say where this checkout builds, and whether anything is building there.
 
     One command, because the failure this exists to end is a checkout reading a
     simulator some other checkout generated, and the way that is caught is by being able
-    to ask which tree this one is talking about.
+    to ask which tree this one is talking about. Each path is printed beside the
+    filesystem under it, so the same command says which side of the OS boundary a
+    lane's reads and writes fall on.
     """
     holder = env.build_holder(e.build_dir)
     print(f"lane             {e.lane or 'primary (this checkout is not a linked worktree)'}")
-    print(f"checkout         {e.root}")
-    print(f"build tree       {e.build_dir}")
+    print(f"checkout         {_placed(e.root)}")
+    print(f"build tree       {_placed(e.build_dir)}")
     print(f"fast tree        {e.fast_build_dir}")
     print(f"typecheck cache  {e.typecheck_cache}")
     print(f"oracle tree      {e.oracle_root} (shared by every lane)")
-    print(f"build log        {e.log('model-build')}")
+    print(f"build log        {_placed(e.log('model-build'))}")
     print(f"building now     {f'yes, pid {holder}' if holder else 'no'}")
     return 0
 
