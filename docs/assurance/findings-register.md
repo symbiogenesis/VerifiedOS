@@ -720,6 +720,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q22c
 · Disposition: open at implementation; the qualified model obtains the exporter through the protected local key-owning context and retains one authentication lifetime per connection. M6.9a/M6.9b must realize that boundary, with the theorem at M6.9c.
 
+**F-348** measurement: R-15-111's acceptance criterion grounded the absence of a die-to-die link anywhere in the machine on R-15-146, the peripheral electronic-enable rule, where the owning entry is R-15-162; a citation that resolves and names the wrong owner is the stale-claim shape no citation rule reads
+· Raised: Q23a
+· Disposition: closed at landing, the citation repaired to R-15-162 in the same act with the ensemble-link clause beside it
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
