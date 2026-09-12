@@ -8,10 +8,11 @@ the plan laid out at composition, the sentry call and return sequences and the
 cross-compartment sequence, the float-typed value's route, each primitive
 R-05-023b requires with its operand form and emission shape read from the
 model's own clause, and the kernel entry interface M3.5 hands M4.4 with what
-M4.4's switch restores. It decides nothing the register leaves open: every such
-gap is listed in [the last section](#8-what-the-register-leaves-open) with the
-entry that owes it, and a reader meeting a choice this document appears to make
-should find it there first.
+M4.4's switch restores. Its scalar bring-up convention selects implementation
+choices within those obligations so firmware and kernel authors can share one
+interface. Those choices are identified below; they do not freeze the production
+ABI or close the backend's emission and proof work. Unresolved choices remain in
+[the last section](#8-what-the-register-leaves-open).
 
 **Precedence.** The [register](../requirements-register.md) governs; the
 [profile](../hardware/isa-profile.md) is its derived view of the ISA; the
@@ -22,9 +23,8 @@ four and is defective wherever it disagrees with any of them. The start-from is
 read last: SECOMP's `riscV/` backend at the pinned gitlink
 `5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78`, which is the tree M1.1b names.
 M1.2b's partial backend modifies this start-from in the contained repository.
-Where this document states a role the register does not fix, it states the
-start-from's and says so, and the
-gap section records it.
+Where the register does not fix a role, this document distinguishes the selected
+scalar convention from the start-from and records the remaining production join.
 
 **Sources.** The repository clauses below are the model and register named at
 each use; the start-from references are `riscV/Conventions1.v`, `Machregs.v`,
@@ -52,7 +52,7 @@ reading is `cnull`, the null capability the all-zeroes granule decodes as
 (R-15-182). The vector file `v0` to `v31` is a second file of `VLEN` bits and
 holds no capability.
 
-The roles, and what fixes each:
+The architectural roles and start-from that the scalar convention selects from:
 
 | Register | Role | Fixed by |
 | --- | --- | --- |
@@ -64,6 +64,30 @@ The roles, and what fixes each:
 | `x8` to `x9`, `x18` to `x27` / `s0` to `s11` | The psABI's callee-saved set, and **at the pin the start-from preserves none of it**: `is_callee_save r` is `false` for every `r`, `int_callee_save_regs` is `nil` and the standard split is commented out (`Conventions1.v` lines 35 to 49 and 67 to 68), so `destroyed_at_call` is every allocatable register. `x8` also spells `fp` and `cfp`, and the start-from keeps no frame pointer, loading the back link through `x30` | the start-from; which convention the purecap backend keeps is gap c |
 | `x10` to `x17` / `a0` to `a7` | Arguments in order (`int_param_regs`, `Conventions1.v` line 230) and the result in `x10` (`loc_result`, line 143); a ninth and later argument in an 8-byte outgoing stack slot (`int_arg`, lines 244 to 253); a variadic call's arguments in integer registers then on the stack (lines 211 to 217); an indirect call destroys the eight (`Machregs.v` lines 238 to 239) | the start-from; the float-typed case is [section 5](#5-the-float-typed-values-route) and the roles are gap a |
 | `v0` to `v31` | Not in the merged file. The start-from's convention names no vector register, no entry states a preservation rule across a call, and the partition switch zeroizes the file rather than saving it (R-07-014a, R-07-014c) | nothing; gap d |
+
+**Selected scalar convention.** M1.2d's scalar authoring interface retains the
+start-from's argument and result locations and its empty callee-saved set.
+`x5` through `x30` are caller-clobbered, including every `s` alias; `x31` is
+reserved for emission and caller-clobbered; `x3` and `x4` are unavailable to
+allocation and carry no ambient global or thread authority. `csp` is restored
+with its value and tag on every ordinary return. `cra` is the call's return
+sentry, saved with `sc` before any nested call and restored with `lc` before
+`ret`. There is no persistent frame-pointer register. A scalar capability or
+word result occupies `a0`; the first eight scalar arguments occupy `a0` through
+`a7` in signature order, and later arguments occupy successive 8-byte slots in
+the caller's outgoing area. Each signature states the value kind, including the
+tag requirement; same-width integer and capability values are not interchangeable.
+The reviewed scalar subset has no aggregate-return, variadic, vector or
+floating-point computation convention; an author needing one rejoins its
+backend owner before emission. Section 5 states the required float route.
+
+An ordinary caller spills every value it needs after the call. This deliberately
+includes a kernel-entry input in `a0` through `a2`: its boot role does not make
+it callee-saved. `x30` remains the transient parent-frame register at entry and
+parameter loads. The selected frame sequence below needs only `x31` for a
+large size or offset; it adds no second reserved scratch to the allocatable
+set. A later emission rule needing simultaneous temporaries owes a fresh
+liveness review before changing that set.
 
 The allocatable set at the pin is the 26 integer registers `R5` to `R30` of
 `Machregs.v` (the predicate: constructors of `mreg` naming an `X` register), and
@@ -142,16 +166,47 @@ narrow elsewhere.** R-15-031b names the address-then-narrow pair "at allocation
 and compartment entry" and names no per-function narrow, so a backend that
 narrows `csp` once, in the switcher at compartment entry, and runs every frame
 as an offset within that one stack capability emits no frame narrowing and owes
-R-15-007k nothing per frame; a backend that narrows per frame owes the paragraph
+R-15-007k nothing for the frame itself; a backend that narrows per frame owes the paragraph
 above at every prologue and gives every callee a capability that reaches no
-caller frame. Each is admissible under the entries as they stand and the choice
-is gap e. Under either, a capability slot is 8 bytes at 8-byte alignment,
+caller frame. Each is admissible under the entries as they stand; the scalar
+convention below selects the first. Under either, a capability slot is 8 bytes at 8-byte alignment,
 M1.2b's partial backend pinning the capability to one `Mint64`/`Q64` slot, one
 tag per 64-bit granule (R-15-203), and a capability access straddling a granule
 faulting as a misaligned access
 ([cap-trap.s](../../corpus/cap-trap.s) lines 81 to 90); the start-from's 8-byte
 slots and 16-byte frame alignment therefore stand, and no entry asks for a wider
 one.
+
+**Selected scalar frame.** A stack grows downward within its composition-laid
+`Stacks` region. At entry its cursor is the top of the available span, aligned
+to 16 bytes. Each nonempty frame has a composition-known size `F`, a positive
+multiple of 16; its outgoing area, tagged back link, tagged return sentry,
+typed spills, locals and stack data follow the start-from's layout order.
+Each capability slot is 8-byte aligned and disjoint from every live integer
+slot. No red zone is addressed below the current cursor. Before admitting a
+call path, the slot plan and TAL frame rule establish that every cursor move
+is representable and every accessed slot lies within the assigned stack,
+including the maximum simultaneous frames. Unbounded recursion, dynamic stack
+allocation and a path exceeding that span are refused by this scalar subset.
+
+The prologue saves the incoming `csp` in `c30`, moves `csp` down by `F` using
+`cincoffsetimm` or `cincoffset`, and stores the saved parent and `cra` with `sc`
+at the layout's back-link and return-address offsets. The epilogue reloads
+`cra` and then `csp` with `lc` and returns. A parent argument is loaded through
+the tagged back link, with its signature choosing `lc` or an integer load.
+An immediate outside an instruction's signed range is materialized through
+`x31`; an integer add or move must never update `csp` or copy the back link.
+An empty leaf frame may omit these operations when its rule proves no saved
+value, stack access or nested call needs them.
+
+Ordinary function entry emits no `csetbounds`: `csp` retains the bounds of the
+compartment's stack across the entire call. The callee consequently retains
+authority to reach caller frames; the TAL resource/frame proof supplies the
+intra-compartment ownership obligation. This convention claims no hardware
+isolation between ordinary function frames. The switcher still derives an
+exactly bounded callee stack at every compartment entry, and a narrowed pointer
+to a stack subobject still owes R-15-007k independently. Choosing the no-narrow
+frame arm leaves MemoryPlan's conservative region-granule rule unchanged.
 
 ## 3. The spill discipline and the validity tag
 
@@ -181,7 +236,8 @@ register's name.
   being no callee-saved register (section 1), and an indirect call destroys the
   argument registers besides. A convention with a callee-saved set moves that
   cost into the callee's prologue and epilogue and hands the cross-compartment
-  scrub (R-15-069a) a set it must clear on return; gap c is which.
+  scrub (R-15-069a) a set it must clear on return. The scalar convention keeps
+  the empty set; changing that is a production ABI decision, gap c.
 - **The return sentry spills like any capability.** `cra` holds a backward-edge
   sentry the jump minted and no software can mint (R-15-071); spilled with the
   capability store and reloaded with the capability load it is the sentry it
@@ -232,7 +288,10 @@ is admitted by the clause, so an intra-compartment function pointer need not be
 a sentry, and R-15-068's sentence that a compartment is reached only by jumping
 through the sentry its manifest was handed is a statement about entry points
 handed across a boundary; whether the backend seals every function pointer or
-only those is gap f. A return address is never software's to forge, the
+only those is an ABI choice. The scalar convention allows unsealed code for
+ordinary same-compartment pointers, with the typed callee-set obligation
+unchanged; every exported compartment entry remains a sentry reached through
+the switcher. A return address is never software's to forge, the
 backward edge being minted by the jump alone (`link_capability`, lines 67 to 72;
 `csealentry` mints the forward edge only, lines 271 to 277). And a call that
 enters a return sentry traps, which
@@ -397,8 +456,8 @@ permission with its address at the entry and its bounds at the entry's extent,
 which is what installs those bounds as the callee's PCC; the corpus mints one
 from `pcc` ([cap-derive.s](../../corpus/cap-derive.s) check 10), from a
 materialized code capability ([cap-control.s](../../corpus/cap-control.s)
-checks 2 and 3) and from one narrowed to the callee's eight bytes (check 4). Whether the backend emits it for every function pointer or only for
-those handed across a boundary is gap f.
+checks 2 and 3) and from one narrowed to the callee's eight bytes (check 4).
+The scalar choice for ordinary function pointers is stated in section 4.
 
 Beside the four, **`cclear h, mask`** (`CClear : (bits(1), bits(16))`,
 [cheri_custom.sail](../../model/model/extensions/CHERI/cheri_custom.sail) lines
@@ -409,14 +468,18 @@ R-18-014a puts its one selection rule in the switcher's emitter (R-15-069a,
 R-15-069b). And `cjalr` and `cjal` are not primitives at all, being the
 control-transfer instructions every call lowers to.
 
-**What the rows do not say.** The profile names `fence.t`, `vmclear` and
-`cclear` by mnemonic in its custom-instruction section and its timing contracts,
-and it names neither `cspecialrw` nor `csealentry` by mnemonic. The CHERI feature
-table names the trap registers and capability jump-and-link by function.
-R-05-023b's membership is
-the profile's instruction rows and nothing else, so two of the four primitives
-the M1.2 cell requires have no row to name; that is gap h and not a decision
-this document takes.
+**Source identity.** The [profile's CHERI table](../hardware/isa-profile.md#4-cheri-feature-set)
+names `cspecialrw cd, scr, cs1` and `csealentry cd, cs1` explicitly beside the
+custom-instruction rows for `fence.t` and `vmclear`. A primitive's registered key
+is that exact mnemonic with its operand form; a source language that cannot use
+the mnemonic as an identifier carries it as a string key. Thus `"fence.t"`
+with no operands names `FENCE_T`, while `"fence_t"` names no profile row and
+is refused. A legal C or Gallina binding such as `vos_fence_t` is a binding to
+the `"fence.t"` key, never another admitted primitive or an unchecked external
+function. Its source declaration, elaborated primitive term and lowering record
+must preserve that identity. The compiler owner implements this binding and the
+barrier effect before a consumer may compile it; this spelling decision adds no
+frontend syntax or working builtin by itself.
 
 ## 7. The kernel entry interface
 
@@ -446,24 +509,26 @@ What M4.4's kernel holds at its first instruction, each item with what fixes it:
    (R-15-007p), each bounded to the core's physical partition plus the declared
    shared windows (R-07-006), the composition-time disjointness being a build
    artifact (R-07-005). The execute side is the kernel's PCC; which register the
-   store side arrives in is gap i.
+   store side arrives in is selected below as a capability table, preserving a
+   separate authority for every composed extent.
 2. **Entry as a sentry.** A compartment is reached only through the sentry its
    manifest was handed (R-15-068), and a partition or a kernel task is
    dispatched by `mret` with a sentry in MEPCC unsealing on `mret` as it does
    when jumped to (R-07-020, R-15-007j). Whether the firmware enters the kernel
    by `mret` with the kernel's forward-edge sentry in MEPCC, by `cjr` into that
    sentry with `cra` null so that nothing can return to a stage that has gone
-   quiescent, or by a plain jump into unsealed text is fixed by no entry: gap i.
+   quiescent, or by a plain jump into unsealed text is fixed by no entry. The
+   scalar convention selects the no-link sentry jump below.
 3. **The trap registers.** MTCC holds the kernel's trap entry with
    access-system-registers, a trap installing it as the executing PCC, saving
    the interrupted PCC as MEPCC and bootstrapping the handler's authority from
    MTDC (R-07-022, R-15-073), and a trap taken while the trap path is live
-   stops the die rather than re-entering (R-15-073c). Whether the firmware or
-   the kernel's own entry code writes the three is gap i.
+   stops the die rather than re-entering (R-15-073c). Firmware installs the
+   trap capabilities before the selected handoff below.
 4. **The stack capability.** `csp` bears `perms_stack` and is derivable only
    from the store-side root, the only root holding store-local; its bounds are
    the kernel's stack region of the plan, a first-class region (R-15-247s). Who
-   derives it, the firmware or the kernel's entry code, is gap i.
+   derives it is selected below as the firmware.
 5. **The devicetree.** A static devicetree declares core classes, islands, the
    NoC schedule, OPP tables and the calibration limits (R-09-007), the reset
    and power sequence table (R-15-198), the mode vectors (R-15-189f) and the
@@ -472,7 +537,7 @@ What M4.4's kernel holds at its first instruction, each item with what fixes it:
    handed in at construction (R-05-138); and the address map it declares is
    dense inside the 36-bit space (R-15-002b). How the kernel receives it, as a
    capability in a named register or as a composition-time address inside its
-   data root, and how its attestation is verified by the kernel, is gap j.
+   data root is selected below; its producer and attestation join remain gap j.
 6. **The hart's identity.** `mhartid` is read-only and the one implementation
    identifier with a consumer: the kernel selects its per-hart state, the core's
    class and the island binding from it at boot
@@ -480,7 +545,55 @@ What M4.4's kernel holds at its first instruction, each item with what fixes it:
 7. **The partition contexts and the schedule table.** Whether "running kernel
    state" in R-07-028 includes the contexts R-07-015 restores and the table
    R-11-024 swaps is unstated, which MModeFirmware.v reports as its gap b and
-   this contract inherits as gap k.
+   the staging responsibility below selects an implementation split without
+   strengthening that proof artifact's `Handoff` relation.
+
+**Selected scalar handoff.** Firmware and kernel author against these inputs at
+the first C body instruction, with no return to firmware:
+
+| Location | Supplied value and authority | Producer and consumer responsibility |
+| --- | --- | --- |
+| PCC | The kernel entry text capability, unsealed by the no-link jump, with execute and access-system-registers, without store | Firmware derives the exact text extent and mints its forward sentry; the kernel never inherits firmware's text authority |
+| `csp` / `c2` | Local `perms_stack` capability bounded to the kernel's `Stacks` region, cursor at its representable, 16-byte-aligned initial top | Firmware derives it before discarding its reset authority; the frame rule consumes it |
+| `c10` / `a0` | Global read-only capability to the kernel root-set table, with load-capability, load-global and load-mutable so reading a member preserves its authority | Firmware installs exactly the composed, permission-split roots, one tagged member per declared extent; the table grants no permission its members lack |
+| `c11` / `a1` | Global read-only capability to the measured boot descriptor/devicetree, bounded to its declared byte extent | Firmware supplies the authenticated producer handoff; kernel consumers use the composition's declared layout, with no content-based device discovery |
+| `c12` / `a2` | Global read-only capability to the composed kernel initialization descriptor; capability-bearing fields use transitive capability loads | It names the planned context/save areas and initial schedule inputs; the kernel initializes and validates its running contexts and table before its first dispatch |
+| MTCC, MTDC | Kernel trap-text authority and the composed authority its handler needs to bootstrap its data access | Firmware installs them before handoff; the trap prologue reads MTDC explicitly, since taking a trap does not copy MTDC to a general register |
+| MEPCC | Null | Firmware clears the reset/firmware continuation before handoff; the first real trap or dispatch installs the required successor value |
+| `cra`, `x3`, `x4`, all other merged registers | Null, except for the transient entry target described next | Firmware scrubs every noninput; kernel entry discards the last temporary before calling C |
+
+The tables have exactly representable bounds and naturally aligned tagged
+entries. Read-only describes access to the table itself: its
+`perms_r_cap_lm_lg` shape retains the load transitivity required to retrieve a
+global writable member unchanged. A plain `perms_r` capability cannot replace
+it. Ordinary tables contain global members only; a borrowed local capability
+requires storage through stack authority and cannot be installed in a data
+table merely because that table is read-only to its consumer.
+
+The final jump uses a transient forward-edge kernel sentry in `c5`, installed
+by firmware while its PCC still has system-register permission. After installing
+MTCC and MTDC, firmware puts null in a nonzero scratch register and writes
+MEPCC from it: `cspecialrw` with source `cnull` only reads and does not clear a
+special register. It clears noninputs, keeps `c2`, `c5`, `c10`, `c11` and `c12`,
+and issues `cjr c5`, which is `cjalr cnull, c5, 0`. The entry stub immediately
+clears `c5`. The masks and instructions are executable assembly in the
+[scalar witness](../../interfaces/examples/scalar-abi.s); they describe this
+one-time handoff only and decide no cross-compartment switcher mask. Firmware
+leaves ordinary interrupt delivery disabled until the kernel has installed its
+initial dispatch state. Entry code is nonreturning; null `cra` is no return
+sentry, and the kernel's first partition dispatch remains `mret` as required.
+
+The table's bounds and read-only permission do not authenticate its bytes. The
+producer join still owes the exact descriptor layout, source and image binding,
+measured-chain evidence, root-set membership and the consumer's acceptance of
+that evidence. No parser, attestation verifier or graph-to-context refinement is
+supplied here. M3.5 owns that real producer and installation evidence; M4.4 owns
+initial context/table construction and its `PartitionContext` relation. A kernel
+consumer must reject a missing descriptor, a wrong-hart or wrong-composition
+descriptor, or an initialization lacking a planned successor before dispatch.
+Those are producer/consumer checks, not Sail capability faults. This authoring
+split answers who writes initial state without claiming that
+`MModeFirmware.Handoff` already proves its context and schedule components.
 
 **What M4.4's switch restores**, from [PartitionContext.v](../../proofs/PartitionContext.v):
 every one of the 32 registers, value and validity tag together, is written
@@ -504,70 +617,96 @@ bank, laid out by the plan as a first-class `RegisterSaveAreas` region
 under the access-system-registers gate (R-15-003), carried by PartitionContext.v
 as a field rather than a copy.
 
+**Positive scalar case and refusal review.** The
+[assembly witness](../../interfaces/examples/scalar-abi.s) begins at the final
+firmware transfer with its capability inputs stated as preconditions. It clears
+MEPCC through a nonzero null-valued source, scrubs noninputs, and enters the
+forward sentry without minting a firmware return. The kernel stub clears its
+target temporary. With stack bounds `[S,S+128)` and initial cursor `S+128`, its
+32-byte frame moves the cursor to `S+96`; the nested helper's 32-byte frame
+moves it to `S+64`. Their slots do not overlap. The helper spills a writable
+data capability before a leaf overwrites `a0` with integer 42, reloads the
+capability through the stack and writes 42 through it. Both epilogues recover
+the tagged back links and the matching return values of `cra`; the outer body
+ends with its original `csp`, root-table input and boot descriptor restored,
+and null `cra`. It remains nonreturning.
+
+The review reads `CJALR`, `CIncOffsetImmediate`, `CSpecialRW`, `LoadCapImm` and `StoreCapImm`
+from [the CHERI instructions](../../model/model/extensions/CHERI/cheri_insts.sail)
+and [the capability memory path](../../model/model/extensions/CHERI/cheri_mem.sail),
+the permission accessors from [cap_common.sail](../../model/model/core/cap_common.sail),
+and `CClear` from [cheri_custom.sail](../../model/model/extensions/CHERI/cheri_custom.sail).
+Its refusal cases distinguish an admission defect from an architectural trap:
+
+| Changed input or sequence | Decisive consequence |
+| --- | --- |
+| Spill `D` or `cra` using `sd` | The write path clears that slot's tag; a subsequent dereference or `ret` faults for an untagged capability. The compiler's typed spill rule refuses the sequence before emission. |
+| Update `sp` with integer `addi` | The merged-register integer write clears `csp`'s tag; the next frame access faults. The frame rule requires capability cursor operations. |
+| Remove store-local from stack authority while spilling the local back link | The capability store fails its store-local check; storing the local back link in an ordinary table is refused for the same reason. |
+| Read the root table through plain read-only authority without load-capability | `lc` delivers an untagged member; read-only bytes alone cannot implement the root-set handoff. Dropping load-mutable instead strips the member's store authority. |
+| Use `cjalr cra, c5, 0` for final firmware entry | Sail permits the forward call but mints a live firmware return capability, violating this handoff's no-continuation predicate. |
+| Use a backward sentry as a linked call target, or displace any sealed sentry | `CJALR` reports a seal violation; the matching `ret` is a zero-displacement, no-link entry. |
+| Clear MEPCC with source register `cnull` | `CSpecialRW` performs a read and leaves MEPCC unchanged; the scrub predicate refuses the stale continuation even though the instruction succeeds. |
+| Exceed the assigned stack or use a nonrepresentable frame cursor | The composition/frame acceptance fails before emission; Sail bounds or tag faults are not an accepted stack-overflow path. |
+| Omit descriptor provenance or a planned initial successor | The M3.5/M4.4 producer join remains unsatisfied, even if every capability access succeeds. |
+
+Assembler acceptance checks operand spellings and encodings in this fixture.
+The state transitions above are a review against the Sail clauses, not a
+measured target run, compiler-emission test, source-correspondence theorem or
+firmware boot. Those remain the M1.2d, M1.2f, M3.5 and M4.4 joins.
+
 ## 8. What the register leaves open
 
-Each gap is a decision this document does not take, with the entry or artifact
-that owes it. A lane implementing against this contract records which arm it
-took and why, and a register act closing one moves this section.
+The letters retain the decisions consumers cite. A selected scalar arm is an
+authoring agreement under the register, not a claim that the register fixes the
+entire production ABI. Its backend implementation, final-image checks and
+consumer evidence remain M1.2d's join.
 
-- **(a) The integer register roles.** No entry fixes an argument, result,
-  callee-save, scratch, global-pointer or thread-pointer role; R-15-007i fixes
-  the file, R-15-074 fixes the stack capability's permissions and R-15-040 books
-  an ABI cost without stating an ABI. The roles above are the start-from's at
-  the pin. Owed at a letter-suffixed entry beside R-15-040 or R-15-007i.
-- **(b) The second scratch.** The M1.2 cell's axis 7 records that the deleted
-  thirty-third register was a second reserved scratch and that finding one
-  inside 32 is an ABI question; the start-from over stock `riscV/` has one
-  reserved scratch, `x31`, beside the parent-frame temporary `x30` and the
-  jump-table temporary `x5`, and whether the authored frame and call sequences
-  need a second is a consequence of gap e. Owed at M1.2d's cell.
-- **(c) The callee-saved set.** The start-from preserves no register across a
-  call at the pin, so every live value crosses a call in the caller's frame; the
-  psABI split is commented out beside it. Which the purecap backend keeps decides
-  the prologue and epilogue, the switcher's return-path mask and the outlining
-  pass's profitability (R-15-036o, a helper needing no frame of its own). Owed
-  with (a).
-- **(d) Vector registers across a call.** No entry and no start-from definition
-  states whether any of `v0` to `v31` survives a call or a compartment crossing;
-  the partition switch zeroizes the file. Owed at R-15-040 or R-18-014a.
-- **(e) Whether and at what granule a frame is narrowed.** R-15-031b places the
-  address-then-narrow pair at allocation and compartment entry and names no
-  per-function narrow; a per-frame narrow is admissible under R-15-007k and is
-  exact under the plan's rule only at whole granules of the **stack region's**
-  length, one part in 64 of it, where the algebra admits the frame's own
-  granule. Owed at R-15-007k or [MemoryPlan.v](../../proofs/MemoryPlan.v)'s
-  reading 8, and the choice of arm at M1.2d's cell.
-- **(f) Which function pointers are sentries.** `cjalr` with a link admits an
-  unsealed executable capability as well as a forward-edge sentry, so
-  intra-compartment function pointers need not be sealed; R-15-068 speaks of
-  entry points handed across a boundary and R-15-072 leaves target membership
-  to the typed callee set. Owed at R-15-068 or R-15-072.
-- **(g) The switcher's register contract.** The register carrying the edge's
-  identity into the switcher, the two `cclear` masks per direction, where the
-  saved caller state is kept and how deep cross-compartment calls may nest, and
-  whether the switcher's text runs under a PCC with access-system-registers or
-  holds the seal and unseal authorities without it, are fixed by no entry;
-  R-07-021's two kernel entries are trap entries and the switcher's sentry
-  entry is not a trap. Owed at R-15-069 or R-04-004.
-- **(h) Two primitives without a profile row.** The profile names neither
-  `cspecialrw` nor `csealentry`, and R-05-023b's membership is the profile's
-  rows alone, so the primitive the M1.2 cell requires for each names no row.
-  Owed at [isa-profile.md](../hardware/isa-profile.md), which is the derived
-  view, or at R-05-023b if a feature-table row is meant to count.
-- **(i) The kernel's entry state.** Which register carries the store-side root,
-  how the firmware enters the kernel (an `mret` onto a sentry in MEPCC, a
-  no-link jump into the sentry, or a plain jump), which stage writes MTCC, MTDC
-  and MEPCC for the kernel, and which stage derives the kernel's stack
-  capability, are fixed by no entry; MModeFirmware.v's gap c is the text-and-
-  data half of the same question. Owed at R-07-019 or R-07-028.
-- **(j) The devicetree at entry.** How the kernel receives the attested
-  devicetree and how it verifies the attestation is fixed by no entry;
-  R-09-007's criterion cites R-15-126 for the attestation, whose subject is the
-  per-unit calibration manifest. Owed at R-09-007.
-- **(k) What running kernel state comprises.** Whether the partition contexts
-  and the schedule table are inside R-07-028's phrase or beside it, which
-  MModeFirmware.v reports and this contract inherits. Owed at R-07-028.
-- **(l) The spelling of `fence.t` as a source identifier.** R-05-023b names a
-  primitive by the instruction's own profile mnemonic, and one of the four
-  mnemonics carries a character no C or Gallina identifier may. Owed at
-  R-05-023b.
+- **(a) Integer register roles: selected for scalar bring-up.** Section 1 fixes
+  arguments, scalar result, unavailable registers and scratch roles. Production
+  aggregate, variadic and vector signatures are outside this selection.
+- **(b) Second scratch: unnecessary for the selected frame sequence.** `x31`
+  handles a large frame size or slot offset; `x30` carries the tagged parent
+  frame when needed. M1.2d reviews liveness at every additional emission rule.
+- **(c) Callee preservation: selected as empty.** Every live allocatable value
+  crosses an ordinary call in the caller's frame, and `csp` is restored on
+  return. A changed production set reopens allocation, prologues, outlining
+  costs and the cross-compartment return scrub together.
+- **(d) Vector registers across a call: open.** No entry or start-from
+  definition fixes preservation for `v0` through `v31`; the partition switch
+  zeroizes the file. R-15-040 and R-18-014a remain its owners.
+- **(e) Frame narrowing: selected as absent at ordinary function entry.** The
+  stack keeps its compartment bounds; section 2 states the ownership and
+  stack-budget consequences. The region-granule versus frame-granule choice
+  matters only if a later convention narrows frames. MemoryPlan's reading 8 and
+  R-15-007k remain unchanged, including for narrowed stack subobjects.
+- **(f) Ordinary function pointers: unsealed code is permitted.** The typed
+  callee-set check remains required by R-15-072. R-15-068's exported entries
+  remain sentries reached through the switcher; this choice closes no
+  cross-compartment sequence.
+- **(g) Switcher protocol: open.** The edge-identity register, scrub masks,
+  bounded saved-caller-state layout and nesting limit, and the switcher's
+  authority need a reviewed producer/consumer protocol under R-15-069 and
+  R-04-004. The one-time firmware scrub in section 7 is not that protocol.
+- **(h) Primitive profile membership: present.** The explicit operand-form
+  rows for `cspecialrw` and `csealentry` are in the profile's CHERI table.
+  R-05-023b now has a profile row to name for each required primitive; emission
+  and its positive/negative compiler tests remain owed.
+- **(i) Kernel entry transport: selected.** Section 7 assigns roots and
+  descriptors, stack derivation, trap-state installation and the no-link sentry
+  jump. M3.5 still owes the actual split-root producer and installed-state
+  refinement; the abstract `MModeFirmware.Handoff` root relation alone does
+  not establish this concrete state.
+- **(j) Boot descriptor transport: selected; provenance join: open.** `c11`
+  carries the bounded read-only descriptor. The real layout and authenticated
+  producer/consumer evidence under R-09-007 remain owed; read-only authority
+  cannot replace them.
+- **(k) Initial contexts and schedule: assigned to kernel initialization.**
+  Firmware supplies the composed inputs through `c12`; the kernel constructs
+  and checks running contexts and its schedule table before dispatch. Relating
+  those inputs to R-07-028 and proving the context/table initialization remain
+  separate joins; the existing firmware statement artifact is unchanged.
+- **(l) Primitive spelling: selected as exact registered identity.** A
+  nonidentifier mnemonic is a string key; a legal source binding resolves to
+  that key and never extends membership. The compiler implements the binding,
+  operand typing and Sail effects before source compilation is accepted.
