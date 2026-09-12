@@ -23,7 +23,7 @@ _Expand a section to jump straight to it._
 - [Temporal safety and no uninitialized reads](#temporal-safety-and-no-uninitialized-reads)
 - [No speculative or out-of-order execution](#no-speculative-or-out-of-order-execution)
 - [No simultaneous multithreading (SMT)](#no-simultaneous-multithreading-smt)
-- [Everything on general-purpose verified cores](#everything-on-general-purpose-verified-cores)
+- [Verified cores and qualified devices](#verified-cores-and-qualified-devices)
 - [On-die OpenTitan-class root of trust](#on-die-opentitan-class-root-of-trust)
 - [The device holder owns the root](#the-device-holder-owns-the-root)
 - [No allocator waste](#no-allocator-waste)
@@ -83,9 +83,11 @@ Cores issue in order with static-only branch prediction, so the entire transient
 
 Each core runs a single hardware thread, so SMT's cross-thread contention and shared-resource timing channels do not exist, and execution timing stays deterministic.
 
-### Everything on general-purpose verified cores
+### Verified cores and qualified devices
 
-No firmware coprocessors. Graphics, machine learning, signal processing, and every radio, sensor, and input device run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU, discrete accelerator, or opaque baseband or controller firmware: every processor on the chip runs code the admission checker has proved memory-safe, control-flow-correct, and schedulable, whether that code is trusted and functionally proven or contained and restartable, with the one tolerated exception of the eUICC, a carrier's own computer kept as a register slave with no authority over the platform. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput, which the performance estimates put at a fraction of a current integrated GPU's on 3D graphics and in the class of an early NPU on dense inference.
+No firmware coprocessors. Graphics, software machine learning, signal processing, and device control run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU or opaque baseband or controller firmware: every processor on the chip runs code the admission checker has proved memory-safe, control-flow-correct, and schedulable, whether that code is trusted and functionally proven or contained and restartable, with the one tolerated exception of the eUICC, a carrier's own computer kept as a register slave with no authority over the platform. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput, which the performance estimates put at a fraction of a current integrated GPU's on 3D graphics and in the class of an early NPU on dense inference.
+
+An optional [immutable inference module](docs/spec.md#r-04-010b) adds a separately qualified device: fixed weights and logic, bounded private state, and an authenticated message interface with no host-memory access. Proof packages, unit identity and scoped user grants govern admission and use. Cold replacement comes first; replacement while the host runs needs its own electrical and lifecycle qualification. [Q24](docs/implementation/implementation-checklist.md) owns this open work; software and remote inference remain available pending a complete comparison.
 
 ### On-die OpenTitan-class root of trust
 

@@ -172,18 +172,24 @@ def _counts_overflow_is_a_finding() -> None:
     # tell that crash from a verdict
     absences = "# Absences\n\n" + "".join(f"| **A-{n}** | row |\n"
                                           for n in range(1, 101))
+    inventory = "# Documents\n\nNinety-nine enumerated absences.\n"
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       "docs/README.md": inventory,
                        "docs/hardware/absence-contract.md": absences}) as root:
-        ctx = _context(root)
+        ctx = _context(root, fix=True)
         # the shared keys confers and views would have produced; counts reads
         # them positionally and this test runs counts alone
         ctx.shared.update(cj_confer=[], fc_seams=[], fc_confer=[], rf_confer=[],
                           dispositions=0, rot_cases=0)
         counts.run(ctx)
-        ensure("absences is 100, which has no word form; the claim in README.md "
+        ensure("absences is 100, which has no word form; the claim in docs/README.md "
                "must state it in digits" in _findings_under(ctx, "K-24"),
                f"the overflow is K-24's finding, naming the claim owed digits: "
                f"{_findings_under(ctx, 'K-24')!r}")
+        ensure("docs/README.md" not in ctx.fixed,
+               "a quantity with no word form must not stage a repair")
+        ensure(ctx.text("docs/README.md") == inventory,
+               "the unresolved inventory claim must retain its original content")
 
 
 _PREREQ_REGISTER = (

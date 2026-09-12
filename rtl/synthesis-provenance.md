@@ -43,6 +43,7 @@ A row whose binding is neither is a finding, because an absence bound to nothing
 | A-19 | Ensemble link credit or flow-control counter | n/a: as A-18 | none elaborates |
 | A-20 | Ensemble link arbiter or virtual-channel multiplexer | n/a: as A-18 | none elaborates |
 | A-21 | Autonomous phase or latency tracker in the ensemble link endpoint | n/a: as A-18 | none elaborates |
+| A-22 | Immutable inference module execution/update paths and host mastership | n/a: the optional module and host endpoint are not part of this scalar-core netlist or configuration; Q24 owns complete circuit/board inventory, structural proofs and physical qualification under R-15-228k | not authored or qualified; no current elaboration discharges this row |
 
 ## 3. The profile's ISA-visible removals, and the parameters that take them
 
@@ -61,7 +62,7 @@ These are not absence-contract rows. An RTL implementing any of them fails ordin
 
 ## 4. What no parameter reaches, and what that costs
 
-**Three residues, and they arrive by two different doors.** **Two of the twenty-two rows above carry `n/a` on the second of the three grounds §1 separates**, which is the one that is work rather than a fact about the imported core: A-09 and A-10, the two caches, which the first item below takes together. The other two items are rows a parameter *does* take, where the value removes the array and leaves the structure around it standing, so the row is bound and a residue sits beside it. All three are authoring work that no configuration reaches, and the count is over the items below rather than over the rows above.
+**Three residues, and they arrive by two different doors.** **Rows A-09 and A-10 carry `n/a` on the second of the three grounds §1 separates**, which is the one that is work rather than a fact about the imported core: A-09 and A-10, the two caches, which the first item below takes together. The other two items are rows a parameter *does* take, where the value removes the array and leaves the structure around it standing, so the row is bound and a residue sits beside it. All three are authoring work that no configuration reaches, and the count is over the items below rather than over the rows above.
 
 - **The caches, A-09 and A-10.** They are the largest single item, and no configuration the imported core admits removes them. What replaces them is flat SRAM at fixed latency, which is authored rather than configured.
 - **The PMP shells.** Zeroing the entries removes the comparator array and leaves two wrapper modules standing.
