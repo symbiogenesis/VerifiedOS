@@ -116,7 +116,9 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "Q22g",
              # the ensemble instantiation is later than the first release (R-02-003a) and none
              # of its artifacts sits on either chain
-             "Q23b", "Q23c", "Q23d", "Q23e", "Q23f", "Q23g"]
+             "Q23b", "Q23c", "Q23d", "Q23e", "Q23f", "Q23g",
+             # optional inference modules supply no first-release gate prerequisite
+             "Q24a", "Q24b", "Q24c", "Q24d", "Q24e", "Q24f", "Q24g", "Q24h"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A

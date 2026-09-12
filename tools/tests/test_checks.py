@@ -99,6 +99,33 @@ def _estimates_repair_reaches_fixpoint() -> None:
                f"and report no rewrite: {again.rep.out!r}")
 
 
+def _optional_inference_work_stays_outside_both_gates() -> None:
+    # Exercise the reported budgets, including _head's handling of full labels.
+    # Adding every module child must leave both independent gate figures unchanged.
+    plan = ("# Plan\n\n"
+            "* M8a gate: 999 h of open work falls at or before it, of which 999 h is class X.\n"
+            "* M8b gate: a 999 h chain of open work.\n\n"
+            "* [ ] **M1.7 · Software fixture** · 10 h, range 8–12 · 0.0% · I\n"
+            "* [ ] **R2 · RTL fixture** · 20 h, range 16–24 · 0.0% · I\n")
+    modules = "".join(
+        f"* [ ] **Q24{suffix} · Module fixture** · 3 h, range 2–4 · 0.0% · X · "
+        "after the M8a gate\n" for suffix in "abcdefgh")
+    expected = [
+        "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",
+        "* M8b gate: a 20 h chain of open work.",
+    ]
+    for addition in ("", modules):
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           PLAN: plan + addition}) as root:
+            ctx = _context(root, fix=True)
+            estimates.run(ctx)
+            repaired = ctx.fixed.get(PLAN, plan + addition)
+            actual = [line for line in repaired.splitlines()
+                      if line.startswith(("* M8a gate:", "* M8b gate:"))]
+            ensure(actual == expected,
+                   f"optional module work changed a required gate budget: {actual!r}")
+
+
 def _k96_record_is_held_total_in_both_directions() -> None:
     # There are two records and each is a totality claim over its own series, so the
     # fixture crosses them: the attended record carries a row naming no item and misses
@@ -180,7 +207,7 @@ def _counts_overflow_is_a_finding() -> None:
         ctx.shared.update(cj_confer=[], fc_seams=[], fc_confer=[], rf_confer=[],
                           dispositions=0, rot_cases=0)
         counts.run(ctx)
-        ensure("absences is 100, which has no word form; the claim in README.md "
+        ensure("absences is 100, which has no word form; the claim in docs/README.md "
                "must state it in digits" in _findings_under(ctx, "K-24"),
                f"the overflow is K-24's finding, naming the claim owed digits: "
                f"{_findings_under(ctx, 'K-24')!r}")
@@ -423,6 +450,8 @@ def cases() -> list[Case]:
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),
+        Case("optional-inference-work-stays-outside-both-gates",
+             _optional_inference_work_stays_outside_both_gates),
         Case("k96-record-is-held-total-in-both-directions",
              _k96_record_is_held_total_in_both_directions),
         Case("bindings-truncated-row-is-a-finding",
