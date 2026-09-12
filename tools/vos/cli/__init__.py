@@ -124,6 +124,8 @@ COMMANDS: tuple[Command, ...] = (
             "synthetic joint issue acceptance and frame-state closure for Q22e"),
     Command("storage-index", "vos.cli.storage_index",
             "bounded index cost, visibility and shared redo-recovery comparison"),
+    Command("static-memory", "vos.cli.static_memory",
+            "synthetic capacity ledgers and bounded exact placement comparisons"),
     Command("assembly-compare", "vos.cli.assembly_compare",
             "stock assembly bytes under the compartment-annotation-only contract"),
     Command("matrix-margin", "vos.cli.matrix_margin",

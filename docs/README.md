@@ -19,6 +19,11 @@ strategy, core design and workflow contract share the `languages/` directory.
 The [matrix margin contract](implementation/matrix-margin-contract.md) defines
 the M-class comparison and its strongest-RVV denominator before instruction admission.
 
+The [static-memory experiments](implementation/static-memory-experiments.md) join
+the [mathematical baseline](implementation/static-memory-baseline.md) and
+[synthetic capacity corpus](implementation/static-memory-corpus.md) to replayable
+byte accounting and bounded placement comparisons.
+
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
 

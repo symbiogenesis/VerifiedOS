@@ -13,12 +13,11 @@ Cartesian replay at the preceding height. Exhaustion of a work budget is unfinis
 research, never infeasibility. No search changes the input or writes a plan.
 """
 
-from dataclasses import dataclass
 import hashlib
 import itertools
 import json
+from dataclasses import asdict, dataclass
 from typing import Any
-
 
 MAX_EXACT_OBJECTS = 12
 METHODS: tuple[str, ...] = ("first-fit-start", "first-fit-size", "first-fit-retention")
@@ -141,7 +140,6 @@ def parse_case(raw: object) -> Case:
 
 def contract_hash(case: Case) -> str:
     """Bind a receipt to all parsed contract fields, including its standing plan."""
-    from dataclasses import asdict
     encoded = json.dumps(asdict(case), sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
@@ -453,20 +451,20 @@ def verify_optimality(case: Case, receipt: object,
         if findings:
             return answer("rejected", findings)
         if not isinstance(witness, list):
-            raise CaseError("receipt witness is not a list")
+            return answer("rejected", ["receipt witness is not a list"])
         spans = placement_spans(case, witness)
         rows = report.get("arenas")
         if not isinstance(rows, list) or len(rows) != len(case.arenas):
-            raise CaseError("receipt arenas do not match contract")
+            return answer("rejected", ["receipt arenas do not match contract"])
         indexed: dict[str, dict[str, Any]] = {}
         for raw in rows:
             row = _mapping(raw, "receipt arena")
             identifier = _string(row.get("arena"), "receipt arena.id")
             if identifier in indexed:
-                raise CaseError("duplicate receipt arena")
+                return answer("rejected", ["duplicate receipt arena"])
             indexed[identifier] = row
         if set(indexed) != {a.id for a in case.arenas}:
-            raise CaseError("receipt arena identities do not match contract")
+            return answer("rejected", ["receipt arena identities do not match contract"])
         for arena in case.arenas:
             row = indexed[arena.id]
             lower = peak_load(case, arena.id)
@@ -475,17 +473,17 @@ def verify_optimality(case: Case, receipt: object,
             reported_height = _integer(row.get("best_span"), "receipt best_span")
             if (row.get("status") != "optimal" or reported_lower != lower
                     or reported_height != height):
-                raise CaseError(f"{arena.id}: false span, bound or status")
+                return answer("rejected", [f"{arena.id}: false span, bound or status"])
             certificate = _mapping(row.get("certificate"), "certificate")
             _fields(certificate, {"method", "infeasible_through"}, "certificate")
             if certificate["infeasible_through"] is not None:
                 _integer(certificate["infeasible_through"], "certificate infeasible_through")
             if height == lower:
                 if certificate != {"method": "load-equality", "infeasible_through": None}:
-                    raise CaseError("load equality certificate malformed")
+                    return answer("rejected", ["load equality certificate malformed"])
                 continue
             if certificate != {"method": "exhaustive", "infeasible_through": height - 1}:
-                raise CaseError("exhaustive certificate must challenge exactly span - 1")
+                return answer("rejected", ["exhaustive certificate must challenge exactly span - 1"])
             objects = tuple(o for o in case.objects if o.arena == arena.id)
             if len(objects) > MAX_EXACT_OBJECTS:
                 return answer("incomplete", [f"{arena.id}: replay exceeds small-instance limit"])
