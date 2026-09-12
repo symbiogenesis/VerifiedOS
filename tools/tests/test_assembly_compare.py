@@ -49,6 +49,44 @@ def _positive_identity() -> None:
         ensure(result.left.sha256 != result.right.sha256, "original hashes remain different")
 
 
+def _named_label_annotations() -> None:
+    for label in (b"deref", b"_f", b".L17", b"$thunk", b"f9"):
+        for suffix in (b"", b"\n", b"\r\n"):
+            original = b".text\nret\n" + label + b": # Compartment 39" + suffix
+            changed = original.replace(b"Compartment 39", b"Compartment 000012")
+            result = compare(original, changed)
+            ensure(result.verdict == "equal", "named-label diagnostic digits may change")
+            ensure(result.left.annotations == 1 and result.right.annotations == 1,
+                   "named-label annotation counts must be measured")
+            ensure(result.left.sha256 != result.right.sha256,
+                   "named-label metadata retains the original byte identities")
+    for line in (
+        b" deref: # Compartment 39", b"deref: # Compartment 39 ",
+        b"deref:\t# Compartment 39", b"deref:  # Compartment 39",
+        b"39: # Compartment 39", b'"deref": # Compartment 39',
+        b"deref: ret # Compartment 39", b"deref: # Compartment 39 extra",
+        b"deref: # Compartment -39", b"deref: # Compartment 0x39",
+        b".set compartment, 39 # Compartment 39",
+        b'.asciz "deref: # Compartment 39"',
+        b'.asciz "escaped \\" deref: # Compartment 39"',
+        b"# deref: # Compartment 39",
+    ):
+        original = b".text\nret\n" + line + b"\n"
+        changed = original.replace(b"Compartment 39", b"Compartment 12")
+        # Change the identifier in the signed/hex refusal controls as well.
+        if original == changed:
+            changed = original.replace(b"39", b"12")
+        result = compare(original, changed)
+        ensure(result.verdict == "different" and result.left.annotations == 0,
+               f"nonmatching named-label bytes must remain exact: {line!r}: {result}")
+    for wrapper in (b".if 0\n%s\n.endif\n", b".macro m\n%s\n.endm\n",
+                    b"/*\n%s\n*/\n", b'.asciz "start\n%s\nend"\n'):
+        original = b".text\nret\n" + wrapper % b"deref: # Compartment 39"
+        changed = original.replace(b"Compartment 39", b"Compartment 12")
+        ensure(compare(original, changed).verdict == "unsupported",
+               "a label-shaped line inside an unsupported construct must refuse")
+
+
 def _semantic_changes_refused() -> None:
     replacements = (
         (b"x5", b"x7"), (b"x10", b"x11"), (b"x0", b"x1"),
@@ -129,14 +167,49 @@ def _difference_positions() -> None:
     ensure(compare(original, b"").verdict == "unsupported", "a missing side is not a diff")
 
 
+def _annotation_marker_collisions() -> None:
+    for prefix in (b"# Compartment ", b"deref: # Compartment "):
+        for ending in (b"", b"\n", b"\r\n"):
+            header = b".text\nret\n"
+            original = header + prefix + b"42" + ending
+            literal = header + prefix + b"<compartment>" + ending
+            for left, right in ((original, literal), (literal, original)):
+                result = compare(left, right)
+                ensure(result.verdict == "different" and result.exit_code == 1,
+                       "literal marker must not equal a decimal annotation")
+                ensure(result.first_difference == len(header + prefix)
+                       and result.left_line == 3 and result.right_line == 3,
+                       "mismatched annotation eligibility must report the raw differing byte")
+            result = compare(literal, literal)
+            ensure(result.verdict == "equal" and result.left.annotations == 0,
+                   "literal marker identity is ordinary byte equality")
+        left = b".text\nret\n" + prefix + b"42\n" + prefix + b"<compartment>\n"
+        right = b".text\nret\n" + prefix + b"<compartment>\n" + prefix + b"42\n"
+        result = compare(left, right)
+        ensure(result.verdict == "different" and result.left.annotations == 1
+               and result.right.annotations == 1,
+               "equal annotation counts do not authorize shifted eligibility")
+        # A prior eligible pair changes length while the later collision stays raw.
+        left = b".text\n# Compartment 1\nret\n" + prefix + b"42\n"
+        right = b".text\n# Compartment 000001\nret\n" + prefix + b"<compartment>\n"
+        result = compare(left, right)
+        expected = len(b".text\n# Compartment <compartment>\nret\n" + prefix)
+        ensure(result.verdict == "different" and result.first_difference == expected
+               and result.left_line == 4 and result.right_line == 4,
+               "difference offsets retain normalization of prior eligible pairs")
+
+
 def _generated_byte_changes() -> None:
-    annotation = _PROGRAM.index(b"# Compartment 42\n") + len(b"# Compartment ")
-    allowed = {annotation, annotation + 1}
-    for offset, byte in enumerate(_PROGRAM):
-        candidate = _PROGRAM[:offset] + bytes([byte ^ 1]) + _PROGRAM[offset + 1:]
-        result = compare(_PROGRAM, candidate)
-        ensure((result.verdict == "equal") == (offset in allowed),
-               f"single-byte mutation at {offset} escaped the metadata boundary: {result}")
+    labeled = _PROGRAM.replace(b"# Compartment 42\nexample:\n",
+                               b".L17: # Compartment 42\n")
+    for original in (_PROGRAM, labeled, labeled.replace(b"\n", b"\r\n")):
+        annotation = original.index(b"# Compartment 42") + len(b"# Compartment ")
+        allowed = {annotation, annotation + 1}
+        for offset, byte in enumerate(original):
+            candidate = original[:offset] + bytes([byte ^ 1]) + original[offset + 1:]
+            result = compare(original, candidate)
+            ensure((result.verdict == "equal") == (offset in allowed),
+                   f"single-byte mutation at {offset} escaped the metadata boundary: {result}")
 
 
 def _cli_evidence() -> None:
@@ -171,9 +244,11 @@ def _cli_evidence() -> None:
 
 def cases() -> list[Case]:
     return [Case("positive-identity", _positive_identity),
+            Case("named-label-annotations", _named_label_annotations),
             Case("semantic-changes-refused", _semantic_changes_refused),
             Case("no-vacuous-equality", _no_vacuous_equality),
             Case("unsupported-syntax", _unsupported_syntax),
             Case("difference-positions", _difference_positions),
+            Case("annotation-marker-collisions", _annotation_marker_collisions),
             Case("generated-byte-changes", _generated_byte_changes),
             Case("cli-evidence", _cli_evidence)]
