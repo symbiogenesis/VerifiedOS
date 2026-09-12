@@ -73,7 +73,7 @@ caught by nothing, which is a residue the findings register carries.
 | `witness` | host | `qualify` enumerates bounded witness quorums; `test --only witness` exercises durable recovery and policy transitions. Both separate honest intersection from availability and selective delivery. |
 | `session-binding` | host | Checks a symbolic attestation/session-binding model against replay, parallel-session substitution and relay cases. Cryptographic and implementation correspondence remain separate obligations. |
 | `assembly-compare` | host | Compares stock compiler assembly under the [reviewed annotation-only contract](../docs/implementation/compiler-assembly-comparison.md). `LEFT RIGHT --json` reports input and tool identities; equal bytes supply no compiler-campaign verdict. |
-| `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits shortest failing arrival traces for Q22e. `--json` binds source identities and contracts; target service, ordering and cost qualification remain open. |
+| `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits shortest failing arrival traces for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
 | `storage-index` | host | Compares a fixed-height buffered index and plain CoW B+ tree under one conditional redo contract. Reports bounded block costs, map equivalence and crash cases; [Q22f's predicate](../docs/implementation/storage-index-comparison.md) leaves device qualification and target WCET open. `--json` includes source identities and every measured case. |
 | `matrix-margin` | host | Checks `PLAN REPORT --json` under the [M-class measurement contract](../docs/implementation/matrix-margin-contract.md). Binds the case and RVV extension sets, checks output identities, and reports exact sustained throughput and per-watt ratios. Supplied measurements do not establish producer truth or admit instructions. |
 | `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. |
@@ -97,12 +97,23 @@ its lane are written down.
 `phase-service` models refresh as fixed per-phase bank reservations with occupancy
 including the starting cycle. A reservation requires an idle bank, blocks arrivals
 to that bank, and carries its residue across frame wrap. Other banks remain usable;
-refresh consumes no injection grant in this synthetic contract. Shared refresh ports,
-target refresh timing and correspondence to an actual arbiter remain unqualified.
-An `arrival-blocked` trace includes the rejected arrival batch; a `refresh-overlap`
-trace contains only the accepted prefix, with `failure` naming the phase and bank
-residue before the mandatory refresh that cannot start. Quiet-window fixtures state
-arrival restrictions as inputs; they supply no emitted-code certificate.
+refresh consumes no injection grant in this synthetic contract. A bank's `path` is
+the cycles a request spends in the fabric before that bank accepts it, zero unless
+stated; a request in flight arrives ahead of the phase's own batch, is refused as
+`path-blocked` where its bank is taken, and as `order-inverted` where an earlier
+request of the same hart is still in flight, the hart being a request's optional
+third element. A closed contract reports `drain`, the longest any reachable state
+keeps a request in flight ahead of acceptance, and a refuted one reports none. Shared
+refresh ports, target refresh timing and correspondence to an actual arbiter remain
+unqualified. An `arrival-blocked` trace, or an `order-inverted` one raised at issue,
+includes the rejected arrival batch; a `refresh-overlap`, `path-blocked` or
+arrival-side `order-inverted` trace contains only the accepted prefix, with `failure`
+naming the phase, the bank residue and the requests in flight at the cycle that
+cannot proceed. Quiet-window fixtures state arrival restrictions as inputs; they
+supply no emitted-code certificate. The receipt's `inputs` are read from the
+composition rather than stated, and its `schedule` is null because R-11-017's
+artifact does not exist; `--contract FILE` takes the shape of the `Contract`
+dataclass and exits 0 on zero wait, 1 on a refutation and 2 on a malformed file.
 
 Six directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. [oracle-specs/](oracle-specs/) is
 one JSON file per oracle: the sources to compile, and per line kind the parameters,
