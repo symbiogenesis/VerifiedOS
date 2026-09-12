@@ -80,6 +80,38 @@ A common alignment `g` preserves the argument if the arena origin, every extent 
 
 The theorem concerns actual reservation lifetimes. A language may supply a proof that its exported intervals are laminar, but ownership alone and nested lexical region names do not supply it. Extending intervals to region exit can produce laminar reservations while increasing `L_charge` above the original payload peak. This remains an optimal placement of a more retentive model.
 
+### Executable construction and structural witnesses
+
+`python tools/run.py static-memory structure --json` replays the construction in
+[static_memory_structure.py](../../tools/vos/static_memory_structure.py). It sorts
+reservation intervals by increasing start, decreasing end and identity, places
+each object above the active ancestor stack, and refuses crossing intervals.
+Equal intervals nest in identity order, giving their objects consecutive extents.
+The independent placement checker then verifies every emitted binding, and its
+span is compared with the separately computed charged live-load bound.
+
+The constructor never enumerates addresses. Its binary-magnitude witness uses
+extents and endpoints far beyond a practical integer address grid. Sorting and
+stack construction have the algorithmic scope of the argument above; the current
+independent placement replay also performs a quadratic pair scan. Neither result
+certifies the target's legal-address constraints or the source lifetime bridge.
+
+The receipt also enumerates interval-deletion subsets within an explicit budget.
+Removing an endpoint of every crossing pair is exactly what makes the remaining
+family laminar. Completed smaller cardinalities give a lower bound on the minimum
+deletion count; a cutoff retains that bound and reports `incomplete`, with no
+claimed minimum. This finite diagnostic neither solves general placement at that
+parameter nor gives a fixed-parameter tractability or hardness result.
+
+`python tools/run.py test --only static_memory_structure` compares the constructor
+against an independent byte-at-a-time oracle on generated small interval and size
+families, and the deletion result against enumeration of retained subsets. It
+checks equal intervals, adjacent endpoints, input permutation, unsupported
+alignment and arena premises, insufficient capacity, and incomplete search.
+The aligned equal-lifetime counterexample also carries the existing exact
+oracle's independent optimality replay. These are executable checks of finite
+instances, not a machine-checked general proof.
+
 ## Small witnesses for disputed implications
 
 These are local constructions with synthetic units, not a product workload. Minimality claims below are limited to the stated number of objects or phases and the particular implication; none is a classification of general storage-allocation instances.

@@ -18,7 +18,7 @@ Run from the host checkout:
 
 ```console
 python tools/run.py static-memory scale --json
-python tools/run.py static-memory scale --sizes 8,32,128,512,1024 --max-nodes 100000 --q5-max-leaves 256 --json
+python tools/run.py static-memory scale --sizes 8 32 128 512 1024 --max-nodes 100000 --q5-max-leaves 256 --json
 python tools/run.py static-memory scale --sizes 8 --max-nodes 1 --q5-max-leaves 1 --json
 python tools/run.py test --only static_memory_scale
 ```
