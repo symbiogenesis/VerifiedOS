@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Bounded review-body reader for replay-record-contract.md.
+"""Bounded review-body fixtures for replay-record-contract.md.
 
 This is structural fixture validation. It neither authenticates opaque seals nor
 records, exports, or replays a machine. In particular, an Event's secret payload
@@ -8,7 +8,7 @@ is opaque commitment bytes, never entropy a consumer may substitute or unseal.
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import cast
 
@@ -185,6 +185,141 @@ def decode(blob: bytes, *, expected: Binding, expected_events: int,
         events.append(Event(seq, point, source, identity, bytes.fromhex(encoded)))
         retired[point.core] = point.retire
     return Record(found, tuple(events))
+
+
+def _event_body(event: Event) -> dict[str, Json]:
+    return {
+        "seq": event.seq,
+        "point": {"slot": event.point.slot, "core": event.point.core,
+                  "retire": event.point.retire, "ordinal": event.point.ordinal},
+        "source": event.source,
+        "interface": event.interface,
+        "payload": {"sealed_commitment" if event.source == "entropy" else "value":
+                    event.payload.hex()},
+    }
+
+
+def _encode(value: Json) -> bytes:
+    return json.dumps(value, separators=(",", ":")).encode("utf-8")
+
+
+def _record_body(binding: Binding, events: list[Event]) -> bytes:
+    return _encode({
+        "schema": SCHEMA,
+        "binding": {"base_image_root": binding.base_image_root,
+                    "composition": binding.composition, "input_trace": binding.input_trace},
+        "events": [_event_body(event) for event in events],
+    })
+
+
+class FixtureRecorder:
+    """Single-caller bounded capture with admission before a fixture callback.
+
+    Public endpoint validators decide fixture payload semantics, not production
+    service ABIs. Entropy callbacks return opaque commitment bytes, never draws;
+    nothing here establishes that those bytes are sealed. A callback returning
+    None promises no value was consumed and no nondeterminism event is owed.
+    Any exception or refusal poisons the capture, even if a callback catches it.
+    Only finish can return body bytes, and only for independent bindings/count.
+    """
+
+    def __init__(self, binding: Binding, *, limits: Limits,
+                 interfaces: Mapping[str, Interface],
+                 validators: Mapping[str, Callable[[bytes], bool]]) -> None:
+        self._binding = binding
+        self._limits = limits
+        self._interfaces = dict(interfaces)
+        self._validators = dict(validators)
+        self._events: list[Event] = []
+        self._retired: dict[int, int] = {}
+        self._busy = False
+        self._failed = False
+        self._finished = False
+        empty = _record_body(binding, [])
+        decode(empty, expected=binding, expected_events=0, limits=limits,
+               interfaces=self._interfaces)
+        public = {identity for identity, profile in self._interfaces.items()
+                  if profile.source != "entropy"}
+        if self._validators.keys() != public or not all(map(callable, self._validators.values())):
+            raise RecordError("every public fixture endpoint requires its own validator")
+        self._body_bytes = len(empty)
+
+    def _ready(self) -> None:
+        if self._failed or self._finished or self._busy:
+            raise RecordError("capture is refused, finished, or already consuming")
+
+    def _admit(self, point: Point, interface: str) -> tuple[Event, Interface, int]:
+        self._ready()
+        for value in (point.slot, point.core, point.retire, point.ordinal):
+            _uint(value)
+        if self._events and point <= self._events[-1].point:
+            raise RecordError("event coordinates are repeated or regressing")
+        if point.retire < self._retired.get(point.core, 0):
+            raise RecordError("local retire count regresses within capture origin")
+        identity = _hex(interface, digest=True)
+        profile = self._interfaces.get(identity)
+        if profile is None:
+            raise RecordError("interface is not a composed fixture endpoint")
+        seq = len(self._events)
+        if seq >= self._limits.max_events:
+            raise RecordError("event capacity exhausted before source consumption")
+        template = Event(seq, point, profile.source, identity, b"")
+        overhead = len(_encode(_event_body(template))) + (1 if seq else 0)
+        if self._body_bytes + overhead + 2 * profile.max_payload_bytes > self._limits.max_body_bytes:
+            raise RecordError("body capacity exhausted before source consumption")
+        return template, profile, overhead
+
+    def record(self, *, point: Point, interface: str,
+               produce: Callable[[], bytes | None]) -> Event | None:
+        """Reserve the endpoint maximum before calling produce, then record it.
+
+        A public event is returned only after validation and append. The maximum
+        reservation can refuse a smaller actual payload that would fit; it never
+        calls a side-effectful source to discover whether there is enough room.
+        This refusal is not an implementation of the reserved terminal fault path.
+        """
+        try:
+            template, profile, overhead = self._admit(point, interface)
+            self._busy = True
+            try:
+                payload = produce()
+                if self._failed:
+                    raise RecordError("callback caught a nested capture refusal")
+                if payload is None:
+                    return None
+                if type(payload) is not bytes or not 0 < len(payload) <= profile.max_payload_bytes:
+                    raise RecordError("callback returned an invalid or oversized payload")
+                if profile.source != "entropy":
+                    if self._validators[template.interface](payload) is not True:
+                        raise RecordError("public fixture payload failed endpoint validation")
+                    if self._failed:
+                        raise RecordError("validator caught a nested capture refusal")
+                event = Event(template.seq, point, profile.source, template.interface, payload)
+                self._events.append(event)
+                self._retired[point.core] = point.retire
+                self._body_bytes += overhead + 2 * len(payload)
+                return event
+            finally:
+                self._busy = False
+        except BaseException:
+            # Source exceptions may follow an irreversible side effect. Preserve
+            # cancellation/exception identity, but never finalize an uncertain prefix.
+            self._failed = True
+            raise
+
+    def finish(self, *, expected: Binding, expected_events: int) -> bytes:
+        """Close once, refusing the whole capture on binding/count disagreement."""
+        try:
+            self._ready()
+            blob = _record_body(self._binding, self._events)
+            decode(blob, expected=expected, expected_events=expected_events,
+                   limits=self._limits, interfaces=self._interfaces)
+        except BaseException:
+            self._failed = True
+            raise
+        else:
+            self._finished = True
+            return blob
 
 
 class FixtureCursor:
