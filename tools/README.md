@@ -135,14 +135,21 @@ splits on a space alone. A stream that assembles is
 wrapped in a harness that derives the stack and the `tohost` authority off the
 store-side root (R-15-001c), installs a trap handler and folds `main`'s return into the
 HTIF exit code, and is run with the invocation `model corpus` makes; the HTIF verdict
-and the commit trace's digest are the two questions, `--against FILE` holds them to a
-recorded run, and the trace is also read for one tagged write read back tagged, which is
+and the commit trace's digest are the two questions. A successful emulator exit must
+carry both the HTIF success line and a nonempty commit trace. `--against FILE` holds
+the results to a recorded run with the same unique program names and source digests;
+missing members and comparison disagreements fail even under `--expect-refusal`.
+A reused `--keep` directory cannot supply stale compiler output. The trace is also
+read for one tagged write read back tagged, which is
 M1.7's own test that a capability went through memory. At the component level the
 declared output encoding is a side's exit verdict, the Wasm host's process status or the
 image's HTIF code, plus the SHA-256 and length of the bytes it emitted, the runner's
 standard output on one side and the emulator's terminal log on the other; either side
 is written as a record and the comparator names the first field that disagrees, or the
-first byte where both sides' bytes are in hand. What waits on the backend: no purecap
+first byte where both sides' bytes are in hand. Records must name their actual side,
+and a missing exit verdict is a failed run even when both sides lack one. Capturing
+one completed side alone remains available while the other side waits.
+What waits on the backend: no purecap
 component exists to run, so the purecap side is a record whose producer is owed; the
 harness's calling convention at `call main` is a placeholder until M1.2d fixes the
 frame and the sentry pair; and a green run says this machine and this program agree,

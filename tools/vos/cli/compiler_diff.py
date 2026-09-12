@@ -376,14 +376,16 @@ def compile_c(ccomp: list[str], source: Path, fresh: Path,
               timeout: int = COMPILE_TIMEOUT) -> Compiled:
     """Run `ccomp -S` over one source in `fresh`, a directory holding nothing else.
 
-    The source is copied in and the compiler is run there, so the only files it can read
-    or write are its own and the argv recorded is stable across runs: the compiler's
-    path as the caller spelled it and two names relative to the fresh directory.
+    The source is copied in and the compiler is run there. This working directory is
+    not an OS sandbox. Remove any previous assembly first, so a reused --keep directory
+    cannot supply a successful invocation that wrote nothing with stale output. The
+    argv records the compiler's path and two names relative to this directory.
     """
     fresh.mkdir(parents=True, exist_ok=True)
     copied = fresh / source.name
     shutil.copyfile(source, copied)
     out = fresh / f"{source.stem}.s"
+    out.unlink(missing_ok=True)
     argv = [*ccomp, "-S", copied.name, "-o", out.name]
     said = ""
     exit_code = -1
@@ -428,14 +430,14 @@ def htif_verdict(said: str, returncode: int) -> tuple[str, int | None, str]:
     above it. An emulator that printed neither line gave no verdict, and a trap loop is
     that case named, because it is what a fault inside the handler itself looks like.
     """
-    if "SUCCESS" in said:
-        return "pass", 0, "HTIF 0"
     failed = _FAILURE_RE.search(said)
     if failed:
         code = int(failed.group(1))
         if code >= TRAP_BASE:
             return "trap", code, f"HTIF {code}: cause {code - TRAP_BASE} reached the handler"
         return "fail", code, f"HTIF {code}: main returned {code}"
+    if returncode == 0 and re.search(r"^SUCCESS\s*$", said, re.MULTILINE):
+        return "pass", 0, "HTIF 0"
     if "trap loop" in said:
         return "no-verdict", None, "the emulator detected a trap loop"
     return "no-verdict", None, f"rc={returncode}, no HTIF verdict"
@@ -481,6 +483,8 @@ def run_image(simulator: list[str], profile: Path, elf: Path, workdir: Path,
     records = trace.normalize_commit(said.splitlines())
     emitted = term.read_bytes() if term.is_file() else b""
     verdict, code, detail = htif_verdict(said, done.returncode)
+    if verdict == "pass" and not records:
+        verdict, code, detail = "no-verdict", None, "HTIF 0 without a commit trace"
     return Ran(verdict, code, len(records), trace.digest(records), cap_roundtrip(records),
                emitted, detail)
 
@@ -745,22 +749,33 @@ def grouped(found: tuple[Refusal, ...] | list[Refusal]) -> list[tuple[str, str, 
 def disagreements(current: list[Report], against: dict[str, Json]) -> list[str]:
     """Where this run's answers to the two questions differ from a recorded run's.
 
-    Compared by program name over the HTIF code and the trace digest, which are the two
-    questions; a program one side did not run to a verdict is named as such rather than
-    read as agreeing. The recorded run is a `--json` report of this command.
+    The program names and source digests must match before the HTIF code and trace
+    digest are compared. Duplicate names and missing campaign members are findings.
+    The recorded run is a `--json` report of this command.
     """
     recorded = against.get("programs")
     if not isinstance(recorded, list):
         return ["the recorded run carries no `programs` list"]
     by_name: dict[str, dict[str, Json]] = {}
     for entry in recorded:
-        if isinstance(entry, dict) and isinstance(entry.get("name"), str):
-            by_name[cast("str", entry["name"])] = entry
+        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+            return ["the recorded run carries an invalid program entry"]
+        name = cast("str", entry["name"])
+        if name in by_name:
+            return [f"{name}: duplicate name in the recorded run"]
+        by_name[name] = entry
     out: list[str] = []
+    names = {report.name for report in current}
+    if len(names) != len(current):
+        return ["the current run carries duplicate program names"]
+    out += [f"{name}: not in the current run" for name in by_name if name not in names]
     for report in current:
         before = by_name.get(report.name)
         if before is None:
             out.append(f"{report.name}: not in the recorded run")
+            continue
+        if report.source_sha256 != before.get("source_sha256"):
+            out.append(f"{report.name}: source digest differs from the recorded run")
             continue
         was = before.get("run")
         if report.ran is None or not isinstance(was, dict):
@@ -769,6 +784,8 @@ def disagreements(current: list[Report], against: dict[str, Json]) -> list[str]:
             if report.verdict != before.get("verdict"):
                 out.append(f"{report.name}: verdict {report.verdict!r} against the "
                            f"recorded {before.get('verdict')!r}")
+            elif report.ran is not None or was is not None:
+                out.append(f"{report.name}: only one run carries emulator evidence")
             continue
         if report.ran.code != was.get("code"):
             out.append(f"{report.name}: HTIF {report.ran.code} against the recorded "
@@ -814,7 +831,7 @@ def output_of(side: str, verdict: int | None, emitted: bytes, produced_by: str) 
     return Output(side, verdict, _sha256(emitted), len(emitted), head, produced_by)
 
 
-def read_output(path: Path) -> Output:
+def read_output(path: Path, expected_side: str | None = None) -> Output:
     """A record written by `to_json`, refused by name where it is not one."""
     raw: object = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -825,10 +842,14 @@ def read_output(path: Path) -> Output:
     side, digest = record.get("side"), record.get("output_sha256")
     length, head = record.get("output_length"), record.get("output_head")
     verdict, produced = record.get("verdict"), record.get("produced_by")
-    if not (isinstance(side, str) and isinstance(digest, str) and isinstance(length, int)
+    if not (isinstance(side, str) and isinstance(digest, str) and type(length) is int
             and isinstance(head, str) and isinstance(produced, str)
-            and (verdict is None or isinstance(verdict, int))):
+            and (verdict is None or type(verdict) is int)):
         raise ValueError(f"{path}: a field of the record is missing or of the wrong type")
+    if side not in ("wasm-host", "purecap") or (expected_side and side != expected_side):
+        raise ValueError(f"{path}: side {side!r} is not {expected_side or 'a component side'}")
+    if length < 0 or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise ValueError(f"{path}: invalid output length or SHA-256 digest")
     return Output(side, verdict, digest, length, head, produced)
 
 
@@ -852,6 +873,10 @@ def compare_outputs(host: Output, purecap: Output, host_bytes: bytes | None = No
     decided the question; then the length, then the digest, and where both sides' bytes
     are in hand the first differing byte is named rather than the digests.
     """
+    if host.side != "wasm-host" or purecap.side != "purecap":
+        return Disagreement("side", host.side, purecap.side)
+    if host.verdict is None or purecap.verdict is None:
+        return Disagreement("verdict", str(host.verdict), str(purecap.verdict))
     if host.verdict != purecap.verdict:
         return Disagreement("verdict", str(host.verdict), str(purecap.verdict))
     if host.output_length != purecap.output_length:
@@ -935,6 +960,8 @@ def _inputs(args: argparse.Namespace) -> list[Program]:
         out.append(Program(path.stem, "given", text, 0))
     if args.generate:
         out += programs(args.seed, args.generate)
+    if len({program.name for program in out}) != len(out):
+        raise ValueError("program names must be unique, including generated programs")
     return out
 
 
@@ -959,7 +986,7 @@ def _program(args: argparse.Namespace) -> int:
     root = corpus_mod.find_root()
     try:
         inputs = _inputs(args)
-    except OSError as err:
+    except (OSError, ValueError) as err:
         print(f"FAIL compiler-diff: unreadable input: {err}", file=sys.stderr)
         return 2
     if not inputs:
@@ -990,7 +1017,7 @@ def _program(args: argparse.Namespace) -> int:
     differs = disagreements(reports, against) if against is not None else []
     tally = {verdict: sum(1 for r in reports if r.verdict == verdict) for verdict in VERDICTS}
     closed = all(r.verdict == "pass" for r in reports) and not differs
-    expected = (all(r.verdict == "dialect-refused" for r in reports)
+    expected = (all(r.verdict == "dialect-refused" for r in reports) and not differs
                 if args.expect_refusal else closed)
 
     if args.json:
@@ -1026,7 +1053,7 @@ def _program(args: argparse.Namespace) -> int:
     elif args.expect_refusal:
         print("the refusal is the expected verdict ahead of the backend (R-18-002): "
               + ("every stream was refused" if expected
-                 else "and at least one stream was not refused, which is the finding"))
+                 else "the refusals or the recorded comparison did not meet the expectation"))
     else:
         print("the acceptance loop is open: not every program answered both questions")
     return 0 if expected else 1
@@ -1040,12 +1067,12 @@ def _component(args: argparse.Namespace) -> int:
     purecap_bytes: bytes | None = None
     try:
         if args.host_record:
-            host = read_output(Path(args.host_record))
+            host = read_output(Path(args.host_record), "wasm-host")
         elif args.wasm:
             runner = list(args.runner) if args.runner else list(NODE_RUNNER)
             host, host_bytes = wasm_output(Path(args.wasm), runner, root, args.timeout)
         if args.purecap_record:
-            purecap = read_output(Path(args.purecap_record))
+            purecap = read_output(Path(args.purecap_record), "purecap")
         elif args.elf and args.simulator:
             with tempfile.TemporaryDirectory(prefix="vos-compiler-diff-") as scratch:
                 purecap, purecap_bytes = purecap_output(
@@ -1067,6 +1094,7 @@ def _component(args: argparse.Namespace) -> int:
                                      encoding="utf-8", newline="\n")
     verdict = (compare_outputs(host, purecap, host_bytes, purecap_bytes)
                if host is not None and purecap is not None else None)
+    incomplete = any(side is not None and side.verdict is None for side in (host, purecap))
 
     if args.json:
         payload: dict[str, Json] = {
@@ -1078,7 +1106,7 @@ def _component(args: argparse.Namespace) -> int:
             "disagreement": None if verdict is None else verdict.line(),
         }
         print(json.dumps(payload, indent=2))
-        return 1 if verdict is not None else 0
+        return 1 if verdict is not None or incomplete else 0
 
     for side in (host, purecap):
         if side is not None:
@@ -1086,6 +1114,9 @@ def _component(args: argparse.Namespace) -> int:
                   f"byte(s), sha256 {side.output_sha256[:16]}, head {side.output_head!r}")
             print(f"{'':<9} produced by: {side.produced_by}")
     if host is None or purecap is None:
+        if incomplete:
+            print("FAIL      the requested side did not produce an exit verdict")
+            return 1
         missing = "purecap" if purecap is None else "host"
         print(f"WAITS     the {missing} side: no record and no run was named for it; the "
               f"purecap side's producer is M1.2's integrated backend")
