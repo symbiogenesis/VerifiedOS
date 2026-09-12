@@ -61,7 +61,7 @@ def _verified_archive_replaces_stale_source_tree() -> None:
 def _failed_repair_invalidates_receipt() -> None:
     with (sandbox_tree({"README.md": "fixture"}) as root,
           patch.object(env, "build_root", return_value=root),
-          patch.object(env, "_lane", return_value="test"),
+          patch.object(env, "lane_of", return_value="test"),
           patch.object(env, "hold_lock", return_value=nullcontext()),
           patch.object(rtl, "_verilator_version", return_value="0.000"),
           patch.object(rtl.shutil, "which", return_value="/usr/bin/verilator"),

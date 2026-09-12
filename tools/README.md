@@ -65,7 +65,7 @@ caught by nothing, which is a residue the findings register carries.
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | `sync-instructions` | host | Validates AGENTS.md and its CLAUDE.md import; creates a missing import. `--check` only validates; `--migrate` converts identical legacy copies without discarding independent edits. |
-| `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data. |
+| `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
 | `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
 | `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
@@ -76,8 +76,8 @@ caught by nothing, which is a residue the findings register carries.
 | `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits shortest failing arrival traces for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
 | `storage-index` | host | Compares a fixed-height buffered index and plain CoW B+ tree under one conditional redo contract. Reports bounded block costs, map equivalence and crash cases; [Q22f's predicate](../docs/implementation/storage-index-comparison.md) leaves device qualification and target WCET open. `--json` includes source identities and every measured case. |
 | `matrix-margin` | host | Checks `PLAN REPORT --json` under the [M-class measurement contract](../docs/implementation/matrix-margin-contract.md). Binds the case and RVV extension sets, checks output identities, and reports exact sustained throughput and per-watt ratios. Supplied measurements do not establish producer truth or admit instructions. |
-| `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. |
-| `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `smt`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. `smt` runs the capability-helper property suite ([model/model/unit_tests/cap_properties.sail](../model/model/unit_tests/cap_properties.sail), a transcription of the pinned `sail-cheri-riscv-verif` properties at the frozen widths) through Sail's SMT target with one verdict and one time per property, proved, counterexample or undecided, the last being its own verdict and never a pass; the suite sits behind the project file's `smt_properties` variable so that no build's ctest waits on a solver, and every verdict is evidence about the Sail functions rather than R-15-007a's proof. |
+| `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. Its layout rows probe where a lane's outputs land, so a build root or a log root on the Windows mount or on tmpfs fails the lane. |
+| `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `smt`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. `smt` runs the capability-helper property suite ([model/model/unit_tests/cap_properties.sail](../model/model/unit_tests/cap_properties.sail), a transcription of the pinned `sail-cheri-riscv-verif` properties at the frozen widths) through Sail's SMT target with one verdict and one time per property, proved, counterexample or undecided, the last being its own verdict and never a pass; the suite sits behind the project file's `smt_properties` variable so that no build's ctest waits on a solver, and every verdict is evidence about the Sail functions rather than R-15-007a's proof. `lane` prints where this checkout builds and logs, each path beside the filesystem under it. |
 | `evidence` | wsl | Builds the model, verifies its receipt, and runs the reference, profile sweep, differential corpus, devicetree and proof gate. Proofs overlap the model consumers in a separate process. Each run writes a JSON execution record with input identities, process results and measurements. `--no-build` requires a current successful build receipt; stale logs cannot supply its test evidence. |
 | `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record and `filelist` composes the curated arm's elaboration file list, both on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove, and `wait` reports the verdict of a backgrounded one; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. **A curation replaces imported sources as well as re-valuing parameters**, so `rtl.py`'s `SUBSTITUTIONS` declares which authored source stands where the imported manifest names imported ones, that declaration reaches the curated arm alone, and the diff is partitioned rather than signed: a kind the curated arm instantiates and the baseline does not is an introduction where an authored source in its file list declares that module and a finding where none does, and a kind the baseline instantiates and the curated arm does not is the parameters' own only where no replaced source declared it. |
 | `oracle` | wsl | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on either lane; `vectors` needs Sail. |
@@ -185,7 +185,10 @@ entry point uses the same bootstrap.
 
 From anywhere, and from either lane. Every tool finds the repository root from its own
 location rather than from the working directory, and `run.py` sends a guest command
-into WSL itself, so there is neither a wrong directory nor a wrong lane to be in.
+into WSL itself, so there is neither a wrong directory nor a wrong lane to be in. The
+hop carries the checkout as the guest's working directory, and
+[where a file lives](#where-a-file-lives-and-which-lane-touches-it) states what the
+guest then reads across the OS boundary and what it never writes back across.
 
 ```console
 $ python tools/run.py help                       # every command, and the lane it runs in
@@ -281,7 +284,7 @@ may be closures without requiring serialization.
 
 ## One toolchain, several checkouts
 
-There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, and whether anything is building there right now.
+There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, on which filesystem, and whether anything is building there right now.
 
 The lane is derived from the checkout rather than declared: a linked worktree's `.git` is a *file* naming its administrative directory under the primary checkout's `.git/worktrees/`, and the lane is git's own name for the worktree, which is unique within the repository by construction. The primary worktree has no lane and keeps the paths it always had; a linked one builds under `/root/build/lane-<name>/`, which is one directory holding the whole of what that lane knows, so a lane is retired by deleting it. The one tree every lane shares is the M0.4 oracle's, because it is stock upstream at a pinned commit and none of this repository's curation reaches it.
 
@@ -293,9 +296,33 @@ A build is not the only holder of state, and every holder refuses a concurrent r
 
 A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the two Sail SMT memo caches a lane keeps, the build tree's and the typecheck loop's, and a cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other. Every command that can stand a tree up seeds it before it configures one, `build`, `emit` and `bundle`, so which command a lane is opened with does not decide what that lane pays.
 
+## Where a file lives, and which lane touches it
+
+**A file sits on the side of the OS boundary whose tools read it most, and a guest output never lands in the checkout.** WSL mounts each Windows drive into the guest under `/mnt/<drive>` and shows the guest's own disk to Windows as `\\wsl.localhost\<distribution>`, and either direction works at a cost paid per file rather than per byte. [Microsoft's guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) is to keep a project on the filesystem of the command line that works on it, and this repository is worked on from both: the host edits and checks the documents, and the guest builds the model, elaborates the RTL and runs the provers. So the layout is a split, every loop here keeps it, and `run.py model lane` prints each of a lane's paths beside the filesystem under it.
+
+| What | Where it sits | Who touches it, and from which side |
+| --- | --- | --- |
+| The checkout, and every lane under `.worktrees/` | The Windows filesystem, at the path the editor opens | The editor and the host gates, natively; the guest reads it across `/mnt/<drive>`, once per build, which is the one crossing the layout keeps |
+| `out/venv-win32` and `out/venv-linux` | Inside each checkout | That checkout's `run.py` bootstrap on each OS; the Linux one is read across the boundary, at about 0.4 s per command |
+| Build trees, fast trees, SMT memo caches, and the work directories of the bundle, oracle, seed, QuickChick, RTL and evidence loops | `/root/build`, in a `lane-<name>` directory per linked worktree | Guest loops only; no host tool opens them |
+| Logs | `/root/logs`, the lane in the file name | Guest loops write them; a person reads them through `run.py model wait`, `run.py rtl wait` or `wsl -e cat`, never through a host tool pointed at the share |
+| The opam switches, the pinned solver, ccache | `/root/.opam`, `/root/z3-<version>`, `/root/.ccache` | The guest toolchain |
+| Retained evidence: `out/evidence/`, `proofs/proof-evidence.json`, the compiled `.vo` beside each proof, and the tracked generated artifacts | Inside the checkout | Written by a guest loop across the boundary once per run, so that the host lane can read them: `proofs status` hashes the compiled files with no prover in reach |
+
+The crossing that stays is priced, and the price is what fixed the split. [vos/env.py](vos/env.py)'s docstring carries the figures with their dates: a cmake configure walks the whole model project and pays per stat, about 17 s from `/mnt/c` against 1 s from ext4; a `git status` over the checkout is 3.2 s from the guest against 0.14 s on the host; and a tool's bootstrap through the Linux environment in the checkout is 0.78 s against 0.37 s. The host pays the same tax in reverse and pays it oftener, `tools/check.py` costing about 1 s over the NTFS checkout against 11 to 18 s over the same tree on the `wsl.localhost` share, on the loop that runs after every document edit, which is why the plan's I1 measured moving the checkout onto ext4 and refused it. What would flip the whole table is a person working from inside the guest, the Remote-WSL posture `run.py provision` prints as not reached: then the checkout belongs on ext4 too, the host gates run there as they do on the Ubuntu CI runner, and nothing crosses.
+
+The rules that follow from the table, each a thing a worker or a brief gets wrong before the table is open:
+
+- **Create a lane from the host.** `run.py worktree create` is Windows git writing the Windows filesystem; the same checkout made through `/mnt/c` from the guest pays the mount's per-file cost for every file it writes and lands in the same place. A checkout is never placed on `\\wsl.localhost`: host git refuses it until `safe.directory` is relaxed, and the checker pays the tax above on every run.
+- **Send guest work through the front door.** `python tools/run.py <command>` on the host hops with the checkout as the guest's working directory, so the guest reads the sources across the mount and writes every output under this lane's directory, which `run.py worktree create --json` names as `lane_root` and a brief for guest work carries. Inside the guest, `python3 tools/run.py <command>` is the same command.
+- **Never send a guest output back across, and never park one on tmpfs.** `VOS_BUILD_ROOT`, `VOS_LOG_DIR` and an `--out` pointed under `/mnt/` make every write cross the boundary, and `/tmp` is gone when the instance idle-terminates. `run.py provision` probes the build root and the log root and fails the lane for either.
+- **Ask the host about the checkout.** `git status`, a recursive search and a directory walk over `/mnt/c` each cost seconds from the guest, so the guest tools run `git` exactly where a build needs it, `git describe` at configure and `git ls-files` for a receipt, and a worker asks a host shell for the rest.
+- **The exceptions are named.** `seed properties` writes mutants into `model/` because cmake is pointed there and owns the checkout for the run; `model bundle` writes the tracked bundle; and the proof gate compiles beside the proofs so that the host can hash what it compiled. Nothing else a guest loop writes lands in the checkout.
+- **The two sides disagree about case.** NTFS folds it and ext4 does not, which is why a lane name is lowercased on creation and why [.gitignore](../.gitignore) excludes the `.Codex` and `.codex` worktree roots separately.
+
 ## The lane as a fact list, and what no provisioner reaches
 
-[run.py provision](vos/cli/provision.py) is that machine written down. Its probes cover four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor and a handful of distribution packages. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself. [The opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch, which has its own [installation recipe](bedrock2-lowering/README.md).
+[run.py provision](vos/cli/provision.py) is that machine written down. Its probes cover four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor, a handful of distribution packages, and the lane's layout: one memo cache per lane, and every guest output on the guest's own filesystem. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself. [The opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch, which has its own [installation recipe](bedrock2-lowering/README.md).
 
 It is native rather than containerized: the prover and model toolchains are built on the guest. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. Creating an opam root and the CertiRocq oracle switch remains manual; the latter's recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
 
@@ -395,8 +422,10 @@ must support the extension. There is no silent fallback to absolute links. See
 [Git's worktree documentation](https://git-scm.com/docs/git-worktree/2.48.0).
 
 Before dispatch, the parent creates each lane serially from the intended committed
-input revision. Uncommitted integration changes are not part of that revision; land
-the needed input first or explicitly transfer and record the intended changes.
+input revision, and from the host, where Windows git writes the Windows filesystem the
+lane sits on: see [where a file lives](#where-a-file-lives-and-which-lane-touches-it).
+Uncommitted integration changes are not part of that revision; land the needed input
+first or explicitly transfer and record the intended changes.
 
 ```console
 $ python tools/run.py worktree list --json
@@ -431,13 +460,16 @@ every lane. Existing Windows absolute paths are translated when verified in WSL;
 native host worktrees otherwise retain their existing metadata and lifecycle.
 
 Every brief names the absolute worktree path, branch or detached HEAD, base revision,
-owned files, focused checks and integrator. The worker verifies its checkout with
+owned files, focused checks and integrator, and for guest work the lane's guest output
+directory as `worktree create --json` reports it in `lane_root`. The worker verifies its checkout with
 `git -C <worktree> rev-parse --show-toplevel` before starting. All repository reads,
 edits, checks, staging and commits target that checkout: set the shell's working
 directory on every call, use `git -C <worktree>`, and use absolute paths rooted there
 for file tools and scripted writes. A previous `Set-Location` is not a guarantee
 about the next tool call's directory. Build and log outputs use that checkout's lane,
-which [the build environment](vos/env.py) derives from Git's administrative identity.
+which [the build environment](vos/env.py) derives from Git's administrative identity,
+and sit on the guest's own filesystem under `/root/build/lane-<name>` and `/root/logs`,
+never in the checkout.
 Coordinate shared mutable toolchain state separately. Report an accidental write
 outside the lane to the integrator, who resolves ownership before integration.
 If isolation cannot be established, keep the worker undispatched. Nested fan-outs
@@ -447,7 +479,10 @@ Retire only lanes owned by this batch. Inspect `git -C <worktree> status --short
 preserve needed local outputs, and confirm the lane's commits are integrated with
 `git merge-base --is-ancestor <lane-branch> <integration-revision>`. Then use
 `git worktree remove <absolute-worktree>` and `git branch -d <lane-branch>` from the
-integration checkout. A refusal leaves the lane or branch for review; do not force
+integration checkout. A retired lane's guest outputs, `/root/build/lane-<name>` and its
+`/root/logs/*-<name>.log` files, go with it once nothing cites them; `run.py worktree
+list --json` names that directory as `lane_root` while the registration stands, so read
+it off the listing before the removal. A refusal leaves the lane or branch for review; do not force
 removal or reset a branch to reuse its name. A squash or cherry-pick may require a
 separate equivalence review. Host-managed checkout cleanup belongs to that host;
 do not rename or remove another active session's worktree.

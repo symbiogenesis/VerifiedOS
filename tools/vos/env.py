@@ -24,7 +24,7 @@ Five invariants every loop needs, and used to carry its own copy of:
   5. Which *lane* those trees belong to. One toolchain serves as many checkouts as
      there are worktrees, and everything downstream of a build reads the simulator
      back out of the build tree, so a tree two checkouts share is a checkout reading
-     the other one's answers. `_lane` derives the lane from the checkout, and
+     the other one's answers. `lane_of` derives the lane from the checkout, and
      `build_lock` holds it for one build at a time.
 
 What the numbers say (measured 2026-08-18, 12-core Snapdragon X Elite, 31.6 GB host,
@@ -56,8 +56,22 @@ rest is 9p syscall overhead, and the arms do not overlap at any repeat. That is 
 17 s of every build, and it is still not a reason to move: the host lane pays the same
 tax in reverse, `tools/check.py` costing 1.0/1.1/1.6 s over the NTFS checkout against
 11.4/13.5/18.5 s over the same tree on the wsl.localhost share, on the loop that runs
-after every document edit rather than once per build. The build tree already lives on
-ext4 under /root/build.
+after every document edit rather than once per build.
+
+So the layout is a split, and it is the one tools/README.md states under *where a file
+lives*: the checkout, and every lane under `.worktrees/`, sits on the Windows filesystem
+where the editor and the host gates read it; every build tree, cache, work directory and
+log a guest loop writes sits on the guest's own filesystem under `BUILD_ROOT` and
+`LOG_ROOT`; and the guest reads the sources across /mnt/c as the one crossing the layout
+keeps. Two more figures for that crossing, measured 2026-09-12 on the same box under
+WSL 2.7.13 with kernel 6.18: `git status --porcelain --ignore-submodules=all` over the
+checkout is 3.2 s from the guest against 0.14 s on the host, and a tool's bootstrap
+through `out/venv-linux`, which lives in the checkout and is read over 9p too, puts
+`run.py rtl provenance` at 0.78 s in the guest against 0.37 s on the host. Neither is on a
+build's path, and both say what the configure says: the guest reads the checkout as
+seldom as a build allows, the host is asked about its state, and nothing a guest loop
+writes goes back across. `filesystem` below is how a loop says which side a path is on,
+and `run.py provision` and `run.py model lane` are its readers.
 """
 
 import contextlib
@@ -87,6 +101,28 @@ MODEL_TREE = "verifiedos-model"
 # copy-never-share rule checkable, every lane's cache having to be a file of its own.
 BUILD_ROOT = Path("/root/build")
 TYPECHECK_CACHE = "verifiedos-typecheck-smt-cache"
+
+# Where every lane's logs live: under /root and never /tmp, which is the reverse of the
+# keepalive pidfile below and for the reason that decides both. WSL idle-terminates once
+# the last process exits, and /tmp is tmpfs and gone on the restart. A lease that dies
+# with the distribution holding it is correct; the log of a fifteen-minute build,
+# started and left, has to be there when its caller comes back to read it.
+LOG_ROOT = Path("/root/logs")
+
+# The filesystem types that reach across the OS boundary: a Windows drive mounted into
+# the guest, which is 9p under WSL 2, drvfs under WSL 1 and virtiofs where a newer WSL is
+# told to use it, and a network share. A path on one of these is read or written across
+# the boundary on every call, which the module docstring measures, so a guest loop's
+# output may not sit on one: that is the placement rule tools/README.md states, and
+# `run.py provision` probes it here.
+CROSS_OS_FILESYSTEMS: frozenset[str] = frozenset({"9p", "drvfs", "virtiofs", "cifs", "smb3"})
+
+# The filesystems that do not outlive the instance, so a build tree or a log on one is
+# gone when the guest idle-terminates: the ground `LOG_ROOT` gives for never being /tmp.
+VOLATILE_FILESYSTEMS: frozenset[str] = frozenset({"tmpfs", "ramfs"})
+
+# Where the kernel says what is mounted where, read by `filesystem`.
+MOUNTINFO = Path("/proc/self/mountinfo")
 
 # The frozen profile configuration, relative to the model tree. Every loop below a
 # build hands it to the simulator, so `Environment.profile` composes the path once.
@@ -160,7 +196,7 @@ def _env_path(name: str, default: Path) -> Path:
 def _gitdir_pointer(root: Path) -> str | None:
     """The target a linked checkout's `.git` pointer file names, `None` where `.git`
     is a directory, absent, or unreadable. The raw spelling is returned rather than a
-    parsed path, because the two readers want different halves of it: `_lane` the
+    parsed path, because the two readers want different halves of it: `lane_of` the
     worktree's name, `git_dir` the administrative path."""
     dot_git = root / ".git"
     if not dot_git.is_file():
@@ -174,7 +210,7 @@ def _gitdir_pointer(root: Path) -> str | None:
     return pointer.removeprefix("gitdir:").strip()
 
 
-def _lane(root: Path) -> str:
+def lane_of(root: Path, *, declared: bool = True) -> str:
     """Which build lane this checkout owns, empty for the primary worktree.
 
     Four things collide when two checkouts drive one toolchain: the build tree, the
@@ -196,10 +232,16 @@ def _lane(root: Path) -> str:
     The pointer is written with forward slashes by git on Windows and read here on
     both lanes, so it is parsed as a pure posix path after the other separator is
     normalized out rather than as this platform's `Path`.
+
+    `VOS_LANE` declares a lane outright, which is how a container lane with no `.git`
+    pointer gets one, and `declared=False` reads past it: `run.py worktree` reports
+    the identity git gives a checkout, and an override set in the parent's shell would
+    otherwise name every lane it hands out after itself.
     """
-    override = os.environ.get("VOS_LANE")
-    if override is not None:
-        return override.strip().lower()
+    if declared:
+        override = os.environ.get("VOS_LANE")
+        if override is not None:
+            return override.strip().lower()
     target = _gitdir_pointer(root)
     if target is None:
         return ""
@@ -233,7 +275,7 @@ class Environment:
         directory of its own: it is the tree that already exists, and renaming it would
         spend a cold rebuild on the day this landed to buy nothing but symmetry.
         """
-        return self.build_root if not self.lane else self.build_root / f"lane-{self.lane}"
+        return lane_dir(self.build_root, self.lane)
 
     @property
     def primary_build_dir(self) -> Path:
@@ -474,6 +516,66 @@ def build_root() -> Path:
     return _env_path("VOS_BUILD_ROOT", BUILD_ROOT)
 
 
+def log_root() -> Path:
+    """Where every lane's logs live, public for the reason `build_root` is: the
+    provisioner asks where a log would land without standing an `Environment` up."""
+    return _env_path("VOS_LOG_DIR", LOG_ROOT)
+
+
+def lane_dir(root: Path, lane: str) -> Path:
+    """One lane's directory under a build root: the root itself for the primary
+    worktree, `lane-<name>` beneath it for a linked one. The composition is written
+    here once, for `Environment.lane_root` and for the two readers that have no
+    `Environment`: `run.py rtl install` standing a toolchain up, and `run.py worktree`
+    naming where a lane's guest outputs will land before the lane has built anything."""
+    return root / f"lane-{lane}" if lane else root
+
+
+def lane_root(lane: str) -> Path:
+    """Where the named lane's guest outputs land, under this machine's build root."""
+    return lane_dir(build_root(), lane)
+
+
+def mount_type(mountinfo: str, path: PurePosixPath | str) -> str:
+    """The filesystem type of the mount holding `path`, read out of one mountinfo
+    text, or `""` where no mount point is a prefix of it.
+
+    Pure, so a test can hand it the text of a machine it is not running on. The
+    longest mount point that is a prefix of the path wins, which is the kernel's own
+    resolution, and a mount point matches only at a separator so `/mnt/c` does not
+    claim `/mnt/cd`. The path need not exist: a build root no build has created yet is
+    still on the mount that will hold it. A mount point carrying a space or a backslash
+    arrives octal-escaped in mountinfo and is decoded before the comparison.
+    """
+    wanted = PurePosixPath(path).as_posix()
+    best, kind = -1, ""
+    for line in mountinfo.splitlines():
+        head, sep, tail = line.partition(" - ")
+        fields = head.split()
+        if not sep or len(fields) < 5:
+            continue
+        point = re.sub(r"\\([0-7]{3})", lambda m: chr(int(m.group(1), 8)), fields[4])
+        holds = (wanted == point or (point == "/" and wanted.startswith("/"))
+                 or wanted.startswith(point.rstrip("/") + "/"))
+        if holds and len(point) > best:
+            kinds = tail.split()
+            best, kind = len(point), kinds[0] if kinds else ""
+    return kind
+
+
+def filesystem(path: Path | str) -> str:
+    """The filesystem type under `path` on this machine, `""` where the kernel's mount
+    table cannot be read, which is the win32 lane's answer and the right one: the
+    question is which side of the OS boundary a guest path sits on, and only the guest
+    can say. `CROSS_OS_FILESYSTEMS` and `VOLATILE_FILESYSTEMS` are what a reader holds
+    the answer against."""
+    try:
+        text = MOUNTINFO.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    return mount_type(text, Path(path).as_posix())
+
+
 def opam_root() -> Path:
     """Where the switches live. Public because more than one prover switch is reached
     from this repository now: the proof gate's, and the CertiRocq oracle's that
@@ -573,9 +675,9 @@ def load(*, toolchain: bool = True) -> Environment:
         return Environment(
             root=root,
             model=_env_path("VOS_MODEL", root / "model"),
-            build_root=_env_path("VOS_BUILD_ROOT", Path("/root/build")),
-            log_root=_env_path("VOS_LOG_DIR", Path("/root/logs")),
-            lane=_lane(root),
+            build_root=build_root(),
+            log_root=log_root(),
+            lane=lane_of(root),
             cpus=_cpus(),
             mem_available_mb=0,
             jobs=1,
@@ -592,19 +694,15 @@ def load(*, toolchain: bool = True) -> Environment:
     cpus = _cpus()
     mem = _mem_available_mb()
 
-    # The build trees live on ext4 rather than under the source tree: /mnt/c is a 9p
-    # mount and a build directory on it is slow enough to matter.
+    # The build trees and the logs live on the guest's own filesystem rather than under
+    # the source tree: /mnt/c is a 9p mount, and a build directory on it is slow enough
+    # to matter. `LOG_ROOT` says why the logs are under /root and never /tmp.
     return Environment(
         root=root,
         model=_env_path("VOS_MODEL", root / "model"),
         build_root=build_root(),
-        # Logs under /root and never /tmp, which is the reverse of the keepalive pidfile
-        # above and for the reason that decides both: WSL idle-terminates once the last
-        # process exits, and Ubuntu clears /tmp on the restart. A lease that dies with
-        # the distribution holding it is correct; the log of a fifteen-minute build,
-        # started and left, has to be there when its caller comes back to read it.
-        log_root=_env_path("VOS_LOG_DIR", Path("/root/logs")),
-        lane=_lane(root),
+        log_root=log_root(),
+        lane=lane_of(root),
         cpus=cpus,
         mem_available_mb=mem,
         jobs=_jobs(cpus, mem),
@@ -637,7 +735,7 @@ def git_dir(root: Path) -> Path | None:
     answer `None`, which leaves the behaviour exactly as it was.
 
     The pointer is read through `_gitdir_pointer` rather than parsed again here, which
-    is what makes that function's *two readers* true of `_lane` and of this: written out
+    is what makes that function's *two readers* true of `lane_of` and of this: written out
     twice, the file test, the read and the `gitdir:` prefix were one fact in two places
     and the pair could have stopped agreeing about which files are pointers at all.
 
