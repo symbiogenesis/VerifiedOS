@@ -132,8 +132,11 @@ class Refusal:
 
     `kind` is `mnemonic` for a name the dialect table and the pseudo-instructions do not
     spell, `directive` for a directive the parser does not know, `section` for a `.section`
-    naming one the image does not have, `operand` for a known mnemonic or directive whose
-    operands the assembler refused, `symbol` for a stream that defines no `main`, and
+    naming one the image does not have, `label` for a numeric local label, which the
+    assembler's label grammar has no form for, `relocation` for a `%pcrel_hi(...)`-style
+    operator, which the assembler has none of by design (R-15-002b, R-15-036l: layout is
+    absolute, so there is nothing to relocate), `operand` for a known mnemonic or directive
+    whose operands the assembler refused, `symbol` for a stream that defines no `main`, and
     `layout` for an image the composer cannot place. `line` is 1-based in the emitted
     stream, and 0 where the refusal is not a line's.
     """
@@ -145,6 +148,8 @@ class Refusal:
 
 
 _LABEL_RE = re.compile(r"([A-Za-z_.$][A-Za-z_.$0-9]*)\s*:")
+_NUMERIC_LABEL_RE = re.compile(r"(\d+)\s*:")
+_RELOCATION_RE = re.compile(r"%[A-Za-z_]+\(")
 _ASM_ERROR_RE = re.compile(r"^(.*?):(\d+): (.*)$", re.DOTALL)
 
 
@@ -162,14 +167,19 @@ def normalize(stream: str) -> str:
 
 def _split(raw: str) -> tuple[list[str], str]:
     """One line as the assembler reads it: the labels it declares, and what follows them
-    once the comment is gone."""
+    once the comment is gone.
+
+    A numeric local label is taken off the front too, spelled with its colon so a reader
+    tells `1:` from a symbol: the assembler does not read one, and leaving it in place
+    would make the mnemonic behind it read as the refusal.
+    """
     text = raw.split("#", 1)[0].split("//", 1)[0].strip()
     labels: list[str] = []
     while text:
-        label = _LABEL_RE.match(text)
+        label = _LABEL_RE.match(text) or _NUMERIC_LABEL_RE.match(text)
         if not label:
             break
-        labels.append(label.group(1))
+        labels.append(label.group(1) + (":" if label.re is _NUMERIC_LABEL_RE else ""))
         text = text[label.end():].strip()
     return labels, text
 
@@ -212,6 +222,10 @@ def refusals(stream: str) -> list[Refusal]:
     """
     found: list[Refusal] = []
     for number, raw in enumerate(normalize(stream).splitlines(), 1):
+        labels, text = _split(raw)
+        found += [Refusal("label", label, number) for label in labels if label[0].isdigit()]
+        found += [Refusal("relocation", found_at.group()[:-1], number)
+                  for found_at in _RELOCATION_RE.finditer(text)]
         parsed = _head(raw)
         if parsed is None:
             continue
@@ -678,7 +692,7 @@ def run_program(program: Program, ccomp: list[str], workdir: Path,
         mnemonics = sum(1 for r in found if r.kind == "mnemonic")
         return Report(program.name, program.pattern, digest, program.checks, compiled,
                       tuple(found), 0, None, "dialect-refused",
-                      f"{len(found)} line(s) the dialect does not assemble, "
+                      f"{len(found)} refusal(s) the dialect does not assemble, "
                       f"{mnemonics} of them mnemonics")
     if simulator is None:
         return Report(program.name, program.pattern, digest, program.checks, compiled, (),
@@ -722,8 +736,8 @@ def grouped(found: tuple[Refusal, ...] | list[Refusal]) -> list[tuple[str, str, 
     rows: dict[tuple[str, str], list[int]] = {}
     for refusal in found:
         rows.setdefault((refusal.kind, refusal.name), []).append(refusal.line)
-    order = {"mnemonic": 0, "directive": 1, "section": 2, "operand": 3, "symbol": 4,
-             "layout": 5}
+    order = {"mnemonic": 0, "relocation": 1, "label": 2, "directive": 3, "section": 4,
+             "operand": 5, "symbol": 6, "layout": 7}
     return [(kind, name, lines) for (kind, name), lines
             in sorted(rows.items(), key=lambda item: (order.get(item[0][0], 9), item[0][1]))]
 
@@ -1004,7 +1018,8 @@ def _program(args: argparse.Namespace) -> int:
         print(f"{'DISAGREE':<15} {line}")
     counts = " ".join(f"{verdict}={tally[verdict]}" for verdict in VERDICTS)
     print(f"TOTAL {counts} of {len(reports)}"
-          + (f"; {len(differs)} disagreement(s) with the recorded run" if against else ""))
+          + (f"; {len(differs)} disagreement(s) with the recorded run" if against else "")
+          + (f"; {waits}" if simulator is None else ""))
     if closed:
         print("every program answered both questions; compiler campaign acceptance stays "
               "open until the integrated backend runs this loop")
