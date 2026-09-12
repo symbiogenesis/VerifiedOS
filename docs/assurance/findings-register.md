@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 652 of them across 108 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 655 of them across 108 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -723,6 +723,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-348** measurement: R-15-111's acceptance criterion grounded the absence of a die-to-die link anywhere in the machine on R-15-146, the peripheral electronic-enable rule, where the owning entry is R-15-162; a citation that resolves and names the wrong owner is the stale-claim shape no citation rule reads
 · Raised: Q23a
 · Disposition: closed at landing, the citation repaired to R-15-162 in the same act with the ensemble-link clause beside it
+
+**F-348a** measurement: universal session-tag rules exclude the handshake that establishes the ensemble session
+· Raised: Q23a
+· Disposition: closed at landing, R-12-015d names bounded scheduled establishment processing, while application delivery and origin leaps remain disabled before establishment; the payload entries and coverage cells carry that scope
+
+**F-348b** measurement: a valid slot tag does not authenticate a frame's arrival instant within the same accepted slot
+· Raised: Q23a
+· Disposition: closed at landing, cross-slot replay rejection is stated separately from the bounded within-slot delay an adversarial wire can impose, booked at R-17-025a beside the compromised-leader timing walk
+
+**F-348c** measurement: the ensemble entries deny a shared mask set while R-17-061b requires copies of one mask set
+· Raised: Q23a
+· Disposition: closed at landing, R-15-162 and R-15-228b distinguish separate physical dies, packages, memories and unit identities from their common mask-set design
+
 
 ## M0 · Hardware reference
 
