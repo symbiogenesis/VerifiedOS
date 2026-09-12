@@ -61,6 +61,12 @@ Each arrow is an obligation. The frontend emits a [SourcePackage](#mechanically-
 
 Q25 schedules design and qualification planning for the combined language. The following choices are project proposals; the cited research supplies mechanisms and counterexamples, not a theorem about their combination. The synchronous [Q21a contract](core-design.md) remains a bounded qualification slice. Its missing concrete laws still block that experiment, while full-language design can proceed now. Production support requires checked resource semantics, source correspondence, lowering and final-artifact evidence for the selected features.
 
+The rule dossiers cover the [graded foundation](graded-foundation.md),
+[handlers and async lifecycles](handlers-async.md), and
+[interior mutability](interior-mutability.md). The
+[composition review](full-language-review.md) joins their client and records
+Q25d's remaining implementation-accounting and frontend-admission duties.
+
 ### Graded Dependent Foundation
 
 Adopt a Gerty/GrTT-style foundation with separate computation-use and type-use grades, dependency accounting throughout the context, dependent functions and pairs, and graded modalities. Design grade expressions, grade polymorphism and library-defined, law-bearing grade domains into the core interface from the start. This is a Vela commitment beyond the inspected prototype; [the research comparison](#reading-the-graded-type-claims) records which results Gerty and GraD actually establish.

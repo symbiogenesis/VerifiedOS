@@ -100,7 +100,7 @@ Cancellation delivery and terminal completion are separate events. A scope reque
 
 Each cancellation/commit race has a concrete serialization point. The final cancellable checkpoint tests the latched request before entering a bounded no-capture/no-suspend commit segment. A request observed there wins and the segment does not execute. A request arriving afterward, even before the commit instruction executes, is not yet accepted: it is decided after the commit and receives `too_late`. Commit state is represented before the next checkpoint. If a request meets an already-terminal target, it receives `not_live` and the original completion remains authoritative. In a service implementation these steps must refine its declared R-12-097 points; choosing a new linearization point by language desugaring would violate that contract.
 
-A ready awaited child does not become cancelled retroactively. At the parent's checkpoint, first account for the child's terminal resources, then take the parent's cancellation cleanup edge instead of ordinary continuation where cancellation is pending. For simultaneous observed events, the interface fixes checkpoint ordering as generation validation, cancellation/finite deadline decision for the current task, then result processing in child order. Already-linearized commits and existing terminal records constrain that order: a deadline cannot reclassify them. The interface states whether a precommit deadline decision produces `deadline_expired` directly or requests cancellation and subsequently produces `cancelled`; it cannot leave that visible status ambiguous.
+A ready awaited child does not become cancelled retroactively. The parent's checkpoint first validates generation, then selects the current task's cancellation/finite-deadline outcome, then processes already-produced child results in declared child order. It accounts for their terminal resources before dispatching either the selected cleanup edge or ordinary continuation. Selecting cancellation therefore neither discards a ready result nor executes ordinary work. Already-linearized commits and existing terminal records constrain that order: a deadline cannot reclassify them. The interface states whether a precommit deadline decision produces `deadline_expired` directly or requests cancellation and subsequently produces `cancelled`; it cannot leave that visible status ambiguous.
 
 | Exit | Resource and control duty |
 | --- | --- |
@@ -122,16 +122,20 @@ Each specialized operation provides finite bounds for frame nesting, live childr
 For a finite path `p`, define `L(p) = sum(C(v)) + sum(G(e)) + sum(D(e))`, counting occurrences, where `C(v)` bounds executed work, `G(e)` bounds scheduled gaps before the next activation and `D(e)` bounds external service waiting not already included. The proposed bound is the maximum over admitted bounded paths, or a conservative sum using loop/visit bounds. Each coefficient comes from its named artifact; grade arithmetic alone cannot certify a machine cycle. The complete graph supplies the max-path cost and storage evidence R-05-102, R-08-017 and R-11-006 require, including ready continuations, polling, cancellation checks and unsuccessful visits.
 
 ```text
-B_precommit(t) = B_deliver(t) + B_checkpoint(t)
-                + sum(B_terminal(child)) + B_cleanup(t)
-                + B_quiesce(t) + B_publish(t)
-B_committed(t) = B_normal_remaining(t)
-                + sum(B_terminal(child)) + B_cleanup(t)
-                + B_quiesce(t) + B_publish(t)
-B_terminal(t) >= max(B_precommit(t), B_committed(t), B_unstarted(t))
+B_decide(t) = B_deliver(t) + B_checkpoint(t)
+B_tail(t) = sum(B_terminal(child)) + B_collect(t) + B_cleanup(t)
+            + B_quiesce(t) + B_publish(t)
+B_cancel_suffix(t) = B_tail(t)
+B_commit_suffix(t) = B_normal_remaining(t) + B_tail(t)
+B_cancel_request(t) = B_decide(t)
+                     + max(B_cancel_suffix(t), B_commit_suffix(t),
+                           B_unstarted_suffix(t))
+B_terminal(t) >= max(B_normal_from_start(t), B_cancel_request(t))
 ```
 
-The sums conservatively serialize child work and include activation gaps; a tighter overlap argument is unnecessary. Terms are maxima for the child's actual precommit/committed state, and child identities range over the fixed scoped bound. `B_checkpoint` includes the maximum masking delay. `B_deliver` includes expiry observation or scope-request propagation and any bounded control-plane reoffers; a request that has already reached the deciding site may use its remaining suffix. The separately declared release bound adds completion collection, readers, required erasure, revocation and sweep to terminal time. A terminal-time claim cannot be substituted for it.
+All terms use one elapsed scheduled-time unit. `B_decide` starts at the declared cancellation-request or expiry origin and ends at the authoritative cancellation/commit decision; `B_deliver` includes propagation and bounded control-plane reoffers, and `B_checkpoint` includes the maximum masking delay. Each suffix starts at that decision, including the committed suffix when a precommit arrival is observed only after commit. A delay of five, committed remaining work of ten and tail of one therefore require sixteen in those example units, not the maximum of six and eleven. These example durations are not target measurements.
+
+The sums conservatively serialize child work and include activation gaps; a tighter overlap argument is unnecessary. Child identities range over the fixed scoped bound and their terminal maxima cover either cancellation or normal completion. `B_collect` includes the parent's bounded processing of those child results. The remaining-work, child, collection, cleanup, quiescence and publication terms describe disjoint event occurrences; their supporting path derivations cannot omit waits or count overlapping units as comparable. `B_unstarted_suffix` covers the complete unstarted cleanup/publication path. `B_normal_from_start` independently bounds ordinary execution from registration through terminal publication, including its initial activation delay. A request already at its decision site may use only the applicable remaining suffix. Generation teardown and environmental faults retain their separate declared outcome and bound. The release bound additionally covers collection of this task's completion, outstanding readers, required erasure, revocation and sweep. A terminal-time claim cannot be substituted for it.
 
 An instantiated witness must state units and show these sums fit the interface's terminal declaration and the composition's slot/cadence and capacity checks. The generated `cancellation_interval` and `op_max_to_terminal` in [RingContract.v](../../proofs/RingContract.v) provide the service-side declaration arithmetic, not a theorem connecting Vela frames, child waits or execution to it. [CopyRingService.v](../../proofs/CopyRingService.v)'s declared cleanup and held-reference obligations are likewise inputs with their own scope. This dossier supplies no measured target constants.
 

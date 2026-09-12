@@ -4,7 +4,7 @@
 
 ## Scope and research boundary
 
-The [full-language commitment](verification-strategy.md#graded-dependent-foundation) selects separate computation and type dependence, lawful extensible grades and CIC interpretation. This dossier makes that choice concrete while retaining the [synchronous core's resource interpretation](core-design.md#judgments-and-interpretations). Q25b and Q25c consume the [resource interface](#resource-and-computation-interface). Q25d reviews their combination and assigns missing implementation work; no implementation gate opens here.
+The [full-language commitment](verification-strategy.md#graded-dependent-foundation) selects separate computation and type dependence, lawful extensible grades and CIC interpretation. This dossier makes that choice concrete while retaining the [synchronous core's resource interpretation](core-design.md#judgments-and-interpretations). The [handler](handlers-async.md) and [mutability](interior-mutability.md) dossiers consume the [resource interface](#resource-and-computation-interface). Q25d [reviews their combination](full-language-review.md) and assigns missing implementation work; no implementation gate opens here.
 
 The source identities are Moon, Eades and Orchard, [Graded Modal Dependent Type Theory, arXiv:2010.13163v2](https://arxiv.org/pdf/2010.13163v2), and its Gerty ESOP 2021 prototype; Choudhury, Eades, Eisenberg and Weirich, [GraD, arXiv:2011.04070v2](https://arxiv.org/html/2011.04070v2); and Abel, Danielsson and Eriksson, [ICFP 2023, DOI 10.1145/3607862](https://research.chalmers.se/en/publication/537991). The [existing comparison](verification-strategy.md#reading-the-graded-type-claims) owns the wider survey. No source or dependency is incorporated.
 
