@@ -71,8 +71,27 @@ def _malformed_input() -> None:
                "malformed diagnostic metadata requires a typed failure")
 
 
+def _comparison_cutoff_and_replay() -> None:
+    code, report = _invoke(["compare", "--case", "adversarial-alignment", "--max-nodes", "1"])
+    item = report["cases"][0]
+    ensure(code == 0 and item["exact"]["status"] == "incomplete"
+           and item["exact"]["standing_preserved"],
+           "an unfinished comparison must keep the incumbent and report incomplete")
+    ensure("optimality_replay" not in item, "a cutoff must not claim checked optimality")
+    ensure(all(row["nodes"] <= 1 for row in item["heuristics"]),
+           "the command budget must reach every heuristic")
+    code, report = _invoke(["compare", "--case", "adversarial-alignment"])
+    item = report["cases"][0]
+    ensure(code == 0 and item["optimality_replay"]["status"] == "verified",
+           "complete optimum must carry independently replayed evidence")
+    ensure(item["exact"]["arenas"][0]["best_span_over_load"] > 0
+           and item["exact"]["arenas"][0]["optimality_gap"] == 0,
+           "a proved optimum must not erase the difference from live load")
+
+
 def cases() -> list[Case]:
     return [Case("corpus receipt", _corpus_receipt),
             Case("unknown case", _unknown_case),
             Case("candidate binding and refusal", _candidate_identity_and_refusal),
-            Case("malformed input", _malformed_input)]
+            Case("malformed input", _malformed_input),
+            Case("comparison cutoff and replay", _comparison_cutoff_and_replay)]

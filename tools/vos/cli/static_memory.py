@@ -173,8 +173,10 @@ def main(argv: list[str] | None = None) -> int:
                 replay = item.get("optimality_replay", {}).get("status", "n/a")
                 print(f"{name}: {exact['status']}; nodes={exact['nodes']}; replay={replay}")
                 for arena in exact["arenas"]:
-                    print(f"  {arena['arena']}: lower={arena['lower_bound']} "
-                          f"span={arena['best_span']} gap={arena['remaining_gap']}")
+                    print(f"  {arena['arena']}: load={arena['charged_load_lower_bound']} "
+                          f"proved={arena['proven_lower_bound']} span={arena['best_span']} "
+                          f"optimality_gap={arena['optimality_gap']} "
+                          f"span_over_load={arena['best_span_over_load']}")
             elif args.action == "check":
                 print(f"{name}: {'accepted' if item['accepted'] else 'refused'} "
                       f"{item['errors']}")

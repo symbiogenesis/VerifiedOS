@@ -104,7 +104,8 @@ def _load_and_exact_optimum_have_separate_certificates() -> None:
                                   _object("y", 1, 0, 2, 4, 4)], 8))
     found = memory.solve_exact(gap)
     row = found["arenas"][0]
-    ensure((row["lower_bound"], row["best_span"], row["remaining_gap"]) == (2, 5, 3),
+    ensure((row["charged_load_lower_bound"], row["best_span"], row["best_span_over_load"],
+            row["proven_lower_bound"], row["optimality_gap"]) == (2, 5, 3, 5, 0),
            f"alignment gap must not be mistaken for load or heuristic error: {row}")
     ensure(row["certificate"] == {"method": "exhaustive", "infeasible_through": 4},
            f"non-tight load requires independent exhaustion evidence: {row}")
@@ -118,9 +119,19 @@ def _load_and_exact_optimum_have_separate_certificates() -> None:
     ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
            "a certificate skipping the immediately preceding height proves nothing")
     false = deepcopy(found)
-    false["arenas"][0]["lower_bound"] = 5
+    false["arenas"][0]["charged_load_lower_bound"] = 5
     ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
            "a receipt cannot invent its load bound")
+    for field, value in (("owner", "foreign-owner"), ("best_span_over_load", -999),
+                         ("proven_lower_bound", 2), ("optimality_gap", 3)):
+        false = deepcopy(found)
+        false["arenas"][0][field] = value
+        ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
+               f"a receipt cannot contradict its witness in {field}")
+    false = deepcopy(found)
+    false["placement"] = []
+    ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
+           "verified best_placement must not conceal an invalid primary placement")
     false = deepcopy(found)
     false["best_placement"][1]["base"] = 0
     ensure(memory.verify_optimality(gap, false)["status"] == "rejected",
@@ -166,7 +177,10 @@ def _replay_refutes_a_false_optimum_and_bounds_its_memory() -> None:
     case = memory.parse_case(raw)
     false = memory.solve_exact(case)
     false["best_placement"] = memory.standing_placement(case)
+    false["placement"] = false["best_placement"]
     false["arenas"][0]["best_span"] = 5
+    false["arenas"][0]["proven_lower_bound"] = 5
+    false["arenas"][0]["best_span_over_load"] = 3
     false["arenas"][0]["certificate"] = {"method": "exhaustive", "infeasible_through": 4}
     replay = memory.verify_optimality(case, false)
     ensure(replay["status"] == "rejected"
@@ -177,7 +191,10 @@ def _replay_refutes_a_false_optimum_and_bounds_its_memory() -> None:
     enormous = memory.parse_case(raw)
     false["contract_sha256"] = memory.contract_hash(enormous)
     false["best_placement"] = memory.standing_placement(enormous)
+    false["placement"] = false["best_placement"]
     false["arenas"][0]["best_span"] = 10 ** 29 + 1
+    false["arenas"][0]["proven_lower_bound"] = 10 ** 29 + 1
+    false["arenas"][0]["best_span_over_load"] = 10 ** 29 - 1
     false["arenas"][0]["certificate"]["infeasible_through"] = 10 ** 29
     replay = memory.verify_optimality(enormous, false)
     ensure(replay["status"] == "incomplete" and replay["nodes"] == 0,
