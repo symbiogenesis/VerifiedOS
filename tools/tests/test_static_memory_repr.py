@@ -457,6 +457,12 @@ def _report_replays_and_checks_its_own_bound() -> None:
     ensure(not receipt["errors"], f"representability replay failed: {receipt['errors']}")
     ensure(receipt == representability.report(ROOT, "test-revision"),
            "the representability report must reproduce")
+    # The identity hashes the revision it was run at, so it is a figure about a commit
+    # and not about the module: quoting one without the revision beside it says nothing.
+    elsewhere = representability.report(ROOT, "another-revision")
+    ensure(receipt["reproducible"]["source_revision"] == "test-revision"
+           and elsewhere["result_sha256"] != receipt["result_sha256"],
+           "the result identity must move with the revision it names")
     rows = [row for item in receipt["reproducible"]["cases"] for row in item["arenas"]]
     ensure(bool(rows), "the report must decide about actual arenas")
     for row in rows:
