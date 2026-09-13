@@ -122,6 +122,11 @@ a representative service, a mechanized theorem or a real composed roster.
 | Relocation, phases or lending | A measured baseline limitation, an explicit changed-assumption record and authority, timing and information-flow proofs | Q22 and Q10 |
 | Composition comparison | M7.1's actual roster and the same functional contract and product limits on both sides; ablations that charge each byte once | Q5b and Q10 |
 
+The emitted-image half of the rematerialization row has no producer in this tree:
+the Bedrock2 lowering loop stops at C and a plain RV64 assembly census, and the
+corpus assembler reads this repository's own dialect rather than a C compiler's
+output, so an image figure waits on M1.2f.
+
 The research artifact remains local and replayable in the repository. External
 publication, peer review, additional dependency incorporation and production
 qualification are separate acts. No research hypothesis or architecture change
