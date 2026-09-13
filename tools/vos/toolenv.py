@@ -9,6 +9,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from vos import env
+
 READY = "_VOS_TOOL_ENV"
 PROJECT = "tools/pyproject.toml"
 LOCK = "tools/uv.lock"
@@ -33,6 +35,15 @@ def checker_pins(root: Path) -> dict[str, str]:
 
 
 def environment(root: Path, platform: str) -> Path:
+    if platform == "linux" and env.filesystem(root.resolve()) in env.CROSS_OS_FILESYSTEMS:
+        target = env.lane_root(env.lane_of(root)).resolve() / "venv-linux"
+        if (target.is_relative_to(root.resolve())
+                # These are refused locations, never temporary-file destinations.
+                or target.is_relative_to(Path("/tmp"))  # noqa: S108
+                or target.is_relative_to(Path("/var/tmp"))  # noqa: S108
+                or env.filesystem(target) in env.CROSS_OS_FILESYSTEMS | env.VOLATILE_FILESYSTEMS):
+            raise ValueError(f"the guest Python environment needs persistent native storage: {target}")
+        return target
     return root / "out" / f"venv-{platform}"
 
 
@@ -45,10 +56,10 @@ def identity(root: Path, platform: str) -> str:
 
 def bootstrap(root: Path, argv: list[str]) -> int | None:
     """Synchronize before dispatch; children inherit the settled environment."""
-    target = environment(root, sys.platform)
     try:
+        target = environment(root, sys.platform)
         token = identity(root, sys.platform)
-    except OSError as err:
+    except (OSError, ValueError) as err:
         print(f"the tools require {PROJECT} and {LOCK}: {err}", file=sys.stderr)
         return 1
     if Path(sys.prefix) == target and os.environ.get(READY) == token:

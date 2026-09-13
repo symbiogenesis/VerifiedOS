@@ -10,14 +10,16 @@ The existing record-witness check remains the decidable part of the non-vacuity 
 Independent dependency-wave members run concurrently under one directory lock. Build
 products are cleared before the wave, and failed dependencies block their consumers.
 Every accepted module is rechecked by rocqchk before a content-bound JSON receipt is
-written. `proofs status` checks that receipt on either host without invoking Rocq;
-it records the guest toolchain identity and does not re-probe that guest from the host.
+written. Sources are staged into this checkout's native guest build lane; compiler
+outputs, audit scratch, the directory lock and receipt stay there. `proofs status`
+uses the guest hop to hash those outputs without invoking Rocq again.
 """
 
 import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -41,6 +43,22 @@ from vos.proofs import sentences as _sentences
 PROOFS = "proofs"
 RECEIPT = "proofs/proof-evidence.json"
 RECEIPT_SCHEMA = 1
+
+
+def workspace(root: Path) -> Path:
+    """The persistent, guest-native area owned exclusively by this proof gate."""
+    target = (env.lane_root(env.lane_of(root)) / "proof-gate").resolve()
+    if (target.is_relative_to(root.resolve())
+            # These are refused locations, never temporary-file destinations.
+            or target.is_relative_to(Path("/tmp"))  # noqa: S108
+            or target.is_relative_to(Path("/var/tmp"))  # noqa: S108
+            or env.filesystem(target) in env.CROSS_OS_FILESYSTEMS | env.VOLATILE_FILESYSTEMS):
+        raise ValueError(f"proof outputs need persistent native storage outside the checkout: {target}")
+    return target
+
+
+def receipt_path(root: Path) -> Path:
+    return workspace(root) / RECEIPT
 
 # The witness convention the artifacts keep, stated here so the help text can say what
 # the gate reads. It is a *name*, and that is the whole of the change R-05-166's
@@ -257,19 +275,20 @@ DECLARED: set[str] = set()
 
 
 def _hold(proofs: Path) -> int:
-    """Hold the proofs directory for the whole run.
+    """Hold the lane's native proof workspace for the whole run.
 
     Two concurrent gates rewrite each other's .vo mid-Require, so the second blocks
     until the first is done, which the unconditional recompile then makes a correct
     second verdict rather than a stale one. The lock is the directory's own descriptor
-    rather than a lock file, because everything this gate writes is gitignored and a
-    lock file beside the proofs would be a tree write nothing owns. The descriptor
+    rather than a lock file. Staged sources can then be replaced under that stable
+    native directory without touching the original checkout. The descriptor
     stays open, and locked, until the process exits.
 
     POSIX-only, and this file is typed on the host as well as run in the guest, so the
     import is deferred the way `vos.env` defers its own.
     """
     import fcntl  # noqa: PLC0415
+    proofs.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(proofs), os.O_RDONLY)
     fcntl.flock(fd, fcntl.LOCK_EX)
     return fd
@@ -313,6 +332,7 @@ def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
              tools / "vos" / "corpus.py", tools / "vos" / "register.py",
              tools / "vos" / "proofs.py", tools / "vos" / "proofcites.py",
              tools / "vos" / "proofaudit.py", tools / "vos" / "receipts.py",
+             tools / "vos" / "toolenv.py", tools / "pyproject.toml", tools / "uv.lock",
              tools / "vos" / "cli" / "proofs.py",
              root / "docs" / "requirements-register.md"]
     return receipts.snapshot(root, [*sources, *owned])
@@ -365,7 +385,7 @@ def _check_source(root: Path, source: Path, sources: list[Path]) -> Checked:
             raise proofaudit.AuditError(
                 f"compile exited {done.returncode}: "
                 f"{done.stderr.strip() or done.stdout.strip() or 'no diagnostic'}")
-        with tempfile.TemporaryDirectory(prefix="vos-proof-audit-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="audit-", dir=root) as temporary:
             directory = Path(temporary)
             output = _query(root, directory, "Inventory",
                             proofaudit.inventory_query(source.stem))
@@ -409,7 +429,8 @@ def _toolchain() -> dict[str, object]:
 
 
 def _validate_receipt(root: Path) -> None:
-    raw: object = json.loads((root / RECEIPT).read_text(encoding="utf-8"))
+    work = workspace(root)
+    raw: object = json.loads((work / RECEIPT).read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise TypeError("receipt is not an object")
     record = cast("dict[str, object]", raw)
@@ -418,7 +439,10 @@ def _validate_receipt(root: Path) -> None:
     sources = _sources(root)
     if record.get("inputs") != _inputs(root, sources):
         raise ValueError("proof inputs or proof-gate implementation have changed")
-    outputs = receipts.snapshot(root, (source.with_suffix(".vo") for source in sources))
+    staged = [work / PROOFS / source.name for source in sources]
+    if receipts.snapshot(work, staged) != receipts.snapshot(root, sources):
+        raise ValueError("staged proof sources differ from the current originals")
+    outputs = receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))
     if record.get("outputs") != outputs:
         raise ValueError("compiled proof artifacts have changed")
     artifacts = record.get("artifacts")
@@ -459,32 +483,47 @@ def _validate_receipt(root: Path) -> None:
 
 def _status(root: Path) -> int:
     try:
-        _validate_receipt(root)
+        held = _hold(workspace(root))
+        try:
+            _validate_receipt(root)
+        finally:
+            os.close(held)
     except (OSError, TypeError, ValueError) as err:
         print(f"FAIL: proof evidence is absent or stale: {err}; run `run.py proofs`")
         return 1
     else:
-        print(f"ok: {RECEIPT} matches all current proof inputs and compiled outputs; "
-              "the guest toolchain identity is recorded, not re-probed on the host")
+        print(f"ok: {receipt_path(root)} matches all current proof inputs and compiled outputs; "
+              "the guest toolchain identity is recorded, not re-probed")
         return 0
 
 
 def _run_locked(root: Path, jobs: int) -> int:
+    work = workspace(root)
+    (work / RECEIPT).unlink(missing_ok=True)
     sources = _sources(root)
     inputs = _inputs(root, sources)
     toolchain = _toolchain()
-    stems = {source.stem for source in sources}
-    needs = {source.stem: proofs_mod.local_requires(source, stems) for source in sources}
-    # Remove only this run's own build products, under the held proof directory.
-    # Even an unrecognized dependency cannot consume a previous run's .vo.
+    # This private staging directory is the only subtree the gate replaces. The
+    # lock lives in its parent, so replacing it never releases another gate.
+    folder = work / PROOFS
+    if folder.is_symlink():
+        raise ValueError(f"proof staging directory must not be a symlink: {folder}")
+    if folder.exists():
+        shutil.rmtree(folder)
+    folder.mkdir()
     for source in sources:
-        for suffix in (".vo", ".vos", ".vok"):
-            source.with_suffix(suffix).unlink(missing_ok=True)
-    (root / RECEIPT).unlink(missing_ok=True)
+        shutil.copyfile(source, folder / source.name)
+    staged = [folder / source.name for source in sources]
+    source_inputs = {source.relative_to(root).as_posix(): inputs[source.relative_to(root).as_posix()]
+                     for source in sources}
+    if receipts.snapshot(work, staged) != source_inputs:
+        raise ValueError("proof sources changed while being staged")
+    stems = {source.stem for source in sources}
+    needs = {source.stem: proofs_mod.local_requires(source, stems) for source in staged}
     checked: list[Checked] = []
     failed: set[str] = set()
     with ThreadPoolExecutor(max_workers=jobs) as pool:
-        for wave in proofs_mod.waves(sources):
+        for wave in proofs_mod.waves(staged):
             ready: list[Path] = []
             for source in wave:
                 blocked = needs[source.stem] & failed
@@ -494,7 +533,7 @@ def _run_locked(root: Path, jobs: int) -> int:
                                            + ", ".join(sorted(blocked))))
                 else:
                     ready.append(source)
-            results = list(pool.map(lambda source: _check_source(root, source, sources), ready))
+            results = list(pool.map(lambda source: _check_source(work, source, staged), ready))
             checked.extend(results)
             failed.update(item.source.stem for item in results if item.error)
     if failed:
@@ -506,16 +545,17 @@ def _run_locked(root: Path, jobs: int) -> int:
     if not total:
         print("FAIL: native Rocq inventory contains no compiled constant")
         return 1
-    rechecked = _recheck(root, sources)
+    rechecked = _recheck(work, staged)
     said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
     if rechecked.returncode or said:
         print(f"FAIL: rocqchk recheck (exit {rechecked.returncode}): "
               f"{said or 'no diagnostic'}")
         return 1
-    if inputs != _inputs(root, sources) or toolchain != _toolchain():
+    if (inputs != _inputs(root, _sources(root)) or toolchain != _toolchain()
+            or receipts.snapshot(work, staged) != source_inputs):
         print("FAIL: proof inputs or the toolchain changed during the run")
         return 1
-    outputs = receipts.snapshot(root, (source.with_suffix(".vo") for source in sources))
+    outputs = receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))
     artifacts: dict[str, object] = {}
     witnessed = 0
     for item in sorted(checked, key=lambda item: item.source.name):
@@ -528,13 +568,13 @@ def _run_locked(root: Path, jobs: int) -> int:
         print(f"  {item.source.name}: {len(item.symbols)} constant(s), "
               f"{witnesses} witness(es) over "
               f"{len(item.witnesses.quantified)} quantified record(s)")
-    receipts.write(root / RECEIPT, {
+    receipts.write(work / RECEIPT, {
         "schema": RECEIPT_SCHEMA, "status": "passed", "inputs": inputs,
         "outputs": outputs, "toolchain": toolchain, "artifacts": artifacts,
         "declared_assumptions": sorted(DECLARED), "kernel_recheck": "passed"})
     print(f"ok: {total} constant(s), each enumerated by Rocq, closed under the "
           "global context and re-checked by rocqchk, which shares the kernel's "
-          f"lineage; {witnessed} witness(es); evidence: {RECEIPT}")
+          f"lineage; {witnessed} witness(es); evidence: {work / RECEIPT}")
     return 0
 
 
@@ -543,7 +583,11 @@ def _run(root: Path, jobs: int) -> int:
     if not (proofs / STATEMENT).exists():
         print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
         return 1
-    descriptor = _hold(proofs)
+    try:
+        descriptor = _hold(workspace(root))
+    except (OSError, ValueError) as err:
+        print(f"FAIL: proof gate: {err}")
+        return 1
     try:
         result = _run_locked(root, jobs)
     except (OSError, ValueError) as err:
