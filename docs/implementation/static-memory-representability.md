@@ -103,7 +103,11 @@ layer that does: an endpoint advances to the least legal base at or above it, an
 endpoint whose walk leaves the arena is dropped rather than rounded into it, a budget
 spent inside the walk is reported as incomplete and never as a failure to fit, and
 every contract's own first-fit candidate is handed back to the independent checker
-under the layer, which is what a skipped blocker would fail.
+under the layer, which is what a skipped blocker would fail. The replay's half is held
+by the declared fixtures whose bases move: each of their optima is replayed under the
+same layer and comes back verified, where a replay over the unrestricted grid would
+find the alignment-only placement one height below and refute an optimum the
+restriction itself forced.
 
 The charged live load stays the bound it was. A restriction of the legal positions
 cannot lower the bytes that are simultaneously live, so a span that still attains the
@@ -185,10 +189,11 @@ for the same reason.
 
 Every region of the standing plan answers yes to all four questions, so agreement over
 it alone would read the same way if neither side ever refused anything. What binds the
-verdict to its inputs is a mutation: the focused tests replace the granule counts the
-plan's own predicates multiply back, region by region and once for each predicate, and
-require the cross-check to report a disagreement naming every region. A layer that
-accepted everything fails that test rather than passing it.
+verdict to its inputs is mutation, in both directions. The focused tests replace the
+granule counts the plan's own predicates multiply back, once for each predicate and
+region by region, and require a disagreement naming every region; and they move one
+region's base off its own granule, where both sides refuse and the cross-check has to
+stay silent, which is the reading a layer that admitted every base would fail.
 
 ## 5. What stays outside
 
