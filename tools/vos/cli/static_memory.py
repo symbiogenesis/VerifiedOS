@@ -17,6 +17,7 @@ from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
 from vos import static_memory_modes as mode_family
 from vos import static_memory_mutants as mutants
+from vos import static_memory_envelope as envelope
 from vos import static_memory_reclaim as reclaim
 from vos import static_memory_repr as representability
 from vos import static_memory_scale as scale
@@ -48,6 +49,9 @@ EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
                 "tools/vos/static_memory_scale.py"),
     "repr": ("tools/vos/static_memory_repr.py",
              "docs/implementation/static-memory-representability.md"),
+    "envelope": ("tools/vos/static_memory_envelope.py",
+                 "docs/implementation/static-memory-envelope.md",
+                 "tools/vos/static_memory_reclaim.py", "tools/vos/revocation.py"),
 }
 
 
@@ -107,6 +111,8 @@ def experiment(args: argparse.Namespace, root: Path) -> int:
         result = mutants.report(receipt["revision"])
     elif args.action == "repr":
         result = representability.report(root, receipt["revision"])
+    elif args.action == "envelope":
+        result = envelope.report(root)
     else:
         result = scale.report(root, receipt["revision"],
                               sizes=tuple(args.sizes or (8, 32, 128)),
