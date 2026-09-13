@@ -57,18 +57,49 @@ def _shape(observation: lend.Observation) -> tuple[tuple[str, ...], ...]:
                  for request, verdict, reason, completion in observation)
 
 
-def _pairwise(calendar: lend.Calendar, policy: lend.Policy,
-              declassified: tuple[int, ...]) -> tuple[str, int | None]:
-    """Decide safety by comparing every label-equal pair, with no grouping step."""
+def _reference_channel(first: tuple[tuple[str, ...], ...],
+                       second: tuple[tuple[str, ...], ...]) -> str | None:
+    """Name the channel from the reference observations, without the module's helper."""
+    left = tuple(row[1] for row in first)
+    right = tuple(row[1] for row in second)
+    if left != right:
+        return "refusal" if any(one != other and "refused" in (one, other)
+                                for one, other in zip(left, right, strict=True)) else "verdict"
+    if any(one[2] != other[2] for one, other in zip(first, second, strict=True)):
+        return "refusal"
+    return "timing" if first != second else None
+
+
+def _pairwise_channels(calendar: lend.Calendar, policy: lend.Policy,
+                       declassified: tuple[int, ...]) -> dict[str, int | None]:
+    """The least differing-tick count per channel over every label-equal pair.
+
+    No grouping step and no per-class short circuit: every admitted pair is compared,
+    so this decides global minimality and not minimality inside one label class.
+    """
     traces = lend.admitted_traces(calendar)
     seen = [reference_observation(calendar, lend.borrow_capacity(calendar, policy, trace),
                                   policy.pad_to_release_points)
             for trace in traces]
-    distances = [
-        sum(1 for one, other in zip(traces[left], traces[right], strict=True) if one != other)
-        for left, right in combinations(range(len(traces)), 2)
-        if all(traces[left][tick] == traces[right][tick] for tick in declassified)
-        and seen[left] != seen[right]]
+    pairs: list[tuple[str, int]] = []
+    for left, right in combinations(range(len(traces)), 2):
+        if any(traces[left][tick] != traces[right][tick] for tick in declassified):
+            continue
+        found = _reference_channel(seen[left], seen[right])
+        if found is None:
+            continue
+        pairs.append((found, sum(1 for one, other in zip(traces[left], traces[right],
+                                                         strict=True) if one != other)))
+    return {name: min((distance for channel, distance in pairs if channel == name),
+                      default=None)
+            for name in lend.CHANNELS}
+
+
+def _pairwise(calendar: lend.Calendar, policy: lend.Policy,
+              declassified: tuple[int, ...]) -> tuple[str, int | None]:
+    """Decide safety by comparing every label-equal pair, with no grouping step."""
+    distances = [value for value in _pairwise_channels(calendar, policy, declassified).values()
+                 if value is not None]
     return ("noninterferent", None) if not distances else ("distinguishing", min(distances))
 
 
@@ -114,6 +145,17 @@ def enumeration_matches_a_direct_pairwise_checker() -> None:
                 ensure(lend.run(calendar, policy, left).observation
                        != lend.run(calendar, policy, right).observation,
                        "the reported pair does not actually distinguish")
+                per_channel = _pairwise_channels(calendar, policy, declassified)
+                for name, distance in per_channel.items():
+                    found = result["channels"][name]
+                    if distance is None:
+                        ensure(found is None,
+                               f"a channel with no distinguishing pair reported one: {name}")
+                        continue
+                    ensure(found is not None and found["channel"] == name
+                           and len(found["differing_ticks"]) == distance,
+                           f"the {name} witness is not least over every label class: "
+                           f"{policy.name}/{declassified}")
 
 
 def the_simulator_agrees_with_independent_interval_colouring() -> None:
@@ -210,6 +252,30 @@ def the_two_headroom_families_separate_and_meet_their_limits() -> None:
     none = lend.analyze(calendar, lend.Policy("none", "none"))
     ensure(full["useful_slack"] == none["useful_slack"],
            "reserving the whole pool is the no-lending baseline")
+
+
+def an_observed_idle_reserve_is_not_forced_to_choose_between_lending_and_hiding() -> None:
+    calendar = lend.GRANT_UNOBSERVED
+    traces = lend.admitted_traces(calendar)
+    ensure(len(traces) > 1 and (0,) * calendar.horizon in traces,
+           "the counterexample needs a live secret with an empty lender admitted")
+    policy = lend.Policy("headroom-observed-1", "headroom-observed", 1)
+    result = lend.analyze(calendar, policy)
+    ensure(len({lend.borrow_capacity(calendar, policy, trace) for trace in traces}) > 1,
+           "the grant must move with the secret for the counterexample to bite")
+    ensure(result["granted_capacity"]["status"] == "reads-the-secret",
+           "the black-box probe must see the grant move with the secret")
+    ensure(result["status"] == "noninterferent" and _pairwise(calendar, policy, ())[0]
+           == "noninterferent", "both checkers must find this reserve noninterferent")
+    ensure(result["useful_slack"]["borrowed_max"] > 0,
+           "a reserve that hides while lending nothing would prove nothing here")
+    sweep = lend.headroom_sweep(calendar, "headroom-observed")
+    ensure(sweep["least_noninterferent_headroom"] == 0,
+           "on this calendar the whole observed-idle family is safe, reserve zero included")
+    fixture = lend.headroom_sweep(lend.FIXTURE, "headroom-observed")
+    ensure(fixture["least_noninterferent_headroom"] == lend.FIXTURE.lender_slots,
+           "the fixture result and its counterexample must disagree, or neither bounds "
+           "the other")
 
 
 def declassification_is_what_the_release_rule_needs() -> None:
@@ -320,9 +386,14 @@ def channels_separate_refusal_from_timing() -> None:
                    "a refusal difference is not an own-pool-versus-loan difference")
     ensure(lend.channel((("r", "borrowed", None, 2),), (("r", "borrowed", None, 3),)) == "timing",
            "equal verdicts with unequal completion ticks travel on the timing channel")
+    reasons: tuple[lend.Observation, lend.Observation] = (
+        (("r", "refused", "capacity-exhausted", None),),
+        (("r", "refused", "outside-horizon", None),))
+    ensure(lend.channel(*reasons) == "refusal",
+           "a refusal that differs only in its reason is a refusal leak, not a timing one")
 
 
-def padding_closes_the_timing_channel_and_not_the_refusal_channel() -> None:
+def padding_closes_timing_on_the_fixture_and_not_in_general() -> None:
     calendar = lend.FIXTURE
     bare = lend.Policy("lend-any-idle", "any-idle")
     padded = lend.Policy("lend-any-idle-padded", "any-idle", pad_to_release_points=True)
@@ -345,6 +416,23 @@ def padding_closes_the_timing_channel_and_not_the_refusal_channel() -> None:
             for policy in (bare, padded)]
     ensure(any(one[3] != other[3] for one, other in zip(*late, strict=True)),
            "padding must actually delay a completion on the reference trace")
+    for other in (*_small_calendars(), lend.PADDING_OPEN):
+        leaky = lend.analyze(other, lend.Policy("padded", "any-idle",
+                                                pad_to_release_points=True))
+        ensure(leaky["channels"]["timing"] is not None,
+               "the closure is a property of this calendar, not of padding, and a "
+               "calendar that keeps the timing channel open must be exhibited")
+        ensure(_pairwise_channels(other, lend.Policy("padded", "any-idle",
+                                                     pad_to_release_points=True),
+                                  ())["timing"] is not None,
+               "the independent checker must see the open timing channel too")
+    flat = lend.Calendar(horizon=5, lender_slots=2, borrower_slots=1,
+                         declared_cap=(1, 1, 1, 1, 0), release_points=(0, 2),
+                         requests=(lend.Request("a", (0,), 2),))
+    on_instant: lend.Observation = (("x", "borrowed", None, 2), ("y", "borrowed", None, 5))
+    ensure(lend.pad(flat, on_instant) == on_instant,
+           "a completion already sitting on a declared instant is not moved, which is "
+           "why padding cannot confuse two completions that both sit on one")
 
 
 def the_receipt_is_deterministic_and_keeps_its_scope() -> None:
@@ -358,6 +446,11 @@ def the_receipt_is_deterministic_and_keeps_its_scope() -> None:
     ensure("no general theorem" in first["analyses"][0]["scope"],
            "every analysis states the scope its enumeration has")
     ensure(first["observation_model"]["unmodeled"], "the unmodeled list must not be empty")
+    ensure(set(first["counterexamples"]) == set(lend.COUNTEREXAMPLES),
+           "the receipt must carry every calendar that bounds a fixture result")
+    ensure(first["counterexamples"]["padding-does-not-close-timing-in-general"]
+           ["analysis"]["channels"]["timing"] is not None,
+           "the padding bound must be replayed by the receipt, not stated in prose")
 
 
 def cases() -> list[Case]:
@@ -367,9 +460,10 @@ def cases() -> list[Case]:
         refusal_typing_and_declared_attempts_are_preserved,
         a_mutated_safe_policy_is_caught_on_both_verdicts,
         the_two_headroom_families_separate_and_meet_their_limits,
+        an_observed_idle_reserve_is_not_forced_to_choose_between_lending_and_hiding,
         declassification_is_what_the_release_rule_needs,
         malformed_models_and_oversized_spaces_are_refused,
         channels_separate_refusal_from_timing,
-        padding_closes_the_timing_channel_and_not_the_refusal_channel,
+        padding_closes_timing_on_the_fixture_and_not_in_general,
         the_receipt_is_deterministic_and_keeps_its_scope,
     )]
