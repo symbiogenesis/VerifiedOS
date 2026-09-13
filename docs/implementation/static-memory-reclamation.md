@@ -14,8 +14,9 @@ Run `python tools/run.py static-memory reclaim --json` for the full receipt and
 `python tools/run.py test --only static_memory_reclaim` for focused behavioral
 checks. The command emits the input envelope, each policy, fixed service grants,
 per-request lifecycle events, a disjoint byte timeline, precomputed slot bindings,
-conditional bounds, the holder class map with the calendar terms it derives, every
-Q22a counterexample at the stage this schedule refuses it, and rejected neighbors.
+conditional bounds, the holder class map with the signatures it charges and the
+calendar terms they derive, every Q22a counterexample at the stage this schedule
+refuses it, and rejected neighbors.
 Source hashes bind the implementation, tests and explanatory contract. Git identity
 is supplied by the common research command. Figures below are intentionally left in
 the generated receipt rather than maintained as a second table.
@@ -54,9 +55,10 @@ it as free service.
 ## The calendar and its conditional bound
 
 Successful containment takes the synthetic `C` ticks exactly, padding early
-completion. `C` pays the protocol obligations that belong to no holder class
+completion. `C` pays the protocol obligations that belong to no holder
 (publication, proxy notification, accepted DMA completion and proxy
-acknowledgement), then the declared charge of every holder class it retires. Each
+acknowledgement), then one declared charge for each distinct holder signature it
+retires. Each
 serial job has an explicit synthetic byte cost. The maximum concurrent control
 pipelines over the periodic calendar must fit the fixed control reservation. This
 complete cost assumption is not extracted from Q22's event counter or a measurement
@@ -65,10 +67,10 @@ of the target. Missing or failed evidence takes the failure path.
 A sweep starts only at composition-fixed multiples of its period. The start must
 be strictly later than the containment timestamp. A pass already running cannot
 qualify. Every pass covers the same complete authority-source map, including
-saved representations and copies outside retired data. `S` charges each holder
-class that map contains once, at its declared cost and the pass's fixed service
-rate, rather than counting a fixed number of groups. The next section states what
-that coverage is coverage of. The mapping to admitted code and the invariant
+saved representations and copies outside retired data. `S` charges each distinct
+holder signature that map contains once, at its declared cost and the pass's fixed
+service rate, rather than counting a fixed number of groups or a number of names.
+The next section states what that coverage is coverage of. The mapping to admitted code and the invariant
 preventing repopulation remain premises.
 
 Each pass has a separate fixed zeroization window after its full sweep. A whole
@@ -114,49 +116,83 @@ binary: nothing in this experiment discovers a root, a saved image or a derived
 base in emitted code, and a green coverage result confers no such discovery.
 
 Every holder the qualification fixture supplies is classified into a holder class,
-and each class is assigned the lifecycle stage that retires it. Containment clears
+and each class is assigned the lifecycle stage that reaches it. Containment clears
 the live root set on each core, cancels the admission-proved loan footprint, and
 awaits proxy acknowledgement and the device completion boundary. The post-barrier
 full pass reaches the saved and memory representations that survive containment.
-A class neither stage reaches is unaccounted, and an unaccounted class refuses the
-calendar rather than deriving a term from it.
 
-| Holder class | Fixture holders | Stage that retires it | Why that stage |
-| --- | --- | --- | --- |
-| `live-general-root` | `register` | Containment | Core cleanup clears the whole live root set, so no raw tag survives the barrier |
-| `live-special-root` | `mepcc` | Containment | The same cleanup covers the executable and sentry roots the merged register view omits |
-| `borrowed-live-root` | `callee` | Containment | Core cleanup and loan cancellation both reach a live borrowed root |
-| `remote-delegate-root` | `remote-register` | Containment | The proxy core's cleanup precedes the acknowledgement the barrier waits for |
-| `loan-copy` | `loan-copy` | Containment, and the pass visits it | Loan cancellation clears the stored copy; the pass still covers its storage |
-| `saved-context` | `saved` | Post-barrier pass | Filtered restore hides it before the barrier; only the pass destroys the raw tag |
-| `trusted-stack-root` | `trusted-stack` | Post-barrier pass | The same, for the trusted stack's saved roots |
-| `grant-storage` | `grant-storage` | Post-barrier pass | Capability-bearing memory is swept, not scrubbed at containment |
-| `outside-interval-copy` | `outside-interval-copy` | Post-barrier pass | The load filter keys on the capability's base, not on where the representation sits |
-| `proxy-slot` | `proxy-slot` | Post-barrier pass | The remote island's capability-bearing memory |
-| `unrelated-grant` | `unrelated-grant` | Post-barrier pass | The pass visits it and must leave it usable |
-| `interior-representation` | `interior-<n>` | Post-barrier pass | One representation at each admitted interior granule base |
+What the calendar charges is not the class name but the structural signature the
+fixture holder's own fields decide: its storage place, whether it sits on a
+delegate core, whether it belongs to a cancelled loan, whether its base lies inside
+the published interval, and whether it holds retired authority. Each distinct
+signature present is charged once at each stage that reaches it. A class name is a
+label for a reader, so merging two names for one signature, exchanging their
+members or splitting one name in two moves no term, and the receipt replays all
+three repartitions beside the fixture and reports a finding if any of them moves
+`C` or `S`. What a name does decide is whether the composition is accounted for at
+all: a holder no class matches, a class charged at neither stage, a declared
+signature that contradicts the holder's own fields, and a declared stage the model
+does not perform are each a refusal, and a refusal derives no calendar term.
+
+| Holder class | Fixture holders | Charged signature | Stage that reaches it | Why that stage |
+| --- | --- | --- | --- | --- |
+| `live-general-root` | `register` | `live/covered` | Containment | Core cleanup clears the whole live root set, so no raw tag survives the barrier |
+| `live-special-root` | `mepcc` | `live/covered` | Containment | The same cleanup covers the executable and sentry roots the merged register view omits, at the general root's signature |
+| `borrowed-live-root` | `callee` | `live/borrowed` | Containment | Core cleanup and loan cancellation both reach a live borrowed root |
+| `remote-delegate-root` | `remote-register` | `live/remote/covered` | Containment | The proxy core's cleanup precedes the acknowledgement the barrier waits for |
+| `loan-copy` | `loan-copy` | `saved/borrowed` | Containment, and the pass visits it | Loan cancellation clears the stored copy; the pass still covers its storage |
+| `saved-context` | `saved` | `saved/covered` | Post-barrier pass | Filtered restore hides it before the barrier; only the pass destroys the raw tag |
+| `trusted-stack-root` | `trusted-stack` | `saved/covered` | Post-barrier pass | The same, for the trusted stack's saved roots |
+| `grant-storage` | `grant-storage` | `memory/covered` | Post-barrier pass | Capability-bearing memory is swept, not scrubbed at containment |
+| `outside-interval-copy` | `outside-interval-copy` | `memory/covered` | Post-barrier pass | The load filter keys on the capability's base, not on where the representation sits |
+| `proxy-slot` | `proxy-slot` | `memory/remote/covered` | Post-barrier pass | The remote island's capability-bearing memory |
+| `unrelated-grant` | `unrelated-grant` | `memory/unretired` | Post-barrier pass | The pass visits it and must leave it usable |
+| `interior-representation` | `interior-<n>` | `memory/covered` | Post-barrier pass | One representation at each admitted interior granule base |
+
+Several rows share a charged signature, and the table keeps them apart for a reader
+rather than for the calendar: the general and special live roots are one charged
+kind, the saved context and the trusted stack's saved roots are another, and the
+capability-bearing memory names are a third. Q22a enumerates holders and not
+classes, so what multiplies the declared charge is a count of the signatures its
+fixture exhibits and never a count of this table's rows.
 
 The table is checked against Q22a's model rather than asserted beside it. For each
-class the experiment replays containment from the qualification's own primitives,
-asks whether the raw tag is gone, and asks whether the holder sits inside the
-composition's swept footprint. A declared stage that the model does not perform,
-a declared structural signature that contradicts the fixture holder's own fields,
-a holder no class matches, and a class charged at neither stage are each a refusal.
+class the experiment states containment reach from the holder's own fields, replays
+it from the qualification's own primitives, compares the two, and asks whether the
+holder sits inside the composition's swept footprint. Not every column of that
+check is independent evidence: whether the pass reaches a class follows from its
+storage place once Q22a's own sweep-map check passes, so that column is a
+consistency check on the declared table. Whether a raw tag survives the pass does
+not follow from the place. It is read from a replayed full pass, and it is what
+separates reaching a class from retiring it: the pass reaches the unrelated grant
+and must leave its tag alone, while a class the table declares retired whose
+representation still carries a raw tag afterwards is a refusal.
 
-The charge is per class and not per holder. A wider retired object adds holders to
-`interior-representation` and moves neither term; a composition that introduces a new
-kind of saved context lengthens `S` and the `C + W + S + Z` bound with it. The
-receipt reports both, with the derived terms and the bound for each variant, so the
-movement is replayed rather than restated here. Q22a's own illustrative sweep
-ledger charges one group per mapped holder: that is a different accounting from
-this one, and neither is a measurement of a target. A synthetic per-class cost is
-not a scrub time.
+The per-signature unit, the two stage service rates and the protocol window are
+declared inputs of this experiment, stated in the module beside the calendar they
+derive. Q22a fixes none of them, and a reader who wants a different containment
+term changes one of those declarations rather than the holder map. What the fixture
+fixes is how many distinct signatures each stage has to pay for. A declared unit is
+not a scrub time. The shipped calendar defaults are the terms this declaration
+derives for the fixture rather than a second input the derivation has to reproduce:
+the receipt reports the derivation, checks the defaults against it, and replays a
+supplied map's own calendar instead of refusing it for disagreeing.
 
-One variant is a negative result worth naming. Adding a class that containment must
-retire lengthens `C`, but in this phase-aligned calendar the containment timestamp
-moves inside the same sweep period, so `W` shrinks by what `C` gained and the bound
-does not move. That cancellation is a property of this fixed calendar, not a general
-one: it fails as soon as the longer containment crosses a pass boundary.
+The charge is per signature and not per holder. A wider retired object adds holders
+at a signature the map already charges and moves neither term; a composition that
+introduces a saved context at a signature the fixture does not exhibit lengthens
+`S` and the `C + W + S + Z` bound with it. The receipt reports both, with the
+derived terms and the bound for each variant, so the movement is replayed rather
+than restated here. Q22a's own illustrative sweep ledger charges one group per
+mapped holder: that is a different accounting from this one, and neither is a
+measurement of a target.
+
+One variant is a negative result worth naming. Adding a signature that containment
+must retire lengthens `C`, but in this phase-aligned calendar the containment
+timestamp moves inside the same sweep period, so `W` shrinks by what `C` gained and
+the bound does not move. That cancellation is a property of this fixed calendar,
+not a general one: it fails as soon as the longer containment crosses a pass
+boundary.
 
 ## Results that distinguish the costs
 
@@ -207,23 +243,27 @@ enqueues their zero work and consumes individual service ticks. It checks the
 production schedule over small phase choices and optional request subsets. Byte
 enumeration checks occupied backing, and explicit bad neighbors exercise traffic
 overcommit, zero overflow, failure retention and equal-timestamp sweep starts. The
-holder classes are checked against a containment replay built from Q22's primitives
-rather than from its own helper; a new holder class is shown to refuse the calendar
-until it is mapped and to lengthen the pass term once it is; and a drifted class map
-refuses the whole receipt instead of re-deriving a calendar from it.
-These are bounded independent checks, not formal verification.
+declared stages are compared against two statements of Q22's own containment rule,
+one read from the holder's fields and one replayed from its primitives; a new
+holder signature is shown to refuse the calendar until it is mapped and to lengthen
+the pass term once it is; three repartitions of the same signatures are shown to
+move neither term; a refused reuse is shown to keep its reserved cohort position,
+both in its peers' zeroization slots and in the later request its retained slot
+refuses; and a drifted class map refuses the whole receipt instead of re-deriving a
+calendar from it. These are bounded independent checks, not formal verification.
 
 What holder coverage still does not supply is the production side of the same
 question. Admission owes the discovery of holders in a real binary: every root,
 saved image, capability-bearing location and admitted derived base must be shown to
 be represented in the supplied map, and this experiment reads that map rather than
-building it. R2 owes the bounded graph traversal for a topology other than this
-fixture's rooted star, so a class count taken over one proxy per non-root core is
-not a bound for a general static graph. M4.4 owes the relation between a sanitized
-saved image and the context-restore proof, which is what would let a `saved-context`
-or `trusted-stack-root` class stand for a real saved partition rather than a fixture
-holder. Until those land, a class is a kind of holder Q22a admits, not a kind of
-holder a compiled service is known to have.
+building it, so complete coverage remains a premise here and not a result. R2 owes
+the bounded graph traversal for a topology other than this fixture's rooted star,
+so a signature count taken over one proxy per non-root core is not a bound for a
+general static graph. M4.4 owes the relation between a sanitized saved image and
+the context-restore proof, which is what would let a `saved-context` or
+`trusted-stack-root` class stand for a real saved partition rather than a fixture
+holder. Until those land, a charged signature is a kind of holder Q22a admits, not
+a kind of holder a compiled service is known to have.
 
 Q22's implementation owners still owe successful barrier realization, containment
 scheduling and no-repopulation proofs. The workload owner
