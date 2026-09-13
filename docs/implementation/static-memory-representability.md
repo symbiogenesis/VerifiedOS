@@ -230,7 +230,9 @@ having finished makes attributable to representability, the further difference t
 quantized-length model charges above the base-quantized one, and the exact-length
 refusals with the extent a quantized plan would charge. A pair of models that did not
 both finish reports no difference and says so, two cutoffs not being subtractable.
-Figures live in the receipt; none is copied here.
+Figures live in the receipt; none is copied here. The receipt's own identity hashes the
+revision it was run at, so it is a figure about a commit rather than about the module
+and is quoted with that revision beside it or not at all.
 
 The declared fixtures are the only cases that reach past the exactness threshold, and
 the last of them stays below it deliberately, being about the lower bound rather than
