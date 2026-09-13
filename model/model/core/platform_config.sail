@@ -153,32 +153,10 @@ let plat_watchdog_size : physaddrbits = to_bits_checked(config platform.watchdog
 // every MMIO aperture inside the 36-bit space and makes the placement a stated
 // constraint on the attested devicetree.
 //
-// **These three are placements and nothing else, and the asymmetry with the
-// eight above is deliberate.** Each of those has a slave in sys/platform.sail
-// that either answers or refuses; none of these has one, because no register
-// entry gives a serial port or a block device a register interface and the
-// devices themselves are route-(c) references arriving with the SoC top written
-// over this map. So the only readers of these six values are the attested
-// devicetree, which carries the placement R-15-002b requires it to state, and
-// the validator, which refuses a composition that places one wrong
-// (postlude/device_tree.sail, postlude/validate_config.sail).
-//
-// The cost of that is stated rather than absorbed, and the enclosing region's
-// PMA decides how much of it there is: an IO address no device claims falls
-// through to the RAM path (sys/mem.sail), but `pmaCheck` runs ahead of that
-// fall-through, so what is silent is only what the region already permits. The
-// serial port and the block device sit in a readable and writable IO region, so
-// a load and a store inside either are the RAM path's until the top lands. The
-// boot ROM's region is readable and neither writable nor executable, so a load
-// there reads zero while a store or an instruction fetch is an access fault the
-// region raises. No fetch on this fabric reaches it: R-09-006 fixes the root of
-// trust's sequence at placing the verified M-mode image in main SRAM and
-// releasing the boot core into the measured chain, so `executable` is false on
-// that region because that is the machine and not because a decision is
-// outstanding, and the attested tree sharing the region is non-executable with
-// it. This is the opposite disposition from the
-// memory sequencer's window and the RoT's four, and the reason is that their
-// refusal is permanent where these are doors whose device has not arrived.
+// The boot ROM and UART remain placements awaiting device implementations.
+// The block window implements the reviewed PIO contract in sys/block_device.sail;
+// its geometry, explicit backing and step bounds are declared with that model.
+// All three placements are checked and published in the attested device tree.
 let plat_have_boot_rom : bool = config platform.boot_rom.supported
 let plat_boot_rom_base : physaddrbits = to_bits_checked(config platform.boot_rom.base : int)
 let plat_boot_rom_size : physaddrbits = to_bits_checked(config platform.boot_rom.size : int)

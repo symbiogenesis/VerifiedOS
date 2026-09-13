@@ -187,7 +187,10 @@ function clint_store(paddr, width, data) = {
 
 function tick_clock() -> unit = {
   mtime  = mtime  + 1;
-  clint_dispatch()
+  clint_dispatch();
+  // Functional device steps follow executor clock events, never status polls.
+  if plat_have_blkdev & not(get_config_rvfi()) then
+    blkdev_progress(blkdev_epoch, false, None(), vector_init(zeros()));
 }
 
 // The machine-level interrupt file (R-15-064, R-15-065).
@@ -699,7 +702,7 @@ function htif_store(addr, width, data) = {
 function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
-  else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
+  else blkdev_claims(addr, width) | within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
        | within_memory_sequencer(addr, width)
        | within_otp(addr, width) | within_trng(addr, width)
        | within_monotonic(addr, width) | within_watchdog(addr, width)
@@ -708,14 +711,15 @@ function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : phys
 function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
-  else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
+  else blkdev_claims(addr, width) | within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
        | within_memory_sequencer(addr, width)
        | within_otp(addr, width) | within_trng(addr, width)
        | within_monotonic(addr, width) | within_watchdog(addr, width)
        | (within_htif_writable(addr, width) & 'n <= 8)
 
 function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) =
-  if   within_clint(paddr, width)
+  if blkdev_claims(paddr, width) then blkdev_load(access, paddr, width)
+  else if within_clint(paddr, width)
   then clint_load(access, paddr, width)
   else if within_imsic(paddr, width)
   then imsic_load(access, paddr, width)
@@ -736,7 +740,8 @@ function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessT
   else Err(paddr, accessFaultFromAccessType(access))
 
 function mmio_write forall 'n, 0 < 'n <= max_mem_access . (paddr : physaddr, width : int('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) =
-  if   within_clint(paddr, width)
+  if blkdev_claims(paddr, width) then blkdev_store(paddr, width, data)
+  else if within_clint(paddr, width)
   then clint_store(paddr, width, data)
   else if within_imsic(paddr, width)
   then imsic_store(paddr, width, data)
