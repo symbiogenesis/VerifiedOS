@@ -20,7 +20,7 @@
    exact representability at R-15-007c's own two-regime granule,
    discharged against the slot plan rather than by a runtime instrument;
    R-08-012c's island containment; R-08-012's collapse of over-reservation
-   onto the proven simultaneous peak and R-08-014's decidable interference
+   toward the proven simultaneous peak and R-08-014's decidable interference
    side condition over it; R-08-045's charge, every physical byte claimed
    by one line item; R-14-009 and R-14-010's origin pool and its ceiling;
    and R-11-006's interval arithmetic with R-11-009's switch duty inside
@@ -134,14 +134,14 @@
       rather than left as a silence, and the transposed class vectors are
       shown to be members of the whole assignment family rather than
       credited as content of their own.
-   7. Two regions may share one slot, and this reading is taken against
-      R-08-014's literal words. That entry says slot disjointness over
-      *disjoint* live ranges; R-08-012 collapses over-reservation onto the
-      proven simultaneous peak by live-range colouring, which is exactly
-      two disjoint live ranges sharing one slot, so the side condition
-      that mechanism needs is disjointness over *overlapping* live ranges.
-      The literal reading is carried below as a construction and shown to
-      refuse the sharing, and gap f reports the inversion at the entry.
+   7. Two regions may share one slot, and R-08-014 is read here at its
+      own word. That entry states slot disjointness wherever live ranges
+      *overlap*; R-08-012 collapses over-reservation toward the proven
+      simultaneous peak by live-range colouring, which is exactly two
+      disjoint live ranges sharing one slot, so the side condition and
+      the mechanism it serves agree. The two readings that refuse the
+      sharing, the inverted antecedent and outright disjointness, are
+      carried below as constructions and shown refusing it.
    8. Exactness is decided against granule counts the plan declares rather
       than by a division, the granule is not a declaration at all, and
       above the threshold it is a *bound* rather than a value. R-15-007c
@@ -233,8 +233,10 @@
    constructions rather than mutations of a list, and each is shown to
    satisfy the obligations it does not break.
 
-   What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed:
+   What this file deliberately does not author, with the entry that owns
+   each decision. A register gap is reported and not closed, and where
+   the entry decides, the item states the decision the file reads rather
+   than being renumbered away; the letters are stable and none is reused:
 
    a. What closes the region-kind enumeration. R-15-247s's two lists name
       twenty kinds, R-14-015 names a twenty-first, and R-08-045's charge
@@ -262,19 +264,21 @@
       entry enumerates the member's own regions. The roster is a field and
       the ceiling is stated over an arbitrary one and over an arbitrary
       population bound. Owed at R-14-015 or R-14-009.
-   e. What R-08-011's live range is measured in. The entry fixes each
-      object's live range at compile time and R-08-014 makes the side
-      condition an interference test over it, and no entry states the
-      ordering the range is an interval of. Two fields carry an interval
-      over nat and no unit is claimed. Owed at R-08-011.
-   f. R-08-014's own quantifier. The entry states the side condition as
-      slot disjointness over *disjoint* live ranges, and read literally
-      that refuses exactly the sharing R-08-012's collapse onto the proven
-      simultaneous peak exists to produce, which that entry calls the
-      minimum any non-moving scheme can use. The literal reading cannot be
-      meant, and it is carried below as `literal_colouring_ok` and shown
-      refusing the shared-slot plan; the reading taken is disjointness over
-      overlapping live ranges (reading 7). Owed at R-08-014.
+   e. What R-08-011's live range is measured in. That entry states it: a
+      live range is a half-open interval of the composition's own event
+      order, the ordering the admitted frame and the region structure
+      fix, running from the instant the slot stops being available to any
+      other occupant to the instant the reuse gate hands it on. The two
+      fields below carry that interval, and the unit is the entry's
+      rather than this file's. Decided at R-08-011.
+   f. R-08-014's own quantifier. That entry states the side condition as
+      slot disjointness wherever live ranges *overlap*, which is the
+      reading taken below (reading 7) and the one R-08-012's collapse
+      toward the proven simultaneous peak needs, that collapse being two
+      disjoint live ranges sharing one slot. The inverted antecedent is
+      carried below as `literal_colouring_ok` and shown refusing the
+      shared-slot plan and admitting the overlapping-live one, so the two
+      answer oppositely rather than by degree. Decided at R-08-014.
    g. Every composition magnitude. The roster, the kinds, the
       cycle-criticality judgment, the assignment, the bases, the lengths,
       the granule counts, the live ranges, the islands and their extents,
@@ -365,7 +369,7 @@
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
       R-08-045 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
       R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247m R-15-247r R-15-247s R-18-004b
-   SHA256: 12249421975567236ab3134f6ef89df494fee5f4b0251d370107bf0038f8ba59
+   SHA256: 339b1dc58e1c27fea93b33c021e0a41dc83a0b6d3faca0e4b3595231fdc9e41c
    (*| END derived |*)
    ========================================================================= *)
 
@@ -1014,8 +1018,8 @@ Record Plan : Type := {
   class_of : nat -> MemClass;   (* the plan's own assignment (reading 4)   *)
 
   (* --- R-08-011's slot assignment and R-08-012's live-range colouring:
-         a base, a length, and the interval R-08-014's side condition is
-         stated over (gap e) ---------------------------------------------- *)
+         a base, a length, and the interval of R-08-011's event order
+         that R-08-014's side condition is decided against --------------- *)
 
   base_of : nat -> nat;
   length_of : nat -> nat;
@@ -2528,12 +2532,12 @@ Qed.
    The live-range colouring and its interference side condition (R-08-011,
    R-08-012, R-08-014).
 
-   Reading 7: R-08-014's side condition is read here as slot disjointness
-   over *overlapping* live ranges, against that entry's own word "disjoint",
-   because R-08-012's collapse of over-reservation onto the proven
-   simultaneous peak is exactly two disjoint live ranges sharing one slot.
-   The entry's literal words are carried below as a construction and shown
-   to refuse that mechanism, and gap f owes the inversion to R-08-014.
+   Reading 7: R-08-014's side condition is slot disjointness wherever live
+   ranges *overlap*, and it is read here at that word, because R-08-012's
+   collapse of over-reservation toward the proven simultaneous peak is
+   exactly two disjoint live ranges sharing one slot. The inverted
+   antecedent is carried below as a construction and shown to refuse that
+   mechanism.
    ========================================================================= *)
 
 Definition live_overlap (p : Plan) (r s : nat) : bool :=
@@ -2600,10 +2604,10 @@ Definition strict_colouring_ok (p : Plan) (place : Placement) : bool :=
                    (upto p.(region_count)))
          (upto p.(region_count)).
 
-(* And R-08-014's own words taken literally: slot disjointness over
-   *disjoint* live ranges. It is the inversion gap f reports, and it refuses
-   the same mechanism from the other direction, demanding separate slots of
-   exactly the pair R-08-012 exists to colour together. *)
+(* And R-08-014's antecedent inverted: slot disjointness over *disjoint*
+   live ranges. It is the reading that entry's quantifier excludes, and it
+   refuses the same mechanism from the other direction, demanding separate
+   slots of exactly the pair R-08-012 exists to colour together. *)
 Definition literal_colouring_ok (p : Plan) (place : Placement) : bool :=
   all_of (fun r =>
             all_of (fun s =>
@@ -4620,7 +4624,7 @@ Qed.
 
 (* And the plan that is admitted rather than refuted: two regions whose live
    ranges are disjoint share one slot, which is R-08-012's collapse of
-   over-reservation onto the proven simultaneous peak (reading 7). *)
+   over-reservation toward the proven simultaneous peak (reading 7). *)
 Theorem the_shared_slot_plan_is_admitted :
   colouring_ok shared_slot_plan (spec_placement shared_slot_plan) = true
   /\ slots_disjoint shared_slot_plan (spec_placement shared_slot_plan) 2 4 = false
@@ -4633,10 +4637,10 @@ Theorem the_shared_slot_plan_has_no_interference :
 Proof. apply colouring_ok_sound. reflexivity. Qed.
 
 (* The two colourings that refuse the mechanism, one from each side. The
-   strict one demands disjointness outright; the literal one is R-08-014's
-   own words, disjointness over *disjoint* live ranges, which demands
-   separate slots of exactly the pair R-08-012 exists to colour together
-   (gap f). Both agree with the specification's colouring on a plan that
+   strict one demands disjointness outright; the literal one inverts
+   R-08-014's antecedent to disjointness over *disjoint* live ranges, which
+   demands separate slots of exactly the pair R-08-012 exists to colour
+   together. Both agree with the specification's colouring on a plan that
    shares no slot, so what separates them is the sharing and not a different
    arithmetic. *)
 Theorem the_strict_colouring_refuses_the_mechanism :

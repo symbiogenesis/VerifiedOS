@@ -34,13 +34,13 @@ the item's own text makes a cross-owner borrowing or a new shared-lifetime assum
 an architecture change taken elsewhere, and because the class is the register's
 placement rather than a degree of freedom (R-15-247s, `register_place`).
 
-**What the port takes of R-08-014.** The `.v` reads that entry's side condition as slot
-disjointness over *overlapping* live ranges (its reading 7) and reports the entry's own
-word *disjoint* as an inversion it owes to the register; the literal reading refuses the
-mechanism the plan exists to use. `colouring_ok` below is the file's reading, so the
-enumerator shares a slot exactly where `live_overlap` is false, and `literal_colouring_ok`
-is carried beside it only so that a test can show the two answer opposite ways on the
-same two plans the file shows it on.
+**What the port takes of R-08-014.** That entry states the side condition as slot
+disjointness wherever live ranges *overlap*, which is the `.v`'s reading 7 and the
+predicate ported here: `colouring_ok` below is that reading, so the enumerator shares a
+slot exactly where `live_overlap` is false. The inverted antecedent, disjointness over
+*disjoint* live ranges, refuses the mechanism the plan exists to use, and
+`literal_colouring_ok` is carried beside it only so that a test can show the two answer
+opposite ways on the same two plans the file shows it on.
 """
 
 import dataclasses
@@ -648,9 +648,9 @@ def strict_colouring_ok(plan: Plan) -> bool:
 
 
 def literal_colouring_ok(plan: Plan) -> bool:
-    """`literal_colouring_ok`: R-08-014's own words, disjointness over *disjoint* live
-    ranges, carried so that the inversion the `.v` reports can be shown and never
-    used."""
+    """`literal_colouring_ok`: R-08-014's antecedent inverted, disjointness over
+    *disjoint* live ranges, carried so that the reading the entry excludes can be shown
+    and never used."""
     return all(slots_disjoint(plan, r, s)
                for r in plan.regions() for s in plan.regions()
                if r != s and not live_overlap(plan, r, s))
@@ -752,12 +752,12 @@ class Score:
     """One island's placement, measured.
 
     `footprint` is the proven simultaneous peak R-08-012 collapses over-reservation
-    onto: the most bytes live at once, over the live ranges and lengths, which no base
+    toward: the most bytes live at once, over the live ranges and lengths, which no base
     moves. `span_used` is how far past the island's base the last slot ends,
     `unused_reservation` is that span less the footprint, and `padding` is the bytes
-    under the span no slot covers at all. R-08-012a's first term is the footprint and
-    it is fixed, so what a base search ranks is the span, then the padding, and the
-    unused reservation moves with the span one for one.
+    under the span no slot covers at all. R-08-012a's first term is the span, minimized
+    against that footprint as a fixed floor, so what a base search ranks is the span,
+    then the padding, and the unused reservation moves with the span one for one.
     """
 
     footprint: int
