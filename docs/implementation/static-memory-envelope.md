@@ -17,9 +17,10 @@ checks. The receipt emits the adversary's declared budget, each sweep schedule's
 bounds term by term, the complete search result per schedule, the comparison of
 every search maximum against its bound, the named maximizing schedules, the
 violated-premise witnesses and the obligations left open. Source hashes bind the
-implementation, its tests, the imported calendar, Q22a's model and both explanatory
-contracts. Git identity is supplied by the common research command. Figures stay in
-the generated receipt rather than being maintained here as a second table.
+implementation, its tests, the imported calendar, Q22a's model and the three
+explanatory contracts, this document included. Git identity is supplied by the
+common research command. Figures stay in the generated receipt rather than being
+maintained here as a second table.
 
 The public Python entry point is `vos.static_memory_envelope.report(root)`. It
 returns the receipt without writing files, selecting a production schedule or
@@ -55,7 +56,7 @@ budget is stated per public period.
 Four things stay outside the envelope and are not covered by any bound below:
 arrival jitter, a release at a phase the fixed calendar does not carry, an unbounded
 call whose loan containment cannot cancel, and any move above a declared budget. A
-schedule that spends more than one budget is reported as leaving the service
+schedule spending more than a budget allows is reported as leaving the service
 envelope rather than credited with the same service.
 
 ## The bounds, and the argument for each
@@ -151,10 +152,12 @@ The control-grant demand and the short-window envelope are attained. The
 release-to-reuse bound is not, and the search says why: zeroization is FIFO by
 immutable request identity, so the identity with the longest wait is also the
 earliest identity in its cohort and cannot hold the last zero slot, while the bound
-charges both to one event. The long-window envelope is not attained at a one-window
-horizon either, for the elementary reason that one window of arrivals cannot fill a
-window spanning several periods. Neither observation is evidence that a tighter
-bound exists in general; they are the gaps at these horizons.
+charges both to one event. The envelope over a window several periods long is not
+attained either, for the elementary reason that a horizon carrying one or two
+periods of arrivals cannot fill a window spanning more of them; the envelope over a
+window the length of the period itself is attained wherever the horizon carries two.
+Neither observation is evidence that a tighter bound exists in general; they are the
+gaps at these horizons.
 
 What the search does not show is anything about a target. Horizons are small, units
 are the imported synthetic bytes and ticks, no hardware sweep, zeroization or
@@ -166,8 +169,9 @@ stall, and an adversary with independent endpoints per restart is not enumerated
 ## Negative results and violated-premise witnesses
 
 The deferred retirement calendar, in which every request releases at the result
-phase, is refused outright: its four containment pipelines already saturate the
-fixed control grant, so no admitted restart fits beside them. This is a result about
+phase, is refused outright: its containment pipelines all open at that one phase and
+saturate the fixed control grant, so no admitted restart fits beside them. This is a
+result about
 the schedule the reclamation experiment uses as its comparison baseline, and it is
 reported rather than repaired by widening the grant.
 
