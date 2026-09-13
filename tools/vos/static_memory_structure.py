@@ -7,11 +7,14 @@ endpoint dynamic programme that is polynomial in the binary input length, and th
 two-stack construction attains the charged load whenever the crossing graph is
 bipartite. The justified search is exact and magnitude-independent but exponential in
 the object count; it establishes no parameterized theorem. Decomposition contracts are
-refuted by finite witnesses that the exact oracle replays, and a sweep over small
-families bounds the object count at which each contract first fails.
+refuted by finite witnesses that the exact oracle replays, a sweep over small
+families bounds the object count at which each contract first fails, and a seeded
+random sample of larger families is decided by the justified search, whose returned
+placement at the load certifies attainment independently of the search's completeness.
 """
 
 import itertools
+import random
 from collections import deque
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -23,6 +26,11 @@ SWEEP_MAX_OBJECTS = 3
 SWEEP_MAX_WEIGHT = 2
 JUSTIFIED_WORK_BUDGET = 100_000
 ORACLE_WORK_BUDGET = 200_000
+SAMPLE_SEED = 20260912
+SAMPLE_FAMILIES = 1000
+SAMPLE_OBJECTS = (6, 9)
+SAMPLE_HORIZON = 8
+SAMPLE_MAX_WEIGHT = 3
 
 
 class Contract(TypedDict):
@@ -633,6 +641,62 @@ def decomposition_sweep(max_objects: int = SWEEP_MAX_OBJECTS,
             "first_refutation": first, "span_above_load": above_load}
 
 
+def load_attainment_sample(seed: int = SAMPLE_SEED, families: int = SAMPLE_FAMILIES,
+                           objects: tuple[int, int] = SAMPLE_OBJECTS,
+                           horizon: int = SAMPLE_HORIZON,
+                           max_weight: int = SAMPLE_MAX_WEIGHT,
+                           work_budget: int = JUSTIFIED_WORK_BUDGET) -> dict[str, Any]:
+    """Seeded random families decided by the justified search for an optimum above the load.
+
+    A family attains its charged load when the search returns a placement at the load:
+    the independent checker accepts that placement and the load is a lower bound, so the
+    verdict does not rest on the search's completeness. A completed search above the
+    load is a candidate counterexample, recorded together with the address-enumerating
+    oracle's receipt, and a cutoff decides nothing. The seed, the domain and every tally
+    are in the result, which is finite evidence about the sampled families only.
+    """
+    low, high = objects
+    for value in (families, low, high, horizon, max_weight):
+        if type(value) is not int or value < 1:
+            raise memory.CaseError("sample bounds must be positive integers")
+    if type(seed) is not int or low > high:
+        raise memory.CaseError("sample seed must be an integer and the object range ordered")
+    rng = random.Random(seed)  # noqa: S311 - deterministic finite sampling
+    by_minimum: dict[str, int] = {}
+    attained = incomplete = non_bipartite = 0
+    above: list[dict[str, Any]] = []
+    for index in range(families):
+        rows: list[tuple[str, int, int, int]] = []
+        for position in range(rng.randint(low, high)):
+            weight = rng.randint(1, max_weight)
+            start = rng.randint(0, horizon - 1)
+            rows.append((f"o{position}", weight, start, rng.randint(start + 1, horizon)))
+        raw = _contract(f"sample-{index}", rows)
+        case = memory.parse_case(raw)
+        load = memory.peak_load(case, "arena")
+        result = justified_exact(case, work_budget)
+        key = str(result["deletion"]["minimum"])
+        by_minimum[key] = by_minimum.get(key, 0) + 1
+        if not result["crossing_graph"]["bipartite"]:
+            non_bipartite += 1
+        if result["status"] != "optimal":
+            incomplete += 1
+        elif result["span"] == load:
+            attained += 1
+        else:
+            above.append({"contract": raw, "load": load, "span": result["span"],
+                          "minimum_deletions": result["deletion"]["minimum"],
+                          "oracle": memory.solve_exact(case, work_budget=ORACLE_WORK_BUDGET)})
+    return {"domain": {"seed": seed, "families": families, "min_objects": low,
+                       "max_objects": high, "horizon": horizon, "max_weight": max_weight,
+                       "work_budget": work_budget},
+            "status": "complete" if not incomplete else "incomplete",
+            "attained_load": attained, "incomplete_searches": incomplete,
+            "non_bipartite": non_bipartite,
+            "by_minimum_deletions": dict(sorted(by_minimum.items())),
+            "span_above_load": above}
+
+
 def report(source_revision: str = "unspecified",
            sweep_max_objects: int = SWEEP_MAX_OBJECTS) -> dict[str, Any]:
     """Replay scoped positive and assumption-breaking construction witnesses."""
@@ -744,6 +808,9 @@ def report(source_revision: str = "unspecified",
         found = sweep["first_refutation"][contract["name"]]
         if found is not None and found["objects"] < contract["minimum_objects"]:
             errors.append(f"{contract['name']}: sweep refuted below the stated minimum")
+    sample = load_attainment_sample()
+    if sample["status"] != "complete":
+        errors.append("load-attainment sample left justified searches incomplete")
     return {
         "schema": "static-memory-structure-v1", "source_revision": source_revision,
         "scope": "executable finite evidence and a laminar constructor; no machine-checked theorem",
@@ -751,7 +818,8 @@ def report(source_revision: str = "unspecified",
                      "justified_work_budget": JUSTIFIED_WORK_BUDGET,
                      "oracle_work_budget": ORACLE_WORK_BUDGET,
                      "sweep_max_objects": sweep_max_objects, "sweep_max_weight": SWEEP_MAX_WEIGHT},
-        "cases": results, "decompositions": decompositions, "sweep": sweep, "errors": errors,
+        "cases": results, "decompositions": decompositions, "sweep": sweep,
+        "sample": sample, "errors": errors,
         "open_obligations": [
             "source and admitted execution refinement to reservation intervals",
             "machine-checked general construction and optimality theorem",

@@ -13,8 +13,9 @@ deletion makes the family laminar, is exact placement solvable in time `f(k)` ti
 polynomial of the binary input length, or hard for some small fixed `k`? This
 document settles the parameter itself, extends the exact solution from `k = 0` to
 every family whose crossing graph is bipartite, refutes four candidate decompositions
-by minimal witnesses, states what an exact algorithm structured around the deleted
-objects can and cannot rely on, and records the precise question that stays open.
+by small witnesses at the least object counts its arguments and bounded sweeps admit,
+states what an exact algorithm structured around the deleted objects can and cannot
+rely on, and records the precise question that stays open.
 
 ## Problem statement and input encoding
 
@@ -51,9 +52,12 @@ The command calls [`report`](../../tools/vos/static_memory_structure.py), whose
 receipt keeps every field of the earlier structural report and adds, per case, the
 dynamic programme's deletion set, the crossing graph's two-colouring or odd cycle,
 and the justified exact search; it adds the evaluated decomposition contracts, their
-witnesses, and a sweep over every small interval shape. The enclosing experiment
-receipt binds the source bytes of the module and of this document. Every number this
-document could quote is in that receipt and is not repeated here.
+witnesses, a sweep over every small interval shape, and a seeded random sample of
+larger families. The enclosing experiment receipt binds the source bytes of the module
+and of this document. The measured figures, that is the optima, deletion numbers,
+bounds, node counts and the tallies of the sweep and the sample, live in that receipt
+and are not restated here; this document names the inputs that define a family or a
+domain and argues each outcome qualitatively.
 
 ## The deletion number is polynomial
 
@@ -136,21 +140,24 @@ characterization.
 **Finite outcome.** [`two_stack_placement`](../../tools/vos/static_memory_structure.py)
 builds the placement, passes it through the independent checker, and refuses a
 non-laminar half, a non-partition, non-unit alignment and a capacity below the load.
-The tests check the span against the independently computed load on seeded random
-bipartite families and check that every non-bipartite family's certificate is a
+The tests replay the placement cell by cell, independently of the module's checker,
+compare its span with the address-enumerating oracle's optimum on seeded random
+bipartite families, and check that every non-bipartite family's certificate is a
 simple odd cycle of crossing pairs whose deletion number is at least two.
 
-## Decompositions refuted by minimal witnesses
+## Decompositions refuted by small witnesses
 
 Each contract below is a natural way to reduce placement to the deleted objects and
 the laminar remainder. Each is stated so that a single family can refute it, is
 evaluated by [`decomposition_values`](../../tools/vos/static_memory_structure.py)
 for every minimum deletion set of that family, and is refuted by a named contract in
 the report whose optimum the existing exact oracle establishes and independently
-replays. The stated object count is the least at which the contract can fail; the
-argument for the smaller counts is given in the table and repeated in the module's
-`CONTRACTS` table, and the report's sweep fails if it ever finds a refutation below
-that count.
+replays. The stated object count is the least at which the contract is known to fail:
+for each smaller count the table gives either an argument that no family of that size
+can refute the contract or the bounded sweep that found none, the module's `CONTRACTS`
+table repeats that reasoning, and the report's sweep fails if it ever finds a
+refutation below the stated count. Where the reasoning is a bounded sweep, a family
+outside its extent bound could still fail the contract at the smaller count.
 
 | Contract | Statement | Fails at | Why not earlier |
 | --- | --- | --- | --- |
@@ -163,39 +170,49 @@ The witnesses, with intervals written `[start, reuse)` and unit extents unless s
 
 - **`bottom-block-witness`.** `a = [0, 1)` with extent two, `b = [1, 3)`, `c = [2, 4)`.
   Only `b` and `c` cross, so either alone is a minimum deletion set. Whichever is
-  deleted, the remainder's load is two and the deleted object's own span is one, so
-  the block decomposition spans three, while the whole family fits in the load of
-  two: `a` fills both cells while alone, and `b` and `c` take one cell each afterwards.
+  deleted, `a` stays in the remainder and its extent alone is the family's load, so
+  the block decomposition stacks the deleted object above that load; the whole family
+  nevertheless fits within the load, because `a` fills it while alone and `b` and `c`
+  share it afterwards.
 - **`signature-pair-small` and `signature-pair-large`.** The small family is
-  `a = [0, 2)` and `b = [1, 3)` with extent two; deleting `a` leaves a remainder of
-  load two and a deleted extent of one, and the two objects coexist, so the span is
-  three. The large family is `a = [0, 1)`, `b = [0, 2)`, `c = [1, 3)`; deleting `c`
-  leaves the same remainder load and the same deleted extent, yet two cells suffice
-  because `a` and `c` never coexist. Equal signatures, different optima.
+  `a = [0, 2)` and `b = [1, 3)` with extent two; deleting `a` leaves a remainder whose
+  load is `b`'s extent, with `a`'s extent deleted, and the two objects coexist, so the
+  span is the sum of both extents. The large family is `a = [0, 1)`, `b = [0, 2)`,
+  `c = [1, 3)`; deleting `c` leaves a remainder of the same load, since `a` and `b`
+  coexist, with the same deleted extent, yet the family fits within its load because
+  `a` and `c` never coexist and `c` takes `a`'s cell. Equal signatures, different
+  optima.
 - **`band-witness`.** `a = [0, 2)`, `b = [0, 4)`, `c = [1, 3)`, `d = [3, 5)` with extent
-  two. The deletion number is two and there are four minimum deletion sets; for every
-  one of them the band bound exceeds the optimum, which equals the load. The bound
-  prices the deleted objects as one block above the remainder's peak, although the
-  member that makes the block tall and the remainder's peak never coincide.
+  two. The crossing pairs are `a` with `c` and `b` with `d`, which share no object, so
+  a minimum deletion set takes one object from each pair; for every such set the band
+  bound exceeds the optimum, which equals the load. The bound prices the deleted
+  objects as one block above the remainder's peak, although the member that makes the
+  block tall and the remainder's peak never coincide.
 - **`canonical-remainder-witness`.** `r1 = [0, 2)`, `r = [0, 3)`, `d1 = [1, 4)`,
   `d2 = [2, 5)`, `r2 = [4, 6)` with extent two. The crossing pairs are `d1` with `d2`,
   `r1` and `r`, and `d2` with `r` and `r2`, so `{d1, d2}` is the only minimum deletion
   set and the crossing graph contains the triangle `d1, d2, r`. The constructor
-  places `r` below `r1` and `r2` at the origin; both cells below the load are then
-  occupied while `d1` starts and again while `d2` ends, and `d1` and `d2` coexist, so
-  the canonical remainder forces a span above the load. A placement at the load
-  exists in which `r2` sits above `d2`: the remainder is not placed canonically in
-  any optimal placement of this family.
+  places `r` below `r1` and `r2` at the origin; every cell below the load except the
+  top one is then occupied while `d1` starts and again while `d2` ends, and `d1` and
+  `d2` coexist, so within the load both would need that top cell and the canonical
+  remainder forces a span above the load. A placement at the load exists in which
+  `r2` sits above `d2`: the remainder is not placed canonically in any optimal
+  placement of this family.
 
 **What stays unrefuted within the searched space.** The default report sweeps every
 interval shape with at most three objects and extents at most two, and the slow test
 sweeps every shape with four objects at the same extent bound, both against the
 exact oracle. Within those domains no family with a nonzero deletion number has an
 optimum above its charged load, and no four-object family refutes the
-canonical-remainder contract. A wider random search performed during this work,
-with up to eight objects and extents at most three, also found no such family; it
-is not part of the report and establishes nothing beyond that negative observation.
-That such families exist is a peer-reviewed result the
+canonical-remainder contract. The report also draws a seeded random sample of families
+larger than the sweep exhausts, whose seed, size and domain are fields of the receipt,
+and decides each by the justified search: a placement returned at the load certifies
+attainment independently of the search's completeness, because the checker accepts
+the placement and the load is a lower bound, while a completed search above the load
+would be a candidate counterexample that the receipt records with the oracle's replay.
+The sample reaches non-bipartite families with deletion number at least two and
+contains no family above its load; that is finite evidence about the sampled families
+and nothing more. That such families exist is a peer-reviewed result the
 [research agenda](../background/static-memory-research.md#live-payload-is-a-lower-bound-not-a-placement-theorem)
 already cites, whose constructions are asymptotic. The least deletion number of a
 family with `OPT > L_charge` is therefore unknown here, and in particular whether
@@ -266,12 +283,13 @@ are a partition. Conversely a partition places the objects. Deciding whether a
 laminar remainder has a legal placement of a given height around one fixed obstacle
 is therefore NP-hard under binary encoding, already for a single obstacle and a
 remainder of equal intervals. This says nothing under unary encoding and nothing
-about the original problem: the reduction's whole family is laminar with `k = 0`, and
-the obstacle's base is the adversary's choice, whereas an optimal placement puts that
-object at zero or at the load. It shows that the remainder subproblem cannot serve
-as a polynomial oracle for arbitrary candidate bases; a parameterized algorithm of
-this shape must restrict the candidates and prove the remainder tractable for those
-candidates together.
+about the original problem: the reduction's whole family is laminar with `k = 0`, so
+the constructor places it at its load without fixing any base in advance, and the
+obstacle's base at `S / 2` is the adversary's choice, whereas a placement with the
+obstacle at zero is already optimal for this family. It shows that the remainder
+subproblem cannot serve as a polynomial oracle for arbitrary candidate bases; a
+parameterized algorithm of this shape must restrict the candidates and prove the
+remainder tractable for those candidates together.
 
 **The blocking sub-question, stated precisely.** Does every instance admit an
 optimal placement in which each deleted object's base lies in a set of size at most
