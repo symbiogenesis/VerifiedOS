@@ -5,7 +5,8 @@ an R1c-ii simulation wrapper. The integrator accepts the bounded PIO abstraction
 write-through durable success, complete-access refusals and reset ordering after
 independent review of commits `7c35a98` and `4396c77`. These are composition choices
 for implementation under the [M5.3 acceptance predicate](../docs/implementation/implementation-checklist.md),
-not an implemented device or new architectural requirements. Recovery policy
+not new architectural requirements. The Sail implementation below is partial
+progress against them; it supplies no host-image durability or target acceptance. Recovery policy
 receives a separate review. Neither M5.3 nor R1c-ii lands with this document.
 
 ## Boundary and authority of the choices
@@ -28,11 +29,13 @@ production flash interface still needs its own reviewed commands and FTL binding
 | Authority derives from the composed capability distribution | R-08-001 and R-08-034 and the [manifest rule](../docs/spec.md#r-08-034). The composed storage service owns the slave; a block number is data, not authority. |
 | Multi-block commit and recovery | R-10-036 and R-16-003 own the obligation; [JournalIndex.v](../proofs/JournalIndex.v) leaves the recovery discipline and commit representation as parameters. This contract selects neither. |
 
-The [MMIO dispatch](../model/model/sys/platform.sail) currently does not claim the
-declared block window. The [memory path](../model/model/sys/mem.sail) can therefore
-send permitted accesses there to RAM. The model also disables MMIO dispatch under
-`get_config_rvfi()`. Device acceptance requires an execution mode which actually
-dispatches the device; RVFI-only runs with that bypass cannot supply the evidence.
+The [MMIO dispatch](../model/model/sys/platform.sail) claims every overlapping
+access to the enabled block window. The [memory path](../model/model/sys/mem.sail)
+checks its complete width, alignment and kind before splitting or a RAM effect,
+including the write-effective-address path. The model disables MMIO dispatch
+under `get_config_rvfi()`. Device acceptance requires an execution mode which
+actually dispatches the device; RVFI-only runs with that bypass cannot supply
+the evidence.
 
 ## Composition input
 
@@ -41,9 +44,13 @@ composition supplies no device evidence and is outside this interface's acceptan
 run. The accepted composition supplies `base` and `size` from `platform.blkdev`, a
 logical block length `B`, a block count `N`, and positive integer service bounds
 `read_steps`, `write_steps` and `flush_steps`. The model records these inputs with
-the image identity and input-event trace. No current configuration key is claimed
-to supply the new quantities; their schema and attested representation are an
-implementation deliverable.
+the image identity and input-event trace. The Sail keys `block_bytes`,
+`block_count`, `read_steps`, `write_steps`, `flush_steps` and `backing` supply these
+quantities beside `base`, `size` and `supported`. Geometry and service steps are
+published in the attested device tree; backing bytes belong to the fixture and
+are not register data. The current composed fixture has two 64-byte blocks with
+bytes 0 through 127 in order. These are bounded bring-up choices, not NAND
+geometry or production latency claims.
 
 `base` is aligned to eight bytes; `B` is positive, a multiple of eight and at most
 `size - 0x100`; `N` is positive. `B`, `N` and every register result fit an unsigned
@@ -228,8 +235,9 @@ and commit-representation decisions explicit until their owners settle them.
 
 ## Decisive acceptance cases
 
-These are predicates for the future real Sail device and wrapper, not passing
-test results. The harness derives addresses and iteration bounds from a valid
+These are acceptance predicates for the Sail device and wrapper. The local
+Sail tests described below exercise parts of them; the table is not a record
+that the complete acceptance cases pass. The harness derives addresses and iteration bounds from a valid
 fixture with `N >= 2`; a generated payload family collectively distinguishes each
 byte location and bit across the selected blocks. This is a family of patterns,
 not a claim that one byte can uniquely name every location. It compares
@@ -281,10 +289,36 @@ use at the RTL boundary. The existing
 no block-device implementation. Choosing an upstream or authored wrapper and its
 license/provenance disposition remains R1c-ii's act.
 
-The model owner supplies its
-configuration schema, static backing, event/reset mechanism and full-aperture
-dispatch, then takes the cases above on that device. The current composition
-comments, attested device-tree representation and model bundle require a
-coherent update at that implementation boundary. The integrator records the
-partial M5.3 progress and remaining findings in the shared checklist; this
-document grants no completed-item status, proof tier or recovery-policy ruling.
+The [Sail device](../model/model/sys/block_device.sail) supplies fixed backing,
+volatile staging and a single pending request, with explicit progress,
+corruption, misplaced-read and reset inputs. Its medium capacity is 8192 bytes
+and its staging capacity is 4096 bytes; geometry outside either capacity is
+refused. The emitted configuration schema requires explicit backing bytes and
+startup validates their exact length before copying them. Startup copies the
+fixture once; chip reset preserves the resulting medium. Executor clock ticks
+supply fault-free progress events independently of polling. The explicit harness
+boundary gives reset priority over a simultaneous step; ordinary chip reset
+selects the permitted zero-mask tear endpoint. Association tokens reject a
+canceled or earlier command's delayed event before any medium effect.
+
+The [local Sail tests](../model/model/unit_tests/test_block_device.sail) execute
+the memory dispatch and device transitions, including repeated reads, shuffled
+staging, write-through model completion, acknowledgement, validation precedence,
+width/kind/crossing refusals, explicit progress, read and flush errors, bit tears,
+earlier corruption, reset priority and stale events. They compare the actual
+modeled medium and inspect device state. They do not emit architectural case
+verdicts through HTIF or establish the complete acceptance family above.
+
+The host backing-image adapter and its persistence/reopen boundary, image and
+event receipts, exhaustive reset-boundary and payload families, architectural
+capability-refusal cases and the HTIF corpus remain open. In particular, a Sail
+persistent register models durability across an explicit reset, but cannot
+establish persistence across a host process exit; starting the current emulator
+again loads its supplied configuration fixture. A restart harness must supply
+the resulting image and must not silently reload the original fixture. The
+storage bytes-to-record decoder, authentication and crypto path, recovery-policy
+decision, kernel join and full M5.3 target predicate remain their owners' work.
+
+The integrator records partial M5.3 progress and remaining findings in the shared
+checklist; this document grants no completed-item status, proof tier or
+recovery-policy ruling.
