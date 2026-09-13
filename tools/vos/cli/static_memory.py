@@ -16,6 +16,7 @@ from typing import Any
 from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
 from vos import static_memory_modes as mode_family
+from vos import static_memory_manifest as manifest
 from vos import static_memory_reclaim as reclaim
 from vos import static_memory_scale as scale
 from vos import static_memory_structure as structure
@@ -30,6 +31,8 @@ SOURCES = (
 )
 
 EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
+    "manifest": ("tools/vos/static_memory_manifest.py",
+                 "docs/implementation/static-memory-artifact.md"),
     "structure": ("tools/vos/static_memory_structure.py",),
     "transform": ("tools/vos/static_memory_transform.py",
                   "docs/implementation/static-memory-transformations.md"),
@@ -82,13 +85,17 @@ def parser() -> argparse.ArgumentParser:
                         help="scale only: positive synthetic family object counts")
     result.add_argument("--q5-max-leaves", type=int,
                         help="scale only: bounded existing Q5 enumeration leaves")
+    result.add_argument("--replay", action="store_true",
+                        help="manifest only: replay every other action at its smallest budget")
     return result
 
 
 def experiment(args: argparse.Namespace, root: Path) -> int:
     """Keep new research receipts separate from ordinary supplied-plan checking."""
     receipt = identity(root, (*SOURCES, *EXPERIMENT_SOURCES[args.action]))
-    if args.action == "structure":
+    if args.action == "manifest":
+        result = manifest.report(root, replay=args.replay)
+    elif args.action == "structure":
         result = structure.report(receipt["revision"])
     elif args.action == "transform":
         result = transform.transformation_report(receipt["revision"])
@@ -163,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
         parser().error("--sizes requires scale and positive object counts")
     if args.q5_max_leaves is not None and (args.action != "scale" or args.q5_max_leaves < 1):
         parser().error("--q5-max-leaves requires scale and a positive budget")
+    if args.replay and args.action != "manifest":
+        parser().error("--replay requires manifest")
     if args.case and args.contract:
         parser().error("--case and --contract are mutually exclusive")
     if args.candidate and (args.action != "check" or not args.contract):
