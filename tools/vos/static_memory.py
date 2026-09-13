@@ -16,6 +16,7 @@ research, never infeasibility. No search changes the input or writes a plan.
 import hashlib
 import itertools
 import json
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -56,6 +57,15 @@ class Case:
     mode: str
     arenas: tuple[Arena, ...]
     objects: tuple[Object, ...]
+
+
+# A legal-position layer beside alignment, supplied by the caller and owned by no
+# part of this module. It answers None where that object may stand at that base and
+# the words of its own refusal where it may not, so a layer states its finding in its
+# own vocabulary instead of this module inventing one for it. `None` is no layer at
+# all: every search, checker and receipt below is then the alignment-only model the
+# existing evidence was computed under, unchanged in its findings and its node counts.
+type LegalBase = Callable[[Object, int], str | None]
 
 
 def _mapping(value: object, label: str) -> dict[str, Any]:
@@ -148,12 +158,18 @@ def standing_placement(case: Case) -> list[dict[str, Any]]:
     return [{"id": o.id, "arena": o.arena, "base": o.base} for o in case.objects]
 
 
-def check_placement(case: Case, placement: object) -> list[str]:
+def check_placement(case: Case, placement: object, *,
+                    legal_base: LegalBase | None = None) -> list[str]:
     """Check only an offset certificate against the unchanged lifecycle contract.
 
     This does not call the search's conflict predicates or trust its objective. Reject
     extra fields instead of accepting a candidate's altered sizes, owners or barriers.
     Event ordering is half-open: release at reuse precedes an allocation at that time.
+
+    `legal_base` adds one refusal per object and removes none: a supplied layer decides
+    which bases that object may take beside its alignment, and its words are appended
+    where it refuses. The default asks nothing, so the findings and their order are the
+    alignment-only ones.
     """
     if not isinstance(placement, list):
         return ["schema: placement must be a list"]
@@ -187,6 +203,10 @@ def check_placement(case: Case, placement: object) -> list[str]:
             errors.append(f"alignment: {obj.id} base is not a multiple of {obj.alignment}")
         if row["base"] + obj.size > capacities[obj.arena]:
             errors.append(f"capacity: {obj.id} exceeds arena {obj.arena}")
+        if legal_base is not None:
+            refusal = legal_base(obj, row["base"])
+            if refusal is not None:
+                errors.append(refusal)
     for i, left in enumerate(case.objects):
         if left.id not in by_id:
             continue
@@ -217,9 +237,10 @@ def peak_load(case: Case, arena_id: str) -> int:
     return peak
 
 
-def placement_spans(case: Case, placement: list[dict[str, Any]]) -> dict[str, int]:
+def placement_spans(case: Case, placement: list[dict[str, Any]], *,
+                    legal_base: LegalBase | None = None) -> dict[str, int]:
     """Maximum endpoint from each arena origin, not a fungible global capacity."""
-    findings = check_placement(case, placement)
+    findings = check_placement(case, placement, legal_base=legal_base)
     if findings:
         raise CaseError("invalid placement: " + "; ".join(findings))
     sizes = {o.id: o.size for o in case.objects}
@@ -243,9 +264,13 @@ class _Budget:
         return True
 
 
-def _fit_at_height(objects: tuple[Object, ...], height: int,
-                   budget: _Budget) -> tuple[str, dict[str, int] | None]:
-    """Complete aligned integer DFS; count every root and considered base."""
+def _fit_at_height(objects: tuple[Object, ...], height: int, budget: _Budget,
+                   legal_base: LegalBase | None = None) -> tuple[str, dict[str, int] | None]:
+    """Complete aligned integer DFS; count every root and considered base.
+
+    A base a supplied layer refuses is counted and abandoned exactly where an
+    overlapping one is, so the node accounting of an unrestricted run is unchanged.
+    """
     if not budget.step():
         return "incomplete", None
     order = sorted(objects, key=lambda o: (-sum(_interferes(o, p) for p in objects
@@ -259,6 +284,8 @@ def _fit_at_height(objects: tuple[Object, ...], height: int,
         for base in range(0, height - obj.size + 1, obj.alignment):
             if not budget.step():
                 return "incomplete", None
+            if legal_base is not None and legal_base(obj, base) is not None:
+                continue
             if any(_interferes(obj, prev) and base < offset + prev.size
                    and offset < base + obj.size for prev, offset in chosen):
                 continue
@@ -272,17 +299,22 @@ def _fit_at_height(objects: tuple[Object, ...], height: int,
     return visit(0)
 
 
-def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
+def solve_exact(case: Case, work_budget: int = 100_000, *,
+                legal_base: LegalBase | None = None) -> dict[str, Any]:
     """Minimize each arena's span by bounded enumeration; preserve standing on cutoff.
 
     At most MAX_EXACT_OBJECTS per arena are enumerated. All capacities and alignments
     remain arbitrary positive integers; enumerating their numeric ranges is knowingly
     pseudopolynomial and says nothing about parameterized complexity. `nodes` counts
     search roots and candidate bases, not wall time or validation cost.
+
+    A supplied `legal_base` narrows the candidate bases and nothing else. The charged
+    load stays the bound it was, a restriction of the legal positions being unable to
+    lower it, so a span that still attains the load is still optimal by load equality.
     """
     budget = _Budget(_integer(work_budget, "work_budget"))
     standing = standing_placement(case)
-    standing_findings = check_placement(case, standing)
+    standing_findings = check_placement(case, standing, legal_base=legal_base)
     standing_valid = not standing_findings
     selected: dict[str, int] = {}
     results: list[dict[str, Any]] = []
@@ -290,7 +322,7 @@ def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
         objects = tuple(o for o in case.objects if o.arena == arena.id)
         subcase = Case(case.name, case.provenance, case.mode, (arena,), objects)
         substanding = standing_placement(subcase)
-        valid = not check_placement(subcase, substanding)
+        valid = not check_placement(subcase, substanding, legal_base=legal_base)
         best = {o.id: o.base for o in objects} if valid else None
         best_span = max((o.base + o.size for o in objects), default=0) if valid else None
         lower = peak_load(case, arena.id)
@@ -318,7 +350,7 @@ def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
                                              "infeasible_through": height - 1}
                     break
                 before = budget.nodes
-                status, found = _fit_at_height(objects, height, budget)
+                status, found = _fit_at_height(objects, height, budget, legal_base)
                 result["attempts"].append({"height": height, "status": status,
                                            "nodes": budget.nodes - before})
                 if status == "incomplete":
@@ -353,7 +385,8 @@ def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
         "incomplete" if "incomplete" in statuses else "optimal")
     best_placement = [{"id": o.id, "arena": o.arena, "base": selected[o.id]}
                       for o in case.objects] if len(selected) == len(case.objects) else None
-    if best_placement is not None and check_placement(case, best_placement):
+    if best_placement is not None and check_placement(case, best_placement,
+                                                      legal_base=legal_base):
         raise RuntimeError("search witness failed the independent placement checker")
     retained = status == "incomplete" and standing_valid
     return {"case": case.name, "contract_sha256": contract_hash(case), "status": status,
@@ -364,17 +397,47 @@ def solve_exact(case: Case, work_budget: int = 100_000) -> dict[str, Any]:
             "best_placement": best_placement, "arenas": results}
 
 
-def compare_heuristics(case: Case, work_budget: int = 100_000) -> list[dict[str, Any]]:
+def _legal_endpoints(obj: Object, endpoints: set[int], capacity: int,
+                     legal_base: LegalBase, budget: _Budget) -> tuple[set[int], bool]:
+    """Each first-fit endpoint moved up to the first base the layer admits, and
+    whether the budget ran out before the walk finished.
+
+    A separate pass rather than a step inside the scan below, because that scan reads
+    one blocker cursor that only moves forward: an endpoint advanced in place could
+    fall behind the endpoint after it, and the cursor would then skip a blocker that
+    still ends above the smaller base. Advancing first and sorting after keeps the
+    candidate list ascending, which is the property the cursor rests on.
+    """
+    result: set[int] = set()
+    for endpoint in sorted(endpoints):
+        candidate = endpoint
+        while candidate + obj.size <= capacity:
+            if not budget.step():
+                return result, True
+            if legal_base(obj, candidate) is None:
+                result.add(candidate)
+                break
+            candidate += obj.alignment
+    return result, False
+
+
+def compare_heuristics(case: Case, work_budget: int = 100_000, *,
+                       legal_base: LegalBase | None = None) -> list[dict[str, Any]]:
     """Deterministic first fit at zero and aligned ends of interfering placed objects.
 
     A failed, interrupted or non-improving attempt retains a valid standing plan.
     Improvement means no arena gets larger and at least one gets smaller; bytes in
     distinct arenas cannot compensate one another. Every proposed witness is checked.
+
+    Under a supplied legal-base layer each endpoint first walks up to a base the layer
+    admits, which costs work and is counted; first fit stays first fit over the
+    candidates that survive, and a layer that refuses nothing leaves them where they
+    were.
     """
     _integer(work_budget, "work_budget")
     standing = standing_placement(case)
-    valid = not check_placement(case, standing)
-    standing_spans = placement_spans(case, standing) if valid else None
+    valid = not check_placement(case, standing, legal_base=legal_base)
+    standing_spans = placement_spans(case, standing, legal_base=legal_base) if valid else None
     reports: list[dict[str, Any]] = []
     for method in METHODS:
         budget = _Budget(work_budget)
@@ -394,6 +457,11 @@ def compare_heuristics(case: Case, work_budget: int = 100_000) -> list[dict[str,
                 endpoints = {0} | {((base + prev.size + obj.alignment - 1)
                                    // obj.alignment) * obj.alignment
                                   for prev, base in conflicts}
+                if legal_base is not None:
+                    endpoints, exhausted = _legal_endpoints(
+                        obj, endpoints, arena.capacity, legal_base, budget)
+                    if exhausted:
+                        status = "incomplete"
                 # Both scans move forward. The earliest blocker not ending before
                 # this base decides overlap; later blockers cannot start earlier.
                 # This preserves every endpoint, node and tie break while avoiding
@@ -425,7 +493,7 @@ def compare_heuristics(case: Case, work_budget: int = 100_000) -> list[dict[str,
             offsets = {obj.id: base for obj, base in placed}
             candidate = [{"id": o.id, "arena": o.arena, "base": offsets[o.id]}
                          for o in case.objects]
-            spans = placement_spans(case, candidate)
+            spans = placement_spans(case, candidate, legal_base=legal_base)
         improved = spans is not None and (standing_spans is None or (
             all(spans[k] <= standing_spans[k] for k in spans)
             and any(spans[k] < standing_spans[k] for k in spans)))
@@ -438,14 +506,18 @@ def compare_heuristics(case: Case, work_budget: int = 100_000) -> list[dict[str,
     return reports
 
 
-def verify_optimality(case: Case, receipt: object,
-                      work_budget: int = 100_000) -> dict[str, Any]:
+def verify_optimality(case: Case, receipt: object, work_budget: int = 100_000, *,
+                      legal_base: LegalBase | None = None) -> dict[str, Any]:
     """Check a witness and independently replay the prior height by Cartesian product.
 
     Replay deliberately does not call the DFS, its ordering, pruning or conflict test.
     Monotonicity in available height means infeasibility at h-1 covers every smaller
     height. Budget counts full candidate placements. The method can take more work
     than search. A cutoff leaves the optimality claim unchecked, even if feasible.
+
+    A receipt produced under a legal-base layer is replayed under the same layer: the
+    refutation asks whether a *legal* smaller placement exists, so replaying an
+    unrestricted grid would refute an optimum the layer's own restriction forced.
     """
     budget = _Budget(_integer(work_budget, "work_budget"))
 
@@ -462,17 +534,17 @@ def verify_optimality(case: Case, receipt: object,
         if report.get("status") != "optimal":
             return answer("rejected", ["receipt does not claim a complete feasible optimum"])
         witness = report.get("best_placement")
-        findings = check_placement(case, witness)
+        findings = check_placement(case, witness, legal_base=legal_base)
         if findings:
             return answer("rejected", findings)
         if not isinstance(witness, list):
             return answer("rejected", ["receipt witness is not a list"])
-        primary_findings = check_placement(case, report.get("placement"))
+        primary_findings = check_placement(case, report.get("placement"), legal_base=legal_base)
         if primary_findings:
             return answer("rejected", primary_findings)
         if report.get("placement") != witness:
             return answer("rejected", ["optimal receipt placement differs from its best witness"])
-        spans = placement_spans(case, witness)
+        spans = placement_spans(case, witness, legal_base=legal_base)
         rows = report.get("arenas")
         if not isinstance(rows, list) or len(rows) != len(case.arenas):
             return answer("rejected", ["receipt arenas do not match contract"])
@@ -523,12 +595,18 @@ def verify_optimality(case: Case, receipt: object,
                 continue
             if sum(counts) > budget.limit - budget.nodes:
                 return answer("incomplete", [f"{arena.id}: Cartesian replay exceeds budget"])
-            for bases in itertools.product(*domains):
+            # Filtering happens under the bound above and never over an unbounded
+            # range: the counts the budget admitted are what the layer walks.
+            spaces: list[Sequence[int]] = list(domains)
+            if legal_base is not None:
+                spaces = [[base for base in space if legal_base(obj, base) is None]
+                          for obj, space in zip(objects, spaces, strict=True)]
+            for bases in itertools.product(*spaces):
                 if not budget.step():
                     return answer("incomplete", [f"{arena.id}: replay work budget exhausted"])
                 candidate = [{"id": obj.id, "arena": arena.id, "base": base}
                              for obj, base in zip(objects, bases, strict=True)]
-                if not check_placement(subcase, candidate):
+                if not check_placement(subcase, candidate, legal_base=legal_base):
                     return answer("rejected", [f"{arena.id}: smaller feasible placement exists"])
     except CaseError as error:
         return answer("rejected", [str(error)])
