@@ -1,6 +1,6 @@
 # Static-memory research baseline
 
-> Non-normative definitions and proof arguments for the [research agenda](../background/static-memory-research.md). The [requirements register](../requirements-register.md) remains authoritative. The arguments here have human-readable proofs; they are not machine-checked theorems, target measurements, or changes to admission. Q5 owns the placement comparison and Q22a supplies the qualified reuse interface.
+> Non-normative definitions and proof arguments for the [research agenda](../background/static-memory-research.md). The [requirements register](../requirements-register.md) remains authoritative. The arguments here have human-readable proofs, and the laminar placement theorem also has a [mechanized statement](#mechanized-statement). They supply no target measurement or change to admission. Q5 owns the placement comparison and Q22a supplies the qualified reuse interface.
 
 ## Executions, objects and physical charge
 
@@ -111,6 +111,65 @@ alignment and arena premises, insufficient capacity, and incomplete search.
 The aligned equal-lifetime counterexample also carries the existing exact
 oracle's independent optimality replay. These are executable checks of finite
 instances, not a machine-checked general proof.
+
+### Mechanized statement
+
+[StaticMemoryLaminar.v](../../proofs/StaticMemoryLaminar.v) states the laminar theorem
+above in Rocq and proves it outright, with no admitted step, axiom or parameter;
+`python tools/run.py proofs` compiles it with the other shipped artifacts and reports
+every constant closed under the global context. It is a companion to this research
+document: it changes no admission criterion, accepts no requirement and confers no
+landing credit, and the [requirements register](../requirements-register.md) remains
+authoritative.
+
+Its model is the theorem's. An object is an identity, a positive weight and a half-open
+interval `[lo, hi)` with `lo < hi` over the natural numbers; a family is a finite list of
+objects with distinct identities; the family is laminar when every pair of intervals is
+disjoint or nested, equal intervals included; a placement maps identities to natural
+bases, is feasible when distinct objects with overlapping intervals have disjoint
+extents, and spans up to its largest extent top. One arena at origin zero, unit
+alignment, every natural number a legal base, no pinning and no further constraint are
+the premises, and the fixed intervals are inputs. The file proves that the charged load
+over start endpoints bounds the load at every instant; that the construction, which
+places each object at the total weight of the objects preceding it in the (start
+ascending, end descending, identity) order whose intervals contain its own, is feasible
+on a laminar family; that its span is at most the load on any well-formed family; that
+every feasible placement spans at least the load; and therefore that on a laminar family
+the construction spans exactly the load and no feasible placement spans less.
+
+A bridge section reads a [memory-plan](../../proofs/MemoryPlan.v) `Plan`'s `live_from`,
+`live_to` and `length_of` fields over the regions below `region_count` as a family and
+proves, where that family is well formed and laminar, that the constructed `Placement`
+satisfies `NoInterference` with span equal to the load, and that every `Placement`
+satisfying `NoInterference` spans at least the load. The bridge speaks to
+`NoInterference` alone: the plan's island containment, quantization, class placement and
+placement-list charge are neither assumed nor concluded, and nothing is said about the
+plan's own `base_of`.
+
+The witnesses follow the [proof-artifact discipline](../../README.md#the-proof-artifacts-themselves).
+The constructor's `equal-nested-disjoint` family, with numeric identities in the
+receipt's identity order, has its bases, span and load computed by `vm_compute` and
+checked by reflexivity, and the general theorem is instantiated at it; a two-object
+crossing family is refused by the laminar predicate and collides under the construction;
+a padded placement of the laminar family is feasible with span above its load; and the
+memory plan's own reference plan is checked to satisfy the bridge's hypotheses, its
+constructed placement passing `colouring_ok`. A seven-object crossing family, found
+by a scratch search and confirmed with `python tools/run.py static-memory compare`
+over an unshipped hand-written contract, has an
+optimum strictly above its load: the file enumerates every placement whose bases lie
+below the load, refuses each by computation, proves that every placement of span at
+most the load is in that enumeration, and exhibits a feasible placement one unit above
+it. The laminar premise therefore has content, and the lower bound is not attained in
+general. This is one finite instance; it is not a hardness or a parameterized result.
+
+What the file does not prove is what this document leaves open: the source-lifetime
+bridge from admitted executions to the exported intervals, alignment, islands,
+quantization, pinning, multiple executions and any complexity claim. The stack replay in
+`static_memory_structure.py` is not mechanized; its agreement with the closed-form
+construction is checked only at the concrete family, whose numeric identities preserve
+the replay's string ordering. The mechanization proves the theorem under the stated
+premises through filtered ancestor sums; it does not mechanize the prose's forest
+construction or its complexity argument.
 
 ## Small witnesses for disputed implications
 

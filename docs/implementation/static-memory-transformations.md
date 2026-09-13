@@ -68,8 +68,9 @@ variant replaces input element `i` only after reading it, accumulates the checks
 over that mapped value, and begins the XOR pass only after the complete reduction.
 Later map iterations read distinct input indices. All variants therefore emit
 `y[i]` in index order under this abstract interface. This is an elementary
-algorithm argument, accompanied by bounded executable comparisons; it is not a
-machine-checked compiler refinement theorem.
+algorithm argument, accompanied by bounded executable comparisons and mechanized
+over its list functions below; it is not a machine-checked compiler refinement
+theorem.
 
 The report exhausts its declared small alphabet at its declared small lengths and
 also executes deterministic generated full-size frames. Its input digest and
@@ -78,6 +79,55 @@ mutate XOR into a copy, omit the control scrub, introduce an early retirement an
 an out-of-bounds view, and corrupt placement into overlap. A value test alone would miss the latter
 failures, so authority/index checks and the separate placement checker reject
 them independently.
+
+### Mechanized equivalence
+
+[StaticMemoryService.v](../../proofs/StaticMemoryService.v) states the argument
+above as Rocq theorems over list functions and proves them outright, with every
+constant closed under the global context at the proof gate `run.py proofs` runs.
+It carries the reference, the shift/add/mask map proved equal to the
+multiply/mod map for every natural and re-decided by computation over the byte
+domain, six functional models covering the seven rows of the variant table
+below, and result equality with the reference on every input list. The two
+retained-cache rows share one model, since they differ in retirement and not in
+data flow. Early release, chunked cache and tiled recomputation each have a
+model mirroring their own schedule, and the three coincide as functions up to a
+reassociation of maps: that is the whole functional content of a stage copy
+being a pure move and of a recomputed pure map returning what was stored, and
+the models say nothing about what either costs. The chunk models take an
+arbitrary list of `(start, count)` chunks under the hypothesis that the chunks
+partition the index interval. The hypothesis is proved sufficient and shown not
+to be necessary: one chunk reaching past the end of the list still returns the
+reference, because a slice truncates there. The generator's chunk list,
+including its clamp of the tile to the frame length, is proved to satisfy the
+hypothesis for every positive tile, and a chunk list that drops the last indices
+or repeats the first ones in their place is shown to fail it and to return a
+different list on a concrete frame, differing in value and not only in length.
+The in-place model is a sequential state machine over a memory function that
+overwrites element `i` only after reading it, accumulates the checksum over the
+mapped value, and starts its XOR pass only after the reduction completes. A
+concrete frame has its outputs computed by `vm_compute` on every model, and a
+variant whose XOR pass is replaced by a copy is refuted on it, mirroring the
+tests' mutant. The proof cites R-08-019e, without claiming it, for the
+recompute-rather-than-store lever the rematerialized variants exercise, since
+that lever acts on the artifact only when recomputation returns the same
+result; the certificate that prices the trade in space and time is untouched,
+so no pricing or admission entry is cited, and whether the entry governs the
+artifact is the review gate's reading.
+
+The gap is explicit. The Rocq functions are not the interpreter: `execute`'s
+instruction semantics, the emitted schedules, resource reservation and
+retirement, authority and index checks, zeroization, the persistent checksum
+byte, staging copies and any DMA staging are outside every theorem, and no
+refinement from an emitted program to its functional model is stated. The chunk
+models place a chunk's outputs by chunk order where the schedule writes them at
+their start offsets, which agree only under the partition hypothesis.
+Equivalence of the generator's programs to these functional models therefore
+remains the executable-test claim `equivalence_findings` makes over the
+report's frames, and the costs the report compares are not modeled by the
+proof at all. The proof confers no landing credit and accepts no requirement;
+the [requirements register](../requirements-register.md) remains authoritative
+and both research items stay open under their full acceptance conditions.
 
 ## Variants and the assumption each changes
 
