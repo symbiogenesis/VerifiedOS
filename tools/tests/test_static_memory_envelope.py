@@ -107,6 +107,40 @@ def the_closed_form_reduces_to_the_reclamation_envelope() -> None:
                        f"adversarial envelope differs from the calendar: {phases}/{duration}")
 
 
+def larger_budgets_count_actual_events_and_prior_periods() -> None:
+    """Budgets beyond the declared report fixtures must retain their stated bounds."""
+    env = replace(reclaim.Envelope(), period=12, requests=2)
+    limits = envelope.Limits(restarts=0, stall_ticks=0, loans=0,
+                             saved_contexts=2, behind_cursor=0)
+    policy = reclaim.Policy("two-contexts", (2, 8), 12, 1, env.extent_bytes, 4,
+                             env.extent_bytes)
+    observed = max(envelope.alpha_observed(
+        envelope.measure(env, policy, limits, envelope.assign(env, policy, moves),
+                         100).arrivals, 1)
+        for moves in envelope.window_configurations(env, limits, 0))
+    ensure(envelope.alpha_bound(env, policy, limits, 1) == observed,
+           "one short-window event cannot carry two saved contexts")
+
+    env = replace(env, requests=1)
+    limits = replace(limits, restarts=1, saved_contexts=0, behind_cursor=2, windows=2)
+    policy = envelope.sized(env, limits, "restarted-behind-cursor", (2,), 12, 1)
+    found = envelope.search(env, policy, limits, (1, env.period))
+    ensure(found["status"] == "exhaustive" and not found["overrun_schedules"],
+           "a restarted event behind the cursor also consumes a later zero slot")
+    ensure(not envelope.compare(env, policy, limits,
+                                envelope.bounds(env, policy, limits), found)["errors"],
+           "the larger behind-cursor budget must preserve every admitted bound")
+
+    env = replace(env, containment_ticks=60, control_bytes_per_tick=100)
+    limits = replace(limits, restarts=0, behind_cursor=0)
+    expected = max(row["control_required"] for row in reclaim.reservation(env, policy))
+    ensure(envelope.control_bound(env, policy, limits) == expected,
+           "control demand must include containment pipelines older than two periods")
+    limits = replace(limits, restarts=1)
+    ensure(envelope.control_bound(env, policy, limits) == 2 * expected,
+           "each earlier public period can spend its restart budget too")
+
+
 def observed_envelope_matches_direct_window_enumeration() -> None:
     env = reclaim.Envelope()
     limits = envelope.Limits()
@@ -259,6 +293,7 @@ def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         search_maxima_stay_within_every_closed_form_bound,
         the_closed_form_reduces_to_the_reclamation_envelope,
+        larger_budgets_count_actual_events_and_prior_periods,
         observed_envelope_matches_direct_window_enumeration,
         calendar_placement_matches_an_independent_tick_machine,
         barrier_mutants_reach_the_stale_capability,

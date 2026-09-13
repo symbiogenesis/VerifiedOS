@@ -70,8 +70,9 @@ public period, so a window meets each period in one contiguous piece and can hol
 from that period exactly the phase instants inside the piece. Inside one period the
 adversary spends at most its whole budget: one base retirement for each admitted
 identity in the piece, its restarts, its loans and its retentions, each charged at
-its own fixed extent. Summing those per-period maxima over the periods the window
-meets is therefore an upper bound, and it is attained because different periods'
+its own fixed extent. A retention names one event, so the retained-context term is
+also capped by the number of base events and restarts the piece can hold. Summing
+those per-period maxima over the periods the window meets is therefore an upper bound, and it is attained because different periods'
 budgets are independent. The calculation enumerates window starts modulo the period,
 which is complete because both the calendar and the budget are periodic with it.
 
@@ -120,8 +121,10 @@ reclamation document already states for its own inclusion argument.
 Two checks decide whether a sweep schedule is a service at all under the declared
 adversary. The largest cohort the adversary can force must fit the reserved
 zeroization slots, and the concurrent containment pipelines it can open must fit the
-fixed control grant. Each declared schedule's zeroization reservation is sized at
-exactly its own admitted cohort bound, which is what makes the restart budget
+fixed control grant. The cohort includes restarted events whose first pass was
+spoiled, and control demand includes every earlier public period whose containment
+pipeline can still be active. Each declared schedule's zeroization reservation is
+sized at exactly its own admitted cohort bound, which is what makes the restart budget
 load-bearing rather than decorative: nothing is left over for a storm. A schedule
 failing either check is refused with its reason, and no overflow slot is invented.
 

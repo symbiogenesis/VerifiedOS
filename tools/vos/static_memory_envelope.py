@@ -234,7 +234,8 @@ def alpha_bound(env: reclaim.Envelope, policy: reclaim.Policy, limits: Limits,
             if count:
                 total += ((count + limits.restarts) * env.extent_bytes
                           + limits.loans * limits.loan_bytes
-                          + limits.saved_contexts * limits.saved_bytes)
+                          + min(limits.saved_contexts, count + limits.restarts)
+                          * limits.saved_bytes)
         best = max(best, total)
     return best
 
@@ -297,8 +298,9 @@ def cohort_bound(env: reclaim.Envelope, policy: reclaim.Policy, limits: Limits) 
 
     A pass serves the events whose containment selected it plus the events whose
     first pass was invalidated by a holder revoked behind its cursor. The second
-    term is charged per window at the declared behind-cursor budget; the sum is an
-    upper bound and the two terms are not claimed to be jointly attained.
+    term is charged per window at the declared behind-cursor budget over reachable
+    base events and their restarts; the sum is an upper bound and the two terms are
+    not claimed to be jointly attained.
     """
     validate(env, policy, limits)
     cycle = lcm(env.period, policy.pass_period)
@@ -307,9 +309,10 @@ def cohort_bound(env: reclaim.Envelope, policy: reclaim.Policy, limits: Limits) 
     for begin in range(cycle, 2 * cycle + policy.pass_period, policy.pass_period):
         earlier = begin - policy.pass_period
         low = (earlier - policy.pass_period - reach) // env.period
-        pushed = sum(min(limits.behind_cursor,
-                         _reaching(env, policy, limits, window, earlier))
-                     for window in range(low, earlier // env.period + 1))
+        reachable = [_reaching(env, policy, limits, window, earlier)
+                     for window in range(low, earlier // env.period + 1)]
+        pushed = sum(min(limits.behind_cursor, count + limits.restarts)
+                     for count in reachable if count)
         best = max(best, _direct(env, policy, limits, begin) + pushed)
     return best
 
@@ -326,7 +329,8 @@ def control_bound(env: reclaim.Envelope, policy: reclaim.Policy, limits: Limits)
     best = 0
     for tick in range(env.period):
         total = 0
-        for window in (-2, -1, 0, 1):
+        earliest = (tick - span - max(policy.release_phases)) // env.period
+        for window in range(earliest, tick // env.period + 1):
             active = sum(1 for phase in policy.release_phases
                          if 0 <= tick - (window * env.period + phase) < span)
             total += active + (limits.restarts if active else 0)
