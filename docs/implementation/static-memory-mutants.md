@@ -64,14 +64,22 @@ the expected refusal is a rejected replay whose finding belongs to the named fam
 | --- | --- | --- | --- |
 | `bound-raise-load` | the independently computed charged load | the arena row's own refusal | every arena of a verified receipt |
 | `bound-lower-span` | the span the receipt's own witness attains | the arena row's own refusal | every arena holding at least one slot |
-| `witness-refused` | the witness the optimality claim carries | a placement-checker finding | every object of a verified receipt |
-| `certificate-argument` | the exhaustion or load-equality argument | a finding naming the certificate | every arena of a verified receipt |
+| `witness-refused` | the witness the optimality claim carries | a `capacity` finding from the placement checker | every object of a verified receipt |
+| `certificate-argument` | the exhaustion or load-equality argument | one of the replay's two certificate refusals | every arena of a verified receipt |
 
 `bound-raise-load` and `bound-lower-span` are the two directions of a false bound, and
 `certificate-argument` alters the height the exhaustion argument challenges, or claims
 exhaustion where the receipt argued equality with load. A contract whose bounded search
 does not complete, or whose unmutated receipt does not replay, yields stillborn
 certificate sites rather than mutants: there is no optimality claim there to falsify.
+
+The expected refusals are matched exactly rather than by the arena name they carry,
+because the replay refuses an arena by two differently meant findings that both begin
+with its identity: the arena row's own false claim, and a smaller feasible placement the
+Cartesian replay found. Accepting either as a bound kill would fold a refusal about a
+different constraint into the kill count, which is the inflation the miskill verdict
+exists to prevent. The receipt states the refusal strings it reads, so the day the replay
+reorders its clauses the sweep reports miskills rather than more kills.
 
 ## The four verdicts, and why a miskill is its own
 
@@ -93,23 +101,36 @@ A sweep reporting no survivor is consistent with two very different situations: 
 oracle that refuses every constructed violation, and an oracle that refuses nothing that
 these operators happen to build. The run separates them. `dropping` returns the checker
 with one clause's findings discarded, which is exactly that clause not deciding, and the
-receipt requires that removing the alignment clause leaves survivors for the operator
-targeting alignment and for no other. The complete sweep beside it is the restored run.
-The control therefore measures the sweep against a checker already known to be weak; it
-is a check on the instrument, not evidence about the model.
+receipt removes every clause an operator targets in turn, requiring that exactly the
+operators targeting the removed clause survive it and that no kill turns into a miskill,
+which would mean a construction violates more than the constraint it names. The complete
+sweep beside it is the restored run. The control therefore measures the sweep against a
+checker already known to be weak; it is a check on the instrument, not evidence about the
+model.
+
+A control is only as strong as the mutants behind it, so each clause's row carries the
+number of mutants its operators built and the number of contracts that supplied them. A
+clause whose operators are stillborn throughout controls nothing, and the receipt records
+it as unexercised rather than failing the run; a clause resting on the alignments of one
+or two contracts is a real but narrow control, and the row says so. The control covers
+the placement checker only. `verify_optimality` is not weakened, so the certificate
+operators have no control of their own, and their kills rest on the exact refusals named
+above.
 
 ## What a zero-survivor sweep establishes, and what it does not
 
 It establishes that within the declared finite model, the checker refused every
-violation these operators constructed, at every site they were applied to, on the
-declared witnesses and one generated family. That is a statement about constructed
-defects and about this checker.
+violation these operators constructed, at every applicable site of the declared
+witnesses and one generated family. That is a statement about constructed defects and
+about this checker. The declared run sets no site cap, and the receipt's coverage block
+states how many sites each operator could address and how many it decided, so a capped
+run says in the same place how many sites it left unvisited.
 
 It establishes nothing about constraints outside that model. CHERI bounds
 representability, island and bank assignment, and admission are not modeled here, so no
 operator constructs a violation of them and no verdict reports on them. It is not a
-theorem: it is bounded executable evidence over the sites sampled by the run's seed, and
-a site the sweep did not reach decided nothing. A stillborn population is not coverage,
+theorem: it is bounded executable evidence over the contracts and operators declared
+here, and a site a cap withholds decides nothing. A stillborn population is not coverage,
 and the operators are chosen, so a constraint nobody wrote an operator for remains
 exactly as unmeasured as it was. The sweep also says nothing about the replay verifier's
 own clauses beyond the refusals these mutants provoke.
@@ -126,17 +147,21 @@ python tools/run.py static-memory mutants --json
 python tools/run.py test --only static_memory_mutants
 ```
 
-The receipt records the seed, the site cap, the work budget and the contracts swept,
-then the counts per operator and per site class, every survivor and every miskill in
-full with its contract, site and the findings received, and the aggregated stillborn
-reasons. It separates the two deliverables the agenda distinguishes: a feasibility
-certificate is one candidate against an unchanged contract, and an optimality
-certificate additionally carries a bound argument, so a refused witness and a false
-bound are different findings with different operators. The command exits nonzero when
-any survivor exists.
+The receipt records the seed, the site cap or its absence, the work budget and the
+contracts swept, then the site coverage, the counts per operator, per kind and per site
+class, every survivor and every miskill in full with its contract, site and the findings
+received, and the aggregated stillborn reasons. It separates the two deliverables the
+agenda distinguishes: a feasibility certificate is one candidate decided against the
+contract the mutant carries, which a candidate-side operator leaves alone and a
+contract-side operator rebuilds through the model's own parser, and an optimality
+certificate additionally carries a bound argument, so a refused witness and a false bound
+are different findings with different operators. The three counts are reported apart. The
+command exits nonzero when any survivor exists.
 
 The focused tests construct every placement operator's mutant on a hand-written contract
 and decide it again with a byte-at-a-time and tick-at-a-time oracle that shares no
 interval arithmetic with the checker, fix the exact verdict of every operator on a
-two-slot contract, run the weakening control in both directions, and hold the sampling
-reproducible under its seed.
+two-slot contract, run the weakening control over every clause an operator targets and
+then restored, hold the sampling reproducible under its seed and the coverage figures
+against the sites the cap withheld, and fix the reading of each replay refusal directly,
+including one the declared corpus does not reach.
