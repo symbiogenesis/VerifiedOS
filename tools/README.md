@@ -43,12 +43,13 @@ substitute for the guest lane's evidence.
 
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
-`wsl -u root -e python3` to remember and no wrong lane to be in. A guest command has
-to *drive* the toolchain to need the hop: `model config-keys`,
+`wsl -u root -e python3` to remember and no wrong lane to be in. Commands that
+drive the toolchain or inspect its native outputs need the hop. `model config-keys`,
 `model validate-config`, `model asm`, `model freeze-emit`, `rtl provenance`,
 `rtl filelist`, `oracle list`, `oracle emit`, `seed list`, `testrig protocol`,
 `placement export`, `placement check`, `placement admit`, `placement search`,
-`proofs headers` and `proofs status` use this checkout and answer on either lane.
+`proofs headers` use this checkout and answer on either lane. `proofs status` takes
+the hop because its compiled outputs live in the guest's native build directory.
 That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
 lane the suite is running on, and holds every subcommand the table declares against
@@ -88,7 +89,7 @@ caught by nothing, which is a residue the findings register carries.
 | `placement` | host / wsl | `export`, `check`, `admit` and `search` read the memory plan on either lane. `consistency` asks Z3 to select a jointly admissible candidate from the existing finite island grid, labels constraints with requirement IDs, and replays witnesses and contradiction cores through the exact predicates. A truncated grid can produce a witness but cannot establish unsatisfiability. The proof status remains with the Gallina artifact. |
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
-| `proofs` | wsl / host | Compiles independent proofs in bounded dependency waves, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. `proofs status` checks the exported evidence against current source and compiled-file hashes on either lane; guest toolchain identity is recorded there, not re-probed by the host. `proofs headers` checks compact requirement references and fingerprints; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
+| `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 
 Each command is one module of [vos/cli/](vos/cli/), which is what those executables
 became: each keeps its docstring, its argparse and its `main(argv)`, less its own
@@ -213,8 +214,9 @@ and normal commands never download Python. Ensure uv is on the non-interactive P
 used by WSL as well as your interactive shell.
 
 The first command synchronizes [uv.lock](uv.lock), then runs inside the managed
-environment. Windows uses `out/venv-win32`; Linux, including WSL and CI, uses
-`out/venv-linux`. Each checkout has its own environments. Only the manifest,
+environment. Windows uses `out/venv-win32`; native Linux checkouts and CI use
+`out/venv-linux`. WSL reading a Windows checkout uses `venv-linux` under the
+Git-derived guest lane root. Each checkout has its own environments. Only the manifest,
 lockfile, and each OS's uv download cache are shared, never Windows and Linux
 executables. The runner selects an installed interpreter matching the project.
 
@@ -344,11 +346,12 @@ A lane standing up for the first time is seeded from the primary worktree's tree
 | What | Where it sits | Who touches it, and from which side |
 | --- | --- | --- |
 | The checkout, and every lane under `.worktrees/` | The Windows filesystem, at the path the editor opens | The editor and the host gates, natively; the guest reads it across `/mnt/<drive>`, once per build, which is the one crossing the layout keeps |
-| `out/venv-win32` and `out/venv-linux` | Inside each checkout | That checkout's `run.py` bootstrap on each OS; the Linux one is read across the boundary, at about 0.4 s per command |
+| The Python environment | Windows: `out/venv-win32`; native Linux checkout: `out/venv-linux`; WSL reading a Windows checkout: `<lane_root>/venv-linux` | That checkout's `run.py` bootstrap, on the filesystem native to its interpreter |
 | Build trees, fast trees, SMT memo caches, and the work directories of the bundle, oracle, seed, QuickChick, RTL and evidence loops | `/root/build`, in a `lane-<name>` directory per linked worktree | Guest loops only; no host tool opens them |
 | Logs | `/root/logs`, the lane in the file name | Guest loops write them; a person reads them through `run.py model wait`, `run.py rtl wait` or `wsl -e cat`, never through a host tool pointed at the share |
 | The opam switches, the pinned solver, ccache | `/root/.opam`, `/root/z3-<version>`, `/root/.ccache` | The guest toolchain |
-| Retained evidence: `out/evidence/`, `proofs/proof-evidence.json`, the compiled `.vo` beside each proof, and the tracked generated artifacts | Inside the checkout | Written by a guest loop across the boundary once per run, so that the host lane can read them: `proofs status` hashes the compiled files with no prover in reach |
+| Proof staging, compiled `.vo`, audit scratch, lock and `proofs/proof-evidence.json` | `<lane_root>/proof-gate/` | The proof gate and `proofs status`, reached through the guest hop; source identities still bind the original checkout |
+| Exported evidence in `out/evidence/` and tracked generated artifacts | Inside the checkout | The evidence exporter and artifact generators; host readers consume their explicit outputs |
 
 The crossing that stays is priced, and the price is what fixed the split. [vos/env.py](vos/env.py)'s docstring carries the figures with their dates: a cmake configure walks the whole model project and pays per stat, about 17 s from `/mnt/c` against 1 s from ext4; a `git status` over the checkout is 3.2 s from the guest against 0.14 s on the host; and a tool's bootstrap through the Linux environment in the checkout is 0.78 s against 0.37 s. The host pays the same tax in reverse and pays it oftener, `tools/check.py` costing about 1 s over the NTFS checkout against 11 to 18 s over the same tree on the `wsl.localhost` share, on the loop that runs after every document edit, which is why the plan's I1 measured moving the checkout onto ext4 and refused it. What would flip the whole table is a person working from inside the guest, the Remote-WSL posture `run.py provision` prints as not reached: then the checkout belongs on ext4 too, the host gates run there as they do on the Ubuntu CI runner, and nothing crosses.
 
@@ -358,7 +361,7 @@ The rules that follow from the table, each a thing a worker or a brief gets wron
 - **Send guest work through the front door.** `python tools/run.py <command>` on the host hops with the checkout as the guest's working directory, so the guest reads the sources across the mount and writes every output under this lane's directory, which `run.py worktree create --json` names as `lane_root` and a brief for guest work carries. Inside the guest, `python3 tools/run.py <command>` is the same command.
 - **Never send a guest output back across, and never park one on tmpfs.** `VOS_BUILD_ROOT`, `VOS_LOG_DIR` and an `--out` pointed under `/mnt/` make every write cross the boundary, and `/tmp` is gone when the instance idle-terminates. `run.py provision` probes the build root and the log root and fails the lane for either.
 - **Ask the host about the checkout.** `git status`, a recursive search and a directory walk over `/mnt/c` each cost seconds from the guest, so the guest tools run `git` exactly where a build needs it, `git describe` at configure and `git ls-files` for a receipt, and a worker asks a host shell for the rest.
-- **The exceptions are named.** `seed properties` writes mutants into `model/` because cmake is pointed there and owns the checkout for the run; `model bundle` writes the tracked bundle; and the proof gate compiles beside the proofs so that the host can hash what it compiled. Nothing else a guest loop writes lands in the checkout.
+- **The source-writing commands are named.** `seed properties` writes mutants into `model/` because cmake is pointed there and owns the checkout for the run; `model bundle` writes the tracked bundle. Proof compilation stages source bytes in its native lane, and `proofs status` takes the guest hop to hash the resulting artifacts.
 - **The two sides disagree about case.** NTFS folds it and ext4 does not, which is why a lane name is lowercased on creation and why [.gitignore](../.gitignore) excludes the `.Codex` and `.codex` worktree roots separately.
 
 ## The lane as a fact list, and what no provisioner reaches
@@ -656,9 +659,9 @@ To refresh resolution within the declared constraints, use
 its next invocation, so no manual reinstall window exists across worktrees or OSes.
 
 The optional `model` group pins the pre-commit runner used by the curated model's
-hook configuration. On Linux, run it with
-`UV_PROJECT_ENVIRONMENT="$PWD/out/venv-linux" uv run --project tools --locked --group model pre-commit --version`;
-on Windows, set `UV_PROJECT_ENVIRONMENT` to the checkout's `out/venv-win32` first.
+hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
+table above, then run `uv run --project tools --locked --group model pre-commit --version`.
+For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
 The ordinary host gates synchronize only their default dependency groups.
 
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
@@ -669,8 +672,8 @@ that would hold in any project, and no group switched off to spare this code a r
 single site that has to differ carries a `# noqa` and the sentence saying why.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). In VS Code,
-select `out/venv-win32/Scripts/python.exe` on Windows or
-`out/venv-linux/bin/python` in Linux/Remote-WSL so editor imports use the same
+select `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
+`bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules
 use POSIX APIs, even when the host checks them. It does not move execution into Linux.
 
@@ -715,13 +718,15 @@ output identifies one execution; a missing result, a failed process
 or an input change prevents successful measurements from being published. These records
 identify evidence and do not certify a translation or replace the proof kernel.
 
-`proofs status` and `proofs headers` run on the Windows host as well as in WSL.
+`proofs headers` reads the sources on either OS. `proofs status` takes the guest hop
+on Windows, holds the proof workspace lock, and hashes staged sources and compiled
+outputs in the native lane against the current original source inputs.
 The proof receipt names the compiled constants, their types and audited assumptions,
 the local dependency graph, source identities and compiled output identities. A claim
 must resolve to an audited proposition. Matching metadata does not decide whether that
 proposition expresses the English requirement; that remains the requirement-to-contract
-review. The host checks source and output freshness; the guest records its prover
-identity during the proof run.
+review. Status checks freshness without invoking Rocq; the receipt records the prover
+identity measured during the proof run.
 
 The requirements register remains the authored normative source. K-109 holds each
 non-generated proof's compact reference manifest against the entries selected by its
