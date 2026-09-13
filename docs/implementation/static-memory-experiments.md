@@ -17,6 +17,7 @@ python tools/run.py static-memory check --contract case.json --candidate candida
 python tools/run.py static-memory structure --json
 python tools/run.py static-memory transform --json
 python tools/run.py static-memory reclaim --json
+python tools/run.py static-memory modes --json
 python tools/run.py static-memory scale --sizes 8 32 128 --max-nodes 100000 --q5-max-leaves 256 --json
 python tools/run.py test --only static_memory
 ```
@@ -101,6 +102,7 @@ valid research result.
 | `transform` | An [executable bounded frame service](static-memory-transformations.md) with retention, fixed chunks, tiling and recomputation variants | Abstract work and explicit modeled storage; target code, physical costs and deadlines remain unqualified |
 | `reclaim` | [Fixed sweep schedules and retirement phases](static-memory-reclamation.md), with Q22 barrier refusals and byte/service comparisons | Synthetic guaranteed service premises; qualified hardware rates and production holder coverage remain open |
 | `scale` | [Larger deterministic families and the Q5 comparison](static-memory-scaling.md), with feasible spans, lower bounds, gaps and host times | Synthetic workloads and Q5's existing witness; the actual product roster remains absent |
+| `modes` | [Three placement models over one declared mode family](static-memory-modes.md): per-mode optima, one conservative layout and a checked binding family, each with its own checker and replay | Declared synthetic mode sets and a supplied switch rule; the admitted mode set, an implemented switch barrier and the choice of model remain open |
 
 `scale --sizes` selects positive object counts. `--max-nodes` bounds each research
 search and `--q5-max-leaves` bounds the existing Q5 enumerator independently.
@@ -122,6 +124,7 @@ a representative service, a mechanized theorem or a real composed roster.
 | Rematerialization, tiling and fusion | Emitted-code worst-case work, traffic, image size and unchanged service deadlines | Q4, Q5b and Q8 |
 | Reclamation scheduling | A complete holder and device barrier, a worst-case retirement envelope and qualified sweep and initialization service | Q22a, M4.4 and R2 |
 | Restricted-lifetime complexity | A general algorithm and complexity proof, or a hardness reduction, under the baseline's binary input encoding | Research agenda |
+| Choosing the model across modes | An artifact stating which model it supplies, with the compiler or composition exporter's evidence that a declared mode set is the admitted one and that a switch barrier exists | Q5 and the memory-plan proof owner |
 | Relocation, phases or lending | A measured baseline limitation, an explicit changed-assumption record and authority, timing and information-flow proofs | Q22 and Q10 |
 | Capacity corpus | A roster carrying the per-pool manifest entries R-08-018b and R-08-018c presuppose; the declared families are synthetic witnesses and cover no measured instance | Q5b and M7.1 |
 | Composition comparison | M7.1's actual roster and the same functional contract and product limits on both sides; ablations that charge each byte once | Q5b and Q10 |

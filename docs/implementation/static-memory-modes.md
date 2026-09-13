@@ -166,7 +166,7 @@ exhibiting the separation it was built for is a finding rather than a quiet pass
   inside the lifetimes. The binding family is refused, carries no charge, and names
   the live identities. A refusal is a result here, not an error. Because no layout
   family is searched, that witness also claims no optimum and replays none, and the
-  three charges it carries exhibit no ordering.
+  two charges it does carry exhibit no ordering, the missing third being the reason.
 - **Two arenas.** Six identities in two arenas and three modes, each activating one
   pair in each arena, the second arena's identities being the wider ones. Both
   arenas exhibit the pairwise separation at their own extents, so the two charges
