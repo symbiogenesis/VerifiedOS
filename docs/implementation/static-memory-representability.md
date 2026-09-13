@@ -6,14 +6,12 @@
 > capability format, the part of the research placement model that now carries it, and
 > the parts that still do not.
 
-[The research agenda](../background/static-memory-research.md)'s exact small-instance
-oracle records that full CHERI placement constraints stay outside its declared finite
-integer model, and [the experiment contract](static-memory-experiments.md) names
-arbitrary CHERI representability among the quantities that model does not decide. The
-[legal-position layer](../../tools/vos/static_memory_repr.py) closes the
-representability part of that residue for the format this repository fixes. The rest of
-the residue stands unchanged, and the last section of this document names each piece of
-it.
+The [legal-position layer](../../tools/vos/static_memory_repr.py) adds the frozen
+format's representability granule to the finite integer model described by
+[the research agenda](../background/static-memory-research.md) and
+[the experiment contract](static-memory-experiments.md). The remaining encoding,
+authority and admission constraints stay outside this layer; the last section names
+them explicitly.
 
 ## 1. The model
 

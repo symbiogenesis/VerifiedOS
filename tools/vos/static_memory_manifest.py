@@ -49,10 +49,10 @@ GENERATED = (memplan.ARTIFACT, PROOF_LEDGER)
 # document cannot come to disagree about where the table is.
 CLASSIFICATION_HEADING = "## Result classes and where each carries them"
 
-# The four classes the research agenda names, and two this table adds. "bounded
+# The classes the research agenda names and the local evidence classes. "bounded
 # executable evidence" separates a replayed finite check from a measurement and from a
-# proof; "elementary argument in prose" is what the baseline's laminar theorem is, and
-# without it a hand proof would have to borrow the name of a class it is not.
+# proof. Prose arguments and mechanized theorems have separate classes, so a local
+# proof does not borrow the status of a finite replay or a published result.
 CLASSES = (
     "peer-reviewed result cited",
     "preprint cited",
@@ -60,6 +60,7 @@ CLASSES = (
     "measured outcome",
     "bounded executable evidence",
     "elementary argument in prose",
+    "mechanized theorem",
 )
 
 # The smallest budgets the command's own tests use, so that a replay decides whether an

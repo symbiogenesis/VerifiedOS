@@ -369,7 +369,7 @@
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
       R-08-045 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
       R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247m R-15-247r R-15-247s R-18-004b
-   SHA256: 339b1dc58e1c27fea93b33c021e0a41dc83a0b6d3faca0e4b3595231fdc9e41c
+   SHA256: 61a200b965c6495a8242d8a1b1b1949312c5f4be74ae9ce8437c56fa5ae14461
    (*| END derived |*)
    ========================================================================= *)
 
@@ -3047,7 +3047,7 @@ Definition fast_second_plan : Plan :=
   build_plan demo_lengths demo_bases demo_base_granules demo_length_granules
              demo_slots 9.
 
-(* R-08-012's collapse of over-reservation onto the proven simultaneous
+(* R-08-012's collapse of over-reservation toward the proven simultaneous
    peak: two regions whose live ranges are disjoint share one slot. *)
 Definition shared_bases : list nat :=
   cons 0 (cons 2048 (cons 64 (cons 2304

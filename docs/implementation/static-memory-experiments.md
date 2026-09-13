@@ -2,7 +2,7 @@
 
 This host artifact starts the [static-memory research agenda](../background/static-memory-research.md).
 The [baseline](static-memory-baseline.md) states the mathematical assumptions and
-requirement gaps; the [corpus contract](static-memory-corpus.md) defines the byte
+remaining source-to-plan obligations; the [corpus contract](static-memory-corpus.md) defines the byte
 accounting and synthetic workload premises. The results are development evidence
 for Q5 and Q22, not a new admission path or a product-capacity measurement.
 
@@ -19,6 +19,12 @@ python tools/run.py static-memory transform --json
 python tools/run.py static-memory reclaim --json
 python tools/run.py static-memory modes --json
 python tools/run.py static-memory scale --sizes 8 32 128 --max-nodes 100000 --q5-max-leaves 256 --json
+python tools/run.py static-memory repr --json
+python tools/run.py static-memory mutants --json
+python tools/run.py static-memory envelope --json
+python tools/run.py static-memory phases --json
+python tools/run.py static-memory lending --json
+python tools/run.py static-memory manifest --replay --json
 python tools/run.py test --only static_memory
 ```
 
@@ -59,9 +65,10 @@ the declared constraints. An incomplete run conservatively retains the live-load
 lower bound. Gaps are null when no feasible candidate exists. The per-arena
 figures refer to `best_placement`, which can differ from the preserved standing
 `placement` on a cutoff.
-These quantities apply to that declared model; arbitrary CHERI representability,
-bank selection, restricted base sets and all-execution lifetime extraction are
-outside it.
+These quantities apply to the declared model. The optional
+[legal-position layer](static-memory-representability.md) adds the frozen format's
+representability granule. Remaining format predicates, bank selection, other
+restricted base sets and all-execution lifetime extraction stay outside it.
 
 A placement certificate is checked independently of the search order. An
 optimality claim also needs its lower bound: equality with charged live load
@@ -83,8 +90,10 @@ status before claiming optimality. No command installs or rewrites a plan.
 
 The focused tests include independent finite enumeration and mutations of the
 contract and candidate boundaries. The full host gate checks integration.
-No guest proof, compiled-service equivalence or target execution measurement is
-claimed by these tests.
+These host tests establish no compiled-service equivalence or target measurement.
+The separate guest proof gate checks [laminar placement](static-memory-baseline.md#mechanized-statement)
+and [list-functional service equivalence](static-memory-transformations.md#mechanized-equivalence);
+their correspondence to the Python and emitted implementations remains scoped separately.
 
 ## Structural, transformation, reclamation and scaling experiments
 
@@ -98,32 +107,45 @@ valid research result.
 
 | Action | Replay and result | Scope boundary |
 | --- | --- | --- |
-| `structure` | The [laminar constructor and deletion witnesses](static-memory-baseline.md#executable-construction-and-structural-witnesses), including an aligned counterexample checked by the exact oracle | Finite validation and an executable construction; the general mechanized theorem and source-lifetime bridge remain open |
-| `transform` | An [executable bounded frame service](static-memory-transformations.md) with retention, fixed chunks, tiling and recomputation variants | Abstract work and explicit modeled storage; target code, physical costs and deadlines remain unqualified |
-| `reclaim` | [Fixed sweep schedules and retirement phases](static-memory-reclamation.md), with Q22 barrier refusals and byte/service comparisons | Synthetic guaranteed service premises; qualified hardware rates and production holder coverage remain open |
-| `scale` | [Larger deterministic families and the Q5 comparison](static-memory-scaling.md), with feasible spans, lower bounds, gaps and host times | Synthetic workloads and Q5's existing witness; the actual product roster remains absent |
-| `modes` | [Three placement models over one declared mode family](static-memory-modes.md): per-mode optima, one conservative layout and a checked binding family, each with its own checker and replay | Declared synthetic mode sets and a supplied switch rule; the admitted mode set, an implemented switch barrier and the choice of model remain open |
+| `structure` | [Laminar placement](static-memory-baseline.md#executable-construction-and-structural-witnesses), [deletion-parameter algorithms and refuted decompositions](static-memory-structure.md) | The laminar theorem is mechanized separately; source extraction, general implementation correspondence and the remaining complexity question stay open |
+| `transform` | [Frame-service variants and their list-functional equivalence](static-memory-transformations.md) | The theorem concerns functional models; interpreter and target refinement, physical costs and deadlines remain open |
+| `reclaim` | [Holder-signature calendar terms and fixed reclamation schedules](static-memory-reclamation.md) | Synthetic service premises; target holder coverage and qualified rates remain open |
+| `scale` | [Larger families, span bounds, checked candidates and Q5 comparison](static-memory-scaling.md) | Reports work completeness and remaining gaps; actual-roster and target comparisons remain open |
+| `modes` | [Per-mode optima, one common layout and checked binding families](static-memory-modes.md) | Declared synthetic mode sets and switch premises; admitted mode extraction and a switch implementation remain open |
+| `repr` | [Placement under the frozen representability granule](static-memory-representability.md) | Remaining encoding predicates, island and bank assignment, permissions and admission stay outside |
+| `mutants` | [Placement and false-certificate mutation sweep](static-memory-mutants.md), with weakened-clause controls | Constructed finite violations; unmodeled target constraints remain unmutated |
+| `envelope` | [Retirement envelopes and release-to-reuse bounds](static-memory-envelope.md), checked by bounded adversarial search | Declared finite budgets and horizons; actual service qualification remains open |
+| `phases` | [Compositional phase certificates and minimized counterexamples](static-memory-phases.md) | Finite evidence and a conjecture; general soundness, barrier implementation and target timing remain open |
+| `lending` | [Two-run lending and observation comparisons](static-memory-lending.md) | Finite slot/tick model; no ownership transition or cross-owner admission is implemented |
+| `manifest` | [Computed artifact inventory and completeness](static-memory-artifact.md), with optional action replay | Completeness alone supplies no proof or product qualification |
 
 `scale --sizes` selects positive object counts. `--max-nodes` bounds each research
 search and `--q5-max-leaves` bounds the existing Q5 enumerator independently.
+The span-bound scan carries its own deterministic limits and completion fields;
+a valid partial lower bound is distinct from a completed scan.
 Increasing a budget changes the experiment; elapsed host time is a measurement,
 not reproducible solver evidence. A best candidate does not replace the standing
 plan on incomplete search. No action installs a plan or changes a requirement.
+
+The [compiled census](static-memory-census.md) uses the
+[Bedrock2 lowering loop](../../tools/bedrock2-lowering/README.md) in the guest,
+rather than a `static-memory` action. Its plain-RV64 instruction counts are a proxy
+and do not qualify the platform's target code or timing.
 
 ## Disposition of the remaining experiments
 
 The baseline, witness corpus, ledger and oracle provide inputs for subsequent
 research. Their existence does not close the broader agenda items that require
-a representative service, a mechanized theorem or a real composed roster.
+a representative service, further mechanized refinement or a real composed roster.
 
 | Work | Evidence needed next | Existing consumer |
 | --- | --- | --- |
-| Reconcile the lifetime and peak-equality claims | An admitted-language lifetime extraction theorem and reviewed register wording, including the existing overlap-predicate inversion | Q5 and the memory-plan proof owner |
+| Reconcile the lifetime and peak-equality claims | An admitted-language lifetime extraction theorem joining the reconciled event-order and interference requirements to emitted plans | Q5 and the memory-plan proof owner |
 | Scale planning | A comparison on the actual composed roster and target constraints, following the synthetic scaling and Q5 witness comparison | Q5b |
-| Regions, phases and bounded chunks | Target compilation and equivalence, complete authority/DMA obligations, and qualified physical costs for the executable service experiment | Q5b with the service owner |
+| Regions, phases and bounded chunks | Target compilation, refinement to the proved list-functional models, complete authority/DMA obligations and qualified physical costs | Q5b with the service owner |
 | Rematerialization, tiling and fusion | Emitted-code worst-case work, traffic, image size and unchanged service deadlines | Q4, Q5b and Q8 |
-| Reclamation scheduling | A complete holder and device barrier, a worst-case retirement envelope and qualified sweep and initialization service | Q22a, M4.4 and R2 |
-| Restricted-lifetime complexity | A general algorithm and complexity proof, or a hardness reduction, under the baseline's binary input encoding | Research agenda |
+| Reclamation scheduling | Target holder and device coverage, admitted restart and acknowledgement budgets, and qualified sweep and initialization service | Q22a, M4.4 and R2 |
+| Restricted-lifetime complexity | A general algorithm and complexity proof, or a hardness reduction, for the remaining non-bipartite crossing case under the baseline's binary input encoding | Research agenda |
 | Choosing the model across modes | An artifact stating which model it supplies, with the compiler or composition exporter's evidence that a declared mode set is the admitted one and that a switch barrier exists | Q5 and the memory-plan proof owner |
 | Relocation, phases or lending | A measured baseline limitation, an explicit changed-assumption record and authority, timing and information-flow proofs | Q22 and Q10 |
 | Capacity corpus | A roster carrying the per-pool manifest entries R-08-018b and R-08-018c presuppose; the declared families are synthetic witnesses and cover no measured instance | Q5b and M7.1 |

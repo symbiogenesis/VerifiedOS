@@ -813,7 +813,8 @@ def report(source_revision: str = "unspecified",
         errors.append("load-attainment sample left justified searches incomplete")
     return {
         "schema": "static-memory-structure-v1", "source_revision": source_revision,
-        "scope": "executable finite evidence and a laminar constructor; no machine-checked theorem",
+        "scope": "executable finite evidence and a laminar constructor; "
+                 "proofs/StaticMemoryLaminar.v separately mechanizes the general theorem",
         "settings": {"deletion_max_subsets": 10000, "address_enumeration_in_constructor": False,
                      "justified_work_budget": JUSTIFIED_WORK_BUDGET,
                      "oracle_work_budget": ORACLE_WORK_BUDGET,
@@ -822,7 +823,8 @@ def report(source_revision: str = "unspecified",
         "sample": sample, "errors": errors,
         "open_obligations": [
             "source and admitted execution refinement to reservation intervals",
-            "machine-checked general construction and optimality theorem",
+            "machine-checked agreement of this stack replay with the closed-form "
+            "construction in proofs/StaticMemoryLaminar.v",
             "exact placement for a non-bipartite crossing graph in time f(k) times a "
             "polynomial of the binary input length, or hardness for a fixed k",
             "the smallest deletion number of a family whose optimum exceeds its load",

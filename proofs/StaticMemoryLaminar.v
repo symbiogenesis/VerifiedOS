@@ -114,7 +114,7 @@
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-011 R-08-012 R-08-013 R-08-014
-   SHA256: 453ee717bcc9d192dd33b0b5dfd87c6c177b34e4ad172f56da6a7ea88c159daa
+   SHA256: 31c3ce2e9084abcfd4ec5d7eabf4d594ac3862a31cb3ef455eaf9a08993acd59
    (*| END derived |*)
    ========================================================================= *)
 
