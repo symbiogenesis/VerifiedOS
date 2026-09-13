@@ -57,7 +57,8 @@ def _tiny() -> dict[str, Any]:
             ]}
 
 
-def _independently_invalid(case: memory.Case, placement: list[dict[str, Any]]) -> bool:
+def _independently_invalid(case: memory.Case, placement: list[dict[str, Any]], *,
+                           hold_until: str = "reuse") -> bool:
     """Decide one candidate by enumerating declared bytes and ticks, not intervals."""
     identifiers = [row["id"] for row in placement]
     if sorted(identifiers) != sorted(obj.id for obj in case.objects):
@@ -73,7 +74,7 @@ def _independently_invalid(case: memory.Case, placement: list[dict[str, Any]]) -
     for tick in range(max(obj.reuse for obj in case.objects)):
         held: set[tuple[str, int]] = set()
         for obj in case.objects:
-            if not obj.start <= tick < obj.reuse:
+            if not obj.start <= tick < getattr(obj, hold_until):
                 continue
             cells = {(obj.arena, byte) for byte
                      in range(rows[obj.id]["base"], rows[obj.id]["base"] + obj.size)}
@@ -142,6 +143,77 @@ def _certificate_operators_refuse_false_optimality() -> None:
                f"'{refusal}' must classify a bound mutant as {verdict}, not {classified}")
 
 
+def _barrier_mutants_reach_each_incomplete_stage() -> None:
+    case = memory.parse_case(_fixture())
+    subject = mutants.subject_of(case)
+    predecessor, _, successor, _ = case.objects
+    for name, boundary, premature in (
+            ("reuse-before-authority", "authority_end", "payload_end"),
+            ("reuse-before-sweep", "sweep_end", "authority_end"),
+            ("reuse-before-initialization", "reuse", "sweep_end")):
+        built = mutants.construct(name, subject, (predecessor, successor))
+        ensure(isinstance(built, mutants.Candidate), f"{name}: the stage must have a witness")
+        if not isinstance(built, mutants.Candidate):
+            raise AssertionError("expected a constructed candidate")
+        moved = next(obj for obj in built.case.objects if obj.id == successor.id)
+        ensure(moved.start == getattr(predecessor, boundary) - 1,
+               f"{name}: the successor must arrive before completion, not at completion")
+        ensure(_independently_invalid(built.case, built.placement),
+               f"{name}: real safe reuse must refuse the candidate")
+        ensure(not _independently_invalid(built.case, built.placement, hold_until=premature),
+               f"{name}: this defect must escape a checker releasing at {premature}")
+    raw = _tiny()
+    raw["objects"][0].update(payload_end=0, authority_end=0, sweep_end=0)
+    empty_stage = mutants.subject_of(memory.parse_case(raw))
+    for name in ("reuse-before-authority", "reuse-before-sweep"):
+        built = mutants.construct(name, empty_stage, tuple(empty_stage.case.objects))
+        ensure(isinstance(built, mutants.Refused),
+               f"{name}: no time before an immediate barrier may count as a mutant")
+
+
+def _coherent_false_optimum_needs_actual_replay() -> None:
+    case = memory.parse_case(_tiny())
+    subject = mutants.subject_of(case)
+    original = memory.solve_exact(case)
+    spans = memory.placement_spans(case, original["best_placement"])
+    claim = mutants.construct_claim("certificate-false-optimum", subject, original, spans, "a")
+    if not isinstance(claim, mutants.Claim):
+        raise AssertionError("the tiny arena has room for a translated witness")
+    witness = claim.receipt["best_placement"]
+    ensure(not _independently_invalid(case, witness),
+           "the false optimum must carry an independently feasible witness")
+    height = max(row["base"] + obj.size
+                 for row, obj in zip(witness, case.objects, strict=True))
+    arena = claim.receipt["arenas"][0]
+    ensure(height > spans["a"] and arena["best_span"] == height
+           and arena["proven_lower_bound"] == height and arena["optimality_gap"] == 0
+           and arena["certificate"] == {"method": "exhaustive", "infeasible_through": height - 1},
+           "all reported fields must agree; only the optimality claim is false")
+    answer = memory.verify_optimality(case, claim.receipt)
+    ensure(answer["status"] == "rejected"
+           and answer["findings"] == [f"a: {mutants.REPLAY_SEARCH_REFUSAL}"]
+           and answer["nodes"] > 0,
+           f"Cartesian replay must exhibit a smaller feasible candidate: {answer}")
+    weakened = mutants.dropping_replay(mutants.RECEIPT_SEARCH)
+    ensure(weakened(case, claim.receipt, 100_000)["status"] == "verified",
+           "the coherent false optimum must escape a replay discarding its search refusal")
+    ensure(weakened(case, claim.receipt, 0)["status"] == "incomplete",
+           "even the weakened control must not turn missing evidence into acceptance")
+
+
+def _replay_weakening_isolates_certificate_families() -> None:
+    fixture = _fixture()
+    for target in {operator["targets"] for operator in mutants.OPERATORS
+                   if operator["kind"] == "certificate"}:
+        expected = {operator["name"] for operator in mutants.OPERATORS
+                    if operator["targets"] == target}
+        weak = mutants.sweep([fixture], replay=mutants.dropping_replay(target),
+                             kinds=("certificate",))
+        ensure({item["operator"] for item in weak["survivors"]} == expected,
+               f"removing {target} must expose precisely its certificate operators")
+        ensure(not weak["miskills"], f"removing {target} must preserve unrelated refusals")
+
+
 def _tiny_classification_is_exact() -> None:
     result = mutants.sweep([_tiny()])
     expected = {
@@ -154,14 +226,16 @@ def _tiny_classification_is_exact() -> None:
         "lifetime-extend": {mutants.KILLED: 1},
         "reuse-before-sweep": {mutants.KILLED: 1},
         "reuse-before-authority": {mutants.KILLED: 1},
+        "reuse-before-initialization": {mutants.KILLED: 1},
         "bound-raise-load": {mutants.KILLED: 1},
         "bound-lower-span": {mutants.KILLED: 1},
         "witness-refused": {mutants.KILLED: 2},
         "certificate-argument": {mutants.KILLED: 1},
+        "certificate-false-optimum": {mutants.KILLED: 1},
     }
     ensure(_verdicts(result["outcomes"]) == expected,
            f"the tiny contract classified differently: {_verdicts(result['outcomes'])}")
-    ensure(result["totals"] == {mutants.KILLED: 16, mutants.MISKILLED: 0,
+    ensure(result["totals"] == {mutants.KILLED: 18, mutants.MISKILLED: 0,
                                mutants.SURVIVED: 0, mutants.STILLBORN: 3},
            f"unexpected tiny totals: {result['totals']}")
     ensure(not result["errors"], f"the tiny sweep reported {result['errors']}")
@@ -246,6 +320,13 @@ def _report_is_replayable_and_separates_the_two_certificates() -> None:
         ensure(row["observed_survivor_operators"] == row["expected_survivor_operators"]
                and row["mutants_available"] > 0 and not row["weakened_miskills"],
                f"the {row['clause_removed']} control did not isolate its operators: {row}")
+    replay_control = receipt["replay_control"]
+    ensure(replay_control["refusals_exercised"] == replay_control["refusals_declared"],
+           f"every replay refusal needs a completed control: {replay_control}")
+    for row in replay_control["refusals"]:
+        ensure(row["observed_survivor_operators"] == row["expected_survivor_operators"]
+               and row["mutants_available"] > 0 and not row["weakened_miskills"],
+               f"the {row['refusal_removed']} replay control did not isolate its operators")
     certificates = receipt["certificates"]
     ensure(certificates["feasibility_mutants"] > 0
            and certificates["optimality_mutants"] > 0
@@ -277,6 +358,12 @@ def cases() -> list[Case]:
              _placement_operators_construct_violations),
         Case("mutants certificate operators refuse false optimality",
              _certificate_operators_refuse_false_optimality),
+        Case("mutants barrier defects precede each completion",
+             _barrier_mutants_reach_each_incomplete_stage),
+        Case("mutants coherent false optimum requires replay",
+             _coherent_false_optimum_needs_actual_replay),
+        Case("mutants weakened replay isolates certificate families",
+             _replay_weakening_isolates_certificate_families),
         Case("mutants tiny classification is exact", _tiny_classification_is_exact),
         Case("mutants weakened clause isolates its operators",
              _weakening_isolates_its_own_operators),
