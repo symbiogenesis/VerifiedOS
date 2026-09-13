@@ -129,6 +129,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/RotFirmware.v | n/a | cited |
 | R-05-163 | proofs/SeamWitnesses.v | n/a | cited |
 | R-05-163 | proofs/Sha256.v | n/a | cited |
+| R-05-163 | proofs/StaticMemoryService.v | n/a | cited |
 | R-05-163 | proofs/SupervisionTree.v | n/a | cited |
 | R-05-164 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-164 | proofs/AesGcm.v | n/a | cited |
@@ -179,6 +180,11 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/Sha256.v | the_defective_pads_keep_the_standards_length | claimed |
 | R-05-165 | proofs/Sha256.v | the_pad_without_its_one_differs_from_the_pad_in_that_bit_alone | claimed |
 | R-05-165 | proofs/Sha256.v | the_byte_reversed_length_agrees_with_the_standard_only_where_the_field_is_zero | claimed |
+| R-05-165 | proofs/StaticMemoryService.v | demo_reference | claimed |
+| R-05-165 | proofs/StaticMemoryService.v | demo_variants_agree | claimed |
+| R-05-165 | proofs/StaticMemoryService.v | copy_variant_refuted | claimed |
+| R-05-165 | proofs/StaticMemoryService.v | missing_chunk_refuted | claimed |
+| R-05-165 | proofs/StaticMemoryService.v | duplicate_chunk_refuted | claimed |
 | R-05-165 | proofs/SupervisionTree.v | n/a | cited |
 | R-05-166 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-166 | proofs/AesGcm.v | n/a | cited |
@@ -214,6 +220,11 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/Sha256.v | the_defective_pads_keep_the_standards_length | claimed |
 | R-05-166 | proofs/Sha256.v | the_pad_without_its_one_differs_from_the_pad_in_that_bit_alone | claimed |
 | R-05-166 | proofs/Sha256.v | the_byte_reversed_length_agrees_with_the_standard_only_where_the_field_is_zero | claimed |
+| R-05-166 | proofs/StaticMemoryService.v | demo_reference | claimed |
+| R-05-166 | proofs/StaticMemoryService.v | demo_variants_agree | claimed |
+| R-05-166 | proofs/StaticMemoryService.v | copy_variant_refuted | claimed |
+| R-05-166 | proofs/StaticMemoryService.v | missing_chunk_refuted | claimed |
+| R-05-166 | proofs/StaticMemoryService.v | duplicate_chunk_refuted | claimed |
 | R-05-166 | proofs/SupervisionTree.v | n/a | cited |
 | R-06-008 | proofs/AdmissionPath.v | n/a | cited |
 | R-06-008 | proofs/ApexTheorem.v | n/a | cited |
@@ -351,6 +362,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-012 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-012c | proofs/MemoryPlan.v | the_plan_s_own_placement_stays_inside_every_island | claimed |
 | R-08-014 | proofs/MemoryPlan.v | n/a | cited |
+| R-08-019e | proofs/StaticMemoryService.v | n/a | cited |
 | R-08-045 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-046 | proofs/HandlerGraph.v | n/a | cited |
 | R-08-047 | proofs/CopyRingService.v | n/a | cited |
