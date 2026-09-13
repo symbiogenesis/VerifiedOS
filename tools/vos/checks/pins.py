@@ -294,7 +294,7 @@ def _version_pin(ctx: Context) -> None:
                f"{VERILATOR_SRC} fixes and every rtl loop refuses another of")
 
 
-def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
+def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
     """Every file this rule reads, as its lines and which of them a fence displays.
 
     **The window is the git index**, because a pin is restated wherever somebody
@@ -333,15 +333,15 @@ def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
     tracked file is made of is the glyphs group's question, and pricing one
     unreadable file under both would report one defect twice.
     """
-    window: list[tuple[str, list[str], list[bool]]] = [
-        (doc.name, doc.lines, doc.fenced) for doc in ctx.corpus.docs]
+    window: list[tuple[str, str, list[bool]]] = [
+        (doc.name, doc.raw, doc.fenced) for doc in ctx.corpus.docs]
     machine = generated.paths()
 
     # Narrowed here rather than trusted, which is what `Context.shared` being `Any`
     # asks of each reader: the counts group puts `(rel, text)` pairs there and this
     # is the sentence saying so.
     ported = cast("list[tuple[str, str]]", ctx.shared.get("citation_window", []))
-    window += [(rel, text.split("\n"), []) for rel, text in ported]
+    window += [(rel, text, []) for rel, text in ported]
 
     for rel in ctx.corpus.tracked:
         if rel in ctx.corpus or rel.startswith(corpus_mod.UNREAD_PREFIX):
@@ -352,7 +352,7 @@ def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
             text = (ctx.root / rel).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        window.append((rel, text.split("\n"), []))
+        window.append((rel, text, []))
     return window
 
 
@@ -462,8 +462,8 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     site_used: set[tuple[str, str]] = set()
     held = 0
 
-    for file, lines, fenced in _sources(ctx):
-        for site in pins_mod.scan(file, lines, named):
+    for file, text, fenced in _sources(ctx):
+        for site in pins_mod.scan_text(file, text, named):
             if fenced and fenced[site.index]:
                 continue
             if site.ident in RESIDUE:

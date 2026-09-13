@@ -655,6 +655,10 @@ def _at(text: str, offset: int) -> int:
 
 def _reaches(path: str, text: str) -> list[str]:
     """Every way one source outside the quarantine reaches into it."""
+    # Both patterns require this literal. Reject ordinary sources in one substring
+    # scan before attempting regex matches at every character and line boundary.
+    if "quarantine" not in text:
+        return []
     found: list[str] = []
     for hit in _Q_IMPORT_RE.finditer(text):
         named = hit.group(1) or hit.group(2)
