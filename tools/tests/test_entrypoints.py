@@ -73,6 +73,34 @@ def _settled_children_do_not_sync() -> None:
            "Windows and WSL must never share a virtual environment")
 
 
+def _wsl_environments_follow_native_lanes() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-bootstrap-layout-") as temporary:
+        root = Path(temporary) / "source"
+        root.mkdir()
+        (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/python-a\n", encoding="utf-8")
+        native = Path("/root/build/venv-layout-fixture").resolve()
+        with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True), \
+                patch.object(toolenv.env, "filesystem", side_effect=lambda path:
+                             "9p" if path == root else "ext4"):
+            ensure(toolenv.environment(root, "linux") == native / "lane-python-a" / "venv-linux",
+                   "WSL bootstrap must keep its environment in the Git-derived native lane")
+            ensure(toolenv.environment(root, "win32") == root / "out" / "venv-win32",
+                   "Windows bootstrap must remain on the host filesystem")
+            (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/python-b\n", encoding="utf-8")
+            ensure(toolenv.environment(root, "linux") == native / "lane-python-b" / "venv-linux",
+                   "linked worktrees cannot share a guest environment")
+            with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(root)}):
+                try:
+                    toolenv.environment(root, "linux")
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError("bootstrap accepted a guest output inside the checkout")
+        with patch.object(toolenv.env, "filesystem", return_value="ext4"):
+            ensure(toolenv.environment(root, "linux") == root / "out" / "venv-linux",
+                   "native Linux checkout and CI retain their local environment")
+
+
 def _bootstrap_prerequisites() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-bootstrap-") as temporary:
         root = Path(temporary)
@@ -231,6 +259,7 @@ def cases() -> list[Case]:
     return [
         Case("locked-bootstrap", _locked_bootstrap),
         Case("settled-children-do-not-sync", _settled_children_do_not_sync),
+        Case("wsl-environments-follow-native-lanes", _wsl_environments_follow_native_lanes),
         Case("bootstrap-prerequisites", _bootstrap_prerequisites),
         Case("tree-status-before", _tree_status_before, lane="host"),
         Case("coread-list-twice", _coread_list_twice, lane="host"),

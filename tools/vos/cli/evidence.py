@@ -117,10 +117,10 @@ def _figures(results: list[Result], log: Path) -> dict[str, str]:
 
 def _proof_record(root: Path) -> dict[str, object]:
     """Revalidate compiled proofs after every consumer finishes, under their lock."""
-    held = proofs_cli._hold(root / proofs_cli.PROOFS)
+    held = proofs_cli._hold(proofs_cli.workspace(root))
     try:
         proofs_cli._validate_receipt(root)
-        path = root / proofs_cli.RECEIPT
+        path = proofs_cli.receipt_path(root)
         return {"sha256": receipts.digest(path),
                 "receipt": json.loads(path.read_text(encoding="utf-8"))}
     finally:
