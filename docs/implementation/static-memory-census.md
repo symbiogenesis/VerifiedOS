@@ -18,13 +18,13 @@ compiler milestone's lane. Two derivations of one kernel are added to that
 directory and put through the same driver:
 
 ```console
-python tools/bedrock2-lowering/regenerate.py --stage <guest stage> \
+python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/census-retained \
     --source tools/bedrock2-lowering/FrameKernelRetained.v \
     --function frame_kernel_retained --ccomp /root/build/secomp-m12/ccomp
-python tools/bedrock2-lowering/regenerate.py --stage <guest stage> \
+python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/census-inplace \
     --source tools/bedrock2-lowering/FrameKernelInPlace.v \
     --function frame_kernel_inplace --ccomp /root/build/secomp-m12/ccomp
-python tools/bedrock2-lowering/regenerate.py --stage <guest stage> \
+python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/census-inplace \
     --source tools/bedrock2-lowering/FrameKernelInPlace.v \
     --function frame_kernel_inplace --check
 ```
@@ -99,7 +99,7 @@ times on a shared host and decide nothing.
 
 ## What the census shows
 
-The two variants emit the same program. Their C differs at the function
+The two variants emit the same loop opcode sequences. Their C differs at the function
 prototype and at the address expressions of the first loop's store and of the
 second loop's two accesses, and at no other line. Read as opcode sequences,
 their assemblies differ by a single inserted store in the prologue, where the
@@ -116,7 +116,7 @@ The two variants' live-array counts do differ, and they differ as the
 transformation experiment models them: the retained kernel keeps two buffers
 live across both loops and the in-place kernel keeps one. On this route that
 difference is a storage difference only. **This is a measured outcome of one
-kernel at one size on one route, and it is not a general result.** A fused
+kernel compiled on one route, and it is not a general result.** A fused
 variant, a different element type, a vectorizing backend or a compiler that
 proves non-aliasing could each move it.
 

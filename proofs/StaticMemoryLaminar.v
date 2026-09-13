@@ -37,10 +37,10 @@
    object it contains, and objects with equal intervals precede one
    another in identity order, so a group of equal intervals lands
    consecutively. The definition is a filtered sum over the family and
-   neither sorts nor enumerates addresses; the stack replay in
-   tools/vos/static_memory_structure.py computes the same bases, and the
-   concrete family below is its receipt's `equal-nested-disjoint`
-   contract with numeric identities in the receipt's identity order. The
+   neither sorts nor enumerates addresses. Agreement with the stack replay
+   in tools/vos/static_memory_structure.py requires numeric identities
+   to preserve the replay's string ordering; the concrete family below is
+   its receipt's `equal-nested-disjoint` contract with that ordering. The
    agreement of that replay with this definition on every laminar family
    is not mechanized here; the concrete family is one point of it.
 
@@ -96,8 +96,9 @@
    excludes something and the feasibility theorem needs it. A padded
    placement of the laminar family is feasible with span above its load,
    so feasibility alone does not force the equality the theorem proves.
-   And a seven-object crossing family, found by `run.py static-memory
-   compare` over a hand-written contract and mechanized here by finite
+   And a seven-object crossing family, found by a scratch search and
+   confirmed by `run.py static-memory compare` over an unshipped
+   hand-written contract and mechanized here by finite
    case analysis, has an optimum strictly above its load: every placement
    whose bases lie below the load is enumerated and refused by
    computation, a completeness lemma places every placement of span at

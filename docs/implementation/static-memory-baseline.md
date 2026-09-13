@@ -1,6 +1,6 @@
 # Static-memory research baseline
 
-> Non-normative definitions and proof arguments for the [research agenda](../background/static-memory-research.md). The [requirements register](../requirements-register.md) remains authoritative. The arguments here have human-readable proofs; they are not machine-checked theorems, target measurements, or changes to admission. Q5 owns the placement comparison and Q22a supplies the qualified reuse interface.
+> Non-normative definitions and proof arguments for the [research agenda](../background/static-memory-research.md). The [requirements register](../requirements-register.md) remains authoritative. The arguments here have human-readable proofs, and the laminar placement theorem also has a [mechanized statement](#mechanized-statement). They supply no target measurement or change to admission. Q5 owns the placement comparison and Q22a supplies the qualified reuse interface.
 
 ## Executions, objects and physical charge
 
@@ -153,8 +153,9 @@ checked by reflexivity, and the general theorem is instantiated at it; a two-obj
 crossing family is refused by the laminar predicate and collides under the construction;
 a padded placement of the laminar family is feasible with span above its load; and the
 memory plan's own reference plan is checked to satisfy the bridge's hypotheses, its
-constructed placement passing `colouring_ok`. A seven-object crossing family, found by
-`python tools/run.py static-memory compare` over a hand-written contract, has an
+constructed placement passing `colouring_ok`. A seven-object crossing family, found
+by a scratch search and confirmed with `python tools/run.py static-memory compare`
+over an unshipped hand-written contract, has an
 optimum strictly above its load: the file enumerates every placement whose bases lie
 below the load, refuses each by computation, proves that every placement of span at
 most the load is in that enumeration, and exhibits a feasible placement one unit above
@@ -165,8 +166,10 @@ What the file does not prove is what this document leaves open: the source-lifet
 bridge from admitted executions to the exported intervals, alignment, islands,
 quantization, pinning, multiple executions and any complexity claim. The stack replay in
 `static_memory_structure.py` is not mechanized; its agreement with the closed-form
-construction is checked only at the concrete family. The prose proof above stands, and
-the mechanization confirms it under the stated premises.
+construction is checked only at the concrete family, whose numeric identities preserve
+the replay's string ordering. The mechanization proves the theorem under the stated
+premises through filtered ancestor sums; it does not mechanize the prose's forest
+construction or its complexity argument.
 
 ## Small witnesses for disputed implications
 
