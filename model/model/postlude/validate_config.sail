@@ -501,8 +501,8 @@ private function check_mem_layout() -> bool =
     let watchdog_window_ok = not(plat_have_watchdog) |
                    within_configured_pma_memory("watchdog window (platform.watchdog)", Some(IOMemory),
                                                 plat_watchdog_base, plat_watchdog_size);
-    // The three devices beside the core (R1c-i). No slave of the model's sits
-    // behind any of them, but where each is placed is exactly what R-15-002b
+    // The three devices beside the core (R1c-i). Where each is placed is
+    // exactly what R-15-002b
     // makes a stated constraint, and IO memory is where a device endpoint is:
     // the boot ROM's region is the one the attested tree is itself written into
     // and is IO memory for that reason, and the serial port and the block device
