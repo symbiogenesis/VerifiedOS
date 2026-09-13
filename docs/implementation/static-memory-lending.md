@@ -71,7 +71,13 @@ secret set.
 | Lend any idle slot, with completions padded to declared instants | the same capacity, with every completion delayed to the first declared release instant at or after it | On this calendar the timing channel closes and the refusal channel stays open, so the policy is still refuted. The closure belongs to the calendar and not to padding: the receipt carries one whose declared instants leave the padded timing channel open. Padding moves no verdict and buys nothing in slack; the borrower pays for it in latency |
 | Reserved headroom `h`, subtracted from observed idle capacity | observed idle capacity above `h` | What it grants moves with the secret at every reserve that lends anything. On this calendar that is observable too, and the least safe reserve is the whole lender pool, which lends nothing; the receipt carries a calendar on which the same family grants on the secret, stays safe and still lends |
 | Reserved headroom `h`, held against the declared commitment | a constant `L - h` slots | Noninterferent at every `h`, because the capacity never reads the secret. The binding constraint is return capacity, not information flow |
-| Lend only at declared release points | `L` minus the declared ceiling of the current segment | Noninterferent, and the observation recomputes from public inputs alone. Strictly more useful than the flat reserve on this calendar |
+| Lend against the declared release schedule | `L` minus the public per-tick occupancy ceiling | Noninterferent, and the observation recomputes from public inputs alone. Strictly more useful than the flat reserve on this calendar |
+
+The reference calendar's committed ceiling changes only at its declared release
+instants. The public entry point also accepts commitments that change at other
+ticks. A loan starts at a request's declared attempt instant; `release-declared`
+does not restrict acquisitions to the release instants. Those instants also fix
+the occupancy samples of the declassifying rule and the completion-padding grid.
 
 The declassifying rule is enumerated twice to separate the two questions. Reading
 the lender's actual occupancy **at the declared release instants only** is
@@ -104,8 +110,9 @@ witness exactly where it was, so a lend-any-idle rule with padding is still refu
 That closure is a property of the calendar rather than of padding, and the receipt
 says so by carrying a counterexample rather than leaving the reader to assume the
 general rule. A completion already sitting on a declared instant is not moved at
-all, so padding confuses two completions only where both fall strictly inside one
-declared segment; where the declared instants are spaced against the completions the
+all. Padding merges distinct completions in the same interval `(previous instant,
+next instant]`, including a completion at its right endpoint; where the declared
+instants are spaced against the completions the
 padded rule leaks through timing as well. What padding does establish on any
 calendar is the asymmetry: it changes no verdict, which is both why it cannot reach
 the refusal channel and why it costs the borrower latency rather than capacity, the

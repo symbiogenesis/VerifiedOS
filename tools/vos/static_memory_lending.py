@@ -99,8 +99,10 @@ class Calendar:
 
     `declared_cap` is the lender's publicly committed per-tick occupancy ceiling and
     is also the envelope of the admitted secret set, so the enumeration and the
-    commitment cannot disagree. `release_points` are the instants at which the
-    lender declares a new segment of that commitment.
+    commitment cannot disagree. `release_points` are the declared instants used
+    for occupancy declassification and completion padding. The reference calendar's
+    ceiling changes only at these instants; the validator also admits general
+    public per-tick commitments.
     """
 
     horizon: int
@@ -119,8 +121,8 @@ class Policy:
     public commitment. The field exists so the enumeration can be shown to notice
     a mutation that turns a safe policy unsafe. `pad_to_release_points` is the
     separate timing countermeasure: every completion is delayed to the next declared
-    release instant, which buys latency for the borrower and reveals nothing about
-    when service actually happened.
+    release instant or the horizon. This coarsens the observed completion time;
+    whether it closes a timing channel depends on the calendar.
     """
 
     name: str
@@ -318,8 +320,9 @@ def pad(calendar: Calendar, observation: Observation) -> Observation:
     """Delay every completion to the first declared instant at or after it, or the horizon.
 
     A completion already sitting on a declared instant is not moved, so padding
-    confuses two completions only where both fall strictly inside one declared
-    segment: whether it closes a timing channel is a property of how the instants
+    merges distinct completions in the same interval (previous instant, next instant],
+    including a completion on its right endpoint. Whether it closes a timing
+    channel is a property of how the instants
     are spaced against the completions, not of the rule. This is the timing
     countermeasure on its own: it moves no verdict, so it cannot close the refusal
     channel, and the borrower pays for it in latency.

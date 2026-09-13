@@ -21,7 +21,7 @@ The precedent is [the Wasm oracle's](../wasm-oracle/README.md): a loop a later r
 * **The switch** is `verifiedos-rupicola-9.2.0-ocaml-5.4.1`, created over `ocaml-base-compiler.5.4.1` with `ocamlfind.1.9.8`. OCaml 5.5 requires findlib's preview package, so 5.4.1 is the newest compiler compatible with its stable release. What it must hold, and what `regenerate.py` prints at the top of every run, is `coq-rupicola` **0.0.11**, `coq-bedrock2` and `coq-bedrock2-compiler` **0.0.9**, `coq-coqutil` **0.0.7**, `coq-riscv` **0.0.6**, `rocq-core` **9.2.0** and the `coq` **9.2.0** compatibility metapackage, whose terms are read at [THIRD-PARTY.md](../../THIRD-PARTY.md). The prover is Rocq 9.2.0 spelled `coqc`, the metapackage supplying that name where the proof gate's switch has only `rocq`.
 * **The owner** is [proofs/RingContract.v](../../proofs/RingContract.v), which `run.py ring emit` writes from [interfaces/ring-reference.json](../../interfaces/ring-reference.json) and rule K-89 holds byte-identical to its generator. It carries no `Require` of its own, so it compiles in this switch as it stands; the driver copies it into the stage beside the component.
 * **The reaching exit** is the contained purecap `ccomp` of M1.2's build lane, `/root/build/secomp-m12/ccomp`, reporting *The CompCert C verified compiler, version 3.17*, with the preprocessor line of its `compcert.ini` relaxed as M1.2's cell records. It is not in this tree and never conveyed; the driver runs it only when handed its path, and its terms are the ones [THIRD-PARTY.md](../../THIRD-PARTY.md) decomposes under CompCert and SECOMP.
-* **The stage** is a directory under `/root`, outside every checkout, named on the command line. Every path the driver takes is absolute: a relative write from the guest lands in the primary checkout.
+* **The stage** is a directory under `/root/build/lane-<lane>`, outside every checkout, named on the command line. `run.py model lane` supplies the lane root. Every path the driver takes is absolute: a relative write from the guest lands in the primary checkout.
 
 ## The component
 
@@ -68,7 +68,7 @@ check: descriptor_check.c agrees with DIGESTS.md (3d8572128106..)
 From the host the driver re-launches itself in WSL with every Windows path translated; inside WSL it runs as `python3` with the same arguments. `--source` and `--owner` take other files, which is how a probe is run against a modified copy without touching the tree, and `--function` names what that source emits, which is the `Redirect` file the C is cut out of and the name its [DIGESTS.md](DIGESTS.md) row carries. That is how the frame-kernel pair reaches this loop, each in a stage of its own:
 
 ```console
-$ python tools/bedrock2-lowering/regenerate.py --stage /root/<lane>/stage-inplace \
+$ python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/stage-inplace \
     --source tools/bedrock2-lowering/FrameKernelInPlace.v \
     --function frame_kernel_inplace --ccomp /root/build/secomp-m12/ccomp
 ```

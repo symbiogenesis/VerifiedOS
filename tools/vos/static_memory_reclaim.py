@@ -327,8 +327,9 @@ def calendar_terms(env: Envelope, policy: Policy, cov: dict[str, Any]) -> dict[s
 
     Containment also pays the protocol obligations that belong to no holder:
     publication, proxy notification, device completion and proxy acknowledgement.
-    Both declared service rates are one extent unit per tick, so each signature
-    costs one reserved tick at each stage that reaches it.
+    The containment rate is two extent units per tick and the pass rate is one
+    in the shipped calendar. Each stage rounds its total charge up to complete
+    ticks at its declared rate.
     """
     if cov["errors"]:
         raise ValueError("an unaccounted holder class cannot derive a calendar term")
