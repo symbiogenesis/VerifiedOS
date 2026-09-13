@@ -15,15 +15,28 @@ def _contract(name: str, sizes: tuple[int, ...],
               mode_rows: list[tuple[str, list[tuple[str, int, int]]]],
               rule: str = "dead-at-switch",
               transitions: list[dict[str, Any]] | None = None,
-              capacity: int | None = None) -> dict[str, Any]:
-    """One private fixture; the module's own witness builder is not used here."""
+              capacity: int | None = None,
+              arena_of: dict[str, str] | None = None) -> dict[str, Any]:
+    """One private fixture; the module's own witness builder is not used here.
+
+    `arena_of` names the arena of an identity that does not sit in the default one,
+    so a fixture can declare two arenas. Each arena's capacity is its own identities'
+    charged bytes unless one is passed for all of them.
+    """
     first = mode_rows[0][0]
+    home = {f"v{index}": (arena_of or {}).get(f"v{index}", "arena")
+            for index in range(len(sizes))}
+    room = {arena_id: sum(size for index, size in enumerate(sizes)
+                          if home[f"v{index}"] == arena_id)
+            for arena_id in sorted(set(home.values()))}
     return {
         "name": name, "provenance": "private finite fixture",
-        "arenas": [{"id": "arena", "owner": "owner",
-                    "capacity": capacity if capacity is not None else sum(sizes)}],
-        "identities": [{"id": f"v{index}", "arena": "arena", "size": size, "payload": size,
-                        "alignment": 1} for index, size in enumerate(sizes)],
+        "arenas": [{"id": arena_id, "owner": "owner",
+                    "capacity": capacity if capacity is not None else room[arena_id]}
+                   for arena_id in sorted(room)],
+        "identities": [{"id": f"v{index}", "arena": home[f"v{index}"], "size": size,
+                        "payload": size, "alignment": 1}
+                       for index, size in enumerate(sizes)],
         "modes": [{"name": mode_name,
                    "lifetimes": [{"id": identifier, "start": start, "payload_end": end,
                                   "authority_end": end, "sweep_end": end, "reuse": end}
@@ -222,6 +235,59 @@ def _retention_costs_the_single_layout() -> None:
            "the binding optimum must replay independently")
 
 
+def _charges_stay_inside_each_arena() -> None:
+    """Two arenas with different separations: nothing crosses and nothing is summed."""
+    triangle = ((0, 1), (0, 2), (1, 2))
+    raw = _contract("two-arenas", (1, 1, 1, 2, 2, 2),
+                    [("m0", [("v0", 0, 2), ("v1", 0, 2), ("v3", 0, 2), ("v4", 0, 2)]),
+                     ("m1", [("v0", 0, 2), ("v2", 0, 2), ("v3", 0, 2), ("v5", 0, 2)]),
+                     ("m2", [("v1", 0, 2), ("v2", 0, 2), ("v4", 0, 2), ("v5", 0, 2)])],
+                    arena_of={"v3": "slow", "v4": "slow", "v5": "slow"})
+    family = modes.parse_family(raw)
+    nodes = modes.variables(family, "conservative")
+    home = {node.name: node.arena for node in nodes}
+    ensure(all(home[left] == home[right] for left, right in modes.interference(family, nodes)),
+           "the all-mode relation must never join two arenas")
+    receipt = modes.solve_model(family, "conservative")
+    spans = {row["arena"]: row["best_span"] for row in receipt["arenas"]}
+    ensure(spans == {"arena": _minimum_span(triangle, (1, 1, 1)),
+                     "slow": _minimum_span(triangle, (2, 2, 2))},
+           f"each arena's span must equal its own independent enumeration: {spans}")
+    conservative = modes.conservative_model(family)
+    per_mode = modes.per_mode_model(family)
+    binding = modes.binding_model(family)
+    ensure(conservative["charge"] == {"arena": 3, "slow": 6}
+           and per_mode["charge"] == {"arena": 2, "slow": 4}
+           and binding["charge"] == {"arena": 2, "slow": 4},
+           "every charge carries one span per arena, and the arenas differ")
+    ensure(per_mode["graph_cross_check"]["agrees"],
+           "the graph search must agree with the single-trace oracle in both arenas")
+    ensure(conservative["optimality_replay"]["status"] == "verified"
+           and binding["optimality_replay"]["status"] == "verified",
+           "the per-arena replay must verify where the relation crosses no arena")
+    ensure(modes.compare(family, per_mode, conservative, binding)["ordering_holds"] is True,
+           "the ordering is read inside each arena")
+    legal = [{"id": "v0", "arena": "arena", "base": 0},
+             {"id": "v1", "arena": "arena", "base": 1},
+             {"id": "v2", "arena": "arena", "base": 2},
+             {"id": "v3", "arena": "slow", "base": 0},
+             {"id": "v4", "arena": "slow", "base": 2},
+             {"id": "v5", "arena": "slow", "base": 4}]
+    ensure(not modes.check_single_layout(family, legal)
+           and not modes.replay_by_mode(family, legal),
+           "both readings must accept a layout legal in every mode of both arenas")
+    crossed = [dict(row) for row in legal]
+    crossed[5]["base"] = 3
+    ensure(any("overlap" in finding and "v4/v5" in finding
+               for finding in modes.check_single_layout(family, crossed)),
+           "an overlap confined to one arena is still a finding")
+    over = [dict(row) for row in legal]
+    over[0]["base"] = 3
+    ensure(any("capacity" in finding and "v0" in finding
+               for finding in modes.check_single_layout(family, over)),
+           "free bytes in another arena do not pay for this one")
+
+
 def _per_mode_limits_agree() -> None:
     raw = _contract("limits", (1, 2, 1),
                     [("m0", [("v0", 0, 4), ("v1", 1, 3)]),
@@ -355,8 +421,22 @@ def _report_replays() -> None:
            "retention across the switch returns the binding family to one layout's cost")
     ensure(charges["live-identity-at-switch"]["binding"] is None,
            "a refused binding family carries no charge")
+    ensure(charges["two-arena-separation"] == {"per_mode": {"arena": 2, "slow": 4},
+                                               "binding": {"arena": 2, "slow": 4},
+                                               "conservative": {"arena": 3, "slow": 6}},
+           "two arenas carry separate charges and neither is summed into the other")
+    by_name = {case["contract"]["name"]: case for case in receipt["cases"]}
+    refused = by_name["live-identity-at-switch"]["binding"]
+    ensure(refused["optimality_replay"] is None and refused["charge"] is None
+           and by_name["live-identity-at-switch"]["comparison"]["ordering_holds"] is None,
+           "a family refused at its switch rule searches no optimum, so it replays none "
+           "and exhibits no ordering")
+    separated = by_name["two-arena-separation"]
+    ensure(separated["conservative"]["optimality_replay"]["status"] == "verified"
+           and separated["binding"]["optimality_replay"]["status"] == "verified",
+           "the per-arena replay must verify on a two-arena witness")
     ensure(all(case["comparison"]["ordering_holds"] is not False for case in receipt["cases"]),
-           "the three charges must stay ordered")
+           "the three charges must stay ordered wherever all three exist")
 
 
 def cases() -> list[Case]:
@@ -366,6 +446,7 @@ def cases() -> list[Case]:
         Case("modes independent checkers catch a wrong one", _wrong_checkers_are_caught),
         Case("modes switch-rule refusals and retained bases", _switch_rule_refusals),
         Case("modes retention costs the single layout", _retention_costs_the_single_layout),
+        Case("modes charges stay inside each arena", _charges_stay_inside_each_arena),
         Case("modes per-mode limit agrees with the single-trace oracle", _per_mode_limits_agree),
         Case("modes budget cutoffs and invalid settings", _budget_never_becomes_a_verdict),
         Case("modes family parse refusals", _parse_refusals),
