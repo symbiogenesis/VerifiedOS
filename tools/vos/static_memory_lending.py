@@ -24,18 +24,17 @@ CHANNELS = ("refusal", "verdict", "timing")
 MAX_TRACES = 1024
 
 type Trace = tuple[int, ...]
-type Sighting = tuple[str, str, str | None, int | None, int | None]
+type Sighting = tuple[str, str, str | None, int | None]
 type Observation = tuple[Sighting, ...]
 type Label = tuple[int, ...]
 
 
 class SightingRow(TypedDict):
-    """One borrower observation; `attempt_index` is derived from the completion tick."""
+    """One borrower observation. Which attempt served it is not observed, only when."""
 
     request: str
     verdict: str
     refusal_reason: str | None
-    attempt_index: int | None
     completion_tick: int | None
 
 
@@ -106,22 +105,32 @@ class Policy:
 
     At a leaking tick the rule reads the lender's actual occupancy instead of its
     public commitment. The field exists so the enumeration can be shown to notice
-    a mutation that turns a safe policy unsafe.
+    a mutation that turns a safe policy unsafe. `pad_to_release_points` is the
+    separate timing countermeasure: every completion is delayed to the next declared
+    release instant, which buys latency for the borrower and reveals nothing about
+    when service actually happened.
     """
 
     name: str
     kind: str
     headroom: int = 0
     leaking_ticks: tuple[int, ...] = ()
+    pad_to_release_points: bool = False
 
 
 @dataclass(frozen=True)
 class Run:
-    """One run's borrower observation and the model-level facts it cannot see."""
+    """One run's borrower observation and the model-level facts it cannot see.
+
+    `served` is the attempt index each request was served at. It is a fact about
+    the run and deliberately not part of the observation, since a borrower that
+    read it would see straight through a padded completion tick.
+    """
 
     observation: Observation
     borrowed: tuple[int, ...]
     overcommitted_ticks: tuple[int, ...]
+    served: tuple[int | None, ...]
 
 
 def _positive(value: object) -> bool:
@@ -166,6 +175,8 @@ def validate(calendar: Calendar, policy: Policy) -> None:
     if any(not _nonnegative(tick) or tick >= calendar.horizon
            for tick in policy.leaking_ticks):
         raise ValueError("a deliberate leaking tick must lie inside the horizon")
+    if type(policy.pad_to_release_points) is not bool:
+        raise ValueError("completion padding is on or off, not a quantity")
 
 
 def check_trace(calendar: Calendar, trace: Trace) -> None:
@@ -244,7 +255,9 @@ def public_capacity(calendar: Calendar, policy: Policy, label: Label,
     return None
 
 
-def simulate(calendar: Calendar, capacity: tuple[int, ...]) -> tuple[Observation, tuple[int, ...]]:
+def simulate(calendar: Calendar,
+             capacity: tuple[int, ...]) -> tuple[Observation, tuple[int, ...],
+                                                 tuple[int | None, ...]]:
     """Serve the public calendar against a fixed borrowable capacity, in calendar order.
 
     A request takes its own pool where the whole hold window fits, then a loan
@@ -257,8 +270,10 @@ def simulate(calendar: Calendar, capacity: tuple[int, ...]) -> tuple[Observation
     own = [0] * calendar.horizon
     borrowed = [0] * calendar.horizon
     sightings: list[Sighting] = []
+    served: list[int | None] = []
     for request in calendar.requests:
         placed: Sighting | None = None
+        attempt: int | None = None
         usable = False
         for index, tick in enumerate(request.attempts):
             if tick + request.duration > calendar.horizon:
@@ -268,33 +283,57 @@ def simulate(calendar: Calendar, capacity: tuple[int, ...]) -> tuple[Observation
             if all(own[unit] < calendar.borrower_slots for unit in window):
                 for unit in window:
                     own[unit] += 1
-                placed = (request.id, "own-pool", None, index, tick + request.duration)
+                placed, attempt = (request.id, "own-pool", None, tick + request.duration), index
                 break
             if all(borrowed[unit] < capacity[unit] for unit in window):
                 for unit in window:
                     borrowed[unit] += 1
-                placed = (request.id, "borrowed", None, index, tick + request.duration)
+                placed, attempt = (request.id, "borrowed", None, tick + request.duration), index
                 break
         if placed is None:
             reason = "capacity-exhausted" if usable else "outside-horizon"
-            placed = (request.id, "refused", reason, None, None)
+            placed = (request.id, "refused", reason, None)
         sightings.append(placed)
-    return tuple(sightings), tuple(borrowed)
+        served.append(attempt)
+    return tuple(sightings), tuple(borrowed), tuple(served)
+
+
+def pad(calendar: Calendar, observation: Observation) -> Observation:
+    """Delay every completion to the next declared release instant, or to the horizon.
+
+    This is the timing countermeasure on its own: it moves no verdict, so it cannot
+    close the refusal channel, and the borrower pays for it in latency.
+    """
+    instants = (*calendar.release_points, calendar.horizon)
+    return tuple((request, verdict, reason, None if completion is None
+                  else min(point for point in instants if point >= completion))
+                 for request, verdict, reason, completion in observation)
+
+
+def observe(calendar: Calendar, policy: Policy,
+            capacity: tuple[int, ...]) -> tuple[Observation, tuple[int, ...],
+                                                tuple[int | None, ...]]:
+    """Everything the borrower sees under one policy, padding included."""
+    observation, borrowed, served = simulate(calendar, capacity)
+    if policy.pad_to_release_points:
+        observation = pad(calendar, observation)
+    return observation, borrowed, served
 
 
 def run(calendar: Calendar, policy: Policy, trace: Trace) -> Run:
     """One complete run, plus the overcommit the borrower's observation cannot show."""
-    observation, borrowed = simulate(calendar, borrow_capacity(calendar, policy, trace))
+    observation, borrowed, served = observe(
+        calendar, policy, borrow_capacity(calendar, policy, trace))
     over = tuple(tick for tick in range(calendar.horizon)
                  if trace[tick] + borrowed[tick] > calendar.lender_slots)
-    return Run(observation, borrowed, over)
+    return Run(observation, borrowed, over, served)
 
 
 def rows(observation: Observation) -> list[SightingRow]:
     """Render one observation as receipt rows without changing what it distinguishes."""
     return [SightingRow(request=request, verdict=verdict, refusal_reason=reason,
-                        attempt_index=attempt, completion_tick=completion)
-            for request, verdict, reason, attempt, completion in observation]
+                        completion_tick=completion)
+            for request, verdict, reason, completion in observation]
 
 
 def channel(first: Observation, second: Observation) -> str | None:
@@ -395,7 +434,7 @@ def analyze(calendar: Calendar, policy: Policy,
     if all(vector is not None for vector in vectors):
         mismatches = sum(1 for vector, item in zip(vectors, runs, strict=True)
                          if vector is not None
-                         and simulate(calendar, vector)[0] != item.observation)
+                         and observe(calendar, policy, vector)[0] != item.observation)
         public = {"status": "public-function" if not mismatches else "recomputation-differs",
                   "mismatches": mismatches}
     return {
@@ -463,6 +502,7 @@ FIXTURE = Calendar(
 POLICIES = (
     Policy("none", "none"),
     Policy("lend-any-idle", "any-idle"),
+    Policy("lend-any-idle-padded", "any-idle", pad_to_release_points=True),
     Policy("headroom-observed-1", "headroom-observed", 1),
     Policy("headroom-committed-2", "headroom-committed", 2),
     Policy("release-declared", "release-declared"),
@@ -489,6 +529,11 @@ def _findings(calendar: Calendar, analyses: list[dict[str, Any]],
     idle = by_name["lend-any-idle"]
     errors.extend(f"lend-any-idle no longer leaks through the {name} channel"
                   for name in ("refusal", "timing") if idle["channels"][name] is None)
+    padded = by_name["lend-any-idle-padded"]
+    if padded["channels"]["timing"] is not None:
+        errors.append("padding completions to declared instants left the timing channel open")
+    if padded["channels"]["refusal"] is None:
+        errors.append("padding completions closed the refusal channel it cannot reach")
     if by_name["release-declared"]["observations_from_public_inputs"]["status"] != "public-function":
         errors.append("the declared-release rule stopped being a function of public inputs")
     if by_name["release-declassified"]["status"] != "distinguishing":
@@ -531,7 +576,8 @@ def report(root: Path) -> dict[str, Any]:
                   "target measurement, no admission of lending and no impossibility claim"),
         "excluded_by": ["R-08-012c", "R-08-047"],
         "observation_model": {
-            "observations": "per request the verdict and the completion tick",
+            "observations": ("per request the verdict and the completion tick; which "
+                             "attempt served it is a fact of the run, not observed"),
             "verdicts": list(VERDICTS),
             "refusal_reasons": list(REFUSAL_REASONS),
             "secret": "the lender's per-tick occupancy, drawn from the admitted set",

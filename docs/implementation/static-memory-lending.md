@@ -39,9 +39,11 @@ pool and the reason the retry calendar is public rather than a blocking queue.
 The secret is the lender's per-tick occupancy trace, drawn from the finite set its
 own declared commitment admits. The borrower observes, per request, the verdict
 (own-pool fit, borrowed fit, or refusal with its reason) and the completion tick.
-Low-equivalence between two secret traces is equality of the declassified label,
-and the label is empty unless an analysis states otherwise, so by default nothing
-about the lender's occupancy is public.
+Which attempt actually served a request is a fact of the run and not an
+observation, because a borrower that read it would see straight through a padded
+completion. Low-equivalence between two secret traces is equality of the
+declassified label, and the label is empty unless an analysis states otherwise, so
+by default nothing about the lender's occupancy is public.
 
 The boundary matters more than the result. A tick is the scheduler frame instant;
 the model has nothing below it. Sub-tick timing, cache and predictor state, fabric
@@ -57,18 +59,19 @@ shape for memory capacity and reports what changes.
 
 ## The policies and what each one costs
 
-Five rules are enumerated over the same public calendar and the same admitted
+Six rules are enumerated over the same public calendar and the same admitted
 secret set.
 
 | Policy | What it lends | What the enumeration finds |
 | --- | --- | --- |
 | None | nothing | Trivially noninterferent: the observation never reads the secret. Every request the borrower's own pool cannot hold is refused |
 | Lend any idle slot | the lender's observed idle capacity | Distinguishing on two separate channels, each from a one-tick difference in the secret |
+| Lend any idle slot, with completions padded to declared instants | the same capacity, with every completion delayed to the next declared release instant | The timing channel closes and the refusal channel stays open, so the policy is still refuted. Padding moves no verdict and buys nothing in slack; the borrower pays for it in latency |
 | Reserved headroom `h`, subtracted from observed idle capacity | observed idle capacity above `h` | Distinguishing at every reserve that lends anything; the least safe reserve is the whole lender pool, which lends nothing |
 | Reserved headroom `h`, held against the declared commitment | a constant `L - h` slots | Noninterferent at every `h`, because the capacity never reads the secret. The binding constraint is return capacity, not information flow |
 | Lend only at declared release points | `L` minus the declared ceiling of the current segment | Noninterferent, and the observation recomputes from public inputs alone. Strictly more useful than the flat reserve on this calendar |
 
-A sixth rule is enumerated twice to separate the two questions: a policy that reads
+A seventh rule is enumerated twice to separate the two questions: a policy that reads
 the lender's actual occupancy **at the declared release instants only** is
 distinguishing when nothing is public, and noninterferent when those instants are
 declassified labels. That is what a deliberate declassification buys and what it
@@ -87,6 +90,14 @@ naming, **verdict**, covers a difference between own-pool and borrowed service w
 no refusal on either side. Each witness is minimal in the number of ticks at which
 the two secret traces differ, then in enumeration order, so the receipt shows how
 small a difference in private demand is already observable.
+
+Padding is the separate countermeasure that shows why the two channels are worth
+naming apart. Delaying every completion to the next declared release instant makes
+the timing witness vanish and leaves the refusal witness exactly where it was, so
+a lend-any-idle rule with padding is still refuted. Padding changes no verdict,
+which is both why it cannot reach the refusal channel and why it costs the borrower
+latency rather than capacity: the receipt reports the same slack with and without
+it. A design reaching for padding alone is closing the channel it can see.
 
 ### The two headroom families give opposite answers
 
@@ -159,9 +170,10 @@ than per-tick counters. They check that each reported witness is minimal, is
 label-equal, and actually distinguishes; that mutating a safe policy into one that
 reads the secret is caught, on the enumeration and on the independent checker;
 that a reserve below the committed peak keeps noninterference and loses return
-capacity; that refusal typing survives every policy and trace, with service only at
-a declared attempt instant; and that malformed models and oversized secret spaces
-are refused rather than truncated.
+capacity; that padding closes the timing channel, actually delays a completion, and
+leaves the refusal channel open; that refusal typing survives every policy and
+trace, with service only at a declared attempt instant; and that malformed models
+and oversized secret spaces are refused rather than truncated.
 
 What remains open is everything the model deliberately excludes. The observation
 set is coarse and a finer one may distinguish policies this enumeration cannot.
