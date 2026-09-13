@@ -64,6 +64,64 @@ The [memory-plan statement](../../proofs/MemoryPlan.v) supplies `live_from`, `li
 
 The [placement-search contract](placement-search.md) keeps lifetimes and lengths fixed. Its footprint is the peak calculated from those inputs, its span is the highest slot endpoint relative to the island base, and its padding is bytes below that endpoint covered by no slot at any lifetime. Padding is not instantaneous idle capacity and is not all of `P - L_charge`. The exporter declares owner, bank, reserved size and the slot's timing bound absent; research annotations must retain that provenance rather than invent production values. The current enumeration's optimum is only over its declared grid.
 
+### The operational interface a producer must satisfy
+
+The finite plan contains reservation rows, while an execution contains actual
+incarnations. They need not be the same set: a slot can serve repeated incarnations
+whose reservations never coexist. For each admitted execution and each event cut,
+let `R` be its currently reserving incarnations, including initialization, retained
+payload, Quiescing, quarantine and unfinished reuse work. A sound producer and
+runtime binding satisfy these conditions for the selected plan:
+
+1. Every incarnation in `R` binds to a declared row of the correct owner and arena.
+   Its entire physical extent fits that row's charged extent at the declared base.
+   The binding stays fixed until authorized reuse; a mode change cannot silently
+   rebind an incarnation that still reserves storage.
+2. Distinct incarnations in `R` bind to distinct rows, and the intervals of their
+   rows overlap. Both statements quantify over every admitted execution and every
+   cut, including failed operations and delayed device completion. A per-execution
+   embedding into the composition event order that places each incarnation inside
+   its row's interval is one sufficient way to prove the interval condition.
+3. An incarnation leaves `R` only when its complete reuse gate is established.
+   Successful containment, the eligible full sweep and required initialization are
+   distinct obligations. Failed containment retains the reservation; it cannot be
+   assigned a finite successful-reuse endpoint merely because a decision timed out.
+4. Every selected binding plan passes the placement and legal-position checks.
+   A finite family of plans additionally needs a checked selection and transition
+   relation covering still-reserved incarnations. Checking each mode in isolation
+   says nothing about that transition.
+
+**Conditional reservation theorem.** Under these conditions, a feasible plan gives
+distinct simultaneous incarnations disjoint physical extents. Fix an execution and
+cut, and take any two members of `R`. Condition 2 supplies distinct overlapping
+rows; the placement predicate makes their row extents disjoint; condition 1 puts
+each incarnation inside its corresponding extent. Their own extents are therefore
+disjoint. Condition 3 makes this argument cover retained authority and unfinished
+effects as reservations, and does not prove the authority gate itself. The
+argument applies separately in each arena; disjoint arenas then compose.
+
+The same interface bounds current charged occupancy by the exported interval
+load. For a nonempty finite `R`, choose its row with greatest start endpoint `b`.
+Pairwise overlap implies every other row ends strictly after `b`, and maximality
+implies each starts at or before `b`. Thus every bound row is live at `b`. The
+injective binding and extent bounds give actual reserved charge at most
+`L_charge`, and hence at most `P`. Empty `R` has zero charge. External descriptors,
+tags, ECC and recovery storage still require their separate disjoint charges.
+This proof uses the load of one fixed exported interval plan. Requiring that plan
+to cover several modes can increase its load above every mode's actual peak; the
+common-layout counterexample below shows why those quantities cannot be identified.
+
+These are human-readable conditional proofs, not a source-to-plan implementation
+or a mechanized temporal-safety theorem. A minimal witness against omitting
+condition 2's injectivity is one unit plan row bound to two simultaneously reserving
+unit incarnations: the check has no distinct-row pair to reject. A minimal witness
+against its all-execution overlap clause is two unit rows `[0,1)` and `[1,2)` at
+base zero, with an actual execution retaining the first reservation until event 2
+while acquiring the second at event 1. The supplied plan passes and that execution
+collides. Both require two actual incarnations, since one cannot collide with a
+distinct tenant. Conversely, releasing the first through its complete gate before
+acquiring the second at event 1 is a nonempty execution satisfying the interface.
+
 ## A complete laminar special case
 
 **Theorem.** Consider finitely many positive integer extents and nonempty, fixed, half-open reservation intervals. Suppose every pair of intervals is disjoint or one contains the other. There is one arena with origin zero, every nonnegative integer base is legal, alignment is one, no object is pinned, and no additional ownership, bank, guard-space or bounds constraint applies. A fixed contiguous placement exists with span exactly `L_charge`.
@@ -76,7 +134,7 @@ The [placement-search contract](placement-search.md) keeps lifetimes and lengths
 
 **Algorithmic scope.** Sorting endpoints by increasing start and decreasing end permits grouping equal intervals and building or rejecting the containment forest with a stack. Sorting, comparison and ancestor-weight addition use time polynomial in the binary input length; no enumeration over the numerical address-space size is needed. Equal lifetimes require the grouping step: strict ancestors alone would otherwise put equal-interval objects at the same base. Empty intervals can be removed before this theorem; an object needing initialization or quarantine is not empty merely because it has no useful payload.
 
-A common alignment `g` preserves the argument if the arena origin, every extent and every permitted stack boundary are multiples of `g`, and no other restriction applies: divide lengths and bases by `g`, apply the theorem, then rescale. Arbitrary per-object alignment does not satisfy this premise.
+A common positive alignment `g` preserves the argument if the arena origin, every extent and every permitted stack boundary are multiples of `g`, and no other restriction applies: subtract the arena origin, divide lengths and bases by `g`, apply the theorem, then rescale and restore the origin. Arbitrary per-object alignment does not satisfy this premise. The theorem's unrestricted-address model determines a required span; a finite arena must additionally have at least that span available. For a laminar instance under these premises, capacity at least `L_charge` is sufficient by the construction and necessary by the lower bound.
 
 The theorem concerns actual reservation lifetimes. A language may supply a proof that its exported intervals are laminar, but ownership alone and nested lexical region names do not supply it. Extending intervals to region exit can produce laminar reservations while increasing `L_charge` above the original payload peak. This remains an optimal placement of a more retentive model.
 
@@ -193,6 +251,13 @@ Two unit objects both reserve `[0,1)` in one origin-zero arena, with every base 
 
 This witness makes no claim that the target capability format imposes this particular constraint on unit objects. It shows why an exact theorem must state alignment assumptions instead of treating quantized placement as interchangeable with unit alignment.
 
+Pinning alone also breaks equality: one unit object reserving `[0,1)` and fixed at
+base one in an origin-zero arena has charged peak one and required span two.
+Without pinning it fits at zero. One object is minimal for this implication.
+Rounding instead changes the charge itself: one payload byte in a two-byte charged
+slot can have `L_payload = 1` and `L_charge = OPT = P = 2`. The spare byte is already
+in the charged extent and must not be added again as an external overhead.
+
 ### One layout across modes costs more than each mode's peak
 
 Three unit object identities A, B and C each have one immutable offset. The admitted modes activate AB, AC or BC, and never all three. Each execution's charged peak is two. Every pair must nevertheless have different offsets in the common layout, so its span is at least three, attained by offsets zero, one and two. Three identities are minimal for this gap: two identities either coexist, making peak two, or may share their one offset.
@@ -226,6 +291,32 @@ a base search cannot move charged peak. The search's span/padding ranking implem
 the span term and only part of locality; it authorizes no island change or additional
 solver machinery. R-08-018a applies the same inequality to jointly colored pools,
 and R-08-019e invokes the full sufficient premises when proposing laminar lifetimes.
+
+### Baseline research disposition
+
+The agenda's baseline deliverable is a reviewed model and a disposition of the
+disputed implications. Its evidence is scoped as follows; none of these results
+asserts that the production compiler establishes the operational interface above.
+
+| Disputed implication | Disposition and deciding evidence |
+| --- | --- |
+| Payload liveness determines physically reusable capacity | Refuted by retained authority and initialization in the lifecycle, and by the one-object rounding witness. The envelope proof below charges the complete release-to-reuse interval. |
+| Ownership supplies quantitative bounds or an exact reservation envelope | Refuted by the owned collection and delayed-reply witnesses. The operational interface states the extra boundedness, binding and all-execution obligations. |
+| Nested regions give laminar object lifetimes without extra retention | Refuted by the two-object crossing and retained-to-exit witnesses. |
+| Offline planning always reaches peak load | Refuted in the unconstrained model by `gap_family_optimum_exceeds_its_load` in the mechanized statement. This is a proof, with no claim that its family is smallest. |
+| The laminar stack reaches the charged peak under the complete sufficient premises | Proved by the construction and span arguments and the mechanized `construction_attains_load`; the common positive-alignment and finite-capacity corollary is proved above. |
+| Laminarity alone removes legal-position or mode restrictions | Refuted by the minimal alignment, pinning and common-layout witnesses. |
+| A checked interval placement establishes actual execution safety by itself | Refuted by the two-incarnation exporter witnesses. The conditional reservation theorem states the exact join and preserves the separate authority proof. |
+| A base search improves charged load or establishes an optimum outside its candidate set | The load definition contains no base. An enumerated optimum quantifies over its declared candidate set alone; the padded feasible placement in the mechanized statement refutes feasibility implying optimality. |
+| Disjoint lifetimes must have disjoint slots | Refuted by the minimal shared-slot and overlapping-slot witnesses, also constructed in `MemoryPlan.v`; R-08-014 uses the overlapping-lifetime antecedent. |
+| Unused backing or a short failure decision guarantees another request can succeed | Refuted by the disjoint-owner reservation argument and the failed-reuse executions below. Legal position and completed reuse are necessary premises. |
+
+The baseline research deliverable is complete at this scope. The downstream
+obligations remain with their original
+owners: the compiler or composition exporter proves the operational interface,
+Q5 supplies concrete placements and comparisons, and Q22a's consumers establish
+the actual authority and service premises. Those are implementation and workload
+deliverables, not missing definitions or an assumed universal placement theorem.
 
 ## Reclamation as a bounded capacity obligation
 
