@@ -2,7 +2,7 @@
 
 > Non-normative research for the [static-memory agenda](../background/static-memory-research.md).
 > The [requirements register](../requirements-register.md) remains authoritative.
-> This experiment supplies a finite model, refuted candidate rules, minimal
+> This experiment supplies a finite model, refuted candidate rules, reduced
 > counterexamples and one conjecture with explicit premises. It is not a theorem, a
 > barrier implementation, a leakage model or a measurement; it confers no
 > implementation landing credit and accepts no requirement. The
@@ -23,11 +23,13 @@ Run `python tools/run.py static-memory phases --json` for the full receipt and
 `python tools/run.py test --only static_memory_phases` for the focused behavioral
 checks. The command emits the compositions, every certificate, the compositional
 verdict and the exhaustive verdict for each rule and each certificate summary, the
-counterexamples, the adversarial out-of-window timings, the secret-phase witness,
-the conjecture with its premises, and the open obligations. Source hashes bind the
-implementation and this contract; Git identity comes from the common research
-command. Figures stay in the generated receipt rather than being maintained here a
-second time.
+counterexamples with the reduction search each one is put through, the adversarial
+out-of-window timings, the secret-phase witness, the conjecture with its premises,
+and the open obligations. Each composition's row carries its outstanding-completion
+bound as declared and as recomputed, beside the compositional checker's own costs.
+Source hashes bind the implementation and this contract; Git identity comes from the
+common research command. Figures stay in the generated receipt rather than being
+maintained here a second time.
 
 The public Python entry point is `vos.static_memory_phases.report(revision)` in
 [static_memory_phases.py](../../tools/vos/static_memory_phases.py). It writes no
@@ -62,6 +64,13 @@ authority can still complete. The certificate carries no acceptance time, no
 completion time and no other component's state. `certificate` projects a component
 onto it, so what the compositional checker can see is decided by a function and not
 by a convention.
+
+The outstanding-completion bound is the one certificate field the barrier rule's
+soundness rests on, so the model recomputes it from the composition's own transfers,
+chained acceptance resolved in order, and refuses a component that declares less
+than its transfers admit. A declaration above the recomputed value is admitted: it
+costs reuse and cannot make an acceptance unsound. An honest certificate here is
+therefore a checked property of the composition rather than a label attached to it.
 
 The global plan is one reuse chain per extent: the ordered objects that bind it. A
 successor binds its extent at its declared public start. This model has no runtime
@@ -103,9 +112,10 @@ the same way.
 The compositional checker reads the certificates and the chains alone. For each
 adjacent pair on a chain it derives the predecessor's earliest reuse tick from that
 predecessor's own certificate and compares it with the successor's declared start.
-Its work is one comparison per adjacent pair; it forms no product of component
-states, and the receipt reports both that comparison count and the number of
-timings the exhaustive search enumerates for the same composition.
+The certificates and the chains are its whole argument list, so no product of
+component states is reachable from it; what the receipt reports is therefore two
+counts it measured, the comparisons made and the certificates consulted, beside the
+number of timings the exhaustive search enumerates for the same composition.
 
 The exhaustive search enumerates every completion timing inside the declared
 windows, resolving chained acceptances in order, and looks for any of the three
@@ -119,7 +129,11 @@ hazard. Under honest certificates R2 has no unsound acceptance in this fixture, 
 under honest certificates every refusal in this fixture is necessary, so the
 comparison is not passing by refusing everything. A conservative refusal appears
 only where a summary overstates a bound, which is the remaining cell and is not a
-safety failure.
+safety failure. That second reading comes from the census of the four cells the
+receipt reports for the honest rows, and not from the experiment's own invariants,
+which hold the one-sided requirement and the non-vacuity alone: a later fixture
+that refused conservatively under an honest certificate would move the census
+without turning the command red, because conservatism costs reuse and not safety.
 
 R0's unsound acceptance reproduces the baseline's failed-rule row as an executable
 witness: the transfer is accepted before the phase ends, the successor is
@@ -143,18 +157,39 @@ static binding, not a claim that R2 has no defence. An implementation that gates
 the binding on the observed completion event converts this corruption into a missed
 declared start, and the receipt records the largest such shortfall over each
 enumeration. This model does not represent that gate, so the shortfall is a
-reported quantity and not an outcome it simulates. The same quantity is positive on
-enumerations the search still calls safe, because R2's declared bound is
-conservative for an object that retains no representation.
+reported quantity and not an outcome it simulates. Inside the declared windows the
+shortfall is zero wherever the search calls an enumeration safe. It is positive on a
+safe enumeration only in the adversarial family, and there what pushes the release
+past the declared start is the overrun rather than any conservatism in the rule.
 
-## Naive summaries and their minimal counterexamples
+## Naive summaries and their counterexamples
 
 A summary is a lossy projection of the certificates that the compositional checker
-consumes. Three are carried, each with the composition that refutes it. Each
-counterexample uses two components and one extent, except the chained one, which
-needs three because the defect is a dependency between components.
+consumes. Three are carried, each with the composition that refutes it. How small a
+refutation has to be is then decided by a reduction search rather than asserted. The
+search removes one thing at a time under a declared set of reductions: fold two
+components onto the union of their schedules, drop a transfer together with
+everything whose acceptance waited on it, shorten a window, drop a retention, drop a
+retained representation. A fold preserves every start, occupancy end and acceptance
+tick the enumeration reads, so what it removes is the composition boundary and
+nothing else, and a step survives only when the honest certificate still refuses,
+the summary still accepts, and the enumeration still exhibits a hazard.
 
-| Summary | What it drops | Minimal counterexample |
+Two of the three defects turn out to need no composition at all: each folds onto a
+single component holding two objects on one extent, where the summary's acceptance
+is still unsound. The chained one does not fold that far, and the reason is the
+defect itself, since the acceptance whose window the summary misattributes belongs
+to another component and at least one composition boundary has to survive to carry
+it. It does fold further than the fixture it starts from, which is why the search is
+here rather than a sentence. The receipt carries each search's starting shape, the
+reductions it applied and the shape it reached.
+
+What that establishes is irreducibility under those reductions, not minimality. No
+reduction here removes an object or rewrites a schedule, and nothing outside the
+reduction order is searched; calling a witness minimal would be a claim about every
+composition, which this artifact does not establish.
+
+| Summary | What it drops | Composition the search starts from |
 | --- | --- | --- |
 | Drop the retained set | Presumes the object dead at its public live boundary | A component that retains its state through a later phase, and a successor that binds the extent inside that retention. The honest certificate refuses; the summary accepts; the enumeration exhibits both a residency overlap and a late completion |
 | Drop the completion bound | Presumes no transfer outstanding past the occupancy end | A component whose accepted transfer has a window far longer than the barrier and pass service. The honest certificate refuses; the summary accepts; the completion lands on the successor |
@@ -204,16 +239,26 @@ lifetime bridge is the same obligation seen from the placement side.
 
 Two runs share one public phase schedule and one label sequence and differ only in
 the branch a secret selects: one retains its object through the idle phase and
-accepts a transfer there, the other does not. Their event-gated reuse ticks differ,
-so an observer who can see when the successor's extent becomes usable learns which
-branch ran. Equal public labels therefore do not give non-interference, and a
-certificate published per run leaks the same secret, because the retained set and
-the outstanding bound are exactly what differs.
+accepts a transfer there, the other does not. The tick at which the old authority's
+own reuse service finishes differs between them, so an implementation that released
+the extent on that event rather than at the declared bound would show which branch
+ran to anyone who could time the release. That separation is in a tick the receipt
+reports and the model does not simulate as a binding: both runs bind the successor
+at the same declared public start, which is why this is an argument about an
+event-gated implementation and not an observation of this enumeration. Equal public
+labels therefore do not give non-interference, and a certificate published per run
+leaks the same secret, because the retained set and the outstanding bound are
+exactly what differs.
 
 Publishing one conservative certificate covering both branches, and padding reuse
 to its declared bound instead of to the observed events, makes that one observation
 equal in both runs; the receipt replays both runs under the padded discipline and
-both are safe. The price is visible in the same model: the run that needed nothing
+both are safe. Equality under padding is a property of publishing one certificate
+and not a measurement, and the receipt separates the two: it names which of its
+booleans are guarantees of how the runs are built and which are computed outcomes.
+What is computed is that the published certificate is a join covering each branch's
+own bound, that the event-gated ticks differ, and that both padded runs survive the
+enumeration. The price is visible in the same model: the run that needed nothing
 holds its extent to the declared bound anyway, which is capacity spent on
 indistinguishability.
 
@@ -224,21 +269,29 @@ reports and anything a peer can time.
 
 ## Boundary and remaining work
 
-Nothing here changes admission or any requirement. R-08-018a's same-owner reuse
-rule is unchanged: colocating one compartment's pools in the one interference
-structure still owes the temporal-safety discipline any slot reuse owes, and this
-artifact adds to that discipline no credit and no exemption. R-08-006's containment
-completion, R-08-007's sweep service and R-08-007a's reuse gate remain the
-normative statements; the rules here are candidate research formulations measured
-against a finite model, and R2 is a restatement of those obligations rather than a
-new one.
+Nothing here changes admission or any requirement. R-08-018a is unchanged, and it is
+its criterion that this artifact must leave standing: colocating one compartment's
+pools in the one interference structure owes the R-08-015 temporal-safety discipline
+any slot reuse owes, and this artifact adds to that discipline no credit and no
+exemption. R-08-015 is where the barrier and the reuse gate already compose at a
+slot's reuse point, and R-08-006's containment completion, R-08-007's sweep service
+and R-08-007a's reuse gate remain the normative statements. The rules here are
+candidate research formulations measured against a finite model, and R2 is a
+restatement of those obligations rather than a new one.
 
-The focused tests compare the compositional verdict against an independent
-tick-by-tick oracle over the same enumeration, reproduce each counterexample, check
-that both barrier mutants are caught, check that the compositional checker's answer
-does not move when a composition's hidden timing detail changes under a fixed
-certificate, and exercise the model's refusals. These are bounded executable checks
-of finite instances, not verification.
+The focused tests compare the enumeration's verdict against a tick-by-tick oracle
+written beside it. The oracle resolves acceptance, extent ownership and the clearing
+service each rule names on its own, walking the services forward from its own
+rule-to-service table rather than reading the checker's intervals, so a rule wired
+to the wrong service disagrees instead of being confirmed twice. What it does not
+make independent is the definition of the three hazards, which is the model itself
+and which no second implementation of the same model would vary. The tests also
+count the admitted timing space apart from the function that builds it, reproduce
+each counterexample and each reduced witness, check that both barrier mutants are
+caught, check that the compositional checker's answer does not move when a
+composition's hidden timing detail changes under a fixed certificate, check that a
+certificate its own transfers falsify is refused, and exercise the model's other
+refusals. These are bounded executable checks of finite instances, not verification.
 
 What remains open is what the conjecture's premises name: the barrier
 implementation and its bounds, the device completion postcondition in RTL, the
