@@ -101,14 +101,16 @@ times on a shared host and decide nothing.
 
 The two variants emit the same program. Their C differs at the function
 prototype and at the address expressions of the first loop's store and of the
-second loop's two accesses, and at no other line; their assembly differs by the
-second pointer's prologue spill and by nothing in either loop body. The retained
-variant is the one that emits more, and the whole of what it emits more is that
-spill: the second buffer's addressing costs no extra instruction inside the
-loop, because the store's address is recomputed from its base at every iteration
-in both variants and the printer knows nothing about the in-place variant's
-aliasing. The two `-dcapasm` terms carry the same stubbed arms, so neither
-variant is nearer a capability target than the other.
+second loop's two accesses, and at no other line. Read as opcode sequences,
+their assemblies differ by a single inserted store in the prologue, where the
+extra parameter is spilled; the frame is larger and the register allocation
+differs, and no instruction is added to or removed from either loop body. The
+retained variant is the one that emits more, and the whole of what it emits more
+is that spill: the second buffer's addressing costs nothing inside the loop,
+because the store's address is recomputed from its base at every iteration in
+both variants and the printer knows nothing about the in-place variant's
+aliasing. The two stubbed-arm censuses agree exactly, so neither variant is
+nearer a capability target than the other.
 
 The two variants' live-array counts do differ, and they differ as the
 transformation experiment models them: the retained kernel keeps two buffers
@@ -166,8 +168,8 @@ site the old hypothesis discharged and `Qed` refuses, nothing is emitted, and
 closing it again is work on the side-condition tactic rather than a
 regeneration. The frame-kernel pair adds one datum in the same direction. Both
 derivations needed one compilation hint that Rupicola 0.0.11 does not ship,
-relating the byte a map or fold step produces to the word the array store
-expects, and that hint is stated in each file beside the `Derive` it decides.
+relating the byte a loop step produces to the word the array store expects, and
+that hint is stated in each file beside the `Derive` it decides.
 Neither the array-write nor the bounded-loop combinator was missing: both come
 from the shipped `Loops` and `Arrays` libraries, and the shipped memcpy and
 accumulator examples are the precedent both kernels follow.
