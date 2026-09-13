@@ -32,9 +32,10 @@ byte accounting and bounded placement comparisons, the corpus recording which
 research families its witnesses cover and which composed-roster input is still
 absent. They also expose
 [service transformations](implementation/static-memory-transformations.md),
-[reclamation scheduling](implementation/static-memory-reclamation.md) and
-[planning scale](implementation/static-memory-scaling.md), each with its own
-replay contract and remaining qualification work.
+[reclamation scheduling](implementation/static-memory-reclamation.md),
+[planning scale](implementation/static-memory-scaling.md) and
+[the three models a mode family can optimize](implementation/static-memory-modes.md),
+each with its own replay contract and remaining qualification work.
 
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
