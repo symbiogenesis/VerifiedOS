@@ -54,7 +54,11 @@ COLUMNS = ("Submodule", "Upstream", "Pin")
 # where a stale pin silently reuses another edition's tree unread. Nothing writes a
 # hyphen *after* an id, so admitting one there would buy nothing and would let the
 # hexadecimal head of an ordinary hyphenated word read as a commit.
-ID_RE = re.compile(r"(?<![0-9A-Za-z_])([0-9a-f]{7,40})(?![\w-])")
+# Consume the first hex digit before checking its left boundary. This gives the
+# regex engine a leading character class to skip to instead of trying a lookbehind
+# at every character. The two-character lookbehind still checks the preceding
+# character, and the captured token and its boundaries are unchanged.
+ID_RE = re.compile(r"([0-9a-f](?<![0-9A-Za-z_][0-9a-f])[0-9a-f]{6,39})(?![\w-])")
 
 _BACKTICKED_RE = re.compile(r"`([^`]+)`")
 _ROW_RE = re.compile(r"^\|(.*)\|\s*$")
@@ -214,6 +218,11 @@ def spellings(pins: list[Pin]) -> list[tuple[str, str, Pin]]:
 
 
 def scan(file: str, lines: list[str], named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
+    """Read a caller's line list through the same offset scan as whole files."""
+    return scan_text(file, "\n".join(lines), named)
+
+
+def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
     """Every restatement the lines carry, in the order they read.
 
     A line is skipped whole unless it carries an id, which is what keeps this off the
@@ -228,21 +237,30 @@ def scan(file: str, lines: list[str], named: list[tuple[str, str, Pin]]) -> Iter
     its pin with one hyphen and no space, and a rule reading from the name's end
     would take the id as part of the name.
     """
-    for index, raw in enumerate(lines):
-        line = raw.removesuffix("\r")
-        found = list(ID_RE.finditer(line))
-        if not found:
-            continue
-        marks = _named(line, named)
-        if not marks:
-            continue
-        for m in found:
-            before = [mark for mark in marks if mark[0] < m.start()]
-            if not before:
-                continue
-            _, spelling, pin = before[-1]
+    # Only lines carrying an id need a name scan or a line number. Both cursors
+    # move forward: newline counting never rescans a prefix, and matching another
+    # id on the same line reuses its names without allocating a filtered list.
+    index = start = 0
+    end = -1
+    marks: list[tuple[int, str, Pin]] = []
+    cursor = 0
+    for m in ID_RE.finditer(text):
+        if m.start() >= end:
+            next_start = text.rfind("\n", start, m.start()) + 1
+            index += text.count("\n", start, next_start)
+            start = next_start
+            end = text.find("\n", m.end())
+            if end < 0:
+                end = len(text)
+            marks = _named(text[start:end].removesuffix("\r"), named)
+            cursor = 0
+        offset = m.start() - start
+        while cursor < len(marks) and marks[cursor][0] < offset:
+            cursor += 1
+        if cursor:
+            _, spelling, pin = marks[cursor - 1]
             yield Site(file=file, line=index + 1, index=index,
-                       start=m.start(), end=m.end(), ident=m.group(1),
+                       start=offset, end=m.end() - start, ident=m.group(1),
                        named=spelling, pin=pin)
 
 

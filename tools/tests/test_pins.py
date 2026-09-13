@@ -19,6 +19,7 @@ Nothing here restates what a disagreement *means*, which is `vos/checks/pins.py`
 and is stated once, in its own module beside the code that decides it.
 """
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -247,6 +248,39 @@ def _a_file_that_is_not_there() -> None:
            "a file with no lines must yield no sites rather than raising")
 
 
+def _id_boundaries_match_reference() -> None:
+    reference = re.compile(r"(?<![0-9A-Za-z_])([0-9a-f]{7,40})(?![\w-])")
+    edges = ("", " ", "\n", "\r\n", "`", "-", "_", "g", "F", "0", "é", "中")
+    tokens = ["a" * size for size in (6, 7, 8, 39, 40, 41, 64)]
+    tokens += ["1234567", "0xabcdef0", "ABCDEF01", "abc1234-1234abc"]
+    for before in edges:
+        for token in tokens:
+            for after in edges:
+                text = before + token + after
+                expected = [(m.span(), m.group(1)) for m in reference.finditer(text)]
+                actual = [(m.span(), m.group(1)) for m in pins.ID_RE.finditer(text)]
+                ensure(actual == expected, f"id boundaries changed for {text!r}")
+
+
+def _offset_sites_keep_line_boundaries() -> None:
+    named = pins.spellings(_rows())
+    lines = ["core", "1a2b3c4d", "", "é core 1a2b3c4d 9c0d1e2f nested-core 5e6f7a8b",
+             "", "core", "", "5e6f7a8b", "wide_name 9c0d1e2f"]
+    expected = [(4, 3, 7, 15, "1a2b3c4d", "upstream/core"),
+                (4, 3, 16, 24, "9c0d1e2f", "upstream/core"),
+                (4, 3, 37, 45, "5e6f7a8b", "upstream/nested-core"),
+                (9, 8, 10, 18, "9c0d1e2f", "upstream/wide")]
+    for newline in ("\n", "\r\n"):
+        for ending in ("", newline):
+            text = newline.join(lines) + ending
+            sites = list(pins.scan_text("f", text, named))
+            actual = [(s.line, s.index, s.start, s.end, s.ident, s.pin.path) for s in sites]
+            ensure(actual == expected, f"offset scan changed locations: {actual}")
+            ensure(sites == list(pins.scan("f", text.split("\n"), named)),
+                   "line and text callers must receive identical sites")
+    ensure(not list(pins.scan_text("f", "", named)), "empty text must have no sites")
+
+
 def cases() -> list[Case]:
     return [
         Case("reads-its-own-table", _reads_its_own_table),
@@ -261,4 +295,6 @@ def cases() -> list[Case]:
         Case("scan-leaves-the-fence-to-its-caller", _scan_leaves_the_fence_to_its_caller),
         Case("spellings-are-longest-first", _spellings_are_longest_first),
         Case("a-file-that-is-not-there", _a_file_that_is_not_there),
+        Case("id-boundaries-match-reference", _id_boundaries_match_reference),
+        Case("offset-sites-keep-line-boundaries", _offset_sites_keep_line_boundaries),
     ]
