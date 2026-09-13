@@ -5,10 +5,10 @@
    The frame service of the static-memory transformation experiment
    (tools/vos/static_memory_transform.py), at the level of list functions:
    the value specification `reference`, the byte arithmetic the emitted
-   map instruction uses, one functional model per emitted variant, and the
-   theorem that every model returns `reference` on every input list, under
-   the one hypothesis the chunked and tiled variants carry, that their
-   chunk starts partition the index interval.
+   map instruction uses, a functional model of each emitted variant's data
+   flow, and the theorem that every model returns `reference` on every
+   input list, under the one hypothesis the chunk variants carry, that
+   their chunk starts partition the index interval.
 
    What this file is. A machine-checked form of the elementary algorithm
    argument docs/implementation/static-memory-transformations.md states in
@@ -17,10 +17,12 @@
    multiply/mod map on every byte; and an in-place pass that overwrites
    element i after reading it, then XORs only after the reduction is
    complete, emits the same bytes in index order. Everything below is
-   proved outright over Rocq's standard library: nothing is admitted, no
-   axiom is declared, and the Print Assumptions block at the end reports
-   every constant closed under the global context, which is the R-05-163
-   gate `run.py proofs` runs.
+   proved outright over Rocq's standard library: nothing is admitted and
+   no axiom is declared. The Print Assumptions block at the end reports
+   the theorems and the named examples closed under the global context;
+   it is a reader's check and not the inventory, since `run.py proofs`
+   enumerates every constant of the file itself, which is the R-05-163
+   gate.
 
    What this file is not. It does not model the interpreter. The Python
    `execute` walks an instruction list over a flat byte array with base
@@ -32,20 +34,27 @@
    over the report's frames, and it stays an executable claim: no
    refinement from the emitted schedule to these functions is stated here,
    and authority, index checks, zeroization, staging copies and DMA are
-   outside every theorem in this file. The costs the experiment compares
-   (reservations, traffic, operation counts) are not modelled at all; the
-   file decides only that the candidates agree on their output.
+   outside every theorem in this file. The chunk models place a chunk's
+   outputs by chunk order where the schedule writes them at their start
+   offsets, which agree under the partition hypothesis and not otherwise.
+   The costs the experiment compares (reservations, traffic, operation
+   counts) are not modelled at all; the file decides only that the
+   candidates agree on their output.
 
-   The models, one per row of the emitted variant table:
+   The models, six over the seven rows of the emitted variant table,
+   because two rows share one data flow:
    - `retained` maps, folds the checksum, then maps the XOR over the kept
      mapped list (lexical-cache and phased-cache, which differ in
      retirement and not in data flow).
-   - `chunked chunks` slices the input by (start, count) pairs, maps and
-     reduces chunk by chunk, then XORs chunk by chunk and concatenates
-     (early-input-release and chunked-cache; the stage copy is a pure
-     move and leaves no functional trace).
-   - `tiled chunks` recomputes the map in the second pass instead of
-     reading a kept chunk (tiled-rematerialized).
+   - `early_release chunks` maps and reduces the input slice by slice
+     into one mapped list and XORs over that whole list
+     (early-input-release, whose input arrives in chunks while its mapped
+     buffer and its XOR pass are whole-length).
+   - `chunked chunks` maps and reduces slice by slice, then XORs each kept
+     mapped chunk and concatenates the chunk outputs (chunked-cache; the
+     stage copy is a pure move and leaves no functional trace).
+   - `tiled chunks` recomputes the map of the input slice in the second
+     pass instead of reading a kept mapped chunk (tiled-rematerialized).
    - `fused` folds the checksum over the map applied on the fly and
      recomputes the map again under the XOR (fused-rematerialized).
    - `in_place` is a sequential state machine over a memory function:
@@ -53,14 +62,26 @@
      and accumulates the checksum over that value; `xor_step` runs only
      after the whole reduction; the readout reads the memory back in
      index order, as the emit instructions do (in-place-phased).
+   The three chunk models are one function up to a reassociation of maps:
+   `early_release_is_chunked` is `concat_finish` and `tiled_is_chunked`
+   is `map_map`. That is the whole functional content of the two
+   observations that a stage copy is a pure move and that recomputing a
+   pure map returns what was stored; the models are stated separately
+   because each mirrors a different emitted schedule, and none of them
+   carries anything about what the recomputation or the copy costs.
    `generator_chunks tile len` is the chunk list `emit_program` builds,
    the starts of `range(0, length, tile)` with `min(tile, length - start)`
-   counts, and `generator_chunks_partition` proves it satisfies
-   `partitions` for every positive tile, so the two chunked theorems
-   apply to every program the generator emits. `partitions` is stated as
-   the sufficient condition and shown to be the one that matters: a chunk
-   list that drops or repeats an index fails it and, on the demo frame,
-   returns a different list.
+   counts; `generator_chunks_clamp` shows the generator's clamp of the
+   tile to the length changes no chunk, and `generator_chunks_partition`
+   proves the list satisfies `partitions` for every positive tile, so the
+   chunk theorems apply to every program the generator emits.
+   `partitions` is a sufficient condition and not a necessary one:
+   `single_chunk_agrees` shows one chunk reaching past the end of the
+   list still returns the reference, because a slice truncates there, and
+   `partitions_not_necessary` names such a chunk list on the demo frame.
+   What the hypothesis excludes is the defect a wrong chunk list
+   introduces: one that drops an index or repeats one fails it and, on
+   the demo frame, returns a different list.
 
    Byte representation. Bytes are naturals below 256, `is_byte`. The
    equivalences are stated for every list of naturals, because every
@@ -72,20 +93,30 @@
    computation over the 256 byte values, the domain the emitted
    instruction actually sees.
 
-   Why R-08-019e. Its second lever, recompute rather than store, is what
-   the tiled and fused variants exercise, and the lever acts on the
-   artifact only if recomputation returns the same result; this file is
-   that precondition, proved for this service. The certificate that
-   prices the trade in space and time is not touched here, so no entry
-   about that certificate is cited.
+   Why R-08-019e. It is cited and not claimed. Its subject, a peak too
+   large and the three levers that act on the artifact, is not modelled
+   here: no reservation, no peak and no cost appears in this file. The
+   contact is the second lever, recompute rather than store, which the
+   tiled and fused variants exercise and which acts on the artifact only
+   where recomputation returns the same output; `tiled_correct` and
+   `fused_correct` are that equality for this service, and at this level
+   the equality is a reassociation of maps rather than a fact about the
+   trade. The certificate that prices the trade in space and time is not
+   touched here, so no entry about that certificate is cited, and whether
+   the entry governs this artifact is the review gate's reading.
 
    Non-vacuity (R-05-165, R-05-166). `demo_frame` is a concrete frame
    whose outputs every model computes by `vm_compute`,
    `witness_InPlaceState` inhabits the one record theorems quantify over,
    and three wrong variants are refuted on that frame: the XOR pass
-   replaced by a copy, a chunk list missing an index, and one repeating
-   an index, the last two also shown to fail `partitions`, so the
-   hypothesis excludes the defects the Python mutants introduce.
+   replaced by a copy, which mirrors the mutant the Python tests apply, a
+   chunk list missing the last two indices, and one repeating the first
+   two in their place, both defects no generator path produces and the
+   hypothesis exists to exclude. The copy and the repetition return lists
+   of the reference's length with different values, and the omission
+   differs already on the prefix the two outputs share, so each
+   refutation is by value and not by length alone; the two chunk lists
+   also fail `partitions`.
 
    No landing credit. This file is research evidence for the backlog item
    it answers; the requirements register remains authoritative, nothing
@@ -244,15 +275,35 @@ Lemma mapped_chunks : forall xs chunks,
   map (fun c => mapped (slice xs c)) chunks = map mapped (map (slice xs) chunks).
 Proof. intros. rewrite map_map. reflexivity. Qed.
 
-(* -------------------------------------------------------------------------
-   Variant 2: mapped chunks kept until their XOR (early-input-release,
-   chunked-cache). The checksum folds chunk by chunk from the previous
-   chunk's accumulator; the XOR pass reads each kept chunk and the outputs
-   are concatenated in chunk order.
-   ------------------------------------------------------------------------- *)
-
+(* The checksum folded chunk by chunk, each chunk continuing the previous
+   chunk's accumulator. *)
 Definition chunk_reduce (chunks : list (list nat)) : nat :=
   fold_left (fun acc ch => fold_left step ch acc) chunks 0.
+
+(* -------------------------------------------------------------------------
+   Variant 2: input in chunks, one mapped list (early-input-release). The
+   map and the reduction walk the input slice by slice and fill one
+   whole-length mapped list; the XOR pass reads that list end to end.
+   ------------------------------------------------------------------------- *)
+
+Definition early_release (chunks : list (nat * nat)) (xs : list nat) : list nat :=
+  finish (chunk_reduce (map (fun c => mapped (slice xs c)) chunks))
+         (concat (map (fun c => mapped (slice xs c)) chunks)).
+
+Theorem early_release_correct : forall chunks xs,
+  partitions chunks (length xs) -> early_release chunks xs = reference xs.
+Proof.
+  intros chunks xs Hp. rewrite <- retained_correct.
+  unfold early_release, chunk_reduce, retained, reduce.
+  rewrite mapped_chunks, fold_chunks, concat_mapped.
+  rewrite (concat_slices xs chunks 0 Hp). reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Variant 3: mapped chunks kept until their XOR (chunked-cache). The
+   checksum folds chunk by chunk as above; the XOR pass reads each kept
+   chunk and the outputs are concatenated in chunk order.
+   ------------------------------------------------------------------------- *)
 
 Definition chunked (chunks : list (nat * nat)) (xs : list nat) : list nat :=
   concat (map (finish (chunk_reduce (map (fun c => mapped (slice xs c)) chunks)))
@@ -267,10 +318,18 @@ Proof.
   rewrite (concat_slices xs chunks 0 Hp). reflexivity.
 Qed.
 
+(* The two models are one function up to `concat_finish`: XORing the whole
+   mapped list against the checksum and XORing each kept chunk against it
+   give the same list, which is what makes the stage copy a pure move. *)
+Lemma early_release_is_chunked : forall chunks xs,
+  early_release chunks xs = chunked chunks xs.
+Proof. intros. unfold early_release, chunked. symmetry. apply concat_finish. Qed.
+
 (* -------------------------------------------------------------------------
-   Variant 3: tiled recomputation (tiled-rematerialized). The second pass
+   Variant 4: tiled recomputation (tiled-rematerialized). The second pass
    maps the input slice again into the tile before the XOR, rather than
-   reading a kept mapped chunk.
+   reading a kept mapped chunk. Up to `map_map` this is `chunked`: at the
+   functional level, recomputing a pure map is reading what it stored.
    ------------------------------------------------------------------------- *)
 
 Definition tiled (chunks : list (nat * nat)) (xs : list nat) : list nat :=
@@ -285,7 +344,7 @@ Theorem tiled_correct : forall chunks xs,
 Proof. intros chunks xs Hp. rewrite tiled_is_chunked. apply chunked_correct. exact Hp. Qed.
 
 (* -------------------------------------------------------------------------
-   Variant 4: fused recomputation (fused-rematerialized). No mapped list
+   Variant 5: fused recomputation (fused-rematerialized). No mapped list
    exists: the reduction applies the map on the fly and the XOR pass
    applies it a second time.
    ------------------------------------------------------------------------- *)
@@ -310,7 +369,7 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------
-   Variant 5: in place (in-place-phased). Memory is a function from index
+   Variant 6: in place (in-place-phased). Memory is a function from index
    to value, loaded from the frame by ingress. Phase one visits the indices
    in order: each step reads element i, overwrites it with its mapped value
    and accumulates the checksum over that value. Phase two, which starts
@@ -432,9 +491,11 @@ Qed.
 (* -------------------------------------------------------------------------
    The generator's chunk list, and that it partitions the interval. `tiles`
    is `range(0, length, tile)` with `min(tile, length - start)` counts,
-   written with a fuel argument that the length itself bounds; the
-   generator clamps the tile to the length first, which changes no chunk,
-   and the theorem quantifies over every positive tile anyway.
+   written with a fuel argument that the length itself bounds. The
+   generator clamps the tile to the length first; `generator_chunks_clamp`
+   shows that changes no chunk, so `generator_chunks (min tile len) len`
+   is the Python list and every theorem below about `generator_chunks tile
+   len` is a theorem about it.
    ------------------------------------------------------------------------- *)
 
 Fixpoint tiles (fuel from len tile : nat) : list (nat * nat) :=
@@ -469,6 +530,21 @@ Theorem generator_chunks_partition : forall tile len,
   1 <= tile -> partitions (generator_chunks tile len) len.
 Proof. intros tile len Ht. unfold partitions, generator_chunks. apply tiles_cover; lia. Qed.
 
+(* A tile wider than the frame yields the one chunk the whole frame is,
+   clamped or not. *)
+Lemma generator_chunks_clamp : forall tile len,
+  1 <= tile -> generator_chunks (Nat.min tile len) len = generator_chunks tile len.
+Proof.
+  intros tile len Ht. unfold generator_chunks.
+  destruct (Nat.min_spec tile len) as [[_ Hmin] | [Hle Hmin]]; rewrite Hmin; [reflexivity |].
+  destruct len as [| len]; [reflexivity |].
+  cbn [tiles Nat.leb]. rewrite !tiles_exhausted by lia. rewrite !Nat.min_r by lia. reflexivity.
+Qed.
+
+Corollary generator_early_release_correct : forall tile xs,
+  1 <= tile -> early_release (generator_chunks tile (length xs)) xs = reference xs.
+Proof. intros. apply early_release_correct. apply generator_chunks_partition. assumption. Qed.
+
 Corollary generator_chunked_correct : forall tile xs,
   1 <= tile -> chunked (generator_chunks tile (length xs)) xs = reference xs.
 Proof. intros. apply chunked_correct. apply generator_chunks_partition. assumption. Qed.
@@ -476,6 +552,22 @@ Proof. intros. apply chunked_correct. apply generator_chunks_partition. assumpti
 Corollary generator_tiled_correct : forall tile xs,
   1 <= tile -> tiled (generator_chunks tile (length xs)) xs = reference xs.
 Proof. intros. apply tiled_correct. apply generator_chunks_partition. assumption. Qed.
+
+(* -------------------------------------------------------------------------
+   The hypothesis is sufficient and not necessary. A slice truncates at the
+   end of the list, so one chunk reaching past the end reads the whole list
+   and returns the reference without partitioning the interval. The chunk
+   theorems therefore do not characterise the chunk lists that agree; they
+   cover the ones the generator emits.
+   ------------------------------------------------------------------------- *)
+
+Lemma single_chunk_agrees : forall n xs, length xs <= n -> chunked [(0, n)] xs = reference xs.
+Proof.
+  intros n xs Hn. rewrite <- retained_correct.
+  unfold chunked, chunk_reduce, retained, reduce, slice.
+  cbn [map concat fold_left fst snd skipn].
+  rewrite firstn_all2 by exact Hn. rewrite app_nil_r. reflexivity.
+Qed.
 
 (* -------------------------------------------------------------------------
    Bytes in, bytes out. The map is a residue mod 256 and XOR of two values
@@ -518,10 +610,11 @@ Qed.
 (* -------------------------------------------------------------------------
    Non-vacuity. A concrete frame, its outputs by computation on every
    model, the record witness, and three wrong variants refuted on the same
-   frame: the XOR pass replaced by a copy, a chunk list that drops the
-   last two indices, and one that repeats the first two. The two chunk
-   lists also fail `partitions`, which is what makes that hypothesis the
-   one the chunked theorems need rather than a convenience.
+   frame by value: the XOR pass replaced by a copy, a chunk list that drops
+   the last two indices, and one that repeats the first two in their place.
+   The two chunk lists fail `partitions`; a third, one chunk reaching past
+   the end, fails it too and still returns the reference, which is the
+   concrete form of the hypothesis being sufficient and not necessary.
    ------------------------------------------------------------------------- *)
 
 Definition demo_frame : list nat := [0; 1; 255; 16].
@@ -537,6 +630,7 @@ Proof. vm_compute. reflexivity. Qed.
 (*| discharges: R-05-165, R-05-166 |*)
 Example demo_variants_agree :
   retained demo_frame = demo_output
+  /\ early_release (generator_chunks 3 (length demo_frame)) demo_frame = demo_output
   /\ chunked (generator_chunks 3 (length demo_frame)) demo_frame = demo_output
   /\ chunked (generator_chunks 8 (length demo_frame)) demo_frame = demo_output
   /\ tiled (generator_chunks 3 (length demo_frame)) demo_frame = demo_output
@@ -548,24 +642,44 @@ Example generator_chunks_of_the_demo :
   generator_chunks 3 (length demo_frame) = [(0, 3); (3, 1)].
 Proof. vm_compute. reflexivity. Qed.
 
-(* The XOR pass replaced by a copy of the mapped value. *)
+(* The XOR pass replaced by a copy of the mapped value: the reference's
+   length, different values. *)
 Definition copy_instead_of_xor (xs : list nat) : list nat := mapped xs.
 
 (*| discharges: R-05-165, R-05-166 |*)
 Example copy_variant_refuted : copy_instead_of_xor demo_frame <> reference demo_frame.
 Proof. vm_compute. intro H. discriminate H. Qed.
 
-Definition missing_chunk : list (nat * nat) := [(0, 2)].
+Example copy_variant_same_length :
+  length (copy_instead_of_xor demo_frame) = length (reference demo_frame).
+Proof. vm_compute. reflexivity. Qed.
 
-Definition duplicate_chunk : list (nat * nat) := [(0, 2); (0, 2); (2, 2)].
+(* The last two indices dropped. The output is short, and the prefix it
+   shares with the reference already differs, because the dropped values
+   are missing from the checksum every element is XORed against. *)
+Definition missing_chunk : list (nat * nat) := [(0, 2)].
 
 (*| discharges: R-05-165, R-05-166 |*)
 Example missing_chunk_refuted : chunked missing_chunk demo_frame <> reference demo_frame.
 Proof. vm_compute. intro H. discriminate H. Qed.
 
 (*| discharges: R-05-165, R-05-166 |*)
+Example missing_chunk_prefix_refuted :
+  chunked missing_chunk demo_frame
+  <> firstn (length (chunked missing_chunk demo_frame)) (reference demo_frame).
+Proof. vm_compute. intro H. discriminate H. Qed.
+
+(* The first two indices twice, in place of the last two: the reference's
+   length, different values. *)
+Definition duplicate_chunk : list (nat * nat) := [(0, 2); (0, 2)].
+
+(*| discharges: R-05-165, R-05-166 |*)
 Example duplicate_chunk_refuted : chunked duplicate_chunk demo_frame <> reference demo_frame.
 Proof. vm_compute. intro H. discriminate H. Qed.
+
+Example duplicate_chunk_same_length :
+  length (chunked duplicate_chunk demo_frame) = length (reference demo_frame).
+Proof. vm_compute. reflexivity. Qed.
 
 Example missing_chunk_is_no_partition : ~ partitions missing_chunk (length demo_frame).
 Proof. cbn. intros [_ H]. discriminate H. Qed.
@@ -573,28 +687,55 @@ Proof. cbn. intros [_ H]. discriminate H. Qed.
 Example duplicate_chunk_is_no_partition : ~ partitions duplicate_chunk (length demo_frame).
 Proof. cbn. intros [_ [H _]]. discriminate H. Qed.
 
+(* One chunk reaching past the end: no partition, and the reference. *)
+Definition overshoot_chunk : list (nat * nat) := [(0, 10)].
+
+Example overshoot_chunk_is_no_partition : ~ partitions overshoot_chunk (length demo_frame).
+Proof. cbn. intros [_ H]. discriminate H. Qed.
+
+Theorem partitions_not_necessary :
+  exists chunks, ~ partitions chunks (length demo_frame)
+                 /\ chunked chunks demo_frame = reference demo_frame.
+Proof.
+  exists overshoot_chunk. split.
+  - exact overshoot_chunk_is_no_partition.
+  - apply single_chunk_agrees. cbn. lia.
+Qed.
+
 (* -------------------------------------------------------------------------
    The R-05-163 gate: every constant closed under the global context, which
-   `run.py proofs` re-decides through its own inventory.
+   `run.py proofs` decides through its own inventory of the file. The
+   lines below are the theorems and named examples, for a reader.
    ------------------------------------------------------------------------- *)
 
 Print Assumptions emitted_map_is_map_byte.
 Print Assumptions emitted_map_checked_over_every_byte.
 Print Assumptions reduce_is_checksum.
 Print Assumptions retained_correct.
+Print Assumptions early_release_correct.
 Print Assumptions chunked_correct.
+Print Assumptions early_release_is_chunked.
+Print Assumptions tiled_is_chunked.
 Print Assumptions tiled_correct.
 Print Assumptions fused_correct.
 Print Assumptions in_place_correct.
 Print Assumptions generator_chunks_partition.
+Print Assumptions generator_chunks_clamp.
+Print Assumptions generator_early_release_correct.
 Print Assumptions generator_chunked_correct.
 Print Assumptions generator_tiled_correct.
+Print Assumptions single_chunk_agrees.
 Print Assumptions reference_bytes.
 Print Assumptions demo_reference.
 Print Assumptions demo_variants_agree.
 Print Assumptions generator_chunks_of_the_demo.
 Print Assumptions copy_variant_refuted.
+Print Assumptions copy_variant_same_length.
 Print Assumptions missing_chunk_refuted.
+Print Assumptions missing_chunk_prefix_refuted.
 Print Assumptions duplicate_chunk_refuted.
+Print Assumptions duplicate_chunk_same_length.
 Print Assumptions missing_chunk_is_no_partition.
 Print Assumptions duplicate_chunk_is_no_partition.
+Print Assumptions overshoot_chunk_is_no_partition.
+Print Assumptions partitions_not_necessary.

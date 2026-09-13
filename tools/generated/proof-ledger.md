@@ -184,6 +184,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/StaticMemoryService.v | demo_variants_agree | claimed |
 | R-05-165 | proofs/StaticMemoryService.v | copy_variant_refuted | claimed |
 | R-05-165 | proofs/StaticMemoryService.v | missing_chunk_refuted | claimed |
+| R-05-165 | proofs/StaticMemoryService.v | missing_chunk_prefix_refuted | claimed |
 | R-05-165 | proofs/StaticMemoryService.v | duplicate_chunk_refuted | claimed |
 | R-05-165 | proofs/SupervisionTree.v | n/a | cited |
 | R-05-166 | proofs/AdmissionPath.v | n/a | cited |
@@ -224,6 +225,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/StaticMemoryService.v | demo_variants_agree | claimed |
 | R-05-166 | proofs/StaticMemoryService.v | copy_variant_refuted | claimed |
 | R-05-166 | proofs/StaticMemoryService.v | missing_chunk_refuted | claimed |
+| R-05-166 | proofs/StaticMemoryService.v | missing_chunk_prefix_refuted | claimed |
 | R-05-166 | proofs/StaticMemoryService.v | duplicate_chunk_refuted | claimed |
 | R-05-166 | proofs/SupervisionTree.v | n/a | cited |
 | R-06-008 | proofs/AdmissionPath.v | n/a | cited |
