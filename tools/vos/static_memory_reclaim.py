@@ -1,11 +1,25 @@
 # SPDX-License-Identifier: Apache-2.0
 """Conditional fixed-schedule reclamation and capacity research, in synthetic ticks.
 
-The timing model is deliberately separate from Q22's authority model. Neither
-its holder-footprint premise nor its service rates are target qualifications.
-The calendar's two holder terms are derived from Q22a's fixture holder map: a
-holder kind that neither lifecycle stage retires refuses the calendar instead of
-disappearing into a fixed group count.
+The timing model is deliberately separate from Q22's authority model. Neither its
+holder-footprint premise nor its service rates are target qualifications. The
+calendar's two holder terms are derived from the distinct holder signatures Q22a's
+fixture exhibits. The charge is keyed by the signature and not by the class name,
+so merging, splitting or renaming the classes that name one signature moves no
+term. A holder the table leaves unnamed, and a kind it accounts for at neither
+lifecycle stage, refuse the calendar instead of disappearing into a fixed group
+count.
+
+Every quantity here is declared, and none is measured. One distinct signature is
+charged one extent unit at each stage that reaches it; containment is declared to
+scrub two signatures per reserved tick and the post-barrier pass to reach one per
+reserved tick; and `protocol_ticks` is a declared window for the barrier
+obligations that belong to no holder, publication, proxy notification, device
+completion and proxy acknowledgement. Q22a fixes none of those four inputs, and
+changing any one of them moves C or S. What Q22a's fixture fixes is how many
+distinct signatures each stage has to pay for. The shipped calendar defaults are
+the terms this declaration derives for that fixture, and `report` checks them
+against the derivation rather than imposing them on it.
 """
 
 from dataclasses import asdict, dataclass, replace
@@ -23,6 +37,10 @@ SCOPE = ("conditional synthetic fixed calendar and finite host traces; "
 type Stage = Literal["containment", "post-barrier-pass"]
 type Signature = tuple[authority.Place, bool, bool, bool, bool]
 
+# One distinct holder signature costs one extent unit at each stage that reaches
+# it. This is a declared synthetic unit, never a scrub time or a measured rate.
+HOLDER_BYTES_PER_SIGNATURE = 16
+
 
 @dataclass(frozen=True)
 class Envelope:
@@ -38,9 +56,12 @@ class Envelope:
     fabric_bytes_per_tick: int = 64
     control_bytes_per_tick: int = 8
     control_work_bytes_per_request_tick: int = 2
+    # `containment_ticks` is the term Q22a's fixture derives at these declared
+    # inputs, not a second declaration the derivation has to reproduce. The rate
+    # is two holder signatures per reserved tick, the pass rate below is one.
     containment_ticks: int = 6
     protocol_ticks: int = 4
-    containment_bytes_per_tick: int = 40
+    containment_bytes_per_tick: int = 32
 
 
 @dataclass(frozen=True)
@@ -48,7 +69,9 @@ class Policy:
     name: str
     release_phases: tuple[int, ...]
     pass_period: int
-    sweep_ticks: int = 4
+    # `sweep_ticks` is likewise the term Q22a's fixture derives, not a second
+    # declaration; `report` replaces it with the derivation for every replay.
+    sweep_ticks: int = 5
     sweep_bytes_per_tick: int = 16
     zero_ticks: int = 4
     zero_bytes_per_tick: int = 16
@@ -56,12 +79,12 @@ class Policy:
 
 @dataclass(frozen=True)
 class HolderClass:
-    """One Q22a holder kind, its structural signature and its declared charge.
+    """One named Q22a holder kind, its structural signature and its stages.
 
-    `containment_bytes` is charged when containment retires the kind and
-    `sweep_bytes` when the post-barrier full pass reaches it. A kind charged at
-    neither stage is unaccounted and refuses the calendar. The charge is per
-    class, so more holders of a mapped kind move no calendar term.
+    The name is a label for readers. The calendar charge is keyed by
+    `signature()`, so two classes naming one signature are charged once and a
+    class split in two charges no more than the class it came from. A kind
+    reached at neither stage is unaccounted and refuses the calendar.
     """
 
     name: str
@@ -71,8 +94,8 @@ class HolderClass:
     borrowed: bool
     covered: bool
     retired_authority: bool
-    containment_bytes: int
-    sweep_bytes: int
+    retired_by_containment: bool
+    reached_by_pass: bool
     prefix: str = ""
 
     def signature(self) -> Signature:
@@ -80,48 +103,76 @@ class HolderClass:
                 self.retired_authority)
 
     def stages(self) -> tuple[Stage, ...]:
-        charged: tuple[tuple[Stage, int], ...] = (
-            ("containment", self.containment_bytes),
-            ("post-barrier-pass", self.sweep_bytes))
-        return tuple(stage for stage, charge in charged if charge)
+        declared: tuple[tuple[Stage, bool], ...] = (
+            ("containment", self.retired_by_containment),
+            ("post-barrier-pass", self.reached_by_pass))
+        return tuple(stage for stage, on in declared if on)
 
     def matches(self, name: str) -> bool:
         return name in self.members or (bool(self.prefix) and name.startswith(self.prefix))
+
+
+def signature_label(sig: Signature) -> str:
+    """An injective readable name for one signature: the unit the calendar charges."""
+    place, remote, borrowed, covered, retired = sig
+    flags = [name for name, on in (("remote", remote), ("borrowed", borrowed),
+                                   ("covered", covered)) if on]
+    return "/".join([place, *flags, *([] if retired else ["unretired"])])
 
 
 class ClassRow(TypedDict):
     """One holder class actually present in the supplied composition."""
 
     name: str
+    signature: str
     stages: tuple[Stage, ...]
     holders: tuple[str, ...]
-    containment_bytes: int
-    sweep_bytes: int
     cleared_by_containment: bool
     visited_by_pass: bool
+    raw_tag_after_pass: bool
 
 
-# Every kind Q22a's fixture supplies, with the stage its own model reaches it at.
-# `coverage` rechecks both the signature and the stage against that model, so this
-# table cannot drift from the qualification it claims to cover.
+class SignatureRow(TypedDict):
+    """One distinct signature present, and the whole charge it contributes."""
+
+    signature: str
+    fields: Signature
+    classes: tuple[str, ...]
+    holders: tuple[str, ...]
+    stages: tuple[Stage, ...]
+    containment_bytes: int
+    sweep_bytes: int
+
+
+# Every kind Q22a's fixture supplies, with the stages its own model reaches it at.
+# `coverage` rechecks both the signature and the stages against that model, so this
+# table cannot drift from the qualification it claims to cover. Several names share
+# one signature, which is why the charge counts signatures and not table rows.
 HOLDER_CLASSES: tuple[HolderClass, ...] = (
-    HolderClass("live-general-root", ("register",), "live", False, False, True, True, 16, 0),
-    HolderClass("live-special-root", ("mepcc",), "live", False, False, True, True, 16, 0),
-    HolderClass("borrowed-live-root", ("callee",), "live", False, True, False, True, 16, 0),
-    HolderClass("remote-delegate-root", ("remote-register",), "live", True, False, True,
-                True, 16, 0),
-    HolderClass("loan-copy", ("loan-copy",), "saved", False, True, False, True, 16, 8),
-    HolderClass("saved-context", ("saved",), "saved", False, False, True, True, 0, 8),
-    HolderClass("trusted-stack-root", ("trusted-stack",), "saved", False, False, True,
-                True, 0, 8),
-    HolderClass("grant-storage", ("grant-storage",), "memory", False, False, True, True, 0, 8),
-    HolderClass("outside-interval-copy", ("outside-interval-copy",), "memory", False,
-                False, True, True, 0, 8),
-    HolderClass("proxy-slot", ("proxy-slot",), "memory", True, False, True, True, 0, 8),
-    HolderClass("unrelated-grant", ("unrelated-grant",), "memory", False, False, False,
-                False, 0, 8),
-    HolderClass("interior-representation", (), "memory", False, False, True, True, 0, 8,
-                prefix="interior-"),
+    HolderClass("live-general-root", ("register",), "live", False, False, True, True,
+                retired_by_containment=True, reached_by_pass=False),
+    HolderClass("live-special-root", ("mepcc",), "live", False, False, True, True,
+                retired_by_containment=True, reached_by_pass=False),
+    HolderClass("borrowed-live-root", ("callee",), "live", False, True, False, True,
+                retired_by_containment=True, reached_by_pass=False),
+    HolderClass("remote-delegate-root", ("remote-register",), "live", True, False, True, True,
+                retired_by_containment=True, reached_by_pass=False),
+    HolderClass("loan-copy", ("loan-copy",), "saved", False, True, False, True,
+                retired_by_containment=True, reached_by_pass=True),
+    HolderClass("saved-context", ("saved",), "saved", False, False, True, True,
+                retired_by_containment=False, reached_by_pass=True),
+    HolderClass("trusted-stack-root", ("trusted-stack",), "saved", False, False, True, True,
+                retired_by_containment=False, reached_by_pass=True),
+    HolderClass("grant-storage", ("grant-storage",), "memory", False, False, True, True,
+                retired_by_containment=False, reached_by_pass=True),
+    HolderClass("outside-interval-copy", ("outside-interval-copy",), "memory", False, False,
+                True, True, retired_by_containment=False, reached_by_pass=True),
+    HolderClass("proxy-slot", ("proxy-slot",), "memory", True, False, True, True,
+                retired_by_containment=False, reached_by_pass=True),
+    HolderClass("unrelated-grant", ("unrelated-grant",), "memory", False, False, False, False,
+                retired_by_containment=False, reached_by_pass=True),
+    HolderClass("interior-representation", (), "memory", False, False, True, True,
+                retired_by_containment=False, reached_by_pass=True, prefix="interior-"),
 )
 
 # A Q22a refusal reason belongs to exactly one reclamation stage. The completion
@@ -177,10 +228,19 @@ def with_holder(comp: authority.Composition, state: authority.State,
 
 def coverage(comp: authority.Composition, initial: authority.State,
              classes: tuple[HolderClass, ...] = HOLDER_CLASSES) -> dict[str, Any]:
-    """Classify every holder the composition supplies and derive its stage charges.
+    """Classify every holder the composition supplies and charge its signatures.
 
     Coverage is relative to Q22a's supplied map and admitted shapes. It discovers
     no holder in a compiled image and proves no relation to one.
+
+    The charge is keyed by the signature Q22a's own holder fields decide and by
+    the stage its own model reaches that signature at, so the declared table
+    decides no term: renaming, merging or splitting the classes at one signature
+    leaves both terms where they were. What the table decides is whether the
+    composition is accounted for at all. A holder no class names, a class the
+    table charges at neither stage, a declared signature that contradicts the
+    fixture holder's fields and a declared stage the model does not perform are
+    each a refusal, and a refusal derives no calendar term.
     """
     errors: list[str] = []
     names = [item.name for item in classes]
@@ -190,45 +250,72 @@ def coverage(comp: authority.Composition, initial: authority.State,
     if initial.clock or initial.bits or initial.invocations_closed:
         errors.append("coverage requires the initial composition state")
     cleared: dict[str, bool] = {}
+    tagged: dict[str, bool] = {}
     try:
         contained = authority.ready(comp, initial)
+        swept = authority.reclaimed(comp, initial)
     except authority.RevocationError as exc:
         errors.append(f"containment-unreachable:{exc}")
     else:
         cleared = {holder.name: not holder.cap.tag for holder in contained.holders}
+        tagged = {holder.name: holder.cap.tag for holder in swept.holders}
     assigned: dict[str, list[str]] = {}
+    present: dict[Signature, list[str]] = {}
+    owners: dict[Signature, set[str]] = {}
     for holder in initial.holders:
         found = [item for item in classes if item.matches(holder.name)]
         if len(found) != 1:
             errors.append(("ambiguous-holder:" if found else "unclassified-holder:")
                           + holder.name)
             continue
-        if signature(comp, holder) != found[0].signature():
+        actual = signature(comp, holder)
+        if actual != found[0].signature():
             errors.append(f"signature:{found[0].name}/{holder.name}")
         assigned.setdefault(found[0].name, []).append(holder.name)
+        present.setdefault(actual, []).append(holder.name)
+        owners.setdefault(actual, set()).add(found[0].name)
     rows: list[ClassRow] = []
     for item in classes:
         members = assigned.get(item.name)
         if members is None:
             continue
         scrubbed = bool(cleared) and all(cleared.get(name) for name in members)
+        # `visited` follows from the signature's place once Q22a's own sweep-map
+        # check passes, so it is a consistency check on the declared table rather
+        # than independent evidence. `raw` is not implied by the place: it asks
+        # Q22a's reuse predicate whether the replayed pass left a raw tag behind.
         visited = all(name in comp.swept for name in members)
+        raw = bool(tagged) and any(tagged.get(name) for name in members)
         if not item.stages():
             errors.append(f"unaccounted-class:{item.name}")
-        if bool(item.containment_bytes) != scrubbed:
+        if item.retired_by_containment != scrubbed:
             errors.append(f"containment-stage:{item.name}")
-        if bool(item.sweep_bytes) != visited:
+        if item.reached_by_pass != visited:
             errors.append(f"pass-stage:{item.name}")
-        rows.append({"name": item.name, "stages": item.stages(),
-                     "holders": tuple(members),
-                     "containment_bytes": item.containment_bytes,
-                     "sweep_bytes": item.sweep_bytes,
-                     "cleared_by_containment": scrubbed, "visited_by_pass": visited})
-    containment_bytes = sum(row["containment_bytes"] for row in rows)
-    sweep_bytes = sum(row["sweep_bytes"] for row in rows)
+        if bool(tagged) and raw == item.retired_authority:
+            errors.append(f"authority-after-pass:{item.name}")
+        rows.append({"name": item.name, "signature": signature_label(item.signature()),
+                     "stages": item.stages(), "holders": tuple(members),
+                     "cleared_by_containment": scrubbed, "visited_by_pass": visited,
+                     "raw_tag_after_pass": raw})
+    charged: list[SignatureRow] = []
+    for sig in sorted(present, key=signature_label):
+        members = present[sig]
+        scrubbed = bool(cleared) and all(cleared.get(name) for name in members)
+        visited = all(name in comp.swept for name in members)
+        stages = tuple(stage for stage, on in (("containment", scrubbed),
+                                               ("post-barrier-pass", visited)) if on)
+        charged.append({"signature": signature_label(sig), "fields": sig,
+                        "classes": tuple(sorted(owners[sig])), "holders": tuple(members),
+                        "stages": stages,
+                        "containment_bytes": HOLDER_BYTES_PER_SIGNATURE if scrubbed else 0,
+                        "sweep_bytes": HOLDER_BYTES_PER_SIGNATURE if visited else 0})
+    containment_bytes = sum(row["containment_bytes"] for row in charged)
+    sweep_bytes = sum(row["sweep_bytes"] for row in charged)
     if not containment_bytes or not sweep_bytes:
         errors.append("empty containment or post-barrier inventory")
-    return {"classes": rows, "holders": len(initial.holders),
+    return {"classes": rows, "signatures": charged, "holders": len(initial.holders),
+            "bytes_per_signature": HOLDER_BYTES_PER_SIGNATURE,
             "containment_bytes": containment_bytes, "sweep_bytes": sweep_bytes,
             "errors": errors,
             "scope": "coverage relative to Q22a's fixture holder map and admitted "
@@ -236,10 +323,12 @@ def coverage(comp: authority.Composition, initial: authority.State,
 
 
 def calendar_terms(env: Envelope, policy: Policy, cov: dict[str, Any]) -> dict[str, int]:
-    """C and S count the holder classes present, at their declared per-class charge.
+    """C and S count the distinct holder signatures present, one extent unit each.
 
-    Containment also pays the protocol obligations that belong to no holder class:
+    Containment also pays the protocol obligations that belong to no holder:
     publication, proxy notification, device completion and proxy acknowledgement.
+    Both declared service rates are one extent unit per tick, so each signature
+    costs one reserved tick at each stage that reaches it.
     """
     if cov["errors"]:
         raise ValueError("an unaccounted holder class cannot derive a calendar term")
@@ -500,6 +589,46 @@ def refusal_schedule(env: Envelope, policy: Policy) -> dict[str, Any]:
                      "schedule withholds service, it does not requalify the barrier"}
 
 
+def repartitions(classes: tuple[HolderClass, ...],
+                 cov: dict[str, Any]) -> list[tuple[str, str, tuple[HolderClass, ...]]]:
+    """Name the same signatures differently: merge two, exchange two, split one.
+
+    Each returned map partitions exactly the holders the supplied map covers, at
+    exactly the same signatures. The calendar terms are expected not to move,
+    which is the property that makes them derived from the composition rather
+    than from how finely this table chooses to name it.
+    """
+    by_name = {item.name: item for item in classes}
+    rows: list[tuple[str, str, tuple[HolderClass, ...]]] = []
+    shared = next((row for row in cov["signatures"] if len(row["classes"]) > 1), None)
+    if shared is not None:
+        first, second = (by_name[name] for name in shared["classes"][:2])
+        if not (first.prefix and second.prefix):
+            others = tuple(item for item in classes
+                           if item.name not in {first.name, second.name})
+            rows.append((
+                "merged-class-names", "two names for one signature merged into one",
+                (*others, replace(first, name=f"{first.name}+{second.name}",
+                                  members=(*first.members, *second.members),
+                                  prefix=first.prefix or second.prefix))))
+            swap = {first.name: (second.members, second.prefix),
+                    second.name: (first.members, first.prefix)}
+            rows.append((
+                "swapped-class-members", "two names for one signature exchange members",
+                tuple(replace(item, members=swap[item.name][0], prefix=swap[item.name][1])
+                      if item.name in swap else item for item in classes)))
+    wide = next((row for row in cov["classes"] if len(row["holders"]) > 1), None)
+    if wide is not None:
+        item = by_name[wide["name"]]
+        head, *tail = wide["holders"]
+        rows.append((
+            "split-class-names", "one name for one signature split into two",
+            (*(other for other in classes if other.name != item.name),
+             replace(item, name=f"{item.name}-head", members=(head,), prefix=""),
+             replace(item, name=f"{item.name}-tail", members=tuple(tail), prefix=""))))
+    return rows
+
+
 def variant(name: str, note: str, env: Envelope, policy: Policy,
             comp: authority.Composition, initial: authority.State,
             classes: tuple[HolderClass, ...]) -> dict[str, Any]:
@@ -509,6 +638,7 @@ def variant(name: str, note: str, env: Envelope, policy: Policy,
         "variant": name, "note": note, "errors": cov["errors"],
         "holders": cov["holders"],
         "present_classes": [item["name"] for item in cov["classes"]],
+        "charged_signatures": [item["signature"] for item in cov["signatures"]],
         "containment_bytes": cov["containment_bytes"],
         "sweep_bytes": cov["sweep_bytes"]}
     if cov["errors"]:
@@ -523,26 +653,43 @@ def variant(name: str, note: str, env: Envelope, policy: Policy,
 
 def holder_coverage(env: Envelope, policy: Policy,
                     classes: tuple[HolderClass, ...] = HOLDER_CLASSES) -> dict[str, Any]:
-    """Derive the holder terms from Q22a's fixture and move them by changing kinds."""
+    """Derive the holder terms from Q22a's fixture and move them by changing kinds.
+
+    Three variants repartition the same holders at the same signatures: the terms
+    are expected to stand still, which is what makes them derived from Q22a's
+    fixture rather than from how finely this table names it.
+    """
     comp, initial = authority.fixture()
-    cap = next(holder.cap for holder in initial.holders if holder.name == "saved")
-    saved_class = HolderClass("vector-save-area", ("vector-save-area",), "saved",
-                              False, False, True, True, 0, 8)
-    root_class = HolderClass("timer-root", ("timer-root",), "live",
-                             False, False, True, True, 16, 0)
+    remote = next(holder.cap for holder in initial.holders if holder.name == "remote-register")
+    borrowed = next(holder.cap for holder in initial.holders if holder.name == "callee")
+    saved_class = HolderClass("remote-saved-context", ("remote-saved-context",), "saved",
+                              True, False, True, True, retired_by_containment=False,
+                              reached_by_pass=True)
+    root_class = HolderClass("remote-borrowed-root", ("remote-borrowed-root",), "live",
+                             True, True, False, True, retired_by_containment=True,
+                             reached_by_pass=False)
     grown = with_holder(comp, initial,
-                        authority.Holder("vector-save-area", "saved", 0, cap))
-    rooted = with_holder(comp, initial, authority.Holder("timer-root", "live", 0, cap))
-    stale = tuple(replace(item, containment_bytes=16) if item.name == "saved-context"
+                        authority.Holder("remote-saved-context", "saved", 1, remote))
+    rooted = with_holder(comp, initial, authority.Holder(
+        "remote-borrowed-root", "live", 1, replace(borrowed, island=1)))
+    base_cov = coverage(comp, initial, classes)
+    # A present class the pass reaches alone, so claiming containment for it
+    # contradicts the model rather than merely naming an absent kind.
+    passed = next(row["name"] for row in base_cov["classes"]
+                  if row["stages"] == ("post-barrier-pass",))
+    stale = tuple(replace(item, retired_by_containment=True) if item.name == passed
                   else item for item in classes)
+    renamed = repartitions(classes, base_cov)
     rows = [
         variant("q22a-fixture", "the qualification fixture's own composition",
                 env, policy, comp, initial, classes),
         variant("wider-retired-object", "more holders of a mapped kind, no new kind",
                 env, policy, *authority.fixture(8), classes),
-        variant("extra-saved-context-class", "one more kind the post-barrier pass reaches",
+        *(variant(name, note, env, policy, comp, initial, partition)
+          for name, note, partition in renamed),
+        variant("extra-saved-context-class", "a saved context at a signature the fixture lacks",
                 env, policy, *grown, (*classes, saved_class)),
-        variant("extra-live-root-class", "one more kind containment retires",
+        variant("extra-live-root-class", "a borrowed root at a signature the fixture lacks",
                 env, policy, *rooted, (*classes, root_class)),
         variant("unmapped-holder-class", "the same added holder with no kind mapped",
                 env, policy, *grown, classes),
@@ -559,23 +706,30 @@ def holder_coverage(env: Envelope, policy: Policy,
     if base["errors"]:
         errors.append("Q22a fixture holder coverage is incomplete")
     if named["wider-retired-object"]["sweep_ticks"] != base["sweep_ticks"]:
-        errors.append("more holders of one mapped kind changed the class-charged pass term")
+        errors.append("more holders of one mapped kind changed the pass term")
+    terms = ("containment_ticks", "sweep_ticks")
+    if len(renamed) != 3:
+        errors.append("the supplied map offers no merge, exchange and split to replay")
+    errors.extend(
+        f"{name}: repartitioning one signature moved a calendar term"
+        for name, _, _ in renamed
+        if named[name]["errors"] or any(named[name][key] != base[key] for key in terms))
     added = named["extra-saved-context-class"]
     if (added["sweep_ticks"] is None or base["sweep_ticks"] is None
             or added["sweep_ticks"] <= base["sweep_ticks"]
             or added["delta_release_to_reuse"] is None
             or added["delta_release_to_reuse"] <= 0):
-        errors.append("an added pass kind did not lengthen the pass term and the bound")
+        errors.append("an added pass signature did not lengthen the pass term and the bound")
     lifted = named["extra-live-root-class"]
     if (lifted["containment_ticks"] is None
             or lifted["containment_ticks"] <= base["containment_ticks"]):
-        errors.append("an added containment kind did not lengthen the containment term")
+        errors.append("an added containment signature did not lengthen the containment term")
     errors.extend(f"{name}: an unaccounted holder kind did not refuse the calendar"
                   for name in ("unmapped-holder-class", "misdeclared-stage")
                   if not named[name]["errors"])
     return {"classes": [asdict(item) for item in classes], "variants": rows,
-            "base": coverage(comp, initial, classes), "errors": errors,
-            "scope": "class-charged terms over Q22a's fixture and admitted shapes; "
+            "base": base_cov, "errors": errors,
+            "scope": "signature-charged terms over Q22a's fixture and admitted shapes; "
                      "no production holder roster and no measured service rate"}
 
 
@@ -677,8 +831,13 @@ def report(root: Path, classes: tuple[HolderClass, ...] = HOLDER_CLASSES) -> dic
               for error in item.get("errors", [])]
     errors.extend(coverage_block["errors"])
     errors.extend(refusals["errors"])
-    if (declared.containment_ticks, template.sweep_ticks) != (env.containment_ticks, sweep):
-        errors.append("declared calendar defaults no longer match the Q22a holder terms")
+    # The derivation decides the replayed calendar. For the declared map the
+    # shipped defaults are checked against it, so they stay a record of the
+    # derivation rather than a second input a supplied map has to agree with.
+    if (classes == HOLDER_CLASSES
+            and (declared.containment_ticks, template.sweep_ticks)
+            != (env.containment_ticks, sweep)):
+        errors.append("the shipped calendar defaults are not the terms Q22a's fixture derives")
     if (checks["positive_reuse_errors"] or not checks["premature_bit_clear_exposes"]
             or any(not case["refusals"] for case in checks["cases"])):
         errors.append("Q22 semantic positive/refusal witness failed")
@@ -687,21 +846,32 @@ def report(root: Path, classes: tuple[HolderClass, ...] = HOLDER_CLASSES) -> dic
         "schema": SCHEMA,
         "scope": SCOPE,
         "envelope": asdict(env),
+        "derived_calendar": {
+            "containment_ticks": env.containment_ticks, "sweep_ticks": sweep,
+            "shipped_defaults": {"containment_ticks": declared.containment_ticks,
+                                 "sweep_ticks": template.sweep_ticks},
+            "holder_map": "declared" if classes == HOLDER_CLASSES else "supplied",
+            "bytes_per_signature": cov["bytes_per_signature"],
+            "rule": "the derived terms are the replayed calendar; a supplied map "
+                    "replays its own, and the shipped defaults are checked against "
+                    "the declared map rather than imposed on it"},
         "service_contract": {
             "arrival_rule": "a subset of four named requests at each multiple of 24 ticks",
             "results": "same deterministic result per request, visible only at public phase 8",
             "computation": "four independent one-tick tasks at phases 0..3; results copied to permanent outbox",
             "retirement_change": "deferred release holds inputs until delivery; eager release follows each task",
             "permanent_charge": "64 synthetic bytes for control, descriptors and result outbox in every variant",
-            "containment": "the protocol obligations that belong to no holder class, "
-                           "publication, proxy notification, device completion and proxy "
-                           "acknowledgement, plus the declared charge of every holder "
-                           "class containment retires, padded exactly to C",
+            "containment": "one declared tick for each barrier obligation that belongs to "
+                           "no holder, publication, proxy notification, device completion "
+                           "and proxy acknowledgement, plus one declared extent unit for "
+                           "each distinct holder signature containment retires, padded "
+                           "exactly to C",
             "control_cost": "each active request consumes two synthetic bytes per containment tick; concurrent pipelines must fit the fixed control grant",
-            "holder_coverage": "one declared charge for each Q22a holder class actually "
-                               "present, classified from the qualification fixture and "
-                               "assigned to the stage that retires it; complete coverage "
-                               "and no repopulation remain premises",
+            "holder_coverage": "one declared charge for each distinct Q22a holder "
+                               "signature actually present, named by the class table and "
+                               "assigned to the stage its own model reaches it at; a class "
+                               "name is a label and decides no term; complete coverage and "
+                               "no repopulation remain premises",
             "cost_limits": "synthetic fabric reservations include data/tag/ECC effects by assumption; target WCET, power and code extraction are open",
             "telemetry_label": "public synthetic research inputs; no private runtime occupancy",
         },
