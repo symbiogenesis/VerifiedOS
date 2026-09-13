@@ -16,6 +16,7 @@ from typing import Any
 from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
 from vos import static_memory_reclaim as reclaim
+from vos import static_memory_repr as representability
 from vos import static_memory_scale as scale
 from vos import static_memory_structure as structure
 from vos import static_memory_transform as transform
@@ -38,6 +39,8 @@ EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
     "scale": ("tools/vos/static_memory_scale.py",
               "docs/implementation/static-memory-scaling.md",
               "tools/vos/cli/placement.py"),
+    "repr": ("tools/vos/static_memory_repr.py",
+             "docs/implementation/static-memory-representability.md"),
 }
 
 
@@ -91,6 +94,8 @@ def experiment(args: argparse.Namespace, root: Path) -> int:
         result = transform.transformation_report(receipt["revision"])
     elif args.action == "reclaim":
         result = reclaim.report(root)
+    elif args.action == "repr":
+        result = representability.report(root, receipt["revision"])
     else:
         result = scale.report(root, receipt["revision"],
                               sizes=tuple(args.sizes or (8, 32, 128)),
