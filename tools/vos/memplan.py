@@ -570,9 +570,9 @@ def granule_exponent(length: int) -> int:
 
 
 def representable_granule(length: int) -> int:
-    """`representable_granule`: byte-exact to 128 bytes, above it the coarsest power of
+    """`representable_granule`: byte-exact below 128 bytes, from it the coarsest power of
     two whose 2^6 multiple still fits inside the length (R-15-007c)."""
-    return 1 if length <= 128 else 1 << granule_exponent(length)
+    return 1 if length < 128 else 1 << granule_exponent(length)
 
 
 def granule_of(plan: Plan, r: int) -> int:

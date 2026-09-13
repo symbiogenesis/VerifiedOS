@@ -28,14 +28,16 @@ among them.
 the bytes tracked, or the repair command is named.
 """
 
+from dataclasses import replace
+
 from tests.harness import Case, ensure
 from vos import corpus as corpus_mod
 from vos import memplan
 
 # R-15-007c's two regimes as the `.v` states them at
-# `the_two_regimes_meet_at_the_threshold`: byte-exact to 128, then the coarsest power
+# `the_two_regimes_meet_at_the_threshold`: byte-exact below 128, then the coarsest power
 # of two whose 2^6 multiple fits.
-_GRANULES = ((1, 1), (128, 1), (129, 2), (192, 2), (384, 4), (512, 8), (1024, 16))
+_GRANULES = ((1, 1), (127, 1), (128, 2), (129, 2), (192, 2), (384, 4), (512, 8), (1024, 16))
 
 # Which check refuses which variant, as the `.v`'s own Examples decide it. A plan
 # absent here is admitted by every check the search can move.
@@ -186,6 +188,16 @@ def _the_granule_port_is_the_entry_s_own_figures() -> None:
         got = memplan.representable_granule(length)
         ensure(got == expected,
                f"representable_granule {length} = {got}, the .v states {expected}")
+    # Sail permits length 127 at an odd base, but length 128 needs an even base.
+    toy = memplan.plan_of(memplan.parse(_TOY), "demo_plan")
+    below = replace(toy, lengths=(127, 32), bases=(1, 16),
+                    base_granules=(1, 16), length_granules=(127, 32))
+    boundary = replace(below, lengths=(128, 32), length_granules=(64, 32))
+    aligned = replace(boundary, bases=(2, 16))
+    ensure(memplan.base_is_quantized(below, 0), "127-byte odd base is exact")
+    ensure(not memplan.base_is_quantized(boundary, 0), "128-byte odd base must refuse")
+    ensure(memplan.base_is_quantized(aligned, 0)
+           and memplan.length_is_quantized(aligned, 0), "128-byte even base is exact")
     plan = memplan.plan_of(_live(), memplan.STANDING)
     for r in plan.regions():
         g = memplan.granule_of(plan, r)

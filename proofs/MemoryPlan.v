@@ -145,7 +145,7 @@
    8. Exactness is decided against granule counts the plan declares rather
       than by a division, the granule is not a declaration at all, and
       above the threshold it is a *bound* rather than a value. R-15-007c
-      fixes it as a function of the object's length, byte-exact to 128
+      fixes it as a function of the object's length, byte-exact below 128
       bytes at any base and rounding outward above that "at a granularity
       of at worst the length over 2^6"; that sentence bounds the
       encoding's granule and does not name it, and the same entry says the
@@ -198,7 +198,7 @@
    their sum and twenty-one is that sum plus the one kind R-14-015 names
    and neither list carries. R-08-045 charges every physical byte to one
    line item, so `each_region_once` compares an occurrence count against 1.
-   And R-15-007c fixes the representable granule at 1 up to 128 bytes and
+   And R-15-007c fixes the representable granule at 1 below 128 bytes and
    bounds it by the length over 2^6 above it, so 128 and 64 are that
    entry's two figures, and the 2 the exponent search steps by is that
    entry's own exponent base, the ninth. No construction below writes a
@@ -340,9 +340,9 @@
    focus; `within_one_granule_narrow_ok` admits everything the
    specification admits; `flat_quantum 1` keeps the regime below the
    threshold and stays inside the entry's bound on a power-of-two
-   alignment; `single_regime_quantum` keeps all three clauses above the
-   threshold; `coarser_quantum` keeps the regime below it and aligns on a
-   power of two; `granule_inside_the_window` keeps both bounds and the
+   alignment; `inclusive_threshold_quantum` keeps the below-threshold
+   regime, the upper bound and power-of-two alignment; `coarser_quantum`
+   keeps the regime below it and aligns on a power of two; `granule_inside_the_window` keeps both bounds and the
    regime below; `clamped_placement` agrees wherever the plan stays inside;
    `strict_colouring_ok` and `literal_colouring_ok` agree with the
    specification's colouring on the demo plan; and `brittle_bound` admits
@@ -365,7 +365,7 @@
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
       R-08-045 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
       R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247m R-15-247r R-15-247s R-18-004b
-   SHA256: 323d1b859f934629ff3e1be4d3626813eb640d79595772d1958b7bb7c167cf94
+   SHA256: 12249421975567236ab3134f6ef89df494fee5f4b0251d370107bf0038f8ba59
    (*| END derived |*)
    ========================================================================= *)
 
@@ -1910,7 +1910,7 @@ Qed.
 
    Reading 8: the granule is not a declaration, and above the threshold it
    is a bound rather than a value. R-15-007c makes bounds byte-exact for
-   objects up to 128 bytes at any base and rounds the representable region
+   objects below 128 bytes at any base and rounds the representable region
    outward above that at a granularity of *at worst* the length over 2^6,
    which bounds the encoding's granule without naming it, and fixes the
    exponent as the field the decoder derives the length mantissa's top bits
@@ -2006,23 +2006,23 @@ Proof. intros f len. reflexivity. Qed.
 Example the_exponent_of_no_fuel : granule_exponent 0 1024 = 0 := eq_refl.
 
 (* R-15-007c's own two figures, and this file's only two magnitudes from
-   that entry: byte-exact to 128 bytes, and above that the coarsest power
-   of two whose 2^6 multiple still fits inside the length. *)
+   that entry: byte-exact below 128 bytes, and from that threshold the
+   coarsest power of two whose 2^6 multiple still fits inside the length. *)
 Definition representable_granule (len : nat) : nat :=
-  if Nat.leb len 128 then 1 else pow2 (granule_exponent len len).
+  if Nat.leb len 127 then 1 else pow2 (granule_exponent len len).
 
 Definition Quantum : Type := nat -> nat.
 
 Definition spec_quantum : Quantum := representable_granule.
 
 Definition ByteExactBelowTheThreshold (q : Quantum) : Prop :=
-  forall len : nat, Nat.leb len 128 = true -> q len = 1.
+  forall len : nat, Nat.leb len 127 = true -> q len = 1.
 
 (* "At worst the length over 2^6", stated by multiplying the granule back
    rather than by dividing: a granule of which 2^6 fit inside the length is
    exactly a granule no coarser than the length over 2^6. *)
 Definition NoCoarserThanTheLengthOverTheSixthPower (q : Quantum) : Prop :=
-  forall len : nat, Nat.ltb 128 len = true -> Nat.leb (64 * q len) len = true.
+  forall len : nat, Nat.ltb 127 len = true -> Nat.leb (64 * q len) len = true.
 
 (* And the other side of "lays each object at its representable
    alignment": the plan aligns to the worst case the entry admits, so
@@ -2030,7 +2030,7 @@ Definition NoCoarserThanTheLengthOverTheSixthPower (q : Quantum) : Prop :=
    plan-wide granule of one byte satisfies the bound everywhere. *)
 Definition TheCoarsestGranuleWithinThatBound (q : Quantum) : Prop :=
   forall len : nat,
-    Nat.ltb 128 len = true -> Nat.ltb len (64 * (2 * q len)) = true.
+    Nat.ltb 127 len = true -> Nat.ltb len (64 * (2 * q len)) = true.
 
 (* And the clause the two bounds do not decide: the encoding's granule is a
    power of two, so a granule inside the bound that is not one is no
@@ -2047,11 +2047,11 @@ Qed.
 
 Lemma granule_exponent_within_the_bound :
   forall fuel len : nat,
-    Nat.ltb 128 len = true ->
+    Nat.ltb 127 len = true ->
     Nat.leb (64 * pow2 (granule_exponent fuel len)) len = true.
 Proof.
   intros fuel. induction fuel as [ | f IH ]; intros len H.
-  - exact (leb_trans 64 129 len eq_refl H).
+  - exact (leb_trans 64 128 len eq_refl H).
   - rewrite (granule_exponent_step f len).
     destruct (Nat.leb (64 * (2 * pow2 (granule_exponent f len))) len) eqn:E.
     + exact E.
@@ -2080,7 +2080,7 @@ Theorem the_specification_quantum_is_no_coarser_than_the_bound :
   NoCoarserThanTheLengthOverTheSixthPower spec_quantum.
 Proof.
   intros len H. unfold spec_quantum, representable_granule.
-  rewrite (ltb_leb_false len 128 H).
+  rewrite (ltb_leb_false len 127 H).
   exact (granule_exponent_within_the_bound len len H).
 Qed.
 
@@ -2089,7 +2089,7 @@ Theorem the_specification_quantum_is_the_coarsest_within_that_bound :
   TheCoarsestGranuleWithinThatBound spec_quantum.
 Proof.
   intros len H. unfold spec_quantum, representable_granule.
-  rewrite (ltb_leb_false len 128 H).
+  rewrite (ltb_leb_false len 127 H).
   destruct (granule_exponent_stopped_or_unspent len len) as [ Hlt | Heq ].
   - exact Hlt.
   - assert (Hb : Nat.leb (64 * pow2 (granule_exponent len len)) len = true)
@@ -2108,7 +2108,7 @@ Theorem the_specification_quantum_aligns_on_a_power_of_two :
   AlignsOnAPowerOfTwo spec_quantum.
 Proof.
   intros len. unfold spec_quantum, representable_granule.
-  destruct (Nat.leb len 128).
+  destruct (Nat.leb len 127).
   - exact (a_power_of_two_is_recognized 0).
   - exact (a_power_of_two_is_recognized (granule_exponent len len)).
 Qed.
@@ -2148,7 +2148,7 @@ Theorem the_byte_exact_plan_wide_granule_keeps_the_bound_and_the_alignment :
   /\ AlignsOnAPowerOfTwo (flat_quantum 1).
 Proof.
   split.
-  - intros len H. exact (leb_trans 64 129 len eq_refl H).
+  - intros len H. exact (leb_trans 64 128 len eq_refl H).
   - intros len. exact (a_power_of_two_is_recognized 0).
 Qed.
 
@@ -2156,44 +2156,40 @@ Theorem the_byte_exact_plan_wide_granule_is_refuted :
   ~ TheCoarsestGranuleWithinThatBound (flat_quantum 1).
 Proof. intros H. specialize (H 129 eq_refl). cbv in H. discriminate H. Qed.
 
-(* The construction R-15-007c's 128-byte figure exists to rule out: one
-   regime rather than two, the exponent search run at every length. It
-   keeps all three clauses above the threshold and breaks the byte-exact
-   one, at exactly the length the entry names and nowhere below it. *)
-Definition single_regime_quantum : Quantum := fun len =>
-  pow2 (granule_exponent len len).
+(* Extending the byte-exact regime through the threshold admits odd bases
+   for 128-byte objects. It keeps the below-threshold clause, the upper
+   granule bound and power-of-two alignment, but fails the coarseness
+   clause at the first length whose encoding needs a two-byte granule. *)
+Definition inclusive_threshold_quantum : Quantum := fun len =>
+  if Nat.leb len 128 then 1 else representable_granule len.
 
-Theorem the_single_regime_quantum_keeps_every_clause_above_the_threshold :
-  NoCoarserThanTheLengthOverTheSixthPower single_regime_quantum
-  /\ TheCoarsestGranuleWithinThatBound single_regime_quantum
-  /\ AlignsOnAPowerOfTwo single_regime_quantum.
+Theorem the_inclusive_threshold_quantum_keeps_the_other_clauses :
+  ByteExactBelowTheThreshold inclusive_threshold_quantum
+  /\ NoCoarserThanTheLengthOverTheSixthPower inclusive_threshold_quantum
+  /\ AlignsOnAPowerOfTwo inclusive_threshold_quantum.
 Proof.
   split; [ | split ].
-  - intros len H. exact (granule_exponent_within_the_bound len len H).
-  - intros len H.
-    destruct (granule_exponent_stopped_or_unspent len len) as [ Hlt | Heq ].
-    + exact Hlt.
-    + assert (Hb : Nat.leb (64 * pow2 (granule_exponent len len)) len = true)
-        by exact (granule_exponent_within_the_bound len len H).
-      rewrite Heq in Hb.
-      assert (Hs : Nat.leb (S len) len = true).
-      { apply (leb_trans (S len) (64 * pow2 len) len); [ | exact Hb ].
-        apply (leb_trans (S len) (pow2 len) (64 * pow2 len)).
-        - exact (len_lt_pow2 len).
-        - exact (leb_mul_self 64 (pow2 len) eq_refl). }
-      rewrite (leb_succ_false len) in Hs. discriminate Hs.
-  - intros len. exact (a_power_of_two_is_recognized (granule_exponent len len)).
+  - intros len H. unfold inclusive_threshold_quantum.
+    rewrite (leb_trans len 127 128 H eq_refl). reflexivity.
+  - intros len H. unfold inclusive_threshold_quantum.
+    destruct (Nat.leb len 128).
+    + exact (leb_trans 64 128 len eq_refl H).
+    + exact (the_specification_quantum_is_no_coarser_than_the_bound len H).
+  - intros len. unfold inclusive_threshold_quantum.
+    destruct (Nat.leb len 128).
+    + exact (a_power_of_two_is_recognized 0).
+    + exact (the_specification_quantum_aligns_on_a_power_of_two len).
 Qed.
 
-Theorem the_single_regime_quantum_is_refuted :
-  ~ ByteExactBelowTheThreshold single_regime_quantum.
+Theorem the_inclusive_threshold_quantum_is_refuted :
+  ~ TheCoarsestGranuleWithinThatBound inclusive_threshold_quantum.
 Proof. intros H. specialize (H 128 eq_refl). cbv in H. discriminate H. Qed.
 
-Example the_single_regime_quantum_breaks_at_the_entry_s_own_figure :
-  single_regime_quantum 64 = 1
-  /\ single_regime_quantum 127 = 1
-  /\ single_regime_quantum 128 = 2
-  /\ representable_granule 128 = 1 :=
+Example the_inclusive_threshold_quantum_breaks_at_the_threshold :
+  inclusive_threshold_quantum 127 = 1
+  /\ inclusive_threshold_quantum 128 = 1
+  /\ representable_granule 127 = 1
+  /\ representable_granule 128 = 2 :=
   conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 (* And the construction that rounds one exponent past the entry's bound:
@@ -2201,7 +2197,7 @@ Example the_single_regime_quantum_breaks_at_the_entry_s_own_figure :
    the threshold and it is a power of two, so what refutes it is the
    coarseness the entry bounds and nothing else. *)
 Definition coarser_quantum : Quantum := fun len =>
-  if Nat.leb len 128 then 1 else 2 * representable_granule len.
+  if Nat.leb len 127 then 1 else 2 * representable_granule len.
 
 Theorem the_coarser_quantum_keeps_the_regime_below_and_the_alignment :
   ByteExactBelowTheThreshold coarser_quantum
@@ -2210,7 +2206,7 @@ Proof.
   split.
   - intros len H. unfold coarser_quantum. rewrite H. reflexivity.
   - intros len. unfold coarser_quantum, representable_granule.
-    destruct (Nat.leb len 128).
+    destruct (Nat.leb len 127).
     + exact (a_power_of_two_is_recognized 0).
     + exact (a_power_of_two_is_recognized (S (granule_exponent len len))).
 Qed.
@@ -2220,7 +2216,7 @@ Theorem the_coarser_quantum_is_refuted :
 Proof. intros H. specialize (H 129 eq_refl). cbv in H. discriminate H. Qed.
 
 Example the_coarser_quantum_rounds_one_exponent_past_the_bound :
-  coarser_quantum 128 = 1 /\ coarser_quantum 129 = 4
+  coarser_quantum 128 = 4 /\ coarser_quantum 129 = 4
   /\ coarser_quantum 192 = 4 /\ representable_granule 192 = 2 :=
   conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
@@ -2236,7 +2232,7 @@ Definition granule_inside_the_window (at_length g : nat) : Quantum := fun len =>
 
 Theorem a_granule_inside_the_window_keeps_both_bounds :
   forall at_length g : nat,
-    Nat.ltb 128 at_length = true ->
+    Nat.ltb 127 at_length = true ->
     Nat.leb (64 * g) at_length = true ->
     Nat.ltb at_length (64 * (2 * g)) = true ->
     ByteExactBelowTheThreshold (granule_inside_the_window at_length g)
@@ -2248,7 +2244,7 @@ Proof.
   - intros len H. unfold granule_inside_the_window.
     destruct (Nat.eqb len at_length) eqn:E.
     + rewrite (eqb_true _ _ E) in H.
-      rewrite (ltb_leb_false at_length 128 Ha) in H. discriminate H.
+      rewrite (ltb_leb_false at_length 127 Ha) in H. discriminate H.
     + exact (the_specification_quantum_is_byte_exact_below_the_threshold len H).
   - intros len H. unfold granule_inside_the_window.
     destruct (Nat.eqb len at_length) eqn:E.
@@ -2262,7 +2258,7 @@ Qed.
 
 Example the_two_regimes_meet_at_the_threshold :
   representable_granule 1 = 1
-  /\ representable_granule 128 = 1
+  /\ representable_granule 128 = 2
   /\ representable_granule 129 = 2
   /\ representable_granule 192 = 2
   /\ representable_granule 384 = 4
@@ -2940,11 +2936,11 @@ Definition demo_bases : list nat :=
 
 Definition demo_base_granules : list nat :=
   cons 0 (cons 512 (cons 64 (cons 2304
-  (cons 96 (cons 300 (cons 112 (cons 183 nil))))))).
+  (cons 48 (cons 300 (cons 112 (cons 183 nil))))))).
 
 Definition demo_length_granules : list nat :=
   cons 64 (cons 64 (cons 32 (cons 96
-  (cons 128 (cons 64 (cons 96 (cons 64 nil))))))).
+  (cons 64 (cons 64 (cons 96 (cons 64 nil))))))).
 
 Definition demo_islands : list nat :=
   cons 0 (cons 1 (cons 0 (cons 1 (cons 0 (cons 1 (cons 0 (cons 1 nil))))))).
@@ -3055,7 +3051,7 @@ Definition shared_bases : list nat :=
 
 Definition shared_base_granules : list nat :=
   cons 0 (cons 512 (cons 64 (cons 2304
-  (cons 64 (cons 300 (cons 112 (cons 183 nil))))))).
+  (cons 32 (cons 300 (cons 112 (cons 183 nil))))))).
 
 Definition shared_slot_plan : Plan :=
   build_plan demo_lengths shared_bases shared_base_granules demo_length_granules
@@ -3069,7 +3065,7 @@ Definition overlapping_bases : list nat :=
 
 Definition overlapping_base_granules : list nat :=
   cons 0 (cons 512 (cons 32 (cons 2304
-  (cons 96 (cons 300 (cons 112 (cons 183 nil))))))).
+  (cons 48 (cons 300 (cons 112 (cons 183 nil))))))).
 
 Definition overlapping_live_plan : Plan :=
   build_plan demo_lengths overlapping_bases overlapping_base_granules
@@ -3083,7 +3079,7 @@ Definition escaping_bases : list nat :=
 
 Definition escaping_base_granules : list nat :=
   cons 0 (cons 512 (cons 64 (cons 2304
-  (cons 960 (cons 300 (cons 112 (cons 183 nil))))))).
+  (cons 480 (cons 300 (cons 112 (cons 183 nil))))))).
 
 Definition island_escaping_plan : Plan :=
   build_plan demo_lengths escaping_bases escaping_base_granules
@@ -3098,7 +3094,7 @@ Definition underflow_bases : list nat :=
 
 Definition underflow_base_granules : list nat :=
   cons 0 (cons 511 (cons 64 (cons 2304
-  (cons 96 (cons 300 (cons 112 (cons 183 nil))))))).
+  (cons 48 (cons 300 (cons 112 (cons 183 nil))))))).
 
 Definition island_underflow_plan : Plan :=
   build_plan demo_lengths underflow_bases underflow_base_granules
@@ -3135,7 +3131,7 @@ Definition odd_bases : list nat :=
 
 Definition odd_base_granules : list nat :=
   cons 0 (cons 512 (cons 64 (cons 2304
-  (cons 96 (cons 300 (cons 75 (cons 183 nil))))))).
+  (cons 48 (cons 300 (cons 75 (cons 183 nil))))))).
 
 Definition odd_base_plan : Plan :=
   build_plan demo_lengths odd_bases odd_base_granules demo_length_granules
@@ -3162,7 +3158,7 @@ Definition shorter_lengths : list nat :=
 
 Definition shorter_length_granules : list nat :=
   cons 64 (cons 64 (cons 32 (cons 64
-  (cons 128 (cons 64 (cons 96 (cons 64 nil))))))).
+  (cons 64 (cons 64 (cons 96 (cons 64 nil))))))).
 
 Definition shorter_region_plan : Plan :=
   build_plan shorter_lengths demo_bases demo_base_granules
@@ -3254,7 +3250,7 @@ Example the_demo_geometry :
       (cons 128 (cons 512 (cons 192 (cons 1024 nil)))))))
   /\ map_over demo_plan.(base_granules) (upto 8)
     = cons 0 (cons 512 (cons 64 (cons 2304
-      (cons 96 (cons 300 (cons 112 (cons 183 nil)))))))
+      (cons 48 (cons 300 (cons 112 (cons 183 nil)))))))
   /\ map_over demo_plan.(island_of) (upto 8)
     = cons 0 (cons 1 (cons 0 (cons 1 (cons 0 (cons 1 (cons 0 (cons 1 nil))))))) :=
   conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
@@ -3267,10 +3263,10 @@ Example the_demo_geometry :
    the bound itself (reading 8). *)
 Example the_demo_granules_are_read_from_the_lengths :
   map_over (granule_of demo_plan) (upto 8)
-  = cons 1 (cons 4 (cons 1 (cons 1 (cons 1 (cons 8 (cons 2 (cons 16 nil)))))))
+  = cons 1 (cons 4 (cons 1 (cons 1 (cons 2 (cons 8 (cons 2 (cons 16 nil)))))))
   /\ map_over demo_plan.(length_granules_of) (upto 8)
     = cons 64 (cons 64 (cons 32 (cons 96
-      (cons 128 (cons 64 (cons 96 (cons 64 nil))))))) :=
+      (cons 64 (cons 64 (cons 96 (cons 64 nil))))))) :=
   conj eq_refl eq_refl.
 
 Example the_demo_islands_and_lives :
@@ -3371,7 +3367,7 @@ Example the_layout_variants_each_move_one_base :
       (cons 96 (cons 2400 (cons 225 (cons 2928 nil)))))))
   /\ map_over odd_base_plan.(base_granules) (upto 8)
     = cons 0 (cons 512 (cons 64 (cons 2304
-      (cons 96 (cons 300 (cons 75 (cons 183 nil))))))) :=
+      (cons 48 (cons 300 (cons 75 (cons 183 nil))))))) :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))).
 
@@ -4956,10 +4952,10 @@ Print Assumptions no_plan_wide_granule_quantizes_as_the_encoding_does.
 Print Assumptions the_byte_exact_plan_wide_granule_keeps_the_regime_it_does_not_break.
 Print Assumptions the_byte_exact_plan_wide_granule_keeps_the_bound_and_the_alignment.
 Print Assumptions the_byte_exact_plan_wide_granule_is_refuted.
-Print Assumptions single_regime_quantum.
-Print Assumptions the_single_regime_quantum_keeps_every_clause_above_the_threshold.
-Print Assumptions the_single_regime_quantum_is_refuted.
-Print Assumptions the_single_regime_quantum_breaks_at_the_entry_s_own_figure.
+Print Assumptions inclusive_threshold_quantum.
+Print Assumptions the_inclusive_threshold_quantum_keeps_the_other_clauses.
+Print Assumptions the_inclusive_threshold_quantum_is_refuted.
+Print Assumptions the_inclusive_threshold_quantum_breaks_at_the_threshold.
 Print Assumptions coarser_quantum.
 Print Assumptions the_coarser_quantum_keeps_the_regime_below_and_the_alignment.
 Print Assumptions the_coarser_quantum_is_refuted.
