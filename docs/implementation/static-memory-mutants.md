@@ -47,15 +47,19 @@ the constraint before their colon.
 | `identity-duplicate` | candidate identity | `identity` | every object |
 | `identity-drop` | candidate identity | `identity` | every object |
 | `lifetime-extend` | slot overlap | `overlap` | an ordered same-arena pair whose predecessor releases its extent at or before the successor's first instant |
-| `reuse-before-sweep` | reuse barrier | `overlap` | the same pairs, where the predecessor still charges extent after its `sweep_end` |
-| `reuse-before-authority` | reuse barrier | `overlap` | the same pairs, where the predecessor still charges extent after its `authority_end` |
+| `reuse-before-sweep` | reuse barrier | `overlap` | the same pairs, where the predecessor has a reserved tick before `sweep_end` |
+| `reuse-before-authority` | reuse barrier | `overlap` | the same pairs, where the predecessor has a reserved tick before `authority_end` |
+| `reuse-before-initialization` | reuse barrier | `overlap` | the same pairs, at the last reserved tick before `reuse` |
 
-The two reuse-barrier operators follow the contract's own lifecycle fields. They start
-the successor inside the window the predecessor still charges, at the boundary the
-model calls the completed sweep and at the boundary it calls completed authority, and
-the checker must refuse both because the extent is reserved through `reuse`. Their
-stillborn reason is itself informative: a contract whose barriers coincide with its
-reuse boundary reserves nothing after them, and there is no barrier violation to build.
+The reuse-barrier operators follow the contract's own lifecycle fields. They start
+the successor one tick before the named completion, while the predecessor still holds
+the same extent, and the checker must refuse because the extent is reserved through
+`reuse`. A completion at the predecessor's first instant has no earlier reserved tick
+to target and is stillborn. Coincident barriers can produce the same defect; they do
+not establish distinct lifecycle coverage. A separate fixture supplies a nonempty
+authority-retention, sweep and initialization interval, and the independent byte and
+tick oracle shows that each defect escapes a checker that releases at the preceding
+milestone. Reuse at the final boundary remains legal under the half-open contract.
 
 Certificate operators move an optimality receipt that the unmutated replay verifies, and
 the expected refusal is a rejected replay whose finding belongs to the named family.
@@ -66,12 +70,22 @@ the expected refusal is a rejected replay whose finding belongs to the named fam
 | `bound-lower-span` | the span the receipt's own witness attains | the arena row's own refusal | every arena holding at least one slot |
 | `witness-refused` | the witness the optimality claim carries | a `capacity` finding from the placement checker | every object of a verified receipt |
 | `certificate-argument` | the exhaustion or load-equality argument | one of the replay's two certificate refusals | every arena of a verified receipt |
+| `certificate-false-optimum` | a feasible but suboptimal witness | a smaller feasible placement found by Cartesian replay | a nonempty arena with room to translate its witness by a common alignment step |
 
 `bound-raise-load` and `bound-lower-span` are the two directions of a false bound, and
 `certificate-argument` alters the height the exhaustion argument challenges, or claims
 exhaustion where the receipt argued equality with load. A contract whose bounded search
 does not complete, or whose unmutated receipt does not replay, yields stillborn
 certificate sites rather than mutants: there is no optimality claim there to falsify.
+
+`certificate-false-optimum` translates every base in one arena by the least common
+multiple of its objects' alignments. The translation preserves alignments, lifetimes
+and separation, and the operator declines it unless the enlarged span fits capacity.
+The receipt's span, claimed proved bound, gap and exhaustion height all agree with
+the enlarged witness. Its claim is false because the original witness still fits
+at a strictly smaller height. Only the replay's search for a smaller placement can
+refuse this coherent certificate; rejecting a malformed number would decide less.
+A replay that exhausts its work budget leaves this mutant stillborn.
 
 The expected refusals are matched exactly rather than by the arena name they carry,
 because the replay refuses an arena by two differently meant findings that both begin
@@ -112,10 +126,16 @@ A control is only as strong as the mutants behind it, so each clause's row carri
 number of mutants its operators built and the number of contracts that supplied them. A
 clause whose operators are stillborn throughout controls nothing, and the receipt records
 it as unexercised rather than failing the run; a clause resting on the alignments of one
-or two contracts is a real but narrow control, and the row says so. The control covers
-the placement checker only. `verify_optimality` is not weakened, so the certificate
-operators have no control of their own, and their kills rest on the exact refusals named
-above.
+or two contracts is a real but narrow control, and the row says so.
+
+The separate `replay_control` discards each family of completed replay refusals in
+turn and requires exactly that family's certificate operators to survive. This covers
+the witness check, bound metadata, certificate shape and search for a smaller feasible
+layout. An unmutated baseline still uses the full replay, and an incomplete replay
+stays incomplete even under the weakened control. Every declared refusal family must
+have a completed mutant behind it; an entirely stillborn family fails the report.
+These controls check that the instrument detects the declared weaknesses. They are
+not a general theorem about the verifier.
 
 ## What a zero-survivor sweep establishes, and what it does not
 
@@ -132,8 +152,9 @@ operator constructs a violation of them and no verdict reports on them. It is no
 theorem: it is bounded executable evidence over the contracts and operators declared
 here, and a site a cap withholds decides nothing. A stillborn population is not coverage,
 and the operators are chosen, so a constraint nobody wrote an operator for remains
-exactly as unmeasured as it was. The sweep also says nothing about the replay verifier's
-own clauses beyond the refusals these mutants provoke.
+exactly as unmeasured as it was. The replay controls cover only the declared refusal
+families and constructed defects; general correspondence of the verifier remains a
+separate proof obligation.
 
 The sweep is a research tool over the research oracle. It reads no plan, writes no plan
 and calls no admission predicate; the
@@ -164,4 +185,6 @@ interval arithmetic with the checker, fix the exact verdict of every operator on
 two-slot contract, run the weakening control over every clause an operator targets and
 then restored, hold the sampling reproducible under its seed and the coverage figures
 against the sites the cap withheld, and fix the reading of each replay refusal directly,
-including one the declared corpus does not reach.
+including coherent false optima that need an actual search to refute. Separate boundary
+controls reject premature authority release, incomplete sweeps and incomplete
+initialization, while certificate controls preserve incomplete replay as unchecked.
