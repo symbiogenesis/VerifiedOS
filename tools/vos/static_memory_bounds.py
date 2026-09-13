@@ -15,6 +15,11 @@ A bound is evidence about the declared finite integer model alone. It accepts no
 requirement and confers no landing credit. It reads no candidate placement and calls
 no search, so it can be used to check one; a value that exceeds an exact optimum is a
 defect, which is what the tests decide against bounded exact search.
+
+Every row also states how much of its own domain its scan reached. A value drawn from
+part of a trace remains a lower bound, being a maximum over the restrictions actually
+scored, but it is not the strongest that bound could give, and a row that read like a
+finished one would say otherwise.
 """
 
 from collections.abc import Sequence
@@ -26,11 +31,30 @@ from vos import static_memory as memory
 BOUNDS: tuple[str, ...] = ("charged-load", "alignment-block", "alignment-clique",
                            "two-instant")
 MEMBERSHIP: tuple[str, ...] = ("both", "first", "second")
+# A status reports how far a scan got, never whether some value appeared.
+STATUSES: tuple[str, ...] = ("computed", "partial", "over-budget", "over-limit",
+                             "dominated-by-single-instant", "no-live-set",
+                             "no-instant-pair", "unattained-by-any-live-set")
 DEFAULT_WORK_BUDGET = 50_000
 MAX_CLIQUE_OBJECTS = 12
 MAX_UNION_OBJECTS = 12
 
 type Item = tuple[int, int]
+
+
+class Coverage(TypedDict):
+    """How much of one bound's own domain its scan reached, and what it left behind.
+
+    `pruned` counts restrictions proved unable to raise the value already in hand, so
+    skipping them costs nothing. `over_limit` and `over_budget` count the ones nothing
+    here examined: either of those makes the row partial evidence, because a
+    restriction never scored could have carried a larger value.
+    """
+
+    scored: int
+    pruned: int
+    over_limit: int
+    over_budget: int
 
 
 class BoundRow(TypedDict):
@@ -39,16 +63,26 @@ class BoundRow(TypedDict):
     bound: str
     value: int | None
     status: str
+    complete: bool
+    coverage: Coverage
     witness: dict[str, Any]
 
 
 class ArenaBounds(TypedDict):
-    """Every bound for one arena, and the strongest of them with its source."""
+    """Every bound for one arena, and the strongest of them with its source.
+
+    `proven_lower_bound_complete` says whether the row that supplied the value covered
+    its own domain, so whether that value stands at any larger budget.
+    `scans_complete` says whether every row did, so whether a stronger value was left
+    unexamined at these settings. The first can hold while the second does not.
+    """
 
     arena: str
     charged_load: int
     proven_lower_bound: int
     proven_lower_bound_source: str
+    proven_lower_bound_complete: bool
+    scans_complete: bool
     bounds: list[BoundRow]
     work: dict[str, int]
 
@@ -230,9 +264,36 @@ def _items(objects: tuple[memory.Object, ...]) -> tuple[Item, ...]:
     return tuple((obj.size, obj.alignment) for obj in objects)
 
 
-def _row(bound: str, value: int | None, status: str,
-         witness: dict[str, Any]) -> BoundRow:
-    return {"bound": bound, "value": value, "status": status, "witness": witness}
+def _coverage(scored: int = 0, pruned: int = 0, over_limit: int = 0,
+              over_budget: int = 0) -> Coverage:
+    return {"scored": scored, "pruned": pruned, "over_limit": over_limit,
+            "over_budget": over_budget}
+
+
+def _decide(best: int, coverage: Coverage, empty: str) -> tuple[int | None, str, bool]:
+    """Read a status off what the scan covered, never off whether a value appeared.
+
+    A scan that skipped part of its domain for a limit or a budget is `partial`: its
+    value is still a lower bound, being a maximum over the restrictions it did score,
+    and it is not the strongest this bound could give. A scan that scored nothing
+    names the limit that stopped it and claims no value at all.
+    """
+    complete = not (coverage["over_limit"] or coverage["over_budget"])
+    if coverage["scored"]:
+        return best, "computed" if complete else "partial", complete
+    if coverage["over_budget"]:
+        return None, "over-budget", False
+    if coverage["over_limit"]:
+        return None, "over-limit", False
+    if coverage["pruned"]:
+        return None, "dominated-by-single-instant", True
+    return None, empty, True
+
+
+def _row(bound: str, value: int | None, status: str, complete: bool,
+         coverage: Coverage, witness: dict[str, Any]) -> BoundRow:
+    return {"bound": bound, "value": value, "status": status, "complete": complete,
+            "coverage": coverage, "witness": witness}
 
 
 def _load_row(arena_id: str, load: int,
@@ -241,52 +302,70 @@ def _load_row(arena_id: str, load: int,
 
     A live set only grows at a start, so the charged peak is attained at one of the
     instants enumerated here; a load no live set attains says so rather than passing.
+    The oracle scans the whole trace for this value, so the row is complete unless
+    that cross-check fails, which is a finding the report turns into an error.
     """
+    coverage = _coverage(scored=len(found))
     for time, live in found:
         if sum(obj.size for obj in live) == load:
-            return _row(BOUNDS[0], load, "computed",
+            return _row(BOUNDS[0], load, "computed", True, coverage,
                         {"instant": time, "objects": [obj.id for obj in live]})
     if not found and load == 0:
-        return _row(BOUNDS[0], 0, "computed", {"arena": arena_id, "objects": []})
-    return _row(BOUNDS[0], load, "unattained-by-any-live-set",
+        return _row(BOUNDS[0], 0, "computed", True, coverage,
+                    {"arena": arena_id, "objects": []})
+    return _row(BOUNDS[0], load, "unattained-by-any-live-set", False, coverage,
                 {"arena": arena_id, "objects": []})
 
 
 def _clique_rows(found: list[tuple[int, tuple[memory.Object, ...]]], work: Work,
                  max_clique: int) -> tuple[BoundRow, BoundRow]:
-    """The block bound over every live set and the exact bound over the small ones."""
+    """The block bound over every live set and the exact bound over the small ones.
+
+    Live sets are taken by descending charged total, so a scan the budget stops still
+    carries the strongest evidence it reached. Each row counts what it skipped and
+    whether an object-count setting or the work limit was what skipped it, because a
+    live set never scored could have carried a larger value than the one reported.
+    """
+    ordered = sorted(found, key=lambda item: (-sum(obj.size for obj in item[1]),
+                                              item[0]))
+    block = _coverage()
+    clique = _coverage()
     block_best = 0
     block_witness: dict[str, Any] = {"objects": []}
     exact_best = 0
     exact_witness: dict[str, Any] = {"objects": []}
-    withheld = False
-    for time, live in sorted(found, key=lambda item: (-sum(obj.size for obj in item[1]),
-                                                      item[0])):
+    for index, (time, live) in enumerate(ordered):
         if not work.step():
-            withheld = True
+            remaining = len(ordered) - index
+            block["over_budget"] += remaining
+            clique["over_budget"] += remaining
             break
+        block["scored"] += 1
         value = block_bound(live)
         if value > block_best:
             block_best = value
             block_witness = {"instant": time, "objects": [obj.id for obj in live]}
         count = len(live)
+        if count > max_clique:
+            clique["over_limit"] += 1
+            continue
         # The cost of one exact live set is known before it starts, so an unaffordable
         # one is skipped whole rather than spending the budget on a partial answer.
-        if count > max_clique or not work.affordable(count * (1 << count)):
-            withheld = True
+        if not work.affordable(count * (1 << count)):
+            clique["over_budget"] += 1
             continue
         span = pack_span(_items(live), (MEMBERSHIP[0],) * count, work)
         if span is None:
-            withheld = True
+            clique["over_budget"] += 1
             continue
+        clique["scored"] += 1
         if span > exact_best:
             exact_best = span
             exact_witness = {"instant": time, "objects": [obj.id for obj in live]}
-    unfinished = "over-budget" if withheld else "no-live-set"
-    block_row = _row(BOUNDS[1], block_best or None,
-                     "computed" if block_best else unfinished, block_witness)
-    status = "computed" if exact_best else unfinished
-    return block_row, _row(BOUNDS[2], exact_best or None, status, exact_witness)
+    block_value, block_status, block_done = _decide(block_best, block, "no-live-set")
+    exact_value, exact_status, exact_done = _decide(exact_best, clique, "no-live-set")
+    return (_row(BOUNDS[1], block_value, block_status, block_done, block, block_witness),
+            _row(BOUNDS[2], exact_value, exact_status, exact_done, clique, exact_witness))
 
 
 def _union(first: tuple[memory.Object, ...],
@@ -300,32 +379,35 @@ def _pair_row(found: list[tuple[int, tuple[memory.Object, ...]]], work: Work,
     """The exact bound for the relaxation that keeps two instants and drops the rest.
 
     A pair whose objects stacked in one order already fit below the strongest bound
-    in hand cannot raise it, so it is skipped without enumeration; the value here is
-    therefore the strongest pair evidence found, not a survey of every pair.
+    in hand cannot raise it, so it is skipped without enumeration and counted as
+    pruned rather than as unexamined; the value here is therefore the strongest pair
+    evidence found, not a survey of every pair.
     """
     members = dict(found)
     identities = {time: frozenset(obj.id for obj in live) for time, live in found}
     times = sorted(members)
+    pairs = [(first, second) for index, first in enumerate(times)
+             for second in times[index + 1:]]
+    coverage = _coverage()
     candidates: list[tuple[int, int, int]] = []
-    withheld = False
-    for index, first_time in enumerate(times):
-        if withheld:
+    for index, (first_time, second_time) in enumerate(pairs):
+        if not work.step():
+            coverage["over_budget"] += len(pairs) - index
             break
-        for second_time in times[index + 1:]:
-            if not work.step():
-                withheld = True
-                break
-            if len(identities[first_time] | identities[second_time]) > max_union:
-                continue
-            objects = _union(members[first_time], members[second_time])
-            candidates.append((-sum(obj.size for obj in objects),
-                               first_time, second_time))
+        if len(identities[first_time] | identities[second_time]) > max_union:
+            coverage["over_limit"] += 1
+            continue
+        objects = _union(members[first_time], members[second_time])
+        candidates.append((-sum(obj.size for obj in objects),
+                           first_time, second_time))
     best = 0
     witness: dict[str, Any] = {"objects": []}
-    for _, first_time, second_time in sorted(candidates):
+    admitted = sorted(candidates)
+    for position, (_, first_time, second_time) in enumerate(admitted):
         objects = _union(members[first_time], members[second_time])
         items = _items(objects)
         if sequential_span(items) <= max(best, standing):
+            coverage["pruned"] += 1
             continue
         first_ids, second_ids = identities[first_time], identities[second_time]
         labels = [MEMBERSHIP[0] if obj.id in first_ids and obj.id in second_ids
@@ -333,21 +415,15 @@ def _pair_row(found: list[tuple[int, tuple[memory.Object, ...]]], work: Work,
                   for obj in objects]
         span = pack_span(items, labels, work)
         if span is None:
-            withheld = True
+            coverage["over_budget"] += len(admitted) - position
             break
+        coverage["scored"] += 1
         if span > best:
             best = span
             witness = {"instants": [first_time, second_time],
                        "objects": [obj.id for obj in objects]}
-    if best:
-        status = "computed"
-    elif withheld:
-        status = "over-budget"
-    elif candidates:
-        status = "dominated-by-single-instant"
-    else:
-        status = "no-instant-pair"
-    return _row(BOUNDS[3], best or None, status, witness)
+    value, status, complete = _decide(best, coverage, "no-instant-pair")
+    return _row(BOUNDS[3], value, status, complete, coverage, witness)
 
 
 def arena_bounds(case: memory.Case, arena_id: str,
@@ -369,15 +445,19 @@ def arena_bounds(case: memory.Case, arena_id: str,
     rows.append(_pair_row(found, work, max_union, standing))
     proven = load
     source = BOUNDS[0]
+    settled = rows[0]["complete"]
     for row in rows:
         value = row["value"]
         if value is not None and value > proven:
             proven = value
             source = row["bound"]
+            settled = row["complete"]
     # The unit is one subset-enumeration transition or one live set examined; the
     # report states it once beside the settings rather than once per arena.
     return {"arena": arena_id, "charged_load": load, "proven_lower_bound": proven,
-            "proven_lower_bound_source": source, "bounds": rows,
+            "proven_lower_bound_source": source,
+            "proven_lower_bound_complete": settled,
+            "scans_complete": all(row["complete"] for row in rows), "bounds": rows,
             "work": {"budget": work.limit, "spent": work.spent}}
 
 

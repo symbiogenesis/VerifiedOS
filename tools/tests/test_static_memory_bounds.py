@@ -140,10 +140,66 @@ def _block_bound_holds_where_enumeration_cannot() -> None:
         ensure(sum(size for size, _ in items) <= value <= _stacked(items),
                f"block bound outside load and an achievable span: {value}")
         row = bounds.arena_bounds(case, "a0")
-        ensure(row["bounds"][2]["status"] == "over-budget",
-               "a live set beyond the enumeration limit must withhold the exact bound")
-        ensure(row["proven_lower_bound"] == value,
-               "the block bound must reach the report when enumeration cannot")
+        entry = row["bounds"][2]
+        ensure(entry["status"] == "over-limit" and entry["value"] is None
+               and not entry["complete"] and entry["coverage"]["over_limit"] == 1
+               and not entry["coverage"]["over_budget"],
+               f"an object-count limit must be named as the limit that stopped it: {entry}")
+        ensure(row["proven_lower_bound"] == value and row["bounds"][1]["complete"]
+               and row["proven_lower_bound_complete"] and not row["scans_complete"],
+               "the block bound must reach the report, and the skipped scan must show")
+
+
+def _truncated_scans_report_partial_rather_than_computed() -> None:
+    """A scan that skipped part of its domain must not read like a finished one.
+
+    The fixture carries four live sets the exact enumeration can afford one at a
+    time, so a budget between one and all of them leaves a value standing beside
+    live sets nothing scored, which is the case a value-shaped status hides.
+    """
+    rows: list[Row] = [("a0", 1 + (index * (group + 1)) % 5,
+                        (1, 2, 4, 8)[(index + group) % 4], group, group + 1)
+                       for group in range(4) for index in range(11)]
+    case = _case(rows)
+    ladder = (0, 1, 10, 1_000, 30_000, 60_000, 1_000_000)
+    final = bounds.arena_bounds(case, "a0", ladder[-1])
+    settled = {entry["bound"]: entry["value"] for entry in final["bounds"]}
+    walked = [bounds.arena_bounds(case, "a0", budget) for budget in ladder]
+    partial: set[str] = set()
+    for budget, row in zip(ladder, walked, strict=True):
+        for entry in row["bounds"]:
+            coverage = entry["coverage"]
+            skipped = coverage["over_limit"] + coverage["over_budget"]
+            ensure(entry["complete"] == (skipped == 0),
+                   f"budget {budget}: complete must mean nothing was skipped: {entry}")
+            ensure((entry["status"] == "computed")
+                   == (entry["complete"] and coverage["scored"] > 0),
+                   f"budget {budget}: computed must mean a finished scan: {entry}")
+            ensure((entry["status"] == "partial")
+                   == (not entry["complete"] and coverage["scored"] > 0),
+                   f"budget {budget}: a truncated scan holding a value is partial: {entry}")
+            ensure(entry["bound"] == bounds.BOUNDS[0]
+                   or (entry["value"] is None) == (coverage["scored"] == 0),
+                   f"budget {budget}: a scan that scored nothing claims nothing: {entry}")
+            ensure(entry["status"] in bounds.STATUSES,
+                   f"budget {budget}: undeclared status: {entry}")
+            if entry["complete"] and entry["value"] is not None:
+                ensure(entry["value"] == settled[entry["bound"]],
+                       f"budget {budget}: a finished scan must stand at any larger one: {entry}")
+            if entry["status"] == "partial":
+                partial.add(entry["bound"])
+        supplier = [entry for entry in row["bounds"]
+                    if entry["bound"] == row["proven_lower_bound_source"]]
+        ensure(row["proven_lower_bound_complete"] == supplier[0]["complete"]
+               and row["scans_complete"] == all(entry["complete"]
+                                                for entry in row["bounds"]),
+               f"budget {budget}: the arena must repeat its own rows: {row}")
+    ensure({bounds.BOUNDS[1], bounds.BOUNDS[2]} <= partial,
+           f"the ladder must truncate both live-set scans somewhere: {partial}")
+    behind = [row for row in walked
+              if row["proven_lower_bound"] < final["proven_lower_bound"]]
+    ensure(bool(behind) and all(not row["scans_complete"] for row in behind),
+           "a bound a longer scan beats must not read as a finished one")
 
 
 def _budget_and_settings_refuse_rather_than_guess() -> None:
