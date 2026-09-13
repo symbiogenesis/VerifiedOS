@@ -14,6 +14,7 @@ placement at the load certifies attainment independently of the search's complet
 """
 
 import itertools
+import math
 import random
 from collections import deque
 from collections.abc import Iterator
@@ -352,8 +353,10 @@ def justified_exact(case: memory.Case, work_budget: int = JUSTIFIED_WORK_BUDGET)
 
     A bipartite crossing graph is placed by the two-stack construction at the charged
     load. Otherwise the deletion set gives a feasible upper bound, and a binary search
-    over heights, each decided by the complete justified search, finds the least
-    feasible height. The number of heights tested is logarithmic in the weight sum,
+    over multiples of the extent gcd, each decided by the complete justified search,
+    finds the least feasible height. Left-justification makes every base a sum of
+    extents, so some optimum lies on this lattice even when capacity does not.
+    The number of heights tested is logarithmic in the normalized weight sum,
     but each search is exponential in the object count in the worst case; a cutoff
     reports `incomplete` with the bounds proved so far and no optimum.
     """
@@ -363,12 +366,14 @@ def justified_exact(case: memory.Case, work_budget: int = JUSTIFIED_WORK_BUDGET)
         raise memory.CaseError("justified search requires one arena and unit alignment")
     arena = case.arenas[0]
     lower = memory.peak_load(case, arena.id)
+    quantum = max(1, math.gcd(*(o.size for o in case.objects)))
     colouring = two_colouring(case)
     deletion = maximum_laminar_subfamily(case)
     budget = _Counter(work_budget)
     result: dict[str, Any] = {
         "case": case.name, "contract_sha256": memory.contract_hash(case),
         "charged_load_lower_bound": lower, "capacity": arena.capacity,
+        "height_quantum": quantum,
         "crossing_graph": colouring, "deletion": deletion, "work_budget": work_budget,
         "heights": [], "status": "incomplete", "method": None, "span": None,
         "placement": None, "proven_lower_bound": lower, "infeasible_through": lower - 1,
@@ -391,13 +396,17 @@ def justified_exact(case: memory.Case, work_budget: int = JUSTIFIED_WORK_BUDGET)
         stacked[identifier] = top
         top += sizes[identifier]
     witness: dict[str, int] | None = stacked
-    low, high = lower - 1, top
+    # Search lattice indices. No legal placement is lost: lowering to supports
+    # produces an optimum whose bases and span are multiples of this gcd.
+    low, high = lower // quantum - 1, top // quantum
     if top > arena.capacity:
-        high = arena.capacity
-        status, witness = _justified_search(objects, high, budget)
-        result["heights"].append({"height": high, "status": status, "nodes": budget.nodes})
+        high = arena.capacity // quantum
+        status, witness = _justified_search(objects, high * quantum, budget)
+        result["heights"].append({"height": high * quantum, "status": status,
+                                  "nodes": budget.nodes})
         if status == "infeasible":
             result.update({"status": "infeasible", "method": "justified-exhaustive",
+                           "proven_lower_bound": (high + 1) * quantum,
                            "infeasible_through": arena.capacity, "nodes": budget.nodes})
             return result
         if status == "incomplete":
@@ -407,8 +416,8 @@ def justified_exact(case: memory.Case, work_budget: int = JUSTIFIED_WORK_BUDGET)
     while high - low > 1:
         middle = (low + high) // 2
         before = budget.nodes
-        status, found = _justified_search(objects, middle, budget)
-        result["heights"].append({"height": middle, "status": status,
+        status, found = _justified_search(objects, middle * quantum, budget)
+        result["heights"].append({"height": middle * quantum, "status": status,
                                   "nodes": budget.nodes - before})
         if status == "feasible":
             high, witness = middle, found
@@ -423,13 +432,15 @@ def justified_exact(case: memory.Case, work_budget: int = JUSTIFIED_WORK_BUDGET)
                        key=lambda row: row["id"])
     if memory.check_placement(case, placement):
         raise RuntimeError("justified search witness failed the independent checker")
-    if memory.placement_spans(case, placement)[arena.id] > high:
+    if memory.placement_spans(case, placement)[arena.id] > high * quantum:
         raise RuntimeError("justified search witness exceeds its height")
-    result.update({"span": high, "placement": placement, "nodes": budget.nodes,
-                   "infeasible_through": low, "proven_lower_bound": low + 1})
+    result.update({"span": high * quantum, "placement": placement, "nodes": budget.nodes,
+                   "infeasible_through": (low + 1) * quantum - 1,
+                   "proven_lower_bound": (low + 1) * quantum})
     if complete:
         result.update({"status": "optimal",
-                       "method": "load-equality" if high == lower else "justified-exhaustive"})
+                       "method": "load-equality" if high * quantum == lower
+                       else "justified-exhaustive"})
     return result
 
 
@@ -561,6 +572,23 @@ def _contract(name: str, rows: list[tuple[str, int, int, int]],
             "mode": "one declared execution",
             "arenas": [{"id": "arena", "owner": "owner", "capacity": max(1, base)}],
             "objects": objects}
+
+
+def load_gap_contract(scale: int = 1) -> dict[str, Any]:
+    """The mechanized seven-object gap, with an optional common extent multiplier.
+
+    The crossing graph is a five-cycle plus two isolated vertices: its minimum
+    deletion number is three. The direct geometric argument in the structural
+    document proves load five and optimum six before scaling. The extent-gcd
+    lemma makes both quantities scale exactly, for every positive integer scale.
+    """
+    if type(scale) is not int or scale < 1:
+        raise memory.CaseError("gap scale must be a positive integer")
+    rows = [("g0", 1, 2, 4), ("g1", 2, 3, 5), ("g2", 2, 4, 6),
+            ("g3", 1, 2, 5), ("g4", 3, 5, 6), ("g5", 3, 0, 3), ("g6", 2, 1, 2)]
+    name = "five-cycle-load-gap" if scale == 1 else "binary-scale-five-cycle-load-gap"
+    return _contract(name, [(identifier, size * scale, start, end)
+                            for identifier, size, start, end in rows])
 
 
 def _refutations(case: memory.Case, optimum: int,
@@ -721,10 +749,12 @@ def report(source_revision: str = "unspecified",
                   ("d", 2, 3, 5)]),
         _contract("canonical-remainder-witness", [("r1", 1, 0, 2), ("r", 1, 0, 3),
                   ("d1", 1, 1, 4), ("d2", 1, 2, 5), ("r2", 2, 4, 6)]),
+        load_gap_contract(),
+        load_gap_contract(huge),
     ]
     exact_cases = {"alignment-breaks-equality", "three-mutually-crossing", "crossing",
                    "bottom-block-witness", "signature-pair-small", "signature-pair-large",
-                   "band-witness", "canonical-remainder-witness"}
+                   "band-witness", "canonical-remainder-witness", "five-cycle-load-gap"}
     results: list[dict[str, Any]] = []
     errors: list[str] = []
     optima: dict[str, int] = {}
@@ -827,7 +857,8 @@ def report(source_revision: str = "unspecified",
             "construction in proofs/StaticMemoryLaminar.v",
             "exact placement for a non-bipartite crossing graph in time f(k) times a "
             "polynomial of the binary input length, or hardness for a fixed k",
-            "the smallest deletion number of a family whose optimum exceeds its load",
+            "whether deletion number two always attains the load; the least gap "
+            "parameter lies in {2, 3} and is exactly 3 for triangle-free crossing graphs",
             "full CHERI, bank, owner and multiple-execution constraints",
         ],
     }
