@@ -44,17 +44,17 @@ Two properties follow from the predicate and are what it was chosen for. Every c
 
 ## 3. The objectives
 
-R-08-012a orders the plan's objectives with the footprint first and locality after it, and a base search reaches only part of that order.
+R-08-012a orders the plan's objectives with the reserved span first and locality after it, and a base search reaches that first term and only part of the second.
 
 | Term | What it is | Moved by a base |
 | --- | --- | --- |
-| footprint | the proven simultaneous peak, the most bytes live at once over the live ranges and lengths (R-08-012) | no |
-| span used | how far past the island's base the last slot ends | yes |
+| footprint | the proven simultaneous peak, the most bytes live at once over the live ranges and lengths, the floor the span is minimized against (R-08-012) | no |
+| span used | how far past the island's base the last slot ends, R-08-012a's first term | yes |
 | unused reservation | span used less the footprint | with the span, one for one |
 | padding | bytes under the span no slot covers | yes |
 | bank spreading | R-08-012a's locality term over banks | not modellable, the plan carrying no bank |
 
-The search ranks admitted candidates lexicographically on span used and then padding, and the report prints the footprint unmoved on both sides. A report claiming a footprint gain from a base search is wrong on its face, and the tool cannot print one.
+The search ranks admitted candidates lexicographically on span used and then padding, and the report prints the footprint unmoved on both sides. That ranking is R-08-012a's first term taken exactly: the peak is the floor the span is measured against, an input the live ranges and the extents fix and not an output of the search. A report claiming a footprint gain from a base search is wrong on its face, and the tool cannot print one.
 
 ## 4. The constraints, and who decides them
 
@@ -63,7 +63,7 @@ Every candidate is decided by the port of the file's own checks, one Python func
 | Check | Entry | What it decides |
 | --- | --- | --- |
 | `containment_ok` | R-08-012c | every slot inside its island at both edges |
-| `colouring_ok` | R-08-014 | slots disjoint wherever live ranges overlap, the file's reading 7 |
+| `colouring_ok` | R-08-014 | slots disjoint wherever live ranges overlap, the entry's own quantifier and the file's reading 7 |
 | `slot_bases_quantized` | R-15-007k | every base its declared granule count multiplied back |
 | `slot_lengths_quantized` | R-15-007k | every length likewise |
 | `plan_ok` | R-08-045 | every region charged once and nothing charged the roster does not carry |
@@ -71,7 +71,7 @@ Every candidate is decided by the port of the file's own checks, one Python func
 | `slot_indices_held` | R-15-247j | every charged slot one the frame carries, decided against a slot count the plan does not carry and so outside the search |
 | `pool_fits` | R-14-010 | the origin population inside the first-class budget, decided against a population that is an argument and so outside the search |
 
-**R-08-014 is taken as the file takes it.** The entry's own word is *disjoint* and the file reads the side condition over *overlapping* live ranges, reporting the inversion to the register as its gap f, because the literal words refuse the mechanism R-08-012 exists to use. The enumerator shares a slot exactly where the file's `live_overlap` is false; the literal reading is carried in the port only so that a test can show it refusing the shared-slot plan the file admits.
+**R-08-014 is taken at its own word, and the file reads it there.** The entry states the side condition over *overlapping* live ranges and the file's reading 7 is that reading, the inverted antecedent refusing the mechanism R-08-012 exists to use. The enumerator shares a slot exactly where the file's `live_overlap` is false; the inverted reading is carried in the port only so that a test can show it refusing the shared-slot plan the file admits.
 
 **The check admits and the objective never does.** The search's ranking reads scores of candidates the check has already admitted; no candidate reaches the report as feasible without passing the port, and the port reads nothing the ranking computed. The port is development hygiene, as the item's own text puts it: the proof status of every check stays with the file, which decides the demo plan and its variants by conversion, and nothing here is evidence about the machine.
 
