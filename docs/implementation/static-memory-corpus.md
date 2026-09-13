@@ -47,9 +47,11 @@ not name, refuses a repeated one and refuses a contract declaring none, so a mis
 label fails to parse instead of quietly dropping a family from the table.
 `family_audit` aggregates those labels into the coverage table the receipt carries:
 every declared family, the contracts witnessing each, the families with no witness,
-and the provenances the contracts actually carry. The table is computed from the
-labels alone, so withdrawing a family's only witness moves that family into the
-uncovered list rather than leaving a stale note beside it. Every contract carries the
+and the provenances the contracts actually carry. The coverage columns are computed
+from the labels and the provenance columns from each parsed contract's own
+provenance, so withdrawing a family's only witness moves that family into the
+uncovered list rather than leaving a stale note beside it, and no column restates a
+fact by hand. Every contract carries the
 same computed table, so a receipt selected with `--case` still states the whole
 coverage position rather than one contract's corner of it.
 
@@ -152,9 +154,11 @@ initializing bytes at those same instants, so retention is read against payload 
 than inferred from occupancy.
 
 Every figure is projected from `ledger`, `event_times`, `peak_load` and
-`placement_spans`, and nothing is accounted a second time. The peak is checked against
-the separately swept charged-load bound before the series is reported, so a step
-function disagreeing with that bound raises instead of being published as demand. A
+`placement_spans`, and nothing is accounted a second time. The generator compares its
+step function against the separately swept charged-load bound before reporting the
+series, which for an accepted standing placement is an internal agreement assertion
+rather than a gate an input can trip; the sweep that decides is the focused test's,
+which rebuilds the step function from the raw contract dictionaries. A
 contract whose standing span exceeds that peak says so through this series and through
 the exact oracle; neither makes the standing plan wrong, and the
 [baseline's inequalities](static-memory-baseline.md#executions-objects-and-physical-charge)
@@ -198,20 +202,24 @@ the synthetic service labels.
 The bridge deliberately leaves the operational ledger unavailable. The exported
 plan lacks an owner and the payload, authority-completion, sweep and initialization
 endpoints this ledger needs. Its live intervals cannot be relabeled as safe-reuse
-proofs. A real composed roster and complete demand and cost contracts remain inputs
-owed by the [implementation plan](implementation-checklist.md), including Q5b's
-product comparison.
+proofs. A roster carrying memory extents, and complete demand and cost contracts,
+remain inputs owed by the [implementation plan](implementation-checklist.md),
+including Q5b's product comparison.
 
-## The absent roster, by inspection
+## The absent extents, by inspection
 
-No tracked artifact carries a real composed roster at this revision, and the corpus is
-synthetic by that fact rather than by preference. The register already presupposes the
-artifact that would supply one. R-08-018a records in a pool's manifest entry a live
-range the admitted frame does not separate; R-08-018b records there the pool's chosen
-size-class set and the internal waste that choice declares; R-08-018c decides
-duplication by comparing two manifest entries' derivation source and element type
-across owning compartments. Each of those entries reads per-pool manifest entries, and
-nothing in this tree carries them: the memory plan's statement artifact declares by
+A composed roster of component identities does exist. The
+[admission path's](../../proofs/AdmissionPath.v) `golden_roster` names the golden
+model's seven components, and the package carrier it is a list of holds an identity,
+a tier, a producer, an attestation and a derivation. What no tracked artifact carries
+is a memory extent against a component, so this corpus is synthetic for want of
+extents and owning line items rather than for want of a component list. The register
+already presupposes the artifact that would supply them. R-08-018a records in the
+manifest a live range the admitted frame does not separate; R-08-018b records in the
+pool's manifest entry its chosen size-class set and the internal waste that choice
+declares; R-08-018c decides duplication by comparing two manifest entries' derivation
+source and element type across owning compartments. The per-pool entry the last two
+read is in no tracked artifact: the memory plan's statement artifact declares by
 name the fields it does not carry, the owner among them, and the
 [scaling experiment's](static-memory-scaling.md) projection of that plan declares its
 further operational inputs absent by name rather than inventing them.
@@ -219,9 +227,10 @@ further operational inputs absent by name rather than inventing them.
 The Q5 projection therefore remains the only bridge from a tracked artifact to this
 ledger, and it reaches a placement grid rather than an operational demand. The coverage
 table states the same position from the other side: every contract's provenance is the
-synthetic witness one, none is a composed roster, and no generated contract may claim
-otherwise. Until a roster exists, a coverage claim here is a claim about witnesses, and
-the [agenda's corpus item](../background/static-memory-research.md) stays open on its
+synthetic witness one, none is drawn from a composed roster, and no generated contract
+may claim otherwise. Until a roster carries extents, a coverage claim here is a claim
+about witnesses, and the
+[agenda's corpus item](../background/static-memory-research.md) stays open on its
 roster half by inspection rather than by an unfinished search.
 
 The focused `python tools/run.py test --only static_memory_corpus` checks

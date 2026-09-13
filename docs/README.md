@@ -28,7 +28,9 @@ client and the implementation and admission decisions still owed at Q25d.
 The [static-memory experiments](implementation/static-memory-experiments.md) join
 the [mathematical baseline](implementation/static-memory-baseline.md) and
 [synthetic capacity corpus](implementation/static-memory-corpus.md) to replayable
-byte accounting and bounded placement comparisons. They also expose
+byte accounting and bounded placement comparisons, the corpus recording which
+research families its witnesses cover and which composed-roster input is still
+absent. They also expose
 [service transformations](implementation/static-memory-transformations.md),
 [reclamation scheduling](implementation/static-memory-reclamation.md) and
 [planning scale](implementation/static-memory-scaling.md), each with its own
