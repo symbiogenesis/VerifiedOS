@@ -334,6 +334,80 @@ def _four_object_sweep() -> None:
            "four mutually crossing intervals reach deletion number three")
 
 
+def _five_cycle_gap() -> None:
+    case = memory.parse_case(structure.load_gap_contract())
+    pairs = set(structure.crossing_pairs(case))
+    ensure(pairs == {("g0", "g1"), ("g0", "g5"), ("g1", "g2"),
+                     ("g2", "g3"), ("g3", "g5")},
+           "the mechanized gap has exactly a five-cycle and two isolated vertices")
+    ensure(not any(all(tuple(sorted(edge)) in pairs
+                       for edge in itertools.combinations(triple, 2))
+                   for triple in itertools.combinations((o.id for o in case.objects), 3)),
+           "the obstruction's crossing graph is triangle-free")
+    ensure(structure.maximum_laminar_subfamily(case)["minimum"] == 3
+           == structure.deletion_witness(case)["minimum"],
+           "both independent deletion algorithms must agree on the threshold witness")
+    result = structure.justified_exact(case)
+    oracle = memory.solve_exact(case, work_budget=200_000)
+    ensure(result["status"] == oracle["status"] == "optimal"
+           and result["span"] == oracle["arenas"][0]["best_span"] == 6
+           and result["charged_load_lower_bound"] == 5,
+           "the two searches must establish the strict gap")
+    ensure(memory.verify_optimality(case, oracle)["status"] == "verified",
+           "independent optimality replay must certify the gap")
+    ensure(_byte_oracle(case, result["placement"], 6) == (True, 5, 6),
+           "the positive witness must pass independent cell replay")
+    # Attainment is not hereditary: a large, disjoint object can mask a gap.
+    # Check every proper subfamily, rather than only the immediate deletions.
+    for count in range(len(case.objects)):
+        for selected in itertools.combinations(case.objects, count):
+            subfamily = replace(case, objects=selected)
+            subresult = structure.justified_exact(subfamily)
+            legal, peak, span = _byte_oracle(subfamily, subresult["placement"], 6)
+            ensure(subresult["status"] == "optimal" and legal and peak == span,
+                   "the obstruction is inclusion-minimal among its own subfamilies")
+
+
+def _extent_gcd_lattice() -> None:
+    unit = memory.parse_case(structure.load_gap_contract())
+    reference = structure.justified_exact(unit)
+    for scale in (2, 7, 1 << 1024):
+        scaled = memory.parse_case(structure.load_gap_contract(scale))
+        result = structure.justified_exact(scaled)
+        ensure(result["status"] == "optimal" and result["span"] == 6 * scale
+               and result["height_quantum"] == scale,
+               "common scaling preserves the strict gap without address enumeration")
+        ensure(result["nodes"] == reference["nodes"]
+               and [row["height"] // scale for row in result["heights"]]
+               == [row["height"] for row in reference["heights"]],
+               "common scaling must preserve the discrete search work")
+        ensure(not memory.check_placement(scaled, result["placement"]),
+               "binary-scale witness must pass the independent placement checker")
+        for capacity in (5 * scale, 6 * scale - 1, 6 * scale):
+            capped = replace(scaled, arenas=(replace(scaled.arenas[0], capacity=capacity),))
+            capped_result = structure.justified_exact(capped)
+            if capacity < 6 * scale:
+                ensure(capped_result["status"] == "infeasible"
+                       and capped_result["infeasible_through"] == capacity
+                       and capped_result["proven_lower_bound"] == 6 * scale,
+                       "capacity between lattice points must not admit a hidden placement")
+            else:
+                ensure(capped_result["status"] == "optimal"
+                       and capped_result["span"] == capacity,
+                       "an exact lattice capacity admits the witness")
+        cut = structure.justified_exact(scaled, work_budget=1)
+        ensure(cut["status"] == "incomplete"
+               and cut["proven_lower_bound"] <= 6 * scale <= cut["span"]
+               and not memory.check_placement(scaled, cut["placement"]),
+               "a scaled cutoff retains only justified bounds and a checked placement")
+    for invalid in (0, -1, True):
+        try:
+            structure.load_gap_contract(invalid)
+        except memory.CaseError:
+            continue
+        raise AssertionError("invalid gap multiplier was accepted")
+
+
 def _premises_and_binary_scale() -> None:
     huge = 1 << 1024
     case = _case(((0, huge), (1, 2), (2, 3)), (huge, huge + 1, huge + 2))
@@ -379,6 +453,8 @@ def cases() -> list[Case]:
         Case("structure decomposition witnesses and sweep", _decompositions),
         Case("structure seeded load-attainment sample", _load_attainment_sample),
         Case("structure exhaustive four-object sweep", _four_object_sweep, slow=True),
+        Case("structure triangle-free gap threshold", _five_cycle_gap),
+        Case("structure extent gcd lattice and scaled cutoff", _extent_gcd_lattice),
         Case("structure premises and binary magnitude", _premises_and_binary_scale),
         Case("structure replayable scoped report", _report),
     ]
