@@ -7,6 +7,7 @@ import random
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import memplan
@@ -106,6 +107,23 @@ def _cutoff_preserves_every_standing_plan() -> None:
                    and row["proven_lower_bound_source"] == bounds.BOUNDS[0]
                    for row in item["arenas"]),
                "an exhausted bound budget must leave the charged load standing alone")
+
+
+def _inflated_bound_is_refused() -> None:
+    """A bound bug must fail comparison even when the placement itself still checks."""
+    raw = scale.corpus("test", (8,))[0]
+    case = memory.parse_case(raw)
+    forged = bounds.case_bounds(case)
+    standing = memory.placement_spans(case, memory.standing_placement(case))
+    forged[0]["proven_lower_bound"] = standing[forged[0]["arena"]] + 1
+    with patch.object(bounds, "case_bounds", return_value=forged):
+        try:
+            scale.compare_case(raw, 0)
+        except RuntimeError as error:
+            ensure("exceeds a checked placement span" in str(error),
+                   f"an inflated bound must fail its own consistency check: {error}")
+        else:
+            raise AssertionError("an inflated lower bound passed the comparison")
 
 
 def _added_orderings_reproduce_the_oracle_and_recheck() -> None:
@@ -277,6 +295,7 @@ def cases() -> list[Case]:
         Case("generators-identified-and-feasible", _generators_are_identified_and_feasible),
         Case("small-oracles-and-large-bounds-distinct", _small_oracles_and_large_bounds_stay_distinct),
         Case("cutoff-preserves-standing", _cutoff_preserves_every_standing_plan),
+        Case("inflated-bound-refused", _inflated_bound_is_refused),
         Case("added-orderings-reproduce-the-oracle", _added_orderings_reproduce_the_oracle_and_recheck),
         Case("lowering-reaches-a-fixed-point", _lowering_reaches_a_fixed_point_and_never_grows),
         Case("interference-agrees-with-the-checker", _interference_agrees_with_the_checker),

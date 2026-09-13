@@ -71,6 +71,11 @@ chained acceptance resolved in order, and refuses a component that declares less
 than its transfers admit. A declaration above the recomputed value is admitted: it
 costs reuse and cannot make an acceptance unsound. An honest certificate here is
 therefore a checked property of the composition rather than a label attached to it.
+For in-window timings (`delta=0`), this validation premise makes an honest R2
+acceptance sound by construction in the declared model: the completion bound
+covers all admitted transfers and the reuse rule adds the clearing services. The
+finite enumeration checks that the implementations agree on those premises; it
+does not independently establish a completion contract for a real device.
 
 The global plan is one reuse chain per extent: the ordered objects that bind it. A
 successor binds its extent at its declared public start. This model has no runtime
@@ -170,19 +175,21 @@ refutation has to be is then decided by a reduction search rather than asserted.
 search removes one thing at a time under a declared set of reductions: fold two
 components onto the union of their schedules, drop a transfer together with
 everything whose acceptance waited on it, shorten a window, drop a retention, drop a
-retained representation. A fold preserves every start, occupancy end and acceptance
-tick the enumeration reads, so what it removes is the composition boundary and
-nothing else, and a step survives only when the honest certificate still refuses,
-the summary still accepts, and the enumeration still exhibits a hazard.
+retained representation. Every candidate also retightens the per-component window
+and outstanding-completion certificates against its remaining transfers. A fold
+preserves every start, occupancy end and acceptance tick the enumeration reads;
+certificate retightening can change the lossy summary's answer. A step survives
+only when the honest certificate still refuses, the summary still accepts, and
+the enumeration still exhibits a hazard.
 
 Two of the three defects turn out to need no composition at all: each folds onto a
 single component holding two objects on one extent, where the summary's acceptance
-is still unsound. The chained one does not fold that far, and the reason is the
-defect itself, since the acceptance whose window the summary misattributes belongs
-to another component and at least one composition boundary has to survive to carry
-it. It does fold further than the fixture it starts from, which is why the search is
-here rather than a sentence. The receipt carries each search's starting shape, the
-reductions it applied and the shape it reached.
+is still unsound. The chained fixture's reduction stops with a composition boundary
+under this operator set and order. That is a bounded reduction result, not a
+necessary feature of the defect: two transfers under the same object's authority
+can chain within one component, and a separate focused counterexample reproduces
+that case. The receipt carries each search's starting shape, the reductions it
+applied and the shape it reached.
 
 What that establishes is irreducibility under those reductions, not minimality. No
 reduction here removes an object or rewrites a schedule, and nothing outside the
