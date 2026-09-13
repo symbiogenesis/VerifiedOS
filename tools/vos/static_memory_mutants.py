@@ -45,9 +45,24 @@ RECEIPT_BOUND = "receipt-bound"
 RECEIPT_WITNESS = "receipt-witness"
 RECEIPT_CERTIFICATE = "receipt-certificate"
 
+# The replay refuses an arena by two differently meant findings that read alike, both
+# prefixed by the arena identity: one is the row's own false claim and one is a smaller
+# placement the Cartesian replay found. Naming both keeps a bound mutant a kill only when
+# the row refused it, so a reordering inside the replay shows as a miskill rather than
+# inflating the kill count. The certificate refusals are named for the same reason.
+REPLAY_ROW_REFUSAL = "false span, bound or status"
+REPLAY_SEARCH_REFUSAL = "smaller feasible placement exists"
+REPLAY_CERTIFICATE_REFUSALS = ("load equality certificate malformed",
+                               "exhaustive certificate must challenge exactly span - 1")
+# A mutated witness is moved past its arena, so the capacity clause is the one that must
+# refuse the candidate the optimality claim carries.
+RECEIPT_WITNESS_TAG = "capacity"
+
 KINDS = ("placement", "case", "certificate")
 DEFAULT_SEED = 20260912
-DEFAULT_MAX_SITES = 6
+# No cap: every applicable site of the declared corpus is visited. A cap makes the run
+# sample under its seed, and the receipt then reports what the cap left unvisited.
+DEFAULT_MAX_SITES: int | None = None
 DEFAULT_WORK_BUDGET = 100_000
 
 # The generated family stays tiny on purpose: every applicable site of every operator is
@@ -171,6 +186,20 @@ class Subject:
     placement: list[dict[str, Any]]
     spans: dict[str, int]
     capacity: dict[str, int]
+
+
+@dataclass(frozen=True)
+class Visit:
+    """One operator's work on one contract: its outcomes beside the sites it enumerated.
+
+    `applicable` counts the sites the operator can address at all and `visited` the sites
+    it actually decided, so a cap that samples is visible as the difference rather than
+    as a silently shorter run.
+    """
+
+    outcomes: list[Outcome]
+    applicable: int
+    visited: int
 
 
 def tag(finding: str) -> str:
@@ -382,9 +411,12 @@ def _label(site: tuple[memory.Object, ...]) -> str:
 
 
 def _sample[T](seed: int | str, case_name: str, operator: str, sites: list[T],
-               max_sites: int) -> list[T]:
-    """A reproducible subset of the applicable sites, chosen by the run's own seed."""
-    if len(sites) <= max_sites:
+               max_sites: int | None) -> list[T]:
+    """A reproducible subset of the applicable sites, chosen by the run's own seed.
+
+    Without a cap every applicable site is visited and the seed decides nothing.
+    """
+    if max_sites is None or len(sites) <= max_sites:
         return sites
     rng = random.Random(f"{seed}:{case_name}:{operator}")  # noqa: S311 - reproducible site choice, no security use
     return rng.sample(sites, max_sites)
@@ -404,8 +436,13 @@ def _classify(operator: Operator, findings: list[str]) -> str:
     return KILLED if operator["targets"] in {tag(item) for item in findings} else MISKILLED
 
 
-def _classify_replay(operator: Operator, answer: dict[str, Any],
-                     site: str) -> tuple[str, str | None]:
+def classify_replay(operator: Operator, answer: dict[str, Any],
+                    site: str) -> tuple[str, str | None]:
+    """Read one replay answer as a verdict on the mutant that provoked it.
+
+    Public because it is the declared reading of the replay's refusals rather than an
+    internal step, and the tests exercise it on answers the corpus does not reach.
+    """
     findings = answer["findings"]
     if answer["status"] == "verified":
         return SURVIVED, None
@@ -413,11 +450,14 @@ def _classify_replay(operator: Operator, answer: dict[str, Any],
         return STILLBORN, f"the replay is {answer['status']}: {'; '.join(findings)}"
     expected = operator["targets"]
     if expected == RECEIPT_BOUND:
-        matched = any(item.startswith(f"{site}: ") for item in findings)
+        # Exactly the arena row's own refusal. The replay's other arena-prefixed finding,
+        # REPLAY_SEARCH_REFUSAL, reports a smaller feasible placement and is a different
+        # constraint, so a mutant it refuses is a miskill rather than a bound kill.
+        matched = f"{site}: {REPLAY_ROW_REFUSAL}" in findings
     elif expected == RECEIPT_WITNESS:
-        matched = any(tag(item) in CHECKER_TAGS for item in findings)
+        matched = any(tag(item) == RECEIPT_WITNESS_TAG for item in findings)
     else:
-        matched = any("certificate" in item for item in findings)
+        matched = any(item in REPLAY_CERTIFICATE_REFUSALS for item in findings)
     return (KILLED if matched else MISKILLED), None
 
 
@@ -434,14 +474,15 @@ def _baseline(subject: Subject,
 
 
 def _placement_outcomes(subject: Subject, operator: Operator, checker: Checker,
-                        seed: int | str, max_sites: int) -> list[Outcome]:
+                        seed: int | str, max_sites: int | None) -> Visit:
     name = subject.case.name
     applicable = sites(operator, subject.case)
     if not applicable:
-        return [_outcome(operator, name, "n/a", STILLBORN, [],
-                         "no applicable site in this contract")]
+        return Visit([_outcome(operator, name, "n/a", STILLBORN, [],
+                               "no applicable site in this contract")], 0, 0)
+    chosen = _sample(seed, name, operator["name"], applicable, max_sites)
     results: list[Outcome] = []
-    for site in _sample(seed, name, operator["name"], applicable, max_sites):
+    for site in chosen:
         built = construct(operator["name"], subject, site)
         if isinstance(built, Refused):
             results.append(_outcome(operator, name, _label(site), STILLBORN, [],
@@ -450,30 +491,34 @@ def _placement_outcomes(subject: Subject, operator: Operator, checker: Checker,
         findings = checker(built.case, built.placement)
         results.append(_outcome(operator, name, _label(site),
                                 _classify(operator, findings), findings, None))
-    return results
+    return Visit(results, len(applicable), len(chosen))
 
 
 def _certificate_outcomes(subject: Subject, operator: Operator,
                           baseline: tuple[dict[str, Any], dict[str, int]] | Refused,
-                          seed: int | str, max_sites: int,
-                          work_budget: int) -> list[Outcome]:
+                          seed: int | str, max_sites: int | None,
+                          work_budget: int) -> Visit:
     name = subject.case.name
     if isinstance(baseline, Refused):
-        return [_outcome(operator, name, "n/a", STILLBORN, [], baseline.reason)]
+        # Without a verified receipt there is no optimality claim to falsify here, so the
+        # contract offers no certificate site rather than sites a cap left unvisited.
+        return Visit([_outcome(operator, name, "n/a", STILLBORN, [], baseline.reason)],
+                     0, 0)
     receipt, spans = baseline
     applicable = ([arena.id for arena in subject.case.arenas]
                   if operator["name"] in _ARENA_SITES
                   else [obj.id for obj in subject.case.objects])
+    chosen = _sample(seed, name, operator["name"], applicable, max_sites)
     results: list[Outcome] = []
-    for site in _sample(seed, name, operator["name"], applicable, max_sites):
+    for site in chosen:
         built = construct_claim(operator["name"], subject, receipt, spans, site)
         if isinstance(built, Refused):
             results.append(_outcome(operator, name, site, STILLBORN, [], built.reason))
             continue
         answer = memory.verify_optimality(built.case, built.receipt, work_budget)
-        verdict, reason = _classify_replay(operator, answer, site)
+        verdict, reason = classify_replay(operator, answer, site)
         results.append(_outcome(operator, name, site, verdict, answer["findings"], reason))
-    return results
+    return Visit(results, len(applicable), len(chosen))
 
 
 def _tally(outcomes: list[Outcome], label: str,
@@ -490,18 +535,23 @@ def _tally(outcomes: list[Outcome], label: str,
 
 
 def sweep(cases: list[dict[str, Any]], *, checker: Checker = memory.check_placement,
-          seed: int | str = DEFAULT_SEED, max_sites: int = DEFAULT_MAX_SITES,
+          seed: int | str = DEFAULT_SEED, max_sites: int | None = DEFAULT_MAX_SITES,
           work_budget: int = DEFAULT_WORK_BUDGET,
           kinds: tuple[str, ...] = KINDS) -> dict[str, Any]:
-    """Apply every operator at every sampled applicable site and classify each result.
+    """Apply every operator at every applicable site a cap leaves it and classify each.
 
-    Baseline validity is always decided by the unweakened checker, so weakening a clause
-    changes which mutants are refused and never which contracts are swept.
+    Without a cap every applicable site is decided; with one the run samples under its
+    seed, and the coverage block reports the sites the cap left unvisited, which decided
+    nothing. Baseline validity is always decided by the unweakened checker, so weakening
+    a clause changes which mutants are refused and never which contracts are swept.
     """
-    if max_sites < 1:
-        raise memory.CaseError("max_sites must be a positive integer")
+    if max_sites is not None and max_sites < 1:
+        raise memory.CaseError("max_sites must be a positive integer or None")
     outcomes: list[Outcome] = []
     errors: list[str] = []
+    applicable: dict[str, int] = {operator["name"]: 0 for operator in OPERATORS
+                                  if operator["kind"] in kinds}
+    visited: dict[str, int] = dict.fromkeys(applicable, 0)
     for raw in cases:
         case = memory.parse_case(raw)
         try:
@@ -514,13 +564,15 @@ def sweep(cases: list[dict[str, Any]], *, checker: Checker = memory.check_placem
             if operator["kind"] not in kinds:
                 continue
             if operator["kind"] != "certificate":
-                outcomes.extend(_placement_outcomes(subject, operator, checker, seed,
-                                                    max_sites))
-                continue
-            if baseline is None:
-                baseline = _baseline(subject, work_budget)
-            outcomes.extend(_certificate_outcomes(subject, operator, baseline, seed,
-                                                  max_sites, work_budget))
+                visit = _placement_outcomes(subject, operator, checker, seed, max_sites)
+            else:
+                if baseline is None:
+                    baseline = _baseline(subject, work_budget)
+                visit = _certificate_outcomes(subject, operator, baseline, seed,
+                                              max_sites, work_budget)
+            outcomes.extend(visit.outcomes)
+            applicable[operator["name"]] += visit.applicable
+            visited[operator["name"]] += visit.visited
     survivors = [item for item in outcomes if item["verdict"] == SURVIVED]
     miskills = [item for item in outcomes if item["verdict"] == MISKILLED]
     if survivors:
@@ -530,13 +582,26 @@ def sweep(cases: list[dict[str, Any]], *, checker: Checker = memory.check_placem
         if item["verdict"] == STILLBORN and item["reason"] is not None:
             key = (item["operator"], item["reason"])
             stillborn[key] = stillborn.get(key, 0) + 1
+    sampling = ("every applicable site is visited" if max_sites is None else
+                "the seed samples up to the cap of applicable sites per contract and "
+                "operator; an unvisited site decided nothing")
     return {
         "settings": {"seed": seed, "max_sites_per_operator": max_sites,
+                     "sampling": sampling,
                      "work_budget": work_budget, "kinds": list(kinds),
                      "cases": [item["name"] for item in cases]},
         "totals": {verdict: sum(1 for item in outcomes if item["verdict"] == verdict)
                    for verdict in VERDICTS},
+        "coverage": {
+            "applicable_sites": sum(applicable.values()),
+            "sites_visited": sum(visited.values()),
+            "sites_unvisited": sum(applicable.values()) - sum(visited.values()),
+            "by_operator": [{"operator": name, "applicable_sites": count,
+                             "sites_visited": visited[name]}
+                            for name, count in applicable.items()],
+        },
         "by_operator": _tally(outcomes, "operator", lambda item: item["operator"]),
+        "by_kind": _tally(outcomes, "kind", lambda item: item["kind"]),
         "by_site_class": _tally(outcomes, "site_class", lambda item: item["site_class"]),
         "survivors": survivors, "miskills": miskills,
         "stillborn_reasons": [{"operator": operator, "reason": reason, "count": count}
@@ -545,30 +610,76 @@ def sweep(cases: list[dict[str, Any]], *, checker: Checker = memory.check_placem
     }
 
 
+def control_clauses() -> list[str]:
+    """The checker clauses some placement or contract operator targets, in one order."""
+    clauses = sorted({operator["targets"] for operator in OPERATORS
+                      if operator["kind"] != "certificate"})
+    unknown = [clause for clause in clauses if clause not in CHECKER_TAGS]
+    if unknown:
+        raise memory.CaseError(f"no checker clause is named {unknown}")
+    return clauses
+
+
+def _control(cases: list[dict[str, Any]], clause: str, mutants_built: dict[str, int],
+             supplying: dict[str, set[str]]) -> dict[str, Any]:
+    """Remove one clause from the checker and record which operators then survive.
+
+    Only an operator that built a mutant somewhere can survive anything, so the expected
+    set is restricted to those; a clause whose operators are stillborn throughout is
+    reported with no mutants behind it rather than failing the run. The count of mutants
+    and of contracts supplying them is the strength of that clause's control.
+    """
+    targeting = [operator["name"] for operator in OPERATORS
+                 if operator["kind"] != "certificate" and operator["targets"] == clause]
+    expected = sorted(name for name in targeting if mutants_built.get(name, 0))
+    weak = sweep(cases, checker=dropping(clause), kinds=("placement", "case"))
+    observed = sorted({item["operator"] for item in weak["survivors"]})
+    return {
+        "clause_removed": clause, "operators_targeting_it": targeting,
+        "expected_survivor_operators": expected,
+        "observed_survivor_operators": observed,
+        "mutants_available": sum(mutants_built.get(name, 0) for name in targeting),
+        "contracts_supplying_mutants": len({case for name in targeting
+                                            for case in supplying.get(name, set())}),
+        "weakened_totals": weak["totals"],
+        "weakened_miskills": weak["miskills"],
+    }
+
+
 def report(source_revision: str = "unspecified") -> dict[str, Any]:
     """Sweep the declared witnesses and one generated family, with a weakened control.
 
-    The control removes the alignment clause and requires that exactly the operator
-    targeting that clause survives. Without it, a sweep reporting no survivor would be
-    consistent with a checker that decides nothing.
+    The control removes each clause an operator targets in turn and requires that exactly
+    the operators targeting that clause survive it. Without such a control, a sweep
+    reporting no survivor would be consistent with a checker that decides nothing.
     """
     cases = [*witnesses.corpus(source_revision),
              *scale.corpus(source_revision, sizes=GENERATED_SIZES)]
     complete = sweep(cases)
-    control = sweep(cases, checker=dropping("alignment"), kinds=("placement", "case"))
-    observed = sorted({item["operator"] for item in control["survivors"]})
     errors = [*complete["errors"]]
-    if observed != ["alignment-shift"]:
-        errors.append("removing the alignment clause did not isolate its own operator: "
-                      f"{observed}")
-    certificate_names = {item["name"] for item in OPERATORS
-                         if item["kind"] == "certificate"}
-    feasibility = sum(row["mutants"] for row in complete["by_operator"]
-                      if row["operator"] not in certificate_names)
-    optimality = sum(row["mutants"] for row in complete["by_operator"]
-                     if row["operator"] in certificate_names)
-    for key in ("by_operator", "by_site_class", "outcomes", "errors"):
-        control.pop(key)
+    mutants_built = {row["operator"]: row["mutants"] for row in complete["by_operator"]}
+    supplying: dict[str, set[str]] = {}
+    for item in complete["outcomes"]:
+        if item["verdict"] != STILLBORN:
+            supplying.setdefault(item["operator"], set()).add(item["case"])
+    controls = [_control(cases, clause, mutants_built, supplying)
+                for clause in control_clauses()]
+    for row in controls:
+        if row["observed_survivor_operators"] != row["expected_survivor_operators"]:
+            errors.append(f"removing the {row['clause_removed']} clause did not isolate "
+                          f"its own operators: expected "
+                          f"{row['expected_survivor_operators']}, observed "
+                          f"{row['observed_survivor_operators']}")
+        if row["weakened_miskills"]:
+            errors.append(f"removing the {row['clause_removed']} clause turned a kill "
+                          "into a miskill, so a construction violates more than the "
+                          "constraint it targets")
+    exercised = [row for row in controls if row["expected_survivor_operators"]]
+    if not exercised:
+        errors.append("no clause control was exercised: every operator was stillborn")
+    by_kind = {row["kind"]: row["mutants"] for row in complete["by_kind"]}
+    feasibility = by_kind.get("placement", 0) + by_kind.get("case", 0)
+    optimality = by_kind.get("certificate", 0)
     complete.pop("outcomes")
     return {
         "schema": SCHEMA, "generator": GENERATOR, "source_revision": source_revision,
@@ -583,25 +694,47 @@ def report(source_revision: str = "unspecified") -> dict[str, Any]:
             STILLBORN: "no mutant was emitted, or the replay reached no verdict, so the "
                        "site decides nothing about the checker",
         },
+        "replay_refusals": {
+            "reading": "the replay refuses an arena by two findings that read alike, so "
+                       "a certificate mutant counts as killed only for the exact refusal "
+                       "its own claim provokes and is a miskill otherwise",
+            RECEIPT_BOUND: REPLAY_ROW_REFUSAL,
+            "not_a_bound_refusal": REPLAY_SEARCH_REFUSAL,
+            RECEIPT_CERTIFICATE: list(REPLAY_CERTIFICATE_REFUSALS),
+            RECEIPT_WITNESS: f"a {RECEIPT_WITNESS_TAG} finding from the placement checker",
+        },
         "certificates": {
-            "feasibility": "check_placement refuses one candidate against an unchanged "
-                           "contract and decides nothing about optimality",
+            "feasibility": "check_placement decides one candidate against the contract "
+                           "the mutant carries, which a candidate-side operator leaves "
+                           "unchanged and a contract-side operator rebuilds through the "
+                           "model's own parser; neither decides anything about optimality",
             "optimality": "verify_optimality additionally replays the bound argument, so "
                           "a refused witness and a false bound are separate findings",
             "feasibility_mutants": feasibility, "optimality_mutants": optimality,
+            "candidate_side_mutants": by_kind.get("placement", 0),
+            "contract_side_mutants": by_kind.get("case", 0),
         },
         "sweep": complete,
-        "control": {"clause_removed": "alignment",
-                    "expected_survivor_operators": ["alignment-shift"],
-                    "observed_survivor_operators": observed,
-                    "survivors_are_expected_here": True, "weakened": control},
+        "control": {
+            "method": "each clause an operator targets is removed from the checker in "
+                      "turn, which is exactly that clause not deciding; the complete "
+                      "sweep beside it is the restored run",
+            "reading": "a survivor under a removed clause is the expected behaviour of a "
+                       "weakened checker and not a finding; a survivor in the complete "
+                       "sweep is the finding",
+            "clauses_exercised": len(exercised),
+            "clauses_declared": len(controls),
+            "scope": "the placement checker only; verify_optimality is not weakened, so "
+                     "the certificate operators have no control of their own",
+            "clauses": controls,
+        },
         "open_obligations": [
             "operators for constraints outside the declared model: CHERI bounds "
             "representability, island and bank assignment, admission",
             "a generated family large enough to exercise the bounded search rather than "
             "the placement checker alone",
             "an independent oracle for the replay verifier itself, whose clauses these "
-            "operators reach only through its refusals",
+            "operators reach only through its refusals, and a weakened control for it",
         ],
         "errors": errors,
     }
