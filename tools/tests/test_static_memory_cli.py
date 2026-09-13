@@ -91,7 +91,8 @@ def _comparison_cutoff_and_replay() -> None:
 
 
 def _experiment_routes_and_source_binding() -> None:
-    selections = [("structure", []), ("transform", []), ("reclaim", []), ("modes", []),
+    selections = [("structure", []), ("transform", []), ("reclaim", []),
+                  ("modes", []), ("manifest", []),
                   ("scale", ["--sizes", "4", "--max-nodes", "100", "--q5-max-leaves", "1"])]
     root = Path(__file__).resolve().parents[2]
     for action, settings in selections:
@@ -110,7 +111,7 @@ def _experiment_refuses_ignored_options_and_failures() -> None:
     invalid = [["structure", "--case", "unused"], ["transform", "--contract", "unused"],
                ["reclaim", "--max-nodes", "1"], ["structure", "--sizes", "8"],
                ["scale", "--sizes", "0"], ["scale", "--q5-max-leaves", "0"],
-               ["compare", "--q5-max-leaves", "1"]]
+               ["compare", "--q5-max-leaves", "1"], ["structure", "--replay"]]
     for argv in invalid:
         with redirect_stderr(StringIO()):
             try:
