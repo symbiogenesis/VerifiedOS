@@ -15,9 +15,13 @@ from typing import Any
 
 from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
-from vos import static_memory_modes as mode_family
+from vos import static_memory_envelope as envelope
 from vos import static_memory_manifest as manifest
+from vos import static_memory_modes as mode_family
+from vos import static_memory_mutants as mutants
+from vos import static_memory_phases as phases
 from vos import static_memory_reclaim as reclaim
+from vos import static_memory_repr as representability
 from vos import static_memory_scale as scale
 from vos import static_memory_structure as structure
 from vos import static_memory_transform as transform
@@ -33,17 +37,30 @@ SOURCES = (
 EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
     "manifest": ("tools/vos/static_memory_manifest.py",
                  "docs/implementation/static-memory-artifact.md"),
-    "structure": ("tools/vos/static_memory_structure.py",),
+    "structure": ("tools/vos/static_memory_structure.py",
+                  "docs/implementation/static-memory-structure.md"),
     "transform": ("tools/vos/static_memory_transform.py",
                   "docs/implementation/static-memory-transformations.md"),
     "reclaim": ("tools/vos/static_memory_reclaim.py",
                 "docs/implementation/static-memory-reclamation.md",
                 "tools/vos/revocation.py"),
     "scale": ("tools/vos/static_memory_scale.py",
+              "tools/vos/static_memory_bounds.py",
               "docs/implementation/static-memory-scaling.md",
               "tools/vos/cli/placement.py"),
     "modes": ("tools/vos/static_memory_modes.py",
               "docs/implementation/static-memory-modes.md"),
+    "mutants": ("tools/vos/static_memory_mutants.py",
+                "docs/implementation/static-memory-mutants.md",
+                "tools/vos/static_memory_scale.py"),
+    "repr": ("tools/vos/static_memory_repr.py",
+             "docs/implementation/static-memory-representability.md"),
+    "envelope": ("tools/vos/static_memory_envelope.py",
+                 "docs/implementation/static-memory-envelope.md",
+                 "tools/vos/static_memory_reclaim.py", "tools/vos/revocation.py"),
+    "phases": ("tools/vos/static_memory_phases.py",
+               "docs/implementation/static-memory-phases.md",
+               "docs/assurance/revocation-qualification.md"),
 }
 
 
@@ -103,6 +120,14 @@ def experiment(args: argparse.Namespace, root: Path) -> int:
         result = reclaim.report(root)
     elif args.action == "modes":
         result = mode_family.report(receipt["revision"])
+    elif args.action == "mutants":
+        result = mutants.report(receipt["revision"])
+    elif args.action == "repr":
+        result = representability.report(root, receipt["revision"])
+    elif args.action == "envelope":
+        result = envelope.report(root)
+    elif args.action == "phases":
+        result = phases.report(receipt["revision"])
     else:
         result = scale.report(root, receipt["revision"],
                               sizes=tuple(args.sizes or (8, 32, 128)),
