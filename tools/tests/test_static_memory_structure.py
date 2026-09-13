@@ -36,6 +36,26 @@ def _random_family(rng: random.Random, objects: int, horizon: int,
     return _case(tuple(intervals), sizes)
 
 
+def _byte_oracle(case: memory.Case, placement: list[dict[str, Any]],
+                 horizon: int) -> tuple[bool, int, int]:
+    # Legality, peak load and span by a cell-at-a-time replay that shares no code with
+    # the module's checker or load computation.
+    by_id: dict[str, int] = {row["id"]: row["base"] for row in placement}
+    legal, peak = True, 0
+    for tick in range(horizon):
+        used: set[int] = set()
+        load = 0
+        for obj in case.objects:
+            if obj.start <= tick < obj.reuse:
+                cells = set(range(by_id[obj.id], by_id[obj.id] + obj.size))
+                legal = legal and not used & cells
+                used.update(cells)
+                load += obj.size
+        peak = max(peak, load)
+    span = max((by_id[o.id] + o.size for o in case.objects), default=0)
+    return legal, peak, span
+
+
 def _finite_constructor() -> None:
     domain = tuple(itertools.combinations(range(4), 2))
     accepted = refused = 0
@@ -49,19 +69,8 @@ def _finite_constructor() -> None:
                 refused += 1
                 continue
             ensure(_is_laminar(intervals), "constructor accepted crossing reservations")
-            by_id = {row["id"]: row["base"] for row in placement}
-            peak = 0
-            for tick in range(4):
-                used: set[int] = set()
-                load = 0
-                for obj in case.objects:
-                    if obj.start <= tick < obj.reuse:
-                        cells = set(range(by_id[obj.id], by_id[obj.id] + obj.size))
-                        ensure(not used & cells, "byte oracle found overlapping live slots")
-                        used.update(cells)
-                        load += obj.size
-                peak = max(peak, load)
-            span = max(by_id[o.id] + o.size for o in case.objects)
+            legal, peak, span = _byte_oracle(case, placement, 4)
+            ensure(legal, "byte oracle found overlapping live slots")
             ensure(span == peak, "independent live-byte bound differs from span")
             accepted += 1
     ensure(accepted > 0 and refused > 0, "finite corpus must exercise both outcomes")
@@ -145,9 +154,12 @@ def _two_stack_theorem() -> None:
         if colouring["bipartite"]:
             bipartite += 1
             placement = structure.two_stack_placement(case, colouring["lower"], colouring["upper"])
-            ensure(not memory.check_placement(case, placement), "two-stack placement refused")
-            ensure(memory.placement_spans(case, placement)["a"] == memory.peak_load(case, "a"),
-                   "two laminar stacks must attain the charged load")
+            legal, peak, span = _byte_oracle(case, placement, 7)
+            ensure(legal, "byte oracle found overlapping live slots in the two-stack placement")
+            oracle = memory.solve_exact(case, work_budget=200_000)
+            ensure(oracle["status"] == "optimal", "small bipartite families must complete in the oracle")
+            ensure(span == peak == oracle["arenas"][0]["best_span"],
+                   "two laminar stacks must attain the charged load, which is the optimum")
             continue
         odd += 1
         ensure(minimum >= 2, "one deletion always leaves a bipartite crossing graph")
@@ -255,6 +267,14 @@ def _decompositions() -> None:
            "the default sweep completes and finds no span above load")
     ensure(first == {"bottom-block": 3, "signature": 3, "band": None, "canonical-remainder": None},
            "three objects refute exactly the bottom-block and signature contracts")
+    sample = receipt["sample"]
+    ensure(sample["status"] == "complete" and sample["incomplete_searches"] == 0
+           and not sample["span_above_load"]
+           and sample["attained_load"] == sample["domain"]["families"],
+           "the shipped sample decides every family and finds none above its load")
+    ensure(sample["non_bipartite"] > 0
+           and any(int(k) >= 2 for k in sample["by_minimum_deletions"]),
+           "the sample must reach non-bipartite families with deletion number at least two")
     ensure(len(list(structure.interval_shapes(2, 3))) == 3, "two-interval shapes over four coordinates")
     for shape in structure.interval_shapes(3, 4):
         ensure({c for s, e in shape for c in (s, e)} == set(range(5)), "a shape uses every coordinate")
@@ -264,6 +284,42 @@ def _decompositions() -> None:
         pass
     else:
         raise AssertionError("an empty sweep domain was accepted")
+
+
+def _load_attainment_sample() -> None:
+    small = structure.load_attainment_sample(seed=2, families=40, objects=(4, 7),
+                                             horizon=6, max_weight=2)
+    ensure(small == structure.load_attainment_sample(seed=2, families=40, objects=(4, 7),
+                                                     horizon=6, max_weight=2),
+           "the sample must reproduce from its seed")
+    ensure(small["domain"] == {"seed": 2, "families": 40, "min_objects": 4, "max_objects": 7,
+                               "horizon": 6, "max_weight": 2,
+                               "work_budget": structure.JUSTIFIED_WORK_BUDGET},
+           "the sample receipt states its whole domain")
+    ensure(small["attained_load"] + small["incomplete_searches"] + len(small["span_above_load"])
+           == 40 == sum(small["by_minimum_deletions"].values()),
+           "every sampled family is tallied exactly once")
+    ensure(small["non_bipartite"] > 0 and small["status"] == "complete",
+           "the small sample must reach the justified search and complete it")
+    ensure(small != structure.load_attainment_sample(seed=3, families=40, objects=(4, 7),
+                                                     horizon=6, max_weight=2),
+           "a different seed draws a different sample")
+    cut = structure.load_attainment_sample(seed=2, families=40, objects=(4, 7),
+                                           horizon=6, max_weight=2, work_budget=1)
+    ensure(cut["status"] == "incomplete" and cut["incomplete_searches"] > 0
+           and not cut["span_above_load"]
+           and cut["attained_load"] + cut["incomplete_searches"] == 40,
+           "a cutoff is tallied as undecided and never as a span above load")
+    ensure(cut["by_minimum_deletions"] == small["by_minimum_deletions"],
+           "the budget must not change the deletion numbers drawn")
+    for seed, families, objects, horizon, weight in (
+            (True, 4, (2, 3), 4, 2), (7, 0, (2, 3), 4, 2), (7, True, (2, 3), 4, 2),
+            (7, 4, (0, 3), 4, 2), (7, 4, (4, 3), 4, 2), (7, 4, (2, 3), 0, 2), (7, 4, (2, 3), 4, 0)):
+        try:
+            structure.load_attainment_sample(seed, families, objects, horizon, weight)
+        except memory.CaseError:
+            continue
+        raise AssertionError("invalid sample argument accepted")
 
 
 def _four_object_sweep() -> None:
@@ -309,6 +365,8 @@ def _report() -> None:
     for row in receipt["cases"]:
         ensure({"deletion", "deletion_dp", "crossing_graph", "charged_load_lower_bound",
                 "construction"} <= row.keys(), "every case keeps the original receipt fields")
+    ensure({"cases", "decompositions", "sweep", "sample", "errors", "open_obligations"}
+           <= receipt.keys(), "the report carries the sweep and the sample beside the cases")
 
 
 def cases() -> list[Case]:
@@ -319,6 +377,7 @@ def cases() -> list[Case]:
         Case("structure two-stack theorem and odd cycles", _two_stack_theorem),
         Case("structure justified exact search", _justified_exact),
         Case("structure decomposition witnesses and sweep", _decompositions),
+        Case("structure seeded load-attainment sample", _load_attainment_sample),
         Case("structure exhaustive four-object sweep", _four_object_sweep, slow=True),
         Case("structure premises and binary magnitude", _premises_and_binary_scale),
         Case("structure replayable scoped report", _report),
