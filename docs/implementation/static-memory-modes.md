@@ -69,9 +69,9 @@ alignment and the arena membership.
 The switch instants, the retained set and the lifetimes are supplied assumptions
 about a composed schedule, exactly as the single-trace milestones are. Checking
 them decides whether the family's own claim is internally consistent. It decides
-nothing about a real barrier: R-08-015's containment, sweep and initialization
-discipline is owed by whatever would implement a switch, and this tool does not
-discharge it.
+nothing about a real barrier: R-08-015's temporal-safety discipline at a slot's
+reuse points, which composes the containment barrier with the complete reuse gate,
+is owed by whatever would implement a switch, and this tool does not discharge it.
 
 ## The three models and what each answers
 
