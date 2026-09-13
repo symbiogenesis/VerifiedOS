@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, TypedDict
 
 from vos import memplan
 from vos import static_memory as memory
@@ -31,6 +31,20 @@ DEFAULT_SIZES = (8, 32, 128)
 MAX_SIZE = 2048
 
 type Ordering = Callable[[memory.Object], tuple[int, int, int, str]]
+
+
+class Proved(TypedDict):
+    """One arena's strongest lower bound, its source and how far that scan got.
+
+    `complete` says the reported value stands at any larger budget; `scans_complete`
+    says no other bound on that arena was left unexamined and so could have been
+    stronger. A bound that meets a checked span settles the arena either way.
+    """
+
+    value: int
+    source: str
+    complete: bool
+    scans_complete: bool
 
 # The three shared keys reproduce the oracle's own methods, which is what the focused
 # tests hold them to; the three below them are this experiment's additions.
@@ -283,41 +297,64 @@ def added_heuristics(case: memory.Case, work_budget: int,
     return rows + lowered
 
 
-def _gaps(case: memory.Case, spans: dict[str, int], lower: dict[str, int],
-          proved_by: dict[str, str], supplier: dict[str, str]) -> list[dict[str, Any]]:
+def _gaps(case: memory.Case, spans: dict[str, int], proved: dict[str, Proved],
+          supplier: dict[str, str]) -> list[dict[str, Any]]:
     """Per arena: the charged load, the strongest bound and its source, span and gap."""
     rows: list[dict[str, Any]] = []
     for arena in case.arenas:
         load = memory.peak_load(case, arena.id)
-        span, bound = spans[arena.id], lower[arena.id]
+        span, best = spans[arena.id], proved[arena.id]
         if span == load:
             status = "optimal-by-load-equality"
-        elif span == bound:
-            status = f"optimal-by-{proved_by[arena.id]}"
+        elif span == best["value"]:
+            status = f"optimal-by-{best['source']}"
         else:
             status = "bounded-only"
         rows.append({"arena": arena.id, "owner": arena.owner,
-                     "charged_load_lower_bound": load, "proven_lower_bound": bound,
-                     "proven_lower_bound_source": proved_by[arena.id],
+                     "charged_load_lower_bound": load,
+                     "proven_lower_bound": best["value"],
+                     "proven_lower_bound_source": best["source"],
+                     "proven_lower_bound_complete": best["complete"],
+                     "bound_scans_complete": best["scans_complete"],
                      "feasible_span": span, "feasible_span_source": supplier[arena.id],
-                     "remaining_gap": span - bound, "span_status": status})
+                     "remaining_gap": span - best["value"], "span_status": status})
     return rows
 
 
 def _proved(case: memory.Case, exact: dict[str, Any], replay: dict[str, Any] | None,
-            bounds_budget: int) -> tuple[dict[str, int], dict[str, str],
+            bounds_budget: int) -> tuple[dict[str, Proved],
                                          list[lower_bounds.ArenaBounds]]:
     """Take the strongest bound per arena, naming the one that supplied it."""
     rows = lower_bounds.case_bounds(case, bounds_budget)
-    lower = {row["arena"]: row["proven_lower_bound"] for row in rows}
-    proved_by = {row["arena"]: row["proven_lower_bound_source"] for row in rows}
+    proved: dict[str, Proved] = {
+        row["arena"]: {"value": row["proven_lower_bound"],
+                       "source": row["proven_lower_bound_source"],
+                       "complete": row["proven_lower_bound_complete"],
+                       "scans_complete": row["scans_complete"]} for row in rows}
     # A claimed exact bound enters the comparison only after its independent replay.
     if replay is not None and replay["status"] == "verified":
         for row in exact["arenas"]:
-            if row["proven_lower_bound"] > lower[row["arena"]]:
-                lower[row["arena"]] = row["proven_lower_bound"]
-                proved_by[row["arena"]] = "replayed-exact"
-    return lower, proved_by, rows
+            best = proved[row["arena"]]
+            if row["proven_lower_bound"] > best["value"]:
+                best["value"] = row["proven_lower_bound"]
+                best["source"] = "replayed-exact"
+                best["complete"] = True
+    return proved, rows
+
+
+def refuse_unsound_bounds(name: str, proved: dict[str, Proved],
+                          spans: dict[str, int]) -> None:
+    """Refuse a proved bound above a span some checked placement already attained.
+
+    A sound bound cannot exceed one, so this is an internal consistency check on this
+    experiment's own outputs and says nothing about a placement made elsewhere. It
+    names the arena because arenas are bounded separately and never added together.
+    """
+    for arena_id in sorted(proved):
+        value = proved[arena_id]["value"]
+        if value > spans[arena_id]:
+            raise RuntimeError(f"{name}/{arena_id}: proved lower bound {value} "
+                               f"exceeds a checked placement span {spans[arena_id]}")
 
 
 def compare_case(raw: dict[str, Any], work_budget: int = 100_000,
@@ -334,7 +371,7 @@ def compare_case(raw: dict[str, Any], work_budget: int = 100_000,
     heuristics.extend(added_heuristics(case, work_budget, heuristics))
     exact = memory.solve_exact(case, work_budget)
     replay = memory.verify_optimality(case, exact, work_budget) if exact["status"] == "optimal" else None
-    lower, proved_by, bound_rows = _proved(case, exact, replay, bounds_budget)
+    proved, bound_rows = _proved(case, exact, replay, bounds_budget)
     best = standing
     best_spans = memory.placement_spans(case, standing)
     supplier = {arena.id: "standing" for arena in case.arenas}
@@ -356,21 +393,17 @@ def compare_case(raw: dict[str, Any], work_budget: int = 100_000,
     best = [ordered[obj.id] for obj in case.objects]
     if memory.check_placement(case, best):
         raise RuntimeError("assembled scale witness failed independent checking")
-    for arena in case.arenas:
-        # A sound bound never exceeds a span some checked placement already attains.
-        if lower[arena.id] > best_spans[arena.id]:
-            raise RuntimeError(f"{case.name}/{arena.id}: proved lower bound "
-                               f"{lower[arena.id]} exceeds a checked placement")
+    refuse_unsound_bounds(case.name, proved, best_spans)
     for row in heuristics:
         label = "standing" if row["standing_preserved"] else row["method"]
-        row["arenas"] = _gaps(case, row["spans"], lower, proved_by,
+        row["arenas"] = _gaps(case, row["spans"], proved,
                               {arena.id: label for arena in case.arenas})
     preserve = replay is None or replay["status"] != "verified" or best == standing
     return {"contract": raw, "contract_sha256": memory.contract_hash(case),
             "heuristics": heuristics, "exact": exact, "optimality_replay": replay,
             "lower_bounds": bound_rows,
             "best_feasible_placement": best,
-            "arenas": _gaps(case, best_spans, lower, proved_by, supplier),
+            "arenas": _gaps(case, best_spans, proved, supplier),
             "best_candidate_matches_standing": best == standing,
             "selected_placement": standing if preserve else best,
             "standing_preserved": preserve,
@@ -502,6 +535,7 @@ def report(root: Path, revision: str, sizes: tuple[int, ...] = DEFAULT_SIZES,
                                  "q5_max_leaves_per_island": q5_max_leaves,
                                  "bounds_work_budget": bounds_budget,
                                  "bounds": list(lower_bounds.BOUNDS),
+                                 "bound_statuses": list(lower_bounds.STATUSES),
                                  "bounds_max_objects_per_live_set": lower_bounds.MAX_CLIQUE_OBJECTS,
                                  "bounds_max_objects_per_instant_pair": lower_bounds.MAX_UNION_OBJECTS,
                                  "methods": list(memory.METHODS) + list(ADDED_METHODS)
