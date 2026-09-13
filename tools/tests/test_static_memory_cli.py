@@ -93,6 +93,7 @@ def _comparison_cutoff_and_replay() -> None:
 def _experiment_routes_and_source_binding() -> None:
     selections = [("structure", []), ("transform", []), ("reclaim", []),
                   ("modes", []), ("manifest", []),
+                  ("mutants", []), ("repr", []), ("envelope", []), ("phases", []),
                   ("scale", ["--sizes", "4", "--max-nodes", "100", "--q5-max-leaves", "1"])]
     root = Path(__file__).resolve().parents[2]
     for action, settings in selections:
@@ -101,6 +102,9 @@ def _experiment_routes_and_source_binding() -> None:
                f"{action} research replay failed: {receipt}")
         ensure(receipt["schema"] == "static-memory-experiment-v1"
                and receipt["experiment"].get("scope"), "explicit experiment scope")
+        if action == "scale":
+            ensure("tools/vos/static_memory_bounds.py" in receipt["sources_sha256"],
+                   "the top-level scale receipt must bind the bound implementation")
         for name in cli.EXPERIMENT_SOURCES[action]:
             ensure(receipt["sources_sha256"][name]
                    == hashlib.sha256((root / name).read_bytes()).hexdigest(),
@@ -110,6 +114,7 @@ def _experiment_routes_and_source_binding() -> None:
 def _experiment_refuses_ignored_options_and_failures() -> None:
     invalid = [["structure", "--case", "unused"], ["transform", "--contract", "unused"],
                ["reclaim", "--max-nodes", "1"], ["structure", "--sizes", "8"],
+               ["mutants", "--case", "unused"], ["mutants", "--max-nodes", "1"],
                ["scale", "--sizes", "0"], ["scale", "--q5-max-leaves", "0"],
                ["compare", "--q5-max-leaves", "1"], ["structure", "--replay"]]
     for argv in invalid:

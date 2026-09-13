@@ -1,14 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """Generated scale contracts, fail-closed comparisons and independent scan parity."""
 
+import hashlib
+import json
 import random
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import memplan
 from vos import static_memory as memory
+from vos import static_memory_bounds as bounds
 from vos import static_memory_scale as scale
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,6 +39,16 @@ def _generators_are_identified_and_feasible() -> None:
         if raw["generator"]["family"] == "burst-safe-reuse":
             ensure(all(obj.payload_end < obj.authority_end < obj.sweep_end < obj.reuse
                        for obj in case.objects), "reuse must charge every delayed stage")
+        if raw["generator"]["family"] == "two-instant-witness":
+            width = len(scale.WITNESS_GADGET)
+            ensure(all(len(bounds.live_objects(case, "a", obj.start)) < width
+                       for obj in case.objects),
+                   "no witness instant may charge a whole gadget at once")
+            for left in case.objects:
+                for right in case.objects:
+                    ensure(int(left.id[1:]) // width == int(right.id[1:]) // width
+                           or not scale.interferes(left, right),
+                           "witness gadgets must not interfere with one another")
     for sizes in ((), (0,), (True,), (scale.MAX_SIZE + 1,), (8, 8)):
         try:
             scale.corpus("test", sizes)
@@ -44,15 +58,27 @@ def _generators_are_identified_and_feasible() -> None:
 
 
 def _small_oracles_and_large_bounds_stay_distinct() -> None:
+    supplied: set[str] = set()
     for raw in scale.corpus("test", (8, 32)):
         item = scale.compare_case(raw, 100_000)
         case = memory.parse_case(raw)
         ensure(not memory.check_placement(case, item["best_feasible_placement"]),
                "assembled best witness must check independently")
+        methods = {row["method"] for row in item["heuristics"]} | {"standing",
+                                                                   "bounded-exact-search"}
         for row in item["arenas"]:
             ensure(row["feasible_span"] >= row["proven_lower_bound"]
                    >= row["charged_load_lower_bound"] and row["remaining_gap"] >= 0,
                    f"invalid bound ordering: {row}")
+            ensure(row["proven_lower_bound_source"] in (*bounds.BOUNDS, "replayed-exact"),
+                   f"a proved bound must name the bound that supplied it: {row}")
+            ensure(row["feasible_span_source"] in methods,
+                   f"a span must name the candidate that attained it: {row}")
+            supplied.add(row["proven_lower_bound_source"])
+        if raw["generator"]["family"] == "two-instant-witness":
+            ensure(all(row["span_status"] == f"optimal-by-{bounds.BOUNDS[3]}"
+                       and row["remaining_gap"] == 0 for row in item["arenas"]),
+                   f"the pair bound must settle its own witness family: {item['arenas']}")
         if raw["generator"]["size"] == 8:
             ensure(item["exact"]["status"] == "optimal" and item["optimality_replay"]["status"] == "verified",
                    "small finite families owe independent exact replay")
@@ -63,18 +89,104 @@ def _small_oracles_and_large_bounds_stay_distinct() -> None:
                    "over-limit exact runs must not claim an optimum")
             ensure(item["standing_preserved"] and item["selected_placement"] == memory.standing_placement(case),
                    "an incomplete overall comparison keeps candidate evidence separate from selection")
+    ensure(supplied >= set(bounds.BOUNDS),
+           f"every reported bound must supply the strongest value somewhere: {supplied}")
 
 
 def _cutoff_preserves_every_standing_plan() -> None:
     for raw in scale.corpus("test", (8,)):
         before = deepcopy(raw)
-        item = scale.compare_case(raw, 0)
+        item = scale.compare_case(raw, 0, 0)
         standing = memory.standing_placement(memory.parse_case(raw))
         ensure(raw == before and item["standing_preserved"]
                and item["best_feasible_placement"] == standing and item["selected_placement"] == standing,
                "zero-budget comparison must leave all input and standing bindings intact")
         ensure(all(row["status"] == "incomplete" and row["placement"] == standing
                    for row in item["heuristics"]), "heuristics must retain fallback on cutoff")
+        ensure(all(row["proven_lower_bound"] == row["charged_load_lower_bound"]
+                   and row["proven_lower_bound_source"] == bounds.BOUNDS[0]
+                   for row in item["arenas"]),
+               "an exhausted bound budget must leave the charged load standing alone")
+
+
+def _inflated_bound_is_refused() -> None:
+    """A bound bug must fail comparison even when the placement itself still checks."""
+    raw = scale.corpus("test", (8,))[0]
+    case = memory.parse_case(raw)
+    forged = bounds.case_bounds(case)
+    standing = memory.placement_spans(case, memory.standing_placement(case))
+    forged[0]["proven_lower_bound"] = standing[forged[0]["arena"]] + 1
+    with patch.object(bounds, "case_bounds", return_value=forged):
+        try:
+            scale.compare_case(raw, 0)
+        except RuntimeError as error:
+            ensure("exceeds a checked placement span" in str(error),
+                   f"an inflated bound must fail its own consistency check: {error}")
+        else:
+            raise AssertionError("an inflated lower bound passed the comparison")
+
+
+def _added_orderings_reproduce_the_oracle_and_recheck() -> None:
+    for raw in scale.corpus("test", (8, 32)):
+        case = memory.parse_case(raw)
+        supplied = {row["method"]: row for row in memory.compare_heuristics(case, 100_000)}
+        for method in memory.METHODS:
+            status, candidate = scale.first_fit(case, scale.ORDERINGS[method],
+                                                bounds.Work(100_000))
+            ensure(status == supplied[method]["status"]
+                   and candidate == supplied[method]["candidate"],
+                   f"{raw['name']}: added first fit diverged from the oracle on {method}")
+        for method in scale.ADDED_METHODS:
+            status, candidate = scale.first_fit(case, scale.ORDERINGS[method],
+                                                bounds.Work(100_000))
+            ensure(status == "feasible" and candidate is not None,
+                   f"{raw['name']}: {method} found no placement")
+            ensure(not memory.check_placement(case, candidate),
+                   f"{raw['name']}: {method} emitted a candidate the checker refuses")
+        starved = scale.first_fit(case, scale.ORDERINGS[scale.ADDED_METHODS[0]],
+                                  bounds.Work(0))
+        ensure(starved == ("incomplete", None), f"a cutoff must emit no candidate: {starved}")
+
+
+def _lowering_reaches_a_fixed_point_and_never_grows() -> None:
+    for raw in scale.corpus("test", (8, 32)):
+        case = memory.parse_case(raw)
+        standing = memory.standing_placement(case)
+        spans = memory.placement_spans(case, standing)
+        status, once = scale.lower_to_fixed_point(case, standing, bounds.Work(1_000_000))
+        ensure(status == "feasible" and not memory.check_placement(case, once),
+               f"{raw['name']}: the lowering pass must emit a checked placement")
+        lowered = memory.placement_spans(case, once)
+        ensure(all(lowered[key] <= spans[key] for key in spans),
+               f"{raw['name']}: lowering must not grow an arena")
+        again = scale.lower_to_fixed_point(case, once, bounds.Work(1_000_000))
+        ensure(again == ("fixed-point", once),
+               f"{raw['name']}: a second pass must find the same fixed point")
+        interrupted, partial = scale.lower_to_fixed_point(case, standing, bounds.Work(1))
+        ensure(interrupted == "incomplete" and not memory.check_placement(case, partial),
+               f"{raw['name']}: an interrupted pass must still emit a legal placement")
+
+
+def _interference_agrees_with_the_checker() -> None:
+    rng = random.Random(9122026)  # noqa: S311 - deterministic synthetic tests
+    decided = 0
+    for _ in range(240):
+        objects: list[memory.Object] = []
+        for index in range(2):
+            start = rng.randrange(4)
+            end = start + rng.randrange(1, 5)
+            size = rng.randrange(1, 4)
+            objects.append(memory.Object(f"o{index}", "a", size, size, 1, start, end,
+                                         end, end, end, 0))
+        case = memory.Case("pair", "private finite fixture", "one declared trace",
+                           (memory.Arena("a", "owner", 8),), tuple(objects))
+        shared = [finding for finding in
+                  memory.check_placement(case, memory.standing_placement(case))
+                  if finding.startswith("overlap:")]
+        ensure(bool(shared) == scale.interferes(objects[0], objects[1]),
+               f"interference disagrees with the checker: {objects}, {shared}")
+        decided += bool(shared)
+    ensure(0 < decided < 240, "the sample must contain both verdicts")
 
 
 def _reference_first_fit(case: memory.Case, method: str,
@@ -169,6 +281,13 @@ def _receipts_bind_results_separately_from_host_time() -> None:
     ensure(not first["host_measurements"]["reproducible"], "wall time is a host measurement")
     ensure(scale.GENERATOR in first["reproducible"]["sources_sha256"],
            "receipts bind working-tree generator bytes")
+    ensure("tools/vos/static_memory_bounds.py" in first["reproducible"]["sources_sha256"],
+           "receipts bind the bytes that decided every reported bound")
+    changed = deepcopy(first)
+    changed["host_measurements"]["runs"] = [{"case": "elsewhere", "elapsed_seconds": 99.0}]
+    encoded = json.dumps(changed["reproducible"], sort_keys=True, separators=(",", ":"))
+    ensure(hashlib.sha256(encoded.encode("utf-8")).hexdigest() == first["result_sha256"],
+           "the digest must cover the reproducible block and nothing measured on a host")
 
 
 def cases() -> list[Case]:
@@ -176,6 +295,10 @@ def cases() -> list[Case]:
         Case("generators-identified-and-feasible", _generators_are_identified_and_feasible),
         Case("small-oracles-and-large-bounds-distinct", _small_oracles_and_large_bounds_stay_distinct),
         Case("cutoff-preserves-standing", _cutoff_preserves_every_standing_plan),
+        Case("inflated-bound-refused", _inflated_bound_is_refused),
+        Case("added-orderings-reproduce-the-oracle", _added_orderings_reproduce_the_oracle_and_recheck),
+        Case("lowering-reaches-a-fixed-point", _lowering_reaches_a_fixed_point_and_never_grows),
+        Case("interference-agrees-with-the-checker", _interference_agrees_with_the_checker),
         Case("cursor-matches-pairwise-scan", _cursor_matches_independent_pairwise_scan),
         Case("q5-original-predicates-and-grid-limits", _q5_keeps_original_predicates_and_grid_limits),
         Case("receipt-results-separate-from-time", _receipts_bind_results_separately_from_host_time),
