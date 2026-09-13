@@ -73,7 +73,8 @@ let `R` be its currently reserving incarnations, including initialization, retai
 payload, Quiescing, quarantine and unfinished reuse work. A sound producer and
 runtime binding satisfy these conditions for the selected plan:
 
-1. Every incarnation in `R` binds to a declared row of the correct owner and arena.
+1. Every incarnation in `R` binds to a declared row with a nonempty reservation
+   interval, of the correct owner and arena.
    Its entire physical extent fits that row's charged extent at the declared base.
    The binding stays fixed until authorized reuse; a mode change cannot silently
    rebind an incarnation that still reserves storage.
@@ -101,9 +102,11 @@ effects as reservations, and does not prove the authority gate itself. The
 argument applies separately in each arena; disjoint arenas then compose.
 
 The same interface bounds current charged occupancy by the exported interval
-load. For a nonempty finite `R`, choose its row with greatest start endpoint `b`.
-Pairwise overlap implies every other row ends strictly after `b`, and maximality
-implies each starts at or before `b`. Thus every bound row is live at `b`. The
+load. For one arena, restrict `R` to that arena. If it is nonempty, choose its
+row with greatest start endpoint `b`.
+That row's nonempty interval and pairwise overlap imply every bound row ends
+strictly after `b`, and maximality implies each starts at or before `b`.
+Thus every bound row is live at `b`. The
 injective binding and extent bounds give actual reserved charge at most
 `L_charge`, and hence at most `P`. Empty `R` has zero charge. External descriptors,
 tags, ECC and recovery storage still require their separate disjoint charges.
