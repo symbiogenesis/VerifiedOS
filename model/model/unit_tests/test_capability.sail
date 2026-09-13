@@ -178,6 +178,18 @@ function test_small_bounds_are_byte_exact() -> unit = {
     assert(getCapLength(d) == len);
   };
 
+  // At 128 bytes the quantum is two bytes. The odd-base control rounds both
+  // endpoints outward; the adjacent even base represents exactly 128 bytes.
+  let (odd_exact, odd_128) = setCapBounds(root_data_cap, 0x000000001, 0b0 @ 0x000000081);
+  let (odd_base, odd_top) = getCapBounds(odd_128);
+  assert(not(odd_exact));
+  assert(odd_base == 0 & odd_top == 130);
+  let (even_exact, even_128) = setCapBounds(root_data_cap, 0x000000002, 0b0 @ 0x000000082);
+  let (even_base, even_top) = getCapBounds(even_128);
+  assert(even_exact);
+  assert(even_base == 2 & even_top == 130);
+  assert(getCapLength(even_128) == 128);
+
   // Above it the narrow is still exact where the base and the length are
   // aligned to the quantum, which is the case the static memory plan is
   // obliged to arrange for every capability the profile's code derives

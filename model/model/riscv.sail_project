@@ -68,6 +68,7 @@ sys {
   files
     sys/sys_control.sail,
     sys/rot.sail,
+    sys/block_device.sail,
     sys/platform.sail,
     sys/mem_utils.sail,
     sys/split_access_utils.sail,
@@ -377,13 +378,14 @@ postlude {
 unit_tests {
   after postlude
   requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts, V_core,
-           V_instructions, keccak, fec_types, fec_insts
+           V_instructions, keccak, fec_types, fec_insts, A_types
 
   files
     unit_tests/test_privilege.sail,
     unit_tests/test_capability.sail,
     unit_tests/test_cheri_insts.sail,
     unit_tests/test_platform.sail,
+    unit_tests/test_block_device.sail,
     unit_tests/test_matrix_scratchpad.sail,
     unit_tests/test_memory_model.sail,
     unit_tests/test_vector_cap.sail,

@@ -1332,10 +1332,20 @@ private function check_rot() -> bool = {
   valid
 }
 
+function check_blkdev() -> bool = {
+  if not(plat_have_blkdev) then return true;
+  let valid = blkdev_geometry_valid(unsigned(plat_blkdev_base), unsigned(plat_blkdev_size),
+    plat_blkdev_block_bytes, plat_blkdev_block_count, plat_blkdev_read_steps,
+    plat_blkdev_write_steps, plat_blkdev_flush_steps, blkdev_backing_length(plat_blkdev_backing));
+  if not(valid) then print_endline("Block device requires aligned bounded geometry, positive service steps and exact explicit backing bytes.");
+  valid
+}
+
 function config_is_valid() -> bool = {
     check_tvec()
   & check_core_roster()
   & check_rot()
+  & check_blkdev()
   & check_fec_codes()
   & check_scratchpads()
   & check_timing()

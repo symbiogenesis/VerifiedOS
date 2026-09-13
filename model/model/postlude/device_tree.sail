@@ -349,14 +349,10 @@ private function generate_dts_revocation() -> string =
 // The three devices beside the core (R1c-i): the SoC boot ROM, the serial port
 // and the block device.
 //
-// **Each node is a placement and carries nothing else, because a placement is
-// all the composition declares.** No register entry gives a serial port or a
-// block device a register interface, so there is no baud rate, no FIFO depth,
-// no block size and no capacity to attest, and a node inventing one would put an
-// architectural input into the artifact a relying party appraises the part from.
-// What each does carry is the `reg` R-15-002b asks of it, so the SoC top written
-// over this map has a map to be written over (R1c-ii) and an auditor reading the
-// tree finds the aperture rather than an address nothing accounts for.
+// The boot ROM and serial nodes carry their placements. The block node also
+// publishes its reviewed PIO ABI, geometry and functional service-step bounds
+// from sys/block_device.sail. Backing bytes are harness inputs, not device-tree
+// contents, and these step bounds do not claim physical latency or WCET.
 //
 // The boot ROM's node is the one that is not in the MMIO region: it is the upper
 // half of the ROM region the attested tree is itself written into, and its
@@ -383,6 +379,12 @@ private function generate_dts_blkdev() -> string =
     "    block@" ^ string_drop(hex_str(unsigned(plat_blkdev_base)), 2) ^ " {\n"
   ^ "      compatible = \"verifiedos,block-device\";\n"
   ^ generate_dts_reg(plat_blkdev_base, plat_blkdev_size)
+  ^ "      verifiedos,abi-version = <1>;\n"
+  ^ "      verifiedos,block-bytes = <" ^ generate_dts_u64(plat_blkdev_block_bytes) ^ ">;\n"
+  ^ "      verifiedos,block-count = <" ^ generate_dts_u64(plat_blkdev_block_count) ^ ">;\n"
+  ^ "      verifiedos,read-steps = <" ^ generate_dts_u64(plat_blkdev_read_steps) ^ ">;\n"
+  ^ "      verifiedos,write-steps = <" ^ generate_dts_u64(plat_blkdev_write_steps) ^ ">;\n"
+  ^ "      verifiedos,flush-steps = <" ^ generate_dts_u64(plat_blkdev_flush_steps) ^ ">;\n"
   ^ "    };\n"
 
 // The refresh and discharge sequencer's node (R-15-247h). Two things belong in
