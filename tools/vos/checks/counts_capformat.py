@@ -84,7 +84,7 @@ def cap_format(ctx: Context) -> None:
     arithmetic it could recompute. A repair that moved the localparam and left those
     would turn a loud finding into a package that elaborates and computes a different
     format, which is worse than the finding. Every other site states its width beside a
-    consequence the width fixes, "spends the 64 bits exactly", "byte-exact to 128
+    consequence the width fixes, "spends the 64 bits exactly", "byte-exact below 128
     bytes at any base", "6 stored, high two derived", so a token substitution would
     leave the artifact describing a format it no longer carries: the half-a-sentence
     hazard that keeps K-70 report-only.

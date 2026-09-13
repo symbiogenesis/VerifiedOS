@@ -151,7 +151,7 @@ record over the `Stacks` region: the frame's offset is `offset_granules`, its
 size is `length_granules`, and its index is zero. So a frame narrowing is exact
 under the plan's rule when the frame's offset and size are whole granules of the
 stack region, where the region's granule is `representable_granule` of its
-length: one byte up to 128 bytes, and above that the coarsest power of two whose
+length: one byte below 128 bytes, and at or above that threshold the coarsest power of two whose
 sixty-fourfold still fits inside the length (lines 2011 to 2012, R-15-007c). The
 figure a reader should not have to derive: a stack region of 65,536 bytes has a
 granule of 1,024 bytes, so under the plan's rule every frame carved from it sits
