@@ -19,6 +19,13 @@ yardstick taken the same way.
     python tools/bedrock2-lowering/regenerate.py --stage /root/q2-stage --check
     python tools/bedrock2-lowering/regenerate.py --stage /root/q2-stage \\
         --ccomp /root/build/secomp-m12/ccomp --baseline
+    python tools/bedrock2-lowering/regenerate.py --stage /root/q2-stage \\
+        --source tools/bedrock2-lowering/FrameKernelInPlace.v \\
+        --function frame_kernel_inplace
+
+`--source` names another derivation and `--function` names what that source emits, which
+is the `Redirect` file the C is cut out of and the name its [DIGESTS.md](DIGESTS.md) row
+carries; the two together are how a second component reaches the same loop.
 
 Every path is absolute and the staging directory is outside every checkout: a
 subagent's working directory is not the worktree, and a relative write from the guest
@@ -55,6 +62,11 @@ REDERIVE = "IpcRederive.v"
 
 FINISHED = re.compile(r"Finished transaction in (\d+(?:\.\d+)?) secs")
 MNEMONIC = re.compile(r"^\s+([a-z][a-z0-9.]*)", re.MULTILINE)
+# The census splits the one mnemonic parse above rather than re-reading the file: a
+# memory access is a named RV64 load or store and a branch is the conditional family,
+# `call`, `j`, `jal`, `jalr`, `ret` and `tail` staying out of the branch count.
+LOAD_MNEMONICS = frozenset(("lb", "lbu", "lh", "lhu", "lw", "lwu", "ld", "flw", "fld"))
+STORE_MNEMONICS = frozenset(("sb", "sh", "sw", "sd", "fsw", "fsd"))
 CAPABILITY = re.compile(r"^\s+(c[a-z]+)\s", re.MULTILINE)
 TODO_ARM = re.compile(r"TODO: __[A-Za-z0-9_]+__")
 DIGEST_ROW = re.compile(r"^\| `([^`]+\.c)` \| `([0-9a-f]{64})` \| (\d+) \| (\d+) \|", re.MULTILINE)
@@ -168,9 +180,14 @@ def reaching_exit(ccomp: Path, emitted: Emitted) -> list[str]:
         text = asm.read_text()
         names = MNEMONIC.findall(text)
         capability = [m for m in CAPABILITY.findall(text) if m != "call"]
+        loads = sum(name in LOAD_MNEMONICS for name in names)
+        stores = sum(name in STORE_MNEMONICS for name in names)
+        branches = sum(name.startswith("b") for name in names)
         lines.append(f"  {asm.name}: {text.count(chr(10))} lines, {len(names)} instructions, "
                      f"{len(set(names))} distinct mnemonics, {len(capability)} capability "
                      f"mnemonics (predicate ^\\s+c[a-z]+\\s, call excluded)")
+        lines.append(f"  {asm.name}: {loads} loads, {stores} stores, {branches} branches "
+                     f"(named RV64 load and store mnemonics; branch predicate ^b)")
     # `-dcapasm` names its file after the source and writes it into the working
     # directory, whatever `-o` says, so the child runs in the stage and a file an
     # earlier run left there is removed before it, never read as this run's.
@@ -249,12 +266,13 @@ def regenerate(args: argparse.Namespace) -> int:
     stage = Path(args.stage)
     source = Path(args.source)
     owner = Path(args.owner)
-    print(f"=== bedrock2-lowering: regenerate {FUNCTION} in {stage} ===")
+    function = args.function
+    print(f"=== bedrock2-lowering: regenerate {function} in {stage} ===")
     for line in environment():
         print(line)
 
     stage_sources(stage, [owner, source])
-    (stage / f"{FUNCTION}.out").unlink(missing_ok=True)
+    (stage / f"{function}.out").unlink(missing_ok=True)
     owner_run = coqc(stage, owner.name)
     print(f"{owner.name}: coqc exit {owner_run.code} in {owner_run.wall:.2f} s wall")
     if owner_run.code != 0:
@@ -266,8 +284,8 @@ def regenerate(args: argparse.Namespace) -> int:
     if derived.code != 0:
         print((stage / f"{source.stem}.log").read_text()[-3000:])
         return 1
-    emitted = [extract_c(stage, FUNCTION)]
-    print(f"{FUNCTION}.c: {emitted[0].nbytes} bytes, {emitted[0].nlines} lines, "
+    emitted = [extract_c(stage, function)]
+    print(f"{function}.c: {emitted[0].nbytes} bytes, {emitted[0].nlines} lines, "
           f"sha256 {emitted[0].sha256}")
     if args.ccomp:
         for line in reaching_exit(Path(args.ccomp), emitted[0]):
@@ -332,6 +350,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="the Gallina source to derive (default: DescriptorCheck.v beside this file)")
     parser.add_argument("--owner", default=str(OWNER),
                         help="the generated interface artifact the source imports (default: proofs/RingContract.v)")
+    parser.add_argument("--function", default=FUNCTION,
+                        help="the function the source emits, which names its Redirect file, its C "
+                             f"and its DIGESTS.md row (default: {FUNCTION})")
     parser.add_argument("--ccomp", default=None,
                         help="the contained ccomp to run the reaching exit through (default: not run)")
     parser.add_argument("--baseline", action="store_true",

@@ -16,6 +16,7 @@ from typing import Any
 from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
 from vos import static_memory_envelope as envelope
+from vos import static_memory_lending as lending
 from vos import static_memory_manifest as manifest
 from vos import static_memory_modes as mode_family
 from vos import static_memory_mutants as mutants
@@ -44,6 +45,8 @@ EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
     "reclaim": ("tools/vos/static_memory_reclaim.py",
                 "docs/implementation/static-memory-reclamation.md",
                 "tools/vos/revocation.py"),
+    "lending": ("tools/vos/static_memory_lending.py",
+                "docs/implementation/static-memory-lending.md"),
     "scale": ("tools/vos/static_memory_scale.py",
               "tools/vos/static_memory_bounds.py",
               "docs/implementation/static-memory-scaling.md",
@@ -118,6 +121,8 @@ def experiment(args: argparse.Namespace, root: Path) -> int:
         result = transform.transformation_report(receipt["revision"])
     elif args.action == "reclaim":
         result = reclaim.report(root)
+    elif args.action == "lending":
+        result = lending.report(root)
     elif args.action == "modes":
         result = mode_family.report(receipt["revision"])
     elif args.action == "mutants":

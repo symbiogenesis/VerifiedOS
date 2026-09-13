@@ -94,6 +94,7 @@ def _experiment_routes_and_source_binding() -> None:
     selections = [("structure", []), ("transform", []), ("reclaim", []),
                   ("modes", []), ("manifest", []),
                   ("mutants", []), ("repr", []), ("envelope", []), ("phases", []),
+                  ("lending", []),
                   ("scale", ["--sizes", "4", "--max-nodes", "100", "--q5-max-leaves", "1"])]
     root = Path(__file__).resolve().parents[2]
     for action, settings in selections:
