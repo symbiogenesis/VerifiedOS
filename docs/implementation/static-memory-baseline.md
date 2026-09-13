@@ -60,7 +60,7 @@ for every distinct i,j:
 
 An actually empty reservation contributes no interference and is removed before this predicate is applied; a zero-payload object with initialization or delayed reuse is not empty. The arena, bounds, alignment, owner and other legal-position predicates are additional conjunctions. Interference feasibility does not establish optimality, source-lifetime soundness, successful revocation, or correct runtime binding. A source-to-plan theorem must join those separate obligations.
 
-The [memory-plan statement](../../proofs/MemoryPlan.v) supplies `live_from`, `live_to`, `base_of`, `length_of`, an island map, and `colouring_ok`. Its `colouring_ok_sound` connects the Boolean predicate to `NoInterference`, which has the same overlapping-lifetime antecedent above. Its gap e records the missing time-order interpretation; gap f records R-08-014's inverted word. A proof of this Boolean implication does not establish that the input lifetimes describe all admitted execution paths or that the placement reaches the live-load lower bound.
+The [memory-plan statement](../../proofs/MemoryPlan.v) supplies `live_from`, `live_to`, `base_of`, `length_of`, an island map, and `colouring_ok`. Its `colouring_ok_sound` connects the Boolean predicate to `NoInterference`, which has the same overlapping-lifetime antecedent above. Its stable items e and f record R-08-011's composition event order and R-08-014's overlapping-lifetime antecedent as decided by the register. A proof of this Boolean implication does not establish that the input lifetimes describe all admitted execution paths or that the placement reaches the live-load lower bound.
 
 The [placement-search contract](placement-search.md) keeps lifetimes and lengths fixed. Its footprint is the peak calculated from those inputs, its span is the highest slot endpoint relative to the island base, and its padding is bytes below that endpoint covered by no slot at any lifetime. Padding is not instantaneous idle capacity and is not all of `P - L_charge`. The exporter declares owner, bank, reserved size and the slot's timing bound absent; research annotations must retain that provenance rather than invent production values. The current enumeration's optimum is only over its declared grid.
 
@@ -209,16 +209,23 @@ Two unit objects with lifetimes `[0,1)` and `[1,2)` safely share base zero after
 
 ## Scope disposition for the register and its prose
 
-These dispositions identify what a normative repair must say. They do not silently weaken the existing register. Each row is read with the [static-memory-plan prose](../spec.md#r-08-010), the statement artifact and the search contract.
+The [requirements register](../requirements-register.md) and
+[static-memory-plan prose](../spec.md#r-08-010) state the reconciled scope. The
+statement artifact and search contract read those requirements; the implementation
+and source-to-plan obligations remain distinct from their wording.
 
-| Entry | Established part and unresolved scope | Required disposition |
+| Entry | Established scope | Remaining obligation |
 | --- | --- | --- |
-| R-08-011 | A static slot assignment can be checked. Ownership does not establish exact size, multiplicity, elapsed time, or the all-executions reservation intervals. `MemoryPlan.v` takes the intervals as inputs. | State the explicit bounds and event-order model, distinguish source allocation sites from incarnations, and require the compiler/TAL proof that actual reservation and safe-reuse behavior refines the exported relation. Retain fixed composition as the intended contract without attributing the missing premises to ownership alone. |
-| R-08-012 | `L_charge` is a lower bound. Equality follows from the laminar theorem's full premises, not from merely planning offline or checking interference. Alignment and multi-mode witnesses already invalidate unqualified equality in broader models. Exact payload size also does not remove representability padding or fixed-pool slack. | Separate eliminated online placement from physical layout gaps; state `L_charge <= OPT <= P` generally and peak equality only for a proved special case. Account for R-08-018b's size classes and R-15-007k's quantization explicitly. A universal exact-peak criterion remains unsupported. |
-| R-08-013 | The proof above establishes polynomial exact planning for fixed laminar reservation intervals under its stated constraints. It establishes no theorem that every region-disciplined program supplies them. | Qualify the nested special case by the actual lifetime and legal-placement premises. Keep external general-complexity results within their cited model; this artifact asserts no new general hardness or approximation bound. |
-| R-08-014 | `colouring_ok` already checks disjoint extents for overlapping intervals. The normative line and corresponding prose invert that predicate. | Change both to overlapping live ranges, preserve half-open boundary semantics and the R-08-015 reuse join, and retain the statement's gap until the owning artifacts are repaired together. Feasibility remains distinct from optimality. |
+| R-08-011 | Reservation intervals use one composition event order and extend through authorized reuse; bounded allocation sites can supply several simultaneous incarnations | Prove that every admitted execution refines the exported reservation relation; ownership alone supplies neither extents nor multiplicity |
+| R-08-012 | Charged peak is a lower bound on legal span; rounding already included in extents is distinguished from unresolved placement gaps, and the full span is charged once | Supply checked placements and lower bounds for concrete instances; no universal peak equality follows from offline planning |
+| R-08-013 | The stack theorem uses laminar reservations, one arena, common alignment and the complete stated legal-placement premises | Establish those premises from real sources; the restricted theorem supplies no general complexity classification |
+| R-08-014 | Overlapping reservation intervals require disjoint extents; disjoint lifetimes may share under the reuse gate | Join placement feasibility to sound lifetime extraction and R-08-015's authority and reuse discipline |
 
-R-08-012a's objective also needs the quantity it minimizes to be explicit when the normative scope is repaired: for fixed lifetimes and extents, peak load cannot move under a base search. The present search's span/padding objective reports a different movable quantity. Resolving that naming does not authorize changing islands, sampling profiles or adding solver machinery.
+R-08-012a minimizes reserved span before locality. With lifetimes and extents fixed,
+a base search cannot move charged peak. The search's span/padding ranking implements
+the span term and only part of locality; it authorizes no island change or additional
+solver machinery. R-08-018a applies the same inequality to jointly colored pools,
+and R-08-019e invokes the full sufficient premises when proposing laminar lifetimes.
 
 ## Reclamation as a bounded capacity obligation
 
@@ -271,7 +278,7 @@ If releases can enter failed containment and remain quarantined, the uniform suc
 
 ## Structural questions left open
 
-For the agenda's parameterized problem, keep positive integer sizes and endpoints encoded in binary, one origin-zero arena, unit alignment, unrestricted nonnegative integer bases and no pinning. Let `k` be the minimum number of intervals whose deletion makes the remaining reservation family laminar, with equal intervals allowed. The construction above settles `k = 0`. Whether exact placement has running time `f(k) * poly(input length)`, or is hard for some fixed small `k`, remains open here.
+For the agenda's parameterized problem, keep positive integer sizes and endpoints encoded in binary, one origin-zero arena, unit alignment, unrestricted nonnegative integer bases and no pinning. Let `k` be the minimum number of intervals whose deletion makes the remaining reservation family laminar, with equal intervals allowed. The construction above settles `k = 0`. Whether exact placement has running time `f(k) * poly(input length)`, or is hard for some fixed small `k`, remains open here. The [deletion-parameter study](static-memory-structure.md) computes the parameter in polynomial time, supplies a two-stack construction for bipartite crossing graphs and refutes candidate decompositions. The remaining question concerns non-bipartite crossing graphs with `k >= 2`.
 
 An enumeration bounded polynomially in numerical span is not such a result when the span is binary encoded. Supplying a deletion set instead of asking the algorithm to find one is a different problem variant. Added alignment, owner, bank, multiple-execution or segment constraints also need separately stated parameters; the small witnesses identify failed extensions of peak equality, not hardness proofs for these variants.
 

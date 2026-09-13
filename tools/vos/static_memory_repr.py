@@ -523,7 +523,8 @@ def report(root: Path, source_revision: str = "unspecified",
     agreement = q5_agreement(root)
     errors = [finding for item in items for finding in item["errors"]]
     errors.extend(f"Q5 cross-check: {finding}" for finding in agreement["findings"])
-    sources = (GENERATOR, "tools/vos/static_memory.py", "tools/vos/memplan.py",
+    sources = (GENERATOR, "tools/vos/static_memory.py", "tools/vos/static_memory_corpus.py",
+               "tools/vos/memplan.py",
                memplan.SOURCE)
     reproducible = {
         "schema": VERSION, "source_revision": source_revision,

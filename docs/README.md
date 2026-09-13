@@ -30,12 +30,13 @@ the [mathematical baseline](implementation/static-memory-baseline.md) and
 [synthetic capacity corpus](implementation/static-memory-corpus.md) to replayable
 byte accounting and bounded placement comparisons, the corpus recording which
 research families its witnesses cover and which composed-roster input is still
-absent. They also expose
-[service transformations](implementation/static-memory-transformations.md),
-[reclamation scheduling](implementation/static-memory-reclamation.md),
-[planning scale](implementation/static-memory-scaling.md) and
-[the three models a mode family can optimize](implementation/static-memory-modes.md),
-each with its own replay contract and remaining qualification work.
+absent. The [artifact inventory](implementation/static-memory-artifact.md) indexes the
+experiments, classifications and replay commands, including service transformations,
+reclamation, modes, representability, structural algorithms, phases and lending.
+The [compiled census](implementation/static-memory-census.md) supplies a plain-RV64
+proxy, while the [laminar theorem](implementation/static-memory-baseline.md#mechanized-statement)
+and [functional service equivalence](implementation/static-memory-transformations.md#mechanized-equivalence)
+have separate Rocq proofs with their implementation bridges stated as remaining work.
 
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
