@@ -9,19 +9,20 @@ from tests.harness import Case, ensure
 from vos import static_memory_lending as lend
 
 
-def reference_observation(calendar: lend.Calendar,
-                          capacity: tuple[int, ...]) -> tuple[tuple[str, ...], ...]:
+def reference_observation(calendar: lend.Calendar, capacity: tuple[int, ...],
+                          padded: bool) -> tuple[tuple[str, ...], ...]:
     """Recompute the borrower's observation from held intervals and slot identities.
 
     No incremental load array and no shared helper: own-pool service is decided by
-    colouring the held intervals onto the borrower's actual slots, and borrowed
-    service by rescanning every held interval against the per-tick capacity.
+    colouring the held intervals onto the borrower's actual slots, borrowed service
+    by rescanning every held interval against the per-tick capacity, and padding by
+    scanning the declared instants forward from the completion tick.
     """
     own: list[list[tuple[int, int]]] = [[] for _ in range(calendar.borrower_slots)]
     loans: list[tuple[int, int]] = []
     result: list[tuple[str, ...]] = []
     for request in calendar.requests:
-        served: tuple[str, ...] | None = None
+        served: tuple[str, str, int] | None = None
         usable = False
         for tick in request.attempts:
             start, end = tick, tick + request.duration
@@ -32,29 +33,36 @@ def reference_observation(calendar: lend.Calendar,
                          if all(start >= stop or begin >= end for begin, stop in held)), None)
             if slot is not None:
                 own[slot].append((start, end))
-                served = (request.id, "own-pool", "none", str(end))
+                served = (request.id, "own-pool", end)
                 break
             if all(sum(1 for begin, stop in loans if begin <= unit < stop) < capacity[unit]
                    for unit in range(start, end)):
                 loans.append((start, end))
-                served = (request.id, "borrowed", "none", str(end))
+                served = (request.id, "borrowed", end)
                 break
-        result.append(served or (request.id, "refused",
-                                 "capacity-exhausted" if usable else "outside-horizon", "none"))
+        if served is None:
+            result.append((request.id, "refused",
+                           "capacity-exhausted" if usable else "outside-horizon", "none"))
+            continue
+        finish = served[2]
+        while padded and finish not in calendar.release_points and finish < calendar.horizon:
+            finish += 1
+        result.append((served[0], served[1], "none", str(finish)))
     return tuple(result)
 
 
 def _shape(observation: lend.Observation) -> tuple[tuple[str, ...], ...]:
     return tuple((request, verdict, reason or "none",
                   "none" if completion is None else str(completion))
-                 for request, verdict, reason, _, completion in observation)
+                 for request, verdict, reason, completion in observation)
 
 
 def _pairwise(calendar: lend.Calendar, policy: lend.Policy,
               declassified: tuple[int, ...]) -> tuple[str, int | None]:
     """Decide safety by comparing every label-equal pair, with no grouping step."""
     traces = lend.admitted_traces(calendar)
-    seen = [reference_observation(calendar, lend.borrow_capacity(calendar, policy, trace))
+    seen = [reference_observation(calendar, lend.borrow_capacity(calendar, policy, trace),
+                                  policy.pad_to_release_points)
             for trace in traces]
     distances = [
         sum(1 for one, other in zip(traces[left], traces[right], strict=True) if one != other)
@@ -78,9 +86,11 @@ def _policies(calendar: lend.Calendar) -> list[lend.Policy]:
     families += [lend.Policy(f"headroom-committed-{h}", "headroom-committed", h)
                  for h in range(calendar.lender_slots + 1)]
     return [lend.Policy("none", "none"), lend.Policy("any-idle", "any-idle"),
+            lend.Policy("any-idle-padded", "any-idle", pad_to_release_points=True),
             lend.Policy("release-declared", "release-declared"),
             lend.Policy("release-declassified", "release-declassified"),
-            lend.Policy("leaking", "headroom-committed", 1, (0, 1)), *families]
+            lend.Policy("leaking", "headroom-committed", 1, (0, 1)),
+            lend.Policy("leaking-padded", "headroom-committed", 1, (0, 1), True), *families]
 
 
 def enumeration_matches_a_direct_pairwise_checker() -> None:
@@ -112,7 +122,8 @@ def the_simulator_agrees_with_independent_interval_colouring() -> None:
             for trace in lend.admitted_traces(calendar):
                 capacity = lend.borrow_capacity(calendar, policy, trace)
                 ensure(_shape(lend.run(calendar, policy, trace).observation)
-                       == reference_observation(calendar, capacity),
+                       == reference_observation(calendar, capacity,
+                                                policy.pad_to_release_points),
                        f"counter model differs from slot colouring: {policy.name}")
 
 
@@ -121,8 +132,9 @@ def refusal_typing_and_declared_attempts_are_preserved() -> None:
     by_id = {request.id: request for request in calendar.requests}
     for policy in (*lend.POLICIES, lend.NEIGHBOUR):
         for trace in lend.admitted_traces(calendar):
-            for request, verdict, reason, attempt, completion in (
-                    lend.run(calendar, policy, trace).observation):
+            result = lend.run(calendar, policy, trace)
+            for (request, verdict, reason, completion), attempt in zip(
+                    result.observation, result.served, strict=True):
                 ensure(verdict in lend.VERDICTS, f"unknown verdict: {verdict}")
                 if verdict == "refused":
                     ensure(reason in lend.REFUSAL_REASONS, f"untyped refusal: {reason}")
@@ -132,13 +144,20 @@ def refusal_typing_and_declared_attempts_are_preserved() -> None:
                 ensure(reason is None, "a served request carries no refusal reason")
                 if attempt is None or completion is None:
                     raise AssertionError("service carries both a serving instant and a completion")
-                ensure(completion == by_id[request].attempts[attempt] + by_id[request].duration,
-                       "service happened away from a declared public attempt instant")
+                finish = by_id[request].attempts[attempt] + by_id[request].duration
+                if policy.pad_to_release_points:
+                    ensure(completion >= finish and (completion in calendar.release_points
+                                                     or completion == calendar.horizon),
+                           "padding must delay to a declared instant and never report early")
+                else:
+                    ensure(completion == finish,
+                           "service happened away from a declared public attempt instant")
     late = lend.Calendar(horizon=4, lender_slots=2, borrower_slots=1,
                          declared_cap=(1, 1, 1, 1), release_points=(0,),
                          requests=(lend.Request("too-long", (2,), 3),))
     outside = lend.run(late, lend.Policy("any-idle", "any-idle"), (1, 1, 1, 1)).observation
     ensure(outside[0][2] == "outside-horizon", "an unusable attempt is not a capacity refusal")
+    ensure(lend.pad(late, outside) == outside, "padding must not invent a completion tick")
     closed = lend.Calendar(horizon=4, lender_slots=2, borrower_slots=1,
                            declared_cap=(0, 0, 0, 0), release_points=(0,),
                            requests=(lend.Request("a", (0,), 4), lend.Request("b", (0, 1), 2)))
@@ -220,6 +239,7 @@ def declassification_is_what_the_release_rule_needs() -> None:
 
 def malformed_models_and_oversized_spaces_are_refused() -> None:
     calendar = lend.FIXTURE
+    not_a_flag: Any = 1
     bad: list[tuple[lend.Calendar, lend.Policy]] = [
         (lend.Calendar(4, 2, 1, (1, 1, 1), (0,), calendar.requests[:1]),
          lend.Policy("p", "none")),
@@ -238,6 +258,8 @@ def malformed_models_and_oversized_spaces_are_refused() -> None:
          lend.Policy("p", "headroom-committed", 3)),
         (lend.Calendar(4, 2, 1, (1, 1, 1, 1), (0,), calendar.requests[:1]),
          lend.Policy("p", "none", 0, (9,))),
+        (lend.Calendar(4, 2, 1, (1, 1, 1, 1), (0,), calendar.requests[:1]),
+         lend.Policy("p", "none", 0, (), not_a_flag)),
         (lend.Calendar(4, 2, True, (1, 1, 1, 1), (0,), calendar.requests[:1]),
          lend.Policy("p", "none")),
     ]
@@ -289,13 +311,40 @@ def channels_separate_refusal_from_timing() -> None:
                for name in ("refusal", "timing")),
            "both leaks are visible from a one-tick difference in the secret")
     for one, other in product(lend.VERDICTS, repeat=2):
-        first = ((("r", one, None, 0, 1)),)
-        second = ((("r", other, None, 0, 1)),)
+        first: lend.Observation = (("r", one, None, 1),)
+        second: lend.Observation = (("r", other, None, 1),)
         found = lend.channel(first, second)
         ensure((found is None) == (one == other), "channel naming must follow the verdicts")
         if one != other:
             ensure(found == ("refusal" if "refused" in (one, other) else "verdict"),
                    "a refusal difference is not an own-pool-versus-loan difference")
+    ensure(lend.channel((("r", "borrowed", None, 2),), (("r", "borrowed", None, 3),)) == "timing",
+           "equal verdicts with unequal completion ticks travel on the timing channel")
+
+
+def padding_closes_the_timing_channel_and_not_the_refusal_channel() -> None:
+    calendar = lend.FIXTURE
+    bare = lend.Policy("lend-any-idle", "any-idle")
+    padded = lend.Policy("lend-any-idle-padded", "any-idle", pad_to_release_points=True)
+    open_leak = lend.analyze(calendar, bare)
+    closed = lend.analyze(calendar, padded)
+    ensure(open_leak["channels"]["timing"] is not None
+           and closed["channels"]["timing"] is None,
+           "padding every completion to a declared instant must close the timing channel")
+    ensure(closed["channels"]["refusal"] is not None and closed["status"] == "distinguishing",
+           "padding cannot reach a refusal, so the policy stays refuted")
+    ensure(_pairwise(calendar, padded, ())[0] == "distinguishing",
+           "the independent checker must still refute the padded policy")
+    ensure(closed["useful_slack"] == open_leak["useful_slack"],
+           "padding moves no verdict, so it changes no slack")
+    completions = [row[3] for trace in lend.admitted_traces(calendar)
+                   for row in lend.run(calendar, padded, trace).observation if row[3] is not None]
+    ensure(all(tick in calendar.release_points or tick == calendar.horizon
+               for tick in completions), "a padded completion sits on a declared instant")
+    late = [lend.run(calendar, policy, (0,) * calendar.horizon).observation
+            for policy in (bare, padded)]
+    ensure(any(one[3] != other[3] for one, other in zip(*late, strict=True)),
+           "padding must actually delay a completion on the reference trace")
 
 
 def the_receipt_is_deterministic_and_keeps_its_scope() -> None:
@@ -321,5 +370,6 @@ def cases() -> list[Case]:
         declassification_is_what_the_release_rule_needs,
         malformed_models_and_oversized_spaces_are_refused,
         channels_separate_refusal_from_timing,
+        padding_closes_the_timing_channel_and_not_the_refusal_channel,
         the_receipt_is_deterministic_and_keeps_its_scope,
     )]
