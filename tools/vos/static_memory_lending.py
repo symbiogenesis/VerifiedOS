@@ -8,6 +8,9 @@ occupancy trace is the secret, and one scheduler tick is the finest instant the
 model has. Two verdicts are reported separately and neither implies the other: a
 two-run noninterference result over the enumerated space, and a return-capacity
 result about whether a granted loan can outlive the lender's own admitted demand.
+A result here belongs to the calendar that produced it, so the receipt also carries
+the counterexample calendars that bound what the fixture's own results may be read
+to say.
 """
 
 from dataclasses import asdict, dataclass
@@ -70,6 +73,15 @@ class ReturnRow(TypedDict):
     violating_traces: int
     witness_trace: list[int] | None
     witness_ticks: list[int] | None
+
+
+class GrantRow(TypedDict):
+    """Whether what the rule grants is fixed by the public label, probed black-box."""
+
+    status: str
+    label: list[int] | None
+    capacity_a: list[int] | None
+    capacity_b: list[int] | None
 
 
 @dataclass(frozen=True)
@@ -236,7 +248,11 @@ def public_capacity(calendar: Calendar, policy: Policy, label: Label,
     """The capacity a reader holding only public inputs and the label can compute.
 
     `None` means the rule is not a function of the public inputs at all, which is
-    the finding itself and not a failure of this routine.
+    the finding itself and not a failure of this routine. Where a rule is a public
+    function this restates its capacity without the trace in scope, so the check it
+    feeds is double entry rather than an independent derivation: it catches a rule
+    that reaches for the secret or a transcription slip, and the black-box probe in
+    `_granted` is what decides whether the grant moves with the secret at all.
     """
     validate(calendar, policy)
     if policy.leaking_ticks:
@@ -299,10 +315,14 @@ def simulate(calendar: Calendar,
 
 
 def pad(calendar: Calendar, observation: Observation) -> Observation:
-    """Delay every completion to the next declared release instant, or to the horizon.
+    """Delay every completion to the first declared instant at or after it, or the horizon.
 
-    This is the timing countermeasure on its own: it moves no verdict, so it cannot
-    close the refusal channel, and the borrower pays for it in latency.
+    A completion already sitting on a declared instant is not moved, so padding
+    confuses two completions only where both fall strictly inside one declared
+    segment: whether it closes a timing channel is a property of how the instants
+    are spaced against the completions, not of the rule. This is the timing
+    countermeasure on its own: it moves no verdict, so it cannot close the refusal
+    channel, and the borrower pays for it in latency.
     """
     instants = (*calendar.release_points, calendar.horizon)
     return tuple((request, verdict, reason, None if completion is None
@@ -339,9 +359,11 @@ def rows(observation: Observation) -> list[SightingRow]:
 def channel(first: Observation, second: Observation) -> str | None:
     """Name the channel a difference travels on, or `None` where there is none.
 
-    A verdict difference involving a refusal is the refusal channel; a verdict
-    difference between own-pool and borrowed service is the verdict channel; equal
-    verdicts with an unequal completion tick is the timing channel.
+    A verdict difference involving a refusal, or a difference in the refusal reason
+    itself, is the refusal channel; a verdict difference between own-pool and
+    borrowed service is the verdict channel; equal verdicts and equal reasons with
+    an unequal completion tick is the timing channel. The reason is checked on its
+    own because a secret-dependent reason is a refusal leak whatever the verdicts do.
     """
     left = tuple(sighting[1] for sighting in first)
     right = tuple(sighting[1] for sighting in second)
@@ -349,12 +371,15 @@ def channel(first: Observation, second: Observation) -> str | None:
         return "refusal" if any(
             one != other and "refused" in (one, other)
             for one, other in zip(left, right, strict=True)) else "verdict"
+    if any(one[2] != other[2] for one, other in zip(first, second, strict=True)):
+        return "refusal"
     return "timing" if first != second else None
 
 
 def _witness(calendar: Calendar, traces: tuple[Trace, ...], runs: list[Run],
-             members: list[int], wanted: str | None) -> PairWitness | None:
-    """The least distinguishing pair on one channel, by differing ticks then order."""
+             members: list[int], wanted: str | None
+             ) -> tuple[tuple[int, int, int], PairWitness] | None:
+    """The least distinguishing pair inside one label class, with its ordering key."""
     best: tuple[tuple[int, int, int], PairWitness] | None = None
     for position, index in enumerate(members):
         for other in members[position + 1:]:
@@ -371,7 +396,21 @@ def _witness(calendar: Calendar, traces: tuple[Trace, ...], runs: list[Run],
                 lender_trace_a=list(traces[index]), lender_trace_b=list(traces[other]),
                 observation_a=rows(runs[index].observation),
                 observation_b=rows(runs[other].observation)))
-    return None if best is None else best[1]
+    return best
+
+
+def _least_witness(calendar: Calendar, traces: tuple[Trace, ...], runs: list[Run],
+                   distinguishing: list[list[int]], wanted: str | None) -> PairWitness | None:
+    """The least witness over every label class, not the first class to hold one.
+
+    Taking the first class would report a witness minimal only inside that class, so
+    a later class with a smaller difference in the secret would never be consulted.
+    The key orders by differing ticks and then by enumeration order, and trace
+    indices are global, so the minimum is total and independent of class order.
+    """
+    found = [candidate for members in distinguishing
+             if (candidate := _witness(calendar, traces, runs, members, wanted)) is not None]
+    return min(found, key=lambda item: item[0])[1] if found else None
 
 
 def _slack(runs: list[Run]) -> SlackRow:
@@ -385,6 +424,27 @@ def _slack(runs: list[Run]) -> SlackRow:
         refused_min=min(columns[2]), refused_max=max(columns[2]),
         borrowed_slot_ticks_min=min(columns[3]), borrowed_slot_ticks_max=max(columns[3]),
         constant_across_traces=len(set(counts)) == 1)
+
+
+def _granted(calendar: Calendar, policy: Policy, traces: tuple[Trace, ...],
+             classes: dict[Label, list[int]]) -> GrantRow:
+    """Probe the rule itself: does the amount it grants move with the secret?
+
+    This evaluates `borrow_capacity` over the admitted set and compares the vectors
+    inside each label class, so it restates no formula and would notice a rule that
+    reads the secret however it is written. It is a fact about the grant and not
+    about the borrower: a grant that moves with the secret is observable only where
+    a request reaches the ticks at which it moves, which is why the receipt reports
+    this beside the noninterference verdict rather than in place of it.
+    """
+    for label, members in classes.items():
+        vectors = sorted({borrow_capacity(calendar, policy, traces[index])
+                          for index in members})
+        if len(vectors) > 1:
+            return GrantRow(status="reads-the-secret", label=list(label),
+                            capacity_a=list(vectors[0]), capacity_b=list(vectors[1]))
+    return GrantRow(status="label-determined", label=None,
+                    capacity_a=None, capacity_b=None)
 
 
 def _return_capacity(traces: tuple[Trace, ...], runs: list[Run]) -> ReturnRow:
@@ -420,13 +480,9 @@ def analyze(calendar: Calendar, policy: Policy,
     distinguishing = [members for members in classes.values()
                       if len({runs[index].observation for index in members}) > 1]
     witnesses: dict[str, PairWitness | None] = {
-        name: next((found for members in distinguishing
-                    if (found := _witness(calendar, traces, runs, members, name)) is not None),
-                   None)
+        name: _least_witness(calendar, traces, runs, distinguishing, name)
         for name in CHANNELS}
-    minimal = next((found for members in distinguishing
-                    if (found := _witness(calendar, traces, runs, members, None)) is not None),
-                   None)
+    minimal = _least_witness(calendar, traces, runs, distinguishing, None)
     public: dict[str, Any] = {"status": "not-a-public-function", "mismatches": None}
     vectors = [public_capacity(calendar, policy,
                                tuple(trace[tick] for tick in declassified), declassified)
@@ -445,6 +501,7 @@ def analyze(calendar: Calendar, policy: Policy,
         "status": "distinguishing" if distinguishing else "noninterferent",
         "minimal_distinguishing_pair": minimal,
         "channels": witnesses,
+        "granted_capacity": _granted(calendar, policy, traces, classes),
         "observations_from_public_inputs": public,
         "return_capacity": _return_capacity(traces, runs),
         "useful_slack": _slack(runs),
@@ -511,14 +568,69 @@ POLICIES = (
 
 NEIGHBOUR = Policy("headroom-committed-2-reading-the-secret", "headroom-committed", 2, (0, 1, 2))
 
+PADDING_OPEN = Calendar(
+    horizon=5,
+    lender_slots=2,
+    borrower_slots=1,
+    declared_cap=(1, 1, 1, 1, 0),
+    release_points=(0, 2),
+    requests=(
+        Request("own", (0,), 2),
+        Request("loan", (0,), 3),
+        Request("retry", (0, 1, 2), 2),
+    ),
+)
+
+GRANT_UNOBSERVED = Calendar(
+    horizon=4,
+    lender_slots=3,
+    borrower_slots=1,
+    declared_cap=(0, 0, 1, 1),
+    release_points=(0,),
+    requests=(
+        Request("early", (0,), 2),
+        Request("contended", (0, 2), 2),
+        Request("short", (1, 3), 1),
+    ),
+)
+
+COUNTEREXAMPLES: dict[str, tuple[Calendar, Policy, str | None]] = {
+    "padding-does-not-close-timing-in-general": (
+        PADDING_OPEN, Policy("lend-any-idle-padded", "any-idle",
+                             pad_to_release_points=True), None),
+    "an-observed-idle-reserve-can-be-safe-and-still-lend": (
+        GRANT_UNOBSERVED, Policy("headroom-observed-1", "headroom-observed", 1),
+        "headroom-observed"),
+}
+
 SOURCES = ("tools/vos/static_memory_lending.py",
            "tools/tests/test_static_memory_lending.py",
            "docs/implementation/static-memory-lending.md")
 
 
+def _counterexamples() -> dict[str, dict[str, Any]]:
+    """Enumerate the calendars that bound the scope of the fixture's own results.
+
+    Each entry refutes a statement the fixture alone would invite: that padding
+    closes a timing channel, and that a reserve subtracted from observed idle
+    capacity must choose between lending and hiding. They are part of the receipt so
+    the bound is replayed rather than asserted in prose.
+    """
+    return {
+        name: {
+            "question": name,
+            "calendar": asdict(model),
+            "analysis": analyze(model, policy),
+            "headroom_sweep": None if kind is None else headroom_sweep(model, kind),
+        }
+        for name, (model, policy, kind) in COUNTEREXAMPLES.items()
+    }
+
+
 def _findings(calendar: Calendar, analyses: list[dict[str, Any]],
               declassified: dict[str, Any], neighbour: dict[str, Any],
-              sweeps: dict[str, dict[str, Any]]) -> list[str]:
+              sweeps: dict[str, dict[str, Any]],
+              counterexamples: dict[str, dict[str, Any]]) -> list[str]:
     """Bind every claim the receipt makes to an input, so fixture drift is a finding."""
     by_name = {item["policy"]["name"]: item for item in analyses}
     errors: list[str] = []
@@ -531,7 +643,7 @@ def _findings(calendar: Calendar, analyses: list[dict[str, Any]],
                   for name in ("refusal", "timing") if idle["channels"][name] is None)
     padded = by_name["lend-any-idle-padded"]
     if padded["channels"]["timing"] is not None:
-        errors.append("padding completions to declared instants left the timing channel open")
+        errors.append("padding no longer closes the timing channel on the fixture calendar")
     if padded["channels"]["refusal"] is None:
         errors.append("padding completions closed the refusal channel it cannot reach")
     if by_name["release-declared"]["observations_from_public_inputs"]["status"] != "public-function":
@@ -558,6 +670,21 @@ def _findings(calendar: Calendar, analyses: list[dict[str, Any]],
     if (by_name["release-declared"]["useful_slack"]["borrowed_max"]
             <= by_name["headroom-committed-2"]["useful_slack"]["borrowed_max"]):
         errors.append("the declared-release rule is no longer more useful than a flat reserve")
+    if by_name["headroom-committed-2"]["granted_capacity"]["status"] != "label-determined":
+        errors.append("a reserve against the public commitment started granting on the secret")
+    if idle["granted_capacity"]["status"] != "reads-the-secret":
+        errors.append("lend-any-idle stopped granting on the secret")
+    timing = counterexamples[
+        "padding-does-not-close-timing-in-general"]["analysis"]["channels"]["timing"]
+    if timing is None:
+        errors.append("the padding counterexample no longer bounds the fixture's padding result")
+    unobserved = counterexamples["an-observed-idle-reserve-can-be-safe-and-still-lend"]
+    if (unobserved["analysis"]["status"] != "noninterferent"
+            or not unobserved["analysis"]["useful_slack"]["borrowed_max"]
+            or unobserved["analysis"]["granted_capacity"]["status"] != "reads-the-secret"
+            or unobserved["headroom_sweep"]["least_noninterferent_headroom"]):
+        errors.append("the counterexample no longer shows an observed-idle reserve "
+                      "that grants on the secret, stays safe and still lends")
     return errors
 
 
@@ -570,6 +697,7 @@ def report(root: Path) -> dict[str, Any]:
     neighbour = analyze(calendar, NEIGHBOUR)
     sweeps = {kind: headroom_sweep(calendar, kind)
               for kind in ("headroom-observed", "headroom-committed")}
+    counterexamples = _counterexamples()
     return {
         "schema": "static-memory-lending-v1",
         "scope": ("finite two-run relational witnesses for an excluded branch; no "
@@ -595,7 +723,9 @@ def report(root: Path) -> dict[str, Any]:
         "declassified_release_points": declassified,
         "mutated_neighbour": neighbour,
         "headroom_sweeps": sweeps,
-        "errors": _findings(calendar, analyses, declassified, neighbour, sweeps),
+        "counterexamples": counterexamples,
+        "errors": _findings(calendar, analyses, declassified, neighbour, sweeps,
+                            counterexamples),
         "sources_sha256": {name: sha256((root / name).read_bytes()).hexdigest()
                            for name in SOURCES},
     }
