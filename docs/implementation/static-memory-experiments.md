@@ -22,7 +22,10 @@ python tools/run.py test --only static_memory
 ```
 
 `corpus` emits the declared witness contracts, event snapshots, request diagnoses
-and the bridge to Q5's existing exporter. `--case NAME` selects a witness named in
+and the bridge to Q5's existing exporter. Each contract also carries the agenda
+families it witnesses, the coverage table computed from those labels, its own cost
+assumptions and a demand series projecting each arena's charged load, its peak and
+the standing span. `--case NAME` selects a witness named in
 that output. `--contract FILE` selects a supplied research contract instead.
 `check` reads a candidate list of `{id, arena, base}` objects, preserving the
 contract's other fields; omitting `--candidate` checks the standing bases.
@@ -120,6 +123,7 @@ a representative service, a mechanized theorem or a real composed roster.
 | Reclamation scheduling | A complete holder and device barrier, a worst-case retirement envelope and qualified sweep and initialization service | Q22a, M4.4 and R2 |
 | Restricted-lifetime complexity | A general algorithm and complexity proof, or a hardness reduction, under the baseline's binary input encoding | Research agenda |
 | Relocation, phases or lending | A measured baseline limitation, an explicit changed-assumption record and authority, timing and information-flow proofs | Q22 and Q10 |
+| Capacity corpus | A roster carrying the per-pool manifest entries R-08-018b and R-08-018c presuppose; the declared families are synthetic witnesses and cover no measured instance | Q5b and M7.1 |
 | Composition comparison | M7.1's actual roster and the same functional contract and product limits on both sides; ablations that charge each byte once | Q5b and Q10 |
 
 The emitted-image half of the rematerialization row has no path in this tree.

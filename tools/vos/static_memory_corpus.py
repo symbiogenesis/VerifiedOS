@@ -310,10 +310,11 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
         ], [_request(3, "codec", "mixed", 6),
             _request(3, "codec", "mixed", 7),
             _request(8, "codec", "mixed", 6)],
-         "Synthetic witness: three crossing stage reservations whose exact optimum exceeds "
-         "their charged load, so this family is non-laminar and attains no peak equality. "
-         "The declared four-byte bases are the premise that costs the excess: the same "
-         "extents and intervals at unit alignment reach the charged load.",
+         "Synthetic witness: three stage reservations that cross rather than nest, so the "
+         "family is non-laminar by its endpoint order, and whose exact optimum exceeds "
+         "their charged load. The declared four-byte bases are the premise that costs the "
+         "excess: the same extents and intervals at unit alignment reach the charged load, "
+         "so the gap follows from the alignment and not from the crossing.",
          covers=("crossing-lifetimes", "adversarial-sizes"),
          costs=_costs(
              "payload is at or just below each stage's extent, so slack does not make the gap",

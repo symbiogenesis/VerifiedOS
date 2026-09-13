@@ -246,7 +246,10 @@ def every_contract_declares_exact_fields_and_an_accepted_standing_plan() -> None
         costs = case["cost_assumptions"]["this_case"]
         ensure(set(costs) == cost_fields and all(value.strip() for value in costs.values()),
                f"{parsed.name}: a per-contract cost assumption is missing")
-        ensure(bool(c.family_labels(case["covers"])), f"{parsed.name}: no agenda coverage")
+        labels = c.family_labels(case["covers"])
+        ensure(len(labels) > 0 and set(labels) <= set(c.FAMILIES)
+               and len(set(labels)) == len(labels),
+               f"{parsed.name}: coverage labels are empty, repeated or outside the vocabulary")
 
 
 def family_audit_is_computed_from_a_closed_label_vocabulary() -> None:
