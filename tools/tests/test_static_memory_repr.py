@@ -45,6 +45,19 @@ def _raw(objects: list[dict[str, Any]], capacity: int) -> dict[str, Any]:
             "objects": objects}
 
 
+def _load_here(case: memory.Case, arena_id: str) -> int:
+    """The charged live load, spelled here rather than asked of the module under test.
+
+    The layer's bound starts from `memory.peak_load`, so comparing it against that same
+    call would read one value against itself; this is an independent second spelling,
+    and it is what the bound's floor is checked against.
+    """
+    objects = [obj for obj in case.objects if obj.arena == arena_id]
+    instants = {obj.start for obj in objects} | {obj.reuse for obj in objects}
+    return max((sum(obj.size for obj in objects if obj.start <= time < obj.reuse)
+                for time in instants), default=0)
+
+
 def _grid_optimum(case: memory.Case, capacity: int,
                   granule: Callable[[int], int] | None) -> int | None:
     """An independent exhaustive grid sharing no arithmetic with the layer under test.
@@ -148,7 +161,7 @@ def _stacked_bound_is_sound_against_an_independent_grid() -> None:
                     case, "a", representable=representable)
                 optimum = _grid_optimum(case, capacity, granule)
                 found = memory.solve_exact(case, legal_base=layer)
-                ensure(bound >= memory.peak_load(case, "a"),
+                ensure(bound >= _load_here(case, "a"),
                        f"trial {trial}: the bound fell below the charged load")
                 if optimum is None:
                     ensure(found["status"] == "infeasible",
@@ -168,6 +181,65 @@ def _stacked_bound_is_sound_against_an_independent_grid() -> None:
                     checked["raised"] += 1
     ensure(all(count > 0 for count in checked.values()),
            f"the sample must reach every arm of the bound: {checked}")
+
+
+def _bound_is_strictly_loose_on_a_declared_instance() -> None:
+    """The bound is a bound: one declared fixture holds it strictly below the optimum.
+
+    Without such an instance nothing separates `this is a lower bound` from `this
+    computes the optimum at instances of this shape`, since the bound meets the optimum
+    on every other row of the receipt.
+    """
+    raw = next(item for item in representability.families()
+               if item["name"] == "repr-bound-is-loose")
+    case = memory.parse_case(raw)
+    capacity = case.arenas[0].capacity
+    grid = _grid_optimum(case, capacity, None)
+    for representable in (False, True):
+        layer = representability.base_refusal if representable else None
+        bound = representability.arena_lower_bound(case, "arena",
+                                                   representable=representable)
+        found = memory.solve_exact(case, legal_base=layer)
+        ensure(found["status"] == "optimal" and found["arenas"][0]["best_span"] == grid,
+               f"the search and the independent grid must agree here: {found}")
+        ensure(bound < found["arenas"][0]["best_span"],
+               f"this fixture exists to hold the bound strictly below the optimum: "
+               f"{bound} against {found['arenas'][0]['best_span']}")
+        ensure(bound >= _load_here(case, "arena"),
+               "the bound still stands at or above the charged load")
+
+
+def _quantized_lengths_are_reported_beside_the_base_model() -> None:
+    """A base-quantized span is not a representable plan's span, and the receipt says so."""
+    for raw in [*witnesses.corpus("fixture"), *representability.families()]:
+        grown = representability.quantized_contract(raw)
+        ensure(grown["name"] != raw["name"], "the derived contract is named apart")
+        for before, after in zip(raw["objects"], grown["objects"], strict=True):
+            ensure(set(before) == set(after),
+                   "the derived contract must keep the contract's own field set")
+            ensure(after["size"] == representability.quantized_size(before["size"])
+                   and after["size"] >= before["size"],
+                   f"{before['id']}: the derived extent is its own granule's")
+        item = representability.compare_case(raw)
+        for row in item["arenas"]:
+            grown_span = row["quantized_lengths"]["best_span"]
+            span = row["representable"]["best_span"]
+            ensure(row["quantized_lengths"]["status"] == "optimal"
+                   and grown_span is not None and span is not None,
+                   f"{raw['name']}: the quantized-length model must finish here")
+            ensure(grown_span >= span,
+                   f"{raw['name']}: growing every extent cannot lower the optimum")
+            ensure(row["quantized_length_span_cost"] == grown_span - span
+                   and row["quantized_length_cost_status"] == "both-optimal",
+                   f"{raw['name']}: the reported cost is not the two spans' difference")
+    rows = {raw["name"]: representability.compare_case(raw)["arenas"][0]
+            for raw in representability.families()}
+    inexact = rows["repr-length-only"]
+    ensure(inexact["representability_span_cost"] == 0
+           and inexact["quantized_length_span_cost"] > 0,
+           "an inexact extent at a legal base costs nothing until its length is quantized")
+    ensure(len(inexact["exact_length_refusals"]) == 2,
+           "both of that fixture's extents have no exact bounds at any base")
 
 
 def _permits_every_base(obj: memory.Object, base: int) -> str | None:
@@ -217,6 +289,101 @@ def _default_and_permissive_layers_leave_the_oracle_alone() -> None:
            "the alignment finding must be exactly what it was")
 
 
+def _first_fit_walks_to_a_legal_base() -> None:
+    """First fit under a refusing layer: the walk moves a base, costs work, and can fail.
+
+    A layer that refuses nothing leaves the endpoints where they are, so the advancing
+    pass is unexercised until something is refused; every arm of it is driven here.
+    """
+    raw = next(item for item in representability.families()
+               if item["name"] == "repr-threshold-pin")
+    case = memory.parse_case(raw)
+    plain = memory.compare_heuristics(case)
+    walked = memory.compare_heuristics(case, legal_base=representability.base_refusal)
+    for was, now in zip(plain, walked, strict=True):
+        candidate = now["candidate"]
+        ensure(now["status"] == "feasible" and candidate is not None,
+               f"{now['method']}: the walk must still place this fixture: {now}")
+        if candidate is None:
+            raise AssertionError("unreachable")
+        for row in candidate:
+            obj = next(item for item in case.objects if item.id == row["id"])
+            ensure(representability.base_refusal(obj, row["base"]) is None,
+                   f"{now['method']}: first fit chose a base the layer refuses: {row}")
+        ensure(not memory.check_placement(case, candidate,
+                                          legal_base=representability.base_refusal),
+               f"{now['method']}: the candidate must pass the independent checker")
+        ensure(now["nodes"] > was["nodes"],
+               f"{now['method']}: walking to a legal base is work and must be counted")
+    by_method = {row["method"]: row for row in walked}
+    before = {row["method"]: row for row in plain}
+    ensure(_base_of(before["first-fit-start"]["candidate"], "wide") == 3
+           and _base_of(by_method["first-fit-start"]["candidate"], "wide") == 4,
+           "the endpoint must advance to the least legal base at or above it")
+    # An endpoint whose walk leaves the arena is dropped rather than rounded into it.
+    tight = memory.parse_case(_raw([_object("pin", 3, 0, 4, 0),
+                                    _object("wide", 129, 0, 4, 3)], 132))
+    open_rows = {row["method"]: row for row in memory.compare_heuristics(tight)}
+    closed_rows = {row["method"]: row
+                   for row in memory.compare_heuristics(
+                       tight, legal_base=representability.base_refusal)}
+    ensure(open_rows["first-fit-start"]["status"] == "feasible"
+           and closed_rows["first-fit-start"]["status"] == "no-fit",
+           "an endpoint with no legal base inside the arena leaves first fit no fit")
+    ensure(memory.solve_exact(tight, legal_base=representability.base_refusal)["status"]
+           == "optimal",
+           "and that is first fit's failure, not an absence of legal placements")
+    # A budget spent inside the walk is a cutoff and never a report of no fit.
+    walking = memory.parse_case(_raw([_object("a-pin", 1, 0, 4, 0),
+                                      _object("b-big", 1024, 0, 4, 16)], 4096))
+    ensure(memory.compare_heuristics(walking, 4)[0]["status"] == "feasible",
+           "without a layer this budget finishes, so the walk is what spends it")
+    for row in memory.compare_heuristics(walking, 4,
+                                         legal_base=representability.base_refusal):
+        ensure(row["status"] == "incomplete" and row["candidate"] is None,
+               f"a budget exhausted inside the walk is incomplete, not no-fit: {row}")
+    finished = memory.compare_heuristics(walking,
+                                         legal_base=representability.base_refusal)[0]
+    ensure(finished["status"] == "feasible"
+           and _base_of(finished["candidate"], "b-big")
+           % representability.granule_of_size(1024) == 0,
+           f"the same walk under a whole budget reaches a legal base: {finished}")
+
+
+def _base_of(placement: list[dict[str, Any]] | None, identifier: str) -> int:
+    if placement is None:
+        raise AssertionError(f"no placement to read {identifier} from")
+    base = next(row["base"] for row in placement if row["id"] == identifier)
+    if not isinstance(base, int):
+        raise TypeError(f"{identifier}: a placement base must be an integer")
+    return base
+
+
+def _every_witness_survives_a_refusing_layer() -> None:
+    """Every contract, every method: what first fit returns is what the checker admits.
+
+    The advancing pass is separate from the scan that follows precisely so the blocker
+    cursor keeps meeting an ascending candidate list; a skipped blocker would show up
+    as an overlapping candidate, which `placement_spans` raises on and this re-checks.
+    """
+    contracts = [*witnesses.corpus("fixture"), *representability.families()]
+    checked = 0
+    for raw in contracts:
+        case = memory.parse_case(raw)
+        for row in memory.compare_heuristics(case,
+                                             legal_base=representability.base_refusal):
+            candidate = row["candidate"]
+            if candidate is None:
+                continue
+            ensure(not memory.check_placement(case, candidate,
+                                              legal_base=representability.base_refusal),
+                   f"{raw['name']} {row['method']}: the checker rejects first fit's own "
+                   f"candidate")
+            checked += 1
+    ensure(checked >= len(contracts),
+           f"every contract owes at least one checked candidate: {checked}")
+
+
 def _restriction_never_lowers_an_optimum() -> None:
     for raw in representability.families():
         item = representability.compare_case(raw)
@@ -235,9 +402,10 @@ def _restriction_never_lowers_an_optimum() -> None:
                               for row in representability.compare_case(raw)["arenas"])
              for raw in representability.families()}
     ensure(costs["repr-threshold-pin"] > 0 and costs["repr-coarse-granule"] > 0,
-           f"the threshold fixtures must show a cost to pay for: {costs}")
-    ensure(costs["repr-already-quantized"] == 0 and costs["repr-length-only"] == 0,
-           f"an already quantized fixture must pay nothing: {costs}")
+           f"the two fixtures whose bases move must show a cost to pay for: {costs}")
+    ensure(costs["repr-already-quantized"] == 0 and costs["repr-length-only"] == 0
+           and costs["repr-bound-is-loose"] == 0,
+           f"a fixture no base of which moves must pay nothing: {costs}")
 
 
 def _q5_regions_agree_and_an_empty_export_refuses() -> None:
@@ -248,11 +416,25 @@ def _q5_regions_agree_and_an_empty_export_refuses() -> None:
     ensure(any(row["granule"] > 1 for row in agreement["regions"]),
            "a cross-check over one-byte granules alone would decide nothing")
     plan = memplan.plan_of(memplan.read(ROOT), memplan.STANDING)
-    for row in agreement["regions"]:
-        region = row["region"]
-        ensure(row["base_legal_here"] == memplan.base_is_quantized(plan, region)
-               and row["length_legal_here"] == memplan.length_is_quantized(plan, region),
-               f"region {region}: the recorded verdicts are not the plan's own")
+    # Agreement over an exported plan every verdict of which is True would read the
+    # same way if neither predicate ever refused, so the counts the plan declares are
+    # mutated until the two sides answer differently and the finding is required.
+    bases = dataclasses.replace(plan, base_granules=tuple(
+        plan.base_granules_of(region) + 1 for region in plan.regions()))
+    lengths = dataclasses.replace(plan, length_granules=tuple(
+        plan.length_granules_of(region) + 1 for region in plan.regions()))
+    for word, mutant in (("base_is_quantized", bases),
+                         ("length_is_quantized", lengths)):
+        with patch.object(memplan, "plan_of", return_value=mutant):
+            disagreed = representability.q5_agreement(ROOT)
+        ensure(len(disagreed["findings"]) == len(disagreed["regions"]),
+               f"{word}: every region of the mutant must be reported: {disagreed}")
+        ensure(all(word in finding for finding in disagreed["findings"]),
+               f"{word}: the finding must name the predicate that moved: {disagreed}")
+        ensure(all(f"region {row['region']}:" in finding
+                   for row, finding in zip(disagreed["regions"],
+                                           disagreed["findings"], strict=True)),
+               f"{word}: each finding must name its own region: {disagreed}")
     empty = dataclasses.replace(plan, region_count=0)
     with patch.object(memplan, "plan_of", return_value=empty):
         try:
@@ -324,8 +506,16 @@ def cases() -> list[Case]:
              _exact_length_refusals_report_rather_than_round),
         Case("repr stacked bound sound against an independent grid",
              _stacked_bound_is_sound_against_an_independent_grid),
+        Case("repr bound is strictly loose on a declared instance",
+             _bound_is_strictly_loose_on_a_declared_instance),
+        Case("repr quantized lengths are reported beside the base model",
+             _quantized_lengths_are_reported_beside_the_base_model),
         Case("repr default and permissive layers leave the oracle alone",
              _default_and_permissive_layers_leave_the_oracle_alone),
+        Case("repr first fit walks to a legal base",
+             _first_fit_walks_to_a_legal_base),
+        Case("repr every witness survives a refusing layer",
+             _every_witness_survives_a_refusing_layer),
         Case("repr restriction never lowers an optimum",
              _restriction_never_lowers_an_optimum),
         Case("repr Q5 regions agree and an empty export refuses",

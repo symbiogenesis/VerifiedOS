@@ -24,6 +24,12 @@ an outward round is a defect in the plan rather than a runtime event. The quanti
 length this module computes is what such a plan would have to charge, and it is
 reported beside the object rather than substituted for its charged size.
 
+**A base-quantized placement is therefore not yet a representable one**, and the
+receipt says so in figures rather than in prose: beside the two models it solves a
+third over a derived contract whose every extent is grown to its own granule, which is
+the span a plan meeting R-15-007k must charge. The derived contract is an artifact
+beside the supplied one and never a rewrite of it: the charged sizes stay as stated.
+
 Everything else the format decides stays outside, and
 [the representability document](../../docs/implementation/static-memory-representability.md)
 names each part. This module is host research: it admits nothing, plans nothing, and
@@ -83,15 +89,26 @@ class SideRow(TypedDict):
 
 
 class ArenaRow(TypedDict):
-    """The two models beside each other for one arena, and what separates them."""
+    """The three models beside each other for one arena, and what separates them.
+
+    `alignment_only` is the model the existing receipts were computed under,
+    `representable` adds the legal-base layer, and `quantized_lengths` solves the
+    derived contract every extent of which is grown to its own granule, which is what
+    R-15-007k's plan would have to charge. The span under the middle model is a legal
+    *base* assignment and not yet a representable plan, so a reader who needs the
+    compliant figure reads the third.
+    """
 
     arena: str
     owner: str
     charged_load: int
     alignment_only: SideRow
     representable: SideRow
+    quantized_lengths: SideRow
     representability_span_cost: int | None
     representability_cost_status: str
+    quantized_length_span_cost: int | None
+    quantized_length_cost_status: str
     exact_length_refusals: list[Refusal]
 
 
@@ -249,9 +266,23 @@ def arena_lower_bound(case: memory.Case, arena_id: str, *, representable: bool) 
     return bound
 
 
-def _side(case: memory.Case, arena: memory.Arena, exact: dict[str, Any],
-          replay: dict[str, Any] | None, *, representable: bool) -> SideRow:
-    row = next(item for item in exact["arenas"] if item["arena"] == arena.id)
+def quantized_contract(raw: dict[str, Any]) -> dict[str, Any]:
+    """The same contract with every charged extent grown to its own granule.
+
+    R-15-007k's plan lays each object at a granule-quantized length, so the span a
+    compliant plan must charge is the optimum of *this* contract and not of the one
+    supplied, whose inexact extents a base-quantized model still charges exactly. The
+    supplied mapping is left untouched: this returns a new contract, and the object
+    field set is the one `parse_case` fixes, so nothing is added or dropped here.
+    """
+    objects = [dict(obj) | {"size": quantized_size(obj["size"])} for obj in raw["objects"]]
+    return dict(raw) | {"name": f"{raw['name']}-quantized-lengths", "objects": objects}
+
+
+def _side(case: memory.Case, arena: memory.Arena, side: dict[str, Any], *,
+          representable: bool) -> SideRow:
+    row = next(item for item in side["exact"]["arenas"] if item["arena"] == arena.id)
+    replay = side["optimality_replay"]
     span = row["best_span"]
     bound = arena_lower_bound(case, arena.id, representable=representable)
     return SideRow(best_span=span, status=row["status"], certificate=row["certificate"],
@@ -260,40 +291,59 @@ def _side(case: memory.Case, arena: memory.Arena, exact: dict[str, Any],
                    span_over_stacked_bound=None if span is None else span - bound)
 
 
+def _cost(lower: SideRow, upper: SideRow) -> tuple[int | None, str]:
+    """The span one model charges above another, where both of them finished.
+
+    Two cutoffs cannot be subtracted, so a pair that did not both finish reports no
+    cost and says which it is rather than reporting a difference of bounds as one.
+    """
+    spans = (lower["best_span"], upper["best_span"])
+    if (lower["status"] == "optimal" and upper["status"] == "optimal"
+            and spans[0] is not None and spans[1] is not None):
+        return spans[1] - spans[0], "both-optimal"
+    return None, "bounded-only"
+
+
 def compare_case(raw: dict[str, Any], work_budget: int = WORK_BUDGET) -> dict[str, Any]:
-    """Solve one contract under both legal-position models and report what separates them."""
+    """Solve one contract under the three models and report what separates them."""
     case = memory.parse_case(raw)
     findings = memory.check_placement(case, memory.standing_placement(case))
     if findings:
         raise memory.CaseError(f"{case.name}: invalid standing contract: "
                                + "; ".join(findings))
+    grown_case = memory.parse_case(quantized_contract(raw))
+    models: tuple[tuple[str, memory.Case, memory.LegalBase | None, bool], ...] = (
+        ("alignment_only", case, None, False),
+        ("representable", case, base_refusal, True),
+        ("quantized_lengths", grown_case, base_refusal, True))
     sides: dict[str, dict[str, Any]] = {}
-    for label, layer in (("alignment_only", None), ("representable", base_refusal)):
-        exact = memory.solve_exact(case, work_budget, legal_base=layer)
-        replay = (memory.verify_optimality(case, exact, work_budget, legal_base=layer)
+    for label, subject, layer, _ in models:
+        exact = memory.solve_exact(subject, work_budget, legal_base=layer)
+        replay = (memory.verify_optimality(subject, exact, work_budget, legal_base=layer)
                   if exact["status"] == "optimal" else None)
-        sides[label] = {"exact": exact, "optimality_replay": replay}
+        sides[label] = {"exact": exact, "optimality_replay": replay,
+                        "contract_sha256": memory.contract_hash(subject)}
     rows: list[ArenaRow] = []
     errors: list[str] = []
     for arena in case.arenas:
-        plain = _side(case, arena, sides["alignment_only"]["exact"],
-                      sides["alignment_only"]["optimality_replay"], representable=False)
-        exact = _side(case, arena, sides["representable"]["exact"],
-                      sides["representable"]["optimality_replay"], representable=True)
-        both = plain["status"] == "optimal" and exact["status"] == "optimal"
-        cost = (exact["best_span"] - plain["best_span"]
-                if both and exact["best_span"] is not None
-                and plain["best_span"] is not None else None)
+        decided = {label: _side(subject, arena, sides[label], representable=representable)
+                   for label, subject, _, representable in models}
+        plain, exact = decided["alignment_only"], decided["representable"]
+        grown = decided["quantized_lengths"]
+        cost, cost_status = _cost(plain, exact)
+        length_cost, length_status = _cost(exact, grown)
         rows.append(ArenaRow(
             arena=arena.id, owner=arena.owner,
             charged_load=memory.peak_load(case, arena.id),
-            alignment_only=plain, representable=exact,
+            alignment_only=plain, representable=exact, quantized_lengths=grown,
             representability_span_cost=cost,
-            representability_cost_status="both-optimal" if both else "bounded-only",
+            representability_cost_status=cost_status,
+            quantized_length_span_cost=length_cost,
+            quantized_length_cost_status=length_status,
             exact_length_refusals=[refusal for obj in case.objects
                                    if obj.arena == arena.id
                                    and (refusal := length_refusal(obj)) is not None]))
-        errors.extend(_arena_findings(case.name, rows[-1], plain, exact, cost))
+        errors.extend(_arena_findings(case.name, rows[-1]))
     for label, side in sides.items():
         replay = side["optimality_replay"]
         if replay is not None and replay["status"] == "rejected":
@@ -301,32 +351,39 @@ def compare_case(raw: dict[str, Any], work_budget: int = WORK_BUDGET) -> dict[st
         if side["exact"]["status"] == "infeasible":
             errors.append(f"{case.name} {label}: no legal placement exists in this arena set")
     return {"contract": raw, "contract_sha256": memory.contract_hash(case),
+            "quantized_contract_sha256": sides["quantized_lengths"]["contract_sha256"],
             "arenas": rows, "errors": errors,
             "alignment_only": sides["alignment_only"],
-            "representable": sides["representable"]}
+            "representable": sides["representable"],
+            "quantized_lengths": sides["quantized_lengths"]}
 
 
-def _arena_findings(name: str, row: ArenaRow, plain: SideRow, exact: SideRow,
-                    cost: int | None) -> list[str]:
+def _arena_findings(name: str, row: ArenaRow) -> list[str]:
     """The invariants a run of this experiment is allowed to fail on.
 
     An unsound bound is the one that matters: a lower bound above a span an exhaustive
-    search reached is a defect in the bound and not a result about the layout.
+    search reached is a defect in the bound and not a result about the layout. The
+    other direction needs no check here and is not made into one: the bound starts at
+    the charged load and only rises, so a comparison against that load would read one
+    value against itself and decide nothing.
     """
     findings: list[str] = []
-    for label, side in (("alignment-only", plain), ("representability", exact)):
+    for label, side in (("alignment-only", row["alignment_only"]),
+                        ("representability", row["representable"]),
+                        ("quantized-length", row["quantized_lengths"])):
         span = side["best_span"]
         if (side["status"] == "optimal" and span is not None
                 and side["stacked_lower_bound"] > span):
             findings.append(f"{name} {row['arena']}: the {label} stacked lower bound "
                             f"{side['stacked_lower_bound']} exceeds an exhaustive "
                             f"optimum of {span}")
-        if span is not None and side["stacked_lower_bound"] < row["charged_load"]:
-            findings.append(f"{name} {row['arena']}: the {label} stacked lower bound "
-                            f"fell below the charged load")
-    if cost is not None and cost < 0:
+    if (row["representability_span_cost"] or 0) < 0:
         findings.append(f"{name} {row['arena']}: restricting the legal bases produced "
                         f"a smaller optimum, which no restriction can do")
+    if (row["quantized_length_span_cost"] or 0) < 0:
+        findings.append(f"{name} {row['arena']}: growing every extent to its own granule "
+                        f"produced a smaller optimum, which a growth under a granule no "
+                        f"finer cannot do")
     return findings
 
 
@@ -361,8 +418,10 @@ def families() -> list[dict[str, Any]]:
 
     The corpus witnesses are all below it, where the granule is one byte and this layer
     asks for nothing, so a fixture that reaches past it is what makes the cost of
-    representability visible at all. Each is small enough that both models finish, which
-    is what lets the two optima be compared rather than two cutoffs.
+    representability visible at all. Each is small enough that every model finishes,
+    which is what lets the optima be compared rather than two cutoffs. The last fixture
+    is about the lower bound rather than about the format: it separates the bound from
+    the optimum, so the receipt carries a row where the two are not the same number.
     """
     return [
         _contract("repr-threshold-pin",
@@ -396,6 +455,15 @@ def families() -> list[dict[str, Any]]:
                   (("pin", "hot", 3, 128, 0, 0, 4),
                    ("wide", "hot", 129, 1, 3, 0, 4),
                    ("resident", "cold", 1024, 1, 0, 0, 4))),
+        _contract("repr-bound-is-loose",
+                  "an object living across two instants whose base must serve the later "
+                  "instant's aligned neighbour, so the earlier instant's tightest stack "
+                  "is unreachable and the one-instant bound falls short of the optimum",
+                  (("arena", "owner", 32),),
+                  (("bridge", "arena", 2, 4, 4, 1, 4),
+                   ("early-wide", "arena", 3, 4, 0, 1, 2),
+                   ("early-filler", "arena", 2, 1, 6, 1, 2),
+                   ("late", "arena", 4, 4, 0, 3, 6))),
     ]
 
 
@@ -447,7 +515,7 @@ def q5_agreement(root: Path) -> dict[str, Any]:
 
 def report(root: Path, source_revision: str = "unspecified",
            work_budget: int = WORK_BUDGET) -> dict[str, Any]:
-    """Replay every witness and fixture under both models, with the Q5 cross-check."""
+    """Replay every witness and fixture under each model, with the Q5 cross-check."""
     if not isinstance(source_revision, str) or not source_revision.strip():
         raise memory.CaseError("source-revision: a nonempty input identity is required")
     contracts = [*witnesses.corpus(source_revision), *families()]

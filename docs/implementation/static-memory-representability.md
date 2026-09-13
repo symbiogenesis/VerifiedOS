@@ -51,6 +51,17 @@ threshold defines, rounding up moves it by less than one granule, and the only v
 that reaches the next interval is the interval's own endpoint, which the coarser granule
 divides. The loop is bounded anyway, so a mutated granule is a refusal and not a hang.
 
+**A base-quantized placement is not yet a representable plan, so a third model is
+solved beside the other two.** Quantizing the bases alone leaves an inexact extent
+charged at the length its contract states, which is a length the format cannot express
+as exact bounds, so the span that model reports is below what a compliant plan would
+charge. The third model is the same contract with every extent grown to its own
+granule, solved under the same legal-base layer, and its span is the one a plan meeting
+R-15-007k has to pay. It is an artifact beside the supplied contract and never a
+rewrite of it: the charged sizes stay where the contract puts them, the exact-length
+refusals still name each object the growth applies to, and the receipt reports the
+middle model's span and the third separately rather than merging them.
+
 **The format's parameters are named here and read where they are declared.**
 [capformat](../../tools/vos/capformat.py) resolves `cap_mantissa_width`,
 `stored_mantissa_width`, `cap_E_width`, `cap_addr_width`, `cap_otype_width`,
@@ -84,6 +95,15 @@ ends above the smaller base. The replay is restricted for the opposite reason: i
 refutation asks whether a smaller *legal* placement exists, so replaying an unrestricted
 grid would refute an optimum the restriction itself forced. The replay filters only
 after the work budget has admitted the grid's size, so no unbounded range is walked.
+
+Neither claim is left to the reading. A layer that refuses nothing never advances an
+endpoint, so the walk is unexercised until something is refused, and
+[the focused tests](../../tools/tests/test_static_memory_repr.py) drive it with the
+layer that does: an endpoint advances to the least legal base at or above it, an
+endpoint whose walk leaves the arena is dropped rather than rounded into it, a budget
+spent inside the walk is reported as incomplete and never as a failure to fit, and
+every contract's own first-fit candidate is handed back to the independent checker
+under the layer, which is what a skipped blocker would fail.
 
 The charged live load stays the bound it was. A restriction of the legal positions
 cannot lower the bytes that are simultaneously live, so a span that still attains the
@@ -128,21 +148,28 @@ question. Where a live set is larger than the walk will take, that instant contr
 the charged load instead, which is a lower bound on its own; leaving an instant out
 weakens the bound and cannot make it unsound.
 
-**What it buys, and what it is not.** A span that meets the bound is optimal for that
-arena under that layer, with no exhaustive search and no enumeration certificate, and
-the receipt prints the bound beside the span so a reader can see which spans it settles.
-The bound is not an algorithm for the optimum and not a theorem about placement: it is a
-lower bound whose argument is stated above and whose soundness is tested rather than
-proved mechanically. A bound above a span an exhaustive search reached would be a defect
-in the bound and not a result about the layout, so
-[the report](../../tools/vos/static_memory_repr.py) makes that comparison itself for
-every arena it finishes and fails the run where it holds, and
-[the focused tests](../../tools/tests/test_static_memory_repr.py) look for it against an
-independent exhaustive grid over a coarsened granule, small instances being the only
-ones a grid can exhaust. No instance those tests sample separates the bound from the
-optimum, which is an observation about instances that small and not a claim that the
-two coincide: the bound reads one instant at a time, and an instance whose cost is the
-interaction between instants is exactly what it would fail to see.
+**What it buys, and what it is not.** A span equal to the bound is optimal for that
+arena under that layer, needing no exhaustive search and no enumeration certificate.
+That is a statement about the arithmetic and not a description of the tool: **the search
+does not read the bound**. Every certificate the receipt carries is the one that stood,
+load equality or exhaustion at the height below, and no arena is settled by the bound.
+What the bound does in the receipt is stand beside each span, so a reader sees which
+spans it would settle, and be compared against it, so an unsound bound fails the run:
+a bound above a span an exhaustive search reached is a defect in the bound and not a
+result about the layout, and [the report](../../tools/vos/static_memory_repr.py) makes
+that comparison for every arena it finishes.
+
+The bound is not an algorithm for the optimum and not a theorem about placement: it is
+a lower bound whose argument is stated above and whose soundness is tested rather than
+proved mechanically. [The focused tests](../../tools/tests/test_static_memory_repr.py)
+look for an unsound one against an independent exhaustive grid over a coarsened granule,
+small instances being the only ones a grid can exhaust. That the bound is genuinely
+weaker than an optimum is itself pinned rather than assumed: one declared fixture holds
+it strictly below, an object living across two instants having to take a base that
+serves the later instant's aligned neighbour, so the earlier instant's tightest stack is
+unreachable and the arena pays for an interaction between instants that a bound reading
+one instant at a time cannot see. On every other row of the receipt the two are equal,
+which is an observation about instances that small and not a claim that they coincide.
 
 ## 4. The cross-check against the exported plan
 
@@ -154,8 +181,14 @@ the two verdicts must agree region by region; a disagreement is a finding about 
 or about the layer and is reported as one, never absorbed. An export carrying no region
 is a reader that has stopped reading rather than a plan that agrees about nothing, so
 the cross-check refuses it outright, and refuses a region whose length is not positive
-for the same reason. The agreement runs over regions whose granules are not all the
-finest, which is what keeps it from being a check over the empty constraint.
+for the same reason.
+
+Every region of the standing plan answers yes to all four questions, so agreement over
+it alone would read the same way if neither side ever refused anything. What binds the
+verdict to its inputs is a mutation: the focused tests replace the granule counts the
+plan's own predicates multiply back, region by region and once for each predicate, and
+require the cross-check to report a disagreement naming every region. A layer that
+accepted everything fails that test rather than passing it.
 
 ## 5. What stays outside
 
@@ -168,7 +201,8 @@ of them is made easier by what is here.
 | bank selection and any locality term | no field of the plan names a bank, which is [the placement search](placement-search.md)'s own recorded gap |
 | the encoding's exponent range and every check derived from the mantissas | R-15-007a's representation-correctness proof and its characterization of the malformed set, over the widths `capformat` reads |
 | the containment domain above the representable address space | R-15-007a's own stated domain, which is a property of the bounds algorithm and not of a slot plan |
-| sealing, object types and the permission lattice | R-15-007b, R-15-007l, R-15-007o and R-15-007n, none of which a base decides anything about |
+| sealing and the permission lattice | R-15-007b's enumerated lattice, inside which R-15-007o separates `Permit_Seal` from `Permit_Unseal` and R-15-007l admits no set holding both `Permit_Store` and `Permit_Execute`, none of which a base decides anything about |
+| the object-type space | frozen with the profile by R-15-007, at the width `capformat` reads as `cap_otype_width`; R-15-007n declines software-defined permission bits and leaves a software class of capability to that composition-fixed set |
 | dynamic subobject narrowing under the language's own rule | R-15-007k's side condition, discharged against a real slot plan and not against a research contract |
 | admission | the register and its gates; no research receipt performs one |
 
@@ -188,17 +222,22 @@ python tools/run.py test --only static_memory_repr
 ```
 
 The action replays the declared witness corpus and the fixtures the layer's own
-generator states, each under both models, and emits the cross-check with them. Per arena
-the receipt carries the charged load, each model's best span with its status,
+generator states, each under all three models, and emits the cross-check with them. Per
+arena the receipt carries the charged load, each model's best span with its status,
 certificate and independent replay verdict, the stacked bound beside each span, the part
-of the difference between the two spans that both models having finished makes
-attributable to representability, and the exact-length refusals with the extent a
-quantized plan would charge. Figures live in the receipt; none is copied here.
+of the difference between the alignment-only and base-quantized spans that both models
+having finished makes attributable to representability, the further difference the
+quantized-length model charges above the base-quantized one, and the exact-length
+refusals with the extent a quantized plan would charge. A pair of models that did not
+both finish reports no difference and says so, two cutoffs not being subtractable.
+Figures live in the receipt; none is copied here.
 
-The declared fixtures are the only cases that reach past the exactness threshold. Every
-extent in the witness corpus is below it, where the granule is one byte and the layer
-refuses nothing, so the receipt says of those cases that representability costs them
-nothing, which is a result about that corpus and not about a product roster.
+The declared fixtures are the only cases that reach past the exactness threshold, and
+the last of them stays below it deliberately, being about the lower bound rather than
+about the format. Every extent in the witness corpus is below the threshold, where the
+granule is one byte and the layer refuses nothing, so the receipt says of those cases
+that representability costs them nothing, which is a result about that corpus and not
+about a product roster.
 
 ## 7. What kind of claim each result is
 
@@ -214,6 +253,10 @@ nothing, which is a result about that corpus and not about a product roster.
   over declared synthetic contracts**. A feasible placement is not an optimal one, an
   optimum over a declared model is not a fact about a product, and an exhausted budget
   is not infeasibility.
-- That the two models can be compared at all rests on both finishing. Where either is
-  incomplete the receipt says so and the difference between the spans is reported as
+- The quantized-length span is a **counterfactual over a derived contract**, stating what
+  a plan that grew every extent to its granule would have to charge. It is not a plan,
+  not an admission that such growth is the right disposition for any particular object,
+  and not a rewrite of the contract it is derived from.
+- That two models can be compared at all rests on both of them finishing. Where either
+  is incomplete the receipt says so and the difference between the spans is reported as
   bounded rather than as a cost.
