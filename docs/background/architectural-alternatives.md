@@ -1123,6 +1123,22 @@ The [fixed-model branch](../spec.md#r-04-010b) admits a single inference die wit
 
 ---
 
+## Jalapeño as a host accelerator or ensemble fabric: declined under the current contracts
+
+OpenAI and Broadcom's Jalapeño is a programmable inference architecture whose locality and measurement methods are taken in [the prior-art entry](inspirations.md#openai-and-broadcom-jalapeño-explicit-locality-and-workload-driven-inference-design). The alternative evaluated here is adopting its package, execution substrate or switched scale-up fabric as part of VerifiedOS. OpenAI's [specifications and package diagram](https://www.servethehome.com/wp-content/uploads/2026/08/hot-chips-2026-openai-jalapeno-slide-32.jpg), reproduced by ServeTheHome, show a compute die, an I/O chiplet and six HBM4 stacks, with 216 GiB, 15.4 TB/s and a 700 W package rating. Its [network diagram](https://www.servethehome.com/wp-content/uploads/2026/08/hot-chips-2026-openai-jalapeno-slide-26.jpg) connects local and global domains through Tomahawk 6 switches in a half-flattened two-level Clos. These are the candidate's disclosed structures, not conclusions inferred from its ASIC label.
+
+**The deciding grounds are derived from the existing commitments, applied separately to each placement:**
+
+- **As host compute and memory:** the multiple dies and HBM stacks conflict with [R-15-162's one-die host](../spec.md#r-15-162). A programmable accelerator also needs a demonstrated connection to the host-core ISA, capability and proof contract of R-15-111; the published Gluon programming model supplies none. The disclosure does not establish R-15-247's fixed memory-class timing. HBM can support explicit placement, so neither reactive migration nor an undisclosed firmware processor is assumed as a rejection ground. A different memory topology remains Q6's workload and physical-trust comparison, requiring a register amendment before adoption.
+- **As the ensemble interconnect:** switched accelerator domains do not implement [R-15-228b's direct frame-only links](../spec.md#r-15-228b) between independently complete machines. Fewer hops and low producer-to-consumer latency do not prove contention independence, fixed transfer slots, authenticated peer/session identity or bounded fault behavior under R-11-017a and R-12-015d. This is no evidence that Clos networks cannot be verified, or that all Jalapeño memory is shared across hosts; it identifies the different contract that would need to be designed and proved.
+- **As an optional inference module:** [R-04-010b](../spec.md#r-04-010b) admits immutable logic and weights with no instruction-fetch path, under a qualified message boundary. Jalapeño's programmable cores and changing model kernels do not meet that exception. A message wrapper alone cannot turn this product into the fixed-model device. Use behind the existing remote inference boundary is a separate service choice and does not import its hardware into the host or the ensemble's assurance claim.
+
+**Non-deciding observations:** the package's capacity and bandwidth are a useful counterweight to the cost of resident inference on one die, and its power rating places the disclosed product at datacenter scale. Neither is a matched measurement against this platform. The specifications distinguish 600 GB/s in the local domain from 200 GB/s in the global domain; the [secondary article](https://www.siliconcodesign.com/p/an-advanced-system-architecture-breakdown)'s ambiguous network-rate wording and proposed reasons for rejecting other topologies are not adopted as vendor facts. No cache policy, absence of cryptography, formal-verification status or unreleased implementation detail is inferred from an omission in the presentation.
+
+**Disposition:** retain the locality and independent-candidate-checking lessons, decline the disclosed product as host hardware, ensemble fabric or immutable module under the current contracts, and keep the remote route available. Q4b/Q5b, Q6, Q8, Q22d, Q23e and Q24h in [the plan](../implementation/implementation-checklist.md) already own the relevant measurements and qualification seams; this comparison changes no requirement, estimate or completion state.
+
+---
+
 ## x86 ACE/Arm SME architectural state: not imported
 
 x86 ACE and Arm SME were evaluated as models for the frozen matrix extension.
