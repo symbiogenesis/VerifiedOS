@@ -140,8 +140,8 @@ a representative service, further mechanized refinement or a real composed roste
 
 | Work | Evidence needed next | Existing consumer |
 | --- | --- | --- |
-| Reconcile the lifetime and peak-equality claims | An admitted-language lifetime extraction theorem joining the reconciled event-order and interference requirements to emitted plans | Q5 and the memory-plan proof owner |
-| Scale planning | A comparison on the actual composed roster and target constraints, following the synthetic scaling and Q5 witness comparison | Q5b |
+| Apply the reviewed baseline to admitted programs | An admitted-language lifetime extraction theorem joining the reconciled event-order and interference requirements to emitted plans | Q5 and the memory-plan proof owner |
+| Scale planning | A coupled-search candidate compared against the deterministic heuristics and exact reference; a later product comparison uses the actual composed roster and target constraints | Q5b |
 | Regions, phases and bounded chunks | Target compilation, refinement to the proved list-functional models, complete authority/DMA obligations and qualified physical costs | Q5b with the service owner |
 | Rematerialization, tiling and fusion | Emitted-code worst-case work, traffic, image size and unchanged service deadlines | Q4, Q5b and Q8 |
 | Reclamation scheduling | Target holder and device coverage, admitted restart and acknowledgement budgets, and qualified sweep and initialization service | Q22a, M4.4 and R2 |

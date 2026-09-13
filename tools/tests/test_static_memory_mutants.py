@@ -154,7 +154,7 @@ def _barrier_mutants_reach_each_incomplete_stage() -> None:
         built = mutants.construct(name, subject, (predecessor, successor))
         ensure(isinstance(built, mutants.Candidate), f"{name}: the stage must have a witness")
         if not isinstance(built, mutants.Candidate):
-            raise AssertionError("expected a constructed candidate")
+            raise TypeError("expected a constructed candidate")
         moved = next(obj for obj in built.case.objects if obj.id == successor.id)
         ensure(moved.start == getattr(predecessor, boundary) - 1,
                f"{name}: the successor must arrive before completion, not at completion")
@@ -178,7 +178,7 @@ def _coherent_false_optimum_needs_actual_replay() -> None:
     spans = memory.placement_spans(case, original["best_placement"])
     claim = mutants.construct_claim("certificate-false-optimum", subject, original, spans, "a")
     if not isinstance(claim, mutants.Claim):
-        raise AssertionError("the tiny arena has room for a translated witness")
+        raise TypeError("the tiny arena has room for a translated witness")
     witness = claim.receipt["best_placement"]
     ensure(not _independently_invalid(case, witness),
            "the false optimum must carry an independently feasible witness")
