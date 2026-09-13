@@ -3,10 +3,11 @@
 The [research agenda](../background/static-memory-research.md) asks which physical
 reservations are unavoidable and which program or placement changes improve useful
 capacity. [static_memory_corpus.py](../../tools/vos/static_memory_corpus.py) supplies
-replayable synthetic inputs and a diagnostic ledger for that question. The
-[requirements register](../requirements-register.md) remains authoritative. These
-fixtures supply no measured product roster, execution-cost certificate, new
-admission rule or runtime telemetry mechanism.
+replayable synthetic inputs and a diagnostic ledger for that question. This document
+is non-normative and the [requirements register](../requirements-register.md) remains
+authoritative: nothing here confers implementation landing credit or accepts a
+requirement. These fixtures supply no measured product roster, execution-cost
+certificate, new admission rule or runtime telemetry mechanism.
 
 ## Reproducible inputs
 
@@ -14,17 +15,22 @@ admission rule or runtime telemetry mechanism.
 session, ring, saved-state, frame and inference examples are bounded model traces,
 not implementations of those services. Crossing lifetimes, uneven aligned extents,
 simultaneous retirement and delayed device completion exercise particular limits.
-The generator has no randomness or runtime demand inputs. Its literal byte sizes
-and ordinal event ticks are deliberately small model quantities; neither is a
-measurement of the named service.
+Further contracts deepen stresses the agenda names within those families: a clustered
+retirement across several owners, an accepted device transfer holding authority for a
+declared completion window, saved state carried across separated phases, a rotating
+activation set beside a fixed resident weight set, and a crossing family whose exact
+optimum exceeds its charged load. The generator has no randomness or runtime demand
+inputs. Its literal byte sizes and ordinal event ticks are deliberately small model
+quantities; neither is a measurement of the named service.
 
 Every case records its source revision, the generator's actual SHA-256, a manifest
-identity, a demand envelope, cost assumptions, telemetry label, service-contract
-label and reuse assumptions. The manifest hashes its schema, generator path, case
-name, mode, arena declarations, object declarations and diagnostic requests. The
-source digest binds the generator contents even when its checkout has uncommitted
-edits. Labels identify the evidence's scope; they do not authenticate a workload or
-prove that a source revision is a deployed image.
+identity, its agenda coverage, a demand envelope and computed demand series, cost
+assumptions, telemetry label, service-contract label and reuse assumptions. The
+manifest hashes its schema, generator path, case name, mode, arena declarations,
+object declarations and diagnostic requests. The source digest binds the generator
+contents even when its checkout has uncommitted edits. Labels identify the evidence's
+scope; they do not authenticate a workload or prove that a source revision is a
+deployed image.
 
 The demand envelope describes a finite declared trace and its bounded object
 occurrences and horizon. It explicitly declines an all-execution bound. Target
@@ -32,6 +38,43 @@ cycles, bandwidth and energy are unknown. Emitted code, descriptors and other
 metadata, bank traffic, deadlines and complete image reservations remain unmodeled
 costs. A comparison over these inputs cannot claim that an actual service fits a
 product budget or that a transformation preserves its deadlines.
+
+## Agenda coverage
+
+Each contract declares in its `covers` field which of the agenda's corpus families it
+witnesses. The vocabulary is closed: `family_labels` refuses a label the agenda does
+not name, refuses a repeated one and refuses a contract declaring none, so a mistyped
+label fails to parse instead of quietly dropping a family from the table.
+`family_audit` aggregates those labels into the coverage table the receipt carries:
+every declared family, the contracts witnessing each, the families with no witness,
+and the provenances the contracts actually carry. The table is computed from the
+labels alone, so withdrawing a family's only witness moves that family into the
+uncovered list rather than leaving a stale note beside it. Every contract carries the
+same computed table, so a receipt selected with `--case` still states the whole
+coverage position rather than one contract's corner of it.
+
+A covered family is a witness at one finite declared trace. It is not a service
+implementation, an admitted workload, or evidence that a real instance of that family
+fits any budget. Two contracts covering one family exercise different stresses inside
+it; they are not one measurement taken twice, and the count of contracts against a
+family is not a coverage metric.
+
+## Cost assumptions
+
+The shared cost model fixes the storage and time units, the payload and size
+conventions, the target costs that are unknown, and the charges that stay unmodeled.
+Beside it each contract states three assumptions of its own: how its per-object useful
+payload relates to its charged slot, what its alignment premise is, and why its arena
+capacity is what it is.
+
+They are stated because a bounded fixture's quantities otherwise read as arbitrary. A
+capacity above the reserved span is a deliberate choice to keep free geometry visible
+beside a refusal; a capacity equal to that span is a deliberate choice to remove it.
+An alignment premise belongs at the contract because it is the premise peak equality
+loses first, and because a reader separating a representation cost from a packing cost
+needs to know which one a span is paying. A payload-versus-size note keeps declared
+slot slack from being read as measured internal waste. None of these is a measured
+target size, a capability representability rule or an admitted reservation.
 
 ## Model shape
 
@@ -95,9 +138,33 @@ layout gaps. These descriptive quantities are not additional additive charges.
 For every owner, arena, mode and time, the report includes the physical segments,
 all disjoint charges, occupied bytes, unreusable retired bytes, payload utilization
 and capacity conservation. Occupancy includes payload, slack, retention, quarantine
-and initialization. The report preserves the input provenance and telemetry
+and initialization. The report preserves the input provenance, coverage and telemetry
 labels. Total physical charges may be summed for reporting, while the arena-local
 capacity restrictions remain in force.
+
+## The demand envelope of one contract
+
+`demand_series` is the computed companion to the declared envelope. Per arena it
+carries the charged load as a step function over the instants at which a charge can
+change, that function's peak, the arena's capacity and the standing placement's span.
+Per contract it carries the useful payload beside the retained, quarantined and
+initializing bytes at those same instants, so retention is read against payload rather
+than inferred from occupancy.
+
+Every figure is projected from `ledger`, `event_times`, `peak_load` and
+`placement_spans`, and nothing is accounted a second time. The peak is checked against
+the separately swept charged-load bound before the series is reported, so a step
+function disagreeing with that bound raises instead of being published as demand. A
+contract whose standing span exceeds that peak says so through this series and through
+the exact oracle; neither makes the standing plan wrong, and the
+[baseline's inequalities](static-memory-baseline.md#executions-objects-and-physical-charge)
+own the distinction between an unavoidable gap and planner suboptimality.
+
+The series is a charged step function for one declared finite trace. Its peak is that
+trace's charged live load, which is a lower bound on any legal span and is not itself a
+placement. It is not a measured demand, not an envelope over admitted executions, and
+not a statement that the declared capacity is sufficient for any real instance of the
+family the contract witnesses.
 
 ## Geometric fit and typed refusals
 
@@ -135,10 +202,42 @@ proofs. A real composed roster and complete demand and cost contracts remain inp
 owed by the [implementation plan](implementation-checklist.md), including Q5b's
 product comparison.
 
+## The absent roster, by inspection
+
+No tracked artifact carries a real composed roster at this revision, and the corpus is
+synthetic by that fact rather than by preference. The register already presupposes the
+artifact that would supply one. R-08-018a records in a pool's manifest entry a live
+range the admitted frame does not separate; R-08-018b records there the pool's chosen
+size-class set and the internal waste that choice declares; R-08-018c decides
+duplication by comparing two manifest entries' derivation source and element type
+across owning compartments. Each of those entries reads per-pool manifest entries, and
+nothing in this tree carries them: the memory plan's statement artifact declares by
+name the fields it does not carry, the owner among them, and the
+[scaling experiment's](static-memory-scaling.md) projection of that plan declares its
+further operational inputs absent by name rather than inventing them.
+
+The Q5 projection therefore remains the only bridge from a tracked artifact to this
+ledger, and it reaches a placement grid rather than an operational demand. The coverage
+table states the same position from the other side: every contract's provenance is the
+synthetic witness one, none is a composed roster, and no generated contract may claim
+otherwise. Until a roster exists, a coverage claim here is a claim about witnesses, and
+the [agenda's corpus item](../background/static-memory-research.md) stays open on its
+roster half by inspection rather than by an unfinished search.
+
 The focused `python tools/run.py test --only static_memory_corpus` checks
 conservation against an independent byte-at-a-time oracle at every fixture tick,
 refusal boundaries, retained saved state, delayed device authority, equal-time
-rebinding, aligned free extents and preservation of Q5's missing fields. These
-checks validate the diagnostic instrument against its bounded model. Equivalent
-service measurements, alternative service promises and product admission evidence
-remain separate outputs.
+rebinding, aligned free extents and preservation of Q5's missing fields. It also
+pins each earlier contract's manifest and parsed-contract digests, so a contract other
+lanes already read cannot change while new ones append; refuses an unknown, repeated or
+missing coverage label; checks the coverage table against a withdrawn label; replays
+each arena's charged step function against an independent sweep of the declared
+extents; reproduces the completion-window refusal at every instant of the declared lag;
+reads the burst's deferred reuse out of the ledger; and checks that the crossing
+witness's excess over charged load follows from its alignment premise by relaxing that
+premise alone.
+
+`python tools/run.py static-memory compare --case NAME` puts one contract through the
+bounded exact oracle and its independent optimality replay. These checks validate the
+diagnostic instrument against its bounded model. Equivalent service measurements,
+alternative service promises and product admission evidence remain separate outputs.
