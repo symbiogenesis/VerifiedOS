@@ -12,6 +12,9 @@ function reset() -> unit = {
   hart_state = HART_ACTIVE();
 
   reset_sys();
+  // Ordinary chip reset selects the allowed old-byte endpoint for a tear.
+  // Fault campaigns call blkdev_boundary with their explicit bit mask.
+  blkdev_reset(vector_init(zeros()));
 
   // To allow model extensions (code outside this repo) to perform additional reset.
   ext_reset();
@@ -23,6 +26,7 @@ function init_model(config_filename : string) -> unit = {
                              then "Default config"
                              else "Config in " ^ config_filename)
                              ^ " is invalid.");
+  blkdev_initialize();
   reset();
 }
 

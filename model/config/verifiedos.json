@@ -503,43 +503,10 @@
       "early_ticks": 1024,
       "late_ticks": 65536
     },
-    // The three devices beside the core: the SoC boot ROM, the serial port and
-    // the block device. R1 names all three and the RoT core in its own list, so
-    // what obliges them to exist is the plan; what obliges their placement to be
-    // stated here and in the attested devicetree is R-15-002b, which puts every
-    // MMIO aperture inside the 36-bit space and makes the placement a stated
-    // constraint on that tree.
-    //
-    // **These are placements and nothing else, which is the whole of what this
-    // composition can say about them.** No register entry gives a serial port or
-    // a block device any register interface, and inventing a transmit register
-    // or a descriptor ring here would author an obligation nothing owns; the
-    // devices arrive as route-(c) references from `lowRISC/mocha` with the SoC
-    // top written over this map (R1c-ii), and the block device's transfer
-    // interface arrives with the storage stack. So no door of the model's opens
-    // at any of the three: `model/sys/platform.sail` claims no window here, so
-    // an address inside one falls through to the RAM path, and what that costs
-    // is decided by the enclosing region's own PMA rather than by the aperture.
-    // The serial port and the block device are in the readable and writable IO
-    // region below, so a load and a store inside either are the RAM path's until
-    // that top lands. The boot ROM is in the ROM region above, which is readable
-    // and neither writable nor executable, so a load there reads zero while a
-    // store or an instruction fetch is an access fault. No fetch on this fabric
-    // reaches it: R-09-006 fixes the root of trust's sequence at placing the
-    // verified M-mode image in main SRAM and releasing the boot core into the
-    // measured chain, so the first instruction any core here fetches is in
-    // main memory. `executable` is false on this region because that is the
-    // machine and not because a decision is outstanding, and the attested
-    // devicetree sharing the region is non-executable with it.
-    // The memory sequencer's and the RoT's windows refuse instead, and the
-    // difference is that their refusal is permanent: nothing on this die may ever
-    // open them, where these three are doors whose device has not arrived.
-    //
-    // **Every base and size here is a placeholder**, in the sense the memory
-    // classes' constants and the watchdog's bounds are: no artifact in this
-    // repository selects them, and what the validator holds is the shape, that
-    // each is inside an IO memory region and that no two apertures on this die
-    // overlap (model/postlude/validate_config.sail).
+    // Boot ROM and UART are declared placements; the block device implements
+    // interfaces/block-device-contract.md in sys/block_device.sail. Every
+    // aperture is bounded, disjoint and published in the attested device tree.
+    // Addresses are bring-up composition choices, without physical evidence.
     "boot_rom": {
       // The upper half of the ROM region above, above the attested devicetree.
       // R-09-003's metal-mask ROM is a different ROM and has no aperture in any
@@ -550,7 +517,13 @@
       "size": 16384
     },
     "uart": { "supported": true, "base": 41943040, "size": 4096 },
-    "blkdev": { "supported": true, "base": 42991616, "size": 4096 },
+    "blkdev": {
+      "supported": true, "base": 42991616, "size": 4096,
+      "block_bytes": 64, "block_count": 2,
+      "read_steps": 3, "write_steps": 4, "flush_steps": 2,
+      // Explicit bounded bring-up fixture, replaced by the harness on restart.
+      "backing": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127]
+    },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,

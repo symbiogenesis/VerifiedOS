@@ -170,6 +170,10 @@ private function checked_mem_read forall 'n, 0 < 'n <= max_mem_access . (
     Err(e)          => return Err(paddr, e),
   };
 
+  // Decide the complete device access before any RAM effect or splitting.
+  if blkdev_claims(paddr, width) & not(blkdev_access_valid(access, paddr, width))
+  then return Err(paddr, accessFaultFromAccessType(access));
+
   // Split into `N` (single-copy-atomic) memory operations, each
   // of `split_width` width. If the access is aligned, then `N` = 1
   // and `split_width` == `width`.
@@ -275,6 +279,11 @@ function mem_write_ea(paddr, width, access, aq, rl) = {
     Err(e)          => return Err(paddr, e),
   };
 
+  if blkdev_claims(paddr, width) then {
+    if blkdev_access_valid(access, paddr, width) then return Ok(())
+    else return Err(paddr, accessFaultFromAccessType(access));
+  };
+
   let ('N, 'split_width) = split_misaligned(paddr, width, access_info.granule_size_exp, access_info.splittable);
 
   let paddr_bits = bits_of(paddr);
@@ -320,6 +329,10 @@ function checked_mem_write forall 'n, 0 < 'n <= max_mem_access . (
     Ok(access_info) => access_info,
     Err(e)          => return Err(paddr, e),
   };
+
+  // Decide the complete device access before any RAM effect or splitting.
+  if blkdev_claims(paddr, width) & not(blkdev_access_valid(access, paddr, width))
+  then return Err(paddr, accessFaultFromAccessType(access));
 
   // Split into `N` (single-copy-atomic) memory operations, each
   // of `split_width` width. If the access is aligned, then `N` = 1
