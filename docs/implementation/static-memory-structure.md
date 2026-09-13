@@ -12,7 +12,9 @@ parameterized question open: with `k` the least number of reservation intervals 
 deletion makes the family laminar, is exact placement solvable in time `f(k)` times a
 polynomial of the binary input length, or hard for some small fixed `k`? This
 document settles the parameter itself, extends the exact solution from `k = 0` to
-every family whose crossing graph is bipartite, refutes four candidate decompositions
+every family whose crossing graph is bipartite, proves that the least deletion
+number allowing a gap is exactly three when the crossing graph is triangle-free,
+refutes four candidate decompositions
 by small witnesses at the least object counts its arguments and bounded sweeps admit,
 states what an exact algorithm structured around the deleted objects can and cannot
 rely on, and records the precise question that stays open.
@@ -55,9 +57,9 @@ and the justified exact search; it adds the evaluated decomposition contracts, t
 witnesses, a sweep over every small interval shape, and a seeded random sample of
 larger families. The enclosing experiment receipt binds the source bytes of the module
 and of this document. The measured figures, that is the optima, deletion numbers,
-bounds, node counts and the tallies of the sweep and the sample, live in that receipt
-and are not restated here; this document names the inputs that define a family or a
-domain and argues each outcome qualitatively.
+bounds, node counts and the tallies of the sweep and the sample, live in that receipt.
+The constants in the arguments below are part of their mathematical statements;
+the receipt independently recomputes them.
 
 ## The deletion number is polynomial
 
@@ -145,6 +147,66 @@ compare its span with the address-enumerating oracle's optimum on seeded random
 bipartite families, and check that every non-bipartite family's certificate is a
 simple odd cycle of crossing pairs whose deletion number is at least two.
 
+## A sharp gap threshold for triangle-free crossing graphs
+
+**Theorem, proved here.** Among families with a triangle-free crossing graph, the
+least deletion number permitting `OPT > L_charge` is three. For unrestricted
+crossing graphs the least such number is either two or three.
+
+*Lower bound.* An odd cycle of length at least five needs at least three vertices
+to hit all its edges: each chosen vertex hits only two cycle edges. A triangle-free
+graph with a vertex cover of size at most two therefore has no odd cycle, so the
+two-colouring procedure succeeds and the two-stack theorem gives `OPT = L_charge`.
+Without triangle-freeness the same theorem excludes deletion numbers zero and one.
+
+*Upper bound.* Use the following objects, each row giving identity, extent and
+reservation interval. These are the `g0` through `g6` definitions of the already
+mechanized `gap_family` in [StaticMemoryLaminar.v](../../proofs/StaticMemoryLaminar.v),
+now emitted as the `five-cycle-load-gap` contract by
+[`load_gap_contract`](../../tools/vos/static_memory_structure.py):
+
+```text
+g0: 1, [2, 4)    g1: 2, [3, 5)    g2: 2, [4, 6)
+g3: 1, [2, 5)    g4: 3, [5, 6)    g5: 3, [0, 3)
+g6: 2, [1, 2)
+```
+
+The crossing graph is precisely the cycle `g0, g1, g2, g3, g5, g0`, with `g4` and
+`g6` isolated. It has no triangle and needs three deletions: two vertices hit at
+most four of its five edges, while deleting `{g1, g3, g5}` hits every edge.
+The load is five. Here is a direct proof that span five is impossible, independent
+of address enumeration.
+
+At instant one, `g5` and `g6` fill the arena, so `g5` occupies an edge band of
+length three. Reflect addresses if necessary to make that band `[0, 3)`. At
+instant two, `g5`, `g0` and `g3` fill the arena, forcing the two unit objects to
+occupy cells three and four. At instant four, `g1`, `g2` and `g3` fill the arena;
+two extents of length two and one unit can put that unit only at zero, two or four.
+Thus `g3` is at four and `g0` is at three. At instant three, `g1` coexists with
+both unit objects and has base zero or one. At instant four, `g1` and `g2` tile
+`[0, 4)`, forcing `g1` to zero and `g2` to two. But at instant five `g4` needs
+three consecutive cells beside `g2`'s `[2, 4)`; the free bands have lengths two
+and one, a contradiction. The bases `[4, 1, 3, 0, 0, 1, 4]` in identity order
+give a legal placement of span six. Hence `OPT = 6 > 5 = L_charge`.
+
+The proof file already mechanizes the latter inequality and the matching legal
+placement by exhaustive computation with a completeness theorem. The crossing-graph
+argument above connects that existing result to the deletion parameter; it is a
+human-readable proof. The [extent-gcd lemma](#an-exact-search-without-address-enumeration)
+below also proves that multiplying all these extents by any positive integer `d`
+gives `OPT = 6d` and `L_charge = 5d`, with the same triangle-free graph and deletion
+number. Thus this is an infinite family at the sharp triangle-free threshold.
+
+**Finite outcome.** The structural receipt replays the unit-scale witness with
+both exact solvers and the independent optimality checker, and emits a binary-scale
+version. The focused tests additionally certify that every proper subfamily of the
+unit-scale witness attains its own load, with a placement checked cell by cell.
+That establishes inclusion-minimality for these specified objects and extents;
+the least object count over other families and extents is not established. The
+remaining unrestricted threshold question is exactly whether deletion number two
+always attains the load, necessarily with a triangle in its crossing graph if it
+does not. A gap at fixed deletion number is not a hardness result for that parameter.
+
 ## Decompositions refuted by small witnesses
 
 Each contract below is a natural way to reduce placement to the deleted objects and
@@ -212,12 +274,10 @@ the placement and the load is a lower bound, while a completed search above the 
 would be a candidate counterexample that the receipt records with the oracle's replay.
 The sample reaches non-bipartite families with deletion number at least two and
 contains no family above its load; that is finite evidence about the sampled families
-and nothing more. That such families exist is a peer-reviewed result the
-[research agenda](../background/static-memory-research.md#live-payload-is-a-lower-bound-not-a-placement-theorem)
-already cites, whose constructions are asymptotic. The least deletion number of a
-family with `OPT > L_charge` is therefore unknown here, and in particular whether
-`k = 2` already forces `OPT = L_charge` is an open question that the finite evidence
-neither settles nor suggests strongly.
+and nothing more. The named five-cycle witness above is outside those sampled
+families and establishes a gap at deletion number three. Thus the sample cannot
+support a universal load-attainment conjecture. Whether `k = 2` forces
+`OPT = L_charge` remains open.
 
 ## An exact search without address enumeration
 
@@ -231,6 +291,21 @@ the condition says there are none; objects above it move no closer. The span nev
 grows, the sum of bases decreases and is bounded below by zero, so the process stops
 at a placement satisfying the condition.
 
+**Lemma, proved here (extent-gcd lattice).** Let `d` be the greatest common divisor
+of the positive extents. Every legal placement can be replaced by one of no greater
+span whose bases and span are multiples of `d`. Consequently a placement within
+capacity `H` exists exactly when one within `d floor(H / d)` exists, and multiplying
+all extents by a positive integer `s` multiplies the optimum by exactly `s`.
+
+*Proof.* Left-justify a placement. A supporting object's base is strictly smaller
+because its extent is positive. Induction in increasing base order therefore
+makes every base a sum of extents, hence a multiple of `d`; the maximum of their
+tops is also a multiple. For scaling, multiplying a legal placement gives the
+upper bound `s OPT`. Left-justify an optimum of the scaled instance: every base is
+a multiple of `s`, so dividing all bases and extents by `s` gives a legal placement
+of the original instance and proves the reverse inequality. The empty family has
+span zero and uses quantum one by convention.
+
 **Completeness, proved here.** Sort such a placement by base, breaking ties by
 identity. Each object's supporting neighbour has a smaller base and so precedes it.
 A search that places objects in nondecreasing base order, with identity ties, and
@@ -239,22 +314,29 @@ objects, therefore visits every left-justified placement of a given height.
 [`justified_exact`](../../tools/vos/static_memory_structure.py) runs that search as a
 feasibility test, remembering placed sets whose completion failed because the
 remaining subproblem depends only on the placed set, and finds the least feasible
-height by binary search between the load, below which the load bound refuses every
-height, and a feasible upper bound. The upper bound is the laminar remainder stacked
+height by binary search over multiples of the extent gcd between the load, below
+which the load bound refuses every height, and a feasible upper bound. The upper
+bound is the laminar remainder stacked
 at the origin with the deleted objects placed consecutively above it, which is legal
 because deleted objects then occupy their own address bands; when it exceeds the
-capacity the search is first run at the capacity, and an infeasible result there is a
-complete infeasibility. A bipartite crossing graph skips the search entirely.
+capacity the search is first run at the largest gcd multiple within the capacity;
+the lattice lemma makes an infeasible result there a complete infeasibility for the
+original capacity, including its residual cells. The receipt records the gcd as
+`height_quantum`. A bipartite crossing graph skips the search entirely.
 
 **Scope.** Candidate bases are sums of extents and heights are compared, never
 scanned, so the search runs unchanged on the receipt's binary-scale families where
 the address-enumerating oracle cannot. The number of heights tested is logarithmic
-in the sum of extents, hence polynomial in the input length; each feasibility test is
+in the sum of extents divided by their gcd, hence polynomial in the input length;
+common scaling leaves the sequence of normalized heights and the search node count
+unchanged. Each feasibility test is
 exponential in the object count in the worst case, so this is an exact algorithm and
 not a parameterized one. A work-budget cutoff reports `incomplete` with the proved
 bounds and no optimum. The tests compare its span with the existing oracle on seeded
 random families, check its certificate, cutoff, capacity, refusal and permutation
-behaviour, and solve the canonical-remainder witness by search at its load.
+behaviour, and solve the canonical-remainder witness by search at its load. They
+also compare common-scaled gap families through binary magnitudes, capacities
+between lattice points and budget cutoffs against the unit-scale result.
 
 ## Why this is not yet a parameterized algorithm
 
@@ -306,8 +388,9 @@ any fixed `k` is claimed here.
 
 - The parameterized question for `k >= 2` with a non-bipartite crossing graph, in
   either direction, as stated above.
-- The least deletion number of a family with `OPT > L_charge`, and whether `k = 2`
-  already forces equality.
+- Whether `k = 2` forces equality. The least deletion number of a family with
+  `OPT > L_charge` lies in `{2, 3}` and is exactly three for triangle-free crossing
+  graphs, as proved above.
 - A machine-checked statement of the deletion-number recurrence, the two-stack
   theorem and the left-justification lemma; the arguments here are human-readable.
 - Every extension the baseline names: non-unit alignment, restricted positions,
@@ -319,5 +402,6 @@ any fixed `k` is claimed here.
 
 The [research agenda's structural item](../background/static-memory-research.md#research-todo-list)
 remains open under its full acceptance conditions; this document supplies the
-polynomial parameter, the bipartite extension, the refutations and the exact
-magnitude-independent search, and names the question it does not answer.
+polynomial parameter, the bipartite extension, the sharp triangle-free gap threshold,
+the refutations and the exact search over the extent-gcd lattice, and names the
+question it does not answer.

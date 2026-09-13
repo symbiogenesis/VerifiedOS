@@ -44,6 +44,7 @@ CHECKER_TAGS = ("schema", "identity", "ownership", "alignment", "capacity", "ove
 RECEIPT_BOUND = "receipt-bound"
 RECEIPT_WITNESS = "receipt-witness"
 RECEIPT_CERTIFICATE = "receipt-certificate"
+RECEIPT_SEARCH = "receipt-search"
 
 # The replay refuses an arena by two differently meant findings that read alike, both
 # prefixed by the arena identity: one is the row's own false claim and one is a smaller
@@ -70,6 +71,7 @@ DEFAULT_WORK_BUDGET = 100_000
 GENERATED_SIZES = (4,)
 
 type Checker = Callable[[memory.Case, object], list[str]]
+type Replay = Callable[[memory.Case, object, int], dict[str, Any]]
 
 
 class Operator(TypedDict):
@@ -126,12 +128,16 @@ OPERATORS: tuple[Operator, ...] = (
                      "instant on one shared slot"},
     {"name": "reuse-before-sweep", "kind": "case", "site_class": "object-pair",
      "targets": "overlap",
-     "construction": "start the successor at the predecessor's sweep_end, inside the "
-                     "initialization the contract still charges"},
+     "construction": "start the successor one tick before sweep_end, while the "
+                     "predecessor's sweep barrier is still incomplete"},
     {"name": "reuse-before-authority", "kind": "case", "site_class": "object-pair",
      "targets": "overlap",
-     "construction": "start the successor at the predecessor's authority_end, inside "
-                     "the quarantine the contract still charges"},
+     "construction": "start the successor one tick before authority_end, while "
+                     "the predecessor's declared authority is still retained"},
+    {"name": "reuse-before-initialization", "kind": "case", "site_class": "object-pair",
+     "targets": "overlap",
+     "construction": "start the successor one tick before reuse, while the final "
+                     "initialization barrier is still incomplete"},
     {"name": "bound-raise-load", "kind": "certificate", "site_class": "arena",
      "targets": RECEIPT_BOUND,
      "construction": "claim a charged load above the span the receipt's own witness "
@@ -148,11 +154,20 @@ OPERATORS: tuple[Operator, ...] = (
      "targets": RECEIPT_CERTIFICATE,
      "construction": "change the height the exhaustion argument challenges, or claim "
                      "exhaustion where the receipt argued load equality"},
+    {"name": "certificate-false-optimum", "kind": "certificate", "site_class": "arena",
+     "targets": RECEIPT_SEARCH,
+     "construction": "translate a feasible arena layout by a common alignment step "
+                     "and consistently claim its larger span is optimal, although "
+                     "the original witness fits below it"},
 )
 
 _PAIR_INTERFERING = ("overlap-collide",)
-_PAIR_SUCCESSIVE = ("lifetime-extend", "reuse-before-sweep", "reuse-before-authority")
-_ARENA_SITES = ("bound-raise-load", "bound-lower-span", "certificate-argument")
+_BARRIER_FIELDS: dict[str, str] = {"reuse-before-authority": "authority_end",
+                                  "reuse-before-sweep": "sweep_end",
+                                  "reuse-before-initialization": "reuse"}
+_PAIR_SUCCESSIVE = ("lifetime-extend", *_BARRIER_FIELDS)
+_ARENA_SITES = ("bound-raise-load", "bound-lower-span", "certificate-argument",
+                "certificate-false-optimum")
 
 
 @dataclass(frozen=True)
@@ -219,6 +234,28 @@ def dropping(clause: str) -> Checker:
     def weakened(case: memory.Case, placement: object) -> list[str]:
         return [item for item in memory.check_placement(case, placement)
                 if tag(item) != clause]
+    return weakened
+
+
+def dropping_replay(target: str) -> Replay:
+    """Discard one replay refusal family; an unfinished replay stays unfinished.
+
+    This control changes only the reading of a completed refusal. Baseline claims
+    are still verified by the unweakened replay before a mutant is constructed.
+    """
+    if target not in {RECEIPT_BOUND, RECEIPT_WITNESS, RECEIPT_CERTIFICATE,
+                       RECEIPT_SEARCH}:
+        raise memory.CaseError(f"unknown replay control {target}")
+
+    def weakened(case: memory.Case, receipt: object, work_budget: int) -> dict[str, Any]:
+        result = memory.verify_optimality(case, receipt, work_budget)
+        if result["status"] != "rejected":
+            return result
+        findings = [finding for finding in result["findings"]
+                    if not any(_matches_replay(target, finding, arena.id)
+                               for arena in case.arenas)]
+        return {**result, "findings": findings,
+                "status": "rejected" if findings else "verified"}
     return weakened
 
 
@@ -330,11 +367,11 @@ def construct(name: str, subject: Subject,
     if name not in _PAIR_SUCCESSIVE:
         raise memory.CaseError(f"unknown placement operator {name}")
     peer = site[1]
-    if name in ("reuse-before-sweep", "reuse-before-authority"):
-        field = "sweep_end" if name == "reuse-before-sweep" else "authority_end"
-        boundary = obj.sweep_end if field == "sweep_end" else obj.authority_end
-        if boundary >= obj.reuse:
-            return Refused(f"the predecessor charges no extent after its {field}")
+    if name in _BARRIER_FIELDS:
+        field = _BARRIER_FIELDS[name]
+        boundary = getattr(obj, field) - 1
+        if boundary < obj.start:
+            return Refused(f"the predecessor has no reserved tick before its {field}")
         moved = _colocate(subject, obj, peer)
         if isinstance(moved, Refused):
             return moved
@@ -368,6 +405,24 @@ def construct_claim(name: str, subject: Subject, receipt: dict[str, Any],
         if spans[site] < 1:
             return Refused("the arena holds no placed slot, so no smaller span exists")
         row["best_span"] = spans[site] - 1
+        return Claim(subject.case, mutant)
+    if name == "certificate-false-optimum":
+        objects = [obj for obj in subject.case.objects if obj.arena == site]
+        if not objects:
+            return Refused("the arena has no object whose feasible span can be enlarged")
+        stride = math.lcm(*(obj.alignment for obj in objects))
+        height = spans[site] + stride
+        if height > subject.capacity[site]:
+            return Refused("no common-alignment translation fits inside the arena")
+        moved = [{**item, "base": item["base"] + stride}
+                 if item["arena"] == site else dict(item)
+                 for item in mutant["best_placement"]]
+        mutant["best_placement"] = moved
+        mutant["placement"] = [dict(item) for item in moved]
+        row["best_span"] = height
+        row["proven_lower_bound"] = height
+        row["best_span_over_load"] = height - row["charged_load_lower_bound"]
+        row["certificate"] = {"method": "exhaustive", "infeasible_through": height - 1}
         return Claim(subject.case, mutant)
     if name != "certificate-argument":
         raise memory.CaseError(f"unknown certificate operator {name}")
@@ -448,17 +503,19 @@ def classify_replay(operator: Operator, answer: dict[str, Any],
         return SURVIVED, None
     if answer["status"] != "rejected":
         return STILLBORN, f"the replay is {answer['status']}: {'; '.join(findings)}"
-    expected = operator["targets"]
-    if expected == RECEIPT_BOUND:
-        # Exactly the arena row's own refusal. The replay's other arena-prefixed finding,
-        # REPLAY_SEARCH_REFUSAL, reports a smaller feasible placement and is a different
-        # constraint, so a mutant it refuses is a miskill rather than a bound kill.
-        matched = f"{site}: {REPLAY_ROW_REFUSAL}" in findings
-    elif expected == RECEIPT_WITNESS:
-        matched = any(tag(item) == RECEIPT_WITNESS_TAG for item in findings)
-    else:
-        matched = any(item in REPLAY_CERTIFICATE_REFUSALS for item in findings)
+    matched = any(_matches_replay(operator["targets"], item, site) for item in findings)
     return (KILLED if matched else MISKILLED), None
+
+
+def _matches_replay(target: str, finding: str, site: str) -> bool:
+    """Match a refusal to its own claim family, including the challenged arena."""
+    if target == RECEIPT_BOUND:
+        return finding == f"{site}: {REPLAY_ROW_REFUSAL}"
+    if target == RECEIPT_SEARCH:
+        return finding == f"{site}: {REPLAY_SEARCH_REFUSAL}"
+    if target == RECEIPT_WITNESS:
+        return tag(finding) == RECEIPT_WITNESS_TAG
+    return target == RECEIPT_CERTIFICATE and finding in REPLAY_CERTIFICATE_REFUSALS
 
 
 def _baseline(subject: Subject,
@@ -497,7 +554,7 @@ def _placement_outcomes(subject: Subject, operator: Operator, checker: Checker,
 def _certificate_outcomes(subject: Subject, operator: Operator,
                           baseline: tuple[dict[str, Any], dict[str, int]] | Refused,
                           seed: int | str, max_sites: int | None,
-                          work_budget: int) -> Visit:
+                          work_budget: int, replay: Replay) -> Visit:
     name = subject.case.name
     if isinstance(baseline, Refused):
         # Without a verified receipt there is no optimality claim to falsify here, so the
@@ -515,7 +572,7 @@ def _certificate_outcomes(subject: Subject, operator: Operator,
         if isinstance(built, Refused):
             results.append(_outcome(operator, name, site, STILLBORN, [], built.reason))
             continue
-        answer = memory.verify_optimality(built.case, built.receipt, work_budget)
+        answer = replay(built.case, built.receipt, work_budget)
         verdict, reason = classify_replay(operator, answer, site)
         results.append(_outcome(operator, name, site, verdict, answer["findings"], reason))
     return Visit(results, len(applicable), len(chosen))
@@ -535,6 +592,7 @@ def _tally(outcomes: list[Outcome], label: str,
 
 
 def sweep(cases: list[dict[str, Any]], *, checker: Checker = memory.check_placement,
+          replay: Replay = memory.verify_optimality,
           seed: int | str = DEFAULT_SEED, max_sites: int | None = DEFAULT_MAX_SITES,
           work_budget: int = DEFAULT_WORK_BUDGET,
           kinds: tuple[str, ...] = KINDS) -> dict[str, Any]:
@@ -569,7 +627,7 @@ def sweep(cases: list[dict[str, Any]], *, checker: Checker = memory.check_placem
                 if baseline is None:
                     baseline = _baseline(subject, work_budget)
                 visit = _certificate_outcomes(subject, operator, baseline, seed,
-                                              max_sites, work_budget)
+                                              max_sites, work_budget, replay)
             outcomes.extend(visit.outcomes)
             applicable[operator["name"]] += visit.applicable
             visited[operator["name"]] += visit.visited
@@ -646,6 +704,25 @@ def _control(cases: list[dict[str, Any]], clause: str, mutants_built: dict[str, 
     }
 
 
+def _replay_control(cases: list[dict[str, Any]], target: str,
+                    mutants_built: dict[str, int]) -> dict[str, Any]:
+    """Require each completed certificate mutant to survive its removed refusal."""
+    expected = sorted(operator["name"] for operator in OPERATORS
+                      if operator["kind"] == "certificate"
+                      and operator["targets"] == target
+                      and mutants_built.get(operator["name"], 0))
+    weak = sweep(cases, replay=dropping_replay(target), kinds=("certificate",))
+    return {
+        "refusal_removed": target,
+        "expected_survivor_operators": expected,
+        "observed_survivor_operators": sorted({item["operator"]
+                                                for item in weak["survivors"]}),
+        "mutants_available": sum(mutants_built.get(name, 0) for name in expected),
+        "weakened_totals": weak["totals"],
+        "weakened_miskills": weak["miskills"],
+    }
+
+
 def report(source_revision: str = "unspecified") -> dict[str, Any]:
     """Sweep the declared witnesses and one generated family, with a weakened control.
 
@@ -677,6 +754,18 @@ def report(source_revision: str = "unspecified") -> dict[str, Any]:
     exercised = [row for row in controls if row["expected_survivor_operators"]]
     if not exercised:
         errors.append("no clause control was exercised: every operator was stillborn")
+    replay_controls = [_replay_control(cases, target, mutants_built)
+                       for target in sorted({operator["targets"] for operator in OPERATORS
+                                             if operator["kind"] == "certificate"})]
+    for row in replay_controls:
+        if row["observed_survivor_operators"] != row["expected_survivor_operators"]:
+            errors.append(f"removing {row['refusal_removed']} did not isolate its "
+                          "certificate operators")
+        if row["weakened_miskills"]:
+            errors.append(f"removing {row['refusal_removed']} misclassified a "
+                          "certificate operator")
+        if not row["expected_survivor_operators"]:
+            errors.append(f"no completed mutant exercises {row['refusal_removed']}")
     by_kind = {row["kind"]: row["mutants"] for row in complete["by_kind"]}
     feasibility = by_kind.get("placement", 0) + by_kind.get("case", 0)
     optimality = by_kind.get("certificate", 0)
@@ -700,6 +789,7 @@ def report(source_revision: str = "unspecified") -> dict[str, Any]:
                        "its own claim provokes and is a miskill otherwise",
             RECEIPT_BOUND: REPLAY_ROW_REFUSAL,
             "not_a_bound_refusal": REPLAY_SEARCH_REFUSAL,
+            RECEIPT_SEARCH: REPLAY_SEARCH_REFUSAL,
             RECEIPT_CERTIFICATE: list(REPLAY_CERTIFICATE_REFUSALS),
             RECEIPT_WITNESS: f"a {RECEIPT_WITNESS_TAG} finding from the placement checker",
         },
@@ -724,17 +814,26 @@ def report(source_revision: str = "unspecified") -> dict[str, Any]:
                        "sweep is the finding",
             "clauses_exercised": len(exercised),
             "clauses_declared": len(controls),
-            "scope": "the placement checker only; verify_optimality is not weakened, so "
-                     "the certificate operators have no control of their own",
+            "scope": "the placement checker's clauses; replay refusal controls are "
+                     "reported separately",
             "clauses": controls,
+        },
+        "replay_control": {
+            "method": "discard each completed replay refusal family in turn; baseline "
+                      "claims use the full replay and incomplete claims stay incomplete",
+            "scope": "constructed certificate defects only; no general verifier theorem",
+            "refusals_exercised": sum(bool(row["expected_survivor_operators"])
+                                      for row in replay_controls),
+            "refusals_declared": len(replay_controls),
+            "refusals": replay_controls,
         },
         "open_obligations": [
             "operators for constraints outside the declared model: CHERI bounds "
             "representability, island and bank assignment, admission",
             "a generated family large enough to exercise the bounded search rather than "
             "the placement checker alone",
-            "an independent oracle for the replay verifier itself, whose clauses these "
-            "operators reach only through its refusals, and a weakened control for it",
+            "general mechanized correspondence of the replay verifier beyond the "
+            "independent byte-grid tests and constructed certificate defects",
         ],
         "errors": errors,
     }
