@@ -210,10 +210,23 @@ def _reductions_are_searched() -> None:
         reduced, _applied = phases.reduce_counterexample(fixtures[name], summary)
         ensure(len(reduced.components) == 1,
                f"{summary}: this defect needs no composition, so the claim is not minimality")
-    chained, _applied = phases.reduce_counterexample(fixtures["chained-completion-windows"],
-                                                     "chain-local-window")
-    ensure(len(chained.components) > 1,
-           "a dependency between components cannot be exhibited inside one component")
+
+
+def _one_component_can_chain_transfers() -> None:
+    """A dependency need not cross the component boundary a reduction preserves."""
+    component = phases.Component(
+        "local-chain", (0, 2, 11, 16), ("source", "wait", "successor"),
+        (phases.Obj("old", "e", (0,)), phases.Obj("new", "e", (2,))),
+        (phases.Transfer("first", "old", 0, 6),
+         phases.Transfer("second", "old", 0, 6, depends_on="first")),
+        declared_window=6, declared_outstanding=10)
+    comp = phases.Composition("one-component-chain", (component,), (("old", "new"),), 16)
+    phases.validate(comp)
+    ensure(phases.is_counterexample(comp, "chain-local-window"),
+           "a local transfer chain must refute the per-transfer window summary")
+    witness = phases.exhaustive_check(comp, "R2")["witness"]
+    ensure(bool(_oracle(comp, witness["offsets"], "R2")),
+           "the one-component hazard must reproduce through the independent tick oracle")
 
 
 def _barrier_mutants_are_caught() -> None:
@@ -441,6 +454,7 @@ def cases() -> list[Case]:
         Case("phases candidate rules are separated", _rules_are_separated),
         Case("phases naive summaries and counterexamples", _counterexamples_reproduce),
         Case("phases counterexample reduction search", _reductions_are_searched),
+        Case("phases one-component transfer chain", _one_component_can_chain_transfers),
         Case("phases barrier mutants are caught", _barrier_mutants_are_caught),
         Case("phases certificate is the compositional input", _certificate_is_the_whole_input),
         Case("phases declared outstanding bounds are recomputed", _declared_bounds_are_recomputed),

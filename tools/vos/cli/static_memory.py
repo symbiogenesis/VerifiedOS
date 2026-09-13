@@ -15,9 +15,9 @@ from typing import Any
 
 from vos import static_memory as oracle
 from vos import static_memory_corpus as witnesses
+from vos import static_memory_envelope as envelope
 from vos import static_memory_modes as mode_family
 from vos import static_memory_mutants as mutants
-from vos import static_memory_envelope as envelope
 from vos import static_memory_phases as phases
 from vos import static_memory_reclaim as reclaim
 from vos import static_memory_repr as representability
@@ -42,6 +42,7 @@ EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
                 "docs/implementation/static-memory-reclamation.md",
                 "tools/vos/revocation.py"),
     "scale": ("tools/vos/static_memory_scale.py",
+              "tools/vos/static_memory_bounds.py",
               "docs/implementation/static-memory-scaling.md",
               "tools/vos/cli/placement.py"),
     "modes": ("tools/vos/static_memory_modes.py",

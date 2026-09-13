@@ -89,7 +89,7 @@ class ArenaBounds(TypedDict):
 
 @dataclass
 class Work:
-    """Deterministic work limit. Exhaustion withholds a bound; it never invents one."""
+    """Deterministic work limit. Unfinished restrictions supply no bound value."""
 
     limit: int
     spent: int = 0

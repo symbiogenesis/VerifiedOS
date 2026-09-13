@@ -260,6 +260,7 @@ def cases() -> list[Case]:
         Case("live-set bound matches order enumeration", _exact_live_set_matches_order_enumeration),
         Case("two-instant bound matches independent search", _two_instant_matches_independent_search),
         Case("block bound holds beyond enumeration", _block_bound_holds_where_enumeration_cannot),
+        Case("truncated scans report coverage", _truncated_scans_report_partial_rather_than_computed),
         Case("budget and settings refuse rather than guess", _budget_and_settings_refuse_rather_than_guess),
         Case("bounds identical under permutation", _identical_under_permutation),
     ]

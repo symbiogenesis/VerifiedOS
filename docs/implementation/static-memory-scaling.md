@@ -151,7 +151,9 @@ least span of the live set is the minimum of `e(n)` over the orders, and that is
 the module computes: it enumerates subsets, keeping for each the least end reachable,
 which is the minimum over the orders of that subset. The result is exact for the live
 set, and exponential in its size, so the report enumerates a live set only when its
-known cost fits the remaining budget and withholds the bound otherwise.
+known cost fits the remaining budget. A skipped live set contributes no value; a
+scan that completed other live sets keeps their lower bound and reports partial
+coverage rather than claiming the entire trace was enumerated.
 
 ### The two-instant bound
 
@@ -187,8 +189,14 @@ any bound above it; they hold the live-set enumeration against an independent
 enumeration of orders, the two-instant enumeration against an independent search over
 aligned bases, and the block bound against a span that stacking attains. The
 comparison itself refuses a bound above a span some checked placement already reached.
-Budget exhaustion withholds a bound and never invents one: an exhausted arena reports
-the charged load alone and says which bound it gave up. The bounds are also invariant
+Each bound reports scored, pruned, over-limit and over-budget restrictions. A scan
+that completed some restrictions and skipped others reports `partial`, retaining
+only the sound lower bound those completed restrictions establish. A scan that
+scored nothing withholds its value. `complete` means no restriction was left
+unexamined except by a sound pruning argument; each arena separately reports
+whether its supplying bound and all its scans are complete. A zero work budget
+leaves the charged load alone. The tests inject a bound above a checked span and
+require the comparison to refuse it. The bounds are also invariant
 under the order the objects arrive in, which the tests hold by permutation.
 
 R-05-104's criterion says no ILP machinery exists in the toolchain, its own subject
@@ -273,13 +281,12 @@ can measure the implementation improvement but is not an algorithmic guarantee.
 A gap closes when a proved bound and a checked placement meet at the same span, and
 the receipt says which of each did it. That now happens on every laminar and burst
 arena, where the charged load is attained; on the witness family, where only the
-two-instant bound reaches the attained span; and on the heterogeneous aligned arenas
-at the smallest size and on one arena above it, where an alignment bound rises above
-the charged load to meet a candidate. Where a gap narrows without closing, both sides
-moved: the alignment bounds rise above the charged load wherever alignments differ
-within a live set, and the added orderings lower the best span on one heterogeneous
-arena. None of this is a claim about optimality where the gap stays open, and none of
-it is a target measurement.
+two-instant bound reaches the attained span; and on some heterogeneous aligned
+arenas. An alignment bound can close a gap where alignment forces padding; other
+arenas already attain charged load. Differing alignments alone do not imply padding
+or a strict improvement over load. The receipt identifies the reason each arena
+closes and whether an added ordering lowers its best span. None of this is a claim
+about optimality where the gap stays open, and none of it is a target measurement.
 
 Two kinds of gap remain, and they are not the same problem. Where alignment is uniform
 across a family, as in `crossing`, every bound here collapses to the charged load,
@@ -289,10 +296,11 @@ peer-reviewed separation between the optimum and the load that the
 [research agenda](../background/static-memory-research.md) cites means neither the
 candidate nor the bound is known to be the weak side. Where the live sets are larger
 than the enumeration limit, as in the heterogeneous aligned family at its largest
-size, the exact live-set and two-instant bounds are withheld and only the counting
-bounds remain. Raising the budget does not settle that: the enumeration is exponential
-in the size of one live set, so what is wanted is a stronger argument, not a longer
-run.
+size, some restrictions are skipped while smaller ones can still supply partial
+exact live-set or two-instant evidence. The coverage fields distinguish those
+values from complete scans. Raising the budget does not remove the object-count
+limits: the enumeration is exponential in the size of one live set, so what is
+wanted is a stronger argument, not a longer run.
 
 This experiment supplies scalable synthetic comparisons, four proved lower bounds and
 a Q5 bridge. It does not add a solver, change schedules or lifetimes, move ownership,
