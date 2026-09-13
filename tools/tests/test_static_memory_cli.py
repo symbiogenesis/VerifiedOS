@@ -110,6 +110,7 @@ def _experiment_routes_and_source_binding() -> None:
 def _experiment_refuses_ignored_options_and_failures() -> None:
     invalid = [["structure", "--case", "unused"], ["transform", "--contract", "unused"],
                ["reclaim", "--max-nodes", "1"], ["structure", "--sizes", "8"],
+               ["mutants", "--case", "unused"], ["mutants", "--max-nodes", "1"],
                ["scale", "--sizes", "0"], ["scale", "--q5-max-leaves", "0"],
                ["compare", "--q5-max-leaves", "1"]]
     for argv in invalid:
