@@ -435,6 +435,20 @@ def _q5_regions_agree_and_an_empty_export_refuses() -> None:
                    for row, finding in zip(disagreed["regions"],
                                            disagreed["findings"], strict=True)),
                f"{word}: each finding must name its own region: {disagreed}")
+    # The other direction, and the one a layer that accepted every base would fail: a
+    # base off its own granule is refused by both sides, which is agreement and not a
+    # finding, so the check is bound to what this layer answers as well as to the plan.
+    coarse = next(row["region"] for row in agreement["regions"] if row["granule"] > 1)
+    shifted = dataclasses.replace(plan, bases=tuple(
+        plan.base_of(region) + (1 if region == coarse else 0)
+        for region in plan.regions()))
+    with patch.object(memplan, "plan_of", return_value=shifted):
+        quiet = representability.q5_agreement(ROOT)
+    ensure(not quiet["findings"],
+           f"a base neither side admits is agreement: {quiet['findings']}")
+    moved = next(row for row in quiet["regions"] if row["region"] == coarse)
+    ensure(not moved["base_legal_here"] and not moved["base_quantized_there"],
+           f"both sides must refuse a base off its own granule: {moved}")
     empty = dataclasses.replace(plan, region_count=0)
     with patch.object(memplan, "plan_of", return_value=empty):
         try:
