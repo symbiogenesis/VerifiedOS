@@ -52,6 +52,10 @@ def _place(root: Path, rel: str, text: str, *, track: bool = True) -> None:
         _git(root, "add", rel)
 
 
+def _append(root: Path, rel: str, text: str) -> None:
+    _place(root, rel, (root / rel).read_text(encoding="utf-8") + text)
+
+
 def _named(errors: list[str], path: str, phrase: str) -> bool:
     return any(error.startswith(f"{path}:") and phrase in error for error in errors)
 
@@ -105,6 +109,32 @@ def _copied_tree_reports_each_incompleteness() -> None:
                "one inbound link from another document clears the reachability finding")
 
 
+def _a_mention_is_not_a_link_and_the_index_is_not_a_witness() -> None:
+    experiments = "docs/implementation/static-memory-experiments.md"
+    with sandbox_tree(_artifact_files()) as root:
+        _commit(root)
+        _place(root, "tools/vos/static_memory_orphan.py", SPDX)
+        _place(root, "docs/implementation/static-memory-orphan.md", "# Orphan\n")
+        _append(root, experiments, "\n```console\nrm static-memory-orphan.md\n```\n")
+        _append(root, manifest.ARTIFACT_DOC,
+                "\nstatic_memory_orphan.py is one of the artifact's modules.\n")
+        errors = manifest.report(root)["errors"]
+        ensure(_named(errors, "docs/implementation/static-memory-orphan.md",
+                      "links to this document"),
+               f"a basename inside a fenced block is a mention and not a link: {errors}")
+        ensure(_named(errors, "tools/vos/static_memory_orphan.py", "registered action"),
+               f"the index naming a module is not a witness of its reachability: {errors}")
+        _append(root, experiments, "\n[Orphan](static-memory-orphan.md#results) says so.\n")
+        _append(root, "docs/implementation/static-memory-transformations.md",
+                "\nstatic_memory_orphan.py carries the orphan experiment.\n")
+        errors = manifest.report(root)["errors"]
+        ensure(not _named(errors, "docs/implementation/static-memory-orphan.md",
+                          "links to this document"),
+               f"an anchored link from another document is a link: {errors}")
+        ensure(not _named(errors, "tools/vos/static_memory_orphan.py", "registered action"),
+               f"a document outside the index naming the module clears it: {errors}")
+
+
 def _index_membership_decides_as_the_checker_reads_it() -> None:
     with sandbox_tree(_artifact_files()) as root:
         _commit(root)
@@ -133,6 +163,13 @@ def _classification_join_holds_both_directions() -> None:
         ensure(_named(manifest.report(root)["errors"],
                       "docs/implementation/static-memory-baseline.md", "carries no row"),
                "a document with no classification row is a finding")
+        twice = ("| [Mathematical baseline](static-memory-baseline.md) "
+                 "| peer-reviewed result cited | elsewhere |")
+        path.write_text(document.replace(row, f"{row}\n{twice}"), encoding="utf-8",
+                        newline="")
+        ensure(_named(manifest.report(root)["errors"],
+                      "docs/implementation/static-memory-baseline.md", "carries 2 rows"),
+               "a second row claiming other classes for the same document is a finding")
         ghost = "| [Ghost](static-memory-ghost.md) | new conjecture | nowhere |"
         path.write_text(document.replace(last, f"{last}\n{ghost}"), encoding="utf-8",
                         newline="")
@@ -223,6 +260,8 @@ def cases() -> list[Case]:
         Case("manifest inventory is computed from this tree", _inventory_is_computed_and_complete),
         Case("manifest reports each incompleteness in a copied tree",
              _copied_tree_reports_each_incompleteness),
+        Case("manifest reachability takes links and not mentions",
+             _a_mention_is_not_a_link_and_the_index_is_not_a_witness),
         Case("manifest index membership decides", _index_membership_decides_as_the_checker_reads_it),
         Case("manifest classification join holds both directions",
              _classification_join_holds_both_directions),

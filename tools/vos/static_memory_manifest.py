@@ -8,19 +8,24 @@ carried by the git index, registered, reachable and classified. It decides no re
 claim; a replayed receipt stays bounded finite host evidence rather than a theorem, an
 optimality result or a target measurement.
 
-Two reachability conventions are stated here because neither is self-evident. The
-artifact document is the index of this artifact, so it is the root of the link graph:
-it is neither a subject of the inbound-link rule nor a source of an inbound link, since
-a table that cites every document would otherwise satisfy the very rule it exists to be
-audited against. And a test module's topic is answered by a module on either side of the
-package split, `vos/static_memory_<topic>.py` or `vos/<topic>/static_memory.py`, which is
-what keeps the command's own test out of the rule as a special case nobody wrote down.
+Three reachability conventions are stated here because none is self-evident. A document
+is reachable through a Markdown link and not through a mention of its name, so a
+basename inside a fenced command line or in a sentence a reader cannot follow leaves the
+document a finding. The artifact document is the index of this artifact, so it is the
+root of the link graph and a subject of no reachability rule, and it is a source of
+none either: it is written beside these rules and names the artifact's own parts, so its
+classification table would otherwise satisfy the document rule over anything and one
+sentence of its prose would satisfy the module rule for a module nobody registered. And
+a test module's topic is answered by a module on either side of the package split,
+`vos/static_memory_<topic>.py` or `vos/<topic>/static_memory.py`, which is what keeps the
+command's own test out of the rule as a special case nobody wrote down.
 """
 
 import argparse
 import hashlib
 import json
 import re
+from collections import Counter
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -64,9 +69,12 @@ REPLAY_SETTINGS: dict[str, tuple[str, ...]] = {
     "scale": ("--sizes", "4", "--max-nodes", "100", "--q5-max-leaves", "1"),
 }
 
-# A Markdown link target ending in .md, which is how a classification row names its
-# document and how one document links another.
-LINK_RE = re.compile(r"\(([^()\s]+\.md)\)")
+# A Markdown link target ending in .md, with the optional heading fragment a reader
+# writes, which is how a classification row names its document and how one document
+# links another. Reachability is decided on this and not on a bare mention, so a
+# document named inside a fenced block or in a sentence carrying no link stays a
+# finding until somebody gives a reader a way to arrive at it.
+LINK_RE = re.compile(r"\(([^()\s#]+\.md)(?:#[^()\s]*)?\)")
 
 
 class Kind(TypedDict):
@@ -290,17 +298,28 @@ def classification(root: Path) -> list[RowEntry]:
             continue
         found = LINK_RE.search(cells[0])
         rows.append(RowEntry(
-            document=resolved(root, found.group(1)) if found else cells[0],
+            document=resolved(root, ARTIFACT_DOC, found.group(1)) if found else cells[0],
             classes=[part.strip() for part in cells[1].split(";") if part.strip()]))
     return rows
 
 
-def resolved(root: Path, target: str) -> str:
-    """One link target of the artifact document, as a repository-relative path."""
+def resolved(root: Path, source: str, target: str) -> str:
+    """One Markdown link target, as the repository-relative path its source reaches.
+
+    A link is read from the document that writes it, so the agenda's
+    `../implementation/x.md` and a sibling's bare `x.md` name the same file.
+    """
     try:
-        return (root / ARTIFACT_DOC).parent.joinpath(target).resolve().relative_to(root).as_posix()
+        return (root / source).parent.joinpath(target).resolve().relative_to(
+            root.resolve()).as_posix()
     except ValueError:
         return target
+
+
+def links(root: Path, source: str, text: str) -> set[str]:
+    """Every document one document links to, excluding a link back to itself."""
+    return {resolved(root, source, found.group(1))
+            for found in LINK_RE.finditer(text)} - {source}
 
 
 def _index_findings(items: Inventory) -> list[str]:
@@ -316,9 +335,23 @@ def _index_findings(items: Inventory) -> list[str]:
     return result
 
 
+def witnesses(prose: dict[str, str]) -> dict[str, str]:
+    """The documents a reachability rule may be satisfied by.
+
+    The index is excluded as a source of every reachability rule, because it is written
+    beside the rules and names the artifact's own parts: a mention there is the manifest
+    lane's own word that a part is reachable, not a reader's way of arriving at it.
+    Without the exclusion the classification table would satisfy the document rule over
+    anything, and one sentence of this document's prose would satisfy the module rule for
+    a module whose action nobody registered.
+    """
+    return {rel: text for rel, text in prose.items() if rel != ARTIFACT_DOC}
+
+
 def _module_findings(items: Inventory, reg: Registration, prose: dict[str, str]) -> list[str]:
     """Every topic module is reachable through an action or through a document."""
     result: list[str] = []
+    sources = witnesses(prose)
     for rel in of_kind(items, MODULE_KIND["kind"]):
         if rel == COMMAND_MODULE:
             continue
@@ -326,31 +359,29 @@ def _module_findings(items: Inventory, reg: Registration, prose: dict[str, str])
         subject = topic(rel, MODULE_KIND)
         if not subject or subject in reg["choices"]:
             continue
-        if any(name in text for text in prose.values()):
+        if any(name in text for text in sources.values()):
             continue
         result.append(f"{rel}: a static-memory module carries neither a registered "
-                      "action of its topic nor a document naming it")
+                      "action of its topic nor a document outside the index naming it")
     return result
 
 
-def _document_findings(items: Inventory, prose: dict[str, str]) -> list[str]:
+def _document_findings(root: Path, items: Inventory, prose: dict[str, str]) -> list[str]:
     """Every document but the index is linked by another document.
 
-    The artifact document is excluded on both sides: as a subject because it is the
-    root, and as a source because its classification table names every document and
-    would make this rule pass over anything.
+    A Markdown link and not a mention, because the rule exists so that a reader can
+    arrive at the document: a basename appearing in a fenced command line or in a
+    sentence nobody can click decides nothing about reachability. The artifact document
+    is excluded as a subject because it is the root of the link graph, and as a source
+    for the reason `witnesses` states.
     """
-    result: list[str] = []
-    sources = {rel: text for rel, text in prose.items() if rel != ARTIFACT_DOC}
-    for rel in of_kind(items, DOCUMENT_KIND["kind"]):
-        if rel in (ARTIFACT_DOC, AGENDA):
-            continue
-        name = rel.rsplit("/", 1)[-1]
-        if any(name in text for other, text in sources.items() if other != rel):
-            continue
-        result.append(f"{rel}: no other static-memory document and not the research "
-                      "agenda links to this document")
-    return result
+    inbound: set[str] = set()
+    for other, text in witnesses(prose).items():
+        inbound |= links(root, other, text)
+    return [f"{rel}: no other static-memory document and not the research agenda links "
+            "to this document"
+            for rel in of_kind(items, DOCUMENT_KIND["kind"])
+            if rel not in (ARTIFACT_DOC, AGENDA) and rel not in inbound]
 
 
 def _test_findings(root: Path, items: Inventory) -> list[str]:
@@ -391,12 +422,18 @@ def _classification_findings(items: Inventory, rows: list[RowEntry]) -> list[str
     if not rows:
         return [f"{ARTIFACT_DOC}: no classification table stands under "
                 f"'{CLASSIFICATION_HEADING}', so no document's result classes are stated"]
-    named = {row["document"] for row in rows}
+    counted = Counter(row["document"] for row in rows)
+    named = set(counted)
     result = [f"{rel}: the classification table in {ARTIFACT_DOC} carries no row for "
               "this document, so which result classes it carries is unstated"
               for rel in sorted(documents - named)]
     result += [f"{rel}: the classification table in {ARTIFACT_DOC} names a document the "
                "artifact does not carry" for rel in sorted(named - documents)]
+    # Exactly one row, not at least one: two rows can name the same document with class
+    # sets that contradict each other, and a set membership test reads that as complete.
+    result += [f"{rel}: the classification table in {ARTIFACT_DOC} carries {count} rows "
+               "for this document, so its result classes are not decided"
+               for rel, count in sorted(counted.items()) if count > 1]
     for row in rows:
         if not row["classes"]:
             result.append(f"{row['document']}: its classification row names no result class")
@@ -471,7 +508,7 @@ def report(root: Path, *, replay: bool = False) -> dict[str, Any]:
     rows = classification(root)
     ran = replays(reg) if replay else []
     errors = (_index_findings(items) + _module_findings(items, reg, prose)
-              + _document_findings(items, prose) + _test_findings(root, items)
+              + _document_findings(root, items, prose) + _test_findings(root, items)
               + _proof_findings(root, items) + _classification_findings(items, rows)
               + _replay_findings(ran))
     if ACTION not in reg["choices"]:

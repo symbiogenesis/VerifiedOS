@@ -50,18 +50,20 @@ violates:
 | Finding | Rule |
 | --- | --- |
 | An inventoried file is absent, or the git index does not carry it | Corpus membership comes from the index, as [the checker](../../tools/check.py) reads it; nothing decided about an untracked file means anything |
-| A `static_memory_<topic>` module has no registered action of its topic and no document naming it | A module nobody can reach and nobody describes is not part of a replayable artifact |
-| A document under `docs/implementation/static-memory-*.md` is linked by no other static-memory document and not by the research agenda | An unreachable document leaves its results outside the artifact a reader follows |
+| A `static_memory_<topic>` module has no registered action of its topic and no document outside this index naming it | A module nobody can reach and nobody describes is not part of a replayable artifact |
+| A document under `docs/implementation/static-memory-*.md` carries no Markdown link from another static-memory document and none from the research agenda | An unreachable document leaves its results outside the artifact a reader follows. A mention of the basename is not a link: a name inside a fenced command line, or in a sentence a reader cannot follow, gives nobody a way to arrive |
 | A declared source of an action does not exist, or the index does not carry it | An action binds the bytes it names, so a source it cannot hash decides nothing |
 | A test module has no module of its own topic | A test naming a subject the artifact does not ship is evidence about nothing |
 | A proof under `proofs/StaticMemory*.v` has no row in [the proof ledger](../../tools/generated/proof-ledger.md) | The ledger is the join of the register with what the shipped proofs cite; a proof no row reaches cites no live requirement, or the ledger is owed its regeneration by `run.py check --fix` |
-| A static-memory document has no classification row, a row names a document the artifact does not carry, or a row names a class outside the declared vocabulary | The table below is a completeness statement and not a derived count, so both directions of the join are held |
+| A static-memory document has no classification row or more than one, a row names a document the artifact does not carry, or a row names a class outside the declared vocabulary | The table below is a completeness statement and not a derived count, so both directions of the join are held. Exactly one row and not at least one, because two rows for one document can claim class sets that contradict each other |
 | A replayed action refused, or reported its own errors | An action that no longer runs is a part of the artifact that no longer replays |
 
-The link graph has one root, and it is this document. This document is neither a subject
-of the inbound-link rule nor a source of an inbound link for it: the classification table
-below names every static-memory document, so counting it as a source would satisfy the
-rule with the very table the rule exists to audit from the other side.
+The link graph has one root, and it is this document. This document is the subject of no
+reachability rule, and it is the witness for none either: it is written beside the rules
+and names the artifact's own parts, so the classification table below would satisfy the
+document rule over anything, and one sentence of the prose above would satisfy the module
+rule for a module whose action nobody registered. Every reachability finding is therefore
+decided by the other documents and by the command's own registration, never by this page.
 
 **A green manifest is inventory completeness and nothing else.** It says the parts are
 present, tracked, registered, reachable and classified. It does not say that a laminar
