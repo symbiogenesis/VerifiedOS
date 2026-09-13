@@ -13,8 +13,10 @@
 Run `python tools/run.py static-memory lending --json` for the full receipt and
 `python tools/run.py test --only static_memory_lending` for focused behavioral
 checks. The command emits the observation model, the public calendar, one analysis
-per lending policy, both headroom sweeps, the minimal distinguishing pairs and the
-return-capacity verdicts. Source hashes bind the implementation, its tests and this
+per lending policy, both headroom sweeps, the minimal distinguishing pairs, a
+black-box probe of what each rule grants, the return-capacity verdicts, and the
+counterexample calendars that bound what the fixture's own results may be read to
+say. Source hashes bind the implementation, its tests and this
 contract; Git identity comes from the common research command. Figures are left in
 the generated receipt rather than maintained a second time here.
 
@@ -59,19 +61,19 @@ shape for memory capacity and reports what changes.
 
 ## The policies and what each one costs
 
-Six rules are enumerated over the same public calendar and the same admitted
+The rules below are enumerated over the same public calendar and the same admitted
 secret set.
 
 | Policy | What it lends | What the enumeration finds |
 | --- | --- | --- |
 | None | nothing | Trivially noninterferent: the observation never reads the secret. Every request the borrower's own pool cannot hold is refused |
 | Lend any idle slot | the lender's observed idle capacity | Distinguishing on two separate channels, each from a one-tick difference in the secret |
-| Lend any idle slot, with completions padded to declared instants | the same capacity, with every completion delayed to the next declared release instant | The timing channel closes and the refusal channel stays open, so the policy is still refuted. Padding moves no verdict and buys nothing in slack; the borrower pays for it in latency |
-| Reserved headroom `h`, subtracted from observed idle capacity | observed idle capacity above `h` | Distinguishing at every reserve that lends anything; the least safe reserve is the whole lender pool, which lends nothing |
+| Lend any idle slot, with completions padded to declared instants | the same capacity, with every completion delayed to the first declared release instant at or after it | On this calendar the timing channel closes and the refusal channel stays open, so the policy is still refuted. The closure belongs to the calendar and not to padding: the receipt carries one whose declared instants leave the padded timing channel open. Padding moves no verdict and buys nothing in slack; the borrower pays for it in latency |
+| Reserved headroom `h`, subtracted from observed idle capacity | observed idle capacity above `h` | What it grants moves with the secret at every reserve that lends anything. On this calendar that is observable too, and the least safe reserve is the whole lender pool, which lends nothing; the receipt carries a calendar on which the same family grants on the secret, stays safe and still lends |
 | Reserved headroom `h`, held against the declared commitment | a constant `L - h` slots | Noninterferent at every `h`, because the capacity never reads the secret. The binding constraint is return capacity, not information flow |
 | Lend only at declared release points | `L` minus the declared ceiling of the current segment | Noninterferent, and the observation recomputes from public inputs alone. Strictly more useful than the flat reserve on this calendar |
 
-A seventh rule is enumerated twice to separate the two questions: a policy that reads
+The declassifying rule is enumerated twice to separate the two questions. Reading
 the lender's actual occupancy **at the declared release instants only** is
 distinguishing when nothing is public, and noninterferent when those instants are
 declassified labels. That is what a deliberate declassification buys and what it
@@ -87,31 +89,52 @@ the lender was busy because its own request was declined. A **timing** witness i
 pair whose verdict sequences are identical and whose completion ticks differ: every
 request is served, and the lender's demand is still readable from when. A third
 naming, **verdict**, covers a difference between own-pool and borrowed service with
-no refusal on either side. Each witness is minimal in the number of ticks at which
-the two secret traces differ, then in enumeration order, so the receipt shows how
-small a difference in private demand is already observable.
+no refusal on either side. A difference confined to the refusal reason is named a
+refusal and not a timing difference, since a reason that moves with the secret is a
+refusal leak whatever the verdicts do. Each witness is the least over every label
+class in the number of ticks at which the two secret traces differ, then in
+enumeration order, so the receipt shows how small a difference in private demand is
+already observable.
 
 Padding is the separate countermeasure that shows why the two channels are worth
-naming apart. Delaying every completion to the next declared release instant makes
-the timing witness vanish and leaves the refusal witness exactly where it was, so
-a lend-any-idle rule with padding is still refuted. Padding changes no verdict,
-which is both why it cannot reach the refusal channel and why it costs the borrower
-latency rather than capacity: the receipt reports the same slack with and without
-it. A design reaching for padding alone is closing the channel it can see.
+naming apart. Delaying every completion to the first declared release instant at or
+after it makes the timing witness vanish on this calendar and leaves the refusal
+witness exactly where it was, so a lend-any-idle rule with padding is still refuted.
 
-### The two headroom families give opposite answers
+That closure is a property of the calendar rather than of padding, and the receipt
+says so by carrying a counterexample rather than leaving the reader to assume the
+general rule. A completion already sitting on a declared instant is not moved at
+all, so padding confuses two completions only where both fall strictly inside one
+declared segment; where the declared instants are spaced against the completions the
+padded rule leaks through timing as well. What padding does establish on any
+calendar is the asymmetry: it changes no verdict, which is both why it cannot reach
+the refusal channel and why it costs the borrower latency rather than capacity, the
+receipt reporting the same slack with and without it. A design reaching for padding
+alone is closing the channel it can see, and only where its own schedule lets it.
 
-This is the experiment's sharpest result and the reason the agenda's question needed
-a model rather than a judgement. A reserve subtracted from the lender's *observed*
-idle capacity leaves the granted amount a function of the secret at every reserve
-that does not clamp it to zero for the whole admitted set, and since an empty lender
-is admitted at every tick here, only reserving the entire pool clamps it. The
-enumeration finds exactly that: the least safe reserve is the whole pool and the
-useful slack there is zero, so in this model shape an idle-subtracted reserve either
-lends or hides and never both. A reserve held against the
-lender's *declared commitment* never reads the secret at all, so it is
-noninterferent at every level, and what limits it is a different obligation
-entirely: a loan granted beyond the lender's committed peak can still be
+### The two headroom families answer to different obligations
+
+The two reserves are not two settings of one knob, and telling them apart is what
+the agenda's question needed a model for rather than a judgement.
+
+A reserve subtracted from the lender's *observed* idle capacity grants an amount
+that moves with the secret at every reserve that lends anything, since an empty
+lender is admitted at every tick here and only reserving the entire pool clamps the
+grant to zero. The receipt reports that grant separately from the noninterference
+verdict, by probing the rule over the whole admitted set, because the first does not
+imply the second: what the borrower observes is what its own requests reach, and a
+request that never reaches the ticks at which the grant moves observes nothing. On
+this calendar the borrower does reach them, and the enumeration finds the least safe
+reserve to be the whole pool, with no useful slack left at it. That is a fact about
+this calendar, and the receipt carries another on which the same family grants on
+the secret, stays noninterferent at every reserve and still lends. Nothing here
+supports a general claim that an idle-subtracted reserve must choose between lending
+and hiding.
+
+A reserve held against the lender's *declared commitment* never reads the secret at
+all, so its capacity is fixed by the public calendar by construction and the
+enumeration finds it noninterferent at every level. What limits it is a different
+obligation entirely: a loan granted beyond the lender's committed peak can still be
 outstanding when the lender's own admitted demand arrives. The receipt reports that
 as an overcommit with the ticks at which it happens, and the least reserve that is
 both noninterferent and return-safe is the lender's committed peak. The useful slack
@@ -134,6 +157,13 @@ admitted set and one granularity, which is a great deal less. A policy with a
 distinguishing pair is refuted outright by an exhibited counterexample, and that
 asymmetry is the evidential value of the enumeration: the negative results are the
 strong ones.
+
+**A result belongs to the calendar that produced it.** The same asymmetry applies to
+the experiment's own summaries, so where the fixture invites a general reading the
+receipt carries the calendar that refutes it: one on which padding leaves the timing
+channel open, and one on which an observed-idle reserve grants on the secret and is
+observed by nobody. Neither replaces a proof about the general shape, and neither is
+offered as one; they mark where the fixture's answer stops.
 
 **A relational result is not an admission argument.** Noninterference over these
 observations is one obligation out of several the excluded branch owes, and the
@@ -166,14 +196,19 @@ are outputs of the replay command, not figures maintained in this prose.
 The focused tests decide the enumeration against a direct pairwise checker that
 compares every label-equal pair with no grouping step, and decide the simulator
 against an independent recomputation from held intervals and slot identities rather
-than per-tick counters. They check that each reported witness is minimal, is
-label-equal, and actually distinguishes; that mutating a safe policy into one that
-reads the secret is caught, on the enumeration and on the independent checker;
-that a reserve below the committed peak keeps noninterference and loses return
-capacity; that padding closes the timing channel, actually delays a completion, and
-leaves the refusal channel open; that refusal typing survives every policy and
-trace, with service only at a declared attempt instant; and that malformed models
-and oversized secret spaces are refused rather than truncated.
+than per-tick counters. They check that each reported witness is least over every
+label class rather than inside one, is label-equal, and actually distinguishes, on
+the overall verdict and on each channel separately; that mutating a safe policy into
+one that reads the secret is caught, on the enumeration and on the independent
+checker; that a reserve below the committed peak keeps noninterference and loses
+return capacity; that padding closes the timing channel on the fixture, actually
+delays a completion, leaves the refusal channel open, and does not close the timing
+channel on the calendars whose declared instants are spaced against it; that an
+observed-idle reserve granting on the secret can still be noninterferent and still
+lend, which is what bounds the fixture's own headroom result; that refusal typing
+survives every policy and trace, with service only at a declared attempt instant;
+and that malformed models and oversized secret spaces are refused rather than
+truncated.
 
 What remains open is everything the model deliberately excludes. The observation
 set is coarse and a finer one may distinguish policies this enumeration cannot.
