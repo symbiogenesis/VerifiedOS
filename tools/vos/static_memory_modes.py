@@ -847,8 +847,10 @@ def conservative_model(family: ModeFamily, work_budget: int = 100_000) -> dict[s
     }
     bases = receipt["bases"]
     if bases is None:
+        # No layout was searched out, so neither checker ran. Agreement is untested
+        # here and is reported as such; a bare True would be an unearned verdict.
         result.update(placement=None, checker_findings=[], mode_replay_findings=[],
-                      checkers_agree=True, optimality_replay=None, charge=None)
+                      checkers_agree=None, optimality_replay=None, charge=None)
         return result
     placement = [{"id": node.name, "arena": node.arena, "base": bases[node.name]}
                  for node in nodes]
@@ -932,13 +934,23 @@ def compare(family: ModeFamily, per_mode: dict[str, Any], conservative: dict[str
 def _family(name: str, identities: list[tuple[str, int]],
             modes: list[tuple[str, list[tuple[str, int, int]]]], rule: str,
             transitions: list[tuple[str, str, int, int, list[str]]],
-            capacity: int = 8, alignment: int = 1) -> dict[str, Any]:
-    """Build one declared research contract in synthetic byte and time units."""
+            capacity: int = 8, alignment: int = 1,
+            arena_of: dict[str, str] | None = None) -> dict[str, Any]:
+    """Build one declared research contract in synthetic byte and time units.
+
+    `arena_of` names the arena of an identity that does not sit in the default one.
+    Arenas are separate address spaces here as they are in the corpus, so a family
+    declaring two of them exercises the rule that no charge crosses between them.
+    """
+    home = {identifier: (arena_of or {}).get(identifier, "arena")
+            for identifier, _ in identities}
     return {
         "name": name, "provenance": "synthetic mode-family witness",
-        "arenas": [{"id": "arena", "owner": "research-owner", "capacity": capacity}],
-        "identities": [{"id": identifier, "arena": "arena", "size": size, "payload": size,
-                        "alignment": alignment} for identifier, size in identities],
+        "arenas": [{"id": arena_id, "owner": "research-owner", "capacity": capacity}
+                   for arena_id in sorted(set(home.values()))],
+        "identities": [{"id": identifier, "arena": home[identifier], "size": size,
+                        "payload": size, "alignment": alignment}
+                       for identifier, size in identities],
         "modes": [{"name": mode_name,
                    "lifetimes": [{"id": identifier, "start": start, "payload_end": end,
                                   "authority_end": end, "sweep_end": end, "reuse": end}
@@ -992,6 +1004,14 @@ def witnesses() -> list[tuple[dict[str, Any], Expectation]]:
                  [("m1", "m2", 4, 0, ["a"]), ("m2", "m3", 4, 0, ["c"]),
                   ("m3", "m1", 4, 0, ["b"])]), retained),
         (_pairwise("live-identity-at-switch", [("a", "b"), ("a", "c"), ("b", "c")], 2), refused),
+        (_family("two-arena-separation",
+                 [("a", 1), ("b", 1), ("c", 1), ("d", 2), ("e", 2), ("f", 2)],
+                 [("m1", [("a", 1, 3), ("b", 1, 3), ("d", 1, 3), ("e", 1, 3)]),
+                  ("m2", [("a", 1, 3), ("c", 1, 3), ("d", 1, 3), ("f", 1, 3)]),
+                  ("m3", [("b", 1, 3), ("c", 1, 3), ("e", 1, 3), ("f", 1, 3)])],
+                 "dead-at-switch",
+                 [("m1", "m2", 3, 0, []), ("m2", "m3", 3, 0, []), ("m3", "m1", 3, 0, [])],
+                 arena_of={"d": "slow", "e": "slow", "f": "slow"}), triangle),
     ]
 
 
@@ -1026,22 +1046,51 @@ def _expected(name: str, item: dict[str, Any], expectation: Expectation) -> list
     return findings
 
 
+def _one_arena_per_edge(name: str, model: str, nodes: list[dict[str, Any]],
+                        edges: list[list[str]]) -> list[str]:
+    """No interference edge may join two arenas.
+
+    The optimality replay decomposes by arena, refusing shorter layouts in one while
+    the witness stands elsewhere. That is sound exactly because the relation carries
+    no edge between arenas, so the premise is read back off each receipt here rather
+    than asserted in prose.
+    """
+    home = {node["name"]: node["arena"] for node in nodes}
+    return [f"{name}: the {model} relation joins {left} and {right} across arenas"
+            for left, right in edges if home[left] != home[right]]
+
+
 def _invariants(name: str, item: dict[str, Any]) -> list[str]:
     """Checks every case owes, whatever it is a witness of."""
     findings: list[str] = []
     conservative, binding = item["conservative"], item["binding"]
     if conservative["checker_findings"] or conservative["mode_replay_findings"]:
         findings.append(f"{name}: the searched single layout failed its independent checker")
-    if not conservative["checkers_agree"]:
+    if conservative["checkers_agree"] is False:
         findings.append(f"{name}: the two independent readings of one layout disagree")
     replay = conservative["optimality_replay"]
     if replay is not None and replay["status"] != "verified":
         findings.append(f"{name}: the one-layout optimum did not replay: {replay['findings']}")
+    findings.extend(_one_arena_per_edge(name, "one-layout",
+                                        conservative["exact"]["variables"],
+                                        conservative["edges"]))
+    declared = {arena["id"] for arena in item["contract"]["arenas"]}
+    findings.extend(f"{name}: the {model} charge does not carry one span per declared arena"
+                    for model, value in item["comparison"]["charges"].items()
+                    if value is not None and set(value) != declared)
     if binding["status"] == "checked":
         if binding["checker_findings"]:
             findings.append(f"{name}: an admitted binding family failed its checker")
         if binding["optimality_replay"]["status"] != "verified":
             findings.append(f"{name}: the binding-family optimum did not replay")
+    if binding["exact"] is not None:
+        findings.extend(_one_arena_per_edge(name, "binding", binding["variables"],
+                                            binding["exact"]["edges"]))
+    elif binding["status"] == "refused" and binding["optimality_replay"] is not None:
+        findings.append(f"{name}: a family refused at its switch rule searched no optimum, "
+                        "so it can carry no replay")
+    if binding["status"] == "refused" and binding["charge"] is not None:
+        findings.append(f"{name}: a refused binding family carries no charge")
     if not item["per_mode"]["graph_cross_check"]["agrees"]:
         findings.append(f"{name}: the graph search and the single-trace oracle disagree "
                         "on the per-mode charge")
