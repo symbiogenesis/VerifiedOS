@@ -3,7 +3,9 @@
 
 import copy
 import hashlib
+import itertools
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +13,45 @@ from tests.harness import Case, ensure
 from vos import memplan
 from vos import static_memory as sm
 from vos import static_memory_corpus as c
+
+# The contracts that stood before the coverage work, each with the two digests that
+# bind the model other lanes read: the manifest's, over the case name, mode, arenas,
+# objects and diagnostic requests, and the parsed contract's, over what the placement
+# model itself receives. The whole case dictionary cannot be pinned, because it carries
+# the generator's own SHA-256 and so moves with any edit to that file; these two do not,
+# and a change to either is a change to a witness another lane already reads.
+BASE_REVISION_CONTRACTS: tuple[tuple[str, str, str], ...] = (
+    ("bounded-parser",
+     "9574a37739947be9555b40f47db9f1a578635480fc6c4a6d790d5e798a981b08",
+     "3c908558529264bdad81f58b368081c1fad62b88a87ab828e71cbeef504fd03a"),
+    ("bounded-sessions",
+     "1c18b6ef7a1ead8892eef3e08e64bd0f28a858105a3c39d9c62f8db3560520e0",
+     "6c9e9be2bc80ac4af841f3181d75c67b80bc4f1e04a32fd7ce0b49930e4ac734"),
+    ("bounded-ring",
+     "b31e950383e08050657cd95aaae04c8d4294bec8cb43b690d4b62b63106cdff4",
+     "4aef8d5f3c0dc18e2481b30b28c8c5d163aefe3d6e505a1d90ac190f8984f32f"),
+    ("saved-application-state",
+     "80d34047f453bf6f65f0873140efaf6521d15df1acd79cad512c175dbe6f9e92",
+     "cdffd402a60e4f7ed794dcc4982786e6a0426d9d971b2d709a87305218485ff3"),
+    ("frame-pipeline",
+     "28aea4ee0f733b3a06a677fbdeb61d70138ead46b9d6809fe586ed8446f19ee1",
+     "dde719e68545f733d9290a618d5e42fa7274b36097aeb0acb9a295ac992852f8"),
+    ("resident-inference",
+     "b05e81754768a0b16aa0758ed638fb165b02dc1e4153e5dd1222c8491a750d58",
+     "6fc0f4b5bb4280e9e76f40f124f91a04492bbe5421833954c8f5a1f6ed484989"),
+    ("crossing-lifetimes",
+     "3eea9612d3af0bd6d4a23da02ea0ed2fe0ae656840cba28fc420b9ca3b9a43f4",
+     "b7d28026f5bf41c3ddd1e18b786260f771751774056591d690cd260826e2588f"),
+    ("adversarial-alignment",
+     "70dc2359f7890deae477dcb531ec5e003f2e194f364e627ae13516aba1e54dc1",
+     "c3fe1bb9e2855c31e16b47731a4691788839e51442c718d34138bddd11aeb384"),
+    ("burst-teardown",
+     "a857db25b92f70a63e95b4e5d623fad2b2aa63765a207d460567061aa0937dc1",
+     "952a5aafa6436a48f6da00a160d446e3b3b24cdb5e09e2cca014e977209b85fb"),
+    ("delayed-device-completion",
+     "72c112312aa39d9f9376d918f188c16c5de2677fc07a3786eab9e0a5bf07b521",
+     "6fc10545f9253ca07e881cde626dc8ee6b42bd73347c6e7491a2f7384b5d174a"),
+)
 
 
 def _case(name: str) -> dict[str, Any]:
@@ -175,13 +216,173 @@ def q5_bridge_preserves_absence_instead_of_inventing_owners() -> None:
         (root / memplan.SOURCE).read_bytes()).hexdigest(), "dirty source not bound")
 
 
+def existing_contracts_keep_their_base_revision_identities() -> None:
+    # Other lanes read these witnesses; new coverage appends and never edits one.
+    cases = c.corpus("test-revision")
+    pinned = len(BASE_REVISION_CONTRACTS)
+    ensure(len(cases) > pinned, "the coverage contracts must append to the corpus")
+    for case, (name, manifest, contract) in zip(cases[:pinned], BASE_REVISION_CONTRACTS,
+                                                strict=True):
+        ensure(case["name"] == name, f"contract order moved at {case['name']}")
+        ensure(case["manifest"]["sha256"] == manifest,
+               f"{name}: its declared arenas, objects, mode or requests changed")
+        ensure(sm.contract_hash(sm.parse_case(case)) == contract,
+               f"{name}: the contract the placement model receives changed")
+
+
+def every_contract_declares_exact_fields_and_an_accepted_standing_plan() -> None:
+    arena_fields = {"id", "owner", "capacity"}
+    object_fields = {"id", "arena", "size", "payload", "alignment", "start",
+                     "payload_end", "authority_end", "sweep_end", "reuse", "base"}
+    cost_fields = {"payload_versus_size", "alignment", "arena_capacity"}
+    for case in c.corpus("test-revision"):
+        parsed = sm.parse_case(case)
+        ensure(all(set(arena) == arena_fields for arena in case["arenas"]),
+               f"{parsed.name}: an arena carries an unread or missing field")
+        ensure(all(set(obj) == object_fields for obj in case["objects"]),
+               f"{parsed.name}: an object carries an unread or missing field")
+        ensure(not sm.check_placement(parsed, sm.standing_placement(parsed)),
+               f"{parsed.name}: the standing placement is not accepted")
+        costs = case["cost_assumptions"]["this_case"]
+        ensure(set(costs) == cost_fields and all(value.strip() for value in costs.values()),
+               f"{parsed.name}: a per-contract cost assumption is missing")
+        ensure(bool(c.family_labels(case["covers"])), f"{parsed.name}: no agenda coverage")
+
+
+def family_audit_is_computed_from_a_closed_label_vocabulary() -> None:
+    cases = c.corpus("test-revision")
+    audit = c.family_audit(cases)
+    ensure(audit["declared_families"] == list(c.FAMILIES),
+           "the audited vocabulary is not the agenda's family list")
+    ensure(not audit["uncovered_families"],
+           f"agenda families without a witness: {audit['uncovered_families']}")
+    ensure(audit["contract_provenance"] == [c.WITNESS_PROVENANCE],
+           "a generated contract claimed a provenance it cannot have")
+    ensure(not audit["composed_roster_present"],
+           "a synthetic witness was counted as a real composed roster")
+    ensure(all(case["family_audit"] == audit for case in cases),
+           "a receipt carries a coverage table other than the computed one")
+    # Withdrawing the only witness of a family must move the table, not a note beside it.
+    thinned = copy.deepcopy(cases)
+    for case in thinned:
+        case["covers"] = [label for label in case["covers"]
+                          if label != "frame-pipelines"] or ["rings"]
+    ensure("frame-pipelines" in c.family_audit(thinned)["uncovered_families"],
+           "coverage is declared beside the labels instead of computed from them")
+    for broken in (["not-a-family"], ["rings", "rings"], [], "rings", None):
+        try:
+            c.family_labels(broken)
+        except sm.CaseError:
+            continue
+        raise AssertionError(f"the closed vocabulary accepted {broken!r}")
+
+
+def demand_series_projects_the_ledger_and_an_independent_load_sweep() -> None:
+    for case in c.corpus("test-revision"):
+        series, times = case["demand_series"], c.event_times(case)
+        ensure(series["event_times"] == times, "the series skipped a charge boundary")
+        ensure(series == c.demand_series(case), "the embedded series is not reproducible")
+        for row in series["arenas"]:
+            # An independent sweep of declared extents, not the byte partition's answer.
+            live = [{"time": time,
+                     "charged_bytes": sum(obj["size"] for obj in case["objects"]
+                                          if obj["arena"] == row["arena"]
+                                          and obj["start"] <= time < obj["reuse"])}
+                    for time in times]
+            ensure(row["charged_load"] == live,
+                   f"{case['name']}/{row['arena']}: charged step function differs")
+            ensure(row["peak_charged_load"] == max(item["charged_bytes"] for item in live),
+                   "the peak is not the maximum of its own step function")
+            ensure(row["standing_span"] == max(
+                (obj["base"] + obj["size"] for obj in case["objects"]
+                 if obj["arena"] == row["arena"]), default=0),
+                "the standing span is not the highest declared slot end")
+            ensure(row["peak_charged_load"] <= row["standing_span"] <= row["capacity"],
+                   "charged load, span and capacity left the baseline's ordering")
+        for time, totals in zip(times, series["charge_totals"], strict=True):
+            report = c.ledger(case, time)
+            ensure(totals["time"] == time, "a retention row lost its instant")
+            ensure(all(totals[name] == report["totals"][name] for name in c.RETENTION),
+                   "the retained-versus-payload series differs from the ledger")
+
+
+def delayed_completion_refusal_reproduces_through_diagnose_request() -> None:
+    case = _case("device-completion-window")
+    transfer = next(obj for obj in case["objects"] if obj["id"] == "accepted-transfer")
+    window = range(transfer["payload_end"], transfer["authority_end"])
+    ensure(len(window) > 1, "the completion window must lag the last useful byte")
+    for time in window:
+        answer = c.diagnose_request(case, time, "driver", "dma", transfer["size"])
+        ensure(answer["verdict"] == "refused" and answer["reason"] == "reuse-pending",
+               f"a request inside the completion window was not refused at {time}")
+        ensure(c.ledger(case, time)["rows"][0]["charges"]["retained"] == transfer["size"],
+               "lagging device authority stopped charging its whole slot")
+    ensure(c.diagnose_request(case, transfer["payload_end"] - 1, "driver", "dma",
+                              transfer["size"])["reason"] == "slot-occupied",
+           "a transfer still holding useful payload was refused as pending reuse")
+    ensure(c.diagnose_request(case, transfer["reuse"], "driver", "dma",
+                              transfer["size"])["verdict"] == "fits-at-instant",
+           "the slot stayed refused after its declared initialization completed")
+
+
+def burst_reuse_deferral_is_visible_in_the_ledger() -> None:
+    case = _case("multi-owner-burst-teardown")
+    sweeps = {obj["sweep_end"] for obj in case["objects"]}
+    ensure(len(sweeps) == 1, "the burst must share one clustered sweep completion")
+    sweep = sweeps.pop()
+    for row in c.ledger(case, sweep)["rows"]:
+        ensure(row["charges"]["initializing"] == row["reserved_span"],
+               f"{row['arena']}: the whole pool is not awaiting initialization")
+        ensure(row["unreusable_retired_bytes"] == row["reserved_span"]
+               and row["free_physical_bytes"] == row["capacity"] - row["reserved_span"],
+               f"{row['arena']}: swept bytes were counted as available")
+    ensure(c.diagnose_request(case, sweep, "alpha", "alpha-pool", 4)["reason"]
+           == "reuse-pending", "a swept slot was offered before its initialization")
+    reuses = sorted({obj["reuse"] for obj in case["objects"]})
+    ensure(len(reuses) > 1, "the burst must stagger its initialization service")
+    rows = c.ledger(case, reuses[0])["rows"]
+    ready = [row["arena"] for row in rows if row["charges"]["idle_reserved"]]
+    waiting = [row["arena"] for row in rows if row["charges"]["initializing"]]
+    ensure(len(ready) == 1 and len(waiting) == len(rows) - 1,
+           "staggered reuse did not separate the owners at the first reuse boundary")
+
+
+def crossing_optimum_exceeds_load_only_under_the_declared_alignment() -> None:
+    case = sm.parse_case(_case("crossing-alignment-gap"))
+    receipt = sm.solve_exact(case)
+    arena = receipt["arenas"][0]
+    ensure(receipt["status"] == "optimal" and arena["optimality_gap"] == 0,
+           "the separation witness must carry a completed optimum")
+    ensure(arena["best_span_over_load"] > 0,
+           "the witness must separate its optimum from charged load")
+    ensure(sm.verify_optimality(case, receipt)["status"] == "verified",
+           "the separation must survive the independent optimality replay")
+    spans = [(obj.start, obj.reuse) for obj in case.objects]
+    ensure(any(a < x < b < y or x < a < y < b
+               for (a, b), (x, y) in itertools.combinations(spans, 2)),
+           "the witness family is laminar and so cannot carry this negative result")
+    # The excess is the alignment premise's, not the crossing's: relax one and it goes.
+    unit = replace(case, objects=tuple(replace(obj, alignment=1) for obj in case.objects))
+    relaxed = sm.solve_exact(unit)
+    ensure(relaxed["status"] == "optimal"
+           and relaxed["arenas"][0]["best_span_over_load"] == 0,
+           "the same extents and intervals at unit alignment must reach charged load")
+
+
 def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         deterministic_identity_and_explicit_assumptions,
+        existing_contracts_keep_their_base_revision_identities,
+        every_contract_declares_exact_fields_and_an_accepted_standing_plan,
+        family_audit_is_computed_from_a_closed_label_vocabulary,
+        demand_series_projects_the_ledger_and_an_independent_load_sweep,
         byte_enumeration_independently_checks_every_snapshot,
         retirement_stages_charge_slot_slack_only_once,
         equal_boundaries_rebind_without_double_charging_backing,
         saved_state_and_device_authority_remain_charged,
+        delayed_completion_refusal_reproduces_through_diagnose_request,
+        burst_reuse_deferral_is_visible_in_the_ledger,
+        crossing_optimum_exceeds_load_only_under_the_declared_alignment,
         typed_refusals_preserve_owner_and_declared_slot_limits,
         aligned_geometric_extent_does_not_merge_across_live_bytes,
         malformed_lifetimes_and_overlap_fail_before_accounting,
