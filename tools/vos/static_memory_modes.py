@@ -296,7 +296,8 @@ def check_switch_rule(family: ModeFamily) -> list[str]:
     layouts do not agree on. A retained identity that is dead there is refused too,
     because a retained set that retains nothing binds nothing. The instants are
     supplied premises about the composed schedule, exactly as lifetime milestones
-    are; R-08-015's containment, sweep and initialization service stays owed.
+    are; R-08-015's temporal-safety discipline at a slot's reuse points, which
+    composes the containment barrier with the complete reuse gate, stays owed.
     """
     cases = {mode.name: mode.case for mode in family.modes}
     findings: list[str] = []
@@ -880,8 +881,8 @@ def binding_model(family: ModeFamily, work_budget: int = 100_000) -> dict[str, A
         "switch_findings": switch, "variables": [asdict(node) for node in nodes],
         "question": "what a finite family of prechecked bindings costs, and what makes it valid",
         "scope": "the switch instants and the retained set are supplied premises about the "
-                 "composed schedule; R-08-015's containment, sweep and initialization "
-                 "service is a separate obligation this tool does not discharge",
+                 "composed schedule; R-08-015's temporal-safety discipline at a slot's reuse "
+                 "points is a separate obligation this tool does not discharge",
     }
     if switch:
         result.update(status="refused", exact=None, layouts=None, charge=None,
@@ -1083,7 +1084,7 @@ def report(source_revision: str = "unspecified", work_budget: int = 100_000) -> 
             "a proof that a declared mode set is the admitted set, and that each mode's "
             "reservation intervals cover every execution it admits",
             "an implemented switch barrier: the switch rule here is a supplied premise, "
-            "and R-08-015's containment, sweep and initialization service stays owed",
+            "and R-08-015's temporal-safety discipline at a slot's reuse points stays owed",
             "a machine-checked optimality argument; the searches and replays are finite",
             "a complexity result for the conservative graph model under the baseline's "
             "binary input encoding",
