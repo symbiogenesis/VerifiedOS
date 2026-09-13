@@ -29,7 +29,8 @@ SOURCES = (
 )
 
 EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
-    "structure": ("tools/vos/static_memory_structure.py",),
+    "structure": ("tools/vos/static_memory_structure.py",
+                  "docs/implementation/static-memory-structure.md"),
     "transform": ("tools/vos/static_memory_transform.py",
                   "docs/implementation/static-memory-transformations.md"),
     "reclaim": ("tools/vos/static_memory_reclaim.py",
