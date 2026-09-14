@@ -32,7 +32,7 @@ def service_overlay() -> None:
     ensure(before == 28 * 1024 * 1024 and after == 16 * 1024 * 1024,
            "exclusive scratch phases save capacity across independent workers")
     bad = [dict(row, offset=0) for row in report["placement"]]
-    ensure(planner.check_placement(instance, bad), "cross-worker sharing remains forbidden")
+    ensure(bool(planner.check_placement(instance, bad)), "cross-worker sharing remains forbidden")
 
 
 def input_binding_and_refusal() -> None:
@@ -59,12 +59,35 @@ def input_binding_and_refusal() -> None:
 
 def contract_route_and_source_binding() -> None:
     code, report = invoke(["contracts"])
-    ensure(code == 0 and planner.parse_instance(report["instance"]).buffers,
+    ensure(code == 0 and bool(planner.parse_instance(report["instance"]).buffers),
            "bounded contract demo exports a core-compatible instance")
     root = Path(__file__).resolve().parents[2]
     for name, digest in report["sources_sha256"].items():
         ensure(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest,
                "receipt binds actual implementation bytes")
+
+
+def optional_input_failure_retains_baseline() -> None:
+    raw, baseline, _ = cli.service_demo()
+    with tempfile.TemporaryDirectory() as directory:
+        instance = Path(directory) / "instance.json"
+        standing = Path(directory) / "baseline.json"
+        candidate = Path(directory) / "candidate.json"
+        instance.write_text(json.dumps(raw), encoding="utf-8")
+        standing.write_text(json.dumps(baseline), encoding="utf-8")
+        arguments = ["plan", "--instance", str(instance), "--baseline", str(standing),
+                     "--candidate", str(candidate)]
+        code, report = invoke(arguments)
+        ensure(code == 0 and report["placement"] == baseline,
+               "unreadable optional candidate cannot destroy a valid fallback")
+        candidate.write_text("{", encoding="utf-8")
+        code, report = invoke(arguments)
+        ensure(code == 0 and report["placement"] == baseline and report["evidence"]["rejected"],
+               "malformed optional candidate is rejected after baseline validation")
+        standing.write_text("[]", encoding="utf-8")
+        code, report = invoke(arguments)
+        ensure(code == 1 and str(candidate) not in report["input_sha256"],
+               "invalid baseline must prevent optional work")
 
 
 def routing_and_bad_arguments() -> None:
@@ -81,4 +104,5 @@ def cases() -> list[Case]:
     return [Case("bounded service overlay", service_overlay),
             Case("input hashes and refused baseline", input_binding_and_refusal),
             Case("contract route and source identity", contract_route_and_source_binding),
+            Case("optional failures preserve fallback", optional_input_failure_retains_baseline),
             Case("host and guest routing", routing_and_bad_arguments)]

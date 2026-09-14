@@ -4,13 +4,14 @@
 import argparse
 import hashlib
 import json
+from functools import partial
 from pathlib import Path
 from typing import Any
 
+from vos import env
 from vos import memory_planner as planner
 from vos import memory_planner_adapters as adapters
 from vos import memory_planner_contracts as contracts
-from vos import env
 from vos.corpus import find_root
 
 
@@ -31,7 +32,7 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
-def read_json(path: Path, inputs: dict[str, str]) -> Any:
+def read_json(path: Path, inputs: dict[str, str]) -> object:
     """Hash the bytes actually parsed, without rereading a mutable input."""
     data = path.read_bytes()
     inputs[str(path)] = hashlib.sha256(data).hexdigest()
@@ -43,6 +44,14 @@ def source_identity(root: Path) -> dict[str, str]:
              "tools/vos/memory_planner_adapters.py",
              "tools/vos/cli/memory_planner.py")
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
+
+
+def load_candidate(path: Path, inputs: dict[str, str], _: planner.Instance) -> planner.Placement:
+    """Optional input is read only after the baseline has been checked and retained."""
+    raw = read_json(path, inputs)
+    if not isinstance(raw, list):
+        raise ValueError("candidate placement must be an array")
+    return raw
 
 
 def service_demo() -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -113,7 +122,7 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.baseline is None:
         raise ValueError("plan requires --baseline")
     baseline = read_json(args.baseline, inputs)
-    candidates = tuple(read_json(path, inputs) for path in args.candidate)
+    candidates = tuple(partial(load_candidate, path, inputs) for path in args.candidate)
     return planner.plan(instance, baseline, candidates=candidates,
                         work_budget=args.work_budget, certify=args.certify,
                         replay_budget=args.replay_budget)
@@ -122,6 +131,7 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     inputs: dict[str, str] = {}
+    result: dict[str, Any]
     try:
         result = run(args, inputs)
     except (OSError, ValueError, TypeError, KeyError) as err:

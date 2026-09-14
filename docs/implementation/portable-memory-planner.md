@@ -91,6 +91,12 @@ input to placement. Failure or exhaustion leaves the checked incumbent available
 An invalid baseline is refused, since it cannot establish the non-regression
 premise.
 
+The deterministic work limit covers the library's finite search and replay.
+Optional synchronous candidate callbacks are caller code and must impose their
+own resource limit; the library isolates their input data and catches failures,
+but cannot preempt arbitrary Python computation. Production integrations should
+run heavyweight generators off-device with their own bounded execution policy.
+
 For unchanged instance `I`, valid baseline `P0` and declared objective `J`, this
 selection rule establishes `Valid(I, result)` and `J(result) <= J(P0)`. It does not
 establish shorter compilation, lower host memory, better cache behavior, fewer
