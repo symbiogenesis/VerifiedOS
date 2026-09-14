@@ -67,6 +67,29 @@ def contract_route_and_source_binding() -> None:
                "receipt binds actual implementation bytes")
 
 
+def optional_input_failure_retains_baseline() -> None:
+    raw, baseline, _ = cli.service_demo()
+    with tempfile.TemporaryDirectory() as directory:
+        instance = Path(directory) / "instance.json"
+        standing = Path(directory) / "baseline.json"
+        candidate = Path(directory) / "candidate.json"
+        instance.write_text(json.dumps(raw), encoding="utf-8")
+        standing.write_text(json.dumps(baseline), encoding="utf-8")
+        arguments = ["plan", "--instance", str(instance), "--baseline", str(standing),
+                     "--candidate", str(candidate)]
+        code, report = invoke(arguments)
+        ensure(code == 0 and report["placement"] == baseline,
+               "unreadable optional candidate cannot destroy a valid fallback")
+        candidate.write_text("{", encoding="utf-8")
+        code, report = invoke(arguments)
+        ensure(code == 0 and report["placement"] == baseline and report["evidence"]["rejected"],
+               "malformed optional candidate is rejected after baseline validation")
+        standing.write_text("[]", encoding="utf-8")
+        code, report = invoke(arguments)
+        ensure(code == 1 and str(candidate) not in report["input_sha256"],
+               "invalid baseline must prevent optional work")
+
+
 def routing_and_bad_arguments() -> None:
     command = BY_NAME["memory-planner"]
     ensure(command.guest_only(["demo-tflm"]) and not command.guest_only(["demo"]),
@@ -81,4 +104,5 @@ def cases() -> list[Case]:
     return [Case("bounded service overlay", service_overlay),
             Case("input hashes and refused baseline", input_binding_and_refusal),
             Case("contract route and source identity", contract_route_and_source_binding),
+            Case("optional failures preserve fallback", optional_input_failure_retains_baseline),
             Case("host and guest routing", routing_and_bad_arguments)]

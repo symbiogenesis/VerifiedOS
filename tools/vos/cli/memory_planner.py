@@ -4,13 +4,14 @@
 import argparse
 import hashlib
 import json
+from functools import partial
 from pathlib import Path
 from typing import Any
 
+from vos import env
 from vos import memory_planner as planner
 from vos import memory_planner_adapters as adapters
 from vos import memory_planner_contracts as contracts
-from vos import env
 from vos.corpus import find_root
 
 
@@ -43,6 +44,11 @@ def source_identity(root: Path) -> dict[str, str]:
              "tools/vos/memory_planner_adapters.py",
              "tools/vos/cli/memory_planner.py")
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
+
+
+def load_candidate(path: Path, inputs: dict[str, str], _: planner.Instance) -> planner.Placement:
+    """Optional input is read only after the baseline has been checked and retained."""
+    return read_json(path, inputs)
 
 
 def service_demo() -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -113,7 +119,7 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.baseline is None:
         raise ValueError("plan requires --baseline")
     baseline = read_json(args.baseline, inputs)
-    candidates = tuple(read_json(path, inputs) for path in args.candidate)
+    candidates = tuple(partial(load_candidate, path, inputs) for path in args.candidate)
     return planner.plan(instance, baseline, candidates=candidates,
                         work_budget=args.work_budget, certify=args.certify,
                         replay_budget=args.replay_budget)
