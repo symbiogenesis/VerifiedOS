@@ -244,6 +244,20 @@ class FixtureRecorder:
             raise RecordError("every public fixture endpoint requires its own validator")
         self._body_bytes = len(empty)
 
+    def source_of(self, interface: str) -> str | None:
+        """The source class a composed endpoint carries, or None where it is not one.
+
+        The classification belongs to the source and never to a caller, so a
+        producer that may only produce one of the four asks here rather than
+        trusting the identity it was handed. Reading it touches no capture state.
+        """
+        try:
+            identity = _hex(interface, digest=True)
+        except RecordError:
+            return None
+        profile = self._interfaces.get(identity)
+        return None if profile is None else profile.source
+
     def _ready(self) -> None:
         if self._failed or self._finished or self._busy:
             raise RecordError("capture is refused, finished, or already consuming")

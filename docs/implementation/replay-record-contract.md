@@ -148,9 +148,10 @@ and interception of every source remain the production adapter's obligations.
 ## Producer adapters over the composed model
 
 [replay_adapter.py](../../tools/vos/replay_adapter.py) is the producer half, and
-it states no address, offset or draw site of its own. A window's base and extent
-are read from [the composition](../../model/config/verifiedos.json), a door's
-offset from the `let ROT_*` declaration in [rot.sail](../../model/model/sys/rot.sail),
+it states no address, offset, width or draw site of its own. A window's base and
+extent are read from [the composition](../../model/config/verifiedos.json), a door's
+offset from the `let ROT_*` declaration in [rot.sail](../../model/model/sys/rot.sail)
+and its admitted access width from the arm's own `'n ==` guard,
 the window-to-handler routing from `mmio_read` and `mmio_write` in
 [platform.sail](../../model/model/sys/platform.sail), and whether a door reaches the
 entropy root from the model's own call graph. Run
@@ -163,14 +164,17 @@ A door stands in one of three relations to the root. A read whose handler calls
 the root in its own body returns the drawn word, so a commit trace carries it and
 the adapter seals it into an entropy event. A write whose handler reaches the root
 only through a call carries nothing across the fabric, and its store retires `Ok`
-whether the call drew or not. Every other door is deterministic and adds no event,
-which is what keeps a capture's entropy events the draws rather than the RoT
-traffic around them. A handler that reaches the root with no offset arm to
+whether the call drew or not. Every other door adds no event, the adapter
+attributing an event to a draw and never to a later read of its result, which is
+what keeps a capture's entropy events the draws rather than the RoT traffic around
+them. `ROT_WDT_NONCE` is such a read, and is treated below. An access at a width
+the arm does not admit is no access of that door at all, having reached the
+handler's fault arm. A handler that reaches the root with no offset arm to
 attribute the draw to is refused rather than adapted.
 
 ### The watchdog draw is refused rather than intercepted
 
-The model's two callers of the root are the `ROT_TRNG_DRAW` door read and
+The model's two non-test callers of the root are the `ROT_TRNG_DRAW` door read and
 `watchdog_issue_nonce`. The second is the draw S6 is asked to intercept beside the
 MMIO draws, and it cannot be intercepted from the host for a structural reason
 rather than for want of effort. The nonce is issued inside the RoT with no bus
@@ -184,17 +188,19 @@ never whether it drew or what it drew.
 
 The adapter therefore refuses. A write to the pet or arm door with no
 independently supplied account of the internal draw refuses the whole capture and
-names the site, which is this contract's own injected unrecorded watchdog draw. An
-account may be supplied on the same footing as the binding and the expected count,
-and it may decline, which is the recorder's existing promise that no value was
-consumed; the host verifies neither answer, and no interface in this tree produces
-one. What would make interception real is a draw hook at the root reaching an
+names the site. The operational form of that case, this contract's injected
+unrecorded watchdog draw, waits on a real producer. An account may be supplied on
+the same footing as the binding and the expected count, and it may decline, which
+is the recorder's existing promise that no value was consumed; the host verifies
+neither answer, and no interface in this tree produces one. What would make interception real is a draw hook at the root reaching an
 external recorder, which no plan item authors.
 
 The nonce is a secret-class draw at its source and stays one although
 `ROT_WDT_NONCE` reads it back, the classification being the source's and never the
-consumer's. A replay value comparison excludes that door: it is inside R-16-019's
-secret-entropy cone with its bytes readable.
+consumer's, and R-16-015 naming protocol nonces among the root's draws. A replay
+value comparison would therefore have to exclude that door, its bytes being
+readable and inside R-16-019's secret-entropy cone. Nothing in this tree decides
+that scope, there being no comparator here for it to bound.
 
 ## Reuse and security boundary
 
@@ -275,14 +281,14 @@ never a date.
 | Clause | Discharged | Open, and owed by |
 | --- | --- | --- |
 | R-15-241, every draw accounted for | The model's draw sites are read from its call graph rather than listed, so a site it gains is a failing check; the site whose word crosses the bus produces a sealed event, and the site that does not refuses the capture. | Accounting cannot be completed by host observation at all, the watchdog being the demonstration. A draw hook at the root, the RoT firmware's record writer (M3.2) and the sealing primitive (M3.4) owe it. |
-| R-16-015, the closed four-source set | The reader admits exactly the four tags; the adapter refuses a request naming a source whose production interface is absent instead of synthesizing a value. | Three of the four have no producer. The slow-clock phase question below is a register act, not a tool's. |
+| R-16-015, the closed four-source set | The reader admits exactly the four tags; the adapter refuses a request naming a source whose production interface is absent instead of synthesizing a value, and its one producer refuses any endpoint the composition does not class as entropy, so no caller selects a source by choosing an identity. | Three of the four have no producer. The slow-clock phase question below is a register act, not a tool's. |
 | R-16-016, public nondeterminism verbatim | The reader preserves public bytes exactly, and the recorder puts them through the endpoint's own validator before admitting an event. | Every public producer, and the interface schemas that would give those validators a meaning. |
-| R-16-017, secret nondeterminism as a sealed commitment | An entropy payload is opaque at the reader and at the producer. The trace-driven producer hands the drawn word to an injected primitive and records only its result; a control asserts the drawn word is absent from the finished bytes, and a producer with no primitive injected produces nothing. | The primitive itself (M3.4), and any evidence that opaque bytes are sealed, which shape cannot supply. |
+| R-16-017, secret nondeterminism as a sealed commitment | An entropy payload is opaque at the reader and at the producer. The trace-driven producer hands the drawn word to an injected primitive and records only its result; a control asserts the drawn word is absent from the finished bytes, a producer with no primitive injected produces nothing, and one aimed at a public endpoint is refused before it can seat sealed bytes in a `value`. | The primitive itself (M3.4), and any evidence that opaque bytes are sealed, which shape cannot supply. |
 | R-16-018, substituted entropy preserving the CT-scope observations | The two-class split that makes substitution possible is enforced at both ends of the body. | The substitution and the run that would exercise it. |
-| R-16-019, the exactness scopes | The watchdog nonce door is placed inside the secret-entropy cone although its bytes are MMIO-readable, so a value comparison excludes it. | The paired run that would compare anything at all. |
+| R-16-019, the exactness scopes | n/a: nothing in this tree decides an exactness scope, there being no comparator for a scope to bound. | The classification of the nonce door, which is stated above and by nothing that checks it, and the paired run that would compare anything at all. |
 | R-16-020, candidate check and gated declassification | The body carries no recoverable draw, and the adapter retains the drawn word nowhere after handing it to the seal. | Both facilities, with the powerbox and lifecycle gates the entry states. |
 | R-16-021, the on-device verbose sink | n/a: nothing here is on-device. | The sink and its lifecycle gate, entirely. |
-| R-16-022, the exported record against the signed root | The binding names the base-image root, composition and input trace, and the reader compares it against an independently supplied identity rather than a self-declared one. | The authenticating envelope. A well-shaped binding is not authentication. |
+| R-16-022, the exported record against the signed root | The binding names the base-image root, composition and input trace, and the reader compares it against an independently supplied identity rather than a self-declared one. | The authenticating envelope. A well-shaped binding is not authentication, and the nonce readback named below is the envelope's to exclude or to seal. |
 
 **R-16-015's closed set names no source for the RoT's independent slow clock.**
 `ROT_WDT_TICKS` exposes its phase and a windowed pet outcome turns on it. In the
@@ -313,4 +319,12 @@ register decides that; no adapter may, and none here does.
 - **A producer for `point.slot`.** The adapter takes it as the caller's declared
   input because R-11-017's composed operating point, TDM schedule and watchdog
   windows are one artifact that does not exist yet.
+- **A statement about the nonce readback**, owed by the authenticating envelope.
+  R-16-015 names protocol nonces among the root's draws, so `ROT_WDT_NONCE` returns
+  a secret-class value over the fabric. R-16-017 keeps it out of this body, which
+  carries a commitment and never a value, but whether an artifact bound beside the
+  body under `input_trace` may carry that readback verbatim is what R-16-022's
+  *without a secret payload* decides, and no artifact in this tree produces one yet.
+  The obligation is named here before it can bite rather than discovered in an
+  export.
 - **A register act on the slow-clock phase**, as stated above.

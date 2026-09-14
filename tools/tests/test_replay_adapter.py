@@ -86,6 +86,12 @@ def _producer(recorder: FixtureRecorder, *, seal: Seal | None = None,
                          internal_account=account)
 
 
+def _producer_on(recorder: FixtureRecorder, interface: str) -> TraceProducer:
+    """A sealed producer aimed at one endpoint identity, whose class it may not pick."""
+    return TraceProducer(recorder, windows=_windows(), entropy_interface=interface,
+                         slot=0, core=0, seal=partial(_seal, seen=[]))
+
+
 def _refused(fn: Callable[[], object]) -> None:
     """A refusal the adapter itself decided."""
     try:
@@ -158,6 +164,30 @@ def _observed_draw_is_sealed_and_never_carried() -> None:
 def _no_sealing_primitive_produces_nothing() -> None:
     _refused(partial(TraceProducer, _recorder(), windows=_windows(),
                      entropy_interface=_ENTROPY, slot=0, core=0))
+
+
+def _a_caller_cannot_choose_the_class_of_a_draw() -> None:
+    # The recorder takes an event's class from its endpoint, so naming a public one
+    # would put sealed bytes in a `value` payload with the public validator's
+    # blessing. The class is the source's; the producer refuses to be handed it.
+    public = "f" * 64
+    recorder = FixtureRecorder(_BINDING, limits=_LIMITS,
+                               interfaces={public: Interface("link_address", 32)},
+                               validators={public: lambda _payload: True})
+    _refused(partial(_producer_on, recorder, public))
+    _refused(partial(_producer_on, _recorder(), "0" * 64))
+
+
+def _a_width_the_arm_refuses_is_not_that_doors_access() -> None:
+    windows = _windows()
+    ensure(all(door.width == 8 for window in windows for door in window.doors),
+           "every composed RoT door carries the doubleword guard its own arm states")
+    draw = _door(windows, "trng", "ROT_TRNG_DRAW")
+    producer = _producer(_recorder())
+    producer.feed([_retire(1), f"R {draw:016X} 4 0 DEADBEEF"])
+    blob = producer.finish(expected=_BINDING, expected_events=0)
+    ensure(b'"events":[]' in blob,
+           "an access the door's arm does not admit reached the fault arm and drew nothing")
 
 
 def _watchdog_write_refuses_the_whole_capture() -> None:
@@ -247,6 +277,8 @@ def cases() -> list[Case]:
         _composed_doors_classify_every_draw,
         _observed_draw_is_sealed_and_never_carried,
         _no_sealing_primitive_produces_nothing,
+        _a_caller_cannot_choose_the_class_of_a_draw,
+        _a_width_the_arm_refuses_is_not_that_doors_access,
         _watchdog_write_refuses_the_whole_capture,
         _internal_account_is_the_devices_statement,
         _deterministic_rot_traffic_adds_no_event,

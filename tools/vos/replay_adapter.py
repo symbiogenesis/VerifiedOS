@@ -7,15 +7,16 @@ bytes. This module is the other half, and its whole subject is *which access is 
 draw*, answered from the model and the composition rather than from a list kept
 here.
 
-**Nothing below decides a placement, an offset or a draw site.** A window's base
-and extent are the composition's
+**Nothing below decides a placement, an offset, a width or a draw site.** A
+window's base and extent are the composition's
 ([model/config/verifiedos.json](../../model/config/verifiedos.json)); a door's
-offset is the `let ROT_*` the model declares; which handler a window routes to is
-`mmio_read`/`mmio_write`'s own dispatch; and whether a door reaches the entropy
-root is computed over the model's call graph. So a door this repository adds, an
-offset it moves and a third caller of `rot_draw` all arrive here without an edit,
-and `tools/tests/test_replay_adapter.py` states what the model carries today and
-fails when it changes.
+offset is the `let ROT_*` the model declares and its admitted access width is the
+arm's own `'n ==` guard; which handler a window routes to is `mmio_read`/
+`mmio_write`'s own dispatch; and whether a door reaches the entropy root is
+computed over the model's call graph. So a door this repository adds, an offset it
+moves and a third caller of `rot_draw` all arrive here without an edit, and
+`tools/tests/test_replay_adapter.py` states what the model carries today and fails
+when it changes.
 
 **The watchdog's draw is the case this module refuses rather than intercepts.**
 `rot_draw` has exactly two non-test callers: the `ROT_TRNG_DRAW` door read, whose
@@ -66,7 +67,9 @@ CONTRACT = "docs/implementation/replay-record-contract.md"
 DRAW = "rot_draw"
 
 # The three sources R-16-015 closes over that no interface in this tree produces.
-# What is missing for each is the contract's source table's to say, not this file's.
+# These three are a copy of the rows of the contract's source table whose surface
+# cell names no adapter, and nothing holds the two together today: a row that gains
+# a producer owes an edit here, and both artifacts stay green until it gets one.
 ABSENT_SOURCES = ("link_address", "time_read", "physical_event")
 
 type DoorAccess = Literal["read", "write"]
@@ -103,6 +106,7 @@ _PLAT_BASE = re.compile(r"^let\s+(plat_\w+_base)\s*:\s*physaddrbits\s*=\s*to_bit
                         r"config\s+platform\.([A-Za-z_]\w*)\.base\s*:\s*int\)")
 _CONST = re.compile(r"^let\s+(ROT_\w+)\s*:\s*int\s*=\s*(\d+)\s*$")
 _OFFSET = re.compile(r"\boffset\s*==\s*(ROT_\w+)")
+_WIDTH = re.compile(r"'n\s*==\s*(\d+)")
 
 
 def _group(match: re.Match[str], index: int = 1) -> str:
@@ -182,6 +186,13 @@ class Door:
     drawn word is the value the access returns and a trace carries it; `internal`
     where the root is reached through a call, so no transaction carries the draw and
     a host cannot tell whether it happened; `none` where the arm does not reach it.
+
+    `width` is the byte width the arm's own `'n ==` guard admits, and is `None` where
+    the arm states none and so admits any. An access at some other width reached a
+    different arm and is not this door's, but an arm that states no width classifies
+    whatever reaches it: an unrecorded draw is the one direction this must not fail
+    in, and inferring a width from what the model happens to do would be the
+    assumption this module exists to avoid.
     """
 
     window: str
@@ -189,6 +200,7 @@ class Door:
     offset: int
     access: DoorAccess
     draw: DrawClass
+    width: int | None
 
 
 @dataclass(frozen=True)
@@ -323,12 +335,15 @@ def _doors(window: str, access: DoorAccess, fn: SailFunction | None,
         return []
     order: list[str] = []
     draws: dict[str, DrawClass] = {}
+    widths: dict[str, int | None] = {}
     current: str | None = None
     for line in fn.body:
+        guard = _WIDTH.search(line)
         for match in _OFFSET.finditer(line):
             current = _group(match)
             if current not in draws:
                 draws[current] = "none"
+                widths[current] = int(_group(guard)) if guard is not None else None
                 order.append(current)
         if current is None:
             continue
@@ -342,7 +357,8 @@ def _doors(window: str, access: DoorAccess, fn: SailFunction | None,
     if missing:
         raise AdapterError(f"{ROT} declares no literal offset for {', '.join(missing)}, "
                            f"so {window}'s door addresses cannot be derived")
-    return [Door(window, name, constants[name], access, draws[name]) for name in order]
+    return [Door(window, name, constants[name], access, draws[name], widths[name])
+            for name in order]
 
 
 def _aperture(loaded: Json, key: str) -> tuple[int, int]:
@@ -447,6 +463,12 @@ class TraceProducer:
             raise AdapterError("a sealing primitive must be injected before any draw is "
                                "produced: M3.4 owes the real one, and a host-computed "
                                "hash would satisfy every check here and seal nothing")
+        if recorder.source_of(entropy_interface) != "entropy":
+            raise AdapterError("the endpoint named here is not an entropy-classed composed "
+                               "endpoint, and the classification is the source's rather "
+                               "than a caller's: the recorder takes an event's class from "
+                               "the endpoint, so a public one would admit these sealed "
+                               "bytes as a public value, which R-16-017 forbids")
         self._recorder = recorder
         self._entropy = entropy_interface
         self._slot = slot
@@ -538,6 +560,12 @@ class TraceProducer:
         access: DoorAccess = "read" if kind == "R" else "write"
         door = self._doors.get((int(fields[1], 16), access))
         if door is None or door.draw == "none":
+            return
+        if door.width is not None and int(fields[2]) != door.width:
+            # The arm states the width it admits, so an access at another width
+            # reached the handler's fault arm and drew nothing. Compared rather
+            # than relied on: that every RoT arm today is doubleword-guarded is a
+            # fact about the model, not a licence to ignore the trace's field.
             return
         if door.draw == "observed":
             self._observed(door, fields[4])
