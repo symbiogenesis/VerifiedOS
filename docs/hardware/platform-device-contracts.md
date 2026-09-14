@@ -33,10 +33,11 @@ Every malformed width, alignment, kind, direction or reserved offset returns an
 error with no slave state effect. Read data is zero on error and every returned
 tag is clear. No slave initiates a memory transaction or interrupt.
 
-Reset is synchronous and wins over all requests and progress. A harness orders
-bus and device-progress events separately; a coincident request and progress is
-refused as a malformed bus schedule while the progress event proceeds. Harness
-backend inputs are not guest-accessible registers.
+Reset is synchronous and wins over all requests and progress. The block-device
+harness orders bus requests and explicit step events separately; a coincident
+request and step is refused while the step proceeds. UART ready/valid handshakes
+may occur alongside a bus request, with admission decided from the pre-edge queue
+state. Harness backend inputs are not guest-accessible registers.
 
 ## UART character wrapper
 

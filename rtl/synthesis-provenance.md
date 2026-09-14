@@ -96,7 +96,7 @@ physical UART timing, durable host-image backend, NAND controller or complete
 fabric differential/refinement result. The Sail fallback still needs alignment
 to the selected routing policy before a whole-SoC comparison.
 
-**The boot ROM and serial-port sources in `lowRISC/mocha` are route-(c) references for R1c-ii's device work.** That pin supplies no block device, as the source inventory below records. Local wrappers, their contracts and SoC integration remain the implementation work; no completed whole-device/SoC differential receipt, FEV or Kôika/Kami refinement follows from this route disposition. R2/R3 must supply their own corpus and image evidence, which remains distinct from RTL ⊑ Sail proof.
+**The boot ROM and serial-port sources in `lowRISC/mocha` are route-(c) references for R1c-ii's device work.** That pin supplies no block device, as the source inventory below records. The authored standalone wrappers implement their selected simulation contracts; SoC integration and production-device realization remain open; no completed whole-device/SoC differential receipt, FEV or Kôika/Kami refinement follows from this route disposition. R2/R3 must supply their own corpus and image evidence, which remains distinct from RTL ⊑ Sail proof.
 
 **They carry no row in §2 and owe none**, on the grammar §1 states: a row binds an absence to the parameters that remove it, and a curated device is a structure the build *contains*. That is the same reading R1a took of the authored capability package and §4a took of the tag fabric, met a third time.
 
