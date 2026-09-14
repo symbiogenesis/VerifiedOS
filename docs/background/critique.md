@@ -459,8 +459,9 @@ costs and input-model assumptions are qualified.
 
 Q5b's [static-memory literature disposition](../implementation/static-memory-literature.md)
 separates genuine artifact reuse from an independently authored implementation of
-a paper's idea. The optional LRAT and idealloc boundaries remove the need to
-invent another certificate format or judge candidate search by its own verdict.
+a paper's idea. The optional LRAT experiment supplies portable evidence under
+R-05-011b and grounds no admitted claim; Q27a still owns the refused
+certificate-checker arm. idealloc proposals pass the existing placement checks.
 The resource-aware interface charges retained storage and pairs credit with
 checked fixed backing: a free-byte total alone supplies no suitable block.
 Q22 still owns the physical completion and reuse premises, and the executable

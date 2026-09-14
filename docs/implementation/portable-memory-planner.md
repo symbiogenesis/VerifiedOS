@@ -159,9 +159,12 @@ domain or restricted by the retained baseline's pool limits. Incomplete replay
 cannot certify an optimum. Independent candidate feasibility and exclusion of
 every better placement are separate obligations.
 
-The [LRAT certificate path](static-memory-certificates.md) uses a pinned external
-checker for a bounded Boolean encoding. DRCP and CakePB remain alternative
-certificate ecosystems, with their own encoding and execution boundaries. Decoding
+The [LRAT certificate experiment](static-memory-certificates.md) uses a pinned external
+checker for a bounded Boolean encoding. Its verdict is portable research evidence
+under R-05-011b and grounds no admitted placement or infeasibility claim. It does
+not produce the instance-specific Rocq term R-05-015 requires, and it does not
+complete Q27a or override that item's refusal of an imported admission checker.
+DRCP and CakePB are comparison ecosystems with their own encoding and execution boundaries. Decoding
 solver solutions to legal placements establishes only one direction: excluding
 all better layouts additionally requires every legal better layout to have an
 encoded witness. No external certificate dependency is admitted merely by naming

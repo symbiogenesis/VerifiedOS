@@ -142,8 +142,12 @@ already-existing checkers re-validate is admissible and free to be arbitrarily
 aggressive, because the rule it reads targets *minting a checker* rather than
 the pattern. Its criterion is narrow in the direction that matters here, an
 optimizer being admissible exactly where an existing checker decides its
-output and no new checker is introduced. Only the producer half of that
-arrangement exists locally:
+output and no new checker is introduced. The portable
+[LRAT experiment](../../implementation/static-memory-certificates.md) invokes a
+separately licensed Isabelle-LLVM checker as evidence-producing machinery under
+R-05-011b. Its verdict grounds no admitted claim and supplies no instance-specific
+Rocq term; Q27a's disposition is unchanged. Only the producer half of the
+production arrangement exists locally:
 [the placement search](../../implementation/placement-search.md) is a
 host-side search over the witness values in
 [the memory plan](../../../proofs/MemoryPlan.v), exporting the problem as data
@@ -193,14 +197,12 @@ all. None of them retires an interim.
 **The infeasibility question, recorded and not recommended.** A checked
 *infeasibility* certificate would move a verdict from "the search found no
 placement" to "no legal placement exists", which is a yield other than
-tightness, so R-05-105 read alone does not dispose of it. That is the whole of
-what it survives, and it is recorded as an open question rather than as a
-route. Every other refusal above reaches it unchanged: it is a shipped
+tightness, so neither R-05-105 nor its artifact-level generalization R-05-106
+disposes of it. Q27a records the remaining conditions. It is a shipped
 checker, so R-05-066's no-new-checker clause holds against it and so does
 R-06-011's inventory, which names two checkers and not three; R-05-064 has
 already deleted the TCB category
-it would reintroduce, R-05-106 reads the no-tightening rule on the artifact
-itself, and R-05-104 refuses whatever ILP machinery its encoding would carry.
+it would reintroduce, and R-05-104 refuses whatever ILP machinery its encoding would carry.
 R-05-020's three demonstrations are owed on top of all of that. F06 is the
 only member whose prover matches the project's while addressing a constraint
 problem, and its own trusted base carries the FlatZinc grammar, the extraction
@@ -424,8 +426,8 @@ its reciprocity attaches to a modified module rather than to a caller that
 only links. It is a discovery lead requiring a concrete supported
 certificate, a licence reading at the selected version and an assumption
 audit, rather than an integrated replacement for the project's existing
-admission checks or kernel. Those three are what it would take to describe the
-candidate, not what it would take to admit one: a plugin that puts a checker
-in front of the kernel is a minted checker, so the refusals stated at the head
-of this section, R-05-066's criterion and R-06-011's inventory among them,
-reach it exactly as they reach the entries above.
+admission checks or kernel. A reflective importer whose result the Rocq kernel
+re-checks has R-05-015's shape and is the route R-05-017 names; it is not admitted
+on an external verdict and is not a second logic under R-05-016a. Q27a distinguishes
+that route from the extracted checkers above. Q3b still owes the exact supported
+solver, witness, plugin and Rocq replay, and Q27c records the terms that govern it.

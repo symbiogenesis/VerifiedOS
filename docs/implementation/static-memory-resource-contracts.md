@@ -41,8 +41,8 @@ and checked fixed offsets are required. Prepaid fixed slots avoid an online
 allocator's fragmentation and refill questions within this admitted model.
 
 Each operation has a caller-supplied elapsed upper bound in a named unit. A
-lease's reuse bound sums the operations after lexical release completes, through
-completion of its barrier. A bound for `complete` must include any waiting for
+lease's reuse bound sums operations from the start of its lexical release
+request through completion of its barrier, including the release operation itself. A bound for `complete` must include any waiting for
 device completion; other bounds must likewise include scheduling, preemption and
 blocking. The analysis checks every path against `reuse_deadline`. An event count,
 fairness assumption or eventual-completion theorem alone supplies no such bound.
@@ -141,7 +141,9 @@ language, compiler and target machine are outside these finite models.
 Every adoption below is an adaptation of a specification or accounting idea into
 repository-authored code and proofs. No donor source, proof library, runtime,
 collector or allocator is imported. The broader
-static-memory literature disposition owns adoption beyond this bounded interface.
+[static-memory literature disposition](static-memory-literature.md) owns the
+implementation mapping beyond this bounded interface; the proof inventory and
+Q27 retain source qualification, policy disposition and consumer assignment.
 
 | Review entry and primary source | Adopted here | Separate work or excluded mechanism |
 | --- | --- | --- |
@@ -164,10 +166,9 @@ static-memory literature disposition owns adoption beyond this bounded interface
 
 Koka's own [license file](https://raw.githubusercontent.com/koka-lang/koka/master/LICENSE)
 states Apache-2.0. This establishes the inspected candidate's terms, not an import.
-The malloc/free paper identifies the
-[DeepSpecDB artifact](https://github.com/PrincetonUniversity/DeepSpecDB);
-its exact allocator artifact license is unresolved here and no files are conveyed.
-The independently inspected [VST license](https://raw.githubusercontent.com/PrincetonUniversity/VST/master/LICENSE)
-covers its stated distribution scope and does not establish the license of
-DeepSpecDB's allocator. Any future incorporation must inspect the actual pinned
-artifact and its own license before adding source or proofs.
+The [SYS-MEMMGR qualification](../assurance/proof-reuse/systems.md#sys-memmgr-a-resource-aware-allocator-specification-under-reciprocal-terms)
+records LGPL v3 from the DeepSpecDB README, `COPYING` and `COPYING.LESSER`.
+Those are the allocator artifact's terms; VST's separate license does not replace
+them. This implementation adapts the specification idea and conveys no donor
+source or proof. Any future incorporation must inspect the actual pinned files
+and their terms at that milestone.
