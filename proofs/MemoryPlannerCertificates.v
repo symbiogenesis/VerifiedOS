@@ -1,5 +1,5 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(*
+(* =========================================================================
    Finite one-hot encoding in both directions, for optional host LRAT research.
 
    A row is one finite placement domain or the finite domain of height vectors.
@@ -27,7 +27,12 @@
    This model does not discharge those admission obligations. R-05-163 audits the
    compiled constants. For R-05-165 and R-05-166, examples construct both a legal
    selection and its one-hot witness, and reject an overlapping Boolean choice.
-*)
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-104 R-05-105 R-05-163 R-05-165 R-05-166 R-08-012d R-08-014
+   SHA256: f51c2dd92503129f1a3602b655d019693282ad96f2e8003b0cdcf6370eb8805a
+   (*| END derived |*)
+   ========================================================================= *)
 
 From Stdlib Require Import Bool List Arith Lia.
 Import ListNotations.

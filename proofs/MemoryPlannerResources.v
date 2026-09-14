@@ -40,6 +40,12 @@
    compiled assumption. R-05-165 and R-05-166 are witnessed by a concrete
    balanced nonlexical trace, failure one byte below its required credit, a
    lost return that fails restoration, and a delayed cleanup refutation.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-165 R-05-166 R-08-006 R-08-007a R-08-014 R-08-015 R-08-046
+      R-11-015
+   SHA256: ca8f671134e899010b42f1de48c56bcabf6551cf2819fc796c4109e47c7e3b68
+   (*| END derived |*)
    ========================================================================= *)
 
 From Stdlib Require Import List Arith Lia.
