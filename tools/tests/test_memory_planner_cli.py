@@ -55,6 +55,10 @@ def input_binding_and_refusal() -> None:
         code, report = invoke(["plan", "--instance", str(instance), "--baseline", str(candidate)])
         ensure(code == 2 and report["evidence"]["status"] == "unknown/unsupported",
                "malformed input is not infeasibility")
+        instance.write_text('{"name":"a","name":"b"}', encoding="utf-8")
+        code, report = invoke(["check", "--instance", str(instance), "--candidate", str(candidate)])
+        ensure(code == 2 and "duplicate JSON field" in report["evidence"]["findings"][0],
+               "duplicate keys cannot silently replace a supplied constraint")
 
 
 def contract_route_and_source_binding() -> None:

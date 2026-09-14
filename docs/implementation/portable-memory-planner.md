@@ -75,6 +75,10 @@ identity. Unsupported inputs fail explicitly; callers must not erase a field
 to obtain acceptance. An inclusive lifetime adapter must check endpoint overflow
 before converting to half-open intervals. Zero-size objects, integer ranges,
 alignment and alias bounds belong to the contract rather than to solver guesses.
+A conservative interval conversion can preserve safety while losing packing
+opportunities from a richer branch or asynchronous conflict relation. Its
+optimum applies to the converted instance, not automatically to that richer
+behavior.
 
 The ordinary result is a list of pool/offset assignments. A separate evidence
 record binds the instance, checker, selected objective, assumptions and proof
@@ -164,7 +168,10 @@ Its conflicts cover the permitted paths and independent request slots. Its proof
 states the relation between those modeled hazards, the reuse gate and a legal
 placement. The remaining compiler obligation is to show that an actual program
 refines this contract; a caller-supplied completion time does not prove that a
-physical device has finished.
+physical device has finished. [MemoryPlannerContracts.v](../../proofs/MemoryPlannerContracts.v)
+proves conflict-graph separation, the conjunction required by the reuse barrier,
+and checked-selection non-regression. Temporal ordering of interpreter events is
+an executable check; its refinement to that mathematical model is not proved.
 
 R-05-104 excludes ILP machinery from the required toolchain; R-05-105 restricts
 admitted verified analyses whose only yield is bound tightening. This optional

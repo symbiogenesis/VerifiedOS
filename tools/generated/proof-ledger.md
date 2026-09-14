@@ -123,6 +123,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-05-163 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlan.v | n/a | cited |
+| R-05-163 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-163 | proofs/PartitionContext.v | n/a | cited |
 | R-05-163 | proofs/RingContract.v | n/a | cited |
 | R-05-163 | proofs/RomVerifier.v | n/a | cited |
@@ -162,6 +163,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-05-165 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlan.v | n/a | cited |
+| R-05-165 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-165 | proofs/PartitionContext.v | n/a | cited |
 | R-05-165 | proofs/RomVerifier.v | n/a | cited |
 | R-05-165 | proofs/RotFirmware.v | n/a | cited |
@@ -204,6 +206,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-05-166 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlan.v | n/a | cited |
+| R-05-166 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-166 | proofs/PartitionContext.v | n/a | cited |
 | R-05-166 | proofs/RomVerifier.v | n/a | cited |
 | R-05-166 | proofs/RotFirmware.v | n/a | cited |
@@ -360,7 +363,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-004c | proofs/EndpointIPC.v | n/a | cited |
 | R-08-004d | proofs/EndpointIPC.v | the_specification_gives_no_table_a_lifecycle | claimed |
 | R-08-004d | proofs/PartitionContext.v | n/a | cited |
+| R-08-006 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-007a | proofs/JournalIndex.v | n/a | cited |
+| R-08-007a | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-008 | proofs/EndpointIPC.v | n/a | cited |
 | R-08-011 | proofs/MModeFirmware.v | n/a | cited |
 | R-08-011 | proofs/MemoryPlan.v | n/a | cited |
@@ -368,9 +373,12 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-012 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-012 | proofs/StaticMemoryLaminar.v | n/a | cited |
 | R-08-012c | proofs/MemoryPlan.v | the_plan_s_own_placement_stays_inside_every_island | claimed |
+| R-08-012d | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-013 | proofs/StaticMemoryLaminar.v | n/a | cited |
 | R-08-014 | proofs/MemoryPlan.v | n/a | cited |
+| R-08-014 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-014 | proofs/StaticMemoryLaminar.v | n/a | cited |
+| R-08-015 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-019e | proofs/StaticMemoryService.v | n/a | cited |
 | R-08-045 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-046 | proofs/HandlerGraph.v | n/a | cited |

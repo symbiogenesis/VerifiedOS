@@ -32,17 +32,26 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
+def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON field: {key}")
+        result[key] = value
+    return result
+
+
 def read_json(path: Path, inputs: dict[str, str]) -> object:
     """Hash the bytes actually parsed, without rereading a mutable input."""
     data = path.read_bytes()
     inputs[str(path)] = hashlib.sha256(data).hexdigest()
-    return json.loads(data)
+    return json.loads(data, object_pairs_hook=unique_object)
 
 
 def source_identity(root: Path) -> dict[str, str]:
     names = ("tools/vos/memory_planner.py", "tools/vos/memory_planner_contracts.py",
              "tools/vos/memory_planner_adapters.py",
-             "tools/vos/cli/memory_planner.py")
+             "tools/vos/cli/memory_planner.py", "proofs/MemoryPlannerContracts.v")
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
 
 
@@ -50,7 +59,7 @@ def load_candidate(path: Path, inputs: dict[str, str], _: planner.Instance) -> p
     """Optional input is read only after the baseline has been checked and retained."""
     raw = read_json(path, inputs)
     if not isinstance(raw, list):
-        raise ValueError("candidate placement must be an array")
+        raise TypeError("candidate placement must be an array")
     return raw
 
 
