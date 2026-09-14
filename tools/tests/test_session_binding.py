@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Session substitution, custody and freshness counterexamples for Q22c."""
+"""Session substitution, custody and freshness counterexamples for Q22c and Q23c."""
 
 import json
 from contextlib import redirect_stdout
 from dataclasses import replace
 from functools import partial
 from io import StringIO
+from itertools import product
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
@@ -126,6 +127,155 @@ def _oracle_detects_binding_collision() -> None:
     ensure(bool(result.relation_failures), "event agreement must detect lost TLS uniqueness")
 
 
+def _ensemble_deliveries() -> None:
+    result = sb.ensemble_experiment()
+    ensure(result.passed, f"finite ensemble relation failed: {result.relation_failures}")
+    ensure(result.accepted > 0 and result.refused > result.accepted,
+           "the finite ensemble universe must exercise acceptance and refusal")
+    ensure(result.repeat_refusals == result.deliveries,
+           "every completed establishment attempt must consume its challenge")
+    _, _, members, ends = sb.ensemble_fixture()
+    # Each issuer-end pair carries 2 nonces x 2 challengers x 2 suites, delivered at 2 nonces.
+    per_pair = 16
+    pairs = list(product(members.values(), ends.values()))
+    substituted = sum(1 for member, end in pairs
+                      if member.device_register.unit != end.expected_peer_unit)
+    foreign = sum(1 for member, end in pairs
+                  if member.generation_register.ensemble_identity
+                  != end.expected_ensemble_identity)
+    # The substituting act adds one further die-C issuer, which mismatches both ends.
+    ensure(result.substituted_unit_refusals == per_pair * (substituted + 2),
+           f"every substituted unit must be refused, not {result.substituted_unit_refusals}")
+    ensure(result.foreign_identity_refusals == per_pair * foreign,
+           f"every foreign ensemble identity must be refused, not "
+           f"{result.foreign_identity_refusals}")
+
+
+def _ensemble_device_identity_binding() -> None:
+    broker, registry, members, ends = sb.ensemble_fixture()
+    near = sb.EnsembleAppraisal(ends["a"], "fresh", registry)
+    forged = broker.issue(members["c"], near.challenge,
+                          claimed_device=sb.DeviceRegister("die-B"), alias=True)
+    ensure(near.decide(forged, broker) == "device-identity-binding",
+           "a signing identity rooted in no device secret must be refused by name")
+    credulous = sb.EnsembleAppraisal(ends["a"], "fresh", registry, bind_identity=False)
+    ensure(credulous.decide(forged, broker) == "accepted",
+           "taking the binding on faith must admit the substituted unit")
+    try:
+        broker.issue(members["c"], near.challenge, claimed_device=sb.DeviceRegister("die-B"))
+    except sb.SessionBindingError:
+        pass
+    else:
+        raise AssertionError("a member signed another unit's register under a rooted identity")
+    ensure(registry.speaks_for("die-B", sb.rooted_identity(sb.device_secret("die-B"))),
+           "the premise names one signing identity per device-identity secret")
+    ensure(not registry.speaks_for("die-B", sb.alias_identity("die-C")),
+           "an alias speaks for no unit")
+
+
+def _ensemble_mutuality_and_configuration() -> None:
+    broker, registry, members, ends = sb.ensemble_fixture()
+    honest = sb.PeerAct(members["b"])
+    good = sb.establish(ends["a"], ends["b"], broker, registry, honest,
+                        sb.PeerAct(members["a"]))
+    ensure(good.outcome == "established", "both appraisals accept the composition's peers")
+    ensure(good.session() is not None, "an established link opens a session")
+    for near, far, expected in ((honest, sb.PeerAct(members["c"]), "refused-unit-identity"),
+                                (sb.PeerAct(members["c"]), sb.PeerAct(members["a"]),
+                                 "refused-unit-identity"),
+                                (sb.PeerAct(members["d"]), sb.PeerAct(members["a"]),
+                                 "refused-ensemble-identity")):
+        fresh_broker, fresh_registry, _, fresh_ends = sb.ensemble_fixture()
+        result = sb.establish(fresh_ends["a"], fresh_ends["b"], fresh_broker, fresh_registry,
+                              near, far)
+        ensure(result.outcome == expected, f"one-sided acceptance is not a link: {result}")
+        ensure(result.session() is None, "a refused establishment opens no session")
+    offered = sb.establish(ends["a"], ends["b"], broker, registry, honest,
+                           sb.PeerAct(members["a"]),
+                           offered=(sb.ADMISSIBLE_SUITE, sb.SECOND_SUITE))
+    ensure(offered.outcome == "refused-configuration-negotiated",
+           "an offered second configuration terminates rather than selecting a path")
+
+
+def _ensemble_slot_count_and_custody() -> None:
+    broker, registry, members, ends = sb.ensemble_fixture()
+    session = sb.establish(ends["a"], ends["b"], broker, registry, sb.PeerAct(members["b"]),
+                           sb.PeerAct(members["a"])).session()
+    if session is None:
+        raise AssertionError("the honest establishment must open a session")
+    core = session.core_for("die-B")
+    try:
+        core.export()
+    except sb.SessionBindingError:
+        pass
+    else:
+        raise AssertionError("the crypto core exported a session key")
+    frame = core.seal(session.link, session.epoch, 2, "payload")
+    ensure(session.receive(frame, 2) == "delivered", "a frame verifies in its own slot")
+    ensure(session.receive(core.seal(session.link, session.epoch, 2, "other"), 2)
+           == "slot-consumed", "the window admits at most one frame per slot")
+    replayed = core.seal(session.link, session.epoch, 3, "payload")
+    ensure(session.receive(replayed, 9) == "tag-failed", "a replay into another slot fails")
+    ensure(session.receive(replayed, 3) == "link-stopped", "a failed tag stops the link")
+    credulous = sb.WireCountedSession(session.link, session.epoch, core, session.holders)
+    ensure(credulous.receive(replayed, 9) == "delivered",
+           "counting from the wire accepts the replay: the counterexample")
+    epochs = sb.EnsembleSession(session.link, session.epoch + 1, core, session.holders)
+    ensure(epochs.receive(frame, 2) == "tag-failed", "the epoch is associated data too")
+
+
+def _ensemble_key_ownership_binding() -> None:
+    """R-12-015c's central obligation: the appraised peer holds that session's keys."""
+    members = sb.ensemble_fixture()[2]
+
+    def opened(near: sb.PeerAct, *, bind_identity: bool = True) -> sb.EnsembleSession:
+        broker, registry, fresh, ends = sb.ensemble_fixture()
+        result = sb.establish(ends["a"], ends["b"], broker, registry, near,
+                              sb.PeerAct(fresh["a"]), bind_identity=bind_identity)
+        session = result.session()
+        if session is None:
+            raise AssertionError(f"this fixture requires a session: {result.outcome}")
+        return session
+
+    honest = opened(sb.PeerAct(members["b"]))
+    ensure(honest.holders == {"die-A", "die-B"},
+           "the holders are exactly the two units the two appraisals accepted")
+    for outsider in ("die-C", "relay", "attacker"):
+        try:
+            honest.core_for(outsider)
+        except sb.SessionBindingError:
+            continue
+        raise AssertionError(f"{outsider} was handed this session's keys")
+    guessed = sb.CryptoCore(f"session-key/{honest.link}/{honest.epoch}")
+    ensure(honest.receive(guessed.seal(honest.link, honest.epoch, 1, "x"), 1) == "tag-failed",
+           "the link and the epoch alone do not key this session")
+
+    substituted = sb.PeerAct(members["c"], claimed_device=sb.DeviceRegister("die-B"),
+                             alias=True)
+    faithless = opened(substituted, bind_identity=False)
+    target = opened(sb.PeerAct(members["b"]))
+    forged = faithless.core_for("die-B").seal(target.link, target.epoch, 2, "x")
+    ensure(target.receive(forged, 2) == "tag-failed",
+           "an establishment that accepted a different peer must be a different session")
+
+    exposed = opened(sb.PeerAct(members["b"]))
+    learned = exposed.expose_to("attacker")
+    ensure(exposed.receive(learned.seal(exposed.link, exposed.epoch, 4, "x"), 4) == "delivered",
+           "exposure yields frame authority no appraisal revokes")
+
+
+def _ensemble_oracle_decides_both_directions() -> None:
+    with patch.object(sb.IdentityRegistry, "speaks_for", return_value=True):
+        credulous = sb.ensemble_experiment()
+    ensure(any("substituted unit accepted" in failure
+               for failure in credulous.relation_failures),
+           "dropping the identity binding must be caught by the event-level oracle")
+    with (patch.object(sb.EnsembleAppraisal, "decide", return_value="evidence-invalid"),
+          patch.object(sb, "_ensemble_scenarios", return_value=())):
+        deaf = sb.ensemble_experiment()
+    ensure(bool(deaf.relation_failures), "refusing every establishment must also fail")
+
+
 def _cli_evidence() -> None:
     outputs = []
     for _ in range(2):
@@ -138,10 +288,20 @@ def _cli_evidence() -> None:
         ensure(data["production_adoption"] == "open", "finite success is no adoption")
         ensure(all(len(value) == 64 for value in data["sources_sha256"].values()),
                "evidence binds actual source bytes")
+        ensure(data["substitutions"] > 0 and data["ensemble"]["deliveries"] > 0,
+               "both populations are reported")
+        ensure(not data["ensemble"]["relation_failures"], "the ensemble relation holds")
+        ensure(data["ensemble"]["substituted_unit_refusals"] > 0
+               and data["ensemble"]["foreign_identity_refusals"] > 0,
+               "the two named counters must be reported")
     ensure(outputs[0] == outputs[1], "evidence is deterministic")
     broken = replace(sb.experiment(), relation_failures=("counterexample",))
     with patch.object(cli, "experiment", return_value=broken), redirect_stdout(StringIO()):
         ensure(cli.main([]) == 1, "a violated relation must fail the command")
+    broken_ensemble = replace(sb.ensemble_experiment(), relation_failures=("counterexample",))
+    with (patch.object(cli, "ensemble_experiment", return_value=broken_ensemble),
+          redirect_stdout(StringIO())):
+        ensure(cli.main([]) == 1, "a violated ensemble relation must fail the command")
 
 
 def cases() -> list[Case]:
@@ -151,4 +311,11 @@ def cases() -> list[Case]:
             Case("freshness-and-failure-consumption", _freshness_and_failure_consumption),
             Case("identity-scope", _identity_scope),
             Case("oracle-detects-binding-collision", _oracle_detects_binding_collision),
+            Case("ensemble-deliveries", _ensemble_deliveries),
+            Case("ensemble-device-identity-binding", _ensemble_device_identity_binding),
+            Case("ensemble-mutuality-and-configuration", _ensemble_mutuality_and_configuration),
+            Case("ensemble-slot-count-and-custody", _ensemble_slot_count_and_custody),
+            Case("ensemble-key-ownership-binding", _ensemble_key_ownership_binding),
+            Case("ensemble-oracle-decides-both-directions",
+                 _ensemble_oracle_decides_both_directions),
             Case("cli-evidence", _cli_evidence)]
