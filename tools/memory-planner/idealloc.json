@@ -1,0 +1,142 @@
+{
+  "commit": "3b7eb67f234905ebccb90e252b220189770c9dcb",
+  "license": "MIT",
+  "interface": "coreba::algo::idealloc(JobSet, 1.0, 0, max_lives) -> (PlacedJobRegistry, usize)",
+  "schema": "vos-idealloc-pin-v1",
+  "repository": "https://github.com/cappadokes/idealloc",
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "6e48f02d61d7e789eb721ba35e922b3eba97c12e003f5e11bb2252332cdacc01"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "4fb0e27386a8080c89460012bd08c36bf56ef371d8aac8e17913f5d458dc02ce"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "0ea22ff983b4f1e13781fefa471133c1b6ff263920c7cda7202c0eb0a88410e5"
+    },
+    {
+      "path": "copycat/Cargo.toml",
+      "sha256": "181624feefee13516af3c6b5a0177c635684f5b7988b49f885119e074ddc6b31"
+    },
+    {
+      "path": "coreba/Cargo.toml",
+      "sha256": "ea3a634399b30ace296bfa55c870968caae5cbbec1f4d719a060ddd792c08255"
+    },
+    {
+      "path": "coreba/src/algo/boxing.rs",
+      "sha256": "a76a2af3226316a6aa5a7e84d576e73cf5403e440da717e028686fe27de92aee"
+    },
+    {
+      "path": "coreba/src/algo/mod.rs",
+      "sha256": "5a785b0d4c82d0e8963a588295415a138aa74a83b7b6451f9bd3be081076cec4"
+    },
+    {
+      "path": "coreba/src/algo/placement.rs",
+      "sha256": "06086c95482950cff89d7b773ccfbff24dfdebb180a7e6d9f4571702d5a99f59"
+    },
+    {
+      "path": "coreba/src/analyze.rs",
+      "sha256": "81799dfcfdfd7858b01a043ef6c6eb6834616ef4490d7b1da837346c584349af"
+    },
+    {
+      "path": "coreba/src/bin/heuristic.rs",
+      "sha256": "62493f08510ad05d6fef97ab641a5f818b2b99aaa1084503e5d71d9af085b212"
+    },
+    {
+      "path": "coreba/src/bin/idealloc.rs",
+      "sha256": "ea96b7e50294a0ecce1713141fb120fef228af85138f7fbe1ed47d70509576d7"
+    },
+    {
+      "path": "coreba/src/helpe.rs",
+      "sha256": "b74a1ce0565b8f2078cbdcc34c19bc3165c41a938dbe641f7f38eb63061fd0e6"
+    },
+    {
+      "path": "coreba/src/instance.rs",
+      "sha256": "ff4fa4390a86bb5d9158075e24b6d38348b345ece70e6b01323e479599eff20a"
+    },
+    {
+      "path": "coreba/src/job.rs",
+      "sha256": "06294c0e820bd812d6903b17baf42b4080525d308f8903f49fc0d804608406af"
+    },
+    {
+      "path": "coreba/src/jobset.rs",
+      "sha256": "430020119f6bfabb9e3904853680a26e1be719dad1fc9a8f25f3c9bbaf2423e1"
+    },
+    {
+      "path": "coreba/src/lib.rs",
+      "sha256": "2bbce543185d09cbc9cd2c4ea27464f8849452c262ceac19844ae180b2ea481d"
+    },
+    {
+      "path": "coreba/src/lib/elements.rs",
+      "sha256": "8ccf81506b3d2b229c1543b14b323f58d22c01bdc71dbb4ffde4a923b0c55655"
+    },
+    {
+      "path": "sanity/Cargo.toml",
+      "sha256": "fa9382790b40688c6363f0a5b248a61fdfcc0d548168c18cfc9f754f87b21b97"
+    },
+    {
+      "path": "uncore/Cargo.toml",
+      "sha256": "bf997a32bbfafbc2c7b8b4296cb86def4b097373ef2442d0fda5bbecefb08e4b"
+    },
+    {
+      "sha256": "1cdf131297f260992e35df8508885e5c41f2d340c4482a746836ad5323d0be1e",
+      "path": "copycat/src/lib/circus.rs"
+    },
+    {
+      "sha256": "814d595a11dd66110769b4d6ed5dfc4733a185ddab84dc6487094381f732f00b",
+      "path": "copycat/src/lib/core.rs"
+    },
+    {
+      "sha256": "0f95f19111973dbab1735255c1646622fc1ea6f51662d75e3e460135d35387e9",
+      "path": "copycat/src/lib/ffi.rs"
+    },
+    {
+      "sha256": "bd8dde90a6dc234614856f35471c9ede49ecf4cfcadad753ed41645dedccdeb9",
+      "path": "copycat/src/lib/logic.rs"
+    },
+    {
+      "sha256": "1baabe5a4b28722d0b770755b7f02c9e125e0ad3939ed4fc7dc0f33e8a1a2a58",
+      "path": "copycat/src/lib/mod.rs"
+    },
+    {
+      "sha256": "003b4121db35e32bfd2b1b48bd1d941dc58757f07d92f526796e929cddf6f779",
+      "path": "sanity/src/bin/adapt.rs"
+    },
+    {
+      "sha256": "17447f5d76e136f06a1b9eeecbf39710183e0b445a2c7519b55fd583251b71f3",
+      "path": "sanity/src/bin/iopddl_read.rs"
+    },
+    {
+      "sha256": "468ceef151ef2bdc470c868bf3e78daeac3e68e789d9e54bfd6350c62f77e2d5",
+      "path": "sanity/src/bin/report.rs"
+    },
+    {
+      "sha256": "a31320ff0c852eecbd297647a9ce4e2ceffe3b7499958502d822514aa5ebf268",
+      "path": "sanity/src/lib.rs"
+    },
+    {
+      "sha256": "02497e5ede87fc34e5990257a6e412190a429f9f397183fbc52f5522bef11562",
+      "path": "uncore/src/lib/ffi.rs"
+    },
+    {
+      "sha256": "93cbe1ac409d17d62ac1d56c76dad26c96d2836f5e968dc1defca363c1dbd61c",
+      "path": "uncore/src/lib/logger.rs"
+    },
+    {
+      "sha256": "9c535a42d168c21faf113da3d22bdba1a45dc55b01855680122b0637e6be57b8",
+      "path": "uncore/src/lib/mapfind.rs"
+    },
+    {
+      "sha256": "9a456b147c34a6a18fe48f14753f5e048e7caa5168aa21712f87e5a02828b68c",
+      "path": "uncore/src/lib/mod.rs"
+    },
+    {
+      "sha256": "d98e8f42aa8a69a54692e093f1075ababa77b1d268f70f691e03d4e596e5fe04",
+      "path": "uncore/src/lib/tracer.rs"
+    }
+  ],
+  "license_review": "Upstream LICENSE read before integration; copyright 2024 Christos Lamprakos, retain notice and permission with copies."
+}
