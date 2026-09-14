@@ -409,6 +409,8 @@ def _the_dma_clauses_are_properties_a_declaration_can_fail() -> None:
            "charging a cost per segment must accompany checking each segment")
     ensure("a_segment_extending_past_its_capability_is_refused" in text,
            "the segment campaign must reject an extent crossing its delegated bound")
+    ensure("a_segment_larger_than_the_declared_ceiling_is_refused" in text,
+           "a large capability must not bypass the declared per-segment payload ceiling")
 
 
 def _each_world_past_the_first_takes_a_scope_of_its_own() -> None:

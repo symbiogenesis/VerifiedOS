@@ -676,8 +676,9 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "Definition segment_valid (segment : dma_segment) : bool :=",
         "  let b := segment_reference segment in",
         "  andb (ref_authorized (segment_permission segment) b)",
-        "       (Nat.leb (ref_offset b + ref_length b)",
-        "                (segment_capability_bytes segment)).",
+        "       (andb (Nat.leb (ref_offset b + ref_length b)",
+        "                      (segment_capability_bytes segment))",
+        "             (Nat.leb (ref_length b) ring_segment_max_bytes)).",
         "",
         "Fixpoint all_segments_valid (segments : list dma_segment) : bool :=",
         "  match segments with",
@@ -731,6 +732,13 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "forall (d : direction) (c : content_type),"
         " segment_valid (mk_dma_segment (direction_permission d) ring_segment_max_bytes"
         " (mk_buffer_ref 0 1 ring_segment_max_bytes d c)) = false.",
+        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+    lines += _theorem(
+        "a_segment_larger_than_the_declared_ceiling_is_refused",
+        "forall (d : direction) (c : content_type),"
+        " segment_valid (mk_dma_segment (direction_permission d)"
+        " (S ring_segment_max_bytes)"
+        " (mk_buffer_ref 0 0 (S ring_segment_max_bytes) d c)) = false.",
         "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
     lines += _theorem(
         "a_bad_segment_at_any_position_refuses_the_list",
@@ -848,6 +856,7 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "the_maximum_segment_list_is_admitted",
         "one_segment_past_the_maximum_is_refused",
         "a_segment_extending_past_its_capability_is_refused",
+        "a_segment_larger_than_the_declared_ceiling_is_refused",
         "a_bad_segment_at_any_position_refuses_the_list",
         "the_complete_extent_is_validated_before_the_transfer_starts",
         "a_validation_short_of_the_declared_payload_is_not_the_extent",
