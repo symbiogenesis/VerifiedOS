@@ -111,6 +111,17 @@ VIEWS: list[View] = [
               r"Bank discharge and refresh phases are fixed and staggered|"
               r"No instruction is added for discharge|"
               r"Per-class usable density, the retention floor"),
+    # the source model is what R-15-241a's four obligations are stated against and
+    # what none of them holds, so what the contract must carry is the four that
+    # consume it, the boot ordering that consumes the budget derived from it, and
+    # the residual the model's own tests cannot see
+    View(file="docs/hardware/trng-source-model-contract.md", governing="R-15-241a",
+         body=r"start-up health tests over a fixed sample budget|"
+              r"vetted non-keyed cryptographic conditioner|"
+              r"instantiated from conditioned root output|"
+              r"spanning at least two physical mechanisms|"
+              r"start-up entropy health tests|"
+              r"The entropy residual is subversion"),
 ]
 
 
