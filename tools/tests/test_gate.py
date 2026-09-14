@@ -8,6 +8,7 @@ the complete read-only gate over this checkout.
 """
 
 import io
+import json
 import subprocess
 import sys
 import tempfile
@@ -243,6 +244,100 @@ def _verdict_names_the_member_that_reported() -> None:
            f"every member reports, green or not, got {rep.out!r}")
 
 
+def _summary_names_every_member_and_its_code() -> None:
+    """The verdict a caller reads who has only this run's exit code.
+
+    Held against the three states a member can be in at once, because they are what the
+    exit code collapses: clean, a verdict of findings, and no verdict at all. The last
+    is the one a reader most needs separated out, a member that crashed being a broken
+    tool rather than a tree with something wrong in it.
+    """
+    codes = {"check": 0, "selftest": 1, "typecheck": gate.NO_VERDICT, "test": 0}
+
+    def launch(root: Path, member: gate.Launch) -> gate.Result:
+        return gate.Result(member, codes[member.tool], [])
+
+    with tempfile.TemporaryDirectory(prefix="vos-gate-summary-") as td:
+        path = Path(td) / "nested" / "verdict.json"
+        isolated = SimpleNamespace(sync=lambda _: "ok sync: instructions agree",
+                                   SyncError=gate.sync_instructions.SyncError)
+        with patch.object(gate, "sync_instructions", isolated), \
+                patch.object(gate, "_launch", launch):
+            rep = gate.run(_ROOT, tests=True, summary=path)
+        written = json.loads(path.read_text(encoding="utf-8"))
+
+    ensure(written["green"] is False and written["stopped"] == "",
+           f"a wave that ran and reported is neither green nor stopped, got {written!r}")
+    ensure([m["name"] for m in written["members"]]
+           == [m.tool for m in (*gate.MEMBERS, gate.TESTS)],
+           f"every member is named, in declaration order, got {written['members']!r}")
+    by_name = {m["name"]: m for m in written["members"]}
+    # by tool rather than by position, on the convention the module under test states
+    # at REPAIRS: reordering MEMBERS must not quietly move which member this holds.
+    selftest = next(m for m in gate.MEMBERS if m.tool == "selftest")
+    ensure(by_name["selftest"] == {"name": "selftest", "decides": selftest.decides,
+                                   "code": 1, "reached_verdict": True, "clean": False},
+           f"a member that reported findings reached a verdict, got {by_name['selftest']!r}")
+    ensure(by_name["typecheck"]["reached_verdict"] is False
+           and by_name["typecheck"]["code"] == gate.NO_VERDICT,
+           f"a member that never decided says so, got {by_name['typecheck']!r}")
+    ensure(by_name["check"]["clean"] is True and by_name["test"]["clean"] is True,
+           f"a member that exited 0 is clean, got {by_name!r}")
+    written_at = [i for i, line in enumerate(rep.out)
+                  if line.startswith("ok summary: written to")]
+    decided_at = [i for i, line in enumerate(rep.out) if line.startswith("FAIL gate:")]
+    ensure(len(written_at) == 1 and len(decided_at) == 1 and written_at[0] < decided_at[0],
+           f"the file is reported once, ahead of the wave's own verdict, got {rep.out!r}")
+
+
+def _summary_names_a_wave_that_never_ran() -> None:
+    """A stopped run writes the sentence a bare exit code cannot carry.
+
+    An invalid instruction import fails before any member starts, so there is no member
+    to name and the reason is the whole answer; written as an empty member list alone it
+    would be indistinguishable from a wave nobody asked for.
+    """
+    error = gate.sync_instructions.SyncError
+
+    def sync(root: Path) -> str:
+        raise error(f"unexpected CLAUDE.md content at {root}")
+
+    with tempfile.TemporaryDirectory(prefix="vos-gate-stopped-") as td:
+        path = Path(td) / "verdict.json"
+        isolated = SimpleNamespace(sync=sync, SyncError=error)
+        with patch.object(gate, "sync_instructions", isolated), \
+                patch.object(gate, "_launch", lambda root, member: gate.Result(member, 0, [])):
+            gate.run(_ROOT, summary=path)
+        written = json.loads(path.read_text(encoding="utf-8"))
+
+    ensure(written["members"] == [] and written["green"] is False,
+           f"no member ran, so none is named and nothing is green, got {written!r}")
+    ensure("unexpected CLAUDE.md content" in written["stopped"],
+           f"the reason the wave never ran is the answer, got {written['stopped']!r}")
+
+
+def _unwritable_summary_is_a_finding() -> None:
+    """Asked to say what it decided and unable to, the gate says that instead of
+    passing over it. Silence here is the exact defect the flag exists to end."""
+    def launch(root: Path, member: gate.Launch) -> gate.Result:
+        return gate.Result(member, 0, [])
+
+    with tempfile.TemporaryDirectory(prefix="vos-gate-unwritable-") as td:
+        # a file where the verdict's parent directory must be, so `mkdir` refuses
+        blocked = Path(td) / "occupied"
+        blocked.write_text("not a directory", encoding="utf-8")
+        isolated = SimpleNamespace(sync=lambda _: "ok sync: instructions agree",
+                                   SyncError=gate.sync_instructions.SyncError)
+        with patch.object(gate, "sync_instructions", isolated), \
+                patch.object(gate, "_launch", launch):
+            rep = gate.run(_ROOT, summary=blocked / "verdict.json")
+
+    ensure(rep.findings == 1 and any("could not be written" in line for line in rep.out),
+           f"an unwritable verdict is one finding naming the path, got {rep.out!r}")
+    ensure(rep.out[-1] == f"ok gate: all {len(gate.MEMBERS)} host gate(s) green",
+           f"the wave's own verdict is unchanged by the reporting failure, got {rep.out!r}")
+
+
 def _gate_over_the_live_tree() -> None:
     done = subprocess.run([sys.executable, str(TOOLS / "run.py"), "--check"], cwd=_ROOT,
                           capture_output=True, encoding="utf-8", errors="replace",
@@ -277,5 +372,9 @@ def cases() -> list[Case]:
              _launch_names_a_member_that_gave_no_verdict, lane="host"),
         Case("verdict-names-the-member-that-reported",
              _verdict_names_the_member_that_reported),
+        Case("summary-names-every-member-and-its-code",
+             _summary_names_every_member_and_its_code),
+        Case("summary-names-a-wave-that-never-ran", _summary_names_a_wave_that_never_ran),
+        Case("unwritable-summary-is-a-finding", _unwritable_summary_is_a_finding),
         Case("gate-over-the-live-tree", _gate_over_the_live_tree, slow=True, lane="host"),
     ]

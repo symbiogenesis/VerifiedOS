@@ -705,11 +705,30 @@ claimed. The final integrated host gate and its tested scope are recorded below.
 The batch's complete host command is `python tools/run.py --check --tests`, over
 integration HEAD `92b72bb5449f24f95f39567ef0380d89315a7fe1`, the pending merge of
 `4396c7769afa01988c471a431f2647de23cb6001`, and the integrator's shared records,
-K-23 disposition, co-read ledger and generated arithmetic. The exact changed-file
-hashes and complete report are retained as `out/fanout-20260910/tested-input.json`
-and `out/fanout-20260910/host-gate.log` in the integration checkout. Model, RTL and
+K-23 disposition, co-read ledger and generated arithmetic. Model, RTL and
 Gallina sources are unchanged by this batch; the separate compiler run above its
 M1.2b findings block supplies the affected guest evidence.
+
+### Q13 · Pin the bring-up Wasm interpreter and re-read its ranking against the absent predictors
+
+The bring-up interim is pinned at `wasmi-labs/wasmi` v2.0.0, released 2026-09-01 and the newest release at this reading, with its terms read at that tag on 2026-09-14 and recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md#the-bring-up-wasm-interpreter). Nothing is vendored, fetched, gitlinked or installed. The pin is the interim's alone: R-14-013a is the engine the interim stands in front of, no register entry names the interim, and adopting an upstream change into an unverified interim admits nothing into that engine. [The porting guide](userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) says in the same act which adopted changes are expected to survive curation, the three that trade dependent chains and memory traffic for offsets, and which four are interim-only, the two feature-set misses in opposite directions, the text-format front end, the nightly tail-call switch and the dispatch selector.
+
+Two adopted changes are booked before they are taken and neither is adopted outright. Append-only function-body buckets fail R-08-046's monotone member lifecycle not on a threshold but on having no release half at all, so R-14-015's demanded selection and release algorithm has no Reusable transition to declare; the two exits are named and the interim takes neither by default. The artifact-size knob that disables guest validation carries a precondition, the embedder controlling its inputs, that is the exact negation of the case R-14-013a exists for, so it is admitted only where the module is image-resident and admitted through §13 and never on the R-14-008a delivery path.
+
+Every entry of the upstream suite carries one of two verdicts, *reads on this target* or *predictor-fed and unread here*, the second naming the removed structure, and the CoreMark `csel` run is of the second kind and is marked outside the suite on the upstream's own statement. The generalized porting note is that any interpreter result improving by feeding a branch predictor is measuring hardware this machine does not have, which is R-14-015's own narrow sentence generalized from the arena to the ranking. The reading owed of the flattened instance layout and the baked-in body pointers is stated and no number crosses with it: their value here is expected to be larger than upstream measures, A-07, A-09 and A-10 leaving every hop of a dependent chain at full SRAM latency with no prefetcher recovering any of it, and upstream reports no isolated figure for either.
+
+The threading form is indirect, and that narrows R-14-008a rather than reopening it. Of the upstream's four dispatch modes only two are threaded, so direct against indirect is the whole of the live question; indirect is roughly 10 to 15 percent slower and smaller in IR memory, which is a trade against R-14-008b's footprint budget and the trade the interim takes. Direct threading is not refused on W^X grounds, its IR being data that fills no executable bank at run time; what is unpriced is a `code`-typed field at a slot inside a runtime-written buffer, for which the CHERI-TAL has no former relating a memory slot to the type a load produces from it, so R-05-113's subset check has no premise to draw on and defaulting to indirect defers that type-system addition whole. R-14-008a's Accept now names the admitted form and states the failing image as one whose interpreter IR slot holds a code capability rather than an op-code, which is read off the IR encoding.
+
+Two register acts are raised and both are taken at their entry. R-14-013b names the frozen version, *Wasm 2.0*, written so it is never read as the engine's own release number, and records *Wasm 3.0* as declined rather than not-yet-reached on R-14-015's ground. The deterministic profile is the one exception the decline does not dispose of, and it is refused today on R-14-013d's curation rule rather than on the decline: the pinned semantics enters from the tracked mechanized upstream rather than by authorship and no tracked source in that lineage carries a profile mechanism, so the amendment is not writable and stays owed to that curation. Its build-configuration half answers yes at the interim and moves nothing the engine will be proved against. Neither act reaches §16's replay record, whose enumerated sources (R-16-015) are values drawn at an interface and a physical event stream, not a guest language's choice of NaN payload.
+
+The acceptance predicate's first two clauses close. Every suite entry carries a verdict, the table being the enumeration with no count standing beside it to drift, and a case-insensitive search of `docs/` for the engine's name returns the porting paragraph, this item and this note and nothing inside [the estimates](../performance/performance-estimates.md), which carries no figure from this upstream and no CoreMark figure at all. The third clause is a host reading. Two builds of one minimal dispatch handler with `rustc 1.98.0 (88d9e12ae 2026-08-18)` on `aarch64-pc-windows-msvc`, LLVM 22.1.8, at `-C opt-level=3`, differ at their dispatch sites: the collapsed form, where both successors meet in one destination, emits `cmp w0, #0`, `csel x2, x9, x8, ne` and a single indirect `br x2`; the separated form, where each arm carries its own dispatch, emits `tbz w8, #0, .LBB1_2` and two branch sites, `b h_then` and `b h_else`. It is a minimal reproduction of the dispatch shape and not a build of the upstream's handler, whose two separated sites stay indirect where this reproduction's become direct branches to two statically named handlers; the separation is authored at the source rather than obtained by disabling `DestinationPropagation`, which needs a `-Z` flag this stable toolchain does not accept. No cycle count was taken, the predicate asking only that the two forms differ, and this is a host figure entering no estimate. At the machine there is no predicate, because no item before R3 puts a composed image on the elaborated core; the cycle separation between the two forms is Q8's to report over R3's image, and R-15-101 is what makes that comparison well posed there.
+
+Authoring commits `8e9ba16` and `d6b51a3` at base `f528852f680dd00d599b73feb69258e214a1385a`, with `b075597` and `8825bda` repairing an adversarial review: the dispatch taxonomy corrected from three modes to the upstream's four, the inlined-bodies refusal re-cited to R-14-008a's own first clause with R-14-008b's Accept stated separately as closing the adjacent ground, a §18 reference in THIRD-PARTY.md aimed at the register that numbers it, two predictor attributions corrected from A-04 and A-06 to A-05, an undecidable criterion restated in terms an auditor reads off an image, a second copy of R-14-015's clauses compressed to a citation, and three hand-maintained suite counts removed in favour of the table itself. The lane interval is bounded by its provisioning at 06:24:55 UTC and its final commit at 13:05:01 UTC on 2026-09-14, an adversarial review and idle gaps inside that span; the 14.5 h estimate and this document-act scope are comparable. Validation is `python tools/check.py`, green over all 104 rules, and `python tools/run.py coread`, 1452 of 1452 with the two moved pairs blessed on the entry side only. No model, RTL, proof or device execution is claimed.
+
+
+The measured intervals are 2026-09-14 06:59:39-07:15:59, 07:23:45-08:24:19, 13:01:29-13:07:18 UTC for the authoring, review and repair passes, 2181 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (review -2782s), and those stalls are out of the figure.
+
+Landed: Tier A. No rule holds what this item created: the verdict table, the pin's survive-curation split and the threading choice are prose no checker reads, and the two register acts are decisions inside existing Accept clauses rather than a new held fact, so Tier B is unavailable here on K-88's own reading. The porting guide's own restatements of upstream feature-set facts are read at the pin and dated there rather than held by a rule.
 
 ### Q14 · Reach the third matrix track, and record what already answers in-memory compute
 
@@ -719,9 +738,28 @@ The compute-in-memory determination follows live entries. R-15-185 admits determ
 
 The gain-cell citation now gives Li et al.'s complete paper title and describes its 64 cells, each spanning read and write transistor layers, rather than complete memory decks. It distinguishes measured column-current summation from the simulated network result and keeps the lab-scale array size visible. The lane's primary-article XML reading and checker evidence are retained with the integration record.
 
-Authoring commit `1bc51b5` passes the focused checker. The lane interval is bounded by its Git provisioning record at 15:35:54 UTC and handoff at 15:44:11 UTC on 2026-09-11. This item's actual also charges the shared integrator session from its first recorded clock at 15:36:15 UTC through final validation; Q17 and Q22f do not charge it again. Integration uses `python tools/run.py --check --tests` after the shared repairs and co-reads. The input patch, gate transcript and interval record are retained under `out/fanout-q14-q17-q22f-20260911/` against base `8cfee9f7f4493471f714e5890ed6670eab8b1572` and the three lane heads. No model, RTL or proof execution claim changes.
+Authoring commit `1bc51b5` passes the focused checker. The lane interval is bounded by its Git provisioning record at 15:35:54 UTC and handoff at 15:44:11 UTC on 2026-09-11. This item's actual also charges the shared integrator session from its first recorded clock at 15:36:15 UTC through final validation; Q17 and Q22f do not charge it again. Integration uses `python tools/run.py --check --tests` after the shared repairs and co-reads, against base `8cfee9f7f4493471f714e5890ed6670eab8b1572` and the three lane heads. No model, RTL or proof execution claim changes.
 
 Landed: Tier A. The integration read accepts the bounded comparison and citation correction; no matrix surface or pin is admitted.
+
+### Q15 · Weigh the contactless proximity surface and take an arm on each of its four uses
+
+All four arms take the refusal. R-17-051b states it normatively: the first-release composed system admits no proximity-coupled radio, a magnetically coupled loop with load modulation of the 13.56 MHz inductive class, no compartment answering as a card over such a link, and no payment, transit or identity credential role reached over it. Its first criterion fails on a physical property, a magnetically coupled loop or a load-modulated analog path in the composed manifests, the attested devicetree, R-15-124's switched off-die bank or the R-05-042 wire-format inventory, and names R-15-121's register-slave datapath, R-15-122's turnaround sequencer and the 802.11 and Bluetooth radios the roster carries (R-18-004) as members that do not fail it. It is a specification-time refusal over a composition and not an absence row: no A-row is claimed and no build binds one.
+
+The radio arm is three register acts and a price. R-15-122 is the cheap piece, a fixed frame-delay schedule being a value the admitted sequencer already takes, and it stays unspent. The other two are not cell fills: a magnetically coupled loop with load modulation is none of R-15-124's five enumerated members, so admitting one is an enumeration amendment carrying its own criterion, and a field-strength ceiling at a distance is not the TX-power-and-spectrum-mask form R-15-125 states, so the limit is an act of its own. What such a criterion would have to fail on is named although the entry is not drafted, a fixed matching network and a supply-limited driver whose ceiling no software word can raise, and drafting it needs a measurement this decision has none of. R-15-123's no-foreign-computers line decides against every commodity part in this class, whose link layer runs as firmware on a hidden core, and R-04-011 holds the exception count where it is. The endpoint is priced at R-15-015c and R-09-007, device authority provisioned by latency class in the attested devicetree, with R-15-015d deciding whether it earns a thin driver compartment; it is not priced at the partition fence, R-15-015b keeping a device-space store out of the store buffer precisely so R-15-218's padded per-class constant is not the slowest endpoint's.
+
+Card emulation cites R-12-047's parser obligation rather than re-proposing it, and takes R-12-046 as the contact-side precedent for the silicon half while recording that R-12-046 is the eUICC's own entry, so a contactless block would be a new entry with its own criterion. The genuinely new half is the compartment that answers as a card, running the discipline in the opposite direction to the AKA client's; R-12-084a with R-15-238d is the containment such a compartment takes, and it is unmoved because the arm is decided by the radio, there being no link to answer over. Payment is booked as a coverage trade in the shape R-17-051 uses for the generation floor: EMVCo type approval is a per-product contract entered by registration and a signed agreement, a live network token needs a registered token-requestor relationship that host card emulation does not remove, and R-04-011 refuses reading a second tolerated foreign computer out of the first. R-15-146's grant-liveness enable and R-15-147's cut set are named with what such a part would have to satisfy, a field-powered responder holding nothing to satisfy an in-use indication and a power-reserve element being the first cut-set candidate with no capability holder; neither is amended, the option being declined. [Inspirations & Prior Art](../background/inspirations.md) carries the field evidence that a certified element fails in production, the 2025 extraction of a GSMA consumer certificate from a certified production eUICC, and the arm cites it rather than arguing the case again.
+
+The role question is taken and not assumed: R-12-020's ground governs and the WebAuthn role word does not travel. R-04-010a's Accept sorts the external roaming hardware authenticator into the foreign-computer column on its own microcontroller running a vendor's firmware, citing R-12-020 for the disposition and not for a role taxonomy, so the decline reaches such a device over any wire and says nothing about this platform presenting itself over one. R-12-020 is left unamended and keeps sole ownership of the ground and the portability cost. Q9's confined external-authenticator client is the same entry from the other side and is decided with it, its scope undisturbed. Per use: ISO 18013-5 device retrieval is declined on its proximity-coupled carrier only, presentation over BLE or Wi-Fi Aware being a surface this decision does not reach and named undecided rather than declined; the NFC Forum tag and message specifications are the one arm whose governing text is obtainable rather than contractual and are declined anyway on the radio's ground; PCI MPoC asks this platform to be a contactless acceptance terminal and is declined with the reader radio; and the W3C Digital Credentials API defines no transport of its own, its cross-device path recommending CTAP over a Bluetooth advertisement, so it is adjacent to this question rather than part of it.
+
+The corpus is not short of the smartcard vocabulary and the arms say so: R-12-045, R-12-046 and R-12-047 carry the contact-side interface block and its verified copy-once Narcissus reader normatively. What was unconsidered is the proximity-coupled path and the payment credential layer above it. The alternatives record calls that link *proximity-coupled* and leaves *near-field* to the R-17-058e emission residual, recording that this item's own plan cell uses the second term for the first thing.
+
+Authoring commits `8fcb220`, `893b207` and `0c0d2f3` supply the decision at base `f528852f680dd00d599b73feb69258e214a1385a`. The authoring interval is bounded by the first commit at 06:59:55 UTC and the repair commit at 07:23:43 UTC on 2026-09-14, and the actual adds the review turn between them, rounded to the checklist's tenths. Outside readings are dated 2026-09-14: the EMVCo approval-process pages, the PCI SSC document library, nfc-forum.org/build/specifications, and the W3C Digital Credentials API Working Draft of 04 September 2026. ISO/IEC 18013-5 is a paid ISO document and was not read; its transport set is established from secondary sources and no disposition depends on a clause of the paid text. Reading an approval regime is not holding an approval: no clause of this decline is coverage and nothing here makes this platform a payment-scheme participant. Validation is `python tools/check.py` and `python tools/run.py coread` on the lane, with the derived counts left to integration. No model, proof or device execution is claimed.
+
+
+The measured intervals are 2026-09-14 06:50:24-07:02:04, 07:07:38-07:16:05, 07:18:04-07:23:58 UTC for the authoring, review and repair passes, 1561 seconds summed, rounded upward to 0.5 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+Landed: Tier A. The co-read ledger moved, one checker disposition row was added so that the refusal vocabulary raises its candidate rather than being worded around it, and no named rule holds the fact this item created.
 
 ### Q16 · Decide whether the first release carries messaging
 
@@ -729,7 +767,7 @@ R-17-051a takes the refusal arm: the first-release composition includes no SMS, 
 
 The [alternatives record](../background/architectural-alternatives.md#first-release-messaging-refused) prices bounded text-only SMS over IMS as the smaller admission candidate, separately from the versioned RCS comparison. Its incremental parser, sequencing, persistence, notification and composition work is refused on release scope, without charging messaging for the IMS substrate already owed by the voice floor. R-12-041 now scopes its generation restriction to radio-access and mobility control planes and preserves the existing IMS session client and proof obligations. R-18-004 distinguishes messaging's refusal from the browser's deferred port. A provider certificate anchor requires an authority and custody decision; its presence alone is not a second foreign computer under R-04-011.
 
-Authoring commit `2ca232c` supplies the decision at base `add2ba9459b9de3b38e3e26b3e76ce813257c52a`. The source readings bind SMS to TS 24.341 v19.0.0 and RCS to UP 3.0/RCC.16 v1.0; later revisions receive no compatibility verdict. The authoring interval is bounded by provisioning at 16:15:20 UTC and commit at 16:24:29 UTC on 2026-09-11. The actual adds root review and shared integration, rounded to the checklist's tenths; the open compiler/replay work receives no completion credit. Integrated validation uses `python tools/run.py --fix --tests`; the input diff and host verdict remain under `out/fanout-contracts-20260911/`. No model, proof or device execution is claimed.
+Authoring commit `2ca232c` supplies the decision at base `add2ba9459b9de3b38e3e26b3e76ce813257c52a`. The source readings bind SMS to TS 24.341 v19.0.0 and RCS to UP 3.0/RCC.16 v1.0; later revisions receive no compatibility verdict. The authoring interval is bounded by provisioning at 16:15:20 UTC and commit at 16:24:29 UTC on 2026-09-11. The actual adds root review and shared integration, rounded to the checklist's tenths; the open compiler/replay work receives no completion credit. Integrated validation uses `python tools/run.py --fix --tests`. No model, proof or device execution is claimed.
 
 Landed: Tier A. The register/prose read covers R-12-041, R-12-042, R-17-051a and R-18-004, including a messaging-service counterexample, generic-byte exceptions and the preserved voice obligation. Future messaging requires the register amendment and composed acceptance the new entry states.
 
@@ -766,8 +804,7 @@ including the generated RingContract. Every original proof and export byte is
 restored. MemoryPlan's exported `source_md5` matches
 `12d9a1e242ecb26fd8268dd41679a564`, and `proofs headers --show
 proofs/PartitionContext.v` returns its 38 current owner entries without a write.
-The measurement body takes 1.803 seconds; its script and per-file evidence are
-retained under `out/fanout-20260910/` in the integration checkout.
+The measurement body takes 1.803 seconds.
 
 The closing validation interval is 17:05:39–17:11:43 UTC on 2026-09-10, including
 provisioning and tool setup. The actual rounds that interval and the integrator's
@@ -927,10 +964,9 @@ also have deciding negative cases. Independent review accepts this bounded scope
   relation; R2 must establish the actual proxy and device completion boundary.
 
 The batch starts from `73cc27dd5674f8fd0853ee96438214011e6e48a0` and merges the
-three assessment lanes. Each JSON receipt under `out/fanout-20260911/` identifies
-its tested source bytes. The final integration gate is
-`python tools/run.py --check --tests`, recorded in that directory with the authored
-diff and index tree identity. It checks the whole corpus, every checker mutant,
+three assessment lanes. The final integration gate is
+`python tools/run.py --check --tests`, bound to each lane's tested source bytes
+and the index tree identity. It checks the whole corpus, every checker mutant,
 both Python checkers and the behavioral suite, including repeated read-only CLI
 invocation. No model, RTL or Gallina source changes; no guest evidence is claimed
 or substituted by these host experiments. The co-read ledger is unchanged.
@@ -1016,6 +1052,76 @@ CLI, tests and assessment bytes; normative source and co-read records are unchan
 Landed: Tier A. This accepts a bounded qualification and its remaining owners;
 CJ-ATTEST's formal model, theorem and implementation connection remain open.
 
+### Q22d · Qualify the generated RTL correspondence boundary
+
+The [boundary qualification](../assurance/rtl-correspondence-boundary.md) fixes the six
+fields a block's correspondence record carries, source semantics, theorem endpoint,
+emitter identity and revision, emitted bytes, synthesis input and tier reached, and keeps
+three kinds of `n/a` apart so that a field bound to nothing cannot read as discharged. No
+Kami or Kôika block exists, route (a) opening after the co-simulation gate, so the record
+is filled for the two blocks that do. The authored capability package has a correspondence
+instrument and no emitter, its evidence route-(c) shaped in the plan's §11 sense. The
+generated address map is the converse and is the instance R-15-092's ruling on generation
+names: its emitter is checked for byte identity by K-88 and for nothing else, so it is
+checked in exactly the sense that ruling holds insufficient. Both stand at evidence tier,
+which is read as the ceiling R-01-002b sets over the unit rather than as a reading taken
+over a block. Per candidate DSL no circuit theorem covers its own emitter: Kami's reaches
+the Kami term ahead of Bluespec extraction, Kôika's `compiler_correct` reaches the
+compiled register-output circuits ahead of an unverified emission layer, and Silver Oak
+excludes its SystemVerilog compiler from what it verifies. The licence-based Kami default
+is untouched, and no candidate's row moves it.
+
+Figures taken 2026-09-14 at `9e2b56ab` in lane `q22d-rtlbound-20260914` under Verilator
+5.052, the pin. `python tools/run.py rtl crosscheck` is green over the model's own
+658,659 vectors in thirteen kinds. Four single-line perturbations were applied to scratch
+copies of `rtl/vos_cheri_pkg.sv` on the guest filesystem and replayed against the lane's
+own vectors, with no tracked file modified. Swapping the two arms of the carry-out ternary
+in `enc_to_capability` differs on 545,921 lines, decrementing `CapResetE` on 4,000, and
+making `clear_tag_if` ignore its condition on 9,645. Making the exported `clear_tag`
+wrapper a no-op differs on none. All four perturbed packages lint clean at exit zero under
+the flags `run.py rtl lint` uses, including the two the cross-check rejects on half a
+million lines, which is the lint-versus-correspondence boundary measured rather than
+asserted.
+
+The Done-when is read per limb, as the qualification states it. The slice's independence
+has two axes and sits differently on each: the replayed answers are the model's own and
+cross as text with no adapter between the two implementations, so the mux, reset and
+reached-tag limbs take the predicate's first disjunct; the function selection is authored
+here, so the exported `clear_tag` wrapper takes the second, a precisely recorded seam at a
+block already at evidence tier and below every rung of R-18-010. The seam's statement is
+narrower than the limb's name: not that tag paths are uncovered, but that an exported
+entry point outside the harness's authored selection is held by nothing. Source-level
+correctness alone did not pass, and the fourth trial is the witness, the model's own
+`clear_tag` being correct and unperturbed throughout while reaching nothing about a
+SystemVerilog function no vector drives.
+
+* **Finding: no register entry requires this record.** R-15-092's Accept states the fields
+  for an elected version, and no entry makes the record a required artifact the way
+  R-15-100a makes the absence contract required. Making it one is a register act, a new
+  entry or an amendment to that Accept, and belongs to the register's owner. F-359.
+* **Finding: R-18-010's rungs are stated per core and no rung admits a package.** Both
+  worked examples are packages, which is why both rung lists are empty rather than short
+  and why the tier cells read R-01-002b as a ceiling over the unit. Extending the ladder to
+  non-core blocks, or ruling that it deliberately does not reach them, is the register's. F-360.
+* **Finding: the register states no tier below evidence tier.** The predicate's *lower
+  evidence tier* is therefore read on R-01-002b's own two-list test, as a shorter rung list
+  and a weaker claim, rather than as a third tier this work would be inventing. A sub-tier
+  is a register act. F-361.
+* **Finding: no artifact owes the address map a theorem endpoint.** Its meaning is
+  agreement with the model's `pmaCheck` in `model/model/sys/mem.sail` and no artifact
+  states that relation. Assigning an owner is the plan's act. F-362.
+* **Finding: `run.py rtl crosscheck` has no source override.** It reads the format package
+  from the checkout unconditionally, so each trial replicated its Verilator invocation by
+  hand. Reported and not repaired: this cell prices boundary qualification and a bounded
+  experiment, not a tool mode. F-363.
+
+
+The measured intervals are 2026-09-14 07:01:30-07:11:33, 07:14:42-07:25:20, 08:13:51-08:31:45 UTC for the authoring, review and repair passes, 2315 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+Landed: Tier A. No checker rule was added and no artifact of the checker's is created, so
+nothing here is held by a rule of this landing's own making; the qualification adds no
+obligation and the two register acts it names are reported rather than taken.
+
 ### Q22f · Compare the storage index under one contract
 
 The [comparison predicate](storage-index-comparison.md) is committed at `38cebaa` before either executable arm. A height-two buffered index and plain CoW B+ candidate share useful capacity, block size, authenticated-prefix redo policy, retained snapshot and conservative device/RAM reservations. Both pay journal, commit, home and checkpoint writes, persistence barriers and final drain. This conditional policy neither chooses production recovery nor executes `JournalIndex.v`.
@@ -1024,7 +1130,7 @@ At authoring head `130b58c`, `python tools/run.py storage-index --json` emits 66
 
 At the four-program endurance budget, singleton-update cases reject both arms; at five they admit only the buffered arm; at six both pass. Larger transaction widths admit both throughout the sweep. Retain Bε provisionally: B+ removes message-refinement obligations in this fixture but does not meet the central singleton envelope. No target composition is admitted. Integrity equality, fresh-block ownership and fixed reservations are assumptions; NAND amplification, target service/crypto costs, final geometry and batching, multilevel operations and implementation/refinement remain M5.3's inputs. Its production recovery decision remains open. The source-bound JSON receipt owns the measurements; no end-to-end proof or target WCET is claimed.
 
-The authoring interval is bounded by provisioning at 15:36:12 UTC and handoff by 15:52:00 UTC on 2026-09-11. Independent review adds 15:50:25–15:51:49 UTC, measured separately because the agent sessions overlap. The actual rounds their sum upward; shared integration is charged once at Q14. The integrated receipt is retained under `out/fanout-q14-q17-q22f-20260911/storage-index.json`.
+The authoring interval is bounded by provisioning at 15:36:12 UTC and handoff by 15:52:00 UTC on 2026-09-11. Independent review adds 15:50:25–15:51:49 UTC, measured separately because the agent sessions overlap. The actual rounds their sum upward; shared integration is charged once at Q14.
 
 Landed: Tier A. Behavioral checks hold the executable comparison; the finite experiment supplies no target proof or general index selection.
 
@@ -1034,7 +1140,7 @@ The [reviewed map](../assurance/unassigned-proof-map.md) assigns numbered next s
 
 The review corrects claims about uninspected axiom closures and unverified prover compatibility, assigns Islaris qualification to the logic-route decision, and keeps a direct replacement for the mandated Katamaran route conditional on a register amendment. Bluetooth pairing leaves the remaining Bluetooth procedures explicitly unpriced. U-19 carries both statement and proof scope. Missing compiler, TAL and masked-datapath implementation obligations remain visible outside the priced proposals.
 
-Exit evidence: source commit `ca05743df9a568cb728caf15312d31703ea0c405`, reviewed correction `e694a548e0c31520814eba0d5d1d981fd0571bb5`, and the final integration diff retained under `out/fanout-closeout-20260912/`. The checker, full mutation selftest, pinned typecheckers and default behavioral suite pass through `python tools/run.py --check --tests`; the gate log and input hashes bind that result to the integrated tree. No guest proof or device measurement is claimed for this document item.
+Exit evidence: source commit `ca05743df9a568cb728caf15312d31703ea0c405` and reviewed correction `e694a548e0c31520814eba0d5d1d981fd0571bb5`. The checker, full mutation selftest, pinned typecheckers and default behavioral suite pass through `python tools/run.py --check --tests`; the gate log and input hashes bind that result to the integrated tree. No guest proof or device measurement is claimed for this document item.
 
 The 0.8 h actual uses the recovered author interval 20:20:58.339 to 20:50:12.391 UTC on 2026-09-12, the shared document review from 21:18:47.594 to 21:30:09 UTC, and the timed document integration/validation allocation retained with the closeout receipt, rounded to one decimal hour. The shared ABI review is charged here once and must not be charged again when M1.2d lands.
 
@@ -1052,7 +1158,7 @@ R-02-003a takes the ensemble arm: a server instantiation is a composition of who
 
 The residuals are booked rather than absorbed: the isolation model's fourth spatial case across a wire (R-17-003d), the composed non-interference statement's freshness (R-17-014a), the link's four seam meetings (R-17-025a), the fail-closed seam collecting the link's refusals (R-17-030z, the last one-letter id the series admits), the session's ceiling with no upstream analysis to curate (R-17-049d), the wire's physical exposure (R-17-058h) and the two-machine attestation relation as N copies of one mask set (R-17-061b). The coverage matrix gains boundary B-10 with its seven cells, the crown-jewel inventory's rows 8, 11, 17 and 27 gain the ensemble's members with no new row and no new target, and the absence contract gains A-18 through A-21 with provenance bindings of the third kind on A-12a's precedent. The README's product paragraph no longer names the design by a slogan and no longer says the browser does not run on it: the browser is R-14-008's fixed design and R-18-004's deferred port. [The inspirations record](../background/inspirations.md#groqs-tensor-streaming-processor-static-scheduling-carried-across-chips-and-the-shared-address-space-an-ensemble-does-not-take) carries the Groq reading, the TSP's statically scheduled links, scheduled deskew and compile-time partition transferring as evidence and its shared global memory across chips, published link descriptions with no cryptographic protection, and replay recovery named as the divergence; [the alternatives record](../background/architectural-alternatives.md#a-second-die-radio-bifurcation-sram-chiplets-and-bonded-stacking-declined-once-at-the-trust-structure-they-share) distinguishes an ensemble from the second die it declines. The link's authenticated encryption is computed in the crypto core under R-05-070 and R-15-202 as they stand, so a link's rate is a composition constant bounded by that core's slot share, stated as a cost; the first release is unmoved, and R-02-003a names the five gating artifacts Q23b, Q23c, Q23d, Q23f and Q23g price, with Q23e supplying the traffic table Q23d reads.
 
-Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c499a068cae841d8a52dcc83ee2b2c3e4b23ca`. The source readings bind the Groq claims to the ISCA 2020 and ISCA 2022 papers, the RealScale technical document, the GroqCard and GroqNode briefs at v1.5, Groq's newsroom notice of 2025-12-24 and NVIDIA's technical blog of 2026-03-16, each read on 2026-09-12; later revisions receive no verdict. The initial authoring interval is bounded by provisioning at 14:06:32 UTC and fixup commit at 16:13:43 UTC on 2026-09-12. The actual sums the prior root and subagent session bounds and the closeout authoring/review bounds through 18:07:08 UTC, rounded upward to the checklist's tenths. The timestamp receipts include idle gaps and exclude subsequent unattended host-gate waiting and output cleanup; they are session wall-clock bounds, not CPU time. The interval receipt, input patch, review dispositions and gate transcript are retained under `out/closeout-20260912/`. The open children Q23b through Q23g receive no completion credit. Integrated validation uses `python tools/check.py --fix`, explicit `python tools/run.py coread --bless` readings and `python tools/run.py --check --tests`. No model, proof or device execution is claimed.
+Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c499a068cae841d8a52dcc83ee2b2c3e4b23ca`. The source readings bind the Groq claims to the ISCA 2020 and ISCA 2022 papers, the RealScale technical document, the GroqCard and GroqNode briefs at v1.5, Groq's newsroom notice of 2025-12-24 and NVIDIA's technical blog of 2026-03-16, each read on 2026-09-12; later revisions receive no verdict. The initial authoring interval is bounded by provisioning at 14:06:32 UTC and fixup commit at 16:13:43 UTC on 2026-09-12. The actual sums the prior root and subagent session bounds and the closeout authoring/review bounds through 18:07:08 UTC, rounded upward to the checklist's tenths. The timestamp receipts include idle gaps and exclude subsequent unattended host-gate waiting and output cleanup; they are session wall-clock bounds, not CPU time. The open children Q23b through Q23g receive no completion credit. Integrated validation uses `python tools/check.py --fix`, explicit `python tools/run.py coread --bless` readings and `python tools/run.py --check --tests`. No model, proof or device execution is claimed.
 
   * Finding: **R-15-111's acceptance criterion cited R-15-146, the peripheral electronic-enable rule, as the ground for no die-to-die link existing anywhere in the machine.** The owning entry is R-15-162; a citation that resolves and names the wrong owner is the stale-claim shape no citation rule reads, and it is repaired in this act.
   * Finding: **Universal session-tag rules excluded the handshake that establishes the session.** Application traffic remains gated by the session; only bounded verified establishment processing receives scheduled handshake frames, which enable neither application delivery nor an origin leap.
@@ -1060,6 +1166,158 @@ Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c49
   * Finding: **The ensemble entries both denied a shared mask set and required copies of one mask set.** Members are distinct physical dies with separate packages, memory and unit identities, each realizing the same mask-set design.
 
 Landed: Tier A. The register/prose read covers every new entry and every amended one, the four absence rows and the seven B-10 cells, including a peer-on-another-unit counterexample at R-12-015d, a routed-fetch-across-a-link counterexample at R-15-171a, the circular-digest case R-13-001d's identity avoids and the unbounded-drift case R-15-196a's leap answers; the ensemble's gating artifacts are Q23b through Q23g and none is claimed here. Independent review at `6ed2b5b` identifies the establishment bootstrap, within-slot delay and mask-set scope defects; the corrected pairs and coverage cells pass a focused reread before the integrated host gate. Q23b through Q23g remain open.
+
+### Q23b · Author the ensemble link contract
+
+[The ensemble link contract](../hardware/ensemble-link-contract.md) is the first of the five artifacts R-02-003a admits an ensemble only when they exist, and three entries delegate to it by name rather than by description. It states the four frame forms as one descriptor over the decoded message block, with the wire selecting no regime, no handler and no key; the code's selection predicate as the clauses R-15-228e, R-15-119, R-15-119c and R-12-043a decide between them; the endpoint's registers with the party each belongs to and the absences that are as much of the description as the rows; the two window contracts and the one clause on which they differ; the FIFO's admissibility predicate and the line rate's two binding ceilings; the one-sided arrival-phase reading and which of the landing and the leap verification gates; the slot-table register format; R-04-010a's three conditions decided clause by clause with a falsifying structure named for each; the correspondence between A-18 through A-21 and the structures of this block whose presence in a netlist or a Coq term is the finding; and the link server's IDL interface with the two session tables that are not one table. It is listed under Hardware and ISA in [the documentation index](../README.md), and [crown-jewel](../assurance/crown-jewels.md) row 10 gains the frame descriptor set as a member.
+
+**The document refuses every magnitude, and the refusal is the deliverable's shape rather than a gap in it.** No composition in this tree fixes a frame size, an encode or decode latency or a skew bound, so §4 carries one row per constant with its unit, its admissibility predicate, what decides it and the artifact that carries and emits it, and carries no number; a figure written there would be the placeholder the document's own EL-2 refuses, and §4.1 hands a sibling item the arithmetic and the parameter names instead. The code's family is recorded as owed with its operand named, the wire's raw error rate at the declared reach and frame length, and its first measurement named at Q23g, so the measurement decides it mechanically rather than confirming a choice written here. The R-05-051a canonicity theorem is recorded OWED against crown-jewel row 10, whose status stays `not authored` because no Narcissus descriptor is authored anywhere in this repository for a Coq-checked injectivity theorem to be stated against.
+
+Two acts are reported and not taken. R-09-007's list of what the static devicetree declares reaches none of the link's per-link constants, and ten rows of §4 name that tree as their carrier on R-02-003a's general clause that every constant of an ensemble is carried there, a clause naming none of them; whether R-09-007 owes an Accept clause for this class, on the precedent R-15-228h earned, is a register act. The endpoint's register offsets are in the same position: R-15-002b makes an MMIO aperture's placement a stated constraint on the attested devicetree and no entry assigns an offset inside it to a register of §3.2's table.
+
+Exit evidence: source commit `cc321b0`, reviewed repair `be28779`. `python tools/check.py` from the lane exits 0 with every rule ok, and a corpus-membership probe confirms the document is inside the corpus those rules read: an appended undefined requirement id and section number are refused by K-11 and K-13 naming this file, and `git checkout --` restores the tree. `python tools/run.py coread` reports all 1452 pairs last read as they stand, no register prose having moved. `git ls-files --eol` reads `i/lf w/lf` on all three touched files. No guest command, no proof and no device measurement is claimed for this document item, and none of the other four artifacts R-02-003a gates on is claimed here.
+
+  * Four findings.
+    * **A general clause is not a declaration.** Ten of §4's rows name the attested devicetree as carrier on R-02-003a's general clause alone, no entry naming any of them and R-09-007's enumeration reaching none; that the clause is not read as exhaustive is visible in the register, R-15-228d putting the frame size in a different artifact by name. F-364.
+    * **An inventory row's status is not lifted by a stated grammar.** Crown-jewel row 10 gains this descriptor set as a member and stays `not authored`; the descriptor, its Narcissus correctness pair and its canonicity theorem are all owed, and whether one stated grammar promotes the row is K-95's lift and its repairer's. F-365.
+    * **A family chosen without its operand would rest on nothing.** The selection predicate admits both of R-15-119's families and no measurement in this tree separates them, the frame length being unfixed and the reach and raw error rate being physical quantities none of the five gating artifacts buys, so the family is recorded as owed rather than written. F-366.
+    * **The endpoint's register offsets are declared by no entry.** R-15-002b constrains where the aperture sits and nothing assigns an offset inside it, which is the same class of gap as the constants and is recorded beside them rather than filled. F-367.
+
+
+The measured intervals are 2026-09-14 06:45:29-07:03:45, 07:14:09-07:25:27, 08:15:47-13:02:34 UTC for the authoring, review and repair passes, 3425 seconds summed, rounded upward to 1.0 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Its repair pass stalled for 15556 s inside that window on no work of its own, which is the whole of the difference between the session bracket and the figure, and the stall is out of it.
+
+Landed: Tier A. The item creates a contract whose content no rule in the registry holds: what the gates decide about it is id, link, section and glyph resolution and the crown-jewel row's membership, and not what it says about frames, registers or R-04-010a's conditions, so the fourth Tier-B condition, a named rule holding a fact the landing created, is unmet and a green `check.py` is not a reading of the text. Independent review at `cc321b0` identifies an epoch register deciding against §5.3's own falsifying column, a §4.2 paragraph declaring closed the gap it had reported two clauses earlier, a frame-size carrier naming the wrong artifact, and five sentences claiming more than their evidence establishes; the repair at `be28779` deletes the epoch register in favour of the equalization freeze's own validity, sorts §4's rows by the authority their carrier rests on, moves the frame size to the attested schedule artifact, and rewrites the five sentences to what their entries decide. Q23c through Q23g remain open and no ensemble is composed.
+
+### Q23e · Measure a sharded model's link traffic and the rate the crypto core admits
+
+  * **What the arithmetic decides is the ordering of two terms and not the bandwidth question, and saying only that is the whole of the result.** At the floor's rate the busiest of the six shapes moves 6.45 MB/s on its busiest link, so at any line rate above that figure the exchange count and not the byte count binds; whether a link clears it is not decidable here, R-12-015d bounding the line rate above by the crypto core's authenticated-encryption throughput that nothing declares and Q23b's contract owing the line-rate bound. What separates the shapes by two orders of magnitude is the serial exchanges one decode step contains, 2 to 8 under a layer-wise split against 72 to 1,008 under a tensor-wise one, which is why the tables are slot-table demands rather than bandwidth demands.
+  * **The layer-wise crypto charge per member is independent of the member count at every payload**, a member sending one exchange and receiving one whatever the ensemble's size, which is the single most useful fact here for a schedule emitter: layer-wise sharding scales the ensemble without scaling any member's crypto slot.
+  * **Two members admit layer-wise on every term this tree can decide and put tensor-wise's whole verdict on one undeclared constant.** Layer-wise at two members holds a 100 ms cadence bound and 50 crypto operations per second at a 2,048-byte payload, its only tension the head holder's 1.08 grant floors with a `q8_0` cache, which R-18-004b meets by a composition declaring above its minimum as the single machine's 1.56 must be. Tensor-wise fits the grant at 0.98 and needs 3,600 authenticated frames per second per member under a 2.78 ms cadence, so `t_aead` alone decides it and R-12-015d owes that figure.
+  * **The refusal above two members belongs to the declared cycle and ring collective and not to tensor-wise sharding, and pricing the alternative is what showed it.** No entry fixes a topology or a collective. Over the declared cycle, eight members cost 1,008 serial exchanges and a 198 us bound that must contain a guard band, a skew bound and both endpoint constants, none of which has a magnitude. Fully connected, the same shape reduces in one serial position per all-reduce: 72 serial exchanges, 2.78 ms, the two-member row exactly, bought with `M-1` endpoint blocks per member instead of two, 25,200 crypto operations per second per member against 10,080, and four times the per-member bytes. Both sides are emitted rather than argued. So what this tree decides is that above two members the cadence term and the crypto term cannot both be relaxed, and which binds is the topology's to choose.
+  * **The admitted rate is at most the minimum of R-15-171a's three terms and the composition is somebody else's.** That entry calls the rate a constant of the bank grant, the link slots and the crypto core's per-frame share and supplies no composition function; R-11-017a puts all three into one member's R-11-006 interval arithmetic as ordinary tasks and grants, which is one schedulability analysis and not three independent ceilings, and Q23d's emission decides it. This report supplies `W`, `K`, `E` and `F` for six shapes and none of `G`, `phi`, `t_aead`, the slot period or the guard band, so **no token rate is stated as a number anywhere in it**.
+  * **Five terms are refused by name rather than filled in**: the frame payload (Q23b, under R-15-228d; the sweep is this report's declared convention and every frame figure is a function of the payload the reader substitutes), the encode and decode constants (R-17-041 over the timing-annotated model, whose table carries core operation classes and no device row and whose `qualified` field is false in the shipped configuration), the crypto core's throughput (R-12-015d), the per-island bank grant (R-15-247p, M6.8 unrun), and the slot period and guard band (R-11-017a's fourth output). The floor's own model's shape is refused with them: R-18-004a(vii) declares no hidden width and no layer count, so no per-token link byte figure for that model is stated.
+  * **No mixture-of-experts shard set is stated.** R-15-171 and R-15-171a admit one only with every expert resident on a named member and top-k fixed, R-12-085 makes the expert count and top-k terms of the declared ceiling, and no artifact in this tree declares either. What carries over is the arithmetic: with every expert resident and top-k fixed, work per token is a constant, so the exchange counts hold unchanged over the resident set and only `W` moves.
+  * **Three readings are declared as readings rather than attributed to entries**, which is the discipline this item's subject most invites breaking. That the link's latency bound is the endpoint's encode and decode constants is this report's, R-02-003a and R-15-196a calling them the link's latency constants and Q23g owning their two-member measurement. That R-18-004a(vii)'s rate and context may be read on an ensemble member is this report's, licensed by R-02-003a's *every member of an ensemble meets every entry of this register alone* and not by R-18-004a, which R-02-003a puts the ensemble later than. And which member a shard sits on is R-15-171a's composition act, R-08-012a placing the object only once the composition has named the member.
+  * Net change: 2,626 lines added and one removed across four files, three of them new: the report, its `ensemble-sharding-traffic/` directory carrying [shard.py](../performance/ensemble-sharding-traffic/shard.py) and [traffic.json](../performance/ensemble-sharding-traffic/traffic.json), and the Performance row in [the documentation index](../README.md). No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit, so the review gate is not re-entered and the co-read ledger is unmoved.
+  * Exit evidence: `python tools/check.py` green from the lane, exit 0, every derived fact agreeing with its artifact over 104 registered rules with K-00 agreeing in both directions. The instrument reproduces its own output byte for byte at the recorded revision, 67,660 characters identical, and it is an extension of the inference-demand instrument rather than a second harness, loading no weight file, running no model and taking no time. Its guards were exercised rather than asserted: a static file of another model is refused by name, and a ragged ring chunk and an inexact FFN-width division each raise. Both files read `i/lf w/lf`. **No guest run is in this evidence and none is owed**: every figure is arithmetic over one tracked JSON file, host bytes are target bytes for the partition, and no host time enters any figure. The host gate wave is the integrator's.
+  * Four findings.
+    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, which is a lower bound on the one constant the same report says it cannot decide and which R-12-015d makes bounded above by an undeclared throughput. The repair is conditional phrasing and a named owner, and it cost the headline nothing: the ordering of the terms was always the result, and the bandwidth claim was decoration on it. F-368.
+    * **A refusal derived over two declared parameters reads as a property of the shape unless the alternative is priced.** Above two members tensor-wise was refused on cadence; the refusal was the cycle's and the ring's, and a fully connected collective reverses it at 2.5 times the crypto charge. Pricing the alternative was fourteen lines of the instrument and it moved a verdict, which is the argument for emitting a rejected option rather than dismissing it in prose. F-369.
+    * **Three figures sat outside the file the report said every figure came from**, an FFN width no tracked artifact states, a head count owned by another report's section, and a cache constant hand-copied from it. All three are now derived in the instrument with predicates, and the derived cache bytes agree with their source section to the byte, which turns a transcription into a check. The rule the miss breaks is the item's own Check clause. F-370.
+    * **An entry that names three terms and no composition function invites the reader to supply one.** R-15-171a's rate was read as the minimum of three independent ceilings; R-11-017a's own text puts all three into one member's interval arithmetic as ordinary tasks and grants, so the independence was asserted against the entry the sentence relied on. Stated as an upper bound now, with the composition named as Q23d's. F-371.
+
+The measured intervals are 2026-09-14 06:42:43-06:59:50, 07:07:14-07:21:51, 07:24:14-08:36:10 UTC for the authoring, review and repair passes, 3085 seconds summed, rounded upward to 0.9 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Its repair pass stalled for 3135 s inside that window on no work of its own, and the stall is out of the figure.
+
+Landed: Tier A. No rule in [the rule registry](../../tools/check-rules.md) holds any fact this landing created: the traffic tables, the exchange counts and the restatement of inference-demand's 12.46 GB/s are all unheld, and a rule over a derived traffic table would hold one script's output against the same script's accounting of it, which is the pattern S14 and I15 both declined. Saying so is cheaper than three edits and a mutant for a table no other document wants.
+
+### Q24a · Author the immutable module contract
+
+[The contract](../hardware/immutable-module-contract.md) draws the socket as a new external confidentiality boundary and tells it apart from the three things it resembles: host memory and R-15-206's two DMA shapes, R-15-228c's ensemble member, and R-04-010a's ordinary matter. Its endpoint imports no host address, capability or DMA request, and every host destination is chosen from the endpoint's own outstanding-operation state. The grammar is finite, and each operation carries the socket states that admit it, a success predicate inside those states, and a refusal disjunction drawn as that predicate's complement; the drain R-15-228h's ordered path permits between ordered stop and scrub is stated as the `quiescing` arm of the operations that carry it. The lifecycle is R-15-228h's seven states with a full transition matrix, every non-admitted cell naming a refusal that the named-cases section gives a rejected instance. The private-state inventory carries R-12-085k's four dispositions on the module side and every endpoint register on the host side, each with the act that writes or clears it and its owning requirements. The claim table separates the arbitrary-card containment theorem from the honest-card rows and marks the arithmetic row's scope; none is proved, and each row names the item that owes it.
+
+The contract names no magnitude. R-15-228g makes frame size, slot counts, ceilings and the management budget composition-fixed and no artifact in this repository fixes any of them, so they are owed with their owner rather than invented; the same refusal applies to the endpoint's register field layouts (U-10), the Narcissus descriptors and their canonicity theorems (U-12, U-14), the reset and power sequence's electrical steps (U-06) and R-15-228i's envelope values (Q24f). Nothing in the document has been executed: the named cases are acceptance predicates and say so.
+
+Two things are composition choices rather than deductions, declared on [the modeled block-device contract](../../interfaces/block-device-contract.md)'s precedent. The operation set, the register set, the slot classes and the socket state that admits each operation are the first. The pre-establishment fill is the second: transfer and management slots are granted only from `authenticated` onward, and an unfilled reserved slot carries a declared fixed public padding constant that carries no opcode, reaches no parser and is eligible as neither application traffic nor a handshake input, which is R-15-228d's rule for the ensemble link read onto this socket.
+
+Two claims were weakened at review to match their evidence. Exhaustiveness of the decision table is a drafting property and not a theorem, and the document says Q24d's generated frames are what would falsify it. Indistinguishability in slot occupancy is a statement about an idle established session against a loaded one, on R-15-228d's ground, and not about presence: an absent module sends no frame at all and its absence is what the declared detection reports.
+
+* **Finding: the checklist's Owns clause for this item names two glosses as socket states and omits three states.** The cell writes "absent, present, admitted, active, quiescing and isolated"; R-15-228h fixes absent, isolated, detected, reset, authenticated, active and quiescing. *Present* is the condition a card is in from `detected` onward and *admitted* is a property of a unit and design pair rather than of the socket, and the contract records both as glosses with the state each produces. `detected`, `reset` and `authenticated` are the three the clause drops. F-372.
+
+Authoring revision `5afea3b`; repair revisions `7affae9` and `057ec35` after independent review. At the head, `python tools/check.py` reports every rule ok but K-24, whose six asserted counts are the `--fix`-owned crown-jewel class figures this landing moved by flipping row 29 from `not authored` to `partial`; `python tools/run.py coread` reports all 1452 pairs read as they stand; and the 37 requirement ids the contract cites all resolve in the register.
+
+
+The measured intervals are 2026-09-14 06:42:44-06:56:10, 07:05:35-07:15:05, 07:18:00-08:18:56 UTC for the authoring, review and repair passes, 2260 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Its repair pass stalled for 2772 s inside that window on no work of its own, and the stall is out of the figure.
+
+Landed: Tier A. The read accepts the boundary, the grammar's exhaustiveness as a drafting property rather than a theorem, and the claim-scope separation. Every theorem the claim table names stays open at Q24c through Q24f, and the crown-jewel row stays `partial` on its remaining specification parts.
+
+WHY TIER A AND NOT TIER B: the checker is not green at this head, six `--fix`-owned counts are outstanding for the integrator, the act edits crown-jewels.md prose, and no rule in the registry holds the fact this landing created, so there is nothing to name in a "Tier B under" line.
+
+### Q23c · Author the ensemble link session reference model
+
+The [qualification](../assurance/session-binding-qualification.md) gains row 27's
+ensemble member beside Q22c's TLS one: R-12-015d's construction for a link joining two
+members of one ensemble, each end appraising the other on both of R-09-025a's registers
+against the constants its own attested devicetree names for that endpoint, each end
+supplying its own fresh challenge so that one accepted direction is not a link, the
+composition-fixed hybrid configuration taken rather than negotiated, the keys held in
+the crypto core with no export path, the anti-replay count taken from the schedule
+rather than from the frame, and each end's slot-table digest bound into the session so
+that two ends holding different tables are refused before a payload crosses. The first
+obligation is stated rather than assumed: the identity a quote is signed under is the
+identity rooted in that unit's device-identity secret, a construction the register
+decides nowhere, so the model names the premise, makes the check decide, and credits no
+realization. R-12-015c's key-ownership binding is in the model and not beside it: the
+session secret is a function of the link, the epoch, both fresh challenges and both
+signing identities the two appraisals accepted, and possession is the session's holder
+set. Endpoint, wire and compromise assumptions are stated beside the scenarios that
+record each compromise accepting.
+
+`python tools/run.py session-binding --json` classifies both parts at exit zero with
+`production_adoption` open. The ensemble part enumerates 256 deliveries of its
+eight-member issuance population to both ends of the link at every candidate challenge:
+4 accepted, 252 refused, 176 substituted-unit refusals and 64 foreign-ensemble-identity
+refusals, every repeated decision refused, and no relation failure from its independent
+event-level oracle. Twenty-eight named scenarios classify as required, among them the
+two the ensemble adds, a peer of the right software on another unit and a peer at
+another ensemble identity, both refused. `python tools/run.py test --only
+session_binding` passes 13 cases; `python tools/check.py` and `python tools/run.py
+typecheck` are green.
+
+* **Finding: a session model can state key ownership and decide nothing about it.** The
+  model as first authored derived its session key from the link name and the epoch
+  alone, both public composition constants, so the appraisal and the key holder were
+  unrelated: an honest establishment and one admitting a substituted die produced the
+  same core, and a party that appraised nothing sealed frames the session delivered. The
+  relay and key-exposure rows then rested on a stipulated string rather than on a
+  decision. Keying the secret on both accepted signing identities and both challenges,
+  and carrying possession as a holder set as the TLS part does, is what makes them
+  decide.
+* **Finding: an event-level oracle that reads a verifier's own predicate off the claim is
+  not independent along that dimension.** Two of the ensemble oracle's seven conjuncts
+  compared the appraiser's freshness and configuration checks against the claim rather
+  than against ghost state, so a defect in either comparison would have left the
+  relation silent. The issuance now records the challenge it was handed and the
+  configuration it was asked for as ghost fields beside the die that signed.
+
+No protocol proof is claimed here and none is attempted. M6.9a, M6.9b and M6.9c own
+protocol realization, implementation connection and the theorem for this construction as
+for TLS; the foundation they need is [the unassigned proof
+map](../assurance/unassigned-proof-map.md)'s U-20 and no library the locked prover
+admits is installed. R-17-049d's open record stays open, `CJ-ATTEST` stays `not
+authored` in the crown-jewel inventory's row 27, and two acts are named as owed before a
+stronger claim is available: a register act deciding the device-identity binding's
+construction, and Q23b's link contract and Q23d's slot tables, which this part
+abstracts.
+
+Authoring, repair and review ran as separate agent sessions on 2026-09-14; the actual is
+their summed wall clock on the agent-parallel clock. The ideal tag, the opaque digests,
+the symbolic identities and the small integer slot counts are experimental inputs: this
+is finite host evidence with ideal cryptography, no frames, no key exchange, no
+computational reduction, no prover and no target execution.
+
+
+The measured intervals are 2026-09-14 06:46:47-07:03:26, 07:08:27-07:15:57, 13:01:26-13:07:32 UTC for the authoring, review and repair passes, 1815 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+Landed: Tier A. This accepts a bounded symbolic qualification and its remaining owners;
+CJ-ATTEST's formal model, theorem and implementation connection remain open.
+
+### Q23f · State the composed non-interference obligation beside T
+
+  * **The obligation is stated beside T and not inside it.** [ComposedNonInterference.v](../../proofs/ComposedNonInterference.v) imports [ApexTheorem.v](../../proofs/ApexTheorem.v) and adds no field to the Vocabulary record, no tenth conjunct to R-05-160's closed seam list, no obligation inside T, and no axiom, so T's statement, crown-jewel row 1 and the field bindings it publishes are unmoved and the proof manifest moves only for the new file. What it adds is one record, `Ensemble`, and one Prop over it, `composed_noninterference`, which is a theorem *target*: nothing here proves it and nothing here claims to discharge R-17-014a, whose record stays open until a proof lands (R-18-031).
+  * **R-17-014a's own sentence is machine-checked rather than asserted.** `composition_is_carried_by_no_per_member_theorem` refutes the uniform implication from the N member instances of T to the composed conclusion, so the gap the entry names is exhibited in the prover rather than described, and an edit that closes it by definition breaks that lemma here rather than at the capstone. The instance that refutes it is R-05-166's distinguishing instance: every member's own T holds at `leaky_ensemble`, each link's two conjuncts hold, the adversary is admissible at both members and covers the link, the exogenous inputs are indistinguishable to it, and the composed conclusion fails all the same because the wire carried the near member's own quantity into the far member's observable slot. Its two endpoints sit at different labels, which is the instance the plan's Execute clause asks for and which R-05-166, not R-05-157, is the entry asking of a policy statement.
+  * **Each link's two endpoints are one boundary, and the wire is an adversary the policy permits.** `wire_boundary` is a single predicate over a single link naming both endpoint compartments as one boundary of R-17-003d's untrusted-wire class, and *permits* is ApexTheorem's own `admissible` rather than a second notion: the target quantifies only over adversary sets graph-permitted and outside the TCB at every member (R-01-002) that also contain each link's endpoint compartment, the ring proof's Byzantine peer (R-12-008) being the wire's peer. R-12-007a bounds what a peer compromised inside an accepted session reaches, and the file states that bound as a bound: the converse containment is stated by neither entry and is not claimed.
+  * **The two-machine attestation relation is the session and not a third field.** R-17-061b states outright that the relation "is stated at R-12-015d", so `link_session` carries it and a separate field would be a second owner of one fact. Q23c's reference model is unlanded, so the relation is read from R-12-015d in the register rather than from a sibling lane's document, and R-17-049d's standing for an unauthored model is why both link fields are opaque Props here.
+  * **The two conjuncts R-17-014a names as the link's contribution are inert as stated, and the file reports that rather than trading on the appearance of a contribution.** `link_schedule` and `link_session` occur in the record declaration, in `link_contribution` and in the instance literals, and in no definition the target's conclusion mentions. `link_premise_carries_vacuity_and_not_contribution` is that sentence machine-checked: an ensemble differing from `leaky_ensemble` in one field, its session made unsatisfiable, satisfies the target outright while its wire still carries the near member's own quantity into the far member's observable slot. The statement therefore meets the entry's "and nothing more" as an upper bound by making the named contribution empty, which is R-05-165's second mode standing in the target's own premise. Closing it is a register act and not a Gallina one, and the file names the act rather than taking it.
+  * **Nothing is decided here that the register has not decided.** `endpoints_share_a_label` is defined, holds at one instance and fails at the other, and is deliberately not a premise, because no entry states what relation a link's two endpoint labels must stand in. And the record's `exogenous` and `delivered` fields are related by nothing on purpose: relating them by projection would make the target follow from the member theorems in one line, which is R-05-165's second vacuity mode wearing a composition.
+  * Net change: one new file, 608 lines and 43 constants, and no other tracked file touched.
+  * Exit evidence: `python tools/check.py` from the lane reports one finding, `FAIL K-106` on `tools/generated/proof-ledger.md` at line 40, which only the integrator's `--fix` writes; K-40, K-41, K-52, K-103 at **3,844** citations over 28 proof artifacts, K-105 at **369** annotations, K-108 and K-109 at **27** generated headers are ok. `python tools/run.py proofs headers --write` wrote 0 of 27, the authored citation set being unchanged. The file compiles under the pinned prover, `The Rocq Prover, version 9.2` on OCaml 5.4.1, ApexTheorem.v then ComposedNonInterference.v both exiting 0 in this lane's own guest directory, and its ten `Print Assumptions` commands print ten `Closed under the global context` lines and nothing else, so **no new axiom** enters. Its own constant count is **43**, taken with the gate's own query, `Search _ inside ComposedNonInterference` with both search filters removed and the empty blacklist confirmed. **The whole `run.py proofs` gate is not re-run at the landing revision**: it ran when the statement was authored, the repair adds three constants to this file, so that run's per-file figure of 40 and its global totals are stale by exactly those three and the integration wave owes a fresh one. No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit, so the review gate is not re-entered and the co-read ledger is unmoved.
+  * Three findings.
+    * **The link's named contribution cannot bear on the conclusion, and no entry lets it.** R-17-014a calls R-15-228d's schedule and R-12-015d's session the link's *contribution*, which asserts they do work; as predicates over a link alone they reach nothing the target concludes, and the wire's semantic content sits in the `delivered` field the entry does not name. What is missing is the transfer: R-15-228b fixes what a frame is, R-15-228d the slot it occupies, R-12-007a the indices it names and R-12-015d the session that authenticates it, and none of the four relates what a link delivers to a member to what the sending member's execution placed on the wire in that slot. Open, and the act is a register act: an Accept clause at R-17-003d, or an entry beside R-12-007a. A field asserting the relation in the proof file would decide by fiat what the register has not, which is decision 8's own ground met a second time.
+    * **No entry decides what relation a link's two endpoint labels must stand in.** R-15-228b, R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame grammar, the slot table, the index-only payload and the session, and none states a label relation across the wire. `endpoints_share_a_label` gives the question a name and two instances and is left out of the target. Open, owed by row 2's compose-time policy model (R-08-028), which is unauthored (R-15-211).
+    * **This item's own cell mis-cited the entry it leans on.** The Execute clause asked for the rejected instance "as R-05-157 asks of every claim"; R-05-157 says only that T is the formal reading of *hyper-secure* and of G2, and the entry asking for "a distinguishing instance its specification rejects" is R-05-166, which the same cell's Owns clause already names. No rule holds a cited id against what the sentence attributes to it, which is why every gate stayed green over it.
+
+The measured intervals are 2026-09-14 07:01:28-13:02:51, 13:06:48-13:14:09, 13:15:39-13:31:09 UTC for the authoring, review and repair passes, 2426 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (impl -20314s, repair -314s), and those stalls are out of the figure.
+
+Landed: Tier A. No rule holds what this item created: K-109 binds the file's generated header to its requirement owners, K-103 its citations, K-105 its annotations and K-108 its derived region, and `run.py proofs` compiles it and audits its assumptions, but none of them reads what the target *says*, so Tier B's fourth condition has nothing honest to name. Its first condition is unmet besides, `tools/check.py` being red on K-106's generated ledger until the repair path runs. The note books two open register acts, which is a full read's subject in any case.
 
 #### Q25a · Specify the graded dependent foundation
 
@@ -1079,8 +1337,7 @@ executed negative or qualified binary is inferred from the paper derivations.
 
 The measured author/check interval is 2026-09-12 22:52:20–23:02:49 UTC,
 629 seconds, rounded upward to 0.2 h. Shared review, integration and the complete
-host gate are charged once to Q25d's open review, with clocks, input identities
-and gate logs retained under `out/fanout-q25-20260912/`. The integrated gate is
+host gate are charged once to Q25d's open review. The integrated gate is
 `python tools/run.py --check`; no guest evidence is required for this design item.
 
   * Finding: the call-by-name grading reference supplies no proof that effectful
@@ -1111,8 +1368,7 @@ the `HA-*` laws, target bounds and frontend admission remain unimplemented.
 
 The measured author/check interval is 2026-09-12 22:52:43–23:03:20 UTC,
 637 seconds, rounded upward to 0.2 h. Q25d carries the shared review and final
-`python tools/run.py --check` wave, whose source identities and logs are retained
-under `out/fanout-q25-20260912/`. No guest measurement is claimed.
+`python tools/run.py --check` wave. No guest measurement is claimed.
 
   * Two findings.
     * **Language-frame occupancy needs an explicit inventory disposition.**
@@ -1145,8 +1401,8 @@ grade supplies no sharing authority.
 
 The measured author/check interval is 2026-09-12 22:53:08–23:03:02 UTC,
 594 seconds, rounded upward to 0.2 h. Q25d carries shared review, integration and
-the final `python tools/run.py --check` wave, with identities and logs retained
-under `out/fanout-q25-20260912/`. No executed language or guest evidence is claimed.
+the final `python tools/run.py --check` wave. No executed language or guest
+evidence is claimed.
 
   * Finding: the registered-but-unstarted cancellation branch must retain its
     frame while returned inputs await collection in the reserved cancelled
@@ -1155,6 +1411,192 @@ under `out/fanout-q25-20260912/`. No executed language or guest evidence is clai
 
 Landed: Tier A. The full and independent reads accept the interfaces, counter
 protocol and qualification cases with their unmechanized obligations preserved.
+
+#### Q25d · Review the combined calculus and price its implementation
+
+The [composition dossier](../languages/full-language-review.md) joins the packet,
+graded callback, handler and cancellable scalar-cell client, states the entry
+witness it inhabits and the eight well-formed neighbours it refuses at the
+premise each was built to miss, restricts conservatively to the synchronous
+slice, and composes substitution with dependency reindexing, resource
+preservation, erasure, interference and every exit over one carrier rather than
+a family of them: the byte-and-capability instance, which is Q2c's
+`byte-instance` extended by its `scoped-resources` interpretation. Naming the
+carrier buys each duty a nameable missing constant instead of an unnamed
+prerequisite. It constructs no inhabitant of that carrier, and says so.
+
+The pricing table carries 40 rows over the 23 debt keys the three rule dossiers
+enumerate plus the frontend, target and qualification rows, each with one
+implementation owner, one estimate and one acceptance predicate naming what fails
+it. The estimates are 27 ranges with an authority class, 10 citations to the
+owner already carrying the work, and 3 `unpriced` beside the decision that blocks
+them, which is Q2c's declined foundation commissioning, U-22 owning the reviewed
+breakdown that would replace them. No row is blank, zero or a bare dash; no total
+is stated, a sum over conditional ranges being a figure for nothing; every
+class-X range's upper end is at least twice its lower end. A range is stated by
+its ends alone, the midpoint being the mean of them at whatever cell eventually
+carries the row. Q2c's foundation keys, Q21a's proposed packages and the duties
+Q2b, Q21b, Q20b, Q20c and M1 already carry keep their owners, and a row reaching
+one prices only the increment this design adds.
+
+**The frontend disposition is arm-dependent, and R-05-020 is not the entry that
+decides it alone.** R-05-008 forbids admission gating on source language or
+producer identity; R-05-009 admits a memory-safe or formally-verified language
+that yields a well-typed binary and a kernel-checked elaboration into an existing
+anchor on the same terms as Rust, without exception or waiver; and the
+specification's delivery prose routes a producer for another language through
+exactly that elaboration, without making its parser or frontend trusted. Where
+the calculus carries its own judgment and reduction relation the laws quantify
+over, that premise is unmet, an eighth anchor is proposed, R-05-019's freeze is
+engaged and R-05-020's non-duplication and retirement conditions both refuse it.
+Where the calculus's meaning is its elaboration's image in the kernel, R-05-009
+reaches the producer, the anchor count stays at R-05-019's frozen seven, nothing
+enters the trust base and R-05-020 has no subject. The three rule dossiers state
+their laws over a source judgment and a source reduction, so the design as
+written sits in the first arm, and the ten frontend, diagnostic, preset-policy
+and qualification rows are held there rather than commissioned: seven commission
+an engine for a calculus whose anchor is refused, and the three qualification
+stages exercise a language whose frontend is not commissioned. What releases them
+is an interpretation commitment restated across those three dossiers, which this
+review does not take on their behalf, together with a lettered register act
+recording which entry reaches an untrusted elaborator.
+
+**The R-08-046 classification is performed and its verdict is negative.** Seven
+storage kinds are read against that entry's current inventory: six reach no
+member, and the accepted-byte counter is classified out of the subject as one
+scalar of fixed width whose members are never bound and released, its
+conservation being a source-level invariant and its overflow `MUT-ATOMIC`'s law.
+All 13 manifest fields are read; the design supplies five in kind and none in
+values, and the binding and release state machine over the monotone member
+lifecycle is the substantive owed one, since that the design's own lifecycle
+refines the register's is a claim no document makes. A new class is therefore
+required, which makes the act an amendment to the inventory and its cited prose.
+It is proposed rather than taken and ordered behind the frontend act, because its
+predicate is a commissioned frontend and inventorying a class no admitted design
+instantiates lands a row false on the day it lands.
+
+**A missing law remains open.** Design acceptance here claims no executed
+language, no checked metatheory theorem and no qualified binary: what it claims
+is the reviewed rule set, the composed client, the named representation and this
+accounting.
+
+Authoring commit `4f10fab` passes the focused document checker without drift.
+Independent review at that commit confirms the mechanics, the key totality in
+both directions, the 21 class-X width checks and the manifest coverage, and
+rejects the admission reading: the refusal had been taken under R-05-020's third
+condition without reading R-05-008, R-05-009 or the delivery prose, and its
+supporting reductio against a wider reading of R-05-021 is refuted by R-13-016's
+owed Sail-to-muSail translation, whose source end is an anchor. Repair commit
+`2468545` takes the arm-dependent reading, deletes the reductio for the residual
+it leaves, restates the existing-owner table in the decisions taken rather than
+asking for them, strips 27 derived midpoints, cites the checklist's authority
+classes instead of recopying them, corrects the R-05-163/R-05-164 direction, the
+Q2c ledger attribution, R-08-046's admission-or-progress qualifier and the
+MUT-SHARE deferral, and carries the disposition into the twelve sibling
+statements in five dossiers that still recorded it as owed. `python
+tools/check.py` is green at `2468545`, K-61 owing no reading.
+
+(Findings block, for the integrator to number and register, both `Raised:` at
+Q25d: the arm-one interpretation commitment owed across graded-foundation.md,
+handlers-async.md and interior-mutability.md before any frontend row opens; and
+the R-08-046 inventory amendment owed before dependent runtime implementation
+opens. F-354's existing disposition needs the split recorded rather than a new
+entry. The `Landed:` tier line is the integrator's.)
+
+The measured intervals are 2026-09-14 06:56:17-07:13:50, 07:19:41-08:26:05, 08:28:51-13:03:48 UTC for the authoring, review and repair passes, 3174 seconds summed, rounded upward to 0.9 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (review -2809s, repair -15551s), and those stalls are out of the figure.
+
+Landed: Tier A. The review states new claims about which admission arm the combined calculus takes and what its implementation still owes, so it took a full attended read rather than a spot read of its findings.
+
+#### Q27a · Take the certified-search disposition and record its arms
+
+[The alternatives register](../background/architectural-alternatives.md#certified-optimal-placement-by-an-imported-certificate-checker-the-pattern-in-use-is-admitted-the-import-is-refused-and-the-infeasibility-verdict-stays-an-open-question) carries the three arms, each refusal cited to the rule that takes it.
+
+The admitted arm is the asymmetric-trust pattern R-05-066 states, and it imports nothing because it is running. The checker whose verdict admits a placement is two artifacts with two statuses: the on-device CHERI-TAL type-check R-08-014 states its decidable interference side condition for, which R-18-020 books as a hard prerequisite with no trusted-toolchain fallback and which is owed and unbuilt, and the host-side port of [the memory plan](../../proofs/MemoryPlan.v)'s own checks that decides candidates today under [the search contract](placement-search.md)'s PS-8. Its forfeits are recorded rather than absorbed: no optimality past the declared candidate set (PS-3); a gap between the best admitted span and the strongest stated lower bound that [the scaling experiment](static-memory-scaling.md), R-08-012 and R-08-012a each report and that no arm closes, no machine-checked theorem standing behind any of those bounds, so the gap is measured and never proved zero; and no power to tell a run cut short from infeasibility (PS-5).
+
+The shipped certificate checker is refused on R-05-105 and R-05-106 for the yield it lacks, and independently on R-05-066's no-new-checker criterion, R-05-104's deletion of the ILP machinery a layout objective reaches for first, and R-05-020's first condition, which the HOL4 and Lean candidates do not meet until someone builds and shows the bridge. The forfeited span is accepted in R-05-105's and R-05-065's own words.
+
+The checked infeasibility certificate is the arm the yield rules leave standing and a different rule takes. Its yield is a changed verdict under R-15-171 and R-08-047 rather than a sharpened number, so R-05-105 and R-05-106 do not reach it. R-05-016 does, unconditionally on yield, glossed by R-05-016a and R-05-011b, and it is not alone: R-05-066's criterion and R-06-011's two-checker inventory reach the imported form independently of yield, as [the proof inventory](../assurance/proof-reuse/foundations.md#certified-search-and-the-registers-standing-refusals) already reads them. The rule is answered by R-05-015's route alone, a term the kernel re-checks. The arm is therefore refused in its imported form and left open as one question: whether an infeasibility verdict over a placement model could earn a term this repository authors and proves. It owes R-05-020 all three demonstrations and shows none. Its native half is in hand and unbridged, [the certificate model](../../proofs/MemoryPlannerCertificates.v) proving `finite_encoding_equivalent` and `unsat_excludes_every_legal_selection` over a generic finite one-hot model and naming the seams its header lists; non-duplication against the interference obligation R-08-014 supplies is unargued; and no interim rides placement, R-05-022's inventory carrying three. No cell prices the authoring and the question may close in the negative.
+
+No candidate is a start-from for any cell. None was installed, built, pinned or benchmarked, and no figure from any candidate's own benchmark set entered this tree. `python tools/check.py` exits 0 in the lane at `a1064aa426ee399d7293a68dde7d8f346fc4711e`.
+
+The measured intervals are 2026-09-14 06:47:21-06:53:44, 07:03:59-07:13:46, 07:17:26-07:21:41 UTC for the authoring, review and repair passes, 1225 seconds summed, rounded upward to 0.4 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+  * Finding: the admitted arm's forfeit list closed on the clause "no lower-bound
+    argument existing on either side of the port", which contradicts the clause it
+    qualifies and is false on the tree: the scaling experiment carries a proved
+    lower-bounds section, R-08-012 states charged peak as a lower bound on legal
+    span, R-08-012a defines the reservation above it, and the planner's own
+    footprint is a fixed floor. The arm now reports the gap as measured and names
+    the absence that is real, a machine-checked theorem behind any of those bounds.
+    F-358.
+
+Landed: Tier A. The act produces non-normative prose disposing of rules the register already carries, creating no declaration whose members a rule would count; K-12, K-13 and K-40 hold the entry's citations and its form, and no checker rule was added.
+
+### Q27b · Record which existing cell each newly qualified source bears on
+
+  * **Every source the sweep added resolves to one consumer or to a named ground for none, and four of them reach a consumer that keeps its number.** [The bearing record](../assurance/proof-reuse-bearing.md) is keyed by source where [the inventory](../assurance/proof-reuse.md)'s subject records are keyed by obligation family and [the proof map](../assurance/unassigned-proof-map.md) is keyed by obligation, which is why it is a document rather than a column: the resolution runs the other way from both. Four sources reach a consumer, SYS-REFINEDPROSA to M4.4, Cogent and Dargent to U-10, Peregrine to M6.2b-i and Diaframe to Q19c, and each of the four cells now carries one reuse-note sentence naming its start-from. **No range, no midpoint, no subtotal and no total moves in this act**, which is the item's Execute clause and also its outcome rather than only its constraint: not one of the four removes a named sub-obligation, so there is nothing a re-price could read.
+  * **Which sources the sweep added is a measurement, and it is taken with a stated predicate at two named revisions rather than off the records' own dates.** The subject records' date sentences do not separate an added source from a re-read one, [systems](../assurance/proof-reuse/systems.md) listing three records among its 2026-09-13 readings that are present at the earlier revision and [languages](../assurance/proof-reuse/languages.md) carrying no per-entry date at all. The predicate used instead is that a source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `f528852` and absent at `e694a548`, the last revision at which that inventory changed before the sweep commit `2ea8d61`; the two commits touching it between the sweep and `f528852` add and remove no source record, so the interval's additions are the sweep's. A section heading is not a source record and carries no row. **The added-and-held partition is that measurement and not a standing property**, which the record says of itself: a later sweep re-takes it and every source tabled as added is held by the time that sweep runs.
+  * **A source that bears on nothing is the ordinary answer, and the ground is the whole of the row.** Thirty-one of the added sources reach no consumer, each on one of five grounds: **refused** where the register refuses the import at a cited entry, **uncelled** where the obligation is owned by no open cell and no slice, **unaimed** where the subject record proposes no local consumer, **unread** where the source's own terms are unread so no reuse may be proposed, and **taken** where the bearing is already in a landed artifact. Where more than one ground holds the row names the one the subject record's own disposition rests on, which is what decides SYS-LILO and SYS-IRON the same way rather than opposite ways: both records make the unread terms the thing that must be settled before any adaptation is proposed, and the landed adaptation is each row's second fact.
+  * **Every uncelled obligation is already booked, and reporting a gap in the map would have been the finding this item exists to avoid.** The four are the HAL's implementation in certifying Rust through R-18-018's manual-proof path, R-18-014's certifying Rust compiler, the full Iris refinement proofs for the kernel and the storage stack, and CHERI-TAL soundness, and [the proof map's mandatory work](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) books each. The fourth is the one worth stating: R-05-119 and R-05-121, the definite-initialization attribute the RustHornBelt row names, are booked in no bullet of that section by id and named by no cell and no slice, but the register's own trace lines put both at `CJ-TAL-SOUND`, which the same section books as carrying no cell. **What places them is their own trace line, so the map owes no act here.**
+  * Net change: one new tracked document, one pointer paragraph in the inventory's preamble, one index row in [the document index](../README.md), and one reuse-note sentence in each of M4.4, Q19c, M6.2b-i and U-10. No register, spec, coverage-matrix, crown-jewel or absence-contract edit, so the review gate is not re-entered and the co-read ledger is unmoved.
+  * Exit evidence: `python tools/check.py` green read-only, exiting 0, with K-12 resolving the new document's links and fragments and K-40 clean; `python tools/run.py coread` reporting all **1452** pairs last read as they stand. No guest measurement is owed: this item reads tracked text and writes tracked text, and nothing it changes reaches the model, the RTL or a toolchain.
+  * Three findings.
+    * **The survey's strongest language sources point at obligations no cell prices.** RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified Rust and refinement results the sweep added, and every one of them resolves to an obligation booked outside the priced total. That is a finding about the survey and never a reason to open a cell: a source aimed at an unpriced obligation is a reading, and pricing a cell because a source now exists for it would be the survey opening a cell, which the plan refuses in as many words.
+    * **Two of the four consumers were holding their source already before this act ran.** R-18-018's fourth sub-deliverable names VerusBelt in the register itself, and Q19c's cell names Diaframe and states its terms at the PLDI 2022 deposit. The conventions give an existing start-from no second discount, so what the record adds at those two is the qualification standing behind a name the corpus already carried, which narrows what the cell may reach for and removes nothing.
+    * **A repair to this record's own overclaim is the reason the section-8 paragraph reads as it does.** An earlier draft reported R-05-119 and R-05-121 as an obligation the map books nowhere and left its placement to the map owner. The register's trace lines decide it, and a false gap reported against another artifact is worse than a gap left unreported, because the artifact is correct where it sits and nothing later contradicts it.
+
+The measured intervals are 2026-09-14 06:48:29-07:04:13, 07:15:32-07:24:39, 13:01:29-13:07:52 UTC for the authoring, review and repair passes, 1874 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+Landed: Tier A. The record states which open cell each newly qualified source bears on, which is a new claim per source rather than a derived figure another artifact owns, so it took a full attended read. K-12 holds only that its citations resolve and no rule reaches what it asserts about bearing, so the fourth Tier-B condition is unmet and no checker rule is added or owed.
+
+#### Q27c · Record which candidate's terms decide which consumer
+
+[THIRD-PARTY.md](../../THIRD-PARTY.md)'s candidates-whose-terms-decide-a-consumer
+table carries five rows, each naming the open cell its terms decide, the shape of
+the grant with the artifact that read it, and the file that consumer would open.
+SMTCoq's CeCILL-C reaches Q3b only to the extent Q3b takes the plugin rather than
+the style, no landed artifact depending on it: `run.py model smt` puts the
+transcribed suite to a solver directly and imports no witness. DeepSEA and the
+CertiSuSLik backends are the two candidates with no licence file of their own, so
+each owes a first reading rather than a re-reading, and the backends sit in three
+trees separate from the synthesizer's whose BSD-2-Clause is therefore not theirs.
+The CADE-26 line's Rocq checker is unread and names the archive that would be
+opened. No reading is performed in advance of its milestone, and no row of the
+tables above it moves.
+
+Three shapes are carried with their consumers: a copyleft term on a proof-surface
+dependency deciding that dependency's consumer, a non-commercial term foreclosing
+vendoring outright rather than pricing it, and an absent term not being a
+permissive one. The `GPL v2` reading of the older CompCert copy DeepSEA vendors
+is carried as the plan's Q27c cell's and not as a reading taken in this record.
+
+Authoring commit `ebcbdfd` passes the focused document checker without drift.
+Independent review at that commit accepts the five surviving rows, the three
+shapes and their citations, and finds the class split below. The repair at
+`c694468` removes it, binds each exclusion ground to its member, scopes the
+branch-tip characterization to the rows it holds of, and softens two sentences
+that claimed more than the cells keep. `python tools/check.py` is green at
+`c694468` with K-80, K-81 and K-82 unmoved, and `python tools/run.py coread`
+reports all pairs standing as they were.
+
+The measured intervals are 2026-09-14 06:42:40–06:48:01, 06:53:32–07:00:13 and
+07:07:13–07:12:59 UTC for the authoring, review and repair passes, 1068 seconds
+summed, rounded upward to 0.3 h on the agent-parallel clock. The preceding survey
+pass is not in the figure, the clock being the three passes the convention names.
+No pass of this item stalled, so the summed session wall-clock is its working
+time. The five rows' readings stay owed at the milestones their consumers sit in,
+and nothing is incorporated, pinned, vendored or fetched by this item.
+
+  * Finding: the record gave CakePB and VeriPB a row deciding Q5b, splitting a
+    class its own sources hold together. The plan's Q27a bullet, the static-memory
+    research reading and the cited F07 all dispose of CakePB on its HOL4 prover
+    before any yield is weighed, which is the same ground the record's closing
+    paragraph uses to exclude the Lean checkers. Both names move to that paragraph
+    with the ground named. F-357.
+
+Landed: Tier A. The record states new claims about which upstream's terms reach
+which open cell, so it took a full attended read rather than a spot read of its
+findings.
 
 ## M0 · Hardware reference
 
@@ -2572,3 +3014,20 @@ protocol and qualification cases with their unmechanized obligations preserved.
     * **A row whose two sides are both packages is visible to no member of the partition, and the row R1b's re-pointing would declare is one.** [vos_cheri_pkg.sv](../../rtl/vos_cheri_pkg.sv) declares zero modules, so the introduction and inert members say nothing about it; `core/include/cva6_cheri_pkg.sv`, the imported source it would stand at, declares zero modules too, so the displaced member says nothing either. Measured over the primary checkout, both attribution maps come back empty and the composed list is 169 entries with the row and 169 without it. The partition therefore first decides something at a row whose imported side declares modules, which is the flat-SRAM one, and until then it is carried rather than exercised. Standing, and it is why the inert check reads declarations rather than rows.
     * **The end-to-end elaboration evidence is owed and cannot be taken in any checkout of this repository today.** The gitlink the elaboration refuses by name on is `opentitan`, which S3 left uninitialized because nothing open reached it, and reaching it is a clone rather than a command. Reported and not closed: R1b takes that evidence at its own gate, and until then both mechanisms rest on the tools' own tests and on a composition run that reads the manifest without elaborating it.
   * Landed: Tier A. No rule holds either mechanism, and the reason is not that one would be hard to write: what they create is a declaration whose member set is empty today, so a rule over it would report `ok` about nothing until R1b declares a row. The tools' own tests are the gate a behavioral claim answers to here, and saying so is cheaper than a rule that decides nothing.
+
+### I17 · Name the host gate member that went red, without a login
+(heading to be respelled as the checklist writes the label the integrator assigns)
+
+  * **The Windows arm had failed at every run since the last green one and the annotation said nothing.** The cause is [test_entrypoints.py](../../tools/tests/test_entrypoints.py)'s bootstrap-layout fixture, whose patched filesystem probe answers on path identity against a temporary root it never resolved, where `toolenv.environment` probes the checkout's real path. The two forms agree wherever the temporary directory is its own real path and differ wherever it is reached through an alias. Resolving the fixture root repairs it, and `filesystem-probes-take-resolved-paths` holds the contract it depended on directly, over a root that arrives unnormalized on purpose so it decides the same thing on either layout. **What the case depends on is the alias and not its kind**, which is why the comment names a junction and a short name alike rather than asserting a fact about a runner no lane here can observe.
+  * **One invocation is four members and one exit code.** That reaches the run page and the API as *process completed with exit code 1*. So the invocation carries `--summary`, which writes the per-member verdict as JSON beside the run rather than into the checkout, and the step after it renders one annotation per member that did not come back clean plus the whole table into the job summary. That step runs whether or not the gate did, so a gate that stopped before the wave finished is named as that rather than left looking like a failing member. **`--summary` is not a fifth member and decides nothing about the tree**; asked to write that verdict and unable to, it reports one finding of its own, which is the only way it reaches the exit code, and `unwritable-summary-is-a-finding` is what holds that.
+  * **A YAML parse decides YAML and says nothing about which context a key admits.** The first commit declared the verdict's path at `jobs.<job_id>.env` as `${{ runner.temp }}/...`, where the runner context is not available, so the file would have been rejected at validation and no job would have run on either arm; the YAML parse it was accepted on could not see that layer. The path is exported from a `shell: bash` step instead. **The failure mode this closes is the worst one available here**: a rejected workflow produces no run at all, which is the same observable as the separate zero-runs problem, so an expression defect would have read as the repository owner's Settings problem.
+  * **Nothing in this repository reads a workflow expression**, and the file's own comment now says so. K-75 reads only the `python-version:` line and marks.py only the SPDX line. No rule was added: the corpus carries one workflow file, and transcribing GitHub's context table into a tracked artifact buys a rule with one subject at the price of a claim that can go stale silently. The residue is named rather than held.
+  * Net change across both commits: 338 lines added and 34 removed across five files.
+  * Exit evidence, at `0e134d9` in the lane's worktree with no submodule initialized: `tools/check.py` green on **104 rules** with no drift reported and no `--fix` run; `run.py typecheck` clean under **ty 0.0.80 and ruff 0.16.6**; `run.py test --only gate` green at **16 cases** and `--only entrypoints` at **12**; `git ls-files --eol` reading `i/lf w/lf` on all four changed paths; the co-read ledger unmoved, this item touching no register entry and no prose span. The render step's body was extracted from the committed file and executed against three fixtures, exiting 0 on each: a red verdict emitting two `::error` annotations and a four-row table, an absent verdict file, and an unset `VERDICT`, the last having been a `KeyError` and exit 1 before the repair. **The workflow's expressions were checked by a scratchpad script that parses the file and scans every `${{ }}` against GitHub's documented per-key availability, which reports the parent commit's `runner`-in-`jobs.env` defect and is clean on this one; it is not actionlint, and no workflow linter is installed on this machine.** **No CI run is in this evidence and none can be**: whether the Windows arm comes back green is decided by the next push and by nothing here, and until that push the fixture repair is established against an aliased temporary directory on a developer machine rather than against a runner.
+  * Two findings.
+    * **The workflow's expression contexts are held by GitHub at validation and by no gate here.** A violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist, which is indistinguishable from the repository having no runs for an unrelated reason. Standing: a rule would be a rule with one subject and a transcription that can go stale, so the residue is carried rather than closed.
+    * **Two statements of the workflow's command line outside the tools lane went stale with this landing.** [AGENTS.md](../../AGENTS.md) and [the reviewer on-ramp](../assurance/reviewer-onramp.md) both name `python tools/run.py --check --tests`, which now carries `--summary`. No rule holds the pair; K-68's co-stated table does not carry it. Standing: one clause at each site, the integrator's, on the precedent this log already books at its own I-series miss.
+
+The measured intervals are 2026-09-14 06:51:53-07:08:39, 07:16:44-08:15:47, 08:17:54-08:39:31 UTC for the authoring, review and repair passes, 3034 seconds summed, rounded upward to 0.9 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (review -2812s), and those stalls are out of the figure.
+
+Landed: Tier A. No checker rule was added and none holds what this item created: the workflow's expression contexts are decided by GitHub at validation time and by no gate here, so a violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist. The fourth Tier-B condition is therefore unmet and a green wave is not a reading of the workflow.

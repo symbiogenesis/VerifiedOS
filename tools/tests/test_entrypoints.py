@@ -74,8 +74,17 @@ def _settled_children_do_not_sync() -> None:
 
 
 def _wsl_environments_follow_native_lanes() -> None:
+    # The fixture root is resolved where it is built, because the stub below answers on
+    # path identity and `environment` probes the checkout's real path rather than the
+    # spelling it was handed. The two forms differ wherever the temporary directory is
+    # reached through an alias, a junction or a short name alike, and a GitHub-hosted
+    # Windows runner reaches its TEMP through one. What the case depends on is the
+    # alias and not its kind. Left unresolved the stub answers `ext4` for the
+    # checkout, the native-Linux branch is taken, and the case fails for the layout of
+    # the machine it runs on rather than for anything about the bootstrap.
+    # `filesystem-probes-take-resolved-paths` below holds that contract directly.
     with tempfile.TemporaryDirectory(prefix="vos-bootstrap-layout-") as temporary:
-        root = Path(temporary) / "source"
+        root = Path(temporary).resolve() / "source"
         root.mkdir()
         (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/python-a\n", encoding="utf-8")
         native = Path("/root/build/venv-layout-fixture").resolve()
@@ -108,6 +117,45 @@ def _wsl_environments_follow_native_lanes() -> None:
         with patch.object(toolenv.env, "filesystem", return_value="ext4"):
             ensure(toolenv.environment(root, "linux") == root / "out" / "venv-linux",
                    "native Linux checkout and CI retain their local environment")
+
+
+def _filesystem_probes_take_resolved_paths() -> None:
+    """Which side of the OS boundary a path is on is decided against the kernel's own
+    mount table, which is keyed on real paths, so every probe is handed one.
+
+    The contract the fixture above depends on, held here rather than assumed there. It
+    is stated over a root that arrives unnormalized on purpose: a detour through `..`,
+    which `Path` keeps and `resolve` collapses on either OS. So the case decides the
+    same thing on a machine whose temporary directory is already its own real path and
+    on one whose is not, where a probe compared against whatever spelling the caller
+    used would pass on the first machine and fail on the second.
+    """
+    with tempfile.TemporaryDirectory(prefix="vos-bootstrap-probe-") as temporary:
+        root = Path(temporary).resolve() / "source"
+        root.mkdir()
+        (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/probe\n", encoding="utf-8")
+        detour = root.parent / root.name / ".." / root.name
+        ensure(detour != root and detour.resolve() == root,
+               f"the fixture must arrive unnormalized to decide anything, got {detour}")
+        native = Path("/root/build/venv-probe-fixture").resolve()
+        probed: list[Path] = []
+
+        def record(path: Path | str) -> str:
+            # the checkout first and its lane second, which is the order `environment`
+            # asks in: cross-OS for the first sends it looking for a native lane
+            probed.append(Path(path))
+            return "9p" if len(probed) == 1 else "ext4"
+
+        with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True), \
+                patch.object(toolenv.env, "filesystem", side_effect=record):
+            ensure(toolenv.environment(detour, "linux")
+                   == native / "lane-probe" / "venv-linux",
+                   "an unnormalized checkout must reach the same native lane")
+        ensure(len(probed) == 2,
+               f"the guest branch probes the checkout and then its lane, got {probed!r}")
+        unresolved = [str(p) for p in probed if p != p.resolve()]
+        ensure(not unresolved,
+               f"every filesystem probe must be handed a resolved path, got {unresolved!r}")
 
 
 def _bootstrap_prerequisites() -> None:
@@ -269,6 +317,7 @@ def cases() -> list[Case]:
         Case("locked-bootstrap", _locked_bootstrap),
         Case("settled-children-do-not-sync", _settled_children_do_not_sync),
         Case("wsl-environments-follow-native-lanes", _wsl_environments_follow_native_lanes),
+        Case("filesystem-probes-take-resolved-paths", _filesystem_probes_take_resolved_paths),
         Case("bootstrap-prerequisites", _bootstrap_prerequisites),
         Case("tree-status-before", _tree_status_before, lane="host"),
         Case("coread-list-twice", _coread_list_twice, lane="host"),

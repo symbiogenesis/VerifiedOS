@@ -908,6 +908,7 @@ This is the **TPM disposition one layer up** (the function is kept, on-die and v
 **The distilled atom is already banked.**
 The useful capability (a hardware-bound, phishing-resistant credential and a possession factor) is the on-die **platform authenticator**: the WebAuthn platform-authenticator role realized over the sealing and attestation service (§12), so passkeys and origin-bound credentials are provided with no external device at all.
 What is declined is specifically the *roaming* (external, cross-device) key, not the authenticator function.
+The same ground decides a key reached over a proximity-coupled link; that reading is taken at [the contactless proximity surface](#the-contactless-proximity-surface-declined-across-all-four-uses).
 
 **Honest cost.**
 Declining roaming keys forgoes the one thing the platform authenticator cannot offer: **portability across foreign devices and ecosystems** (a user cannot bring an existing YubiKey, and a credential minted here does not roam to a machine that is not this platform), the same class of interop trade as the no-Linux and no-tunneling decisions.
@@ -1913,6 +1914,123 @@ The zero-authority emergency mode and its explicit coverage cost are documented 
 
 ---
 
+## The contactless proximity surface: declined across all four uses
+
+Four proposals reach one piece of silicon, a 13.56 MHz magnetically coupled link with load modulation, and above it card emulation, a payment credential, and a set of credential uses.
+They are taken together because each of the three consumers fails a gate before the radio is reached, so the radio's disposition follows from theirs rather than standing as a fourth judgment.
+**This surface is called *proximity-coupled* here rather than *near-field*, and the collision is worth naming.** In the register, the spec, the coverage matrix and the critique that second term is the emission residual's (R-17-058, R-17-058e), a side channel leaving this die; the plan's own Q15 cell uses it for the link weighed below, which is a link the platform would drive on purpose toward another device. The two readings are not the same, so this section keeps *proximity-coupled* for the link and leaves *near-field* to the emission, and §17 carries one reading of each.
+
+The vocabulary this corpus does carry is the contact-side one, and it is normative rather than missing: R-12-045 contains the eUICC as a register-slave crypto oracle, R-12-046 fixes its physical interface as a fixed-function ISO7816 block that moves bytes and interprets nothing, and R-12-047 puts its APDU/TPDU traffic behind a verified copy-once Narcissus reader in a zero-authority compartment.
+What is unconsidered is the proximity-coupled path and the payment credential layer above it, and these four arms are what close that.
+
+### The radio: three register acts and a price, and the price is not the temporal fence's
+
+**The steelman is that one of the three pieces is genuinely cheap.**
+R-15-122 admits a fixed-function link-layer timing sequencer whose buffer, channel word and event schedule the §12 control plane loads before the event, so a fixed frame-delay schedule is a value that block already takes and no protocol decision moves into silicon; R-15-121's register-slave datapath with its digital front end is where a proximity coding would sit; and R-15-123's split-MAC partition is the arrangement every other radio here already runs.
+
+**Deciding ground, derived: R-04-010a applied to the parts that exist.**
+Every commodity contactless front end in this class runs its link layer as firmware on a hidden core, which is the condition R-04-010a's Accept already sorts the FullMAC radio out on and the distinction R-15-123's no-foreign-computers line draws, so what is on the table is verified RTL or nothing.
+R-04-011 holds the count where it is and says in as many words that a further exception is an act taken against R-04-010a stating its own containment, never a reading of the eUICC's.
+
+**Deciding ground, derived: an admission would be two amendments, not two cell fills.**
+R-15-124's off-die analog bank enumerates PA, LNA, filters, switches and antenna tuners, and a magnetically coupled loop with load modulation is none of the five, so admitting one is an enumeration amendment carrying a criterion of its own.
+R-15-125 states the secondary regulatory layer as a TX power and spectrum-mask limit latched at boot, which is not the form a proximity limit takes: a reader-side ceiling is stated over the magnetic field strength at a distance, not over power into an antenna port against a mask.
+A criterion admitting such a path would have to fail on a physical property, and what that property would be is nameable even though the entry is not drafted: a fixed matching network and a supply-limited driver whose field ceiling no software word can raise, failing on a tuned or variable match, on a software-settable drive level, or on a coil whose ceiling is stated as a configured value rather than as a passive one.
+Drafting it needs a measurement this decision has none of, so the amendments are named and left unopened.
+
+**The endpoint is priced where the register prices one, and that is not at the temporal fence.**
+A contactless digital front end would be a second slow endpoint, and R-15-015c is the entry that prices it: device authority is provisioned by latency class in the attested devicetree R-09-007 fixes, so a compartment holds only endpoints whose worst-case accept is of the same order, and R-15-015d decides whether such an endpoint earns its own thin driver compartment or spends a divisor for nothing.
+The price is not the partition fence's, and the reason is structural rather than a matter of degree: R-15-015b keeps a device-space store out of the store buffer precisely so that R-15-218's padded per-class constant is stated over the class's depth and memory bandwidth instead of over the slowest endpoint's accept latency, with R-12-046's divided card clock standing as the on-die proof that an endpoint of that order is reachable at all.
+
+**Honest cost.**
+There is no proximity link, so there is no tap gesture on this device in any of the three uses below and none in a use nobody has proposed yet.
+A user who expects a phone to be tapped against something is expecting a capability this platform does not have, and the absence is physical rather than a policy bit, which is the same shape the legacy emergency-radio decline above takes.
+
+**Disposition:** no proximity radio, no proximity digital front end, and no magnetically coupled member of the off-die bank.
+R-15-122 stays exactly as it is and unspent: nothing here fills its cell and nothing here moves it.
+
+### Card emulation: the parser half is already carried, and the answering compartment is the new half
+
+**The steelman is that most of the discipline exists.**
+R-12-047 already requires APDU/TPDU traffic to be parsed only in software by a verified copy-once Narcissus reader in a zero-authority compartment, so the parser obligation is cited and not re-proposed; R-12-046 is the contact-side precedent for the silicon half, a fixed-function interface block with no DMA and no APDU semantics, which is an existence proof that a card-grammar endpoint can be built here at all.
+
+**Non-deciding observation, recorded so the arm is not over-claimed.**
+R-12-046 is the eUICC's own entry rather than a general one, so a contactless interface block would be a new entry with its own criterion, and the precedent supplies the shape rather than the admission.
+
+**Deciding ground, derived.**
+The genuinely new half is the compartment that answers as a card, which runs the discipline in the opposite direction to the AKA client's: the platform becomes the thing a foreign reader interrogates, on a schedule the reader sets.
+R-12-084a with R-15-238d is the containment that would have footed it, a compartment holding one session's ring and nothing else, minting nothing, naming no device, and faulting as the contained crash R-16-001 restarts, with its syntax layer a Narcissus parser enumerated in the R-05-042 wire-format inventory.
+That footing is available and is not what decides the arm; the arm is decided by the radio above, there being no link for such a compartment to answer over.
+
+**Honest cost.**
+The device cannot present itself as a card to any reader, so every reader-side ecosystem, access control, ticketing, loyalty and the payment terminals below, is unreachable rather than unimplemented, and no later software release changes that.
+
+**Disposition:** no compartment answering as a proximity-coupled card, and no contactless interface block; R-12-084a and R-15-238d are unmoved, being the footing an admission would have used rather than entries this decline edits.
+
+### Payment: a coverage trade in the shape R-17-051 already uses
+
+**The steelman is that the gate is a certification regime rather than a secret.**
+The standards are readable and the mechanisms are ordinary: a card grammar, a session, a credential store.
+
+**Deciding ground, derived, and it is a relationship rather than a document.**
+EMVCo issues type approval per product at Level 1 and Level 2, and the process is entered by registration, an executed contract with EMVCo and a product-provider number, with bilateral agreements executed against an accredited laboratory (emvco.com approval-process pages, read 2026-09-14).
+A live network token additionally requires a registered token-requestor relationship with the scheme, and host card emulation removes the secure element without removing that relationship.
+So the credential is gated by scheme membership and by contract, not by anything this platform can verify, which is the same structure R-17-051 books for the generation floor: a coverage-for-security cost stated rather than hidden.
+R-04-011 is what stops a second tolerated foreign computer being read out of the first, a secure element or a payment applet host being an exception that would have to state its own containment.
+[Inspirations & Prior Art](inspirations.md) already carries the field evidence that a certified element fails in production, the 2025 extraction of a GSMA consumer certificate from a certified production eUICC, so the case is cited there rather than argued again here.
+
+**The two lock-state entries are unmoved, and what each would have been owed is named.**
+R-15-146 drives a peripheral's enable from grant liveness and carries an in-use indication no compromised component can suppress, which a part answering an RF field while the host is off holds nothing to satisfy; admitting one would have owed that entry a statement of what liveness means for a field-powered responder.
+R-15-147's cut set is the microphone, the camera and the USB data lanes, with the radio staying page-reachable because the paging task holds its capability; a power-reserve element would have been the first candidate in that set with no capability holder to justify a carve-out, and would have owed the entry an explicit one.
+Neither is amended, because the option is declined and an amendment with nothing to govern would decide nothing.
+
+**Honest cost.**
+No tap-to-pay, no transit stored value, and no wallet holding a payment credential; and because PCI MPoC asks for the other role, no contactless acceptance either, so this device is neither a card nor a terminal.
+That is a daily, visible loss in the markets where transit gates are contactless, and it is accepted rather than deferred.
+
+**Disposition:** no payment or transit credential role over a proximity link and no contactless acceptance role.
+Reading an approval regime is not holding an approval: nothing above makes this platform a payment-scheme participant, and no clause of this decline may be cited as coverage.
+
+### The credential uses: the role question first, then four per-use dispositions
+
+**The role question is taken rather than assumed, and the answer is that the ground governs and the role word does not travel.**
+WebAuthn classifies an authenticator reached over a proximity link as *roaming*, which is the word R-12-020 declines, while the on-die path above is named with the *platform authenticator* word; read carelessly that makes the transport decide.
+It does not.
+R-04-010a's Accept already sorts the external roaming hardware authenticator into the foreign-computer column, and the reason it gives is its own microcontroller running a vendor's firmware, citing R-12-020 for the disposition and not for a role taxonomy.
+So the decline reaches a device that fetches and executes instructions outside R-04-010a's discipline, whatever wire it is reached over, and it says nothing at all about this platform presenting itself over a proximity link, which is the card-emulation arm above and a different question.
+R-12-020 is therefore left unamended, so the ground keeps one owner.
+Q9's confined external-authenticator client is the same entry read from the other side and is decided with it: it is gated by the foreign-computer ground, not by the transport, so nothing in its scope moves here.
+
+**ISO/IEC 18013-5 device retrieval: declined on its proximity transports only, and the rest is undecided rather than declined.**
+Device retrieval runs over three carriers, Bluetooth Low Energy, the proximity-coupled link (NFC in that standard's own vocabulary) and Wi-Fi Aware, with a separate server-retrieval path beside them, and BLE and 802.11 are radios the first-release roster already carries (R-18-004; R-15-122's sequencer serves their turnarounds rather than admitting either).
+So what the radio arm declines is the proximity-coupled engagement and the proximity-coupled retrieval transport, and mobile-document presentation over BLE or Wi-Fi Aware is a surface this decision does not reach.
+Naming it is the point: it would need a §12 grammar and compartment act and a member in the R-05-042 wire-format inventory, and neither is opened here.
+The standard itself is a paid ISO document and was not read; the transport set above is established from secondary sources read 2026-09-14, and no disposition here depends on a clause of the paid text.
+The document gate is also not the interesting one for this arm: device retrieval needs no scheme membership, and a verifier still needs the issuing authority's trust anchors, which is an authority question and not a radio one.
+
+**The NFC Forum tag and message specifications: the cheapest document gate, and the same silicon gate as the rest.**
+The specifications are sold to the public for a nominal fee and are free to members at the Associate level and above ([nfc-forum.org/build/specifications](https://nfc-forum.org/build/specifications/), read 2026-09-14), so this is the one arm whose governing text is obtainable rather than contractual.
+It is declined anyway, on the radio arm's ground: there is no link to read a tag over.
+It is recorded as obtainable and not obtained, because the document was never what decided it.
+
+**PCI MPoC: a published standard asking for the opposite role.**
+The Mobile Payments on COTS standard is published in the PCI SSC document library and is publicly readable (pcisecuritystandards.org, read 2026-09-14), and its currency is attestation of a commercial off-the-shelf solution rather than a proprietary credential relationship, which is a statement about the gate and not a claim of fit.
+It asks this platform to be a contactless acceptance terminal, so it needs the same reader radio the first arm declines, and it is declined with it.
+
+**The W3C Digital Credentials API: adjacent, not part of this question.**
+It is a Working Draft dated 04 September 2026 ([w3.org/TR/digital-credentials](https://www.w3.org/TR/digital-credentials/), read 2026-09-14) and defines no transport of its own, delegating the exchange to the user agent and naming presentation and issuance protocols above it.
+Its cross-device path recommends CTAP for a remote credential manager, whose proximity check is a Bluetooth advertisement rather than a proximity-coupled link, so where it touches a hardware question at all it touches the R-12-020 one answered above and not this one.
+Nothing in it is declined here, and nothing in it is admitted here either.
+
+**Honest cost.**
+No proximity-reached external authenticator, no mobile-document engagement or retrieval over a proximity link, no tag read or write, and no tap-to-pair.
+R-12-020 books the portability cost and keeps it, cited here and not restated; what this arm adds beside it is the one remaining transport a user might have reached such a device over, so the decline is now complete in the wire as well as in the class.
+
+**Disposition:** the role question is answered at R-04-010a's ground, R-12-020 is unamended, and the four uses above are declined at the radio; the mobile-document surface over BLE or Wi-Fi Aware is undecided and named as such.
+The normative statement is R-17-051b's, which books the forfeits in its own body as R-17-051a books messaging's.
+
+---
+
 ## The session-security slot: authored protocol proofs, computational-model upstreams, and trusted external provers, declined for curated symbolic upstreams
 
 R-12-043e pins each radio reference state machine to the machine-checked symbolic security analysis of its protocol, and three other ways of buying the session-security half were declined for it.
@@ -2094,6 +2212,23 @@ The record carries one axis the deletion's arithmetic does not price, and this e
 The deletion stands for the additional checker, while applicable search and scheduling methods remain ordinary untrusted producer work under R-05-066. No new checker or assembly-leaf exception follows from reusing them. The second yield is one this platform buys elsewhere: R-05-026 already states every certificate at binary level, and R-05-023a names the general instrument, decompilation into logic over the pinned Sail term, of which a straight-line equivalence checker is the loop-free special case. A second, narrower validator standing beside the named instrument would be an interim with no retirement story, the shape §5's inventory discipline exists to prevent, and the throughput it would re-buy remains surrendered by the deletion's own arithmetic.
 
 **Disposition:** the deletion stands; R-05-064, R-06-026, R-18-022, and R-05-065 are unchanged. One falsifier is booked: if the R-05-023a instrument, once built, cannot close the straight-line kernel classes (field arithmetic, the codec inner loops) at tolerable proof cost, the equivalence checker is the named fallback for exactly those classes, its modern evidence the record above, and re-opening it is triggered by that measurement rather than by calendar.
+Non-normative; no spec-body change.
+
+---
+
+## Certified-optimal placement by an imported certificate checker: the pattern in use is admitted, the import is refused, and the infeasibility verdict stays an open question
+
+The proposal is that a planner should return a *certified-optimal* memory layout: an untrusted constraint or pseudo-Boolean solver emits a proof, and a machine-checked certificate checker re-establishes it, so the layout's optimality is believed without believing the solver. The candidates, their provers, their venues, their licence terms and their trusted bases are read once in [the proof inventory's certified-search section](../assurance/proof-reuse/foundations.md#certified-search-and-the-registers-standing-refusals) and in [the static-memory research reading](static-memory-research.md) and are cited here rather than weighed again; what this entry records is which arm each proposal takes, what that arm forfeits, and the one question the register leaves open.
+
+**The admitted arm is the asymmetric-trust pattern, and it imports nothing because it is running.** R-05-066 reads R-05-065 as targeting *minting a checker* rather than the pattern, so an untrusted producer whose output an already-existing checker re-validates is admissible and free to be arbitrarily aggressive. Its criterion bites in the other direction and is what decides this whole family: an optimizer is admissible exactly where an existing checker decides its output and no new checker is introduced. The checker whose verdict admits a placement is two artifacts with two statuses, and naming one of them alone would misreport the arm. The checker R-08-014 states its decidable interference side condition for is the on-device CHERI-TAL type-check, and R-18-020 books that checker and its derivation producer as hard prerequisites with no trusted-toolchain fallback, so it is owed and unbuilt. What decides candidates today is the host-side port of [the memory plan](../../proofs/MemoryPlan.v)'s own checks, one Python function per Gallina definition, driven by `run.py placement search` under [the search contract](../implementation/placement-search.md)'s PS-8: the check admits and the objective never does, and the port is admitted as the port it is rather than as proof, the proof status staying with the file. The arm forfeits three things and buys nothing back. It claims no optimality past the declared candidate set (PS-3). The gap between the best span the check admits and the strongest lower bound stated against it is reported and is not closed: [the scaling experiment](../implementation/static-memory-scaling.md) reports per arena the strongest proved lower bound beside the best feasible span and the remaining gap between them, R-08-012 states the charged peak as a lower bound on the span of every legal placement and holds an unproved remainder to be an unresolved gap rather than planner optimality, and the placement report prints that same distance over the plan's own witness values as the unused reservation above the footprint R-08-012a's first term is minimized against. What no arm supplies is a machine-checked theorem behind any of those bounds, the scaling experiment saying so of its own, so the remaining gap is measured and never proved zero, and closing it by proof is the yield a certified-optimal import would buy. And it has no power to tell a run cut short from infeasibility (PS-5).
+
+**The refused arm is importing one of those candidates as a shipped certificate checker so that the planner's answer becomes certified-optimal.** R-05-105 refuses any verified tool whose only yield is tightening an already-sound bound and takes the trivial sound bound instead, and R-05-106 records that this is one rule reaching an artifact as readily as an estimate, so nothing turns on the yield arriving as a tool rather than as a number. The yield this arm lacks is any yield other than a smaller span over a plan the existing checks already admit. Three further entries reach it before its merits are read: R-05-066's own criterion, a new checker being precisely what that clause does not admit, so the entry that admits the untrusted search also refuses the checker that would decide it; R-05-104, which deleted the Implicit Path Enumeration Technique and its LP solver rather than retargeting them, that being the machinery a layout objective reaches for first; and R-05-020's first condition, which the HOL4 and Lean candidates do not meet before any yield is weighed, and do not meet until someone builds and shows the bridge. **What this arm forfeits is the span itself**, and it is forfeited in the rules' own words rather than by a judgment taken here: the trivial sound bound is taken (R-05-105) and the slower sound artifact is taken (R-05-065).
+
+**The third arm is a checked *infeasibility* certificate, and it is where the yield rules stop and a different rule starts.** Its yield is a changed verdict rather than a sharpened number: it would move R-15-171's refusal of a roster that does not fit and R-08-047's typed `CapacityExhausted(pool)` answer from "the bounded search found no placement" to "no legal placement exists", which the trivial sound answer does not supply and which is why R-05-105 and R-05-106 do not reach it. R-05-016 does, and it is unconditional on yield: no tool is admitted as a second checker, R-05-016a glossing that exclusion as a second logic whose acceptance is a ground, and R-05-011b making a tool a second checker exactly where an admitted claim's ground is its verdict. An accepted infeasibility verdict is that shape and nothing else. It is not the only rule reaching the imported form independently of yield, only the one that reaches it from the accepting side: a newly shipped checker is precisely what R-05-066's criterion does not admit, and R-06-011's admission-axiom inventory names two checkers and not three, so a third is an amendment decided at the review gate, both read at [the proof inventory's infeasibility paragraph](../assurance/proof-reuse/foundations.md#certified-search-and-the-registers-standing-refusals) and at [the static-memory research reading](static-memory-research.md). **The accepting rule is answered by R-05-015's route and by no other**: any prover, solver or search procedure may produce a proof term provided the kernel re-checks the emitted term, on the criterion that the tool's own verdict is never the ground of acceptance, which is the route R-05-017 names for the SMT facts that take it and which [the proof inventory's discovery section](../assurance/proof-reuse/foundations.md#discovery-collections-and-search-limits) reads onto a reflective importer whose result the kernel re-checks, that importer being neither admitted on an external verdict nor a second logic under R-05-016a. So the imported form is refused wherever the checker's acceptance decides, and what would have to stand in its place is a term this repository authors and proves. The optional [portable LRAT experiment](../implementation/static-memory-certificates.md) is the evidence tier and not this arm, the portable placement checker it passes a placement through first included: its external verdict grounds no admitted claim under R-05-011b and R-15-094 and supplies no instance-specific Rocq term.
+
+**So the arm is open as a question, and the question is whether an infeasibility verdict over a placement model could ever earn that authoring.** It owes R-05-020 all three demonstrations and has none of them. *Coq-native or mechanically bridged* is unshown with its native half in hand rather than untouched: [the certificate model](../../proofs/MemoryPlannerCertificates.v) proves `finite_encoding_equivalent` and `unsat_excludes_every_legal_selection` over a generic finite one-hot model, and it names its own unbridged seams, the Python domain extraction, the cell-to-DIMACS numbering and integer serialization, the physical lifetime extraction, and the native checker's input and output. *Non-duplication* is unshown and owes the argument that a clause model does not become a second statement of the interference obligation the memory plan already carries; that file declines to settle it by fiat, recording that R-08-014 supplies the obligation its forbidden pairs represent and that the model discharges no admission obligation. *Retiring an interim* is unshown and has no candidate interim at all, R-05-022's inventory carrying three and none of them riding placement. No cell in the plan prices the authoring, the question is asked here rather than proposed, and it may be answered in the negative.
+
+**Disposition:** the asymmetric-trust arm is admitted and is already the placement search's shape, so nothing is imported for it; the shipped certificate checker is refused on R-05-105 and R-05-106 for the yield it lacks and independently on R-05-066, R-05-104 and R-05-020, its forfeited span accepted under R-05-105's and R-05-065's own words; the infeasibility arm is refused in its imported form by R-05-016 and, independently of yield, by R-05-066's criterion and R-06-011's inventory, is answerable only on R-05-015's route, and is left open as the authoring question above, which no cell prices and which may close in the negative. No candidate is a start-from for any cell, none is installed, built, pinned or benchmarked, and no figure from any candidate's own benchmark set enters this tree.
 Non-normative; no spec-body change.
 
 ---

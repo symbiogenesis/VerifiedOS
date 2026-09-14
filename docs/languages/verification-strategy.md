@@ -14,7 +14,7 @@ Start with diagnostics and selective reuse on existing proofs. Q19c's component 
 
 ## Constraints and Desired Product
 
-The [register](../requirements-register.md) remains authoritative. [Semantic anchors are fixed](../spec.md#r-05-019); [verified compilation transports proofs between them](../spec.md#r-05-021). A [new translator](../spec.md#r-05-020) must be Rocq-native or mechanically bridged, duplicate no anchor and retire an interim it replaces. A general Vela frontend names no retiring interim yet, so its admission remains unresolved. There is no new proof kernel, on-device dependent checker, managed runtime or non-CHERI VerifiedOS deployment path.
+The [register](../requirements-register.md) remains authoritative. [Semantic anchors are fixed](../spec.md#r-05-019); [verified compilation transports proofs between them](../spec.md#r-05-021). A [new translator](../spec.md#r-05-020) must be Rocq-native or mechanically bridged, duplicate no anchor and retire an interim it replaces. A general Vela frontend retires no interim, and [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) is that this refuses it only where the calculus carries its own judgment and reduction, which is an eighth anchor; where the calculus's meaning is its elaboration's image in the kernel, R-05-009 reaches the producer and R-05-020 has no subject. The design as written carries its own judgment, so the frontend is held. There is no new proof kernel, on-device dependent checker, managed runtime or non-CHERI VerifiedOS deployment path.
 
 ### Language Product Contract
 
@@ -1041,7 +1041,7 @@ An amendment dossier names substitute evidence rather than deleting a waypoint a
 | Primitive surface and admission, R-05-023b | The same profile-bound instruction meanings and applicable TAL evidence, without private semantics or a new checker mechanism |
 | Verified-C and Rust interoperability | Typed ABI/link contracts and composition with retained routes, including bootstrap obligations |
 
-Changing the required Iris-over-Sail validation path also needs review of R-05-023a and R-13-017; changing the anchor inventory faces R-05-019. A new translator or semantics still owes all of R-05-020's conditions. The proposal names no retiring interim for a general Vela frontend, so that admission gap remains open. Amending R-05-043 alone cannot authorize replacing the TCB compiler or its program logic.
+Changing the required Iris-over-Sail validation path also needs review of R-05-023a and R-13-017; changing the anchor inventory faces R-05-019. A new translator or semantics still owes all of R-05-020's conditions, and the proposal names no retiring interim for a general Vela frontend; [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) states which arm that decides and what is owed in the other. Amending R-05-043 alone cannot authorize replacing the TCB compiler or its program logic.
 
 #### Bounded Emission Versus General Logic
 

@@ -38,7 +38,7 @@ Six things about that shape are not guessable and cost a first-time reviewer the
 - **Derived facts are computed, not copied.** Every count, table, list, and cross-artifact figure the documents assert is recomputed from the artifact that owns it by `tools/check.py`, which reports drift and rewrites it under `--fix`. Do not audit arithmetic by hand: run the tool, and treat a figure it does not own as the finding.
 - **A set stated in one place is cited from elsewhere, never repeated.** Where an entry needs a set another entry states, it cites that entry. Two statements of one membership are free to drift, which is the failure the conferral machinery exists to foreclose.
 - **`§n` is resolved by hand.** The checker holds only that *some* document numbers that section, because the numbering is shared. A bare `§n` names the register's section; the profile's where the sentence says the profile states it.
-- **The letter-suffix density is high, and that is a signal rather than a defect.** 499 of the register's 1452 entries are post-hoc insertions, which is evidence about edit rate against review stability. [critique.md](../background/critique.md) reads it that way and does not charge it as an error.
+- **The letter-suffix density is high, and that is a signal rather than a defect.** 500 of the register's 1453 entries are post-hoc insertions, which is evidence about edit rate against review stability. [critique.md](../background/critique.md) reads it that way and does not charge it as an error.
 
 ## 4. The co-read ledger, and what blessing means
 
@@ -74,7 +74,7 @@ $ python tools/run.py rtl provenance              # each claimed absence, and th
 $ python tools/run.py oracle list                 # the differential oracles, and how large each is
 ```
 
-Only the host gate wave runs unattended: [host-gates.yml](../../.github/workflows/host-gates.yml) runs `python tools/run.py --check --tests` on Windows and Ubuntu runners at every push and pull request to `main`. Required guest evidence is run explicitly before the affected item lands. During fan-out, workers return focused evidence and one integrator runs the complete gate over each stable integration batch; [the check schedule](../../tools/README.md#check-scheduling-during-fan-out) states when to run each command and when a later edit invalidates its verdict. [tools/README.md](../../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
+Only the host gate wave runs unattended: [host-gates.yml](../../.github/workflows/host-gates.yml) runs `python tools/run.py --check --tests`, with a `--summary` path that names the member that went red and adds no gate, on Windows and Ubuntu runners at every push and pull request to `main`. Required guest evidence is run explicitly before the affected item lands. During fan-out, workers return focused evidence and one integrator runs the complete gate over each stable integration batch; [the check schedule](../../tools/README.md#check-scheduling-during-fan-out) states when to run each command and when a later edit invalidates its verdict. [tools/README.md](../../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
 
 ## 7. Where a finding goes
 

@@ -41,6 +41,17 @@ checked out; the guest lane's loops run only by hand, on a machine that holds th
 toolchain. CI green is a witness that the host gates passed on that commit and never a
 substitute for the guest lane's evidence.
 
+**A red CI run has to name which member went red, to a reader who cannot open its
+log.** One invocation is four members and one exit code, which reaches the run page and
+the API as *process completed with exit code 1* and says nothing. So that invocation
+carries `--summary`, which writes the per-member verdict as JSON beside the run rather
+than into the checkout, and the workflow's next step renders it into one annotation per
+member that did not come back clean and a table into the job summary. That step runs
+whether or not the gate did, so a gate that stopped before the wave finished is named
+as that rather than left looking like a failing member. `--summary` adds no member and
+decides nothing about the tree; asked to write that verdict and unable to, it reports
+one finding of its own, which is the only way it reaches the exit code.
+
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
 `wsl -u root -e python3` to remember and no wrong lane to be in. Commands that
@@ -63,7 +74,7 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Validates shared agent instructions and restores a missing import, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. A bare `run.py` selects this workflow. |
+| `gate` | host | Validates shared agent instructions and restores a missing import, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
@@ -75,7 +86,7 @@ caught by nothing, which is a residue the findings register carries.
 | `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | `revocation` | host | Qualifies bounded revocation completion and reuse cases against an explicit holder inventory and schedule. The assessment supplies no runtime implementation or universal temporal-safety theorem. |
 | `witness` | host | `qualify` enumerates bounded witness quorums; `test --only witness` exercises durable recovery and policy transitions. Both separate honest intersection from availability and selective delivery. |
-| `session-binding` | host | Checks a symbolic attestation/session-binding model against replay, parallel-session substitution and relay cases. Cryptographic and implementation correspondence remain separate obligations. |
+| `session-binding` | host | Checks two symbolic attestation/session-binding models, the TLS application binding and the ensemble link session, against replay, parallel-session substitution, unit-substitution, foreign-ensemble-identity and relay cases. Cryptographic and implementation correspondence remain separate obligations. |
 | `assembly-compare` | host | Compares stock compiler assembly under the [reviewed annotation-only contract](../docs/implementation/compiler-assembly-comparison.md). `LEFT RIGHT --json` reports input and tool identities; equal bytes supply no compiler-campaign verdict. |
 | `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits shortest failing arrival traces for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
 | `storage-index` | host | Compares a fixed-height buffered index and plain CoW B+ tree under one conditional redo contract. Reports bounded block costs, map equivalence and crash cases; [Q22f's predicate](../docs/implementation/storage-index-comparison.md) leaves device qualification and target WCET open. `--json` includes source identities and every measured case. |

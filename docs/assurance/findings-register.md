@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 663 of them across 112 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 689 of them across 122 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -752,6 +752,110 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-356** measurement: cancellation of a registered but unstarted child must not return its frame before terminal-result collection
 · Raised: Q25c
 · Disposition: closed in design review; returned inputs enter the reserved cancelled-completion record, and the frame remains owned until terminal collection and its release gate.
+
+**F-357** method: a terms record gave a row to a candidate its own sources dispose of before terms are reached, splitting a class and contradicting the record's closing paragraph
+· Raised: Q27c
+· Disposition: closed at repair; CakePB and VeriPB move into the exclusion paragraph with the ground named, the plan's Q27a bullet and the cited foundations reading grouping CakePB with the Lean developments as failing R-05-020's first condition on its prover. Terms decide a consumer only for a candidate that reaches the terms.
+
+**F-358** method: the admitted arm denied that any lower-bound argument exists on either side of the port, contradicting the clause it qualified and the artifacts that compute those bounds
+· Raised: Q27a
+· Disposition: closed at repair; the scaling experiment's proved-lower-bounds section, R-08-012, R-08-012a and the planner's own fixed floor each state the bound, so the arm now reports the gap as measured and names what is actually absent, a machine-checked theorem behind any of them. The error ran in the direction that made the refusal look better supported than the record does, which is why a forfeit list is read against the artifacts that compute the quantity it forfeits.
+
+**F-359** owed-act: no register entry makes the RTL correspondence record a required artifact
+· Raised: Q22d
+· Disposition: open, R-15-092's Accept states the fields for an elected version and nothing makes the record required the way R-15-100a makes the absence contract required; requiring it is a new entry or an amendment to that Accept and belongs to the register's owner
+
+**F-360** owed-act: R-18-010's assurance rungs are stated per core and no rung admits a package
+· Raised: Q22d
+· Disposition: open, both worked examples are packages, which is why both rung lists are empty rather than short and why the tier cells read R-01-002b as a ceiling over the unit; extending the ladder to non-core blocks, or ruling that it deliberately does not reach them, is the register's act
+
+**F-361** method: the register states no tier below evidence tier, so a lower tier cannot be read as a third one
+· Raised: Q22d
+· Disposition: closed at authoring, the predicate's lower evidence tier is read on R-01-002b's own two-list test as a shorter rung list and a weaker claim rather than as a sub-tier this work would be inventing; a sub-tier is a register act
+
+**F-362** owed-act: no artifact owes the address map a theorem endpoint
+· Raised: Q22d
+· Disposition: open, its meaning is agreement with the model's `pmaCheck` in `model/model/sys/mem.sail` and no artifact states that relation; assigning an owner is the plan's act
+
+**F-363** upstream-defect: `run.py rtl crosscheck` reads the format package from the checkout with no source override
+· Raised: Q22d
+· Disposition: open, reported and not repaired, each trial replicated its Verilator invocation by hand; this cell prices boundary qualification and a bounded experiment rather than a tool mode
+
+**F-364** method: a general clause is not a declaration, and ten of the coverage section's rows name their carrier on one alone
+· Raised: Q23b
+· Disposition: open, no entry names any of the ten and R-09-007's enumeration reaches none; that the clause is not read as exhaustive is visible in the register, R-15-228d putting the frame size in a different artifact by name
+
+**F-365** method: an inventory row's status is not lifted by a stated grammar
+· Raised: Q23b
+· Disposition: open, crown-jewel row 10 gains this descriptor set as a member and stays `not authored`, the descriptor, its Narcissus correctness pair and its canonicity theorem all being owed; whether one stated grammar promotes the row is K-95's lift and its repairer's
+
+**F-366** owed-act: the link code's family is admitted by the selection predicate but chosen by no measurement this tree carries
+· Raised: Q23b
+· Disposition: open, the predicate admits both of R-15-119's families, the frame length is unfixed, and the reach and raw error rate are physical quantities none of the five gating artifacts buys, so the family is recorded as owed rather than written
+
+**F-367** owed-act: the endpoint's register offsets are declared by no entry
+· Raised: Q23b
+· Disposition: open, R-15-002b constrains where the aperture sits and nothing assigns an offset inside it, the same class of gap as the composition constants and recorded beside them rather than filled
+
+**F-368** measurement: a report whose subject is undeclared magnitudes stated a lower bound on one of them
+· Raised: Q23e
+· Disposition: closed at repair; the lead sentence asserted no plausible link is short of 6.45 MB/s, a bound on the one constant the same report says it cannot decide and which R-12-015d makes bounded above by an undeclared throughput. The phrasing is conditional with a named owner, and the ordering of the terms was always the result
+
+**F-369** method: a refusal derived over two declared parameters reads as a property of the shape unless the alternative is priced
+· Raised: Q23e
+· Disposition: closed at repair; the refusal above two members was the declared cycle's and the ring's rather than tensor-wise sharding's, and a fully connected collective reverses it at 2.5 times the crypto charge. Pricing the rejected option took fourteen lines of the instrument and moved a verdict
+
+**F-370** measurement: three figures sat outside the file the report said every figure came from
+· Raised: Q23e
+· Disposition: closed at repair; an FFN width no tracked artifact states, a head count owned by another report's section and a cache constant hand-copied from it are all derived in the instrument with predicates now, the derived cache bytes agreeing with their source section to the byte. The rule the miss breaks is the item's own Check clause
+
+**F-371** method: an entry naming three terms and no composition function invites the reader to supply one
+· Raised: Q23e
+· Disposition: closed at repair; R-15-171a's rate was read as the minimum of three independent ceilings where R-11-017a's own text puts all three into one member's interval arithmetic as ordinary tasks and grants, so the independence was asserted against the entry the sentence relied on. Stated as an upper bound, with the composition named as Q23d's
+
+**F-372** method: the plan's Owns clause for the module socket named two glosses as states and omitted three
+· Raised: Q24a
+· Disposition: closed at landing; R-15-228h fixes absent, isolated, detected, reset, authenticated, active and quiescing, where *present* is the condition a card is in from `detected` onward and *admitted* is a property of a unit and design pair rather than of the socket. The contract records both as glosses with the state each produces, and the cell carrying the clause is replaced by this item's landed summary
+
+**F-373** method: a session model can state key ownership and decide nothing about it
+· Raised: Q23c
+· Disposition: closed at authoring; ownership is stated where it decides an admission or a refusal and is otherwise left to the entry that owns it, a model asserting a property it never tests being a claim rather than a reference
+
+**F-374** method: an event-level oracle that reads a verifier's own predicate off the claim decides nothing
+· Raised: Q23c
+· Disposition: closed at repair; the oracle takes its predicate from the reference model rather than from the artifact under test, an oracle sharing the subject's own decision procedure being unable to disagree with it
+
+**F-375** owed-act: the link's named contribution cannot bear on the composed conclusion and no entry lets it
+· Raised: Q23f
+· Disposition: open, R-17-014a calls R-15-228d's schedule and R-12-015d's session the link's contribution, which asserts they do work, but as predicates over a link alone they reach nothing the target concludes; making them bear is a register act
+
+**F-376** owed-act: no entry decides what relation a link's two endpoint labels must stand in
+· Raised: Q23f
+· Disposition: open, R-15-228b, R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame grammar, the slot table, the index-only payload and the session, and none states a label relation across the wire; the obligation's instance rests on one and the entry supplying it is owed
+
+**F-377** method: the plan's own Execute clause for this item mis-cited the entry it leans on
+· Raised: Q23f
+· Disposition: closed at repair; R-05-157 says only that T is the formal reading of the security claim and of G2, and the demand for a distinguishing instance a specification rejects belongs to a different entry, so the clause now cites the entry that asks it
+
+**F-378** owed-act: the survey's strongest language sources resolve to obligations no cell prices
+· Raised: Q27b
+· Disposition: open, RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified results the sweep added and every one resolves to an obligation booked outside the priced work; opening a cell for any of them is the plan's act and not this record's
+
+**F-379** method: two of the four consumers already held their source before this act ran
+· Raised: Q27b
+· Disposition: closed at authoring; R-18-018's fourth sub-deliverable names VerusBelt in the register itself and Q19c's cell names Diaframe with its terms, and the conventions give an existing start-from no second discount, so both are recorded as held rather than as newly available
+
+**F-380** method: a draft reported a register obligation as booked nowhere when the register's own trace lines decide it
+· Raised: Q27b
+· Disposition: closed at repair; R-05-119 and R-05-121 are placed by their trace lines, and a false gap reported against a map is worse than no report because it commissions an act nobody owes
+
+**F-381** upstream-defect: the workflow's expression contexts are held by GitHub at validation time and by no gate here
+· Raised: I17
+· Disposition: standing, a violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist, which is indistinguishable from the repository having no runs for an unrelated reason; a rule over a one-subject corpus was declined against the cost of transcribing the context table into a tracked artifact, and the residue is named instead
+
+**F-382** method: two restatements of the workflow's command line outside the tools lane went stale with this landing
+· Raised: I17
+· Disposition: closed at landing; AGENTS.md and the reviewer on-ramp both named the command without `--summary` and both now carry it. No rule holds the pair and the checker is green with it stale, which is what makes the miss a finding rather than a nicety
 
 ## M0 · Hardware reference
 

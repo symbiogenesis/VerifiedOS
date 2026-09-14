@@ -290,8 +290,11 @@
       health tests against the source's stochastic model, so nothing below
       carries a sample count, a rate, or an entropy estimate: the verdict is
       a latched boolean field and the budget is the model's. Deferred and
-      not a gap: item S5 authors that stochastic model, after the M8a gate,
-      the budget being a qualification input rather than a boot condition.
+      not a gap: the model itself is the selected TRNG's supplier's and no
+      item here authors one, while what a submitted model must state and how
+      a budget is derived from it are fixed by item S5's contract,
+      docs/hardware/trng-source-model-contract.md, the budget being a
+      qualification input rather than a boot condition.
    e. The §16 deterministic-replay nondeterminism record. R-15-241 requires
       every draw accounted for in it and R-16-015 through R-16-021 specify
       it, so nothing below introduces a draw, a seed, a commitment, or the
@@ -1169,7 +1172,7 @@ Record Machine : Type := {
 
   (* --- R-15-241b's latched start-up verdict. A boolean and never a sample
          budget, an entropy rate or an estimate: that is the source's
-         stochastic model's, which item S5 authors (gap d) ---------------- *)
+         stochastic model's, and the model is the supplier's (gap d) ------ *)
 
   entropy_ok : bool;
 
