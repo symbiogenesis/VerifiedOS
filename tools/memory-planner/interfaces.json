@@ -1,0 +1,47 @@
+{
+  "tflite_micro": {
+    "license_url": "https://github.com/tensorflow/tflite-micro/blob/d0318206cf438df7d60708b49559777225ebacda/LICENSE",
+    "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "boundary": "MicroMemoryPlanner C++ virtual interface",
+    "license": "Apache-2.0",
+    "commit": "d0318206cf438df7d60708b49559777225ebacda",
+    "headers": [
+      {
+        "path": "tensorflow/lite/micro/memory_planner/micro_memory_planner.h",
+        "sha256": "af02aff633f44ceffe902c8eedf9222571075cb988a02de18603cb37928ecb45"
+      },
+      {
+        "path": "tensorflow/lite/c/common.h",
+        "sha256": "d4f74e60f635753bf5dc8ea1200cc5b2a196c8b6004372b2106a4a3f518d18ac"
+      },
+      {
+        "path": "tensorflow/lite/core/c/common.h",
+        "sha256": "c3b754ad7599bd309ed5b88e5bf7c640e88f754d0664cdf722fd03fcd54a723a"
+      },
+      {
+        "path": "tensorflow/lite/core/c/c_api_types.h",
+        "sha256": "07b114901685808313247f84c5d37e6b29c95fb6ff5b2a8a950eb564844c45b0"
+      },
+      {
+        "path": "tensorflow/compiler/mlir/lite/core/c/tflite_types.h",
+        "sha256": "af1f579621406bdc5d98caea5c4e35bc798b5f248c150b561aa656d951be0d9f"
+      }
+    ]
+  },
+  "executorch": {
+    "license_url": "https://github.com/pytorch/executorch/blob/420948be0b6895244a7f63742222d2d72d84a31c/LICENSE",
+    "boundary": "MemoryPlanningAlgorithmSuite algorithm callback -> MemoryAlgoResult",
+    "sha256": "f141012f46c9a2d409fe22d1629b6bede532fcbc4f6405e0dfef6178c8a32550",
+    "license": "BSD-3-Clause",
+    "commit": "420948be0b6895244a7f63742222d2d72d84a31c",
+    "interface": "exir/memory_planning.py"
+  },
+  "schema_version": 1,
+  "minimalloc": {
+    "interface": "python/minimalloc/_bindings.cpp",
+    "commit": "9f5cf810fec4494df473c23cffd0567989e81b69",
+    "license": "Apache-2.0",
+    "license_url": "https://github.com/google/minimalloc/blob/9f5cf810fec4494df473c23cffd0567989e81b69/LICENSE",
+    "boundary": "Python Solver.solve(Problem) -> Solution or None"
+  }
+}
