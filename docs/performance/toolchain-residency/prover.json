@@ -1,6 +1,6 @@
 {
-  "act_compile": "rocq c -q -Q proofs \"\" <module>.v, one module per invocation, in dependency order over this repository's 27 tracked proof modules",
-  "act_recheck": "rocqchk -silent -Q proofs \"\" <every module>, one invocation over the whole set, which is the kernel re-check R-06-015a puts a declared working-set budget on",
+  "act_compile": "rocq c -q -Q proofs \"\" <module>.v, one module per invocation, in dependency order over this repository's 27 tracked proof modules; the per-artifact check is the install-path act R-13-027 puts on the device and the act R-06-015a puts a declared working-set budget on",
+  "act_recheck": "rocqchk -silent -Q proofs \"\" <every module>, one invocation over the whole set; this is the release-time whole-corpus re-check R-13-028 keeps off the device, measured because its figure bounds what a device that did perform it would need, and not an act R-06-015a's install-path budget covers",
   "prover": "rocq-core 9.2.0, switch verifiedos-rocq-9.2.0-ocaml-5.4.1",
   "predicate": "os.wait4 ru_maxrss of the child each invocation forked, KiB times 1024",
   "source_revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",
@@ -37,7 +37,9 @@
     "MemoryPlan",
     "StaticMemoryLaminar"
   ],
-  "compile_wall_s": 231.12,
+  "compile_wall_predicates": "compile_wall_s_sum_of_rows adds the 27 per-invocation wall_s figures peak.py recorded around each rocq child; compile_wall_s_driver_loop is the driver's own monotonic clock around the same 27 invocations and carries each invocation's interpreter start and the driver's own bookkeeping beside them",
+  "compile_wall_s_sum_of_rows": 230.483,
+  "compile_wall_s_driver_loop": 231.12,
   "compile_rows": [
     {
       "label": "rocq-c-AdmissionPath",
