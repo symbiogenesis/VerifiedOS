@@ -65,14 +65,14 @@ The [typed assembly language](languages/typed-assembly-language.md), the typed m
 
 ## The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1452 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1453 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
 
 ## Derived views
 
-Eight **derived views** collect what the register states across many entries but no document held:
+Nine **derived views** collect what the register states across many entries but no document held:
 
 - **The [frozen instruction-set profile](hardware/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. It carries a third disposition beside adopted and excluded: a **standing adoption** is an extension the profile has already decided it would take, still waiting on the standards body to ratify it, so the decision is on the page while the machine carries none of it. The schedule root and first day-one deliverable of the spec's [realization plan](spec.md#18-realization) consume it.
 - **The [microarchitectural absence contract](hardware/absence-contract.md)**: twenty-three enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
