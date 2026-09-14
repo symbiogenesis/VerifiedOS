@@ -104,7 +104,7 @@ The two columns are the same measurement read two ways and the second is the one
 
 The three terms of the answer are each stated against its own floor, and the two that can be decided are decided.
 
-**On the bank grant, both shapes are near the floor and they fail on opposite sides of it.** Each member's second-class read per token is its own weight bytes plus its share of the cache, at the floor's rate and its declared 8,192-token context, against R-18-004b's *at least 8 GB/s granted to the M-class island*. The comparison baseline is the one machine's 12.46 GB/s weight stream that [the inference demand report](inference-demand.md)'s section 8 states for this file, which is 1.56 of that floor.
+**On the bank grant, two members put both shapes near the floor and one of them across it.** Each member's second-class read per token is its own weight bytes plus its share of the cache, at the floor's rate and its declared 8,192-token context, against R-18-004b's *at least 8 GB/s granted to the M-class island*. The comparison baseline is the one machine's 12.46 GB/s weight stream that [the inference demand report](inference-demand.md)'s section 8 states for this file, which is 1.56 of that floor.
 
 | Shape | Members | Member | Weight stream, in grant floors | With a `q8_0` cache | With an f16 cache |
 | --- | --- | --- | --- | --- | --- |
