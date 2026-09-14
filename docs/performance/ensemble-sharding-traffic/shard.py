@@ -44,24 +44,87 @@ MEMBER_COUNTS = [2, 4, 8]
 DEFAULT_ACTIVATION_WIDTH = 4
 DEFAULT_FRAME_PAYLOAD = 2048
 
-# The KV geometry inference-demand section 5 derives from this model's own head counts:
-# one key and one value vector per layer per token, n_head_kv 8 by n_embd_head 128, so
-# 73,728 elements per token over 36 layers, 147,456 bytes at f16 and 78,336 at q8_0.
-KV_BYTES_PER_TOKEN = {"f16": 147456, "q8_0": 78336}
+# The two head counts the static file does not carry. They are read from inference-demand
+# section 3, which states this model's 32 query heads and 8 key-value heads of 128, and they
+# are the only inputs to this script that come from outside the named static file. The KV
+# geometry is derived from them here rather than copied from inference-demand section 5, so
+# that the derived bytes carry a predicate of their own and agree with that section by
+# arithmetic rather than by transcription.
+HEAD_SOURCE = "inference-demand section 3"
+N_HEAD_KV = 8
+N_EMBD_HEAD = 128
+# q8_0 is 34 bytes per block of 32 elements, which is inference-demand section 5's reading.
+KV_ELEMENT_BYTES = {"f16": (2, 1), "q8_0": (34, 32)}
+
+# The model those two head counts were read for. A static file of another model carries
+# another head geometry, so the script refuses it rather than deriving a cache figure from
+# constants that are not that model's.
+HEAD_SOURCE_MODEL = "Qwen3-4B-Q4_K_M.gguf"
+
+# q4_K is 144 bytes per block of 256 elements. Used once, to derive the FFN width from the
+# gate projection's own byte count, which is the only route to that width this file admits.
+Q4_K_BLOCK = (144, 256)
 
 PREDICATE = (
     "the per-step link traffic of one decode step of a dense model sharded over the members "
     "named, derived from the geometry of the named static-<quant>.json (hidden width "
     "token_embd.ne[0], layer count n_layers, matrix bytes block_bytes less the per-layer f32 "
-    "norms, head bytes token_embd.weight read whole because the head is tied) at this "
-    "report's declared activation width, frame payload, topology and collective algorithm, "
-    "at R-18-004a(vii)'s five tokens per second and 8,192-token context; every byte is a "
-    "target byte for the partition and no figure is a device measurement or a host time"
+    "norms, head bytes token_embd.weight read whole because the head is tied, FFN width from "
+    "layer 0's ffn_gate.weight bytes at q4_K's 144 bytes per 256 elements over the hidden "
+    "width) at this report's declared activation width, frame payload, topology and "
+    "collective algorithm, at R-18-004a(vii)'s five tokens per second and 8,192-token "
+    "context; the KV bytes per token are derived from n_head_kv 8 and n_embd_head 128, which "
+    "the static file does not carry and which are read from inference-demand section 3, that "
+    "section being their owner, and agree by arithmetic with inference-demand section 5's "
+    "147,456 bytes at f16 and 78,336 at q8_0; every byte is a target byte for the partition "
+    "and no figure is a device measurement or a host time"
 )
 
 
 def ceil_div(a: int, b: int) -> int:
     return -(-a // b)
+
+
+def kv_bytes_per_token(layers: int) -> dict[str, int]:
+    """One key and one value vector per layer per token, at each cache format.
+
+    n_head_kv by n_embd_head elements each, over the file's own layer count. The two head
+    counts are inference-demand section 3's and the static file carries neither, so they are
+    stated at HEAD_SOURCE above and the model they were read for is checked before they are
+    used. The result is required to agree with inference-demand section 5's figures, which is
+    what makes this a derivation rather than a second copy of them.
+    """
+    elements = 2 * N_HEAD_KV * N_EMBD_HEAD * layers
+    out = {}
+    for fmt, (block_bytes, block_elements) in KV_ELEMENT_BYTES.items():
+        if elements % block_elements:
+            raise SystemExit(
+                f"{fmt}: {elements} elements per token is not a whole number of blocks of "
+                f"{block_elements}; the KV figure would be a rounding and is refused")
+        out[fmt] = elements // block_elements * block_bytes
+    return out
+
+
+def ffn_width(layer0: dict[str, int], hidden: int) -> int:
+    """The FFN width, from layer 0's gate projection bytes at q4_K's block geometry.
+
+    The static file carries no width for the FFN, so this is the only route to it the file
+    admits: ffn_gate.weight is a hidden-by-ffn matrix at q4_K, and the bytes divide exactly by
+    the block size and then by the hidden width, or the derivation is refused rather than
+    rounded.
+    """
+    block_bytes, block_elements = Q4_K_BLOCK
+    raw = layer0["ffn_gate.weight"]
+    if raw % block_bytes:
+        raise SystemExit(
+            f"ffn_gate.weight is {raw} bytes, not a whole number of q4_K blocks of "
+            f"{block_bytes}; the FFN width is not derivable from this file and is refused")
+    elements = raw // block_bytes * block_elements
+    if elements % hidden:
+        raise SystemExit(
+            f"ffn_gate.weight is {elements} elements, which the hidden width {hidden} does "
+            "not divide; the FFN width is not derivable from this file and is refused")
+    return elements // hidden
 
 
 def layer_partition(n_layers: int, members: int) -> list[int]:
@@ -144,6 +207,14 @@ def tensorwise(geom: dict[str, int], members: int, act: int) -> dict[str, object
     if members == 2:
         hops, chunk = 1, s
     else:
+        if s % members:
+            # Every declared combination of this model divides exactly (10,240 and 5,120 over
+            # 2, 4 and 8). A geometry that does not would make the ring's chunk ragged, and a
+            # floor division would silently under-report it and every per-link byte figure
+            # derived from it, so the shape is refused rather than rounded.
+            raise SystemExit(
+                f"the activation vector of {s} bytes is not divisible by {members} members; "
+                "the ring chunk would be ragged and this script states no ragged chunk")
         hops, chunk = 2 * (members - 1), s // members
     serial = all_reduces * hops
     per_link_dir = serial * chunk
@@ -169,6 +240,42 @@ def tensorwise(geom: dict[str, int], members: int, act: int) -> dict[str, object
             "bytes_per_transmission": chunk,
         },
         **top,
+    }
+
+
+def fully_connected(geom: dict[str, int], members: int, act: int,
+                    payload: int) -> dict[str, object]:
+    """The alternative topology the declared cycle is chosen against, priced on both terms.
+
+    Every member holds a link to every other, so an all-reduce reduces in one serial position:
+    each member sends its whole partial concurrently on its members-1 links and sums locally.
+    That buys the cadence term, costing 2L serial exchanges per step against the ring's
+    2L*2(M-1), and spends the endpoint term and the crypto term, each member holding M-1
+    endpoint blocks against two and authenticating M-1 times the frames per serial position.
+    At two members it is the declared cycle, there being one link either way.
+
+    Priced only for tensor-wise sharding, the shape whose cadence bound the choice moves;
+    layer-wise traffic is one pass around a cycle and gains nothing from extra links.
+    """
+    s = geom["hidden"] * act
+    all_reduces = 2 * geom["layers"]
+    links_per_member = 1 if members == 2 else members - 1
+    per_exch = ceil_div(s, payload)
+    ops = 2 * links_per_member * all_reduces * per_exch
+    return {
+        "members": members,
+        "activation_width_bytes": act,
+        "frame_payload_bytes": payload,
+        "endpoints_per_member": links_per_member,
+        "links": members * links_per_member // 2,
+        "serial_exchanges_per_step": all_reduces,
+        "serial_exchanges_per_step_formula": "2L, one serial position per all-reduce",
+        "bytes_per_exchange": s,
+        "bytes_per_link_per_direction_per_step": all_reduces * s,
+        "admissible_slot_plus_guard_s": 1 / (FLOOR_TOKEN_RATE * all_reduces),
+        "crypto_operations_per_member_per_step": ops,
+        "crypto_operations_per_member_per_s": ops * FLOOR_TOKEN_RATE,
+        "is_the_declared_cycle": members == 2,
     }
 
 
@@ -203,10 +310,11 @@ def residency(geom: dict[str, int], shape: str, members: int) -> list[dict[str, 
         for i in range(members):
             rows.append({"member": i, "layers": geom["layers"],
                          "weight_bytes_per_token": per, "kv_share": 1 / members})
+    kv_per_token = kv_bytes_per_token(geom["layers"])
     for r in rows:
         w = int(r["weight_bytes_per_token"])
         r["weight_stream_bytes_per_s"] = w * FLOOR_TOKEN_RATE
-        for fmt, kv in KV_BYTES_PER_TOKEN.items():
+        for fmt, kv in kv_per_token.items():
             k = int(round(kv * float(r["kv_share"]))) * FLOOR_CONTEXT
             r[f"kv_bytes_per_token_{fmt}"] = k
             d = (w + k) * FLOOR_TOKEN_RATE
@@ -220,6 +328,15 @@ def residency(geom: dict[str, int], shape: str, members: int) -> list[dict[str, 
 
 def main(static_path: str, revision: str) -> None:
     st = json.load(open(static_path, encoding="utf-8"))
+    if st["file"] != HEAD_SOURCE_MODEL:
+        # The head counts and the q4_K block geometry above were read for one model. Another
+        # model's static file carries another head geometry and possibly another gate
+        # quantization, so every cache and FFN figure below would be derived from constants
+        # that are not its own.
+        raise SystemExit(
+            f"{st['file']} is not {HEAD_SOURCE_MODEL}, the model whose n_head_kv and "
+            f"n_embd_head this script reads from {HEAD_SOURCE}; re-read the head counts and "
+            "the gate projection's quantization for that model before running it")
     layer_norm_bytes = st["by_type"]["f32"]["bytes"] - st["non_block_non_embd_bytes"]
     geom = {
         "hidden": st["token_embd"]["ne"][0],
@@ -240,6 +357,13 @@ def main(static_path: str, revision: str) -> None:
         geom["mean_layer_bytes"] * geom["layers"] == geom["block_bytes"])
     geom["layer0_excess_over_mean"] = (
         geom["layer0_tensor_bytes_sum"] - geom["mean_layer_bytes"])
+    geom["ffn_width"] = ffn_width(st["layer0_tensor_bytes"], geom["hidden"])
+    geom["n_head_kv"] = N_HEAD_KV
+    geom["n_embd_head"] = N_EMBD_HEAD
+    geom["kv_bytes_per_token"] = kv_bytes_per_token(geom["layers"])
+    geom["head_counts_owner"] = (
+        f"{HEAD_SOURCE}; the static file carries no head count, and these two are the only "
+        "inputs to this script from outside it")
 
     shapes = []
     for shape, fn in (("layer-wise", layerwise), ("tensor-wise", tensorwise)):
@@ -338,8 +462,8 @@ def main(static_path: str, revision: str) -> None:
         "undeclared_terms": {
             "encode_decode_per_frame": "R-15-228e makes it one entry in the endpoint's "
                                        "device row of the timing-annotated model; that "
-                                       "model's table carries 27 core operation classes and "
-                                       "no device row, and qualified is false in the shipped "
+                                       "model's table carries core operation classes and no "
+                                       "device row, and qualified is false in the shipped "
                                        "configuration, R-17-041 holding the magnitudes as an "
                                        "unauthored crown-jewel specification",
             "crypto_core_throughput": "R-12-015d bounds the link's line rate above by the "
@@ -351,6 +475,15 @@ def main(static_path: str, revision: str) -> None:
                           "cell",
             "slot_period_and_guard_band": "R-11-017a's fourth output, owed by Q23d over "
                                           "Q23b's constants",
+        },
+        "alternative_topology": {
+            "what": "tensor-wise sharding over a fully connected ensemble instead of the "
+                    "declared cycle, at the default activation width and frame payload, "
+                    "priced so the topology's cost is read on the binding terms rather than "
+                    "on traffic; no entry declares a topology and neither shape is the "
+                    "register's",
+            "rows": [fully_connected(geom, m, DEFAULT_ACTIVATION_WIDTH,
+                                     DEFAULT_FRAME_PAYLOAD) for m in MEMBER_COUNTS],
         },
         "shapes": shapes,
     }

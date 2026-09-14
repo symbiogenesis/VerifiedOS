@@ -1,6 +1,6 @@
 {
- "predicate": "the per-step link traffic of one decode step of a dense model sharded over the members named, derived from the geometry of the named static-<quant>.json (hidden width token_embd.ne[0], layer count n_layers, matrix bytes block_bytes less the per-layer f32 norms, head bytes token_embd.weight read whole because the head is tied) at this report's declared activation width, frame payload, topology and collective algorithm, at R-18-004a(vii)'s five tokens per second and 8,192-token context; every byte is a target byte for the partition and no figure is a device measurement or a host time",
- "revision": "f528852f680dd00d599b73feb69258e214a1385a",
+ "predicate": "the per-step link traffic of one decode step of a dense model sharded over the members named, derived from the geometry of the named static-<quant>.json (hidden width token_embd.ne[0], layer count n_layers, matrix bytes block_bytes less the per-layer f32 norms, head bytes token_embd.weight read whole because the head is tied, FFN width from layer 0's ffn_gate.weight bytes at q4_K's 144 bytes per 256 elements over the hidden width) at this report's declared activation width, frame payload, topology and collective algorithm, at R-18-004a(vii)'s five tokens per second and 8,192-token context; the KV bytes per token are derived from n_head_kv 8 and n_embd_head 128, which the static file does not carry and which are read from inference-demand section 3, that section being their owner, and agree by arithmetic with inference-demand section 5's 147,456 bytes at f16 and 78,336 at q8_0; every byte is a target byte for the partition and no figure is a device measurement or a host time",
+ "revision": "59ac376af64fe0fe0fd70c61d3836f52fcc03f0f",
  "source": {
   "static_file": "static-Q4_K_M.json",
   "model_file": "Qwen3-4B-Q4_K_M.gguf",
@@ -22,7 +22,15 @@
   "weight_bytes_read_per_token_one_machine": 2491326004,
   "layer0_tensor_bytes_sum": 63888384,
   "mean_layer_bytes_exact": true,
-  "layer0_excess_over_mean": 3548160
+  "layer0_excess_over_mean": 3548160,
+  "ffn_width": 9728,
+  "n_head_kv": 8,
+  "n_embd_head": 128,
+  "kv_bytes_per_token": {
+   "f16": 147456,
+   "q8_0": 78336
+  },
+  "head_counts_owner": "inference-demand section 3; the static file carries no head count, and these two are the only inputs to this script from outside it"
  },
  "declared_parameters": {
   "member_counts": [
@@ -69,10 +77,60 @@
   "owner": "inference-demand section 8, restated here as the comparison the sharded rows are read against and not as a new figure"
  },
  "undeclared_terms": {
-  "encode_decode_per_frame": "R-15-228e makes it one entry in the endpoint's device row of the timing-annotated model; that model's table carries 27 core operation classes and no device row, and qualified is false in the shipped configuration, R-17-041 holding the magnitudes as an unauthored crown-jewel specification",
+  "encode_decode_per_frame": "R-15-228e makes it one entry in the endpoint's device row of the timing-annotated model; that model's table carries core operation classes and no device row, and qualified is false in the shipped configuration, R-17-041 holding the magnitudes as an unauthored crown-jewel specification",
   "crypto_core_throughput": "R-12-015d bounds the link's line rate above by the crypto core's authenticated-encryption throughput as a composition constant; no artifact in this tree declares a value",
   "bank_grant": "R-15-247p makes the token rate a composition-time constant of the bank grant; M6.8 has not run and R-15-108's exploration has no cell",
   "slot_period_and_guard_band": "R-11-017a's fourth output, owed by Q23d over Q23b's constants"
+ },
+ "alternative_topology": {
+  "what": "tensor-wise sharding over a fully connected ensemble instead of the declared cycle, at the default activation width and frame payload, priced so the topology's cost is read on the binding terms rather than on traffic; no entry declares a topology and neither shape is the register's",
+  "rows": [
+   {
+    "members": 2,
+    "activation_width_bytes": 4,
+    "frame_payload_bytes": 2048,
+    "endpoints_per_member": 1,
+    "links": 1,
+    "serial_exchanges_per_step": 72,
+    "serial_exchanges_per_step_formula": "2L, one serial position per all-reduce",
+    "bytes_per_exchange": 10240,
+    "bytes_per_link_per_direction_per_step": 737280,
+    "admissible_slot_plus_guard_s": 0.002777777777777778,
+    "crypto_operations_per_member_per_step": 720,
+    "crypto_operations_per_member_per_s": 3600,
+    "is_the_declared_cycle": true
+   },
+   {
+    "members": 4,
+    "activation_width_bytes": 4,
+    "frame_payload_bytes": 2048,
+    "endpoints_per_member": 3,
+    "links": 6,
+    "serial_exchanges_per_step": 72,
+    "serial_exchanges_per_step_formula": "2L, one serial position per all-reduce",
+    "bytes_per_exchange": 10240,
+    "bytes_per_link_per_direction_per_step": 737280,
+    "admissible_slot_plus_guard_s": 0.002777777777777778,
+    "crypto_operations_per_member_per_step": 2160,
+    "crypto_operations_per_member_per_s": 10800,
+    "is_the_declared_cycle": false
+   },
+   {
+    "members": 8,
+    "activation_width_bytes": 4,
+    "frame_payload_bytes": 2048,
+    "endpoints_per_member": 7,
+    "links": 28,
+    "serial_exchanges_per_step": 72,
+    "serial_exchanges_per_step_formula": "2L, one serial position per all-reduce",
+    "bytes_per_exchange": 10240,
+    "bytes_per_link_per_direction_per_step": 737280,
+    "admissible_slot_plus_guard_s": 0.002777777777777778,
+    "crypto_operations_per_member_per_step": 5040,
+    "crypto_operations_per_member_per_s": 25200,
+    "is_the_declared_cycle": false
+   }
+  ]
  },
  "shapes": [
   {
