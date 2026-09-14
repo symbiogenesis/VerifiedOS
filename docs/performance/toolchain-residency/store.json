@@ -1,0 +1,110 @@
+{
+  "quantity": "the store side, which is storage and not memory (R-13-010c)",
+  "predicates": {
+    "git ls-tree -r -l": "every blob git ls-tree -r -l reports at the named revision, sized by the blob's own byte length and named by its object id; a gitlink is counted as neither a file nor a byte; the union credits one object per distinct id once",
+    "store.py": "every regular non-symlink file under each root, filtered by suffix where given, sized by st_size and named by the SHA-256 of its bytes; the union credits one object per distinct digest exactly once"
+  },
+  "deduplication": "R-13-008 makes a transfer a set difference, so a content-addressed store holds one object per distinct content name. Each row's unique_bytes credits that inside the row. The union below credits it once across every row of one instrument. The two instruments name objects by different digests, but the rows they measure are disjoint by kind, source blobs of two repositories against built objects of a compiler and of a prover, and the two git closures were measured together and share no blob id, so the cross-instrument total has nothing left to credit.",
+  "declared_device_capacity": "absent. R-18-004b prices two memory classes, bandwidth, area, yield and unit cost and names no storage capacity; the product-gate contract's declared parameters are DP-1, DP-2, DP-3, DP-4 and DP-5, with no storage row, and every one is proposed. The comparison this quantity is to be scored by is therefore owed, not made.",
+  "absent_closures": [
+    "the base image's own source closure (no base image exists; M6.10 and R-13-026's reproducible object owe it)",
+    "the composer's and the package-construction passes' closures (M6.3a is a statement artifact, M6.10 is open)",
+    "Velus (no gitlink, no clone, nothing in the guest)",
+    "the prover's source closure (only its installation is on this machine)"
+  ],
+  "rows": [
+    {
+      "closure": "compiler-source",
+      "what_it_is": "the certifying compiler's own source closure, as tracked",
+      "revision": "13b7ff72d486858021f0fc4fc9fbed98daf9c10f",
+      "instrument": "git ls-tree -r -l",
+      "files": 1050,
+      "bytes": 16185647,
+      "unique_objects": 752,
+      "unique_bytes": 16112077,
+      "note": "the contained fork at its head; the ccomp binary of section 2 was built from an earlier revision and the two are named apart"
+    },
+    {
+      "closure": "compiler-proof-objects",
+      "what_it_is": "that compiler's compiled proof objects, a closure member by R-13-027's admission path and R-13-028's per-roster re-emission",
+      "revision": "a826d5f17bb09742940cb66f7c986c55ccfbf6de",
+      "instrument": "store.py",
+      "files": 204,
+      "bytes": 120335937,
+      "unique_objects": 204,
+      "unique_bytes": 120335937,
+      "note": "204 objects against 305 tracked .v files, the configured target compiling one architecture's subset and not every architecture the tree carries"
+    },
+    {
+      "closure": "compiler-native-objects",
+      "what_it_is": "that compiler's compiled native objects and interfaces",
+      "revision": "a826d5f17bb09742940cb66f7c986c55ccfbf6de",
+      "instrument": "store.py",
+      "files": 699,
+      "bytes": 18509818,
+      "unique_objects": 699,
+      "unique_bytes": 18509818,
+      "note": ".cmx, .cmxa, .cmi and .o under the same build tree"
+    },
+    {
+      "closure": "prover-runtime",
+      "what_it_is": "the prover's own installed runtime libraries",
+      "revision": "rocq-core 9.2.0, switch verifiedos-rocq-9.2.0-ocaml-5.4.1",
+      "instrument": "store.py",
+      "files": 3666,
+      "bytes": 395687841,
+      "unique_objects": 3651,
+      "unique_bytes": 395682751,
+      "note": "an installation and not a source closure; the prover's source closure is not on this machine and is owed by M1.10's licence reading and port"
+    },
+    {
+      "closure": "prover-stdlib",
+      "what_it_is": "the prover's compiled standard library",
+      "revision": "rocq-core 9.2.0, switch verifiedos-rocq-9.2.0-ocaml-5.4.1",
+      "instrument": "store.py",
+      "files": 2328,
+      "bytes": 97986966,
+      "unique_objects": 2328,
+      "unique_bytes": 97986966,
+      "note": "lib/coq of the same switch"
+    },
+    {
+      "closure": "verifiedos-tracked",
+      "what_it_is": "this repository's own tracked corpus, which is a design corpus and not the base image's source closure",
+      "revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",
+      "instrument": "git ls-tree -r -l",
+      "files": 1233,
+      "bytes": 25358105,
+      "unique_objects": 1177,
+      "unique_bytes": 25249605,
+      "note": "22 gitlinks are counted as neither a file nor a byte, so no submodule's contents are in this figure"
+    },
+    {
+      "closure": "verifiedos-proof-objects",
+      "what_it_is": "this repository's own compiled proof objects",
+      "revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",
+      "instrument": "store.py",
+      "files": 27,
+      "bytes": 4235970,
+      "unique_objects": 27,
+      "unique_bytes": 4235970,
+      "note": "emitted by the proof gate into this lane's guest build root"
+    }
+  ],
+  "union_by_instrument": {
+    "git ls-tree": {
+      "bytes": 41543752,
+      "files": 2283,
+      "unique_objects": 1929,
+      "unique_bytes": 41361682
+    },
+    "store.py guest built objects": {
+      "bytes": 636756532,
+      "files": 6924,
+      "unique_objects": 6909,
+      "unique_bytes": 636751442,
+      "note": "three store.py runs summed; each run's own union is exact and the three roots are disjoint trees"
+    }
+  },
+  "total_unique_bytes_measured": 678113124
+}

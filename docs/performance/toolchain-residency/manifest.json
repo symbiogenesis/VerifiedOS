@@ -1,0 +1,106 @@
+{
+  "report": "docs/performance/toolchain-residency.md",
+  "item": "Q26",
+  "taken_on": "2026-09-14",
+  "host_lane": {
+    "os": "Windows 11",
+    "worktree": ".worktrees/q26-toolchain-20260914",
+    "revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",
+    "what_was_taken_here": "every tracked-byte figure, by git ls-tree -r -l"
+  },
+  "guest_lane": {
+    "kernel": "6.18.33.2-microsoft-standard-WSL2",
+    "cores": 12,
+    "memory_bytes": 16504463360,
+    "swap_bytes": 4294967296,
+    "lane_root": "/root/build/lane-q26-toolchain-20260914",
+    "work_directory": "/root/build/lane-q26-toolchain-20260914/q26",
+    "what_was_taken_here": "every peak-resident and wall-clock figure",
+    "nothing_written_into_the_checkout": true
+  },
+  "conditions": {
+    "power_predicate": "the guest's /sys/class/power_supply/*/status at the first and last stamp of each run",
+    "power": "Discharging at every stamp of every run below, so no timed row spans a transition",
+    "contention": "thirteen sibling agent lanes on the same twelve cores throughout; during the prover gate a second lane's kernel re-check was resident beside this one's over the same module set",
+    "loadavg_at_the_compiler_ladder": {"start": 2.49, "end": 2.72},
+    "what_the_conditions_move": "the timed figures only; the byte figures are power-independent and contention-independent, and section 4's three repeat rows bound the spread this load puts on a peak-resident figure at 2.5%"
+  },
+  "instruments": [
+    {
+      "name": "peak.py",
+      "what": "peak resident bytes and wall clock of one child process",
+      "predicate": "ru_maxrss from os.wait4 on the child that invocation forked, KiB times 1024",
+      "why_not_the_other": "/usr/bin/time -v reports the running maximum over every child the timed process has waited for, so a driver that forks a preprocessor and an assembler reports the largest of the three; every act measured here is handed an already-prepared input and forks nothing"
+    },
+    {
+      "name": "store.py",
+      "what": "bytes of a directory tree of built objects",
+      "predicate": "every regular non-symlink file under the root, filtered by suffix where given, sized by st_size and named by the SHA-256 of its bytes"
+    },
+    {
+      "name": "git ls-tree -r -l",
+      "what": "bytes of a tracked source closure",
+      "predicate": "every blob at the named revision, sized by the blob's own length and named by its object id; a gitlink counts as neither a file nor a byte"
+    },
+    {
+      "name": "gen.py",
+      "what": "the size ladder's translation units",
+      "predicate": "a header-free unit of equally shaped functions in a call chain, so the ladder's only free variable is the unit's size"
+    }
+  ],
+  "binaries": [
+    {
+      "role": "certifying compiler, as a related compiler and not the device's",
+      "path": "/root/build/m12b-clean-20260912-closeout/ccomp",
+      "bytes": 14378056,
+      "sha256": "d5ab6764ba5833e49c4a76b81c46f3cc3640d178cd65c67b34310645109f1cc4",
+      "built_from_revision": "a826d5f17bb09742940cb66f7c986c55ccfbf6de",
+      "configure": "sh ./configure rv64-linux -ignore-ocaml-version",
+      "target": "riscV, BITSIZE 64, MODEL 64, ABI standard"
+    },
+    {
+      "role": "the M1.2 pin's own build of the same fork, present and not used for a row here",
+      "path": "/root/build/secomp-m12/ccomp",
+      "bytes": 15016440,
+      "sha256": "24945c1b3281dd32db4555c53b120415275d4511447b5b9d57cff64f47e3b4b3"
+    },
+    {
+      "role": "prover",
+      "path": "/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/bin/rocq",
+      "bytes": 8647312,
+      "version": "rocq-core 9.2.0"
+    },
+    {
+      "role": "kernel re-checker",
+      "path": "/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/bin/rocqchk",
+      "bytes": 11911984,
+      "version": "rocq-core 9.2.0"
+    }
+  ],
+  "contained_fork": {
+    "path": "C:\\Users\\symbi\\source\\repos\\verifiedos-cheri-compcert",
+    "head": "13b7ff72d486858021f0fc4fc9fbed98daf9c10f",
+    "remote": "none; a local repository published nowhere",
+    "terms": "INRIA Non-Commercial License Agreement, contained at M1.1a",
+    "built_in_that_tree": false,
+    "evidence_of_absence": "no Makefile.config, no ccomp, no compiled proof object in that tree",
+    "nothing_copied_into_this_repository": true
+  },
+  "what_is_not_measured": [
+    {"component": "the composer and the package-construction passes",
+     "reason": "M6.3a landed them as a statement artifact and M6.10 is open after the M8a gate, so no executable performs the act",
+     "owed_by": "M6.3a's lowering owner and M6.10"},
+    {"component": "the device's certifying purecap compiler",
+     "reason": "M1.2's purecap backend is open, so the compiler the device will run does not exist",
+     "owed_by": "M1.2"},
+    {"component": "Velus",
+     "reason": "no gitlink, no local clone and nothing in the guest",
+     "owed_by": "M1.10's licence reading and port"},
+    {"component": "the roster size and the per-component memory extents",
+     "reason": "M7.1 states no size, and no tracked artifact carries a memory extent against a component",
+     "owed_by": "M7.1 and the R-08-046 per-pool manifest entry"},
+    {"component": "energy and any figure at a device operating point",
+     "reason": "no energy instrument reaches this guest and R-11-017's operating point does not exist",
+     "owed_by": "R-11-017's artifact and R-17-041's magnitudes"}
+  ]
+}
