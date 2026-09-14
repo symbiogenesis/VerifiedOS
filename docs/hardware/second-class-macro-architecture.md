@@ -116,7 +116,7 @@ The corner is R-15-247m's for every row it names: the hot corner is the junction
 | `t_write` | one whole-codeword write through the write port, both planes committed | the same | the same | R5, R-15-247m, R-17-041 | pending |
 | `t_refresh` | one row's read-and-rewrite through both ports | one row of one bank | the same | R5, R-15-247m | pending |
 | `t_discharge` | the fixed worst-corner dwell after a whole-bank assertion, after which every witness is dwell-invariant | one phase's bank set, asserted together | hot corner, end of life, over the largest phase | R5, R-15-247f, R-15-247g | pending |
-| `T_ret_floor` | the shortest interval after a write at which every cell of the macro still reads its written value, at the corner | the repaired macro, whole | hot corner, end of life | R5, R-15-247m, R-15-247c | pending |
+| `T_ret_floor` | the supported lower bound on elapsed time after a write throughout which every cell of the macro remains readable at its written value, at the corner | the repaired macro, whole | hot corner, end of life | R5, R-15-247m, R-15-247c | pending |
 | `T_ret_ceiling` | the longest interval at which any cell still reads its written value, at the cold corner | the same | cold corner | R5, R-15-247m, R-17-058f | pending |
 | `w_row` | cells per row of one subarray on one deck, tag and check columns included: the deck row width | one subarray | as realized | R5, [the block-geometry constraint](block-geometry-constraint.md) C8 | pending |
 | `w_page` | codewords one row presents to the sense amplifiers in one access: the page size | one subarray | as realized | R5, C8 | pending |
