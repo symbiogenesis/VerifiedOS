@@ -243,7 +243,7 @@ The project is strongest when it deletes one mechanism after another from a prov
 [The implementation plan](../implementation/implementation-checklist.md) separates a lane's write boundary from the machine it runs on, and is right that isolating files and build trees isolates no CPU, so its fan-out is priced in wall time rather than in correctness.
 What that pricing does not reach is what comes back.
 An item is separable when its inputs, its write boundary and its acceptance predicate are separable, and none of those is the premise it stands on, so lanes dispatched independently against a shared premise return results a single refutation retires together, and the paragraph above is the list of premises broad enough to do it.
-Concurrency therefore buys calendar time on authoring, which is the currency the obligation count grows in and not the currency the discharge count does, and it buys independence of outcome only where it does not share the premise: that is what separates an independent implementation attacking a semantic anchor from a second lane authored out of the same one, and it is why the early falsifiers [the assessment below](#overall-assessment) asks for are the part of this programme no dispatch reaches.
+Concurrency therefore buys calendar time, and it buys independence of outcome only where it does not share the premise: that is what separates an independent implementation attacking a semantic anchor from a second lane authored out of the same one, and adding lanes is not what produces the early falsifiers [the assessment below](#overall-assessment) asks for.
 
 ### Overall assessment
 
