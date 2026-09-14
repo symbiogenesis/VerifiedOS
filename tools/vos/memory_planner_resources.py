@@ -208,9 +208,10 @@ def analyze_resources(raw: object, *, max_work: int = 1000000) -> dict[str, Any]
 def replay_resources(raw: object, report: object) -> list[str]:
     try:
         expected = analyze_resources(raw)
-    except ValueError as exc:
+        matches = _digest(expected) == _digest(report)
+    except (TypeError, ValueError) as exc:
         return [str(exc)]
-    return [] if expected == report else ["resource report differs from deterministic replay"]
+    return [] if matches else ["resource report differs from deterministic replay"]
 
 
 def emit_resource_certificate(raw: object, *, max_work: int = 1000000) -> str:

@@ -108,6 +108,11 @@ def _input_guards_and_replay() -> None:
     before = copy.deepcopy(raw)
     report = resources.analyze_resources(raw)
     ensure(raw == before and not resources.replay_resources(raw, report), "input isolation and replay")
+    for replacement in (False, 0.0):
+        mistyped = copy.deepcopy(report)
+        mistyped["paths"][0]["meters"][0]["slot"] = replacement
+        ensure(bool(resources.replay_resources(raw, mistyped)),
+               "equal-valued booleans and floats must not replace integer receipt fields")
     report["paths"][0]["meters"][0]["events"][1]["kind"] = "take"
     ensure(bool(resources.replay_resources(raw, report)), "altered credit evidence must fail replay")
     del raw["step_bounds"]["complete"]
