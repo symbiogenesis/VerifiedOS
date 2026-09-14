@@ -1,6 +1,6 @@
 # Service authoring contracts
 
-These contracts bind the host-authorable portions of M6.3b, M4.4, M6.6 through M6.8 and Q23d. The [requirements register](../requirements-register.md) and the [implementation checklist](implementation-checklist.md) remain normative. This document records the interface and acceptance scope before further implementation in the recovered drafts. It does not record an independent review, a target run, or completion of those checklist items.
+These contracts bind the host-authorable portions of M6.3b, M4.4, M6.6 through M6.8 and Q23d. The [requirements register](../requirements-register.md) and the [implementation checklist](implementation-checklist.md) remain normative. This document owns the interfaces and acceptance scope of the service source artifacts. It does not record an independent review, a target run, or completion of those checklist items.
 
 ## 1. Object router and credential handles
 
@@ -19,11 +19,11 @@ Acceptance for the authorable scope:
 - Valid opaque-handle use reaches the existing authorization operation. Raw export and each of the three requested scope widenings are rejected. The seven bindings are explicit and survive issuance/resolution unchanged.
 - Native Rocq compilation, complete constant/assumption and record-witness audits, and a joint kernel recheck of the changed modules and their actual local dependencies pass. Selected mutation regions and every survivor disposition are recorded with exact scope.
 
-The intent variants and ambiguity policy remain owner decisions at R-12-013a and R-12-025. The first/last-match arms in `HandlerGraph.v` must remain distinguishable; no predicate here chooses one. Deterministic translation-cache integration remains open with those decisions. Real namespace writes, queries and credential operations await M5.3's storage and an executable ring service.
+The intent variants and ambiguity policy remain owner decisions at R-12-013a and R-12-024b. The first/last-match arms in `HandlerGraph.v` must remain distinguishable; no predicate here chooses one. Deterministic translation-cache integration remains open with those decisions. Real namespace writes, queries and credential operations await M5.3's storage and an executable ring service.
 
 ## 2. Single kernel instance
 
-`proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. It supplies decidable predicates over the commit-trace vocabulary and reference/refuting traces. The [scalar ABI contract](purecap-abi-contract.md) and the differential corpus schema own register, primitive and target conventions.
+`proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. `RunAnswersM44` supplies the three trace questions with unique attempts and exact observed-write multiplicity; `QualifiedRunAnswersM44` adds the semantic barrier and sanitized-image join. Both have reference/refuting traces. The [scalar ABI contract](purecap-abi-contract.md) and the differential corpus schema own register, primitive and target conventions.
 
 The partition-root clause checks declared in-program derivation attempts past the partition root and every declared shared window. Refusal is the resulting cleared capability tag; the trace reader must not independently decode capability bounds. Attempt coverage, result identity and observation presence must be checked, so absence of an attempted derivation cannot pass as refusal.
 
@@ -44,7 +44,7 @@ A corpus executable requires M1.2f's backend, M1.7's target path, an agreed prim
 
 ## 3. Inference descriptor and admission
 
-`proofs/InferenceAdmission.v` owns a single common shape descriptor and session interface consumed by the residency and grant-to-rate arithmetic. A shape carries resident bytes, context length, quantization format, expert count, fixed top-k and KV bytes per token. The composition's ceiling carries those bounds/admitted formats plus the bank grant, the seven terms enumerated by R-12-085. Slot, worker set, pools and session capacity are composition constants; opening a session changes occupancy or returns a typed refusal, never enlarges them.
+`proofs/InferenceAdmission.v` owns a single common shape descriptor and session interface consumed by the residency and grant-to-rate arithmetic. A shape carries resident bytes, context length, quantization format, expert count, fixed top-k and KV bytes per token. The composition's ceiling carries those bounds/admitted formats plus the bank grant, the seven terms enumerated by R-12-085. `composition_opening` is the full admission entry point, `opening` its ceiling/resource core, and `checked_routed_work` the guarded route operation. Slot, worker identifiers, pools and session capacity are composition constants; opening a session changes occupancy or returns a typed refusal, never enlarges them.
 
 The reference wire schema is a fixed sequence of bounded-width fields. Admissible bytes must be in byte range, consume exactly the declared schema extent and have no ignored tail or alternate normalization. Decoding is injective on accepted byte strings; re-encoding a decoded descriptor reproduces the identical input; encoding a shape satisfying field bounds decodes to that shape. The descriptor is data and gives weights no execute authority. A standalone reference codec does not itself establish the required Narcissus derivation or an executable parser join; that correspondence must be identified explicitly.
 
@@ -64,7 +64,7 @@ All bandwidth, latency, work, format widths and residency capacities that DSE or
 
 `proofs/EnsembleSchedule.v` extends the existing cyclic-executive record by importing it. Per-core task admission remains `CyclicExecutive.admits`. The fourth output contains each member's link-slot views, frame length, guard bands, leap/cadence, leader-tree information, oscillator tolerances, derived skew and table digest commitments. The link contract and sharding traffic report supply symbolic inputs, not measured constants invented in the examples.
 
-One emission decision checks both views of each link. A directed send/receive pair must identify matching slots and frame length, and each digest must be computed over the selected table representation. Guards cover derived skew plus link latency, and cadence times both endpoint tolerances must fit the guard. The root does not leap; every follower has exactly one leader link. A follower's leap is a kernel-owned idle window simultaneously covering every core and after the verifying crypto slot. It never retunes a clock and is not a partition's slot.
+`qualified_emission_admits` checks the attested bound against the derived bound and the separately supplied qualification measurement against that bound. One emission decision checks both views of each link. A directed send/receive pair must identify matching slots and frame length, and each digest must be computed over the selected table representation. Guards cover derived skew plus link latency, and cadence times both endpoint tolerances must fit the guard. The root does not leap; every follower has exactly one leader link. A follower's leap is a kernel-owned idle window simultaneously covering every core and after the verifying crypto slot. It never retunes a clock and is not a partition's slot.
 
 Link-hop chain cost is computed from slot period plus guard band and composed with the other declared hop terms. No supplied asserted chain magnitude can bypass that computation. Exceeding a declared chain deadline fails admission.
 
@@ -81,4 +81,4 @@ The frame synthesizer is not needed to state and prove these predicates over sym
 
 All new proof sources need live requirement manifests, native enumerated assumption and witness audits and concrete positive/negative examples. `python tools/run.py check` runs after intended deliverables are tracked. Shared generated ledger repairs and the final combined host/proof waves belong to the integrator. A worker's narrow verification does not claim a fresh full-tree proof receipt.
 
-These criteria are adopted before dependent repair/extension of the recovered drafts. They add no register requirement, change no estimate and claim no checklist completion. Each original task's recovery report records the tested revision, source scope, commands, exact results, deferred owner acts and target joins.
+These criteria add no register requirement, change no estimate and claim no checklist completion. Each original task's recovery report records the tested revision, source scope, commands, exact results, deferred owner acts and target joins.

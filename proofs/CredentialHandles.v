@@ -582,3 +582,63 @@ Print Assumptions each_missing_delegation_check_admits_its_own_widening.
 Print Assumptions every_authorization_guard_has_a_distinguishing_refuter.
 Print Assumptions the_child_spends_the_shared_counter_without_copying_its_quota.
 Print Assumptions unchanged_consent_for_an_old_ordinal_does_not_approve_the_next_use.
+
+(* Opaque service boundary. These constructors model the result of authenticated
+   lookup; constructing a Gallina value does not implement CHERI sealing. *)
+Inductive Handle : Type := SealedReference : nat -> Handle | RawReference : nat -> Handle.
+Record Vault : Type := { vault_lookup : nat -> option Credential }.
+Definition handle_is_sealed (h : Handle) : bool :=
+  match h with SealedReference _ => true | RawReference _ => false end.
+Definition handle_identity (h : Handle) : nat :=
+  match h with SealedReference n | RawReference n => n end.
+Definition resolve_handle (v : Vault) (h : Handle) : option Credential :=
+  if handle_is_sealed h then vault_lookup v (handle_identity h) else None.
+Definition issue_handle (v : Vault) (n : nat) (c : Credential) : Handle * Vault :=
+  (SealedReference n,
+   {| vault_lookup := fun k => if Nat.eqb k n then Some c else vault_lookup v k |}).
+Inductive HandleRequest : Type := ProtocolUse : ClientRequest -> HandleRequest | ExportSecret.
+Definition use_handle (p : CredentialPolicy) (v : Vault) (s : ServerState)
+                     (h : Handle) (q : HandleRequest) : option ServerState :=
+  match q with
+  | ExportSecret => None
+  | ProtocolUse r => match resolve_handle v h with
+                    | None => None
+                    | Some c => authorize_and_charge p c s r
+                    end
+  end.
+Theorem issuance_resolves_the_identical_seven_bindings_and_account : forall v n c,
+  resolve_handle (snd (issue_handle v n c)) (fst (issue_handle v n c)) = Some c.
+Proof. intros; unfold resolve_handle, issue_handle; simpl; rewrite eqb_refl; reflexivity. Qed.
+Theorem issued_use_consumes_existing_authorization : forall p v n c s r,
+  use_handle p (snd (issue_handle v n c)) s (fst (issue_handle v n c)) (ProtocolUse r)
+  = authorize_and_charge p c s r.
+Proof. intros; unfold use_handle; rewrite issuance_resolves_the_identical_seven_bindings_and_account; reflexivity. Qed.
+Theorem raw_references_are_refused : forall p v s n r,
+  use_handle p v s (RawReference n) (ProtocolUse r) = None.
+Proof. reflexivity. Qed.
+Theorem handle_export_is_always_refused : forall p v s h,
+  use_handle p v s h ExportSecret = None.
+Proof. reflexivity. Qed.
+Definition empty_vault : Vault := {| vault_lookup := fun _ => None |}.
+Definition demo_issued := issue_handle empty_vault 17 demo_child.
+Example a_sealed_use_spends_its_shared_account :
+  match use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)
+                   (ProtocolUse demo_request) with
+  | Some next => account_used next 7 = 1
+  | None => False
+  end.
+Proof. vm_compute; reflexivity. Qed.
+Example widened_role_scope_and_operation_are_refused_through_the_handle :
+  use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)
+    (ProtocolUse (alter_request 0 demo_request)) = None /\
+  use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)
+    (ProtocolUse (alter_request 2 demo_request)) = None /\
+  use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)
+    (ProtocolUse (alter_request 3 demo_request)) = None.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+Definition witness_Vault : Vault := snd demo_issued.
+Print Assumptions issuance_resolves_the_identical_seven_bindings_and_account.
+Print Assumptions issued_use_consumes_existing_authorization.
+Print Assumptions raw_references_are_refused.
+Print Assumptions handle_export_is_always_refused.
+Print Assumptions widened_role_scope_and_operation_are_refused_through_the_handle.
