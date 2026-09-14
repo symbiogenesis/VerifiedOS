@@ -168,7 +168,7 @@ Theorem insertion_binds_authenticated_context : forall cache c r,
   insert_unit cache c (Some r) = true ->
   context_identity (issued_context r) = context_identity c.
 Proof. intros. apply same_equal. exact (every_at _ 1 H). Qed.
-Theorem insertion_requires_possession : forall cache c r,
+Theorem trusted_reply_binds_key_field : forall cache c r,
   insert_unit cache c (Some r) = true -> actual_signing_key r = unit_key c.
 Proof. intros. apply eqb_equal. exact (every_at _ 2 H). Qed.
 Theorem insertion_uses_finite_set : forall cache c r,
@@ -194,6 +194,47 @@ Proof.
   pose proof (every_at _ 10 E) as H.
   cbn [bool_at insertion_checks record_insertion prior_nonces member] in H.
   rewrite eqb_self in H. discriminate.
+Qed.
+
+(* Tokens arrive from the card; issuance events are the trusted verification
+   ledger. Its integrity and key-custody relation are explicit premises below.
+   The raw insert_unit guard alone establishes only field binding. *)
+Record IssuanceEvent := {
+  event_token : nat; event_issuer : nat; event_reply : AuthenticatedReply
+}.
+Fixpoint lookup_event (token : nat) (events : list IssuanceEvent) : option IssuanceEvent :=
+  match events with nil => None | e :: rest =>
+    if Nat.eqb token (event_token e) then Some e else lookup_event token rest
+  end.
+Fixpoint event_in (e : IssuanceEvent) (events : list IssuanceEvent) : Prop :=
+  match events with nil => False | first :: rest => e = first \/ event_in e rest end.
+Definition LedgerIntegrity (events : list IssuanceEvent) (holds_key : nat -> nat -> bool) : Prop :=
+  forall e, event_in e events -> holds_key (actual_signing_key (event_reply e)) (event_issuer e) = true.
+Definition authenticated_insert cache c token events :=
+  match lookup_event token events with
+  | None => false
+  | Some e => insert_unit cache c (Some (event_reply e))
+  end.
+Lemma lookup_event_is_issued : forall events token e,
+  lookup_event token events = Some e -> event_in e events.
+Proof.
+  induction events as [|first rest IH]; intros token e H; simpl in *; try discriminate.
+  destruct (Nat.eqb token (event_token first)); [inversion H; subst; auto|].
+  right. eapply IH. exact H.
+Qed.
+Theorem authenticated_insertion_agreement : forall events holds_key cache c token,
+  LedgerIntegrity events holds_key -> authenticated_insert cache c token events = true ->
+  exists e, event_in e events /\
+    context_identity (issued_context (event_reply e)) = context_identity c /\
+    holds_key (unit_key c) (event_issuer e) = true.
+Proof.
+  intros events holds_key cache c token integrity H.
+  unfold authenticated_insert in H. destruct (lookup_event token events) as [e|] eqn:L; try discriminate.
+  pose proof (lookup_event_is_issued _ _ _ L) as issued.
+  exists e. split; [exact issued|]. split.
+  - eapply insertion_binds_authenticated_context. exact H.
+  - pose proof (trusted_reply_binds_key_field _ _ _ H) as key.
+    rewrite <- key. apply integrity. exact issued.
 Qed.
 
 Inductive SocketState := Absent | Isolated | Detected | Reset |
@@ -309,7 +350,8 @@ Definition receive (s : HostState) (wire : option Frame) consent : Effect :=
   | _, _ => NoDelivery
   end.
 Definition fail_stop (s : HostState) : HostState :=
-  {| composition := composition s; socket_state := Isolated;
+  {| composition := composition s;
+     socket_state := match socket_state s with Absent => Absent | _ => Isolated end;
      current_context := current_context s; host_grant := None; outstanding := None;
      next_sequence := next_sequence s; output_used := output_used s;
      host_slot := host_slot s; host_now := host_now s;
@@ -368,6 +410,10 @@ Qed.
 Theorem replacement_inherits_no_grant : forall s,
   host_grant (fail_stop s) = None /\ outstanding (fail_stop s) = None.
 Proof. intros; split; reflexivity. Qed.
+Theorem fail_stop_respects_lifecycle : forall s,
+  socket_state (fail_stop s) = socket_state s \/
+  transition (socket_state s) (socket_state (fail_stop s)) = true.
+Proof. intros. unfold fail_stop. destruct (socket_state s); simpl; auto. Qed.
 Theorem isolated_route_never_delivers : forall s wire consent,
   receive (fail_stop s) wire consent = NoDelivery.
 Proof. intros. destruct wire; reflexivity. Qed.
@@ -483,6 +529,26 @@ Definition reply_fixture c key d m : AuthenticatedReply :=
   {| issued_context:=c; actual_signing_key:=key; endorsed_design:=d;
      endorsed_model:=m; endorsed_lifecycle:=1 |}.
 Definition reply_witness : AuthenticatedReply := reply_fixture context_witness 4 5 6.
+Definition event_fixture issuer : IssuanceEvent :=
+  {| event_token:=1; event_issuer:=issuer; event_reply:=reply_witness |}.
+Definition event_witness : IssuanceEvent := event_fixture 4.
+Definition honest_key_holder key principal := Nat.eqb key principal.
+Example honest_ledger_integrity : LedgerIntegrity (event_witness::nil) honest_key_holder.
+Proof. intros e H. destruct H as [H|H]; [subst; reflexivity|contradiction]. Qed.
+Example positive_authenticated_insertion : authenticated_insert cache_witness context_witness
+  1 (event_witness::nil) = true.
+Proof. reflexivity. Qed.
+Example unknown_authentication_token_refused : authenticated_insert cache_witness context_witness
+  99 (event_witness::nil) = false.
+Proof. reflexivity. Qed.
+Example corrupt_ledger_authenticates_nonholder :
+  authenticated_insert cache_witness context_witness 1 (event_fixture 99::nil) = true /\
+  honest_key_holder (unit_key context_witness) (event_issuer (event_fixture 99)) = false.
+Proof. split; reflexivity. Qed.
+Example corrupt_ledger_breaks_integrity : ~ LedgerIntegrity (event_fixture 99::nil) honest_key_holder.
+Proof.
+  intros H. specialize (H (event_fixture 99) (or_introl eq_refl)). discriminate.
+Qed.
 Example positive_insertion : insert_unit cache_witness context_witness (Some reply_witness) = true.
 Proof. reflexivity. Qed.
 Example positive_insertion_records_freshness : accept_and_record cache_witness context_witness
@@ -618,6 +684,9 @@ Example second_delivery_refused : receive
 Proof. reflexivity. Qed.
 Example missing_authentication_refused : receive state_witness None consent_yes = NoDelivery.
 Proof. reflexivity. Qed.
+Example absent_silence_preserves_absence : socket_state
+  (socket_step (state_fixture None None Absent false) None consent_yes) = Absent.
+Proof. reflexivity. Qed.
 Example broker_consent_failure_preserves_session : socket_state
   (socket_step state_witness (Some frame_witness) consent_no) = Active.
 Proof. reflexivity. Qed.
@@ -645,3 +714,4 @@ Definition witness_Request : Request := request_witness.
 Definition witness_Composition : Composition := composition_witness.
 Definition witness_HostState : HostState := state_witness.
 Definition witness_Frame : Frame := frame_witness.
+Definition witness_IssuanceEvent : IssuanceEvent := event_witness.
