@@ -288,7 +288,9 @@ def _real_inputs_are_not_a_fixture() -> None:
     # The same wiring over files at the declared paths: the join is a measurement then,
     # the record's mode says so, and G-2 stops deferring on the strata.
     files = {
-        "docs/requirements-register.md": "# register stub for find_root\n",
+        "docs/requirements-register.md": (_ROOT / "docs/requirements-register.md").read_text(
+            encoding="utf-8"),
+        "docs/spec.md": (_ROOT / "docs/spec.md").read_text(encoding="utf-8"),
         freeze.CONTRACT: (_ROOT / freeze.CONTRACT).read_text(encoding="utf-8"),
         "build/freeze/sidecars.tsv": freeze.FIXTURE_SIDECARS,
         "build/freeze/link-map.tsv": freeze.FIXTURE_LINK_MAP,
@@ -586,6 +588,7 @@ def _split_is_read_not_declared() -> None:
     moved = freeze.parse(contract.raw.replace(
         "| `OC-5` | site-varying, composition-time absolute |",
         "| `OC-5` | site-invariant, composition-time absolute |"))
+    moved.diagnostic_rates = contract.diagnostic_rates
     inputs = freeze.gather(_ROOT, {}, fixture=True)
     record = freeze.build(_ROOT, moved, inputs)
     ensure(record.provenance["invariant"].number == 8.0,
@@ -594,17 +597,39 @@ def _split_is_read_not_declared() -> None:
 
 
 def _break_even_is_the_registers() -> None:
-    # 0.804 is the register's and the contract restates it, so nothing here declares it.
+    # FD-1 cites the register and prose owners; its own text carries neither rate.
     contract, _ = _read()
     optimistic, pessimistic = contract.break_even()
     ensure((optimistic, pessimistic) == (0.804, 0.728),
-           f"the contract states both break-evens, got {optimistic} and {pessimistic}")
+           f"the owners supply both break-evens, got {optimistic} and {pessimistic}")
     register = (_ROOT / "docs" / "requirements-register.md").read_text(encoding="utf-8")
     ensure(f"fails below *p* = {optimistic}" in register,
            "and the optimistic one is the figure R-15-036k fixes")
     ensure(contract.slot_width() == freeze.SLOT_WIDTH,
            f"§8 fixes the slot width this module falls back to, got "
            f"{contract.slot_width()}")
+
+
+def _diagnostic_sources_fail_closed() -> None:
+    contract, _ = _read()
+    register = "**R-15-036k** MUST: fails below *p* = 0.812\n"
+    prose = ('<a id="r-15-036j"></a> pessimistic figure) at *p* = **0.731** '
+             '<a id="r-15-036k"></a>')
+    files = {freeze.CONTRACT: contract.raw,
+             "docs/requirements-register.md": register, "docs/spec.md": prose}
+    with sandbox_tree(files) as root:
+        live = freeze.read(root)
+        ensure(live.break_even() == (0.812, 0.731),
+               "diagnostics follow changed owner values")
+        for malformed in ("", register + register, register.replace("0.812", "1.1")):
+            (root / "docs/requirements-register.md").write_text(
+                malformed, encoding="utf-8")
+            refused = False
+            try:
+                freeze.candidate_geometries(freeze.read(root))
+            except ValueError:
+                refused = True
+            ensure(refused, "missing, ambiguous or out-of-range rates refuse scoring")
 
 
 def _relations_are_held() -> None:
@@ -829,6 +854,7 @@ def cases() -> list[Case]:
         Case("derived-member-is-not-built", _derived_member_is_not_built, lane="host"),
         Case("split-is-read-not-declared", _split_is_read_not_declared, lane="host"),
         Case("break-even-is-the-registers", _break_even_is_the_registers, lane="host"),
+        Case("diagnostic-sources-fail-closed", _diagnostic_sources_fail_closed, lane="host"),
         Case("relations-are-held", _relations_are_held, lane="host"),
         Case("live-run", _live_run, lane="host"),
         Case("live-run-reads-what-the-composer-wrote",

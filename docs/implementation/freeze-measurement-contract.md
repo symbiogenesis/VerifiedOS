@@ -292,7 +292,7 @@ R-15-036k fixes the optimistic break-even in *p*; the [packing-corrected model](
 
 **Corpus and unit.** `FM-6`, the conformance streams at the admitted tuples (R-15-238d, R-15-238c). Worst-case cycles per frame, from the timing-annotated Sail model. Byte columns are `n/a` throughout, and the row is carried in **this** report rather than a second one (§0).
 
-**Procedure.** Two variants of the decoder over the same streams, with and without the instruction, at the same VLEN and the same admitted worker set and frame pool (R-12-084b). Take the worst case per frame per tuple, not the mean: the quantity the slot is admitted against is a bound.
+**Procedure.** Two variants of the decoder over the same streams, with and without the instruction, at the same VLEN and the same admitted worker set and frame pool (R-12-084b), with S6 re-run inside each variant as §3 requires. The cycle axis does not exempt a variant: R-15-036e charges fetch by encoded bundle count, which the dictionary affects. Take the worst case per frame per tuple, not the mean: the quantity the slot is admitted against is a bound.
 
 **Threshold, derived and categorical.** Carriage requires that the instrument **moves the admission outcome**: there is at least one tuple in the declared ceiling table that the without-variant refuses and the with-variant admits, its worst case fitting the declared slot. An instrument that does not move that bound is dropped at the freeze rather than carried on the argument alone (R-15-067h), and a percentage improvement that changes no tuple's admission is exactly that case, since decode capacity is a ceiling declared at composition and refused above rather than degraded through (R-15-238c).
 
@@ -322,29 +322,13 @@ One report, two renderings, generated together and never authored apart: a machi
 
 ### Skeleton
 
-```json
-{
-  "manifest": {
-    "corpus_id": "freeze-corpus-<n>",
-    "corpus_hash": "<hash over member hashes, pins, and tool versions>",
-    "analyzer_version": "<tools/ analyzer commit>",
-    "sail_model_revision": "<revision the cycle columns were taken from>",
-    "thresholds": { "T-enc": "<value>", "T-form": "<value>", "...": "..." }
-  },
-  "corpus":   [ { "id": "FM-1", "hash": "...", "mode": "in_place", "pins": { } } ],
-  "recipe":   [ { "step": "S6", "tool": "...", "in": "...", "out": "..." } ],
-  "provenance": { "OC-1": 0, "OC-2": 0, "OC-3": 0, "OC-4": 0, "OC-5": 0,
-                  "invariant": 0, "varying": 0, "join_residue": 0 },
-  "regions":  [ { "id": "RC-1", "admitted": true, "delta_bytes": 0,
-                  "wc_cycles_delta": 0, "slots_widened": 0, "refused": { } } ],
-  "decisions":[ { "id": "FD-4", "threshold": "T-form", "verdict": "pc_relative",
-                  "variants": [ { "knob": "call_form", "s6_rerun": true,
-                                  "columns": { } } ] } ],
-  "dictionary": { "N": 0, "policy": "marginal_value", "config_hash": "..." },
-  "opcode_ledger": { "consumed": [ ], "remaining": 0 },
-  "residuals": [ ]
-}
+Generate the complete record from [the instrument](../../tools/quarantine/freeze-report.py), whose serialization supplies the field names and cell representation:
+
+```console
+python tools/quarantine/freeze-report.py --json --no-fixture
 ```
+
+The command leaves absent producer values pending. Its output is a schema example and diagnostic record, not a completed freeze. It includes the per-variant configuration diff and S6 record that `G-8` and `G-13` read; a separately maintained JSON skeleton cannot establish that agreement.
 
 ### Column conventions
 

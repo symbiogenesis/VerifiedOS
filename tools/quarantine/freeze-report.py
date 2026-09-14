@@ -102,7 +102,7 @@ def _geometry_table(contract: freeze.Contract, out: list[str]) -> None:
                f"{freeze.CANONICAL_BITS}-bit canonical stream (R-15-036), with the "
                f"pessimistic {freeze.PESSIMISTIC_SHARE:.0%} figure at "
                f"{freeze.pessimistic_bar():.1f} beside it and not the bar")
-    out.append(f"  the break-even hit rates §6 states are {p} against the optimistic "
+    out.append(f"  the break-even hit rates FD-1's owners state are {p} against the optimistic "
                f"figure and {pessimistic_p} against the pessimistic one; the columns "
                f"below are at {p}")
     out.append("")
@@ -261,6 +261,11 @@ def report(root: Path, fixture: bool, overrides: dict[str, Path | None]) -> Run:
                    f"things, in {len(findings)} place(s)")
         out.extend(f"       {f}" for f in findings)
         return Run(1, out)
+
+    try:
+        contract.break_even()
+    except ValueError as exc:
+        return Run(1, [f"FAIL: {exc}"])
 
     inputs = freeze.gather(root, overrides, fixture)
     if inputs.error:

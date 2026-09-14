@@ -82,10 +82,10 @@ _GATE_RE = re.compile(r"(?m)^\| `(G-\d+)` \| ([^|]*)\| ([^|]*)\|")
 # `FD-4, FD-5` in a Feeds cell, and `OC-1` wherever a class is named.
 _FD_TOKEN_RE = re.compile(r"\bFD-\d+\b")
 
-# §6's FD-1 states both break-even hit rates in one sentence, the optimistic first.
-_BREAK_EVEN_RE = re.compile(
-    r"break-even in \*p\*, ([\d.]+) against the optimistic figure and ([\d.]+) against "
-    r"the pessimistic one")
+# FD-1 cites these owners instead of copying their diagnostic rates.
+_RATE_RE = re.compile(r"fails below \*p\* = ([0-9]+\.[0-9]+)")
+_PESSIMISTIC_RE = re.compile(
+    r"pessimistic figure\) at \*p\* = \*\*([0-9]+\.[0-9]+)\*\*")
 
 
 @dataclass(frozen=True)
@@ -119,6 +119,7 @@ class Contract:
     blocks: list[Row] = field(default_factory=list)
     parameters: list[Row] = field(default_factory=list)
     predicates: list[Row] = field(default_factory=list)
+    diagnostic_rates: tuple[float, float] | None = None
 
     def feeds(self, member: str) -> tuple[str, ...]:
         """The decisions one corpus member feeds, as §2's own Feeds column states them."""
@@ -144,15 +145,11 @@ class Contract:
         return ""
 
     def break_even(self) -> tuple[float, float]:
-        """The two break-even hit rates §6's FD-1 states, optimistic then pessimistic.
-
-        Read rather than declared for the same reason §8's values are: the register
-        fixes one of the pair and the contract restates both in one sentence, so a
-        constant here would be a third copy. `(0.0, 0.0)` where the sentence moved,
-        which the caller reports rather than scoring around.
-        """
-        m = _BREAK_EVEN_RE.search(self.raw)
-        return (float(m.group(1)), float(m.group(2))) if m else (0.0, 0.0)
+        """The diagnostics read from FD-1's owners, never a fallback parameter."""
+        if self.diagnostic_rates is None:
+            raise ValueError("FD-1 diagnostic rates are missing, ambiguous or out of "
+                             "range in R-15-036k's register entry or R-15-036j's prose")
+        return self.diagnostic_rates
 
     def slot_width(self) -> int:
         """The slot width §8's FD-2 candidate cell fixes, which FD-2 derives rather
@@ -226,7 +223,22 @@ def read(root: Path) -> Contract:
     over green.
     """
     path = root / CONTRACT
-    return parse(path.read_text(encoding="utf-8")) if path.is_file() else Contract()
+    contract = parse(path.read_text(encoding="utf-8")) if path.is_file() else Contract()
+    register = root / "docs/requirements-register.md"
+    prose = root / "docs/spec.md"
+    if register.is_file() and prose.is_file():
+        entries = re.findall(r"(?ms)^\*\*R-15-036k\*\*.*?(?=^\*\*R-|\Z)",
+                             register.read_text(encoding="utf-8"))
+        paragraphs = re.findall(r'(?s)<a id="r-15-036j"></a>(.*?)<a id="r-',
+                                prose.read_text(encoding="utf-8"))
+        optimistic = _RATE_RE.findall(entries[0] if len(entries) == 1 else "")
+        pessimistic = _PESSIMISTIC_RE.findall(
+            paragraphs[0] if len(paragraphs) == 1 else "")
+        if len(optimistic) == len(pessimistic) == 1:
+            rates = float(optimistic[0]), float(pessimistic[0])
+            if all(0 < rate < 1 for rate in rates):
+                contract.diagnostic_rates = rates
+    return contract
 
 
 def parse(raw: str) -> Contract:
@@ -850,12 +862,12 @@ geometry = freezemodel.geometry
 
 def candidate_geometries(contract: Contract) -> list[Geometry]:
     """The `(h, k)` pairs §8 declares, scored at the width and the break-even hit rate
-    the contract itself states rather than at figures restated here."""
+    FD-1's owners state rather than at figures restated here."""
     stated = contract.parameter("FD-2 candidate set")
     pairs = [(int(a), int(b)) for a, b in re.findall(r"\((\d+),\s*(\d+)\)", stated)]
     width = contract.slot_width() or SLOT_WIDTH
     optimistic, _ = contract.break_even()
-    return [geometry(h, k, width, optimistic or 0.804) for h, k in pairs]
+    return [geometry(h, k, width, optimistic) for h, k in pairs]
 
 
 def candidate_sizes(contract: Contract) -> list[int]:
