@@ -113,7 +113,7 @@
       "files": 6924,
       "unique_objects": 6909,
       "unique_bytes": 636751442,
-      "note": "three store.py runs summed over the five roots named above; each run's own union is exact and the five roots are pairwise disjoint trees"
+      "note": "three store.py runs summed over the five rows named above; each run's own union is exact, the three runs' roots are disjoint trees, and the two rows sharing one root are disjoint by suffix"
     }
   },
   "total_unique_bytes_measured": 678113124
