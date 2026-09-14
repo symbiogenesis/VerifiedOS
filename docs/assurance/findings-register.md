@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 689 of them across 122 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 691 of them across 123 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -856,6 +856,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-382** method: two restatements of the workflow's command line outside the tools lane went stale with this landing
 · Raised: I17
 · Disposition: closed at landing; AGENTS.md and the reviewer on-ramp both named the command without `--summary` and both now carry it. No rule holds the pair and the checker is green with it stale, which is what makes the miss a finding rather than a nicety
+
+**F-383** method: the report's preamble carried an acceptance disjunct the item's Done-when did not, relaxing the predicate the report was graded against
+· Raised: Q26
+· Disposition: closed at landing; the Done-when reads "each scored against the artifact that owns its supply" and the preamble adds "or is declared unscorable with the act that owes the supply named", which is where quantity 2 lands. The disjunct is right and its place was the cell: the plan makes an acceptance predicate the cell's to author before the lane opens, so that an instrument does not arrive carrying its own acceptance criteria, and this one arrived with the instrument. The cell closes with this landing, so the relaxation is recorded against the landing rather than authored into a cell that is no longer open
+
+**F-384** owed-act: the host-run per-pass peak this item asked for is owed by no item after its landing
+· Raised: Q26
+· Disposition: open, and no artifact owns it; the item asked for a per-pass peak taken from a host run of the same act the device will perform, the report declined it and named M1.10, and M1.10 owns a recorded peak per pass rather than a measurement of a host run while its own join line reads that Q26 prices what those compartments occupy. The host-run form falls between the two and is recorded as an unowned product rather than assigned to M1.10, whose text excludes it; assigning an owner is the plan's act
 
 ## M0 · Hardware reference
 

@@ -1507,6 +1507,45 @@ The measured intervals are 2026-09-14 06:56:17-07:13:50, 07:19:41-08:26:05, 08:2
 
 Landed: Tier A. The review states new claims about which admission arm the combined calculus takes and what its implementation still owes, so it took a full attended read rather than a spot read of its findings.
 
+### Q26 · Price the resident toolchain against the floor's own comparisons
+
+[The toolchain residency report](../performance/toolchain-residency.md) and its [measurement artifacts](../performance/toolchain-residency/) carry the three quantities R-13-027's obligation and R-18-004e's release floor turn on. Each figure is stated with the act it was taken over, the instrument, the lane and the revision, and both instruments declare their own predicates: `git ls-tree -r -l` sizing tracked blobs by object id and counting a gitlink as neither a file nor a byte, and `store.py` sizing regular non-symlink files by `st_size` and naming them by the SHA-256 of their bytes.
+
+**Quantity 1, the working set, is what binds, and inside it the prover.** The heaviest of the 27 proof checks peaks at 725,676,032 bytes, 1.81 of the first-class payload floor at the pessimistic end of R-15-173a's ungraded-branch budget and 0.91 of it at the optimistic end, the median of the 27 being 0.86 and 0.43 of the same two. That is one activation of one of the four component classes R-13-027 names, measured on a host, with no roster, no composer, no package-construction passes and no Vélus beside it, and with R-18-004a's own eight members charged nothing. The compiler's peak is affine in unit size and modest at 233,525,248 bytes on a 1.18-megabyte unit, so a port can trade it against unit size; the prover's does not track size and cannot be traded that way.
+
+**Quantity 2, the store side, is 678,113,124 measured unique bytes and is declared unscorable.** R-18-004b prices two memory classes, bandwidth, area, yield and unit cost and names no storage capacity, and the product gate's declared parameters DP-1 through DP-5 carry no storage row, so the comparison this quantity is to be scored by is owed rather than made. [The store record](../performance/toolchain-residency/store.json) names the four closures absent from the figure, the base image's own source closure among them, so the total is read as a floor under an incomplete set and not as the quantity R-13-027 obliges.
+
+**Quantity 3, the turnaround, is a host range with no device-side ceiling to fail**, DP-3's predicate not holding over an act that fetches nothing and PL-8 carrying no timed condition. The ratio that would convert a host wall-clock into a device figure is stated and declined.
+
+**The verdict's one load-bearing claim** is that the demand exceeds the supply by a margin no measurement error at this size closes, the repeatability spread of section 4 being 2.5% against a 1.81 multiple. It survives both questions the report leaves open, the class the plan places the toolchain on and the layout relation between the two modes, because it fails on either answer to each. Four arms are stated with what each forfeits and none is taken here; arm 3 is M1.10's and arm 4 is Q10's, and none is a silent widening of the composition mode, which R-13-027a's Accept already forecloses.
+
+The report was read by two independent six-agent waves at `c0d7e315`, neither returning a blocking finding, and the seventeen defects they raised were repaired at `0d821caf` and re-verified sound. Exactly one figure moved in repair, the tracked `.v` count at `a826d5f1` from 305 to 301, with 305 retained and named as the head revision `13b7ff7`'s own count. `python tools/run.py --check --tests` reports all four host gates green at `190326d4`.
+
+The measured intervals are 2026-09-14 13:02:57-15:46:49, 15:46:49-16:29:05, 16:29:05-16:59:37, 16:59:37-17:12:47 and 17:12:47-17:37:30 UTC for the authoring, first review, second review, repair and verification passes, 16,473 seconds summed, rounded upward to 4.6 h on the agent-parallel clock. The authoring pass has no session bracket recorded in this tree and is bracketed instead by the first product of its own guest lane and the commit that closed it. Its lane was created at 06:51:01 in a batch provisioning and its first write into that lane, a directory carrying no product, is at 08:29:52, so the figure excludes a span of four and a half hours over which the lane records nothing and the pass's state is not recoverable. The actual is a lower bound to that extent.
+
+  * Finding: the report's preamble relaxes this item's acceptance predicate. The
+    Done-when read "each scored against the artifact that owns its supply"; the
+    preamble reads "or is declared unscorable with the act that owes the supply
+    named", and quantity 2 lands on that disjunct. The disjunct is right and the
+    report is not where it belonged: the conventions make an acceptance predicate
+    the cell's to author before the lane opens, precisely so that an instrument
+    does not arrive with its own acceptance criteria and grade its own homework,
+    and this one arrived with the instrument. Recorded against the landing rather
+    than repaired into the cell, the cell being closed by this entry. F-383.
+
+  * Finding: after this landing the host-run per-pass peak is owed by no item.
+    This item asked for "a per-pass peak the port can be sized against, with the
+    passes whose peak grows with roster size named apart from those whose peak
+    does not", taken "from a host run of the same act the device will perform".
+    The report declines it and names M1.10 as its owner; but M1.10 owns "a
+    recorded peak per pass rather than a measurement of a host run", and its Join
+    line reads "Q26 prices what they occupy", so the host-run form falls between
+    the two. This is recorded as an unowned product and not as a handoff: no cell
+    carries it, and naming M1.10 would attribute to that item a measurement its
+    own text excludes. F-384.
+
+Landed: Tier A. The report states new claims about whether R-18-004e closes on the floors R-18-004b declares, which is a decision for the register's owner and the class the conventions send to a full attended read. No checker rule was added and none holds what this landing created: nothing in [the checker](../../tools/vos/checks/) reads this report's figures against its own JSON artifacts, which is the state [the inference demand](../performance/inference-demand.md) is already in, so the fourth Tier-B condition is unmet and a green wave is not a reading of the report.
+
 #### Q27a · Take the certified-search disposition and record its arms
 
 [The alternatives register](../background/architectural-alternatives.md#certified-optimal-placement-by-an-imported-certificate-checker-the-pattern-in-use-is-admitted-the-import-is-refused-and-the-infeasibility-verdict-stays-an-open-question) carries the three arms, each refusal cited to the rule that takes it.
