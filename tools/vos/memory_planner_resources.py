@@ -76,12 +76,13 @@ def _amounts(raw: object, names: set[str], where: str) -> dict[str, int]:
 
 
 def analyze_resources(raw: object, *, max_work: int = 1000000) -> dict[str, Any]:
-    """Check prepaid physical budgets and bound every lexical-release-to-reuse path.
+    """Check prepaid budgets and bound release request/start through safe reuse.
 
     Required fields: schema, contract, placement, reserved_bytes, overhead_bytes,
     step_bounds, reuse_deadline, time_unit. Only assumptions is optional. Byte maps
     name every pool. Step bounds name exactly the operations present in the paths.
     All quantities fit the portable signed-64 range; limits refuse partial output.
+    The deadline includes the release operation itself through barrier completion.
     """
     limits = contracts.Limits(max_expansion_work=contracts._nat(max_work, "max_work", 1))
     source = contracts._snapshot(raw, limits, contracts._ExpansionBudget(max_work))
@@ -126,10 +127,12 @@ def analyze_resources(raw: object, *, max_work: int = 1000000) -> dict[str, Any]
             prefixes.append(contracts._nat(prefixes[-1] + cost, "path elapsed bound"))
         releases = []
         for lease in path["leases"]:
-            release_bound = prefixes[lease["barrier"] + 1] - prefixes[lease["release"] + 1]
+            release_bound = prefixes[lease["barrier"] + 1] - prefixes[lease["release"]]
             maximum_release = max(maximum_release, release_bound)
             releases.append({**lease, "elapsed_bound": release_bound,
-                             "step_bounds": costs[lease["release"] + 1:lease["barrier"] + 1]})
+                             "clock_origin": "release request/start of release operation",
+                             "clock_end": "reuse barrier completion",
+                             "step_bounds": costs[lease["release"]:lease["barrier"] + 1]})
             if release_bound > deadline:
                 errors.append(f"path {index}, {lease['object']}: reuse bound {release_bound} exceeds {deadline}")
         meters = []
@@ -254,4 +257,4 @@ def demo_resources() -> dict[str, Any]:
     return {"schema": SCHEMA, "contract": copy.deepcopy(contract), "placement": placement,
             "reserved_bytes": {"scratch": 16 * 1024 * 1024 + 64},
             "overhead_bytes": {"scratch": 64}, "step_bounds": costs,
-            "reuse_deadline": 10, "time_unit": "synthetic admitted elapsed ticks"}
+            "reuse_deadline": 11, "time_unit": "synthetic admitted elapsed ticks"}
