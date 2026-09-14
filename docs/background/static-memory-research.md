@@ -139,6 +139,19 @@ The absence of an MMU is not the reason every movable design fails. Software han
 
 **Hypothesis: reclamation-aware scheduling outperforms placement alone.** On a bursty but bounded service, jointly choosing retirement phases, sweep slots and quarantine reservation admits more useful state than optimizing placement with reclamation costs fixed, at unchanged external service guarantees. Refute it on that workload if the required sweep traffic or worst-case arrival envelope removes the gain. A result showing that quarantine dominates packing is valuable even when no transformation wins.
 
+## Desktop planner integration
+
+The [portable planner](../implementation/portable-memory-planner.md) implements a
+host boundary for fixed-instance placement with independently checked candidates,
+a retained valid baseline, deterministic search budgets and separate evidence.
+It covers bounded services as well as tensor workloads and records the exact
+scope of its MiniMalloc, ExecuTorch and TFLite Micro adapters. Model compatibility,
+API compatibility and acceptable deployment cost are distinct claims. Its
+contract extractor strengthens the modeled coexistence relation; connecting
+that relation to admitted Vela programs and actual device completion remains a
+compiler and qualification obligation. Q5b owns the real-workload comparison,
+Q22 the reuse boundaries and Q10 the product judgment.
+
 ## Research todo list
 
 This backlog tracks a research project, not an additional implementation schedule. Work selected for execution is scoped in the [implementation checklist](../implementation/implementation-checklist.md); Q5 owns placement comparisons, Q4 inference demand, Q6 memory topology, Q8 measured bottlenecks, Q22 assurance boundaries, and Q10 the product judgment. The research reuses those artifacts and returns findings to their owners. Research outputs do not confer implementation landing credit or accept a new requirement.

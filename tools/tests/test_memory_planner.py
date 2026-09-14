@@ -206,10 +206,43 @@ def _exact_search_matches_an_independent_grid() -> None:
             ensure(actual["evidence"]["status"] == "checked infeasible", f"trial {trial}: false fit")
 
 
+def _finite_replay_covers_alias_pools_and_zero_offsets() -> None:
+    instance = memory.parse_instance(_raw([
+        _buffer("0", 3, allowed_pools=["a", "b"], intervals=[[0, 1], [2, 3]]),
+        _buffer("1", 1, allowed_pools=["b"], alias_of="0", alias_offset=2),
+        _buffer("2", 0, allowed_pools=["b"], alignment=2, fixed_offset=4),
+    ], pools=[{"id": "a", "capacity": 4, "reserved": [[0, 1]]},
+              {"id": "b", "capacity": 4}]))
+    baseline = _placement(0, 2, 4, pool="b")
+    result = memory.plan(instance, baseline, certify=True, replay_budget=100)
+    ensure(result["evidence"]["status"] == "checked optimal", "alias/pool optimum not replayed")
+    ensure(result["evidence"]["pool_heights"] == {"a": 1, "b": 3},
+           "reserved capacity or zero-sized fixed offset was charged incorrectly")
+    ensure(memory.verify_evidence(instance, result, work_budget=100)["status"] == "checked optimal",
+           "replay excluded a zero-sized offset above the objective height")
+    ensure(memory.solve(instance, work_budget=100, certify=True)["placement"] == baseline,
+           "search failed to cover pool-constrained alias relations")
+
+
+def _empty_pool_products_do_not_evade_work_budgets() -> None:
+    pool_ids = [f"p{i}" for i in range(10)]
+    raw = _raw([_buffer(str(i), 2, allowed_pools=pool_ids) for i in range(30)],
+               pools=[{"id": p, "capacity": 1} for p in pool_ids])
+    instance = memory.parse_instance(raw)
+    result = memory.solve(instance, work_budget=1, replay_budget=1)
+    ensure(result["evidence"]["status"] == "checked infeasible"
+           and result["evidence"]["replay_work"] == 0,
+           "empty Cartesian domains must be excluded before exponential pool enumeration")
+    ensure(memory.certify_placement(instance, None, work_budget=0)["status"] == "checked infeasible",
+           "structurally empty domains need no tuple-search budget")
+
+
 def cases() -> list[Case]:
     return [Case("schema-and-integer-boundaries", _schema_and_integer_boundaries),
             Case("checker-preserves-every-constraint", _checker_preserves_every_constraint),
             Case("aliases-and-zero-extents", _aliases_and_zero_extents),
             Case("baseline-retention-and-pool-objective", _baseline_retention_and_componentwise_objective),
             Case("certificates-scoped-and-replayed", _certificates_are_scoped_and_replayed),
-            Case("exact-search-independent-grid", _exact_search_matches_an_independent_grid)]
+            Case("exact-search-independent-grid", _exact_search_matches_an_independent_grid),
+            Case("finite-alias-pool-zero-replay", _finite_replay_covers_alias_pools_and_zero_offsets),
+            Case("empty-pool-products-bound-work", _empty_pool_products_do_not_evade_work_budgets)]
