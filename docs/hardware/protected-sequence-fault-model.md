@@ -18,29 +18,30 @@ The relation is therefore the premise of a software theorem. R-17-016 defines th
 
 **It is not the detection theorem, and it decides nothing the theorem must prove.** U-19 owns the construction as a model, the region's control-flow graph, the signature fold, the doubled comparison, the token, and the proof. The R-16-008f theorem on the final binary, the compiler-emitted instrumentation, the countermeasure construction and the R-17-058d reduction are booked where the unassigned proof map and the plan's post-M10 cells book them. The binary-level check where a sequence passes admission is artifact-admission's, the split R-16-008c already takes.
 
-**It is not a second transcription of the instruction set.** The relation perturbs the curated Sail model's own step function at two named points and reuses every definition below those points. Anything this document restated would be a second holder of a fact [model/](../../model/) owns.
+**It is not a second transcription of the instruction set.** The relation perturbs the curated Sail model's own step function at two named sites and reuses every definition below them. Anything this document restated would be a second holder of a fact [model/](../../model/) owns.
 
 ## 2. The subject: the exact Sail definitions the relation perturbs
 
-The subject is one function. `try_step(step_no : nat, exit_wait : bool) -> bool` in [postlude/step.sail](../../model/model/postlude/step.sail) is the model's fetch-decode-execute step, and the relation below is a perturbation of that function at two points inside the `HART_ACTIVE()` arm it dispatches to.
+The subject is one function. `try_step(step_no : nat, exit_wait : bool) -> bool` in [postlude/step.sail](../../model/model/postlude/step.sail) is the model's fetch-decode-execute step, and the relation below is a perturbation of that function at two sites inside the `HART_ACTIVE()` arm it dispatches to: the word the `F_Base(w)` arm binds, and the `ExecutionResult` that arm carries into `Step_Execute`. A site is a binding rather than one of its uses, which is the distinction the `corrupt` definition below turns on.
 
 | Definition | Where | What this relation does with it |
 | --- | --- | --- |
 | `try_step` | [postlude/step.sail](../../model/model/postlude/step.sail) | the step the relation perturbs; one call is one transition |
 | `hart_state : HartState` | [postlude/step.sail](../../model/model/postlude/step.sail), the type in [postlude/step_common.sail](../../model/model/postlude/step_common.sail) | the relation is defined on the `HART_ACTIVE()` arm; the waiting arm is unperturbed |
-| `run_hart_active` | [postlude/step.sail](../../model/model/postlude/step.sail) | carries both perturbation points |
-| `fetch()`, `FetchResult`, the `F_Base(w : word)` arm | [postlude/fetch.sail](../../model/model/postlude/fetch.sail), [postlude/step_common.sail](../../model/model/postlude/step_common.sail) | supplies `w`, the fetched 32-bit word; the perturbation applies to `w` after `fetch()` returns and the fetch's own checks have passed |
+| `run_hart_active` | [postlude/step.sail](../../model/model/postlude/step.sail) | carries both perturbation sites |
+| `fetch()`, `FetchResult`, the `F_Base(w : word)` arm | [postlude/fetch.sail](../../model/model/postlude/fetch.sail), [postlude/step_common.sail](../../model/model/postlude/step_common.sail) | supplies `w`, the fetched 32-bit word; the arm's binding of `w` is the corruption site, taken after `fetch()` returns and the fetch's own checks have passed |
 | `ext_decode(w)` | [postlude/decode_ext.sail](../../model/model/postlude/decode_ext.sail), which is the `encdec` mapping | consumes the perturbed word unchanged |
+| the `instbits` binding, the `Step_Execute(Illegal_Instruction(), instbits)` arm, and `handle_exception`'s `xtval` parameter | [postlude/step.sail](../../model/model/postlude/step.sail), [sys/sys_control.sail](../../model/model/sys/sys_control.sail) | binds the fetched word one line above `ext_decode` and carries it to `mtval` on the illegal-encoding path, which is why the corruption site is the arm's binding and not `ext_decode`'s argument |
 | `execute : instruction -> ExecutionResult` and the arms of `ExecutionResult` | [sys/insts_begin.sail](../../model/model/sys/insts_begin.sail) | consumes the decoded instruction unchanged; the `Retire_Success()` arm is what the skip perturbation substitutes |
 | `nextPC = PC + 4`, `set_next_pc` | [postlude/step.sail](../../model/model/postlude/step.sail), [core/pc_access.sail](../../model/model/core/pc_access.sail) | unperturbed; the sequential advance is installed before `execute` runs, so a perturbed control transfer redirects exactly as a genuine one does |
 | `tick_pc()`, `PC`, `nextPC`, `PCC`, `nextPCC` | [core/pc_access.sail](../../model/model/core/pc_access.sail), [core/regs.sail](../../model/model/core/regs.sail), [core/cap_regs.sail](../../model/model/core/cap_regs.sail) | the commit point; a transition of this relation is a call of `try_step` that reaches it |
 
 Write `Sigma` for the model's architectural state: the merged register file, `PC`, `nextPC`, `PCC`, `nextPCC`, `hart_state`, the present CSR bank of [the profile's §5.1](isa-profile.md#51-present), and memory with its tag plane. Write `step(s)` for the state after one call `try_step(n, true)` from `s`, and `w(s)` for the word `fetch()` returns in its `F_Base` arm when the fetch succeeds. `step` is the fault-free transition, and it is the model's, not this document's.
 
-Two perturbations are defined, each at a named point of `run_hart_active`.
+Two perturbations are defined, each at a named site of `run_hart_active`.
 
-- **`corrupt(w')`**, for a word `w' : bits(32)`: the step proceeds as `step` except that `ext_decode(w')` is evaluated where the model evaluates `ext_decode(w(s))`. Everything downstream is the model's own: the decode of `w'` is `encdec`'s, an unallocated `w'` reaches `ILLEGAL` through the wildcard clause and traps with the whole word in `mtval` as [the fetch's own note](../../model/model/postlude/fetch.sail) records, a `w'` whose execution raises a capability or address fault raises the model's fault, and a `w'` that is a control transfer redirects through `set_next_pc`.
-- **`skip`**: the step proceeds as `step` except that `execute` is not applied and the `Step_Execute` payload is `Retire_Success()`. The sequential advance `nextPC = PC + 4` has already been installed and `nextPCC` is untouched, so `tick_pc()` commits the next sequential instruction and no other architectural state moves.
+- **`corrupt(w')`**, for a word `w' : bits(32)`: the step proceeds as `step` except that the `F_Base` arm is evaluated with `w'` in place of the word it binds, so every use inside that arm moves with it, `sail_instr_announce`, `fetch_callback`, the `instbits` binding and `ext_decode` alike. Substituting at the binding rather than at `ext_decode`'s argument is what the relation must say, because `instbits` is bound from the fetched word one line above the decode and is what the `Step_Execute(Illegal_Instruction(), instbits)` arm hands to `handle_exception` as `xtval`: a perturbation taken later would leave an unallocated `w'` trapping with the *unperturbed* word in `mtval`, and `mtval` is a present-bank CSR and so a component of the `Sigma` above, so the in-model faulted state would differ architecturally from the physical fault it models. Everything downstream is then the model's own: the decode of `w'` is `encdec`'s, an unallocated `w'` reaches `ILLEGAL` through the wildcard clause and traps with the whole word in `mtval` as [the fetch's own note](../../model/model/postlude/fetch.sail) records, a `w'` whose execution raises a capability or address fault raises the model's fault, and a `w'` that is a control transfer redirects through `set_next_pc`.
+- **`skip`**: the step proceeds as `step` except that `execute` is not applied and the `ExecutionResult` the arm carries into `Step_Execute` is `Retire_Success()`. The fetched word is unperturbed, so `instbits` is the model's and the trap paths are unreached. The sequential advance `nextPC = PC + 4` has already been installed and `nextPCC` is untouched, so `tick_pc()` commits the next sequential instruction and no other architectural state moves.
 
 As a transition on `Sigma`, `skip` coincides with `corrupt` at the canonical no-op encoding, because a no-op's execution also changes nothing but the committed PC. Both are named because R-16-008f names both and because their physical origins differ: an instruction-skip and a corrupted instruction word are distinct injection mechanisms on the die, and whether the coincidence holds there is a question for the characterization named at the end of this document, not for the relation.
 
@@ -74,22 +75,24 @@ A faulted execution of one activation is indexed by a **budget** `b`, which is `
    (s, b)  -->  (step(s), b)                                        (s, 1)  -->  (step_f(s), 0)
 ```
 
-An **execution of the activation** is a finite derivation from `(s_in, 1)`, where `s_in` is a state with `PC = a_in`, to the first configuration whose committed `PC` is outside `R`. The relation is the set of those derivations.
+An **execution of the activation** is a derivation from `(s_in, 1)`, where `s_in` is a state with `PC = a_in`, to the first configuration whose committed `PC` is outside `R`, or, where no configuration of the derivation commits such a `PC`, the derivation itself. The relation is the set of those derivations. The second case is not a formality: [the classification below](#5-fault-free-in-model-faulted-and-excluded) names it and says where it is absorbed.
 
-Four properties of the statement are the ones the acceptance predicate asks about, and each is a property of the rules rather than a remark beside them.
+**The step bound is a premise on the region instance, and is not a property of the rules.** A region instance enters this model carrying a fixed `N`: its fault-free traversal from `a_in` commits a `PC` outside `R` within `N` transitions, `N` being determined at compose time from the region's control-flow graph and the loop bounds the instrumentation already needs in order to predict the exit signature. Neither `STEP` nor `FAULT` supplies that bound, and a faulted run can outlive it, a single in-region `skip` of a loop-counter increment leaving the fault-free continuation circling inside `R` at budget `0` with no exit. Stating `N` as a premise on the instance is what makes the index set below a set; no reading of the rules alone supplies it, and a region whose loop bounds are not fixed at compose time is not a region this model admits.
+
+Four properties of the statement are the ones the acceptance predicate asks about, and each is a property of the rules and that one premise rather than a remark beside them.
 
 - **A second fault in one activation is rejected by the absence of a rule.** `FAULT` requires budget `1` and produces budget `0`, and there is no rule with budget `0` in its premise other than `STEP`. A run carrying two perturbations therefore has no derivation. It is not excluded by a side condition that a later reading could soften, and it is not excluded by a predicate over the run: it is not generated.
 - **An out-of-region fault is rejected the same way.** `FAULT` carries `in_region(s)` as a premise, so a perturbation at a step whose `PC` lies outside `R` has no derivation either. This reaches the case a reader is most likely to lose: a region that calls out to a helper spends its steps at addresses the region's control-flow graph does not contain, and a fault there is outside the model. Whether a given helper is inside `R` is a compose-time fact about the emitted image, and a construction that leaves the decision's work outside the region it protects is not covered by the theorem however short the region reads.
-- **The fault index is finite and decidable.** For one activation of one region instance the index is the position of the faulted step in the run, crossed with the alternatives at that position: `skip`, or `corrupt(w')` for each of the 2^32 words. A run of a region instance has a bounded number of steps, so *every in-model fault of each protected region* is a quantification over a set the rules exhibit the shape of, which is what R-16-008f's acceptance criterion asks of the statement when it distinguishes quantifying from sampling. Nothing here says the quantification is cheap; it says it is a quantification.
+- **The fault index is finite and decidable.** For one activation of one region instance the index is the position of the faulted step, crossed with the alternatives at that position: `skip`, or `corrupt(w')` for each of the 2^32 words. The position is at most `N`, because `FAULT` fires only at budget `1` and a configuration at budget `1` sits on the fault-free traversal the premise above bounds. So *every in-model fault of each protected region* is a quantification over a set the rules and that premise exhibit the shape of, which is what R-16-008f's acceptance criterion asks of the statement when it distinguishes quantifying from sampling. Nothing here says the quantification is cheap; it says it is a quantification, and a region instance admitted without an `N` does not supply one.
 - **The relation is the strongest hypothesis on the adversary that R-16-008f's words admit, and one choice in it is a judgment the register does not make.** R-16-008f says *"skipped or corrupted"* and stops. This document reads *corrupted* as **arbitrary replacement of the fetched word**, rather than as a bounded number of bit flips or as replacement of the instruction's effect, because that is the weakest assumption about what an attacker can achieve and R-16-008f's acceptance criterion forbids making the theorem easier. A reader who would narrow it should note that the scope test below does not depend on the choice: its witness uses `skip`, which is the half of R-16-008f's phrase that admits no reading at all.
 
 ## 5. Fault-free, in-model faulted, and excluded
 
-Every execution of the machine falls in exactly one of three classes, and the middle one is the model.
+Every execution of an activation of `R` falls in exactly one of three classes, and the middle one is the model. The machine spends most of its time outside any protected region, where this classification says nothing at all.
 
 **Fault-free.** Every transition of the activation is `STEP`. The budget is unspent. This is the curated Sail model's own semantics with nothing added, which is why the relation is a perturbation and not a second model.
 
-**In-model faulted.** Exactly one transition is `FAULT`, at a step whose `PC` is in `R`, within one activation. This is the set R-16-008f's theorem quantifies over.
+**In-model faulted.** Exactly one transition is `FAULT`, at a step whose `PC` is in `R`, within one activation. This is the set R-16-008f's theorem quantifies over, and it contains the runs that never leave `R`: a `skip` of a loop-counter increment leaves the continuation circling inside the region at budget `0`, a derivation `STEP` extends without end. Such a run is in the model rather than excluded from it, which is the reading R-16-008f's acceptance criterion forces, and the conclusion holds of it: no configuration of it commits the acceptance token at all. What ends it on the machine is not this relation. A wedged or runaway core is the layered watchdogs' case (R-16-005, R-16-006, the tier R-16-008b names as reaching it), and what a bite costs the decision the region carried is R-17-058b's evidence question in the way a second fault is.
 
 **Excluded.** Everything else, and each member is named here rather than left as a remainder.
 
@@ -106,54 +109,58 @@ The two rows about the datapath are separated on purpose, because they are the t
 
 ## 6. Witnesses
 
-The witnesses are stated over one concrete region instance, `W`, a credential comparison at the RoT gate reduced to the smallest shape carrying every element R-16-008c's construction sentence names. Mnemonics and register names are the corpus's, as [corpus/cap-memory.s](../../corpus/cap-memory.s) writes them. The compose-time constants are twelve bits wide so the traces read; that width is itself a finding, recorded below.
+The witnesses are stated over one concrete region instance, `W`, a credential comparison at the RoT gate reduced to the smallest shape carrying every element R-16-008c's construction sentence names. Mnemonics and register names are [the differential corpus](../assurance/differential-corpus.md)'s own, as its purecap programs write them. The compose-time constants are twelve bits wide so the traces read; that width is itself a finding, recorded below.
 
 ```
     ; region W: entry a_in = 0x80000100, exit a_out = 0x80000180.
     ; s1 is the signature register, s2 the difference accumulator, a0 the token
     ; register. c10 and c11 authorize the stored and presented credentials, two
     ; 64-bit words each. Entry conditions: s1 = 0, a0 != T, PCC authorizes
-    ; [a_in, a_out). Compose-time constants K1 = 0x11f, K2 = 0x2a3, K3 = 0x0d6;
-    ; the graph predicts S_ok = 0x3bc at B2 and S_end = T = 0x36a at the exit.
+    ; [a_in, a_out). Compose-time constants K1 = 0x11f, K2 = 0x2a3, K4 = 0x07e,
+    ; K5 = 0x145, K3 = 0x193, K6 = 0x0b8; the graph predicts S_ok = 0x3bc at
+    ; B2's check and S_end = T = 0x36a at the exit.
 
-B1: 0x80000100  xori s1, s1, K1        ; B1 folds its constant
-    0x80000104  li   s2, 0
-    0x80000108  ld   t0, 0(c10)
-    0x8000010c  ld   t1, 0(c11)
-    0x80000110  xor  t2, t0, t1
-    0x80000114  or   s2, s2, t2        ; word 0 of the difference
-    0x80000118  ld   t0, 8(c10)
-    0x8000011c  ld   t1, 8(c11)
-    0x80000120  xor  t2, t0, t1
-    0x80000124  or   s2, s2, t2        ; word 1 of the difference
-    0x80000128  beqz s2, B2            ; comparison, first of the two
-    0x8000012c  j    B3
-B2: 0x80000130  xori s1, s1, K2        ; B2 folds its constant
-    0x80000134  xori t3, s1, S_ok      ; the signature check between the two
-    0x80000138  bnez t3, B3
-    0x8000013c  beqz s2, B4            ; comparison, second of the two
-    0x80000140  j    B3
-B4: 0x80000144  xori s1, s1, K3        ; B4 folds its constant
-    0x80000148  xori t4, s1, S_end     ; the exit comparison against the graph
-    0x8000014c  bnez t4, B3
-    0x80000150  xor  a0, s1, s2        ; the token, computed from the comparison
-    0x80000154  j    a_out
-B3: 0x80000158  ...                    ; the fail-stop class R-17-030n names
+B1:  0x80000100  xori s1, s1, K1        ; B1 folds its constant
+     0x80000104  li   s2, 0
+     0x80000108  ld   t0, 0(c10)
+     0x8000010c  ld   t1, 0(c11)
+     0x80000110  xor  t2, t0, t1
+     0x80000114  or   s2, s2, t2        ; word 0 of the difference
+     0x80000118  ld   t0, 8(c10)
+     0x8000011c  ld   t1, 8(c11)
+     0x80000120  xor  t2, t0, t1
+     0x80000124  or   s2, s2, t2        ; word 1 of the difference
+     0x80000128  beqz s2, B2            ; comparison, first of the two
+B1': 0x8000012c  xori s1, s1, K4        ; the not-taken connector folds too
+     0x80000130  j    B3
+B2:  0x80000134  xori s1, s1, K2        ; B2 folds its constant
+     0x80000138  xori t3, s1, S_ok      ; the signature check between the two
+     0x8000013c  bnez t3, B3
+B2': 0x80000140  xori s1, s1, K5        ; the not-taken connector folds too
+     0x80000144  beqz s2, B4            ; comparison, second of the two
+     0x80000148  j    B3
+B4:  0x8000014c  xori s1, s1, K3        ; B4 folds its constant
+     0x80000150  xori t4, s1, S_end     ; the exit comparison against the graph
+     0x80000154  bnez t4, B3
+     0x80000158  xor  a0, s1, s2        ; the token, computed from the comparison
+     0x8000015c  j    a_out
+B3:  0x80000160  xori s1, s1, K6        ; the fail-stop entry folds too
+     0x80000164  ...                    ; the fail-stop class R-17-030n names
 ```
 
-`W` meets R-16-008c's construction sentence clause by clause: each basic block folds a compose-time constant into the signature register, the exit compares the accumulation against the value the graph predicts and a mismatch raises the fail-stop class, acceptance is a multi-bit token computed from the comparison that no fall-through, skipped branch or truncated region produces, and the comparison is performed twice with the signature check between the two. It is the strongest reading of that sentence this document could find, so that the scope test below is a test of the construction and not of a weak rendering of it.
+`W` meets R-16-008c's construction sentence clause by clause: *each* basic block folds a compose-time constant into the signature register, the two connectors `B1'` and `B2'` reached by a not-taken branch included, since the sentence carries no connector carve-out; the exit compares the accumulation against the value the graph predicts and a mismatch raises the fail-stop class; acceptance is a multi-bit token computed from the comparison that no fall-through, skipped branch or truncated region produces; and the comparison is performed twice with the signature check between the two. It is the strongest reading of that sentence R-16-008c admits, so that the scope test below tests the construction and not a weak rendering of it. The accepting path is `B1`, `B2`, `B2'`, `B4`, and its folds are `K1`, `K2`, `K5`, `K3`; `B1'` and `B3` fold on the rejecting path, which reaches no comparison and no exit. The connectors' folds do not move the scope test below: its faulted run and witness N's accepting run traverse that same accepting path, so `s1` takes the same value at every check on both and both checks pass on both.
 
-**Witness N, fault-free.** The budget is unspent, so every transition is `STEP` and the trace is the model's own. With the two credentials equal, `s2` is `0` at `0x80000128`, the run takes `B2` and `B4`, `s1` holds `K1` after `0x80000100`, `S_ok` after `0x80000130` and `S_end` after `0x80000144`, both checks pass, and `0x80000150` commits `a0 = S_end xor 0 = 0x36a = T`. The activation ends at `a_out` with the token produced and the decision reached correctly.
+**Witness N, fault-free.** The budget is unspent, so every transition is `STEP` and the trace is the model's own. With the two credentials equal, `s2` is `0` at `0x80000128`, the run takes `B2`, falls through `B2'` and takes `B4`, and `s1` holds `K1 = 0x11f` after `0x80000100`, `S_ok = 0x3bc` after `0x80000134`, `0x2f9` after `0x80000140` and `S_end = 0x36a` after `0x8000014c`. Both checks pass, and `0x80000158` commits `a0 = S_end xor 0 = 0x36a = T`. The activation ends at `a_out` with the token produced and the decision reached correctly.
 
-**Witness F, one fault, token withheld.** Budget `1` is spent by `FAULT` with `f = skip` at the step whose `PC` is `0x80000130`, which is in `R`. `s1` therefore stays at `K1 = 0x11f` rather than reaching `S_ok`. At `0x80000134` the signature check computes `t3 = 0x11f xor 0x3bc = 0x2a3`, which is not zero, so `0x80000138` transfers to `B3` and the activation ends in the fail-stop class. Every later transition is `STEP`, the budget being `0`. `a0` is untouched and is not `T` by the entry condition, so the token is withheld. This is a member of the relation, and the only member's-eye difference from witness N is the one transition that used the budget.
+**Witness F, one fault, token withheld.** Budget `1` is spent by `FAULT` with `f = skip` at the step whose `PC` is `0x80000134`, which is in `R`. `s1` therefore stays at `K1 = 0x11f` rather than reaching `S_ok`. At `0x80000138` the signature check computes `t3 = 0x11f xor 0x3bc = 0x2a3`, which is not zero, so `0x8000013c` transfers to `B3` and the activation ends in the fail-stop class. Every later transition is `STEP`, the budget being `0`. `a0` is untouched and is not `T` by the entry condition, so the token is withheld. This is a member of the relation, and the only member's-eye difference from witness N is the one transition that used the budget.
 
-**Witness X, two faults, a non-member.** Take witness F's fault and add a second at `0x80000134`, replacing the signature check with one that compares against `K1` so that `t3` is zero and the run continues into `B4`. There is no derivation: after the first `FAULT` the configuration carries budget `0`, and `FAULT` requires budget `1` in its premise, so the second perturbation is generated by no rule. That is the clause rejecting it, and naming it is the point. Whether the excluded run reaches the token is R-17-058b's evidence question and is not this relation's business.
+**Witness X, two faults, a non-member.** Take witness F's fault and add a second at `0x80000138`, replacing the signature check with one that compares against `K1` so that `t3` is zero and the run falls through `B2'` into `B4`. There is no derivation: after the first `FAULT` the configuration carries budget `0`, and `FAULT` requires budget `1` in its premise, so the second perturbation is generated by no rule. That is the clause rejecting it, and naming it is the point. Whether the excluded run reaches the token is R-17-058b's evidence question and is not this relation's business.
 
 **A fault outside `R`.** A perturbation at a step whose `PC` is `a_out` or beyond, or inside a helper the region calls, fails `FAULT`'s `in_region(s)` premise and has no derivation either. The entry conditions above are the visible consequence: `s1 = 0` and `a0 != T` at `a_in` are assumptions about state this relation does not govern, and a fault that established them is outside the model rather than silently inside the fault-free class.
 
 ## 7. The scope test, and what it returns
 
-R-16-008f's conclusion is that *"no in-model fault yields the acceptance token, so the decision the sequence reaches is withheld rather than reached wrongly"*. The Q3c cell requires the model to be tested for a decisive scope counterexample before it is expanded, and forbids inferring a harmless-fault exception or excluding a difficult comparison or token step to make the theorem easier. The test was run on the epilogue boundary first, because R-17-058b's second limit says a fault inside the compare-and-fail-stop epilogue is not caught by that epilogue and R-16-008f's exclusions do not name the epilogue, so the epilogue is in-region and in-model and the two entries reconcile only if an in-model fault there still withholds the token. The epilogue survives the test on `W`: the doubled comparison with the signature check between the two, and a token computed from the signature rather than branched to, mean that a single perturbation of either comparison leaves the other standing and a single perturbation of any fold moves the token off `T`.
+R-16-008f's conclusion is that *"no in-model fault yields the acceptance token, so the decision the sequence reaches is withheld rather than reached wrongly"*. The Q3c cell requires the model to be tested for a decisive scope counterexample before it is expanded, and forbids inferring a harmless-fault exception or excluding a difficult comparison or token step to make the theorem easier. The test bites first at the epilogue boundary, because R-17-058b's second limit says a fault inside the compare-and-fail-stop epilogue is not caught by that epilogue and R-16-008f's exclusions do not name the epilogue, so the epilogue is in-region and in-model and the two entries reconcile only if an in-model fault there still withholds the token. The epilogue survives the test on `W`: the doubled comparison with the signature check between the two, and a token computed from the signature rather than branched to, mean that a single perturbation of either comparison leaves the other standing and a single perturbation of any fold moves the token off `T`.
 
 **The test returns a counterexample elsewhere, and it is decisive.** Take `FAULT` with `f = skip` at the step whose `PC` is `0x80000114`, which is in `R`, and let the presented credential differ from the stored one in word 0 alone, which the party presenting it chooses. Then:
 
@@ -161,10 +168,10 @@ R-16-008f's conclusion is that *"no in-model fault yields the acceptance token, 
 | --- | --- | --- |
 | `0x80000114` | skipped: word 0's difference never enters `s2` | `s2` takes word 0's difference, which is non-zero |
 | `0x80000124` | `s2` takes word 1's difference, which is zero | `s2` stays non-zero |
-| `0x80000128` | `s2` is zero, so the run takes `B2` | the run takes `B3` |
-| `0x80000130`, `0x80000144` | folded correctly; the budget is spent and every later transition is `STEP` | n/a |
-| `0x80000134`, `0x80000148` | both checks pass: the path taken is a legal path of the graph and `s1` reaches `S_end` | n/a |
-| `0x80000150` | `a0 = S_end xor 0 = T` | n/a |
+| `0x80000128` | `s2` is zero, so the run takes `B2` | the run takes `B1'` and `B3` |
+| `0x80000134`, `0x80000140`, `0x8000014c` | folded correctly; the budget is spent and every later transition is `STEP` | n/a |
+| `0x80000138`, `0x80000150` | both checks pass: the path taken is a legal path of the graph and `s1` reaches `S_end` | n/a |
+| `0x80000158` | `a0 = S_end xor 0 = T` | n/a |
 
 One skipped instruction, in region, in budget, not a second fault, and not a datapath strike: the instruction word is what the relation perturbs, and no register bit is flipped and no arithmetic result is wrong. The acceptance token is produced, and the gate accepts a credential that does not match.
 
@@ -186,16 +193,16 @@ The witness is exhibited on the credential class because that class reduces atta
 
 ## 9. The silicon assumption, and what is owed before acceptance
 
-**The assumption's status is recorded, and its characterization has no owner.** R-16-008f makes the model *"an axiom about the silicon in the R-06-011 sense"*, and R-17-058b's acceptance criterion makes its faithfulness carry *"a bring-up characterization obligation and independent review rather than an assumed fit, the shape R-15-053a takes for leakage"*. R-15-053a's half of that has an owner: the plan's hardening opening owes the R-15-053a bring-up characterization, rehearsed on the FPGA and executed at first silicon, the rehearsal validating the harness and never the axiom. R-16-008f's half has none. Naming one is finding 5 below, and this document does not name one by implication.
+**The assumption's status is recorded, and its characterization is named nowhere.** R-16-008f makes the model *"an axiom about the silicon in the R-06-011 sense"*, and R-17-058b's acceptance criterion makes its faithfulness carry *"a bring-up characterization obligation and independent review rather than an assumed fit, the shape R-15-053a takes for leakage"*. R-15-053a's half of that has an owner: the plan's hardening opening owes the R-15-053a bring-up characterization, rehearsed on the FPGA and executed at first silicon, the rehearsal validating the harness and never the axiom. R-16-008f's half is named by no cell, and the same opening's generic duty to assign characterization work is not a name. Naming one is finding 5 below, and this document does not name one by implication.
 
-**What this document owes to the review.** The Q3c acceptance predicate requires an independent review of the region, corruption and compare/fail-stop boundaries, with the region-boundary review separated from the corruption-relation review and their witnesses reconciled. That review has not run. The three judgments it should take first are the corruption relation's strength, which the register does not fix and §4 fixes at arbitrary word substitution with its reasons; the region predicate's reading on `PCC` as well as `PC`; and whether the scope test's counterexample is answered by a construction obligation on R-16-008c or by a qualification of R-16-008f's conclusion.
+**What this document owes to the review.** The Q3c acceptance predicate requires an independent review of the region, corruption and compare/fail-stop boundaries, with the region-boundary review separated from the corruption-relation review and their witnesses reconciled. That review has not run. The three judgments it should take first are the corruption relation's strength, which the register does not fix and [this document's relation](#4-the-relation) fixes at arbitrary word substitution with its reasons; the region predicate's reading on `PCC` as well as `PC`; and whether the scope test's counterexample is answered by a construction obligation on R-16-008c or by a qualification of R-16-008f's conclusion.
 
 **The findings this document returns.** Each is a register decision owed before the relation is accepted, and none of them is answered by narrowing the model.
 
 1. **R-16-008c's construction obligations do not imply R-16-008f's conclusion.** A single skipped instruction inside a protected region yields the acceptance token and a wrong decision, on a region instance meeting R-16-008c's construction sentence clause by clause. The act is an obligation on how the decision's data is reduced to the compared value, added at R-16-008c or carried as a named premise at R-16-008f.
-2. **The acceptance token's width is load-bearing and is fixed nowhere.** R-16-008c says the token is multi-bit and stops. At the width `W` uses, one `corrupt` at `0x80000150` with the encoding of `addi a0, zero, 0x36a` constructs the token without the comparison being consulted at all, and the same holds for any token a twelve-bit signed immediate reaches or any token of the form a twenty-bit immediate shifted left by twelve. The act is a width obligation, stated against what a single instruction of the frozen profile can place in a register from an immediate or from live state.
+2. **The acceptance token's width is load-bearing and is fixed nowhere.** R-16-008c says the token is multi-bit and stops. At the width `W` uses, one `corrupt` at `0x80000158` with the encoding of `addi a0, zero, 0x36a` constructs the token without the comparison being consulted at all, and the same holds for any token a twelve-bit signed immediate reaches or any token of the form a twenty-bit immediate shifted left by twelve. The act is a width obligation, stated against what a single instruction of the frozen profile can place in a register from an immediate or from live state.
 3. **R-16-008f's conclusion admits no ineffective fault, and effect-preserving perturbations are in-model.** `corrupt(w')` where `w'` is a different encoding of the same architectural effect yields the acceptance token, so *no in-model fault yields the acceptance token* is false for any construction whatever. The conclusion the trailing clause of R-16-008f actually wants is that the decision is never reached wrongly, and the repair is the effective-fault disjunction R-17-058d's case split already uses on the masked datapath: every in-model fault either leaves the region's committed architectural effect equal to the fault-free one, or the token is withheld. That is a restatement of the theorem, not an exception in the model.
 4. **The frozen encoding admits a single physical fault that perturbs more than one canonical instruction.** The profile's only instruction-fetch format is the fixed-rate dictionary encoding (R-15-036a), where the bundle header carries one escape-start bit per slot and decode is a pure function of the bundle's contents and the slot index (R-15-036b). One header bit therefore decides whether a slot pair is one escaped canonical instruction or two dictionary instructions, so a fault on that bit changes more than one instruction of the canonical stream this relation perturbs, which is outside *at most one skipped or corrupted instruction*. The relation is stated at the canonical level because that is where the Sail model and R-16-008f put it. What the act owes is a statement of the correspondence between a fault on the resident image and this relation's perturbation, which is characterization work and therefore runs into finding 5.
-5. **No artifact owns the R-16-008f bring-up characterization.** R-17-058b's acceptance criterion obliges one. The plan's hardening-opening cell owes the R-15-053a characterization by name and states the others generically; no cell and no row of the unassigned proof map's mandatory list names this one. The act is to name an owner, at that cell or beside U-19, before the axiom is quoted as characterized.
+5. **No artifact names the R-16-008f bring-up characterization.** R-17-058b's acceptance criterion obliges one. The plan's hardening-opening cell carries a generic assignment duty that would cover it, assigning missing detection, countermeasure and characterization work and stating the first-silicon characterization plan, but it owes the R-15-053a characterization by name and this one not at all; no other cell and no row of the unassigned proof map's mandatory list names it either. That asymmetry is what R-17-058b's criterion does not permit, since it holds the fault axiom's faithfulness to the shape R-15-053a takes for leakage. The act is to name an owner, at that cell or beside U-19, before the axiom is quoted as characterized.
 
 **What is owed elsewhere, and is not owed here.** U-19 owns the detection theorem over this relation and its proof over a model instance. The compiler-emitted signature instrumentation has no toolchain cell, the countermeasure's authoring route waits on a register act, and the R-17-058d reduction is priced over accepted premises at the plan's post-M10 cell; all three are already recorded on [the unassigned proof map](../assurance/unassigned-proof-map.md)'s mandatory list. The binary-level check where a sequence passes admission is artifact-admission's. This document opens no cell for any of them.
