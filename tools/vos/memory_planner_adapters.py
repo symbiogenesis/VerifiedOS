@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Protocol, cast
 from urllib.request import urlopen
 
-from vos.memory_planner import Instance, parse_instance, plan, pool_heights
+from vos.memory_planner import Instance, Placement, parse_instance, plan, pool_heights
 
 MINIMALLOC_COMMIT = "9f5cf810fec4494df473c23cffd0567989e81b69"
 EXECUTORCH_COMMIT = "420948be0b6895244a7f63742222d2d72d84a31c"
@@ -39,6 +39,22 @@ def _integer(value: object, label: str, minimum: int = 0,
 
 def _failure(message: str, adapter: str) -> dict[str, object]:
     return {"status": "unknown", "adapter": adapter, "findings": [message]}
+
+
+def _ordinary_heights(instance: Instance, placement: Placement) -> dict[str, int]:
+    """Legacy arena bounds include zero-size allocation endpoints too.
+
+The core's byte-extent objective deliberately omits those endpoints, so its
+certificate and non-regression gate cannot substitute for this adapter check.
+Placement has already passed the core checker before this helper is called.
+"""
+    sizes = {buffer.id: buffer.size for buffer in instance.buffers}
+    heights = {pool.id: max((end for _, end in pool.reserved), default=0)
+               for pool in instance.pools}
+    for entry in placement:
+        heights[entry["pool"]] = max(heights[entry["pool"]],
+                                    entry["offset"] + sizes[entry["id"]])
+    return heights
 
 
 class MiniInterval(Protocol):
@@ -267,13 +283,34 @@ The baseline keeps its configured timeout; work_budget bounds additional search.
         if height != actual_height:
             raise UnsupportedAdapterError("baseline height does not match its offsets")
         result = plan(instance, layout, work_budget=self.work_budget, certify=self.certify)
-        self.last_evidence = dict(result["evidence"])
-        self.last_evidence["adapter"] = f"minimalloc@{MINIMALLOC_COMMIT}"
         placement = result["placement"]
         if placement is None:
+            self.last_evidence = dict(result["evidence"])
             return None
+        output_height = _ordinary_heights(instance, placement)["arena"]
+        rejected_height = output_height if output_height > height else None
+        if rejected_height is not None:
+            result = plan(instance, layout)
+            placement = result["placement"]
+            if placement is None:
+                raise UnsupportedAdapterError("retained baseline failed revalidation")
+            output_height = _ordinary_heights(instance, placement)["arena"]
+        self.last_evidence = dict(result["evidence"])
+        self.last_evidence["adapter"] = f"minimalloc@{MINIMALLOC_COMMIT}"
+        self.last_evidence["ordinary_objective"] = {
+            "metric": "maximum offset plus size, including zero-size endpoints",
+            "baseline_height": height, "selected_height": output_height,
+            "non_regression": output_height <= height,
+            "rejected_candidate_height": rejected_height,
+        }
+        if (self.last_evidence["status"] == "checked optimal" and
+                output_height != pool_heights(instance, placement)["arena"]):
+            self.last_evidence["status"] = "checked feasible"
+            self.last_evidence.pop("certificate", None)
+            self.last_evidence["proof_endpoint"] = (
+                "independent Python feasibility checker; ordinary MiniMalloc height "
+                "optimality unclaimed because zero-size endpoints differ from the core metric")
         by_id = {entry["id"]: entry["offset"] for entry in placement}
-        output_height = max((by_id[buffer.id] + buffer.size for buffer in problem.buffers), default=0)
         return self.module.Solution([by_id[buffer.id] for buffer in problem.buffers], output_height)
 
 
@@ -445,18 +482,34 @@ explicitly. The unmodified greedy generator operates on a private graph copy.
                                                    "The suite already applied input/output policy.",
                                                    f"ExecuTorch interface {EXECUTORCH_COMMIT}."]})
         result = plan(instance, layout, work_budget=self.work_budget)
-        self.last_evidence = dict(result["evidence"])
-        self.last_evidence["adapter"] = f"executorch@{EXECUTORCH_COMMIT}"
         placement = result["placement"]
         if placement is None:
             raise UnsupportedAdapterError("baseline failed independent placement validation")
-        heights = pool_heights(instance, placement)
+        heights = _ordinary_heights(instance, placement)
+        output_sizes = [0] + [heights[str(index)] +
+                              (extra_padding if index in active_pools else 0)
+                              for index in range(1, len(pool_sizes))]
+        rejected_sizes = None
+        if any(new > old for new, old in zip(output_sizes, pool_sizes, strict=True)):
+            rejected_sizes = output_sizes
+            result = plan(instance, layout)
+            placement = result["placement"]
+            if placement is None:
+                raise UnsupportedAdapterError("retained baseline failed revalidation")
+            heights = _ordinary_heights(instance, placement)
         offsets = {entry["id"]: entry["offset"] for entry in placement}
         output_sizes = [0] + [heights[str(index)] +
                               (extra_padding if index in active_pools else 0)
                               for index in range(1, len(pool_sizes))]
         if any(new > old for new, old in zip(output_sizes, pool_sizes, strict=True)):
             raise UnsupportedAdapterError("adapter padding worsened an input pool")
+        self.last_evidence = dict(result["evidence"])
+        self.last_evidence["adapter"] = f"executorch@{EXECUTORCH_COMMIT}"
+        self.last_evidence["ordinary_objective"] = {
+            "metric": "per-pool allocation endpoints, reserved prefixes, and extra padding",
+            "baseline_pool_sizes": pool_sizes, "selected_pool_sizes": output_sizes,
+            "componentwise_non_regression": True, "rejected_candidate_pool_sizes": rejected_sizes,
+        }
         results: dict[TensorSpec, SpecAllocation] = {}
         # A pool is one shared storage object: overlapping placements therefore
         # always share mem_obj_id as required by the upstream verifier.

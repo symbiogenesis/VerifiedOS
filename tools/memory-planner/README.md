@@ -39,6 +39,13 @@ invalid baseline, exception, or timeout never returns a purportedly checked
 solution. Baseline timeout controls remain the baseline solver's configuration;
 `work_budget` bounds the additional core search.
 
+The ordinary height includes zero-size buffer endpoints. The adapter records
+ordinary baseline and selected heights separately from the core's occupied-byte
+metric, retaining the checked baseline if ordinary height would grow. A core
+optimality certificate does not confer ordinary-height optimality when those
+metrics differ; the exposed status is then checked feasible, with the core
+certificate retained under its explicitly stated objective.
+
 ## ExecuTorch
 
 The optional factory checks the installed `exir/memory_planning.py` source hash
@@ -64,6 +71,10 @@ and enforces componentwise pool non-regression. A separate semantic snapshot
 prevents a mutating baseline from changing the model that the checker validates.
 Current `mem_offset` values are previous outputs, as in the upstream algorithm;
 they do not introduce fixed-location constraints.
+
+Returned pool sizes include zero-size tensor endpoints, reserved prefixes, and
+padding. Their baseline and selected values have a separate componentwise check;
+the occupied-byte metric alone cannot determine these legacy arena bounds.
 
 Direct storage-backed views preserve their root and relative offset. External
 roots, chained views, concurrent overlapping sibling views, incomplete lifetimes,

@@ -5,10 +5,12 @@ import copy
 from dataclasses import dataclass, field
 from enum import Enum
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast, override
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import memory_planner_adapters as adapter
+from vos.memory_planner import Instance, plan
 
 
 @dataclass
@@ -121,6 +123,49 @@ def csv_preserves_fields_and_legacy_endpoints() -> None:
         except adapter.UnsupportedAdapterError:
             continue
         raise AssertionError("unsafe CSV conversion accepted")
+
+
+def minimalloc_zero_endpoints_do_not_inherit_extent_optimality() -> None:
+    module = mini_module()
+    problem = module.Problem([
+        module.Buffer("positive", Interval(0, 1), 4, 1, [], None, None),
+        module.Buffer("zero", Interval(0, 1), 0, 1, [], None, None),
+    ], 100)
+    solver = adapter.MiniMallocSolver(module, Baseline([0, 100], 100), certify=True)
+    result = solver.solve(problem)
+    ensure(result is not None and result.height == 100, "ordinary zero endpoint was lost")
+    ensure(solver.last_evidence["status"] == "checked feasible",
+           "core extent optimum was claimed for a different ordinary arena height")
+    objective = cast(dict[str, object], solver.last_evidence["ordinary_objective"])
+    ensure(objective["baseline_height"] == objective["selected_height"] == 100,
+           "ordinary before/after heights were not recorded")
+    certification = cast(dict[str, object], solver.last_evidence["certification"])
+    ensure(certification["status"] == "checked optimal", "scoped core evidence was discarded")
+
+
+def minimalloc_rejects_an_ordinary_height_regression() -> None:
+    module = mini_module()
+    problem = module.Problem([
+        module.Buffer("positive", Interval(0, 1), 4, 1, [], None, None),
+        module.Buffer("zero", Interval(0, 1), 0, 1, [], None, None),
+    ], 100)
+
+    def candidate_result(instance: Instance, baseline: object, *, work_budget: int = 0,
+                         certify: bool = False) -> dict[str, Any]:
+        # A valid core improvement (12 to 4 occupied bytes) with a worse ordinary
+        # height (12 to 100). The real core checker accepts this objective change.
+        candidates = [[{"id": "positive", "pool": "arena", "offset": 0},
+                       {"id": "zero", "pool": "arena", "offset": 100}]] if work_budget else []
+        return plan(instance, baseline, candidates=candidates, certify=certify)
+
+    solver = adapter.MiniMallocSolver(module, Baseline([8, 0], 12), work_budget=1)
+    with patch.object(adapter, "plan", side_effect=candidate_result):
+        result = solver.solve(problem)
+    ensure(result is not None and result.height == 12 and result.offsets == [8, 0],
+           "adapter deployed an ordinary height regression instead of retaining its baseline")
+    objective = cast(dict[str, object], solver.last_evidence["ordinary_objective"])
+    ensure(objective["non_regression"] is True and objective["rejected_candidate_height"] == 100,
+           "rejected ordinary regression is not diagnosed")
 
 
 class Dynamism(Enum):
@@ -289,11 +334,42 @@ def inclusive_lifetimes_and_overflow() -> None:
     raise AssertionError("inclusive endpoint conversion overflow accepted")
 
 
+class ZeroEndpointUpstream(Upstream):
+    @override
+    def greedy(self, alignment: int, specs: set[adapter.TensorSpec],
+               graph_module: adapter.GraphModule, graph_signature: object,
+               extra_padding: int = 0) -> adapter.ExecuTorchResult:
+        result = super().greedy(alignment, specs, graph_module, graph_signature, extra_padding)
+        for spec, allocation in result.spec_dict.items():
+            if spec.allocated_memory == 0:
+                allocation.mem_offset = 100
+        result.bufsizes[1] = 100 + extra_padding
+        return result
+
+
+def executorch_zero_endpoints_remain_inside_returned_pool() -> None:
+    positive, zero = Spec(4, [0, 1]), Spec(0, [0, 1])
+    module = Module(Graph([positive, zero]))
+    callback = adapter.ExecuTorchAlgorithm(ZeroEndpointUpstream())
+    result = callback(1, {positive, zero}, module, None, 4)
+    ensure(result.bufsizes == [0, 104], "ordinary pool omits zero endpoint or padding")
+    ensure(result.spec_dict[zero].mem_offset == 100, "baseline zero endpoint changed")
+    ensure(all(allocation.mem_offset + spec.allocated_memory <= result.bufsizes[allocation.mem_id]
+               for spec, allocation in result.spec_dict.items()),
+           "returned tensor endpoint lies outside its returned pool")
+    objective = cast(dict[str, object], callback.last_evidence["ordinary_objective"])
+    ensure(objective["baseline_pool_sizes"] == objective["selected_pool_sizes"] == [0, 104],
+           "ordinary pool sizes were not recorded separately from core extents")
+
+
 def cases() -> list[Case]:
     return [Case("MiniMalloc gap/fixed/alignment/identity", gap_fixed_alignment_and_identity),
             Case("MiniMalloc unsupported and invalid baseline", rejected_mini_models_and_bad_baseline),
             Case("MiniMalloc CSV endpoint and field preservation", csv_preserves_fields_and_legacy_endpoints),
+            Case("MiniMalloc zero endpoint optimality scope", minimalloc_zero_endpoints_do_not_inherit_extent_optimality),
+            Case("MiniMalloc ordinary height non-regression", minimalloc_rejects_an_ordinary_height_regression),
             Case("ExecuTorch suite identity/pools/padding/policy", suite_return_identity_pools_padding_and_policy),
             Case("ExecuTorch storage view constraints", aliases_and_unsupported_views),
             Case("ExecuTorch mutation isolation and bounds", lifetime_mutation_and_unbounded_shapes_fail_closed),
-            Case("ExecuTorch inclusive endpoint overflow", inclusive_lifetimes_and_overflow)]
+            Case("ExecuTorch inclusive endpoint overflow", inclusive_lifetimes_and_overflow),
+            Case("ExecuTorch zero endpoint pool bounds", executorch_zero_endpoints_remain_inside_returned_pool)]
