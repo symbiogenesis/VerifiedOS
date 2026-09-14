@@ -2,7 +2,9 @@
 
 This inventory records upstream proof subjects and their fit to VerifiedOS at
 revision `40c48830e11d2af3807d2431f7fc42ec9ce83bf3`. Source and license readings
-are dated 2026-09-10. A published mechanization is evidence about its stated
+are dated 2026-09-10, except Sail's own terms and trust boundary in the
+paragraph below and HW-06's publication of record, which are read on
+2026-09-13. A published mechanization is evidence about its stated
 machine, parameters and assumptions; it is not a proof of this repository's
 machine. No upstream proof is replayed by this research lane, and no source code
 is incorporated by this document.
@@ -13,6 +15,14 @@ leads, not gold-standard completed proofs. Version information describes the
 inspected upstream environment, not a compatibility result with this project's
 installed Rocq. License dispositions follow the current [third-party
 policy](../../../THIRD-PARTY.md); permissive terms alone do not make a proof usable.
+Every entry naming a Sail revision also inherits that tool's own terms and trust
+boundary. [Sail](https://github.com/rems-project/sail) is BSD-2-Clause on its
+`sail2` default branch, with the ASL-derived `aarch64` model and the files its
+`THIRD_PARTY_FILES.md` names carved out, so a vendored Sail tree is not uniformly
+two-clause and a `master` path does not resolve. Its type checker and its
+prover-definition backends are unverified OCaml, inside the trusted base of every
+proof stated over the definitions they emit; Sail is the infrastructure those
+proofs are built on and proves nothing itself.
 
 ## Local obligations, including completed work
 
@@ -138,10 +148,12 @@ subject and premises, not eliminate them.
 
 ### HW-06: Cerisier attestation and modeled trusted sensor
 
-**Standing: Rocq/Iris artifact for the 2026
+**Standing: Rocq/Iris artifact for the published
 [Cerisier paper](https://arxiv.org/abs/2604.13638), extending Cerise.** Authors:
 June Rousseau, Denis Carnier, Thomas Van Strydonck, Steven Keuchel, Dominique
-Devriese and Lars Birkedal. The
+Devriese and Lars Birkedal. It is a PLDI 2026 publication, Proc. ACM Program.
+Lang. 10, PLDI, [doi 10.1145/3808287](https://doi.org/10.1145/3808287); the arXiv
+posting is its open copy and not a result awaiting review. The
 edition `57ed584ae17eed308ae0fa554cf0dde9843112c1` provides
 `cerisier_universal_contract` in
 [theories/logrel/fundamental.v](https://github.com/logsem/cerisier/blob/57ed584ae17eed308ae0fa554cf0dde9843112c1/theories/logrel/fundamental.v),
