@@ -182,6 +182,26 @@ def _bounded_refusals() -> None:
         deep = [{"op": "choice", "branches": [{"label": str(i), "body": deep}]}]
     _reject(lambda: contracts.extract_contract(_contract([*deep, _finish()]), max_depth=2),
             "max_depth", contracts.UnsupportedContractError)
+    empty_choice = {"op": "choice", "branches": [{"label": "empty", "body": []}]}
+    inner = {"op": "repeat", "min": 10, "max": 10, "body": [empty_choice]}
+    outer = {"op": "repeat", "min": 10, "max": 10, "body": [inner]}
+    empty = _contract([outer, _finish()], ())
+    result = contracts.extract_contract(empty)
+    ensure(result["evidence"]["interpreted_events"] == 1,
+           "the adversarial fixture must generate labels with no resource events")
+    ensure(len(result["evidence"]["paths"][0]["labels"]) == 111,
+           "nested empty loops must retain their complete branch annotations")
+    _reject(lambda: contracts.extract_contract(empty, max_expansion_work=100),
+            "max_expansion_work", contracts.UnsupportedContractError)
+    deep_empty: list[dict[str, Any]] = []
+    for _ in range(70):
+        deep_empty = [{"op": "choice", "branches": [{"label": "nested", "body": deep_empty}]}]
+    _reject(lambda: contracts.extract_contract(_contract([*deep_empty, _finish()], ())),
+            "snapshot depth", contracts.UnsupportedContractError)
+    cyclic: dict[str, Any] = {}
+    cyclic["cycle"] = cyclic
+    _reject(lambda: contracts.extract_contract(cyclic), "snapshot depth",
+            contracts.UnsupportedContractError)
 
 
 def _device_tokens_and_reacquisition() -> None:
