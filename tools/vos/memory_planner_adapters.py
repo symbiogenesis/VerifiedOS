@@ -529,4 +529,8 @@ header closure and license are fetched; no upstream source is vendored.
             "boundary": "compiled MicroMemoryPlanner subclass; no model inference run",
             "output": executed.stdout.strip(), "output_directory": str(output),
             "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "authored_sources_sha256": {
+                str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in [source, source.with_name("tflm_checked_plan.h"),
+                             source.with_name("interfaces.json")]},
             "executable_sha256": hashlib.sha256(executable.read_bytes()).hexdigest()}
