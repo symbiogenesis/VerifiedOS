@@ -131,8 +131,39 @@ def _retained_values() -> None:
     _reject(lambda: contracts.extract_contract(_contract([e for e in body if e["op"] != "drop"])),
             "device work drain")
     body.insert(2, _event("retain"))
-    _reject(lambda: contracts.extract_contract(_contract(body)), "multiple retained holders",
-            contracts.UnsupportedContractError)
+    _reject(lambda: contracts.extract_contract(_contract(body)), "duplicate retained holder")
+
+
+def _named_holders_and_unique_use() -> None:
+    body = [_event("acquire"), {**_event("retain"), "holder": "parser"},
+            {**_event("retain"), "holder": "writer"}, _event("release"),
+            {**_event("drop"), "holder": "parser"},
+            {**_event("use"), "holder": "writer"},
+            {**_event("drop"), "holder": "writer"}, _event("revoke"),
+            _event("sweep"), _event("scrub"), _event("barrier"), _finish()]
+    source = _contract(body)
+    source["objects"][0]["retained_limit"] = 2
+    result = contracts.extract_contract(source)
+    ensure(result["evidence"]["paths"][0]["peak_retained_holders"] == 2,
+           "both named obligations must be charged and retained")
+    ensure("retained_limit" not in result["instance"]["buffers"][0],
+           "source accounting metadata must not become an unknown placement constraint")
+    bad = copy.deepcopy(source)
+    bad["body"][5]["holder"] = "parser"
+    _reject(lambda: contracts.extract_contract(bad), "stale retained holder")
+    bad = copy.deepcopy(source)
+    del bad["body"][6]
+    _reject(lambda: contracts.extract_contract(bad), "device work drain")
+    bad = copy.deepcopy(source)
+    bad["objects"][0]["retained_limit"] = 1
+    _reject(lambda: contracts.extract_contract(bad), "holder limit exceeded")
+    unique = _contract([_event("acquire"), _event("unique-use"), *_service("a")[1:], _finish()])
+    contracts.extract_contract(unique)
+    unique["body"].insert(1, _event("retain"))
+    _reject(lambda: contracts.extract_contract(unique), "unique lexical ownership")
+    repeated = copy.deepcopy(source)
+    repeated["body"] = [*body[:-1], *copy.deepcopy(body)]
+    _reject(lambda: contracts.extract_contract(repeated), "holder reused across lease incarnations")
 
 
 def _exceptional_cleanup() -> None:
@@ -215,6 +246,15 @@ def _device_tokens_and_reacquisition() -> None:
     body = [*_service("a"), *_service("a"), _finish()]
     ensure(contracts.extract_contract(_contract(body))["evidence"]["checked_barriers"] == 2,
            "a drained object can be reacquired without creating a second placement identity")
+    cycle = [_event("acquire"), _event("submit", transfer="x"),
+             _event("complete", transfer="x"), *_service("a")[1:]]
+    _reject(lambda: contracts.extract_contract(_contract([*cycle, *cycle, _finish()])),
+            "device token reused across lease incarnations")
+    fresh = copy.deepcopy(cycle)
+    fresh[1]["token"] = fresh[2]["token"] = "next-incarnation"
+    ensure(contracts.extract_contract(_contract([*cycle, *fresh, _finish()]))
+           ["evidence"]["checked_barriers"] == 2,
+           "distinct device identities permit safe bounded reincarnation")
 
 
 def _unsupported_constraints_and_malformed_inputs() -> None:
@@ -285,6 +325,7 @@ def cases() -> list[Case]:
         Case("contracts generated interleavings against independent interval oracle", _generated_interleavings),
         Case("contracts reuse barrier prerequisite mutations", _barrier_mutations),
         Case("contracts retained values outlive lexical release", _retained_values),
+        Case("contracts named obligations and unique in-place use", _named_holders_and_unique_use),
         Case("contracts exceptional paths require complete cleanup", _exceptional_cleanup),
         Case("contracts bounded loops enumerate every branch combination", _bounded_repetition_and_choices),
         Case("contracts exhausted bounds refuse partial conflict graphs", _bounded_refusals),

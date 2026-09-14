@@ -61,7 +61,7 @@ Import ListNotations.
 
 Record Lease := {
   lexical_holder : bool;
-  retained_holder : bool;
+  retained_holder : nat;
   live_authority : bool;
   outstanding_devices : nat;
   sweep_complete : bool;
@@ -69,16 +69,16 @@ Record Lease := {
 }.
 
 Definition witness_Lease : Lease :=
-  {| lexical_holder := false; retained_holder := false;
+  {| lexical_holder := false; retained_holder := 0;
      live_authority := false; outstanding_devices := 0;
      sweep_complete := true; scrub_complete := true |}.
 
 Definition no_old_users (s : Lease) : Prop :=
-  lexical_holder s = false /\ retained_holder s = false /\
+  lexical_holder s = false /\ retained_holder s = 0 /\
   live_authority s = false /\ outstanding_devices s = 0.
 
 Definition barrierb (s : Lease) : bool :=
-  negb (lexical_holder s) && negb (retained_holder s) &&
+  negb (lexical_holder s) && (retained_holder s =? 0) &&
   negb (live_authority s) && (outstanding_devices s =? 0) &&
   sweep_complete s && scrub_complete s.
 
@@ -89,7 +89,7 @@ Proof.
   intros s H. unfold barrierb in H. unfold no_old_users.
   repeat rewrite andb_true_iff in H.
   repeat rewrite negb_true_iff in H.
-  rewrite Nat.eqb_eq in H. tauto.
+  repeat rewrite Nat.eqb_eq in H. tauto.
 Qed.
 
 Theorem late_device_blocks_barrier : forall s,
@@ -99,8 +99,23 @@ Proof.
   apply barrier_sound in HB. unfold no_old_users in HB. intuition lia.
 Qed.
 
+Theorem retained_alias_blocks_barrier : forall s,
+  0 < retained_holder s -> barrierb s = false.
+Proof.
+  intros s H. destruct (barrierb s) eqn:HB; auto.
+  apply barrier_sound in HB. unfold no_old_users in HB. intuition lia.
+Qed.
+
+Definition alias_lease : Lease :=
+  {| lexical_holder := false; retained_holder := 2;
+     live_authority := false; outstanding_devices := 0;
+     sweep_complete := true; scrub_complete := true |}.
+
+Example retained_aliases_block_reuse : barrierb alias_lease = false.
+Proof. reflexivity. Qed.
+
 Definition late_lease : Lease :=
-  {| lexical_holder := false; retained_holder := false;
+  {| lexical_holder := false; retained_holder := 0;
      live_authority := false; outstanding_devices := 1;
      sweep_complete := true; scrub_complete := true |}.
 

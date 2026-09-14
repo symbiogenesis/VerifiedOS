@@ -21,10 +21,10 @@ from itertools import combinations, product
 from typing import Any
 
 SCHEMA = "memory-component-contract-v1"
-VERSION = "memory-planner-contracts-v1"
+VERSION = "memory-planner-contracts-v2"
 LIMIT = (1 << 63) - 1
 OUTCOMES = frozenset({"normal", "exception", "cancel", "timeout"})
-SIMPLE = frozenset({"acquire", "use", "release", "retain", "drop", "revoke",
+SIMPLE = frozenset({"acquire", "use", "unique-use", "release", "retain", "drop", "revoke",
                     "sweep", "scrub", "barrier"})
 ASSUMPTIONS = (
     "The supplied contract includes every program branch and protocol outcome.",
@@ -80,7 +80,7 @@ class Lease:
     """Occupancy includes every hazard until the checked reuse barrier."""
 
     held: bool = True
-    retained: bool = False
+    retained: set[str] = field(default_factory=set)
     authority: bool = True
     devices: set[str] = field(default_factory=set)
     swept: bool = False
@@ -236,8 +236,10 @@ def _expand(nodes: object, limits: Limits, budget: _ExpansionBudget,
                     repeated = _join(repeated, one, limits, budget)
         else:
             if op in SIMPLE:
-                _fields(node, {"op", "object"}, set(), op)
+                _fields(node, {"op", "object"}, {"holder"} if op in {"retain", "drop", "use"} else set(), op)
                 _name(node["object"], f"{op}.object")
+                if "holder" in node:
+                    _name(node["holder"], f"{op}.holder")
             elif op in {"submit", "complete"}:
                 _fields(node, {"op", "object", "token"}, set(), op)
                 _name(node["object"], f"{op}.object")
@@ -254,7 +256,8 @@ def _expand(nodes: object, limits: Limits, budget: _ExpansionBudget,
 
 
 def _step(event: dict[str, Any], live: dict[str, Lease], tokens: dict[str, str],
-          names: set[str]) -> str | None:
+          names: set[str], retained_limits: dict[str, int], seen_holders: set[tuple[str, str]],
+          seen_tokens: set[str]) -> str | None:
     op = event["op"]
     if op == "finish":
         if live or tokens:
@@ -271,27 +274,41 @@ def _step(event: dict[str, Any], live: dict[str, Lease], tokens: dict[str, str],
     if name not in live:
         raise ContractError(f"{name}: {op} without an active lease")
     lease = live[name]
-    if op in {"use", "submit", "retain"}:
+    if op in {"use", "unique-use", "submit", "retain"}:
         if not lease.authority or not (lease.held or lease.retained):
             raise ContractError(f"{name}: {op} without live authority and a value holder")
         if op == "submit":
             token = event["token"]
             if token in tokens:
                 raise ContractError(f"duplicate outstanding device token: {token}")
+            if token in seen_tokens:
+                raise ContractError(f"device token reused across lease incarnations: {token}")
+            seen_tokens.add(token)
             tokens[token] = name
             lease.devices.add(token)
         if op == "retain":
-            if lease.retained:
-                raise UnsupportedContractError(f"{name}: multiple retained holders need a richer contract")
-            lease.retained = True
+            holder = event.get("holder", "$legacy")
+            if holder in lease.retained:
+                raise ContractError(f"{name}: duplicate retained holder {holder}")
+            if "holder" in event and (name, holder) in seen_holders:
+                raise ContractError(f"{name}: retained holder reused across lease incarnations: {holder}")
+            if len(lease.retained) >= retained_limits[name]:
+                raise ContractError(f"{name}: declared retained holder limit exceeded")
+            seen_holders.add((name, holder))
+            lease.retained.add(holder)
+        if op == "use" and "holder" in event and event["holder"] not in lease.retained:
+            raise ContractError(f"{name}: use of absent or stale retained holder")
+        if op == "unique-use" and (not lease.held or lease.retained or lease.devices):
+            raise ContractError(f"{name}: in-place use requires unique lexical ownership and no device user")
     elif op == "release":
         if not lease.held:
             raise ContractError(f"{name}: double lexical release")
         lease.held = False
     elif op == "drop":
-        if not lease.retained:
+        holder = event.get("holder", "$legacy")
+        if holder not in lease.retained:
             raise ContractError(f"{name}: drop without a retained value")
-        lease.retained = False
+        lease.retained.remove(holder)
     elif op == "complete":
         token = event["token"]
         if tokens.get(token) != name or token not in lease.devices:
@@ -345,12 +362,13 @@ def _declarations(contract: dict[str, Any], limits: Limits) -> tuple[list[dict[s
     for raw in _list(contract["objects"], "objects"):
         obj = _object(raw, "object")
         _fields(obj, {"id", "size", "allowed_pools"},
-                {"alignment", "fixed_pool", "fixed_offset"}, "object")
+                {"alignment", "fixed_pool", "fixed_offset", "retained_limit"}, "object")
         ident = _name(obj["id"], "object.id")
         if ident in names:
             raise ContractError(f"duplicate object: {ident}")
         names.add(ident)
         _nat(obj["size"], "object.size")
+        _nat(obj.get("retained_limit", 1), "object.retained_limit")
         _nat(obj.get("alignment", 1), "object.alignment", 1)
         allowed = [_name(p, "allowed pool")
                    for p in _list(obj["allowed_pools"], "object.allowed_pools")]
@@ -399,6 +417,8 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
                    for a in _list(contract.get("assumptions", []), "assumptions")]
     pools, objects, slots = _declarations(contract, limits)
     names = {obj["id"] for obj in objects}
+    sizes = {obj["id"]: obj["size"] for obj in objects}
+    retained_limits = {obj["id"]: obj.get("retained_limit", 1) for obj in objects}
     paths = _expand(contract["body"], limits, expansion_budget)
     conflicts: set[tuple[str, str]] = set()
     witnesses: dict[tuple[str, str], dict[str, Any]] = {}
@@ -408,17 +428,32 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
     for index, path in enumerate(paths):
         live: dict[str, Lease] = {}
         tokens: dict[str, str] = {}
+        seen_holders: set[tuple[str, str]] = set()
+        seen_tokens: set[str] = set()
+        started: dict[str, dict[str, Any]] = {}
+        leases: list[dict[str, Any]] = []
+        peak_bytes = peak_post_release = peak_holders = peak_devices = 0
         outcome: str | None = None
         for tick, event in enumerate(path.events):
             if outcome is not None:
                 raise ContractError(f"path {index}: instruction after terminal outcome")
             try:
-                outcome = _step(event, live, tokens, names)
+                outcome = _step(event, live, tokens, names, retained_limits, seen_holders, seen_tokens)
             except ContractError as exc:
                 raise type(exc)(f"path {index}, event {tick}: {exc}") from exc
             event_count += 1
             barriers += event["op"] == "barrier"
             used.update(live)
+            if event["op"] == "acquire":
+                started[event["object"]] = {"object": event["object"], "acquire": tick}
+            elif event["op"] == "release":
+                started[event["object"]]["release"] = tick
+            elif event["op"] == "barrier":
+                leases.append({**started.pop(event["object"]), "barrier": tick})
+            peak_bytes = max(peak_bytes, sum(sizes[n] for n in live))
+            peak_post_release = max(peak_post_release, sum(sizes[n] for n, s in live.items() if not s.held))
+            peak_holders = max(peak_holders, sum(len(s.retained) for s in live.values()))
+            peak_devices = max(peak_devices, len(tokens))
             pair_checks += len(live) * (len(live) - 1) // 2
             if pair_checks > limits.max_pair_checks:
                 raise UnsupportedContractError("coexistence extraction exceeds max_pair_checks")
@@ -428,7 +463,10 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
         if outcome is None:
             raise ContractError(f"path {index}: missing terminal outcome")
         path_records.append({"labels": list(path.labels), "outcome": outcome,
-                             "events": len(path.events)})
+                             "events": len(path.events), "operations": [e["op"] for e in path.events],
+                             "leases": leases, "peak_charged_bytes": peak_bytes,
+                             "peak_post_release_bytes": peak_post_release,
+                             "peak_retained_holders": peak_holders, "peak_device_obligations": peak_devices})
     if {p["outcome"] for p in path_records} != set(outcomes):
         raise ContractError("declared outcomes differ from the expanded terminal outcomes")
     if used != names:
@@ -436,7 +474,8 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
     buffers: list[dict[str, Any]] = []
     expanded: set[tuple[str, str]] = set()
     for slot in range(slots):
-        buffers.extend({**copy.deepcopy(obj), "id": f"{obj['id']}@{slot}", "intervals": []}
+        buffers.extend({**{k: copy.deepcopy(v) for k, v in obj.items() if k != "retained_limit"},
+                        "id": f"{obj['id']}@{slot}", "intervals": []}
                        for obj in objects)
         expanded.update(_pair(f"{a}@{slot}", f"{b}@{slot}") for a, b in conflicts)
     for left_slot, right_slot in combinations(range(slots), 2):
