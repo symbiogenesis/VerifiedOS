@@ -75,6 +75,8 @@ Every candidate is decided by the port of the file's own checks, one Python func
 
 **The check admits and the objective never does.** The search's ranking reads scores of candidates the check has already admitted; no candidate reaches the report as feasible without passing the port, and the port reads nothing the ranking computed. The port is development hygiene, as the item's own text puts it: the proof status of every check stays with the file, which decides the demo plan and its variants by conversion, and nothing here is evidence about the machine.
 
+**The search introduces no checker.** R-05-066 permits arbitrarily aggressive untrusted search only when existing checkers re-validate its output with no new checker introduced; R-05-065 excludes a new verified artifact whose only yield is performance on an already correct and leak-free path. The [certified-placement disposition](../background/architectural-alternatives.md#certified-optimal-placement-by-an-imported-certificate-checker-the-pattern-in-use-is-admitted-the-import-is-refused-and-the-infeasibility-verdict-stays-an-open-question) records the checker-import refusal, including R-05-105 and R-05-106's no-tightening rule and R-05-020's requirement that a new anchor be shown Coq-native or mechanically bridged, non-duplicating, and retiring an interim; its distinct checked-infeasibility question remains open.
+
 ## 5. The report
 
 [`run.py placement search`](../../tools/vos/cli/placement.py) prints one block per island and a footer, every figure computed from the plan at run time.
@@ -107,4 +109,4 @@ Every candidate is decided by the port of the file's own checks, one Python func
 
 **Two fields the plan would want for the register's own terms are reported to the register.** R-08-012a's bank-spreading term is stated over banks the plan does not model, and R-08-045's per-line-item charge is read over region indices with no owner named. Whether the plan gains a `bank_of` or an owner field is a register act at R-08-011 and R-08-012a, and this document carries the gap and takes no side.
 
-**No solver is added.** The item admits OR-Tools CP-SAT where a coupled placement or scheduling search justifies it, and nothing here couples one: the enumeration completes over its declared set without one, and a dependency is selected at the milestone that reads its licence and pins it, which is a decision the plan reserves and this document does not take.
+**No solver is added.** Q5 makes a solver conditional on an exposed coupled-search need and Q27a's disposition; R-05-104's criterion excludes ILP machinery, so need alone does not authorize integration. The enumeration completes over its declared set without a solver, and a dependency is selected at the milestone that reads its licence and pins it, which is a decision the plan reserves and this document does not take.
