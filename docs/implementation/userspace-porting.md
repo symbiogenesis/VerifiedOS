@@ -321,7 +321,7 @@ Four seams dominate.
 Servo embeds SpiderMonkey (`mozjs`), C++, JIT, and a vast `unsafe` binding surface, and §14 forbids JIT on anything network-facing (interpreters run pure, obstacle 4).
 SpiderMonkey-in-interpreter-mode is still unverifiable C++ that cannot carry the Tier-2 safe-Rust certificate, so the spec-coherent target is a **pure-Rust, interpreter-only engine** (Boa-lineage), accepting its web-incompleteness as the honest cost. There is no interim in front of it: `mozjs` restricted to its C++ interpreter is a foreign binary whatever containment surrounds it, §13 admits nothing without the certificate its tier demands, and unverified C++ has no route to one (obstacle 1), so it does not run, on the same terms as every other foreign binary above.
 This is the browser's defining unresolved tension, recorded rather than hidden.
-The Wasm side is settled by §14 rather than by porting taste: the origin compartment binds the R-14-013a platform interpreter, one engine rather than two, a wasmi-lineage pure-Rust interpreter standing in only as the unverified bring-up interim until that engine's curation lands.
+The Wasm side is settled by §14 rather than by porting taste: the origin compartment binds the R-14-013a platform interpreter, one engine rather than two, with `wasmi-labs/wasmi` at **v2.0.0** standing in only as the unverified bring-up interim until that engine's curation lands ([the interim's own reading](#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) records that pin, what survives curation, and what the upstream's ranking is worth here).
 What either engine may do to claw back the no-JIT row is settled in §14 rather than left to porting taste: threaded dispatch, a superinstruction set selected at composition whose bodies are AOT image code under a size budget, and data-plane inline caches carrying a producer-side differential-testing obligation (R-14-008a to R-14-008d).
 None of the three is runtime codegen, none closes the gap to a JIT, and none of it reaches the browser's own chrome and built-in libraries, which are native image code rather than JavaScript, the certifying toolchain carrying no JavaScript compiler (R-14-008e).
 **(2) WebRender is GPU-first** and falls back to software rendering on C/V-class cores under §12 (§14, obstacle 2).
@@ -340,6 +340,119 @@ Neither outcome is the whole-machine failure the static-allocation objection exp
 
 **Disposition:** Tier-2 per-origin compartments; adopt Servo's engine and compartment model, treat the pure-interpreter JS engine as the hard gating dependency, and reuse the shared software-render substrate.
 §18 places the whole program past the first release, so the gating engine question is sequenced rather than urgent: it is the one target whose deferral the specification states itself.
+
+#### The bring-up Wasm interim: the pin, and what its ranking reads as here
+
+**The pin.** `wasmi-labs/wasmi` at **v2.0.0**, released 2026-09-01 and the newest release at this reading; its terms, read at that tag on 2026-09-14, are recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md#the-bring-up-wasm-interpreter).
+The pin is the interim's alone. R-14-013a is the engine the interim stands in front of, no register entry names the interim, and adopting an upstream change into an unverified interim admits nothing into that engine.
+
+**What is expected to survive curation, and what is interim-only.** Four of the release's changes trade dependent chains and memory traffic for offsets, which is the shape that survives: three accumulator registers holding intermediate values in machine registers instead of stack slots, a fixed 64-bit stack cell with a vector value spanning two adjacent cells, a flattened contiguous instance-entity buffer reached by one pointer-offset instead of a multi-step lookup, and the append-only function-body storage's baked-in body pointers.
+The first three are design the R-14-013a engine can carry, each of them removing work per guest instruction rather than buying speed from a structure this machine lacks; the fourth is booked below and is not carried with them.
+Four others are interim-only and are named so that curation does not have to discover them. `memory64` is on in the upstream's own default feature set and sits outside the R-14-013b pinned subset, so the interim's defaults already reach past what the freeze admits and a later incorporation is a feature-set decision before it is anything else. The `wat` text-format front end is a development convenience for which a §13 image has no consumer, every admitted module arriving as binary. The guaranteed tail calls behind the upstream's `unstable` feature turn on nightly Rust's `explicit_tail_calls`, which is a property of a host compiler and not of this target, whose certifying toolchain is §18's and carries no such switch. And `auto-dispatch`, which selects a dispatch scheme from the compilation target, decides nothing for a target the upstream does not test; the form is chosen here instead, below.
+
+**The deterministic profile is available at this pin as a build configuration and is not available as a semantics.**
+The release names support for [WebAssembly's deterministic profile](https://github.com/WebAssembly/profiles/blob/main/proposals/profiles/Overview.md) behind an off-by-default crate feature, so the build-configuration half of that question answers yes at the interim.
+The semantics half answers no, and R-14-013b records the refusal with its ground: the pinned semantics enters from the tracked mechanized upstream rather than by authorship under R-14-013d's curation rule, and no tracked source in that lineage carries a profile mechanism at all.
+An engine feature flag is therefore not a route to an amended pin, R-14-013a's Accept requiring both theorems to check against the pinned semantics at build; turning the feature on in the interim narrows the interim's own behaviour and moves nothing the engine will be proved against.
+Neither half reaches §16's replay record, whose four enumerated sources (R-16-015) are values drawn at an interface and a physical event stream, not a guest language's choice of NaN payload.
+
+**Two adopted changes are in tension with the register, and they are booked before they are taken.**
+
+*Append-only function-body buckets.* The release stores function bodies in append-only buckets and bakes pointers to those bodies, which is what lets an internal call skip a lock.
+The precondition is that a bucket never moves for the engine's lifetime, and a store whose members never move is a pool whose members never release.
+R-14-015 wants a declared selection and release algorithm inside a composition-sized arena under the R-08-046 bounded-pool contract, and R-08-046's declared state machine is the monotone member lifecycle Free, Bound, Quiescing, Revoked, Sweeping, Reusable.
+A monotone-append store fails that contract not on a threshold or a capacity but on having no release half at all: there is no Reusable transition for its manifest entry to declare.
+Two exits exist and the interim takes neither by default. Either the guest's function set is composition-fixed, in which case the store's occupancy does not vary at runtime and R-08-046 does not reach it, which is a claim about the embedding rather than about the engine and is false for the R-14-008a delivery path by construction; or the baked pointers acquire a release arm and stop being baked, which gives back the gain they were taken for.
+Which of the two it is, is the question curation has to answer, and adopting the design and meeting that question at curation is the expensive version of this item.
+
+*The artifact-size knob that disables guest validation.* The release ships `validate` as a crate feature, on in the default set, with the upstream precondition stated plainly: users with full control over the Wasm inputs can reduce binary artifact sizes by roughly 200 to 300 kB by disabling it.
+That precondition is the exact negation of the case R-14-013a exists for, untrusted dynamic content under robust guest confinement, so the knob is not a size lever here but a scope question.
+It is admitted only where the module is image-resident and admitted through §13, where the composition controls the input and the §13 evidence already stands behind the bytes, and it is never taken on the R-14-008a delivery path, where the module is network-delivered and validation is the only thing between an adversarial module and the interpreter's own invariants.
+Neither change is adopted outright.
+
+**The threading form is indirect, and that narrows R-14-008a rather than reopening it.**
+R-14-008a already admits threaded dispatch by name among its ahead-of-time levers, so the only open question is the form, and the upstream's taxonomy is three rather than two: direct-threaded, embedding handler function pointers in the interpreter's IR and tail-calling from one handler to the next; indirect-threaded, embedding op-codes and mapping each through a jump table at dispatch; and a portable switch-loop for targets without tail-call support.
+Upstream reports indirect roughly 10 to 15 percent slower than direct and smaller in the memory its IR occupies; the smaller IR is an op-code where the direct form holds a whole function pointer, and at this pin selecting the indirect scheme additionally narrows the IR's slot width to sixteen bits.
+That is a trade against R-14-008b's footprint budget rather than against a policy, and it is the trade the interim takes.
+
+Direct threading is not refused on W^X grounds, and the reason is structural rather than a judgment.
+Its IR is a buffer of code pointers; the buffer is data, so it consumes no executable SRAM budget, which is the capacity measurement R-15-100b states the static-code-overlay trigger as, and no component fills an executable bank at run time, which is the runtime write-then-execute consumer R-15-047's exclusion rests on and which that same entry names as what would retire it.
+A threading scheme that inlined handler *bodies* rather than pointers would be a different mechanism and is already refused: R-14-008b's Accept admits no set on the ground that it is data rather than generated code.
+
+What direct threading does cost is unpriced, and the cost sits in the typed-assembly derivation rather than in the footprint.
+R-05-112 already contemplates sentries loaded from vtables and R-05-113 already requires an indirect transfer's code type to carry the finite set of labels its reachable sentries target, so both the mechanism and its typing obligation exist.
+What has no rule is a `code`-typed field at a slot inside a buffer the interpreter writes at run time.
+[The typed assembly language](../languages/typed-assembly-language.md)'s type grammar is the whole type vocabulary it has: `ptr b p k i` carries bounds, permissions, grant binding and an initialization flag and no pointee type, `code G c` names a register-file precondition and a callee-set tag, and `G` is a register-file type at block entry.
+Nothing in that grammar relates a memory slot to the type of what a load produces from it, so a load out of a runtime-written IR buffer reaches no `code G c` result and R-05-113's subset check has no premise to draw on.
+Supplying one is a type-system addition carrying its own soundness obligation, and defaulting to indirect defers that addition whole, which is the argument for taking indirect until the typing is priced.
+
+**Re-reading the ranking, entry by entry.**
+Any interpreter result that improves by feeding a branch predictor is measuring hardware this machine does not have.
+Rows A-04, A-05 and A-06 of [the absence contract](../hardware/absence-contract.md) remove the direction predictor, the target predictor and the return-address stack, prediction here being static-only with zero mutable predictor state, so the whole upstream ranking is re-read before any of it informs a figure.
+R-14-015's Accept already states the narrow case, a dispatch loop on a machine with static branch prediction and no instruction cache being the worst tenant a bulk fetch constant could have; the note is that sentence generalized from the arena to the ranking.
+
+*The predicate these verdicts were taken with.* The suite is [`wasmi-labs/wasmi-benchmarks`](https://github.com/wasmi-labs/wasmi-benchmarks), read on 2026-09-14 and closed there at 28 entries over 27 distinct names, 21 execute and 7 startup with `argon2` appearing in both groups.
+Each verdict is taken from the entry's own published description and the workload shape that description names, and not from an upstream per-entry attribution: upstream publishes a geometric mean over the suite and one isolated figure for one change, and decomposes no single entry's gain into the changes that produced it.
+*Predictor-fed and unread here* says the entry's inner loop turns on a branch whose direction or target a dynamic predictor learns and a static rule cannot, and names which removed structure that is.
+*Reads on this target* says the entry's inner-loop branches are ones a static rule decides, a counted loop's backward branch being predicted from its displacement sign, so the entry's placement rests on work done per iteration rather than on learned history.
+
+*One tax every execute entry pays whatever its verdict*, stated so that *reads on this target* is never read as a number that transfers: every execute entry also runs through the interpreter's own dispatch branch, which in the direct-threaded form is an indirect branch and which A-05 leaves unpredicted here.
+The verdict decides whether an entry's relative placement survives the re-reading. It never says that an absolute figure does, and no absolute figure from this upstream transfers to this machine at all.
+
+| Entry | Group | Verdict | Structure the gain rests on |
+| --- | --- | --- | --- |
+| `counter-local` | execute | reads on this target | n/a |
+| `counter-param` | execute | reads on this target | n/a |
+| `counter-global` | execute | reads on this target | n/a |
+| `fibonacci-rec` | execute | predictor-fed and unread here | the call-return chain its own description calls call-intense, predicted by a return-address stack (A-06) |
+| `fibonacci-iter` | execute | reads on this target | n/a |
+| `fibonacci-tail` | execute | reads on this target | n/a |
+| `sort` | execute | predictor-fed and unread here | the comparison branch of an unstable sort, whose direction a history-indexed direction predictor learns (A-04) |
+| `sort-dyn` | execute | predictor-fed and unread here | that comparison branch (A-04) and the dynamically called comparator's indirect target, predicted by a target predictor (A-05) |
+| `prime_sieve` | execute | reads on this target | n/a |
+| `matrix-mul` | execute | reads on this target | n/a |
+| `nbody` | execute | reads on this target | n/a |
+| `argon2` | execute | reads on this target | n/a |
+| `tiny-keccak` | execute | reads on this target | n/a |
+| `mandelbrot` | execute | reads on this target | n/a |
+| `spectralnorm` | execute | reads on this target | n/a |
+| `compression` | execute | predictor-fed and unread here | the match-and-literal decision of an LZ compressor, a data-dependent direction a predictor learns (A-04) |
+| `word-count` | execute | predictor-fed and unread here | the hash-table probe loop's data-dependent exit (A-04) |
+| `json-parse` | execute | predictor-fed and unread here | the per-byte character-class decision (A-04) and the parser's dispatch table target (A-05) |
+| `reverse-complement` | execute | reads on this target | n/a |
+| `regex-redux` | execute | predictor-fed and unread here | the matcher's data-dependent state transition (A-04) and its state dispatch's indirect target (A-05) |
+| `bulk-ops` | execute | reads on this target | n/a |
+| `bz2` | startup | predictor-fed and unread here | the translator's byte-driven opcode dispatch, an indirect branch whose target follows the module stream (A-05) |
+| `pulldown-cmark` | startup | predictor-fed and unread here | as `bz2` (A-05) |
+| `spidermonkey` | startup | predictor-fed and unread here | as `bz2` (A-05) |
+| `ffmpeg` | startup | predictor-fed and unread here | as `bz2` (A-05) |
+| `coremark` | startup | predictor-fed and unread here | as `bz2` (A-05); this row compiles a CoreMark module and is not the CoreMark score run below |
+| `argon2` | startup | predictor-fed and unread here | as `bz2` (A-05) |
+| `erc20` | startup | predictor-fed and unread here | as `bz2` (A-05) |
+| CoreMark score run, **outside the suite** | execution score, `wasm-coremark-rs` | predictor-fed and unread here | two branch sites carrying separable histories in a direction predictor (A-04), against the collapsed form's single indirect branch and the target predictor it would need (A-05) |
+
+*The last row is outside the suite on the upstream's own statement, and the predicate that names it requires saying so.*
+The figure the upstream calls its single most important change, CoreMark rising from about 2800 to over 4200 on an Apple M2 Pro after un-collapsing a `csel` back into two branch sites and so undoing what `DestinationPropagation`, a Rust 1.92 MIR pass, had merged, is not a suite entry: the upstream states it used the separate `wasm-coremark-rs` harness for that run, and the suite's own `coremark` entry is a startup row that compiles a CoreMark module rather than scoring one.
+The mechanism is a dynamic predictor getting two entries with separable histories instead of one entry with mixed history, and A-04 removes the table those entries would live in while A-05 removes the target predictor the collapsed form's single indirect branch would need.
+The upstream fix is therefore not a fix on this die, and letting the MIR pass collapse the two paths is the cheaper act here, a build this takes rather than a revert it authors.
+
+**The reading owed of the two changes that trade dependent chains for offsets, and why no number crosses with it.**
+The flattened instance layout and the baked-in body pointers both replace a dependent load chain with an offset.
+On a machine with no data cache, no instruction cache and no prefetch engine (A-07, A-09, A-10) every hop of a dependent chain costs full SRAM latency and no prefetcher recovers any of it, so removing a hop is expected to be worth more here than upstream measures.
+*Expected* is the whole of the claim: upstream reports no isolated figure for either change, so there is no number to scale and none is carried across.
+What would settle it is the cycle separation Q8 opens over the image R3 boots, and until that is reported no figure from this upstream enters [the estimates](../performance/performance-estimates.md).
+
+**Two host builds, and exactly what they establish.**
+Two builds of one minimal dispatch handler on the host, `rustc` 1.98.0 for `aarch64-pc-windows-msvc` at `-C opt-level=3`, differ at their dispatch sites.
+The collapsed form, where both successors meet in one destination, emits `cmp w2, #0`, `csel x2, x9, x8, ne` and a single indirect `br x2`.
+The separated form, where each arm carries its own dispatch, emits `tbz w2, #0, .LBB2_2` and two direct branch sites, `b h_then` and `b h_else`.
+Two readings follow and neither is a speed claim. The two builds differ at their dispatch sites, which is the difference the machine half would measure; and the collapsed form's single site is an *indirect* branch, so on this target it is unread by A-05's removed target predictor where the separated form's two direct branches need no predictor at all.
+This is a host figure and it enters no estimate. It is a minimal reproduction of the dispatch shape and not a build of the upstream's handler, and the separation is authored at the source rather than obtained by disabling the MIR pass, which would need a nightly `-Zmir-enable-passes` this host does not carry; no cycle count was taken, the predicate asking only that the two forms differ.
+
+**At the machine there is no predicate, and the reason is stated rather than deferred.**
+No item before R3 puts a composed image on the elaborated core, and the configuration the question is asked of is the one whose predictor parameters [the provenance record](../../rtl/synthesis-provenance.md) binds to A-04, A-05 and A-06.
+R-15-101 makes the comparison well posed there, cycle-level timing being a function of the instruction stream and architectural state alone, so the two dispatch forms differ by a decidable property of the stream rather than by learned history.
+What that is worth in cycles is Q8's to report over R3's image and not this reading's to assert.
 
 ### GGUF inference runtime: the M-class inference server
 
