@@ -29,17 +29,21 @@
       "what_it_is": "that compiler's compiled proof objects, a closure member by R-13-027's admission path and R-13-028's per-roster re-emission",
       "revision": "a826d5f17bb09742940cb66f7c986c55ccfbf6de",
       "instrument": "store.py",
+      "root": "/root/build/m12b-clean-20260912-closeout",
+      "suffixes": [".vo"],
       "files": 204,
       "bytes": 120335937,
       "unique_objects": 204,
       "unique_bytes": 120335937,
-      "note": "204 objects against 305 tracked .v files, the configured target compiling one architecture's subset and not every architecture the tree carries"
+      "note": "204 objects against the 301 tracked .v files at this same revision a826d5f1; the head 13b7ff7 the compiler-source row is read at carries 305. The configured target compiles one architecture's subset and not every architecture the tree carries"
     },
     {
       "closure": "compiler-native-objects",
       "what_it_is": "that compiler's compiled native objects and interfaces",
       "revision": "a826d5f17bb09742940cb66f7c986c55ccfbf6de",
       "instrument": "store.py",
+      "root": "/root/build/m12b-clean-20260912-closeout",
+      "suffixes": [".cmx", ".cmxa", ".cmi", ".o"],
       "files": 699,
       "bytes": 18509818,
       "unique_objects": 699,
@@ -51,6 +55,8 @@
       "what_it_is": "the prover's own installed runtime libraries",
       "revision": "rocq-core 9.2.0, switch verifiedos-rocq-9.2.0-ocaml-5.4.1",
       "instrument": "store.py",
+      "root": "/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/lib/rocq-runtime",
+      "suffixes": [],
       "files": 3666,
       "bytes": 395687841,
       "unique_objects": 3651,
@@ -62,6 +68,8 @@
       "what_it_is": "the prover's compiled standard library",
       "revision": "rocq-core 9.2.0, switch verifiedos-rocq-9.2.0-ocaml-5.4.1",
       "instrument": "store.py",
+      "root": "/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/lib/coq",
+      "suffixes": [],
       "files": 2328,
       "bytes": 97986966,
       "unique_objects": 2328,
@@ -84,11 +92,13 @@
       "what_it_is": "this repository's own compiled proof objects",
       "revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",
       "instrument": "store.py",
+      "root": "/root/build/lane-q26-toolchain-20260914/proof-gate/proofs",
+      "suffixes": [".vo"],
       "files": 27,
       "bytes": 4235970,
       "unique_objects": 27,
       "unique_bytes": 4235970,
-      "note": "emitted by the proof gate into this lane's guest build root"
+      "note": "emitted by the proof gate into this lane's guest build root. The report's own per-module rocq c runs wrote 27 objects of 4237317 bytes into a different directory, which prover.json's argv names; the two are two acts and neither figure is corrected against the other"
     }
   ],
   "union_by_instrument": {
@@ -103,7 +113,7 @@
       "files": 6924,
       "unique_objects": 6909,
       "unique_bytes": 636751442,
-      "note": "three store.py runs summed; each run's own union is exact and the three roots are disjoint trees"
+      "note": "three store.py runs summed over the five roots named above; each run's own union is exact and the five roots are pairwise disjoint trees"
     }
   },
   "total_unique_bytes_measured": 678113124

@@ -1,6 +1,6 @@
 {
   "act_compile": "rocq c -q -Q proofs \"\" <module>.v, one module per invocation, in dependency order over this repository's 27 tracked proof modules; the per-artifact check is the install-path act R-13-027 puts on the device and the act R-06-015a puts a declared working-set budget on",
-  "act_recheck": "rocqchk -silent -Q proofs \"\" <every module>, one invocation over the whole set; this is the release-time whole-corpus re-check R-13-028 keeps off the device, measured because its figure bounds what a device that did perform it would need, and not an act R-06-015a's install-path budget covers",
+  "act_recheck": "rocqchk -silent -Q proofs \"\" <every module>, one invocation over the whole set. The set is this repository's design corpus, which is neither the base-image TCB R-13-028 validates at release time nor a roster's package closure an install re-checks under R-06-015a's budget, so the row is what one kernel check over 27 modules of this size costs and is not either act",
   "prover": "rocq-core 9.2.0, switch verifiedos-rocq-9.2.0-ocaml-5.4.1",
   "predicate": "os.wait4 ru_maxrss of the child each invocation forked, KiB times 1024",
   "source_revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",

@@ -58,7 +58,7 @@ def main(argv: list[str]) -> int:
             os.execvp(child[0], child)
         except OSError as exc:  # the exec failed; the parent still gets a record
             print(str(exc), file=sys.stderr)
-        os._exit(127)  # noqa: SLF001
+        os._exit(127)
     _, status, usage = os.wait4(pid, 0)
     wall = time.monotonic() - started
 

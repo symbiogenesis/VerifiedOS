@@ -4,7 +4,6 @@
   "taken_on": "2026-09-14",
   "host_lane": {
     "os": "Windows 11",
-    "worktree": ".worktrees/q26-toolchain-20260914",
     "revision": "9e2b56ab54745958bf2d287bad66ba2798cead5e",
     "what_was_taken_here": "every tracked-byte figure, by git ls-tree -r -l"
   },
@@ -23,7 +22,7 @@
     "power": "Discharging at every stamp of every run below, so no timed row spans a transition",
     "contention": "thirteen sibling agent lanes on the same twelve cores throughout; during the prover gate a second lane's kernel re-check was resident beside this one's over the same module set",
     "loadavg_at_the_compiler_ladder": {"start": 2.49, "end": 2.72},
-    "what_the_conditions_move": "the timed figures only; the byte figures are power-independent and contention-independent, and section 4's three repeat rows bound the spread this load puts on a peak-resident figure at 2.5%"
+    "what_the_conditions_move": "the timed figures move with the load. Of the byte figures only the compiler's 1,024-function row was repeated, three times under the same thirteen-lane load, and its whole spread is 2.5%; that bound is stated for that row and is not established for the multi-gigabyte prover rows, whose own condition is stated per act"
   },
   "instruments": [
     {

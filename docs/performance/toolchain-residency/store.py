@@ -20,6 +20,12 @@ and only the union figure is summed against a capacity.
 This script measures what is on this machine. It does not know what a device's store
 would be obliged to hold, and it invents no member that is absent from the roots it is
 given: a closure whose producer does not exist here is absent from its output entirely.
+
+A spec it cannot measure is refused rather than reported as zero. `os.walk` on an absent
+root yields nothing and raises nothing, so a ghost root would otherwise emit a well-formed
+empty closure indistinguishable from a real one, and a root carrying a colon would parse
+its own tail as a suffix list and do the same. Both are caught here: the root must be an
+existing directory and every suffix must begin with a dot.
 """
 import hashlib
 import json
@@ -78,10 +84,23 @@ def main(argv: list[str]) -> int:
         return 2
     closures, union = {}, {}
     for spec in argv:
-        name, _, rest = spec.partition("=")
-        root, _, suffix_list = rest.partition(":")
+        name, assigned, rest = spec.partition("=")
+        root_text, _, suffix_list = rest.partition(":")
         suffixes = tuple(s for s in suffix_list.split(",") if s)
-        record, sizes = measure(Path(root), suffixes)
+        if not assigned or not name or not root_text:
+            print(f"not a <name>=<root>[:<suffix>,...] spec: {spec}", file=sys.stderr)
+            return 2
+        undotted = [s for s in suffixes if not s.startswith(".")]
+        if undotted:
+            print(f"every suffix begins with a dot, and {undotted} does not: {spec}",
+                  file=sys.stderr)
+            return 2
+        root = Path(root_text)
+        if not root.is_dir():
+            print(f"no such directory, so no closure is measurable there: {root_text}",
+                  file=sys.stderr)
+            return 2
+        record, sizes = measure(root, suffixes)
         closures[name] = record
         union.update(sizes)
     json.dump({
