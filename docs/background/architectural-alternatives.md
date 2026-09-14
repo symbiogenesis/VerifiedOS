@@ -908,12 +908,7 @@ This is the **TPM disposition one layer up** (the function is kept, on-die and v
 **The distilled atom is already banked.**
 The useful capability (a hardware-bound, phishing-resistant credential and a possession factor) is the on-die **platform authenticator**: the WebAuthn platform-authenticator role realized over the sealing and attestation service (§12), so passkeys and origin-bound credentials are provided with no external device at all.
 What is declined is specifically the *roaming* (external, cross-device) key, not the authenticator function.
-
-**The decline is on the ground, not on the transport word, and that is what lets it reach a key this port does not carry.**
-R-04-010a's sorting conditions put this class in the foreign-computer column for its own microcontroller running a vendor's firmware, so a key reached over a proximity link is declined exactly as a USB-C one is, the wire being irrelevant to a device that fetches and executes instructions outside that discipline.
-The WebAuthn *roaming* word is how the ecosystem labels such a device and is not itself the reason, which matters because the same taxonomy's *platform authenticator* word is the one used above: were the role word doing the deciding, a transport change would move the verdict, and it does not.
-What the ground does not reach is this platform presenting itself over a proximity link, which is the card-emulation question decided in the contactless proximity surface section below and at R-17-051b.
-Q9's confined external-authenticator client is the same entry read from the other side and is gated by this ground rather than by a transport, so its own scope is undisturbed.
+The same ground decides a key reached over a proximity-coupled link; that reading is taken at [the contactless proximity surface](#the-contactless-proximity-surface-declined-across-all-four-uses).
 
 **Honest cost.**
 Declining roaming keys forgoes the one thing the platform authenticator cannot offer: **portability across foreign devices and ecosystems** (a user cannot bring an existing YubiKey, and a credential minted here does not roam to a machine that is not this platform), the same class of interop trade as the no-Linux and no-tunneling decisions.
@@ -1923,7 +1918,7 @@ The zero-authority emergency mode and its explicit coverage cost are documented 
 
 Four proposals reach one piece of silicon, a 13.56 MHz magnetically coupled link with load modulation, and above it card emulation, a payment credential, and a set of credential uses.
 They are taken together because each of the three consumers fails a gate before the radio is reached, so the radio's disposition follows from theirs rather than standing as a fourth judgment.
-**This surface is not called *near-field* here.** That term already names the emission residual R-17-058e books, a side channel leaving this die, and the thing weighed below is a link the platform would drive on purpose toward another device; the two readings are not the same and sharing a word would make §17 ambiguous.
+**This surface is called *proximity-coupled* here rather than *near-field*, and the collision is worth naming.** In the register, the spec, the coverage matrix and the critique that second term is the emission residual's (R-17-058, R-17-058e), a side channel leaving this die; the plan's own Q15 cell uses it for the link weighed below, which is a link the platform would drive on purpose toward another device. The two readings are not the same, so this section keeps *proximity-coupled* for the link and leaves *near-field* to the emission, and §17 carries one reading of each.
 
 The vocabulary this corpus does carry is the contact-side one, and it is normative rather than missing: R-12-045 contains the eUICC as a register-slave crypto oracle, R-12-046 fixes its physical interface as a fixed-function ISO7816 block that moves bytes and interprets nothing, and R-12-047 puts its APDU/TPDU traffic behind a verified copy-once Narcissus reader in a zero-authority compartment.
 What is unconsidered is the proximity-coupled path and the payment credential layer above it, and these four arms are what close that.
@@ -2007,8 +2002,8 @@ R-12-020 is therefore left unamended, so the ground keeps one owner.
 Q9's confined external-authenticator client is the same entry read from the other side and is decided with it: it is gated by the foreign-computer ground, not by the transport, so nothing in its scope moves here.
 
 **ISO/IEC 18013-5 device retrieval: declined on its proximity transports only, and the rest is undecided rather than declined.**
-Device retrieval runs over Bluetooth Low Energy, a proximity link, or Wi-Fi Aware, with a separate server-retrieval path beside them, and BLE and 802.11 are radios this design already admits (R-15-122, R-18-004).
-So what the radio arm declines is the proximity engagement and the proximity retrieval transport, and mobile-document presentation over BLE or Wi-Fi Aware is a surface this decision does not reach.
+Device retrieval runs over three carriers, Bluetooth Low Energy, the proximity-coupled link (NFC in that standard's own vocabulary) and Wi-Fi Aware, with a separate server-retrieval path beside them, and BLE and 802.11 are radios the first-release roster already carries (R-18-004; R-15-122's sequencer serves their turnarounds rather than admitting either).
+So what the radio arm declines is the proximity-coupled engagement and the proximity-coupled retrieval transport, and mobile-document presentation over BLE or Wi-Fi Aware is a surface this decision does not reach.
 Naming it is the point: it would need a §12 grammar and compartment act and a member in the R-05-042 wire-format inventory, and neither is opened here.
 The standard itself is a paid ISO document and was not read; the transport set above is established from secondary sources read 2026-09-14, and no disposition here depends on a clause of the paid text.
 The document gate is also not the interesting one for this arm: device retrieval needs no scheme membership, and a verifier still needs the issuing authority's trust anchors, which is an authority question and not a radio one.
