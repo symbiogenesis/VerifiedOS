@@ -192,8 +192,8 @@ MUTANTS: tuple[Mutant, ...] = (
     # insertion because it moves no count anywhere.
     Mutant("K-77", "a CI predicate the freeze contract states and its analyzer cannot "
                    "make",
-           _seed_contract("| `G-12` | a threshold value in the report",
-                          "| `G-13` | a threshold value in the report")),
+           _seed_contract("| `G-13` | a variant that moves a knob",
+                          "| `G-14` | a variant that moves a knob")),
 
     # One rule gets one case, and this rule gets three, because two of its pairs are
     # relations rather than memberships and neither is reached by the case above: with
@@ -377,7 +377,7 @@ def _tests(rep: Reporter, slow: bool) -> None:
 
     Discovering no module at all is a failure rather than a green run, for the reason
     that suite states about itself: an empty suite decides nothing, and what is here is
-    most of what holds the instruments' arithmetic, their wiring, each of the twelve CI
+    most of what holds the instruments' arithmetic, their wiring, each of the thirteen CI
     predicates against a defect it must reject, and this gate's own reading of the
     seeded verdicts.
     """

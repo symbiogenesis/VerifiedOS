@@ -23,7 +23,7 @@ un-quarantine condition in this directory's README is stated against.
 
 What runs today is the rest of it, in the shape `bank-dse.py` beside it established
 at M0.17: the corpus, the recipe, the ordered act, the region classes and their
-enumerated refusals, the report's two renderings, and the twelve CI predicates of §9
+enumerated refusals, the report's two renderings, and the thirteen CI predicates of §9
 as predicates over the record, each able to reject a report and each naming what it
 rejected. Every column whose operand does not exist prints **the symbol it waits
 on** rather than a number or a blank, and the arithmetic the encoding format already

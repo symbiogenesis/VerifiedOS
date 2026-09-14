@@ -5,7 +5,7 @@
 the specification: the versioned corpus manifest, the composition recipe, the
 emitter-provenance schema, the admitted region classes, the nine decisions of the
 freeze's single measured act, the declared parameters, the report's two renderings,
-and the twelve CI predicates that reject a report. This module is the instrument
+and the thirteen CI predicates that reject a report. This module is the instrument
 that runs against it, read by two callers: `tools/quarantine/freeze-report.py`,
 which produces the report, and the `freeze` check group beside it, which holds the
 instrument's own enumerations against the contract's in both directions.
@@ -30,7 +30,7 @@ Three things follow from that, and each is a design decision rather than a stopg
   ever letting a fabricated number clear the gate.
 - **The gate has three outcomes, not two.** A predicate `passes`, `REJECT`s, or
   `defers on <symbol>`. A gate that could only pass or reject would have to reject
-  the whole of today's report twelve times over and would say nothing about which
+  the whole of today's report thirteen times over and would say nothing about which
   predicates are already deciding; the third outcome is what makes the report
   readable before the corpus exists.
 - **Values are parsed and membership is declared.** Every number the contract
@@ -416,8 +416,10 @@ DECISIONS: tuple[Decision, ...] = (
                   "candidates and both policies, run once, before the one-knob variants",
         thresholds=(DERIVED, "FD-2 candidate set",
                     "indifference band for the FD-2 tie-break"),
-        default="n/a: §6 states no default arm, the structural tie-break deciding among "
-                "the configurations that clear the bar",
+        default="none: §6 states that no arm of this decision could be one, the three "
+                "candidates being three geometries of one format and the structural "
+                "tie-break deciding exactly one wherever any clears the bar "
+                "(R-15-036a, R-15-014a)",
         knobs=("bundle_geometry",),
         arms=(),          # derived from §8's declared (h, k) candidates
         columns=("bundle", "h", "k", "w", "lambda_bound", *_FD1_COLUMNS),
@@ -2134,6 +2136,57 @@ def g12(record: Record) -> Verdict:
                     f"the {len(applied)} a decision applies are among them")
 
 
+def g13(record: Record) -> Verdict:
+    """A variant that moves a knob and re-selects no dictionary inside itself.
+
+    §3's third binding rule, which that section calls the contract's single most
+    consequential and the easiest to skip, and which §0's third consequence already said
+    §9 makes a rejection of. The subject is the variant whose recorded diff *moves a
+    knob*: a baseline moves none and is what the variants are measured against, so its
+    cell is an axis that does not apply, and FD-8 builds no variant at all.
+
+    **`n/a` on a knob-moving variant is the defect and not a cell to pass over.** It is
+    a claim that a rule §3 states over every variant does not reach this one, and it is
+    what a report whose variants inherited the baseline's dictionary would carry if
+    somebody wrote the cell at all. So the reading is over the variant's own record and
+    never over the delta it reported: a skipped re-selection produces a plausible number
+    rather than a detectable one, which is why the rule needed a predicate instead of a
+    reader.
+    """
+    inherited: list[str] = []
+    deferred = 0
+    moved = 0
+    for block in record.decisions:
+        for variant in block.variants:
+            if not variant.diff:
+                continue
+            moved += 1
+            cell = variant.s6_rerun
+            if cell.kind == NA:
+                inherited.append(f"{block.ident}/{variant.arm} moves "
+                                 f"{', '.join(variant.diff)} and records `n/a` for the "
+                                 "re-selection §3 states over every variant")
+            elif not cell.measured:
+                deferred += 1
+            elif cell.number != 1.0:
+                inherited.append(f"{block.ident}/{variant.arm} moves "
+                                 f"{', '.join(variant.diff)} and records that S6 did "
+                                 "not run inside it")
+    if inherited:
+        return _verdict("G-13", REJECT,
+                        "; ".join(inherited[:3])
+                        + (" (and more)" if len(inherited) > 3 else "")
+                        + ", so the candidate was measured against a dictionary "
+                          "selected for its absence (§3)")
+    if deferred:
+        return _verdict("G-13", DEFERS,
+                        f"{deferred} of {moved} knob-moving variants wait on a run of "
+                        "S6 inside themselves, which is a build rather than a decision")
+    return _verdict("G-13", PASS,
+                    f"all {moved} variants that move a knob re-selected the dictionary "
+                    "inside themselves")
+
+
 # Every predicate of §9, in the order the contract states them, each with what it
 # rejects in the contract's own words. The table is the gate: a predicate the contract
 # states and this table does not carry is a rejection nobody can make, which K-77
@@ -2151,6 +2204,7 @@ PREDICATES: tuple[tuple[str, str, Predicate], ...] = (
     ("G-10", "an aggregate hit rate appears with no stratified split", g10),
     ("G-11", "the frozen dictionary is not the closing pass's", g11),
     ("G-12", "a threshold differs from §8 without the difference recorded", g12),
+    ("G-13", "a variant that moves a knob re-selects no dictionary inside itself", g13),
 )
 
 PREDICATE_IDS: tuple[str, ...] = tuple(ident for ident, _, _ in PREDICATES)

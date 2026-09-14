@@ -5,9 +5,9 @@ No checker rule reads this tool's output. K-77 holds its *enumerations* against 
 contract's, which is membership; what a membership cannot decide is whether the
 arithmetic is right, whether the join joins, and whether a CI predicate that reports
 `pass` on today's record is capable of rejecting anything at all. That last one is
-the case this module exists for: a gate of twelve predicates over a report nothing
-has measured would report exactly the same twelve lines whether or not any of them
-had a body, so each of the twelve is seeded a defect here and required to reject it
+the case this module exists for: a gate of thirteen predicates over a report nothing
+has measured would report exactly the same thirteen lines whether or not any of them
+had a body, so each of the thirteen is seeded a defect here and required to reject it
 by name.
 
 Three further groups. The derived arithmetic is pinned against figures the register
@@ -317,7 +317,8 @@ def _real_inputs_are_not_a_fixture() -> None:
 def _gate_today() -> None:
     _, record = _read()
     verdicts = {v.predicate: v.outcome for v in freeze.run_gate(record)}
-    ensure(len(verdicts) == 12, f"the gate runs twelve predicates, got {len(verdicts)}")
+    ensure(len(verdicts) == 13,
+           f"the gate runs thirteen predicates, got {len(verdicts)}")
     deciding = sorted(k for k, v in verdicts.items() if v == freeze.PASS)
     ensure(deciding == ["G-10", "G-12", "G-5", "G-8"],
            f"four predicates already decide over today's record, got {deciding}")
@@ -499,6 +500,37 @@ def _g12() -> None:
            "a difference recorded as such is admitted, which is what §9 asks for")
 
 
+def _g13() -> None:
+    # The rule §3 calls its single most consequential and the easiest to skip. Its
+    # omission leaves a report indistinguishable from a correct one unless the variant
+    # is made to say so, a delta taken against the baseline's dictionary being a
+    # plausible number rather than a detectable one.
+    record = _mutated()
+    block = record.decision("FD-4")
+    ensure(bool(block is not None and block.variants), "FD-4 carries a variant")
+    if block is not None:
+        block.variants[0].s6_rerun = freeze.flag(False)
+    _rejects(record, "G-13", "FD-4")
+    # `n/a` is the same defect written as an axis that does not apply, and §3 states the
+    # rule over every variant, so a knob-moving variant has no such axis to claim
+    other = _mutated()
+    inside = other.decision("FD-5")
+    ensure(bool(inside is not None and inside.variants), "FD-5 carries a variant")
+    if inside is not None:
+        inside.variants[0].s6_rerun = freeze.na("inherited from the baseline")
+    _rejects(other, "G-13", "n/a")
+    # and the subject is the variant that moves a knob: with every one of those
+    # re-selecting, the baselines' own `n/a` cells are not a skipped step
+    done = _mutated()
+    for candidate in done.decisions:
+        for variant in candidate.variants:
+            if variant.diff:
+                variant.s6_rerun = freeze.flag(True)
+    ensure(_outcome(done, "G-13").outcome == freeze.PASS,
+           f"every knob-moving variant re-selecting inside itself passes, got "
+           f"{_outcome(done, 'G-13').why}")
+
+
 # =====================================================================================
 # the shape the record carries, beyond what any one predicate reads
 # =====================================================================================
@@ -635,8 +667,8 @@ def _live_run() -> None:
         "takes are absent, with a fixture standing in for them: the sidecar stream, "
         "the link map, the encoded image, whose producers are M1.2's backend, "
         "M1.4-prime's composer. So 0 of 9 decisions carry a verdict, and of §9's "
-        "12 predicates 4 "
-        "already decide, 8 defer on a named symbol and 0 reject. This report is not a "
+        "13 predicates 4 "
+        "already decide, 9 defer on a named symbol and 0 reject. This report is not a "
         "freeze."),
         f"the verdict sentence must close the report verbatim, got "
         f"{done.stdout[-600:]!r}")
@@ -732,8 +764,8 @@ def _membership_is_an_instrument_error() -> None:
     raw = (_ROOT / freeze.CONTRACT).read_text(encoding="utf-8")
     files = {
         "docs/requirements-register.md": "# register stub for find_root\n",
-        freeze.CONTRACT: raw.replace("| `G-12` | a threshold value",
-                                     "| `G-13` | a threshold value"),
+        freeze.CONTRACT: raw.replace("| `G-13` | a variant that moves a knob",
+                                     "| `G-14` | a variant that moves a knob"),
         "tools/quarantine/freeze-report.py": (QUARANTINE / "freeze-report.py").read_text(
             encoding="utf-8"),
     }
@@ -757,8 +789,8 @@ def _membership_is_an_instrument_error() -> None:
         ensure(done.returncode == 1,
                f"a membership disagreement is an instrument error, got "
                f"{done.returncode}: {done.stdout!r}")
-        ensure("states the CI predicate `G-13`" in done.stdout
-               and "implements the CI predicate `G-12`" in done.stdout,
+        ensure("states the CI predicate `G-14`" in done.stdout
+               and "implements the CI predicate `G-13`" in done.stdout,
                f"and both directions are named, got {done.stdout!r}")
 
 
@@ -792,6 +824,7 @@ def cases() -> list[Case]:
         Case("G-10-rejects", _g10, lane="host"),
         Case("G-11-rejects", _g11, lane="host"),
         Case("G-12-rejects", _g12, lane="host"),
+        Case("G-13-rejects", _g13, lane="host"),
         Case("arms-are-the-procedures", _arms_are_the_procedures, lane="host"),
         Case("derived-member-is-not-built", _derived_member_is_not_built, lane="host"),
         Case("split-is-read-not-declared", _split_is_read_not_declared, lane="host"),

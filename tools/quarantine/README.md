@@ -6,7 +6,7 @@
 
 | Path | What it is |
 | --- | --- |
-| [freeze.py](freeze.py) | The profile-freeze measurement instrument: the corpus, the recipe, the ordered act, the region classes and their refusals, the report's two renderings, and the twelve CI predicates of §9 as predicates over the record |
+| [freeze.py](freeze.py) | The profile-freeze measurement instrument: the corpus, the recipe, the ordered act, the region classes and their refusals, the report's two renderings, and the thirteen CI predicates of §9 as predicates over the record |
 | [freeze-report.py](freeze-report.py) | The instrument, run against [the contract that defines it](../../docs/implementation/freeze-measurement-contract.md), in three renderings |
 | [banks.py](banks.py) | The second class's bank grant, out of the composition and out of [the exploration contract](../../docs/hardware/bank-count-dse-contract.md) |
 | [bank-dse.py](bank-dse.py) | Every candidate bank count, scored against the arithmetic that exists without a coefficient, admitting none |
@@ -35,7 +35,7 @@ The tools may be run from anywhere: each finds the repository root from its own 
 
 [python tools/run.py](../run.py) is what runs before anything lands, and every second in it is paid by every change whether or not the change is about the thing being checked. These two are paid by every change and are about decisions nobody can take:
 
-- **The freeze's ordered act is behind the M8a gate.** The analyzer joins three inputs (§4 of the contract): the provenance sidecar stream, the link map, and the encoded image. The first is M1.2's backend and does not exist; the other two have a producer since M1.4′, whose composer writes them under `run.py model freeze-emit`. M1.8b, which runs the sweep and publishes the report, is deferred behind the M8a gate with the freeze it serves. So no member of §2's corpus exists, no byte or cycle column is a measurement, eight of the twelve CI predicates defer on a named symbol, and the report says on its own face that it is not a freeze.
+- **The freeze's ordered act is behind the M8a gate.** The analyzer joins three inputs (§4 of the contract): the provenance sidecar stream, the link map, and the encoded image. The first is M1.2's backend and does not exist; the other two have a producer since M1.4′, whose composer writes them under `run.py model freeze-emit`. M1.8b, which runs the sweep and publishes the report, is deferred behind the M8a gate with the freeze it serves. So no member of §2's corpus exists, no byte or cycle column is a measurement, nine of the thirteen CI predicates defer on a named symbol, and the report says on its own face that it is not a freeze.
 - **The bank count's hard constraint has no operands.** M0.17 ran the exploration and its result was that no candidate is admitted: the droop envelope R-15-247p makes a hard admission constraint wants two coefficients, and both are pending on a macro nobody has measured, which is what the composition's own `qualified` flag records (R-15-247m). Six of the contract's seven symbols are pending and one is stated.
 
 ## What un-quarantines them, and when

@@ -32,8 +32,10 @@ run.
 ## The geometry is a parameter of the run and never a verdict
 
 §8 declares the candidate set `(h, k)` in {(16,3), (16,7), (16,15)} at `w = 16`, and §6's
-FD-2 states **no default arm at all**, which M1.8a recorded as an owed act against the
-contract. So `Geometry` carries the reference instantiation as its default value and this
+FD-2 states **no default arm**, its own section giving the ground: the candidates are
+three geometries of one format, so nothing is carried or dropped, and the reference
+instantiation is the item's provisional value under R-15-014a rather than a fallback the
+freeze could take. So `Geometry` carries the reference instantiation as its default and this
 module says, here and in what it emits, that a run at 128 bits is a run at a declared
 parameter and not a freeze verdict. A caller sweeping FD-2 passes the other two.
 """
