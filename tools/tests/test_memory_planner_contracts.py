@@ -215,6 +215,9 @@ def _unsupported_constraints_and_malformed_inputs() -> None:
     bad["objects"][0]["allowed_pools"] = ["missing"]
     _reject(lambda: contracts.extract_contract(bad), "declared pools")
     bad = copy.deepcopy(source)
+    bad["pools"][0]["reserved"] = [[0, 0]]
+    _reject(lambda: contracts.extract_contract(bad), "reserved extent must be nonempty")
+    bad = copy.deepcopy(source)
     bad["body"][0]["object"] = "missing"
     _reject(lambda: contracts.extract_contract(bad), "unknown object")
     bad = copy.deepcopy(source)
