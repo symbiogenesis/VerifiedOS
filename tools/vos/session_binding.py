@@ -415,6 +415,16 @@ def alias_identity(unit: str) -> str:
     return f"alias-signing-identity/{unit}"
 
 
+def key_share(unit: str, link: str, epoch: int, nonce: str) -> str:
+    """One end's contribution to R-12-043a's one key-establishment configuration.
+
+    Ghost state: the model sends no key-establishment message, and no claim and no
+    frame carries this value. It stands for the hybrid establishment's own secret and
+    derives nothing; no key exchange, KEM or key schedule is implemented here.
+    """
+    return f"hybrid-key-share/{unit}/{link}/{epoch}/{nonce}"
+
+
 @dataclass(frozen=True)
 class GenerationRegister:
     """R-09-025a's generation register: what the generation's source determines."""
@@ -475,6 +485,8 @@ class EnsembleIssuance:
     quote: EnsembleQuote
     member: Member              # Ghost provenance: the die that actually signed.
     rooted: bool                # Ghost: signed under its own device-rooted identity.
+    challenge: EnsembleChallenge   # Ghost: the challenge the broker was actually handed.
+    suite: str                     # Ghost: the configuration it was actually asked for.
 
 
 class IdentityRegistry:
@@ -518,7 +530,7 @@ class EnsembleBroker:
         claims = EnsembleClaims(member.generation_register, device, challenge,
                                 member.slot_digest, suite, identity)
         quote = EnsembleQuote(claims, len(self.ledger))
-        self.ledger.append(EnsembleIssuance(quote, member, not alias))
+        self.ledger.append(EnsembleIssuance(quote, member, not alias, challenge, suite))
         return quote
 
     def authentic(self, quote: EnsembleQuote) -> bool:
@@ -537,6 +549,31 @@ class EnsembleEndpoint:
     approved_generations: frozenset[str] = APPROVED_GENERATIONS
 
 
+@dataclass(frozen=True)
+class AcceptedPeer:
+    """What one completed appraisal accepted: whom, under which identity, and to what."""
+
+    unit: str
+    signing_identity: str
+    challenge: EnsembleChallenge
+
+
+def session_secret(link: str, epoch: int, near: AcceptedPeer, far: AcceptedPeer) -> str:
+    """R-12-015c's key-ownership binding: the keys belong to the appraisal that made them.
+
+    Each side contributes its own fresh challenge, its own hybrid key share, and the
+    signing identity its appraisal accepted, so two establishments that accepted
+    different peers are two different sessions. Possession is carried by the session's
+    holder set and not by this string, which is no key material and reduces to no
+    primitive; deriving it here implements no key schedule.
+    """
+    sides = sorted(
+        f"{peer.challenge.challenger_unit}/{peer.signing_identity}"
+        f"/{key_share(peer.challenge.challenger_unit, link, epoch, peer.challenge.nonce)}"
+        for peer in (near, far))
+    return f"session-key/{link}/{epoch}/" + "/".join(sides)
+
+
 class EnsembleAppraisal:
     """One end's challenge and one decision. Both ends must accept or the link is refused."""
 
@@ -549,6 +586,7 @@ class EnsembleAppraisal:
         self.bind_identity = bind_identity
         self.challenge = EnsembleChallenge(nonce, end.link, end.member.device_register.unit)
         self.phase = "waiting"
+        self.accepted: AcceptedPeer | None = None
 
     def decide(self, quote: EnsembleQuote | None, broker: EnsembleBroker) -> str:
         if self.phase != "waiting":
@@ -573,6 +611,8 @@ class EnsembleAppraisal:
         if claims.slot_digest != self.end.member.slot_digest:
             return "slot-table-digest"
         self.phase = "authenticated"
+        self.accepted = AcceptedPeer(claims.device_register.unit, claims.signing_identity,
+                                     self.challenge)
         return "accepted"
 
 
@@ -609,12 +649,33 @@ class LinkFrame:
 class EnsembleSession:
     """An established session. Its anti-replay count comes from the schedule, not the wire."""
 
-    def __init__(self, link: str, epoch: int, core: CryptoCore) -> None:
+    def __init__(self, link: str, epoch: int, core: CryptoCore,
+                 holders: Iterable[str] = ()) -> None:
         self.link = link
         self.epoch = epoch
         self.core = core
+        self.holders: set[str] = set(holders)
         self.consumed: set[int] = set()
         self.stopped = False
+
+    def core_for(self, unit: str) -> CryptoCore:
+        """Custody (R-15-202): only a unit this session's appraisals accepted can seal.
+
+        The holder set is the model's possession relation, as TrafficKeys.holders is the
+        TLS part's. A party outside it obtains no core and therefore no frame authority.
+        """
+        if unit not in self.holders:
+            raise SessionBindingError(f"{unit} holds no key of this session")
+        return self.core
+
+    def expose_to(self, unit: str) -> CryptoCore:
+        """An accepted attack outside the honest relation, and no transition of it.
+
+        Post-establishment exposure hands this session's frame authority to a party no
+        appraisal accepted; it is an explicit act, so before it the party holds nothing.
+        """
+        self.holders.add(unit)
+        return self.core
 
     def slot_of(self, schedule_slot: int, frame: LinkFrame) -> int:
         """The schedule's own count of this link's slots since the epoch began."""
@@ -659,6 +720,8 @@ class Establishment:
     far_verdict: str
     link: str
     epoch: int
+    near_peer: AcceptedPeer | None = None
+    far_peer: AcceptedPeer | None = None
 
     @property
     def outcome(self) -> str:
@@ -668,10 +731,12 @@ class Establishment:
         return f"refused-{failed}"
 
     def session(self) -> EnsembleSession | None:
-        if self.outcome != "established":
+        """The keys and their holders are both this establishment's, and no one else's."""
+        if self.outcome != "established" or self.near_peer is None or self.far_peer is None:
             return None
-        return EnsembleSession(self.link, self.epoch,
-                               CryptoCore(f"session-key/{self.link}/{self.epoch}"))
+        secret = session_secret(self.link, self.epoch, self.near_peer, self.far_peer)
+        return EnsembleSession(self.link, self.epoch, CryptoCore(secret),
+                               (self.near_peer.unit, self.far_peer.unit))
 
 
 def _answer(broker: EnsembleBroker, act: PeerAct,
@@ -697,7 +762,8 @@ def establish(near: EnsembleEndpoint, far: EnsembleEndpoint, broker: EnsembleBro
     far_side = EnsembleAppraisal(far, nonces[1], registry, bind_identity=bind_identity)
     near_verdict = near_side.decide(_answer(broker, near_answer, near_side.challenge), broker)
     far_verdict = far_side.decide(_answer(broker, far_answer, far_side.challenge), broker)
-    return Establishment(near_verdict, far_verdict, near.link, epoch)
+    return Establishment(near_verdict, far_verdict, near.link, epoch,
+                         near_side.accepted, far_side.accepted)
 
 
 def ensemble_fixture() -> tuple[EnsembleBroker, IdentityRegistry, dict[str, Member],
@@ -743,8 +809,10 @@ class EnsembleExperiment:
 def _ensemble_relation(event: EnsembleIssuance, target: EnsembleAppraisal) -> bool:
     """Independent event-level oracle over ghost provenance, not verifier predicates.
 
-    It reads the die that actually signed, its actual registers and its actual slot
-    table; the appraiser has only authenticated claims and its own devicetree constants.
+    Every conjunct reads the issuance event: the die that actually signed, its actual
+    registers and slot table, and the challenge and configuration the broker was
+    actually handed. The appraiser has only authenticated claims and its own devicetree
+    constants, so no comparison here is the appraiser's read back to itself.
     """
     end = target.end
     actual = event.member
@@ -753,8 +821,8 @@ def _ensemble_relation(event: EnsembleIssuance, target: EnsembleAppraisal) -> bo
             and actual.generation_register.generation in end.approved_generations
             and actual.slot_digest == end.member.slot_digest
             and event.rooted
-            and event.quote.claims.suite == ADMISSIBLE_SUITE
-            and event.quote.claims.challenge == target.challenge)
+            and event.suite == ADMISSIBLE_SUITE
+            and event.challenge == target.challenge)
 
 
 def _ensemble_population() -> tuple[int, int, int, int, int, int, tuple[str, ...]]:
@@ -875,46 +943,72 @@ def _ensemble_scenarios() -> tuple[Scenario, ...]:
         "An intermediary terminating both legs is a unit the composition does not name.",
         PeerAct(members["c"]))
 
+    def custody_of(session: EnsembleSession, unit: str) -> str:
+        """Whether this session hands its core to a party, as its holder set decides."""
+        try:
+            session.core_for(unit)
+        except SessionBindingError:
+            return "no-key-custody"
+        return "core-handed-over"
+
     # Frames, custody and the schedule-derived count.
     session = opened(link(honest()))
-    first = session.core.seal(session.link, session.epoch, 3, "payload")
+    holder = session.core_for("die-B")
+    first = holder.seal(session.link, session.epoch, 3, "payload")
     record("frame-in-its-named-slot", session.receive(first, 3), "delivered",
-           "A frame verifies in the slot the schedule names for it.")
-    second = session.core.seal(session.link, session.epoch, 4, "payload")
+           "A frame verifies in the slot the schedule names for it, and in no other.")
+    second = holder.seal(session.link, session.epoch, 4, "payload")
     record("second-frame-in-one-slot", session.receive(second, 3), "slot-consumed",
            "The receive window admits at most one frame per slot.")
 
-    delayed = opened(link(honest()))
-    late = delayed.core.seal(delayed.link, delayed.epoch, 5, "payload")
-    record("delay-inside-its-own-slot", delayed.receive(late, 5), "delivered",
-           "Delay within the named slot keeps a valid tag; the count has not advanced.")
-
     replayed = opened(link(honest()))
-    captured = replayed.core.seal(replayed.link, replayed.epoch, 3, "payload")
+    captured = replayed.core_for("die-B").seal(replayed.link, replayed.epoch, 3, "payload")
     record("replayed-into-another-slot", replayed.receive(captured, 7), "tag-failed",
            "A frame reordered or replayed into another slot fails its tag and stops the link.")
     record("link-stops-after-a-failed-tag", replayed.receive(captured, 3), "link-stopped",
            "R-15-228e's fail-stop holds for the rest of the session.")
 
-    credulous = WireCountedSession(replayed.link, replayed.epoch, replayed.core)
+    credulous = WireCountedSession(replayed.link, replayed.epoch, replayed.core,
+                                   replayed.holders)
     record("count-taken-from-the-wire", credulous.receive(captured, 7), "delivered",
            "An endpoint counting from the frame accepts the replay: the counterexample.")
 
     custody = opened(link(honest()))
     try:
-        custody.core.export()
+        custody.core_for("die-B").export()
         exported = "key-exported"
     except SessionBindingError:
         exported = "no-export"
-    record("key-custody", exported, "no-export",
-           "The endpoint holds no key and no cipher; the core has no export path.")
+    record("key-custody", f"{exported}/{'+'.join(sorted(custody.holders))}",
+           "no-export/die-A+die-B",
+           "The holders are the two units the appraisals accepted, and the core exports nothing.")
+
+    # R-12-015c's key-ownership binding: the keys are the appraisal's, not the link's.
+    outside = opened(link(honest()))
+    guessed = CryptoCore(f"session-key/{outside.link}/{outside.epoch}")
+    record("party-that-appraised-nothing",
+           f"{custody_of(outside, 'outsider')}/"
+           f"{outside.receive(guessed.seal(outside.link, outside.epoch, 2, 'x'), 2)}",
+           "no-key-custody/tag-failed",
+           "Holding the link and the epoch is no custody, and keys them to no session.")
+
+    faithless = opened(link(
+        PeerAct(members["c"], claimed_device=DeviceRegister("die-B"), alias=True),
+        bind_identity=False))
+    target = opened(link(honest()))
+    other = faithless.core_for("die-B").seal(target.link, target.epoch, 6, "x")
+    record("keys-of-another-establishment", target.receive(other, 6), "tag-failed",
+           "An establishment that accepted a different peer is a different session.")
 
     relayed = link(honest())
     relay_session = opened(relayed)
-    intruder = CryptoCore("relay-own-key").seal(relay_session.link, relay_session.epoch, 2, "x")
-    record("transparent-relay", f"{relayed.outcome}/{relay_session.receive(intruder, 2)}",
-           "established/tag-failed",
-           "Forwarding preserves the two intended cores; the relay acquires no key.")
+    forwarded = relay_session.core_for("die-B").seal(relay_session.link,
+                                                     relay_session.epoch, 2, "x")
+    record("transparent-relay",
+           f"{relayed.outcome}/{custody_of(relay_session, 'relay')}/"
+           f"{relay_session.receive(forwarded, 2)}",
+           "established/no-key-custody/delivered",
+           "Forwarding preserves the two appraised holders; the relay is not one of them.")
 
     withheld = link(PeerAct(members["b"], withhold=True))
     record("withheld-wire",
@@ -938,20 +1032,19 @@ def _ensemble_scenarios() -> tuple[Scenario, ...]:
     forged_claims = replace(forged_quote.claims, device_register=DeviceRegister("die-B"),
                             signing_identity=rooted_identity(device_secret("die-B")))
     forged_quote = EnsembleQuote(forged_claims, forged_quote.seal)
-    forged_broker.ledger[forged_quote.seal] = EnsembleIssuance(forged_quote,
-                                                               forged_members["c"], True)
+    forged_broker.ledger[forged_quote.seal] = EnsembleIssuance(
+        forged_quote, forged_members["c"], True, forged_near.challenge, ADMISSIBLE_SUITE)
     record("compromised-root-of-trust", forged_near.decide(forged_quote, forged_broker),
            "accepted", "A compromised issuer authenticates false registers; evidence is a premise.")
 
     exposed = opened(link(honest()))
-    outsider = CryptoCore("attacker-own-key")
-    before = exposed.receive(outsider.seal(exposed.link, exposed.epoch, 1, "x"), 1)
-    learned = CryptoCore(f"session-key/{exposed.link}/{exposed.epoch}")
-    reopened = EnsembleSession(exposed.link, exposed.epoch, exposed.core)
-    after = reopened.receive(learned.seal(exposed.link, exposed.epoch, 1, "x"), 1)
+    before = custody_of(exposed, "attacker")
+    learned = exposed.expose_to("attacker")
+    after = exposed.receive(learned.seal(exposed.link, exposed.epoch, 1, "x"), 1)
     record("session-key-exposed-after-establishment", f"{before}/{after}",
-           "tag-failed/delivered",
-           "Post-establishment key exposure yields frame authority the appraisal cannot revoke.")
+           "no-key-custody/delivered",
+           "Exposure is an explicit act: before it the attacker holds nothing, after it "
+           "the appraisal revokes no frame authority.")
     return tuple(out)
 
 

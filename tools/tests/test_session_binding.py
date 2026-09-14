@@ -203,7 +203,7 @@ def _ensemble_slot_count_and_custody() -> None:
                            sb.PeerAct(members["a"])).session()
     if session is None:
         raise AssertionError("the honest establishment must open a session")
-    core = session.core
+    core = session.core_for("die-B")
     try:
         core.export()
     except sb.SessionBindingError:
@@ -217,11 +217,51 @@ def _ensemble_slot_count_and_custody() -> None:
     replayed = core.seal(session.link, session.epoch, 3, "payload")
     ensure(session.receive(replayed, 9) == "tag-failed", "a replay into another slot fails")
     ensure(session.receive(replayed, 3) == "link-stopped", "a failed tag stops the link")
-    credulous = sb.WireCountedSession(session.link, session.epoch, core)
+    credulous = sb.WireCountedSession(session.link, session.epoch, core, session.holders)
     ensure(credulous.receive(replayed, 9) == "delivered",
            "counting from the wire accepts the replay: the counterexample")
-    epochs = sb.EnsembleSession(session.link, session.epoch + 1, core)
+    epochs = sb.EnsembleSession(session.link, session.epoch + 1, core, session.holders)
     ensure(epochs.receive(frame, 2) == "tag-failed", "the epoch is associated data too")
+
+
+def _ensemble_key_ownership_binding() -> None:
+    """R-12-015c's central obligation: the appraised peer holds that session's keys."""
+    members = sb.ensemble_fixture()[2]
+
+    def opened(near: sb.PeerAct, *, bind_identity: bool = True) -> sb.EnsembleSession:
+        broker, registry, fresh, ends = sb.ensemble_fixture()
+        result = sb.establish(ends["a"], ends["b"], broker, registry, near,
+                              sb.PeerAct(fresh["a"]), bind_identity=bind_identity)
+        session = result.session()
+        if session is None:
+            raise AssertionError(f"this fixture requires a session: {result.outcome}")
+        return session
+
+    honest = opened(sb.PeerAct(members["b"]))
+    ensure(honest.holders == {"die-A", "die-B"},
+           "the holders are exactly the two units the two appraisals accepted")
+    for outsider in ("die-C", "relay", "attacker"):
+        try:
+            honest.core_for(outsider)
+        except sb.SessionBindingError:
+            continue
+        raise AssertionError(f"{outsider} was handed this session's keys")
+    guessed = sb.CryptoCore(f"session-key/{honest.link}/{honest.epoch}")
+    ensure(honest.receive(guessed.seal(honest.link, honest.epoch, 1, "x"), 1) == "tag-failed",
+           "the link and the epoch alone do not key this session")
+
+    substituted = sb.PeerAct(members["c"], claimed_device=sb.DeviceRegister("die-B"),
+                             alias=True)
+    faithless = opened(substituted, bind_identity=False)
+    target = opened(sb.PeerAct(members["b"]))
+    forged = faithless.core_for("die-B").seal(target.link, target.epoch, 2, "x")
+    ensure(target.receive(forged, 2) == "tag-failed",
+           "an establishment that accepted a different peer must be a different session")
+
+    exposed = opened(sb.PeerAct(members["b"]))
+    learned = exposed.expose_to("attacker")
+    ensure(exposed.receive(learned.seal(exposed.link, exposed.epoch, 4, "x"), 4) == "delivered",
+           "exposure yields frame authority no appraisal revokes")
 
 
 def _ensemble_oracle_decides_both_directions() -> None:
@@ -275,6 +315,7 @@ def cases() -> list[Case]:
             Case("ensemble-device-identity-binding", _ensemble_device_identity_binding),
             Case("ensemble-mutuality-and-configuration", _ensemble_mutuality_and_configuration),
             Case("ensemble-slot-count-and-custody", _ensemble_slot_count_and_custody),
+            Case("ensemble-key-ownership-binding", _ensemble_key_ownership_binding),
             Case("ensemble-oracle-decides-both-directions",
                  _ensemble_oracle_decides_both_directions),
             Case("cli-evidence", _cli_evidence)]

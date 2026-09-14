@@ -215,8 +215,9 @@ having no upstream symbolic analysis of this protocol to curate from.
 
 The [register](../requirements-register.md) owns the obligations. R-12-015c owns
 session binding and R-12-015d this construction; R-09-025a splits the generation and
-device registers; R-13-001d fixes the ensemble identity at composition and R-09-007's
-attested devicetree carries each end's expectation of its peer; R-11-017a owns the
+device registers; R-13-001d fixes the ensemble identity at composition, and
+R-12-015d has each end expect the unit and the ensemble identity its own attested
+devicetree (R-09-007) names for that endpoint; R-11-017a owns the
 slot tables whose digests the session binds; R-12-043a admits one key-establishment
 configuration and R-17-049b states what the hedge does instead of negotiating;
 R-15-202 and R-05-070 keep the keys and the cipher in the crypto core; R-15-228d and
@@ -266,8 +267,9 @@ What the model does instead is name the premise and make the obligation decide. 
 premise is that exactly one signing identity speaks for one unit's device-identity
 secret, and that a member can present that identity or an alias rooted in no secret,
 never another unit's. The appraiser therefore checks the presented identity against
-the unit the device register names before it reads any other claim. Two scenarios
-make the check load-bearing rather than decorative: a quote signed under an alias is
+the unit the device register names before it reads any claim about the peer's identity,
+its generation or its tables. Two scenarios make the check load-bearing rather than
+decorative: a quote signed under an alias is
 refused by name, and an appraiser that takes the binding on faith accepts a unit the
 composition never named, asserting a device register it cannot sign for. Without the
 obligation the device register is an assertion any endpoint can make, and the
@@ -285,17 +287,30 @@ mis-emitted; where one composition act emits both views, Q23d's composer self-ch
 is the honest side's owner and the digest agrees by construction, so this part claims
 nothing there.
 
+R-12-015c's central obligation is that the peer an appraisal accepted and the holder of
+that session's keys be one party, so the model keys the session on the establishment
+that produced it: its secret is a function of the link, the epoch, each end's own fresh
+challenge, each end's contribution to the hybrid establishment, and the signing identity
+each appraisal accepted. Two establishments that accepted different peers are two
+sessions, and a frame sealed under one fails its tag under the other. Possession itself
+is a set: the session's holders are the two units the two appraisals accepted, and a
+party outside that set obtains no core to seal with. The holder set is what carries
+custody, as the TLS part's traffic keys carry it where its public exporter carries
+equality alone; the fixture's derived string is no key material, derives no key and
+reduces to no primitive.
+
 The session keys live in the crypto core, which seals and verifies every frame and
 has no export path; the endpoint holds no key and no cipher and moves frames only. A
 frame's associated data is the link, the session epoch and the schedule's own count
 of that link's slots, a value both ends derive from the schedule and neither from the
 wire. A frame therefore verifies only in the slot named for it: one replayed or
 reordered into another slot fails its tag and fail-stops the link, while delay inside
-its own slot leaves the count unadvanced and the tag valid. The receive window admits
-at most one frame per slot. The counterexample for the schedule-derived clause is an
-endpoint that reads the count from the frame instead: it accepts the replay, which is
-why the count is not a wire field and why the frame grammar Q23b authors carries
-none.
+its own slot leaves the count unadvanced and the tag valid, a statement of the
+construction rather than one this model decides, its frames carrying a slot and no
+arrival. The receive window admits at most one frame per slot. The counterexample for
+the schedule-derived clause is an endpoint that reads the count from the frame instead:
+it accepts the replay, which is why the count is not a wire field and why the frame
+grammar Q23b authors carries none.
 
 ### Endpoint, wire and compromise assumptions
 
@@ -318,10 +333,11 @@ device-identity secret reproduces the identity the first obligation rests on, so
 appraisal admits whoever holds it. A compromised root of trust or issuance path
 authenticates false registers, evidence being a premise here and not a result.
 Exposure of the session keys after establishment yields frame authority an accepted
-appraisal cannot revoke, the relation being point-in-time. Beside them, a relay that
-forwards between the two intended ends is not endpoint substitution: it acquires
-neither core's keys and its own frame fails the tag, while an intermediary
-terminating both legs is a unit the composition does not name.
+appraisal cannot revoke, the relation being point-in-time; the experiment models that
+exposure as an explicit act, so before it the attacker holds nothing. Beside them, a
+relay that forwards between the two intended ends is not endpoint substitution: it is no
+holder of the session the two appraisals keyed and obtains no core to seal with, while
+an intermediary terminating both legs is a unit the composition does not name.
 
 The fixture's ideal tag, its opaque digests, its symbolic identities and its small
 integer slot counts are experimental inputs. They are not a cipher, a key schedule, a
@@ -335,9 +351,10 @@ quote population to both ends of the link at every candidate challenge. The issu
 population carries the composition's two members, a third unit running the right
 software, the same unit at the previous composition, a member of another ensemble, an
 unapproved generation, a mismatched slot table, and the substitution that asserts
-another unit's device register under an alias. The independent event-level oracle
-reads the die that actually signed and its actual registers, where the appraiser has
-only authenticated claims and its own devicetree constants; it decides in both
+another unit's device register under an alias. The independent event-level oracle reads
+the issuance event alone: the die that actually signed, its actual registers and table,
+and the challenge and configuration the broker was actually handed, where the appraiser
+has only authenticated claims and its own devicetree constants; it decides in both
 directions, so refusing every establishment fails the experiment as accepting a
 substitution does. The command reports the two counters the construction's check
 asks for: every delivery whose issuing member is not the unit the target's devicetree
@@ -359,16 +376,18 @@ refused.
 | Withheld evidence | Refuse, with no weaker peer claim and no fallback |
 | A second key-establishment configuration offered | Terminate establishment rather than select a path |
 | A quote carrying a configuration other than the admissible one | Refuse on the key configuration |
+| A frame in the slot the schedule names for it | Deliver; the tag is over that count and over no arrival, which this model does not carry |
 | A frame replayed or reordered into another slot | Fail its tag and fail-stop the link |
-| A frame delayed inside its own slot | Keep a valid tag; the schedule's count has not advanced |
 | A second frame in one slot | Refuse at the receive window |
 | An endpoint taking the count from the frame | Accept the replay; the counterexample for the schedule-derived clause |
-| A transparent relay between the two intended ends | Establish; the relay holds neither core's keys and its own frame fails the tag |
+| A party that appraised nothing, holding the link and the epoch | Obtain no custody, and its frame fails the tag |
+| A frame from a session whose appraisal accepted a different peer | Fail its tag; the keys belong to the establishment that made them |
+| A transparent relay between the two intended ends | Establish and deliver what it forwards; the relay is no holder of the session's keys |
 | An intermediary terminating both legs | Refuse as a unit the composition does not name |
 | Frames withheld or cut on the wire | Refuse the link and spend availability alone; the member runs its own generation |
 | The device-identity secret exposed | Accept; the first obligation's premise is lost |
 | The root of trust or its issuance compromised | Accept false registers; authenticated evidence is a premise |
-| Session keys exposed after establishment | Accept the attacker's frames; appraisal revokes no frame authority |
+| The session's keys exposed to a party after establishment | Accept that party's frames; no appraisal revokes frame authority already held |
 
 Run this part with the TLS part, through the shared entry point:
 
