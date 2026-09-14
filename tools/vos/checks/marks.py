@@ -85,6 +85,9 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # authored here rather than vendored with the tree it reads.
     ".sail": ("// ", ""),
     ".sv": ("// ", ""),
+    # The portable planner's original TFLite Micro adapter and API demonstration.
+    ".cpp": ("// ", ""),
+    ".h": ("// ", ""),
     ".toml": ("# ", ""),
     # The host-gate workflow under .github/, which is authored here like any tool.
     ".yml": ("# ", ""),

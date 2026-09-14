@@ -41,6 +41,10 @@ proxy, while the [laminar theorem](implementation/static-memory-baseline.md#mech
 and [functional service equivalence](implementation/static-memory-transformations.md#mechanized-equivalence)
 have separate Rocq proofs with their implementation bridges stated as remaining work.
 
+The [portable memory planner](implementation/portable-memory-planner.md) exposes
+checked fixed-instance placement, retained baselines, pinned framework adapters
+and bounded contract extraction for desktop and embedded components.
+
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
 
