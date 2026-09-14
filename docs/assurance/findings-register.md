@@ -1575,7 +1575,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-131f** owed-act: one consumer in the plan's route list is stale, the arena and extraction bullet naming the static init tree where the init-system section assigns that control plane to a synchronous-dataflow compiler and keeps the Gallina host-side, the rest of the route section already reading it the other way twice
 · Raised: M1.6
-· Disposition: open, a one-bullet plan act on the route list, which the plan's own opening reserves as the authority on what each milestone means where the execution state is a lane's
+· Disposition: closed, the arena bullet re-pointed at the safe-Rust base components the plan's own scope cut already names as this route's consumer, leaving the init tree on the Lustre-through-Vélus route its section states
 
 **F-131g** upstream-defect: a switch created over the system compiler package keeps the distribution's library directory ahead of its own on the library manager's path, so a package the switch has just installed complete is resolved to the distribution's incomplete copy and the build reports it absent rather than shadowed
 · Raised: M1.6
