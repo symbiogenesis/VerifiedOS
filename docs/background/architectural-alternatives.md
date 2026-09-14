@@ -2029,7 +2029,7 @@ Nothing in it is declined here, and nothing in it is admitted here either.
 
 **Honest cost.**
 No proximity-reached external authenticator, no mobile-document engagement or retrieval over a proximity link, no tag read or write, and no tap-to-pair.
-R-12-020's own portability cost is cited rather than restated: a credential minted here still does not roam, and this arm adds the transport a user might have reached one over.
+R-12-020 books the portability cost and keeps it, cited here and not restated; what this arm adds beside it is the one remaining transport a user might have reached such a device over, so the decline is now complete in the wire as well as in the class.
 
 **Disposition:** the role question is answered at R-04-010a's ground, R-12-020 is unamended, and the four uses above are declined at the radio; the mobile-document surface over BLE or Wi-Fi Aware is undecided and named as such.
 The normative statement is R-17-051b's, which books the forfeits in its own body as R-17-051a books messaging's.
