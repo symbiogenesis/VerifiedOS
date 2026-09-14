@@ -164,6 +164,11 @@ def _named_holders_and_unique_use() -> None:
     repeated = copy.deepcopy(source)
     repeated["body"] = [*body[:-1], *copy.deepcopy(body)]
     _reject(lambda: contracts.extract_contract(repeated), "holder reused across lease incarnations")
+    collision = _contract([_event("acquire"), {**_event("retain"), "holder": "$legacy"},
+                           {**_event("drop"), "holder": "$legacy"}, _event("retain"),
+                           {**_event("use"), "holder": "$legacy"},
+                           _event("drop"), *_service("a")[1:], _finish()])
+    _reject(lambda: contracts.extract_contract(collision), "stale retained holder")
 
 
 def _exceptional_cleanup() -> None:
@@ -251,7 +256,8 @@ def _device_tokens_and_reacquisition() -> None:
     _reject(lambda: contracts.extract_contract(_contract([*cycle, *cycle, _finish()])),
             "device token reused across lease incarnations")
     fresh = copy.deepcopy(cycle)
-    fresh[1]["token"] = fresh[2]["token"] = "next-incarnation"
+    fresh[1] = _event("submit", transfer="next-incarnation")
+    fresh[2] = _event("complete", transfer="next-incarnation")
     ensure(contracts.extract_contract(_contract([*cycle, *fresh, _finish()]))
            ["evidence"]["checked_barriers"] == 2,
            "distinct device identities permit safe bounded reincarnation")
