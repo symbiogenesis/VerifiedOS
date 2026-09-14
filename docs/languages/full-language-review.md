@@ -127,6 +127,7 @@ in the restricted fragment as well.
 | Translator admission | R-05-020 still requires shown Coq-native/bridged, nonduplication and retiring-interim arguments. A source calculus interpreted in CIC supplies no automatic nonduplication or retirement decision. No frontend is commissioned here. |
 | Runtime-occupancy classification | Classify task, scope, continuation and completion storage under R-08-046's inventory, with all manifest fields, or amend that exact entry and its cited prose before implementing a new pool class. Static backing alone does not settle classification. |
 | Changed platform behavior | Any target control, synchronization, memory or TAL extension first names its exact normative owner and completes that owner's amendment predicate. The proposed scalar counter and static reaction graph seek to reuse current mechanisms; a design intention is not target correspondence evidence. |
+| Assurance-preset policy and mixed-assurance linking | The [preset dossier](assurance-profiles.md) states the claim statuses, composition rules and coverage dimensions this client is selected under. Price its policy semantics, its status reporting and its mixed-assurance interface checks against the same frontend and evidence-package owners as the rows above, charging no existing duty twice. A claim status is a build output and supplies no source calculus, machine interpretation or admission rule. |
 
 Q25d's acceptance requires a complete reviewed owner/estimate/predicate assignment
 and the frontend-admission disposition. The rows above identify the remaining
