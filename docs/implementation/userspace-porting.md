@@ -398,7 +398,7 @@ Each verdict is taken from the entry's own published description and the workloa
 *Predictor-fed and unread here* says the entry's inner loop turns on a branch whose direction or target a dynamic predictor learns and a static rule cannot, and names which removed structure that is.
 *Reads on this target* says the branches of the entry's own guest workload, setting aside the interpreter's dispatch branch which the next paragraph prices separately for every execute entry, are ones a static rule decides, a counted loop's backward branch being predicted from its displacement sign, so the entry's placement rests on work done per iteration rather than on learned history.
 
-*One tax every execute entry pays whatever its verdict*, stated so that *reads on this target* is never read as a number that transfers: every execute entry also runs through the interpreter's own dispatch branch, which in the direct-threaded form is an indirect branch and which A-05 leaves unpredicted here.
+*One tax every execute entry pays whatever its verdict*, stated so that *reads on this target* is never read as a number that transfers: every execute entry also runs through the interpreter's own dispatch branch, which is an indirect branch in either threaded form, a jump through a table where the IR holds an op-code and a tail call through a stored pointer where it holds one, and which A-05 leaves unpredicted here.
 The verdict decides whether an entry's relative placement survives the re-reading. It never says that an absolute figure does, and no absolute figure from this upstream transfers to this machine at all.
 
 | Entry | Group | Verdict | Structure the gain rests on |
@@ -444,12 +444,10 @@ On a machine with no data cache, no instruction cache and no prefetch engine (A-
 *Expected* is the whole of the claim: upstream reports no isolated figure for either change, so there is no number to scale and none is carried across.
 What would settle it is the cycle separation Q8 opens over the image R3 boots, and until that is reported no figure from this upstream enters [the estimates](../performance/performance-estimates.md).
 
-**Two host builds, and exactly what they establish.**
-Two builds of one minimal dispatch handler on the host, `rustc` 1.98.0 for `aarch64-pc-windows-msvc` at `-C opt-level=3`, differ at their dispatch sites.
-The collapsed form, where both successors meet in one destination, emits `cmp w2, #0`, `csel x2, x9, x8, ne` and a single indirect `br x2`.
-The separated form, where each arm carries its own dispatch, emits `tbz w2, #0, .LBB2_2` and two direct branch sites, `b h_then` and `b h_else`.
-Two readings follow and neither is a speed claim. The two builds differ at their dispatch sites, which is the difference the machine half would measure; and the collapsed form's single site is an *indirect* branch, so on this target it is unread by A-05's removed target predictor where the separated form's two direct branches need no predictor at all.
-This is a host figure and it enters no estimate. It is a minimal reproduction of the dispatch shape and not a build of the upstream's handler, whose two separated sites stay indirect where this reproduction's become direct branches to two statically named handlers, and the separation is authored at the source rather than obtained by disabling the MIR pass, which would need a nightly `-Zmir-enable-passes` this host does not carry; no cycle count was taken, the predicate asking only that the two forms differ.
+**The compiled shape of the two dispatch forms, and what it cannot say.**
+The two forms differ in the stream a compiler emits for them: where both successors meet in one destination the stream selects between two handler addresses and leaves one indirect dispatch branch, and where each arm carries its own dispatch it carries a conditional test and two dispatch sites instead.
+The collapsed form's single site is therefore the indirect branch A-05 leaves unread here, and the difference between the two forms is one an auditor reads off the emitted stream rather than one that appears only as learned history.
+No cycle count accompanies that shape, and no figure from this upstream is taken with it.
 
 **At the machine there is no predicate, and the reason is stated rather than deferred.**
 No item before R3 puts a composed image on the elaborated core, and the configuration the question is asked of is the one whose predictor parameters [the provenance record](../../rtl/synthesis-provenance.md) binds to A-04, A-05 and A-06.
