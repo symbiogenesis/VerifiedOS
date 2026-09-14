@@ -455,6 +455,17 @@ contract extraction proof remains conditional on actual executions matching the
 declared bounded behavior. Q10 decides useful admitted workload after these
 costs and input-model assumptions are qualified.
 
+Q5b's [static-memory literature disposition](../implementation/static-memory-literature.md)
+separates genuine artifact reuse from an independently authored implementation of
+a paper's idea. The optional LRAT and idealloc boundaries remove the need to
+invent another certificate format or judge candidate search by its own verdict.
+The resource-aware interface charges retained storage and pairs credit with
+checked fixed backing: a free-byte total alone supplies no suitable block.
+Q22 still owns the physical completion and reuse premises, and the executable
+contract extractor still owes source and target refinement. The adoption map
+records the alternatives and their prerequisites rather than treating their
+citation as implementation credit.
+
 ## The work list
 
 *Distilled from the findings and sections above; non-normative like the rest of this document. Items are grouped by what closing one costs, not by where it was found: **A** is a text edit whose answer the documents already contain, **B** is a call somebody has to make, **C** needs work that does not exist yet: a measurement, an argument, or a reading of the outside world. Each item names the requirements it lands on. When an item lands, delete the bullet; item numbers are permanent and are not reused. The product-level calls the first movement raises are the plan's Q-series and are cited there rather than numbered here.*

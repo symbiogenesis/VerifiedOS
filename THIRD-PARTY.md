@@ -50,6 +50,32 @@ Hashes identify the downloaded bytes; the licenses govern their use. Dependency 
 
 [model/test/CMakeLists.txt](model/test/CMakeLists.txt) declares the downloadable test release. The `sail-riscv-tests` wrapper is Apache-2.0 and the `riscv-tests` sources are BSD-3-Clause; their license instruments are unchanged in the recorded release. The profile-refusal sweep downloads the corpus into the build lane and selects the declared release even if older caches exist. No test binary is tracked or distributed here.
 
+### Optional static-memory research tools
+
+The [candidate integration](docs/implementation/static-memory-candidates.md)
+fetches idealloc's `coreba` implementation at the revision and source hashes in
+[its manifest](tools/memory-planner/idealloc.json). Its upstream MIT license is
+read before integration and retained with the fetched source. The tracked Rust
+bridge is authored here. Rust tooling, Cargo dependencies, caches, source and
+executables stay in the native guest lane; their individual licenses and pinned
+dependency closure remain applicable. This is an untrusted candidate producer,
+not code installed in a VerifiedOS image.
+
+The [certificate integration](docs/implementation/static-memory-certificates.md)
+fetches `lrat_isa` and CaDiCaL using [its pinned manifest](tools/memory-planner/certificates.json).
+Both upstream MIT license texts are read and hashed before incorporation and
+remain beside the downloaded source. The tracked native I/O harness is authored
+here; the upstream LLVM checker and solver are fetched into the guest build lane.
+Compiling the upstream generated LLVM is distinct from rebuilding its Isabelle
+proofs. The integration records its parser, harness, compiler and runtime boundary
+and makes no new Vela compiler or production admission claim.
+
+The [resource contracts](docs/implementation/static-memory-resource-contracts.md)
+adapt specification and accounting ideas from the cited literature. They import
+no allocator implementation, Iris/VST proof library or donor runtime mechanism.
+Their authored finite models are governed by this repository's license; no
+upstream theorem is relicensed or claimed as an imported proof.
+
 ## Pinned as submodules
 
 The Git index contains a gitlink for each component below, with no source files beneath it. Initializing a submodule obtains its code from the upstream under that component's terms.

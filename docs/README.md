@@ -44,6 +44,9 @@ have separate Rocq proofs with their implementation bridges stated as remaining 
 The [portable memory planner](implementation/portable-memory-planner.md) exposes
 checked fixed-instance placement, retained baselines, pinned framework adapters
 and bounded contract extraction for desktop and embedded components.
+The [static-memory literature adoption map](implementation/static-memory-literature.md)
+connects allocation and reusable-capacity research to the pinned candidate and
+certificate integrations, finite resource contracts and remaining proof obligations.
 
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.

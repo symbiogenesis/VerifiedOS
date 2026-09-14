@@ -51,6 +51,9 @@ The command uses the repository's ordinary tool environment:
 ```console
 python tools/run.py memory-planner demo --json
 python tools/run.py memory-planner contracts --json
+python tools/run.py memory-planner resources --json
+python tools/run.py memory-planner resources --resource-budget resources.json --json
+python tools/run.py memory-planner resource-proof --resource-budget resources.json --json
 python tools/run.py memory-planner plan --instance instance.json --baseline baseline.json --candidate candidate.json --work-budget 10000 --json
 python tools/run.py memory-planner check --instance instance.json --candidate candidate.json --json
 python tools/run.py memory-planner solve --instance instance.json --work-budget 10000 --certify --json
@@ -142,8 +145,9 @@ conventions. Heavy search belongs on the development host; a small runtime plan
 consumer does not eliminate persistent objects, weights or temporary allocations.
 Tensor preservation and alignment are part of its caller contract.
 
-idealloc is an optional research comparator, and TVM v0.18.0 USMP supplies useful
-pool/conflict prior art. XLA heap simulation and IREE Stream layout have additional
+The [idealloc candidate integration](static-memory-candidates.md) supplies an
+optional research comparator behind the original checker and retained baseline.
+TVM v0.18.0 USMP supplies useful pool/conflict prior art. XLA heap simulation and IREE Stream layout have additional
 compiler-specific semantics. None is represented as a shipped universal allocator
 ABI or as a current-main compatibility promise.
 
@@ -155,12 +159,14 @@ domain or restricted by the retained baseline's pool limits. Incomplete replay
 cannot certify an optimum. Independent candidate feasibility and exclusion of
 every better placement are separate obligations.
 
-DRCP, CakePB and LRAT are possible external certificate paths. They require a
-reviewed encoding and an explicit checker trust boundary before use. Decoding
+The [LRAT certificate path](static-memory-certificates.md) uses a pinned external
+checker for a bounded Boolean encoding. DRCP and CakePB remain alternative
+certificate ecosystems, with their own encoding and execution boundaries. Decoding
 solver solutions to legal placements establishes only one direction: excluding
 all better layouts additionally requires every legal better layout to have an
 encoded witness. No external certificate dependency is admitted merely by naming
-one of these systems.
+one of these systems. The [literature adoption map](static-memory-literature.md)
+states each relevant donor's disposition and the evidence for adopted techniques.
 
 The [contract extractor](../../tools/vos/memory_planner_contracts.py) models bounded
 control flow, exceptional outcomes, retained authority and device completion.
@@ -172,6 +178,11 @@ physical device has finished. [MemoryPlannerContracts.v](../../proofs/MemoryPlan
 proves conflict-graph separation, the conjunction required by the reuse barrier,
 and checked-selection non-regression. Temporal ordering of interpreter events is
 an executable check; its refinement to that mathematical model is not proved.
+
+The [resource-aware contract layer](static-memory-resource-contracts.md) ties
+bounded credits and release obligations to independently checked fixed backing.
+Free-byte totals alone do not establish a suitably shaped allocation. Its finite
+proofs and executable evidence preserve the source and target refinement boundary.
 
 R-05-104 excludes ILP machinery from the required toolchain; R-05-105 restricts
 admitted verified analyses whose only yield is bound tightening. This optional

@@ -12,17 +12,21 @@ from vos import env
 from vos import memory_planner as planner
 from vos import memory_planner_adapters as adapters
 from vos import memory_planner_contracts as contracts
+from vos import memory_planner_resources as resources
 from vos.corpus import find_root
 
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("action", choices=("plan", "check", "solve", "verify", "demo", "contracts", "demo-tflm"))
+    result.add_argument("action", choices=("plan", "check", "solve", "verify", "demo", "contracts",
+                                          "resources", "resource-proof", "demo-tflm"))
     result.add_argument("--instance", type=Path, help="portable instance JSON")
     result.add_argument("--baseline", type=Path, help="standing placement JSON, checked first")
     result.add_argument("--candidate", type=Path, action="append", default=[],
                         help="candidate placement JSON; repeat for a portfolio")
     result.add_argument("--contract", type=Path, help="bounded component contract JSON")
+    result.add_argument("--resource-budget", type=Path,
+                        help="resource contract JSON including placement, budgets and event costs")
     result.add_argument("--evidence", type=Path, help="complete result JSON for independent replay")
     result.add_argument("--work-budget", type=int, default=0,
                         help="deterministic optional search budget; zero retains supplied candidates")
@@ -50,8 +54,9 @@ def read_json(path: Path, inputs: dict[str, str]) -> object:
 
 def source_identity(root: Path) -> dict[str, str]:
     names = ("tools/vos/memory_planner.py", "tools/vos/memory_planner_contracts.py",
-             "tools/vos/memory_planner_adapters.py",
-             "tools/vos/cli/memory_planner.py", "proofs/MemoryPlannerContracts.v")
+             "tools/vos/memory_planner_adapters.py", "tools/vos/memory_planner_resources.py",
+             "tools/vos/cli/memory_planner.py", "proofs/MemoryPlannerContracts.v",
+             "proofs/MemoryPlannerResources.v")
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
 
 
@@ -94,6 +99,16 @@ def service_demo() -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str,
 def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.work_budget < 0 or args.replay_budget < 1:
         raise ValueError("work budget must be nonnegative and replay budget positive")
+    if args.resource_budget is not None and args.action not in {"resources", "resource-proof"}:
+        raise ValueError("--resource-budget is only supported by resources and resource-proof")
+    if args.action in {"resources", "resource-proof"}:
+        if args.instance or args.baseline or args.candidate or args.contract or args.evidence:
+            raise ValueError("resource actions take the complete contract through --resource-budget")
+        raw = read_json(args.resource_budget, inputs) if args.resource_budget else resources.demo_resources()
+        result = resources.analyze_resources(raw, max_work=args.replay_budget)
+        if args.action == "resource-proof" and not result.get("errors"):
+            result["rocq_source"] = resources.emit_resource_certificate(raw)
+        return result
     if args.action == "contracts":
         raw = read_json(args.contract, inputs) if args.contract else contracts.demo_contract()
         result = contracts.extract_contract(raw)
@@ -160,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
         evidence = result.get("evidence", {})
-        print(evidence.get("status", "contract extracted"))
+        print(evidence.get("status", result.get("status", "contract extracted")))
         for finding in evidence.get("findings", []):
             print(f"  {finding}")
         print("Use --json for placements, input identities, assumptions and evidence.")

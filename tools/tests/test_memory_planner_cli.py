@@ -11,6 +11,7 @@ from typing import Any
 
 from tests.harness import Case, ensure
 from vos import memory_planner as planner
+from vos import memory_planner_resources as resources
 from vos.cli import BY_NAME
 from vos.cli import memory_planner as cli
 
@@ -104,9 +105,34 @@ def routing_and_bad_arguments() -> None:
         ensure(code == 2, "invalid options return a typed error")
 
 
+def resource_contract_cli() -> None:
+    raw = resources.demo_resources()
+    with tempfile.TemporaryDirectory() as directory:
+        budget = Path(directory) / "budget.json"
+        budget.write_text(json.dumps(raw), encoding="utf-8")
+        code, report = invoke(["resources", "--resource-budget", str(budget)])
+        ensure(code == 0 and not report.get("errors"), "prepaid backing accepts the resource demo")
+        ensure(report["input_sha256"][str(budget)] == hashlib.sha256(budget.read_bytes()).hexdigest(),
+               "resource evidence binds the complete contract, backing and event costs")
+        code, proof = invoke(["resource-proof", "--resource-budget", str(budget)])
+        ensure(code == 0 and "MemoryPlannerResources" in proof["rocq_source"],
+               "the proof action emits the actual resource-model replay source")
+        raw["reserved_bytes"] = {pool: 0 for pool in raw["reserved_bytes"]}
+        budget.write_text(json.dumps(raw), encoding="utf-8")
+        code, report = invoke(["resources", "--resource-budget", str(budget)])
+        ensure(code != 0 and report.get("errors"), "unfunded backing cannot claim guaranteed success")
+        code, report = invoke(["resource-proof", "--resource-budget", str(budget)])
+        ensure(code != 0 and "rocq_source" not in report, "refused resources emit no replay proof")
+        for arguments in (["demo", "--resource-budget", str(budget)],
+                          ["resources", "--contract", str(budget)]):
+            code, _ = invoke(arguments)
+            ensure(code == 2, "resource input is never ignored by a different action")
+
+
 def cases() -> list[Case]:
     return [Case("bounded service overlay", service_overlay),
             Case("input hashes and refused baseline", input_binding_and_refusal),
             Case("contract route and source identity", contract_route_and_source_binding),
             Case("optional failures preserve fallback", optional_input_failure_retains_baseline),
-            Case("host and guest routing", routing_and_bad_arguments)]
+            Case("host and guest routing", routing_and_bad_arguments),
+            Case("resource contracts and proof emission", resource_contract_cli)]

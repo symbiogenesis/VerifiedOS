@@ -101,6 +101,15 @@ def _portable_plan(action: str, scratch: Path) -> list[str]:
     return [*common, "--work-budget", "8"]
 
 
+def _memory_encoding(scratch: Path) -> list[str]:
+    instance = scratch / "encoding-instance.json"
+    instance.write_text(json.dumps({
+        "name": "lane-encoding", "pools": [{"id": "a", "capacity": 1}],
+        "buffers": [{"id": "x", "size": 1, "allowed_pools": ["a"], "intervals": [[0, 1]]}],
+    }), encoding="utf-8", newline="")
+    return ["--instance", str(instance), "--bound", "0", "--json"]
+
+
 _RUNS: dict[tuple[str, str], Argv] = {
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
@@ -131,6 +140,9 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-planner", "verify"): partial(_portable_plan, "verify"),
     ("memory-planner", "demo"): lambda _: [],
     ("memory-planner", "contracts"): lambda _: [],
+    ("memory-planner", "resources"): lambda _: [],
+    ("memory-planner", "resource-proof"): lambda _: [],
+    ("memory-certificates", "encode"): _memory_encoding,
 }
 
 

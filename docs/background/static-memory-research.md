@@ -152,6 +152,13 @@ that relation to admitted Vela programs and actual device completion remains a
 compiler and qualification obligation. Q5b owns the real-workload comparison,
 Q22 the reuse boundaries and Q10 the product judgment.
 
+The [static-memory literature disposition](../implementation/static-memory-literature.md)
+evaluates allocation, certification and reusable-capacity donors entry by entry.
+It links actual upstream candidate/checker integrations separately from adapted
+resource-contract ideas, existing experiments and alternatives whose premises do
+not match fixed backing. A cited theorem is credited only at its stated endpoint;
+Q5b and Q22 retain the source, target and workload joins.
+
 ## Research todo list
 
 This backlog tracks a research project, not an additional implementation schedule. Work selected for execution is scoped in the [implementation checklist](../implementation/implementation-checklist.md); Q5 owns placement comparisons, Q4 inference demand, Q6 memory topology, Q8 measured bottlenecks, Q22 assurance boundaries, and Q10 the product judgment. The research reuses those artifacts and returns findings to their owners. Research outputs do not confer implementation landing credit or accept a new requirement.
