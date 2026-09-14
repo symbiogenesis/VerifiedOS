@@ -29,7 +29,9 @@ term under R-15-102, and those blocks do not exist yet. The plan's §11 owes not
 that route before the co-simulation gate.
 
 So the representative blocks are chosen from what exists, and both are authored or
-generated SystemVerilog standing where a route-(a) theorem will stand. That reading is
+generated SystemVerilog standing where a route-(a) theorem will stand. Example A's
+evidence is route-(c)-shaped, differential agreement with the golden model in the plan's
+§11 sense; example B's reaches no route of that ladder at all. That reading is
 not new here: [the provenance record's
 §4a](../../rtl/synthesis-provenance.md#4a-the-tag-fabrics-route-recorded-so-it-is-not-derived-twice)
 already took it for the tag fabric, ruling that R-15-092's *authored* is a statement
@@ -79,13 +81,13 @@ unlabelled blank is exactly the seam going quiet.
 | Emitter identity and revision | `n/a, by route`. [The RTL tree's §2](../../rtl/README.md) lists this file authored, not generated. It was transcribed from the Sail source by hand |
 | Emitted bytes | `n/a, by route`, on the same ground. There is no generator output to hold the tracked bytes against, which is why the transcription itself is the seam |
 | Synthesis input | `n/a, not yet`. Nothing in the design instantiates the package and no elaboration of a core reaches it, as [the RTL tree's §3](../../rtl/README.md) records, so no synthesis input exists to identify. R1's curated datapath owes the first one |
-| Tier reached | Evidence tier under R-01-002b, and below every rung of R-18-010. The rung list admitted for this block is empty: the crosscheck is neither rvfi, nor Sail-generated SystemVerilog under commercial FEV, nor an Isla obligation, nor a Coq refinement. The claim riding it is agreement with the model's own answers over the vectors that ran |
+| Tier reached | Evidence tier, the ceiling R-01-002b sets for the unit this block would sit in rather than a reading taken over the block itself; §7 reports that no rung of R-18-010 admits a package, which is why the rung list is empty rather than short. The crosscheck is neither rvfi, nor Sail-generated SystemVerilog under commercial FEV, nor an Isla obligation, nor a Coq refinement. The claim riding it is agreement with the model's own answers over the vectors that ran |
 
 **What the evidence is.** `python tools/run.py rtl crosscheck` compiles the model with a
 generator that calls its capability functions and prints what they return, builds this
 package under Verilator behind [a harness](../../tools/cheri-equiv/) that replays those
-lines, and compares the two texts. Two of its sweeps are exhaustive over their own
-domain. That is a measurement of agreement, and R-15-092 already rules that a
+lines, and compares the two texts, which [the RTL tree's §3](../../rtl/README.md) states
+per file. That is a measurement of agreement, and R-15-092 already rules that a
 measurement of this shape is not the checked correspondence a theorem-tier claim needs.
 
 **Two things it is not, and the second is the seam.** It is not a proof, which the
@@ -109,7 +111,7 @@ names.
 | Emitter identity and revision | [`tools/vos/socmap.py`](../../tools/vos/socmap.py), at this checkout's revision. It is tracked here rather than pinned upstream, so its identity is the tracked source and it carries no external revision |
 | Emitted bytes | Held by rule K-88 as byte identity against what that emitter writes from the composition, decided on the host at every landing. Cited rather than transcribed: a digest copied into this document would be a derived fact with no owner |
 | Synthesis input | `n/a, not yet`. The SoC top does not exist and neither half of it is authored, which [the RTL tree's §4](../../rtl/README.md) books with its two reasons |
-| Tier reached | Evidence tier under R-01-002b, below every rung of R-18-010, and below example A on R-01-002b's own two-list test: the rung list is likewise empty, and the claim riding it is weaker, being byte identity with a generator's output rather than agreement with the model's answers |
+| Tier reached | Evidence tier, the same ceiling on the same ground as example A's and for the same reason §7 reports, and below example A on R-01-002b's own two-list test: the rung list is likewise empty, and the claim riding it is weaker, being byte identity with a generator's output rather than agreement with the model's answers |
 
 **What K-88 decides and what it does not.** It decides that these bytes are what the
 emitter writes from the composition, which makes the map a faithful transcription of its
@@ -125,6 +127,16 @@ that ruling with an instance under it rather than as a general caution.
 The acceptance test is that a changed emitted mux, reset or tag path is either rejected
 by an independently checked correspondence slice or exposes a precisely recorded seam.
 Four perturbations of example A were posed against `rtl/vos_cheri_pkg.sv`.
+
+**The predicate's *independently* has two axes and this slice sits differently on each,
+so the verdict below is read per axis rather than once.** The answers replayed are the
+model's own and cross as text with no adapter between the two implementations, which
+[the RTL tree's §3](../../rtl/README.md) records, so on the answer axis nothing authored
+here stands between the package and what it is held to. The function selection is
+authored here, as §3 concedes, so on the coverage axis the slice is not independent, and
+the fourth trial is what that costs. A rejection below therefore establishes the
+predicate's first disjunct for the limb it reached and establishes nothing about a limb
+no vector drives.
 
 **Predicate and conditions.** Each trial copied the tracked package and the harness into
 a scratch directory on the guest filesystem under this lane's build root, applied one
@@ -192,9 +204,9 @@ evidence implies for a block authored today and carries no second copy of the re
 
 | Candidate | Emitter | Checked correspondence result covering that emitter | Tier a block authored in it reaches today |
 | --- | --- | --- | --- |
-| Kami (HW-07, MIT, pin `3f9c603a`) | Bluespec extraction, described separately from the proofs in the upstream README | None. `fetchDecode_refines_fetchNDecode` and the FIFO and cache refinements relate Kami terms, and HW-07 records that a theorem over Kami semantics does not cover Verilog emission or synthesis | Evidence tier, with the extraction and the Bluespec compiler as named trusted tools. The theorem reaches the Kami term and stops there |
-| Kôika (HW-08, LGPL-2.1, pin `8921e304`) | A verified compiler to circuits, followed by an unverified RTL-emission layer | Partial, and the part it covers is the wrong end. `compiler_correct` relates a scheduled rule cycle to the compiled register-output circuits; the emission layer below it is unverified by the project's own overview | Evidence tier. The circuit theorem is stronger than Kami's on the compiler leg and reaches the same stopping point at the emitted RTL |
-| Cava, Silver Oak shaped (HW-09, Apache-2.0, pin `cccfdb4e`) | A Cava-to-SystemVerilog compiler, which Silver Oak's own README excludes from what it verifies | None, and the exclusion is the project's own statement rather than an inference | Evidence tier. No gitlink is pinned here and [THIRD-PARTY.md](../../THIRD-PARTY.md) reads no Cava terms, so a block authored in it would owe a licence reading at the milestone that incorporated it |
+| Kami (HW-07, MIT, read at `3f9c603a`) | Bluespec extraction, described separately from the proofs in the upstream README | None. `fetchDecode_refines_fetchNDecode` and the FIFO and cache refinements relate Kami terms, and HW-07 records that a theorem over Kami semantics does not cover Verilog emission or synthesis | Evidence tier, with the extraction and the Bluespec compiler as named trusted tools. The theorem reaches the Kami term and stops there |
+| Kôika (HW-08, LGPL-2.1, read at `8921e304`) | A verified compiler to circuits, followed by an unverified RTL-emission layer | Partial, and the part it covers is the wrong end. `compiler_correct` relates a scheduled rule cycle to the compiled register-output circuits; the emission layer below it is unverified by the project's own overview | Evidence tier. The circuit theorem is stronger than Kami's on the compiler leg and reaches the same stopping point at the emitted RTL |
+| Cava, Silver Oak shaped (HW-09, Apache-2.0, read at `cccfdb4e`) | A Cava-to-SystemVerilog compiler, which Silver Oak's own README excludes from what it verifies | None, and the exclusion is the project's own statement rather than an inference | Evidence tier. [THIRD-PARTY.md](../../THIRD-PARTY.md) reads no Cava terms, so a block authored in it would owe a licence reading at the milestone that incorporated it |
 
 **The three rows agree on the finding and that is the point.** No candidate's circuit
 theorem covers its own emitter, so on this boundary the election is not decided by
