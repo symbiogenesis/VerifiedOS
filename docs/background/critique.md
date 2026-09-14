@@ -441,6 +441,20 @@ The recurring *the §17 residual entry exists* pattern is sound bookkeeping and 
 
 ---
 
+## Portable planner integration and its evidence boundary
+
+Q5b consumes the [portable static-memory planner](../implementation/portable-memory-planner.md)
+as a host experiment over bounded components. A checked baseline and independently
+checked candidates make non-regression precise for the stated pool objective;
+they do not imply reduced compiler cost, physical residency or target latency.
+The MiniMalloc interchange, ExecuTorch adapter and TFLite Micro demonstration
+expose concrete compatibility boundaries. Optimality requires excluding every
+better legal layout, with encoding completeness whenever solver certificates are
+used. Q22 owns qualified late-device and retained-authority completion, while the
+contract extraction proof remains conditional on actual executions matching the
+declared bounded behavior. Q10 decides useful admitted workload after these
+costs and input-model assumptions are qualified.
+
 ## The work list
 
 *Distilled from the findings and sections above; non-normative like the rest of this document. Items are grouped by what closing one costs, not by where it was found: **A** is a text edit whose answer the documents already contain, **B** is a call somebody has to make, **C** needs work that does not exist yet: a measurement, an argument, or a reading of the outside world. Each item names the requirements it lands on. When an item lands, delete the bullet; item numbers are permanent and are not reused. The product-level calls the first movement raises are the plan's Q-series and are cited there rather than numbered here.*
