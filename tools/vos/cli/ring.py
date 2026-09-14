@@ -20,6 +20,26 @@ of the register's own entry lines rather than transcribed here, so a member adde
 either entry moves the artifact's bytes and a generator carrying its own copy of a
 list the register states is the defect this arrangement exists to prevent.
 
+**The declaration carries worlds and the artifact carries one block apiece.** A
+Gallina file has one top-level scope, and two worlds each declaring an `op` cannot
+both hold it, so the first world the declaration lists is emitted at the file's own
+scope and every further world inside a module named from its own world name. That
+order is the declaration's: moving a world moves the artifact, and the artifact's
+consumers, [CopyRingService.v](../../../proofs/CopyRingService.v) and
+[DescriptorCheck.v](../../bedrock2-lowering/DescriptorCheck.v), name the file-scope
+world's constants unqualified. Every block is emitted by this one function of the
+declaration, so a world states its own campaign at its own constants and no bound is
+authored twice.
+
+**The DMA clauses are a world's declaration and not a second campaign.** A world
+declaring `dma` gets part 4, which is R-12-100 read at the artifact: the permission
+each declared direction requires of the session-table capability, the complete extent
+validated before the transfer starts and never reinterpreted after, one validation
+charged per declared segment, and R-12-099's *old capabilities dead* as a hold that
+ends at terminal completion, held beside a hold that ends at reclamation and fails.
+A world declaring no `dma` carries none of it, which is what makes part 4 the
+difference between the two worlds rather than a restatement of the first.
+
 **What the artifact is not.** It is not a proof of the ring contract: the campaign is
 a set of obligations decided by computation over the declared constants, which is the
 fail-closed reading of R-18-037's *no interface world declaring rings is admitted
@@ -29,7 +49,9 @@ not here and are not claimed, and neither is its lost-wakeup exclusion over the 
 memory: the artifact carries R-12-096's decision rule over two reads of the producer
 index, held to the exclusion beside a consumer that skips the recheck and fails it, so
 the exclusion is a property one rule satisfies and another does not rather than one
-rule's body unfolded.
+rule's body unfolded. Nothing here reaches the machine: whether an engine presents its
+capability to the fabric is a run's answer over a second bus initiator, and this model
+has one hart.
 """
 
 import argparse
@@ -61,12 +83,19 @@ CANCEL_ENTRY = "R-12-097"
 OWNED_ENTRIES: tuple[str, ...] = (STATUS_ENTRY, LIFECYCLE_ENTRY, FULL_RING_ENTRY,
                                   CANCEL_ENTRY)
 
+# The two entries part 4 states in its own comments. They are cited rather than read:
+# every figure part 4 carries is the declaration's, so neither is an owner this file
+# parses and neither belongs in OWNED_ENTRIES.
+DMA_ENTRY = "R-12-100"
+RESTART_ENTRY = "R-12-099"
+
 # Required keys at the JSON boundary. Shape and scalar types are checked before
 # constructing the typed records consumed by the emitter.
-DECL_KEYS: tuple[str, ...] = ("ring", "encoding", "label_levels",
-                              "operation_record_fields", "operations",
-                              "deadline_classes", "flags", "directions",
-                              "content_types")
+DECL_KEYS: tuple[str, ...] = ("worlds",)
+WORLD_KEYS: tuple[str, ...] = ("world", "ring", "encoding", "label_levels",
+                               "operation_record_fields", "operations",
+                               "deadline_classes", "flags", "directions",
+                               "content_types", "dma")
 ENCODING_KEYS: tuple[str, ...] = ("request_id_bytes", "session_index_bytes",
                                   "offset_bytes", "length_bytes", "direction_bytes",
                                   "content_type_bytes", "generation_bytes",
@@ -75,7 +104,7 @@ ENCODING_KEYS: tuple[str, ...] = ("request_id_bytes", "session_index_bytes",
 OP_KEYS: tuple[str, ...] = ("scalars", "buffer_refs", "deadline",
                             "empty_validation_claim", "labels", "record",
                             "cancellation", "refinement", "fill", "activation_slack",
-                            "payload_slack", "cancellation_slack")
+                            "payload_slack", "cancellation_slack", "dma")
 CANCEL_KEYS: tuple[str, ...] = ("points", "commit_index", "quiescence_bound",
                                 "max_to_terminal")
 RING_KEYS: tuple[str, ...] = (
@@ -83,6 +112,18 @@ RING_KEYS: tuple[str, ...] = (
     "descriptor_alignment_bytes", "completion_size_bytes", "completion_fill",
     "max_batch_size", "session_generation", "completion_capacity", "max_accepted",
     "max_segments", "segment_max_bytes", "slot_budget")
+DMA_KEYS: tuple[str, ...] = ("permissions", "direction_permission")
+# Left for the literal tuple type rather than widened to `tuple[str, ...]` like its
+# neighbours: the emitter reads an operation's DMA record at each of these keys, and it
+# is the literal that makes each one a key of that typed record rather than a string.
+# The slack members `OP_KEYS` carries are read the same way, from their own literal.
+OP_DMA_KEYS = ("extent_validated_bytes", "extent_validations_before_start",
+               "extent_reads_after_start", "descriptor_validation_cost",
+               "segment_validation_cost", "held_capabilities")
+
+# A declared name this file spells into Gallina. Anything else is refused rather than
+# interpolated, a world name also being the module name every further world sits in.
+_NAME_RE = re.compile(r"\A[a-z][a-z0-9_]*\Z")
 
 
 class Scalar(TypedDict):
@@ -102,6 +143,20 @@ class Cancellation(TypedDict):
     max_to_terminal: int
 
 
+class OpDma(TypedDict):
+    extent_validated_bytes: int
+    extent_validations_before_start: int
+    extent_reads_after_start: int
+    descriptor_validation_cost: int
+    segment_validation_cost: int
+    held_capabilities: int
+
+
+class Dma(TypedDict):
+    permissions: list[str]
+    direction_permission: list[str]
+
+
 class Operation(TypedDict):
     name: str
     scalars: list[Scalar]
@@ -116,9 +171,11 @@ class Operation(TypedDict):
     activation_slack: int
     payload_slack: int
     cancellation_slack: int
+    dma: OpDma | None
 
 
-class Declaration(TypedDict):
+class World(TypedDict):
+    world: str
     ring: dict[str, int]
     encoding: dict[str, int]
     label_levels: int
@@ -128,6 +185,11 @@ class Declaration(TypedDict):
     flags: list[str]
     directions: list[str]
     content_types: list[str]
+    dma: Dma | None
+
+
+class Declaration(TypedDict):
+    worlds: list[World]
 
 # The register's own spellings, found where each entry states them. A backticked
 # lower-case identifier is how that document writes a wire token, the arrow chain is
@@ -247,6 +309,7 @@ def _declaration_validator() -> Validator:
     strings: Json = {"type": "array", "items": {"type": "string"}}
     scalar = _object_schema({"width_bytes": integer, "validated_at_use": boolean})
     cancellation = _object_schema(dict.fromkeys(CANCEL_KEYS, integer))
+    op_dma = _object_schema(dict.fromkeys(OP_DMA_KEYS, integer))
     operation = _object_schema({
         "name": {"type": "string"},
         "scalars": {"type": "array", "items": scalar},
@@ -254,17 +317,24 @@ def _declaration_validator() -> Validator:
         "labels": _object_schema(dict.fromkeys(("confidentiality", "integrity"), integer)),
         "record": {"type": "array", "items": integer},
         "cancellation": {"anyOf": [{"type": "null"}, cancellation]},
+        "dma": {"anyOf": [{"type": "null"}, op_dma]},
         "refinement": strings,
         **dict.fromkeys(("fill", "activation_slack", "payload_slack", "cancellation_slack"),
                         integer),
     }, required=("name", *OP_KEYS))
-    schema = _object_schema({
+    dma = _object_schema(dict.fromkeys(DMA_KEYS, strings))
+    world = _object_schema({
+        "world": {"type": "string"},
         "ring": _object_schema(dict.fromkeys(RING_KEYS, integer), additional=integer),
         "encoding": _object_schema(dict.fromkeys(ENCODING_KEYS, integer), additional=integer),
         "label_levels": integer,
         "operation_record_fields": strings,
         "operations": {"type": "array", "minItems": 1, "items": operation},
+        "dma": {"anyOf": [{"type": "null"}, dma]},
         **dict.fromkeys(("deadline_classes", "flags", "directions", "content_types"), strings),
+    }, required=WORLD_KEYS)
+    schema = _object_schema({
+        "worlds": {"type": "array", "minItems": 1, "items": world},
     }, required=DECL_KEYS)
     # JSON Schema also calls 1.0 an integer. Gallina numerals and the typed records
     # need Python integers, so reject floats and bools without coercing input data.
@@ -278,11 +348,73 @@ def _is_integer(checker: object, value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _dma_agrees(world: World) -> None:
+    """A world's DMA declaration against the world it is declared in.
+
+    The permission map is one member per declared direction and each member is one of
+    the permissions the same block declares, the distinction between two directions
+    being what part 4's own refusal case turns on. A world declaring DMA declares it of
+    every operation, and a world declaring none carries none, so the absence is a
+    property of the world rather than a default this file supplies. The retained-hold
+    refutation needs an operation that holds something, and a world where nothing does
+    is refused rather than given a refutation over zero.
+    """
+    dma = world["dma"]
+    name = world["world"]
+    carried = [op["name"] for op in world["operations"] if op["dma"] is not None]
+    if dma is None:
+        if carried:
+            raise RingError(f"world `{name}` declares no DMA where its operation(s) "
+                            + ", ".join(f"`{op}`" for op in carried) + " declare one")
+        return
+    if len(carried) != len(world["operations"]):
+        missing = [op["name"] for op in world["operations"] if op["dma"] is None]
+        raise RingError(f"world `{name}` declares DMA where its operation(s) "
+                        + ", ".join(f"`{op}`" for op in missing) + " declare none")
+    for permission in dma["permissions"]:
+        if not _NAME_RE.match(permission):
+            raise RingError(f"world `{name}` declares the permission `{permission}`, "
+                            f"which is not a name this emitter spells into Gallina")
+    if len(set(dma["permissions"])) != len(dma["permissions"]) or not dma["permissions"]:
+        raise RingError(f"world `{name}` declares {len(dma['permissions'])} permissions "
+                        f"where the set it checks against is non-empty and each member "
+                        f"is declared once")
+    if len(world["directions"]) < 2:
+        raise RingError(f"world `{name}` declares DMA over {len(world['directions'])} "
+                        f"direction(s), where the permission check it states is a "
+                        f"distinction between two")
+    if not world["content_types"]:
+        raise RingError(f"world `{name}` declares DMA without a content type, so its "
+                        "segment campaign has no inhabited reference")
+    if len(dma["direction_permission"]) != len(world["directions"]):
+        raise RingError(f"world `{name}` maps {len(dma['direction_permission'])} "
+                        f"permissions onto {len(world['directions'])} declared "
+                        f"directions, where the map is one per direction")
+    outside = [p for p in dma["direction_permission"] if p not in dma["permissions"]]
+    if outside:
+        raise RingError(f"world `{name}` requires the permission(s) "
+                        + ", ".join(f"`{p}`" for p in outside)
+                        + " of a direction, which its own declared set does not carry")
+    if not any(_op_dma(op)["held_capabilities"] > 0 for op in world["operations"]):
+        raise RingError(f"world `{name}` declares DMA and no operation of it holds a "
+                        f"capability, so {RESTART_ENTRY}'s hold has nothing to end")
+
+
+def _op_dma(op: Operation) -> OpDma:
+    """An operation's DMA declaration, where `_dma_agrees` has established there is one."""
+    dma = op["dma"]
+    if dma is None:
+        raise RingError(f"operation `{op['name']}` carries no DMA declaration")
+    return dma
+
+
 def declaration(root: Path) -> Declaration:
     """Validate JSON shapes once, preserving additional declaration metadata.
 
     Numeric relationships remain the generated conformance campaign's obligations.
-    This boundary decides representation types and the record's declared width.
+    This boundary decides representation types, the record's declared width, the world
+    names the artifact's scopes are spelled from, and whether a world's DMA declaration
+    agrees with the world it sits in.
     """
     path = root / DECLARATION
     try:
@@ -300,11 +432,30 @@ def declaration(root: Path) -> Declaration:
         raise RingError(f"{DECLARATION} at {where}: {error.message}")
     # The schema checks every field the emitter reads; this cast marks that boundary.
     decl = cast("Declaration", loaded)
-    width = len(decl["operation_record_fields"])
-    for op in decl["operations"]:
-        if len(op["record"]) != width:
-            raise RingError(f"operation `{op['name']}` supplies {len(op['record'])} "
-                            f"record values where the declared field set has {width}")
+    seen: set[str] = set()
+    scopes: set[str] = set()
+    for index, world in enumerate(decl["worlds"]):
+        name = world["world"]
+        if not _NAME_RE.match(name):
+            raise RingError(f"`{name}` is not a world name this emitter spells into a "
+                            f"Gallina scope")
+        if name in seen:
+            raise RingError(f"world `{name}` is declared twice, where one world is one "
+                            f"scope of {ARTIFACT}")
+        seen.add(name)
+        if index:
+            scope = _module(name)
+            if scope in scopes:
+                raise RingError(f"world `{name}` repeats the emitted Gallina scope "
+                                f"`{scope}`")
+            scopes.add(scope)
+        width = len(world["operation_record_fields"])
+        for op in world["operations"]:
+            if len(op["record"]) != width:
+                raise RingError(f"operation `{op['name']}` of world `{name}` supplies "
+                                f"{len(op['record'])} record values where the declared "
+                                f"field set has {width}")
+        _dma_agrees(world)
     return decl
 
 
@@ -316,8 +467,9 @@ def _inductive(name: str, prefix: str, members: list[str], note: str) -> list[st
 
 
 def _match(fn: str, arg_type: str, prefix: str, members: list[str],
-           result: str, arms: list[str]) -> list[str]:
-    out = [f"Definition {fn} (o : {arg_type}) : {result} :=", "  match o with"]
+           result: str, arms: list[str], binder: str = "o") -> list[str]:
+    out = [f"Definition {fn} ({binder} : {arg_type}) : {result} :=",
+           f"  match {binder} with"]
     out += [f"  | {prefix}{member} => {arm}"
             for member, arm in zip(members, arms, strict=True)]
     return [*out, "  end.", ""]
@@ -325,6 +477,14 @@ def _match(fn: str, arg_type: str, prefix: str, members: list[str],
 
 def _theorem(name: str, statement: str, proof: str) -> list[str]:
     return [f"Theorem {name} :", f"  {statement}", f"Proof. {proof} Qed.", ""]
+
+
+def _conj(terms: list[str]) -> str:
+    """A right-nested `andb` over the terms, in the declaration's own order."""
+    out = terms[-1]
+    for term in reversed(terms[:-1]):
+        out = f"andb ({term}) ({out})"
+    return out
 
 
 def _skip(own: Owned) -> int:
@@ -357,22 +517,28 @@ def _attains(ops: list[Operation], names: list[str], field: int) -> str:
     return names[best]
 
 
-def emit(root: Path, register: Register | None = None) -> str:
-    """The artifact's whole text, as a function of the declaration and the register.
+def _holds_most(ops: list[Operation], names: list[str]) -> str:
+    """The operation holding the most capabilities, which is the retained-hold
+    refutation's witness. `_dma_agrees` has established that it holds one."""
+    best = max(range(len(ops)), key=lambda i: _op_dma(ops[i])["held_capabilities"])
+    return names[best]
 
-    `register` is handed in by the checker, which has already parsed it; a caller with
-    nothing parsed passes none and this reads the corpus itself. Either way the parse
-    is the one `vos/register.py` owns rather than a second one written here.
-    """
-    own = owned(register if register is not None
-                else read_register(corpus_mod.load(root)))
-    decl = declaration(root)
-    ring, enc = decl["ring"], decl["encoding"]
-    ops = decl["operations"]
-    names = [op["name"] for op in ops]
-    fields = decl["operation_record_fields"]
 
-    lines: list[str] = [
+def _module(name: str) -> str:
+    """The Gallina module a world past the first is emitted into, from its own name."""
+    return "".join(part.capitalize() for part in name.split("_"))
+
+
+def _preamble(worlds: list[World]) -> list[str]:
+    """The file header: what this artifact is, who owns it, and where each world sits."""
+    first = worlds[0]["world"]
+    further = [f"`{world['world']}` in module `{_module(world['world'])}`"
+               for world in worlds[1:]]
+    placed = (f"     `{first}` at the file's own scope"
+              if not further else
+              f"     `{first}` at the file's own scope, then "
+              + ", then ".join(further))
+    return [
         "(* SPDX-License-Identifier: Apache-2.0 *)",
         "(* =========================================================================",
         "   RingContract.v",
@@ -383,13 +549,22 @@ def emit(root: Path, register: Register | None = None) -> str:
         "",
         "   Owners:",
         f"     {DECLARATION}",
-        "         everything a composition fixes: the ring constants, the encoding",
-        "         widths, the operation set, and each operation's declared record.",
+        "         everything a composition fixes: the worlds, and for each of them the",
+        "         ring constants, the encoding widths, the operation set, and each",
+        "         operation's declared record.",
         "     docs/requirements-register.md",
         f"         {STATUS_ENTRY}'s closed status set, {LIFECYCLE_ENTRY}'s lifecycle"
         " states,",
         f"         {FULL_RING_ENTRY}'s full-ring result, and {CANCEL_ENTRY}'s"
         " cancellation answers.",
+        "",
+        f"   Worlds, in the declaration's own order ({len(worlds)}):",
+        placed,
+        "   A Gallina file has one top-level scope and two worlds each declaring an",
+        "   `op` cannot both hold it, so the first world listed takes that scope and",
+        "   every further world takes a module of its own name. Each block is emitted",
+        "   by one function of the declaration, so every world states the whole",
+        "   campaign at its own constants and no bound is authored twice.",
         "",
         "   What this is, per the profile's section 4.3.6: the generated interface",
         "   artifact, carrying the interface skeleton, the composition-time",
@@ -406,6 +581,293 @@ def emit(root: Path, register: Register | None = None) -> str:
         "   is that its types document the contract and never are it.",
         "   ========================================================================= *)",
         "",
+    ]
+
+
+def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], list[str]]:
+    """Part 4: the DMA clauses, over this world's own declared constants.
+
+    Returns the lines and the constants the R-05-163 gate below prints, both empty for
+    a world declaring no DMA.
+
+    Every clause here is one of R-12-100's, minus what part 2 and part 3 already carry
+    of them. The bounded segment list at its fixed maximum and the payload charged
+    there are above; the cleanup bound, the quiescence rule and the maximum time to
+    terminal completion are above; the stale half of R-12-099's restart test is above.
+    What is added is the permission the declared direction requires, the extent
+    validated whole before the transfer and never again after it, the check charged per
+    segment rather than per operation, and the hold that ends at terminal completion.
+    """
+    dma = world["dma"]
+    if dma is None:
+        return [], []
+    ops = world["operations"]
+    directions = world["directions"]
+    required = dma["direction_permission"]
+    live, terminal, reclaimed = _live(own), own.malformed_to, own.states[-1]
+
+    lines: list[str] = [
+        "(* -------------------------------------------------------------------------",
+        f"   Part 4: the DMA clauses {DMA_ENTRY} states, at this world's own constants.",
+        "   ------------------------------------------------------------------------- *)",
+        "",
+    ]
+    lines += _inductive("permission", "perm_", dma["permissions"],
+                        "the permissions a session-table capability carries on this "
+                        "world's data plane")
+    lines += _match("permission_rank", "permission", "perm_", dma["permissions"], "nat",
+                    [str(i) for i in range(len(dma["permissions"]))], binder="p")
+    lines += [
+        "Definition permission_eqb (a b : permission) : bool :=",
+        "  Nat.eqb (permission_rank a) (permission_rank b).",
+        "",
+        "Lemma permission_eqb_reflexive : forall p : permission,"
+        " permission_eqb p p = true.",
+        "Proof. intro p; destruct p; reflexivity. Qed.",
+        "",
+        f"(* The permission {DMA_ENTRY} makes the session-table capability carry, per",
+        "   direction the descriptor declares. *)",
+    ]
+    lines += _match("direction_permission", "direction", "direction_", directions,
+                    "permission", [f"perm_{name}" for name in required], binder="d")
+    lines += [
+        "(* The check that runs before the transfer: the granted permission against the",
+        "   direction the descriptor declares, and nothing else about the descriptor. *)",
+        "Definition direction_authorized (granted : permission) (d : direction) : bool :=",
+        "  permission_eqb granted (direction_permission d).",
+        "",
+        "Definition ref_authorized (granted : permission) (b : buffer_ref) : bool :=",
+        "  direction_authorized granted (ref_direction b).",
+        "",
+    ]
+
+    admits: list[str] = []
+    for direction, want in zip(directions, required, strict=True):
+        admits.append(f"direction_authorized perm_{want} direction_{direction}")
+        admits += [f"negb (direction_authorized perm_{other} direction_{direction})"
+                   for other in dma["permissions"] if other != want]
+    lines += _theorem(
+        "the_permission_check_admits_exactly_the_declared_map",
+        f"{_conj(admits)} = true.",
+        "vm_compute; reflexivity.")
+    distinct = [f"negb (permission_eqb (direction_permission direction_{a})"
+                f" (direction_permission direction_{b}))"
+                for i, a in enumerate(directions) for b in directions[i + 1:]]
+    lines += _theorem(
+        "every_declared_direction_requires_its_own_permission",
+        f"{_conj(distinct)} = true.",
+        "vm_compute; reflexivity.")
+    lines += _theorem(
+        "a_reference_is_authorized_by_the_direction_it_declares",
+        "forall (index offset : nat) (c : content_type) (d : direction),"
+        " ref_authorized (direction_permission d)"
+        " (mk_buffer_ref index offset ring_segment_max_bytes d c) = true.",
+        "intros index offset c d; destruct d; vm_compute; reflexivity.")
+
+    lines += [
+        "(* One checked session-table entry per segment. Bounds are relative to the",
+        "   delegated capability; no raw address is carried in the descriptor. *)",
+        "Record dma_segment : Set := mk_dma_segment {",
+        "  segment_permission : permission;",
+        "  segment_capability_bytes : nat;",
+        "  segment_reference : buffer_ref",
+        "}.",
+        "",
+        "Definition segment_valid (segment : dma_segment) : bool :=",
+        "  let b := segment_reference segment in",
+        "  andb (ref_authorized (segment_permission segment) b)",
+        "       (Nat.leb (ref_offset b + ref_length b)",
+        "                (segment_capability_bytes segment)).",
+        "",
+        "Fixpoint all_segments_valid (segments : list dma_segment) : bool :=",
+        "  match segments with",
+        "  | nil => true",
+        "  | cons segment rest => andb (segment_valid segment) (all_segments_valid rest)",
+        "  end.",
+        "",
+        "Fixpoint segment_count (segments : list dma_segment) : nat :=",
+        "  match segments with nil => 0 | cons _ rest => S (segment_count rest) end.",
+        "",
+        "Fixpoint repeat_segment (segment : dma_segment) (count : nat)",
+        "                        : list dma_segment :=",
+        "  match count with",
+        "  | 0 => nil",
+        "  | S rest => cons segment (repeat_segment segment rest)",
+        "  end.",
+        "",
+        "Fixpoint append_segments (prefix suffix : list dma_segment) : list dma_segment :=",
+        "  match prefix with",
+        "  | nil => suffix",
+        "  | cons segment rest => cons segment (append_segments rest suffix)",
+        "  end.",
+        "",
+        "Definition dma_segments_admitted (segments : list dma_segment) : bool :=",
+        "  andb (Nat.leb (segment_count segments) ring_max_segments)",
+        "       (all_segments_valid segments).",
+        "",
+        "Definition maximum_segment (d : direction) (c : content_type) : dma_segment :=",
+        "  mk_dma_segment (direction_permission d) ring_segment_max_bytes",
+        "    (mk_buffer_ref 0 0 ring_segment_max_bytes d c).",
+        "",
+        "Definition witness_dma_segment : dma_segment :=",
+        f"  maximum_segment direction_{directions[0]}"
+        f" content_{world['content_types'][0]}.",
+        "",
+    ]
+    lines += _theorem(
+        "the_maximum_segment_list_is_admitted",
+        "forall (d : direction) (c : content_type),"
+        " dma_segments_admitted (repeat_segment (maximum_segment d c) ring_max_segments)"
+        " = true.",
+        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+    lines += _theorem(
+        "one_segment_past_the_maximum_is_refused",
+        "forall (d : direction) (c : content_type),"
+        " dma_segments_admitted (repeat_segment (maximum_segment d c) (S ring_max_segments))"
+        " = false.",
+        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+    lines += _theorem(
+        "a_segment_extending_past_its_capability_is_refused",
+        "forall (d : direction) (c : content_type),"
+        " segment_valid (mk_dma_segment (direction_permission d) ring_segment_max_bytes"
+        " (mk_buffer_ref 0 1 ring_segment_max_bytes d c)) = false.",
+        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+    lines += _theorem(
+        "a_bad_segment_at_any_position_refuses_the_list",
+        "forall (prefix suffix : list dma_segment) (bad : dma_segment),"
+        " segment_valid bad = false ->"
+        " all_segments_valid (append_segments prefix (cons bad suffix)) = false.",
+        "intros prefix suffix bad H; induction prefix as [|segment rest IH];"
+        " simpl; [ rewrite H; reflexivity | rewrite IH;"
+        " destruct (segment_valid segment); reflexivity ].")
+
+    for field in OP_DMA_KEYS:
+        lines += _match(f"op_{field}", "op", "op_", names, "nat",
+                        [str(_op_dma(op)[field]) for op in ops])
+
+    lines += [
+        "(* The extent is validated whole when the bytes validated are the operation's",
+        "   declared payload and not a prefix of it. *)",
+        "Definition validates_the_whole_extent (validated : nat) (o : op) : bool :=",
+        "  Nat.eqb validated (rec_max_payload_bytes (op_declared_record o)).",
+        "",
+    ]
+    lines += _theorem(
+        "the_complete_extent_is_validated_before_the_transfer_starts",
+        "forall o : op,"
+        " andb (validates_the_whole_extent (op_extent_validated_bytes o) o)"
+        " (andb (implb (Nat.ltb 0 (rec_max_payload_bytes (op_declared_record o)))"
+        " (Nat.ltb 0 (op_extent_validations_before_start o)))"
+        " (Nat.eqb (op_extent_reads_after_start o) 0)) = true.",
+        "intro o; destruct o; vm_compute; reflexivity.")
+    # The refusal that makes the clause a property rather than a restatement: a
+    # validation one byte short of the declared payload is not the complete extent, so
+    # a declaration validating a prefix fails this rather than passing it by name.
+    lines += _theorem(
+        "a_validation_short_of_the_declared_payload_is_not_the_extent",
+        "forall o : op,"
+        " implb (Nat.ltb 0 (rec_max_payload_bytes (op_declared_record o)))"
+        " (negb (validates_the_whole_extent"
+        " (Nat.pred (rec_max_payload_bytes (op_declared_record o))) o)) = true.",
+        "intro o; destruct o; vm_compute; reflexivity.")
+    lines += _theorem(
+        "the_validation_cost_is_one_check_per_declared_segment",
+        "forall o : op,"
+        " Nat.eqb (rec_validation_cost (op_declared_record o))"
+        " (op_descriptor_validation_cost o + op_segment_validation_cost o"
+        " * rec_max_segment_count (op_declared_record o)) = true.",
+        "intro o; destruct o; vm_compute; reflexivity.")
+    lines += _theorem(
+        "an_operation_with_segments_charges_each_of_them",
+        "forall o : op,"
+        " implb (Nat.ltb 0 (rec_max_segment_count (op_declared_record o)))"
+        " (Nat.ltb 0 (op_segment_validation_cost o)) = true.",
+        "intro o; destruct o; vm_compute; reflexivity.")
+
+    lines += [
+        f"(* {RESTART_ENTRY}'s *old capabilities dead*, read at the artifact: what a",
+        f"   transfer holds while it is live, and where the hold ends. `state_{terminal}`",
+        f"   is the state {LIFECYCLE_ENTRY}'s own malformed-step sentence names as the",
+        f"   destination, which is terminal completion; `state_{reclaimed}` is the last",
+        "   state of that entry's own chain. *)",
+        "Definition holds_until_terminal (o : op) (s : slot_state) : nat :=",
+        f"  if andb (Nat.leb (lifecycle_rank state_{live}) (lifecycle_rank s))",
+        f"          (Nat.ltb (lifecycle_rank s) (lifecycle_rank state_{terminal}))",
+        "  then op_held_capabilities o else 0.",
+        "",
+        "(* The hold this world excludes: one released only when the slot is reclaimed,",
+        "   which outlives terminal completion by every state between the two. *)",
+        "Definition holds_until_reclaimed (o : op) (s : slot_state) : nat :=",
+        f"  if andb (Nat.leb (lifecycle_rank state_{live}) (lifecycle_rank s))",
+        f"          (Nat.ltb (lifecycle_rank s) (lifecycle_rank state_{reclaimed}))",
+        "  then op_held_capabilities o else 0.",
+        "",
+        "(* Stated of a hold and not of one hold's body, on the same ground as the",
+        "   lost-wakeup exclusion above: nothing is held at or past terminal",
+        "   completion. Both holds are held to it, and one of them fails. *)",
+        "Definition dead_past_terminal_completion"
+        " (hold : op -> slot_state -> nat) : Prop :=",
+        "  forall (o : op) (s : slot_state),",
+        f"    Nat.leb (lifecycle_rank state_{terminal}) (lifecycle_rank s) = true ->",
+        "    hold o s = 0.",
+        "",
+    ]
+    lines += _theorem(
+        "no_capability_is_acquired_before_acceptance",
+        "forall (o : op) (s : slot_state),"
+        f" Nat.ltb (lifecycle_rank s) (lifecycle_rank state_{live}) = true ->"
+        " holds_until_terminal o s = 0.",
+        "intros o s H; destruct o; destruct s; vm_compute in H |- *;"
+        " try reflexivity; discriminate H.")
+    lines += _theorem(
+        "no_capability_is_retained_past_terminal_completion",
+        "dead_past_terminal_completion holds_until_terminal.",
+        "intros o s H; destruct o; destruct s; vm_compute in H |- *;"
+        " try reflexivity; discriminate H.")
+    lines += _theorem(
+        "a_hold_released_only_at_reclamation_outlives_terminal_completion",
+        "~ dead_past_terminal_completion holds_until_reclaimed.",
+        "intro H; unfold dead_past_terminal_completion in H;"
+        f" specialize (H op_{_holds_most(ops, names)} state_{terminal});"
+        " vm_compute in H; discriminate (H eq_refl).")
+    # The refuter's keeps-theorem, so the refutation isolates the release point and
+    # nothing else: before terminal completion the two holds are the same function.
+    lines += _theorem(
+        "the_two_holds_agree_before_terminal_completion",
+        "forall (o : op) (s : slot_state),"
+        f" Nat.ltb (lifecycle_rank s) (lifecycle_rank state_{terminal}) = true ->"
+        " holds_until_terminal o s = holds_until_reclaimed o s.",
+        "intros o s H; destruct o; destruct s; vm_compute in H |- *;"
+        " try reflexivity; discriminate H.")
+
+    return lines, [
+        "permission_eqb_reflexive",
+        "the_permission_check_admits_exactly_the_declared_map",
+        "every_declared_direction_requires_its_own_permission",
+        "a_reference_is_authorized_by_the_direction_it_declares",
+        "the_maximum_segment_list_is_admitted",
+        "one_segment_past_the_maximum_is_refused",
+        "a_segment_extending_past_its_capability_is_refused",
+        "a_bad_segment_at_any_position_refuses_the_list",
+        "the_complete_extent_is_validated_before_the_transfer_starts",
+        "a_validation_short_of_the_declared_payload_is_not_the_extent",
+        "the_validation_cost_is_one_check_per_declared_segment",
+        "an_operation_with_segments_charges_each_of_them",
+        "no_capability_is_acquired_before_acceptance",
+        "no_capability_is_retained_past_terminal_completion",
+        "a_hold_released_only_at_reclamation_outlives_terminal_completion",
+        "the_two_holds_agree_before_terminal_completion",
+    ]
+
+
+def _world_block(own: Owned, world: World) -> list[str]:
+    """One world's whole block: the skeleton, the constants, the campaign, the gate."""
+    ring, enc = world["ring"], world["encoding"]
+    ops = world["operations"]
+    names = [op["name"] for op in ops]
+    fields = world["operation_record_fields"]
+
+    lines: list[str] = [
         "(* -------------------------------------------------------------------------",
         "   Part 1: the interface skeleton.",
         "   ------------------------------------------------------------------------- *)",
@@ -420,12 +882,12 @@ def emit(root: Path, register: Register | None = None) -> str:
                         f"the cancellation answers {CANCEL_ENTRY} states")
     lines += _inductive("submit_result", "submit_", ["enqueued", own.full_ring],
                         f"submission, whose full-ring arm {FULL_RING_ENTRY} names")
-    lines += _inductive("deadline_class", "deadline_", decl["deadline_classes"],
+    lines += _inductive("deadline_class", "deadline_", world["deadline_classes"],
                         "the interface's finite deadline classes")
-    lines += _inductive("ring_flag", "flag_", decl["flags"], "the closed flag set")
-    lines += _inductive("direction", "direction_", decl["directions"],
+    lines += _inductive("ring_flag", "flag_", world["flags"], "the closed flag set")
+    lines += _inductive("direction", "direction_", world["directions"],
                         "a buffer reference's declared direction")
-    lines += _inductive("content_type", "content_", decl["content_types"],
+    lines += _inductive("content_type", "content_", world["content_types"],
                         "a buffer reference's declared content type")
     lines += _inductive("op", "op_", names, "the interface's closed operation variant")
 
@@ -496,15 +958,15 @@ def emit(root: Path, register: Register | None = None) -> str:
         lines.append(f"Definition enc_{key} : nat := {enc[key]}.")
     lines += [
         "",
-        f"Definition label_levels : nat := {decl['label_levels']}.",
+        f"Definition label_levels : nat := {world['label_levels']}.",
         "",
         "Definition buffer_ref_bytes : nat :=",
         "  enc_session_index_bytes + enc_offset_bytes + enc_length_bytes",
         "  + enc_direction_bytes + enc_content_type_bytes.",
         "",
         f"Definition op_count : nat := {len(ops)}.",
-        f"Definition deadline_class_count : nat := {len(decl['deadline_classes'])}.",
-        f"Definition flag_count : nat := {len(decl['flags'])}.",
+        f"Definition deadline_class_count : nat := {len(world['deadline_classes'])}.",
+        f"Definition flag_count : nat := {len(world['flags'])}.",
         f"Definition status_count : nat := {len(own.statuses)}.",
         f"Definition refinement_count : nat := {len(refinements)}.",
         "",
@@ -645,6 +1107,16 @@ def emit(root: Path, register: Register | None = None) -> str:
         "Definition accept (session_generation descriptor_generation : nat)",
         "                  (duplicate_live : bool) : bool :=",
         "  andb (Nat.eqb session_generation descriptor_generation) (negb duplicate_live).",
+        "",
+        f"(* {RESTART_ENTRY}'s artifact reset: the returned generation and empty indices",
+        "   are publishable only after revocation or quiescence has been established.",
+        "   None keeps the session closed. The boolean is supplied evidence, not a",
+        "   claim that the absent DMA engine has actually quiesced. Every lifecycle",
+        "   state takes the same reset; the machine must implement this ordering. *)",
+        "Definition reset_session (s : slot_state) (generation : nat)",
+        "                         (dma_quiesced : bool)",
+        "                         : option (nat * nat * nat * bool) :=",
+        "  if dma_quiesced then Some (S generation, 0, 0, false) else None.",
         "",
         "(* The notification discipline R-12-096 states, over the two indices at",
         "   the width the declaration gives them: the producer and consumer indices",
@@ -882,6 +1354,41 @@ def emit(root: Path, register: Register | None = None) -> str:
         " /\\ sleeps 0 0 0 true = true.",
         "split; [ intros; reflexivity | vm_compute; reflexivity ].")
     lines += _theorem(
+        "an_unstarted_cancellable_target_is_cancelled",
+        "forall (o : op) (position : nat), op_cancellable o = true ->"
+        f" cancel o state_{own.unstarted} position = cancel_{own.cancels[0]}.",
+        "intros o position H; unfold cancel; rewrite H; reflexivity.")
+    lines += _theorem(
+        "a_target_before_its_commit_point_is_cancelled",
+        "forall (o : op) (position : nat), op_cancellable o = true ->"
+        " Nat.ltb position (op_commit_index o) = true ->"
+        f" cancel o state_{live} position = cancel_{own.cancels[0]}.",
+        "intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity.")
+    lines += _theorem(
+        "cancellation_outside_live_states_is_not_live",
+        "forall (o : op) (s : slot_state) (position : nat),"
+        f" s <> state_{own.unstarted} -> s <> state_{live} ->"
+        f" cancel o s position = cancel_{own.cancels[2]}.",
+        "intros o s position Hu Hl; unfold cancel; destruct (op_cancellable o);"
+        " [ destruct s; try reflexivity; contradiction | reflexivity ].")
+    lines += _theorem(
+        "reset_in_every_lifecycle_state_clears_the_indices_and_notification",
+        "forall s : slot_state, reset_session s ring_session_generation true ="
+        " Some (S ring_session_generation, 0, 0, false).",
+        "intro s; destruct s; vm_compute; reflexivity.")
+    lines += _theorem(
+        "reset_without_quiescence_never_publishes_a_generation",
+        "forall s : slot_state, reset_session s ring_session_generation false = None.",
+        "intro s; destruct s; vm_compute; reflexivity.")
+    lines += _theorem(
+        "reset_in_every_lifecycle_state_refuses_the_old_generation",
+        "forall (s : slot_state) (generation produced consumed : nat) (armed : bool),"
+        " reset_session s ring_session_generation true ="
+        " Some (generation, produced, consumed, armed) ->"
+        " accept generation ring_session_generation false = false.",
+        "intros s generation produced consumed armed H; destruct s;"
+        " vm_compute in H; inversion H; vm_compute; reflexivity.")
+    lines += _theorem(
         "a_target_past_its_commit_point_is_too_late",
         "forall (o : op) (position : nat), op_cancellable o = true ->"
         " Nat.ltb position (op_commit_index o) = false ->"
@@ -922,9 +1429,18 @@ def emit(root: Path, register: Register | None = None) -> str:
         "a_consumer_that_skips_the_recheck_loses_a_wakeup",
         "the_two_consumers_differ_only_where_the_producer_moved",
         "a_sleep_needs_the_armed_word_and_an_empty_recheck",
+        "an_unstarted_cancellable_target_is_cancelled",
+        "a_target_before_its_commit_point_is_cancelled",
+        "cancellation_outside_live_states_is_not_live",
+        "reset_in_every_lifecycle_state_clears_the_indices_and_notification",
+        "reset_without_quiescence_never_publishes_a_generation",
+        "reset_in_every_lifecycle_state_refuses_the_old_generation",
         "a_target_past_its_commit_point_is_too_late",
         "a_non_cancellable_operation_is_never_live_to_cancel",
     ]
+    dma_lines, dma_printed = _dma_part(own, world, names)
+    lines += dma_lines
+    printed += dma_printed
     lines += [
         "(* -------------------------------------------------------------------------",
         "   The R-05-163 gate: every constant closed under the global context.",
@@ -932,6 +1448,41 @@ def emit(root: Path, register: Register | None = None) -> str:
         "",
     ]
     lines += [f"Print Assumptions {name}." for name in printed]
+    return lines
+
+
+def emit(root: Path, register: Register | None = None) -> str:
+    """The artifact's whole text, as a function of the declaration and the register.
+
+    `register` is handed in by the checker, which has already parsed it; a caller with
+    nothing parsed passes none and this reads the corpus itself. Either way the parse
+    is the one `vos/register.py` owns rather than a second one written here.
+    """
+    own = owned(register if register is not None
+                else read_register(corpus_mod.load(root)))
+    worlds = declaration(root)["worlds"]
+
+    lines = _preamble(worlds)
+    for index, world in enumerate(worlds):
+        if index == 0:
+            lines += _world_block(own, world)
+            continue
+        module = _module(world["world"])
+        lines += [
+            "",
+            "(* -------------------------------------------------------------------------",
+            f"   World `{world['world']}`, in a scope of its own: the declaration lists it",
+            "   past the first, and the campaign below is the same one the file scope",
+            "   carries, decided over this world's own declared constants.",
+            "   ------------------------------------------------------------------------- *)",
+            "",
+            f"Module {module}.",
+            "",
+        ]
+        lines += _world_block(own, world)
+        lines += ["", f"End {module}.", ""]
+    while lines and not lines[-1]:
+        lines.pop()
     return "\n".join(lines) + "\n"
 
 

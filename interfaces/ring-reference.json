@@ -1,157 +1,345 @@
 {
-  "schema": "vos.idl.ring/1",
+  "schema": "vos.idl.ring/2",
   "profile": "docs/languages/idl-profile.md",
   "profile_version": 1,
-  "world": "ring_reference",
 
-  "ring": {
-    "capacity": 64,
-    "index_width_bytes": 1,
-    "index_span": 256,
-    "descriptor_size_bytes": 64,
-    "descriptor_alignment_bytes": 8,
-    "completion_size_bytes": 32,
-    "completion_fill": 5,
-    "max_batch_size": 8,
-    "session_generation": 1,
-    "completion_capacity": 64,
-    "max_accepted": 64,
-    "max_segments": 4,
-    "segment_max_bytes": 1024,
-    "slot_budget": 20000
-  },
-
-  "encoding": {
-    "request_id_bytes": 4,
-    "session_index_bytes": 2,
-    "offset_bytes": 4,
-    "length_bytes": 4,
-    "direction_bytes": 1,
-    "content_type_bytes": 1,
-    "generation_bytes": 4,
-    "metadata_bytes": 8,
-    "byte_count_bytes": 4,
-    "flag_set_bytes": 1,
-    "flag_spare_bits": 6
-  },
-
-  "label_levels": 4,
-  "deadline_classes": ["immediate", "frame", "bulk"],
-  "flags": ["notify_on_completion", "fence_before"],
-  "directions": ["to_server", "to_client"],
-  "content_types": ["opaque_bytes", "frame_extent"],
-
-  "operation_record_fields": [
-    "validation_cost",
-    "max_payload_bytes",
-    "max_segment_count",
-    "device_service_bound",
-    "cancellation_cleanup_cost",
-    "completion_publication_cost",
-    "max_notifications",
-    "max_requests_drained"
-  ],
-
-  "operations": [
+  "worlds": [
     {
-      "name": "read_extent",
-      "scalars": [
-        { "name": "extent_index", "width_bytes": 4, "validated_at_use": true },
-        { "name": "extent_length", "width_bytes": 4, "validated_at_use": true }
-      ],
-      "buffer_refs": 2,
-      "deadline": true,
-      "empty_validation_claim": false,
-      "labels": { "confidentiality": 1, "integrity": 2 },
-      "record": [24, 4096, 4, 1200, 40, 16, 1, 8],
-      "fill": 24,
-      "activation_slack": 10080,
-      "payload_slack": 0,
-      "cancellation_slack": 344,
-      "cancellation": {
-        "points": 2,
-        "commit_index": 2,
-        "quiescence_bound": 200,
-        "max_to_terminal": 1800
+      "world": "ring_reference",
+
+      "ring": {
+        "capacity": 64,
+        "index_width_bytes": 1,
+        "index_span": 256,
+        "descriptor_size_bytes": 64,
+        "descriptor_alignment_bytes": 8,
+        "completion_size_bytes": 32,
+        "completion_fill": 5,
+        "max_batch_size": 8,
+        "session_generation": 1,
+        "completion_capacity": 64,
+        "max_accepted": 64,
+        "max_segments": 4,
+        "segment_max_bytes": 1024,
+        "slot_budget": 20000
       },
-      "refinement": ["short_read"]
-    },
-    {
-      "name": "write_extent",
-      "scalars": [
-        { "name": "extent_index", "width_bytes": 4, "validated_at_use": true },
-        { "name": "extent_length", "width_bytes": 4, "validated_at_use": true }
-      ],
-      "buffer_refs": 2,
-      "deadline": true,
-      "empty_validation_claim": false,
-      "labels": { "confidentiality": 1, "integrity": 2 },
-      "record": [28, 4096, 4, 1600, 48, 16, 1, 8],
-      "fill": 24,
-      "activation_slack": 6848,
-      "payload_slack": 0,
-      "cancellation_slack": 136,
-      "cancellation": {
-        "points": 2,
-        "commit_index": 1,
-        "quiescence_bound": 200,
-        "max_to_terminal": 2000
+
+      "encoding": {
+        "request_id_bytes": 4,
+        "session_index_bytes": 2,
+        "offset_bytes": 4,
+        "length_bytes": 4,
+        "direction_bytes": 1,
+        "content_type_bytes": 1,
+        "generation_bytes": 4,
+        "metadata_bytes": 8,
+        "byte_count_bytes": 4,
+        "flag_set_bytes": 1,
+        "flag_spare_bits": 6
       },
-      "refinement": ["short_write"]
+
+      "label_levels": 4,
+      "deadline_classes": ["immediate", "frame", "bulk"],
+      "flags": ["notify_on_completion", "fence_before"],
+      "directions": ["to_server", "to_client"],
+      "content_types": ["opaque_bytes", "frame_extent"],
+      "dma": null,
+
+      "operation_record_fields": [
+        "validation_cost",
+        "max_payload_bytes",
+        "max_segment_count",
+        "device_service_bound",
+        "cancellation_cleanup_cost",
+        "completion_publication_cost",
+        "max_notifications",
+        "max_requests_drained"
+      ],
+
+      "operations": [
+        {
+          "name": "read_extent",
+          "scalars": [
+            { "name": "extent_index", "width_bytes": 4, "validated_at_use": true },
+            { "name": "extent_length", "width_bytes": 4, "validated_at_use": true }
+          ],
+          "buffer_refs": 2,
+          "deadline": true,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 1, "integrity": 2 },
+          "record": [24, 4096, 4, 1200, 40, 16, 1, 8],
+          "fill": 24,
+          "activation_slack": 10080,
+          "payload_slack": 0,
+          "cancellation_slack": 344,
+          "cancellation": {
+            "points": 2,
+            "commit_index": 2,
+            "quiescence_bound": 200,
+            "max_to_terminal": 1800
+          },
+          "refinement": ["short_read"],
+          "dma": null
+        },
+        {
+          "name": "write_extent",
+          "scalars": [
+            { "name": "extent_index", "width_bytes": 4, "validated_at_use": true },
+            { "name": "extent_length", "width_bytes": 4, "validated_at_use": true }
+          ],
+          "buffer_refs": 2,
+          "deadline": true,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 1, "integrity": 2 },
+          "record": [28, 4096, 4, 1600, 48, 16, 1, 8],
+          "fill": 24,
+          "activation_slack": 6848,
+          "payload_slack": 0,
+          "cancellation_slack": 136,
+          "cancellation": {
+            "points": 2,
+            "commit_index": 1,
+            "quiescence_bound": 200,
+            "max_to_terminal": 2000
+          },
+          "refinement": ["short_write"],
+          "dma": null
+        },
+        {
+          "name": "flush",
+          "scalars": [],
+          "buffer_refs": 0,
+          "deadline": true,
+          "empty_validation_claim": true,
+          "labels": { "confidentiality": 0, "integrity": 2 },
+          "record": [8, 0, 0, 900, 0, 16, 1, 8],
+          "fill": 56,
+          "activation_slack": 12608,
+          "payload_slack": 0,
+          "cancellation_slack": 184,
+          "cancellation": {
+            "points": 1,
+            "commit_index": 1,
+            "quiescence_bound": 100,
+            "max_to_terminal": 1200
+          },
+          "refinement": [],
+          "dma": null
+        },
+        {
+          "name": "query_geometry",
+          "scalars": [
+            { "name": "geometry_selector", "width_bytes": 2, "validated_at_use": true }
+          ],
+          "buffer_refs": 1,
+          "deadline": false,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 0, "integrity": 1 },
+          "record": [6, 64, 1, 120, 0, 16, 1, 8],
+          "fill": 44,
+          "activation_slack": 18864,
+          "payload_slack": 960,
+          "cancellation_slack": 0,
+          "cancellation": null,
+          "refinement": [],
+          "dma": null
+        },
+        {
+          "name": "poll_status",
+          "scalars": [
+            { "name": "request_slot", "width_bytes": 2, "validated_at_use": true }
+          ],
+          "buffer_refs": 0,
+          "deadline": false,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 0, "integrity": 1 },
+          "record": [4, 0, 0, 60, 0, 16, 1, 8],
+          "fill": 56,
+          "activation_slack": 19360,
+          "payload_slack": 0,
+          "cancellation_slack": 0,
+          "cancellation": null,
+          "refinement": [],
+          "dma": null
+        }
+      ]
     },
+
     {
-      "name": "flush",
-      "scalars": [],
-      "buffer_refs": 0,
-      "deadline": true,
-      "empty_validation_claim": true,
-      "labels": { "confidentiality": 0, "integrity": 2 },
-      "record": [8, 0, 0, 900, 0, 16, 1, 8],
-      "fill": 56,
-      "activation_slack": 12608,
-      "payload_slack": 0,
-      "cancellation_slack": 184,
-      "cancellation": {
-        "points": 1,
-        "commit_index": 1,
-        "quiescence_bound": 100,
-        "max_to_terminal": 1200
+      "world": "ring_dma",
+
+      "ring": {
+        "capacity": 32,
+        "index_width_bytes": 1,
+        "index_span": 256,
+        "descriptor_size_bytes": 64,
+        "descriptor_alignment_bytes": 8,
+        "completion_size_bytes": 32,
+        "completion_fill": 5,
+        "max_batch_size": 4,
+        "session_generation": 1,
+        "completion_capacity": 32,
+        "max_accepted": 32,
+        "max_segments": 8,
+        "segment_max_bytes": 4096,
+        "slot_budget": 40000
       },
-      "refinement": []
-    },
-    {
-      "name": "query_geometry",
-      "scalars": [
-        { "name": "geometry_selector", "width_bytes": 2, "validated_at_use": true }
+
+      "encoding": {
+        "request_id_bytes": 4,
+        "session_index_bytes": 2,
+        "offset_bytes": 4,
+        "length_bytes": 4,
+        "direction_bytes": 1,
+        "content_type_bytes": 1,
+        "generation_bytes": 4,
+        "metadata_bytes": 8,
+        "byte_count_bytes": 4,
+        "flag_set_bytes": 1,
+        "flag_spare_bits": 5
+      },
+
+      "label_levels": 4,
+      "deadline_classes": ["immediate", "frame", "bulk"],
+      "flags": ["notify_on_completion", "fence_before", "quiesce_after"],
+      "directions": ["to_server", "to_client"],
+      "content_types": ["opaque_bytes", "granule_extent"],
+
+      "dma": {
+        "permissions": ["load", "store"],
+        "direction_permission": ["load", "store"]
+      },
+
+      "operation_record_fields": [
+        "validation_cost",
+        "max_payload_bytes",
+        "max_segment_count",
+        "device_service_bound",
+        "cancellation_cleanup_cost",
+        "completion_publication_cost",
+        "max_notifications",
+        "max_requests_drained"
       ],
-      "buffer_refs": 1,
-      "deadline": false,
-      "empty_validation_claim": false,
-      "labels": { "confidentiality": 0, "integrity": 1 },
-      "record": [6, 64, 1, 120, 0, 16, 1, 8],
-      "fill": 44,
-      "activation_slack": 18864,
-      "payload_slack": 960,
-      "cancellation_slack": 0,
-      "cancellation": null,
-      "refinement": []
-    },
-    {
-      "name": "poll_status",
-      "scalars": [
-        { "name": "request_slot", "width_bytes": 2, "validated_at_use": true }
-      ],
-      "buffer_refs": 0,
-      "deadline": false,
-      "empty_validation_claim": false,
-      "labels": { "confidentiality": 0, "integrity": 1 },
-      "record": [4, 0, 0, 60, 0, 16, 1, 8],
-      "fill": 56,
-      "activation_slack": 19360,
-      "payload_slack": 0,
-      "cancellation_slack": 0,
-      "cancellation": null,
-      "refinement": []
+
+      "operations": [
+        {
+          "name": "stream_to_device",
+          "scalars": [
+            { "name": "window_index", "width_bytes": 4, "validated_at_use": true },
+            { "name": "transfer_length", "width_bytes": 4, "validated_at_use": true }
+          ],
+          "buffer_refs": 1,
+          "deadline": true,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 1, "integrity": 2 },
+          "record": [120, 32768, 8, 4800, 96, 16, 1, 4],
+          "fill": 36,
+          "activation_slack": 20256,
+          "payload_slack": 0,
+          "cancellation_slack": 488,
+          "cancellation": {
+            "points": 3,
+            "commit_index": 2,
+            "quiescence_bound": 600,
+            "max_to_terminal": 6000
+          },
+          "refinement": ["short_transfer"],
+          "dma": {
+            "extent_validated_bytes": 32768,
+            "extent_validations_before_start": 1,
+            "extent_reads_after_start": 0,
+            "descriptor_validation_cost": 24,
+            "segment_validation_cost": 12,
+            "held_capabilities": 1
+          }
+        },
+        {
+          "name": "stream_from_device",
+          "scalars": [
+            { "name": "window_index", "width_bytes": 4, "validated_at_use": true },
+            { "name": "transfer_length", "width_bytes": 4, "validated_at_use": true }
+          ],
+          "buffer_refs": 1,
+          "deadline": true,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 1, "integrity": 2 },
+          "record": [140, 32768, 8, 5200, 128, 16, 1, 4],
+          "fill": 36,
+          "activation_slack": 18576,
+          "payload_slack": 0,
+          "cancellation_slack": 656,
+          "cancellation": {
+            "points": 3,
+            "commit_index": 1,
+            "quiescence_bound": 800,
+            "max_to_terminal": 6800
+          },
+          "refinement": ["short_transfer"],
+          "dma": {
+            "extent_validated_bytes": 32768,
+            "extent_validations_before_start": 1,
+            "extent_reads_after_start": 0,
+            "descriptor_validation_cost": 28,
+            "segment_validation_cost": 14,
+            "held_capabilities": 1
+          }
+        },
+        {
+          "name": "map_window",
+          "scalars": [
+            { "name": "window_index", "width_bytes": 4, "validated_at_use": true }
+          ],
+          "buffer_refs": 1,
+          "deadline": true,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 0, "integrity": 2 },
+          "record": [40, 6144, 2, 900, 40, 16, 1, 4],
+          "fill": 40,
+          "activation_slack": 36176,
+          "payload_slack": 2048,
+          "cancellation_slack": 144,
+          "cancellation": {
+            "points": 2,
+            "commit_index": 2,
+            "quiescence_bound": 300,
+            "max_to_terminal": 1400
+          },
+          "refinement": [],
+          "dma": {
+            "extent_validated_bytes": 6144,
+            "extent_validations_before_start": 1,
+            "extent_reads_after_start": 0,
+            "descriptor_validation_cost": 20,
+            "segment_validation_cost": 10,
+            "held_capabilities": 1
+          }
+        },
+        {
+          "name": "quiesce_window",
+          "scalars": [
+            { "name": "window_index", "width_bytes": 4, "validated_at_use": true }
+          ],
+          "buffer_refs": 0,
+          "deadline": false,
+          "empty_validation_claim": false,
+          "labels": { "confidentiality": 0, "integrity": 2 },
+          "record": [18, 0, 0, 240, 0, 16, 1, 4],
+          "fill": 54,
+          "activation_slack": 38904,
+          "payload_slack": 0,
+          "cancellation_slack": 0,
+          "cancellation": null,
+          "refinement": [],
+          "dma": {
+            "extent_validated_bytes": 0,
+            "extent_validations_before_start": 0,
+            "extent_reads_after_start": 0,
+            "descriptor_validation_cost": 18,
+            "segment_validation_cost": 0,
+            "held_capabilities": 0
+          }
+        }
+      ]
     }
   ]
 }

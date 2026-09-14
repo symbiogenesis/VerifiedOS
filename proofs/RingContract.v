@@ -8,11 +8,20 @@
 
    Owners:
      interfaces/ring-reference.json
-         everything a composition fixes: the ring constants, the encoding
-         widths, the operation set, and each operation's declared record.
+         everything a composition fixes: the worlds, and for each of them the
+         ring constants, the encoding widths, the operation set, and each
+         operation's declared record.
      docs/requirements-register.md
          R-12-093's closed status set, R-12-094's lifecycle states,
          R-12-095's full-ring result, and R-12-097's cancellation answers.
+
+   Worlds, in the declaration's own order (2):
+     `ring_reference` at the file's own scope, then `ring_dma` in module `RingDma`
+   A Gallina file has one top-level scope and two worlds each declaring an
+   `op` cannot both hold it, so the first world listed takes that scope and
+   every further world takes a module of its own name. Each block is emitted
+   by one function of the declaration, so every world states the whole
+   campaign at its own constants and no bound is authored twice.
 
    What this is, per the profile's section 4.3.6: the generated interface
    artifact, carrying the interface skeleton, the composition-time
@@ -441,6 +450,16 @@ Definition accept (session_generation descriptor_generation : nat)
                   (duplicate_live : bool) : bool :=
   andb (Nat.eqb session_generation descriptor_generation) (negb duplicate_live).
 
+(* R-12-099's artifact reset: the returned generation and empty indices
+   are publishable only after revocation or quiescence has been established.
+   None keeps the session closed. The boolean is supplied evidence, not a
+   claim that the absent DMA engine has actually quiesced. Every lifecycle
+   state takes the same reset; the machine must implement this ordering. *)
+Definition reset_session (s : slot_state) (generation : nat)
+                         (dma_quiesced : bool)
+                         : option (nat * nat * nat * bool) :=
+  if dma_quiesced then Some (S generation, 0, 0, false) else None.
+
 (* The notification discipline R-12-096 states, over the two indices at
    the width the declaration gives them: the producer and consumer indices
    are free-running counters below `ring_index_span`, so work is pending
@@ -630,6 +649,30 @@ Theorem a_sleep_needs_the_armed_word_and_an_empty_recheck :
   (forall drained recheck consumed : nat, sleeps drained recheck consumed false = false) /\ sleeps 0 0 0 true = true.
 Proof. split; [ intros; reflexivity | vm_compute; reflexivity ]. Qed.
 
+Theorem an_unstarted_cancellable_target_is_cancelled :
+  forall (o : op) (position : nat), op_cancellable o = true -> cancel o state_Submitted position = cancel_cancelled.
+Proof. intros o position H; unfold cancel; rewrite H; reflexivity. Qed.
+
+Theorem a_target_before_its_commit_point_is_cancelled :
+  forall (o : op) (position : nat), op_cancellable o = true -> Nat.ltb position (op_commit_index o) = true -> cancel o state_Accepted position = cancel_cancelled.
+Proof. intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity. Qed.
+
+Theorem cancellation_outside_live_states_is_not_live :
+  forall (o : op) (s : slot_state) (position : nat), s <> state_Submitted -> s <> state_Accepted -> cancel o s position = cancel_not_live.
+Proof. intros o s position Hu Hl; unfold cancel; destruct (op_cancellable o); [ destruct s; try reflexivity; contradiction | reflexivity ]. Qed.
+
+Theorem reset_in_every_lifecycle_state_clears_the_indices_and_notification :
+  forall s : slot_state, reset_session s ring_session_generation true = Some (S ring_session_generation, 0, 0, false).
+Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+
+Theorem reset_without_quiescence_never_publishes_a_generation :
+  forall s : slot_state, reset_session s ring_session_generation false = None.
+Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+
+Theorem reset_in_every_lifecycle_state_refuses_the_old_generation :
+  forall (s : slot_state) (generation produced consumed : nat) (armed : bool), reset_session s ring_session_generation true = Some (generation, produced, consumed, armed) -> accept generation ring_session_generation false = false.
+Proof. intros s generation produced consumed armed H; destruct s; vm_compute in H; inversion H; vm_compute; reflexivity. Qed.
+
 Theorem a_target_past_its_commit_point_is_too_late :
   forall (o : op) (position : nat), op_cancellable o = true -> Nat.ltb position (op_commit_index o) = false -> cancel o state_Accepted position = cancel_too_late.
 Proof. intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity. Qed.
@@ -676,5 +719,933 @@ Print Assumptions no_published_work_stays_behind_a_sleep.
 Print Assumptions a_consumer_that_skips_the_recheck_loses_a_wakeup.
 Print Assumptions the_two_consumers_differ_only_where_the_producer_moved.
 Print Assumptions a_sleep_needs_the_armed_word_and_an_empty_recheck.
+Print Assumptions an_unstarted_cancellable_target_is_cancelled.
+Print Assumptions a_target_before_its_commit_point_is_cancelled.
+Print Assumptions cancellation_outside_live_states_is_not_live.
+Print Assumptions reset_in_every_lifecycle_state_clears_the_indices_and_notification.
+Print Assumptions reset_without_quiescence_never_publishes_a_generation.
+Print Assumptions reset_in_every_lifecycle_state_refuses_the_old_generation.
 Print Assumptions a_target_past_its_commit_point_is_too_late.
 Print Assumptions a_non_cancellable_operation_is_never_live_to_cancel.
+
+(* -------------------------------------------------------------------------
+   World `ring_dma`, in a scope of its own: the declaration lists it
+   past the first, and the campaign below is the same one the file scope
+   carries, decided over this world's own declared constants.
+   ------------------------------------------------------------------------- *)
+
+Module RingDma.
+
+(* -------------------------------------------------------------------------
+   Part 1: the interface skeleton.
+   ------------------------------------------------------------------------- *)
+
+(* the closed common set R-12-093 states *)
+Inductive status : Set :=
+  | status_ok
+  | status_refused
+  | status_invalid
+  | status_cancelled
+  | status_deadline_expired
+  | status_peer_restarted
+  | status_device_fault
+  | status_resource_exhausted.
+
+(* the monotone lifecycle R-12-094 states, in its order *)
+Inductive slot_state : Set :=
+  | state_Free
+  | state_Writing
+  | state_Submitted
+  | state_Accepted
+  | state_Terminal
+  | state_Reclaimed.
+
+(* the cancellation answers R-12-097 states *)
+Inductive cancel_answer : Set :=
+  | cancel_cancelled
+  | cancel_too_late
+  | cancel_not_live.
+
+(* submission, whose full-ring arm R-12-095 names *)
+Inductive submit_result : Set :=
+  | submit_enqueued
+  | submit_would_block.
+
+(* the interface's finite deadline classes *)
+Inductive deadline_class : Set :=
+  | deadline_immediate
+  | deadline_frame
+  | deadline_bulk.
+
+(* the closed flag set *)
+Inductive ring_flag : Set :=
+  | flag_notify_on_completion
+  | flag_fence_before
+  | flag_quiesce_after.
+
+(* a buffer reference's declared direction *)
+Inductive direction : Set :=
+  | direction_to_server
+  | direction_to_client.
+
+(* a buffer reference's declared content type *)
+Inductive content_type : Set :=
+  | content_opaque_bytes
+  | content_granule_extent.
+
+(* the interface's closed operation variant *)
+Inductive op : Set :=
+  | op_stream_to_device
+  | op_stream_from_device
+  | op_map_window
+  | op_quiesce_window.
+
+(* each operation's closed result refinement, which R-12-093 admits beside the common set *)
+Inductive refinement : Set :=
+  | refine_stream_to_device__short_transfer
+  | refine_stream_from_device__short_transfer.
+
+(* The width IDL-023 fixes, and the only ladder this profile has: the
+   smallest of one, two or four bytes that holds a declared case count. A
+   flag set's width is not this rule's and no rung here is a flag set's:
+   WF-10 makes it a declared width, and the declaration states it below as
+   `enc_flag_set_bytes`. *)
+Definition disc_width (cases : nat) : nat :=
+  if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.
+
+Record labels : Set := mk_labels {
+  confidentiality : nat;
+  integrity : nat
+}.
+
+Record buffer_ref : Set := mk_buffer_ref {
+  session_index : nat;
+  ref_offset : nat;
+  ref_length : nat;
+  ref_direction : direction;
+  ref_content : content_type
+}.
+
+Record descriptor : Set := mk_descriptor {
+  descriptor_op : op;
+  request_id : nat;
+  descriptor_generation : nat;
+  scalars : list nat;
+  buffers : list buffer_ref;
+  deadline : option deadline_class;
+  flags : list ring_flag
+}.
+
+Record completion : Set := mk_completion {
+  completion_request_id : nat;
+  completion_status : status;
+  completion_refinement : option nat;
+  metadata : nat;
+  consumed_bytes : nat;
+  produced_bytes : nat;
+  server_generation : nat
+}.
+
+Record op_record : Set := mk_op_record {
+  rec_validation_cost : nat;
+  rec_max_payload_bytes : nat;
+  rec_max_segment_count : nat;
+  rec_device_service_bound : nat;
+  rec_cancellation_cleanup_cost : nat;
+  rec_completion_publication_cost : nat;
+  rec_max_notifications : nat;
+  rec_max_requests_drained : nat
+}.
+
+(* -------------------------------------------------------------------------
+   Part 2: the composition-time constants, from the declaration.
+   ------------------------------------------------------------------------- *)
+
+Definition ring_capacity : nat := 32.
+Definition ring_index_width_bytes : nat := 1.
+Definition ring_index_span : nat := 256.
+Definition ring_descriptor_size_bytes : nat := 64.
+Definition ring_descriptor_alignment_bytes : nat := 8.
+Definition ring_completion_size_bytes : nat := 32.
+Definition ring_completion_fill : nat := 5.
+Definition ring_max_batch_size : nat := 4.
+Definition ring_session_generation : nat := 1.
+Definition ring_completion_capacity : nat := 32.
+Definition ring_max_accepted : nat := 32.
+Definition ring_max_segments : nat := 8.
+Definition ring_segment_max_bytes : nat := 4096.
+Definition ring_slot_budget : nat := 40000.
+
+Definition enc_byte_count_bytes : nat := 4.
+Definition enc_content_type_bytes : nat := 1.
+Definition enc_direction_bytes : nat := 1.
+Definition enc_flag_set_bytes : nat := 1.
+Definition enc_flag_spare_bits : nat := 5.
+Definition enc_generation_bytes : nat := 4.
+Definition enc_length_bytes : nat := 4.
+Definition enc_metadata_bytes : nat := 8.
+Definition enc_offset_bytes : nat := 4.
+Definition enc_request_id_bytes : nat := 4.
+Definition enc_session_index_bytes : nat := 2.
+
+Definition label_levels : nat := 4.
+
+Definition buffer_ref_bytes : nat :=
+  enc_session_index_bytes + enc_offset_bytes + enc_length_bytes
+  + enc_direction_bytes + enc_content_type_bytes.
+
+Definition op_count : nat := 4.
+Definition deadline_class_count : nat := 3.
+Definition flag_count : nat := 3.
+Definition status_count : nat := 8.
+Definition refinement_count : nat := 2.
+
+Definition tag_width : nat := disc_width op_count.
+Definition deadline_width : nat := disc_width deadline_class_count.
+Definition status_width : nat := disc_width status_count.
+Definition refinement_width : nat := disc_width refinement_count.
+
+Definition op_scalar_bytes (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 8
+  | op_stream_from_device => 8
+  | op_map_window => 4
+  | op_quiesce_window => 4
+  end.
+
+Definition op_buffer_refs (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 1
+  | op_stream_from_device => 1
+  | op_map_window => 1
+  | op_quiesce_window => 0
+  end.
+
+Definition op_has_deadline (o : op) : bool :=
+  match o with
+  | op_stream_to_device => true
+  | op_stream_from_device => true
+  | op_map_window => true
+  | op_quiesce_window => false
+  end.
+
+Definition op_marked_scalars (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 2
+  | op_stream_from_device => 2
+  | op_map_window => 1
+  | op_quiesce_window => 1
+  end.
+
+Definition op_empty_validation_claim (o : op) : bool :=
+  match o with
+  | op_stream_to_device => false
+  | op_stream_from_device => false
+  | op_map_window => false
+  | op_quiesce_window => false
+  end.
+
+Definition op_labels (o : op) : labels :=
+  match o with
+  | op_stream_to_device => mk_labels 1 2
+  | op_stream_from_device => mk_labels 1 2
+  | op_map_window => mk_labels 0 2
+  | op_quiesce_window => mk_labels 0 2
+  end.
+
+Definition op_cancellable (o : op) : bool :=
+  match o with
+  | op_stream_to_device => true
+  | op_stream_from_device => true
+  | op_map_window => true
+  | op_quiesce_window => false
+  end.
+
+Definition op_cancel_points (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 3
+  | op_stream_from_device => 3
+  | op_map_window => 2
+  | op_quiesce_window => 0
+  end.
+
+Definition op_commit_index (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 2
+  | op_stream_from_device => 1
+  | op_map_window => 2
+  | op_quiesce_window => 0
+  end.
+
+Definition op_quiescence_bound (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 600
+  | op_stream_from_device => 800
+  | op_map_window => 300
+  | op_quiesce_window => 0
+  end.
+
+Definition op_max_to_terminal (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 6000
+  | op_stream_from_device => 6800
+  | op_map_window => 1400
+  | op_quiesce_window => 0
+  end.
+
+Definition op_declared_record (o : op) : op_record :=
+  match o with
+  | op_stream_to_device => mk_op_record 120 32768 8 4800 96 16 1 4
+  | op_stream_from_device => mk_op_record 140 32768 8 5200 128 16 1 4
+  | op_map_window => mk_op_record 40 6144 2 900 40 16 1 4
+  | op_quiesce_window => mk_op_record 18 0 0 240 0 16 1 4
+  end.
+
+Definition op_fill (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 36
+  | op_stream_from_device => 36
+  | op_map_window => 40
+  | op_quiesce_window => 54
+  end.
+
+Definition op_activation_slack (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 20256
+  | op_stream_from_device => 18576
+  | op_map_window => 36176
+  | op_quiesce_window => 38904
+  end.
+
+Definition op_payload_slack (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 0
+  | op_stream_from_device => 0
+  | op_map_window => 2048
+  | op_quiesce_window => 0
+  end.
+
+Definition op_cancellation_slack (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 488
+  | op_stream_from_device => 656
+  | op_map_window => 144
+  | op_quiesce_window => 0
+  end.
+
+(* The encoded size of a descriptor, by section 4.2's rows: the tag, the
+   request identifier, the operation's scalars, its buffer references, its
+   optional deadline, and the closed flag set, packed with no interior
+   padding. *)
+Definition descriptor_bytes (o : op) : nat :=
+  tag_width + enc_request_id_bytes + op_scalar_bytes o
+  + op_buffer_refs o * buffer_ref_bytes
+  + (if op_has_deadline o then 1 + deadline_width else 0)
+  + enc_flag_set_bytes.
+
+(* The encoded size of a terminal completion: its status, the request
+   identifier it carries back, the optional operation-specific refinement,
+   the bounded result metadata, the consumed and produced byte counts, and
+   the server generation. *)
+Definition completion_bytes : nat :=
+  status_width + enc_request_id_bytes + (1 + refinement_width)
+  + enc_metadata_bytes + 2 * enc_byte_count_bytes + enc_generation_bytes.
+
+(* An activation's declared cost: the requests one drain admits, each
+   validated, served, and published. *)
+Definition activation_cost (o : op) : nat :=
+  rec_max_requests_drained (op_declared_record o)
+  * (rec_validation_cost (op_declared_record o)
+     + rec_device_service_bound (op_declared_record o)
+     + rec_completion_publication_cost (op_declared_record o)).
+
+(* The interval admission accounts from expiry observation to terminal
+   completion: the device's own bound, the declared cleanup, the DMA
+   quiescence, and the publication. *)
+Definition cancellation_interval (o : op) : nat :=
+  rec_device_service_bound (op_declared_record o)
+  + rec_cancellation_cleanup_cost (op_declared_record o)
+  + op_quiescence_bound o
+  + rec_completion_publication_cost (op_declared_record o).
+
+(* -------------------------------------------------------------------------
+   Part 3: the lifecycle, the ring machine, and the conformance campaign.
+   ------------------------------------------------------------------------- *)
+
+Definition lifecycle_next (o : slot_state) : option slot_state :=
+  match o with
+  | state_Free => Some state_Writing
+  | state_Writing => Some state_Submitted
+  | state_Submitted => Some state_Accepted
+  | state_Accepted => Some state_Terminal
+  | state_Terminal => Some state_Reclaimed
+  | state_Reclaimed => None
+  end.
+
+Definition lifecycle_rank (o : slot_state) : nat :=
+  match o with
+  | state_Free => 0
+  | state_Writing => 1
+  | state_Submitted => 2
+  | state_Accepted => 3
+  | state_Terminal => 4
+  | state_Reclaimed => 5
+  end.
+
+Definition lifecycle_malformed (o : slot_state) : option slot_state :=
+  match o with
+  | state_Free => None
+  | state_Writing => None
+  | state_Submitted => Some state_Terminal
+  | state_Accepted => None
+  | state_Terminal => None
+  | state_Reclaimed => None
+  end.
+
+(* The lifecycle is a sequence and not merely an order, so a successor's rank
+   is its predecessor's and one more: a step that only *increased* the rank
+   would admit a lifecycle that skipped a state, which is exactly what the
+   malformed step below is the one licensed instance of. *)
+Definition lifecycle_step_ok (s : slot_state) : bool :=
+  match lifecycle_next s with
+  | None => true
+  | Some t => Nat.eqb (lifecycle_rank t) (S (lifecycle_rank s))
+  end.
+
+(* The malformed step skips, and skips exactly the states the register's own
+   order puts between the two it names. *)
+Definition lifecycle_malformed_ok (s : slot_state) : bool :=
+  match lifecycle_malformed s with
+  | None => true
+  | Some t => Nat.eqb (lifecycle_rank t) (2 + lifecycle_rank s)
+  end.
+
+Definition may_reserve (occupancy : nat) : bool :=
+  Nat.ltb occupancy ring_capacity.
+
+Definition submit (occupancy : nat) : submit_result :=
+  if may_reserve occupancy then submit_enqueued else submit_would_block.
+
+(* Acceptance reads the session table and never the descriptor's contents:
+   a stale generation and a duplicate live identifier are each refused. *)
+Definition accept (session_generation descriptor_generation : nat)
+                  (duplicate_live : bool) : bool :=
+  andb (Nat.eqb session_generation descriptor_generation) (negb duplicate_live).
+
+(* R-12-099's artifact reset: the returned generation and empty indices
+   are publishable only after revocation or quiescence has been established.
+   None keeps the session closed. The boolean is supplied evidence, not a
+   claim that the absent DMA engine has actually quiesced. Every lifecycle
+   state takes the same reset; the machine must implement this ordering. *)
+Definition reset_session (s : slot_state) (generation : nat)
+                         (dma_quiesced : bool)
+                         : option (nat * nat * nat * bool) :=
+  if dma_quiesced then Some (S generation, 0, 0, false) else None.
+
+(* The notification discipline R-12-096 states, over the two indices at
+   the width the declaration gives them: the producer and consumer indices
+   are free-running counters below `ring_index_span`, so work is pending
+   when their modular difference is not zero, and it is
+   `the_capacity_divides_the_index_span` below, bounding the capacity by
+   half the span, that makes that difference the occupancy. *)
+Definition work_pending (produced consumed : nat) : bool :=
+  negb (Nat.eqb (Nat.modulo (produced + ring_index_span - consumed)
+                            ring_index_span) 0).
+
+(* A consumer's sleep decision sees two reads of the producer index:
+   `drained`, the one its drain ended on, and `recheck`, the one it takes
+   after arming its notification word. The discipline sleeps on an armed
+   word and an empty recheck; the drain's index decides nothing. *)
+Definition sleeps (drained recheck consumed : nat) (armed : bool) : bool :=
+  andb armed (negb (work_pending recheck consumed)).
+
+(* The consumer the discipline excludes: one that arms and then sleeps on
+   the index its drain ended on, never re-reading the producer's. *)
+Definition sleeps_without_recheck (drained recheck consumed : nat)
+                                  (armed : bool) : bool :=
+  andb armed (negb (work_pending drained consumed)).
+
+(* The lost-wakeup exclusion, stated of a decision rule and not of either
+   rule's body: whatever the drain saw, work pending at the recheck is never
+   slept over. Both consumers above are held to it, and one of them fails. *)
+Definition no_lost_wakeup (decide : nat -> nat -> nat -> bool -> bool) : Prop :=
+  forall drained recheck consumed : nat, forall armed : bool,
+    work_pending recheck consumed = true ->
+    decide drained recheck consumed armed = false.
+
+(* Cancellation's deterministic race, as the answers depend on where the
+   target stands: live and unstarted, live and past a declared point, past
+   the commit point, or not live at all. *)
+Definition cancel (o : op) (s : slot_state) (position : nat) : cancel_answer :=
+  if op_cancellable o then
+    match s with
+    | state_Submitted => cancel_cancelled
+    | state_Accepted =>
+        if Nat.ltb position (op_commit_index o) then cancel_cancelled
+        else cancel_too_late
+    | _ => cancel_not_live
+    end
+  else cancel_not_live.
+
+(* Every value a receiver uses as an index, length, offset, or selector: a
+   marked scalar, and every field of every buffer reference. *)
+Definition op_has_validated (o : op) : bool :=
+  orb (Nat.ltb 0 (op_marked_scalars o)) (Nat.ltb 0 (op_buffer_refs o)).
+
+(* Boolean agreement, written here because the prelude carries `xorb` and
+   the library that carries its complement is not on this file's path. *)
+Definition agree (a b : bool) : bool := negb (xorb a b).
+
+Lemma eqb_reflexive : forall n : nat, Nat.eqb n n = true.
+Proof. induction n as [| m IH]; simpl; [ reflexivity | exact IH ]. Qed.
+
+Theorem the_width_rule_admits_one_form :
+  andb (andb (Nat.eqb (disc_width 256) 1) (Nat.eqb (disc_width 257) 2)) (andb (Nat.eqb (disc_width 65536) 2) (Nat.eqb (disc_width 65537) 4)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_flag_set_spends_its_declared_width :
+  Nat.eqb (flag_count + enc_flag_spare_bits) (8 * enc_flag_set_bytes) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem descriptor_fills_its_slot_exactly :
+  forall o : op, Nat.eqb (descriptor_bytes o + op_fill o) ring_descriptor_size_bytes = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem completion_fills_its_slot_exactly :
+  Nat.eqb (completion_bytes + ring_completion_fill) ring_completion_size_bytes = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem both_slots_are_aligned :
+  andb (Nat.eqb (Nat.modulo ring_descriptor_size_bytes ring_descriptor_alignment_bytes) 0) (Nat.eqb (Nat.modulo ring_completion_size_bytes ring_descriptor_alignment_bytes) 0) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_index_span_is_the_declared_width :
+  Nat.eqb ring_index_span (Nat.pow 2 (8 * ring_index_width_bytes)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_capacity_divides_the_index_span :
+  andb (Nat.eqb (Nat.modulo ring_index_span ring_capacity) 0) (Nat.leb (2 * ring_capacity) ring_index_span) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ring_fills_to_capacity :
+  may_reserve (Nat.pred ring_capacity) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ring_refuses_one_past_capacity :
+  submit ring_capacity = submit_would_block.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem completion_capacity_covers_accepted :
+  andb (Nat.leb ring_max_accepted ring_completion_capacity) (Nat.leb ring_max_accepted ring_capacity) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem batch_is_bounded_by_capacity :
+  andb (Nat.ltb 0 ring_max_batch_size) (Nat.leb ring_max_batch_size ring_capacity) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem drain_is_bounded_by_the_batch :
+  forall o : op, Nat.leb (rec_max_requests_drained (op_declared_record o)) ring_max_batch_size = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem the_declared_batch_and_segment_maxima_are_attained :
+  andb (Nat.eqb (rec_max_requests_drained (op_declared_record op_stream_to_device)) ring_max_batch_size) (Nat.eqb (rec_max_segment_count (op_declared_record op_stream_to_device)) ring_max_segments) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem notifications_are_coalesced_to_one :
+  forall o : op, Nat.leb (rec_max_notifications (op_declared_record o)) 1 = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem the_payload_is_exactly_the_declared_segments :
+  forall o : op, andb (Nat.leb (rec_max_segment_count (op_declared_record o)) ring_max_segments) (Nat.eqb (rec_max_payload_bytes (op_declared_record o) + op_payload_slack o) (rec_max_segment_count (op_declared_record o) * ring_segment_max_bytes)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem an_activation_spends_the_declared_slot_budget :
+  forall o : op, Nat.eqb (activation_cost o + op_activation_slack o) ring_slot_budget = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem cancellation_spends_the_declared_interval :
+  forall o : op, implb (op_cancellable o) (Nat.eqb (cancellation_interval o + op_cancellation_slack o) (op_max_to_terminal o)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem a_non_cancellable_operation_declares_no_cancellation :
+  forall o : op, implb (negb (op_cancellable o)) (Nat.eqb (rec_cancellation_cleanup_cost (op_declared_record o) + op_quiescence_bound o + op_max_to_terminal o + op_cancel_points o + op_commit_index o + op_cancellation_slack o) 0) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem cancellability_is_the_declaration_and_nothing_else :
+  forall o : op, agree (op_cancellable o) (Nat.ltb 0 (op_cancel_points o)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem commit_point_is_one_of_the_declared_points :
+  forall o : op, Nat.leb (op_commit_index o) (op_cancel_points o) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem labels_are_drawn_from_the_declared_lattice :
+  forall o : op, andb (Nat.ltb (confidentiality (op_labels o)) label_levels) (Nat.ltb (integrity (op_labels o)) label_levels) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem the_empty_validation_case_is_a_claim :
+  forall o : op, agree (op_empty_validation_claim o) (negb (op_has_validated o)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem lifecycle_advances_monotonically :
+  forall s : slot_state, lifecycle_step_ok s = true.
+Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+
+Theorem lifecycle_has_one_terminal_state :
+  lifecycle_next state_Reclaimed = None.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_malformed_step_skips_forward :
+  forall s : slot_state, lifecycle_malformed_ok s = true.
+Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+
+Theorem the_malformed_step_acquires_no_authority :
+  lifecycle_malformed state_Accepted = None.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem a_stale_generation_is_refused :
+  forall g h : nat, Nat.eqb g h = false -> forall d : bool, accept g h d = false.
+Proof. intros g h H d; unfold accept; rewrite H; reflexivity. Qed.
+
+Theorem a_duplicate_live_identifier_is_refused :
+  forall g h : nat, accept g h true = false.
+Proof. intros g h; unfold accept; destruct (Nat.eqb g h); reflexivity. Qed.
+
+Theorem a_fresh_unique_request_is_accepted :
+  forall g : nat, accept g g false = true.
+Proof. intro g; unfold accept; rewrite eqb_reflexive; reflexivity. Qed.
+
+Theorem no_published_work_stays_behind_a_sleep :
+  no_lost_wakeup sleeps.
+Proof. intros drained recheck consumed armed H; unfold sleeps; rewrite H; destruct armed; reflexivity. Qed.
+
+Theorem a_consumer_that_skips_the_recheck_loses_a_wakeup :
+  ~ no_lost_wakeup sleeps_without_recheck.
+Proof. intro H; unfold no_lost_wakeup in H; specialize (H 0 1 0 true); vm_compute in H; discriminate (H eq_refl). Qed.
+
+Theorem the_two_consumers_differ_only_where_the_producer_moved :
+  forall drained consumed : nat, forall armed : bool, sleeps drained drained consumed armed = sleeps_without_recheck drained drained consumed armed.
+Proof. intros; reflexivity. Qed.
+
+Theorem a_sleep_needs_the_armed_word_and_an_empty_recheck :
+  (forall drained recheck consumed : nat, sleeps drained recheck consumed false = false) /\ sleeps 0 0 0 true = true.
+Proof. split; [ intros; reflexivity | vm_compute; reflexivity ]. Qed.
+
+Theorem an_unstarted_cancellable_target_is_cancelled :
+  forall (o : op) (position : nat), op_cancellable o = true -> cancel o state_Submitted position = cancel_cancelled.
+Proof. intros o position H; unfold cancel; rewrite H; reflexivity. Qed.
+
+Theorem a_target_before_its_commit_point_is_cancelled :
+  forall (o : op) (position : nat), op_cancellable o = true -> Nat.ltb position (op_commit_index o) = true -> cancel o state_Accepted position = cancel_cancelled.
+Proof. intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity. Qed.
+
+Theorem cancellation_outside_live_states_is_not_live :
+  forall (o : op) (s : slot_state) (position : nat), s <> state_Submitted -> s <> state_Accepted -> cancel o s position = cancel_not_live.
+Proof. intros o s position Hu Hl; unfold cancel; destruct (op_cancellable o); [ destruct s; try reflexivity; contradiction | reflexivity ]. Qed.
+
+Theorem reset_in_every_lifecycle_state_clears_the_indices_and_notification :
+  forall s : slot_state, reset_session s ring_session_generation true = Some (S ring_session_generation, 0, 0, false).
+Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+
+Theorem reset_without_quiescence_never_publishes_a_generation :
+  forall s : slot_state, reset_session s ring_session_generation false = None.
+Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+
+Theorem reset_in_every_lifecycle_state_refuses_the_old_generation :
+  forall (s : slot_state) (generation produced consumed : nat) (armed : bool), reset_session s ring_session_generation true = Some (generation, produced, consumed, armed) -> accept generation ring_session_generation false = false.
+Proof. intros s generation produced consumed armed H; destruct s; vm_compute in H; inversion H; vm_compute; reflexivity. Qed.
+
+Theorem a_target_past_its_commit_point_is_too_late :
+  forall (o : op) (position : nat), op_cancellable o = true -> Nat.ltb position (op_commit_index o) = false -> cancel o state_Accepted position = cancel_too_late.
+Proof. intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity. Qed.
+
+Theorem a_non_cancellable_operation_is_never_live_to_cancel :
+  forall (o : op) (s : slot_state) (position : nat), op_cancellable o = false -> cancel o s position = cancel_not_live.
+Proof. intros o s position H; unfold cancel; rewrite H; reflexivity. Qed.
+
+(* -------------------------------------------------------------------------
+   Part 4: the DMA clauses R-12-100 states, at this world's own constants.
+   ------------------------------------------------------------------------- *)
+
+(* the permissions a session-table capability carries on this world's data plane *)
+Inductive permission : Set :=
+  | perm_load
+  | perm_store.
+
+Definition permission_rank (p : permission) : nat :=
+  match p with
+  | perm_load => 0
+  | perm_store => 1
+  end.
+
+Definition permission_eqb (a b : permission) : bool :=
+  Nat.eqb (permission_rank a) (permission_rank b).
+
+Lemma permission_eqb_reflexive : forall p : permission, permission_eqb p p = true.
+Proof. intro p; destruct p; reflexivity. Qed.
+
+(* The permission R-12-100 makes the session-table capability carry, per
+   direction the descriptor declares. *)
+Definition direction_permission (d : direction) : permission :=
+  match d with
+  | direction_to_server => perm_load
+  | direction_to_client => perm_store
+  end.
+
+(* The check that runs before the transfer: the granted permission against the
+   direction the descriptor declares, and nothing else about the descriptor. *)
+Definition direction_authorized (granted : permission) (d : direction) : bool :=
+  permission_eqb granted (direction_permission d).
+
+Definition ref_authorized (granted : permission) (b : buffer_ref) : bool :=
+  direction_authorized granted (ref_direction b).
+
+Theorem the_permission_check_admits_exactly_the_declared_map :
+  andb (direction_authorized perm_load direction_to_server) (andb (negb (direction_authorized perm_store direction_to_server)) (andb (direction_authorized perm_store direction_to_client) (negb (direction_authorized perm_load direction_to_client)))) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem every_declared_direction_requires_its_own_permission :
+  negb (permission_eqb (direction_permission direction_to_server) (direction_permission direction_to_client)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem a_reference_is_authorized_by_the_direction_it_declares :
+  forall (index offset : nat) (c : content_type) (d : direction), ref_authorized (direction_permission d) (mk_buffer_ref index offset ring_segment_max_bytes d c) = true.
+Proof. intros index offset c d; destruct d; vm_compute; reflexivity. Qed.
+
+(* One checked session-table entry per segment. Bounds are relative to the
+   delegated capability; no raw address is carried in the descriptor. *)
+Record dma_segment : Set := mk_dma_segment {
+  segment_permission : permission;
+  segment_capability_bytes : nat;
+  segment_reference : buffer_ref
+}.
+
+Definition segment_valid (segment : dma_segment) : bool :=
+  let b := segment_reference segment in
+  andb (ref_authorized (segment_permission segment) b)
+       (Nat.leb (ref_offset b + ref_length b)
+                (segment_capability_bytes segment)).
+
+Fixpoint all_segments_valid (segments : list dma_segment) : bool :=
+  match segments with
+  | nil => true
+  | cons segment rest => andb (segment_valid segment) (all_segments_valid rest)
+  end.
+
+Fixpoint segment_count (segments : list dma_segment) : nat :=
+  match segments with nil => 0 | cons _ rest => S (segment_count rest) end.
+
+Fixpoint repeat_segment (segment : dma_segment) (count : nat)
+                        : list dma_segment :=
+  match count with
+  | 0 => nil
+  | S rest => cons segment (repeat_segment segment rest)
+  end.
+
+Fixpoint append_segments (prefix suffix : list dma_segment) : list dma_segment :=
+  match prefix with
+  | nil => suffix
+  | cons segment rest => cons segment (append_segments rest suffix)
+  end.
+
+Definition dma_segments_admitted (segments : list dma_segment) : bool :=
+  andb (Nat.leb (segment_count segments) ring_max_segments)
+       (all_segments_valid segments).
+
+Definition maximum_segment (d : direction) (c : content_type) : dma_segment :=
+  mk_dma_segment (direction_permission d) ring_segment_max_bytes
+    (mk_buffer_ref 0 0 ring_segment_max_bytes d c).
+
+Definition witness_dma_segment : dma_segment :=
+  maximum_segment direction_to_server content_opaque_bytes.
+
+Theorem the_maximum_segment_list_is_admitted :
+  forall (d : direction) (c : content_type), dma_segments_admitted (repeat_segment (maximum_segment d c) ring_max_segments) = true.
+Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+
+Theorem one_segment_past_the_maximum_is_refused :
+  forall (d : direction) (c : content_type), dma_segments_admitted (repeat_segment (maximum_segment d c) (S ring_max_segments)) = false.
+Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+
+Theorem a_segment_extending_past_its_capability_is_refused :
+  forall (d : direction) (c : content_type), segment_valid (mk_dma_segment (direction_permission d) ring_segment_max_bytes (mk_buffer_ref 0 1 ring_segment_max_bytes d c)) = false.
+Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+
+Theorem a_bad_segment_at_any_position_refuses_the_list :
+  forall (prefix suffix : list dma_segment) (bad : dma_segment), segment_valid bad = false -> all_segments_valid (append_segments prefix (cons bad suffix)) = false.
+Proof. intros prefix suffix bad H; induction prefix as [|segment rest IH]; simpl; [ rewrite H; reflexivity | rewrite IH; destruct (segment_valid segment); reflexivity ]. Qed.
+
+Definition op_extent_validated_bytes (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 32768
+  | op_stream_from_device => 32768
+  | op_map_window => 6144
+  | op_quiesce_window => 0
+  end.
+
+Definition op_extent_validations_before_start (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 1
+  | op_stream_from_device => 1
+  | op_map_window => 1
+  | op_quiesce_window => 0
+  end.
+
+Definition op_extent_reads_after_start (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 0
+  | op_stream_from_device => 0
+  | op_map_window => 0
+  | op_quiesce_window => 0
+  end.
+
+Definition op_descriptor_validation_cost (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 24
+  | op_stream_from_device => 28
+  | op_map_window => 20
+  | op_quiesce_window => 18
+  end.
+
+Definition op_segment_validation_cost (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 12
+  | op_stream_from_device => 14
+  | op_map_window => 10
+  | op_quiesce_window => 0
+  end.
+
+Definition op_held_capabilities (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 1
+  | op_stream_from_device => 1
+  | op_map_window => 1
+  | op_quiesce_window => 0
+  end.
+
+(* The extent is validated whole when the bytes validated are the operation's
+   declared payload and not a prefix of it. *)
+Definition validates_the_whole_extent (validated : nat) (o : op) : bool :=
+  Nat.eqb validated (rec_max_payload_bytes (op_declared_record o)).
+
+Theorem the_complete_extent_is_validated_before_the_transfer_starts :
+  forall o : op, andb (validates_the_whole_extent (op_extent_validated_bytes o) o) (andb (implb (Nat.ltb 0 (rec_max_payload_bytes (op_declared_record o))) (Nat.ltb 0 (op_extent_validations_before_start o))) (Nat.eqb (op_extent_reads_after_start o) 0)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem a_validation_short_of_the_declared_payload_is_not_the_extent :
+  forall o : op, implb (Nat.ltb 0 (rec_max_payload_bytes (op_declared_record o))) (negb (validates_the_whole_extent (Nat.pred (rec_max_payload_bytes (op_declared_record o))) o)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem the_validation_cost_is_one_check_per_declared_segment :
+  forall o : op, Nat.eqb (rec_validation_cost (op_declared_record o)) (op_descriptor_validation_cost o + op_segment_validation_cost o * rec_max_segment_count (op_declared_record o)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+Theorem an_operation_with_segments_charges_each_of_them :
+  forall o : op, implb (Nat.ltb 0 (rec_max_segment_count (op_declared_record o))) (Nat.ltb 0 (op_segment_validation_cost o)) = true.
+Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
+
+(* R-12-099's *old capabilities dead*, read at the artifact: what a
+   transfer holds while it is live, and where the hold ends. `state_Terminal`
+   is the state R-12-094's own malformed-step sentence names as the
+   destination, which is terminal completion; `state_Reclaimed` is the last
+   state of that entry's own chain. *)
+Definition holds_until_terminal (o : op) (s : slot_state) : nat :=
+  if andb (Nat.leb (lifecycle_rank state_Accepted) (lifecycle_rank s))
+          (Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Terminal))
+  then op_held_capabilities o else 0.
+
+(* The hold this world excludes: one released only when the slot is reclaimed,
+   which outlives terminal completion by every state between the two. *)
+Definition holds_until_reclaimed (o : op) (s : slot_state) : nat :=
+  if andb (Nat.leb (lifecycle_rank state_Accepted) (lifecycle_rank s))
+          (Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Reclaimed))
+  then op_held_capabilities o else 0.
+
+(* Stated of a hold and not of one hold's body, on the same ground as the
+   lost-wakeup exclusion above: nothing is held at or past terminal
+   completion. Both holds are held to it, and one of them fails. *)
+Definition dead_past_terminal_completion (hold : op -> slot_state -> nat) : Prop :=
+  forall (o : op) (s : slot_state),
+    Nat.leb (lifecycle_rank state_Terminal) (lifecycle_rank s) = true ->
+    hold o s = 0.
+
+Theorem no_capability_is_acquired_before_acceptance :
+  forall (o : op) (s : slot_state), Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Accepted) = true -> holds_until_terminal o s = 0.
+Proof. intros o s H; destruct o; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
+
+Theorem no_capability_is_retained_past_terminal_completion :
+  dead_past_terminal_completion holds_until_terminal.
+Proof. intros o s H; destruct o; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
+
+Theorem a_hold_released_only_at_reclamation_outlives_terminal_completion :
+  ~ dead_past_terminal_completion holds_until_reclaimed.
+Proof. intro H; unfold dead_past_terminal_completion in H; specialize (H op_stream_to_device state_Terminal); vm_compute in H; discriminate (H eq_refl). Qed.
+
+Theorem the_two_holds_agree_before_terminal_completion :
+  forall (o : op) (s : slot_state), Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Terminal) = true -> holds_until_terminal o s = holds_until_reclaimed o s.
+Proof. intros o s H; destruct o; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
+
+(* -------------------------------------------------------------------------
+   The R-05-163 gate: every constant closed under the global context.
+   ------------------------------------------------------------------------- *)
+
+Print Assumptions eqb_reflexive.
+Print Assumptions the_width_rule_admits_one_form.
+Print Assumptions the_flag_set_spends_its_declared_width.
+Print Assumptions descriptor_fills_its_slot_exactly.
+Print Assumptions completion_fills_its_slot_exactly.
+Print Assumptions both_slots_are_aligned.
+Print Assumptions the_index_span_is_the_declared_width.
+Print Assumptions the_capacity_divides_the_index_span.
+Print Assumptions ring_fills_to_capacity.
+Print Assumptions ring_refuses_one_past_capacity.
+Print Assumptions completion_capacity_covers_accepted.
+Print Assumptions batch_is_bounded_by_capacity.
+Print Assumptions drain_is_bounded_by_the_batch.
+Print Assumptions the_declared_batch_and_segment_maxima_are_attained.
+Print Assumptions notifications_are_coalesced_to_one.
+Print Assumptions the_payload_is_exactly_the_declared_segments.
+Print Assumptions an_activation_spends_the_declared_slot_budget.
+Print Assumptions cancellation_spends_the_declared_interval.
+Print Assumptions a_non_cancellable_operation_declares_no_cancellation.
+Print Assumptions cancellability_is_the_declaration_and_nothing_else.
+Print Assumptions commit_point_is_one_of_the_declared_points.
+Print Assumptions labels_are_drawn_from_the_declared_lattice.
+Print Assumptions the_empty_validation_case_is_a_claim.
+Print Assumptions lifecycle_advances_monotonically.
+Print Assumptions lifecycle_has_one_terminal_state.
+Print Assumptions the_malformed_step_skips_forward.
+Print Assumptions the_malformed_step_acquires_no_authority.
+Print Assumptions a_stale_generation_is_refused.
+Print Assumptions a_duplicate_live_identifier_is_refused.
+Print Assumptions a_fresh_unique_request_is_accepted.
+Print Assumptions no_published_work_stays_behind_a_sleep.
+Print Assumptions a_consumer_that_skips_the_recheck_loses_a_wakeup.
+Print Assumptions the_two_consumers_differ_only_where_the_producer_moved.
+Print Assumptions a_sleep_needs_the_armed_word_and_an_empty_recheck.
+Print Assumptions an_unstarted_cancellable_target_is_cancelled.
+Print Assumptions a_target_before_its_commit_point_is_cancelled.
+Print Assumptions cancellation_outside_live_states_is_not_live.
+Print Assumptions reset_in_every_lifecycle_state_clears_the_indices_and_notification.
+Print Assumptions reset_without_quiescence_never_publishes_a_generation.
+Print Assumptions reset_in_every_lifecycle_state_refuses_the_old_generation.
+Print Assumptions a_target_past_its_commit_point_is_too_late.
+Print Assumptions a_non_cancellable_operation_is_never_live_to_cancel.
+Print Assumptions permission_eqb_reflexive.
+Print Assumptions the_permission_check_admits_exactly_the_declared_map.
+Print Assumptions every_declared_direction_requires_its_own_permission.
+Print Assumptions a_reference_is_authorized_by_the_direction_it_declares.
+Print Assumptions the_maximum_segment_list_is_admitted.
+Print Assumptions one_segment_past_the_maximum_is_refused.
+Print Assumptions a_segment_extending_past_its_capability_is_refused.
+Print Assumptions a_bad_segment_at_any_position_refuses_the_list.
+Print Assumptions the_complete_extent_is_validated_before_the_transfer_starts.
+Print Assumptions a_validation_short_of_the_declared_payload_is_not_the_extent.
+Print Assumptions the_validation_cost_is_one_check_per_declared_segment.
+Print Assumptions an_operation_with_segments_charges_each_of_them.
+Print Assumptions no_capability_is_acquired_before_acceptance.
+Print Assumptions no_capability_is_retained_past_terminal_completion.
+Print Assumptions a_hold_released_only_at_reclamation_outlives_terminal_completion.
+Print Assumptions the_two_holds_agree_before_terminal_completion.
+
+End RingDma.

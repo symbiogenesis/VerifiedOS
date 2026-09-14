@@ -3,7 +3,7 @@
 
 `vos/cli/ring.py` is the only tool in this directory whose output a rule holds byte
 for byte, so what is worth pinning here is not the bytes, which K-89 already decides,
-but the three claims the emitter makes about *where they came from*.
+but the four claims the emitter makes about *where they came from*.
 
 The first is that the states the artifact carries are read out of the register's own
 sentences rather than off positions in its chain: a figure computed as an ordinal
@@ -12,9 +12,15 @@ which is this repository's *computation that encodes its own answer*. The first 
 cases move a state and require the figure to move with it.
 
 The second is that an owner the emitter cannot read is refused rather than
-mis-emitted, at each of the shapes `owned()` and `declaration()` name.
+mis-emitted, at each of the shapes `owned()` and `declaration()` name. A world's DMA
+declaration is part of that surface: it is refused where it disagrees with the world
+it sits in rather than emitted into a campaign that then decides nothing.
 
-The third is K-89's own: a generator that raises is that rule's finding and never that
+The third is that each world takes a scope of its own and states the whole campaign at
+its own constants, so a second world is a second instantiation and never a second
+generator.
+
+The fourth is K-89's own: a generator that raises is that rule's finding and never that
 rule's crash. `checks/ring.py` catches the emitter's refusal and every other exception
 alike, and a test injects an unexpected emitter failure to exercise that last arm.
 """
@@ -63,6 +69,14 @@ def _declaration() -> dict[str, Any]:
     text = (root / ring.DECLARATION).read_text(encoding="utf-8")
     parsed: dict[str, Any] = json.loads(text)
     return parsed
+
+
+def _dma_world(base: dict[str, Any]) -> dict[str, Any]:
+    """The first world of `base` that declares DMA, which the coherence cases mutate."""
+    for world in base["worlds"]:
+        if world["dma"] is not None:
+            return world
+    raise AssertionError("the tracked declaration carries no world declaring DMA")
 
 
 def _refused(fn: Callable[[], object], why: str) -> None:
@@ -118,7 +132,8 @@ def _owned_fails_closed_on_each_shape() -> None:
 def _declaration_names_every_key_the_emitter_reads() -> None:
     # The gap this case closes: `label_levels` was read at emit time and named by no
     # guard, so a declaration without it raised KeyError out of the checker instead of
-    # being refused. Each key the emitter reads is dropped in turn.
+    # being refused. Each key the emitter reads is dropped in turn, at each of the three
+    # levels the declaration now has.
     base = _declaration()
     with sandbox_tree({ring.DECLARATION: json.dumps(base)}) as root:
         path = root / ring.DECLARATION
@@ -127,19 +142,45 @@ def _declaration_names_every_key_the_emitter_reads() -> None:
                             encoding="utf-8")
             _refused(lambda held=root: ring.declaration(held),
                      f"declaration() accepted a declaration with no `{key}`")
-        for key in ring.ENCODING_KEYS:
+        for key in ring.WORLD_KEYS:
             short = dict(base)
-            short["encoding"] = {k: v for k, v in base["encoding"].items() if k != key}
+            short["worlds"] = [{k: v for k, v in world.items() if k != key}
+                               for world in base["worlds"]]
+            path.write_text(json.dumps(short), encoding="utf-8")
+            _refused(lambda held=root: ring.declaration(held),
+                     f"declaration() accepted a world with no `{key}`")
+        for key in ring.ENCODING_KEYS:
+            short = json.loads(json.dumps(base))
+            for world in short["worlds"]:
+                world["encoding"] = {k: v for k, v in world["encoding"].items()
+                                     if k != key}
             path.write_text(json.dumps(short), encoding="utf-8")
             _refused(lambda held=root: ring.declaration(held),
                      f"declaration() accepted a declaration with no encoding `{key}`")
         for key in ring.OP_KEYS:
-            short = dict(base)
-            short["operations"] = [{k: v for k, v in op.items() if k != key}
-                                   for op in base["operations"]]
+            short = json.loads(json.dumps(base))
+            for world in short["worlds"]:
+                world["operations"] = [{k: v for k, v in op.items() if k != key}
+                                       for op in world["operations"]]
             path.write_text(json.dumps(short), encoding="utf-8")
             _refused(lambda held=root: ring.declaration(held),
                      f"declaration() accepted an operation with no `{key}`")
+        for key in ring.DMA_KEYS:
+            short = json.loads(json.dumps(base))
+            world = _dma_world(short)
+            world["dma"] = {k: v for k, v in world["dma"].items() if k != key}
+            path.write_text(json.dumps(short), encoding="utf-8")
+            _refused(lambda held=root: ring.declaration(held),
+                     f"declaration() accepted a DMA declaration with no `{key}`")
+        for key in ring.OP_DMA_KEYS:
+            short = json.loads(json.dumps(base))
+            world = _dma_world(short)
+            world["operations"] = [{**op, "dma": {k: v for k, v in op["dma"].items()
+                                                  if k != key}}
+                                   for op in world["operations"]]
+            path.write_text(json.dumps(short), encoding="utf-8")
+            _refused(lambda held=root: ring.declaration(held),
+                     f"declaration() accepted an operation DMA record with no `{key}`")
         path.write_text("{ not json", encoding="utf-8")
         _refused(lambda: ring.declaration(root),
                  "declaration() accepted a file that is not JSON")
@@ -174,27 +215,33 @@ def _declaration_refuses_wrong_types() -> None:
     # Every malformed value must be refused at load time, before the emitter can
     # sum it, interpolate it as Gallina, or mistake truthiness for a boolean.
     malformed: list[tuple[tuple[str | int, ...], Json]] = [
-        (("ring",), []),
-        (("ring", "capacity"), True),
-        (("encoding", "request_id_bytes"), "4"),
-        (("label_levels",), 4.0),
-        (("flags",), "notify"),
-        (("directions", 0), 3),
-        (("operations",), {}),
-        (("operations",), []),
-        (("operations", 0), False),
-        (("operations", 0, "name"), 3),
-        (("operations", 0, "scalars", 0, "width_bytes"), "four"),
-        (("operations", 0, "scalars", 0, "width_bytes"), 4.0),
-        (("operations", 0, "scalars", 0, "validated_at_use"), 1),
-        (("operations", 0, "deadline"), 1),
-        (("operations", 0, "labels", "integrity"), "2"),
-        (("operations", 0, "record", 0), False),
-        (("operations", 0, "record"), [1]),
-        (("operations", 0, "cancellation"), {}),
-        (("operations", 0, "cancellation", "points"), []),
-        (("operations", 0, "refinement"), [0]),
-        (("operations", 0, "fill"), "24"),
+        (("worlds",), {}),
+        (("worlds",), []),
+        (("worlds", 0), False),
+        (("worlds", 0, "world"), 3),
+        (("worlds", 0, "ring"), []),
+        (("worlds", 0, "ring", "capacity"), True),
+        (("worlds", 0, "encoding", "request_id_bytes"), "4"),
+        (("worlds", 0, "label_levels"), 4.0),
+        (("worlds", 0, "flags"), "notify"),
+        (("worlds", 0, "directions", 0), 3),
+        (("worlds", 0, "operations"), {}),
+        (("worlds", 0, "operations"), []),
+        (("worlds", 0, "operations", 0), False),
+        (("worlds", 0, "operations", 0, "name"), 3),
+        (("worlds", 0, "operations", 0, "scalars", 0, "width_bytes"), "four"),
+        (("worlds", 0, "operations", 0, "scalars", 0, "width_bytes"), 4.0),
+        (("worlds", 0, "operations", 0, "scalars", 0, "validated_at_use"), 1),
+        (("worlds", 0, "operations", 0, "deadline"), 1),
+        (("worlds", 0, "operations", 0, "labels", "integrity"), "2"),
+        (("worlds", 0, "operations", 0, "record", 0), False),
+        (("worlds", 0, "operations", 0, "record"), [1]),
+        (("worlds", 0, "operations", 0, "cancellation"), {}),
+        (("worlds", 0, "operations", 0, "cancellation", "points"), []),
+        (("worlds", 0, "operations", 0, "refinement"), [0]),
+        (("worlds", 0, "operations", 0, "fill"), "24"),
+        (("worlds", 0, "dma"), {}),
+        (("worlds", 0, "dma"), 1),
     ]
     with sandbox_tree({ring.DECLARATION: "null"}) as root:
         path = root / ring.DECLARATION
@@ -213,10 +260,107 @@ def _declaration_refuses_wrong_types() -> None:
                      f"a malformed value was accepted at {keys}: {value!r}")
 
 
+def _a_world_is_refused_where_it_is_not_a_scope() -> None:
+    # A world name is spelled into a Gallina scope, and two worlds are two scopes, so a
+    # name the emitter cannot spell and a name used twice are each refused here rather
+    # than emitted into a file that then fails to compile or silently collides.
+    with sandbox_tree({ring.DECLARATION: "null"}) as root:
+        path = root / ring.DECLARATION
+        cases = {
+            "a world name that is not an identifier": "Ring Reference",
+            "a world name that starts with a digit": "2nd_world",
+            "an empty world name": "",
+        }
+        for why, name in cases.items():
+            base = _declaration()
+            base["worlds"][0]["world"] = name
+            path.write_text(json.dumps(base), encoding="utf-8")
+            _refused(lambda: ring.declaration(root),
+                     f"declaration() accepted {why}")
+        base = _declaration()
+        ensure(len(base["worlds"]) >= 2,
+               "this case needs a declaration carrying a second world")
+        base["worlds"][1]["world"] = base["worlds"][0]["world"]
+        path.write_text(json.dumps(base), encoding="utf-8")
+        _refused(lambda: ring.declaration(root),
+                 "declaration() accepted one world name twice, where one world is one "
+                 "scope of the artifact")
+        base = _declaration()
+        base["worlds"].append(json.loads(json.dumps(base["worlds"][1])))
+        base["worlds"][1]["world"] = "ring_dma"
+        base["worlds"][-1]["world"] = "ring__dma"
+        path.write_text(json.dumps(base), encoding="utf-8")
+        _refused(lambda: ring.declaration(root),
+                 "different world names that emit the same module were accepted")
+
+
+def _a_dma_declaration_is_refused_where_it_disagrees_with_its_world() -> None:
+    # The defect this case exists for: a DMA block the emitter reads but does not hold
+    # against the world it sits in emits a campaign that decides nothing. A permission
+    # map that is not one member per declared direction, a member outside the declared
+    # set, a world declaring DMA of some operations and not others, and a world where
+    # nothing holds a capability are each refused instead.
+    def _short_permission_map(base: dict[str, Any]) -> None:
+        dma = _dma_world(base)["dma"]
+        dma["direction_permission"] = dma["direction_permission"][:1]
+
+    def _permission_outside_the_declared_set(base: dict[str, Any]) -> None:
+        _dma_world(base)["dma"]["direction_permission"][0] = "execute"
+
+    def _one_permission_declared_twice(base: dict[str, Any]) -> None:
+        dma = _dma_world(base)["dma"]
+        dma["permissions"] = [dma["permissions"][0]] * 2
+
+    def _an_unspellable_permission(base: dict[str, Any]) -> None:
+        _dma_world(base)["dma"]["permissions"][0] = "Load Data"
+
+    def _one_direction_only(base: dict[str, Any]) -> None:
+        world = _dma_world(base)
+        world["directions"] = world["directions"][:1]
+
+    def _no_content_type(base: dict[str, Any]) -> None:
+        _dma_world(base)["content_types"] = []
+
+    def _drop_one_operations_dma(base: dict[str, Any]) -> None:
+        _dma_world(base)["operations"][0]["dma"] = None
+
+    def _dma_on_a_world_declaring_none(base: dict[str, Any]) -> None:
+        plain = next(w for w in base["worlds"] if w["dma"] is None)
+        plain["operations"][0]["dma"] = _dma_world(base)["operations"][0]["dma"]
+
+    def _nothing_holds_a_capability(base: dict[str, Any]) -> None:
+        for op in _dma_world(base)["operations"]:
+            op["dma"]["held_capabilities"] = 0
+
+    edits: dict[str, Callable[[dict[str, Any]], None]] = {
+        "a permission map shorter than the declared directions": _short_permission_map,
+        "a direction requiring a permission the world does not declare":
+            _permission_outside_the_declared_set,
+        "a permission declared twice": _one_permission_declared_twice,
+        "a permission that is not a name this emitter spells": _an_unspellable_permission,
+        "one direction under a permission check that distinguishes two":
+            _one_direction_only,
+        "a DMA world with no inhabited buffer reference": _no_content_type,
+        "a world declaring DMA of some operations and not others":
+            _drop_one_operations_dma,
+        "an operation declaring DMA inside a world that declares none":
+            _dma_on_a_world_declaring_none,
+        "a DMA world where no operation holds a capability": _nothing_holds_a_capability,
+    }
+    with sandbox_tree({ring.DECLARATION: "null"}) as root:
+        path = root / ring.DECLARATION
+        for why, edit in edits.items():
+            base = _declaration()
+            edit(base)
+            path.write_text(json.dumps(base), encoding="utf-8")
+            _refused(lambda: ring.declaration(root),
+                     f"declaration() accepted {why}")
+
+
 def _declaration_preserves_metadata() -> None:
     base = _declaration()
     base["extra_metadata"] = {"version": 1.5, "reviewed": False}
-    base["operations"][0]["scalars"][0]["extra_metadata"] = ["unconsumed", 1.5]
+    base["worlds"][0]["operations"][0]["scalars"][0]["extra_metadata"] = ["unconsumed", 1.5]
     with sandbox_tree({ring.DECLARATION: json.dumps(base)}) as root:
         ensure(ring.declaration(root) == base,
                "validation must preserve fields the emitter does not consume")
@@ -240,10 +384,76 @@ def _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail() -> None:
            "conjunct, which is true of every input by construction")
 
 
+def _the_dma_clauses_are_properties_a_declaration_can_fail() -> None:
+    # The same reading applied to part 4. A clause stated of the one declaration that
+    # satisfies it decides nothing, so each of the three added clauses carries the
+    # instance it refuses: a capability released at reclamation rather than at terminal
+    # completion, a validation short of the declared payload, and a capability granting
+    # the permission the other direction requires.
+    root = corpus_mod.find_root()
+    text = ring.emit(root)
+    ensure("dead_past_terminal_completion (hold : op -> slot_state -> nat) : Prop"
+           in text,
+           "the retention exclusion must be stated of a hold, not of one hold's body")
+    ensure("~ dead_past_terminal_completion holds_until_reclaimed." in text,
+           "the artifact must carry the refutation, a hold released at reclamation")
+    ensure("the_two_holds_agree_before_terminal_completion" in text,
+           "the refutation must isolate the release point, which is what the "
+           "keeps-theorem beside it decides")
+    ensure("a_validation_short_of_the_declared_payload_is_not_the_extent" in text,
+           "the complete-extent clause must carry the validation it refuses")
+    ensure("negb (direction_authorized" in text,
+           "the permission check must refuse a permission the direction does not "
+           "require, and not only admit the one it does")
+    ensure("a_bad_segment_at_any_position_refuses_the_list" in text,
+           "charging a cost per segment must accompany checking each segment")
+    ensure("a_segment_extending_past_its_capability_is_refused" in text,
+           "the segment campaign must reject an extent crossing its delegated bound")
+
+
+def _each_world_past_the_first_takes_a_scope_of_its_own() -> None:
+    # A Gallina file has one top-level scope, so a second world sharing it would
+    # redefine `op` and fail to compile. The first world declared takes that scope and
+    # every further world takes a module named from its own name.
+    root = corpus_mod.find_root()
+    worlds = ring.declaration(root)["worlds"]
+    ensure(len(worlds) >= 2, "this case needs a declaration carrying a second world")
+    text = ring.emit(root)
+    ensure(text.index("Inductive op : Set :=") < text.index("\nModule "),
+           "the first world declared must take the file's own scope, which is what the "
+           "artifact's consumers name unqualified")
+    for world in worlds[1:]:
+        module = ring._module(world["world"])
+        ensure(f"\nModule {module}.\n" in text and f"\nEnd {module}.\n" in text,
+               f"world `{world['world']}` must be emitted into module `{module}`")
+    # The campaign is one generator's, so a theorem of the file scope is a theorem of
+    # every module too: a second world instantiating a smaller campaign would be a
+    # second generator, which is exactly what the declaration exists to prevent.
+    family_cases = (
+        "ring_refuses_one_past_capacity",
+        "an_unstarted_cancellable_target_is_cancelled",
+        "a_target_before_its_commit_point_is_cancelled",
+        "cancellation_outside_live_states_is_not_live",
+        "reset_in_every_lifecycle_state_clears_the_indices_and_notification",
+        "reset_without_quiescence_never_publishes_a_generation",
+        "reset_in_every_lifecycle_state_refuses_the_old_generation",
+        "a_duplicate_live_identifier_is_refused",
+        "a_consumer_that_skips_the_recheck_loses_a_wakeup",
+        "the_declared_batch_and_segment_maxima_are_attained",
+    )
+    for theorem in family_cases:
+        ensure(text.count(f"Theorem {theorem} :") == len(worlds),
+               f"every world must carry the campaign case `{theorem}`")
+
+
 def cases() -> list[Case]:
     return [
         Case("the-lost-wakeup-exclusion-is-a-property-a-rule-can-fail",
              _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail),
+        Case("the-dma-clauses-are-properties-a-declaration-can-fail",
+             _the_dma_clauses_are_properties_a_declaration_can_fail),
+        Case("each-world-past-the-first-takes-a-scope-of-its-own",
+             _each_world_past_the_first_takes_a_scope_of_its_own),
         Case("a-state-inserted-moves-the-skip", _a_state_inserted_moves_the_skip),
         Case("the-named-states-are-read-not-counted",
              _the_named_states_are_read_not_counted),
@@ -251,6 +461,10 @@ def cases() -> list[Case]:
         Case("declaration-names-every-key-the-emitter-reads",
              _declaration_names_every_key_the_emitter_reads),
         Case("declaration-refuses-wrong-types", _declaration_refuses_wrong_types),
+        Case("a-world-is-refused-where-it-is-not-a-scope",
+             _a_world_is_refused_where_it_is_not_a_scope),
+        Case("a-dma-declaration-is-refused-where-it-disagrees-with-its-world",
+             _a_dma_declaration_is_refused_where_it_disagrees_with_its_world),
         Case("declaration-preserves-metadata", _declaration_preserves_metadata),
         Case("the-rule-reports-rather-than-crashes",
              _the_rule_reports_rather_than_crashes),
