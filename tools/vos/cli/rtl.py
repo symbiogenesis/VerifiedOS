@@ -89,7 +89,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos import cli, env, provenance, sailrig, socmap
+from vos import cli, device_regs, env, provenance, rtl_width, sailrig, socmap
 from vos.corpus import find_root
 
 # The release is built from its verified archive into a versioned project prefix.
@@ -114,6 +114,7 @@ FORMAT_PACKAGE = "rtl/vos_cheri_pkg.sv"
 # renames nothing; its bodies are calls on `vos_cheri_pkg` and it imports nothing else,
 # which is what lets it sit in both declarations below.
 ADAPTER_PACKAGE = "rtl/vos_cva6_cheri_pkg.sv"
+WIDTH_PACKAGE = "rtl/vos_scalar_width_pkg.sv"
 
 # The authored sources, in the order a compiler must see them: the format package
 # declares the types the rest use. This is the set `lint` compiles **alone**, which is
@@ -124,8 +125,12 @@ ADAPTER_PACKAGE = "rtl/vos_cva6_cheri_pkg.sv"
 # declaration, and the two are deliberately not one list.
 AUTHORED: tuple[str, ...] = (
     FORMAT_PACKAGE,
+    WIDTH_PACKAGE,
     ADAPTER_PACKAGE,
     "rtl/vos_soc_decode.sv",
+    "rtl/vos_uart.sv",
+    "rtl/vos_block_device.sv",
+    "rtl/vos_device_route.sv",
 )
 
 # The generated sources under `rtl/`, kept apart from the authored ones because the
@@ -135,6 +140,7 @@ AUTHORED: tuple[str, ...] = (
 # declaring the types and the constants the decode module imports.
 GENERATED: tuple[str, ...] = (
     socmap.ARTIFACT,
+    device_regs.ARTIFACT,
 )
 
 # What `lint` compiles, in the order a compiler must see it.
@@ -192,7 +198,7 @@ IMPORTED_FORMAT_PACKAGE = "core/include/cva6_cheri_pkg.sv"
 # and not the diff. The first row that displaces a module kind is the flat-SRAM one.
 SUBSTITUTIONS: tuple[Substitution, ...] = (
     Substitution(imported=(IMPORTED_FORMAT_PACKAGE,), authored=ADAPTER_PACKAGE,
-                 requires=(FORMAT_PACKAGE,)),
+                 requires=(FORMAT_PACKAGE, WIDTH_PACKAGE)),
 )
 
 # The cross-check's two halves. The generator is Sail because it has to call the
@@ -493,7 +499,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
         return 1
     root = find_root()
     code, text = _lint(binary, root, list(SOURCES),
-                       ["-Wall", "-Wno-UNUSEDPARAM", "-Wno-UNUSEDSIGNAL"])
+                       ["-Wall", "-Wno-UNUSEDPARAM", "-Wno-UNUSEDSIGNAL", "-Wno-MULTITOP"])
     if code != 0:
         print(text)
         print(f"FAIL {len(SOURCES)} source(s) under rtl/ did not lint clean")
@@ -581,6 +587,74 @@ def _unhandled(said: str) -> int:
     """
     found = UNHANDLED_RE.search(said)
     return int(found.group(1)) if found else -1
+
+
+def cmd_device_regs(_args: argparse.Namespace) -> int:
+    """Emit register constants from the populated selected owners."""
+    print(device_regs.emit(find_root()), end="")
+    return 0
+
+
+def cmd_devicescheck(_args: argparse.Namespace) -> int:
+    """Check owner byte identity, then execute the standalone device harness."""
+    root = find_root()
+    try:
+        if (root / device_regs.ARTIFACT).read_text(encoding="utf-8") != device_regs.emit(root):
+            print(f"FAIL {device_regs.ARTIFACT}: differs from its owners; regenerate with rtl device-regs")
+            return 1
+    except (OSError, ValueError) as error:
+        print(f"FAIL device register generation: {error}")
+        return 1
+    work = _equiv_dir(env.load()) / "devices"
+    work.mkdir(parents=True, exist_ok=True)
+    out: list[str] = []
+    binary = _require_verilator(out)
+    if binary is None:
+        print("\n".join(out))
+        return 1
+    sources = (*SOURCES, "tools/cheri-equiv/vos_devices_tb.sv")
+    argv = [binary, "--binary", "--timescale", "1ns/1ps", "-Wall",
+            "-Wno-UNUSEDPARAM", "-Wno-UNUSEDSIGNAL", "--Mdir", str(work / "obj_dir"),
+            "-o", "devicescheck", "--top-module", "vos_devices_tb",
+            *(str(root / source) for source in sources)]
+    built = subprocess.run(argv, capture_output=True, text=True, check=False, cwd=work)
+    (work / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
+    if built.returncode:
+        print(built.stdout + built.stderr)
+        return 1
+    checked = subprocess.run([str(work / "obj_dir/devicescheck")], capture_output=True,
+                             text=True, check=False, cwd=work)
+    (work / "check.log").write_text(checked.stdout + checked.stderr, encoding="utf-8")
+    print(checked.stdout + checked.stderr)
+    return checked.returncode
+
+
+def cmd_widthcheck(_args: argparse.Namespace) -> int:
+    """Execute the frozen transport-width and exhaustive store-lane bit checks."""
+    root = find_root()
+    work = _equiv_dir(env.load()) / "scalar-width"
+    work.mkdir(parents=True, exist_ok=True)
+    out: list[str] = []
+    binary = _require_verilator(out)
+    if binary is None:
+        print("\n".join(out))
+        return 1
+    sources = (FORMAT_PACKAGE, WIDTH_PACKAGE, ADAPTER_PACKAGE,
+               "tools/cheri-equiv/vos_scalar_width_tb.sv")
+    argv = [binary, "--binary", "--timescale", "1ns/1ps", "-Wall",
+            "-Wno-UNUSEDPARAM", "-Wno-UNUSEDSIGNAL", "--Mdir", str(work / "obj_dir"),
+            "-o", "widthcheck", "--top-module", "vos_scalar_width_tb",
+            *(str(root / source) for source in sources)]
+    built = subprocess.run(argv, capture_output=True, text=True, check=False, cwd=work)
+    (work / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
+    if built.returncode:
+        print(built.stdout + built.stderr)
+        return 1
+    checked = subprocess.run([str(work / "obj_dir/widthcheck")], capture_output=True,
+                             text=True, check=False, cwd=work)
+    (work / "check.log").write_text(checked.stdout + checked.stderr, encoding="utf-8")
+    print(checked.stdout + checked.stderr)
+    return checked.returncode
 
 
 def cmd_crosscheck(args: argparse.Namespace) -> int:
@@ -892,7 +966,8 @@ def _stage_ram_compatibility(root: Path, files: FileList, work: Path) -> tuple[s
     return tuple(str(staged) if Path(line) == original else line for line in files.lines)
 
 
-def _elaborate(binary: str, root: Path, files: FileList, ast: Path) -> tuple[int, str]:
+def _elaborate(binary: str, root: Path, files: FileList, ast: Path,
+               *, curated: bool = False) -> tuple[int, str]:
     """One elaboration of the imported core, its AST written where the caller says.
 
     Run from the lane's own working directory rather than from the checkout, for two
@@ -906,8 +981,10 @@ def _elaborate(binary: str, root: Path, files: FileList, ast: Path) -> tuple[int
     listing = ast.with_suffix(".f")
     try:
         lines = _stage_ram_compatibility(root, files, ast.parent)
+        if curated:
+            lines = rtl_width.stage(root, lines, ast.parent)
     except (OSError, ValueError) as error:
-        return 1, f"FAIL SRAM dependency compatibility: {error}"
+        return 1, f"FAIL RTL source staging: {error}"
     listing.write_text("\n".join(lines) + "\n", encoding="utf-8")
     argv = [binary, "--json-only", "--timescale", "1ns/1ps", "-Wno-fatal",
             "-y", str(prim / "prim/rtl"), "-y", str(prim / "prim_generic/rtl"),
@@ -1119,7 +1196,7 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
     inventories: dict[str, tuple[set[str], int, int]] = {}
     for name, files in arms.items():
         ast = work / f"{name}.json"
-        code, text = _elaborate(binary, root, files, ast)
+        code, text = _elaborate(binary, root, files, ast, curated=name == "curated")
         if code != 0:
             print(text)
             out.append(f"FAIL the {name} configuration did not elaborate")
@@ -1225,6 +1302,9 @@ COMMANDS: cli.Table = {
     "filelist": (cmd_filelist,
                  "the curated arm's file list, and every substitution's verdict"),
     "lint": (cmd_lint, "Verilator over this repository's own sources in rtl/"),
+    "widthcheck": (cmd_widthcheck, "frozen transport widths and every store rotation bit/lane"),
+    "device-regs": (cmd_device_regs, "emit wrapper register constants from their owners"),
+    "devicescheck": (cmd_devicescheck, "check register constants and execute standalone devices"),
     "vectors": (cmd_vectors,
                 "the model's own answers about the capability format, as text"),
     "crosscheck": (cmd_crosscheck,

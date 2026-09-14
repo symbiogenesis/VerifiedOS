@@ -107,6 +107,7 @@ private:
   // These functions are called by the Sail code.
 
   unit fetch_callback(sbits opcode) override;
+  unit entropy_draw_callback(bool available, uint64_t value) override;
   unit mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag) override;
   unit mem_read_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag) override;
   unit mem_exception_callback(uint64_t paddr, uint64_t num_of_exception) override;

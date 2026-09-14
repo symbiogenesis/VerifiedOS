@@ -24,6 +24,11 @@ function mem_write_callback(_) = ()
 val mem_read_callback = pure {cpp: "mem_read_callback"} : forall 'n, 0 < 'n <= max_mem_access . (/* access type */ string, /* addr */ physaddrbits, /* width */ int('n), /* value */ bits(8 * 'n), /* tag */ bool) -> unit
 function mem_read_callback(_) = ()
 
+// S6: a trusted observer sees conditioned root output, including internal draws.
+// This never prints secret bytes and its fallback changes no architectural state.
+val entropy_draw_callback = pure {cpp: "entropy_draw_callback"} : (bool, bits(64)) -> unit
+function entropy_draw_callback(_) = ()
+
 val mem_exception_callback = pure {cpp: "mem_exception_callback"} : (/* addr */ physaddrbits, /* exception code */ exc_code) -> unit
 function mem_exception_callback(_) = ()
 

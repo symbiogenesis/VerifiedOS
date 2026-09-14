@@ -15,6 +15,9 @@ public:
 
   virtual void fetch_callback(ModelImpl &model, sbits opcode);
 
+  // Conditioned entropy is secret. Capture observers seal it; loggers ignore it.
+  virtual void entropy_draw_callback(ModelImpl &model, bool available, uint64_t value);
+
   virtual void mem_write_callback(
     ModelImpl &model,
     const char *type,

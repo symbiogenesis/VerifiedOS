@@ -12,6 +12,11 @@ unit PlatformInterface::fetch_callback([[maybe_unused]] sbits opcode) {
   return UNIT;
 }
 
+unit PlatformInterface::entropy_draw_callback([[maybe_unused]] bool available,
+                                              [[maybe_unused]] uint64_t value) {
+  return UNIT;
+}
+
 unit PlatformInterface::mem_write_callback(
   [[maybe_unused]] const char *type,
   [[maybe_unused]] uint64_t paddr,

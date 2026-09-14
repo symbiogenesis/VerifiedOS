@@ -25,6 +25,8 @@ class PlatformInterface {
 public:
   virtual unit fetch_callback(sbits opcode);
 
+  virtual unit entropy_draw_callback(bool available, uint64_t value);
+
   virtual unit mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag);
 
   virtual unit mem_read_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag);

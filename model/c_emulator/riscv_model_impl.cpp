@@ -40,6 +40,13 @@ unit ModelImpl::fetch_callback(sbits opcode) {
   return UNIT;
 }
 
+unit ModelImpl::entropy_draw_callback(bool available, uint64_t value) {
+  for (auto c : m_callbacks) {
+    c->entropy_draw_callback(*this, available, value);
+  }
+  return UNIT;
+}
+
 unit ModelImpl::mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag) {
   for (auto c : m_callbacks) {
     c->mem_write_callback(*this, type, paddr, width, value, tag);

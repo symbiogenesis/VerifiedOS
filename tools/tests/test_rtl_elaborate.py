@@ -219,6 +219,7 @@ def _declared_row_is_taken_and_attributes_nothing() -> None:
     tree = dict(_TREE)
     tree[f"{rtl.CORE}/{rtl.IMPORTED_FORMAT_PACKAGE}"] = "package cva6_cheri_pkg;\nendpackage\n"
     tree[rtl.FORMAT_PACKAGE] = "package vos_cheri_pkg;\nendpackage\n"
+    tree[rtl.WIDTH_PACKAGE] = "package vos_scalar_width_pkg;\nendpackage\n"
     tree[rtl.ADAPTER_PACKAGE] = ("package cva6_cheri_pkg;\n  import vos_cheri_pkg::*;\n"
                                  "endpackage\n")
     with sandbox_tree(tree) as root:
@@ -236,12 +237,11 @@ def _declared_row_is_taken_and_attributes_nothing() -> None:
            and not any(rtl.IMPORTED_FORMAT_PACKAGE in line for line in files.lines),
            f"the adapter stands where the imported package did, got {files.lines!r}")
     where = files.lines.index(authored)
-    ensure(files.lines[where - 1] == str(root / rtl.FORMAT_PACKAGE),
-           f"with the format package it imports placed just ahead of it, got "
-           f"{files.lines[where - 1]!r}")
-    ensure(files.lines[where - 2].endswith("store_unit.sv"),
+    ensure(files.lines[where - 2:where] == (str(root / rtl.FORMAT_PACKAGE), str(root / rtl.WIDTH_PACKAGE)),
+           "format and width packages are placed in dependency order")
+    ensure(files.lines[where - 3].endswith("store_unit.sv"),
            f"at the imported package's own line of the manifest, got "
-           f"{files.lines[where - 2]!r}")
+           f"{files.lines[where - 3]!r}")
 
 
 def _required_source_is_placed_once_and_refused_when_absent() -> None:

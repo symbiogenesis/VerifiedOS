@@ -142,3 +142,33 @@ Every row has an owner and no row has a placeholder. A row whose owner is the su
 **No artifact fixes the health tests' false-positive rate.** It is an input to every cutoff and so to `N_detect`, and it is not the supplier's to choose alone: a rate is a statement about how often a good part halts the boot, which is a product decision. Owed at R-15-241b.
 
 **Nothing bounds cold-boot latency, so the budget's only ceiling in this repository is a representation.** The detection term is monotone upward in `N` and the register supplies nothing monotone downward, so a submission can satisfy every clause of §5 with a budget that makes the machine unusable and no clause would say so. The product gate's update-turnaround ceiling is a different quantity and is itself still proposed. Owed at R-09-006a, or to a new declared parameter in the product-gate contract.
+
+## 9. Assignment and selection acts for the owed inputs
+
+The following assigns the thirteen input groups in §7 to decisions. Roles name
+the accountable owner; the eventual selection record must identify its human
+owner, supplier, part revision and evidence revision. No part is selected here,
+no source model is submitted, and no acceptance clause is evaluated by assigning
+the work. The programme's silicon lead owns obtaining the supplier deliverables;
+the independent assurance reviewer owns their acceptance under §5.
+
+| Input group | Accountable owner | Act that supplies or selects it |
+| --- | --- | --- |
+| Selected TRNG identity | Programme silicon lead | Land a reviewed component-selection record naming supplier, part or macro revision, process, licensing and characterization deliverables. A digital functional reference is insufficient. |
+| TM-2 mechanisms | Selected supplier's analog design lead | Supply a circuit-level mechanism and sampling description for each source; the selection review records that at least two physical mechanisms are present. |
+| TM-4, TM-5, TM-6 | Supplier characterization lead | Deliver versioned fabricated-part datasets, acquisition method, estimator, corners and lifetime evidence; assurance review accepts a lower bound with that stated scope. |
+| TM-4a sample dependence | Supplier stochastic-model owner | Submit either across-sample independence evidence or a conservative dependent-sample accumulation bound; assurance review records which licenses the budget calculation. |
+| TM-7 cross-source independence | Supplier analog design lead with programme physical-design lead | Submit coupling analysis for supply, clock, substrate and thermal paths, plus failure evidence; independent review accepts each stated exclusion. |
+| TM-8 conditioner | Programme cryptographic architecture owner | Land the conditioner identity and input/output widths through R-15-241c or the crypto-core implementation contract, with its vetted-function evidence. |
+| TM-9 rates | Supplier stochastic-model owner | Derive the input entropy and full-entropy output rates under the selected conditioner; the R-15-241c review accepts the figures and their premises. |
+| TM-10 tests and cutoffs | Supplier health-test design owner | Derive repetition-count and adaptive-proportion windows and cutoffs from the accepted bound and programme-selected false-positive rate; review the derivation, not a default. |
+| TM-11 false-positive rate | Programme product-reliability owner | Land the accepted good-part boot-stop rate at R-15-241b, with operating and service-life scope, before cutoff selection. |
+| TM-12 detection target | Programme fault-assurance owner and supplier health-test owner | Select the failures and required detection probabilities and delays at R-15-241b; supplier evidence demonstrates the tests' detection scope against them. |
+| TM-3 sampling rate | Supplier characterization lead | Deliver the guaranteed sampling rate across the selected corners; the component-selection review accepts the scope used in the boot-delay calculation. |
+| `L_seed` | Programme cryptographic architecture owner | Land DRBG seed length and strength/reseed discipline at R-15-241d and its crypto-core contract before evaluating the seeding term. |
+| Cold-boot latency bound | Programme product owner | Land a cold-boot delay ceiling at R-09-006a or the product-gate contract, including corner and operating-point scope; evaluate clause 9 against it. |
+
+After these acts, the source-model owner computes TM-13 from the accepted inputs,
+records the calculation and representation check, and submits all nine clauses
+for independent review. Failure of any required premise leaves the budget owed;
+the configured emulation budget supplies none of the missing evidence.

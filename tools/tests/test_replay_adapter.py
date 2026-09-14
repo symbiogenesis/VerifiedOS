@@ -17,6 +17,7 @@ from vos.corpus import find_root
 from vos.replay_adapter import (
     AdapterError,
     InternalAccount,
+    RootProducer,
     Seal,
     TraceProducer,
     Window,
@@ -24,7 +25,7 @@ from vos.replay_adapter import (
     require_producer,
     rot_windows,
 )
-from vos.replay_record import Binding, FixtureRecorder, Interface, Limits, RecordError
+from vos.replay_record import Binding, FixtureRecorder, Interface, Limits, Point, RecordError
 
 # The model's two non-test callers of the entropy root, and the class each puts its
 # draw in. The MMIO caller's drawn word is the value the access returns; the
@@ -161,6 +162,62 @@ def _observed_draw_is_sealed_and_never_carried() -> None:
            "the trace supplies the retire anchor and the caller supplies the slot")
 
 
+def _root_callbacks_seal_without_a_bus_transaction() -> None:
+    seen: list[bytes] = []
+    producer = RootProducer(_recorder(), entropy_interface=_ENTROPY,
+                            seal=partial(_seal, seen=seen))
+    producer.observe(point=Point(7, 0, 0, 0), available=True, value=bytes.fromhex(_DRAWN))
+    producer.observe(point=Point(7, 0, 0, 1), available=False, value=bytes(8))
+    producer.observe(point=Point(7, 0, 0, 1), available=True, value=bytes(8))
+    blob = producer.finish(expected=_BINDING, expected_events=2)
+    ensure(seen == [bytes.fromhex(_DRAWN), bytes(8)],
+           "only actual draws reach sealing, including a successful all-zero word")
+    ensure(blob.count(b'"sealed_commitment"') == 2 and _DRAWN.lower().encode() not in blob,
+           "an internal draw reaches the bounded body without exposing the word")
+    ensure(b'"retire":0' in blob and b'"ordinal":1' in blob,
+           "pre-retirement draws have independent invocation order")
+
+
+def _root_refusals_poison_the_whole_capture() -> None:
+    for available, value in ((False, b"\x01" * 8), (True, b"short")):
+        recorder = _recorder()
+        producer = RootProducer(recorder, entropy_interface=_ENTROPY, seal=partial(_seal, seen=[]))
+        _latched(partial(producer.observe, point=Point(0, 0, 0, 0),
+                         available=available, value=value))
+        _latched(partial(recorder.finish, expected=_BINDING, expected_events=0))
+        _refused(partial(producer.finish, expected=_BINDING, expected_events=0))
+
+
+def _root_capture_respects_capacity_and_order() -> None:
+    recorder = FixtureRecorder(_BINDING, limits=Limits(4096, 1),
+                               interfaces=_INTERFACES, validators={})
+    seen: list[bytes] = []
+    producer = RootProducer(recorder, entropy_interface=_ENTROPY, seal=partial(_seal, seen=seen))
+    producer.observe(point=Point(0, 0, 0, 0), available=True, value=bytes(8))
+    _latched(partial(producer.observe, point=Point(0, 0, 0, 1), available=True, value=bytes(8)))
+    ensure(len(seen) == 1, "capacity refuses before a further secret is sealed")
+    _latched(partial(producer.finish, expected=_BINDING, expected_events=1))
+    producer = RootProducer(_recorder(), entropy_interface=_ENTROPY, seal=partial(_seal, seen=[]))
+    producer.observe(point=Point(0, 0, 2, 0), available=True, value=bytes(8))
+    _latched(partial(producer.observe, point=Point(0, 0, 1, 0), available=True, value=bytes(8)))
+
+
+def _root_seal_failure_never_returns_a_prefix() -> None:
+    def fail(_drawn: bytes) -> bytes:
+        raise RuntimeError("sealing unavailable")
+
+    recorder = _recorder()
+    producer = RootProducer(recorder, entropy_interface=_ENTROPY, seal=fail)
+    try:
+        producer.observe(point=Point(0, 0, 0, 0), available=True, value=bytes(8))
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("the synchronous seal exception must reach the harness")
+    _latched(partial(recorder.finish, expected=_BINDING, expected_events=0))
+    _refused(partial(RootProducer, _recorder(), entropy_interface=_ENTROPY))
+
+
 def _no_sealing_primitive_produces_nothing() -> None:
     _refused(partial(TraceProducer, _recorder(), windows=_windows(),
                      entropy_interface=_ENTROPY, slot=0, core=0))
@@ -280,6 +337,10 @@ def cases() -> list[Case]:
         _a_caller_cannot_choose_the_class_of_a_draw,
         _a_width_the_arm_refuses_is_not_that_doors_access,
         _watchdog_write_refuses_the_whole_capture,
+        _root_callbacks_seal_without_a_bus_transaction,
+        _root_refusals_poison_the_whole_capture,
+        _root_capture_respects_capacity_and_order,
+        _root_seal_failure_never_returns_a_prefix,
         _internal_account_is_the_devices_statement,
         _deterministic_rot_traffic_adds_no_event,
         _absent_production_interfaces_refuse,

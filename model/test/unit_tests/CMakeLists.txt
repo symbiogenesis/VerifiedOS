@@ -12,3 +12,7 @@ add_test(
     NAME "unit_tests"
     COMMAND $<TARGET_FILE:unit_tests>
 )
+
+add_executable(entropy_observer "entropy_observer.cpp")
+target_link_libraries(entropy_observer PRIVATE riscv_model default_config)
+add_test(NAME "entropy_observer" COMMAND $<TARGET_FILE:entropy_observer>)

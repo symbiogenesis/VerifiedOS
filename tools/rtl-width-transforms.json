@@ -1,0 +1,238 @@
+{
+  "schema": "vos.rtl-width-transforms/1",
+  "pin": "36a1dc5cb8c2b17d519bdb9ebf7fa37e591f6e43",
+  "notice": "// Modified by VerifiedOS scalar-width staging; see docs/hardware/scalar-width-transform-contract.md.\n",
+  "sources": [
+    {
+      "path": "core/include/ariane_pkg.sv",
+      "source_sha256": "f29a6b4d91f59a228b691c7509e937445d37f3829516fcb7586049e430e42a8c",
+      "output_sha256": "211ee63552ea8043e39c1dba8641bf1643e05e8de6856e2539e9e8299d950b97",
+      "edits": [
+        {
+          "old": "localparam CLEN = CheriPresent ? 2 * XLEN : XLEN;",
+          "new": "localparam CLEN = cva6_cheri_pkg::CLEN;",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/include/build_config_pkg.sv",
+      "source_sha256": "a584baf2ee31c2c506359e82ab5fb3fcce6cf724cc783d251ef67832ba66c6fc",
+      "output_sha256": "f4cd64b9d01aa9d65119b0f05cfa5e2beed3ad44aef3df5ded2d2b580fcdcf72",
+      "edits": [
+        {
+          "old": "cfg.CLEN = CheriPresent ? (CVA6Cfg.XLEN * 2) : CVA6Cfg.XLEN;",
+          "new": "cfg.CLEN = cva6_cheri_pkg::CLEN;",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/branch_unit.sv",
+      "source_sha256": "4be691d6ab951f5976b021e866356a1bddb27cec377757fb0f6ca4e3dae46e01",
+      "output_sha256": "bb67b2c9546f33fcdc6c744c756f38991a8216e901b43cacdd44030180da8e9c",
+      "edits": [
+        {
+          "old": "  cva6_cheri_pkg::cap_meta_data_t target_pcc_meta;",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "  assign target_pcc_meta = cva6_cheri_pkg::get_cap_reg_meta_data(target_pcc);",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_base(target_pcc, target_pcc_meta)",
+          "new": "get_cap_reg_base(target_pcc)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_top(target_pcc, target_pcc_meta)",
+          "new": "get_cap_reg_top(target_pcc)",
+          "count": 1
+        },
+        {
+          "old": "set_cap_reg_address(\n        jump_base_cap,\n        target_address[CVA6Cfg.VLEN-1:0],\n        cva6_cheri_pkg::get_cap_reg_meta_data(\n          jump_base_cap)\n      )",
+          "new": "set_cap_reg_address(\n        jump_base_cap,\n        target_address[CVA6Cfg.VLEN-1:0])",
+          "count": 1
+        },
+        {
+          "old": "set_cap_reg_address(\n                  compare_pcc,\n                  compare_target_cap[CVA6Cfg.XLEN-1:0],\n                  cva6_cheri_pkg::get_cap_reg_meta_data(\n                      pcc)\n              )",
+          "new": "set_cap_reg_address(\n                  compare_pcc,\n                  compare_target_cap[CVA6Cfg.XLEN-1:0])",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/issue_read_operands.sv",
+      "source_sha256": "92971a15045fd619b27710a31a13bdd1e0838e43f3f5012469990326183c6861",
+      "output_sha256": "29c18b8005022d47dfbe60c2f692159343718b1e002fdc32bd85b13fabb2c38f",
+      "edits": [
+        {
+          "old": "  cva6_cheri_pkg::cap_meta_data_t pcc_meta;",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "      pcc_meta = cva6_cheri_pkg::get_cap_reg_meta_data(pcc_q);",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_base(pcc_q, pcc_meta)",
+          "new": "get_cap_reg_base(pcc_q)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_top(pcc_q, pcc_meta)",
+          "new": "get_cap_reg_top(pcc_q)",
+          "count": 1
+        },
+        {
+          "old": "are_cap_reg_bounds_root(pcc_q, pcc_meta)",
+          "new": "are_cap_reg_bounds_root(pcc_q)",
+          "count": 1
+        },
+        {
+          "old": "set_cap_reg_address(pcc[1], issue_instr_i[1].pc, pcc_meta)",
+          "new": "set_cap_reg_address(pcc[1], issue_instr_i[1].pc)",
+          "count": 1
+        },
+        {
+          "old": "set_cap_reg_address(pcc[0], issue_instr_i[0].pc, pcc_meta)",
+          "new": "set_cap_reg_address(pcc[0], issue_instr_i[0].pc)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/load_store_unit.sv",
+      "source_sha256": "3f49206ef5e4ecd3534639ee7df8d3ca6f8c0c3e61905fbaa66d29bf304036f3",
+      "output_sha256": "65cf3aa77df5f85cd82288b0e4122c9b1bfa19893283004c362718e07c0d4b9e",
+      "edits": [
+        {
+          "old": "  cva6_cheri_pkg::cap_meta_data_t check_cap_meta_data;",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "      check_cap_meta_data = cva6_cheri_pkg::get_cap_reg_meta_data(check_cap);",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_base(check_cap, check_cap_meta_data)",
+          "new": "get_cap_reg_base(check_cap)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_top(check_cap, check_cap_meta_data)",
+          "new": "get_cap_reg_top(check_cap)",
+          "count": 1
+        },
+        {
+          "old": "are_cap_reg_bounds_root(check_cap, check_cap_meta_data)",
+          "new": "are_cap_reg_bounds_root(check_cap)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/csr_regfile.sv",
+      "source_sha256": "5f0a8cfca5f393bfb58e824d740221911d9eaa8b4d8c743d4115bbefb7e1bd2f",
+      "output_sha256": "64e066da0aaf56a18cc50dd78f1ea25d83f37c5dacc0dce4205b495855d0b245",
+      "edits": [
+        {
+          "old": "      automatic\n      cap_meta_data_t\n      csr_update_cap_meta = get_cap_reg_meta_data(\n          csr_update_cap_prelegal\n      );",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "set_cap_reg_address(csr_update_cap_prelegal, csr_wdata_legalised, csr_update_cap_meta)",
+          "new": "set_cap_reg_address(csr_update_cap_prelegal, csr_wdata_legalised)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/cheri_unit.sv",
+      "source_sha256": "189a7dc04eb17680a440b405cc10aa00ee9186278fc1bfb4d9feb77787825897",
+      "output_sha256": "b8c893408932c6aafa9528d99753fb548bdb155039536989f8521b7238726dbc",
+      "edits": [
+        {
+          "old": "  cap_meta_data_t op_a_meta_info;",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "  cap_meta_data_t op_b_meta_info;",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "    op_a_meta_info = get_cap_reg_meta_data(operand_a);",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "    op_b_meta_info = get_cap_reg_meta_data(operand_b);",
+          "new": "\n",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_base(operand_a, op_a_meta_info)",
+          "new": "get_cap_reg_base(operand_a)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_base(operand_b, op_b_meta_info)",
+          "new": "get_cap_reg_base(operand_b)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_top(operand_a, op_a_meta_info)",
+          "new": "get_cap_reg_top(operand_a)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_top(operand_b, op_b_meta_info)",
+          "new": "get_cap_reg_top(operand_b)",
+          "count": 1
+        },
+        {
+          "old": "get_cap_reg_length(operand_a, op_a_meta_info)",
+          "new": "get_cap_reg_length(operand_a)",
+          "count": 1
+        },
+        {
+          "old": "are_cap_reg_bounds_valid(operand_a, op_a_meta_info)",
+          "new": "are_cap_reg_bounds_valid(operand_a)",
+          "count": 1
+        },
+        {
+          "old": "are_cap_reg_bounds_valid(operand_b, op_b_meta_info)",
+          "new": "are_cap_reg_bounds_valid(operand_b)",
+          "count": 1
+        },
+        {
+          "old": "set_cap_reg_address(operand_a, address, op_a_meta_info)",
+          "new": "set_cap_reg_address(operand_a, address)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/store_unit.sv",
+      "source_sha256": "ae6205415e3f9de2192ff43f390afd5569f5c9748fc51b6e4a2eddf84d02382d",
+      "output_sha256": "dc2992f3f985575d4683e2c02b9b071516d3db321a617991b79fddd556d3b638",
+      "edits": [
+        {
+          "old": "  function automatic [CVA6Cfg.CLEN-1:0] data_align(logic [3:0] addr, logic [CVA6Cfg.CLEN-1:0] data);\n    // Set addr[2] to 1'b0 when 32bits\n    logic [3:0] addr_tmp = {\n      (addr[3] && CVA6Cfg.IS_XLEN64 && CVA6Cfg.CheriPresent),\n      (addr[2] && CVA6Cfg.IS_XLEN64),\n      addr[1:0]\n    };\n    logic [CVA6Cfg.CLEN-1:0] data_tmp = {CVA6Cfg.CLEN{1'b0}};\n    case (addr_tmp)\n      4'b0000: data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-1:0]};\n      4'b0001:\n      data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-9:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-8]};\n      4'b0010:\n      data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-17:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-16]};\n      4'b0011:\n      data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-25:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-24]};\n      default: begin\n        if (CVA6Cfg.CheriPresent) begin\n          case (addr_tmp)\n            4'b1000: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[CVA6Cfg.XLEN-1:0]};\n            4'b1001:\n            data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {\n              data[CVA6Cfg.XLEN-9:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-8]\n            };\n            4'b1010:\n            data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {\n              data[CVA6Cfg.XLEN-17:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-16]\n            };\n            4'b1011:\n            data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {\n              data[CVA6Cfg.XLEN-25:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-24]\n            };\n            4'b1100: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[31:0], data[63:32]};\n            4'b1101: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[23:0], data[63:24]};\n            4'b1110: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[15:0], data[63:16]};\n            4'b1111: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[7:0], data[63:8]};\n            default: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = '0;\n          endcase\n        end\n        if (CVA6Cfg.IS_XLEN64) begin\n          case (addr_tmp)\n            4'b0100: data_tmp[CVA6Cfg.XLEN-1:0] = {data[31:0], data[63:32]};\n            4'b0101: data_tmp[CVA6Cfg.XLEN-1:0] = {data[23:0], data[63:24]};\n            4'b0110: data_tmp[CVA6Cfg.XLEN-1:0] = {data[15:0], data[63:16]};\n            4'b0111: data_tmp[CVA6Cfg.XLEN-1:0] = {data[7:0], data[63:8]};\n            default: data_tmp[CVA6Cfg.XLEN-1:0] = {data[63:0]};\n          endcase\n        end\n      end\n    endcase\n    return data_tmp;\n  endfunction",
+          "new": "  function automatic [CVA6Cfg.CLEN-1:0] data_align(logic [3:0] addr, logic [CVA6Cfg.CLEN-1:0] data);\n    return vos_scalar_width_pkg::align_store(addr, data);\n  endfunction",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

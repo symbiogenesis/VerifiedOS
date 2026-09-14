@@ -22,7 +22,7 @@ these records account for the values that input trace cannot supply.
 
 | Source tag | Required representation | Existing surface and missing adapter |
 | --- | --- | --- |
-| `entropy` | Opaque RoT-sealed commitment to each secret draw; never the draw, seed, or an exposed hash | [rot_draw](../../model/model/sys/rot.sail) returns a conditioned word or refuses. The RoT's `ROT_TRNG_DRAW` door in [platform.sail](../../model/model/sys/platform.sail) calls it; the watchdog calls it internally too, so observing MMIO alone misses draws. This is an emulation stand-in. The verified DRBG, commitment producer, sealing primitive, and interception of every draw are absent. |
+| `entropy` | Opaque RoT-sealed commitment to each secret draw; never the draw, seed, or an exposed hash | [rot_draw](../../model/model/sys/rot.sail) returns a conditioned word or refuses. The RoT's `ROT_TRNG_DRAW` door in [platform.sail](../../model/model/sys/platform.sail) calls it; the watchdog calls it internally too, so observing MMIO alone misses draws. This is an emulation stand-in. The synchronous root observer exposes every draw to a trusted harness callback. The production DRBG, commitment writer and sealing primitive remain absent. |
 | `link_address` | Drawn address bytes verbatim | MAC randomization is specified; no producing link-address interface or replay adapter exists in the model or host tools. |
 | `time_read` | Returned time-service bytes verbatim at the client's granted precision | R-08-031 grants precision through the time service. [platform.sail](../../model/model/sys/platform.sail) has the platform timer, which is not an implemented capability-authorized time-service reply. That service and its adapter are absent. |
 | `physical_event` | Public sentinel event bytes verbatim | The model contains fault causes and architectural health state, but no complete sentinel event producer or replay adapter. ECC corrections, tag traps, thermal and voltage telemetry belong to this source. Capacity events retain R-16-028's bounded, labeled record rather than acquiring a free-form payload. |
@@ -172,11 +172,11 @@ the arm does not admit is no access of that door at all, having reached the
 handler's fault arm. A handler that reaches the root with no offset arm to
 attribute the draw to is refused rather than adapted.
 
-### The watchdog draw is refused rather than intercepted
+### The root observer and the limits of a bus trace
 
 The model's two non-test callers of the root are the `ROT_TRNG_DRAW` door read and
 `watchdog_issue_nonce`. The second is the draw S6 is asked to intercept beside the
-MMIO draws, and it cannot be intercepted from the host for a structural reason
+MMIO draws, and it cannot be inferred from a bus trace for a structural reason
 rather than for want of effort. The nonce is issued inside the RoT with no bus
 transaction accompanying it, and the [commit-trace
 schema](../assurance/differential-corpus.md) carries retires, register and CSR
@@ -192,8 +192,16 @@ names the site. The operational form of that case, this contract's injected
 unrecorded watchdog draw, waits on a real producer. An account may be supplied on
 the same footing as the binding and the expected count, and it may decline, which
 is the recorder's existing promise that no value was consumed; the host verifies
-neither answer, and no interface in this tree produces one. What would make interception real is a draw hook at the root reaching an
-external recorder, which no plan item authors.
+neither answer. The [entropy-root observer](entropy-observer-contract.md) supplies
+the missing observation boundary: every root invocation synchronously reports
+its outcome to the C++ callback interface, including internal watchdog draws.
+`RootProducer` in [replay_adapter.py](../../tools/vos/replay_adapter.py) seals
+successful callback values through an injected primitive and submits them to the
+bounded recorder. Refusals add no event; capture failure latches. The root
+producer replaces the bus-derived entropy producer for that capture, so the
+same MMIO draw is not recorded twice. The native callback harness exercises
+actual generated Sail callers. A production seal, writer, authenticated capture
+envelope and paired replay are still owed.
 
 The nonce is a secret-class draw at its source and stays one although
 `ROT_WDT_NONCE` reads it back, the classification being the source's and never the
@@ -280,7 +288,7 @@ never a date.
 
 | Clause | Discharged | Open, and owed by |
 | --- | --- | --- |
-| R-15-241, every draw accounted for | The model's draw sites are read from its call graph rather than listed, so a site it gains is a failing check; the site whose word crosses the bus produces a sealed event, and the site that does not refuses the capture. | Accounting cannot be completed by host observation at all, the watchdog being the demonstration. A draw hook at the root, the RoT firmware's record writer (M3.2) and the sealing primitive (M3.4) owe it. |
+| R-15-241, every draw accounted for | The model's draw sites are read from its call graph rather than listed, so a site it gains is a failing check; the site whose word crosses the bus produces a sealed event, and the site that does not refuses the capture. | The synchronous root callback supplies internal-draw observation. Operational accounting still needs the trusted callback binding, the RoT firmware's record writer (M3.2) and the sealing primitive (M3.4). |
 | R-16-015, the closed four-source set | The reader admits exactly the four tags; the adapter refuses a request naming a source whose production interface is absent instead of synthesizing a value, and its one producer refuses any endpoint the composition does not class as entropy, so no caller selects a source by choosing an identity. | Three of the four have no producer. The slow-clock phase question below is a register act, not a tool's. |
 | R-16-016, public nondeterminism verbatim | The reader preserves public bytes exactly, and the recorder puts them through the endpoint's own validator before admitting an event. | Every public producer, and the interface schemas that would give those validators a meaning. |
 | R-16-017, secret nondeterminism as a sealed commitment | An entropy payload is opaque at the reader and at the producer. The trace-driven producer hands the drawn word to an injected primitive and records only its result; a control asserts the drawn word is absent from the finished bytes, a producer with no primitive injected produces nothing, and one aimed at a public endpoint is refused before it can seat sealed bytes in a `value`. | The primitive itself (M3.4), and any evidence that opaque bytes are sealed, which shape cannot supply. |
@@ -300,10 +308,10 @@ register decides that; no adapter may, and none here does.
 
 ## What is still owed, and by whom
 
-- **A draw hook at the entropy root**, reaching an external recorder, which is the
-  only thing that makes the internal draw observable at all. No plan item authors
-  one, and this contract names it rather than inventing an interception the tree
-  cannot have.
+- **Binding the root observer to the operational recorder.** The synchronous
+  [observer and its acceptance](entropy-observer-contract.md) expose every draw;
+  a capture must install the trusted callback and provide the sealed writer and
+  its independently authenticated schedule point.
 - **The sealing primitive** (M3.4) and **the RoT firmware's record writer** (M3.2),
   the second being the side that can see an internal draw and state it.
 - **Real recording against a running model.** No command persists a commit trace

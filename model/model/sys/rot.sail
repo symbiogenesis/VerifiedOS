@@ -252,8 +252,9 @@ let plat_rot_noise_sources : range(0, rot_max_noise_sources) = config platform.t
 // here rather than left to be inferred. It is an **emulation fact and not an
 // architectural one**, so it is not emitted into the attested devicetree
 // (postlude/device_tree.sail) and no property asserts a drawn value. Nothing in
-// this model is a nondeterminism record: a search of model/model for one returns
-// this paragraph and nothing else. And what would discharge the obligation is
+// this model is a nondeterminism record. The synchronous root observer below
+// exposes every conditioned draw to a trusted external recorder, including
+// watchdog draws with no bus transaction. What discharges the obligation is
 // the sealing primitive M3.4 supplies and the record M3.2's firmware writes,
 // neither of which exists, so the obligation is live and owed elsewhere rather
 // than met here.
@@ -405,14 +406,26 @@ private function rot_condition(acc : bits(64), s : NoiseSample) -> bits(64) =
 // latched (R-15-241b), and a draw on a composition declaring no source at all.
 // None of the three has a degraded answer: the draw does not happen.
 function rot_draw() -> option(bits(64)) = {
-  if rot_entropy_fail_stop then return None();
-  if not(rot_startup_complete()) then return None();
+  if rot_entropy_fail_stop then {
+    entropy_draw_callback(false, zeros());
+    return None()
+  };
+  if not(rot_startup_complete()) then {
+    entropy_draw_callback(false, zeros());
+    return None()
+  };
 
   var acc : bits(64) = 0x6a09e667f3bcc908;
   foreach (i from 0 to (rot_max_noise_sources - 1)) {
     if i < plat_rot_noise_sources then acc = rot_condition(acc, rot_source_sample(i))
   };
-  if rot_entropy_fail_stop then None() else Some(acc)
+  if rot_entropy_fail_stop then {
+    entropy_draw_callback(false, zeros());
+    None()
+  } else {
+    entropy_draw_callback(true, acc);
+    Some(acc)
+  }
 }
 
 // *****************************************************************

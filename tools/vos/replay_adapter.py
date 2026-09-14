@@ -27,9 +27,10 @@ commit-trace dialect carries, the store retiring `Ok` either way. A host reading
 trace can therefore see that the site was *reached* and can never see whether it
 drew or what it drew. The classification below says so: such a door is `internal`,
 and touching one without an independently supplied account refuses the whole
-capture. What would discharge it is a draw hook at `rot_draw` reaching an external
-recorder, which no plan item authors today; this module is where the absence is
-made to fail closed instead of being papered over.
+capture. The synchronous root callback now supplies that observation boundary;
+`RootProducer` consumes its outcome directly. A capture uses one entropy producer
+so that the bus-derived path does not duplicate root events. The production
+writer, sealing primitive and authenticated envelope remain owed.
 
 The seal is injected and never implemented here. A `TraceProducer` with no sealing
 primitive produces nothing at all, because the alternative is a host-computed hash
@@ -441,6 +442,55 @@ def require_producer(source: str) -> None:
                            f"{CONTRACT}'s source table names what is missing")
 
 
+class RootProducer:
+    """Sealed entropy events from the synchronous root observer, including watchdog.
+
+    A native harness supplies the callback's result and independently established
+    schedule point. Use this as the capture's only entropy producer: bus-derived
+    events would duplicate the same root draw. No secret is retained here.
+    """
+
+    def __init__(self, recorder: FixtureRecorder, *, entropy_interface: str,
+                 seal: Seal | None = None) -> None:
+        if seal is None:
+            raise AdapterError("root capture requires an injected sealing primitive")
+        if recorder.source_of(entropy_interface) != "entropy":
+            raise AdapterError("root capture requires an entropy-classed endpoint")
+        self._recorder = recorder
+        self._entropy = entropy_interface
+        self._seal = seal
+        self._closed = False
+
+    def observe(self, *, point: Point, available: bool, value: bytes) -> None:
+        """One completed root invocation; refused draws do not consume an event."""
+        if self._closed:
+            raise AdapterError("root capture is refused or already finished")
+
+        def produce() -> bytes | None:
+            if type(available) is not bool or len(value) != 8:
+                raise AdapterError("root callback requires a boolean and one 64-bit word")
+            if not available:
+                if any(value):
+                    raise AdapterError("a refused root callback must carry zero")
+                return None
+            sealed = self._seal(value)
+            if sealed is None:
+                raise AdapterError("a successful root draw cannot be declined by its seal")
+            return sealed
+
+        try:
+            self._recorder.record(point=point, interface=self._entropy, produce=produce)
+        except BaseException:
+            self._closed = True
+            raise
+
+    def finish(self, *, expected: Binding, expected_events: int) -> bytes:
+        if self._closed:
+            raise AdapterError("root capture is refused or already finished")
+        self._closed = True
+        return self._recorder.finish(expected=expected, expected_events=expected_events)
+
+
 class TraceProducer:
     """One commit trace's RoT accesses, produced into a bounded record.
 
@@ -542,8 +592,8 @@ class TraceProducer:
     def _refuse_internal(self, site: str) -> NoReturn:
         message = (f"{site} reaches the model's internal entropy draw and no bus "
                    f"transaction carries it, so this capture is refused whole; "
-                   f"an account of it is owed by a draw hook at {DRAW} reaching an "
-                   f"external recorder, which nothing in this tree implements")
+                   f"use the synchronous {DRAW} observer with RootProducer, or "
+                   f"supply an independently authenticated internal account")
 
         def refuse() -> bytes:
             raise AdapterError(message)

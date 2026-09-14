@@ -13,6 +13,11 @@ void callbacks_if::post_step_callback([[maybe_unused]] ModelImpl &model, [[maybe
 void callbacks_if::fetch_callback([[maybe_unused]] ModelImpl &model, [[maybe_unused]] sbits opcode) {
 }
 
+void callbacks_if::entropy_draw_callback([[maybe_unused]] ModelImpl &model,
+                                        [[maybe_unused]] bool available,
+                                        [[maybe_unused]] uint64_t value) {
+}
+
 void callbacks_if::mem_write_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const char *type,
