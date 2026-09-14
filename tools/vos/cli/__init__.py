@@ -128,7 +128,7 @@ COMMANDS: tuple[Command, ...] = (
             "capacity ledgers, placements, service transformations and reclamation research"),
     Command("memory-planner", "vos.cli.memory_planner",
             "portable checked layouts, retained baselines and framework demonstrations",
-            lane="guest", host_ok=frozenset({"plan", "check", "solve", "verify", "demo", "contracts", "--help"})),
+            lane="guest", host_ok=frozenset({"plan", "check", "solve", "verify", "demo", "contracts"})),
     Command("assembly-compare", "vos.cli.assembly_compare",
             "stock assembly bytes under the compartment-annotation-only contract"),
     Command("matrix-margin", "vos.cli.matrix_margin",

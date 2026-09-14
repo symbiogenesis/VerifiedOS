@@ -48,7 +48,9 @@ drive the toolchain or inspect its native outputs need the hop. `model config-ke
 `model validate-config`, `model asm`, `model freeze-emit`, `rtl provenance`,
 `rtl filelist`, `oracle list`, `oracle emit`, `seed list`, `testrig protocol`,
 `placement export`, `placement check`, `placement admit`, `placement search`,
-`proofs headers` use this checkout and answer on either lane. `proofs status` takes
+`proofs headers`, `memory-planner plan`, `memory-planner check`,
+`memory-planner solve`, `memory-planner verify`, `memory-planner demo` and
+`memory-planner contracts` use this checkout and answer on either lane. `proofs status` takes
 the hop because its compiled outputs live in the guest's native build directory.
 That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever

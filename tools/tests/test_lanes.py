@@ -26,6 +26,7 @@ import shutil
 import tempfile
 from collections.abc import Callable
 from contextlib import nullcontext, redirect_stderr, redirect_stdout
+from functools import partial
 from importlib import import_module
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -33,6 +34,7 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
+from vos import memory_planner
 from vos.cli import COMMANDS
 
 _ROOT = TOOLS.parent
@@ -77,6 +79,28 @@ def _placement_export(scratch: Path) -> list[str]:
     return []
 
 
+def _portable_plan(action: str, scratch: Path) -> list[str]:
+    raw = {"name": "lane-route", "pools": [{"id": "p", "capacity": 4}],
+           "buffers": [{"id": "a", "size": 2, "allowed_pools": ["p"],
+                        "intervals": [[0, 1]]}]}
+    placement = [{"id": "a", "pool": "p", "offset": 0}]
+    instance = scratch / "portable-instance.json"
+    candidate = scratch / "portable-placement.json"
+    evidence = scratch / "portable-evidence.json"
+    instance.write_text(json.dumps(raw), encoding="utf-8", newline="")
+    candidate.write_text(json.dumps(placement), encoding="utf-8", newline="")
+    evidence.write_text(json.dumps(memory_planner.plan(
+        memory_planner.parse_instance(raw), placement)), encoding="utf-8", newline="")
+    common = ["--instance", str(instance)]
+    if action == "plan":
+        return [*common, "--baseline", str(candidate)]
+    if action == "check":
+        return [*common, "--candidate", str(candidate)]
+    if action == "verify":
+        return [*common, "--evidence", str(evidence)]
+    return [*common, "--work-budget", "8"]
+
+
 _RUNS: dict[tuple[str, str], Argv] = {
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
@@ -101,6 +125,12 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("placement", "admit"): lambda _: [],
     ("placement", "search"): lambda _: ["--max-leaves", "1"],
     ("proofs", "headers"): lambda _: [],
+    ("memory-planner", "plan"): partial(_portable_plan, "plan"),
+    ("memory-planner", "check"): partial(_portable_plan, "check"),
+    ("memory-planner", "solve"): partial(_portable_plan, "solve"),
+    ("memory-planner", "verify"): partial(_portable_plan, "verify"),
+    ("memory-planner", "demo"): lambda _: [],
+    ("memory-planner", "contracts"): lambda _: [],
 }
 
 
