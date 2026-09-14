@@ -311,8 +311,19 @@ def _domains(instance: Instance, limits: dict[str, int]) -> Iterator[Placement]:
     the extent objective places no bound on their observable address.
     """
     buffers = instance.buffers
-    pool_options = [tuple(p for p in b.allowed_pools if b.fixed_pool in (None, p)) for b in buffers]
     capacities = {p.id: p.capacity for p in instance.pools}
+    # Filter empty domains before the pool Cartesian product. Otherwise P^N
+    # impossible pool combinations could be traversed without yielding one tuple
+    # and therefore without consuming the caller's deterministic replay budget.
+    pool_options = []
+    for buffer in buffers:
+        choices = []
+        for pool in buffer.allowed_pools:
+            maximum = (limits[pool] if buffer.size else capacities[pool]) - buffer.size
+            if (buffer.fixed_pool in (None, pool) and maximum >= 0
+                    and (buffer.fixed_offset is None or buffer.fixed_offset <= maximum)):
+                choices.append(pool)
+        pool_options.append(tuple(choices))
     for pool_choices in itertools.product(*pool_options):
         domains: list[range | tuple[int, ...]] = []
         for buffer, pool in zip(buffers, pool_choices, strict=True):
