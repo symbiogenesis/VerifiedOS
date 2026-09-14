@@ -32,7 +32,7 @@ def service_overlay() -> None:
     ensure(before == 28 * 1024 * 1024 and after == 16 * 1024 * 1024,
            "exclusive scratch phases save capacity across independent workers")
     bad = [dict(row, offset=0) for row in report["placement"]]
-    ensure(planner.check_placement(instance, bad), "cross-worker sharing remains forbidden")
+    ensure(bool(planner.check_placement(instance, bad)), "cross-worker sharing remains forbidden")
 
 
 def input_binding_and_refusal() -> None:
@@ -59,7 +59,7 @@ def input_binding_and_refusal() -> None:
 
 def contract_route_and_source_binding() -> None:
     code, report = invoke(["contracts"])
-    ensure(code == 0 and planner.parse_instance(report["instance"]).buffers,
+    ensure(code == 0 and bool(planner.parse_instance(report["instance"]).buffers),
            "bounded contract demo exports a core-compatible instance")
     root = Path(__file__).resolve().parents[2]
     for name, digest in report["sources_sha256"].items():

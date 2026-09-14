@@ -49,6 +49,11 @@
    R-05-166, each record has a named witness, a safe two-object layout is
    instantiated, an aliased layout is rejected, late completion blocks the
    barrier and a selector example rejects invalid and over-budget candidates.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-165 R-05-166 R-08-006 R-08-007a R-08-012d R-08-014 R-08-015
+   SHA256: 1abb15fb1e97a004df1331f7e13d6dbac54e1cac3e266d9fe7c0f91e27a4ddb1
+   (*| END derived |*)
    ========================================================================= *)
 
 From Stdlib Require Import Bool List Arith Lia.

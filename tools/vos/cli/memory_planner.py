@@ -32,7 +32,7 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
-def read_json(path: Path, inputs: dict[str, str]) -> Any:
+def read_json(path: Path, inputs: dict[str, str]) -> object:
     """Hash the bytes actually parsed, without rereading a mutable input."""
     data = path.read_bytes()
     inputs[str(path)] = hashlib.sha256(data).hexdigest()
@@ -48,7 +48,10 @@ def source_identity(root: Path) -> dict[str, str]:
 
 def load_candidate(path: Path, inputs: dict[str, str], _: planner.Instance) -> planner.Placement:
     """Optional input is read only after the baseline has been checked and retained."""
-    return read_json(path, inputs)
+    raw = read_json(path, inputs)
+    if not isinstance(raw, list):
+        raise ValueError("candidate placement must be an array")
+    return raw
 
 
 def service_demo() -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -128,6 +131,7 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     inputs: dict[str, str] = {}
+    result: dict[str, Any]
     try:
         result = run(args, inputs)
     except (OSError, ValueError, TypeError, KeyError) as err:
