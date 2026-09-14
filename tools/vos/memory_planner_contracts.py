@@ -274,8 +274,8 @@ def _declarations(contract: dict[str, Any], limits: Limits) -> tuple[list[dict[s
             if len(pair) != 2:
                 raise ContractError("reserved extent needs two endpoints")
             start, end = (_nat(n, "reserved endpoint") for n in pair)
-            if not start <= end <= cap:
-                raise ContractError("reserved extent outside pool")
+            if not start < end <= cap:
+                raise ContractError("reserved extent must be nonempty and inside its pool")
         pools.append(copy.deepcopy(pool))
     if not pools:
         raise ContractError("at least one memory pool is required")
