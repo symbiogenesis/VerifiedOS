@@ -908,6 +908,7 @@ This is the **TPM disposition one layer up** (the function is kept, on-die and v
 **The distilled atom is already banked.**
 The useful capability (a hardware-bound, phishing-resistant credential and a possession factor) is the on-die **platform authenticator**: the WebAuthn platform-authenticator role realized over the sealing and attestation service (§12), so passkeys and origin-bound credentials are provided with no external device at all.
 What is declined is specifically the *roaming* (external, cross-device) key, not the authenticator function.
+The same ground decides a key reached over a proximity-coupled link; that reading is taken at [the contactless proximity surface](#the-contactless-proximity-surface-declined-across-all-four-uses).
 
 **Honest cost.**
 Declining roaming keys forgoes the one thing the platform authenticator cannot offer: **portability across foreign devices and ecosystems** (a user cannot bring an existing YubiKey, and a credential minted here does not roam to a machine that is not this platform), the same class of interop trade as the no-Linux and no-tunneling decisions.
@@ -1910,6 +1911,123 @@ The security property here is physical absence of the legacy path, not a policy 
 
 **Disposition:** no legacy emergency-only receiver, legacy channel decoder, or legacy RF fallback.
 The zero-authority emergency mode and its explicit coverage cost are documented in [Inspirations & Prior Art](inspirations.md).
+
+---
+
+## The contactless proximity surface: declined across all four uses
+
+Four proposals reach one piece of silicon, a 13.56 MHz magnetically coupled link with load modulation, and above it card emulation, a payment credential, and a set of credential uses.
+They are taken together because each of the three consumers fails a gate before the radio is reached, so the radio's disposition follows from theirs rather than standing as a fourth judgment.
+**This surface is called *proximity-coupled* here rather than *near-field*, and the collision is worth naming.** In the register, the spec, the coverage matrix and the critique that second term is the emission residual's (R-17-058, R-17-058e), a side channel leaving this die; the plan's own Q15 cell uses it for the link weighed below, which is a link the platform would drive on purpose toward another device. The two readings are not the same, so this section keeps *proximity-coupled* for the link and leaves *near-field* to the emission, and §17 carries one reading of each.
+
+The vocabulary this corpus does carry is the contact-side one, and it is normative rather than missing: R-12-045 contains the eUICC as a register-slave crypto oracle, R-12-046 fixes its physical interface as a fixed-function ISO7816 block that moves bytes and interprets nothing, and R-12-047 puts its APDU/TPDU traffic behind a verified copy-once Narcissus reader in a zero-authority compartment.
+What is unconsidered is the proximity-coupled path and the payment credential layer above it, and these four arms are what close that.
+
+### The radio: three register acts and a price, and the price is not the temporal fence's
+
+**The steelman is that one of the three pieces is genuinely cheap.**
+R-15-122 admits a fixed-function link-layer timing sequencer whose buffer, channel word and event schedule the §12 control plane loads before the event, so a fixed frame-delay schedule is a value that block already takes and no protocol decision moves into silicon; R-15-121's register-slave datapath with its digital front end is where a proximity coding would sit; and R-15-123's split-MAC partition is the arrangement every other radio here already runs.
+
+**Deciding ground, derived: R-04-010a applied to the parts that exist.**
+Every commodity contactless front end in this class runs its link layer as firmware on a hidden core, which is the condition R-04-010a's Accept already sorts the FullMAC radio out on and the distinction R-15-123's no-foreign-computers line draws, so what is on the table is verified RTL or nothing.
+R-04-011 holds the count where it is and says in as many words that a further exception is an act taken against R-04-010a stating its own containment, never a reading of the eUICC's.
+
+**Deciding ground, derived: an admission would be two amendments, not two cell fills.**
+R-15-124's off-die analog bank enumerates PA, LNA, filters, switches and antenna tuners, and a magnetically coupled loop with load modulation is none of the five, so admitting one is an enumeration amendment carrying a criterion of its own.
+R-15-125 states the secondary regulatory layer as a TX power and spectrum-mask limit latched at boot, which is not the form a proximity limit takes: a reader-side ceiling is stated over the magnetic field strength at a distance, not over power into an antenna port against a mask.
+A criterion admitting such a path would have to fail on a physical property, and what that property would be is nameable even though the entry is not drafted: a fixed matching network and a supply-limited driver whose field ceiling no software word can raise, failing on a tuned or variable match, on a software-settable drive level, or on a coil whose ceiling is stated as a configured value rather than as a passive one.
+Drafting it needs a measurement this decision has none of, so the amendments are named and left unopened.
+
+**The endpoint is priced where the register prices one, and that is not at the temporal fence.**
+A contactless digital front end would be a second slow endpoint, and R-15-015c is the entry that prices it: device authority is provisioned by latency class in the attested devicetree R-09-007 fixes, so a compartment holds only endpoints whose worst-case accept is of the same order, and R-15-015d decides whether such an endpoint earns its own thin driver compartment or spends a divisor for nothing.
+The price is not the partition fence's, and the reason is structural rather than a matter of degree: R-15-015b keeps a device-space store out of the store buffer precisely so that R-15-218's padded per-class constant is stated over the class's depth and memory bandwidth instead of over the slowest endpoint's accept latency, with R-12-046's divided card clock standing as the on-die proof that an endpoint of that order is reachable at all.
+
+**Honest cost.**
+There is no proximity link, so there is no tap gesture on this device in any of the three uses below and none in a use nobody has proposed yet.
+A user who expects a phone to be tapped against something is expecting a capability this platform does not have, and the absence is physical rather than a policy bit, which is the same shape the legacy emergency-radio decline above takes.
+
+**Disposition:** no proximity radio, no proximity digital front end, and no magnetically coupled member of the off-die bank.
+R-15-122 stays exactly as it is and unspent: nothing here fills its cell and nothing here moves it.
+
+### Card emulation: the parser half is already carried, and the answering compartment is the new half
+
+**The steelman is that most of the discipline exists.**
+R-12-047 already requires APDU/TPDU traffic to be parsed only in software by a verified copy-once Narcissus reader in a zero-authority compartment, so the parser obligation is cited and not re-proposed; R-12-046 is the contact-side precedent for the silicon half, a fixed-function interface block with no DMA and no APDU semantics, which is an existence proof that a card-grammar endpoint can be built here at all.
+
+**Non-deciding observation, recorded so the arm is not over-claimed.**
+R-12-046 is the eUICC's own entry rather than a general one, so a contactless interface block would be a new entry with its own criterion, and the precedent supplies the shape rather than the admission.
+
+**Deciding ground, derived.**
+The genuinely new half is the compartment that answers as a card, which runs the discipline in the opposite direction to the AKA client's: the platform becomes the thing a foreign reader interrogates, on a schedule the reader sets.
+R-12-084a with R-15-238d is the containment that would have footed it, a compartment holding one session's ring and nothing else, minting nothing, naming no device, and faulting as the contained crash R-16-001 restarts, with its syntax layer a Narcissus parser enumerated in the R-05-042 wire-format inventory.
+That footing is available and is not what decides the arm; the arm is decided by the radio above, there being no link for such a compartment to answer over.
+
+**Honest cost.**
+The device cannot present itself as a card to any reader, so every reader-side ecosystem, access control, ticketing, loyalty and the payment terminals below, is unreachable rather than unimplemented, and no later software release changes that.
+
+**Disposition:** no compartment answering as a proximity-coupled card, and no contactless interface block; R-12-084a and R-15-238d are unmoved, being the footing an admission would have used rather than entries this decline edits.
+
+### Payment: a coverage trade in the shape R-17-051 already uses
+
+**The steelman is that the gate is a certification regime rather than a secret.**
+The standards are readable and the mechanisms are ordinary: a card grammar, a session, a credential store.
+
+**Deciding ground, derived, and it is a relationship rather than a document.**
+EMVCo issues type approval per product at Level 1 and Level 2, and the process is entered by registration, an executed contract with EMVCo and a product-provider number, with bilateral agreements executed against an accredited laboratory (emvco.com approval-process pages, read 2026-09-14).
+A live network token additionally requires a registered token-requestor relationship with the scheme, and host card emulation removes the secure element without removing that relationship.
+So the credential is gated by scheme membership and by contract, not by anything this platform can verify, which is the same structure R-17-051 books for the generation floor: a coverage-for-security cost stated rather than hidden.
+R-04-011 is what stops a second tolerated foreign computer being read out of the first, a secure element or a payment applet host being an exception that would have to state its own containment.
+[Inspirations & Prior Art](inspirations.md) already carries the field evidence that a certified element fails in production, the 2025 extraction of a GSMA consumer certificate from a certified production eUICC, so the case is cited there rather than argued again here.
+
+**The two lock-state entries are unmoved, and what each would have been owed is named.**
+R-15-146 drives a peripheral's enable from grant liveness and carries an in-use indication no compromised component can suppress, which a part answering an RF field while the host is off holds nothing to satisfy; admitting one would have owed that entry a statement of what liveness means for a field-powered responder.
+R-15-147's cut set is the microphone, the camera and the USB data lanes, with the radio staying page-reachable because the paging task holds its capability; a power-reserve element would have been the first candidate in that set with no capability holder to justify a carve-out, and would have owed the entry an explicit one.
+Neither is amended, because the option is declined and an amendment with nothing to govern would decide nothing.
+
+**Honest cost.**
+No tap-to-pay, no transit stored value, and no wallet holding a payment credential; and because PCI MPoC asks for the other role, no contactless acceptance either, so this device is neither a card nor a terminal.
+That is a daily, visible loss in the markets where transit gates are contactless, and it is accepted rather than deferred.
+
+**Disposition:** no payment or transit credential role over a proximity link and no contactless acceptance role.
+Reading an approval regime is not holding an approval: nothing above makes this platform a payment-scheme participant, and no clause of this decline may be cited as coverage.
+
+### The credential uses: the role question first, then four per-use dispositions
+
+**The role question is taken rather than assumed, and the answer is that the ground governs and the role word does not travel.**
+WebAuthn classifies an authenticator reached over a proximity link as *roaming*, which is the word R-12-020 declines, while the on-die path above is named with the *platform authenticator* word; read carelessly that makes the transport decide.
+It does not.
+R-04-010a's Accept already sorts the external roaming hardware authenticator into the foreign-computer column, and the reason it gives is its own microcontroller running a vendor's firmware, citing R-12-020 for the disposition and not for a role taxonomy.
+So the decline reaches a device that fetches and executes instructions outside R-04-010a's discipline, whatever wire it is reached over, and it says nothing at all about this platform presenting itself over a proximity link, which is the card-emulation arm above and a different question.
+R-12-020 is therefore left unamended, so the ground keeps one owner.
+Q9's confined external-authenticator client is the same entry read from the other side and is decided with it: it is gated by the foreign-computer ground, not by the transport, so nothing in its scope moves here.
+
+**ISO/IEC 18013-5 device retrieval: declined on its proximity transports only, and the rest is undecided rather than declined.**
+Device retrieval runs over three carriers, Bluetooth Low Energy, the proximity-coupled link (NFC in that standard's own vocabulary) and Wi-Fi Aware, with a separate server-retrieval path beside them, and BLE and 802.11 are radios the first-release roster already carries (R-18-004; R-15-122's sequencer serves their turnarounds rather than admitting either).
+So what the radio arm declines is the proximity-coupled engagement and the proximity-coupled retrieval transport, and mobile-document presentation over BLE or Wi-Fi Aware is a surface this decision does not reach.
+Naming it is the point: it would need a §12 grammar and compartment act and a member in the R-05-042 wire-format inventory, and neither is opened here.
+The standard itself is a paid ISO document and was not read; the transport set above is established from secondary sources read 2026-09-14, and no disposition here depends on a clause of the paid text.
+The document gate is also not the interesting one for this arm: device retrieval needs no scheme membership, and a verifier still needs the issuing authority's trust anchors, which is an authority question and not a radio one.
+
+**The NFC Forum tag and message specifications: the cheapest document gate, and the same silicon gate as the rest.**
+The specifications are sold to the public for a nominal fee and are free to members at the Associate level and above ([nfc-forum.org/build/specifications](https://nfc-forum.org/build/specifications/), read 2026-09-14), so this is the one arm whose governing text is obtainable rather than contractual.
+It is declined anyway, on the radio arm's ground: there is no link to read a tag over.
+It is recorded as obtainable and not obtained, because the document was never what decided it.
+
+**PCI MPoC: a published standard asking for the opposite role.**
+The Mobile Payments on COTS standard is published in the PCI SSC document library and is publicly readable (pcisecuritystandards.org, read 2026-09-14), and its currency is attestation of a commercial off-the-shelf solution rather than a proprietary credential relationship, which is a statement about the gate and not a claim of fit.
+It asks this platform to be a contactless acceptance terminal, so it needs the same reader radio the first arm declines, and it is declined with it.
+
+**The W3C Digital Credentials API: adjacent, not part of this question.**
+It is a Working Draft dated 04 September 2026 ([w3.org/TR/digital-credentials](https://www.w3.org/TR/digital-credentials/), read 2026-09-14) and defines no transport of its own, delegating the exchange to the user agent and naming presentation and issuance protocols above it.
+Its cross-device path recommends CTAP for a remote credential manager, whose proximity check is a Bluetooth advertisement rather than a proximity-coupled link, so where it touches a hardware question at all it touches the R-12-020 one answered above and not this one.
+Nothing in it is declined here, and nothing in it is admitted here either.
+
+**Honest cost.**
+No proximity-reached external authenticator, no mobile-document engagement or retrieval over a proximity link, no tag read or write, and no tap-to-pair.
+R-12-020 books the portability cost and keeps it, cited here and not restated; what this arm adds beside it is the one remaining transport a user might have reached such a device over, so the decline is now complete in the wire as well as in the class.
+
+**Disposition:** the role question is answered at R-04-010a's ground, R-12-020 is unamended, and the four uses above are declined at the radio; the mobile-document surface over BLE or Wi-Fi Aware is undecided and named as such.
+The normative statement is R-17-051b's, which books the forfeits in its own body as R-17-051a books messaging's.
 
 ---
 
