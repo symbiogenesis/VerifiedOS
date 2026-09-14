@@ -119,10 +119,10 @@ def resource_contract_cli() -> None:
         code, proof = invoke(["resource-proof", "--resource-budget", str(budget)])
         ensure(code == 0 and "MemoryPlannerResources" in proof["rocq_source"],
                "the proof action emits the actual resource-model replay source")
-        raw["reserved_bytes"] = {pool: 0 for pool in raw["reserved_bytes"]}
+        raw["reserved_bytes"] = dict.fromkeys(raw["reserved_bytes"], 0)
         budget.write_text(json.dumps(raw), encoding="utf-8")
         code, report = invoke(["resources", "--resource-budget", str(budget)])
-        ensure(code != 0 and report.get("errors"), "unfunded backing cannot claim guaranteed success")
+        ensure(code != 0 and bool(report.get("errors")), "unfunded backing cannot claim guaranteed success")
         code, report = invoke(["resource-proof", "--resource-budget", str(budget)])
         ensure(code != 0 and "rocq_source" not in report, "refused resources emit no replay proof")
         for arguments in (["demo", "--resource-budget", str(budget)],

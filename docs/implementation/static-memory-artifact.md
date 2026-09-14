@@ -19,6 +19,11 @@ experiment receipts use, and reports each file's membership in the git index. A 
 document or proof a later experiment adds is inventoried the day it lands, without an
 edit to this document or to that module.
 
+The portable planner, external candidates and certificate experiments use the
+separate `memory-planner`, `memory-candidates` and `memory-certificates` command
+registries and receipts. Their linked documents below state those replay commands
+and proof boundaries; this manifest's `--replay` runs only `static-memory` actions.
+
 ## Replaying the artifact end to end
 
 ```console
@@ -102,6 +107,10 @@ experiment adds is a finding here until somebody reads it and gives it a row.
 | [Oracle mutations](static-memory-mutants.md) | bounded executable evidence | Constructed violations and weakened-clause controls distinguish killed, miskilled, surviving and stillborn cases |
 | [Retirement envelopes](static-memory-envelope.md) | elementary argument in prose; bounded executable evidence | Calendar bounds have explicit finite-adversary premises and bounded exhaustive comparisons |
 | [Compiled census](static-memory-census.md) | bounded executable evidence; measured outcome | Reproducible lowering checks and emitted C and instruction counts concern a plain-RV64 proxy, with no target timing or image qualification |
+| [Candidate generators](static-memory-candidates.md) | bounded executable evidence; measured outcome | Original-instance checks decide native idealloc proposals; synthetic spans and host elapsed times belong to their concrete runs |
+| [Standard certificates](static-memory-certificates.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | The sources describe external formats and checkers; native replay checks finite encoded instances; MemoryPlannerCertificates.v proves the separate finite model, with no serialized LRAT-to-Rocq bridge |
+| [Literature disposition](static-memory-literature.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | Per-source decisions cite their evidence owners and distinguish modeled theorems, executable experiments and unclosed source/target joins; no donor theorem becomes an admission claim |
+| [Resource contracts](static-memory-resource-contracts.md) | peer-reviewed result cited; bounded executable evidence; mechanized theorem | Authored backing, holder and deadline checks accompany finite credit and duration theorems in MemoryPlannerResources.v; real execution and timing refinement remain premises |
 | [Artifact inventory](static-memory-artifact.md) | bounded executable evidence | The manifest computes tracked files, registered actions and completeness; classification is a review judgment |
 
 ## What publication would additionally need
