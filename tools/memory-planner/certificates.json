@@ -1,0 +1,27 @@
+{
+  "schema": "memory-lrat-dependencies-v1",
+  "role": "optional off-device research only; no VerifiedOS production admission",
+  "checker": {
+    "repository": "https://github.com/lammich/lrat_isa",
+    "commit": "99b832b501f473f7890f20b99755b5ace86eae48",
+    "license": "MIT",
+    "license_reviewed": "2026-09-14",
+    "proof_endpoint": "upstream Isabelle/HOL theorem to exported LLVM; native compiler, C++ I/O and runtime remain assumptions; upstream Isabelle proof not replayed here",
+    "files": [
+      {"path": "LICENSE", "sha256": "f9b1a9ece8395e33e174dc90218cc2ded93327d8b8de066f39719e26e0f23c3a"},
+      {"path": "code/main.cpp", "sha256": "7bfc76f050502673bf9d4c3fe721d740441da5d414e1ea08c1a9e63d401a45e6"},
+      {"path": "code/lib_isabelle_llvm.cpp", "sha256": "51188f9aae22f02535eb85eaf9d4eb7a86c0b80cb81f982392de2fa677553f5f"},
+      {"path": "code/lib_isabelle_llvm.c", "sha256": "d5d3b092826856cca755c54ba63b13da6771deb7542d492358442948c59de18a"},
+      {"path": "code/lrat_isa_export.h", "sha256": "f0d00a624696b559543ce3e961832065c4ca0c70bf83dfa4fbc03fbf19a8f651"},
+      {"path": "code/lrat_isa_export.ll", "sha256": "aa7c8637968eaa749024b4cb85e59637fe4f0b7d2a00d4047eae4fea5bc8bcd1"}
+    ]
+  },
+  "producer": {
+    "repository": "https://github.com/arminbiere/cadical",
+    "commit": "c60730422e758ef1cebe7aeddf2dda31c996bf04",
+    "license": "MIT",
+    "license_reviewed": "2026-09-14",
+    "license_sha256": "9caaed67d8cd9d1c0744ad533b3ed95af756aa54c0402e38746be1f85a4e176c",
+    "role": "untrusted LRAT producer; exit status alone never establishes infeasibility"
+  }
+}
