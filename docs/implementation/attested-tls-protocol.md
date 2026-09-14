@@ -1,0 +1,44 @@
+# Attested TLS object-fetch protocol
+
+This is the authorable protocol contract for M6.9a and the abstract binding model for M6.9c. It instantiates [Q22c's qualified TLS application binding](../assurance/session-binding-qualification.md#the-tls-13-application-binding) for one source-object fetch service. The client proves its authorized measured endpoint before the relying party opens that connection's bounded object-fetch operation. This selects a specification example, not an M8a service or a deployed endpoint. The [register](../requirements-register.md) and Q22c retain authority over attestation, credential and TLS requirements.
+
+## Implementation entry condition
+
+The tracked upstream gitlinks and [THIRD-PARTY.md](../../THIRD-PARTY.md) identify no admitted TLS implementation with the required protected completed-handshake/exporter interface. HACL* and libjade are primitive comparators; a primitive pin is not a TLS stack. R-12-032 names the Bertie lineage and miTLS as architectural routes, not an incorporated implementation. M6.9a's realization and M6.9b's connection therefore remain blocked on selection, exact-revision license review and admission of that interface. No TLS source is incorporated by this document.
+
+The abstract interface supplies a live, fully handshaken, server-authenticated TLS 1.3 context with the composition-fixed hybrid configuration. Resumption, early data, post-handshake client authentication and multiplexed authentication lifecycles are refused. A context handle is a server-owned reference to the local unit, principal, peer origin, traffic-key custody and public exporter. It has no caller-writable exporter or measured-generation field. The Q22c exporter profile is `EXPORTER-Channel-Binding`, empty context, 32 bytes; the local TLS implementation must realize that exact profile.
+
+## Bounded exchange and lifecycle
+
+The composition supplies positive bounds for challenge bytes, evidence bytes, manifest/reference bytes, object identity, returned object bytes and concurrent connections. It also supplies nonce generation/freshness policy and a monotonic deadline. These are required inputs; this document supplies no arbitrary target capacities, nonce collision bound or measured WCET. Each variable-length field is checked before allocation or interpretation; a missing bound refuses service entry.
+
+| State | Input and decision | Result |
+| --- | --- | --- |
+| Fresh context | Full handshake, authenticated origin, eligible fixed configuration, unspent connection lifecycle, valid policy, fresh nonempty challenge and positive deadline | Atomically mark the connection lifecycle spent and retain exactly one pending challenge |
+| Waiting | Receive one bounded evidence message before the deadline | Consume the pending attempt before checking evidence; either open this connection's service or close it |
+| Open | One authorized bounded object-fetch request; completion, expiry or platform teardown | Complete or refuse the request, then close the connection |
+| Closed | Any quote, repeated decision, new challenge or reconstructed appraiser using the same context | Refuse; reconnect requires a new context and fresh challenge |
+
+The relying party sends a challenge containing nonce, peer origin, software/unit scope and `VerifiedOS/Q22c/TLS-attestation/v1`. The client asks the sealing broker for `attest-local-session` using its non-exportable credential handle and protected local TLS-context handle. The broker obtains the measured generation and exporter itself, checks unit/principal ownership and all role, scope, operation, origin, domain, use and expiry bounds, and consumes a use when it issues evidence. `CredentialHandles.v` owns the generic seven-binding authorization and shared-account charging interface; M6.9b must bind its authenticated lookup to this protocol's context.
+
+Evidence authenticates the challenge, actual measured generation, principal, client-attester role and local exporter, plus an origin-scoped unit alias only for unit appraisal. The appraiser checks the exact pending challenge, its own connection exporter, authenticated evidence and reference manifest, allowed generation/principal/role, and selected identity scope. It consults no ghost issuer identity. Canonical message encodings and their verified parser/serializer pair remain implementation entry artifacts; the model operates on bounded typed values and does not pretend symbolic records are wire bytes.
+
+## Appraisal and refusal
+
+Software policy names approved generations and principal, carries no unit alias, and may accept another correctly measured unit on that unit's own session. Unit policy additionally names the alias enrolled for this relying-party origin and rejects another unit even when its generation is approved. The alias must be authenticated as that origin's enrollment and cannot be inferred from software identity. Cross-origin aliases carry no globally linkable identifier in this model; endorsement and network privacy need their own realization evidence.
+
+Any missing or malformed field, unqualified interface, incomplete handshake, unauthenticated origin, wrong fixed configuration, resumed/early-data context, invalid handle, ownership disagreement, stale/used credential, reused lifecycle, absent/old challenge, deadline equality or expiry, forged or unavailable evidence, wrong exporter, wrong context, unapproved generation/principal/role, or wrong identity scope closes the attempt. There is no unauthenticated object-fetch fallback. Withholding evidence spends this service's availability alone under R-17-030y.
+
+The quote operation has no argument for a public exporter. Its only exporter source is the same protected TLS context that owns the directional traffic keys. Copying another connection's public exporter is therefore insufficient authority to quote it. The abstract model must expose a broken caller-exporter issuer as a refuting construction, while its ordinary issuer obtains both the measurement and binding from protected state.
+
+## Theorem contract fixed before authoring
+
+`proofs/AttestedSession.v` must prove a quantified accepted-session relation over explicit received evidence and its issuance event. The premises name exporter uniqueness/security, evidence authenticity, integrity of protected context lookup and measurements, uncompromised key custody, and authenticated origin-scoped unit enrollment. No axiom is added, and construction of an authentic-looking record is not evidence authenticity. An accepted quote must refer to the challenged connection's actual measured key holder and approved policy; unit equality is claimed only for unit appraisal.
+
+The model must construct the whole premise conjunction for accepted software-only and unit-specific cases. It must reject replay, parallel-session substitution, a different correctly measured unit under unit policy and caller-provided-exporter substitution. The other correctly measured unit must remain accepted under software policy on its own context. A transparent byte-forwarding relay preserves the intended endpoints and acquires no traffic-key authority; an intermediary terminating two TLS legs has another key holder and is a different case. Explicit key exposure or compromised issuance must be shown to violate a premise and permit the corresponding attack, rather than be called a rejected honest case.
+
+Acceptance is focused Rocq compilation, native constant/type/assumption and inhabitation audits, kernel recheck, constructed positive/refusal and compromise cases, and Q22c's existing `python tools/run.py session-binding --json` plus `python tools/run.py test --only session_binding`. Any generated cross-model checks report their bounded domain. The whole-checkout proof gate is the integrator's final check. This local theorem cannot discharge the TLS key schedule, hybrid primitives, signature security, entropy, manifest trust or implementation correspondence.
+
+## Outstanding joins
+
+[U-20](../assurance/unassigned-proof-map.md) already prices qualification of the protocol/probabilistic proof foundation at the locked prover and its exact assumption closure. This work consumes that explicit boundary and neither installs a library nor enlarges the declared axiom set. The selected TLS revision, credential/context binding, canonical bytes, nonce/deadline/capacity configuration, authenticated manifests and enrollment, teardown on lifecycle/generation change and target refinement remain M6.9a/M6.9b/M6.9c inputs. The theorem is point-in-time: it cannot prove future exclusive custody after compromise, correct runtime behavior, human intent, source availability or resistance to forwarding plaintext by an authorized endpoint. The ensemble and immutable-module constructions are separate members of CJ-ATTEST and are not implemented by this TLS contract.
