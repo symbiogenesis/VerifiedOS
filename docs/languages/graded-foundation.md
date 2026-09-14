@@ -211,7 +211,7 @@ The `SourcePackage` binds source and generated inputs, domain implementations an
 
 ## Q25d debts and acceptance boundary
 
-These keys name missing obligations, not Rocq constants, new schedule cells or accepted assumptions. Q25d must merge overlapping work with the [Q21 retained packages](core-design.md#proof-obligations-and-proposed-work-packages) and [Q2c foundation map](../hardware/cheri-foundation-map.md), assign one reviewed implementation owner/estimate/predicate to each selected debt, and resolve R-05-020 before frontend implementation. A responsible price unavailable at that review remains an explicit blocker.
+These keys name missing obligations, not Rocq constants, new schedule cells or accepted assumptions. Q25d merges them with the [Q21 retained packages](core-design.md#proof-obligations-and-proposed-work-packages) and [Q2c foundation map](../hardware/cheri-foundation-map.md), gives each one reviewed implementation owner, estimate and predicate at [its pricing table](full-language-review.md#reviewed-implementation-pricing), and takes the frontend's R-05-020 disposition at [its admission subsection](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows). A responsible price unavailable at that review stays an explicit blocker, which the rows reaching Q2c's unestablished foundation keys carry as `unpriced` rather than as a number.
 
 | Debt key | Required artifact and refusal predicate |
 | --- | --- |
