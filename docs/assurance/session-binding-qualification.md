@@ -215,16 +215,15 @@ having no upstream symbolic analysis of this protocol to curate from.
 
 The [register](../requirements-register.md) owns the obligations. R-12-015c owns
 session binding and R-12-015d this construction; R-09-025a splits the generation and
-device registers; R-13-001d fixes the ensemble identity at composition, and
-R-12-015d has each end expect the unit and the ensemble identity its own attested
-devicetree (R-09-007) names for that endpoint; R-11-017a owns the
-slot tables whose digests the session binds; R-12-043a admits one key-establishment
-configuration and R-17-049b states what the hedge does instead of negotiating;
-R-15-202 and R-05-070 keep the keys and the cipher in the crypto core; R-15-228d and
-R-15-228e own the frame and its tag; R-17-030z books what a refusal costs. Nothing
-here narrows any of them, and R-15-132 is read against this part and unmoved: what
-crosses the wire is attestation evidence processed by this construction, never a
-persistent link-layer address.
+device registers; R-13-001d fixes the ensemble identity at composition, and R-12-015d
+has each end expect the unit and the ensemble identity its own attested devicetree
+(R-09-007) names for that endpoint; R-11-017a owns the slot tables whose digests the
+session binds; R-12-043a admits one key-establishment configuration and R-17-049b
+states what the hedge does instead of negotiating; R-15-202 and R-05-070 keep the keys
+and the cipher in the crypto core; R-15-228d and R-15-228e own the frame and its tag;
+R-17-030z books what a refusal costs. Nothing here narrows any of them, and R-15-132 is
+read against this part and unmoved: what crosses the wire is attestation evidence
+processed by this construction, never a persistent link-layer address.
 
 ### The selected construction and its boundary
 
@@ -269,12 +268,12 @@ secret, and that a member can present that identity or an alias rooted in no sec
 never another unit's. The appraiser therefore checks the presented identity against
 the unit the device register names before it reads any claim about the peer's identity,
 its generation or its tables. Two scenarios make the check load-bearing rather than
-decorative: a quote signed under an alias is
-refused by name, and an appraiser that takes the binding on faith accepts a unit the
-composition never named, asserting a device register it cannot sign for. Without the
-obligation the device register is an assertion any endpoint can make, and the
-unit-specific appraisal the whole construction rests on decides nothing. Realizing
-the binding is owed, and the model credits no realization.
+decorative: a quote signed under an alias is refused by name, and an appraiser that
+takes the binding on faith accepts a unit the composition never named, asserting a
+device register it cannot sign for. Without the obligation the device register is an
+assertion any endpoint can make, and the unit-specific appraisal the whole construction
+rests on decides nothing. Realizing the binding is owed, and the model credits no
+realization.
 
 ### Mutual claim, freshness, custody and anti-replay
 
@@ -335,9 +334,9 @@ authenticates false registers, evidence being a premise here and not a result.
 Exposure of the session keys after establishment yields frame authority an accepted
 appraisal cannot revoke, the relation being point-in-time; the experiment models that
 exposure as an explicit act, so before it the attacker holds nothing. Beside them, a
-relay that forwards between the two intended ends is not endpoint substitution: it is no
-holder of the session the two appraisals keyed and obtains no core to seal with, while
-an intermediary terminating both legs is a unit the composition does not name.
+relay that forwards between the two intended ends is not endpoint substitution: it is
+no holder of the session the two appraisals keyed and obtains no core to seal with,
+while an intermediary terminating both legs is a unit the composition does not name.
 
 The fixture's ideal tag, its opaque digests, its symbolic identities and its small
 integer slot counts are experimental inputs. They are not a cipher, a key schedule, a
