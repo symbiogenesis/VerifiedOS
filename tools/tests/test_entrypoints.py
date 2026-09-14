@@ -79,9 +79,18 @@ def _wsl_environments_follow_native_lanes() -> None:
         root.mkdir()
         (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/python-a\n", encoding="utf-8")
         native = Path("/root/build/venv-layout-fixture").resolve()
+        # The bootstrap asks which filesystem the *resolved* checkout sits on, so the
+        # fixture answers about that path rather than about the one the temporary
+        # directory was handed back under. The two differ wherever a component is not
+        # already in resolved form, and a Windows runner whose TEMP carries an 8.3
+        # short name is exactly that: keyed on the unresolved path the fixture answers
+        # "ext4" about the checkout, the guest branch below is never taken, and the
+        # case fails for a property of the runner's temporary directory rather than of
+        # the bootstrap it is about.
+        checkout = root.resolve()
         with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True), \
                 patch.object(toolenv.env, "filesystem", side_effect=lambda path:
-                             "9p" if path == root else "ext4"):
+                             "9p" if path == checkout else "ext4"):
             ensure(toolenv.environment(root, "linux") == native / "lane-python-a" / "venv-linux",
                    "WSL bootstrap must keep its environment in the Git-derived native lane")
             ensure(toolenv.environment(root, "win32") == root / "out" / "venv-win32",
