@@ -1,14 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """Encoding directions and bounded refusals; real LRAT runs through the guest demo."""
 
+import hashlib
 import itertools
 import json
 import tempfile
 from contextlib import redirect_stdout
+from copy import deepcopy
 from dataclasses import asdict
 from io import StringIO
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import memory_planner as planner
@@ -166,10 +169,110 @@ def _encode_cli_contract() -> None:
         ensure(code == 0 and stream.getvalue().startswith("p cnf "), "host encode route did not emit DIMACS")
 
 
+def _receipt_scope_and_provenance() -> None:
+    instance = _instance([_buffer("x", 1)], 1)
+    placement = [{"id": "x", "pool": "a", "offset": 0}]
+    encoding = cert.encode(instance, objective_bound=0)
+    toolchain = {"checker_endpoint": "metadata-test endpoint", "pins": {"checker": "test pin"}}
+    output_dir = ROOT / "out"
+    output_dir.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=output_dir) as temporary:
+        proof = Path(temporary) / "metadata-only.lrat"
+        proof.write_bytes(b"metadata test only; not an LRAT proof")
+        report: dict[str, Any] = {"placement": placement, "evidence": {
+            "scope": cert.evidence_scope(), "status": "checked optimal",
+            "certificate_status": "checked LRAT refutation", "checker_returncode": 0,
+            "checker_output": "s VERIFIED UNSAT\n", "instance_digest": planner.instance_digest(instance),
+            "encoding_version": cert.ENCODING_VERSION, "source_sha256": cert._source_identity(ROOT),
+            "limits": asdict(cert.DEFAULT_LIMITS), "timeout_seconds": 1,
+            "objective": {"metric": "sum-pool-extents-in-bytes", "pool_limits": {"a": 1},
+                          "strictly_better_query_bound": 0},
+            "pool_heights": {"a": 1},
+            "encoding_sha256": encoding.identity()["encoding_sha256"],
+            "cnf_sha256": encoding.identity()["cnf_sha256"],
+            "toolchain": toolchain, "proof_endpoint": toolchain["checker_endpoint"],
+            "artifacts": {"lrat": str(proof)},
+            "certificate_sha256": hashlib.sha256(proof.read_bytes()).hexdigest(),
+        }}
+        # This checks metadata only. The guest demo must still invoke real LRAT.
+        with patch.object(cert, "_tools", return_value=toolchain), \
+                patch.object(cert, "certify", return_value={"rechecked": True}) as native:
+            ensure(cert.replay(instance, report, ROOT) == {"rechecked": True},
+                   "valid scoped metadata did not reach native revalidation")
+            native.assert_called_once()
+            native.reset_mock()
+            mutations: list[tuple[str, object]] = [
+                ("scope", None), ("scope", {**cert.evidence_scope(), "admitted_verdict": True}),
+                ("scope", {**cert.evidence_scope(), "grounds_refinement": 0}),
+                ("scope", {**cert.evidence_scope(), "instance_lrat_replayed_by_rocq": True}),
+                ("certificate_status", "unknown"), ("checker_returncode", False),
+                ("checker_output", "s VERIFIED UNSAT\nextra acceptance\n"),
+                ("proof_endpoint", "Rocq kernel rechecked this LRAT"),
+                ("toolchain", {**toolchain, "pins": {"checker": "different pin"}}),
+                ("limits", []), ("objective", None),
+                ("objective", {**report["evidence"]["objective"], "strictly_better_query_bound": False}),
+                ("pool_heights", {"a": 1.0}), ("artifacts", []),
+            ]
+            for field, value in mutations:
+                changed = deepcopy(report)
+                changed["evidence"][field] = value
+                try:
+                    cert.replay(instance, changed, ROOT)
+                except cert.CertificateError:
+                    continue
+                raise AssertionError(f"forged or malformed receipt field reached replay: {field}")
+            native.assert_not_called()
+
+
+def _strict_json_and_input_identity() -> None:
+    output_dir = ROOT / "out"
+    output_dir.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=output_dir) as temporary:
+        directory = Path(temporary)
+        instance = directory / "instance.json"
+        raw_instance = asdict(_instance([_buffer("x", 1)], 2))
+        instance.write_text(json.dumps(raw_instance), encoding="utf-8")
+        other = directory / "other.json"
+        for role in ("instance", "candidate", "pool-limits", "evidence"):
+            for malformed in ('{"a":1,"a":2}', '{"a":NaN}', '{"a":Infinity}', '{"a":1e999}'):
+                other.write_text(malformed, encoding="utf-8")
+                action = "verify" if role == "evidence" else "encode"
+                argv = [action, "--instance", str(other if role == "instance" else instance)]
+                if role != "instance":
+                    argv.extend(["--" + role, str(other)])
+                stream = StringIO()
+                with redirect_stdout(stream):
+                    code = cli.main(argv)
+                result = json.loads(stream.getvalue())
+                ensure(code == 1 and any("duplicate JSON" in text or "nonfinite JSON" in text
+                                        for text in result["findings"]),
+                       f"{role} accepted ambiguous JSON")
+                ensure(result["input_sha256"][str(other)] == hashlib.sha256(other.read_bytes()).hexdigest(),
+                       "rejected input lost the identity of the actual parsed bytes")
+        for role in ("candidate", "pool-limits"):
+            other.write_text("null", encoding="utf-8")
+            with redirect_stdout(StringIO()):
+                code = cli.main(["encode", "--instance", str(instance), "--" + role, str(other)])
+            ensure(code == 1, "explicit null input silently changed the query")
+        results = []
+        for indent in (None, 2):
+            instance.write_text(json.dumps(raw_instance, indent=indent), encoding="utf-8")
+            stream = StringIO()
+            with redirect_stdout(stream):
+                code = cli.main(["encode", "--instance", str(instance), "--bound", "0"])
+            ensure(code == 0, "valid strict JSON failed encoding")
+            results.append(json.loads(stream.getvalue()))
+        ensure(results[0]["encoding_sha256"] == results[1]["encoding_sha256"] and
+               results[0]["input_sha256"] != results[1]["input_sha256"],
+               "raw source identity was confused with normalized model identity")
+
+
 def cases() -> list[Case]:
     return [Case("CNF both directions against complete truth tables", _both_encoding_directions),
             Case("CNF aliases reservations gaps and zero extents", _aliases_reservations_gaps_and_zero_extents),
             Case("encoding budgets keep feasible fallback", _limits_never_truncate_into_false_infeasibility),
             Case("empty domains and zero objective", _empty_domains_and_zero_objective),
             Case("formula identity and SAT decoder refusals", _identities_and_decoder_refusals),
-            Case("host DIMACS command", _encode_cli_contract)]
+            Case("host DIMACS command", _encode_cli_contract),
+            Case("receipt rejects forged scope and checker provenance", _receipt_scope_and_provenance),
+            Case("strict external JSON and exact input byte identity", _strict_json_and_input_identity)]

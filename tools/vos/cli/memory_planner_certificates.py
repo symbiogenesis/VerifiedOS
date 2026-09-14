@@ -2,12 +2,34 @@
 """Encode and certify optional off-device memory plans with pinned LRAT tools."""
 
 import argparse
+import hashlib
 import json
+import math
 from pathlib import Path
 
 from vos import memory_planner as planner
 from vos import memory_planner_certificates as certificates
+from vos.cli.memory_planner import unique_object
 from vos.corpus import find_root
+
+
+def _finite_float(value: str) -> float:
+    result = float(value)
+    if not math.isfinite(result):
+        raise certificates.CertificateError("nonfinite JSON number")
+    return result
+
+
+def _nonfinite_constant(value: str) -> object:
+    raise certificates.CertificateError(f"nonfinite JSON number: {value}")
+
+
+def read_json(path: Path, inputs: dict[str, str]) -> object:
+    """Reject ambiguous JSON and identify the exact bytes that were parsed."""
+    data = path.read_bytes()
+    inputs[str(path)] = hashlib.sha256(data).hexdigest()
+    return json.loads(data, object_pairs_hook=unique_object, parse_float=_finite_float,
+                      parse_constant=_nonfinite_constant)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dimacs", action="store_true", help="encode: write DIMACS instead of JSON")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+    inputs: dict[str, str] = {}
     try:
         if args.action == "setup":
             result = certificates.setup(find_root())
@@ -35,9 +58,15 @@ def main(argv: list[str] | None = None) -> int:
         else:
             if args.instance is None:
                 raise certificates.CertificateError("--instance is required")
-            instance = planner.parse_instance(json.loads(args.instance.read_bytes()))
-            candidate = json.loads(args.candidate.read_bytes()) if args.candidate else None
-            pool_limits = json.loads(args.pool_limits.read_bytes()) if args.pool_limits else None
+            instance = planner.parse_instance(read_json(args.instance, inputs))
+            candidate = read_json(args.candidate, inputs) if args.candidate else None
+            pool_limits = read_json(args.pool_limits, inputs) if args.pool_limits else None
+            if args.candidate and not isinstance(candidate, list):
+                raise certificates.CertificateError("candidate placement must be a JSON array")
+            if pool_limits is not None and not isinstance(pool_limits, dict):
+                raise certificates.CertificateError("pool limits must be a JSON object")
+            if args.pool_limits and pool_limits is None:
+                raise certificates.CertificateError("pool limits must be a JSON object")
             limits = certificates.Limits(max_domain_values=args.max_domain_values)
             if args.action == "encode":
                 bound = args.bound
@@ -54,16 +83,21 @@ def main(argv: list[str] | None = None) -> int:
             elif args.action == "verify":
                 if args.evidence is None:
                     raise certificates.CertificateError("verify requires --evidence")
-                result = certificates.replay(instance, json.loads(args.evidence.read_bytes()), find_root())
+                result = certificates.replay(instance, read_json(args.evidence, inputs), find_root(),
+                                             input_sha256=inputs)
             else:
                 if args.bound is not None:
                     raise certificates.CertificateError("certify derives its strict bound from --candidate")
                 result = certificates.certify(instance, candidate, find_root(), certificate_path=args.lrat,
                                               pool_limits=pool_limits, limits=limits,
-                                              conflict_budget=args.conflict_budget, timeout=args.timeout)
-    except (ValueError, OSError) as error:
-        print(json.dumps({"status": "unknown", "findings": [str(error)]}, indent=2))
+                                              conflict_budget=args.conflict_budget, timeout=args.timeout,
+                                              input_sha256=inputs)
+    except (ValueError, OSError, TypeError) as error:
+        print(json.dumps({"status": "unknown", "findings": [str(error)],
+                          "input_sha256": inputs, "scope": certificates.evidence_scope()}, indent=2))
         return 1
+    if inputs:
+        result["input_sha256"] = inputs
     print(json.dumps(result, indent=2, sort_keys=True))
     if args.action in {"certify", "verify"}:
         return 0 if result["evidence"]["certificate_status"] == "checked LRAT refutation" else 1

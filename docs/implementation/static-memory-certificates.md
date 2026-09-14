@@ -8,11 +8,24 @@ An ordinary placement independently passes the
 An invalid certificate or exhausted budget preserves that checked feasible
 placement and leaves optimality unknown.
 
-This is research outside the admitted VerifiedOS production toolchain.
-[R-05-104 and R-05-105](../requirements-register.md) remain unchanged. Neither
-fetching a producer nor compiling an external checker admits an optimizer into
-that toolchain. The [implementation](../../tools/vos/memory_planner_certificates.py)
-contains no Python LRAT checker.
+This is evidence-producing research under
+[R-05-011b and R-15-094](../requirements-register.md), outside the admitted
+VerifiedOS production toolchain. **Its acceptance criterion is that no native
+checker verdict or receipt is the ground of a refinement claim or an admitted
+optimality or infeasibility verdict.** R-05-016, R-05-020, R-05-065, R-05-066 and
+R-05-104 through R-05-106 remain unchanged. The experiment does not complete
+[Q27a](implementation-checklist.md)'s certified-search disposition, admit its
+refused checker arm, supply the kernel-rechecked term R-05-015 requires, or close
+Q5b's actual-workload comparison. The
+[implementation](../../tools/vos/memory_planner_certificates.py) contains no Python
+LRAT checker.
+
+Every query identity and receipt carries fixed fields identifying the portable
+experiment evidence tier, `grounds_refinement: false`, `admitted_verdict: false`
+and `instance_lrat_replayed_by_rocq: false`. Receipt replay refuses absent or
+altered fields. Within this scope, `checked optimal` and `checked infeasible`
+describe results for the supplied finite model under the stated implementation
+and native execution assumptions; they are never admitted VerifiedOS verdicts.
 
 ## Selected upstreams and trust endpoint
 
@@ -93,6 +106,9 @@ layout. The file does not prove Python domain extraction, DIMACS numbering and
 serialization, or the connection between physical executions and supplied
 lifetimes. Truth-table and placement tests check those finite implementation
 boundaries; they do not replace the missing refinement theorem.
+No LRAT certificate from an individual planning run becomes a Rocq proof term.
+The generic finite-model theorem and the native checker's acceptance remain
+separate artifacts, with no mechanically checked bridge between them.
 
 ## Commands and bounded failure
 
@@ -122,15 +138,29 @@ claim. Source domains and ordinary placements remain immutable snapshots.
 Receipts bind the canonical instance, literal objective and pool limits, encoding,
 DIMACS bytes, LRAT bytes, checker inputs, authored wrapper, implementation sources
 and compiled executables. Every use rechecks the pinned checker sources and build
-receipt. Replay regenerates the objective and complete formula instead of trusting
-a receipt's CNF path. Rejected proof, changed input, unsupported size, failed
-producer and timeout all retain a previously checked feasible candidate.
+receipt. Replay rejects changed scope, checker acceptance metadata, endpoint or
+native build provenance, then regenerates the objective and complete formula
+instead of trusting a receipt's CNF path. It reruns the native LRAT checker; it
+does not replay that certificate in Rocq. Rejected proof, changed input,
+unsupported size, failed producer and timeout all retain a previously checked
+feasible candidate.
+
+The CLI rejects duplicate object keys, nonfinite numbers and numeric overflow in
+instance, candidate, pool-limit and receipt JSON. Its JSON output and saved
+certificate receipt record hashes of the exact external bytes parsed. These
+source-byte identities are provenance alongside the normalized instance binding:
+whitespace can change the former without changing the latter. Replay records its
+current input files and rechecks the encoded claim; it does not authenticate the
+historical author or reread every original source pathname. An explicit `null`
+candidate or pool-limit file is refused rather than changing the query's meaning.
 
 The native demo verifies an optimum, rejects a corrupt certificate, obtains a
 checked smaller layout for a false optimum, and replays its saved valid proof.
 It reports synthetic finite-model evidence rather than a framework workload or
 target timing measurement. The focused Rocq command compiles and kernel-rechecks
-only this file; the integrator still owns the complete proof audit.
+only the generic finite-model file; its result explicitly records that no
+instance LRAT certificate was replayed. The integrator still owns the complete
+proof audit.
 
 ## Literature disposition
 

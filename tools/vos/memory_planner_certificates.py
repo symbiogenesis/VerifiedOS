@@ -28,6 +28,19 @@ from vos import memory_planner as planner
 
 ENCODING_VERSION = "portable-placement-one-hot-height-vector-v1"
 MANIFEST = "tools/memory-planner/certificates.json"
+# Immutable policy labels travel with every encoded query and checked receipt.
+# R-05-011b permits evidence machinery only when its verdict grounds no admission.
+_EVIDENCE_SCOPE = (
+    ("evidence_tier", "portable-static-memory-experiment"),
+    ("grounds_refinement", False),
+    ("admitted_verdict", False),
+    ("instance_lrat_replayed_by_rocq", False),
+)
+
+
+def evidence_scope() -> dict[str, str | bool]:
+    """Return a fresh scope record; callers cannot mutate the fixed policy labels."""
+    return dict(_EVIDENCE_SCOPE)
 
 
 class CertificateError(ValueError):
@@ -72,6 +85,7 @@ class Encoding:
     def identity(self) -> dict[str, Any]:
         binding = asdict(self)
         binding["version"] = ENCODING_VERSION
+        binding["scope"] = evidence_scope()
         binding["cnf_sha256"] = _sha(self.dimacs().encode())
         return {**binding, "encoding_sha256": _sha(_json(binding))}
 
@@ -425,6 +439,8 @@ def _process(command: list[str], directory: Path, log: str, *, timeout: int,
 
 def _source_identity(root: Path) -> dict[str, str]:
     names = ("tools/vos/memory_planner.py", "tools/vos/memory_planner_certificates.py",
+             "tools/vos/cli/memory_planner.py",
+             "tools/vos/cli/memory_planner_certificates.py",
              "tools/memory-planner/certificates/checker_main.cpp")
     return {name: _sha((root / name).read_bytes()) for name in names}
 
@@ -432,7 +448,7 @@ def _source_identity(root: Path) -> dict[str, str]:
 def certify(instance: planner.Instance, candidate: object, root: Path, *,
             certificate_path: Path | None = None, pool_limits: dict[str, int] | None = None,
             limits: Limits = DEFAULT_LIMITS, conflict_budget: int = 10000,
-            timeout: int = 30) -> dict[str, Any]:
+            timeout: int = 30, input_sha256: dict[str, str] | None = None) -> dict[str, Any]:
     """Keep checked feasibility while asking the real LRAT checker about optimality.
 
     None asks pure feasibility of the given pools; a supplied candidate asks to
@@ -448,6 +464,7 @@ def certify(instance: planner.Instance, candidate: object, root: Path, *,
     objective: dict[str, Any] = {"metric": "sum-pool-extents-in-bytes", "pool_limits": caps}
     base_evidence: dict[str, Any] = {
         "status": "unknown", "certificate_status": "unknown",
+        "scope": evidence_scope(),
         "instance_digest": planner.instance_digest(instance), "encoding_version": ENCODING_VERSION,
         "objective": objective,
         "limits": asdict(limits), "conflict_budget": conflict_budget, "timeout_seconds": timeout,
@@ -455,7 +472,8 @@ def certify(instance: planner.Instance, candidate: object, root: Path, *,
                         "Caller size, alias and coexistence facts are sound.",
                         "Python domain extraction and DIMACS emission implement the finite encoding.",
                         "Authored I/O, native compiler retargeting and runtime preserve upstream LLVM semantics.",
-                        "This is optional off-device research, not production optimizer admission."],
+                         "R-05-011b/R-15-094: this evidence grounds no refinement or admitted verdict.",
+                         "No instance LRAT certificate is replayed by the Rocq kernel."],
     }
     retained = None
     bound = None
@@ -463,7 +481,8 @@ def certify(instance: planner.Instance, candidate: object, root: Path, *,
         findings = planner.check_placement(instance, candidate)
         if findings:
             return {"placement": None, "evidence": {**base_evidence,
-                    "findings": findings, "reason": "invalid candidate refused before optional work"}}
+                    "findings": findings, "reason": "invalid candidate refused before optional work"},
+                    "input_sha256": dict(input_sha256 or {})}
         if not isinstance(candidate, list):
             raise CertificateError("candidate must be a list")
         retained = [dict(row) for row in candidate]
@@ -473,7 +492,8 @@ def certify(instance: planner.Instance, candidate: object, root: Path, *,
         bound = sum(heights.values()) - 1
         base_evidence.update(status="checked feasible", pool_heights=heights)
     objective["strictly_better_query_bound"] = bound
-    result: dict[str, Any] = {"placement": retained, "evidence": base_evidence}
+    result: dict[str, Any] = {"placement": retained, "evidence": base_evidence,
+                              "input_sha256": dict(input_sha256 or {})}
     try:
         encoding = encode(instance, objective_bound=bound, pool_limits=caps, limits=limits)
         identity = encoding.identity()
@@ -549,13 +569,32 @@ def certify(instance: planner.Instance, candidate: object, root: Path, *,
         return result
 
 
-def replay(instance: planner.Instance, report: object, root: Path) -> dict[str, Any]:
-    """Regenerate objective, model and CNF before replaying a serialized certificate."""
+def replay(instance: planner.Instance, report: object, root: Path, *,
+           input_sha256: dict[str, str] | None = None) -> dict[str, Any]:
+    """Revalidate a research receipt with native LRAT; never import a Rocq term."""
+    try:
+        return _replay(instance, report, root, input_sha256=input_sha256)
+    except CertificateError:
+        raise
+    except (ValueError, KeyError, TypeError, AttributeError) as error:
+        raise CertificateError(f"malformed certificate receipt: {error}") from error
+
+
+def _replay(instance: planner.Instance, report: object, root: Path, *,
+            input_sha256: dict[str, str] | None) -> dict[str, Any]:
     if not isinstance(report, dict) or not isinstance(report.get("evidence"), dict):
         raise CertificateError("expected a complete certificate result")
     evidence = report["evidence"]
+    # Canonical bytes distinguish JSON false from 0, unlike Python dict equality.
+    if _json(evidence.get("scope")) != _json(evidence_scope()):
+        raise CertificateError("receipt must retain the fixed non-admission evidence scope")
     if evidence.get("status") not in {"checked optimal", "checked infeasible"}:
         raise CertificateError("result contains no checked optimality or infeasibility claim")
+    if (evidence.get("certificate_status") != "checked LRAT refutation" or
+            type(evidence.get("checker_returncode")) is not int or evidence["checker_returncode"] != 0 or
+            not isinstance(evidence.get("checker_output"), str) or
+            evidence["checker_output"].splitlines() != ["s VERIFIED UNSAT"]):
+        raise CertificateError("receipt does not record successful native LRAT acceptance")
     instance = _snapshot(instance)
     if evidence.get("instance_digest") != planner.instance_digest(instance):
         raise CertificateError("instance digest mismatch")
@@ -572,14 +611,24 @@ def replay(instance: planner.Instance, report: object, root: Path) -> dict[str, 
     findings = planner.check_placement(instance, candidate) if candidate is not None else []
     if findings:
         raise CertificateError("receipt candidate failed independent validation")
-    bound = sum(planner.pool_heights(instance, candidate).values()) - 1 if candidate is not None else None
-    if evidence["objective"]["metric"] != "sum-pool-extents-in-bytes" or evidence["objective"]["strictly_better_query_bound"] != bound:
+    heights = planner.pool_heights(instance, candidate) if candidate is not None else None
+    bound = sum(heights.values()) - 1 if heights is not None else None
+    caps = _pool_limits(instance, evidence["objective"]["pool_limits"])
+    expected_objective = {"metric": "sum-pool-extents-in-bytes", "pool_limits": caps,
+                          "strictly_better_query_bound": bound}
+    if _json(evidence["objective"]) != _json(expected_objective):
         raise CertificateError("objective does not match the candidate")
+    if heights is not None and _json(evidence.get("pool_heights")) != _json(heights):
+        raise CertificateError("recorded pool heights do not match the independently checked candidate")
     encoding = encode(instance, objective_bound=bound,
-                      pool_limits=evidence["objective"]["pool_limits"], limits=limits)
+                       pool_limits=caps, limits=limits)
     identity = encoding.identity()
     if any(evidence.get(key) != identity[key] for key in ("encoding_sha256", "cnf_sha256")):
         raise CertificateError("encoded formula or binding mismatch")
+    toolchain = _tools(root)
+    if (_json(evidence.get("toolchain")) != _json(toolchain) or
+            evidence.get("proof_endpoint") != toolchain["checker_endpoint"]):
+        raise CertificateError("receipt checker provenance differs from the checked native toolchain")
     path = Path(evidence["artifacts"]["lrat"])
     if path.stat().st_size > limits.max_certificate_bytes:
         raise CertificateError("certificate exceeds byte budget")
@@ -588,8 +637,9 @@ def replay(instance: planner.Instance, report: object, root: Path) -> dict[str, 
     if len(data) > limits.max_certificate_bytes or _sha(data) != evidence["certificate_sha256"]:
         raise CertificateError("certificate bytes changed")
     return certify(instance, candidate, root, certificate_path=path,
-                   pool_limits=evidence["objective"]["pool_limits"], limits=limits,
-                   timeout=_number(evidence["timeout_seconds"], "timeout_seconds", 1))
+                    pool_limits=evidence["objective"]["pool_limits"], limits=limits,
+                    timeout=_number(evidence["timeout_seconds"], "timeout_seconds", 1),
+                    input_sha256=input_sha256)
 
 
 def demo(root: Path) -> dict[str, Any]:
@@ -634,4 +684,5 @@ def proof(root: Path) -> dict[str, Any]:
          directory, "recheck.log")
     return {"status": "passed", "source_sha256": _sha(source.read_bytes()),
             "vo_sha256": _sha(copied.with_suffix(".vo").read_bytes()),
-            "assumptions": compiled.stdout, "scope": "one-hot finite constraint model; no Python refinement"}
+            "assumptions": compiled.stdout, "scope": evidence_scope(),
+            "theorem_scope": "one-hot finite constraint model; no Python refinement or instance LRAT replay"}
