@@ -264,7 +264,7 @@ The reviewed RTL licenses contain no reciprocal, field-of-use, or source-disclos
 
 ### The bring-up Wasm interpreter
 
-[The porting guide's Servo entry](docs/implementation/userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) names a pure-Rust interpreter standing in as the unverified bring-up interim ahead of the R-14-013a platform engine. Nothing is vendored, fetched, gitlinked or installed for it; the implementation plan's §18 places the whole browser program past the first release, so this is a reading taken at the pin rather than an incorporation.
+[The porting guide's Servo entry](docs/implementation/userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) names a pure-Rust interpreter standing in as the unverified bring-up interim ahead of the R-14-013a platform engine. Nothing is vendored, fetched, gitlinked or installed for it; [the requirements register's §18](docs/requirements-register.md#18-realization) places the whole browser program past the first release, so this is a reading taken at the pin rather than an incorporation.
 
 | Component | Release | Upstream | License | Read from |
 | --- | --- | --- | --- | --- |
