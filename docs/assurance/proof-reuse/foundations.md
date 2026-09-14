@@ -162,11 +162,11 @@ half, and no entry below is proposed as part of it.
 **What the register refuses.** What these entries would be is a *shipped*
 certificate checker, and the register refuses that from several directions at
 once. R-05-066's own criterion is the first: a new checker is precisely what
-it does not admit. R-06-011 fixes the admission axioms as the two checkers,
-the spec and policy statements, the CHERI-TAL soundness metatheorem and the
-Sail model they check against, and R-05-164 reads the declared assumption set
-off that inventory, so a third shipped checker is an amendment to R-06-011
-decided at the review gate and never an import decided here. R-05-064 is the
+it does not admit. R-06-011 fixes the admission axioms, and R-05-164 reads the
+declared assumption set off that inventory. A new ground of admission requires
+an amendment; program count alone does not, as R-05-011c expressly states.
+R-05-016 and R-05-016a exclude reliance on a second logic's acceptance, while
+R-05-015 admits proof terms re-checked by the existing kernel. R-05-064 is the
 canonical statement of what the CryptOpt-style route's deletion took with it,
 the checker-admitted-artifacts TCB category among it, and every section
 observing that absence cites it rather than restating it. R-05-104 deletes the
@@ -194,16 +194,18 @@ this inventory does not introduce Lean as a project trust language; SCIP,
 cvc5 and the proof-logging and trimming papers carry no proof assistant at
 all. None of them retires an interim.
 
-**The infeasibility question, recorded and not recommended.** A checked
+**The infeasibility proposal is declined on present evidence.** A checked
 *infeasibility* certificate would move a verdict from "the search found no
 placement" to "no legal placement exists", which is a yield other than
 tightness, so neither R-05-105 nor its artifact-level generalization R-05-106
-disposes of it. Q27a records the remaining conditions. It is a shipped
-checker, so R-05-066's no-new-checker clause holds against it and so does
-R-06-011's inventory, which names two checkers and not three; R-05-064 has
-already deleted the TCB category
-it would reintroduce, and R-05-104 refuses whatever ILP machinery its encoding would carry.
-R-05-020's three demonstrations are owed on top of all of that. F06 is the
+disposes of it. The [placement disposition](../../background/architectural-alternatives.md#certified-placement-and-infeasibility-no-new-certificate-machinery)
+accepts the inconclusive diagnostic result and commissions no new machinery.
+An imported verdict cannot ground admission under R-05-016; an instance-specific
+kernel-checked proof can take R-05-015's route, but the local experiment supplies
+none. R-05-066 supplies no permission for a new optimizer checker, R-05-104
+refuses any ILP machinery, and a new semantics, logic or translator owes all
+three R-05-020 demonstrations. Reopening requires the concrete composition
+decision and reviewed contract the disposition states. F06 is the
 only member whose prover matches the project's while addressing a constraint
 problem, and its own trusted base carries the FlatZinc grammar, the extraction
 and the OCaml compiler; nothing here proposes it, or any other entry, as a
@@ -233,15 +235,17 @@ compiler. The opam dependencies are still spelled `coq-menhirlib` and
 **Fit and disposition.** Reference, and the only Rocq-native member of this
 family addressing a constraint problem, F08's Rocq checker being the other
 Rocq-side artifact here and a SAT checker. Its relevance to R-08-011 and
-R-08-014 is the open infeasibility question stated above and nothing else: an
+R-08-014 is the declined infeasibility proposal stated above: an
 accepted certificate licenses one run and proves nothing about the search that
 produced it, acceptance failure does not imply the model is satisfiable, only
 a subset of FlatZinc constraints is expressible in DRCP, and the reported
 overheads are measured rather than proved. Promotion past Reference would need
 a FlatZinc rendering of the local placement problem, an argument that the
-rendering is the problem the register states, the three R-05-020
-demonstrations, and, because shipping it is minting a checker, the R-06-011
-amendment that section records as decided at the review gate and not here.
+rendering is the problem the register states, the applicable R-05-020
+demonstrations, and the placement disposition's reopening review. An external
+verdict used as an admission ground also needs the explicit rule and inventory
+amendments that review names; a kernel-checked producer is not excluded by
+program count alone.
 None of those is attempted here, and this survey claims no local build or
 replay of the checker.
 

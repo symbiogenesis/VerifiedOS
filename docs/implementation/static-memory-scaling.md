@@ -213,7 +213,7 @@ R-05-066 permits untrusted search only through existing checkers with no new che
 introduced, and R-05-065 excludes a new verified artifact whose only yield is
 performance on an already correct and leak-free path. The
 [placement-search closure](placement-search.md#4-the-constraints-and-who-decides-them)
-links the checker-import disposition and its separate checked-infeasibility question,
+links the checker-import and checked-infeasibility dispositions,
 including R-05-020's requirement to show a Coq-native or mechanically bridged,
 non-duplicating anchor that retires an interim; these host bounds supply no such
 admission argument.

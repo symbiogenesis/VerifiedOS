@@ -1546,9 +1546,42 @@ The measured intervals are 2026-09-14 13:02:57-15:46:49, 15:46:49-16:29:05, 16:2
 
 Landed: Tier A. The report states new claims about whether R-18-004e closes on the floors R-18-004b declares, which is a decision for the register's owner and the class the conventions send to a full attended read. No checker rule was added and none holds what this landing created: nothing in [the checker](../../tools/vos/checks/) reads this report's figures against its own JSON artifacts, which is the state [the inference demand](../performance/inference-demand.md) is already in, so the fourth Tier-B condition is unmet and a green wave is not a reading of the report.
 
+### Q27 · Settle the certified-search question and record what a qualified-source survey supplies
+
+The 2026-09-14 critique fan-out reviewed the disposition, source-bearing record
+and consumer terms from base `902ed8b09474a368eda1dbd1dcc103b6967d8dca` in
+dedicated worktrees. Item 11's placement-site documentation is in `a436c694`;
+item 12's decision is in `9b82fdae`. The integrated decision accepts inconclusive
+search diagnostics and declines new certificate machinery on present evidence,
+with a concrete composition case and reviewed acceptance contract required to
+reopen it. It distinguishes a new admission ground from another checking program
+under R-05-011c, and runtime pool exhaustion from composition-time infeasibility.
+
+The Q27b audit found that its original note below reported consumer reuse notes
+absent from the starting tree. Integration adds the missing notes at M4.4,
+M6.2b-i and U-10, and makes Q19c's existing Diaframe reuse boundary explicit.
+The source-bearing record and the graded-language review account for the
+remaining donors. No estimate or recorded child actual changes, no source is
+incorporated, and no implementation or proof obligation is discharged by the
+survey. This parent has no separate estimate or actual. Critique items 11, 12
+and 13 are removed, and their surviving references point to the owning records.
+
+Item 10 remains open. The existing `phase-service --json` assessment passes its
+synthetic scenarios and reports the target comparison open: memory and timing
+are unqualified, the core classes are unfrozen and the emitted schedule is absent.
+Q22e's dispatch now also names the register decision for the second-class store
+path and its drain accounting. The assessment receipt is retained at
+`out/critique-20260914/phase-service.json`; the final host-wave receipt and tested
+input record are retained in that same batch directory. Guest timing and physical
+qualification remain deferred to Q22e's prerequisite owners.
+
+Landed: Tier A. The integrated read checks the decision against the current
+register and the source-to-consumer assignments against their actual cells;
+the children's historical landing evidence is preserved below.
+
 #### Q27a · Take the certified-search disposition and record its arms
 
-[The alternatives register](../background/architectural-alternatives.md#certified-optimal-placement-by-an-imported-certificate-checker-the-pattern-in-use-is-admitted-the-import-is-refused-and-the-infeasibility-verdict-stays-an-open-question) carries the three arms, each refusal cited to the rule that takes it.
+[The alternatives register](../background/architectural-alternatives.md#certified-placement-and-infeasibility-no-new-certificate-machinery) carries the three arms, each refusal cited to the rule that takes it.
 
 The admitted arm is the asymmetric-trust pattern R-05-066 states, and it imports nothing because it is running. The checker whose verdict admits a placement is two artifacts with two statuses: the on-device CHERI-TAL type-check R-08-014 states its decidable interference side condition for, which R-18-020 books as a hard prerequisite with no trusted-toolchain fallback and which is owed and unbuilt, and the host-side port of [the memory plan](../../proofs/MemoryPlan.v)'s own checks that decides candidates today under [the search contract](placement-search.md)'s PS-8. Its forfeits are recorded rather than absorbed: no optimality past the declared candidate set (PS-3); a gap between the best admitted span and the strongest stated lower bound that [the scaling experiment](static-memory-scaling.md), R-08-012 and R-08-012a each report and that no arm closes, no machine-checked theorem standing behind any of those bounds, so the gap is measured and never proved zero; and no power to tell a run cut short from infeasibility (PS-5).
 
@@ -1571,7 +1604,7 @@ The measured intervals are 2026-09-14 06:47:21-06:53:44, 07:03:59-07:13:46, 07:1
 
 Landed: Tier A. The act produces non-normative prose disposing of rules the register already carries, creating no declaration whose members a rule would count; K-12, K-13 and K-40 hold the entry's citations and its form, and no checker rule was added.
 
-### Q27b · Record which existing cell each newly qualified source bears on
+#### Q27b · Record which existing cell each newly qualified source bears on
 
   * **Every source the sweep added resolves to one consumer or to a named ground for none, and four of them reach a consumer that keeps its number.** [The bearing record](../assurance/proof-reuse-bearing.md) is keyed by source where [the inventory](../assurance/proof-reuse.md)'s subject records are keyed by obligation family and [the proof map](../assurance/unassigned-proof-map.md) is keyed by obligation, which is why it is a document rather than a column: the resolution runs the other way from both. Four sources reach a consumer, SYS-REFINEDPROSA to M4.4, Cogent and Dargent to U-10, Peregrine to M6.2b-i and Diaframe to Q19c, and each of the four cells now carries one reuse-note sentence naming its start-from. **No range, no midpoint, no subtotal and no total moves in this act**, which is the item's Execute clause and also its outcome rather than only its constraint: not one of the four removes a named sub-obligation, so there is nothing a re-price could read.
   * **Which sources the sweep added is a measurement, and it is taken with a stated predicate at two named revisions rather than off the records' own dates.** The subject records' date sentences do not separate an added source from a re-read one, [systems](../assurance/proof-reuse/systems.md) listing three records among its 2026-09-13 readings that are present at the earlier revision and [languages](../assurance/proof-reuse/languages.md) carrying no per-entry date at all. The predicate used instead is that a source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `f528852` and absent at `e694a548`, the last revision at which that inventory changed before the sweep commit `2ea8d61`; the two commits touching it between the sweep and `f528852` add and remove no source record, so the interval's additions are the sweep's. A section heading is not a source record and carries no row. **The added-and-held partition is that measurement and not a standing property**, which the record says of itself: a later sweep re-takes it and every source tabled as added is held by the time that sweep runs.

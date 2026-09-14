@@ -13,7 +13,7 @@ This is evidence-producing research under
 VerifiedOS production toolchain. **Its acceptance criterion is that no native
 checker verdict or receipt is the ground of a refinement claim or an admitted
 optimality or infeasibility verdict.** R-05-016, R-05-020, R-05-065, R-05-066 and
-R-05-104 through R-05-106 remain unchanged. The experiment does not complete
+R-05-104 through R-05-106 remain unchanged. The experiment does not reopen
 [Q27a](implementation-checklist.md)'s certified-search disposition, admit its
 refused checker arm, supply the kernel-rechecked term R-05-015 requires, or close
 Q5b's actual-workload comparison. The
