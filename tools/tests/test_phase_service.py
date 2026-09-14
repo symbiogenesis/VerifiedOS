@@ -7,9 +7,12 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-from tests.harness import Case, ensure
+from tests.harness import TOOLS, Case, ensure
 from vos.cli import phase_service as cli
 from vos.phase_service import Contract, check, scenarios
+
+# Contracts cited by the store-buffer comparison, grouped by expected verdict.
+CONTRACTS = TOOLS.parent / "docs" / "implementation" / "phase-service"
 
 
 def _counterexamples() -> None:
@@ -167,7 +170,30 @@ def _contract_file() -> None:
         ensure(code == 2 and "malformed" in output.getvalue(), "a boolean bank count is refused")
 
 
+def _tracked_contracts() -> None:
+    """Each cited contract decides as the directory holding it says it does.
+
+    `refuted/` holds the arrival histories a candidate admission test must fail on and
+    `closed/` the restricted and structurally discharged cases it must accept. Both
+    sides are floored: a directory that has lost its files would otherwise satisfy this
+    vacuously, and a refutation that names no reason is a verdict with no trace behind
+    it.
+    """
+    for folder, zero_wait in (("refuted", False), ("closed", True)):
+        files = sorted((CONTRACTS / folder).glob("*.json"))
+        ensure(bool(files), f"{folder} holds no contract to decide")
+        for path in files:
+            result = check(cli.load_contract(path))
+            ensure(result.zero_wait is zero_wait,
+                   f"{folder}/{path.name} decided zero_wait={result.zero_wait}")
+            ensure(zero_wait or result.reason is not None,
+                   f"{folder}/{path.name} refutes without naming a reason")
+            ensure(not zero_wait or result.drain is not None,
+                   f"{folder}/{path.name} closes without reporting a drain bound")
+
+
 def cases() -> list[Case]:
     return [Case("counterexamples", _counterexamples), Case("long-residue", _long_residue),
             Case("invalid", _invalid), Case("refresh", _refresh), Case("paths", _paths),
-            Case("report", _report), Case("contract-file", _contract_file)]
+            Case("report", _report), Case("contract-file", _contract_file),
+            Case("tracked-contracts", _tracked_contracts)]
