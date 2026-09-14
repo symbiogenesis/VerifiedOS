@@ -129,6 +129,26 @@ in the restricted fragment as well.
 | Changed platform behavior | Any target control, synchronization, memory or TAL extension first names its exact normative owner and completes that owner's amendment predicate. The proposed scalar counter and static reaction graph seek to reuse current mechanisms; a design intention is not target correspondence evidence. |
 | Assurance-preset policy and mixed-assurance linking | The [preset dossier](assurance-profiles.md) states the claim statuses, composition rules and coverage dimensions this client is selected under. Price its policy semantics, its status reporting and its mixed-assurance interface checks against the same frontend and evidence-package owners as the rows above, charging no existing duty twice. A claim status is a build output and supplies no source calculus, machine interpretation or admission rule. |
 
+Published donors bear on three of those rows and discharge none of them. For the
+source-calculus and erasure row, the machine-checked graded erasure development
+and VerusBelt's semantic soundness proof for a subset of a proof-oriented type
+system are the closest published shapes for the erasure statement owed, and both
+are also its warning: the first proves extraction sound only for a restricted
+class of modalities and context conditions, and the second leaves its own tool's
+erasure pass trusted and outside the model. For the representation, compiler and
+final-bytes row, Dargent is the closest published result, a declarative bit-level
+layout language whose generated accessors ship with generated proofs that they
+realize the declared layout, per compilation rather than once for the compiler,
+in Isabelle with a trusted C parser and no capability account. For the diagnostics
+and qualification-clients row, Quiver's completion of a specification sketch with
+a checked proof of the completion is the shape a residual obligation should take,
+with no theorem that an inferred specification is the intended one. The concrete
+CHERI resources row has no donor: every logic surveyed is about another modeled
+language, which is why its missing laws stay where they are. [The strategy's
+research map](verification-strategy.md#research-landscape) records each donor's
+kind, boundary and licence; naming one here prices no row, retires no interim and
+closes no debt.
+
 Q25d's acceptance requires a complete reviewed owner/estimate/predicate assignment
 and the frontend-admission disposition. The rows above identify the remaining
 work but deliberately supply neither speculative implementation budgets nor a

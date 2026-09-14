@@ -4,8 +4,11 @@ This inventory identifies established external proofs that can support
 VerifiedOS's completed proof artifacts and its remaining proof obligations.
 It records the theorem or proof development, authorship, source edition,
 language, licence, assumptions and the gap to the local obligation. Source
-qualification is dated 2026-09-10. The subject records distinguish published
-results from the contents of a particular code edition.
+qualification is dated 2026-09-10, and each entry a later sweep added carries
+its own date in the subject record that holds it. The subject records
+distinguish published results from the contents of a particular code edition,
+and a paper, an archived deposit, a maintained tree and a pen-and-paper
+metatheory beside an unverified implementation are four different findings.
 
 The project's implementation and proof vehicles remain Sail and Rocq/Gallina.
 Isabelle/HOL, HOL4, HOL Light, F*, EasyCrypt, Dafny, Why3, Lean and symbolic
@@ -90,6 +93,27 @@ crash reasoning, Fiat-Crypto/VST crypto developments, Narcissus codecs,
 MetaRocq checking and erasure, and the compiler and protocol artifacts linked
 in the subject inventories. Selection still follows each record's licence,
 version and semantic restrictions.
+
+Four families the local obligations reach for most directly now have a
+qualified precedent rather than a literature mention: resource-aware
+allocation, where a specification makes a successful allocation a proved
+consequence of available resources and a separate heap-space logic bounds
+what a program can hold; a response-time analysis joined to the C
+implementation of the scheduler that earns it; certified refinement from an
+abstract type to a declared concrete data layout; and foundational ownership
+reasoning over unsafe abstractions inside ordinary code. Their records say
+what each leaves local, and two of the four are mechanized in provers this
+project does not use. Qualification is the weaker half of reuse: it records
+terms, theorem and distance, and it discharges nothing.
+
+Certificate-checking machinery is qualified in
+[foundations](proof-reuse/foundations.md) as reference material and not as a
+route, because the register decides its admission before any candidate's
+merits are weighed. An untrusted producer whose output the existing checkers
+re-validate is admissible and free to be aggressive; importing a checker to
+decide those candidates is a different act, and the entries that refuse it,
+together with the one question they leave open, are read there and taken at
+the plan's Q27a rather than re-argued per record.
 
 Several tempting shortcuts fail qualification. RefFS supplies no crash-safety
 proof, and its paper distinguishes Coq proofs using MoLi from a mechanized
