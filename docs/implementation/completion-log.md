@@ -711,6 +711,27 @@ and `out/fanout-20260910/host-gate.log` in the integration checkout. Model, RTL 
 Gallina sources are unchanged by this batch; the separate compiler run above its
 M1.2b findings block supplies the affected guest evidence.
 
+### Q13 · Pin the bring-up Wasm interpreter and re-read its ranking against the absent predictors
+
+The bring-up interim is pinned at `wasmi-labs/wasmi` v2.0.0, released 2026-09-01 and the newest release at this reading, with its terms read at that tag on 2026-09-14 and recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md#the-bring-up-wasm-interpreter). Nothing is vendored, fetched, gitlinked or installed. The pin is the interim's alone: R-14-013a is the engine the interim stands in front of, no register entry names the interim, and adopting an upstream change into an unverified interim admits nothing into that engine. [The porting guide](userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) says in the same act which adopted changes are expected to survive curation, the three that trade dependent chains and memory traffic for offsets, and which four are interim-only, the two feature-set misses in opposite directions, the text-format front end, the nightly tail-call switch and the dispatch selector.
+
+Two adopted changes are booked before they are taken and neither is adopted outright. Append-only function-body buckets fail R-08-046's monotone member lifecycle not on a threshold but on having no release half at all, so R-14-015's demanded selection and release algorithm has no Reusable transition to declare; the two exits are named and the interim takes neither by default. The artifact-size knob that disables guest validation carries a precondition, the embedder controlling its inputs, that is the exact negation of the case R-14-013a exists for, so it is admitted only where the module is image-resident and admitted through §13 and never on the R-14-008a delivery path.
+
+Every entry of the upstream suite carries one of two verdicts, *reads on this target* or *predictor-fed and unread here*, the second naming the removed structure, and the CoreMark `csel` run is of the second kind and is marked outside the suite on the upstream's own statement. The generalized porting note is that any interpreter result improving by feeding a branch predictor is measuring hardware this machine does not have, which is R-14-015's own narrow sentence generalized from the arena to the ranking. The reading owed of the flattened instance layout and the baked-in body pointers is stated and no number crosses with it: their value here is expected to be larger than upstream measures, A-07, A-09 and A-10 leaving every hop of a dependent chain at full SRAM latency with no prefetcher recovering any of it, and upstream reports no isolated figure for either.
+
+The threading form is indirect, and that narrows R-14-008a rather than reopening it. Of the upstream's four dispatch modes only two are threaded, so direct against indirect is the whole of the live question; indirect is roughly 10 to 15 percent slower and smaller in IR memory, which is a trade against R-14-008b's footprint budget and the trade the interim takes. Direct threading is not refused on W^X grounds, its IR being data that fills no executable bank at run time; what is unpriced is a `code`-typed field at a slot inside a runtime-written buffer, for which the CHERI-TAL has no former relating a memory slot to the type a load produces from it, so R-05-113's subset check has no premise to draw on and defaulting to indirect defers that type-system addition whole. R-14-008a's Accept now names the admitted form and states the failing image as one whose interpreter IR slot holds a code capability rather than an op-code, which is read off the IR encoding.
+
+Two register acts are raised and both are taken at their entry. R-14-013b names the frozen version, *Wasm 2.0*, written so it is never read as the engine's own release number, and records *Wasm 3.0* as declined rather than not-yet-reached on R-14-015's ground. The deterministic profile is the one exception the decline does not dispose of, and it is refused today on R-14-013d's curation rule rather than on the decline: the pinned semantics enters from the tracked mechanized upstream rather than by authorship and no tracked source in that lineage carries a profile mechanism, so the amendment is not writable and stays owed to that curation. Its build-configuration half answers yes at the interim and moves nothing the engine will be proved against. Neither act reaches §16's replay record, whose enumerated sources (R-16-015) are values drawn at an interface and a physical event stream, not a guest language's choice of NaN payload.
+
+The acceptance predicate's first two clauses close. Every suite entry carries a verdict, the table being the enumeration with no count standing beside it to drift, and a case-insensitive search of `docs/` for the engine's name returns the porting paragraph, this item and this note and nothing inside [the estimates](../performance/performance-estimates.md), which carries no figure from this upstream and no CoreMark figure at all. The third clause is a host reading. Two builds of one minimal dispatch handler with `rustc 1.98.0 (88d9e12ae 2026-08-18)` on `aarch64-pc-windows-msvc`, LLVM 22.1.8, at `-C opt-level=3`, differ at their dispatch sites: the collapsed form, where both successors meet in one destination, emits `cmp w0, #0`, `csel x2, x9, x8, ne` and a single indirect `br x2`; the separated form, where each arm carries its own dispatch, emits `tbz w8, #0, .LBB1_2` and two branch sites, `b h_then` and `b h_else`. It is a minimal reproduction of the dispatch shape and not a build of the upstream's handler, whose two separated sites stay indirect where this reproduction's become direct branches to two statically named handlers; the separation is authored at the source rather than obtained by disabling `DestinationPropagation`, which needs a `-Z` flag this stable toolchain does not accept. No cycle count was taken, the predicate asking only that the two forms differ, and this is a host figure entering no estimate. At the machine there is no predicate, because no item before R3 puts a composed image on the elaborated core; the cycle separation between the two forms is Q8's to report over R3's image, and R-15-101 is what makes that comparison well posed there.
+
+Authoring commits `8e9ba16` and `d6b51a3` at base `f528852f680dd00d599b73feb69258e214a1385a`, with `b075597` and `8825bda` repairing an adversarial review: the dispatch taxonomy corrected from three modes to the upstream's four, the inlined-bodies refusal re-cited to R-14-008a's own first clause with R-14-008b's Accept stated separately as closing the adjacent ground, a §18 reference in THIRD-PARTY.md aimed at the register that numbers it, two predictor attributions corrected from A-04 and A-06 to A-05, an undecidable criterion restated in terms an auditor reads off an image, a second copy of R-14-015's clauses compressed to a citation, and three hand-maintained suite counts removed in favour of the table itself. The lane interval is bounded by its provisioning at 06:24:55 UTC and its final commit at 13:05:01 UTC on 2026-09-14, an adversarial review and idle gaps inside that span; the 14.5 h estimate and this document-act scope are comparable. Validation is `python tools/check.py`, green over all 104 rules, and `python tools/run.py coread`, 1452 of 1452 with the two moved pairs blessed on the entry side only. No model, RTL, proof or device execution is claimed.
+
+
+The measured intervals are 2026-09-14 06:59:39-07:15:59, 07:23:45-08:24:19, 13:01:29-13:07:18 UTC for the authoring, review and repair passes, 2181 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (review -2782s), and those stalls are out of the figure.
+
+Landed: Tier A. No rule holds what this item created: the verdict table, the pin's survive-curation split and the threading choice are prose no checker reads, and the two register acts are decisions inside existing Accept clauses rather than a new held fact, so Tier B is unavailable here on K-88's own reading. The porting guide's own restatements of upstream feature-set facts are read at the pin and dated there rather than held by a rule.
+
 ### Q14 · Reach the third matrix track, and record what already answers in-memory compute
 
 The [matrix comparison](../background/architectural-alternatives.md#x86-acearm-sme-architectural-state-not-imported) records AME's separate tile state, IME's vector-file reuse and VME's vector operands with separate accumulators. Each reaches the fixed-latency eager-zeroize obligation, with architectural state, independent mastership and scale state attributed to their respective constraints. VME is judged nearest the declared vector-plus-systolic geometry; no track is selected or claimed cheapest. The live M0.8c note now uses the profile's recorded inventories, replacing its obsolete no-CSR/no-tile-memory claim. Matrix oracle coverage remains a conditional re-pin benefit: the strongest-RVV-denominator measurement may delete the unit first, and the conditional RVY amendment stays with its existing owner.
@@ -1214,6 +1235,94 @@ Landed: Tier A. The read accepts the boundary, the grammar's exhaustiveness as a
 
 WHY TIER A AND NOT TIER B: the checker is not green at this head, six `--fix`-owned counts are outstanding for the integrator, the act edits crown-jewels.md prose, and no rule in the registry holds the fact this landing created, so there is nothing to name in a "Tier B under" line.
 
+### Q23c · Author the ensemble link session reference model
+
+The [qualification](../assurance/session-binding-qualification.md) gains row 27's
+ensemble member beside Q22c's TLS one: R-12-015d's construction for a link joining two
+members of one ensemble, each end appraising the other on both of R-09-025a's registers
+against the constants its own attested devicetree names for that endpoint, each end
+supplying its own fresh challenge so that one accepted direction is not a link, the
+composition-fixed hybrid configuration taken rather than negotiated, the keys held in
+the crypto core with no export path, the anti-replay count taken from the schedule
+rather than from the frame, and each end's slot-table digest bound into the session so
+that two ends holding different tables are refused before a payload crosses. The first
+obligation is stated rather than assumed: the identity a quote is signed under is the
+identity rooted in that unit's device-identity secret, a construction the register
+decides nowhere, so the model names the premise, makes the check decide, and credits no
+realization. R-12-015c's key-ownership binding is in the model and not beside it: the
+session secret is a function of the link, the epoch, both fresh challenges and both
+signing identities the two appraisals accepted, and possession is the session's holder
+set. Endpoint, wire and compromise assumptions are stated beside the scenarios that
+record each compromise accepting.
+
+`python tools/run.py session-binding --json` classifies both parts at exit zero with
+`production_adoption` open. The ensemble part enumerates 256 deliveries of its
+eight-member issuance population to both ends of the link at every candidate challenge:
+4 accepted, 252 refused, 176 substituted-unit refusals and 64 foreign-ensemble-identity
+refusals, every repeated decision refused, and no relation failure from its independent
+event-level oracle. Twenty-eight named scenarios classify as required, among them the
+two the ensemble adds, a peer of the right software on another unit and a peer at
+another ensemble identity, both refused. `python tools/run.py test --only
+session_binding` passes 13 cases; `python tools/check.py` and `python tools/run.py
+typecheck` are green.
+
+* **Finding: a session model can state key ownership and decide nothing about it.** The
+  model as first authored derived its session key from the link name and the epoch
+  alone, both public composition constants, so the appraisal and the key holder were
+  unrelated: an honest establishment and one admitting a substituted die produced the
+  same core, and a party that appraised nothing sealed frames the session delivered. The
+  relay and key-exposure rows then rested on a stipulated string rather than on a
+  decision. Keying the secret on both accepted signing identities and both challenges,
+  and carrying possession as a holder set as the TLS part does, is what makes them
+  decide.
+* **Finding: an event-level oracle that reads a verifier's own predicate off the claim is
+  not independent along that dimension.** Two of the ensemble oracle's seven conjuncts
+  compared the appraiser's freshness and configuration checks against the claim rather
+  than against ghost state, so a defect in either comparison would have left the
+  relation silent. The issuance now records the challenge it was handed and the
+  configuration it was asked for as ghost fields beside the die that signed.
+
+No protocol proof is claimed here and none is attempted. M6.9a, M6.9b and M6.9c own
+protocol realization, implementation connection and the theorem for this construction as
+for TLS; the foundation they need is [the unassigned proof
+map](../assurance/unassigned-proof-map.md)'s U-20 and no library the locked prover
+admits is installed. R-17-049d's open record stays open, `CJ-ATTEST` stays `not
+authored` in the crown-jewel inventory's row 27, and two acts are named as owed before a
+stronger claim is available: a register act deciding the device-identity binding's
+construction, and Q23b's link contract and Q23d's slot tables, which this part
+abstracts.
+
+Authoring, repair and review ran as separate agent sessions on 2026-09-14; the actual is
+their summed wall clock on the agent-parallel clock. The ideal tag, the opaque digests,
+the symbolic identities and the small integer slot counts are experimental inputs: this
+is finite host evidence with ideal cryptography, no frames, no key exchange, no
+computational reduction, no prover and no target execution.
+
+
+The measured intervals are 2026-09-14 06:46:47-07:03:26, 07:08:27-07:15:57, 13:01:26-13:07:32 UTC for the authoring, review and repair passes, 1815 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+Landed: Tier A. This accepts a bounded symbolic qualification and its remaining owners;
+CJ-ATTEST's formal model, theorem and implementation connection remain open.
+
+### Q23f · State the composed non-interference obligation beside T
+
+  * **The obligation is stated beside T and not inside it.** [ComposedNonInterference.v](../../proofs/ComposedNonInterference.v) imports [ApexTheorem.v](../../proofs/ApexTheorem.v) and adds no field to the Vocabulary record, no tenth conjunct to R-05-160's closed seam list, no obligation inside T, and no axiom, so T's statement, crown-jewel row 1 and the field bindings it publishes are unmoved and the proof manifest moves only for the new file. What it adds is one record, `Ensemble`, and one Prop over it, `composed_noninterference`, which is a theorem *target*: nothing here proves it and nothing here claims to discharge R-17-014a, whose record stays open until a proof lands (R-18-031).
+  * **R-17-014a's own sentence is machine-checked rather than asserted.** `composition_is_carried_by_no_per_member_theorem` refutes the uniform implication from the N member instances of T to the composed conclusion, so the gap the entry names is exhibited in the prover rather than described, and an edit that closes it by definition breaks that lemma here rather than at the capstone. The instance that refutes it is R-05-166's distinguishing instance: every member's own T holds at `leaky_ensemble`, each link's two conjuncts hold, the adversary is admissible at both members and covers the link, the exogenous inputs are indistinguishable to it, and the composed conclusion fails all the same because the wire carried the near member's own quantity into the far member's observable slot. Its two endpoints sit at different labels, which is the instance the plan's Execute clause asks for and which R-05-166, not R-05-157, is the entry asking of a policy statement.
+  * **Each link's two endpoints are one boundary, and the wire is an adversary the policy permits.** `wire_boundary` is a single predicate over a single link naming both endpoint compartments as one boundary of R-17-003d's untrusted-wire class, and *permits* is ApexTheorem's own `admissible` rather than a second notion: the target quantifies only over adversary sets graph-permitted and outside the TCB at every member (R-01-002) that also contain each link's endpoint compartment, the ring proof's Byzantine peer (R-12-008) being the wire's peer. R-12-007a bounds what a peer compromised inside an accepted session reaches, and the file states that bound as a bound: the converse containment is stated by neither entry and is not claimed.
+  * **The two-machine attestation relation is the session and not a third field.** R-17-061b states outright that the relation "is stated at R-12-015d", so `link_session` carries it and a separate field would be a second owner of one fact. Q23c's reference model is unlanded, so the relation is read from R-12-015d in the register rather than from a sibling lane's document, and R-17-049d's standing for an unauthored model is why both link fields are opaque Props here.
+  * **The two conjuncts R-17-014a names as the link's contribution are inert as stated, and the file reports that rather than trading on the appearance of a contribution.** `link_schedule` and `link_session` occur in the record declaration, in `link_contribution` and in the instance literals, and in no definition the target's conclusion mentions. `link_premise_carries_vacuity_and_not_contribution` is that sentence machine-checked: an ensemble differing from `leaky_ensemble` in one field, its session made unsatisfiable, satisfies the target outright while its wire still carries the near member's own quantity into the far member's observable slot. The statement therefore meets the entry's "and nothing more" as an upper bound by making the named contribution empty, which is R-05-165's second mode standing in the target's own premise. Closing it is a register act and not a Gallina one, and the file names the act rather than taking it.
+  * **Nothing is decided here that the register has not decided.** `endpoints_share_a_label` is defined, holds at one instance and fails at the other, and is deliberately not a premise, because no entry states what relation a link's two endpoint labels must stand in. And the record's `exogenous` and `delivered` fields are related by nothing on purpose: relating them by projection would make the target follow from the member theorems in one line, which is R-05-165's second vacuity mode wearing a composition.
+  * Net change: one new file, 608 lines and 43 constants, and no other tracked file touched.
+  * Exit evidence: `python tools/check.py` from the lane reports one finding, `FAIL K-106` on `tools/generated/proof-ledger.md` at line 40, which only the integrator's `--fix` writes; K-40, K-41, K-52, K-103 at **3,844** citations over 28 proof artifacts, K-105 at **369** annotations, K-108 and K-109 at **27** generated headers are ok. `python tools/run.py proofs headers --write` wrote 0 of 27, the authored citation set being unchanged. The file compiles under the pinned prover, `The Rocq Prover, version 9.2` on OCaml 5.4.1, ApexTheorem.v then ComposedNonInterference.v both exiting 0 in this lane's own guest directory, and its ten `Print Assumptions` commands print ten `Closed under the global context` lines and nothing else, so **no new axiom** enters. Its own constant count is **43**, taken with the gate's own query, `Search _ inside ComposedNonInterference` with both search filters removed and the empty blacklist confirmed. **The whole `run.py proofs` gate is not re-run at the landing revision**: it ran when the statement was authored, the repair adds three constants to this file, so that run's per-file figure of 40 and its global totals are stale by exactly those three and the integration wave owes a fresh one. No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit, so the review gate is not re-entered and the co-read ledger is unmoved.
+  * Three findings.
+    * **The link's named contribution cannot bear on the conclusion, and no entry lets it.** R-17-014a calls R-15-228d's schedule and R-12-015d's session the link's *contribution*, which asserts they do work; as predicates over a link alone they reach nothing the target concludes, and the wire's semantic content sits in the `delivered` field the entry does not name. What is missing is the transfer: R-15-228b fixes what a frame is, R-15-228d the slot it occupies, R-12-007a the indices it names and R-12-015d the session that authenticates it, and none of the four relates what a link delivers to a member to what the sending member's execution placed on the wire in that slot. Open, and the act is a register act: an Accept clause at R-17-003d, or an entry beside R-12-007a. A field asserting the relation in the proof file would decide by fiat what the register has not, which is decision 8's own ground met a second time.
+    * **No entry decides what relation a link's two endpoint labels must stand in.** R-15-228b, R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame grammar, the slot table, the index-only payload and the session, and none states a label relation across the wire. `endpoints_share_a_label` gives the question a name and two instances and is left out of the target. Open, owed by row 2's compose-time policy model (R-08-028), which is unauthored (R-15-211).
+    * **This item's own cell mis-cited the entry it leans on.** The Execute clause asked for the rejected instance "as R-05-157 asks of every claim"; R-05-157 says only that T is the formal reading of *hyper-secure* and of G2, and the entry asking for "a distinguishing instance its specification rejects" is R-05-166, which the same cell's Owns clause already names. No rule holds a cited id against what the sentence attributes to it, which is why every gate stayed green over it.
+
+The measured intervals are 2026-09-14 07:01:28-13:02:51, 13:06:48-13:14:09, 13:15:39-13:31:09 UTC for the authoring, review and repair passes, 2426 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (impl -20314s, repair -314s), and those stalls are out of the figure.
+
+Landed: Tier A. No rule holds what this item created: K-109 binds the file's generated header to its requirement owners, K-103 its citations, K-105 its annotations and K-108 its derived region, and `run.py proofs` compiles it and audits its assumptions, but none of them reads what the target *says*, so Tier B's fourth condition has nothing honest to name. Its first condition is unmet besides, `tools/check.py` being red on K-106's generated ledger until the repair path runs. The note books two open register acts, which is a full read's subject in any case.
+
 #### Q25a · Specify the graded dependent foundation
 
 The [rule dossier](../languages/graded-foundation.md) specifies separate computation
@@ -1309,6 +1418,101 @@ under `out/fanout-q25-20260912/`. No executed language or guest evidence is clai
 Landed: Tier A. The full and independent reads accept the interfaces, counter
 protocol and qualification cases with their unmechanized obligations preserved.
 
+#### Q25d · Review the combined calculus and price its implementation
+
+The [composition dossier](../languages/full-language-review.md) joins the packet,
+graded callback, handler and cancellable scalar-cell client, states the entry
+witness it inhabits and the eight well-formed neighbours it refuses at the
+premise each was built to miss, restricts conservatively to the synchronous
+slice, and composes substitution with dependency reindexing, resource
+preservation, erasure, interference and every exit over one carrier rather than
+a family of them: the byte-and-capability instance, which is Q2c's
+`byte-instance` extended by its `scoped-resources` interpretation. Naming the
+carrier buys each duty a nameable missing constant instead of an unnamed
+prerequisite. It constructs no inhabitant of that carrier, and says so.
+
+The pricing table carries 40 rows over the 23 debt keys the three rule dossiers
+enumerate plus the frontend, target and qualification rows, each with one
+implementation owner, one estimate and one acceptance predicate naming what fails
+it. The estimates are 27 ranges with an authority class, 10 citations to the
+owner already carrying the work, and 3 `unpriced` beside the decision that blocks
+them, which is Q2c's declined foundation commissioning, U-22 owning the reviewed
+breakdown that would replace them. No row is blank, zero or a bare dash; no total
+is stated, a sum over conditional ranges being a figure for nothing; every
+class-X range's upper end is at least twice its lower end. A range is stated by
+its ends alone, the midpoint being the mean of them at whatever cell eventually
+carries the row. Q2c's foundation keys, Q21a's proposed packages and the duties
+Q2b, Q21b, Q20b, Q20c and M1 already carry keep their owners, and a row reaching
+one prices only the increment this design adds.
+
+**The frontend disposition is arm-dependent, and R-05-020 is not the entry that
+decides it alone.** R-05-008 forbids admission gating on source language or
+producer identity; R-05-009 admits a memory-safe or formally-verified language
+that yields a well-typed binary and a kernel-checked elaboration into an existing
+anchor on the same terms as Rust, without exception or waiver; and the
+specification's delivery prose routes a producer for another language through
+exactly that elaboration, without making its parser or frontend trusted. Where
+the calculus carries its own judgment and reduction relation the laws quantify
+over, that premise is unmet, an eighth anchor is proposed, R-05-019's freeze is
+engaged and R-05-020's non-duplication and retirement conditions both refuse it.
+Where the calculus's meaning is its elaboration's image in the kernel, R-05-009
+reaches the producer, the anchor count stays at R-05-019's frozen seven, nothing
+enters the trust base and R-05-020 has no subject. The three rule dossiers state
+their laws over a source judgment and a source reduction, so the design as
+written sits in the first arm, and the ten frontend, diagnostic, preset-policy
+and qualification rows are held there rather than commissioned: seven commission
+an engine for a calculus whose anchor is refused, and the three qualification
+stages exercise a language whose frontend is not commissioned. What releases them
+is an interpretation commitment restated across those three dossiers, which this
+review does not take on their behalf, together with a lettered register act
+recording which entry reaches an untrusted elaborator.
+
+**The R-08-046 classification is performed and its verdict is negative.** Seven
+storage kinds are read against that entry's current inventory: six reach no
+member, and the accepted-byte counter is classified out of the subject as one
+scalar of fixed width whose members are never bound and released, its
+conservation being a source-level invariant and its overflow `MUT-ATOMIC`'s law.
+All 13 manifest fields are read; the design supplies five in kind and none in
+values, and the binding and release state machine over the monotone member
+lifecycle is the substantive owed one, since that the design's own lifecycle
+refines the register's is a claim no document makes. A new class is therefore
+required, which makes the act an amendment to the inventory and its cited prose.
+It is proposed rather than taken and ordered behind the frontend act, because its
+predicate is a commissioned frontend and inventorying a class no admitted design
+instantiates lands a row false on the day it lands.
+
+**A missing law remains open.** Design acceptance here claims no executed
+language, no checked metatheory theorem and no qualified binary: what it claims
+is the reviewed rule set, the composed client, the named representation and this
+accounting.
+
+Authoring commit `4f10fab` passes the focused document checker without drift.
+Independent review at that commit confirms the mechanics, the key totality in
+both directions, the 21 class-X width checks and the manifest coverage, and
+rejects the admission reading: the refusal had been taken under R-05-020's third
+condition without reading R-05-008, R-05-009 or the delivery prose, and its
+supporting reductio against a wider reading of R-05-021 is refuted by R-13-016's
+owed Sail-to-muSail translation, whose source end is an anchor. Repair commit
+`2468545` takes the arm-dependent reading, deletes the reductio for the residual
+it leaves, restates the existing-owner table in the decisions taken rather than
+asking for them, strips 27 derived midpoints, cites the checklist's authority
+classes instead of recopying them, corrects the R-05-163/R-05-164 direction, the
+Q2c ledger attribution, R-08-046's admission-or-progress qualifier and the
+MUT-SHARE deferral, and carries the disposition into the twelve sibling
+statements in five dossiers that still recorded it as owed. `python
+tools/check.py` is green at `2468545`, K-61 owing no reading.
+
+(Findings block, for the integrator to number and register, both `Raised:` at
+Q25d: the arm-one interpretation commitment owed across graded-foundation.md,
+handlers-async.md and interior-mutability.md before any frontend row opens; and
+the R-08-046 inventory amendment owed before dependent runtime implementation
+opens. F-354's existing disposition needs the split recorded rather than a new
+entry. The `Landed:` tier line is the integrator's.)
+
+The measured intervals are 2026-09-14 06:56:17-07:13:50, 07:19:41-08:26:05, 08:28:51-13:03:48 UTC for the authoring, review and repair passes, 3174 seconds summed, rounded upward to 0.9 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (review -2809s, repair -15551s), and those stalls are out of the figure.
+
+Landed: Tier A. The review states new claims about which admission arm the combined calculus takes and what its implementation still owes, so it took a full attended read rather than a spot read of its findings.
+
 #### Q27a · Take the certified-search disposition and record its arms
 
 [The alternatives register](../background/architectural-alternatives.md#certified-optimal-placement-by-an-imported-certificate-checker-the-pattern-in-use-is-admitted-the-import-is-refused-and-the-infeasibility-verdict-stays-an-open-question) carries the three arms, each refusal cited to the rule that takes it.
@@ -1333,6 +1537,23 @@ The measured intervals are 2026-09-14 06:47:21-06:53:44, 07:03:59-07:13:46, 07:1
     F-358.
 
 Landed: Tier A. The act produces non-normative prose disposing of rules the register already carries, creating no declaration whose members a rule would count; K-12, K-13 and K-40 hold the entry's citations and its form, and no checker rule was added.
+
+### Q27b · Record which existing cell each newly qualified source bears on
+
+  * **Every source the sweep added resolves to one consumer or to a named ground for none, and four of them reach a consumer that keeps its number.** [The bearing record](../assurance/proof-reuse-bearing.md) is keyed by source where [the inventory](../assurance/proof-reuse.md)'s subject records are keyed by obligation family and [the proof map](../assurance/unassigned-proof-map.md) is keyed by obligation, which is why it is a document rather than a column: the resolution runs the other way from both. Four sources reach a consumer, SYS-REFINEDPROSA to M4.4, Cogent and Dargent to U-10, Peregrine to M6.2b-i and Diaframe to Q19c, and each of the four cells now carries one reuse-note sentence naming its start-from. **No range, no midpoint, no subtotal and no total moves in this act**, which is the item's Execute clause and also its outcome rather than only its constraint: not one of the four removes a named sub-obligation, so there is nothing a re-price could read.
+  * **Which sources the sweep added is a measurement, and it is taken with a stated predicate at two named revisions rather than off the records' own dates.** The subject records' date sentences do not separate an added source from a re-read one, [systems](../assurance/proof-reuse/systems.md) listing three records among its 2026-09-13 readings that are present at the earlier revision and [languages](../assurance/proof-reuse/languages.md) carrying no per-entry date at all. The predicate used instead is that a source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `f528852` and absent at `e694a548`, the last revision at which that inventory changed before the sweep commit `2ea8d61`; the two commits touching it between the sweep and `f528852` add and remove no source record, so the interval's additions are the sweep's. A section heading is not a source record and carries no row. **The added-and-held partition is that measurement and not a standing property**, which the record says of itself: a later sweep re-takes it and every source tabled as added is held by the time that sweep runs.
+  * **A source that bears on nothing is the ordinary answer, and the ground is the whole of the row.** Thirty-one of the added sources reach no consumer, each on one of five grounds: **refused** where the register refuses the import at a cited entry, **uncelled** where the obligation is owned by no open cell and no slice, **unaimed** where the subject record proposes no local consumer, **unread** where the source's own terms are unread so no reuse may be proposed, and **taken** where the bearing is already in a landed artifact. Where more than one ground holds the row names the one the subject record's own disposition rests on, which is what decides SYS-LILO and SYS-IRON the same way rather than opposite ways: both records make the unread terms the thing that must be settled before any adaptation is proposed, and the landed adaptation is each row's second fact.
+  * **Every uncelled obligation is already booked, and reporting a gap in the map would have been the finding this item exists to avoid.** The four are the HAL's implementation in certifying Rust through R-18-018's manual-proof path, R-18-014's certifying Rust compiler, the full Iris refinement proofs for the kernel and the storage stack, and CHERI-TAL soundness, and [the proof map's mandatory work](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) books each. The fourth is the one worth stating: R-05-119 and R-05-121, the definite-initialization attribute the RustHornBelt row names, are booked in no bullet of that section by id and named by no cell and no slice, but the register's own trace lines put both at `CJ-TAL-SOUND`, which the same section books as carrying no cell. **What places them is their own trace line, so the map owes no act here.**
+  * Net change: one new tracked document, one pointer paragraph in the inventory's preamble, one index row in [the document index](../README.md), and one reuse-note sentence in each of M4.4, Q19c, M6.2b-i and U-10. No register, spec, coverage-matrix, crown-jewel or absence-contract edit, so the review gate is not re-entered and the co-read ledger is unmoved.
+  * Exit evidence: `python tools/check.py` green read-only, exiting 0, with K-12 resolving the new document's links and fragments and K-40 clean; `python tools/run.py coread` reporting all **1452** pairs last read as they stand. No guest measurement is owed: this item reads tracked text and writes tracked text, and nothing it changes reaches the model, the RTL or a toolchain.
+  * Three findings.
+    * **The survey's strongest language sources point at obligations no cell prices.** RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified Rust and refinement results the sweep added, and every one of them resolves to an obligation booked outside the priced total. That is a finding about the survey and never a reason to open a cell: a source aimed at an unpriced obligation is a reading, and pricing a cell because a source now exists for it would be the survey opening a cell, which the plan refuses in as many words.
+    * **Two of the four consumers were holding their source already before this act ran.** R-18-018's fourth sub-deliverable names VerusBelt in the register itself, and Q19c's cell names Diaframe and states its terms at the PLDI 2022 deposit. The conventions give an existing start-from no second discount, so what the record adds at those two is the qualification standing behind a name the corpus already carried, which narrows what the cell may reach for and removes nothing.
+    * **A repair to this record's own overclaim is the reason the section-8 paragraph reads as it does.** An earlier draft reported R-05-119 and R-05-121 as an obligation the map books nowhere and left its placement to the map owner. The register's trace lines decide it, and a false gap reported against another artifact is worse than a gap left unreported, because the artifact is correct where it sits and nothing later contradicts it.
+
+The measured intervals are 2026-09-14 06:48:29-07:04:13, 07:15:32-07:24:39, 13:01:29-13:07:52 UTC for the authoring, review and repair passes, 1874 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+
+Landed: Tier A. The record states which open cell each newly qualified source bears on, which is a new claim per source rather than a derived figure another artifact owns, so it took a full attended read. K-12 holds only that its citations resolve and no rule reaches what it asserts about bearing, so the fourth Tier-B condition is unmet and no checker rule is added or owed.
 
 #### Q27c · Record which candidate's terms decide which consumer
 
@@ -2799,3 +3020,20 @@ findings.
     * **A row whose two sides are both packages is visible to no member of the partition, and the row R1b's re-pointing would declare is one.** [vos_cheri_pkg.sv](../../rtl/vos_cheri_pkg.sv) declares zero modules, so the introduction and inert members say nothing about it; `core/include/cva6_cheri_pkg.sv`, the imported source it would stand at, declares zero modules too, so the displaced member says nothing either. Measured over the primary checkout, both attribution maps come back empty and the composed list is 169 entries with the row and 169 without it. The partition therefore first decides something at a row whose imported side declares modules, which is the flat-SRAM one, and until then it is carried rather than exercised. Standing, and it is why the inert check reads declarations rather than rows.
     * **The end-to-end elaboration evidence is owed and cannot be taken in any checkout of this repository today.** The gitlink the elaboration refuses by name on is `opentitan`, which S3 left uninitialized because nothing open reached it, and reaching it is a clone rather than a command. Reported and not closed: R1b takes that evidence at its own gate, and until then both mechanisms rest on the tools' own tests and on a composition run that reads the manifest without elaborating it.
   * Landed: Tier A. No rule holds either mechanism, and the reason is not that one would be hard to write: what they create is a declaration whose member set is empty today, so a rule over it would report `ok` about nothing until R1b declares a row. The tools' own tests are the gate a behavioral claim answers to here, and saying so is cheaper than a rule that decides nothing.
+
+### I17 · Name the host gate member that went red, without a login
+(heading to be respelled as the checklist writes the label the integrator assigns)
+
+  * **The Windows arm had failed at every run since the last green one and the annotation said nothing.** The cause is [test_entrypoints.py](../../tools/tests/test_entrypoints.py)'s bootstrap-layout fixture, whose patched filesystem probe answers on path identity against a temporary root it never resolved, where `toolenv.environment` probes the checkout's real path. The two forms agree wherever the temporary directory is its own real path and differ wherever it is reached through an alias. Resolving the fixture root repairs it, and `filesystem-probes-take-resolved-paths` holds the contract it depended on directly, over a root that arrives unnormalized on purpose so it decides the same thing on either layout. **What the case depends on is the alias and not its kind**, which is why the comment names a junction and a short name alike rather than asserting a fact about a runner no lane here can observe.
+  * **One invocation is four members and one exit code.** That reaches the run page and the API as *process completed with exit code 1*. So the invocation carries `--summary`, which writes the per-member verdict as JSON beside the run rather than into the checkout, and the step after it renders one annotation per member that did not come back clean plus the whole table into the job summary. That step runs whether or not the gate did, so a gate that stopped before the wave finished is named as that rather than left looking like a failing member. **`--summary` is not a fifth member and decides nothing about the tree**; asked to write that verdict and unable to, it reports one finding of its own, which is the only way it reaches the exit code, and `unwritable-summary-is-a-finding` is what holds that.
+  * **A YAML parse decides YAML and says nothing about which context a key admits.** The first commit declared the verdict's path at `jobs.<job_id>.env` as `${{ runner.temp }}/...`, where the runner context is not available, so the file would have been rejected at validation and no job would have run on either arm; the YAML parse it was accepted on could not see that layer. The path is exported from a `shell: bash` step instead. **The failure mode this closes is the worst one available here**: a rejected workflow produces no run at all, which is the same observable as the separate zero-runs problem, so an expression defect would have read as the repository owner's Settings problem.
+  * **Nothing in this repository reads a workflow expression**, and the file's own comment now says so. K-75 reads only the `python-version:` line and marks.py only the SPDX line. No rule was added: the corpus carries one workflow file, and transcribing GitHub's context table into a tracked artifact buys a rule with one subject at the price of a claim that can go stale silently. The residue is named rather than held.
+  * Net change across both commits: 338 lines added and 34 removed across five files.
+  * Exit evidence, at `0e134d9` in the lane's worktree with no submodule initialized: `tools/check.py` green on **104 rules** with no drift reported and no `--fix` run; `run.py typecheck` clean under **ty 0.0.80 and ruff 0.16.6**; `run.py test --only gate` green at **16 cases** and `--only entrypoints` at **12**; `git ls-files --eol` reading `i/lf w/lf` on all four changed paths; the co-read ledger unmoved, this item touching no register entry and no prose span. The render step's body was extracted from the committed file and executed against three fixtures, exiting 0 on each: a red verdict emitting two `::error` annotations and a four-row table, an absent verdict file, and an unset `VERDICT`, the last having been a `KeyError` and exit 1 before the repair. **The workflow's expressions were checked by a scratchpad script that parses the file and scans every `${{ }}` against GitHub's documented per-key availability, which reports the parent commit's `runner`-in-`jobs.env` defect and is clean on this one; it is not actionlint, and no workflow linter is installed on this machine.** **No CI run is in this evidence and none can be**: whether the Windows arm comes back green is decided by the next push and by nothing here, and until that push the fixture repair is established against an aliased temporary directory on a developer machine rather than against a runner.
+  * Two findings.
+    * **The workflow's expression contexts are held by GitHub at validation and by no gate here.** A violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist, which is indistinguishable from the repository having no runs for an unrelated reason. Standing: a rule would be a rule with one subject and a transcription that can go stale, so the residue is carried rather than closed.
+    * **Two statements of the workflow's command line outside the tools lane went stale with this landing.** [AGENTS.md](../../AGENTS.md) and [the reviewer on-ramp](../assurance/reviewer-onramp.md) both name `python tools/run.py --check --tests`, which now carries `--summary`. No rule holds the pair; K-68's co-stated table does not carry it. Standing: one clause at each site, the integrator's, on the precedent this log already books at its own I-series miss.
+
+The measured intervals are 2026-09-14 06:51:53-07:08:39, 07:16:44-08:15:47, 08:17:54-08:39:31 UTC for the authoring, review and repair passes, 3034 seconds summed, rounded upward to 0.9 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Stages stalled inside their own session brackets on no work of their own (review -2812s), and those stalls are out of the figure.
+
+Landed: Tier A. No checker rule was added and none holds what this item created: the workflow's expression contexts are decided by GitHub at validation time and by no gate here, so a violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist. The fourth Tier-B condition is therefore unmet and a green wave is not a reading of the workflow.

@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 679 of them across 118 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 689 of them across 122 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -816,6 +816,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-372** method: the plan's Owns clause for the module socket named two glosses as states and omitted three
 · Raised: Q24a
 · Disposition: closed at landing; R-15-228h fixes absent, isolated, detected, reset, authenticated, active and quiescing, where *present* is the condition a card is in from `detected` onward and *admitted* is a property of a unit and design pair rather than of the socket. The contract records both as glosses with the state each produces, and the cell carrying the clause is replaced by this item's landed summary
+
+**F-373** method: a session model can state key ownership and decide nothing about it
+· Raised: Q23c
+· Disposition: closed at authoring; ownership is stated where it decides an admission or a refusal and is otherwise left to the entry that owns it, a model asserting a property it never tests being a claim rather than a reference
+
+**F-374** method: an event-level oracle that reads a verifier's own predicate off the claim decides nothing
+· Raised: Q23c
+· Disposition: closed at repair; the oracle takes its predicate from the reference model rather than from the artifact under test, an oracle sharing the subject's own decision procedure being unable to disagree with it
+
+**F-375** owed-act: the link's named contribution cannot bear on the composed conclusion and no entry lets it
+· Raised: Q23f
+· Disposition: open, R-17-014a calls R-15-228d's schedule and R-12-015d's session the link's contribution, which asserts they do work, but as predicates over a link alone they reach nothing the target concludes; making them bear is a register act
+
+**F-376** owed-act: no entry decides what relation a link's two endpoint labels must stand in
+· Raised: Q23f
+· Disposition: open, R-15-228b, R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame grammar, the slot table, the index-only payload and the session, and none states a label relation across the wire; the obligation's instance rests on one and the entry supplying it is owed
+
+**F-377** method: the plan's own Execute clause for this item mis-cited the entry it leans on
+· Raised: Q23f
+· Disposition: closed at repair; R-05-157 says only that T is the formal reading of the security claim and of G2, and the demand for a distinguishing instance a specification rejects belongs to a different entry, so the clause now cites the entry that asks it
+
+**F-378** owed-act: the survey's strongest language sources resolve to obligations no cell prices
+· Raised: Q27b
+· Disposition: open, RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified results the sweep added and every one resolves to an obligation booked outside the priced work; opening a cell for any of them is the plan's act and not this record's
+
+**F-379** method: two of the four consumers already held their source before this act ran
+· Raised: Q27b
+· Disposition: closed at authoring; R-18-018's fourth sub-deliverable names VerusBelt in the register itself and Q19c's cell names Diaframe with its terms, and the conventions give an existing start-from no second discount, so both are recorded as held rather than as newly available
+
+**F-380** method: a draft reported a register obligation as booked nowhere when the register's own trace lines decide it
+· Raised: Q27b
+· Disposition: closed at repair; R-05-119 and R-05-121 are placed by their trace lines, and a false gap reported against a map is worse than no report because it commissions an act nobody owes
+
+**F-381** upstream-defect: the workflow's expression contexts are held by GitHub at validation time and by no gate here
+· Raised: I17
+· Disposition: standing, a violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist, which is indistinguishable from the repository having no runs for an unrelated reason; a rule over a one-subject corpus was declined against the cost of transcribing the context table into a tracked artifact, and the residue is named instead
+
+**F-382** method: two restatements of the workflow's command line outside the tools lane went stale with this landing
+· Raised: I17
+· Disposition: closed at landing; AGENTS.md and the reviewer on-ramp both named the command without `--summary` and both now carry it. No rule holds the pair and the checker is green with it stale, which is what makes the miss a finding rather than a nicety
 
 ## M0 · Hardware reference
 
