@@ -705,9 +705,7 @@ claimed. The final integrated host gate and its tested scope are recorded below.
 The batch's complete host command is `python tools/run.py --check --tests`, over
 integration HEAD `92b72bb5449f24f95f39567ef0380d89315a7fe1`, the pending merge of
 `4396c7769afa01988c471a431f2647de23cb6001`, and the integrator's shared records,
-K-23 disposition, co-read ledger and generated arithmetic. The exact changed-file
-hashes and complete report are retained as `out/fanout-20260910/tested-input.json`
-and `out/fanout-20260910/host-gate.log` in the integration checkout. Model, RTL and
+K-23 disposition, co-read ledger and generated arithmetic. Model, RTL and
 Gallina sources are unchanged by this batch; the separate compiler run above its
 M1.2b findings block supplies the affected guest evidence.
 
@@ -740,7 +738,7 @@ The compute-in-memory determination follows live entries. R-15-185 admits determ
 
 The gain-cell citation now gives Li et al.'s complete paper title and describes its 64 cells, each spanning read and write transistor layers, rather than complete memory decks. It distinguishes measured column-current summation from the simulated network result and keeps the lab-scale array size visible. The lane's primary-article XML reading and checker evidence are retained with the integration record.
 
-Authoring commit `1bc51b5` passes the focused checker. The lane interval is bounded by its Git provisioning record at 15:35:54 UTC and handoff at 15:44:11 UTC on 2026-09-11. This item's actual also charges the shared integrator session from its first recorded clock at 15:36:15 UTC through final validation; Q17 and Q22f do not charge it again. Integration uses `python tools/run.py --check --tests` after the shared repairs and co-reads. The input patch, gate transcript and interval record are retained under `out/fanout-q14-q17-q22f-20260911/` against base `8cfee9f7f4493471f714e5890ed6670eab8b1572` and the three lane heads. No model, RTL or proof execution claim changes.
+Authoring commit `1bc51b5` passes the focused checker. The lane interval is bounded by its Git provisioning record at 15:35:54 UTC and handoff at 15:44:11 UTC on 2026-09-11. This item's actual also charges the shared integrator session from its first recorded clock at 15:36:15 UTC through final validation; Q17 and Q22f do not charge it again. Integration uses `python tools/run.py --check --tests` after the shared repairs and co-reads, against base `8cfee9f7f4493471f714e5890ed6670eab8b1572` and the three lane heads. No model, RTL or proof execution claim changes.
 
 Landed: Tier A. The integration read accepts the bounded comparison and citation correction; no matrix surface or pin is admitted.
 
@@ -769,7 +767,7 @@ R-17-051a takes the refusal arm: the first-release composition includes no SMS, 
 
 The [alternatives record](../background/architectural-alternatives.md#first-release-messaging-refused) prices bounded text-only SMS over IMS as the smaller admission candidate, separately from the versioned RCS comparison. Its incremental parser, sequencing, persistence, notification and composition work is refused on release scope, without charging messaging for the IMS substrate already owed by the voice floor. R-12-041 now scopes its generation restriction to radio-access and mobility control planes and preserves the existing IMS session client and proof obligations. R-18-004 distinguishes messaging's refusal from the browser's deferred port. A provider certificate anchor requires an authority and custody decision; its presence alone is not a second foreign computer under R-04-011.
 
-Authoring commit `2ca232c` supplies the decision at base `add2ba9459b9de3b38e3e26b3e76ce813257c52a`. The source readings bind SMS to TS 24.341 v19.0.0 and RCS to UP 3.0/RCC.16 v1.0; later revisions receive no compatibility verdict. The authoring interval is bounded by provisioning at 16:15:20 UTC and commit at 16:24:29 UTC on 2026-09-11. The actual adds root review and shared integration, rounded to the checklist's tenths; the open compiler/replay work receives no completion credit. Integrated validation uses `python tools/run.py --fix --tests`; the input diff and host verdict remain under `out/fanout-contracts-20260911/`. No model, proof or device execution is claimed.
+Authoring commit `2ca232c` supplies the decision at base `add2ba9459b9de3b38e3e26b3e76ce813257c52a`. The source readings bind SMS to TS 24.341 v19.0.0 and RCS to UP 3.0/RCC.16 v1.0; later revisions receive no compatibility verdict. The authoring interval is bounded by provisioning at 16:15:20 UTC and commit at 16:24:29 UTC on 2026-09-11. The actual adds root review and shared integration, rounded to the checklist's tenths; the open compiler/replay work receives no completion credit. Integrated validation uses `python tools/run.py --fix --tests`. No model, proof or device execution is claimed.
 
 Landed: Tier A. The register/prose read covers R-12-041, R-12-042, R-17-051a and R-18-004, including a messaging-service counterexample, generic-byte exceptions and the preserved voice obligation. Future messaging requires the register amendment and composed acceptance the new entry states.
 
@@ -806,8 +804,7 @@ including the generated RingContract. Every original proof and export byte is
 restored. MemoryPlan's exported `source_md5` matches
 `12d9a1e242ecb26fd8268dd41679a564`, and `proofs headers --show
 proofs/PartitionContext.v` returns its 38 current owner entries without a write.
-The measurement body takes 1.803 seconds; its script and per-file evidence are
-retained under `out/fanout-20260910/` in the integration checkout.
+The measurement body takes 1.803 seconds.
 
 The closing validation interval is 17:05:39–17:11:43 UTC on 2026-09-10, including
 provisioning and tool setup. The actual rounds that interval and the integrator's
@@ -967,10 +964,9 @@ also have deciding negative cases. Independent review accepts this bounded scope
   relation; R2 must establish the actual proxy and device completion boundary.
 
 The batch starts from `73cc27dd5674f8fd0853ee96438214011e6e48a0` and merges the
-three assessment lanes. Each JSON receipt under `out/fanout-20260911/` identifies
-its tested source bytes. The final integration gate is
-`python tools/run.py --check --tests`, recorded in that directory with the authored
-diff and index tree identity. It checks the whole corpus, every checker mutant,
+three assessment lanes. The final integration gate is
+`python tools/run.py --check --tests`, bound to each lane's tested source bytes
+and the index tree identity. It checks the whole corpus, every checker mutant,
 both Python checkers and the behavioral suite, including repeated read-only CLI
 invocation. No model, RTL or Gallina source changes; no guest evidence is claimed
 or substituted by these host experiments. The co-read ledger is unchanged.
@@ -1134,7 +1130,7 @@ At authoring head `130b58c`, `python tools/run.py storage-index --json` emits 66
 
 At the four-program endurance budget, singleton-update cases reject both arms; at five they admit only the buffered arm; at six both pass. Larger transaction widths admit both throughout the sweep. Retain Bε provisionally: B+ removes message-refinement obligations in this fixture but does not meet the central singleton envelope. No target composition is admitted. Integrity equality, fresh-block ownership and fixed reservations are assumptions; NAND amplification, target service/crypto costs, final geometry and batching, multilevel operations and implementation/refinement remain M5.3's inputs. Its production recovery decision remains open. The source-bound JSON receipt owns the measurements; no end-to-end proof or target WCET is claimed.
 
-The authoring interval is bounded by provisioning at 15:36:12 UTC and handoff by 15:52:00 UTC on 2026-09-11. Independent review adds 15:50:25–15:51:49 UTC, measured separately because the agent sessions overlap. The actual rounds their sum upward; shared integration is charged once at Q14. The integrated receipt is retained under `out/fanout-q14-q17-q22f-20260911/storage-index.json`.
+The authoring interval is bounded by provisioning at 15:36:12 UTC and handoff by 15:52:00 UTC on 2026-09-11. Independent review adds 15:50:25–15:51:49 UTC, measured separately because the agent sessions overlap. The actual rounds their sum upward; shared integration is charged once at Q14.
 
 Landed: Tier A. Behavioral checks hold the executable comparison; the finite experiment supplies no target proof or general index selection.
 
@@ -1144,7 +1140,7 @@ The [reviewed map](../assurance/unassigned-proof-map.md) assigns numbered next s
 
 The review corrects claims about uninspected axiom closures and unverified prover compatibility, assigns Islaris qualification to the logic-route decision, and keeps a direct replacement for the mandated Katamaran route conditional on a register amendment. Bluetooth pairing leaves the remaining Bluetooth procedures explicitly unpriced. U-19 carries both statement and proof scope. Missing compiler, TAL and masked-datapath implementation obligations remain visible outside the priced proposals.
 
-Exit evidence: source commit `ca05743df9a568cb728caf15312d31703ea0c405`, reviewed correction `e694a548e0c31520814eba0d5d1d981fd0571bb5`, and the final integration diff retained under `out/fanout-closeout-20260912/`. The checker, full mutation selftest, pinned typecheckers and default behavioral suite pass through `python tools/run.py --check --tests`; the gate log and input hashes bind that result to the integrated tree. No guest proof or device measurement is claimed for this document item.
+Exit evidence: source commit `ca05743df9a568cb728caf15312d31703ea0c405` and reviewed correction `e694a548e0c31520814eba0d5d1d981fd0571bb5`. The checker, full mutation selftest, pinned typecheckers and default behavioral suite pass through `python tools/run.py --check --tests`; the gate log and input hashes bind that result to the integrated tree. No guest proof or device measurement is claimed for this document item.
 
 The 0.8 h actual uses the recovered author interval 20:20:58.339 to 20:50:12.391 UTC on 2026-09-12, the shared document review from 21:18:47.594 to 21:30:09 UTC, and the timed document integration/validation allocation retained with the closeout receipt, rounded to one decimal hour. The shared ABI review is charged here once and must not be charged again when M1.2d lands.
 
@@ -1162,7 +1158,7 @@ R-02-003a takes the ensemble arm: a server instantiation is a composition of who
 
 The residuals are booked rather than absorbed: the isolation model's fourth spatial case across a wire (R-17-003d), the composed non-interference statement's freshness (R-17-014a), the link's four seam meetings (R-17-025a), the fail-closed seam collecting the link's refusals (R-17-030z, the last one-letter id the series admits), the session's ceiling with no upstream analysis to curate (R-17-049d), the wire's physical exposure (R-17-058h) and the two-machine attestation relation as N copies of one mask set (R-17-061b). The coverage matrix gains boundary B-10 with its seven cells, the crown-jewel inventory's rows 8, 11, 17 and 27 gain the ensemble's members with no new row and no new target, and the absence contract gains A-18 through A-21 with provenance bindings of the third kind on A-12a's precedent. The README's product paragraph no longer names the design by a slogan and no longer says the browser does not run on it: the browser is R-14-008's fixed design and R-18-004's deferred port. [The inspirations record](../background/inspirations.md#groqs-tensor-streaming-processor-static-scheduling-carried-across-chips-and-the-shared-address-space-an-ensemble-does-not-take) carries the Groq reading, the TSP's statically scheduled links, scheduled deskew and compile-time partition transferring as evidence and its shared global memory across chips, published link descriptions with no cryptographic protection, and replay recovery named as the divergence; [the alternatives record](../background/architectural-alternatives.md#a-second-die-radio-bifurcation-sram-chiplets-and-bonded-stacking-declined-once-at-the-trust-structure-they-share) distinguishes an ensemble from the second die it declines. The link's authenticated encryption is computed in the crypto core under R-05-070 and R-15-202 as they stand, so a link's rate is a composition constant bounded by that core's slot share, stated as a cost; the first release is unmoved, and R-02-003a names the five gating artifacts Q23b, Q23c, Q23d, Q23f and Q23g price, with Q23e supplying the traffic table Q23d reads.
 
-Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c499a068cae841d8a52dcc83ee2b2c3e4b23ca`. The source readings bind the Groq claims to the ISCA 2020 and ISCA 2022 papers, the RealScale technical document, the GroqCard and GroqNode briefs at v1.5, Groq's newsroom notice of 2025-12-24 and NVIDIA's technical blog of 2026-03-16, each read on 2026-09-12; later revisions receive no verdict. The initial authoring interval is bounded by provisioning at 14:06:32 UTC and fixup commit at 16:13:43 UTC on 2026-09-12. The actual sums the prior root and subagent session bounds and the closeout authoring/review bounds through 18:07:08 UTC, rounded upward to the checklist's tenths. The timestamp receipts include idle gaps and exclude subsequent unattended host-gate waiting and output cleanup; they are session wall-clock bounds, not CPU time. The interval receipt, input patch, review dispositions and gate transcript are retained under `out/closeout-20260912/`. The open children Q23b through Q23g receive no completion credit. Integrated validation uses `python tools/check.py --fix`, explicit `python tools/run.py coread --bless` readings and `python tools/run.py --check --tests`. No model, proof or device execution is claimed.
+Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c499a068cae841d8a52dcc83ee2b2c3e4b23ca`. The source readings bind the Groq claims to the ISCA 2020 and ISCA 2022 papers, the RealScale technical document, the GroqCard and GroqNode briefs at v1.5, Groq's newsroom notice of 2025-12-24 and NVIDIA's technical blog of 2026-03-16, each read on 2026-09-12; later revisions receive no verdict. The initial authoring interval is bounded by provisioning at 14:06:32 UTC and fixup commit at 16:13:43 UTC on 2026-09-12. The actual sums the prior root and subagent session bounds and the closeout authoring/review bounds through 18:07:08 UTC, rounded upward to the checklist's tenths. The timestamp receipts include idle gaps and exclude subsequent unattended host-gate waiting and output cleanup; they are session wall-clock bounds, not CPU time. The open children Q23b through Q23g receive no completion credit. Integrated validation uses `python tools/check.py --fix`, explicit `python tools/run.py coread --bless` readings and `python tools/run.py --check --tests`. No model, proof or device execution is claimed.
 
   * Finding: **R-15-111's acceptance criterion cited R-15-146, the peripheral electronic-enable rule, as the ground for no die-to-die link existing anywhere in the machine.** The owning entry is R-15-162; a citation that resolves and names the wrong owner is the stale-claim shape no citation rule reads, and it is repaired in this act.
   * Finding: **Universal session-tag rules excluded the handshake that establishes the session.** Application traffic remains gated by the session; only bounded verified establishment processing receives scheduled handshake frames, which enable neither application delivery nor an origin leap.
@@ -1341,8 +1337,7 @@ executed negative or qualified binary is inferred from the paper derivations.
 
 The measured author/check interval is 2026-09-12 22:52:20–23:02:49 UTC,
 629 seconds, rounded upward to 0.2 h. Shared review, integration and the complete
-host gate are charged once to Q25d's open review, with clocks, input identities
-and gate logs retained under `out/fanout-q25-20260912/`. The integrated gate is
+host gate are charged once to Q25d's open review. The integrated gate is
 `python tools/run.py --check`; no guest evidence is required for this design item.
 
   * Finding: the call-by-name grading reference supplies no proof that effectful
@@ -1373,8 +1368,7 @@ the `HA-*` laws, target bounds and frontend admission remain unimplemented.
 
 The measured author/check interval is 2026-09-12 22:52:43–23:03:20 UTC,
 637 seconds, rounded upward to 0.2 h. Q25d carries the shared review and final
-`python tools/run.py --check` wave, whose source identities and logs are retained
-under `out/fanout-q25-20260912/`. No guest measurement is claimed.
+`python tools/run.py --check` wave. No guest measurement is claimed.
 
   * Two findings.
     * **Language-frame occupancy needs an explicit inventory disposition.**
@@ -1407,8 +1401,8 @@ grade supplies no sharing authority.
 
 The measured author/check interval is 2026-09-12 22:53:08–23:03:02 UTC,
 594 seconds, rounded upward to 0.2 h. Q25d carries shared review, integration and
-the final `python tools/run.py --check` wave, with identities and logs retained
-under `out/fanout-q25-20260912/`. No executed language or guest evidence is claimed.
+the final `python tools/run.py --check` wave. No executed language or guest
+evidence is claimed.
 
   * Finding: the registered-but-unstarted cancellation branch must retain its
     frame while returned inputs await collection in the reserved cancelled
