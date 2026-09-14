@@ -47,10 +47,14 @@ def _backed_slots_and_release_bounds() -> None:
     pool = report["pools"][0]
     ensure(pool["occupancy_bound"] == 16 * 1024 * 1024 + 64,
            "independent slots and always-live overhead are all charged")
-    ensure(report["maximum_release_bound"] == 10, "device wait, sweep and scrub belong to reuse latency")
+    ensure(report["maximum_release_bound"] == 11,
+           "release operation, device wait, sweep and scrub all belong to reuse latency")
     for path in report["paths"]:
         for release in path["releases"]:
             ensure(sum(release["step_bounds"]) == release["elapsed_bound"], "deadline vector must replay")
+            ensure(release["clock_origin"] == "release request/start of release operation"
+                   and release["clock_end"] == "reuse barrier completion",
+                   "release evidence must state the complete request-to-reuse clock interval")
         for meter in path["meters"]:
             events = [(e["kind"], e["bytes"]) for e in meter["events"]]
             ensure(resources.run_credit(events, meter["required_credit"]) == meter["required_credit"],
@@ -81,6 +85,22 @@ def _delayed_device_and_exceptional_cleanup() -> None:
     terminal = raw["contract"]["body"][-1]["branches"][-1]["body"]
     terminal[:] = [e for e in terminal if e["op"] != "barrier"]
     _reject(lambda: resources.analyze_resources(raw), "terminal outcome retains")
+
+
+def _release_cost_alone_misses_deadline() -> None:
+    raw = resources.demo_resources()
+    ensure(not resources.analyze_resources(raw)["errors"], "the original deadline must be sufficient")
+    raw["step_bounds"]["release"] += 1
+    report = resources.analyze_resources(raw)
+    ensure(report["maximum_release_bound"] == 12 and len(report["errors"]) == 4,
+           "release cost alone must invalidate every outcome's request-to-reuse bound")
+    for path in report["paths"]:
+        exceeded = [release for release in path["releases"]
+                    if release["elapsed_bound"] > report["reuse_deadline"]]
+        ensure(len(exceeded) == 1, "only the device-bearing lease should miss this deadline")
+        ensure(sum(exceeded[0]["step_bounds"][1:]) <= report["reuse_deadline"],
+               "omitting release's own cost would incorrectly accept this path")
+    _reject(lambda: resources.emit_resource_certificate(raw), "refused resource contract")
 
 
 def _input_guards_and_replay() -> None:
@@ -114,8 +134,8 @@ def _certificate_is_fresh_and_numeric() -> None:
     emitted = resources.emit_resource_certificate(raw)
     ensure("Require Import MemoryPlannerResources." in emitted and "Take 4" in emitted,
            "certificate must replay the actual normalized credit actions")
-    ensure("list_sum [1; 4; 2; 2; 1] <= 10" in emitted,
-           "certificate must recompute deadline addition inside Rocq")
+    ensure("list_sum [1; 1; 4; 2; 2; 1] <= 11" in emitted,
+           "certificate must recompute request-to-reuse addition including release inside Rocq")
     ensure("Input SHA256:" in emitted and "report SHA256:" in emitted, "both endpoints need identities")
 
 
@@ -125,6 +145,7 @@ def cases() -> list[Case]:
         Case("resources prepaid slot success and complete release bounds", _backed_slots_and_release_bounds),
         Case("resources scalar credits require physical layout and overhead", _underfunding_and_overhead),
         Case("resources delayed devices and exceptional cleanup", _delayed_device_and_exceptional_cleanup),
+        Case("resources release cost alone can exceed request-to-reuse deadline", _release_cost_alone_misses_deadline),
         Case("resources malformed inputs and content-bound replay", _input_guards_and_replay),
         Case("resources fresh finite Rocq certificate emission", _certificate_is_fresh_and_numeric),
     ]
