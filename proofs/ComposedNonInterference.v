@@ -58,21 +58,53 @@
       composed target quantifies only over adversary sets that are
       admissible at every member (graph-permitted and outside the TCB,
       R-01-002) *and* contain each link's endpoint compartment. The
-      entitlement is R-12-007a's: a peer compromised inside an accepted
-      session reaches exactly what a compromised local ring peer behind
-      the same table reaches, the ring proof's Byzantine peer (R-12-008)
-      being the wire's peer, so the wire enters as an adversary at the
-      receiving member and never as a channel with authority of its own.
-   6. The link contributes exactly two conjuncts and no third, which is
-      what R-17-014a's "and nothing more" demands: `link_schedule` stands
-      for R-15-228d's slot table and `link_session` for R-12-015d's
-      session. The two-machine attestation relation R-17-061b names is
-      that session and not a third field: R-17-061b states outright that
-      the relation "is stated at R-12-015d", so a separate field for it
-      would be a second owner of one fact. Both are opaque Props here,
-      which is the standing R-17-049d gives an unauthored model: the
-      reference model Q23c owns will instantiate them, and nothing is
-      credited until it does.
+      entitlement is R-12-007a's, and it is an upper bound and not an
+      equality: a peer compromised inside an accepted session reaches no
+      more than a compromised local ring peer behind the same table
+      reaches, because a frame names indices into the receiving member's
+      own table, validated there before eligibility, and encodes no
+      capability, address or authority. The ring proof's Byzantine peer
+      (R-12-008) is the wire's peer, so the wire enters as an adversary at
+      the receiving member and never as a channel with authority of its
+      own. The converse containment is stated by neither entry and is not
+      claimed here.
+   6. The link carries two conjuncts and no third, which is R-17-014a's
+      upper bound and not more: `link_schedule` stands for R-15-228d's
+      slot table and `link_session` for R-12-015d's session, the two the
+      entry names, and "and nothing more" forbids a third. The two-machine
+      attestation relation R-17-061b names is that session and not a third
+      field: R-17-061b states outright that the relation "is stated at
+      R-12-015d", so a separate field for it would be a second owner of
+      one fact. Both are opaque Props here, which is the standing
+      R-17-049d gives an unauthored model: the reference model Q23c owns
+      will instantiate them, and nothing is credited until it does.
+   6a. Those two conjuncts are inert as stated, and this file reports that
+      rather than trading on the appearance of a contribution. Each is an
+      opaque `Link -> Prop` occurring in the record declaration, in
+      `link_contribution` and in the instance literals, and in no
+      definition the target's conclusion mentions, so nothing carries
+      either into that conclusion.
+      `link_premise_carries_vacuity_and_not_contribution` below is that
+      claim machine-checked: an ensemble whose `link_session` is False
+      satisfies the target outright while its wire still carries the near
+      member's own quantity into the far member's observable slot. The
+      statement therefore meets R-17-014a's upper bound by making the
+      named contribution empty, which is R-05-165's second mode standing
+      in the target's own premise. That is a reported gap and not a
+      decision taken here: no register entry relates what a link delivers
+      to a member to what the sending member's execution placed on the
+      wire in that slot. R-15-228b fixes what a frame is, R-15-228d the
+      slot it occupies, R-12-007a the indices it names and R-12-015d the
+      session that authenticates it, and none of the four states that
+      transfer, so the schedule and the session have nothing here to bear
+      on. The act owed is a register act rather than a Gallina one: an
+      Accept clause at R-17-003d, or an entry beside R-12-007a, stating
+      the relation between a member's delivered input and the sending
+      member's trace at the link's slots. A field asserting that relation
+      here would decide by fiat what the register has not, exactly as
+      decision 8 declines to for the label question, so the target is
+      stated with the link premise the register supports and this file
+      names what that premise is worth.
    7. Ensemble indistinguishability is stated over the members' *exogenous*
       inputs at the members' own policies, deliberately not over the
       delivered ones. Stating it over the delivered inputs is the accident
@@ -105,7 +137,8 @@
    (R-05-165, R-05-166): every quantifier domain inhabited, the premises
    jointly satisfiable, the target provable in one model, and, in another,
    an instance the target rejects whose two endpoints sit at different
-   labels.
+   labels. One lemma there is not a witness and claims no entry: the third
+   instance reports decision 6a's gap.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-01-002 R-02-003a R-05-156a R-05-157 R-05-160 R-05-162 R-05-163 R-05-164
@@ -148,8 +181,9 @@ Record Ensemble : Type := {
   near_endpoint : forall l : Link, (member (near l)).(Compartment);
   far_endpoint : forall l : Link, (member (far l)).(Compartment);
 
-  (* --- what a link contributes, and it is exactly these two
-         (R-17-014a; decision 6) ------------------------------------------- *)
+  (* --- what the link carries: the two R-17-014a names and no third, each
+         opaque and, as decision 6a reports, reaching nothing the target's
+         conclusion mentions (R-17-014a; decisions 6 and 6a) --------------- *)
 
   link_schedule : Link -> Prop;           (* R-15-228d's slot table           *)
   link_session : Link -> Prop;            (* R-12-015d's session, which is
@@ -194,7 +228,9 @@ Definition ensemble_admissible (e : Ensemble) (A : ensemble_adversary e) : Prop 
   (forall m : e.(Member), admissible (e.(member) m) (A m))
   /\ (forall l : e.(Link), wire_boundary e A l).
 
-(* Decision 6: two conjuncts, and a third here would be a finding. *)
+(* Decision 6: two conjuncts, and a third here would be a finding. Decision
+   6a: neither reaches the conclusion below, and the lemma at the end of the
+   file is that sentence machine-checked. *)
 Definition link_contribution (e : Ensemble) : Prop :=
   forall l : e.(Link), e.(link_schedule) l /\ e.(link_session) l.
 
@@ -227,8 +263,10 @@ Definition endpoints_share_a_label (e : Ensemble) (l : e.(Link)) : Prop :=
    of T, the per-member Ax, and each link's two conjuncts; its quantifier
    ranges over the admissible adversary sets that cover every wire; its
    conclusion is each member's own observation equality modulo that member's
-   own D. There is no proof of it in this file and none anywhere: it is the
-   obligation, stated.
+   own D. No proof of it is claimed as a discharge of R-17-014a, whose
+   record stays open. The three instances below are not discharges either:
+   one at which the target holds, one at which it fails, and one at which
+   it holds only because the link premise is false.
    ------------------------------------------------------------------------- *)
 
 Definition composed_noninterference (e : Ensemble) : Prop :=
@@ -484,6 +522,56 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------
+   Decision 6a, machine-checked: what the link premise is worth here. The
+   ensemble below is `leaky_ensemble` with one field changed, its session
+   made unsatisfiable, and nothing else; the wire still carries the near
+   member's own quantity into the far member's observable slot. The target
+   holds of it, and holds for the only reason available, that
+   `link_contribution` is unsatisfiable there. So the two conjuncts
+   R-17-014a names as the link's contribution confer vacuity where they
+   fail and, being opaque Props no definition the conclusion mentions
+   reads, reach the conclusion nowhere they hold. This is R-05-165's second
+   mode standing in the target's own premise, and closing it is the
+   register act decision 6a names, not an edit to this file.
+
+   This lemma carries no discharge annotation, unlike every other lemma
+   here: it books a gap rather than answering an entry.
+   ------------------------------------------------------------------------- *)
+
+Definition vacuous_ensemble : Ensemble := {|
+  Member := bool;
+  member := fun _ => wire_member_vocabulary;
+  EnsInput := bool;
+  exogenous := fun i m => if m then (false, false) else (i, false);
+  delivered := fun i m => if m then (false, i) else (i, false);
+  Link := unit;
+  near := fun _ => false;
+  far := fun _ => true;
+  near_endpoint := fun _ => true;
+  far_endpoint := fun _ => true;
+  link_schedule := fun _ => True;
+  link_session := fun _ => False;
+  Label := bool;
+  label := fun m _ => m
+|}.
+
+Definition vacuous_adversary : ensemble_adversary vacuous_ensemble :=
+  fun _ c => c = true.
+
+Lemma link_premise_carries_vacuity_and_not_contribution :
+  composed_noninterference vacuous_ensemble
+  /\ ensemble_indist vacuous_ensemble vacuous_adversary true false
+  /\ ~ ensemble_observation_equal_modulo_D
+         vacuous_ensemble vacuous_adversary true false.
+Proof.
+  split; [| split].
+  - intros _ _ Hlink. destruct (Hlink tt) as [_ Hbad]. destruct Hbad.
+  - intros m; destruct m; cbn; (split; [reflexivity | intro Hc; discriminate Hc]).
+  - intros H. destruct (H true) as [Hvalue _]. cbv in Hvalue.
+    discriminate Hvalue.
+Qed.
+
+(* -------------------------------------------------------------------------
    The endpoint-label predicate decides something and is still not a premise
    (decision 8): it holds at one instance and fails at the other, and the
    instance the target rejects is the one whose two endpoints sit at
@@ -516,4 +604,5 @@ Print Assumptions leaky_members_hold.
 Print Assumptions leaky_wire_is_permitted.
 Print Assumptions composed_noninterference_distinguishing_instance.
 Print Assumptions composition_is_carried_by_no_per_member_theorem.
+Print Assumptions link_premise_carries_vacuity_and_not_contribution.
 Print Assumptions endpoint_labels_decide_something.
