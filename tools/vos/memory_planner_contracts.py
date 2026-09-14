@@ -80,7 +80,7 @@ class Lease:
     """Occupancy includes every hazard until the checked reuse barrier."""
 
     held: bool = True
-    retained: set[str] = field(default_factory=set)
+    retained: set[str | None] = field(default_factory=set)
     authority: bool = True
     devices: set[str] = field(default_factory=set)
     swept: bool = False
@@ -287,14 +287,15 @@ def _step(event: dict[str, Any], live: dict[str, Lease], tokens: dict[str, str],
             tokens[token] = name
             lease.devices.add(token)
         if op == "retain":
-            holder = event.get("holder", "$legacy")
+            holder = event.get("holder")
             if holder in lease.retained:
                 raise ContractError(f"{name}: duplicate retained holder {holder}")
             if "holder" in event and (name, holder) in seen_holders:
                 raise ContractError(f"{name}: retained holder reused across lease incarnations: {holder}")
             if len(lease.retained) >= retained_limits[name]:
                 raise ContractError(f"{name}: declared retained holder limit exceeded")
-            seen_holders.add((name, holder))
+            if "holder" in event:
+                seen_holders.add((name, event["holder"]))
             lease.retained.add(holder)
         if op == "use" and "holder" in event and event["holder"] not in lease.retained:
             raise ContractError(f"{name}: use of absent or stale retained holder")
@@ -305,7 +306,7 @@ def _step(event: dict[str, Any], live: dict[str, Lease], tokens: dict[str, str],
             raise ContractError(f"{name}: double lexical release")
         lease.held = False
     elif op == "drop":
-        holder = event.get("holder", "$legacy")
+        holder = event.get("holder")
         if holder not in lease.retained:
             raise ContractError(f"{name}: drop without a retained value")
         lease.retained.remove(holder)

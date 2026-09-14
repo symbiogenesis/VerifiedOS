@@ -210,14 +210,14 @@ def replay_resources(raw: object, report: object) -> list[str]:
     return [] if expected == report else ["resource report differs from deterministic replay"]
 
 
-def emit_resource_certificate(raw: object) -> str:
+def emit_resource_certificate(raw: object, *, max_work: int = 1000000) -> str:
     """Emit kernel-replayable finite credit and deadline facts from fresh analysis.
 
     This is an optional host artifact: no compiler is invoked and no target code
     consumes the text. Hashes bind its normalized source/report; the finite facts
     do not prove that source extraction or the supplied timing bounds are sound.
     """
-    report = analyze_resources(raw)
+    report = analyze_resources(raw, max_work=max_work)
     if report["errors"]:
         raise ResourceError("cannot certify a refused resource contract")
     lines = ["(* SPDX-License-Identifier: Apache-2.0 *)",

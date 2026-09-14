@@ -102,8 +102,9 @@ Malformed input, exhausted analysis bounds or an invalid placement raises a
 reports. `replay_resources(raw, report)` recomputes the report and detects altered
 evidence. `demo_resources()` supplies a complete synthetic wrapper.
 
-`emit_resource_certificate(raw)` performs fresh analysis and refuses an invalid
-resource contract. It emits Rocq examples that compute the actual finite credit
+`emit_resource_certificate(raw, max_work=1000000)` performs fresh analysis under
+the supplied budget and refuses an invalid resource contract. It emits Rocq
+examples that compute the actual finite credit
 actions and deadline sums, plus source and report digests. Emission is proof
 source, pending kernel compilation. Neither the digest nor the generated numeric
 examples prove that the source extractor selected the right events. The optional

@@ -96,6 +96,7 @@ def _input_guards_and_replay() -> None:
     raw["step_bounds"]["complete"] = True
     _reject(lambda: resources.analyze_resources(raw), "expected an integer")
     _reject(lambda: resources.analyze_resources(resources.demo_resources(), max_work=10), "budget")
+    _reject(lambda: resources.emit_resource_certificate(resources.demo_resources(), max_work=10), "budget")
     _reject(lambda: resources.required_credit([("invent", 1)]), "invalid credit")
 
 
