@@ -10,6 +10,12 @@ distinguish published results from the contents of a particular code edition,
 and a paper, an archived deposit, a maintained tree and a pen-and-paper
 metatheory beside an unverified implementation are four different findings.
 
+Which plan cell or proof-map slice each source a later sweep added actually
+bears on, and the ground where a source bears on none, is resolved once in
+[the bearing record](proof-reuse-bearing.md). The subject records stay keyed by
+obligation family and state each source's theorem, terms and distance; that
+record is keyed by source and names a consumer or names none.
+
 The project's implementation and proof vehicles remain Sail and Rocq/Gallina.
 Isabelle/HOL, HOL4, HOL Light, F*, EasyCrypt, Dafny, Why3, Lean and symbolic
 protocol proofs can supply strong precedents and independent specifications;

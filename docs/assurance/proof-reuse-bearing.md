@@ -1,0 +1,103 @@
+# Proof-reuse bearing record
+
+*Q27b's deliverable in [the implementation plan](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state). For each source the outside-literature sweep added to [the proof reuse inventory](proof-reuse.md), it names the one open cell or slice that source bears on and what that consumer would stop owing if it took it, or records that it bears on none and says on what ground. It is keyed by source, where the inventory's [subject records](proof-reuse/) are keyed by obligation family and [the unassigned proof map](unassigned-proof-map.md) is keyed by obligation. **No range and no midpoint moves here and none is proposed.** The plan's conventions give an existing start-from no second discount and a survey no measured productivity, so what a row can do is name a start-from at a cell that had none; a source with no consumer is a finding about the survey and never a reason to open a cell for it.*
+
+## How to read a row
+
+- **A row names one source and one consumer.** A source appearing twice, or a row naming two consumers, is a defect in this record.
+- **A consumer is an open cell of the plan or a slice of the proof map**, carried by its own id and checked against the plan's open items or the map's [next slices](unassigned-proof-map.md#7-the-next-slices) before the row is written. An id that resolves to neither is deleted from the record rather than defended.
+- **The third column says what the consumer would stop owing, or that nothing is removed and why.** Nothing removed is the ordinary answer and not a failure of the row: a cell that names its start-from without moving its range is what this item delivers, and a re-price is proposed only where a newly qualified source removes a named sub-obligation.
+- **A row whose consumer is `none` carries one ground**, from this set: **taken**, the bearing is already in a landed cell or a landed artifact; **refused**, the register refuses the import at a cited entry; **uncelled**, the obligation the subject record names is owned by no open cell and no slice; **unaimed**, the subject record proposes no local consumer at all; **unread**, the source's own terms are unread or absent, so no reuse may be proposed. Where more than one holds, the row names the one the subject record's own disposition rests on, and the clause may carry the other fact.
+- **Added and re-read sources are tabled apart.** A record the sweep only re-read qualifies a source this corpus already held, and a held start-from receives no second discount, so re-reading one cannot make it newly available.
+- **This record does not restate the note a cell writes.** A cell's own reuse note states what that cell reuses and what work it still buys, on [the plan's conventions](../implementation/implementation-checklist.md#checklist-conventions); what lives here is the source-keyed resolution and the ground for each source that bears on nothing.
+
+## Which records the sweep added, and the predicate that decides it
+
+The subject records date their own readings, and those dates do not decide this question. [Systems](proof-reuse/systems.md)'s date sentence lists SYS-PROSA, SYS-LAWYER and SYS-WAITFREE among the 2026-09-13 readings although all three records were already present and wholly dated 2026-09-10, and [languages](proof-reuse/languages.md) dates its whole inventory between 2026-09-10 and 2026-09-13 with no per-entry date, so neither sentence separates a record the sweep added from one it only re-read.
+
+The predicate this record uses instead is textual and checkable at two named revisions: **a record is added where its heading is present under `docs/assurance/proof-reuse/` at `f528852f680dd00d599b73feb69258e214a1385a` and absent at `e694a548e0c31520814eba0d5d1d981fd0571bb5`**, the last revision before the sweep commit `2ea8d61`. On that predicate [hardware](proof-reuse/hardware.md), [parsers](proof-reuse/parsers.md) and [protocols](proof-reuse/protocols.md) add no record, and the tables below enumerate what the other four add.
+
+## Foundations: the certified-search family
+
+[Q27a](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state) owns this family's arms and its cell states of the Rocq-side candidates that none is a start-from for any cell in the plan. The rows record which of them bears on a consumer and cite that disposition rather than re-arguing it.
+
+| Source the sweep added | Consumer | What it would remove, or the ground |
+| --- | --- | --- |
+| [F06 FznDrcpCheck and DRCP](proof-reuse/foundations.md#f06-fzndrcpcheck-and-the-drcp-proof-system-reference) | none · refused | R-05-016 admits no tool as a second checker and R-06-011's inventory names two, so shipping it is an amendment decided at the review gate; its stated relevance to R-08-011 and R-08-014 is the open infeasibility question and nothing else. |
+| [F07 VeriPB and CakePB](proof-reuse/foundations.md#f07-veripb-and-cakepb-reference) | none · refused | The verified half is HOL4's, so R-05-020's first condition fails before its yield is weighed and no bridge is proposed. |
+| [F08 LRAT's two certified checkers](proof-reuse/foundations.md#f08-lrat-and-its-two-certified-checkers-reference) | none · refused | The same no-new-checker refusals reach the Rocq checker, whose own terms are unread besides, it being distributed as an archive from a page stating none. |
+| [F09 the Lean certificate checkers](proof-reuse/foundations.md#f09-the-lean-certificate-checkers-unqualified-lead) | none · refused | Lean, so R-05-020's first condition fails, and F05 already states that this inventory introduces no Lean trust language. |
+| [F10 SCIP's exact mode and VIPR](proof-reuse/foundations.md#f10-scips-exact-mode-and-vipr-certificates-unqualified-lead) | none · refused | R-05-104 deleted the ILP machinery rather than retargeting it, which reaches this mixed-integer route directly. |
+| [F11 pseudo-Boolean proof logging](proof-reuse/foundations.md#f11-pseudo-boolean-proof-logging-in-solvers-reference) | none · unaimed | The record is a reference for the shape of the certificates the checkers above consume rather than for any theorem, and it names no local consumer. |
+
+## Cryptography
+
+| Source the sweep added | Consumer | What it would remove, or the ground |
+| --- | --- | --- |
+| [Jasmin's compiler theorem](proof-reuse/crypto.md#jasmins-compiler-theorem-and-what-it-leaves-trusted) | none · unaimed | The record's own disposition is the boundary against which the Formosa entries are read; it acquires no source and proposes no local consumer. |
+
+## Systems and security
+
+| Source the sweep added | Consumer | What it would remove, or the ground |
+| --- | --- | --- |
+| [SYS-REFINEDPROSA](proof-reuse/systems.md#sys-refinedprosa-a-response-time-bound-joined-to-the-c-scheduler-that-earns-it) | **M4.4** | Nothing. M4.4's acceptance predicate is three questions read off one corpus run and it expressly declines the duration question, and R-11-006 selects an interval-arithmetic check over a table-only executive rather than a response-time analysis, so the transferable part, the trace-to-schedule join, meets no clause M4.4 owes. The range does not move. |
+| [SYS-LILO](proof-reuse/systems.md#sys-lilo-fair-refinement-for-liveness-and-not-an-iris-instance) | none · taken | [The literature disposition](../implementation/static-memory-literature.md) records its service boundary as adapted into the landed bounded resource contracts; the mechanization's own terms are unread besides. |
+| [SYS-PARCAS](proof-reuse/systems.md#sys-parcas-work-and-span-credits-for-fork-join-cost) | none · unaimed | The record's own head states there is no local consumer for its parallelism model: the platform admits no fork-join parallelism, and R-11-006's interval check decides admission over measured per-slot bounds rather than over a logic's credits. |
+| [SYS-IRISFIT](proof-reuse/systems.md#sys-irisfit-heap-space-bounds-and-the-distinction-that-survives-the-collector) | none · taken | The distinction that transfers, logically dead storage against storage the platform may rebind, is already in the landed resource reports; the collector is the part that does not transfer and this platform acquires none. |
+| [SYS-MEMMGR](proof-reuse/systems.md#sys-memmgr-a-resource-aware-allocator-specification-under-reciprocal-terms) | none · taken | The record states that the bounded resource interface adopts its resource-aware specification discipline using checked fixed backing; under the standing policy against reciprocal tracked source the LGPL development stays a specification reference and not an import. |
+| [SYS-STARMALLOC](proof-reuse/systems.md#sys-starmalloc-a-hardened-allocator-whose-assumptions-this-target-does-not-have) | none · unaimed | R-04-003 removes the guard-page mechanism and leaves the other three standing, and the record states that none of them answers a local obligation. |
+| [SYS-IRON](proof-reuse/systems.md#sys-iron-precise-resource-accounting-with-an-unread-licence) | none · unread | The record's own head is that the licence is unread so no reuse may be proposed, neither the upstream repository nor the ACM artifact having answered this lane. |
+| [SYS-RCU](proof-reuse/systems.md#sys-rcu-epoch-based-reclamation-under-relaxed-memory) | none · refused | Every algorithm in the development rests on compare-and-swap and retry, which R-15-026 deletes from the decode surface, R-15-242 excludes by name and R-15-030 forbids inside any WCET bound; Peterson's mutex is refused on its spin loop alone. |
+| [SYS-HAZPTR](proof-reuse/systems.md#sys-hazptr-hazard-pointer-validation-by-immutability) | none · refused | The record states that SYS-RCU's exclusion grounds apply identically, and the retire-list discipline it validates is the reuse question R-08-046 answers statically instead. |
+| [SYS-LEAF](proof-reuse/systems.md#sys-leaf-temporary-sharing-without-surrendering-ownership) | none · taken | Named temporary holders and the recovery of exclusive reuse are already in the landed bounded contract API; paper and current tree are different editions besides, which any later adaptation chooses between deliberately. |
+| [SYS-NEXTGEN](proof-reuse/systems.md#sys-nextgen-frame-clearing-ghost-updates-from-a-tree-that-grants-nothing) | none · unread | The mechanization repository grants no rights at all, so nothing may be copied or adapted from it until its authors supply a grant. |
+| [SYS-MIXTRIS](proof-reuse/systems.md#sys-mixtris-mixed-choice-multiparty-session-reasoning) | none · unread | No licence file inside the frozen deposit is read, and R-05-018b's qualification rule governs a session logic here exactly as the register already applies it to Actris. |
+
+## Languages and compilers
+
+| Source the sweep added | Consumer | What it would remove, or the ground |
+| --- | --- | --- |
+| [RustCompCert](proof-reuse/languages.md#rustcompcert-a-rust-front-end-over-compcerto-on-compcerts-terms) | none · uncelled | It is a comparator for R-18-015's front-end-over-MIR shape, and R-18-014's certifying Rust compiler, which that shape belongs to, is net-new and [carries no cell](unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total); its terms are non-commercial besides. |
+| [Cogent and Dargent](proof-reuse/languages.md#cogent-and-dargent-certified-refinement-through-a-declared-data-layout) | **U-10** | Nothing. It is the closest published layout-refinement result to R-05-083's obligation, which is U-10's subject, but the prover is Isabelle/HOL, so the method transfers and the proof terms do not: U-10 still owns the declaration, the generator and the generated check in full. The range does not move. |
+| [Lean-MLIR](proof-reuse/languages.md#lean-mlir-peephole-rewriting-proved-once-per-rewrite) | none · uncelled | M1.6 is landed, and the lowering work its rewriting discipline would inform belongs to R-18-014's second compiler, which carries no cell. |
+| [Peregrine](proof-reuse/languages.md#peregrine-a-middle-end-whose-new-legs-are-the-unverified-ones) | **M6.2b-i** | Nothing. The verified parts it composes are MetaRocq's erasure frontend and backend, which M6.2b already names as the source this qualification reads, and what Peregrine adds is unverified, its own Rocq source extracted by Rocq's legacy unverified extraction. An existing start-from receives no second discount. The range does not move. |
+| [VerusBelt](proof-reuse/languages.md#verusbelt-a-semantic-foundation-for-a-subset-of-verus-not-for-verus) | none · uncelled | R-18-018's fourth sub-deliverable names VerusBelt in the register itself, so this is a held start-from the record qualifies rather than a newly available one; and the manual-proof path it grounds, R-05-081's obligation over the HAL's `unsafe`, is booked outside the priced total beside the certifying Rust compiler that carries no cell. |
+| [RustHornBelt](proof-reuse/languages.md#rusthornbelt-prophecy-specifications-for-safe-apis-over-unsafe-code) | none · uncelled | The same path. R-05-119 and R-05-121 are named by no open cell and no slice, and the record states that no local obligation is closed by it. |
+| [Tree Borrows](proof-reuse/languages.md#tree-borrows-an-aliasing-model-that-lives-inside-simuliris) | none · uncelled | R-18-015's safe-MIR lowering is the obligation, and it carries no cell for the reason recorded at RustCompCert. |
+| [Thrust](proof-reuse/languages.md#thrust-prophecy-based-refinement-typing-with-no-mechanized-metatheory) | none · unaimed | Nothing in it is machine-checked, and the record states that it supplies nothing the Rocq gate can consume. |
+| [Quiver](proof-reuse/languages.md#quiver-abductive-specification-inference-with-a-foundational-output) | none · uncelled | Its companion obligation is R-18-026's filesystem refinement, whose full Iris proofs the proof map books outside the priced total; its repository licence is unread besides. |
+| [Diaframe](proof-reuse/languages.md#diaframe-proof-automation-whose-output-is-still-a-kernel-checked-term) | **Q19c** | Nothing. Q19c already names Diaframe as automation to be used only over the admitted logic's rules, and what the record adds is that the live repository's terms are unread where the BSD-3-Clause on record is the frozen 2022 deposit's field. The qualification narrows what Q19c may reach for and removes no clause. The range does not move. |
+| [Affect](proof-reuse/languages.md#affect-an-affine-type-and-effect-system-over-one-shot-continuations) | none · unaimed | A reference for the resource discipline a one-shot resumption needs; the record names no local statement artifact carrying that obligation. |
+| [Blaze](proof-reuse/languages.md#blaze-a-relational-separation-logic-for-effect-handlers) | none · unaimed | The relational shape is the one a refinement obligation needs, and the record names no local consumer; its LGPL-3.0 text is read before any file is copied. |
+| [Iris-WasmFX](proof-reuse/languages.md#iris-wasmfx-one-paper-two-artifacts-a-proposal-underneath) | none · unaimed | The record states outright that this inventory identifies no local statement artifact carrying a stack-switching or typed-continuation obligation. |
+| [Program Logics a la Carte](proof-reuse/languages.md#program-logics-à-la-carte-adequacy-proved-once-effects-added-as-fragments) | none · unaimed | It speaks to R-05-020's non-duplication condition, which is a condition on admission rather than an obligation any cell owns. |
+| [Interaction Trees](proof-reuse/languages.md#interaction-trees-infrastructure-whose-axioms-travel-with-it) | none · refused | Its three assumptions are in none of R-06-011's admission axioms, R-06-014's bootstrap root or R-18-031's *Ax* ledger, so a development over it owes an amendment decided at the review gate, and declaring them inside the development to pass is itself a finding against R-05-150. |
+| [Corten](proof-reuse/languages.md#leads-that-do-not-supply-the-requested-closed-proof) | none · unread | The preprint names no repository, deposit or code URL, so there is no artifact to pin and no licence to read. |
+| [Alive2](proof-reuse/languages.md#leads-that-do-not-supply-the-requested-closed-proof) | none · refused | It emits no re-checkable proof object, so it cannot be the existing checker that decides a producer's output under R-05-066, and R-18-019 places it as a bug-finding oracle beside the certifier and never as a second one. |
+
+## The sources the sweep re-read
+
+These records were present before the sweep, which amended them. A re-reading records terms, an edition or a publication of record; it qualifies a source this corpus already held, so none of them is newly available and none receives a second discount at any cell.
+
+| Source already held | What the sweep read into its record |
+| --- | --- |
+| [SYS-PROSA](proof-reuse/systems.md#sys-prosa-foundational-schedulability-analysis), [SYS-LAWYER](proof-reuse/systems.md#sys-lawyer-mechanized-obligation-based-termination) and [SYS-WAITFREE](proof-reuse/systems.md#sys-waitfree-higher-order-wait-freedom-with-an-evaluated-rocq-artifact) | Publications of record with their page ranges, the archived deposits and their stated terms. |
+| [RefinedRust](proof-reuse/languages.md#refinedrust-sound-refinement-typing-over-radium) | Its use, limits and licence paragraphs, against the Radium assurance route R-18-015 and R-18-018 name. |
+| [Fiat-Crypto](proof-reuse/crypto.md) | The emission reading and the licence election behind the existing repository choice. |
+| [EverParse](proof-reuse/parsers.md) | The front-end scope of the qualification. |
+| [Sail and HW-06](proof-reuse/hardware.md) | Sail's own terms and trust boundary, and HW-06's publication of record. |
+| [SMTCoq](proof-reuse/foundations.md#discovery-collections-and-search-limits) | Its supported solver list at the default branch and its CeCILL-C terms; Q27a distinguishes its reflective route from the extracted checkers and Q27c records the terms against Q3b. |
+
+## What no consumer claims, and the act that owes it
+
+Every `uncelled` row above points at one of four obligations, and they sit together in [the proof map's mandatory work](unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total): the HAL's implementation in certifying Rust with the manual-proof escape hatch, R-18-014's certifying Rust compiler, the full Iris refinement proofs for the kernel and the storage stack, and the bug-finding oracle class R-18-019 fixes beside the certifier. Each is owed by the register and reached by no slice, and this record adds nothing to that list. What it does add is that the sweep's strongest language sources point there: a source aimed at an obligation no cell prices is a reading, and pricing one because a source now exists for it would be the survey opening a cell, which the plan refuses.
+
+## What this record does not decide
+
+It does not decide that a named consumer should take its source. A cell states what it reuses in its own reuse note; what is settled here is which source resolves to which consumer, and on what ground a source resolves to none.
+
+It does not price anything, propose a range, or move one. Two of the three sources that resolve to an open cell are start-froms that cell or the register already named, and the third transfers a method and not a proof term, so no row carries a removal a re-price could read.
+
+It does not fix a `none` row forever. A register act or a new cell can give an uncelled obligation an owner, an unread licence can be read at the milestone that would incorporate it, and a refused import stays refused only while the entry that refuses it stands. A row changes when its ground does, and not before.
+
+It performs no licence reading of its own and pins, builds or vendors nothing. The terms it repeats are the subject records', read at their files on the dates those records carry.
