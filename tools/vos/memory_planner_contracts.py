@@ -15,6 +15,7 @@ branches and target enforcement of events remain separate obligations.
 import copy
 import hashlib
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from itertools import combinations, product
 from typing import Any
@@ -52,6 +53,20 @@ class Limits:
     max_depth: int = 64
     max_objects: int = 1024
     max_pair_checks: int = 1000000
+    max_expansion_work: int = 1000000
+
+
+@dataclass
+class _ExpansionBudget:
+    """Charge projected path and annotation copies before allocating them."""
+
+    limit: int
+    used: int = 0
+
+    def charge(self, work: int) -> None:
+        if work > self.limit - self.used:
+            raise UnsupportedContractError("control expansion exceeds max_expansion_work budget")
+        self.used += work
 
 
 @dataclass(frozen=True)
@@ -117,7 +132,41 @@ def _pair(a: str, b: str) -> tuple[str, str]:
     return (a, b) if a <= b else (b, a)
 
 
-def _guard(paths: list[Path], limits: Limits) -> list[Path]:
+def _snapshot(raw: object, limits: Limits, budget: _ExpansionBudget) -> dict[str, Any]:
+    """Bound JSON traversal before the recursive snapshot copy can allocate it.
+
+    Iterator frames keep traversal storage proportional to nesting, not the input
+    width. Visiting a container charges its width before descending. The physical
+    nesting bound also protects deepcopy, independently of the IR nesting limit.
+    """
+    nesting_limit = min(4 * limits.max_depth + 16, 256)
+    stack: list[tuple[Iterator[object], int]] = [(iter((raw,)), 0)]
+    while stack:
+        iterator, depth = stack[-1]
+        try:
+            value = next(iterator)
+        except StopIteration:
+            stack.pop()
+            continue
+        budget.charge(1)
+        if depth > nesting_limit:
+            raise UnsupportedContractError("contract JSON nesting exceeds bounded snapshot depth")
+        if type(value) is dict:
+            budget.charge(len(value))
+            stack.append((iter(value.values()), depth + 1))
+        elif type(value) is list:
+            budget.charge(len(value))
+            stack.append((iter(value), depth + 1))
+        elif type(value) not in (str, int, float, bool, type(None)):
+            raise ContractError("contract must contain only JSON values")
+    try:
+        return copy.deepcopy(_object(raw, "contract"))
+    except RecursionError as exc:
+        raise UnsupportedContractError("contract exceeds snapshot recursion capacity") from exc
+
+
+def _guard(paths: list[Path], limits: Limits, budget: _ExpansionBudget) -> list[Path]:
+    budget.charge(len(paths))
     if len(paths) > limits.max_paths:
         raise UnsupportedContractError("branch expansion exceeds max_paths budget; no partial graph emitted")
     if sum(len(path.events) for path in paths) > limits.max_events:
@@ -125,20 +174,32 @@ def _guard(paths: list[Path], limits: Limits) -> list[Path]:
     return paths
 
 
-def _join(left: list[Path], right: list[Path], limits: Limits) -> list[Path]:
+def _join(left: list[Path], right: list[Path], limits: Limits,
+          budget: _ExpansionBudget) -> list[Path]:
     count = len(left) * len(right)
     events = sum(len(p.events) for p in left) * len(right)
     events += sum(len(p.events) for p in right) * len(left)
     if count > limits.max_paths or events > limits.max_events:
         raise UnsupportedContractError("control-flow product exceeds extraction budget")
+    labels = sum(len(p.labels) for p in left) * len(right)
+    labels += sum(len(p.labels) for p in right) * len(left)
+    budget.charge(count + events + labels)
     return [Path(a.events + b.events, a.labels + b.labels) for a, b in product(left, right)]
 
 
-def _expand(nodes: object, limits: Limits, depth: int = 0) -> list[Path]:
+def _annotate(paths: list[Path], label: str, budget: _ExpansionBudget) -> list[Path]:
+    budget.charge(sum(len(p.labels) + 2 for p in paths))
+    return [Path(p.events, (label, *p.labels)) for p in paths]
+
+
+def _expand(nodes: object, limits: Limits, budget: _ExpansionBudget,
+            depth: int = 0) -> list[Path]:
     if depth > limits.max_depth:
         raise UnsupportedContractError("control-flow nesting exceeds max_depth")
+    budget.charge(1)
     paths = [Path()]
     for raw in _list(nodes, "body"):
+        budget.charge(1)
         node = _object(raw, "instruction")
         op = _name(node.get("op"), "instruction.op")
         variants: list[Path] = []
@@ -152,9 +213,9 @@ def _expand(nodes: object, limits: Limits, depth: int = 0) -> list[Path]:
                 if label in labels:
                     raise ContractError(f"duplicate branch label: {label}")
                 labels.add(label)
-                variants.extend(Path(p.events, (label, *p.labels))
-                                for p in _expand(branch["body"], limits, depth + 1))
-                _guard(variants, limits)
+                expanded = _expand(branch["body"], limits, budget, depth + 1)
+                variants.extend(_annotate(expanded, label, budget))
+                _guard(variants, limits, budget)
             if not variants:
                 raise ContractError("choice requires at least one branch")
         elif op == "repeat":
@@ -164,15 +225,15 @@ def _expand(nodes: object, limits: Limits, depth: int = 0) -> list[Path]:
                 raise ContractError("repeat.min exceeds repeat.max")
             if high > limits.max_events or high - low + 1 > limits.max_paths:
                 raise UnsupportedContractError("repeat exceeds extraction budget")
-            one = _expand(node["body"], limits, depth + 1)
+            one = _expand(node["body"], limits, budget, depth + 1)
             repeated = [Path()]
             for count in range(high + 1):
+                budget.charge(1)
                 if count >= low:
-                    variants.extend(Path(p.events, (f"repeat={count}", *p.labels))
-                                    for p in repeated)
-                    _guard(variants, limits)
+                    variants.extend(_annotate(repeated, f"repeat={count}", budget))
+                    _guard(variants, limits, budget)
                 if count < high:
-                    repeated = _join(repeated, one, limits)
+                    repeated = _join(repeated, one, limits, budget)
         else:
             if op in SIMPLE:
                 _fields(node, {"op", "object"}, set(), op)
@@ -188,8 +249,8 @@ def _expand(nodes: object, limits: Limits, depth: int = 0) -> list[Path]:
             else:
                 raise UnsupportedContractError(f"unsupported operation: {op}")
             variants = [Path((copy.deepcopy(node),))]
-        paths = _join(paths, variants, limits)
-    return _guard(paths, limits)
+        paths = _join(paths, variants, limits, budget)
+    return _guard(paths, limits, budget)
 
 
 def _step(event: dict[str, Any], live: dict[str, Lease], tokens: dict[str, str],
@@ -308,7 +369,8 @@ def _declarations(contract: dict[str, Any], limits: Limits) -> tuple[list[dict[s
 
 def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 100000,
                      max_depth: int = 64, max_objects: int = 1024,
-                     max_pair_checks: int = 1000000) -> dict[str, Any]:
+                     max_pair_checks: int = 1000000,
+                     max_expansion_work: int = 1000000) -> dict[str, Any]:
     """Return a portable instance and content-bound, conditional extraction evidence.
 
     Inputs have schema/name/pools/objects/outcomes/body and optional slots/assumptions.
@@ -316,11 +378,15 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
     every iteration count from min through max, including each body's alternatives.
     Every finished path must be drained and the declared outcome set must match it.
     Slot requests are independent: every used object in distinct slots conflicts.
+    max_expansion_work separately bounds input traversal, structural visits and
+    projected copies of paths, events and labels, including nested empty loops.
     """
-    limits = Limits(max_paths, max_events, max_depth, max_objects, max_pair_checks)
+    limits = Limits(max_paths, max_events, max_depth, max_objects, max_pair_checks,
+                    max_expansion_work)
     for key, value in vars(limits).items():
         _nat(value, key, 1)
-    contract = copy.deepcopy(_object(raw, "contract"))
+    expansion_budget = _ExpansionBudget(limits.max_expansion_work)
+    contract = _snapshot(raw, limits, expansion_budget)
     _fields(contract, {"schema", "name", "pools", "objects", "outcomes", "body"},
             {"slots", "assumptions"}, "contract")
     if contract["schema"] != SCHEMA:
@@ -333,7 +399,7 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
                    for a in _list(contract.get("assumptions", []), "assumptions")]
     pools, objects, slots = _declarations(contract, limits)
     names = {obj["id"] for obj in objects}
-    paths = _expand(contract["body"], limits)
+    paths = _expand(contract["body"], limits, expansion_budget)
     conflicts: set[tuple[str, str]] = set()
     witnesses: dict[tuple[str, str], dict[str, Any]] = {}
     path_records: list[dict[str, Any]] = []
@@ -389,6 +455,7 @@ def extract_contract(raw: object, *, max_paths: int = 4096, max_events: int = 10
         "scope": "all expanded contract paths; source and target refinement remain assumptions",
         "slots": slots, "paths": path_records, "expanded_paths": len(paths),
         "interpreted_events": event_count, "checked_barriers": barriers,
+        "expansion_work": expansion_budget.used,
         "conflict_count": len(expanded), "pair_checks": pair_checks,
         "local_conflict_witnesses": [witnesses[p] for p in sorted(witnesses)],
         "assumptions": instance["assumptions"], "limits": vars(limits),
