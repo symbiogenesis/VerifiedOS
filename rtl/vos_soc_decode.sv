@@ -12,17 +12,11 @@
 //   4. and, where the access is inside an IO region that permits it and no aperture
 //      claims it, it says so and stops.
 //
-// **The fourth is not decided here because no artifact in this repository decides
-// it.** In the golden model an IO address no device claims falls through to the RAM
-// path with `pmaCheck` already run ahead of it (model/model/sys/mem.sail), which is
-// a fact about a composition whose doors have not arrived rather than an
-// architectural statement: no register
-// entry says what an unclaimed address inside a device region does, and the
-// alternatives, a decode error and a silent read of zero, are observably different
-// at the commit trace the co-simulation gate diffs. So both arms are exhibited and
-// the top above chooses; a default written into this module would fix that choice by
-// implication, which is the defect the split between the map and the top exists to
-// avoid.
+// The policy is owned by docs/hardware/platform-device-contracts.md and applied
+// by vos_device_route: ordinary DTB reads in the composed lower ROM interval are
+// routed to ROM; all other unclaimed IO is refused. This decoder reports the case
+// without embedding that routing policy. The Sail fallback and the core-facing
+// top still need the corresponding refinement before SoC agreement is claimed.
 //
 // **Nothing here is a device.** No register, no transmit path and no descriptor ring:
 // an aperture index is the whole of what this hands upward, and what sits behind one

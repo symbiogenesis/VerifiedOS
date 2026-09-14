@@ -108,6 +108,12 @@ caught by nothing, which is a residue the findings register carries.
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
 | `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 
+`rtl widthcheck` checks frozen transport widths and every store-rotation bit/lane.
+`rtl device-regs` emits register constants from their pinned owner; `rtl devicescheck`
+checks owner-byte agreement and the standalone UART, block and route simulation.
+These guest checks require their declared upstreams; default host fixtures do not
+fetch them.
+
 Each command is one module of [vos/cli/](vos/cli/), which is what those executables
 became: each keeps its docstring, its argparse and its `main(argv)`, less its own
 preamble and its own `__main__` block. [vos/cli/\_\_init\_\_.py](vos/cli/__init__.py)

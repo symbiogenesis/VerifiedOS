@@ -275,6 +275,19 @@ Solderpad v0.51 permits use, modification, sublicensing, and distribution, subje
 
 The reviewed RTL licenses contain no reciprocal, field-of-use, or source-disclosure requirement. No CERN Open Hardware license variant is part of this plan.
 
+The R1b scalar-width build staging consumes the selected `36a1dc5c` sources under
+the same Apache-2.0 election. The guarded transform registry retains each original
+notice and adds a modification notice to the native staged derivative. Source
+identity, match counts, output identity and staged diffs are recorded; no imported
+module body is copied into tracked `rtl/`.
+
+For R1c-ii's authored UART character wrapper, the `b5973217` Mocha pin's
+`hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv` and `data/uart.hjson` were read
+with `LICENSES/Apache-2.0.txt` on 2026-09-14. Those interface sources identify
+Apache-2.0. The wrapper's generated constants use that declared register layout;
+no UART implementation body is imported. This interface use neither qualifies
+the complete OpenTitan UART nor changes the existing primitive dependency route.
+
 ### The bring-up Wasm interpreter
 
 [The porting guide's Servo entry](docs/implementation/userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) names a pure-Rust interpreter standing in as the unverified bring-up interim ahead of the R-14-013a platform engine. Nothing is vendored, fetched, gitlinked or installed for it; [the requirements register's §18](docs/requirements-register.md#18-realization) places the whole browser program past the first release, so this is a reading taken at the pin rather than an incorporation.

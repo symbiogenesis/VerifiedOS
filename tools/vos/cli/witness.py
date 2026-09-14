@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps({**asdict(result), "source": source, "source_sha256": digest,
                           "scope": "bounded enumeration with ideal authentication and storage; "
-                          "policy theorem and production validator remain open"}, sort_keys=True))
+                          "production validator remains open; reference-model theorem: proofs/WitnessContinuity.v"}, sort_keys=True))
     else:
         verdict = "FAIL" if result.disagreements else "ok"
         print(f"{verdict} flat-policy honest intersection: N=1..{result.max_n}, "
@@ -31,6 +31,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FAIL {disagreement}")
         print(f"model: {source} sha256 {digest}")
         print("scope: bounded enumeration; authentication and durable continuity are "
-              "ideal assumptions; policy theorem and production validator remain open")
+              "ideal assumptions; production validator remains open; reference-model theorem: proofs/WitnessContinuity.v")
         print("state/transition qualification: run.py test --only witness")
     return 1 if result.disagreements else 0

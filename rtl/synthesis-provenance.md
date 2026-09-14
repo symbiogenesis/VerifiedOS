@@ -70,6 +70,14 @@ These are not absence-contract rows. An RTL implementing any of them fails ordin
 
 ## 4a. The tag fabric's route, recorded so it is not derived twice
 
+The curated scalar build also applies [the guarded width transformations](../docs/hardware/scalar-width-transform-contract.md)
+to exact pinned inputs in its native build directory. The registry checks source
+and output identities and replacement counts, retains notices and emits diffs.
+This staging is distinct from the module-substitution/absence mechanism above.
+The frozen transport/store probe and standalone package checks pass; complete
+curated-core elaboration still fails at the remaining permission, root, sentry
+and exception interfaces. No whole-core absence or correspondence receipt follows.
+
 **The capability- and tag-carrying interconnect is curated here as a functional reference and authored under route (a) afterwards**, and that disposition is written down because both readings are otherwise equally available from the artifacts. R-15-092 requires the net-new blocks authored in a formal-semantics HDL and proven, and names the DMA fabric among them; the pinned `axi-cheri-tagcontroller` is described in [THIRD-PARTY.md](../THIRD-PARTY.md) as the functional reference for exactly that block. Whether elaborating the pinned tree is the act R-15-092 forbids is a question neither artifact answers.
 
 It is not. The three-route ladder permits a functional reference before the authored closing block, and R-15-092's *authored* describes the artifact of record. The plan's §11 places route (a) after the co-simulation gate. R1/R2 still owe the curated fabric's local elaboration and differential campaign; choosing its reference does not establish that those checks have passed.
@@ -79,6 +87,14 @@ It is not. The three-route ladder permits a functional reference before the auth
 **What that means for an auditor reading this record.** The fabric carries no row in §2: those rows bind an absence to the parameters that remove it, while this section selects a reference for a structure the curated build must contain. No local FEV, Kôika/Kami refinement or completed whole-fabric differential receipt covers this block. R2's capability-widened commit-trace comparison must establish agreement with the golden model before that evidence can be claimed; it will remain distinct from refinement.
 
 ## 4b. The platform devices' route, and what the reference carries that this design does not
+
+[The platform device contracts](../docs/hardware/platform-device-contracts.md)
+now select the DTB/error routing policy and define authored standalone UART and
+logical block wrappers. Their simulation evidence covers bounded character IO,
+PIO progress/reset/tear behavior and routing. It supplies no core-facing SoC top,
+physical UART timing, durable host-image backend, NAND controller or complete
+fabric differential/refinement result. The Sail fallback still needs alignment
+to the selected routing policy before a whole-SoC comparison.
 
 **The boot ROM and serial-port sources in `lowRISC/mocha` are route-(c) references for R1c-ii's device work.** That pin supplies no block device, as the source inventory below records. Local wrappers, their contracts and SoC integration remain the implementation work; no completed whole-device/SoC differential receipt, FEV or Kôika/Kami refinement follows from this route disposition. R2/R3 must supply their own corpus and image evidence, which remains distinct from RTL ⊑ Sail proof.
 

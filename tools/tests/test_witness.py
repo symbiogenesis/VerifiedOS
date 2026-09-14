@@ -259,7 +259,9 @@ def _cli_reports_bounded_scope() -> None:
     output = StringIO()
     with redirect_stdout(output):
         status = cli.main(["qualify", "--max-n", "1"])
-    ensure(status == 0 and "theorem and production validator remain open" in output.getvalue(),
+    ensure(status == 0 and "bounded enumeration" in output.getvalue()
+           and "production validator remains open" in output.getvalue()
+           and "reference-model theorem: proofs/WitnessContinuity.v" in output.getvalue(),
            "CLI claimed more than its bounded model")
 
 

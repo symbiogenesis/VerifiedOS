@@ -13,9 +13,9 @@
 // window's device does at these addresses is not stated by the composition and is
 // not invented here. And it is not a permission decision: the three PMA bits per
 // region are the composition's own, and what an access to an address no aperture
-// claims should do is decided by no artifact in this repository and by nothing in
-// this file (see vos_soc_decode.sv, which reports that case rather than resolving
-// it).
+// claims should do is owned by docs/hardware/platform-device-contracts.md and
+// applied by vos_device_route. This package supplies geometry; vos_soc_decode
+// reports the unclaimed case without embedding the route policy.
 
 package vos_soc_map_pkg;
 

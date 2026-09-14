@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 691 of them across 123 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 695 of them across 124 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -714,7 +714,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-346** measurement: independently safe witness policies can grow conflicting histories after signing a shared prefix
 · Raised: Q22b
-· Disposition: closed at qualification by requiring bound terminal-quorum continuity or explicitly authenticated rebootstrap under a fresh trust scope. M5.5's formal theorem and M6.2c's production validator remain separate open work.
+· Disposition: closed at qualification by requiring bound terminal-quorum continuity or explicitly authenticated rebootstrap under a fresh trust scope. M5.5 supplies the reference-model theorem; M6.2c's production validator remains separate open work.
 
 **F-347** owed-act: a caller-provided public TLS exporter can bind a valid measurement quote to another endpoint's connection
 · Raised: Q22c
@@ -1609,7 +1609,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-133** owed-act: the plan's ordered act and the contract's read as two different orders, one being the recipe's and the other the decisions'
 · Raised: M1.8a
-· Disposition: open, what would settle it being a word in the plan saying which its list is; the instrument runs both and prints both
+· Disposition: closed at M1.8b's contract amendment, the contract's §1 stating that its Order column is what a report's order is checked against and that §0's first two clauses name recipe acts rather than decisions, on which reading the two texts agree
 
 **F-134** measurement: the encoded image cannot be decoded per site before the geometry decision is taken, so the analyzer's third input arrives on two paths
 · Raised: M1.8a
@@ -1629,7 +1629,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-138** owed-act: one decision states no default arm and gives no ground for having none, where its neighbour in the same position states both
 · Raised: M1.8a
-· Disposition: open, owed to the contract; the instrument carries the absence with that ground rather than inventing a default
+· Disposition: closed at M1.8b's contract amendment, FD-2 stating that it has no default arm and the ground for having none: three geometries of one format leave nothing to carry or drop, and the reference instantiation is the item's provisional value under R-15-014a rather than a fallback the second act could take
 
 **F-139** method: a membership held in both directions is not a relation held in both directions, a relation walked from one side reaching only what that side names
 · Raised: M1.8a
@@ -1645,7 +1645,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-142** owed-act: the contract says its gate makes an omission a rejection and no predicate of that gate does, the rule in question being the one it calls its most consequential
 · Raised: M1.8a
-· Disposition: open, the missing predicate being the contract's to add rather than the instrument's to invent; the record carries the rule per variant meanwhile
+· Disposition: closed at M1.8b's contract amendment, §9 carrying G-13 over the per-variant re-selection the record already held, and the instrument carrying the predicate with a seeded defect of its own
 
 **F-142a** owed-act: no entry closes the enumeration of region kinds a composition may place, two lists naming twenty and a third entry a twenty-first while the charge's tenth term is answered by criterion rather than by name
 · Raised: M1.9
@@ -2858,3 +2858,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-352** method: a statement-only marker concealed U-19's proof obligation and an unqualified direct logic route could bypass the register's mandatory Katamaran route
 · Raised: Q22g
 · Disposition: closed at review, U-19 carries both statement and proof scope; U-22 requires a register amendment before an alternative replaces the required route
+
+**F-385** owed-act: the hardening opening's signature instrumentation and final-binary detection obligations have no implementing checklist cell
+· Raised: Post-M10, in prose
+· Disposition: open, allocate the emitter and binary-validation work and its estimate before implementation; U-19's construction model supplies neither
+
+**F-386** owed-act: the hardening opening has no admitted authoring route or priced construction cell for the dedicated crypto circuit and ineffective-fault countermeasure
+· Raised: Post-M10, in prose
+· Disposition: open, take the crypto-route register act and price circuit/countermeasure construction separately from the combined reduction
+
+**F-387** owed-act: the hardening opening's imported-core FEV campaigns have no per-core execution ownership and estimate
+· Raised: Post-M10, in prose
+· Disposition: open, allocate each campaign and its exact tool and evidence boundary; R2/R3 differential work does not price the deferred complete FEV campaign
+
+**F-388** owed-act: the hardening opening's leakage characterization protocol has no commissioned laboratory/provider or priced rehearsal and silicon campaigns
+· Raised: Post-M10, in prose
+· Disposition: open, assign and price the FPGA rehearsal and first-silicon campaign before commissioning, with separate scope, trace limits and stopping rules

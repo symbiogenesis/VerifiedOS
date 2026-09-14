@@ -48,6 +48,30 @@ The [static-memory literature adoption map](implementation/static-memory-literat
 connects allocation and reusable-capacity research to the pinned candidate and
 certificate integrations, finite resource contracts and remaining proof obligations.
 
+The recovered implementation interfaces are recorded in the
+[service authoring contracts](implementation/service-authoring-contracts.md),
+[object transactor contract](implementation/object-transactor-contract.md),
+[recovery policy input](implementation/storage-recovery-policy.md),
+[attested TLS protocol](implementation/attested-tls-protocol.md),
+[compatibility workflow](implementation/compatibility-contract.md),
+[entropy observer](implementation/entropy-observer-contract.md), and
+[store-buffer comparison](implementation/store-buffer-comparison.md).
+
+Hardware qualification preparation includes the
+[memory topology comparison](hardware/memory-topology-comparison.md),
+[remanence decision](hardware/remanence-threat-decision.md),
+[macro protocol](hardware/macro-qualification-protocol.md),
+[sensitive-state lifetime protocol](hardware/sensitive-state-lifetime-protocol.md),
+[scalar staging contract](hardware/scalar-width-transform-contract.md),
+[platform device contracts](hardware/platform-device-contracts.md), and
+[module admission candidate](hardware/immutable-module-admission.md).
+The [security policy candidate](assurance/security-policy-model.md) and
+[opening hardening obligations](assurance/hardening-opening-obligations.md)
+state their remaining implementation and proof premises. The
+[ternary static demand](performance/ternary-static-demand.md) and
+[prompt-processing term](performance/prompt-processing-term.md) keep measured
+bytes distinct from the target rate still owed.
+
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
 

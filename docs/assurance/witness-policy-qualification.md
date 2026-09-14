@@ -6,10 +6,11 @@ qualified interface and bounded executable model for
 [supply-chain statement](../spec.md#r-13-023a) separates witnessed public commitment
 from source correspondence, confinement and release selection. This document reads
 that distinction together with the register's inclusion, history and fail-closed
-requirements. It supplies no production witness service, cryptographic verifier or
-machine-checked policy theorem. CJ-WITNESS remains open at the formal model and
-theorem boundary assigned to M5.5; M6.2c owns the local evidence validator, and M5.4
-consumes its decision in the update transactor.
+requirements. It supplies no production witness service or cryptographic verifier.
+[WitnessContinuity.v](../../proofs/WitnessContinuity.v) supplies the Gallina
+reference model and general safety theorem under explicit authentication, fault
+and durable-continuity assumptions. M6.2c owns the local evidence validator and
+M5.4 consumes its decision in the update transactor.
 
 ## Fixed policy and threat model
 
@@ -99,7 +100,7 @@ old-epoch signature, another destination, or another terminal checkpoint. Recove
 preserves this closure. Every old accepted quorum intersects this terminal quorum
 at an honest identity, so an accepted old history is compatible with the anchor
 and the remaining old signers cannot form a conflicting accepted quorum under the
-stated fault bound. This is the argument to formalize, not a completed theorem.
+stated fault bound. WitnessContinuity.v proves the reference argument for arbitrary finite histories and schedules, including recovery closure and uniqueness of the complete terminal destination.
 
 The new quorum accepts the exact anchor under the complete destination policy.
 Its later accepted quorums intersect that acceptance at an honest new witness.
@@ -180,13 +181,12 @@ The selective-delivery residual therefore remains with
 [R-13-023a](../spec.md#r-13-023a), including unavailable source or
 audit material and the absent release-selection/monitor construction.
 
-M5.5 owns the reviewed Gallina policy/history model, general honest-intersection
-and compatible-history theorems, crash/recovery and terminal-transition invariants,
-explicit authentication/persistence/fault assumptions, constructive accepted and
-rejected examples, and the repository's assumption and non-vacuity gates. M6.2c
-owns the bounded local evidence validator and its refinement, followed by M5.4's
-update-transactor join. Those priced checklist items exclude production operation
-of external witnesses and creation of missing cryptographic or parser foundations;
-a missing prerequisite is priced before incorporation. Bounded qualification
-closes neither child and establishes no claim that a deployment satisfies the
-external witness assumptions.
+[WitnessContinuity.v](../../proofs/WitnessContinuity.v) supplies the M5.5 policy/history
+model, general honest-intersection and compatible-history theorems, crash/recovery
+and terminal-transition invariants, and constructive accepted and refused cases.
+Its examples jointly inhabit the complete within-epoch and cross-epoch premises.
+M6.2c owns the bounded local evidence validator and refinement, followed by M5.4's
+transaction join. Production witness operation and missing crypto/parser foundations
+remain outside those items; U-20 owns protocol foundation qualification. Bounded
+qualification establishes neither the general theorem nor the adequacy of its
+external deployment assumptions.
