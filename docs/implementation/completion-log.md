@@ -1156,6 +1156,53 @@ under `out/fanout-q25-20260912/`. No executed language or guest evidence is clai
 Landed: Tier A. The full and independent reads accept the interfaces, counter
 protocol and qualification cases with their unmechanized obligations preserved.
 
+#### Q27c · Record which candidate's terms decide which consumer
+
+[THIRD-PARTY.md](../../THIRD-PARTY.md)'s candidates-whose-terms-decide-a-consumer
+table carries five rows, each naming the open cell its terms decide, the shape of
+the grant with the artifact that read it, and the file that consumer would open.
+SMTCoq's CeCILL-C reaches Q3b only to the extent Q3b takes the plugin rather than
+the style, no landed artifact depending on it: `run.py model smt` puts the
+transcribed suite to a solver directly and imports no witness. DeepSEA and the
+CertiSuSLik backends are the two candidates with no licence file of their own, so
+each owes a first reading rather than a re-reading, and the backends sit in three
+trees separate from the synthesizer's whose BSD-2-Clause is therefore not theirs.
+The CADE-26 line's Rocq checker is unread and names the archive that would be
+opened. No reading is performed in advance of its milestone, and no row of the
+tables above it moves.
+
+Three shapes are carried with their consumers: a copyleft term on a proof-surface
+dependency deciding that dependency's consumer, a non-commercial term foreclosing
+vendoring outright rather than pricing it, and an absent term not being a
+permissive one. The `GPL v2` reading of the older CompCert copy DeepSEA vendors
+is carried as the plan's Q27c cell's and not as a reading taken in this record.
+
+Authoring commit `ebcbdfd` passes the focused document checker without drift.
+Independent review at that commit accepts the five surviving rows, the three
+shapes and their citations, and finds the class split below. The repair at
+`c694468` removes it, binds each exclusion ground to its member, scopes the
+branch-tip characterization to the rows it holds of, and softens two sentences
+that claimed more than the cells keep. `python tools/check.py` is green at
+`c694468` with K-80, K-81 and K-82 unmoved, and `python tools/run.py coread`
+reports all pairs standing as they were.
+
+The measured intervals are 2026-09-14 06:32:31–06:39:47, 06:42:40–06:48:01,
+06:53:32–07:00:13 and 07:07:13–07:12:59 UTC for the survey, authoring, review and
+repair passes, 1505 seconds summed, rounded upward to 0.5 h on the agent-parallel
+clock. The five rows' readings stay owed at the milestones their consumers sit
+in, and nothing is incorporated, pinned, vendored or fetched by this item.
+
+  * Finding: the record gave CakePB and VeriPB a row deciding Q5b, splitting a
+    class its own sources hold together. The plan's Q27a bullet, the static-memory
+    research reading and the cited F07 all dispose of CakePB on its HOL4 prover
+    before any yield is weighed, which is the same ground the record's closing
+    paragraph uses to exclude the Lean checkers. Both names move to that paragraph
+    with the ground named. F-357.
+
+Landed: Tier A. The record states new claims about which upstream's terms reach
+which open cell, so it took a full attended read rather than a spot read of its
+findings.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models

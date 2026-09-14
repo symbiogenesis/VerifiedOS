@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 663 of them across 112 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 664 of them across 113 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -752,6 +752,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-356** measurement: cancellation of a registered but unstarted child must not return its frame before terminal-result collection
 · Raised: Q25c
 · Disposition: closed in design review; returned inputs enter the reserved cancelled-completion record, and the frame remains owned until terminal collection and its release gate.
+
+**F-357** method: a terms record gave a row to a candidate its own sources dispose of before terms are reached, splitting a class and contradicting the record's closing paragraph
+· Raised: Q27c
+· Disposition: closed at repair; CakePB and VeriPB move into the exclusion paragraph with the ground named, the plan's Q27a bullet and the cited foundations reading grouping CakePB with the Lean developments as failing R-05-020's first condition on its prover. Terms decide a consumer only for a candidate that reaches the terms.
 
 ## M0 · Hardware reference
 
