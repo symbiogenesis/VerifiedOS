@@ -85,6 +85,8 @@ One argument in this family clears the tightening ground and is refused on anoth
 
 R-08-012b also excludes sampled profiles, learned weights, and runtime feedback from placement. Research traces may evaluate a candidate but cannot silently become production placement inputs. R-08-018b separately permits a workload size histogram to inform the composition-fixed size-class set; that is a distinct input with a distinct purpose.
 
+The optional [portable LRAT experiment](../implementation/static-memory-certificates.md) invokes a separately licensed Isabelle-LLVM checker as evidence-producing machinery under R-05-011b and R-15-094. Its external verdict grounds no admitted placement, infeasibility or refinement claim and supplies no instance-specific Rocq term. It does not complete Q27a or its kernel-side encoding question; the production disposition above remains unchanged.
+
 Q5's present enumerator ranks span and then padding while holding lifetimes fixed. Joint scheduling is a proposed extension that changes the emitted artifact and its live load; it is not a capability of that base enumerator.
 
 TensorFlow Lite Micro is a useful engineering control: its documented arena distinguishes reusable head buffers, temporary storage, and persistent tail allocations. Measure all of them when reproducing its approach. A planned tensor head alone is not a whole operating system's memory budget. [TFLM memory-management documentation](https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/docs/memory_management.md)

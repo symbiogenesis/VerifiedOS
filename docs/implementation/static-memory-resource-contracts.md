@@ -42,7 +42,8 @@ allocator's fragmentation and refill questions within this admitted model.
 
 Each operation has a caller-supplied elapsed upper bound in a named unit. A
 lease's reuse bound sums operations from the start of its lexical release
-request through completion of its barrier, including the release operation itself. A bound for `complete` must include any waiting for
+request through completion of its barrier, including the release operation
+itself. A bound for `complete` must include any waiting for
 device completion; other bounds must likewise include scheduling, preemption and
 blocking. The analysis checks every path against `reuse_deadline`. An event count,
 fairness assumption or eventual-completion theorem alone supplies no such bound.
