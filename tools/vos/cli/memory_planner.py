@@ -102,12 +102,14 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.resource_budget is not None and args.action not in {"resources", "resource-proof"}:
         raise ValueError("--resource-budget is only supported by resources and resource-proof")
     if args.action in {"resources", "resource-proof"}:
-        if args.instance or args.baseline or args.candidate or args.contract or args.evidence:
+        if (args.instance or args.baseline or args.candidate or args.contract or args.evidence
+                or args.work_budget or args.certify):
             raise ValueError("resource actions take the complete contract through --resource-budget")
         raw = read_json(args.resource_budget, inputs) if args.resource_budget else resources.demo_resources()
-        result = resources.analyze_resources(raw, max_work=args.replay_budget)
-        if args.action == "resource-proof" and not result.get("errors"):
-            result["rocq_source"] = resources.emit_resource_certificate(raw)
+        report = resources.analyze_resources(raw, max_work=args.replay_budget)
+        result = {"resource_contract": report, "status": report["status"], "errors": report["errors"]}
+        if args.action == "resource-proof" and not report["errors"]:
+            result["rocq_source"] = resources.emit_resource_certificate(raw, max_work=args.replay_budget)
         return result
     if args.action == "contracts":
         raw = read_json(args.contract, inputs) if args.contract else contracts.demo_contract()

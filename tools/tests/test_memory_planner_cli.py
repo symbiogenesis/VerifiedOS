@@ -112,6 +112,8 @@ def resource_contract_cli() -> None:
         budget.write_text(json.dumps(raw), encoding="utf-8")
         code, report = invoke(["resources", "--resource-budget", str(budget)])
         ensure(code == 0 and not report.get("errors"), "prepaid backing accepts the resource demo")
+        ensure(not resources.replay_resources(raw, report["resource_contract"]),
+               "CLI metadata must preserve the independently replayable resource report")
         ensure(report["input_sha256"][str(budget)] == hashlib.sha256(budget.read_bytes()).hexdigest(),
                "resource evidence binds the complete contract, backing and event costs")
         code, proof = invoke(["resource-proof", "--resource-budget", str(budget)])
@@ -124,7 +126,7 @@ def resource_contract_cli() -> None:
         code, report = invoke(["resource-proof", "--resource-budget", str(budget)])
         ensure(code != 0 and "rocq_source" not in report, "refused resources emit no replay proof")
         for arguments in (["demo", "--resource-budget", str(budget)],
-                          ["resources", "--contract", str(budget)]):
+                          ["resources", "--contract", str(budget)], ["resources", "--certify"]):
             code, _ = invoke(arguments)
             ensure(code == 2, "resource input is never ignored by a different action")
 

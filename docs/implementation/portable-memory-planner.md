@@ -183,6 +183,10 @@ The [resource-aware contract layer](static-memory-resource-contracts.md) ties
 bounded credits and release obligations to independently checked fixed backing.
 Free-byte totals alone do not establish a suitably shaped allocation. Its finite
 proofs and executable evidence preserve the source and target refinement boundary.
+`resources` preserves the replayable report under `resource_contract`, alongside
+the command's input-file and source hashes. `resource-proof` additionally emits
+`rocq_source` for the finite credit and deadline facts; emitting that text does
+not certify it until Rocq checks it. `--replay-budget` bounds resource analysis.
 
 R-05-104 excludes ILP machinery from the required toolchain; R-05-105 restricts
 admitted verified analyses whose only yield is bound tightening. This optional
