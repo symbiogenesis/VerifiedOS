@@ -21,6 +21,7 @@ import json
 import re
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 
 LINE = re.compile(
     r"gguf_ex_read_1: tensor\[(\d+)\]: name = (\S+), size = (\d+), offset = (\d+), "
@@ -39,10 +40,10 @@ PREDICATE = (
 )
 
 
-def main(path: str, model_file: str) -> None:
+def summarize(lines: Iterable[str], model_file: str) -> dict[str, object]:
     tensors: list[dict[str, object]] = []
     dims: dict[str, tuple[int, ...]] = {}
-    for line in open(path, encoding="utf-8", errors="replace"):
+    for line in lines:
         s = line.strip()
         m = LINE.match(s)
         if m:
@@ -113,6 +114,12 @@ def main(path: str, model_file: str) -> None:
         "weight_bytes_read_per_token": per_token_excl_lookup + row_bytes,
         "predicate": PREDICATE,
     }
+    return result
+
+
+def main(path: str, model_file: str) -> None:
+    with open(path, encoding="utf-8", errors="replace") as source:
+        result = summarize(source, model_file)
     json.dump(result, sys.stdout, indent=1)
     print()
 

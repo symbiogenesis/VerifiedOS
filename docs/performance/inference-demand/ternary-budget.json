@@ -1,0 +1,63 @@
+{
+ "scope": "static demand; target timing and quality are not measured",
+ "observations_sha256": "5e8e6dac552ceec4cc0a491cb7b5a5ab29ba2b357bd04cbf168fa3307c708700",
+ "terms": {
+  "rate_tokens_per_second": 5,
+  "context_tokens": 8192,
+  "source_of_rate_and_context": "R-18-004a(vii)",
+  "m_class_grant_floor_bytes_per_second": 8000000000.0,
+  "aggregate_floor_bytes_per_second": 20000000000.0,
+  "second_class_payload_bytes_floor": 4000000000.0,
+  "tau_max": 0.2,
+  "usable_second_class_payload_bytes_floor": 3200000000.0,
+  "source_of_supply_floors": "R-18-004b",
+  "note": "every supply figure here is a bound on a quantity a composition declares and not a value: the two bandwidth figures are minima on what must be granted and measured, the payload is a minimum and tau a maximum, so the usable payload floor is 3.2 GB and a composition may declare more. A demand above any of them is met by a composition above the floor and fails only against one at it.",
+  "unit_base": "decimal, 10^9 bytes per GB. R-18-004b fixes no base for its unit and the corpus writes the second-class region in binary units elsewhere, so the base is this report's convention; against a binary 4 GiB payload every multiple of the usable payload floor falls by a factor of 1.0737",
+  "kv_cache_class": "undecided by any artifact. R-18-004a(vii) places the model wholly on the second class and says nothing about the cache; R-15-247s's second list names model weights and bulk by volume and names no cache, and its criterion is latency-criticality, which a cache read once per generated token can be argued either side of. The placement is the whole-program memory plan's (R-08-012a), so every demand and resident figure below that folds K in is an upper bound conditional on the cache sitting on the second class, and weights_only_demand_gb_per_second beside it is the part R-18-004a(vii) does place there"
+ },
+ "bits_per_parameter_unrounded": 2.2514505640194686,
+ "baseline_bits_per_parameter_unrounded": 4.954816484888784,
+ "baseline_to_ternary_density_multiple": 2.2007218653040517,
+ "arithmetic": "same Q4a budget: rate * (weight stream + KV at context); resident = tensor bytes + KV + logged compute MiB * 2^20 + one f32 vocabulary row",
+ "precision": "compute MiB is printed to two decimals; resident carries its half-unit rounding interval, not a claim of exact allocated bytes",
+ "measured": [
+  {
+   "cache": "f16",
+   "context": 8192,
+   "kv_bytes_per_token": 147456,
+   "kv_bytes_at_context": 1207959552,
+   "compute_mib_logged": 306.23,
+   "output_mib_logged": 0.58,
+   "output_row_bytes": 606676,
+   "model_mapped_mib_logged": 1079.42,
+   "graph_nodes": 1266,
+   "weight_bytes_read_per_token": 1131856864,
+   "demand_bytes_per_second": 11699082080,
+   "weights_only_bytes_per_second": 5659284320,
+   "grant_floor_multiple": 1.46238526,
+   "aggregate_floor_fraction": 0.584954104,
+   "resident_bytes_from_logged_compute": 2661527800.48,
+   "resident_rounding_half_width_bytes": 5242.88,
+   "payload_floor_multiple": 0.83172743765
+  },
+  {
+   "cache": "q8_0",
+   "context": 8192,
+   "kv_bytes_per_token": 78336,
+   "kv_bytes_at_context": 641728512,
+   "compute_mib_logged": 311.23,
+   "output_mib_logged": 0.58,
+   "output_row_bytes": 606676,
+   "model_mapped_mib_logged": 1079.42,
+   "graph_nodes": 1698,
+   "weight_bytes_read_per_token": 1131856864,
+   "demand_bytes_per_second": 8867926880,
+   "weights_only_bytes_per_second": 5659284320,
+   "grant_floor_multiple": 1.10849086,
+   "aggregate_floor_fraction": 0.443396344,
+   "resident_bytes_from_logged_compute": 2100539640.48,
+   "resident_rounding_half_width_bytes": 5242.88,
+   "payload_floor_multiple": 0.65641863765
+  }
+ ]
+}

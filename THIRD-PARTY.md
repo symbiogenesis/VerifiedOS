@@ -243,6 +243,19 @@ The measured build uses the CPU backend with `GGML_NATIVE=ON`, `GGML_CPU_KLEIDIA
 
 **Model weights.** `Qwen/Qwen3-4B-GGUF` at Hugging Face revision `bc640142c66e1fdd12af0bd68f40445458f3869b` uses Apache-2.0, copyright 2025 Alibaba Cloud. The 2026-09-05 review records `license: apache-2.0` in the README and a 11,544-byte `LICENSE`, SHA-256 `5de36594c10839788a8c589443a8ef9d8b8d17c65a1b5807206ae037fc36c6bd`. Official GGUF files are downloaded into the build lane and verified against the upstream tree's SHA-256 values. None is tracked or distributed. The selection review records no official GGUF for `HuggingFaceTB/SmolLM3-3B`, Qwen Research terms for `Qwen/Qwen2.5-3B-Instruct-GGUF`, and gated access for Llama 3.2.
 
+**Ternary static comparison.** Q12 uses the publisher's own
+`prism-ml/Ternary-Bonsai-4B-gguf` conversion at revision
+`a3eb42bafe873f9686bc97486c43b72ef7d75ec8`. Its `LICENSE` was read at that
+revision on 2026-09-14: Apache-2.0. `NOTICE.txt` attributes Prism ML, Inc.,
+2026-present, and the Qwen3-4B base to Alibaba Cloud, and requests attribution
+for deployment or redistribution. The model remains untrusted data in the
+external experiment lane; no weight, executable, upstream source or notice is
+redistributed in this tree. The selected `Ternary-Bonsai-4B-Q2_0_g64.gguf` is
+checked against the same revision's publisher tree before loading. The
+instrument is the existing `427291b5` llama.cpp pin above; its root license and
+the compiled dependency notices were re-read at that exact checkout. This use
+adds a static comparator, not an admitted inference runtime or a target rate.
+
 ## Read ahead of a later milestone
 
 These reviews support future incorporation decisions in the [implementation plan](docs/implementation/implementation-checklist.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.

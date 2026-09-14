@@ -1,0 +1,56 @@
+{
+ "tensor_count": 398,
+ "total_bytes": 1131856144,
+ "n_params_from_ne": 4021784576,
+ "n_layers": 36,
+ "token_embd": {
+  "name": "token_embd.weight",
+  "bytes": 109201680,
+  "type": "q2_0",
+  "blocks_size_over_type_size": 6066760,
+  "n_elts": 388272640,
+  "ne": [
+   2560,
+   151669,
+   1,
+   1
+  ]
+ },
+ "output_weight": null,
+ "output_head_tied": true,
+ "block_bytes": 1022644224,
+ "non_block_non_embd_bytes": 10240,
+ "head_bytes": 109201680,
+ "weight_bytes_read_per_token_excluding_lookup_row": 1131856144,
+ "by_type": {
+  "f32": {
+   "tensors": 145,
+   "bytes": 784384,
+   "n_elts": 196096
+  },
+  "q2_0": {
+   "tensors": 253,
+   "bytes": 1131071760,
+   "n_elts": 4021588480
+  }
+ },
+ "layer0_tensor_bytes": {
+  "attn_k.weight": 737280,
+  "attn_k_norm.weight": 512,
+  "attn_norm.weight": 10240,
+  "attn_output.weight": 2949120,
+  "attn_q.weight": 2949120,
+  "attn_q_norm.weight": 512,
+  "attn_v.weight": 737280,
+  "ffn_down.weight": 7004160,
+  "ffn_gate.weight": 7004160,
+  "ffn_norm.weight": 10240,
+  "ffn_up.weight": 7004160
+ },
+ "file": "Ternary-Bonsai-4B-Q2_0_g64.gguf",
+ "quant": "Q2_0_g64",
+ "bits_per_parameter": 2.2515,
+ "embedding_row_bytes": 720,
+ "weight_bytes_read_per_token": 1131856864,
+ "predicate": "the sum of the size field over every gguf_ex_read_1 tensor line llama-gguf prints for the file, size being ggml_nbytes as that reader computes it; bytes read per generated token are every tensor of the file (the head is tied, so token_embd.weight is the head read whole) plus one embedding row for the input lookup"
+}
