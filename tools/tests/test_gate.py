@@ -272,7 +272,10 @@ def _summary_names_every_member_and_its_code() -> None:
            == [m.tool for m in (*gate.MEMBERS, gate.TESTS)],
            f"every member is named, in declaration order, got {written['members']!r}")
     by_name = {m["name"]: m for m in written["members"]}
-    ensure(by_name["selftest"] == {"name": "selftest", "decides": gate.MEMBERS[1].decides,
+    # by tool rather than by position, on the convention the module under test states
+    # at REPAIRS: reordering MEMBERS must not quietly move which member this holds.
+    selftest = next(m for m in gate.MEMBERS if m.tool == "selftest")
+    ensure(by_name["selftest"] == {"name": "selftest", "decides": selftest.decides,
                                    "code": 1, "reached_verdict": True, "clean": False},
            f"a member that reported findings reached a verdict, got {by_name['selftest']!r}")
     ensure(by_name["typecheck"]["reached_verdict"] is False

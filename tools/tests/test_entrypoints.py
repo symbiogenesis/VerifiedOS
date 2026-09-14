@@ -77,9 +77,9 @@ def _wsl_environments_follow_native_lanes() -> None:
     # The fixture root is resolved where it is built, because the stub below answers on
     # path identity and `environment` probes the checkout's real path rather than the
     # spelling it was handed. The two forms differ wherever the temporary directory is
-    # reached through an alias, which is the state of every GitHub-hosted Windows
-    # runner: TEMP there is the 8.3 short name `C:\Users\RUNNER~1\AppData\Local\Temp`,
-    # resolving to `runneradmin`. Left unresolved the stub answers `ext4` for the
+    # reached through an alias, a junction or a short name alike, and a GitHub-hosted
+    # Windows runner reaches its TEMP through one. What the case depends on is the
+    # alias and not its kind. Left unresolved the stub answers `ext4` for the
     # checkout, the native-Linux branch is taken, and the case fails for the layout of
     # the machine it runs on rather than for anything about the bootstrap.
     # `filesystem-probes-take-resolved-paths` below holds that contract directly.
