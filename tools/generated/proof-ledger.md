@@ -765,6 +765,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-13-022 | proofs/AdmissionPath.v | the_specification_satisfies_every_named_refusal | claimed |
 | R-13-025 | proofs/AdmissionPath.v | n/a | cited |
 | R-13-026 | proofs/AdmissionPath.v | n/a | cited |
+| R-13-027 | proofs/AdmissionPath.v | n/a | cited |
 | R-14-002 | proofs/MModeFirmware.v | the_finite_check_decides_wx | claimed |
 | R-14-002 | proofs/MModeFirmware.v | the_encoding_carries_every_distribution | claimed |
 | R-14-002 | proofs/MModeFirmware.v | the_two_pmp_roles_this_file_carries_are_carried | claimed |

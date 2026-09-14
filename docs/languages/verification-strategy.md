@@ -425,7 +425,7 @@ The proposed split is deliberate:
 
 - **Specification/proof world:** dependent functions, indexed families, existential packages, induction, rich mathematical structures, and reusable verified algorithms. Elaborate into CIC; use only its accepted assumptions and reject unresolved proof holes.
 - **Runtime world:** explicit finite representations, machine integers, bounded arrays, regions and resource handles, ownership/borrowing, and statically accounted effects. The VerifiedOS instance represents applicable handles with CHERI capabilities. Rich types may describe these values without becoming runtime objects.
-- **Proof automation:** arbitrary off-device search may time out or fail. Successful search produces a checked term; nontermination of a tactic never produces a theorem or permission to ship.
+- **Proof automation:** arbitrary proof search may time out or fail, on the device or off it. Successful search produces a checked term; nontermination of a tactic never produces a theorem or permission to ship.
 
 This is not a promise to embed all of Idris 2 unchanged in Rocq.
 Universe rules, conversion, positivity, equality elimination, and quantitative resource judgments need a specified mapping.
@@ -882,7 +882,7 @@ The count is an ordinary postcondition over the library's proved observer of the
 
 The full-language design permits a library to supply an algebra, its laws and a proved interpretation, for example `CallBudget`, subject to the [grade-domain obligations](#graded-dependent-foundation).
 Keep erasure decisions fixed at specialization/ABI boundaries: a generic grade must not ambiguously decide whether an argument exists in a register.
-Grade polymorphism belongs to the core design; public instantiation specializes off-device, and any unspecialized representation needs its own proved strategy.
+Grade polymorphism belongs to the core design; public instantiation specializes at composition, and any unspecialized representation needs its own proved strategy.
 Use separate annotations such as `effects calls(endpoint)` and `requires Public(index)` where appropriate, rather than pretending usage counts, capability permissions, and security labels are the same analysis.
 An IFC checker must track control dependence as well as data dependence; a public return type alone does not exclude secret-dependent branches or addresses.
 
@@ -1024,7 +1024,7 @@ If the direct route misses its capability-correct artifact, TAL and corresponden
 
 #### Licensing and Commercial Rebuildability
 
-**An independently implemented direct backend can remove the non-commercial licensing dependency on CompCert/SECOMP.** That benefits commercial builds, compiler redistribution and independent rebuilding, not just the licence on the emitted OS image. The [upstream licence reading](../../THIRD-PARTY.md#compcert-and-secomp) distinguishes the non-commercial compiler grant from its LGPL-licensed subset and separately negotiated commercial rights. Keeping the compiler off-device and unpublished does not remove a restriction on commercial use.
+**An independently implemented direct backend can remove the non-commercial licensing dependency on CompCert/SECOMP.** That benefits commercial builds, compiler redistribution and independent rebuilding, not just the licence on the emitted OS image. The [upstream licence reading](../../THIRD-PARTY.md#compcert-and-secomp) distinguishes the non-commercial compiler grant from its LGPL-licensed subset and separately negotiated commercial rights. Keeping the compiler unpublished never removed a restriction on commercial use, and it is no longer even available as a containment: R-13-027 makes the toolchain software the device runs and R-18-004e ships it in the first release, so a shipped image carrying a CompCert-derived backend is distribution, and this deliverable is the route that makes that image licensable rather than an optimization of one that already is.
 
 This benefit requires independently authored or suitably licensed compiler and proof sources. A new IR does not relicense copied or adapted backend passes; CompCert, SECOMP and Chamois reuse needs a selected-file and transitive-dependency audit. Clight itself has an LGPL option, so bypassing Clight is neither necessary nor sufficient to remove non-commercial terms. [Rocq's LGPL licence](https://github.com/rocq-prover/rocq/blob/V9.1.1/LICENSE) permits commercial use but retains redistribution obligations: removing non-commercial dependencies is not removing all copyleft obligations or all Inria-associated software.
 

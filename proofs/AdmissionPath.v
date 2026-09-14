@@ -3,9 +3,10 @@
    AdmissionPath.v
 
    The composition-time admission path, as the register fixes it: R-13-001c's
-   composer, an untrusted producer off-device with the rest of the certifying
-   toolchain, joining no trust base and free to be any party, whose output
-   fails admission rather than shipping; R-13-013's artifact-not-pedigree,
+   composer, an untrusted producer joining no trust base and free to be any
+   party, this device itself included now that R-13-027 makes the certifying
+   toolchain resident, whose output fails admission rather than shipping
+   wherever it ran; R-13-013's artifact-not-pedigree,
    under which no admission rule reads a producer identity; R-06-008's
    stratification, the CHERI-TAL type-checker running over typing derivations
    and the CIC kernel elsewhere; R-06-009's decided set, read off R-05-029's
@@ -342,8 +343,8 @@
    Requirements: R-05-029 R-05-030 R-05-036 R-05-037 R-05-038 R-05-039 R-05-135a R-05-135b
       R-05-163 R-05-164 R-05-165 R-05-166 R-06-008 R-06-009 R-06-014 R-06-015b R-06-015d
       R-10-026 R-11-005 R-11-005a R-13-001 R-13-001a R-13-001c R-13-003 R-13-007 R-13-010a
-      R-13-010b R-13-011 R-13-012 R-13-013 R-13-014 R-13-022 R-13-025 R-13-026 R-17-033
-   SHA256: 81b2f6ac8a7d929fcbcccf7206f4f673c07744fb73a9496b65f4bc2ba47936ee
+      R-13-010b R-13-011 R-13-012 R-13-013 R-13-014 R-13-022 R-13-025 R-13-026 R-13-027 R-17-033
+   SHA256: a60aa895ce93265919aa7bfcd4fd11947bb57cef8f8ce3b15e1a2012697de83b
    (*| END derived |*)
    ========================================================================= *)
 

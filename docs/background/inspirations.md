@@ -1637,7 +1637,7 @@ CHERI already supplies the hardware form of the useful Wasm sandbox idea, a boun
 CHERIoT's export/import tables and sealed entry points supply the loading structure, while the content-addressed systems lineage (OSTree, Nix, Fuchsia archives, IPFS CAR, Git packfiles, and `fs-verity`) supplies the object model.
 The resulting admitted artifact is a **content-addressed capability image**, not ELF: a fixed-layout manifest names immutable code and rodata, writable initializers, the CHERI-TAL derivation, and an explicit monotone capability-wiring table (§10, §13, §14).
 It also serializes as one hash-indexed pack for distribution without giving the device an ELF interpreter, dynamic linker, relocation grammar, or runtime loader.
-ELF remains off-device build interchange only.
+ELF remains build interchange only, confined to the producer's own compartment wherever it runs.
 
 Code density follows the same static rule.
 The resident instruction stream uses the **fixed-rate dictionary encoding** at R-15-036a, and composition-time absolute call/global targets are measured under R-15-036l so repeated destinations can share dictionary entries without a JVT, CSR, runtime table read, or authority rule.
@@ -1913,7 +1913,7 @@ The **M-class** is the tensor-core pattern integrated into the ordinary core: a 
 The array is retained only for dense GEMM that clears the order-of-magnitude throughput threshold over RVV; small or irregular matrix work stays vector code.
 Arbitrary low-bit quantized formats are unpacked in software on the vector unit, and MX-style block scales are applied there as ordinary per-element operations, so no architectural tile file or block-scale register joins the context, zeroization, or proof surface.
 
-Model and shader flexibility is kept off-device: shaders and models compile and certify ahead of time into capability-confined kernels.
+Model and shader flexibility is kept ahead of admission: shaders and models compile and certify ahead of time into capability-confined kernels.
 There is no Vulkan/GL/Metal/wgpu runtime personality, SPIR-V pipeline compiler, shader JIT, command-buffer validator, accelerator firmware, or separately booted control core.
 The adopted API is direct dispatch of certified kernels over capability-scoped buffers (§12, §13).
 

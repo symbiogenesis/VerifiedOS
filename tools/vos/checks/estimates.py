@@ -107,6 +107,10 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "M6.2c", "M6.9a", "M6.9b", "M6.9c",
              "M6.3b", "M6.5b",
              "M6.6", "M6.7", "M6.8", "S5", "S6",
+             # the resident toolchain is release-roster work like the inference server's:
+             # it consumes the accepted backend and the composed userland, and nothing on
+             # either chain admits a generation the device composed itself
+             "M1.10", "M6.10",
              # the assessment's decision items, each a decision over measurements Q4 and Q5
              # take ahead of the software gate, and none on either chain
              "Q6", "Q7", "Q8", "Q9", "Q10",

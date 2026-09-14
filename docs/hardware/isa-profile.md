@@ -308,7 +308,7 @@ Every exclusion below is governed by a register entry that carries the absence, 
 | `Zalrsc` | per-hart reservation register is hidden inter-instruction state (test 3); spurious SC failure (test 1); reservation-granule contention is a cross-hart channel | R-15-025 |
 | `Zacas` (incl. `amocas.q`, `amocas.b/.h`; Sail: `AMOCAS`) | no consumer: share-nothing multikernel, SPSC rings under Ztso, single-instruction `Zaamo` refcounts, no capability in shared mutable memory | R-15-026, R-15-027 |
 | `Zicbom` | no hardware caches, so no consumer; cross-island ring release/acquire ordering is native Ztso and needs no fence | R-15-061 |
-| `Zifencei` / `fence.i` | no runtime consumer under W^X with no on-device codegen | R-15-047 |
+| `Zifencei` / `fence.i` | no runtime consumer under W^X with no runtime codegen | R-15-047 |
 | `Zicntr` / `Zihpm`; `cycle` / `time` / `instret`; `mcycle` / `minstret` / `mhpmcounter*` / `mhpmevent*` / `mcountinhibit` | no runtime consumer: scheduling uses `mtime`/`mtimecmp`, development measurement uses lifecycle-gated DM trace, and production counters would be a general timing oracle | R-15-077 |
 | `Zkr` | exactly one host entropy root, the RoT TRNG through the verified DRBG | R-15-037 |
 | `Zkne` / `Zknd` / `Zknh` | vector crypto computes them table-free, so the CT contract is stated once | R-15-041 |
