@@ -39,7 +39,7 @@ R-08-027a requires termination and progress, R-08-027b requires schedule-control
 
 ## 3. Non-interference target
 
-`explicit_flow_target m x` conjoins three named propositions:
+`explicit_flow_target m x` conjoins three base propositions before runtime release:
 
 | Target | Required agreement across indistinguishable inputs |
 | --- | --- |
@@ -53,15 +53,15 @@ The progress witness does not satisfy R-08-027b's stronger requirement that obse
 
 ## 4. Consent and exact release
 
-R-08-029 identifies compose-time channels and powerbox grants as the two forms of declassification. A manifest channel changes the base input relation: the artifact demonstrates that a pair related before the channel is added is separated afterward. Runtime grants instead enter T's release quotient.
+R-08-029 identifies compose-time channels and powerbox grants as the two forms of declassification. A manifest channel changes the base input relation: the artifact demonstrates that a pair related before the channel is added is separated afterward. Runtime grants enter the D-indexed input relation used by this apex instance.
 
-A `Grant` names a grantee, exactly one object/site, its authenticated witness site, issue instant, scope and ceiling. A `Release` contains candidate grants, trusted lifecycle snapshots and the instant at which they are checked. A candidate grants authority through the quotient only when `licensed` finds the exact grantee/object pair and `live` accepts its scope.
+A `Grant` names a grantee, exactly one object/site, its authenticated witness site, issue instant, scope and ceiling. A `Release` contains candidate grants, trusted lifecycle snapshots and the instant at which they are checked. A candidate grants authority through that input relation only when `licensed` finds the exact grantee/object pair and `live` accepts its scope.
 
 `witnessed m i rel` checks every candidate against a typed act at its named consent site: the act must match the grantee, object, witness site, issue instant, scope and ceiling, and the release's relevant lifecycle state must equal the input snapshot. A trusted site name alone does not witness anything. The artifact rejects both an absent act and an object substituted after consent (R-06-017, R-08-036).
 
 These typed acts abstract authenticated live consent and authenticated recorded consent. Producing them from the trusted path, proving record freshness, deriving physical CHERI bounds and rights, and proving that the powerbox holds the authority it attenuates are implementation obligations. A natural-number object identity in this model is not a capability representation or a proof of byte bounds.
 
-`delimited` requires every released pair to have a grant naming that exact recipient and object. `scoped` additionally requires the same grant to be live at the release instant. `licensed` satisfies both propositions. A rule releasing every object at the named object's level is rejected by `delimited`; a rule ignoring the scope is rejected by `scoped`. This distinguishes the R-08-026 and R-17-012 bound from a general high-to-low channel.
+`delimited` requires every released pair to have a grant naming that exact recipient and object. `scoped` additionally requires the same grant to be live at the release instant. `licensed` satisfies both propositions. A rule releasing every object at the named object's level is rejected by `delimited`; a rule ignoring the scope is rejected by `scoped`. These predicates constrain grant names and lifetimes. Content confinement additionally requires `released_flow_target` over `release_indistinguishable`: related inputs agree on ordinary observable inputs and on each live named object for the recipient domain, and every output value must then agree. Merely erasing a named output position would allow any other secret to be placed there and would not establish R-08-026.
 
 ## 5. Temporal scope and freshness
 
@@ -94,7 +94,9 @@ This is an input-pair formulation with the trusted context fixed. An implementat
 
 `apex_vocabulary` supplies `Policy`, `policy`, `indist`, `Declass`, `D`, the observation types and the release quotients expected by ApexTheorem. Its first and seventh seam fields have the concrete targets described above. Other theorem and axiom fields are `True` in these examples. They are placeholders for other workstreams, not proofs of their obligations, and no field-binding inventory row is closed by these examples.
 
-The value quotient erases exactly the licensed recipient/object observations. Timing and architectural quotients are identities. `a_named_release_is_inside_T` admits a reference execution that actually returns a secret named object to its recipient. `the_same_release_after_expiry_is_outside_T` rejects the same execution at T itself after expiry. `the_leaking_composition_is_rejected_by_T` separately refuses a wider value leak. Thus permitted release has a positive witness as well as refusals.
+All three observation quotients are identities. The instance captures D in `release_indistinguishable`, which adds equality of live named-object input content to the ordinary input relation. The first seam uses that same relation for values, while timing, progress and faults retain their base conditions. `a_named_release_is_inside_T` admits a reference execution that actually returns a secret named object to its recipient. `the_same_release_after_expiry_is_outside_T` rejects the same execution at T itself after expiry. `the_leaking_composition_is_rejected_by_T` separately refuses a wider value leak. `the_actual_named_release_inhabits_both_seams` constructs the actual release execution with both stated seam premises. `a_named_output_cannot_smuggle_another_objects_content` rejects copying object 3 into the output consent named for object 1, even though both inputs agree on object 1. Thus permitted release has a positive witness as well as a refusal of a general secret conduit.
+
+T has one input relation for all three observation classes. Narrowing it by released content therefore also narrows the pairs on which T compares timing and architecture. Content-only timing, progress and fault confinement comes from the stronger first-seam base conditions, not from standalone T. The identity timing quotient alone does not establish that distinction; a complete apex binding must preserve it.
 
 The positive T theorems have explicit `FunExt2`, `FunExt3` and `PropExt` premises. They concern functional extensionality at two arities and propositional extensionality for this predicate-valued encoding. All are theorem premises; the artifact declares no global axioms. Consequently an empty `Print Assumptions` result is not an unconditional proof of T. Resolving or explicitly admitting these premises, or choosing an encoding that avoids them, remains open. No change to ApexTheorem or the register's declared assumption set is made or claimed necessary by a proved impossibility result.
 
@@ -102,7 +104,7 @@ The positive T theorems have explicit `FunExt2`, `FunExt3` and `PropExt` premise
 
 The register has not explicitly settled whether an object release also releases that object's arrival timing. R-08-026 names the object bound; R-05-156a requires an explicit arrival label. The present instance releases content only. `may_time_wide` and `indistinguishable_wide` represent the alternative for manifest channels, and `the_two_arrival_arms_are_different_policies` proves that the choice changes the policy.
 
-The alternative runtime timing quotient is not implemented here. An owner decision in the register must state which timing observations, if any, follow a runtime grant and with which scope. Until then, the content-only instance is a review candidate and a proof against it does not establish the other reading.
+The alternative runtime timing-release relation is not implemented here. An owner decision in the register must state which timing observations, if any, follow a runtime grant and with which scope. Until then, the content-only instance is a review candidate and a proof against it does not establish the other reading.
 
 ## 9. Evidence index
 
@@ -137,7 +139,7 @@ This predicate is proposed with the specification. It has not received the indep
 | Complete observations | R-08-027a through R-08-027c: bind the snapshot observation fields to full histories and the actual scheduler, termination and restart transitions; establish schedule-only observable progress |
 | Consent and lifecycle realization | Powerbox, trusted path and storage work: authenticated live/recorded witness production, freshness, request gating, one-shot consumption, revocation, cuts, record compatibility and unique act-instance indexing |
 | Full robust-strategy theorem | R-08-025 and R-08-022: prove the strategy/input correspondence, including permitted revoke-only actions, over the kernel and multikernel semantics |
-| Runtime arrival release | Register owner: decide the timing scope, then implement and review the selected runtime quotient |
+| Runtime arrival release | Register owner: decide the timing scope, then implement and review the selected runtime relation |
 | Unconditional apex use | Apex integration: discharge or replace extensionality premises and bind actual D to the compared executions, without `True` placeholders for other workstreams |
 | Compiler preservation | `CJ-SECOMP`: state and prove robust preservation against the reviewed isolation model |
 | Independent review | R-05-150 and R-08-028: review both artifacts at the same edition and set crown-jewel row 2's status |

@@ -32,9 +32,9 @@
      the authenticated consent and trusted lifecycle context fixed. Relating
      an interactive compromised strategy and its allowed revoke-only actions
      to this input-pair abstraction remains an implementation obligation.
-   - The release rule erases only the named grantee/object observation while
-     its scope is live. It erases neither arrival timing nor fault/progress
-     observations. The compose-time timing alternative is exhibited below;
+   - The release relation equates only live named-object input content in
+     addition to the base policy. Every output observation remains visible,
+     so another secret cannot be smuggled through the named output slot. The compose-time timing alternative is exhibited below;
      the register must settle whether object release includes arrival time.
    - The reference progress observation depends on visible inputs. Its NI
      proof does not establish R-08-027b's stronger schedule-only statement.
@@ -382,6 +382,20 @@ Definition licensed (rel : Release) (c s : nat) : bool :=
 
 Definition ReleaseRule : Type := Release -> nat -> nat -> bool.
 
+(* Delimited release changes which INPUT pairs must agree: the recipient may
+   learn the named object's content, but no other secret can be hidden in that
+   output position. Output observations themselves are never erased. *)
+Definition release_indistinguishable (m : PolicyModel) (rel : Release)
+    (C : nat -> Prop) (i1 i2 : SystemInput) : Prop :=
+  indistinguishable m C i1 i2 /\
+  (forall c s, C c -> licensed rel c s = true ->
+     i1.(delivers) s = i2.(delivers) s).
+
+Definition released_flow_target (m : PolicyModel) (rel : Release)
+    (x : Execution) : Prop :=
+  forall C i1 i2 c s, C c -> release_indistinguishable m rel C i1 i2 ->
+    (x i1).(received) c s = (x i2).(received) c s.
+
 (* R-08-026 and R-17-012: the granted channel carries the object consent
    named and is no general high-to-low conduit. *)
 Definition delimited (r : ReleaseRule) : Prop :=
@@ -411,10 +425,9 @@ Definition witnessed (m : PolicyModel) (i : SystemInput) (rel : Release) : bool 
    6. Robust declassification (R-08-025, R-06-016).
 
    The powerbox is the sole runtime declassifier, so the whole declassification
-   set is one function of the whole-system input and the instant. Reading 7:
-   a compromised component's strategy is the part of that input it drives, so
-   quantifying over strategies is quantifying over input pairs agreeing on
-   the consent path.
+   set is one function of the whole-system input and the instant. The reference relation compares input pairs agreeing on trusted consent.
+   Correspondence with interactive compromised strategies, including
+   revoke-only actions, remains an implementation obligation.
    ------------------------------------------------------------------------- *)
 
 Definition Powerbox : Type := SystemInput -> nat -> Release.
@@ -446,7 +459,9 @@ Definition to_whom (rel : Release) : list nat := map grantee rel.(grants).
    argue with, and of no composed image.
    ------------------------------------------------------------------------- *)
 
-(* The compartment count bounds the adversary sets the quantifier ranges over,
+(* These are the base, no-runtime-release targets. The D-indexed value
+   target used by the apex instance is released_flow_target.
+   The compartment count bounds the adversary sets the quantifier ranges over,
    through graph_permits below, and it does that job once: the labelling is
    total over compartment indices exactly as reading 3 makes it total over
    site indices, so these three targets carry no second bound and say
@@ -479,8 +494,8 @@ Definition explicit_flow_target (m : PolicyModel) (x : Execution) : Prop :=
   /\ progress_noninterference m x
   /\ fault_noninterference m x.
 
-(* The seventh seam's conclusion: every flow the release quotient forgets is
-   one a consent act authorized, which is four clauses and not one. *)
+(* The seventh seam requires authenticated, scoped consent for the release
+   relation. Content confinement is the separate D-indexed first-seam target. *)
 Definition authorized_release_target (m : PolicyModel) (p : Powerbox)
     (r : ReleaseRule) : Prop :=
   (forall i now, witnessed m i (p i now) = true /\ (p i now).(at_instant) = now)
@@ -1340,7 +1355,7 @@ Definition apex_vocabulary (m : PolicyModel) (x : Execution) (p : Powerbox)
   graph_permits := fun C => forall c : nat, C c -> Nat.ltb c m.(compartments) = true;
   Policy := PolicyModel;
   policy := m;
-  indist := indistinguishable;
+  indist := fun policy C i1 i2 => release_indistinguishable policy rel C i1 i2;
   ValueObs := nat -> nat -> nat -> Prop;
   TimingObs := nat -> nat -> nat -> Prop;
   ArchObs := nat -> (nat * nat) -> Prop;
@@ -1349,7 +1364,7 @@ Definition apex_vocabulary (m : PolicyModel) (x : Execution) (p : Powerbox)
   observe_arch := fun C t c k => C c /\ (t.(raised) c, t.(restarts) c) = k;
   Declass := Release;
   D := rel;
-  release_value := fun d o c s v => if r d c s then True else o c s v;
+  release_value := fun _ o => o;
   release_timing := fun _ o => o;
   release_arch := fun _ o => o;
   spatial_safety := True;
@@ -1360,7 +1375,10 @@ Definition apex_vocabulary (m : PolicyModel) (x : Execution) (p : Powerbox)
   binary_refines_source_robustly := True;
   binary_against_sail := True;
   rtl_refines_sail := True;
-  explicit_flow_noninterference := explicit_flow_target m x;
+  explicit_flow_noninterference := released_flow_target m rel x /\
+    progress_noninterference m x /\ fault_noninterference m x /\
+    (forall C i1 i2 c s, C c -> indistinguishable m C i1 i2 ->
+       (x i1).(observed_at) c s = (x i2).(observed_at) c s);
   timing_isolation := True;
   partition_guarantee := True;
   wcet_bounds_sound := True;
@@ -1403,7 +1421,12 @@ Theorem the_two_stated_fields_are_satisfiable :
         inside_scope).(declassified_flows_authorized).
 Proof.
   split.
-  - exact (the_confining_execution_is_noninterferent reference).
+  - destruct (the_confining_execution_is_noninterferent reference)
+      as [Hflow [Hprogress Hfault]].
+    split.
+    + intros C i1 i2 c s Hc [Hi _]. exact (proj1 (Hflow C i1 i2 c s Hc Hi)).
+    + split; [exact Hprogress|]. split; [exact Hfault|].
+      intros C i1 i2 c s Hc Hi. exact (proj2 (Hflow C i1 i2 c s Hc Hi)).
   - split; [exact the_shipped_release_is_authorized |].
     exists consent_input. reflexivity.
 Qed.
@@ -1452,8 +1475,7 @@ Definition PropExt : Prop :=
 Theorem apex_from_pointwise :
   forall (m : PolicyModel) (x : Execution) (p : Powerbox) (rel : Release),
     FunExt2 -> FunExt3 -> PropExt ->
-    (forall C i1 i2 c s, C c -> indistinguishable m C i1 i2 ->
-        licensed rel c s = false ->
+    (forall C i1 i2 c s, C c -> release_indistinguishable m rel C i1 i2 ->
         (x i1).(received) c s = (x i2).(received) c s) ->
     (forall C i1 i2 c k, C c -> indistinguishable m C i1 i2 ->
         timing_view (x i1) c k = timing_view (x i2) c k) ->
@@ -1465,19 +1487,17 @@ Proof.
   intros m x p rel fe2 fe pe Hval Htim Harch _ C _ i1 i2 Hind.
   split; [| split].
   - apply fe. intros c s v. cbn -[licensed].
-    destruct (licensed rel c s) eqn:E.
-    + reflexivity.
-    + apply pe. split; intros [Hc Heq]; split; try exact Hc.
-      * rewrite <- (Hval C i1 i2 c s Hc Hind E). exact Heq.
-      * rewrite (Hval C i1 i2 c s Hc Hind E). exact Heq.
+    apply pe. split; intros [Hc Heq]; split; try exact Hc.
+    + rewrite <- (Hval C i1 i2 c s Hc Hind). exact Heq.
+    + rewrite (Hval C i1 i2 c s Hc Hind). exact Heq.
   - apply fe. intros c k v. cbn -[licensed].
     apply pe. split; intros [Hc Heq]; split; try exact Hc.
-    + rewrite <- (Htim C i1 i2 c k Hc Hind). exact Heq.
-    + rewrite (Htim C i1 i2 c k Hc Hind). exact Heq.
+    + rewrite <- (Htim C i1 i2 c k Hc (proj1 Hind)). exact Heq.
+    + rewrite (Htim C i1 i2 c k Hc (proj1 Hind)). exact Heq.
   - apply (fe2 _). intros c k. cbn -[licensed].
     apply pe. split; intros [Hc Heq]; split; try exact Hc.
-    + rewrite <- (Harch C i1 i2 c Hc Hind). exact Heq.
-    + rewrite (Harch C i1 i2 c Hc Hind). exact Heq.
+    + rewrite <- (Harch C i1 i2 c Hc (proj1 Hind)). exact Heq.
+    + rewrite (Harch C i1 i2 c Hc (proj1 Hind)). exact Heq.
 Qed.
 
 Lemma confining_received_agrees :
@@ -1518,7 +1538,7 @@ Proof.
   - exact fe2.
   - exact fe.
   - exact pe.
-  - intros C i1 i2 c s Hc Hind Hnot.
+  - intros C i1 i2 c s Hc [Hind _].
     exact (confining_received_agrees reference C i1 i2 c s Hc Hind).
   - intros C i1 i2 c k Hc Hind.
     exact (confining_timing_agrees reference C i1 i2 c k Hc Hind).
@@ -1540,6 +1560,77 @@ Definition releases_named_object : Execution :=
               width := (confining reference i).(width);
               finished := (confining reference i).(finished) |}.
 
+Theorem the_named_release_satisfies_its_flow_target :
+  released_flow_target reference inside_scope releases_named_object.
+Proof.
+  intros C i1 i2 c s Hc [Hind Hreleased]. cbn -[confining].
+  destruct (andb (Nat.eqb c O) (Nat.eqb s 1)) eqn:E.
+  - apply andb_prop in E as [Ec Es].
+    apply Nat.eqb_eq in Ec. apply Nat.eqb_eq in Es. subst c s.
+    apply (Hreleased O 1 Hc). reflexivity.
+  - exact (confining_received_agrees reference C i1 i2 c s Hc Hind).
+Qed.
+
+Theorem the_actual_named_release_inhabits_both_seams :
+  (apex_vocabulary reference releases_named_object consent_powerbox licensed
+     inside_scope).(explicit_flow_noninterference) /\
+  (apex_vocabulary reference releases_named_object consent_powerbox licensed
+     inside_scope).(declassified_flows_authorized).
+Proof.
+  split.
+  - split; [exact the_named_release_satisfies_its_flow_target|].
+    destruct (the_confining_execution_is_noninterferent reference)
+      as [Hflow [Hprogress Hfault]].
+    split; [exact Hprogress|]. split; [exact Hfault|].
+    intros C i1 i2 c s Hc Hi. exact (proj2 (Hflow C i1 i2 c s Hc Hi)).
+  - split; [exact the_shipped_release_is_authorized|].
+    exists consent_input. reflexivity.
+Qed.
+
+(* The rejected construction puts object 3's secret into the output slot
+   consent named for object 1. Output-slot erasure would hide this conduit. *)
+Definition smuggles_another_object : Execution :=
+  fun i => {| received := fun c s =>
+                if andb (Nat.eqb c O) (Nat.eqb s 1)
+                then i.(delivers) 3 else (confining reference i).(received) c s;
+              observed_at := (confining reference i).(observed_at);
+              slot := (confining reference i).(slot);
+              reached := (confining reference i).(reached);
+              raised := (confining reference i).(raised);
+              restarts := (confining reference i).(restarts);
+              width := (confining reference i).(width);
+              finished := (confining reference i).(finished) |}.
+
+Lemma other_object_variation_stays_inside_the_release_relation :
+  release_indistinguishable reference inside_scope victim quiet port_content.
+Proof.
+  split; [exact quiet_and_port_content_are_indistinguishable|].
+  intros c s Hc Hlive. unfold victim in Hc. subst c.
+  destruct s as [|[|s]]; cbn in Hlive; try discriminate; reflexivity.
+Qed.
+
+Theorem a_named_output_cannot_smuggle_another_objects_content :
+  ~ T (apex_vocabulary reference smuggles_another_object consent_powerbox
+         licensed inside_scope).
+Proof.
+  intros H. destruct (H (conj I (conj I I)) victim
+    (the_victim_set_is_admissible smuggles_another_object consent_powerbox licensed inside_scope)
+    quiet port_content other_object_variation_stays_inside_the_release_relation) as [Hv _].
+  pose proof (f_equal (fun k : nat -> nat -> nat -> Prop => k O 1 O) Hv) as E.
+  cbn in E. assert (A : victim O /\ O = O) by (split; reflexivity).
+  change ((O = O /\ O = O) = (O = O /\ 1 = O)) in E.
+  unfold victim in A. rewrite E in A. destruct A as [_ B]. discriminate B.
+Qed.
+
+Example actual_named_content_is_released_but_not_an_arbitrary_slot :
+  (releases_named_object quiet).(received) O 1 = O /\
+  (releases_named_object secret_content).(received) O 1 = 1 /\
+  ~ release_indistinguishable reference inside_scope victim quiet secret_content.
+Proof.
+  split; [reflexivity|]. split; [reflexivity|].
+  intros [_ H]. specialize (H O 1 eq_refl eq_refl). discriminate H.
+Qed.
+
 (*| discharges: R-05-166, R-08-025, R-08-026 |*)
 Theorem a_named_release_is_inside_T :
   FunExt2 -> FunExt3 -> PropExt ->
@@ -1547,11 +1638,11 @@ Theorem a_named_release_is_inside_T :
        licensed inside_scope).
 Proof.
   intros fe2 fe pe. apply apex_from_pointwise; try assumption.
-  - intros C i1 i2 c s Hc Hind Hnot. cbn -[confining].
+  - intros C i1 i2 c s Hc [Hind Hreleased]. cbn -[confining].
     destruct (andb (Nat.eqb c O) (Nat.eqb s 1)) eqn:E.
     + apply andb_prop in E. destruct E as [Ec Es].
       apply Nat.eqb_eq in Ec. apply Nat.eqb_eq in Es. subst c s.
-      discriminate Hnot.
+      apply (Hreleased O 1 Hc). reflexivity.
     + exact (confining_received_agrees reference C i1 i2 c s Hc Hind).
   - intros C i1 i2 c k Hc Hind.
     exact (confining_timing_agrees reference C i1 i2 c k Hc Hind).
@@ -1564,10 +1655,14 @@ Theorem the_same_release_after_expiry_is_outside_T :
          licensed outside_scope).
 Proof.
   intros H.
+  assert (Hi : release_indistinguishable reference outside_scope victim quiet secret_content).
+  { split; [exact quiet_and_secret_content_are_indistinguishable|].
+    intros c s Hc Hl. unfold licensed in Hl. cbn in Hl.
+    rewrite andb_false_r in Hl. discriminate Hl. }
   destruct (H (conj I (conj I I)) victim
     (the_victim_set_is_admissible releases_named_object consent_powerbox
       licensed outside_scope) quiet secret_content
-    quiet_and_secret_content_are_indistinguishable) as [Hv _].
+    Hi) as [Hv _].
   pose proof (f_equal (fun k : nat -> nat -> nat -> Prop => k O 1 O) Hv) as E.
   cbn in E.
   assert (A : victim O /\ O = O) by (split; reflexivity).
@@ -1589,7 +1684,8 @@ Proof.
               (the_victim_set_is_admissible (leaks_content reference)
                  consent_powerbox licensed no_grants)
               quiet secret_content
-              quiet_and_secret_content_are_indistinguishable) as [Hvalue _].
+              (conj quiet_and_secret_content_are_indistinguishable
+                (fun c s _ H => False_rect _ (Bool.diff_false_true H)))) as [Hvalue _].
   assert (Hpoint := f_equal (fun k : nat -> nat -> nat -> Prop => k O O O) Hvalue).
   cbn in Hpoint.
   assert (Hholds : victim O /\ (leaks_content reference quiet).(received) O O = O).
