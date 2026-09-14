@@ -262,6 +262,18 @@ Solderpad v0.51 permits use, modification, sublicensing, and distribution, subje
 
 The reviewed RTL licenses contain no reciprocal, field-of-use, or source-disclosure requirement. No CERN Open Hardware license variant is part of this plan.
 
+### The bring-up Wasm interpreter
+
+[The porting guide's Servo entry](docs/implementation/userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) names a pure-Rust interpreter standing in as the unverified bring-up interim ahead of the R-14-013a platform engine. Nothing is vendored, fetched, gitlinked or installed for it; [the requirements register's §18](docs/requirements-register.md#18-realization) places the whole browser program past the first release, so this is a reading taken at the pin rather than an incorporation.
+
+| Component | Release | Upstream | License | Read from |
+| --- | --- | --- | --- | --- |
+| Wasmi, bring-up Wasm interpreter | `v2.0.0`, released 2026-09-01 | `wasmi-labs/wasmi` | `MIT OR Apache-2.0`, at the recipient's option | Root `LICENSE-APACHE` and `LICENSE-MIT`; the README's dual offer |
+
+The review on 2026-09-14 reads the terms at that release. The workspace `Cargo.toml` states `license = "MIT/Apache-2.0"`, `edition = "2024"` and `rust-version = "1.86"`; the README offers the work under either the Apache License version 2.0 or the MIT license at the recipient's option, and dual-licenses contributions on the same terms. The normalized expression for that offer is `MIT OR Apache-2.0`. Both instruments are permissive, and neither requires source disclosure nor restricts a field of use.
+
+This project takes no election here, the component being read rather than incorporated; the election belongs to the milestone that would admit it. Two facts about the pin bear on that milestone beside its terms: the upstream's default feature set enables `memory64`, which is outside the guest subset R-14-013b freezes, and the same release names support for [WebAssembly's deterministic profile](https://github.com/WebAssembly/profiles/blob/main/proposals/profiles/Overview.md) as a build-configuration option. Neither is a licensing question, and both are recorded where the interim is defined.
+
 ### 3GPP TS 38.212 and TS 38.331
 
 TS 38.212 supplies the LDPC base graphs and lifting sizes needed by the FEC design. TS 38.331 supplies the RRC procedures used by radio reference state machines. The provisional freeze requires the geometry review without a build prerequisite.
