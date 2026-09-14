@@ -3,7 +3,9 @@
 # The host gate wave, run on a clone at every push and pull request to main.
 #
 # `python tools/run.py --check --tests` runs the three host gates and the tools'
-# behavioral tests together, without changing tracked files. All
+# behavioral tests together, without changing tracked files. The `--summary` the step
+# below adds is not a fifth member and changes no verdict: it writes down what the four
+# decided, and the last paragraph here says why. All
 # of it is pure Python over the checkout, so it runs on Windows and Linux with no
 # toolchain: what needs Sail, Rocq or Verilator is the guest lane, which run.py
 # re-launches inside WSL on a developer's machine and which nothing here reaches. A
@@ -24,6 +26,18 @@
 # The matrix exercises the Windows host cases and the Linux guest cases, with the
 # lane-neutral cases on both. Toolchain cases remain skipped on these runners,
 # neither of which holds the Sail switch.
+#
+# The wave stays one step, so the four members still run concurrently and CI still
+# exercises the gate itself rather than four commands standing in for it. What that
+# costs is diagnosis: four members reach a reader as one step name and one exit code,
+# and a failure is then "Process completed with exit code 1" to anyone who cannot open
+# the log. `--summary` is the answer to that. The gate writes its per-member verdict as
+# JSON under the runner's temporary directory, never into the checkout, and the step
+# after it renders that file into one annotation per member that did not come back
+# clean, plus the whole table into the job summary. Both surfaces are readable without
+# opening the log. That step runs on failure as well as success and states its own
+# absence: no verdict file means the gate failed before any member reported, which is
+# a different fault from any member's and is named as one.
 
 name: host-gates
 
@@ -47,6 +61,12 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      # Where the gate writes its per-member verdict and the step after it reads one.
+      # Declared once here so the two steps cannot come to name different files, and
+      # under the runner's own temporary directory so nothing is written into the tree
+      # the gates are reading.
+      VERDICT: ${{ runner.temp }}/host-gates-verdict.json
     steps:
       - name: Check out the tree, gitlinks and no submodule
         uses: actions/checkout@v7
@@ -68,4 +88,47 @@ jobs:
             tools/uv.lock
 
       - name: Host gates and behavioral tests, read-only
-        run: python tools/run.py --check --tests
+        run: python tools/run.py --check --tests --summary "${{ env.VERDICT }}"
+
+      - name: Name the member that did not come back clean
+        if: always()
+        shell: python
+        run: |
+          import json
+          import os
+          import pathlib
+
+          rows = []
+          verdict = pathlib.Path(os.environ["VERDICT"])
+          try:
+              if not verdict.is_file():
+                  print("::error title=host-gates::the gate wrote no per-member verdict, "
+                        "so it failed before any member reported; read the step above")
+                  rows.append("| n/a | n/a | no verdict file was written |")
+              else:
+                  report = json.loads(verdict.read_text(encoding="utf-8"))
+                  stopped = report.get("stopped") or ""
+                  if stopped:
+                      print(f"::error title=host-gates::{stopped}")
+                      rows.append(f"| n/a | n/a | {stopped} |")
+                  for member in report.get("members", []):
+                      state = ("clean" if member["clean"]
+                               else "reported findings, read the step above"
+                               if member["reached_verdict"] else "never reached a verdict")
+                      if not member["clean"]:
+                          print(f"::error title=host-gates/{member['name']}::"
+                                f"`{member['name']}` {state} (exit {member['code']}); "
+                                f"it decides {member['decides']}")
+                      rows.append(f"| `{member['name']}` | {member['code']} | {state} |")
+              # Appended rather than written, because a job summary belongs to the job
+              # and this step is one contributor to it.
+              with pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]).open(
+                      "a", encoding="utf-8") as out:
+                  out.write("### host gates\n\n| member | exit | verdict |\n")
+                  out.write("| --- | --- | --- |\n")
+                  out.write("".join(row + "\n" for row in rows))
+          except Exception as err:
+              # A reporting failure must not be the thing that turns a green wave red:
+              # the gates above have already decided, and their exit code stands.
+              print(f"::warning title=host-gates::the per-member verdict at {verdict} "
+                    f"could not be rendered: {err!r}")

@@ -11,9 +11,17 @@ Invalid instructions or a repair without a verdict stop before that wave.
 Independent gates run concurrently and report in declaration order. `--tests` adds the
 tools' behavioral tests; those stay optional to keep document checks small and avoid
 recursive test launches. Exit 0 means every final gate passed, 1 otherwise.
+
+`--summary` writes the same verdict as data. The prose below says which member to read
+and is what a person wants; a caller that has only the process's exit code has four
+members collapsed into one number, which is the state a CI run reaches whoever reads it
+without opening the log. The file is written outside the checkout, at the path the
+caller names, and the reader decides what to render from it rather than parsing what
+was printed.
 """
 
 import argparse
+import json
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -141,7 +149,47 @@ def _verdict(rep: Reporter, results: list[Result]) -> None:
                f"all {len(results)} host gate(s) green")
 
 
-def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False) -> Reporter:
+def _verdict_data(results: list[Result], stopped: str = "") -> dict[str, object]:
+    """What the wave decided, as data rather than as the lines a person reads.
+
+    One record per member, each carrying the three things a reader has to tell apart:
+    the command that ran, the code it exited, and whether that code is a verdict at all.
+    `stopped` is the sentence that stands where no wave ran, which is the case a bare
+    exit code cannot distinguish from a failing member and the one a reader most needs
+    named: an invalid instruction import and a repair that crashed both end here.
+    """
+    return {
+        "green": bool(results) and all(r.code == 0 for r in results),
+        "stopped": stopped,
+        "members": [{"name": r.launch.name,
+                     "decides": r.launch.decides,
+                     "code": r.code,
+                     "reached_verdict": r.code in (0, 1),
+                     "clean": r.code == 0}
+                    for r in results],
+    }
+
+
+def _write_summary(rep: Reporter, path: Path, data: dict[str, object]) -> None:
+    """Put the verdict where a caller asked for it, or say it could not be put there.
+
+    A finding on the convention `_launch` keeps: a run asked to say what it decided and
+    unable to has not answered, and a CI failure nothing can name is the state this flag
+    exists to end. The prose report is written either way, so the finding adds a reason
+    rather than replacing one, and it is reported ahead of the wave's own verdict so
+    that line stays last.
+    """
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    except OSError as err:
+        rep.report("summary", "per-member verdict:", [f"{path} could not be written: {err}"])
+        return
+    rep.report("summary", "per-member verdict:", [], ok=f"written to {path}")
+
+
+def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
+        summary: Path | None = None) -> Reporter:
     """Complete mutations before readers, then decide only the final validation wave."""
     if fix and check:
         raise ValueError("--fix and --check are mutually exclusive")
@@ -152,6 +200,9 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False)
             rep.line(sync_instructions.sync(root))
         except (sync_instructions.SyncError, OSError, subprocess.SubprocessError) as err:
             rep.report("gate", "instruction preparation failed:", [str(err)])
+            if summary is not None:
+                _write_summary(rep, summary,
+                               _verdict_data([], f"instruction preparation failed: {err}"))
             return rep
 
     plan = _plan(fix, tests)
@@ -159,14 +210,20 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False)
         repair = _launch(root, plan[0][0])
         _show(rep, repair)
         if repair.code not in (0, 1):
+            stopped = (f"repair did not complete: {repair.launch.name} exited "
+                       f"{repair.code} without reaching a verdict")
             rep.report("gate", "repair did not complete:",
                        [f"{repair.launch.name}: exited {repair.code} without reaching a verdict"])
+            if summary is not None:
+                _write_summary(rep, summary, _verdict_data([], stopped))
             return rep
         rep.line("repair pass complete; the fresh validation below decides the repaired tree")
 
     wave = plan[-1]
     with ThreadPoolExecutor(max_workers=len(wave)) as pool:
         results = list(pool.map(lambda member: _launch(root, member), wave))
+    if summary is not None:
+        _write_summary(rep, summary, _verdict_data(results))
     _verdict(rep, results)
     return rep
 
@@ -183,6 +240,9 @@ def main(argv: list[str] | None = None) -> int:
                       help="validate without restoring the instruction import or repairing files")
     parser.add_argument("--tests", action="store_true",
                         help="add the tools' own behavioral tests to the wave")
+    parser.add_argument("--summary", metavar="PATH", type=Path,
+                        help="also write the per-member verdict there as JSON, for a "
+                             "caller that has only this run's exit code")
     args = parser.parse_args(argv)
 
     plan = _plan(args.fix, args.tests)
@@ -195,6 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     print(preflight + f"running {len(plan[-1])} host gate(s): "
           + ", ".join(m.name for m in plan[-1]), flush=True)
 
-    report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests, check=args.check)
+    report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests, check=args.check,
+                 summary=args.summary)
     print("\n".join(report.out))
     return 1 if report.findings else 0

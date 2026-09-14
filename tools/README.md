@@ -41,6 +41,15 @@ checked out; the guest lane's loops run only by hand, on a machine that holds th
 toolchain. CI green is a witness that the host gates passed on that commit and never a
 substitute for the guest lane's evidence.
 
+**A red CI run has to name which member went red, to a reader who cannot open its
+log.** One invocation is four members and one exit code, which reaches the run page and
+the API as *process completed with exit code 1* and says nothing. So that invocation
+carries `--summary`, which writes the per-member verdict as JSON beside the run rather
+than into the checkout, and the workflow's next step renders it into one annotation per
+member that did not come back clean and a table into the job summary. That step runs
+whether or not the gate did, so a gate that failed before any member reported is named
+as that rather than left looking like a failing member.
+
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
 `wsl -u root -e python3` to remember and no wrong lane to be in. Commands that
@@ -63,7 +72,7 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Validates shared agent instructions and restores a missing import, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. A bare `run.py` selects this workflow. |
+| `gate` | host | Validates shared agent instructions and restores a missing import, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
