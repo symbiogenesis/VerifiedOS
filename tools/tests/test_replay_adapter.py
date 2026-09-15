@@ -7,10 +7,11 @@ call graph, and none of them is evidence that a machine was recorded. Real
 recording against a running model is named as owed in the record contract.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import replace
 from functools import partial
 from pathlib import Path
+from typing import cast
 
 from tests.harness import Case, ensure
 from vos.corpus import find_root
@@ -310,10 +311,44 @@ def _ordinals_advance_and_a_reset_refuses() -> None:
     blob = producer.finish(expected=_BINDING, expected_events=2)
     ensure(b'"ordinal":0' in blob and b'"ordinal":1' in blob,
            "two draws under one retire are ordered by the ordinal")
-    producer = _producer(_recorder())
+    recorder = _recorder()
+    producer = _producer(recorder)
     producer.feed([_retire(9), _access("R", draw)])
     _refused(partial(producer.feed, [_retire(2), _access("R", draw)]))
     _refused(partial(producer.finish, expected=_BINDING, expected_events=1))
+    _latched(partial(recorder.finish, expected=_BINDING, expected_events=1))
+
+
+def _declined_observed_seal_poisoning_reaches_the_recorder() -> None:
+    draw = _door(_windows(), "trng", "ROT_TRNG_DRAW")
+    recorder = _recorder()
+    # A bad injected primitive must not turn a delivered draw into the recorder's
+    # no-value outcome, even when its caller bypasses the producer to finalize.
+    producer = _producer(recorder, seal=cast(Seal, lambda _drawn: None))
+    _refused(partial(producer.feed, [_retire(1), _access("R", draw)]))
+    _latched(partial(recorder.finish, expected=_BINDING, expected_events=0))
+
+
+def _interrupted_trace_never_finalizes_its_prefix() -> None:
+    draw = _door(_windows(), "trng", "ROT_TRNG_DRAW")
+    recorder = _recorder()
+    producer = _producer(recorder)
+    interrupted = KeyboardInterrupt("capture input interrupted")
+
+    def lines() -> Iterator[str]:
+        yield _retire(1)
+        yield _access("R", draw)
+        raise interrupted
+
+    try:
+        producer.feed(lines())
+    except KeyboardInterrupt as exc:
+        ensure(exc is interrupted, "adapter must preserve the original cancellation")
+    else:
+        raise AssertionError("trace interruption must propagate")
+    _refused(partial(producer.feed, []))
+    _refused(partial(producer.finish, expected=_BINDING, expected_events=1))
+    _latched(partial(recorder.finish, expected=_BINDING, expected_events=1))
 
 
 def _capacity_and_seal_failures_latch() -> None:
@@ -345,5 +380,7 @@ def cases() -> list[Case]:
         _deterministic_rot_traffic_adds_no_event,
         _absent_production_interfaces_refuse,
         _ordinals_advance_and_a_reset_refuses,
+        _declined_observed_seal_poisoning_reaches_the_recorder,
+        _interrupted_trace_never_finalizes_its_prefix,
         _capacity_and_seal_failures_latch,
     )]

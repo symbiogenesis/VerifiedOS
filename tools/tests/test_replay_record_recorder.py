@@ -261,6 +261,27 @@ def _reentrant_refusals_cannot_be_swallowed() -> None:
     _dead(recorder)
 
 
+def _adapter_abort_refuses_pending_and_later_capture() -> None:
+    recorder = _recorder()
+    recorder.record(point=_POINT, interface=_ENTROPY, produce=lambda: b"\x00")
+    recorder.abort()
+    recorder.abort()
+    _refused(partial(_finish, recorder, 1))
+    _dead(recorder)
+
+    for payload in (b"\x00", None):
+        recorder = _recorder()
+
+        def aborted_source(recorder: FixtureRecorder = recorder,
+                           payload: bytes | None = payload) -> bytes | None:
+            recorder.abort()
+            return payload
+
+        _refused(partial(recorder.record, point=_POINT, interface=_ENTROPY,
+                         produce=aborted_source))
+        _dead(recorder)
+
+
 def _independent_finish_refuses_missing_or_wrong_binding() -> None:
     for expected, count in (
         (_BINDING, 0), (_BINDING, 2), (_BINDING, True),
@@ -302,6 +323,7 @@ def cases() -> list[Case]:
         _public_semantics_and_validator_errors,
         _admission_rejects_bad_endpoint_or_point,
         _reentrant_refusals_cannot_be_swallowed,
+        _adapter_abort_refuses_pending_and_later_capture,
         _independent_finish_refuses_missing_or_wrong_binding,
         _external_profiles_are_snapshotted_and_checked,
     )]

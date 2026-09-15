@@ -481,6 +481,7 @@ class RootProducer:
         try:
             self._recorder.record(point=point, interface=self._entropy, produce=produce)
         except BaseException:
+            self._recorder.abort()
             self._closed = True
             raise
 
@@ -501,8 +502,8 @@ class TraceProducer:
     point, TDM schedule and watchdog windows are one artifact that does not exist yet.
 
     Refusals latch. A refused capture returns no body, not even the prefix that had
-    already been admitted, and the underlying recorder is poisoned through its own
-    callback path rather than by a second latch kept here.
+    already been admitted. Adapter errors also abort the underlying recorder, so
+    bypassing the producer cannot finalize an uncertain prefix.
     """
 
     def __init__(self, recorder: FixtureRecorder, *, windows: Iterable[Window],
@@ -641,6 +642,7 @@ class TraceProducer:
                 elif line[0] in ("R", "W"):
                     self._access(line[0], line)
         except BaseException:
+            self._recorder.abort()
             self._failed = True
             raise
 
@@ -650,6 +652,7 @@ class TraceProducer:
         try:
             blob = self._recorder.finish(expected=expected, expected_events=expected_events)
         except BaseException:
+            self._recorder.abort()
             self._failed = True
             raise
         self._finished = True
