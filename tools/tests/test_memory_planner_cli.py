@@ -144,6 +144,47 @@ def baseline_route_and_unused_inputs() -> None:
             ensure(not refused["input_sha256"], "a rejected input must never be opened")
 
 
+def planner_controls_are_action_specific() -> None:
+    unsupported = (
+        ("--work-budget", ("0", "1"),
+         ("check", "verify", "contracts", "demo-tflm", "resources", "resource-proof")),
+        ("--replay-budget", ("1", "100000"), ("check", "contracts", "demo-tflm")),
+        ("--certify", (None,), ("check", "verify", "contracts", "demo-tflm", "resources", "resource-proof")),
+    )
+    for option, values, actions in unsupported:
+        for value in values:
+            for action in actions:
+                arguments = [action, option, *([value] if value is not None else [])]
+                if action in {"check", "verify"}:
+                    arguments.extend(["--instance", "unread-instance.json"])
+                code, report = invoke(arguments)
+                ensure(code == 2 and report["evidence"]["status"] == "unknown/unsupported"
+                       and option in report["evidence"]["findings"][0],
+                       f"{action} must refuse the unused control {option}={value}")
+                ensure(not report["input_sha256"], "unused controls are refused before opening inputs")
+
+    raw = {"name": "bounded-replay", "pools": [{"id": "a", "capacity": 4}],
+           "buffers": [{"id": name, "size": 2, "allowed_pools": ["a"], "intervals": [[0, 1]]}
+                       for name in ("first", "second")]}
+    with tempfile.TemporaryDirectory() as directory:
+        instance = Path(directory) / "instance.json"
+        evidence = Path(directory) / "evidence.json"
+        instance.write_text(json.dumps(raw), encoding="utf-8")
+        code, report = invoke(["solve", "--instance", str(instance), "--work-budget", "20",
+                               "--certify", "--replay-budget", "20"])
+        ensure(code == 0 and report["evidence"]["status"] == "checked optimal",
+               "solve consumes supported search and certification controls")
+        evidence.write_text(json.dumps(report), encoding="utf-8")
+        arguments = ["verify", "--instance", str(instance), "--evidence", str(evidence)]
+        code, limited = invoke([*arguments, "--replay-budget", "1"])
+        ensure(code == 1 and limited["evidence"]["status"] == "unknown"
+               and limited["evidence"]["reason"] == "replay budget exhausted",
+               "verify consumes its replay limit and makes no claim after exhaustion")
+        code, complete = invoke([*arguments, "--replay-budget", "20"])
+        ensure(code == 0 and complete["evidence"]["status"] == "checked optimal",
+               "verify still accepts a sufficient independent replay budget")
+
+
 def resource_contract_cli() -> None:
     raw = resources.demo_resources()
     with tempfile.TemporaryDirectory() as directory:
@@ -177,4 +218,5 @@ def cases() -> list[Case]:
             Case("optional failures preserve fallback", optional_input_failure_retains_baseline),
             Case("host and guest routing", routing_and_bad_arguments),
             Case("baseline routing and unused input refusal", baseline_route_and_unused_inputs),
+            Case("action-specific planner controls", planner_controls_are_action_specific),
             Case("resource contracts and proof emission", resource_contract_cli)]

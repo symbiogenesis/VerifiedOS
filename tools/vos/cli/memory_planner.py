@@ -28,10 +28,10 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--resource-budget", type=Path,
                         help="resource contract JSON including placement, budgets and event costs")
     result.add_argument("--evidence", type=Path, help="complete result JSON for independent replay")
-    result.add_argument("--work-budget", type=int, default=0,
+    result.add_argument("--work-budget", type=int,
                         help="deterministic optional search budget; zero retains supplied candidates")
     result.add_argument("--certify", action="store_true", help="request independent finite optimality replay")
-    result.add_argument("--replay-budget", type=int, default=100000)
+    result.add_argument("--replay-budget", type=int, help="independent replay limit (default: 100000)")
     result.add_argument("--json", action="store_true", help="emit the full result and evidence")
     return result
 
@@ -97,31 +97,35 @@ def service_demo() -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str,
 
 
 def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
-    if args.work_budget < 0 or args.replay_budget < 1:
-        raise ValueError("work budget must be nonnegative and replay budget positive")
-    # Refuse unused input files before dispatch can silently replace a caller's
-    # standing plan, contract or evidence with another action's defaults.
-    input_actions: dict[str, set[str]] = {
+    # Refuse unused inputs and controls before dispatch can silently replace a
+    # caller's standing plan, contract, evidence or requested work with defaults.
+    option_actions: dict[str, set[str]] = {
         "instance": {"plan", "check", "solve", "verify"},
         "baseline": {"plan"},
         "candidate": {"plan", "check"},
         "contract": {"contracts"},
         "resource_budget": {"resources", "resource-proof"},
         "evidence": {"verify"},
+        "work_budget": {"plan", "solve", "demo"},
+        "replay_budget": {"plan", "solve", "demo", "verify", "resources", "resource-proof"},
+        "certify": {"plan", "solve", "demo"},
     }
-    for option, actions in input_actions.items():
-        if getattr(args, option) and args.action not in actions:
+    for option, actions in option_actions.items():
+        value = getattr(args, option)
+        supplied = value is not None if option in {"work_budget", "replay_budget"} else bool(value)
+        if supplied and args.action not in actions:
             flag = "--" + option.replace("_", "-")
             raise ValueError(f"{flag} is only supported by {', '.join(sorted(actions))}")
+    work_budget = 0 if args.work_budget is None else args.work_budget
+    replay_budget = 100000 if args.replay_budget is None else args.replay_budget
+    if work_budget < 0 or replay_budget < 1:
+        raise ValueError("work budget must be nonnegative and replay budget positive")
     if args.action in {"resources", "resource-proof"}:
-        if (args.instance or args.baseline or args.candidate or args.contract or args.evidence
-                or args.work_budget or args.certify):
-            raise ValueError("resource actions take the complete contract through --resource-budget")
         raw = read_json(args.resource_budget, inputs) if args.resource_budget else resources.demo_resources()
-        report = resources.analyze_resources(raw, max_work=args.replay_budget)
+        report = resources.analyze_resources(raw, max_work=replay_budget)
         result = {"resource_contract": report, "status": report["status"], "errors": report["errors"]}
         if args.action == "resource-proof" and not report["errors"]:
-            result["rocq_source"] = resources.emit_resource_certificate(raw, max_work=args.replay_budget)
+            result["rocq_source"] = resources.emit_resource_certificate(raw, max_work=replay_budget)
         return result
     if args.action == "contracts":
         raw = read_json(args.contract, inputs) if args.contract else contracts.demo_contract()
@@ -136,8 +140,8 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
         raw, baseline, candidate = service_demo()
         instance = planner.parse_instance(raw)
         result = planner.plan(instance, baseline, candidates=(candidate,),
-                              work_budget=args.work_budget, certify=args.certify,
-                              replay_budget=args.replay_budget)
+                              work_budget=work_budget, certify=args.certify,
+                              replay_budget=replay_budget)
         result.update(instance=raw, baseline=baseline,
                       measurement_scope="constructed non-ML scratch example, not a target benchmark")
         return result
@@ -145,13 +149,13 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
         raise ValueError("--instance is required for this action")
     instance = planner.parse_instance(read_json(args.instance, inputs))
     if args.action == "solve":
-        return planner.solve(instance, work_budget=args.work_budget, certify=args.certify,
-                             replay_budget=args.replay_budget)
+        return planner.solve(instance, work_budget=work_budget, certify=args.certify,
+                             replay_budget=replay_budget)
     if args.action == "verify":
         if args.evidence is None:
             raise ValueError("verify requires --evidence")
         return {"evidence": planner.verify_evidence(
-            instance, read_json(args.evidence, inputs), work_budget=args.replay_budget)}
+            instance, read_json(args.evidence, inputs), work_budget=replay_budget)}
     if args.action == "check":
         if len(args.candidate) != 1:
             raise ValueError("check requires exactly one --candidate")
@@ -162,8 +166,8 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     baseline = read_json(args.baseline, inputs)
     candidates = tuple(partial(load_candidate, path, inputs) for path in args.candidate)
     return planner.plan(instance, baseline, candidates=candidates,
-                        work_budget=args.work_budget, certify=args.certify,
-                        replay_budget=args.replay_budget)
+                        work_budget=work_budget, certify=args.certify,
+                        replay_budget=replay_budget)
 
 
 def main(argv: list[str] | None = None) -> int:
