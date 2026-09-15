@@ -48,7 +48,7 @@ The [static-memory literature adoption map](implementation/static-memory-literat
 connects allocation and reusable-capacity research to the pinned candidate and
 certificate integrations, finite resource contracts and remaining proof obligations.
 
-The recovered implementation interfaces are recorded in the
+The implementation interfaces are recorded in the
 [service authoring contracts](implementation/service-authoring-contracts.md),
 [object transactor contract](implementation/object-transactor-contract.md),
 [recovery policy input](implementation/storage-recovery-policy.md),
@@ -65,6 +65,10 @@ Hardware qualification preparation includes the
 [scalar staging contract](hardware/scalar-width-transform-contract.md),
 [platform device contracts](hardware/platform-device-contracts.md), and
 [module admission candidate](hardware/immutable-module-admission.md).
+The [post-quantum reference contract](assurance/pq-reference-contract.md) fixes
+the shared arithmetic and scheme campaign boundaries; the
+[probing model contract](assurance/probing-model-contract.md) separates finite
+algebra and circuit-model results from probability-library and physical qualification.
 The [security policy candidate](assurance/security-policy-model.md) and
 [opening hardening obligations](assurance/hardening-opening-obligations.md)
 state their remaining implementation and proof premises. The

@@ -103,7 +103,7 @@ So the two artifacts answer different questions and both are needed:
 
 ## Reading the status column
 
-Two of twenty-nine are authored outright (row 1, the apex theorem's machine-checked statement, and row 4, the frozen ISA profile), and nine more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b, rows 14 and 17, each carried in part by a Gallina statement artifact under [proofs/](../../proofs/) that states the specification and proves nothing of the object it names, and row 29, whose contract is authored and whose descriptors, register field layouts and electrical values are not. Eighteen of those twenty-nine are not authored.
+Three of twenty-nine are authored outright, and eight more are partial. Eighteen of those twenty-nine are not authored. The inventory rows identify each artifact and its remaining scope; an authored reference model does not establish its implementation or the adequacy of its external premises.
 
 That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-nine are *named, constrained, and traced*; the as-existing assurance is low because eighteen of them are not yet written, and the ten theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
 
