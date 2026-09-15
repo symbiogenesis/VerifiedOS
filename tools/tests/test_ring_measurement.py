@@ -6,7 +6,7 @@ import hashlib
 import json
 import tempfile
 from contextlib import redirect_stdout
-from io import StringIO
+from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from typing import Any
 
@@ -307,6 +307,54 @@ def _cli_evidence() -> None:
                    "missing capture is malformed input")
 
 
+def _cli_escaped_identifiers() -> None:
+    # JSON identifiers may contain Unicode, control characters and lone surrogates.
+    # Rendering must preserve all three verdicts even on a strict output stream.
+    with tempfile.TemporaryDirectory(prefix="vos-ring-unicode-") as directory:
+        root = Path(directory)
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        for name in ("ring-\ud800", "ring-\u2603\n\x1b-tail"):
+            for defect in ("none", "excess", "charge", "chronology", "world", "operation", "key"):
+                capture, expected = _fixture()
+                capture["rings"][0]["ring_id"] = name
+                code = 0 if defect == "none" else 1 if defect == "excess" else 2
+                if defect == "excess":
+                    _first(capture)["activation_overhead_cost"] = 10**9
+                elif defect == "charge":
+                    _request(capture)["validation_cost"] = -1
+                elif defect == "chronology":
+                    _first(capture)["tick"] = 100
+                elif defect == "world":
+                    capture["rings"][0]["world"] = name
+                elif defect == "operation":
+                    _request(capture)["operation"] = name
+                raw = _blob(capture)
+                if defect == "key":
+                    key = _blob(name)
+                    raw = b"{" + key + b": 0, " + key + b": 0, " + raw[1:]
+                capture_path.write_bytes(raw)
+                expected_path.write_bytes(_blob({**expected, "capture_sha256": _hash(raw)}))
+                for encoding in ("utf-8", "ascii"):
+                    for flags in ([], ["--json"]):
+                        buffer = BytesIO()
+                        with TextIOWrapper(buffer, encoding=encoding, errors="strict") as output:
+                            with redirect_stdout(output):
+                                actual = cli.main([str(capture_path), "--expected-identity",
+                                                   str(expected_path), *flags])
+                            output.flush()
+                            rendered = buffer.getvalue().decode(encoding)
+                        ensure(actual == code, f"{defect}: escaped identifiers retain the verdict")
+                        ensure("\\ud800" in rendered or "\\u2603" in rendered,
+                               f"{defect}: output escapes non-ASCII identifiers")
+                        ensure("\x1b" not in rendered, "identifiers cannot emit terminal controls")
+                        if flags:
+                            report = json.loads(rendered)
+                            ensure(report["milestone_acceptance"] == "open", "target remains open")
+                            if code != 2:
+                                ensure(report["rings"][0]["ring_id"] == name,
+                                       "JSON retains the exact identifier")
+
+
 def cases() -> list[Case]:
     return [Case("hand-computed-mixed-and-empty-accounting", _hand_accounting),
             Case("declared-boundary-equality-and-one-past", _declared_boundaries),
@@ -314,4 +362,5 @@ def cases() -> list[Case]:
             Case("ambiguous-declaration-is-refused", _ambiguous_declaration_is_refused),
             Case("identity-bindings-and-chronology", _identities_and_chronology),
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),
-            Case("cli-scope-evidence-and-exits", _cli_evidence)]
+            Case("cli-scope-evidence-and-exits", _cli_evidence),
+            Case("cli-escaped-identifiers-and-verdicts", _cli_escaped_identifiers)]

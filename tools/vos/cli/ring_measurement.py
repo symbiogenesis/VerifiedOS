@@ -11,6 +11,11 @@ from vos import corpus
 from vos.ring_measurement import SCOPE, analyze
 
 
+def _display(value: str) -> str:
+    """Escape capture text for terminals without changing structured identifiers."""
+    return json.dumps(value, ensure_ascii=True)[1:-1]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="run.py ring-measurement", description=__doc__)
     parser.add_argument("capture", type=Path, help="ring capture JSON under roster-measurement-contract")
@@ -29,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"verdict": "malformed", "reason": str(error),
                               "scope": SCOPE, "milestone_acceptance": "open"}, indent=2))
         else:
-            print(f"FAIL ring-measurement: {error}; {SCOPE}; milestone acceptance open")
+            print(f"FAIL ring-measurement: {_display(str(error))}; {SCOPE}; milestone acceptance open")
         return 2
     if args.json:
         print(json.dumps({**asdict(result), "sources_sha256": sources}, indent=2))
@@ -37,10 +42,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{'FAIL' if result.findings else 'ok'} ring-measurement: {result.verdict}; "
               f"{SCOPE}; milestone acceptance open")
         for ring in result.rings:
-            print(f"  {ring.ring_id}: queue {ring.queue_high_water}/{ring.capacity}, "
+            print(f"  {_display(ring.ring_id)}: queue {ring.queue_high_water}/{ring.capacity}, "
                   f"batch {ring.batch_high_water}/{ring.max_batch_size}, "
                   f"cost {ring.max_activation_cost}/{ring.slot_budget} declaration_units; "
                   f"unmeasured tail {ring.unmeasured_tail_ticks} ticks")
         for finding in result.findings:
-            print(f"  {finding}")
+            print(f"  {_display(finding)}")
     return 1 if result.findings else 0
