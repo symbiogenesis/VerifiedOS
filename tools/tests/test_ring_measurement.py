@@ -204,6 +204,28 @@ def _identities_and_chronology() -> None:
     ensure(not _run(base, expected).findings, "activation at inclusive start is allowed")
 
 
+def _ambiguous_declaration_is_refused() -> None:
+    declaration = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
+    world = declaration["worlds"][0]
+    budget = world["ring"]["slot_budget"]
+    original = json.dumps(declaration)
+    for key in ('"slot_budget"', '"slot_budg\\u0065t"'):
+        ambiguous = original.replace(f'"slot_budget": {budget}',
+                                     f'"slot_budget": 0, {key}: {budget}', 1)
+        with sandbox_tree({ring_owner.DECLARATION: ambiguous}) as root:
+            capture, expected = _fixture(root)
+            # The first budget rejects the fixture; a last-key-wins reader accepts it.
+            ensure(_first(capture)["activation_overhead_cost"] > 0,
+                   "zero budget cannot accommodate the observed overhead")
+            try:
+                _run(capture, expected, root)
+            except ValueError as error:
+                ensure("duplicate JSON key: slot_budget" in str(error),
+                       "refuse the ambiguous declaration before accounting")
+            else:
+                raise AssertionError("duplicate declaration budget silently selected its last value")
+
+
 def _closed_shapes_and_numbers() -> None:
     base, expected = _fixture()
     for location in ("capture", "window", "ring", "activation", "request", "identity"):
@@ -289,6 +311,7 @@ def cases() -> list[Case]:
     return [Case("hand-computed-mixed-and-empty-accounting", _hand_accounting),
             Case("declared-boundary-equality-and-one-past", _declared_boundaries),
             Case("declaration-driven-drain-and-schema", _declaration_is_the_owner),
+            Case("ambiguous-declaration-is-refused", _ambiguous_declaration_is_refused),
             Case("identity-bindings-and-chronology", _identities_and_chronology),
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),
             Case("cli-scope-evidence-and-exits", _cli_evidence)]

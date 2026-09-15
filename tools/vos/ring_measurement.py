@@ -259,6 +259,9 @@ def analyze(capture_blob: bytes, expected_blob: bytes, root: Path) -> Analysis:
     declaration_hash = hashlib.sha256(declaration_blob).hexdigest()
     if _digest(capture["declaration_sha256"], "declaration_sha256") != declaration_hash:
         raise ValueError("declaration_sha256 does not bind the current ring declaration")
+    # The owning reader validates declaration shapes but permits duplicate JSON keys.
+    # Apply this instrument's strict JSON boundary to the exact bytes bound above.
+    _decode(declaration_blob)
     try:
         declaration = ring_owner.declaration(root)
     except ring_owner.RingError as error:
