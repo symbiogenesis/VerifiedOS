@@ -220,6 +220,18 @@ unreserved tail, alignment loss or delayed reuse. This is a fixed-slot snapshot,
 not an unavoidable offline-placement gap or a measured size-class policy. Replay it
 with `python tools/run.py static-memory corpus --case fixed-size-class-stranding --json`.
 
+The `same-owner-arena-stranding` witness isolates separate arena backing. One owner's
+target arena is occupied while its other arena has an idle slot of the same size.
+The target request reports `slot-occupied`; changing only its arena fits the idle
+slot, and changing only its time to the target's reuse boundary fits the target slot.
+Each arena has one equal-sized, fully useful slot at base zero with unit alignment
+and coincident release and reuse boundaries. Foreign ownership, size classes,
+alignment, slack and delayed reuse cannot explain the difference. The ledger keeps
+both arenas' capacity separate even though their relative slot offsets match.
+This snapshot establishes no unavoidable offline-placement gap or runtime permission.
+Replay it with
+`python tools/run.py static-memory corpus --case same-owner-arena-stranding --json`.
+
 ## Q5 bridge and validation
 
 `q5_bridge(root, source_revision)` calls the existing

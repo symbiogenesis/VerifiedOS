@@ -282,6 +282,51 @@ def alignment_stranding_changes_only_the_request_alignment() -> None:
            "an alignment diagnostic granted runtime permission")
 
 
+def same_owner_arena_stranding_changes_only_the_request_arena() -> None:
+    case = _case("same-owner-arena-stranding")
+    target, other, completed = case["requests"]
+    ensure(other == {**target, "arena": "idle-pool"}
+           and completed == {**target, "time": 4},
+           "the fitting controls changed more than arena or completed-reuse time")
+    ensure(len(case["arenas"]) == len(case["objects"]) == 2
+           and {arena["owner"] for arena in case["arenas"]} == {target["owner"]},
+           "arena stranding acquired another owner or competing slots")
+    for slot in case["objects"]:
+        arena = next(item for item in case["arenas"] if item["id"] == slot["arena"])
+        ensure(slot["size"] == slot["payload"] == target["size"] == arena["capacity"]
+               and slot["alignment"] == target["alignment"] == 1 and slot["base"] == 0
+               and slot["payload_end"] == slot["authority_end"] == slot["sweep_end"]
+               == slot["reuse"],
+               "size classes, alignment, slack or delayed reuse can explain the refusal")
+
+    for time in range(5):
+        report = c.ledger(case, time)
+        ensure(report["total_capacity"] == 8
+               and sum(report["totals"].values()) == 8
+               and not report["arena_capacities_interchangeable"],
+               "equal offsets in separate arenas merged their physical backing")
+        for row in report["rows"]:
+            # This trace has only payload or idle backing, decided directly by its ends.
+            end = 4 if row["arena"] == "busy-pool" else 2
+            expected = dict.fromkeys(c.CHARGES, 0)
+            expected["useful_payload" if time < end else "idle_reserved"] = 4
+            ensure(row["charges"] == expected and sum(expected.values()) == row["capacity"],
+                   "separate arena capacity was lost or charged to the wrong phase")
+            answer = c.diagnose_request(case, time, "service", row["arena"], 4)
+            ensure(not answer["runtime_permission"], "an arena diagnostic granted permission")
+            if time < end:
+                ensure(answer["verdict"] == "refused" and answer["reason"] == "slot-occupied"
+                       and answer["free_physical_bytes"] == 0,
+                       "idle backing from the other arena satisfied an occupied slot")
+            else:
+                ensure(answer["verdict"] == "fits-at-instant"
+                       and answer["slot_witnesses"] == [(0, 4)]
+                       and answer["free_physical_bytes"]
+                       == answer["largest_free_aligned_extent"]
+                       == answer["largest_idle_declared_slot_extent"] == 4,
+                       "a same-owner arena lost its fit at the completed reuse boundary")
+
+
 def malformed_lifetimes_and_overlap_fail_before_accounting() -> None:
     for mutation in ("overlap", "early-reuse", "boolean-time"):
         case = copy.deepcopy(_case("bounded-parser"))
@@ -484,6 +529,7 @@ def cases() -> list[Case]:
         split_free_extents_preserve_contiguity_and_declared_slot_limits,
         fixed_size_classes_strand_contiguous_same_owner_backing,
         alignment_stranding_changes_only_the_request_alignment,
+        same_owner_arena_stranding_changes_only_the_request_arena,
         malformed_lifetimes_and_overlap_fail_before_accounting,
         q5_bridge_preserves_absence_instead_of_inventing_owners,
     )]
