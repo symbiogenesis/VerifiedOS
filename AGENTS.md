@@ -63,6 +63,8 @@ For the Windows/WSL workflow, create lanes and inspect checkout state on Windows
 
 Use `python tools/run.py <command>` on Windows; it dispatches toolchain commands into WSL. On Linux, including the WSL guest, use `python3 tools/run.py <command>` directly. `python tools/run.py help` lists commands and `python tools/run.py <command> --help` gives their options. Read [the tool guide](tools/README.md) before changing Python tools or their configuration.
 
+**A sandboxed Windows shell can report installed tools as missing.** If `git`, `python` or `uv` is not recognized, inspect command resolution and installation-path access before installing replacements or switching shells. This host's Git resolves through the user's WinGet Links directory and Python/uv through the user's Python installation; sandbox access restrictions can hide both. Use the execution tool's normal escalation mechanism when required, and re-check resolution in that context. See [host tool discovery](tools/README.md#host-tool-discovery).
+
 **Batch edits and match checks to the changed surface.** Follow the [check schedule](tools/README.md#check-scheduling-during-fan-out). Read-only scouts run no gates. Workers run focused checks and report drift and deferred work; they do not run `--fix` or bare `run.py`. Keep one full host wave active across the machine by default, including all worktrees.
 
 | Purpose | Command |

@@ -350,6 +350,21 @@ may be closures without requiring serialization.
 
 `tools/co-read.json`, the ledger `coread --bless` writes, is one line per requirement id, so two lanes blessing disjoint ids merge cleanly and two touching one id conflict loudly, which is the right outcome. A conflict there is resolved by hunk and never by taking a side whole, which discards every blessing the other lane recorded and re-opens the pairs it read; the merged text of a conflicted pair then wants a fresh `coread --show` and `--bless`.
 
+### Host tool discovery
+
+On this Windows host, a sandboxed PowerShell session can report `git`, `python`
+and `uv` as unrecognized even while their installation directories appear on
+`PATH`. Access restrictions can hide the executable or its parent directory;
+this result alone does not establish that the tool is absent.
+
+Check `Get-Command git,python,uv` and access to the installation paths. Git is
+available through the user's `AppData/Local/Microsoft/WinGet/Links/git.exe`;
+Python and uv are in the user's `AppData/Local/Programs/Python/` installation.
+When access is denied, use the execution tool's normal escalation mechanism
+and repeat command resolution there. Do not reinstall tools or change the
+system `PATH` to repair a sandbox restriction. Every command still targets
+its assigned checkout and keeps the host/guest placement rules below.
+
 ## One toolchain, several checkouts
 
 There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, on which filesystem, and whether anything is building there right now.
