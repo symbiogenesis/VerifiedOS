@@ -27,6 +27,47 @@ can be replayed. It returns the receipt without writing files, running a solver 
 selecting a production schedule. The tool takes no target contract as input; this
 is a replayable constructed witness.
 
+## Receipt walkthrough
+
+Run the replay above and open `experiment`; all paths below are relative to that
+object. Its `errors` should be empty even though it contains deliberate refusals.
+Select entries in `scenarios` by `policy.name`, then read these comparisons:
+
+1. **Recovered backing (`deferred-slow` and `eager-faster`).** Compare
+   `peak_total_bytes` and `fixed_capacity_binding.same_service_admitted`. Follow
+   `records[*].reuse` against the next burst's `records[*].start`, then inspect
+   `timeline[*].occupied_backing`: the joint policy finishes reuse before the next
+   admission, removing overlap between incarnations. Each `timeline` row partitions
+   that backing into lifecycle charges; `permanent` is added once in `total_charge`.
+   Compare `peak_quarantined_bytes` separately. The distinction is summarized by
+   `comparisons.finite_trace_backing_saved_bytes` and
+   `comparisons.finite_trace_quarantine_saved_bytes`: recovered backing does not
+   mean a smaller separate quarantine peak. The `eager-slow` and `deferred-faster`
+   entries show that neither individual change admits the smaller fixed capacity.
+2. **A faster calendar that removes service (`overreserved-sweep`).** Read
+   `status`, `bound.status` and `bound.errors`, then find `reservation` rows where
+   `workload_available` falls below `workload_required`. Sweep and zeroization
+   reservations overlap while the control and workload grants remain reserved.
+   This candidate is `service-refused`, with a null `bound.release_to_reuse`;
+   it supplies no usable capacity comparison.
+3. **Failed containment keeps the slot.** In `failed_containment.records`, follow
+   a `failed-containment` record from `release` to `failure_decision`. Its `barrier`,
+   `pass_start` and `reuse` remain null. In `failed_containment.timeline`, its
+   extent enters `failed_retention` and remains charged through the horizon.
+   `failed_containment.binding.refused_ids` identifies later requests rejected at
+   their occupied fixed slots; `failed_containment.successful_reuse_bound` is null.
+4. **A completed pass can still refuse reuse.** Match `stage_refusals.cases[*].stage`
+   and `reasons` to `stage_refusals.stages`. The `post-barrier-pass` outcome has a
+   barrier and a completed sweep, but `reuse` remains null and
+   `retained_bytes_at_horizon` remains charged. The `containment` outcome never
+   starts a pass. Both preserve the occupied slot: the fixed binding rule refuses
+   a later request until its predecessor has a non-null, completed reuse time.
+
+The successful scenarios' `bound` supplies the separate conditional calendar
+argument; their finite timelines are observations of the declared synthetic run.
+Neither is a hardware measurement, a qualified service rate or completion of the
+broader reclamation agenda.
+
 ## One external service contract
 
 `Envelope` supplies a public periodic request calendar, a fixed extent and useful
