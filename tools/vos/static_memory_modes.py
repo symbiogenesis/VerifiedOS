@@ -963,15 +963,16 @@ def _family(name: str, identities: list[tuple[str, int]],
     }
 
 
-def _pairwise(name: str, pairs: list[tuple[str, str]], instant: int) -> dict[str, Any]:
-    """A family whose modes activate one declared pair each, dead at every switch."""
+def _pairwise(name: str, pairs: list[tuple[str, str]], instant: int,
+              *, at_target: int = 0) -> dict[str, Any]:
+    """One declared pair per mode, with explicit exit and entry instants."""
     identities = sorted({identifier for pair in pairs for identifier in pair})
     order = [f"{left}{right}" for left, right in pairs]
     return _family(
         name, [(identifier, 1) for identifier in identities],
         [(f"{left}{right}", [(left, 1, 3), (right, 1, 3)]) for left, right in pairs],
         "dead-at-switch",
-        [(order[index], order[(index + 1) % len(order)], instant, 0, [])
+        [(order[index], order[(index + 1) % len(order)], instant, at_target, [])
          for index in range(len(order))])
 
 
@@ -1004,6 +1005,8 @@ def witnesses() -> list[tuple[dict[str, Any], Expectation]]:
                  [("m1", "m2", 4, 0, ["a"]), ("m2", "m3", 4, 0, ["c"]),
                   ("m3", "m1", 4, 0, ["b"])]), retained),
         (_pairwise("live-identity-at-switch", [("a", "b"), ("a", "c"), ("b", "c")], 2), refused),
+        (_pairwise("live-destination-at-switch", [("a", "b"), ("a", "c"), ("b", "c")],
+                   3, at_target=1), refused),
         (_family("two-arena-separation",
                  [("a", 1), ("b", 1), ("c", 1), ("d", 2), ("e", 2), ("f", 2)],
                  [("m1", [("a", 1, 3), ("b", 1, 3), ("d", 1, 3), ("e", 1, 3)]),
