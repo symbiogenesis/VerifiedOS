@@ -2109,6 +2109,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M5.2, in prose
 · Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; the hazard is one any second Require will carry
 
+**F-389** measurement: universal symbolic authentication made the recovered witness-history theorem vacuous despite inhabited records
+· Raised: M5.5
+· Disposition: closed, authentication is scoped to received evidence and both safety-theorem applications construct all their premises jointly
+
+**F-390** measurement: the recovered certificate predicate diverged from Q22b on malformed padding, repeated signers and policy validity
+· Raised: M5.5
+· Disposition: closed, strict admission follows the qualified model and generated decisions agree
+
+**F-391** measurement: terminal checkpoint compatibility left destination-policy uniqueness unstated
+· Raised: M5.5
+· Disposition: closed, full terminal-statement uniqueness is proved for witness runs and accepted terminal quorums, with a recovered-state refusal witness
+
 ## M6 · Userland spine
 
 **F-216** upstream-defect: the interface-definition start-from states its terms through a one-line pointer to a second file and the forge reports its licence as `NOASSERTION`, so a reading taken at the forge carries no instrument at all and one taken at the announcement misses that the pointer defers to subdirectory licences
