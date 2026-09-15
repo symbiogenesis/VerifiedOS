@@ -46,7 +46,9 @@
    nothing. No byte below reaches a device: R-09-004's fixed-address boot
    region, R-09-005's flat measured payload and the ONFI path beneath them
    are not modelled, and the transactor's write of that region is the
-   `toggle` below and not a device transaction.
+   `toggle` below and not a device transaction. Retained-root provenance is
+   protected symbolic state; fallback independently rechecks its bytes, image
+   and admission rather than treating provenance alone as authentication.
 
    The one Require, and why it is a dependency rather than a citation.
    `Require Import JournalIndex.` names the sibling artifact M5.1 landed, and
@@ -110,7 +112,8 @@
       and one that checks only reachability has verified nothing about the
       bytes. The two are stated apart, each proved of the specification, and
       each refuted by a construction that keeps the other.
-   3. The reachable set is a list computed to a declared depth. `walk_depth`
+   3. The reachable set is a list computed to a declared depth; unfinished
+      child frontiers refuse the image at that bound. `walk_depth`
       is a field, which is what keeps the walk structural; no separate
       reachability relation exists, and `reach_list` is the one list both the
       reader's admission test and the whole-image intactness test read.
@@ -536,8 +539,15 @@ Definition present_and_named (t : Transactor) (st : Objects) (n : nat) : bool :=
 (* And over a whole image: every name the root reaches is present and named.
    This is what the transactor checks before it commits, and it is what
    R-10-009 means by not trusting the journal. *)
+Fixpoint walk_complete (fuel : nat) (st : Objects) (frontier : list nat) : bool :=
+  match fuel with
+  | 0 => all_of (fun n => match kids_at st n with nil => true | _ => false end) frontier
+  | S k => walk_complete k st (concat_of (map_over (kids_at st) frontier))
+  end.
+
 Definition dag_intact (t : Transactor) (st : Objects) (root : nat) : bool :=
-  all_of (present_and_named t st) (reach_list t st root).
+  andb (walk_complete (walk_depth t) st (cons root nil))
+       (all_of (present_and_named t st) (reach_list t st root)).
 
 (* =========================================================================
    The system-integrity reader (R-06-005, R-10-001).
@@ -562,7 +572,8 @@ Definition spec_read (t : Transactor) (st : Objects) (root n : nat) : option nat
    a corrupt parent can introduce an otherwise correctly named leaf. The
    bounded symbolic reader authenticates the entire enumerated image before
    it releases bytes. A path-local implementation needs a refinement of
-   this integrity boundary and a complete finite-DAG/depth argument. *)
+   this integrity boundary and its finite-DAG representation. The bounded
+   reference walk refuses any unfinished child frontier. *)
 Definition leaf_only_read (t : Transactor) (st : Objects) (root n : nat) : option nat :=
   if mem_of n (reach_list t st root)
   then match st n with
@@ -654,6 +665,7 @@ Theorem an_intact_image_answers_every_reachable_name :
     answers spec_read t st root n = true.
 Proof.
   intros t st root n Hd Hm. pose proof Hd as Hwhole. unfold dag_intact in Hd.
+  apply andb_split in Hd. destruct Hd as [_ Hd].
   assert (Hp : present_and_named t st n = true)
     by exact (all_of_elim (present_and_named t st) (reach_list t st root) n Hd Hm).
   unfold answers. unfold spec_read. rewrite Hwhole. rewrite Hm.
@@ -870,7 +882,8 @@ Record Ab : Type := {
   ab_slot_b : SignedRoot;
   ab_floor : nat;
   ab_staged : bool;
-  ab_admitted : bool
+  ab_admitted : bool;
+  ab_retained : option SignedRoot (* previous live root, invalidated by restaging *)
 }.
 
 Definition live (ab : Ab) : SignedRoot :=
@@ -900,7 +913,7 @@ Definition toggle (ab : Ab) : Ab :=
      ab_slot_b := ab_slot_b ab;
      ab_floor := ab_floor ab;
      ab_staged := false;
-     ab_admitted := false |}.
+     ab_admitted := false; ab_retained := Some (live ab) |}.
 
 Lemma live_of_toggle : forall ab : Ab, live (toggle ab) = spare ab.
 Proof.
@@ -929,7 +942,7 @@ Definition stage (sr : SignedRoot) (ab : Ab) : Ab :=
      ab_slot_b := if ab_b_live ab then ab_slot_b ab else sr;
      ab_floor := ab_floor ab;
      ab_staged := true;
-     ab_admitted := false |}.
+     ab_admitted := false; ab_retained := None |}.
 
 (* The construction R-11-001's own sentence excludes: a stage that writes
    the slot the machine is running from. *)
@@ -939,7 +952,7 @@ Definition inplace_stage (sr : SignedRoot) (ab : Ab) : Ab :=
      ab_slot_b := if ab_b_live ab then sr else ab_slot_b ab;
      ab_floor := ab_floor ab;
      ab_staged := true;
-     ab_admitted := false |}.
+     ab_admitted := false; ab_retained := None |}.
 
 Lemma live_of_stage : forall (sr : SignedRoot) (ab : Ab), live (stage sr ab) = live ab.
 Proof.
@@ -987,7 +1000,7 @@ Definition verify (t : Transactor) (st : Objects) (ab : Ab) : Ab :=
      ab_slot_b := ab_slot_b ab;
      ab_floor := ab_floor ab;
      ab_staged := ab_staged ab;
-     ab_admitted := andb (ab_staged ab) (stage_admissible t st ab) |}.
+     ab_admitted := andb (ab_staged ab) (stage_admissible t st ab); ab_retained := ab_retained ab |}.
 
 (* Reading 7: the verdict field is backed where the verify step would have
    set it, which is the predicate the flip's safety is stated over. *)
@@ -1038,7 +1051,7 @@ Definition resealing_flip (ab : Ab) : Ab :=
           ab_slot_b := ab_slot_b ab;
           ab_floor := sr_floor (spare ab);
           ab_staged := false;
-          ab_admitted := false |}
+          ab_admitted := false; ab_retained := Some (live ab) |}
   else ab.
 
 (* And the one that separates the two floor obligations: R-09-028's own
@@ -1055,7 +1068,7 @@ Definition raising_flip (ab : Ab) : Ab :=
           ab_floor := if Nat.ltb (ab_floor ab) (sr_floor (spare ab))
                       then sr_floor (spare ab) else ab_floor ab;
           ab_staged := false;
-          ab_admitted := false |}
+          ab_admitted := false; ab_retained := Some (live ab) |}
   else ab.
 
 (* -------------------------------------------------------------------------
@@ -1064,8 +1077,33 @@ Definition raising_flip (ab : Ab) : Ab :=
    floor.
    ------------------------------------------------------------------------- *)
 
-Definition fall_back (ab : Ab) : Ab :=
-  if Nat.leb (ab_floor ab) (sr_version (spare ab)) then toggle ab else ab.
+Definition retained_matches (ab : Ab) : bool :=
+  match ab_retained ab with None => false | Some sr => sr_eqb sr (spare ab) end.
+
+Definition fallback_admissible (t : Transactor) (st : Objects) (ab : Ab) : bool :=
+  andb (negb (ab_staged ab)) (andb (retained_matches ab) (stage_admissible t st ab)).
+
+Definition fall_back (t : Transactor) (st : Objects) (ab : Ab) : Ab :=
+  if fallback_admissible t st ab then toggle ab else ab.
+
+Theorem fallback_checks_retention_and_authentication : forall t st ab,
+  fallback_admissible t st ab = true ->
+  ab_staged ab = false /\ retained_matches ab = true /\
+  root_verifies t (spare ab) = true /\
+  dag_intact t st (sr_root (spare ab)) = true /\ admits t (sr_root (spare ab)) = true.
+Proof.
+  intros t st ab H. unfold fallback_admissible in H.
+  apply andb_split in H as [Hs H]. apply andb_split in H as [Hr H].
+  unfold stage_admissible in H. apply andb_split in H as [Hv H].
+  apply andb_split in H as [_ H]. apply andb_split in H as [_ H].
+  apply andb_split in H as [Hd Ha].
+  destruct (ab_staged ab); simpl in Hs; try discriminate.
+  repeat split; assumption || reflexivity.
+Qed.
+
+Theorem restaging_cannot_be_used_as_a_predecessor : forall t st sr ab,
+  fall_back t st (stage sr ab) = stage sr ab.
+Proof. intros. unfold fall_back, fallback_admissible. reflexivity. Qed.
 
 (* The construction R-09-030 excludes: a return that pins the predecessor
    whatever its security version. *)
@@ -1079,7 +1117,7 @@ Definition settle (ab : Ab) : Ab :=
      ab_slot_b := ab_slot_b ab;
      ab_floor := ab_floor ab;
      ab_staged := false;
-     ab_admitted := false |}.
+     ab_admitted := false; ab_retained := ab_retained ab |}.
 
 Lemma live_of_settle : forall ab : Ab, live (settle ab) = live ab.
 Proof.
@@ -1152,7 +1190,7 @@ Qed.
 Theorem the_specification_transitions_write_no_floor :
   forall (t : Transactor) (st : Objects) (sr : SignedRoot),
     WritesNoFloor (stage sr) /\ WritesNoFloor (verify t st)
-    /\ WritesNoFloor flip /\ WritesNoFloor fall_back /\ WritesNoFloor settle.
+    /\ WritesNoFloor flip /\ WritesNoFloor (fall_back t st) /\ WritesNoFloor settle.
 Proof.
   intros t st sr. split; [ | split; [ | split; [ | split ] ] ].
   - intros ab. exact (nat_eqb_refl (ab_floor ab)).
@@ -1160,7 +1198,7 @@ Proof.
   - intros ab. unfold flip. destruct (andb (ab_staged ab) (ab_admitted ab));
       exact (nat_eqb_refl (ab_floor ab)).
   - intros ab. unfold fall_back.
-    destruct (Nat.leb (ab_floor ab) (sr_version (spare ab)));
+    destruct (fallback_admissible t st ab);
       exact (nat_eqb_refl (ab_floor ab)).
   - intros ab. exact (nat_eqb_refl (ab_floor ab)).
 Qed.
@@ -1174,15 +1212,18 @@ Proof.
     exact (nat_leb_refl (ab_floor ab)).
 Qed.
 
-(* T11 (R-09-030): the return refuses a predecessor below the floor at its
-   own site, so it needs no verdict to be safe. *)
+(* T11 (R-09-030): the return verifies the retained predecessor and both floor guards
+   at its own site, independently of the staged-admission verdict. *)
 (*| discharges: R-09-030, R-11-002 |*)
 Theorem the_specification_fall_back_keeps_the_live_generation_bootable :
-  KeepsTheLiveGenerationBootable fall_back.
+  forall t st, KeepsTheLiveGenerationBootable (fall_back t st).
 Proof.
-  intros ab H. unfold fall_back.
-  destruct (Nat.leb (ab_floor ab) (sr_version (spare ab))) eqn:E; [ | exact H ].
-  unfold bootable_now. rewrite live_of_toggle. rewrite floor_of_toggle. exact E.
+  intros t st ab H. unfold fall_back.
+  destruct (fallback_admissible t st ab) eqn:E; [ | exact H ].
+  unfold fallback_admissible in E. apply andb_split in E as [_ E].
+  apply andb_split in E as [_ E]. unfold stage_admissible in E.
+  apply andb_split in E as [_ E]. apply andb_split in E as [Hfloor _].
+  unfold bootable_now. rewrite live_of_toggle. rewrite floor_of_toggle. exact Hfloor.
 Qed.
 
 Theorem the_specification_stage_and_verify_keep_the_live_generation_bootable :
@@ -1255,7 +1296,7 @@ Qed.
 Theorem the_specification_transitions_preserve_backing :
   forall (t : Transactor) (st : Objects) (sr : SignedRoot),
     PreservesBacking t st (stage sr) /\ PreservesBacking t st (verify t st)
-    /\ PreservesBacking t st flip /\ PreservesBacking t st fall_back
+    /\ PreservesBacking t st flip /\ PreservesBacking t st (fall_back t st)
     /\ PreservesBacking t st settle.
 Proof.
   intros t st sr. split; [ | split; [ | split; [ | split ] ] ].
@@ -1265,7 +1306,7 @@ Proof.
     destruct (andb (ab_staged ab) (ab_admitted ab)); [ | exact H ].
     unfold verdict_backed. unfold only_if. reflexivity.
   - intros ab H. unfold fall_back.
-    destruct (Nat.leb (ab_floor ab) (sr_version (spare ab))); [ | exact H ].
+    destruct (fallback_admissible t st ab); [ | exact H ].
     unfold verdict_backed. unfold only_if. reflexivity.
   - intros ab H. unfold verdict_backed. unfold only_if. reflexivity.
 Qed.
@@ -1365,43 +1406,43 @@ Qed.
    and a gate that never returns loses the automatic rollback.
    ========================================================================= *)
 
-Definition Gate : Type := Transactor -> Ab -> Ab.
+Definition Gate : Type := Transactor -> Objects -> Ab -> Ab.
 
-Definition spec_gate (t : Transactor) (ab : Ab) : Ab :=
-  if healthy t (sr_root (live ab)) then settle ab else fall_back ab.
+Definition spec_gate (t : Transactor) (st : Objects) (ab : Ab) : Ab :=
+  if healthy t (sr_root (live ab)) then settle ab else fall_back t st ab.
 
 (* The construction R-11-001's health-gated auto-rollback excludes: a gate
    that settles whatever booted. *)
-Definition stubborn_gate (t : Transactor) (ab : Ab) : Ab := settle ab.
+Definition stubborn_gate (t : Transactor) (st : Objects) (ab : Ab) : Ab := settle ab.
 
 (* The construction that loses the update instead: a gate that returns
    whether or not the generation is healthy. *)
-Definition eager_gate (t : Transactor) (ab : Ab) : Ab := fall_back ab.
+Definition eager_gate (t : Transactor) (st : Objects) (ab : Ab) : Ab := fall_back t st ab.
 
 (* And the one R-09-030 excludes: a gate that returns through the floor. *)
-Definition reckless_gate (t : Transactor) (ab : Ab) : Ab :=
+Definition reckless_gate (t : Transactor) (st : Objects) (ab : Ab) : Ab :=
   if healthy t (sr_root (live ab)) then settle ab else blind_fall_back ab.
 
 Definition ReturnsOnAnUnhealthyGeneration (g : Gate) : Prop :=
-  forall (t : Transactor) (ab : Ab),
+  forall (t : Transactor) (st : Objects) (ab : Ab),
     healthy t (sr_root (live ab)) = false ->
-    Nat.leb (ab_floor ab) (sr_version (spare ab)) = true ->
-    sr_eqb (live (g t ab)) (spare ab) = true.
+    fallback_admissible t st ab = true ->
+    sr_eqb (live (g t st ab)) (spare ab) = true.
 
 Definition KeepsAHealthyGeneration (g : Gate) : Prop :=
-  forall (t : Transactor) (ab : Ab),
-    healthy t (sr_root (live ab)) = true -> sr_eqb (live (g t ab)) (live ab) = true.
+  forall (t : Transactor) (st : Objects) (ab : Ab),
+    healthy t (sr_root (live ab)) = true -> sr_eqb (live (g t st ab)) (live ab) = true.
 
 Definition GateKeepsTheLiveGenerationBootable (g : Gate) : Prop :=
-  forall (t : Transactor) (ab : Ab),
-    bootable_now ab = true -> bootable_now (g t ab) = true.
+  forall (t : Transactor) (st : Objects) (ab : Ab),
+    bootable_now ab = true -> bootable_now (g t st ab) = true.
 
 (* T19 and T20 (R-11-001, R-11-002). *)
 (*| discharges: R-11-001, R-11-002 |*)
 Theorem the_specification_gate_returns_on_an_unhealthy_generation :
   ReturnsOnAnUnhealthyGeneration spec_gate.
 Proof.
-  intros t ab Hh Hf. unfold spec_gate. rewrite Hh. unfold fall_back. rewrite Hf.
+  intros t st ab Hh Hf. unfold spec_gate. rewrite Hh. unfold fall_back. rewrite Hf.
   rewrite live_of_toggle. exact (sr_eqb_refl (spare ab)).
 Qed.
 
@@ -1409,7 +1450,7 @@ Qed.
 Theorem the_specification_gate_keeps_a_healthy_generation :
   KeepsAHealthyGeneration spec_gate.
 Proof.
-  intros t ab Hh. unfold spec_gate. rewrite Hh. rewrite live_of_settle.
+  intros t st ab Hh. unfold spec_gate. rewrite Hh. rewrite live_of_settle.
   exact (sr_eqb_refl (live ab)).
 Qed.
 
@@ -1419,36 +1460,36 @@ Qed.
 Theorem the_specification_gate_keeps_the_live_generation_bootable :
   GateKeepsTheLiveGenerationBootable spec_gate.
 Proof.
-  intros t ab H. unfold spec_gate. destruct (healthy t (sr_root (live ab))).
+  intros t st ab H. unfold spec_gate. destruct (healthy t (sr_root (live ab))).
   - unfold bootable_now. rewrite live_of_settle. exact H.
-  - exact (the_specification_fall_back_keeps_the_live_generation_bootable ab H).
+  - exact (the_specification_fall_back_keeps_the_live_generation_bootable t st ab H).
 Qed.
 
 Theorem the_stubborn_gate_still_keeps_a_healthy_generation :
   KeepsAHealthyGeneration stubborn_gate.
 Proof.
-  intros t ab Hh. unfold stubborn_gate. rewrite live_of_settle.
+  intros t st ab Hh. unfold stubborn_gate. rewrite live_of_settle.
   exact (sr_eqb_refl (live ab)).
 Qed.
 
 Theorem the_stubborn_gate_still_keeps_the_live_generation_bootable :
   GateKeepsTheLiveGenerationBootable stubborn_gate.
 Proof.
-  intros t ab H. unfold stubborn_gate. unfold bootable_now.
+  intros t st ab H. unfold stubborn_gate. unfold bootable_now.
   rewrite live_of_settle. exact H.
 Qed.
 
 Theorem the_eager_gate_still_returns_on_an_unhealthy_generation :
   ReturnsOnAnUnhealthyGeneration eager_gate.
 Proof.
-  intros t ab Hh Hf. unfold eager_gate. unfold fall_back. rewrite Hf.
+  intros t st ab Hh Hf. unfold eager_gate. unfold fall_back. rewrite Hf.
   rewrite live_of_toggle. exact (sr_eqb_refl (spare ab)).
 Qed.
 
 Theorem the_reckless_gate_still_returns_on_an_unhealthy_generation :
   ReturnsOnAnUnhealthyGeneration reckless_gate.
 Proof.
-  intros t ab Hh Hf. unfold reckless_gate. rewrite Hh. unfold blind_fall_back.
+  intros t st ab Hh Hf. unfold reckless_gate. rewrite Hh. unfold blind_fall_back.
   rewrite live_of_toggle. exact (sr_eqb_refl (spare ab)).
 Qed.
 
@@ -1640,7 +1681,7 @@ Definition verify_public (t : Transactor) (st : Objects) (ab : Ab)
   {| ab_b_live := ab_b_live ab; ab_slot_a := ab_slot_a ab; ab_slot_b := ab_slot_b ab;
      ab_floor := ab_floor ab; ab_staged := ab_staged ab;
      ab_admitted := andb (ab_admitted (verify t st ab))
-       (commitment_ok t pinned offered (cons (sr_root (spare ab)) packages)) |}.
+       (commitment_ok t pinned offered (cons (sr_root (spare ab)) packages)); ab_retained := ab_retained ab |}.
 
 (*| discharges: R-13-023b, R-13-023c, R-17-030v |*)
 Theorem public_admission_binds_the_candidate_and_every_package :
@@ -1996,7 +2037,7 @@ Example an_uncrashed_stage_lands_whole :
 
 Definition demo_ab : Ab :=
   {| ab_b_live := false; ab_slot_a := base_root; ab_slot_b := stale_root;
-     ab_floor := 4; ab_staged := false; ab_admitted := false |}.
+     ab_floor := 4; ab_staged := false; ab_admitted := false; ab_retained := Some stale_root |}.
 
 Definition staged_ab : Ab := stage next_root demo_ab.
 Definition verified_ab : Ab := verify demo_transactor whole_view staged_ab.
@@ -2006,7 +2047,7 @@ Definition flipped_ab : Ab := flip verified_ab.
    again, with the successor it refused retained in the spare slot at or
    above the floor, which is the state a gate that returns unconditionally
    is observable on. *)
-Definition settled_ab : Ab := spec_gate demo_transactor flipped_ab.
+Definition settled_ab : Ab := spec_gate demo_transactor whole_view flipped_ab.
 
 (* The four transitions at the demo, read off the generation each leaves
    live: staging does not move it, verify admits, the flip commits the
@@ -2016,17 +2057,17 @@ Definition settled_ab : Ab := spec_gate demo_transactor flipped_ab.
 Example the_four_transitions_at_the_demo :
   pair (pair (sr_root (live staged_ab)) (ab_admitted verified_ab))
        (pair (sr_root (live flipped_ab))
-             (sr_root (live (spec_gate demo_transactor flipped_ab))))
+             (sr_root (live (spec_gate demo_transactor whole_view flipped_ab))))
   = pair (pair 17 true) (pair 33 17) := eq_refl.
 
 Example the_floor_is_unmoved_across_the_whole_update :
   map_over ab_floor (cons demo_ab (cons staged_ab (cons verified_ab
-    (cons flipped_ab (cons (spec_gate demo_transactor flipped_ab) nil)))))
+    (cons flipped_ab (cons (spec_gate demo_transactor whole_view flipped_ab) nil)))))
   = cons 4 (cons 4 (cons 4 (cons 4 (cons 4 nil)))) := eq_refl.
 
 Example every_state_of_the_update_is_bootable :
   map_over bootable_now (cons demo_ab (cons staged_ab (cons verified_ab
-    (cons flipped_ab (cons (spec_gate demo_transactor flipped_ab) nil)))))
+    (cons flipped_ab (cons (spec_gate demo_transactor whole_view flipped_ab) nil)))))
   = cons true (cons true (cons true (cons true (cons true nil)))) := eq_refl.
 
 (* The five admission conjuncts, one candidate failing each and one failing
@@ -2143,30 +2184,31 @@ Example what_the_three_flips_leave_the_floor_at :
    retained predecessor is below the floor. *)
 Definition stranded_ab : Ab :=
   {| ab_b_live := true; ab_slot_a := stale_root; ab_slot_b := next_root;
-     ab_floor := 4; ab_staged := false; ab_admitted := false |}.
+     ab_floor := 4; ab_staged := false; ab_admitted := false; ab_retained := Some stale_root |}.
 
 Theorem the_stubborn_gate_is_refuted : ~ ReturnsOnAnUnhealthyGeneration stubborn_gate.
 Proof.
-  intros H. specialize (H demo_transactor flipped_ab eq_refl eq_refl).
+  intros H. specialize (H demo_transactor whole_view flipped_ab eq_refl eq_refl).
   discriminate H.
 Qed.
 
 Theorem the_eager_gate_is_refuted : ~ KeepsAHealthyGeneration eager_gate.
 Proof.
-  intros H. specialize (H demo_transactor settled_ab eq_refl). discriminate H.
+  intros H. specialize (H demo_transactor whole_view settled_ab eq_refl).
+  vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_reckless_gate_is_refuted :
   ~ GateKeepsTheLiveGenerationBootable reckless_gate.
 Proof.
-  intros H. specialize (H demo_transactor stranded_ab eq_refl). discriminate H.
+  intros H. specialize (H demo_transactor whole_view stranded_ab eq_refl). discriminate H.
 Qed.
 
 (*| discharges: R-11-001, R-09-030 |*)
 Example what_the_four_gates_leave_live :
-  pair (map_over (fun g => sr_root (live (g demo_transactor flipped_ab)))
+  pair (map_over (fun g => sr_root (live (g demo_transactor whole_view flipped_ab)))
          (cons spec_gate (cons stubborn_gate (cons eager_gate (cons reckless_gate nil)))))
-       (map_over (fun g => bootable_now (g demo_transactor stranded_ab))
+       (map_over (fun g => bootable_now (g demo_transactor whole_view stranded_ab))
          (cons spec_gate (cons stubborn_gate (cons eager_gate (cons reckless_gate nil)))))
   = pair (cons 17 (cons 33 (cons 17 (cons 17 nil))))
          (cons true (cons true (cons true (cons false nil)))) := eq_refl.
@@ -2180,7 +2222,7 @@ Example what_the_four_gates_leave_live :
 Example a_predecessor_below_the_floor_is_not_returned_to :
   pair (pair (healthy demo_transactor (sr_root (live stranded_ab)))
              (sr_version (spare stranded_ab)))
-       (sr_root (live (spec_gate demo_transactor stranded_ab)))
+       (sr_root (live (spec_gate demo_transactor whole_view stranded_ab)))
   = pair (pair false 2) 33 := eq_refl.
 
 (* =========================================================================
@@ -2196,7 +2238,7 @@ Definition journal_trusting_verify (cut : Discipline) (j : list Rec) (txn : nat)
      ab_slot_b := ab_slot_b ab;
      ab_floor := ab_floor ab;
      ab_staged := ab_staged ab;
-     ab_admitted := andb (ab_staged ab) (journal_says_committed cut j txn) |}.
+     ab_admitted := andb (ab_staged ab) (journal_says_committed cut j txn); ab_retained := ab_retained ab |}.
 
 (* Under the stopping arm the journal reports the stage uncommitted and the
    trusting transactor refuses; under the skipping arm it reports it
@@ -2371,3 +2413,50 @@ Example public_admission_rejects_an_unlogged_package_and_an_unaccepted_checkpoin
 Example the_public_update_commits_the_bound_candidate_root :
   sr_root (live (flip (verify_public demo_transactor whole_view staged_ab 70 70 (cons 41 nil))))
   = 33 := eq_refl.
+
+(* The old floor-only fallback accepted an unverified staged candidate.
+   Retention and fresh authentication are now both required by the decision. *)
+Definition floor_only_fallback (ab : Ab) : Ab :=
+  if Nat.leb (ab_floor ab) (sr_version (spare ab)) then toggle ab else ab.
+
+Example staging_an_unverified_root_cannot_launder_it_through_health_failure :
+  root_verifies demo_transactor torn_copy = false /\
+  live (floor_only_fallback (stage torn_copy flipped_ab)) = torn_copy /\
+  live (spec_gate demo_transactor whole_view (stage torn_copy flipped_ab)) = next_root /\
+  fallback_admissible demo_transactor whole_view flipped_ab = true /\
+  live (spec_gate demo_transactor whole_view flipped_ab) = base_root.
+Proof. repeat split; reflexivity. Qed.
+
+Definition retained_torn_root : Ab :=
+  {| ab_b_live := true; ab_slot_a := torn_copy; ab_slot_b := next_root;
+     ab_floor := 4; ab_staged := false; ab_admitted := false;
+     ab_retained := Some torn_copy |}.
+
+Example a_retained_name_does_not_replace_authentication :
+  retained_matches retained_torn_root = true /\
+  fallback_admissible demo_transactor whole_view retained_torn_root = false /\
+  live (spec_gate demo_transactor whole_view retained_torn_root) = next_root.
+Proof. repeat split; reflexivity. Qed.
+
+Definition with_walk_depth (t : Transactor) (depth : nat) : Transactor :=
+  {| encode_obj := encode_obj t; content_hash := content_hash t; walk_depth := depth;
+     root_copies := root_copies t; encode_root := encode_root t; checksum := checksum t;
+     enrolled_root := enrolled_root t; sig_ok := sig_ok t; admits := admits t;
+     healthy := healthy t; included := included t; consistent := consistent t;
+     checkpoint_accepted := checkpoint_accepted t |}.
+
+Definition only_successor_root : Objects := fun n =>
+  if Nat.eqb n 33 then Some next_root_obj else None.
+
+Theorem an_unfinished_bounded_walk_refuses_the_image : forall t st root,
+  walk_complete (walk_depth t) st (cons root nil) = false -> dag_intact t st root = false.
+Proof. intros t st root H. unfold dag_intact. rewrite H. reflexivity. Qed.
+
+Example exhaustion_cannot_disguise_a_missing_descendant :
+  all_of (present_and_named demo_transactor only_successor_root)
+    (reach_list (with_walk_depth demo_transactor 0) only_successor_root 33) = true /\
+  dag_intact (with_walk_depth demo_transactor 0) only_successor_root 33 = false /\
+  ab_admitted (verify (with_walk_depth demo_transactor 0) only_successor_root staged_ab) = false /\
+  dag_intact (with_walk_depth demo_transactor 0) whole_view 7 = true /\
+  dag_intact demo_transactor whole_view 33 = true.
+Proof. repeat split; reflexivity. Qed.
