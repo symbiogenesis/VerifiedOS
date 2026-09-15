@@ -252,7 +252,7 @@ def _heuristic_row(case: memory.Case, method: str, status: str,
                    standing_spans: dict[str, int]) -> dict[str, Any]:
     """One comparison row, with the same fields and fallback rule the oracle emits."""
     spans = memory.placement_spans(case, candidate) if candidate is not None else None
-    preserve = not _improves(spans, standing_spans)
+    preserve = status != "feasible" or not _improves(spans, standing_spans)
     return {"method": method, "status": status, "nodes": work.spent,
             "work_budget": work.limit, "candidate": candidate,
             "candidate_spans": spans, "standing_preserved": preserve,

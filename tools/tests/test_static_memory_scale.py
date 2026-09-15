@@ -109,6 +109,44 @@ def _cutoff_preserves_every_standing_plan() -> None:
                "an exhausted bound budget must leave the charged load standing alone")
 
 
+def _interrupted_lowering_preserves_standing_selection() -> None:
+    raw = scale.corpus("test", (2,))[0]
+    raw["arenas"][0]["capacity"] = 30
+    for obj, size, base, start in zip(raw["objects"], (10, 1), (4, 12), (0, 1), strict=True):
+        obj.update(size=size, payload=size, base=base, start=start,
+                   payload_end=start + 1, authority_end=start + 1,
+                   sweep_end=start + 1, reuse=start + 1)
+    before = deepcopy(raw)
+    case = memory.parse_case(raw)
+    standing = memory.standing_placement(case)
+    standing_spans = memory.placement_spans(case, standing)
+    item = scale.compare_case(raw, 1, 0)
+    lowered = next(row for row in item["heuristics"] if row["method"] == "lowered-standing")
+    ensure(lowered["status"] == "incomplete" and lowered["nodes"] == 1,
+           "the lowering pass must stop after moving only the larger object")
+    ensure(lowered["candidate"] is not None
+           and not memory.check_placement(case, lowered["candidate"])
+           and lowered["candidate_spans"]["a"] < standing_spans["a"],
+           "interrupted lowering must retain its checked improvement as diagnostic evidence")
+    ensure(lowered["standing_preserved"] and lowered["placement"] == standing
+           and lowered["spans"] == standing_spans,
+           "an interrupted lowering row must preserve the standing selection despite an improvement")
+    ensure(all(row["feasible_span_source"] == "standing"
+               and row["feasible_span"] == standing_spans[row["arena"]]
+               for row in lowered["arenas"]),
+           "the interrupted row's arena summaries must describe the standing selection")
+    ensure(raw == before and item["standing_preserved"]
+           and item["selected_placement"] == standing
+           and item["best_feasible_placement"] == standing
+           and all(row["feasible_span_source"] == "standing" for row in item["arenas"]),
+           "the assembled comparison must exclude incomplete candidates and preserve its input")
+    completed = scale.compare_case(raw, 1000, 0)
+    full = next(row for row in completed["heuristics"] if row["method"] == "lowered-standing")
+    ensure(full["status"] == "feasible" and not full["standing_preserved"]
+           and full["spans"]["a"] < standing_spans["a"],
+           "a completed lowering improvement must remain selectable")
+
+
 def _inflated_bound_is_refused() -> None:
     """A bound bug must fail comparison even when the placement itself still checks."""
     raw = scale.corpus("test", (8,))[0]
@@ -295,6 +333,7 @@ def cases() -> list[Case]:
         Case("generators-identified-and-feasible", _generators_are_identified_and_feasible),
         Case("small-oracles-and-large-bounds-distinct", _small_oracles_and_large_bounds_stay_distinct),
         Case("cutoff-preserves-standing", _cutoff_preserves_every_standing_plan),
+        Case("interrupted-lowering-preserves-standing", _interrupted_lowering_preserves_standing_selection),
         Case("inflated-bound-refused", _inflated_bound_is_refused),
         Case("added-orderings-reproduce-the-oracle", _added_orderings_reproduce_the_oracle_and_recheck),
         Case("lowering-reaches-a-fixed-point", _lowering_reaches_a_fixed_point_and_never_grows),
