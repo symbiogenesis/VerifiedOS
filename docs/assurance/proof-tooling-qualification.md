@@ -25,7 +25,7 @@ Three actual source trials distinguish the gates:
 
 | Trial | Exact change and observed refusal |
 | --- | --- |
-| Broken bound | In the lane's actual `CopyRingService.v`, changed the publisher's `Nat.ltb (rv_occupancy v) ring_capacity` guard to `Nat.leb`, including the matching case split. Compilation refused `publish_keeps_the_invariant` at line 873, characters 77â€“79: `Hg` proves `<=` while `leb_sub_succ` requires `<`. Elapsed 1.71 s. |
+| Broken bound | In the lane's actual `CopyRingService.v`, changed the publisher's `Nat.ltb (rv_occupancy v) ring_capacity` guard to `Nat.leb`, including the matching case split. Compilation refused `publish_keeps_the_invariant` at line 873, characters 77-79: `Hg` proves `<=` while `leb_sub_succ` requires `<`. Elapsed 1.71 s. |
 | Unfinished interactive proof | Replaced the file's suffix at `publish_keeps_the_invariant` with `Proof. intros v H.` and no closing proof. The compiler named that pending proof and exited 1 in 1.74 s. Exact original bytes were restored in `finally`. |
 | Provisional admission | The separate native candidate uses `Admitted` for that same lemma. Compilation can produce a module, but the real native assumption audit refused the new axiom in the lemma, the interleaving theorem and its other dependent client. Elapsed 29.18 s. Kernel checking by itself would not reject a declared axiom; all three acceptance components are necessary. |
 
