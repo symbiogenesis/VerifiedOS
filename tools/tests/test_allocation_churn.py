@@ -5,7 +5,7 @@ import json
 from contextlib import redirect_stdout
 from dataclasses import asdict, replace
 from hashlib import sha256
-from io import StringIO
+from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -235,6 +235,54 @@ def _cli_verdicts() -> None:
                    "both renderings diagnose mismatched input without crashing")
 
 
+def _cli_escaped_diagnostics() -> None:
+    # JSON can carry escaped lone surrogates; valid identifiers retain their
+    # semantics, while refusal diagnostics must survive strict UTF-8 output.
+    with TemporaryDirectory(prefix="vos-churn-unicode-") as directory:
+        root = Path(directory).resolve()
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        for defect in ("none", "duplicate-key", "duplicate-domain", "unaligned-window",
+                       "duplicate-teardown", "invalid-teardown", "overlap", "absent-service"):
+            capture = _capture()
+            capture["domains"][0]["id"] = "kernel-\ud800"
+            for row in [*capture["teardowns"], *capture["sweep_quanta"]]:
+                row["domain"] = "kernel-\ud800"
+            capture["teardowns"][0]["id"] = "teardown-\ud800"
+            if defect == "duplicate-domain":
+                capture["domains"].append(capture["domains"][0])
+            elif defect == "unaligned-window":
+                capture["window"]["start_tick"] = 1
+            elif defect == "duplicate-teardown":
+                capture["teardowns"].append(capture["teardowns"][0])
+            elif defect == "invalid-teardown":
+                capture["teardowns"][0]["reuse_tick"] = 0
+            elif defect == "overlap":
+                capture["sweep_quanta"].append(capture["sweep_quanta"][0])
+            elif defect == "absent-service":
+                capture["sweep_quanta"] = []
+            raw = json.dumps(capture).encode("utf-8")
+            if defect == "duplicate-key":
+                raw = b'{"\\ud800": 0, "\\ud800": 0, ' + raw[1:]
+            capture_path.write_bytes(raw)
+            expected_path.write_text(json.dumps(asdict(_expected(raw))), encoding="utf-8", newline="")
+            for flags in ([], ["--json"]):
+                buffer = BytesIO()
+                with TextIOWrapper(buffer, encoding="utf-8", errors="strict") as output:
+                    with redirect_stdout(output):
+                        actual = cli.main([str(capture_path), "--expected-identity",
+                                           str(expected_path), *flags])
+                    output.flush()
+                    rendered = buffer.getvalue().decode("utf-8")
+                ensure(actual == (0 if defect == "none" else 2),
+                       f"{defect}: UTF-8 diagnostics preserve the capture verdict")
+                ensure("\\ud800" in rendered, f"{defect}: output escapes the lone surrogate")
+                if flags:
+                    report = json.loads(rendered)
+                    ensure(report["milestone_acceptance"] == "open"
+                           and (defect == "none" or isinstance(report["error"], str)),
+                           f"{defect}: JSON retains a structured verdict")
+
+
 def cases() -> list[Case]:
     return [Case("hand-counted-boundaries", _hand_counted_boundaries),
             Case("zero-and-exact-rates", _zero_activity_and_fractional_rates),
@@ -243,4 +291,5 @@ def cases() -> list[Case]:
             Case("independent-domain-pools", _independent_domain_pools),
             Case("malformed-records", _malformed_records),
             Case("identity-and-raw-bytes", _independent_identity_and_raw_bytes),
-            Case("cli-verdicts", _cli_verdicts)]
+            Case("cli-verdicts", _cli_verdicts),
+            Case("cli-escaped-diagnostics", _cli_escaped_diagnostics)]

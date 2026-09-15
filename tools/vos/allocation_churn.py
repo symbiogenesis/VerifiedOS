@@ -56,7 +56,7 @@ def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
     result: dict[str, Json] = {}
     for key, value in pairs:
         if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
+            raise ValueError(f"duplicate JSON key: {key!r}")
         result[key] = value
     return result
 
@@ -126,9 +126,9 @@ def _domains(raw: Json, start: int, end: int) -> tuple[Domain, ...]:
         budget = _integer(row["background_ticks_per_period"], "background_ticks_per_period", 1)
         capacity = _integer(row["quarantine_capacity_bytes"], "quarantine_capacity_bytes", 1)
         if name in domains:
-            raise ValueError(f"duplicate domain: {name}")
+            raise ValueError(f"duplicate domain: {name!r}")
         if start % period or end % period or budget > period:
-            raise ValueError(f"domain {name}: unaligned observation or budget exceeds period")
+            raise ValueError(f"domain {name!r}: unaligned observation or budget exceeds period")
         domains[name] = Domain(name, period, budget, capacity)
     if not domains:
         raise ValueError("domains must declare at least one accounting bucket")
@@ -148,9 +148,9 @@ def _teardowns(raw: Json, start: int, end: int, domains: set[str]) -> tuple[Tear
         swept = _integer(row["swept_capability_bytes"], "swept_capability_bytes")
         amount = _integer(row["quarantined_bytes"], "quarantined_bytes")
         if name in seen or domain not in domains:
-            raise ValueError(f"teardown {name}: duplicate identity or unknown domain")
+            raise ValueError(f"teardown {name!r}: duplicate identity or unknown domain")
         if not start <= retire < end or not retire <= reuse <= end or (amount and retire == reuse):
-            raise ValueError(f"teardown {name}: unfinished or invalid quarantine interval")
+            raise ValueError(f"teardown {name!r}: unfinished or invalid quarantine interval")
         seen.add(name)
         rows.append(Teardown(name, domain, retire, reuse, swept, amount))
     return tuple(rows)
@@ -169,7 +169,7 @@ def _quanta(raw: Json, start: int, end: int, domains: set[str]) -> tuple[Quantum
     previous: dict[str, int] = {}
     for row in sorted(rows, key=lambda item: (item.domain, item.start_tick)):
         if row.start_tick < previous.get(row.domain, start):
-            raise ValueError(f"domain {row.domain}: overlapping sweep quanta")
+            raise ValueError(f"domain {row.domain!r}: overlapping sweep quanta")
         previous[row.domain] = row.end_tick
     return tuple(rows)
 
@@ -261,7 +261,7 @@ def analyze(raw: bytes, expected: ExpectedIdentity) -> dict[str, Json]:
         events = tuple(row for row in teardowns if row.domain == domain.name)
         service = tuple(row for row in quanta if row.domain == domain.name)
         if any(row.swept_capability_bytes for row in events) and not service:
-            raise ValueError(f"domain {domain.name}: swept footprint has no recorded sweep service")
+            raise ValueError(f"domain {domain.name!r}: swept footprint has no recorded sweep service")
         peak_bytes = _peak_quarantine(events)
         peak_ticks = _peak_period_service(service, domain.period_ticks)
         if peak_bytes > domain.quarantine_capacity_bytes:
