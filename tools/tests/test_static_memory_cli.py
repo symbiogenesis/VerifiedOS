@@ -74,6 +74,7 @@ def _malformed_input() -> None:
 
 def _comparison_cutoff_and_replay() -> None:
     code, report = _invoke(["compare", "--case", "adversarial-alignment", "--max-nodes", "1"])
+    ensure(report["settings"]["max_nodes"] == 1, "comparison retains an explicit budget")
     item = report["cases"][0]
     ensure(code == 0 and item["exact"]["status"] == "incomplete"
            and item["exact"]["standing_preserved"],
@@ -82,12 +83,46 @@ def _comparison_cutoff_and_replay() -> None:
     ensure(all(row["nodes"] <= 1 for row in item["heuristics"]),
            "the command budget must reach every heuristic")
     code, report = _invoke(["compare", "--case", "adversarial-alignment"])
+    ensure(report["settings"]["max_nodes"] == 100000, "comparison retains its default budget")
     item = report["cases"][0]
     ensure(code == 0 and item["optimality_replay"]["status"] == "verified",
            "complete optimum must carry independently replayed evidence")
     ensure(item["exact"]["arenas"][0]["best_span_over_load"] > 0
            and item["exact"]["arenas"][0]["optimality_gap"] == 0,
            "a proved optimum must not erase the difference from live load")
+
+
+def _search_budget_refusals() -> None:
+    unsupported = ("corpus", "check", *(action for action in cli.EXPERIMENT_SOURCES
+                                      if action != "scale"))
+    invalid = [([action, "--max-nodes", "1",
+                 *(["--contract", "unread-input.json"] if action in ("corpus", "check") else [])],
+                "--max-nodes is supported by compare and scale") for action in unsupported]
+    invalid.extend(([action, "--max-nodes", budget], "--max-nodes must be positive")
+                   for action in ("compare", "scale") for budget in ("0", "-1"))
+    for argv, message in invalid:
+        errors = StringIO()
+        with (redirect_stderr(errors),
+              patch.object(cli, "identity", side_effect=AssertionError("read source identity")),
+              patch.object(cli, "read_input", side_effect=AssertionError("read input file")),
+              patch.object(cli, "experiment", side_effect=AssertionError("ran experiment"))):
+            try:
+                _invoke(argv)
+            except SystemExit as error:
+                ensure(error.code == 2 and message in errors.getvalue(),
+                       f"invalid budget requires an early usage error: {argv}")
+            else:
+                raise AssertionError(f"invalid budget was silently ignored: {argv}")
+
+
+def _scale_budget_defaults_and_override() -> None:
+    root = Path(__file__).resolve().parents[2]
+    for options, budget in (([], 100000), (["--max-nodes", "7"], 7)):
+        with patch.object(cli.scale, "report", return_value={"scope": "fixture"}) as report:
+            code, receipt = _invoke(["scale", *options])
+        ensure(code == 0, "scale accepts an explicit budget and its omission")
+        report.assert_called_once_with(root, receipt["revision"], sizes=(8, 32, 128),
+                                       work_budget=budget, q5_max_leaves=256)
 
 
 def _experiment_routes_and_source_binding() -> None:
@@ -138,5 +173,7 @@ def cases() -> list[Case]:
             Case("candidate binding and refusal", _candidate_identity_and_refusal),
             Case("malformed input", _malformed_input),
             Case("comparison cutoff and replay", _comparison_cutoff_and_replay),
+            Case("search budget refusals", _search_budget_refusals),
+            Case("scale budget defaults and override", _scale_budget_defaults_and_override),
             Case("experiment routes and source binding", _experiment_routes_and_source_binding),
             Case("experiment option and verdict refusals", _experiment_refuses_ignored_options_and_failures)]
