@@ -8,6 +8,7 @@ its placement-only projection supplies no missing operational contract.
 
 import hashlib
 import json
+import platform
 from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
@@ -560,6 +561,12 @@ def report(root: Path, revision: str, sizes: tuple[int, ...] = DEFAULT_SIZES,
             "errors": errors, "reproducible": reproducible,
             "result_sha256": hashlib.sha256(encoded.encode("utf-8")).hexdigest(),
             "host_measurements": {"reproducible": False,
+                                  "environment": {
+                                      "system": platform.system(),
+                                      "release": platform.release(),
+                                      "machine": platform.machine(),
+                                      "python_implementation": platform.python_implementation(),
+                                      "python_version": platform.python_version()},
                                   "scope": "host Python generation excluded; checking and search included; "
                                            "no target build or execution measurement",
                                   "runs": measurements}}

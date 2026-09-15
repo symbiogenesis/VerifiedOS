@@ -43,6 +43,10 @@ optimality replay are included. Each arena reports its charged load, the stronge
 proved lower bound with the bound that supplied it, the best feasible span with the
 candidate that attained it, and the remaining gap between the last two.
 `result_sha256` binds this reproducible block; elapsed time is outside that digest.
+The timing ledger identifies the operating system, release, machine architecture
+and Python implementation and version beside its measurements. This host identity
+also stays outside the digest: replay compares the generated inputs and results,
+while timing comparisons retain the environment that produced each measurement.
 Host elapsed seconds include checking, bounds and search, exclude synthetic
 generation, and measure neither target execution nor a target image build.
 Concurrent host work can change them.
