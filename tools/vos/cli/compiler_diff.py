@@ -40,9 +40,10 @@ frame `main` itself expects is the backend's, so the convention this harness ass
 the call is a placeholder M1.2d replaces, and the run says so.
 
 **The third reading of the trace** is M1.7's own test that a capability went through
-memory rather than only through the register file: one `W` record whose tag is set, read
-back by an `R` at the same address with the tag set. It is reported beside the digest and
-gates nothing, because only a purecap backend can make it true.
+memory rather than only through the register file: one aligned eight-byte `W` whose tag
+is set, read back by an `R` at the same address with the same value and tag before any
+overlapping write. It is reported beside the digest and gates nothing, because only a
+purecap backend can make it true.
 
 **The component level** holds one Gallina component's host run on the CertiCoq-to-Wasm
 oracle against its purecap run under one declared output encoding: the side's exit
@@ -444,16 +445,30 @@ def htif_verdict(said: str, returncode: int) -> tuple[str, int | None, str]:
 
 
 def cap_roundtrip(records: list[str]) -> bool:
-    """Whether a tagged write was read back tagged at the same address (M1.7's test that a
-    capability went through memory rather than only through the register file)."""
-    written: set[str] = set()
+    """Find a stored capability read back intact in normalized commit records.
+
+    R-15-203's capability granule is eight bytes. Every write touching a candidate's
+    granule invalidates it, including an ordinary byte store or a block zeroing. A new
+    aligned tagged capability write can then supply a fresh candidate. Malformed memory
+    records cannot be skipped because a skipped write could hide an intervening change.
+    """
+    written: dict[int, str] = {}
     for record in records:
         parts = record.split()
-        if len(parts) != 5 or parts[3] != "1":
+        if not parts or parts[0] not in ("W", "R"):
             continue
+        if trace.COMMIT_RE.fullmatch(record) is None:
+            return False
+        address, width = int(parts[1], 16), int(parts[2])
+        if width <= 0 or len(parts[4]) != width * 2:
+            return False
+        capability = width == 8 and address % 8 == 0 and parts[3] == "1"
         if parts[0] == "W":
-            written.add(parts[1])
-        elif parts[0] == "R" and parts[1] in written:
+            for granule in range(address // 8, (address + width - 1) // 8 + 1):
+                written.pop(granule * 8, None)
+            if capability:
+                written[address] = parts[4]
+        elif capability and written.get(address) == parts[4]:
             return True
     return False
 
