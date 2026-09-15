@@ -6,6 +6,7 @@ from contextlib import redirect_stdout
 from dataclasses import asdict, replace
 from hashlib import sha256
 from io import BytesIO, StringIO, TextIOWrapper
+from itertools import combinations, product
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -158,6 +159,93 @@ def _independent_domain_pools() -> None:
            "different-time pool peaks are not added into an invented simultaneous peak")
 
 
+def _six_tick_capture() -> dict[str, Any]:
+    capture = _capture()
+    capture["window"]["end_tick"] = 6
+    capture["domains"] = [
+        {"id": "kernel-0", "period_ticks": 2,
+         "background_ticks_per_period": 1, "quarantine_capacity_bytes": 2},
+        {"id": "kernel-1", "period_ticks": 3,
+         "background_ticks_per_period": 1, "quarantine_capacity_bytes": 3},
+    ]
+    capture["teardowns"] = []
+    capture["sweep_quanta"] = []
+    return capture
+
+
+def _generated_quarantine_accounting() -> None:
+    # A finite tick oracle is independent of the analyzer's endpoint-delta scan.
+    # Enumerate every pair of positive intervals, including unordered retirements,
+    # simultaneous release/retire boundaries and overlapping independent pools.
+    intervals = tuple(combinations(range(7), 2))
+    for left, right in product(intervals, repeat=2):
+        capture = _six_tick_capture()
+        rows: list[dict[str, Any]] = [
+            {"id": name, "domain": domain, "retire_tick": interval[0],
+             "reuse_tick": interval[1], "swept_capability_bytes": 0,
+             "quarantined_bytes": amount}
+            for name, domain, interval, amount in (
+                ("a", "kernel-0", left, 1), ("b", "kernel-0", right, 2),
+                ("c", "kernel-1", (1, 5), 3))
+        ]
+        capture["teardowns"] = list(reversed(rows))
+        report = _report(capture)
+        peaks = {
+            domain: max(sum(row["quarantined_bytes"] for row in rows
+                            if (domain is None or row["domain"] == domain)
+                            and row["retire_tick"] <= tick < row["reuse_tick"])
+                        for tick in range(6))
+            for domain in (None, "kernel-0", "kernel-1")
+        }
+        ensure(_object(report["totals"])["quarantine_peak_bytes"] == peaks[None],
+               f"{left}, {right}: simultaneous total agrees with the tick oracle")
+        for index, domain in enumerate(capture["domains"]):
+            observed = _domain(report, index)
+            peak = peaks[domain["id"]]
+            ensure(observed["quarantine_peak_bytes"] == peak
+                   and observed["quarantine_margin_bytes"]
+                   == domain["quarantine_capacity_bytes"] - peak,
+                   f"{left}, {right}: each pool keeps its own peak and margin")
+        ensure(report["within_declared_limits"] == (peaks["kernel-0"] <= 2),
+               f"{left}, {right}: only a domain's own capacity decides its limit")
+
+
+def _generated_period_accounting() -> None:
+    # Every six-tick pattern meets identical, alternating and complementary
+    # activity in the other domain, without a redundant full Cartesian sweep.
+    # One domain coalesces busy ticks into quanta; the other leaves them adjacent.
+    # Direct tick counting checks both against their different period boundaries.
+    for left, flip in product(range(1 << 6), (0, 0b010101, 0b111111)):
+        right = left ^ flip
+        capture = _six_tick_capture()
+        expected_peaks: list[int] = []
+        expected_totals: list[int] = []
+        for index, (mask, period) in enumerate(((left, 2), (right, 3))):
+            busy = [bool(mask & (1 << tick)) for tick in range(6)]
+            expected_peaks.append(max(sum(busy[start:start + period])
+                                      for start in range(0, 6, period)))
+            expected_totals.append(sum(busy))
+            for tick, active in enumerate(busy):
+                if not active:
+                    continue
+                quanta = capture["sweep_quanta"]
+                if index == 0 and tick and busy[tick - 1]:
+                    quanta[-1]["end_tick"] = tick + 1
+                else:
+                    quanta.append({"domain": f"kernel-{index}",
+                                   "start_tick": tick, "end_tick": tick + 1})
+        capture["sweep_quanta"].reverse()
+        report = _report(capture)
+        for index, peak in enumerate(expected_peaks):
+            domain = _domain(report, index)
+            ensure(domain["sweep_ticks_total"] == expected_totals[index]
+                   and domain["sweep_ticks_peak_per_period"] == peak
+                   and domain["background_margin_ticks"] == 1 - peak,
+                   f"{left}, {right}, domain {index}: service agrees with the tick oracle")
+        ensure(report["within_declared_limits"] == (max(expected_peaks) <= 1),
+               f"{left}, {right}: every period's reservation decides the verdict")
+
+
 def _malformed_records() -> None:
     changes: list[tuple[str, str, object]] = [
         ("capture", "complete", False), ("capture", "schema_version", True),
@@ -289,6 +377,8 @@ def cases() -> list[Case]:
             Case("period-spanning-quanta", _period_spanning_quanta),
             Case("budget-excess", _budget_excess),
             Case("independent-domain-pools", _independent_domain_pools),
+            Case("generated-quarantine-accounting", _generated_quarantine_accounting),
+            Case("generated-period-accounting", _generated_period_accounting),
             Case("malformed-records", _malformed_records),
             Case("identity-and-raw-bytes", _independent_identity_and_raw_bytes),
             Case("cli-verdicts", _cli_verdicts),
