@@ -46,6 +46,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-04-008 | proofs/EndpointIPC.v | the_specification_grant_transfers_only_what_is_named | claimed |
 | R-05-004a | proofs/AesGcm.v | n/a | cited |
 | R-05-004a | proofs/HmacDrbg.v | n/a | cited |
+| R-05-004a | proofs/MlDsa.v | n/a | cited |
 | R-05-004a | proofs/ProbingModel.v | sni_implies_ni | claimed |
 | R-05-004a | proofs/ProbingModel.v | pini_implies_ni | claimed |
 | R-05-004a | proofs/ProbingModel.v | copy_gadget_meets_the_pini_obligation_where_sni_fails | claimed |
@@ -53,6 +54,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-004a | proofs/RomVerifier.v | n/a | cited |
 | R-05-004a | proofs/Sha256.v | n/a | cited |
 | R-05-022 | proofs/Keccak.v | n/a | cited |
+| R-05-022 | proofs/MlKem.v | n/a | cited |
 | R-05-029 | proofs/AdmissionPath.v | a_transposition_of_the_records_changes_no_verdict | claimed |
 | R-05-029 | proofs/AdmissionPath.v | a_duplication_of_a_record_changes_no_verdict | claimed |
 | R-05-030 | proofs/AdmissionPath.v | n/a | cited |
@@ -78,9 +80,16 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-051c | proofs/InferenceAdmission.v | n/a | cited |
 | R-05-051c | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-052 | proofs/SupervisionTree.v | n/a | cited |
+| R-05-058 | proofs/MlKem.v | the_shared_secret_is_returned_exactly_where_re_encryption_reproduces_it | claimed |
+| R-05-058 | proofs/MlKem.v | the_rejection_value_is_returned_where_re_encryption_does_not | claimed |
+| R-05-058 | proofs/MlKem.v | a_failed_decapsulation_reads_only_the_rejection_seed_and_the_ciphertext | claimed |
+| R-05-058 | proofs/MlKem.v | decapsulation_returns_the_encapsulated_key | claimed |
+| R-05-058 | proofs/MlKem.v | a_tampered_ciphertext_decapsulates_to_the_rejection_value | claimed |
 | R-05-058a | proofs/AesGcm.v | n/a | cited |
 | R-05-058a | proofs/HmacDrbg.v | n/a | cited |
 | R-05-058a | proofs/Keccak.v | n/a | cited |
+| R-05-058a | proofs/MlDsa.v | n/a | cited |
+| R-05-058a | proofs/MlKem.v | n/a | cited |
 | R-05-058a | proofs/PqArith.v | the_two_rings_multiply_under_two_different_contracts | claimed |
 | R-05-058a | proofs/PqArith.v | compression_error_is_inside_half_a_step_at_every_residue | claimed |
 | R-05-058a | proofs/RomVerifier.v | n/a | cited |
@@ -89,6 +98,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-058c | proofs/RotFirmware.v | the_specification_scheme_gives_the_rom_slh_dsa | claimed |
 | R-05-059 | proofs/AesGcm.v | n/a | cited |
 | R-05-059 | proofs/Keccak.v | n/a | cited |
+| R-05-059 | proofs/MlDsa.v | n/a | cited |
+| R-05-059 | proofs/MlKem.v | the_encryption_recovers_its_message | claimed |
 | R-05-059 | proofs/Sha256.v | n/a | cited |
 | R-05-062 | proofs/AesGcm.v | n/a | cited |
 | R-05-062 | proofs/HmacDrbg.v | n/a | cited |
@@ -237,6 +248,11 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-05-165 | proofs/MlKem.v | the_unchecked_decapsulation_ignores_the_ciphertext_comparison | claimed |
+| R-05-165 | proofs/MlKem.v | a_decapsulation_with_no_re_encryption_check_is_refused | claimed |
+| R-05-165 | proofs/MlKem.v | a_distinguishable_refusal_is_refused | claimed |
+| R-05-165 | proofs/MlKem.v | a_bounded_check_accepts_what_the_equality_refuses | claimed |
+| R-05-165 | proofs/MlKem.v | an_encryption_that_omits_the_message_is_refused | claimed |
 | R-05-165 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-165 | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-165 | proofs/PartitionContext.v | n/a | cited |
@@ -304,6 +320,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-05-166 | proofs/MlKem.v | n/a | cited |
 | R-05-166 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-166 | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-166 | proofs/PartitionContext.v | n/a | cited |
@@ -730,6 +747,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-002 | proofs/ObjectTransactor.v | no_crash_point_short_of_the_whole_stage_is_admitted | claimed |
 | R-10-002 | proofs/ObjectTransactor.v | no_torn_record_of_the_stage_is_admitted_under_either_arm | claimed |
 | R-10-002 | proofs/StorageRecovery.v | intact_input_does_not_choose_a_recovery_arm | claimed |
+| R-10-002a | proofs/JournalIndex.v | n/a | cited |
+| R-10-002a | proofs/ObjectTransactor.v | n/a | cited |
+| R-10-002a | proofs/StorageRecovery.v | n/a | cited |
 | R-10-003 | proofs/JournalIndex.v | inserting_preserves_the_order | claimed |
 | R-10-003 | proofs/JournalIndex.v | the_key_just_written_reads_back | claimed |
 | R-10-003 | proofs/JournalIndex.v | no_other_key_moves | claimed |

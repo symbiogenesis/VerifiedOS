@@ -84,19 +84,14 @@
       and one whose landed length differs from its declared length is not
       replayed and is not complete. That the register states it of the root
       and not of the log is gap c.
-   3. The recovery discipline is a parameter and not a choice made here. The
-      first record that does not verify either ends the read or is stepped
-      over, and no entry chooses: a write-ahead log's prefix discipline
-      stops, while R-10-001a's own root selection *enumerates* candidates
-      and takes the best that verifies, which skips. So every L0 obligation
-      below is stated over an arbitrary discipline, both arms are exhibited,
-      each is proved to satisfy every shared obligation, and
-      `the_two_recovery_readings_disagree` machine-checks that the choice is
-      observable rather than free. Gap e records that no entry chooses, and
-      nothing below calls either arm normative or wrong. What the two arms
-      differ on is stated as `StopsAtTheFirstTear` and `SkipsTheTornRecord`,
-      each proved of one arm and refuted of the other, so the pair is a
-      separation and not a verdict.
+   3. The comparison keeps its recovery discipline as a parameter. R-10-002a
+      selects bounded complete authenticated prefix redo, with checkpoint-before-
+      acknowledgement/reuse and ordinary-reset preservation. Neither raw filter
+      below implements its authentication or complete transaction protocol.
+      Both filters satisfy the stated shared obligations, while
+      `the_two_recovery_readings_disagree` shows their observable difference.
+      `StopsAtTheFirstTear` and `SkipsTheTornRecord` separate these raw readings;
+      this is not evidence that independent suffix salvage is admitted.
    4. A transaction is closed by a record and its effects are visible only
       then. R-10-036 commits a checkpoint as a single L0 transaction and
       does not say whether the commit is a record, a barrier or a superblock
@@ -231,12 +226,10 @@
       prover-provenance criterion and does not reach the question.
       `rec_closes` is a boolean field and no representation is asserted
       (reading 4). Owed at R-10-036.
-   e. Whether recovery stops at the first record that does not verify or
-      steps over it (reading 3). R-10-002 names the GoJournal lineage and
-      states no recovery rule, and R-10-001a states the enumerate-and-select
-      rule of the *root* copies and not of the log. So the discipline is a
-      parameter of every L0 obligation below and neither arm is normative.
-      Owed at R-10-002 or R-10-036.
+   e. The policy choice is R-10-002a's complete authenticated prefix redo.
+      Its concrete byte authentication, complete commit evidence and durable
+      acknowledgement/reuse implementation remain M5.3 obligations. The raw
+      discipline parameter here is comparison evidence, not that implementation.
    f. Whether any entry of section 10 states a block-reuse rule at all.
       R-10-010 makes snapshots retained roots and dedup refcounted extent
       sharing, which is the nearest thing: a refcount is what decides
@@ -279,12 +272,12 @@
    agree and whose deletions do not.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
-   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-007a R-10-001a R-10-002 R-10-003
-      R-10-004 R-10-005 R-10-005a R-10-005b R-10-005c R-10-008 R-10-009 R-10-010 R-10-011
-      R-10-012 R-10-013 R-10-013i R-10-013b R-10-013c R-10-013e R-10-016 R-10-021 R-10-022
-      R-10-022a R-10-027 R-10-035 R-10-036 R-12-025 R-12-026 R-12-029 R-12-030 R-12-087
+   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-007a R-10-001a R-10-002 R-10-002a
+      R-10-003 R-10-004 R-10-005 R-10-005a R-10-005b R-10-005c R-10-008 R-10-009 R-10-010
+      R-10-011 R-10-012 R-10-013 R-10-013i R-10-013b R-10-013c R-10-013e R-10-016 R-10-021
+      R-10-022 R-10-022a R-10-027 R-10-035 R-10-036 R-12-025 R-12-026 R-12-029 R-12-030 R-12-087
       R-15-247b R-15-181 R-16-003 R-16-005
-   SHA256: aec50da1e3013f3395bce71148505fd790a1ddad79973012d98dae76f3847c56
+   SHA256: 391a603fe78fea8d2b9643b446ea85c0b0b5d3631cf217febde7391552f649fe
    (*| END derived |*)
    ========================================================================= *)
 
@@ -723,10 +716,9 @@ Record Rec : Type := {
    and a torn record decides nothing. *)
 Definition intact (r : Rec) : bool := Nat.eqb (rec_landed r) (rec_len r).
 
-(* Reading 3 and gap e: which records of a crashed journal are read at all
-   is a *discipline*, and no entry chooses one. Every obligation below is
-   therefore stated over an arbitrary discipline and both arms are exhibited
-   at once. *)
+(* Reading 3: the raw record selection is a discipline parameter for these
+   comparisons. R-10-002a chooses the full authenticated prefix-redo protocol;
+   neither raw arm alone implements it. *)
 Definition Discipline : Type := list Rec -> list Rec.
 
 (* The stopping arm: the first record that does not verify ends the read and
@@ -853,7 +845,7 @@ Definition LandsEveryCommittedWrite (cut : Discipline) (rc : Recovery) : Prop :=
 
 (* Reading 2 and 3 together: a recovery reads what its own discipline
    admitted and nothing beside it, so a torn record is a cut and never a
-   corruption. Which cut is gap e's, and this obligation is the same
+   corruption. The selected implementation is R-10-002a's; this shared obligation is the same
    whichever arm answers it. *)
 Definition ReadsOnlyWhatTheDisciplineAdmits (cut : Discipline)
                                             (rc : Recovery) : Prop :=
@@ -1049,7 +1041,7 @@ Theorem the_specification_replay_is_idempotent : ReplayIsIdempotent spec_recover
 Proof. exact (a_discipline_replays_idempotently scan). Qed.
 
 (* -------------------------------------------------------------------------
-   The two arms, each an instance, and the separation gap e reports. Neither
+   The two raw comparison arms and their observable separation. Neither
    arm is asserted to be the register's, and each is shown to keep every
    obligation the other keeps.
    ------------------------------------------------------------------------- *)

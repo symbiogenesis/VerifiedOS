@@ -77,6 +77,9 @@ DEPTH = 5
 MARKABLE: dict[str, tuple[str, str]] = {
     ".py": ("# ", ""),
     ".v": ("(* ", " *)"),
+    # Authored OCaml and Gallina campaign templates keep their language's syntax.
+    ".ml.in": ("(* ", " *)"),
+    ".v.in": ("(* ", " *)"),
     ".mjs": ("// ", ""),
     ".sh": ("# ", ""),
     ".s": ("# ", ""),
@@ -129,6 +132,8 @@ def kind_of(path: str) -> str:
     has no extension by this reading, which is what puts `.gitignore` in the table
     under its own name rather than under an extension it shares with nothing."""
     p = PurePosixPath(path)
+    if p.suffix == ".in":
+        return "".join(p.suffixes[-2:])
     return p.suffix or p.name
 
 

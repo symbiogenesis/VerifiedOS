@@ -243,7 +243,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-223c** owed-act: the recovery discipline a crash-and-recovery predicate would be stated over is still unchosen, so naming a post-crash store would take the register's decision rather than measure anything
 · Raised: S18
-· Disposition: open, the fact met a second time at the item that would measure it rather than at the one that states it
+· Disposition: closed by R-10-002a and its paired specification: complete authenticated prefix redo, durable checkpoint before acknowledgement/reuse, acknowledged-work preservation under ordinary reset and affected-store refusal under corruption; concrete implementation and target crash evidence remain M5.3/M5.4
 · Restates: F-194b
 
 **F-223d** owed-act: the intent vocabulary a deterministic translation cache would be keyed on is still unenumerated, so the cache's key has no closed variant set to quantify over
@@ -2043,7 +2043,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-194b** owed-act: no entry chooses a recovery discipline, one naming the log's lineage and stating no recovery rule and another stating the enumerate-and-select rule of the root copies rather than of the log
 · Raised: M5.1
-· Disposition: open, both arms exhibited over an arbitrary discipline, each proved to keep every obligation the other keeps, and the choice machine-checked to be observable from one crashed journal
+· Disposition: closed by R-10-002a and its paired specification: complete authenticated prefix redo, durable checkpoint before acknowledgement/reuse, acknowledged-work preservation under ordinary reset and affected-store refusal under corruption; concrete implementation and target crash evidence remain M5.3/M5.4
 
 **F-194c** owed-act: no entry of the storage section states a block-reuse rule, the nearest being refcounted extent sharing which states no obligation over the allocator, with the allocator left trusted for availability and one free-space pool given to the subvolumes without saying who may take from it
 · Raised: M5.1

@@ -831,6 +831,16 @@ Landed: Tier A. The existing holder rules decide manifest equality and exclusion
 the attended read also checks the unchanged authored meaning. Final batch evidence
 is recorded with Q11.
 
+#### Q19b · Qualify selective libraries and replayable automation
+
+The [qualification record](../assurance/proof-tooling-qualification.md) retains the handwritten helpers and dependent definitions after actual selective Stdlib, Equations and standalone `sauto dep: off` comparisons. All 526 CopyRing native statements and empty assumption sets are preserved; the representative client edit replays over both helper implementations. Concrete computation, generated equations and decidable-index transport pass without global UIP. The existing `AdmissionPath.Package D/read_cert` record trial has 18 closed constants; no synthetic-only client stands in for that task. No external search service was used. The maintenance comparison declines candidate incorporation and keeps the locked batch environment unchanged.
+
+The separate Q19a presentation candidate failed imported-lemma cache freshness and supplies no measured human review-effort comparison. Its positive checklist predicate remains open; this Q19b disposition does not supply a retained presentation environment for Q20b. No assumption-adding mode or target proof is admitted.
+
+The recorded cost is a conservative, non-exclusive upper bound, not an allocation of exclusive labor. The qualification worker's shared observed interval was 2026-09-14 23:22:09.879 through 2026-09-15 00:53:14.700 UTC, 91.08 minutes over all four trials. The integrator's enclosing recorded review/integration window is 00:15:42 through 00:55:42 UTC, 40 minutes, and includes unrelated batch work. These entire intervals are counted as bounds rather than inventing per-item splits. The original proof-tooling transcript spans 0.443 seconds; the resulting bound rounds upward to 2.2 h. Overlapping bounds must not be interpreted as independent spent hours or used for productivity calibration; the calibration row is n/a. The settled batch gate is retained in the recovery report and its revision-bound receipts.
+
+Landed: Tier A.
+
 #### Q20a · Author the combined acceptance and benchmark contract
 
 The [workflow contract](../languages/workflow-contract.md) fixes parser destination
@@ -2462,6 +2472,18 @@ findings.
     * **A thirty-two-bit shift probe spelled as one `nat` literal is a unary numeral the evaluator materializes before it shifts.** That reading took the guest VM down twice before the cause was found. Closed at landing: the probe is written a byte at a time and is decided by conversion.
     * **The proof gate's runtime now exceeds the default command timeout an agent session applies to a foreground command, and its failure under a kill is silent.** The gate reports 5,180 constants over 21 files where it reported 4,656 over 18, and a killed run prints neither a `FAIL:` line nor a rocq diagnostic, so it reads as a proof defect. The diagnostic has three arms and rests on an enumeration verified over every spelling of a non-zero exit, six `return 1` sites with no `sys.exit` and no `raise SystemExit` in the module: a `FAIL:` line is a verdict from the gate, a traceback is a defect in the tool, and neither with no diagnostic is upstream of the command entirely. Standing, and recorded here because the invariant outlives the figure that occasioned it.
 
+#### M3.4c-ii · The Fiat-Crypto generator run and its tracked emission
+
+The [emission contract and record](fiat-crypto-emission.md) precede actual generation. Fiat-Crypto `e6946985c9165b3270eae457c0fae887cd7b7b76` and each used nested source's own license were read; only the two generated 32-bit 25519 and P256 inclusion headers are incorporated. Their wrapper retains authorship and Apache-2.0 election. The exact source archives, successful native build command and generator identity bind the manifest. The locked proof switch's before/after package exports are identical.
+
+The worker ran each recipe twice; an independent integration lane identified the same executable by SHA-256 and ran each twice again in its own native directory, reproducing every raw and wrapped byte. This is independent emission, not an independent toolchain build. Both headers compile as C inclusion interfaces; 6,786 arithmetic/serialization results agree with an independent integer reference. Unexercised P256 divstep/msat/nonzero helpers, complete curve protocols, target refinement, constant-time and WCET remain outside this result.
+
+K-88 binds the actual indexed pin, nonempty immutable source identities, emission-driver bytes, exact recipes/output set and raw/wrapped hashes. Its host checks do not attest the binary build; native replay executes the recorded generator. Three host behavioral cases and the focused K-88 mutation campaign pass. Third-party incorporation is recorded at its owner. Generated code is never repaired by hand.
+
+The recorded cost is a conservative, non-exclusive upper bound, not an allocation of exclusive labor. The qualification worker's shared observed interval was 2026-09-14 23:22:09.879 through 2026-09-15 00:53:14.700 UTC, 91.08 minutes over all four trials. The integrator's enclosing recorded review/integration window is 00:15:42 through 00:55:42 UTC, 40 minutes, and includes unrelated batch work. These entire intervals are counted as bounds rather than inventing per-item splits. The original Fiat transcript spans 466.382 seconds; the resulting bound rounds upward to 2.4 h. Overlapping bounds must not be interpreted as independent spent hours or used for productivity calibration; the calibration row is n/a. The settled batch gate is retained in the recovery report and its revision-bound receipts.
+
+Landed: Tier A.
+
 #### M3.4d · The AEAD in Gallina
 
   * **The one cipher R-10-024 freezes, authored against FIPS 197 and NIST SP 800-38D.** [proofs/AesGcm.v](../../proofs/AesGcm.v) carries AES at all three of FIPS 197's key lengths, the cipher and the inverse cipher each composed once from the standard's own unfused step maps; the key expansion with the second substitution branch only a key of more than six words reaches; the GF(2^128) multiplication in SP 800-38D's own reflected convention; GHASH, the counter mode with its own thirty-two-bit increment, both initial-counter constructions, authenticated encryption, and authenticated decryption with its failure arm. **It is M3.4c's residue split out at entry**, which is what M3.4a's landing did to M3.4c at exit, and it is a cell of its own because the AEAD is the one of that item's four deliverables whose content is two standards rather than an acquisition route and a licence consequence.
@@ -2510,6 +2532,22 @@ findings.
   * Landed: Tier A.
 
 ## M4 · Kernel
+
+#### M3.4b · ML-KEM and ML-DSA in Gallina
+
+The [functional reference contract](../assurance/pq-reference-contract.md) was landed before the scheme lanes opened. PqArith supplies both transform shapes and general inverse theorems for arbitrary reduced 256-coefficient polynomials, plus canonical codec inversion with explicit positive width, coefficient bounds and alignment. Its 182 constants have empty assumptions. The general inverse theorem is not a general quotient-ring multiplication correspondence proof.
+
+ML-KEM-1024 follows FIPS 203 with local Keccak, checked keys and encodings, complete FO re-encryption comparison and implicit rejection. Its final native inventory has 143 closed constants and two record witnesses; kernel recheck passed. The exact-source campaign passes 154 official/hash/refusal checks: 80 selected official records, 25 corresponding positive decapsulations, 44 hash boundary checks and five malformed seeds. A separately executed OpenSSL 3.5.5 campaign passes 225 comparisons over 25 public seeds, including exact keys and encapsulations, both decapsulation directions, tampering and malformed lengths.
+
+ML-DSA-87 follows the pure FIPS 204 context-bound API, internal bit-message and external-mu adapters, with complete matrix/mask/challenge sampling, strict response bounds, canonical hints and bounded hedged signing. Optional HashML-DSA prehash dispatch is outside the selected API and explicitly refused by the campaign. The official campaign passes 160 records, 90 extra generated-signature verifications and 26 authored boundary cases. The independent OpenSSL campaign passes 36 comparisons over three public seeds, including exact keys/hedged signatures, both verification directions and seven corruption categories. Its 102 constants have empty assumptions; kernel recheck passed. The 2026-07-31 potential-update workbook's signing limit is used as a documented potential correction, not a new publication edition.
+
+Five arithmetic, six ML-KEM and ten ML-DSA compile-valid semantic mutants were detected, with no survivors or stillborn mutants. Source comments and requirement-header joins are distinguished from definition changes; the integrated extraction receipt binds the common helper revision. [ML-KEM replay](../../proofs/campaigns/MLKEM-README.md) and [ML-DSA replay](../../proofs/campaigns/mldsa-reference.md) name the official source pin, exact hashes, operations, complete NIST notice and independent implementation boundaries. No upstream scheme implementation is incorporated. Standard extraction, OCaml, Zarith and host execution remain execution-evidence boundaries.
+
+Computational reductions, universal noise/decryption-failure bounds, general multiplication correspondence, binary constant time, masked hardware, production entropy, target refinement and Wasm integration are not claimed. The original interim consumers are not retired by this functional landing. The independent review found no blocking functional issue and corrected a generic ring-order comment to its selected odd-modulus scope. Final integrated host/proof and extraction-identity receipts are retained with the recovery report.
+
+The 5.1 h actual is a conservative non-exclusive session bound, excluded from calibration: the original PQ lane spans 44m23s; the mixed arithmetic/probing/ML-KEM recovery spans 2.582 h; the independent ML-DSA lane spans 39m1s; the independent review begins 00:53:43 UTC; and the integrator's enclosing interval 00:15:42 through 01:06:32 UTC includes unrelated batch work. This bound deliberately does not invent an exclusive split for interleaved helper/probing work or represent overlapping agents as serial time. The final shared gate durations are reported separately as batch validation costs.
+
+Landed: Tier A.
 
 ### M4.1 · Decide revocation sweep quanta
 
@@ -2754,6 +2792,16 @@ Landed: Tier A. The read accepts the actual reference model and quantified theor
   * Exit evidence: the proof gate at **1,551 constants against 998**, **553 of them this file's**, every one closed under the global context, with no `Require`, no `Compute` and no top-level axiom; the **whole** seeded-weakening population at **369 mutants over seven operators, 369 killed, none surviving and none stillborn**, stillborn reported apart and being zero; every cited register and language-document id resolved by hand, which no rule holds for a `.v` file; the three host gates green with all 97 mutants killed, the repair path holding and the registry covered; and both type checkers clean at ty 0.0.74 and ruff 0.16.4. No `run.py evidence` sweep is owed: it measures the model build, the property harness, the profile sweep, the corpus, the devicetree and the reference, and this item touches none of them. No register, coverage-matrix, absence-contract or crown-jewel edit, so the review gate is not re-entered and the co-read ledger is unmoved.
   * **The actual is inflated by lane contention and the figure says so rather than hiding it.** It sums the authoring, three verification lenses, two repair passes and an independent re-check, run while four sibling lanes held the same WSL guest, and the re-check alone is the largest term. What the item cost at one attention is not what this measures.
   * Landed: Tier A.
+
+#### M6.2b-i · Qualify the bounded checker and its refinement contract
+
+The [CIC qualification](../assurance/cic-checker-qualification.md) rejects MetaRocq `7d4f2fddb0e6b1ef03050999bce281237e2828f6` as an already usable admitted checker. Its own license and compatible configuration constants were inspected and executed. The full SafeChecker entry was not qualified: semantic guard and guard-correctness axioms, seven preservation laws, two distinct normalization families, concrete abstract-environment laws and a real bounded wire reader remain unsupplied. Source-import scanning is not represented as a transitive assumption audit, and no accepted/refused serialized-proof campaign is claimed.
+
+The negative acceptance arm returns these precise missing foundations to separately priced M6.2b-0, owned by a dedicated CIC metatheory and bounded partial-checker lane. It must contain the required real proof corpus, supply the checked guard and both normalization families or a proved partial replacement, and close every actual entry constant without new assumptions. Its uncertain estimate does not promise general CIC normalization. The canonical wire/resource/arena contract and exact source-to-CompCert-C byte/memory/verdict endpoint are recorded. M6.2b-ii remains blocked on the actual accepted checker and lowering foundations; no opaque callback or larger axiom set replaces them.
+
+The recorded cost is a conservative, non-exclusive upper bound, not an allocation of exclusive labor. The qualification worker's shared observed interval was 2026-09-14 23:22:09.879 through 2026-09-15 00:53:14.700 UTC, 91.08 minutes over all four trials. The integrator's enclosing recorded review/integration window is 00:15:42 through 00:55:42 UTC, 40 minutes, and includes unrelated batch work. These entire intervals are counted as bounds rather than inventing per-item splits. The original checker transcript spans 461.194 seconds; the resulting bound rounds upward to 2.4 h. Overlapping bounds must not be interpreted as independent spent hours or used for productivity calibration; the calibration row is n/a. The settled batch gate is retained in the recovery report and its revision-bound receipts.
+
+Landed: Tier A.
 
 #### M6.3a · The package composer and the typed graph
 

@@ -175,9 +175,9 @@ Definition ring_leaf_degree (r : Ring) : Z :=
 Definition ring_top_exponent (r : Ring) : Z := ring_split r.
 
 (* What a ring must satisfy for every statement below to be about it: a
-   modulus above one, a root whose 2^L-th power is -1 and which is therefore
-   of order exactly 2^(L+1), a scaling that inverts 2^L, and a degree the
-   layer count divides. *)
+   modulus above one and a root whose 2^L-th power is -1. For the selected
+   odd moduli this gives order exactly 2^(L+1). Also a scaling inverting 2^L
+   and a degree the layer count divides. *)
 Definition ring_wf (r : Ring) : bool :=
   (1 <? ring_modulus r)
   && Z.eqb (pow_mod (ring_modulus r) (ring_root r) (ring_split r))

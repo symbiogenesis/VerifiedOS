@@ -93,7 +93,7 @@ The [typed assembly language](languages/typed-assembly-language.md), the typed m
 
 ## The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1453 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1455 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
@@ -117,3 +117,10 @@ Nine **derived views** collect what the register states across many entries but 
 - **The [TRNG source-model contract](hardware/trng-source-model-contract.md)**: what a supplier has to say about a random-number source before this machine will trust it, the schema that submission is checked against, the review that reads it, and how the number of samples the boot tests run over would be worked out from it. It states no figure either: all but two rows of its schema are unfilled, and what holds them is a TRNG nobody has selected rather than a part nobody has fabricated, with two rows owed instead to decisions the register can still take on its own. What it publishes is the question and a refusal to answer it early.
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
+
+Proof tooling has a [qualification contract](assurance/proof-qualification-contract.md)
+and an [executed comparison](assurance/proof-tooling-qualification.md).
+The [CIC checker qualification](assurance/cic-checker-qualification.md) records its
+missing premises and bounded refinement endpoint. The
+[Fiat emission record](implementation/fiat-crypto-emission.md) binds the incorporated
+field headers to their actual generator run and replay checks.

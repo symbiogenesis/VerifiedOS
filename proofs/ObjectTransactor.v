@@ -148,16 +148,13 @@
       makes the floor monotone, and what those two together buy is that a
       generation once refused is refused for good. That is stated over an
       arbitrary floor stream and refuted of a stream that dips.
-   9. The recovery discipline is a parameter and not a choice made here, and
-      it reaches the transactor. JournalIndex.v's reading 3 leaves the
-      discipline open because no entry chooses one; this file inherits that
-      and finds that the choice is observable one layer up, a crashed stage
-      being uncommitted under the stopping arm and committed-but-incomplete
-      under the skipping arm. Both arms are exhibited, every obligation below
-      holds under an arbitrary discipline, and
-      `the_two_recovery_readings_disagree_about_the_stage` machine-checks
-      that the choice is observable rather than free. Neither arm is called
-      normative and nothing below calls either wrong (gap b).
+   9. The source comparison retains the raw recovery discipline parameter.
+      R-10-002a selects complete authenticated prefix redo; the selected byte,
+      transaction and durable publication implementation remains M5.3's.
+      A crashed stage is uncommitted under the raw stopping arm and
+      committed-but-incomplete under the raw skipping arm. Both are exhibited
+      to expose why journal commit membership cannot authorize an incomplete
+      image. Neither raw arm is the implementation of the selected protocol.
   10. Public commitment is bound to identities and claims nothing about
       selection. R-13-023b makes admission require an inclusion proof for the
       base image's root and every package the roster names against a
@@ -206,11 +203,10 @@
       JournalIndex.v books that as its gap d and makes `rec_closes` a boolean
       field asserting no representation. The staging journal below inherits
       that field and asserts none either. Owed at R-10-036.
-   b. Whether recovery stops at the first record that does not verify or
-      steps over it. No entry chooses, which is JournalIndex.v's gap e; what
-      this file adds is that the choice is observable at the transactor and
-      not only at the store, so the gap costs an admission verdict rather
-      than a block value. Owed at R-10-002 or R-10-036.
+   b. R-10-002a supplies the recovery choice. Its complete authenticated
+      prefix-redo implementation, including durable acknowledgement and reuse,
+      remains open. The raw comparisons below expose an admission difference
+      and cannot stand in for the selected bytes-to-transaction protocol.
    c. The transactor's transition set. R-11-001, R-11-002, R-11-005 and
       R-06-005 each name an act the transactor performs and no entry
       enumerates them, so nothing below declares a transition kind: `Op` is
@@ -340,9 +336,10 @@
    Owner: docs/requirements-register.md
    Requirements: R-05-051a R-05-051c R-05-163 R-05-165 R-05-166 R-06-001 R-06-003 R-06-005
       R-09-004 R-09-005 R-09-028 R-09-029 R-09-030 R-09-031 R-09-036a R-10-001 R-10-001a
-      R-10-002 R-10-009 R-10-013 R-10-032 R-10-036 R-10-036a R-11-001 R-11-002 R-11-005 R-13-001
-      R-13-008 R-13-009 R-13-023a R-13-023b R-13-023c R-16-007 R-16-008 R-17-030v
-   SHA256: 674fc542ff7ac3d7cdb51b4b188683653c1a8a52d0d87d32c20658234df5ca96
+      R-10-002 R-10-002a R-10-009 R-10-013 R-10-032 R-10-036 R-10-036a R-11-001 R-11-002
+      R-11-005 R-13-001 R-13-008 R-13-009 R-13-023a R-13-023b R-13-023c R-16-007 R-16-008
+      R-17-030v
+   SHA256: c973539d3ef20ffcfe905eebbe3be554d27d0f7f200e8e8b520e0dc9d2433433
    (*| END derived |*)
    ========================================================================= *)
 
@@ -1989,8 +1986,9 @@ Definition sieve_view : Objects :=
 (* Reading 9 and gap b, machine-checked: the same crashed staging journal
    is an uncommitted transaction under the stopping arm and a committed one
    under the skipping arm, and under the skipping arm the transaction it
-   reports committed is missing one of its objects. No entry chooses between
-   the two arms, and nothing here calls either wrong. *)
+   reports committed is missing one of its objects. R-10-002a requires complete
+   authenticated prefix redo; these raw comparisons implement neither its
+   complete protocol nor an admitted suffix-salvage alternative. *)
 (*| discharges: R-10-002, R-10-036 |*)
 Example the_two_recovery_readings_disagree_about_the_stage :
   pair (journal_says_committed scan torn_j demo_txn)
@@ -2227,7 +2225,7 @@ Example a_predecessor_below_the_floor_is_not_returned_to :
 
 (* =========================================================================
    The journal-trusting transactor: the construction R-10-009's own sentence
-   excludes, and the one place the open recovery discipline reaches an
+   excludes, and the place the raw recovery-discipline comparison reaches an
    admission verdict.
    ========================================================================= *)
 

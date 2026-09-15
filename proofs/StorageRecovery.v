@@ -4,8 +4,9 @@
    docs/implementation/storage-recovery-policy.md before implementation.
 
    JournalIndex owns Rec, Store, scan, sieve and replay. KeyspaceDomains owns
-   the L2 object/metadata/index writer. The register does not choose between
-   stopping at a tear and skipping it; this file selects neither. It proves
+   the L2 object/metadata/index writer. R-10-002a selects complete authenticated
+   prefix redo. This comparison retains both raw filters and implements neither
+   that complete protocol nor independent suffix salvage. It proves
    intact-input agreement, a finite selected-record bound and exact manifest
    completeness before publication, independently of the discipline.
 
@@ -15,11 +16,11 @@
    decoder, not an assertion that rec_landed authenticates arbitrary torn
    bytes. Its identity, ordered records and bound must be checked against the
    durable checkpoint by that adapter. The decoder, complete-block hashes,
-   disk persistence, checkpoint/ack ordering and selected recovery arm remain
+   disk persistence and the selected checkpoint/ack/reuse implementation remain
    M5.3 obligations. This source neither derives authentication from equality
    nor implements the decoder. Its refusal applies to a presented complete
-   transaction; absence of a transaction and recovery escalation remain the
-   policy owner's decisions.
+   transaction; the byte adapter must enforce R-10-002a's distinction between
+   ordinary-reset preservation and corruption refusal.
 
    The acceptance predicate is native compilation, empty global assumption
    closure, rocqchk, named record inhabitation, quantified completeness and
@@ -28,8 +29,8 @@
    records the target crash-half predicate and its outstanding producers.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
-   Requirements: R-10-002 R-10-005c R-10-036
-   SHA256: 70805f02f331bc7fb95fc0a398d5f2094bf9a58b5477651ec5701890b249a5a1
+   Requirements: R-10-002 R-10-002a R-10-005c R-10-036
+   SHA256: 575a8372942e968efc58b6beee7575a1d5adc53ad4c29e4de858304b1ef3f915
    (*| END derived |*)
    ========================================================================= *)
 

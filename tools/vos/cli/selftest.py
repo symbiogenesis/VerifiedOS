@@ -1139,6 +1139,10 @@ CASES: list[Case] = [
     # a file the repository might stop carrying.
     ("K-52", "a markable file whose license mark has gone",
      _literal("tools/vos/checks/marks.py", "# SPDX-License-Identifier: Apache-2.0\n", "")),
+    ("K-52", "an authored OCaml template whose license mark has gone",
+     _literal("proofs/campaigns/mlkem_driver.ml.in", "(* SPDX-License-Identifier: Apache-2.0 *)\n", "")),
+    ("K-52", "an authored Gallina template whose license mark has gone",
+     _literal("proofs/campaigns/mlkem_extract.v.in", "(* SPDX-License-Identifier: Apache-2.0 *)\n", "")),
 
     # A new file of an unknown kind cannot be seeded, because the corpus is the git
     # index and an untracked file is not in it. Withdrawing a kind's ruling puts an
@@ -1152,6 +1156,8 @@ CASES: list[Case] = [
      _literal("tools/vos/checks/marks.py",
               '    ".lock": "resolver-generated dependency metadata rather than authored '
               'content",\n', "")),
+    ("K-53", "an authored template language whose explicit ruling has gone",
+     _literal("tools/vos/checks/marks.py", '    ".ml.in": ("(* ", " *)"),\n', "")),
 
     # The owner is moved rather than one of the eleven figures, because a figure edited
     # alone is the easy half: what the rule is for is the granule changing under all of

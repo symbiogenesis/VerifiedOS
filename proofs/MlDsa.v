@@ -1,5 +1,8 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Functional ML-DSA-87, FIPS 204 (2024-08-13), under the acceptance contract
+(* =========================================================================
+   MlDsa.v
+
+   Functional ML-DSA-87, FIPS 204 (2024-08-13), under the acceptance contract
    docs/assurance/pq-reference-contract.md. This authored implementation uses
    PqArith's complete transform and Keccak's bit-oriented SHAKE. No upstream
    implementation is incorporated.
@@ -23,9 +26,16 @@
    ACVP campaigns compare the extracted exact source, including local SHAKE,
    with published bytes; extraction/compiler execution is evidence, not a
    kernel proof of every vector or a computational security reduction.
+   The selected parameter set is R-05-058a; functional-reference assurance is
+   R-05-059. This does not supply R-05-004a production randomness or masking.
    No pre-hash dispatch, randomness-quality, constant-time, masking, target
    lowering or production key-storage claim is made by this functional file.
-*)
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-004a R-05-058a R-05-059
+   SHA256: db4682e3eb8fcd86f3d5da4b0ca956c05f5af3143057a2d00e383773411edae3
+   (*| END derived |*)
+   ========================================================================= *)
 From Stdlib Require Import ZArith List Bool Arith Lia.
 Require Import PqArith.
 Require Keccak.

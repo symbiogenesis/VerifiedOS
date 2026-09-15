@@ -2192,6 +2192,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each layer's proof is a Coq artifact; no layer carries a foreign-prover proof into the trust base.
 · Trace: CJ-T
 
+**R-10-002a** MUST: L0 recovery uses a bounded prefix redo journal whose independently authenticated commit evidence binds each transaction's complete ordered payload, target addresses and content identities. An incomplete uncommitted suffix is not published. A transaction known to have committed whose required payload does not authenticate is refused rather than replayed partially or silently treated as uncommitted.
+· Accept: every accepted transaction contains its complete bound payload; a missing, torn, reordered, duplicated or misdirected payload is rejected. Replay is idempotent; current and retained roots remain authenticated. Acknowledgement follows durable publication of the complete checkpoint, and journal reuse follows that same boundary. A reset or crash within the declared persistence contract preserves every acknowledged transaction; detected corruption or unavailable authentication evidence enters the declared refusal path. Recovery never returns a partially updated object/metadata/index transaction. The bounded scan, redo, retained-root and recovery resources are declared before admission and satisfy the composition's measured worst-case budget.
+· Fail-closed: missing evidence needed to distinguish uncommitted work from corruption of an acknowledged transaction stops recovery of the affected store. This does not lower the anti-rollback floor, erase other stores, authorize unverified reads or change the bulk-data freshness residual in R-10-012.
+· Trace: CJ-T
+
 **R-10-003** MUST: L1 is one parametric index, generic over key type, verified once and instantiated per object class.
 · Accept: no per-object-class index proof exists.
 · Trace: CJ-T
@@ -5838,10 +5843,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the loss is the optional inference route and its outstanding request, never a broader grant, a fallback destination, borrowed schedule or weaker identity claim. The host runs its admitted generation, repeated failures consume only the composed management allowance, and erasure failure can require physical replacement. The first mobile floor and emergency paths have no module dependency, so R-17-030l's safety composition is unchanged. The denial is standing while qualification, permission, the unit or its healthy state is withheld; ordinary single-operation bounds checks remain ordinary enforcement.
 · Trace: CJ-HAL, CJ-DEVTREE, CJ-WCET
 
+**R-17-030zb** IS: Fail-closed seam **authenticated recovery ⋈ stored-state availability**: the complete prefix-redo policy refuses recovery of an affected store when committed payload or the evidence distinguishing incomplete work from corruption cannot authenticate (R-10-002a). Corruption or withholding can therefore deny access to that store while its recovery evidence is unavailable.
+· Accept: the denial spends the affected store's availability without publishing a partial transaction, returning unverified bytes, lowering the anti-rollback floor or erasing other stores. Ordinary reset or crash within the persistence contract still preserves every acknowledged transaction; corruption refusal is not an alternative to that guarantee. The existing bulk-data freshness residual remains unchanged.
+· Trace: CJ-T
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted. The collector is a set of entries and not one sentence, so it grows by a seam written beside the others and a new refusal reopens no entry that already stands.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: the conferral gates the collection here, which is the opposite of the direction R-10-013a takes and for the reason that entry states: this register holds no budget, R-03-009 pricing every member against availability alone and member by member, so what a seam adds is the composition none of its members states alone and never the admission of any of them. Growth by addition is what makes that safe, an author with a refusal to book owing a seam of their own rather than an amendment to somebody else's obligation.
-· Accept: forty-seven requirements confer a refusal and twenty-two seams collect them, both figures recomputed rather than maintained here.
+· Accept: forty-eight requirements confer a refusal and twenty-three seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -6398,7 +6407,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1453 requirements. §19 is non-normative and yields none. Counts include the 500 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1455 requirements. §19 is non-normative and yields none. Counts include the 502 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6411,14 +6420,14 @@ All eighteen normative sections are extracted, at 1453 requirements. §19 is non
 | **§7 Kernel** | **extracted** | **65** |
 | **§8 Authority Model** | **extracted** | **90** |
 | **§9 Boot & Root of Trust** | **extracted** | **44** |
-| **§10 Storage & State** | **extracted** | **54** |
+| **§10 Storage & State** | **extracted** | **55** |
 | **§11 Updates** | **extracted** | **39** |
 | **§12 System Servers** | **extracted** | **138** |
 | **§13 Packaging & Supply Chain** | **extracted** | **43** |
 | **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **427** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **146** |
+| **§17 Residual Risks** | **extracted** | **147** |
 | **§18 Realization** | **extracted** | **59** |
 
 §19 is non-normative and yields no requirements.

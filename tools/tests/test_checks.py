@@ -451,8 +451,20 @@ def _k88_foreign_library_is_a_finding() -> None:
            f"a foreign Sail library must be a finding, not a crash or silent omission: {findings}")
 
 
+def _counted_clause_scope() -> None:
+    ensure(counts.counted_clause("seventeen crown-jewel specifications are missing"),
+           "a real unheld specification count remains a candidate")
+    ensure(counts.counted_clause("1,454 requirements are present"),
+           "a digit separator is not a clause boundary")
+    ensure(not counts.counted_clause("seventeen defects they raised were repaired"),
+           "repaired does not confer a pair count")
+    ensure(not counts.counted_clause("seventeen are register gaps, and two are coverage cells"),
+           "the later clause's cells do not describe the gap count")
+
+
 def cases() -> list[Case]:
     return [
+        Case("counted-clause-scope", _counted_clause_scope),
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),

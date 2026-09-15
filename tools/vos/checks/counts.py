@@ -292,9 +292,19 @@ CLAIMS = [
 # noun one of these quantities is counted in, and outside the span of every claim, is a
 # figure that escaped the register.
 COUNTED_NOUN = re.compile(
-    r"requirement|acceptance criteri|normative section|crown.jewel|specification|"
+    r"\b(?:requirement|acceptance criteri|normative section|crown.jewel|specification|"
     r"theorem target|`CJ-`|absence|boundar|propert|pair|cell|derived view|seam|"
-    r"CSR|letter-suffixed|such entries|obligation|menu row", re.IGNORECASE)
+    r"CSR|letter-suffixed|such entries|obligation|menu row)", re.IGNORECASE)
+
+
+def counted_clause(text: str) -> bool:
+    """A counted noun in this clause, not a later unrelated historical count.
+
+    `repaired` is not `pair`; a count of defects before a comma does not count
+    the coverage cell mentioned in the next clause. Numeric separators remain
+    inside a count, since a clause delimiter must be followed by whitespace.
+    """
+    return COUNTED_NOUN.search(re.split(r"[.;,]\s", text, maxsplit=1)[0]) is not None
 
 # The trailing lookahead keeps CRLF out of the match: an anchored `\|$` never matches a
 # CRLF file, and every row would read as missing.
@@ -615,7 +625,7 @@ def run(ctx: Context) -> None:
             for form, quantities in forms.items():
                 for m in by_form.get(form, []):
                     rest = raw[m.start():m.start() + 80].split("\n", 1)[0]
-                    if not COUNTED_NOUN.search(rest):
+                    if not counted_clause(rest):
                         continue
                     if any(s.start() <= m.start() < s.end() for s in held):
                         continue

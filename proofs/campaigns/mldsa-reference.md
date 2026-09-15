@@ -12,7 +12,7 @@ The module's general theorems state refusal for bad seed/key lengths or contexts
 
 ## Official inputs and reproduction
 
-The source is [NIST ACVP-Server revision 975de31eb83d87039ec88934fdc47d8c312b892d](https://github.com/usnistgov/ACVP-Server/tree/975de31eb83d87039ec88934fdc47d8c312b892d). The selected revision's complete README license notice was read and is retained in [mldsa_nist_notice.txt](mldsa_nist_notice.txt); the campaign acknowledges NIST. Its README SHA-256 is `d5a569884ee83bd1c4737042d0a2cc7d68c6950690f75a73ef14f505a9aa3555`. Downloaded vector values are unmodified. The campaign code is authored separately under Apache-2.0.
+The source is [NIST ACVP-Server revision 975de31eb83d87039ec88934fdc47d8c312b892d](https://github.com/usnistgov/ACVP-Server/tree/975de31eb83d87039ec88934fdc47d8c312b892d). The selected revision's complete README license notice was read and is retained in [the NIST notice below](#nist-vector-notice); the campaign acknowledges NIST. Its README SHA-256 is `d5a569884ee83bd1c4737042d0a2cc7d68c6950690f75a73ef14f505a9aa3555`. Downloaded vector values are unmodified. The campaign code is authored separately under Apache-2.0.
 
 [mldsa_vectors.py](mldsa_vectors.py) pins the SHA-256 of each official `gen-val/json-files/ML-DSA-{keyGen,sigGen,sigVer}-FIPS204/internalProjection.json` and refuses cached or downloaded bytes that differ. The full run selects all 25 ML-DSA-87 key-generation records, all 90 pure/internal/external-mu signing records and all 45 verification records for those supported interfaces. The receipt names every selected `tgId`/`tcId`, input source hash, expected validity and comparison result. Key generation compares both complete key byte strings; signing compares the complete signature and additionally verifies it; verification compares the official boolean. The three prehash groups are recorded as exclusions. No authored boundary test is labeled as a standard vector.
 
@@ -33,3 +33,20 @@ The harness authors only public test inputs, DER key framing and calls to [OpenS
 ```text
 python3 proofs/campaigns/mldsa_openssl.py --baseline /root/build/lane-<assignment>/proofs --work /root/build/lane-<assignment>/openssl
 ```
+## NIST vector notice
+
+Verbatim notice from the pinned ACVP source; its terms govern the supplied NIST data.
+
+> Official ML-DSA test data source: NIST ACVP-Server
+> Revision: 975de31eb83d87039ec88934fdc47d8c312b892d
+> Acknowledgment: the vector data were developed by NIST.
+> The campaign selects records without modifying their test values.
+> No NIST implementation source is incorporated.
+>
+> ## License
+>
+> NIST-developed software is provided by NIST as a public service. You may use, copy, and distribute copies of the software in any medium, provided that you keep intact this entire notice. You may improve, modify, and create derivative works of the software or any portion of the software, and you may copy and distribute such modifications or works. Modified works should carry a notice stating that you changed the software and should note the date and nature of any such change. Please explicitly acknowledge the National Institute of Standards and Technology as the source of the software.
+>
+> NIST-developed software is expressly provided "AS IS." NIST MAKES NO WARRANTY OF ANY KIND, EXPRESS, IMPLIED, IN FACT, OR ARISING BY OPERATION OF LAW, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND DATA ACCURACY. NIST NEITHER REPRESENTS NOR WARRANTS THAT THE OPERATION OF THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE, OR THAT ANY DEFECTS WILL BE CORRECTED. NIST DOES NOT WARRANT OR MAKE ANY REPRESENTATIONS REGARDING THE USE OF THE SOFTWARE OR THE RESULTS THEREOF, INCLUDING BUT NOT LIMITED TO THE CORRECTNESS, ACCURACY, RELIABILITY, OR USEFULNESS OF THE SOFTWARE.
+>
+> You are solely responsible for determining the appropriateness of using and distributing the software and you assume all risks associated with its use, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and the unavailability or interruption of operation. This software is not intended to be used in any situation where a failure could cause risk of injury or damage to property. The software developed by NIST employees is not subject to copyright protection within the United States.
