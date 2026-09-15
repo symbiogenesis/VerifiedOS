@@ -368,6 +368,22 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
              "this standing base is not an offline pinning constraint",
              "capacity ends at the slot end; a two-byte layout gap precedes the slot "
              "and no other slot or unreserved tail can supply a fit")),
+        Spec("same-owner-arena-stranding", "one-arena-full", [
+            _arena("busy-pool", "service", 4), _arena("idle-pool", "service", 4)], [
+            _object("busy-slot", "busy-pool", 0, 4, 4, 0, 4, 4, 4, 4),
+            _object("idle-slot", "idle-pool", 0, 4, 4, 0, 2, 2, 2, 2),
+        ], [_request(2, "service", "busy-pool", 4),
+            _request(2, "service", "idle-pool", 4),
+            _request(4, "service", "busy-pool", 4)],
+         "One owner's target arena is full while its other arena has an idle slot "
+         "of the same size. Changing only the request arena fits immediately; "
+         "the target arena fits only once its occupant completes reuse.",
+         covers=("sessions",),
+         costs=_costs(
+             "payload equals each slot and all release and reuse boundaries coincide",
+             "unit alignment with equal slot bases; alignment hides no free bytes",
+             "each arena is exactly one equal-sized slot with separate physical backing; "
+             "no size-class difference, layout gap or tail explains the refusal")),
     ]
     digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     result: list[dict[str, Any]] = []
