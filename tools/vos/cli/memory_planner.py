@@ -99,8 +99,20 @@ def service_demo() -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str,
 def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.work_budget < 0 or args.replay_budget < 1:
         raise ValueError("work budget must be nonnegative and replay budget positive")
-    if args.resource_budget is not None and args.action not in {"resources", "resource-proof"}:
-        raise ValueError("--resource-budget is only supported by resources and resource-proof")
+    # Refuse unused input files before dispatch can silently replace a caller's
+    # standing plan, contract or evidence with another action's defaults.
+    input_actions: dict[str, set[str]] = {
+        "instance": {"plan", "check", "solve", "verify"},
+        "baseline": {"plan"},
+        "candidate": {"plan", "check"},
+        "contract": {"contracts"},
+        "resource_budget": {"resources", "resource-proof"},
+        "evidence": {"verify"},
+    }
+    for option, actions in input_actions.items():
+        if getattr(args, option) and args.action not in actions:
+            flag = "--" + option.replace("_", "-")
+            raise ValueError(f"{flag} is only supported by {', '.join(sorted(actions))}")
     if args.action in {"resources", "resource-proof"}:
         if (args.instance or args.baseline or args.candidate or args.contract or args.evidence
                 or args.work_budget or args.certify):

@@ -105,6 +105,45 @@ def routing_and_bad_arguments() -> None:
         ensure(code == 2, "invalid options return a typed error")
 
 
+def baseline_route_and_unused_inputs() -> None:
+    raw = {"name": "standing-placement", "pools": [{"id": "a", "capacity": 4}],
+           "buffers": [{"id": "buffer", "size": 1, "allowed_pools": ["a"]}]}
+    baseline = [{"id": "buffer", "pool": "a", "offset": 3}]
+    with tempfile.TemporaryDirectory() as directory:
+        instance = Path(directory) / "instance.json"
+        standing = Path(directory) / "baseline.json"
+        evidence = Path(directory) / "evidence.json"
+        instance.write_text(json.dumps(raw), encoding="utf-8")
+        standing.write_text(json.dumps(baseline), encoding="utf-8")
+        code, report = invoke(["plan", "--instance", str(instance), "--baseline", str(standing)])
+        ensure(code == 0 and report["placement"] == baseline,
+               "plan retains the supplied checked baseline without optional search")
+        ensure(str(standing) in report["input_sha256"], "the retained baseline is bound to its input bytes")
+        code, report = invoke(["solve", "--instance", str(instance), "--baseline", str(standing)])
+        ensure(code == 2 and report["evidence"]["status"] == "unknown/unsupported"
+               and "--baseline" in report["evidence"]["findings"][0],
+               "solve must refuse a standing baseline instead of silently discarding it")
+        ensure(not report["input_sha256"], "incompatible options are refused before reading any input")
+        code, checked = invoke(["check", "--instance", str(instance), "--candidate", str(standing)])
+        ensure(code == 0 and checked["placement"] == baseline, "check still consumes a candidate file")
+        code, solved = invoke(["solve", "--instance", str(instance), "--work-budget", "4", "--certify"])
+        ensure(code == 0 and solved["placement"][0]["offset"] == 0,
+               "solve without a supplied baseline still finds a checked placement")
+        evidence.write_text(json.dumps(solved), encoding="utf-8")
+        code, verified = invoke(["verify", "--instance", str(instance), "--evidence", str(evidence)])
+        ensure(code == 0 and verified["evidence"]["status"] == "checked optimal",
+               "verify still consumes serialized evidence")
+        for action, option in (("solve", "--candidate"), ("check", "--baseline"),
+                               ("verify", "--candidate"), ("plan", "--evidence"),
+                               ("demo", "--instance"), ("contracts", "--candidate"),
+                               ("plan", "--contract"), ("demo-tflm", "--baseline"),
+                               ("demo", "--resource-budget")):
+            code, refused = invoke([action, option, str(Path(directory) / "unread-input.json")])
+            ensure(code == 2 and option in refused["evidence"]["findings"][0],
+                   f"{action} must identify the input it cannot consume: {option}")
+            ensure(not refused["input_sha256"], "a rejected input must never be opened")
+
+
 def resource_contract_cli() -> None:
     raw = resources.demo_resources()
     with tempfile.TemporaryDirectory() as directory:
@@ -137,4 +176,5 @@ def cases() -> list[Case]:
             Case("contract route and source identity", contract_route_and_source_binding),
             Case("optional failures preserve fallback", optional_input_failure_retains_baseline),
             Case("host and guest routing", routing_and_bad_arguments),
+            Case("baseline routing and unused input refusal", baseline_route_and_unused_inputs),
             Case("resource contracts and proof emission", resource_contract_cli)]
