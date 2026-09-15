@@ -167,6 +167,13 @@ exhibiting the separation it was built for is a finding rather than a quiet pass
   the live identities. A refusal is a result here, not an error. Because no layout
   family is searched, that witness also claims no optimum and replays none, and the
   two charges it does carry exhibit no ordering, the missing third being the reason.
+- **Live destination at a switch.** `live-destination-at-switch` leaves each
+  pairwise source exactly at reuse and enters its destination exactly at start,
+  retaining nothing. Only the destination is live, so its entry findings alone
+  refuse the binding family. The existing `pairwise-modes-ab-ac-bc` witness enters
+  immediately before start and remains valid. Compare those names in the receipt's
+  `cases`: the per-mode and conservative results remain checked, while the refused
+  `binding` has no `charge`, `layouts`, `exact` or `optimality_replay`.
 - **Two arenas.** Six identities in two arenas and three modes, each activating one
   pair in each arena, the second arena's identities being the wider ones. Both
   arenas exhibit the pairwise separation at their own extents, so the two charges
@@ -203,9 +210,11 @@ relation the family induces is exactly the declared edge set. They mutate the
 checker's inputs so that a layout overlapping in one mode, which a checker reading
 only the first mode accepts, is caught by both readings; they exercise the
 switch-rule refusals, a retained identity that moves across a switch, a retained
-identity that is dead at its own instant, and the parse refusals; and they check
-that the graph search at the per-mode limit agrees with the single-trace oracle
-and that a cutoff never becomes a verdict. A two-arena fixture checks that each
+identity that is dead at its own instant, and the parse refusals. A separate
+boundary test leaves its source exactly at reuse and moves only destination entry
+from immediately before start to exactly start, catching a check of only the source
+side. They also check that the graph search at the per-mode limit agrees with the
+single-trace oracle and that a cutoff never becomes a verdict. A two-arena fixture checks that each
 arena's span equals its own independent enumeration, that an overlap confined to
 one arena is still a finding, and that bytes free in one arena do not pay for a
 capacity finding in another. These are executable checks of finite instances, not

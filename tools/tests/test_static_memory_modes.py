@@ -209,6 +209,39 @@ def _switch_rule_refusals() -> None:
            "a binding family needs one layout per admitted mode")
 
 
+def _destination_start_boundary() -> None:
+    """A dead source cannot hide a destination that is live exactly at start."""
+    rows = [("source", [("v0", 1, 3)]), ("destination", [("v1", 1, 3)])]
+    for at_target in (0, 1):
+        raw = _contract("destination-start-boundary", (1, 1), rows, transitions=[
+            {"source": "source", "target": "destination", "at_source": 3,
+             "at_target": at_target, "retained": []}])
+        family = modes.parse_family(raw)
+        findings = modes.check_switch_rule(family)
+        expected = (["source->destination: v1 is live where destination enters at 1 "
+                     "and no transition retains it"] if at_target == 1 else [])
+        ensure(findings == expected,
+               f"source is dead at reuse; only destination start can refuse: {findings}")
+        binding = modes.binding_model(family)
+        if at_target == 0:
+            ensure(binding["status"] == "checked" and binding["charge"] == {"arena": 1}
+                   and binding["optimality_replay"]["status"] == "verified",
+                   "entry immediately before start is a checked binding family")
+        else:
+            ensure(binding["status"] == "refused" and binding["switch_findings"] == expected
+                   and all(binding[key] is None for key in
+                           ("charge", "layouts", "exact", "optimality_replay")),
+                   "entry exactly at start refuses without a layout, charge or optimum")
+        per_mode = modes.per_mode_model(family)
+        conservative = modes.conservative_model(family)
+        ensure(per_mode["charge"] == {"arena": 1}
+               and all(row["optimality_replay"]["status"] == "verified"
+                       for row in per_mode["modes"])
+               and conservative["charge"] == {"arena": 1}
+               and conservative["optimality_replay"]["status"] == "verified",
+               "switch refusal leaves the per-mode and common-layout results valid")
+
+
 def _retention_costs_the_single_layout() -> None:
     raw = _contract("retained-cycle", (1, 1, 1),
                     [("m1", [("v1", 0, 4), ("v0", 2, 6)]), ("m2", [("v0", 0, 4), ("v2", 2, 6)]),
@@ -426,11 +459,23 @@ def _report_replays() -> None:
                                                "conservative": {"arena": 3, "slow": 6}},
            "two arenas carry separate charges and neither is summed into the other")
     by_name = {case["contract"]["name"]: case for case in receipt["cases"]}
-    refused = by_name["live-identity-at-switch"]["binding"]
-    ensure(refused["optimality_replay"] is None and refused["charge"] is None
-           and by_name["live-identity-at-switch"]["comparison"]["ordering_holds"] is None,
-           "a family refused at its switch rule searches no optimum, so it replays none "
-           "and exhibits no ordering")
+    for name in ("live-identity-at-switch", "live-destination-at-switch"):
+        refused = by_name[name]["binding"]
+        ensure(refused["status"] == "refused"
+               and all(refused[key] is None for key in
+                       ("charge", "layouts", "exact", "optimality_replay"))
+               and by_name[name]["comparison"]["ordering_holds"] is None,
+               "a family refused at its switch rule searches no optimum, so it replays none "
+               "and exhibits no ordering")
+    destination = by_name["live-destination-at-switch"]
+    ensure(destination["binding"]["switch_findings"]
+           and all(" enters at 1 " in finding
+                   for finding in destination["binding"]["switch_findings"]),
+           "the destination witness must be refused solely at destination starts")
+    ensure(charges["live-destination-at-switch"] == {
+        "per_mode": charges["pairwise-modes-ab-ac-bc"]["per_mode"], "binding": None,
+        "conservative": charges["pairwise-modes-ab-ac-bc"]["conservative"]},
+        "destination entry changes binding admissibility without changing the other charges")
     separated = by_name["two-arena-separation"]
     ensure(separated["conservative"]["optimality_replay"]["status"] == "verified"
            and separated["binding"]["optimality_replay"]["status"] == "verified",
@@ -445,6 +490,7 @@ def cases() -> list[Case]:
         Case("modes conservative relation without an interval model", _not_an_interval_graph),
         Case("modes independent checkers catch a wrong one", _wrong_checkers_are_caught),
         Case("modes switch-rule refusals and retained bases", _switch_rule_refusals),
+        Case("modes destination start boundary", _destination_start_boundary),
         Case("modes retention costs the single layout", _retention_costs_the_single_layout),
         Case("modes charges stay inside each arena", _charges_stay_inside_each_arena),
         Case("modes per-mode limit agrees with the single-trace oracle", _per_mode_limits_agree),
