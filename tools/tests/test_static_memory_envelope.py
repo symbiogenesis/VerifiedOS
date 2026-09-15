@@ -258,9 +258,9 @@ def retirement_charges_match_byte_enumeration_at_lifecycle_boundaries() -> None:
         ensure(actual == expected,
                f"{name}: retirement charges differ from byte enumeration: "
                f"{actual} != {expected}")
-    ensure(envelope.measure(env, policy, limits, [], horizon)
-           == envelope.Measurement(0, 0, 0, env.control_bytes_per_tick, ()),
-           "an idle calendar invents a retirement or control charge")
+        ensure(envelope.measure(env, policy, limits, [], horizon)
+               == envelope.Measurement(0, 0, 0, env.control_bytes_per_tick, ()),
+               f"{name}: an idle calendar invents a retirement or control charge")
 
 
 def barrier_mutants_reach_the_stale_capability() -> None:
