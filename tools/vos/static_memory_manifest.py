@@ -465,6 +465,25 @@ def _run(argv: list[str]) -> tuple[int, Any]:
     return code, json.loads(stream.getvalue())
 
 
+def _research_shape_errors(receipt: dict[str, Any], action: str) -> list[str]:
+    """Read the research envelope and case containers, not their result semantics."""
+    errors: list[str] = []
+    if action not in ("corpus", "check", "compare") or receipt.get("action") != action:
+        errors.append("the research receipt must name the replayed research action")
+    scope = receipt.get("scope")
+    if not isinstance(scope, str) or not scope.strip():
+        errors.append("the research receipt requires a nonempty scope string")
+    if not isinstance(receipt.get("settings"), dict):
+        errors.append("the research receipt requires a settings object")
+    cases = receipt.get("cases")
+    if not isinstance(cases, list) or not cases:
+        errors.append("the research receipt requires a nonempty cases list")
+    elif any(not isinstance(case, dict) or not isinstance(case.get("contract"), dict)
+             for case in cases):
+        errors.append("each research case must be an object with a contract object")
+    return errors
+
+
 def replay_action(action: str) -> ReplayEntry:
     """Replay one action at its smallest budget and record what it answered.
 
@@ -501,6 +520,7 @@ def replay_action(action: str) -> ReplayEntry:
         # These actions report per-case diagnostics and decide their own exit code.
         # An intentional request refusal or incomplete search is not a replay error.
         entry["scope"] = str(receipt.get("scope") or "n/a")
+        entry["errors"].extend(_research_shape_errors(receipt, action))
     else:
         entry["errors"].append(f"unsupported receipt schema: {entry['schema']}")
     if code != 0:
