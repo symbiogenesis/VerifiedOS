@@ -144,6 +144,24 @@ and initialization. The report preserves the input provenance, coverage and tele
 labels. Total physical charges may be summed for reporting, while the arena-local
 capacity restrictions remain in force.
 
+## Finite-trace ledger disposition
+
+The finite-trace witness ledger has an independently checked byte partition and
+source-labeled request diagnostics. The byte-at-a-time oracle checks every fixture
+tick. Focused witnesses check retirement charges, overlaid backing, completed-reuse
+boundaries and geometric versus declared-slot capacity. Each row identifies its
+owner, arena, mode and instant. The request diagnostics cover both instantaneous
+fits and every typed refusal while retaining the source identity, telemetry label,
+cost assumptions, reuse premises and service-contract label.
+
+This completes the witness ledger subitem in the
+[research agenda](../../background/static-memory-research.md). Target telemetry,
+compiled-service cost extraction and measured comparisons of equivalent and
+alternative service contracts remain open. Preserving a comparison label does not
+prove functional equivalence or measure a changed promise. An idle slot extent is
+an instantaneous geometric result, not the complete legal-use certificate an
+admitted execution would need.
+
 ## The demand envelope of one contract
 
 `demand_series` is the computed companion to the declared envelope. Per arena it
@@ -184,6 +202,13 @@ unknown arena, foreign ownership, an inadequate slot size, incompatible slot-bas
 alignment, occupied slots and pending safe reuse. Idle bytes belonging to another
 owner cannot turn a refusal into a fit. The report also exposes free physical
 bytes, so a size-class refusal can be seen beside its stranded capacity.
+
+Every diagnostic preserves the ledger's source and contract metadata, including on
+an unknown-arena or foreign-owner refusal. A standalone fit or refusal therefore
+retains its telemetry and service-contract labels; an alternative service promise
+cannot lose its declared comparison scope when the diagnostic is separated from
+the containing corpus receipt. These documentary labels are carried unchanged,
+not authenticated or decided by the placement model.
 
 A `fits-at-instant` result supplies only slot geometry. It carries no requested end
 time, future non-overlap argument, binding certificate or semantic completion

@@ -651,6 +651,7 @@ def diagnose_request(case: dict[str, Any], time: int, owner: str, arena: str,
     request = _request(time, owner, arena, size, alignment)
     result: dict[str, Any] = {
         "request": request, "case": parsed.name, "mode": parsed.mode,
+        **{name: case[name] for name in METADATA if name in case},
         "telemetry_label": case.get("telemetry_label", "unspecified"),
         "runtime_permission": False,
         "scope": "instantaneous fit in an existing slot; no binding or future lifetime checked",

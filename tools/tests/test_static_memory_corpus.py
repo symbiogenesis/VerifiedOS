@@ -81,6 +81,40 @@ def deterministic_identity_and_explicit_assumptions() -> None:
         "research scenario coverage missing")
 
 
+def diagnostics_preserve_source_scope_and_service_contract_labels() -> None:
+    witnesses = {case["name"]: case for case in c.corpus("test-revision")}
+    probes = (
+        ("bounded-sessions", 2, "owner-a", "absent", 4, 1, "unknown-arena"),
+        ("bounded-sessions", 2, "owner-a", "b-pool", 4, 1, "foreign-owner"),
+        ("bounded-sessions", 2, "owner-a", "a-pool", 4, 1, "slot-occupied"),
+        ("adversarial-alignment", 5, "owner", "arena", 8, 1, "slot-size"),
+        ("adversarial-alignment", 5, "owner", "arena", 5, 16, "slot-alignment"),
+        ("burst-teardown", 3, "service", "pool", 4, 1, "reuse-pending"),
+        ("burst-teardown", 5, "service", "pool", 4, 1, None),
+    )
+    # Metadata labels are documentary premises, not facts established by a fit.
+    # Check every early return and keep alternative service promises distinguishable.
+    fields = ("provenance", "source_revision", "source_hashes", "manifest", "covers",
+              "demand_envelope", "cost_assumptions", "telemetry_label",
+              "service_contract", "reuse_semantics")
+    for comparison in ("no service change", "alternative service promise"):
+        for name, time, owner, arena, size, alignment, reason in probes:
+            case = copy.deepcopy(witnesses[name])
+            case["telemetry_label"] = "test-only opaque telemetry label"
+            case["service_contract"]["comparison"] = comparison
+            diagnostic = c.diagnose_request(case, time, owner, arena, size, alignment)
+            ensure(diagnostic["reason"] == reason,
+                   "the metadata test did not exercise its intended refusal or fit")
+            ensure(diagnostic["verdict"] == ("refused" if reason else "fits-at-instant")
+                   and not diagnostic["runtime_permission"],
+                   "a documentary contract label changed a diagnostic's authority")
+            for report in (diagnostic, c.ledger(case, time, alignment)):
+                ensure(all(report.get(field) == case[field] for field in fields),
+                       f"{name}/{reason}: source identity or service scope was lost")
+                ensure(not report["service_contract"]["product_admission_evidence"],
+                       "a preserved service label became product evidence")
+
+
 def byte_enumeration_independently_checks_every_snapshot() -> None:
     # A byte-at-a-time oracle independent of the ledger's interval boundaries.
     for case in c.corpus("test-revision"):
@@ -513,6 +547,7 @@ def crossing_optimum_exceeds_load_only_under_the_declared_alignment() -> None:
 def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         deterministic_identity_and_explicit_assumptions,
+        diagnostics_preserve_source_scope_and_service_contract_labels,
         existing_contracts_keep_their_base_revision_identities,
         every_contract_declares_exact_fields_and_an_accepted_standing_plan,
         family_audit_is_computed_from_a_closed_label_vocabulary,
