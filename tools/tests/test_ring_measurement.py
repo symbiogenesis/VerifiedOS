@@ -204,6 +204,41 @@ def _identities_and_chronology() -> None:
     ensure(not _run(base, expected).findings, "activation at inclusive start is allowed")
 
 
+def _declaration_numeric_domains() -> None:
+    declaration = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
+    with sandbox_tree({ring_owner.DECLARATION: json.dumps(declaration)}) as root:
+        for field in ("capacity", "max_batch_size", "slot_budget", *REQUEST_BOUNDS.values(),
+                      "max_requests_drained"):
+            for value in (0, -1):
+                changed = copy.deepcopy(declaration)
+                world = changed["worlds"][0]
+                if field in ("capacity", "max_batch_size", "slot_budget"):
+                    world["ring"][field] = value
+                else:
+                    index = world["operation_record_fields"].index(field)
+                    # Leave this operation unused: a malformed declared bound must not
+                    # become acceptable merely because the capture never invokes it.
+                    world["operations"][1]["record"][index] = value
+                (root / ring_owner.DECLARATION).write_text(json.dumps(changed),
+                                                         encoding="utf-8", newline="")
+                capture, expected = _fixture(root)
+                for activation in capture["rings"][0]["activations"]:
+                    activation["requests"] = []
+                    activation["queue_high_water"] = 0
+                    activation["activation_overhead_cost"] = 0
+                if value == 0:
+                    ensure(not _run(capture, expected, root).findings,
+                           f"zero {field} is a valid comparison bound for zero activity")
+                else:
+                    try:
+                        _run(capture, expected, root)
+                    except ValueError as error:
+                        ensure(field in str(error) and "nonnegative integer" in str(error),
+                               f"negative declared {field} identifies its invalid domain")
+                    else:
+                        raise AssertionError(f"negative declared {field} was not refused")
+
+
 def _ambiguous_declaration_is_refused() -> None:
     declaration = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
     world = declaration["worlds"][0]
@@ -360,6 +395,7 @@ def cases() -> list[Case]:
             Case("declared-boundary-equality-and-one-past", _declared_boundaries),
             Case("declaration-driven-drain-and-schema", _declaration_is_the_owner),
             Case("ambiguous-declaration-is-refused", _ambiguous_declaration_is_refused),
+            Case("declaration-bound-numeric-domains", _declaration_numeric_domains),
             Case("identity-bindings-and-chronology", _identities_and_chronology),
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),
             Case("cli-scope-evidence-and-exits", _cli_evidence),

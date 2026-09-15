@@ -160,7 +160,10 @@ def _records(world: ring_owner.World) -> dict[str, dict[str, int]]:
         name = operation["name"]
         if name in records:
             raise ValueError(f"world {world['world']}: repeated operation {name}")
-        records[name] = dict(zip(fields, operation["record"], strict=True))
+        records[name] = {
+            field: _number(value, f"world {world['world']}/operations/{name}/{field}")
+            for field, value in zip(fields, operation["record"], strict=True)
+        }
     return records
 
 
@@ -210,6 +213,10 @@ def _ring(value: Json, worlds: dict[str, ring_owner.World], window: Window,
     if world_name not in worlds:
         raise ValueError(f"{name}: undeclared world {world_name}")
     world = worlds[world_name]
+    # The declaration reader checks integer types; its numeric relationships are
+    # owned by the generated campaign. Refuse invalid domains before comparisons.
+    for field in ("capacity", "max_batch_size", "slot_budget"):
+        _number(world["ring"][field], f"world {world_name}/ring/{field}")
     records = _records(world)
     activations = tuple(_activation(value, world, records, f"{name}/activations/{index}", findings)
                         for index, value in enumerate(_array(row["activations"],
