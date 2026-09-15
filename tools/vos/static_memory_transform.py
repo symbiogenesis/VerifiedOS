@@ -206,6 +206,8 @@ def layout(program: Program) -> dict[str, Any]:
             row = opened.pop(ins.buffer)
             row.update(authority_end=tick, sweep_end=tick, reuse=tick + 1)
         else:
+            if ins.op == "ingress" and not 0 <= ins.other_index < program.length:
+                raise ValueError("out-of-bounds ingress source view")
             operands = [ins.buffer] + ([ins.other] if ins.other else [])
             for name in operands:
                 if name not in opened:
