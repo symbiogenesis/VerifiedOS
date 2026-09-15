@@ -262,6 +262,15 @@ class FixtureRecorder:
         if self._failed or self._finished or self._busy:
             raise RecordError("capture is refused, finished, or already consuming")
 
+    def abort(self) -> None:
+        """Latch an adapter failure, including one outside a recorder callback.
+
+        This is idempotent and raises no replacement exception: the adapter can
+        preserve its original failure while making every capture path refuse.
+        A callback still in progress observes the latch before returning an event.
+        """
+        self._failed = True
+
     def _admit(self, point: Point, interface: str) -> tuple[Event, Interface, int]:
         self._ready()
         for value in (point.slot, point.core, point.retire, point.ordinal):
