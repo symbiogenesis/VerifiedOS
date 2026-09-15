@@ -61,10 +61,8 @@
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------
-   List, boolean and arithmetic helpers, defined here rather than imported:
-   the prelude carries the list type and not the library over it, and
-   importing a module to save a hundred lines would put its assumptions
-   inside the R-05-163 gate's reach for no gain.
+   Local list, boolean and arithmetic helpers. The general enumeration
+   proofs below also use the standard List, Arith and Lia modules.
    ------------------------------------------------------------------------- *)
 
 Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
@@ -463,10 +461,8 @@ Proof.
   reflexivity.
 Qed.
 
-(* The load-bearing lemma of the whole probabilistic half: a measure-
-   preserving bijection of the sample space leaves every event's mass
-   where it was. Every masking argument in the literature is an instance
-   of it, and it is proved here from the three monoid laws alone. *)
+(* A mass-preserving permutation of the finite sample space leaves each
+   event's mass unchanged, using the commutative-monoid laws. *)
 (*| discharges: R-15-053a |*)
 Theorem reindexing_preserves_probability :
   forall (p : Probability) (sigma : Tape p -> Tape p) (q : Tape p -> bool),
@@ -687,45 +683,65 @@ Definition gate_args (g : Gate) : list nat :=
 Definition wires_exist (c : Circuit) (ps : list nat) : bool :=
   all_of (fun w => Nat.ltb w (wire_count c)) ps.
 
-(* Well-formedness: every wire a gate reads is declared before it. A
-   register reads its source in the same cycle and writes it in the next,
-   so it is inside the same ordering rather than beside it. *)
-Fixpoint wf_from (i : nat) (rest : list Gate) : bool :=
-  match rest with
-  | nil => true
-  | cons g r => andb (all_of (fun a => Nat.ltb a i) (gate_args g))
-                     (wf_from (S i) r)
+(* Combinational inputs must precede their gate. A register is a cycle
+   boundary: its sampled source may occur anywhere in the circuit, including
+   itself, but must exist. This admits synchronous feedback without admitting
+   a combinational cycle or a dangling register source. *)
+Definition gate_well_formed (total i : nat) (g : Gate) : bool :=
+  match g with
+  | g_in _ => true
+  | g_reg src => Nat.ltb src total
+  | g_op _ args => all_of (fun a => Nat.ltb a i) args
   end.
 
-Definition well_formed (c : Circuit) : bool := wf_from 0 c.
+Fixpoint wf_from (total i : nat) (rest : list Gate) : bool :=
+  match rest with
+  | nil => true
+  | cons g r => andb (gate_well_formed total i g) (wf_from total (S i) r)
+  end.
+
+Definition well_formed (c : Circuit) : bool := wf_from (wire_count c) 0 c.
 
 Lemma wf_from_lookup :
-  forall (rest : list Gate) (i w : nat),
-    wf_from i rest = true -> Nat.ltb w (count_of rest) = true ->
-    all_of (fun a => Nat.ltb a (Nat.add i w))
-           (gate_args (at_member rest w (g_in 0))) = true.
+  forall (rest : list Gate) (total i w : nat),
+    wf_from total i rest = true -> Nat.ltb w (count_of rest) = true ->
+    gate_well_formed total (Nat.add i w) (at_member rest w (g_in 0)) = true.
 Proof.
-  intros rest. induction rest as [ | g r IH ]; intros i w Hwf Hw.
+  intros rest. induction rest as [ | g r IH ]; intros total i w Hwf Hw.
   - discriminate Hw.
   - simpl in Hwf.
-    destruct (all_of (fun a => Nat.ltb a i) (gate_args g)) eqn:Eg;
+    destruct (gate_well_formed total i g) eqn:Eg;
       [ | discriminate Hwf ].
     simpl in Hwf.
     destruct w as [ | k ]; simpl.
     + rewrite add_zero_r_nat. exact Eg.
     + simpl in Hw.
       rewrite add_succ_r_nat.
-      exact (IH (S i) k Hwf Hw).
+      exact (IH total (S i) k Hwf Hw).
 Qed.
 
 (*| discharges: R-15-053a |*)
 Theorem well_formed_gate_reads_earlier_wires :
-  forall (c : Circuit) (w : nat),
+  forall (c : Circuit) (w o : nat) (args : list nat),
     well_formed c = true -> Nat.ltb w (wire_count c) = true ->
-    all_of (fun a => Nat.ltb a w) (gate_args (gate_at c w)) = true.
+    gate_at c w = g_op o args ->
+    all_of (fun a => Nat.ltb a w) args = true.
 Proof.
-  intros c w Hwf Hw. unfold gate_at.
-  exact (wf_from_lookup c 0 w Hwf Hw).
+  intros c w o args Hwf Hw Eg.
+  pose proof (wf_from_lookup c (wire_count c) 0 w Hwf Hw) as H.
+  change (gate_well_formed (wire_count c) w (gate_at c w) = true) in H.
+  rewrite Eg in H. exact H.
+Qed.
+
+Theorem well_formed_register_source_exists :
+  forall (c : Circuit) (w src : nat),
+    well_formed c = true -> Nat.ltb w (wire_count c) = true ->
+    gate_at c w = g_reg src -> Nat.ltb src (wire_count c) = true.
+Proof.
+  intros c w src Hwf Hw Eg.
+  pose proof (wf_from_lookup c (wire_count c) 0 w Hwf Hw) as H.
+  change (gate_well_formed (wire_count c) w (gate_at c w) = true) in H.
+  rewrite Eg in H. exact H.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -787,10 +803,9 @@ Proof.
     + reflexivity.
     + reflexivity.
     + f_equal. apply map_over_ext_nat. intros a Ha.
-      assert (Hargs : all_of (fun b => Nat.ltb b w) (gate_args (gate_at c w))
+      assert (Hargs : all_of (fun b => Nat.ltb b w) args
                       = true)
-        by exact (well_formed_gate_reads_earlier_wires c w Hwf Hc).
-      rewrite Eg in Hargs. simpl in Hargs.
+        by exact (well_formed_gate_reads_earlier_wires c w o args Hwf Hc Eg).
       assert (Haw : Nat.ltb a w = true)
         by exact (all_of_mem_nat (fun b => Nat.ltb b w) args a Hargs Ha).
       apply (IH m ops c regs ins a g1 g2 Hwf).
@@ -1271,9 +1286,8 @@ Definition SNI (g : Gadget) (E : Expansion) (d : nat) : Prop :=
 
 (* PROBE-ISOLATING NON-INTERFERENCE at order d: an output share at index k
    is simulated from input share k of every input, plus the internal
-   probes' own set. THE COMPOSITION NOTION THIS STATEMENT NAMES
-   (reading 9): the output-share budget does not appear in the bound, so
-   composing two gadgets needs no side condition at their boundary. *)
+   probes' own set. This local simulation budget does not bound output-share
+   selections. A theorem composing gadgets under this predicate remains open. *)
 Definition PINI (g : Gadget) (E : Expansion) (d : nat) : Prop :=
   forall (ps : list Probe) (B : nat -> bool),
     wires_exist (gd_circuit g) (map_over p_wire ps) = true ->
@@ -1569,6 +1583,38 @@ Qed.
 
 Definition register_circuit : Circuit :=
   cons (g_in 0) (cons (g_reg 0) nil).
+
+Definition self_holding_register : Circuit := cons (g_reg 0) nil.
+Definition toggling_register : Circuit :=
+  cons (g_reg 1) (cons (g_op 0 (cons 0 nil)) nil).
+
+Example synchronous_feedback_is_well_formed :
+  (well_formed self_holding_register, well_formed toggling_register) = (true, true).
+Proof. reflexivity. Qed.
+
+Example register_feedback_holds_its_initial_value :
+  forall initial : bool,
+  value_at gf2 gf2_ops self_holding_register (fun _ => initial)
+    (fun _ _ => false) 4 0 = initial.
+Proof. reflexivity. Qed.
+
+Definition toggle_ops (_ : nat) (args : list bool) : bool :=
+  negb (at_member args 0 false).
+
+Example register_combinational_feedback_toggles :
+  (value_at gf2 toggle_ops toggling_register (fun _ => false)
+     (fun _ _ => false) 1 0,
+   value_at gf2 toggle_ops toggling_register (fun _ => false)
+     (fun _ _ => false) 2 0) = (true, false).
+Proof. reflexivity. Qed.
+
+Example dangling_register_source_is_refused :
+  well_formed (cons (g_reg 1) nil) = false.
+Proof. reflexivity. Qed.
+
+Example combinational_self_feedback_is_refused :
+  well_formed (cons (g_op 0 (cons 0 nil)) nil) = false.
+Proof. reflexivity. Qed.
 
 (* The register carries the first share in the first cycle and the second
    in the next, which is the reuse a transition probe reads across. *)

@@ -308,8 +308,7 @@ Definition cyclic (q : Z) (n : nat) (a b : list Z) : list Z :=
 
 (* -------------------------------------------------------------------------
    Bytes. A coefficient's bits run from the least significant upward and so
-   do a byte's, which is the little-endian arm; the other arm is built below
-   and the two are not separated by anything here.
+   do a byte's, as required by the FIPS 203 and FIPS 204 byte encodings.
    ------------------------------------------------------------------------- *)
 
 Definition bits_le (d : nat) (x : Z) : list bool :=
@@ -327,9 +326,9 @@ Definition byte_encode (d : nat) (a : list Z) : list Z :=
 Definition byte_decode (d : nat) (bs : list Z) : list Z :=
   map bits_value (chunk_of (length bs * 8) d (concat (map (bits_le 8) bs))).
 
-(* The other arm of the choice no entry makes: the same packing with each
-   field's bits most significant first. It is its own inverse in the same
-   way, so no round trip below separates the two. *)
+(* A counterexample to using roundtrip alone as a conformance criterion:
+   most-significant-first packing also has an inverse, but disagrees with
+   the standards' prescribed little-endian byte order. *)
 Definition bits_be (d : nat) (x : Z) : list bool := rev (bits_le d x).
 
 Definition byte_encode_be (d : nat) (a : list Z) : list Z :=
