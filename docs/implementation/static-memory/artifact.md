@@ -70,7 +70,7 @@ violates:
 | --- | --- |
 | An inventoried file is absent, or the git index does not carry it | Corpus membership comes from the index, as [the checker](../../../tools/check.py) reads it; nothing decided about an untracked file means anything |
 | A `static_memory_<topic>` module has no registered action of its topic and no document outside this index naming it | A module nobody can reach and nobody describes is not part of a replayable artifact |
-| A document under `docs/implementation/static-memory/*.md` carries no Markdown link from another static-memory document and none from the research agenda | An unreachable document leaves its results outside the artifact a reader follows. A mention of the basename is not a link: a name inside a fenced command line, or in a sentence a reader cannot follow, gives nobody a way to arrive |
+| A document under `docs/implementation/static-memory/*.md` carries no Markdown link from another static-memory document and none from the research agenda | An unreachable document leaves its results outside the artifact a reader follows. A parenthesized basename, image reference or link displayed inside a fenced block gives nobody a document link to follow |
 | A declared source of an action does not exist, or the index does not carry it | An action binds the bytes it names, so a source it cannot hash decides nothing |
 | A test module has no module of its own topic | A test naming a subject the artifact does not ship is evidence about nothing |
 | A proof under `proofs/StaticMemory*.v` has no row in [the proof ledger](../../../tools/generated/proof-ledger.md) | The ledger is the join of the register with what the shipped proofs cite; a proof no row reaches cites no live requirement, or the ledger is owed its regeneration by `run.py check --fix` |
@@ -126,6 +126,23 @@ experiment adds is a finding here until somebody reads it and gives it a row.
 | [Literature disposition](literature.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | Per-source decisions cite their evidence owners and distinguish modeled theorems, executable experiments and unclosed source/target joins; no donor theorem becomes an admission claim |
 | [Resource contracts](resource-contracts.md) | peer-reviewed result cited; bounded executable evidence; mechanized theorem | Authored backing, holder and deadline checks accompany finite credit and duration theorems in MemoryPlannerResources.v; real execution and timing refinement remain premises |
 | [Artifact inventory](artifact.md) | bounded executable evidence | The manifest computes tracked files, registered actions and completeness; classification is a review judgment |
+
+## Local artifact disposition
+
+The local inventory and registered-action replay deliverable is complete within the
+scope above. `python tools/run.py static-memory manifest --replay --json` checks the
+indexed sources, action registration, document reachability and classification, then
+records every other registered action's receipt at its declared smoke-test budget.
+`python tools/run.py test --only static_memory_manifest` checks incomplete inventories,
+unreachable documents, classification defects and malformed replay receipts, including
+successful exits with invalid action or scope fields. Displayed links inside backtick
+or tilde fences do not establish reachability; ordinary links and heading fragments do.
+The research replay controls retain intentional request refusals and incomplete searches
+as diagnostics, so this completion supplies no optimum or target-capacity claim.
+
+This disposition closes the local inventory and replay step of the agenda's artifact
+item. External publication and review, implementation refinements and the measured
+product comparison remain open under the following obligations.
 
 ## What publication would additionally need
 
