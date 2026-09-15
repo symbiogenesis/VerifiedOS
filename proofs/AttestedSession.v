@@ -229,25 +229,28 @@ Record Connection : Type := {
   phase : Phase;
   pending_challenge : Challenge;
   pending_deadline : nat;
-  used_nonces : list nat
+  used_nonces : list nat;
+  used_contexts : list nat
 }.
 
 Definition with_phase (c : Connection) (ph : Phase) : Connection :=
   {| protected_context := protected_context c; phase := ph;
      pending_challenge := pending_challenge c; pending_deadline := pending_deadline c;
-     used_nonces := used_nonces c |}.
+     used_nonces := used_nonces c; used_contexts := used_contexts c |}.
 
 Definition begin_appraisal (profile : AttestationProfile) (policy : AppraisalPolicy)
     (c : Connection) (nonce now deadline : nat) : Connection :=
   match phase c with
   | Fresh =>
     if profile_bounded profile && context_usable (protected_context c) && (0 <? nonce) && (now <? deadline) &&
-       negb (existsb (Nat.eqb nonce) (used_nonces c)) then
+       negb (existsb (Nat.eqb nonce) (used_nonces c)) &&
+       negb (existsb (Nat.eqb (context_id (protected_context c))) (used_contexts c)) then
     {| protected_context := protected_context c; phase := Waiting;
        pending_challenge := {| challenge_nonce := nonce;
          challenge_origin := context_origin (protected_context c);
          challenge_unit_scope := unit_policy policy; challenge_domain := protocol_domain profile |};
-       pending_deadline := deadline; used_nonces := nonce :: used_nonces c |}
+       pending_deadline := deadline; used_nonces := nonce :: used_nonces c;
+       used_contexts := context_id (protected_context c) :: used_contexts c |}
     else with_phase c Closed
   | _ => c
   end.
@@ -319,14 +322,15 @@ Proof. reflexivity. Qed.
 (* Reconnection preserves the used-challenge history and requires another
    protected session identity. There is no reset-to-Fresh for the old handle. *)
 Definition reconnect (c : Connection) (new_context : ProtectedContext) : Connection :=
-  if context_id new_context =? context_id (protected_context c) then with_phase c Closed
+  if (context_id new_context =? context_id (protected_context c)) ||
+     existsb (Nat.eqb (context_id new_context)) (used_contexts c) then with_phase c Closed
   else {| protected_context := new_context; phase := Fresh;
           pending_challenge := pending_challenge c; pending_deadline := 0;
-          used_nonces := used_nonces c |}.
+          used_nonces := used_nonces c; used_contexts := used_contexts c |}.
 
 Theorem reconnecting_keeps_challenge_history : forall c new_context,
   used_nonces (reconnect c new_context) = used_nonces c.
-Proof. intros. unfold reconnect. destruct (context_id new_context =? context_id (protected_context c)); reflexivity. Qed.
+Proof. intros. unfold reconnect. destruct ((context_id new_context =? context_id (protected_context c)) || existsb (Nat.eqb (context_id new_context)) (used_contexts c)); reflexivity. Qed.
 
 Theorem reconnecting_the_same_session_cannot_reopen_it : forall c new_context,
   context_id new_context = context_id (protected_context c) ->
@@ -354,6 +358,16 @@ Theorem a_used_context_cannot_begin_another_lifecycle : forall p policy c nonce 
   phase c <> Fresh -> begin_appraisal p policy c nonce now deadline = c.
 Proof. intros. unfold begin_appraisal. destruct (phase c); contradiction || reflexivity. Qed.
 
+Theorem a_spent_context_is_refused_even_in_a_fresh_record : forall p policy c nonce now deadline,
+  phase c = Fresh -> In (context_id (protected_context c)) (used_contexts c) ->
+  phase (begin_appraisal p policy c nonce now deadline) = Closed.
+Proof.
+  intros p policy c nonce now deadline Hfresh Hused.
+  assert (E : existsb (Nat.eqb (context_id (protected_context c))) (used_contexts c) = true).
+  { apply existsb_exists. exists (context_id (protected_context c)).
+    split; [exact Hused|apply Nat.eqb_refl]. }
+  unfold begin_appraisal. rewrite Hfresh, E. cbn. rewrite andb_false_r. reflexivity.
+Qed.
 Theorem any_failed_guard_refuses_and_closes : forall p policy auth c now size q,
   phase c = Waiting -> appraisal_checks p policy auth c now size q = false ->
   decide p policy auth c now size (Some q) = (with_phase c Closed, false).
@@ -433,9 +447,10 @@ Proof.
   intros p policy c nonce now deadline Hwait Hfresh.
   unfold begin_appraisal in *. rewrite Hfresh in *.
   destruct (profile_bounded p && context_usable (protected_context c) &&
-    (0 <? nonce) && (now <? deadline) && negb (existsb (Nat.eqb nonce) (used_nonces c))) eqn:E;
+    (0 <? nonce) && (now <? deadline) && negb (existsb (Nat.eqb nonce) (used_nonces c)) &&
+    negb (existsb (Nat.eqb (context_id (protected_context c))) (used_contexts c))) eqn:E;
     [|discriminate].
-  repeat rewrite andb_true_iff in E. destruct E as [[[[_ _] Hnonce] _] _].
+  repeat rewrite andb_true_iff in E. destruct E as [[[[[_ _] Hnonce] _] _] _].
   apply Nat.ltb_lt in Hnonce. unfold PendingBinding. cbn. repeat split; assumption || reflexivity.
 Qed.
 
@@ -576,7 +591,7 @@ Definition example_challenge (unit_scope : bool) (nonce : nat) : Challenge :=
      challenge_unit_scope := unit_scope; challenge_domain := 5 |}.
 Definition example_fresh (ctx : ProtectedContext) : Connection :=
   {| protected_context := ctx; phase := Fresh; pending_challenge := example_challenge false 0;
-     pending_deadline := 0; used_nonces := [] |}.
+     pending_deadline := 0; used_nonces := []; used_contexts := [] |}.
 Definition waiting_for (policy : AppraisalPolicy) (ctx : ProtectedContext) (nonce : nat) :=
   begin_appraisal example_profile policy (example_fresh ctx) nonce 0 10.
 Definition example_measured : Measurement := fun _ => Some 7.
@@ -734,6 +749,31 @@ Example fresh_contexts_cannot_reuse_challenges_or_reconstruct_the_old_lifecycle 
   phase (reconnect relayed_acceptance context_a) = Closed /\
   phase (begin_appraisal example_profile software_policy
     (reconnect relayed_acceptance context_a_concurrent) 8 1 10) = Waiting.
+Proof. repeat split; reflexivity. Qed.
+
+Theorem reconnecting_preserves_all_spent_contexts : forall c new_context,
+  used_contexts (reconnect c new_context) = used_contexts c.
+Proof.
+  intros. unfold reconnect. destruct ((context_id new_context =? context_id (protected_context c)) ||
+    existsb (Nat.eqb (context_id new_context)) (used_contexts c)); reflexivity.
+Qed.
+
+Theorem any_previously_spent_context_is_refused : forall c new_context,
+  In (context_id new_context) (used_contexts c) ->
+  phase (reconnect c new_context) = Closed.
+Proof.
+  intros c ctx H. unfold reconnect.
+  assert (E : existsb (Nat.eqb (context_id ctx)) (used_contexts c) = true).
+  { apply existsb_exists. exists (context_id ctx). split; [exact H|apply Nat.eqb_refl]. }
+  rewrite E, orb_true_r. reflexivity.
+Qed.
+
+Example a_context_cycle_cannot_reopen_the_first_tls_connection :
+  phase (reconnect (reconnect relayed_acceptance context_b) context_a) = Closed /\
+  phase (begin_appraisal example_profile software_policy
+    (reconnect (reconnect relayed_acceptance context_b) context_a) 8 1 10) = Closed /\
+  phase (begin_appraisal example_profile software_policy
+    (reconnect (reconnect relayed_acceptance context_b) context_a_concurrent) 8 1 10) = Waiting.
 Proof. repeat split; reflexivity. Qed.
 
 Definition colliding_context := example_context 2 2 3 4 11.

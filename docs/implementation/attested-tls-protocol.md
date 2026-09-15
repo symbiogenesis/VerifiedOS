@@ -14,7 +14,7 @@ The composition supplies positive bounds for challenge bytes, evidence bytes, ma
 
 | State | Input and decision | Result |
 | --- | --- | --- |
-| Fresh context | Full handshake, authenticated origin, eligible fixed configuration, unspent connection lifecycle, valid policy, fresh nonempty challenge and positive deadline | Atomically mark the connection lifecycle spent and retain exactly one pending challenge |
+| Fresh context | Full handshake, authenticated origin, eligible fixed configuration, unspent connection lifecycle, valid policy, fresh nonempty challenge and positive deadline | Atomically record the context identity as spent and retain exactly one pending challenge |
 | Waiting | Receive one bounded evidence message before the deadline | Consume the pending attempt before checking evidence; either open this connection's service or close it |
 | Open | One authorized bounded object-fetch request; completion, expiry or platform teardown | Complete or refuse the request, then close the connection |
 | Closed | Any quote, repeated decision, new challenge or reconstructed appraiser using the same context | Refuse; reconnect requires a new context and fresh challenge |
@@ -33,7 +33,7 @@ The quote operation has no argument for a public exporter. Its only exporter sou
 
 ## Theorem contract fixed before authoring
 
-`proofs/AttestedSession.v` must prove a quantified accepted-session relation over explicit received evidence and its issuance event. The premises name exporter uniqueness/security, evidence authenticity, integrity of protected context lookup and measurements, uncompromised key custody, and authenticated origin-scoped unit enrollment. No axiom is added, and construction of an authentic-looking record is not evidence authenticity. An accepted quote must refer to the challenged connection's actual measured key holder and approved policy; unit equality is claimed only for unit appraisal.
+`proofs/AttestedSession.v` must prove a quantified accepted-session relation over explicit received evidence and its issuance event. The premises name exporter uniqueness/security, evidence authenticity, integrity of protected context lookup and measurements, uncompromised key custody, and authenticated origin-scoped unit enrollment. No axiom is added, and construction of an authentic-looking record is not evidence authenticity. The source retains all spent context identities across reconnects as well as nonce history; A-to-B-to-A reuse is refused even with a new nonce. A real bounded protected history or non-reusable handle construction must refine those lists. An accepted quote must refer to the challenged connection's actual measured key holder and approved policy; unit equality is claimed only for unit appraisal.
 
 The model must construct the whole premise conjunction for accepted software-only and unit-specific cases. It must reject replay, parallel-session substitution, a different correctly measured unit under unit policy and caller-provided-exporter substitution. The other correctly measured unit must remain accepted under software policy on its own context. A transparent byte-forwarding relay preserves the intended endpoints and acquires no traffic-key authority; an intermediary terminating two TLS legs has another key holder and is a different case. Explicit key exposure or compromised issuance must be shown to violate a premise and permit the corresponding attack, rather than be called a rejected honest case.
 
