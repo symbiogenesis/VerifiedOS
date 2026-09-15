@@ -211,9 +211,8 @@ def main(argv: list[str] | None = None) -> int:
         parser().error("--case and --contract are mutually exclusive")
     if args.candidate and (args.action != "check" or not args.contract):
         parser().error("--candidate requires check --contract")
-    if args.action in EXPERIMENT_SOURCES:
-        if args.case or args.contract or args.candidate:
-            parser().error("this experiment uses declared fixtures; case/contract/candidate are unsupported")
+    if args.action in EXPERIMENT_SOURCES and (args.case or args.contract or args.candidate):
+        parser().error("this experiment uses declared fixtures; case/contract/candidate are unsupported")
     root = Path(__file__).resolve().parents[3]
     try:
         if args.action in EXPERIMENT_SOURCES:
