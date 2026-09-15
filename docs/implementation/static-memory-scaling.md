@@ -84,8 +84,11 @@ bound.
 
 The assembled best witness selects the smallest complete, checked placement for
 each independent arena and passes through the checker again. Interrupted or failed
-heuristics retain their standing placements. An incomplete exact search retains its
-standing primary placement and does not contribute a partial search candidate to
+heuristics retain their standing placements. An interrupted lowering row can retain
+a checked partial improvement in `candidate` and `candidate_spans` as diagnostic
+evidence; its `placement`, `spans` and arena summaries still describe the standing
+plan, and it does not enter the assembled best witness. An incomplete exact search
+retains its standing primary placement and does not contribute a partial search candidate to
 the assembled best witness. A completed heuristic from the same run can still
 supply a checked candidate. The comparison's `selected_placement` remains the
 standing plan until exact search and independent optimality replay complete;
