@@ -8,6 +8,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import memplan
@@ -342,6 +343,36 @@ def malformed_lifetimes_and_overlap_fail_before_accounting() -> None:
             raise AssertionError(f"accounted a malformed {mutation} case")
 
 
+def standalone_contract_identity_binds_dirty_model_source() -> None:
+    source_name = "tools/vos/static_memory.py"
+    source_path = Path(sm.__file__)
+    original_read = Path.read_bytes
+    original_bytes = original_read(source_path)
+    dirty_bytes = original_bytes + b"\n# Source-identity test input.\n"
+    clean = c.corpus("same-revision")
+
+    def read_dirty(path: Path) -> bytes:
+        return dirty_bytes if path == source_path else original_read(path)
+
+    # Change only the bytes presented to hashing, without changing executable code.
+    with patch.object(Path, "read_bytes", read_dirty):
+        dirty = c.corpus("same-revision")
+    for before, after in zip(clean, dirty, strict=True):
+        ensure(before["source_hashes"][source_name] == hashlib.sha256(original_bytes).hexdigest(),
+               "standalone contract omitted the model reader's actual source")
+        ensure(after["source_hashes"][source_name] == hashlib.sha256(dirty_bytes).hexdigest(),
+               "unchanged revision hid a dirty model source")
+        ensure(before["source_hashes"][c.GENERATOR] == after["source_hashes"][c.GENERATOR]
+               and before["source_revision"] == after["source_revision"],
+               "model-source identity changed an unrelated input identity")
+        ensure(before["manifest"] == after["manifest"]
+               and before["demand_series"] == after["demand_series"],
+               "source identity changed the declared witness or demand")
+    dirty[0]["source_hashes"][source_name] = "changed"
+    ensure(dirty[1]["source_hashes"][source_name] != "changed",
+           "standalone contracts share mutable source identities")
+
+
 def q5_bridge_preserves_absence_instead_of_inventing_owners() -> None:
     root = Path(__file__).resolve().parents[2]
     bridge = c.q5_bridge(root, "test-revision")
@@ -531,5 +562,6 @@ def cases() -> list[Case]:
         alignment_stranding_changes_only_the_request_alignment,
         same_owner_arena_stranding_changes_only_the_request_arena,
         malformed_lifetimes_and_overlap_fail_before_accounting,
+        standalone_contract_identity_binds_dirty_model_source,
         q5_bridge_preserves_absence_instead_of_inventing_owners,
     )]

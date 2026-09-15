@@ -385,7 +385,10 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
              "each arena is exactly one equal-sized slot with separate physical backing; "
              "no size-class difference, layout gap or tail explains the refusal")),
     ]
-    digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    source_hashes = {
+        GENERATOR: hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "tools/vos/static_memory.py": hashlib.sha256(Path(sm.__file__).read_bytes()).hexdigest(),
+    }
     result: list[dict[str, Any]] = []
     for spec in specs:
         manifest = {"schema": SCHEMA, "generator": GENERATOR,
@@ -396,7 +399,7 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
             "objects": spec.objects, "requests": spec.requests,
             "provenance": WITNESS_PROVENANCE,
             "source_revision": source_revision,
-            "source_hashes": {GENERATOR: digest},
+            "source_hashes": dict(source_hashes),
             "manifest": {"schema": SCHEMA, "generator": GENERATOR,
                          "sha256": _hash(manifest)},
             "covers": list(family_labels(spec.covers)),
