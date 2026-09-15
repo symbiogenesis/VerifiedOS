@@ -790,8 +790,8 @@ def semantic_checks() -> dict[str, Any]:
 
 SOURCES = ("tools/vos/static_memory_reclaim.py", "tools/tests/test_static_memory_reclaim.py",
            "tools/vos/revocation.py", "docs/assurance/revocation-qualification.md",
-           "docs/implementation/static-memory-baseline.md",
-           "docs/implementation/static-memory-reclamation.md")
+           "docs/implementation/static-memory/baseline.md",
+           "docs/implementation/static-memory/reclamation.md")
 
 
 def report(root: Path, classes: tuple[HolderClass, ...] = HOLDER_CLASSES) -> dict[str, Any]:

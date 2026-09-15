@@ -1,7 +1,7 @@
 # The static-memory research artifact
 
-> Non-normative research inventory for the [static-memory agenda](../background/static-memory-research.md).
-> The [requirements register](../requirements-register.md) remains authoritative. Research
+> Non-normative research inventory for the [static-memory agenda](../../background/static-memory-research.md).
+> The [requirements register](../../requirements-register.md) remains authoritative. Research
 > outputs confer no implementation landing credit and accept no requirement. Nothing here
 > qualifies a hardware service rate, a product roster or a target measurement.
 
@@ -12,7 +12,7 @@ run on the host; proof and lowering checks run in their guest lanes. No part has
 been published, reviewed outside this repository or measured on a product.
 
 The inventory of those parts is computed rather than written down.
-[static_memory_manifest.py](../../tools/vos/static_memory_manifest.py) globs the modules,
+[static_memory_manifest.py](../../../tools/vos/static_memory_manifest.py) globs the modules,
 tests, documents and proofs, reads the accepted actions and their declared source sets
 from the command's own parser, hashes each file through the same `identity` function the
 experiment receipts use, and reports each file's membership in the git index. A module,
@@ -38,7 +38,7 @@ command's own tests use, and records each receipt's schema, scope sentence, repo
 errors and a digest of the receipt it produced. A budget is a setting and not a result:
 these replays decide whether each action still runs and what it says about its own
 scope. They are not the research runs whose figures the experiment documents describe,
-which use the budgets [the replay guide](static-memory-experiments.md) states.
+which use the budgets [the replay guide](experiments.md) states.
 
 The receipt is a `static-memory-experiment-v1` envelope, like the other research
 actions, with a `static-memory-manifest-v1` body. The envelope binds the Git revision,
@@ -68,12 +68,12 @@ violates:
 
 | Finding | Rule |
 | --- | --- |
-| An inventoried file is absent, or the git index does not carry it | Corpus membership comes from the index, as [the checker](../../tools/check.py) reads it; nothing decided about an untracked file means anything |
+| An inventoried file is absent, or the git index does not carry it | Corpus membership comes from the index, as [the checker](../../../tools/check.py) reads it; nothing decided about an untracked file means anything |
 | A `static_memory_<topic>` module has no registered action of its topic and no document outside this index naming it | A module nobody can reach and nobody describes is not part of a replayable artifact |
-| A document under `docs/implementation/static-memory-*.md` carries no Markdown link from another static-memory document and none from the research agenda | An unreachable document leaves its results outside the artifact a reader follows. A mention of the basename is not a link: a name inside a fenced command line, or in a sentence a reader cannot follow, gives nobody a way to arrive |
+| A document under `docs/implementation/static-memory/*.md` carries no Markdown link from another static-memory document and none from the research agenda | An unreachable document leaves its results outside the artifact a reader follows. A mention of the basename is not a link: a name inside a fenced command line, or in a sentence a reader cannot follow, gives nobody a way to arrive |
 | A declared source of an action does not exist, or the index does not carry it | An action binds the bytes it names, so a source it cannot hash decides nothing |
 | A test module has no module of its own topic | A test naming a subject the artifact does not ship is evidence about nothing |
-| A proof under `proofs/StaticMemory*.v` has no row in [the proof ledger](../../tools/generated/proof-ledger.md) | The ledger is the join of the register with what the shipped proofs cite; a proof no row reaches cites no live requirement, or the ledger is owed its regeneration by `run.py check --fix` |
+| A proof under `proofs/StaticMemory*.v` has no row in [the proof ledger](../../../tools/generated/proof-ledger.md) | The ledger is the join of the register with what the shipped proofs cite; a proof no row reaches cites no live requirement, or the ledger is owed its regeneration by `run.py check --fix` |
 | A static-memory document has no classification row or more than one, a row names a document the artifact does not carry, or a row names a class outside the declared vocabulary | The table below is a completeness statement and not a derived count, so both directions of the join are held. Exactly one row and not at least one, because two rows for one document can claim class sets that contradict each other |
 | A replayed action refused, reported its own errors, or returned an unreadable receipt | The replay requires a recognized receipt schema. An experiment receipt must carry an object body and an explicit list of string errors. A research receipt must satisfy the action, scope, settings and case-container checks stated above; malformed or missing required fields cannot count as a clean replay |
 
@@ -106,26 +106,26 @@ experiment adds is a finding here until somebody reads it and gives it a row.
 
 | Document | Result classes | Where each class sits |
 | --- | --- | --- |
-| [Research agenda](../background/static-memory-research.md) | peer-reviewed result cited; preprint cited; new conjecture | Literature is cited for its own models; the open hypotheses and product tradeoffs remain research questions |
-| [Mathematical baseline](static-memory-baseline.md) | elementary argument in prose; bounded executable evidence; mechanized theorem | The prose states inequalities and a forest construction; finite witnesses test assumptions; StaticMemoryLaminar.v proves the scoped closed-form construction and a crossing-family gap |
-| [Capacity corpus and byte ledger](static-memory-corpus.md) | bounded executable evidence | Synthetic contracts, event accounting and declared family coverage; absent roster inputs are reported |
-| [Replay guide and exact oracle](static-memory-experiments.md) | bounded executable evidence; measured outcome | Bounded search and independent replay apply to the declared model; elapsed search time is a host measurement |
-| [Service transformations](static-memory-transformations.md) | bounded executable evidence; mechanized theorem | The interpreter counts abstract work and storage; StaticMemoryService.v proves list-functional variant equivalence, with implementation refinement still open |
-| [Reclamation scheduling](static-memory-reclamation.md) | bounded executable evidence | Holder signatures, fixed calendars, barrier witnesses and schedule comparisons use synthetic service inputs |
-| [Planning scale](static-memory-scaling.md) | elementary argument in prose; bounded executable evidence; measured outcome | Prose establishes span lower bounds, bounded algorithms compare candidates, and host times measure the local search |
-| [Mode families](static-memory-modes.md) | bounded executable evidence | Per-mode, common-layout and binding-family results hold over declared synthetic modes and switch premises |
-| [Representable placement](static-memory-representability.md) | bounded executable evidence | The frozen granule rule and exported-plan predicates are cross-checked without establishing complete capability-format admission |
-| [Deletion-parameter structure](static-memory-structure.md) | peer-reviewed result cited; elementary argument in prose; bounded executable evidence; mechanized theorem | Parameter, bipartite, triangle-free threshold and extent-gcd arguments are proved in prose; the gap inequality also has a mechanized proof in StaticMemoryLaminar.v; finite replay establishes the named witness's inclusion-minimality |
-| [Capacity lending](static-memory-lending.md) | elementary argument in prose; bounded executable evidence | Public-policy independence arguments accompany finite two-run distinctions and counterexample calendars; no target transition is implemented |
-| [Public phases](static-memory-phases.md) | bounded executable evidence; new conjecture | Finite certificate checks and minimized counterexamples motivate the stated compositional conjecture |
-| [Oracle mutations](static-memory-mutants.md) | bounded executable evidence | Constructed violations and weakened-clause controls distinguish killed, miskilled, surviving and stillborn cases |
-| [Retirement envelopes](static-memory-envelope.md) | elementary argument in prose; bounded executable evidence | Calendar bounds have explicit finite-adversary premises and bounded exhaustive comparisons |
-| [Compiled census](static-memory-census.md) | bounded executable evidence; measured outcome | Reproducible lowering checks and emitted C and instruction counts concern a plain-RV64 proxy, with no target timing or image qualification |
-| [Candidate generators](static-memory-candidates.md) | bounded executable evidence; measured outcome | Original-instance checks decide native idealloc proposals; synthetic spans and host elapsed times belong to their concrete runs |
-| [Standard certificates](static-memory-certificates.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | The sources describe external formats and checkers; native replay checks finite encoded instances; MemoryPlannerCertificates.v proves the separate finite model, with no serialized LRAT-to-Rocq bridge |
-| [Literature disposition](static-memory-literature.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | Per-source decisions cite their evidence owners and distinguish modeled theorems, executable experiments and unclosed source/target joins; no donor theorem becomes an admission claim |
-| [Resource contracts](static-memory-resource-contracts.md) | peer-reviewed result cited; bounded executable evidence; mechanized theorem | Authored backing, holder and deadline checks accompany finite credit and duration theorems in MemoryPlannerResources.v; real execution and timing refinement remain premises |
-| [Artifact inventory](static-memory-artifact.md) | bounded executable evidence | The manifest computes tracked files, registered actions and completeness; classification is a review judgment |
+| [Research agenda](../../background/static-memory-research.md) | peer-reviewed result cited; preprint cited; new conjecture | Literature is cited for its own models; the open hypotheses and product tradeoffs remain research questions |
+| [Mathematical baseline](baseline.md) | elementary argument in prose; bounded executable evidence; mechanized theorem | The prose states inequalities and a forest construction; finite witnesses test assumptions; StaticMemoryLaminar.v proves the scoped closed-form construction and a crossing-family gap |
+| [Capacity corpus and byte ledger](corpus.md) | bounded executable evidence | Synthetic contracts, event accounting and declared family coverage; absent roster inputs are reported |
+| [Replay guide and exact oracle](experiments.md) | bounded executable evidence; measured outcome | Bounded search and independent replay apply to the declared model; elapsed search time is a host measurement |
+| [Service transformations](transformations.md) | bounded executable evidence; mechanized theorem | The interpreter counts abstract work and storage; StaticMemoryService.v proves list-functional variant equivalence, with implementation refinement still open |
+| [Reclamation scheduling](reclamation.md) | bounded executable evidence | Holder signatures, fixed calendars, barrier witnesses and schedule comparisons use synthetic service inputs |
+| [Planning scale](scaling.md) | elementary argument in prose; bounded executable evidence; measured outcome | Prose establishes span lower bounds, bounded algorithms compare candidates, and host times measure the local search |
+| [Mode families](modes.md) | bounded executable evidence | Per-mode, common-layout and binding-family results hold over declared synthetic modes and switch premises |
+| [Representable placement](representability.md) | bounded executable evidence | The frozen granule rule and exported-plan predicates are cross-checked without establishing complete capability-format admission |
+| [Deletion-parameter structure](structure.md) | peer-reviewed result cited; elementary argument in prose; bounded executable evidence; mechanized theorem | Parameter, bipartite, triangle-free threshold and extent-gcd arguments are proved in prose; the gap inequality also has a mechanized proof in StaticMemoryLaminar.v; finite replay establishes the named witness's inclusion-minimality |
+| [Capacity lending](lending.md) | elementary argument in prose; bounded executable evidence | Public-policy independence arguments accompany finite two-run distinctions and counterexample calendars; no target transition is implemented |
+| [Public phases](phases.md) | bounded executable evidence; new conjecture | Finite certificate checks and minimized counterexamples motivate the stated compositional conjecture |
+| [Oracle mutations](mutants.md) | bounded executable evidence | Constructed violations and weakened-clause controls distinguish killed, miskilled, surviving and stillborn cases |
+| [Retirement envelopes](envelope.md) | elementary argument in prose; bounded executable evidence | Calendar bounds have explicit finite-adversary premises and bounded exhaustive comparisons |
+| [Compiled census](census.md) | bounded executable evidence; measured outcome | Reproducible lowering checks and emitted C and instruction counts concern a plain-RV64 proxy, with no target timing or image qualification |
+| [Candidate generators](candidates.md) | bounded executable evidence; measured outcome | Original-instance checks decide native idealloc proposals; synthetic spans and host elapsed times belong to their concrete runs |
+| [Standard certificates](certificates.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | The sources describe external formats and checkers; native replay checks finite encoded instances; MemoryPlannerCertificates.v proves the separate finite model, with no serialized LRAT-to-Rocq bridge |
+| [Literature disposition](literature.md) | peer-reviewed result cited; preprint cited; bounded executable evidence; mechanized theorem | Per-source decisions cite their evidence owners and distinguish modeled theorems, executable experiments and unclosed source/target joins; no donor theorem becomes an admission claim |
+| [Resource contracts](resource-contracts.md) | peer-reviewed result cited; bounded executable evidence; mechanized theorem | Authored backing, holder and deadline checks accompany finite credit and duration theorems in MemoryPlannerResources.v; real execution and timing refinement remain premises |
+| [Artifact inventory](artifact.md) | bounded executable evidence | The manifest computes tracked files, registered actions and completeness; classification is a review judgment |
 
 ## What publication would additionally need
 

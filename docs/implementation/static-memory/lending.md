@@ -1,10 +1,10 @@
 # Useful slack versus private demand: a two-run lending experiment
 
-> Non-normative research for the [static-memory agenda](../background/static-memory-research.md).
-> The [requirements register](../requirements-register.md) remains authoritative.
+> Non-normative research for the [static-memory agenda](../../background/static-memory-research.md).
+> The [requirements register](../../requirements-register.md) remains authoritative.
 > This experiment confers no landing credit and accepts no requirement. Cross-owner
-> borrowing is excluded today by [R-08-012c](../spec.md#r-08-012c) and
-> [R-08-047](../spec.md#r-08-047); nothing here proposes admitting it. What the
+> borrowing is excluded today by [R-08-012c](../../spec.md#r-08-012c) and
+> [R-08-047](../../spec.md#r-08-047); nothing here proposes admitting it. What the
 > experiment measures is one cost of the excluded branch, so that the open tradeoff
 > in the agenda has a finite, replayable answer instead of an intuition.
 
@@ -35,7 +35,7 @@ length and an ordered tuple of declared attempt instants: the request takes its 
 pool where the whole hold window fits, takes a loan where the whole window fits
 under the policy's capacity, and otherwise waits for its next declared instant.
 There is no implicit wait. A request that exhausts its declared attempts carries a
-typed refusal, which is the shape [R-08-047](../spec.md#r-08-047) requires of a full
+typed refusal, which is the shape [R-08-047](../../spec.md#r-08-047) requires of a full
 pool and the reason the retry calendar is public rather than a blocking queue.
 
 The secret is the lender's per-tick occupancy trace, drawn from the finite set its
@@ -54,8 +54,8 @@ model, so a leak below that granularity is not one this experiment can see or
 exclude. The pools are counts of equal slots, not placed bytes. Every quantity is
 a synthetic slot or an ordinal tick; none is a measured size or a measured time.
 The frame that keeps slot timing public across a confidentiality boundary is
-[R-07-036](../spec.md#r-07-036)'s non-work-conserving schedule, and
-[R-08-027b](../spec.md#r-08-027b) states the progress obligation this model is a
+[R-07-036](../../spec.md#r-07-036)'s non-work-conserving schedule, and
+[R-08-027b](../../spec.md#r-08-027b) states the progress obligation this model is a
 finite instance of. This experiment does not re-derive either; it borrows their
 shape for memory capacity and reports what changes.
 
@@ -175,21 +175,21 @@ offered as one; they mark where the fixture's answer stops.
 **A relational result is not an admission argument.** Noninterference over these
 observations is one obligation out of several the excluded branch owes, and the
 experiment already exhibits a policy that passes it and fails another. The
-[research agenda](../background/static-memory-research.md) names the rest: the
+[research agenda](../../background/static-memory-research.md) names the rest: the
 branch owes a proved ownership transition, reserved return capacity, and the
 authority proofs that make a loaned slot safe to reclaim.
-[R-08-012c](../spec.md#r-08-012c) refuses a placement outside the owning island's
+[R-08-012c](../../spec.md#r-08-012c) refuses a placement outside the owning island's
 root capability by having no derivation for it rather than by failing a test, so a
 loan is not a scheduling decision that a policy argument could settle; it is a
 capability derivation that does not exist.
-[R-08-045](../spec.md#r-08-045) charges every physical byte to the signed
+[R-08-045](../../spec.md#r-08-045) charges every physical byte to the signed
 composition and admits no runtime path to unplanned storage, so a lending mechanism
 would have to be charged at admission, not discovered at run time. Nothing in this
 experiment supplies any of that, and a green replay supplies none of it either.
 
 **The declassification here is a modeling device, not a mechanism.** Where the
 system has a sanctioned declassifier it is the powerbox, under
-[R-08-024](../spec.md#r-08-024) and [R-08-025](../spec.md#r-08-025): a delimited
+[R-08-024](../../spec.md#r-08-024) and [R-08-025](../../spec.md#r-08-025): a delimited
 release the theorem quantifies over. This experiment's public labels are a
 composition-time constant in a finite model, and no claim is made that they would
 compose with that statement.

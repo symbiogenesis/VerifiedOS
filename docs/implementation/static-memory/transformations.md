@@ -1,9 +1,9 @@
 # Static-memory service transformations
 
 This experiment advances the lifetime/representation and bytes-versus-work items
-in the [research backlog](../background/static-memory-research.md). It emits and
+in the [research backlog](../../background/static-memory-research.md). It emits and
 executes a bounded frame service in a small interpreter instruction set. It checks
-the resulting placements with the [existing model](static-memory-baseline.md),
+the resulting placements with the [existing model](baseline.md),
 compares outputs with an independent value specification, and reports physical
 reservations and executed operation counts. It supplies no target compilation,
 WCET, energy measurement or product admission evidence. Both research items remain
@@ -19,7 +19,7 @@ python tools/run.py test --only static_memory_transform
 ```
 
 The command calls
-[`transformation_report`](../../tools/vos/static_memory_transform.py), whose report
+[`transformation_report`](../../../tools/vos/static_memory_transform.py), whose report
 includes the source revision, working-tree source hashes, generated input digest,
 program digests, settings, all reservations, disjoint event ledgers, equivalence
 findings and modeled Pareto candidates. The command's enclosing receipt binds its
@@ -82,7 +82,7 @@ them independently.
 
 ### Mechanized equivalence
 
-[StaticMemoryService.v](../../proofs/StaticMemoryService.v) states the argument
+[StaticMemoryService.v](../../../proofs/StaticMemoryService.v) states the argument
 above as Rocq theorems over list functions and proves them outright, with every
 constant closed under the global context at the proof gate `run.py proofs` runs.
 It carries the reference, the shift/add/mask map proved equal to the
@@ -126,7 +126,7 @@ Equivalence of the generator's programs to these functional models therefore
 remains the executable-test claim `equivalence_findings` makes over the
 report's frames, and the costs the report compares are not modeled by the
 proof at all. The proof confers no landing credit and accepts no requirement;
-the [requirements register](../requirements-register.md) remains authoritative
+the [requirements register](../../requirements-register.md) remains authoritative
 and both research items stay open under their full acceptance conditions.
 
 ## Variants and the assumption each changes
@@ -154,7 +154,7 @@ and lengths model narrowing; they do not establish that the target compressed
 capability can express those bounds. A device API that requires contiguous
 transfers motivates the charged chunk stage, but the program executes synchronous
 copies, not actual DMA. There is no device-completion timing claim. A target port
-owes the [Q22 barrier](../assurance/revocation-qualification.md), capability
+owes the [Q22 barrier](../../assurance/revocation-qualification.md), capability
 representability, alias/loan elimination and completion evidence before it can
 reuse any extent on this schedule.
 

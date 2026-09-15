@@ -143,7 +143,7 @@ aggressive, because the rule it reads targets *minting a checker* rather than
 the pattern. Its criterion is narrow in the direction that matters here, an
 optimizer being admissible exactly where an existing checker decides its
 output and no new checker is introduced. The portable
-[LRAT experiment](../../implementation/static-memory-certificates.md) invokes a
+[LRAT experiment](../../implementation/static-memory/certificates.md) invokes a
 separately licensed Isabelle-LLVM checker as evidence-producing machinery under
 R-05-011b. Its verdict grounds no admitted claim and supplies no instance-specific
 Rocq term; Q27a's disposition is unchanged. Only the producer half of the

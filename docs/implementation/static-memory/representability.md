@@ -1,15 +1,15 @@
 # Representable placement in the static-memory research oracle
 
-> Non-normative host research. The [requirements register](../requirements-register.md)
+> Non-normative host research. The [requirements register](../../requirements-register.md)
 > remains authoritative and decides admission; this document confers no landing credit,
 > accepts no requirement, and admits nothing. It states one constraint of the frozen
 > capability format, the part of the research placement model that now carries it, and
 > the parts that still do not.
 
-The [legal-position layer](../../tools/vos/static_memory_repr.py) adds the frozen
+The [legal-position layer](../../../tools/vos/static_memory_repr.py) adds the frozen
 format's representability granule to the finite integer model described by
-[the research agenda](../background/static-memory-research.md) and
-[the experiment contract](static-memory-experiments.md). The remaining encoding,
+[the research agenda](../../background/static-memory-research.md) and
+[the experiment contract](experiments.md). The remaining encoding,
 authority and admission constraints stay outside this layer; the last section names
 them explicitly.
 
@@ -19,8 +19,8 @@ them explicitly.
 the precision the narrowing buys: bounds are byte-exact for objects below a stated
 threshold, and from that threshold the representable region rounds outward at a
 power-of-two granularity the entry bounds as a fraction of the length. The function is
-R-15-007c's, ported once from [the memory plan's statement artifact](../../proofs/MemoryPlan.v)
-into [memplan](../../tools/vos/memplan.py) as `representable_granule`, and this layer
+R-15-007c's, ported once from [the memory plan's statement artifact](../../../proofs/MemoryPlan.v)
+into [memplan](../../../tools/vos/memplan.py) as `representable_granule`, and this layer
 calls that port rather than restating it: a change to the function moves the layer with
 it, and the tests mutate the port to watch a placement that stood become refused.
 
@@ -61,10 +61,10 @@ refusals still name each object the growth applies to, and the receipt reports t
 middle model's span and the third separately rather than merging them.
 
 **The format's parameters are named here and read where they are declared.**
-[capformat](../../tools/vos/capformat.py) resolves `cap_mantissa_width`,
+[capformat](../../../tools/vos/capformat.py) resolves `cap_mantissa_width`,
 `stored_mantissa_width`, `cap_E_width`, `cap_addr_width`, `cap_otype_width`,
 `cap_perms_code_width`, `cap_perms_width`, `reserved_otypes`, `cap_size`,
-`log2_cap_size` and `xlen` out of [the model's own declarations](../../model/model/core/cap_format.sail)
+`log2_cap_size` and `xlen` out of [the model's own declarations](../../../model/model/core/cap_format.sail)
 and holds every other artifact that restates one against them. Two of those parameters
 are what the granule spends, the base and stored top mantissas, and the exponent field
 beside them is why the quantum above the threshold is coarser than the mantissa width
@@ -73,7 +73,7 @@ document spelled would be a site nothing holds.
 
 ## 2. What is now inside the oracle
 
-[The placement oracle](../../tools/vos/static_memory.py) takes an optional legal-base
+[The placement oracle](../../../tools/vos/static_memory.py) takes an optional legal-base
 layer as a keyword, and the default asks nothing. Under the default every finding, every
 node count and every receipt is the alignment-only one that stood, which is the property
 the focused tests pin; the layer is a restriction that adds refusals and removes none.
@@ -96,7 +96,7 @@ after the work budget has admitted the grid's size, so no unbounded range is wal
 
 Neither claim is left to the reading. A layer that refuses nothing never advances an
 endpoint, so the walk is unexercised until something is refused, and
-[the focused tests](../../tools/tests/test_static_memory_repr.py) drive it with the
+[the focused tests](../../../tools/tests/test_static_memory_repr.py) drive it with the
 layer that does: an endpoint advances to the least legal base at or above it, an
 endpoint whose walk leaves the arena is dropped rather than rounded into it, a budget
 spent inside the walk is reported as incomplete and never as a failure to fit, and
@@ -158,12 +158,12 @@ load equality or exhaustion at the height below, and no arena is settled by the 
 What the bound does in the receipt is stand beside each span, so a reader sees which
 spans it would settle, and be compared against it, so an unsound bound fails the run:
 a bound above a span an exhaustive search reached is a defect in the bound and not a
-result about the layout, and [the report](../../tools/vos/static_memory_repr.py) makes
+result about the layout, and [the report](../../../tools/vos/static_memory_repr.py) makes
 that comparison for every arena it finishes.
 
 The bound is not an algorithm for the optimum and not a theorem about placement: it is
 a lower bound whose argument is stated above and whose soundness is tested rather than
-proved mechanically. [The focused tests](../../tools/tests/test_static_memory_repr.py)
+proved mechanically. [The focused tests](../../../tools/tests/test_static_memory_repr.py)
 look for an unsound one against an independent exhaustive grid over a coarsened granule,
 small instances being the only ones a grid can exhaust. That the bound is genuinely
 weaker than an optimum is itself pinned rather than assumed: one declared fixture holds
@@ -175,7 +175,7 @@ which is an observation about instances that small and not a claim that they coi
 
 ## 4. The cross-check against the exported plan
 
-Q5's own reader exports [the memory plan](placement-search.md) from the statement
+Q5's own reader exports [the memory plan](../placement-search.md) from the statement
 artifact, and the same two questions are already decided there by
 `base_is_quantized` and `length_is_quantized` over declared granule counts. For every
 region of the exported standing plan the layer decides both questions its own way, and
@@ -201,7 +201,7 @@ of them is made easier by what is here.
 | Outside | Where it sits |
 | --- | --- |
 | island containment and the island map | `containment_ok` for R-08-012c, over a map R-15-228a makes an input to the plan; the research arenas are relative address spaces with no island structure |
-| bank selection and any locality term | no field of the plan names a bank, which is [the placement search](placement-search.md)'s own recorded gap |
+| bank selection and any locality term | no field of the plan names a bank, which is [the placement search](../placement-search.md)'s own recorded gap |
 | the encoding's exponent range and every check derived from the mantissas | R-15-007a's representation-correctness proof and its characterization of the malformed set, over the widths `capformat` reads |
 | the containment domain above the representable address space | R-15-007a's own stated domain, which is a property of the bounds algorithm and not of a slot plan |
 | sealing and the permission lattice | R-15-007b's enumerated lattice, inside which R-15-007o separates `Permit_Seal` from `Permit_Unseal` and R-15-007l admits no set holding both `Permit_Store` and `Permit_Execute`, none of which a base decides anything about |
@@ -251,7 +251,7 @@ about a product roster.
   disagree, the register wins and this document is defective.
 - The port of the granule function and the memory plan's checks are **development
   hygiene** whose proof status stays with the statement artifact, exactly as
-  [the placement search](placement-search.md) states for its own port.
+  [the placement search](../placement-search.md) states for its own port.
 - The soundness argument above is a **stated argument over this model**, not a machine
   checked theorem, and the exchange argument it rests on is textbook rather than novel.
 - Every span, gap and refusal a run prints is a **measured outcome of a bounded search

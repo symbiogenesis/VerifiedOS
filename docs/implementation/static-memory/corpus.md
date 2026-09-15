@@ -1,10 +1,10 @@
 # Static-memory capacity corpus and byte ledger
 
-The [research agenda](../background/static-memory-research.md) asks which physical
+The [research agenda](../../background/static-memory-research.md) asks which physical
 reservations are unavoidable and which program or placement changes improve useful
-capacity. [static_memory_corpus.py](../../tools/vos/static_memory_corpus.py) supplies
+capacity. [static_memory_corpus.py](../../../tools/vos/static_memory_corpus.py) supplies
 replayable synthetic inputs and a diagnostic ledger for that question. This document
-is non-normative and the [requirements register](../requirements-register.md) remains
+is non-normative and the [requirements register](../../requirements-register.md) remains
 authoritative: nothing here confers implementation landing credit or accepts a
 requirement. These fixtures supply no measured product roster, execution-cost
 certificate, new admission rule or runtime telemetry mechanism.
@@ -81,7 +81,7 @@ target size, a capability representability rule or an admitted reservation.
 ## Model shape
 
 A case supplies `name`, `provenance`, `mode`, `arenas` and `objects` to the
-[independent placement model](../../tools/vos/static_memory.py). Root metadata is
+[independent placement model](../../../tools/vos/static_memory.py). Root metadata is
 documentary. Arena and object records have exact fields so that a supplied
 placement constraint cannot silently disappear as an ignored annotation.
 
@@ -106,7 +106,7 @@ start <= payload_end <= authority_end <= sweep_end <= reuse
 The slot occupies physical storage throughout `[start, reuse)`. Equal boundaries
 use half-open intervals: an end event precedes a new start at that tick. The
 fixture assumes each declared completion event succeeds. A timestamp is not the
-[Q22 completion and reuse predicate](../assurance/revocation-qualification.md):
+[Q22 completion and reuse predicate](../../assurance/revocation-qualification.md):
 real reuse needs the complete resident, saved, borrowed, proxy and device authority
 barrier, a full sweep started after that barrier, and required initialization.
 These inputs represent none of those proof witnesses.
@@ -161,7 +161,7 @@ rather than a gate an input can trip; the sweep that decides is the focused test
 which rebuilds the step function from the raw contract dictionaries. A
 contract whose standing span exceeds that peak says so through this series and through
 the exact oracle; neither makes the standing plan wrong, and the
-[baseline's inequalities](static-memory-baseline.md#executions-objects-and-physical-charge)
+[baseline's inequalities](baseline.md#executions-objects-and-physical-charge)
 own the distinction between an unavoidable gap and planner suboptimality.
 
 The series is a charged step function for one declared finite trace. Its peak is that
@@ -223,7 +223,7 @@ with `python tools/run.py static-memory corpus --case fixed-size-class-stranding
 ## Q5 bridge and validation
 
 `q5_bridge(root, source_revision)` calls the existing
-[Q5 reader and exporter](placement-search.md), preserves that export whole, and
+[Q5 reader and exporter](../placement-search.md), preserves that export whole, and
 reports its standing refusals and per-island scores. It hashes the actual proof
 source and participating tools. Its proof-witness provenance is separate from
 the synthetic service labels.
@@ -232,13 +232,13 @@ The bridge deliberately leaves the operational ledger unavailable. The exported
 plan lacks an owner and the payload, authority-completion, sweep and initialization
 endpoints this ledger needs. Its live intervals cannot be relabeled as safe-reuse
 proofs. A roster carrying memory extents, and complete demand and cost contracts,
-remain inputs owed by the [implementation plan](implementation-checklist.md),
+remain inputs owed by the [implementation plan](../implementation-checklist.md),
 including Q5b's product comparison.
 
 ## The absent extents, by inspection
 
 A composed roster of component identities does exist. The
-[admission path's](../../proofs/AdmissionPath.v) `golden_roster` names the golden
+[admission path's](../../../proofs/AdmissionPath.v) `golden_roster` names the golden
 model's seven components, and the package carrier it is a list of holds an identity,
 a tier, a producer, an attestation and a derivation. What no tracked artifact carries
 is a memory extent against a component, so this corpus is synthetic for want of
@@ -250,7 +250,7 @@ declares; R-08-018c decides duplication by comparing two manifest entries' deriv
 source and element type across owning compartments. The per-pool entry the last two
 read is in no tracked artifact: the memory plan's statement artifact declares by
 name the fields it does not carry, the owner among them, and the
-[scaling experiment's](static-memory-scaling.md) projection of that plan declares its
+[scaling experiment's](scaling.md) projection of that plan declares its
 further operational inputs absent by name rather than inventing them.
 
 The Q5 projection therefore remains the only bridge from a tracked artifact to this
@@ -259,7 +259,7 @@ table states the same position from the other side: every contract's provenance 
 synthetic witness one, none is drawn from a composed roster, and no generated contract
 may claim otherwise. Until a roster carries extents, a coverage claim here is a claim
 about witnesses, and the
-[agenda's corpus item](../background/static-memory-research.md) stays open on its
+[agenda's corpus item](../../background/static-memory-research.md) stays open on its
 roster half by inspection rather than by an unfinished search.
 
 The focused `python tools/run.py test --only static_memory_corpus` checks

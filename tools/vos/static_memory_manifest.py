@@ -38,7 +38,7 @@ ACTION = "manifest"
 GENERATOR = "tools/vos/static_memory_manifest.py"
 
 AGENDA = "docs/background/static-memory-research.md"
-ARTIFACT_DOC = "docs/implementation/static-memory-artifact.md"
+ARTIFACT_DOC = "docs/implementation/static-memory/artifact.md"
 COMMAND_MODULE = "tools/vos/cli/static_memory.py"
 # Written by `run.py check --fix` from the register and what the shipped proofs cite;
 # rule K-106 holds its bytes against that generator.
@@ -93,8 +93,8 @@ MODULE_KIND: Kind = {"kind": "module", "directory": "tools/vos",
 TEST_KIND: Kind = {"kind": "test", "directory": "tools/tests",
                    "pattern": "test_static_memory*.py", "prefix": "test_static_memory",
                    "suffix": ".py"}
-DOCUMENT_KIND: Kind = {"kind": "document", "directory": "docs/implementation",
-                       "pattern": "static-memory-*.md", "prefix": "static-memory-",
+DOCUMENT_KIND: Kind = {"kind": "document", "directory": "docs/implementation/static-memory",
+                       "pattern": "*.md", "prefix": "",
                        "suffix": ".md"}
 PROOF_KIND: Kind = {"kind": "proof", "directory": "proofs", "pattern": "StaticMemory*.v",
                     "prefix": "StaticMemory", "suffix": ".v"}
@@ -308,7 +308,7 @@ def resolved(root: Path, source: str, target: str) -> str:
     """One Markdown link target, as the repository-relative path its source reaches.
 
     A link is read from the document that writes it, so the agenda's
-    `../implementation/x.md` and a sibling's bare `x.md` name the same file.
+    `../implementation/static-memory/x.md` and a sibling's bare `x.md` name the same file.
     """
     try:
         return (root / source).parent.joinpath(target).resolve().relative_to(

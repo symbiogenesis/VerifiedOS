@@ -31,7 +31,7 @@ the span a plan meeting R-15-007k must charge. The derived contract is an artifa
 beside the supplied one and never a rewrite of it: the charged sizes stay as stated.
 
 Everything else the format decides stays outside, and
-[the representability document](../../docs/implementation/static-memory-representability.md)
+[the representability document](../../docs/implementation/static-memory/representability.md)
 names each part. This module is host research: it admits nothing, plans nothing, and
 credits nothing to the product.
 """

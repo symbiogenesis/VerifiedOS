@@ -1,16 +1,16 @@
 # Static-memory scaling experiments
 
-> Non-normative host research. The [requirements register](../requirements-register.md)
+> Non-normative host research. The [requirements register](../../requirements-register.md)
 > controls admission. These generated traces and the Q5 proof witness contain no
 > measured product roster, qualified lifecycle service rate, target execution cost,
 > or certificate for a composed image.
 
-The [research agenda](../background/static-memory-research.md)'s scaling experiment
+The [research agenda](../../background/static-memory-research.md)'s scaling experiment
 compares checked placements on explicitly identified synthetic families. The
-[generator and report](../../tools/vos/static_memory_scale.py) own their formulas,
-settings and result fields. The [placement oracle](../../tools/vos/static_memory.py)
-owns feasibility and bounded exact search; the [lower bounds](../../tools/vos/static_memory_bounds.py)
-own what no legal placement can undercut; the [existing Q5 exporter and enumerator](../../tools/vos/memplan.py)
+[generator and report](../../../tools/vos/static_memory_scale.py) own their formulas,
+settings and result fields. The [placement oracle](../../../tools/vos/static_memory.py)
+owns feasibility and bounded exact search; the [lower bounds](../../../tools/vos/static_memory_bounds.py)
+own what no legal placement can undercut; the [existing Q5 exporter and enumerator](../../../tools/vos/memplan.py)
 retain their own candidate set and admission predicates.
 
 ## Replay and receipt
@@ -98,7 +98,7 @@ standing plan until exact search and independent optimality replay complete;
 ## Proved lower bounds
 
 A bound here answers one question about one arena: no legal placement of its objects
-has a smaller span. [The bounds module](../../tools/vos/static_memory_bounds.py)
+has a smaller span. [The bounds module](../../../tools/vos/static_memory_bounds.py)
 computes four, each by restricting an arbitrary legal placement rather than by
 searching for a good one, so a bound can be used to judge a search without trusting
 it. Each is arithmetic over the declared finite integer model. None is a machine
@@ -115,7 +115,7 @@ because bytes in different arenas are not interchangeable.
 
 ### Charged load
 
-The oracle's own [peak charged load](../../tools/vos/static_memory.py) is the first
+The oracle's own [peak charged load](../../../tools/vos/static_memory.py) is the first
 bound and is imported rather than recomputed. Objects charged at one instant occupy
 pairwise disjoint extents, so the span is at least their total size, and the bound is
 the maximum of that total over the trace. The bounds module cross-checks the value by
@@ -186,7 +186,7 @@ bound settles that span as optimal.
 ### What a bound is held to
 
 A bound above an exact optimum is a defect, not a stronger result.
-[The focused tests](../../tools/tests/test_static_memory_bounds.py) generate small
+[The focused tests](../../../tools/tests/test_static_memory_bounds.py) generate small
 instances, take the bounded exact search's optimum wherever it completes, and refuse
 any bound above it; they hold the live-set enumeration against an independent
 enumeration of orders, the two-instant enumeration against an independent search over
@@ -215,7 +215,7 @@ search on that arena is worth anything, rather than a smaller number in a budget
 R-05-066 permits untrusted search only through existing checkers with no new checker
 introduced, and R-05-065 excludes a new verified artifact whose only yield is
 performance on an already correct and leak-free path. The
-[placement-search closure](placement-search.md#4-the-constraints-and-who-decides-them)
+[placement-search closure](../placement-search.md#4-the-constraints-and-who-decides-them)
 links the checker-import and checked-infeasibility dispositions,
 including R-05-020's requirement to show a Coq-native or mechanically bridged,
 non-duplicating anchor that retires an interim; these host bounds supply no such
@@ -223,9 +223,9 @@ admission argument.
 
 ## Deterministic candidates and the lowering pass
 
-The comparison keeps the [oracle's three first-fit orderings](../../tools/vos/static_memory.py),
+The comparison keeps the [oracle's three first-fit orderings](../../../tools/vos/static_memory.py),
 by start time, by size descending and by retained lifetime descending, and adds three
-in [the scaling module](../../tools/vos/static_memory_scale.py): by alignment
+in [the scaling module](../../../tools/vos/static_memory_scale.py): by alignment
 descending then size descending, by charged area descending, and by safe-reuse time
 ascending. Each places every object at its lowest feasible base given those already
 placed, which is zero or the aligned end of an interfering extent: a feasible base
@@ -282,7 +282,7 @@ This preserves candidate order, tie breaks and work-budget accounting while redu
 this part of placement to quadratic-logarithmic worst-case work over a dense family.
 Independent placement checking remains separate and quadratic.
 
-The [focused tests](../../tools/tests/test_static_memory_scale.py) compare this scan
+The [focused tests](../../../tools/tests/test_static_memory_scale.py) compare this scan
 with a direct pairwise reference, including interrupted and capacity-refused attempts,
 and exercise small exact optima, large lower bounds, Q5 rechecking and receipt replay.
 The finite crossing comparisons preserve the prior heuristic results; host timing
@@ -305,7 +305,7 @@ across a family, as in `crossing`, every bound here collapses to the charged loa
 because with unit alignment there is no padding to count and the live-set enumeration
 returns the live set's own total. A small residual gap stays open there, and the
 peer-reviewed separation between the optimum and the load that the
-[research agenda](../background/static-memory-research.md) cites means neither the
+[research agenda](../../background/static-memory-research.md) cites means neither the
 candidate nor the bound is known to be the weak side. Where the live sets are larger
 than the enumeration limit, as in the heterogeneous aligned family at its largest
 size, some restrictions are skipped while smaller ones can still supply partial

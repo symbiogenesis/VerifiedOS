@@ -1,18 +1,18 @@
 # Mutating the static-memory oracle: invalid candidates must fail
 
-> Non-normative research companion. The [requirements register](../requirements-register.md)
+> Non-normative research companion. The [requirements register](../../requirements-register.md)
 > remains authoritative. This sweep confers no implementation landing credit and accepts
 > no requirement. It exercises one finite research model and touches no admission checker.
 
-The [research agenda](../background/static-memory-research.md) asks for exact
+The [research agenda](../../background/static-memory-research.md) asks for exact
 small-instance oracles in which invalid candidates must fail, mutating lifetimes,
 alignment, owner assignment, slot overlap and reuse barriers. The
-[bounded oracle and independent replay](static-memory-experiments.md) supply the two
+[bounded oracle and independent replay](experiments.md) supply the two
 things such a sweep needs: a checker that decides one candidate against an unchanged
 contract, and a replay that decides one optimality claim.
-[static_memory_mutants.py](../../tools/vos/static_memory_mutants.py) supplies the
+[static_memory_mutants.py](../../../tools/vos/static_memory_mutants.py) supplies the
 defects. It applies the vocabulary the repository already uses for generated
-validation, which the [tool guide](../../tools/README.md#the-three-generators-and-what-each-answers)
+validation, which the [tool guide](../../../tools/README.md#the-three-generators-and-what-each-answers)
 states: a killed mutant moved the oracle's answer, a survivor is the finding, and a
 stillborn one decided nothing.
 
@@ -158,7 +158,7 @@ separate proof obligation.
 
 The sweep is a research tool over the research oracle. It reads no plan, writes no plan
 and calls no admission predicate; the
-[placement-search admission predicates](placement-search.md) remain the separate
+[placement-search admission predicates](../placement-search.md) remain the separate
 artifact they were.
 
 ## Replay

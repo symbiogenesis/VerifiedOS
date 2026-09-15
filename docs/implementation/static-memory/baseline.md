@@ -1,6 +1,6 @@
 # Static-memory research baseline
 
-> Non-normative definitions and proof arguments for the [research agenda](../background/static-memory-research.md). The [requirements register](../requirements-register.md) remains authoritative. The arguments here have human-readable proofs, and the laminar placement theorem also has a [mechanized statement](#mechanized-statement). They supply no target measurement or change to admission. Q5 owns the placement comparison and Q22a supplies the qualified reuse interface.
+> Non-normative definitions and proof arguments for the [research agenda](../../background/static-memory-research.md). The [requirements register](../../requirements-register.md) remains authoritative. The arguments here have human-readable proofs, and the laminar placement theorem also has a [mechanized statement](#mechanized-statement). They supply no target measurement or change to admission. Q5 owns the placement comparison and Q22a supplies the qualified reuse interface.
 
 ## Executions, objects and physical charge
 
@@ -46,7 +46,7 @@ The first inequality assumes payload is counted only while its incarnation reser
 
 `OPT - L_charge` is the unavoidable gap for the declared placement model; `P - OPT` is planner suboptimality. `P - L_charge` therefore combines two causes. Moving bases with fixed extents and endpoints changes neither live-load quantity. Changing payload lifetime, release time or sweep service changes the instance and must be reported as such.
 
-A whole-image capacity report sums each arena's required reservation and each disjoint external charge once. Its conservative sum of arena peaks need not equal the peak of the whole machine's useful payload. Tags, ECC and macro periphery also need a physical-capacity convention consistent with the [product gate](product-gate-contract.md); payload-address span is not die area. A diagnostic ledger partitions charged bytes by one primary state at each time and adds non-additive explanation labels. A quarantined padded byte belongs to one primary charge, even if both quarantine and padding explain it.
+A whole-image capacity report sums each arena's required reservation and each disjoint external charge once. Its conservative sum of arena peaks need not equal the peak of the whole machine's useful payload. Tags, ECC and macro periphery also need a physical-capacity convention consistent with the [product gate](../product-gate-contract.md); payload-address span is not die area. A diagnostic ledger partitions charged bytes by one primary state at each time and adds non-additive explanation labels. A quarantined padded byte belongs to one primary charge, even if both quarantine and padding explain it.
 
 ## The interference predicate and the existing artifacts
 
@@ -60,9 +60,9 @@ for every distinct i,j:
 
 An actually empty reservation contributes no interference and is removed before this predicate is applied; a zero-payload object with initialization or delayed reuse is not empty. The arena, bounds, alignment, owner and other legal-position predicates are additional conjunctions. Interference feasibility does not establish optimality, source-lifetime soundness, successful revocation, or correct runtime binding. A source-to-plan theorem must join those separate obligations.
 
-The [memory-plan statement](../../proofs/MemoryPlan.v) supplies `live_from`, `live_to`, `base_of`, `length_of`, an island map, and `colouring_ok`. Its `colouring_ok_sound` connects the Boolean predicate to `NoInterference`, which has the same overlapping-lifetime antecedent above. Its stable items e and f record R-08-011's composition event order and R-08-014's overlapping-lifetime antecedent as decided by the register. A proof of this Boolean implication does not establish that the input lifetimes describe all admitted execution paths or that the placement reaches the live-load lower bound.
+The [memory-plan statement](../../../proofs/MemoryPlan.v) supplies `live_from`, `live_to`, `base_of`, `length_of`, an island map, and `colouring_ok`. Its `colouring_ok_sound` connects the Boolean predicate to `NoInterference`, which has the same overlapping-lifetime antecedent above. Its stable items e and f record R-08-011's composition event order and R-08-014's overlapping-lifetime antecedent as decided by the register. A proof of this Boolean implication does not establish that the input lifetimes describe all admitted execution paths or that the placement reaches the live-load lower bound.
 
-The [placement-search contract](placement-search.md) keeps lifetimes and lengths fixed. Its footprint is the peak calculated from those inputs, its span is the highest slot endpoint relative to the island base, and its padding is bytes below that endpoint covered by no slot at any lifetime. Padding is not instantaneous idle capacity and is not all of `P - L_charge`. The exporter declares owner, bank, reserved size and the slot's timing bound absent; research annotations must retain that provenance rather than invent production values. The current enumeration's optimum is only over its declared grid.
+The [placement-search contract](../placement-search.md) keeps lifetimes and lengths fixed. Its footprint is the peak calculated from those inputs, its span is the highest slot endpoint relative to the island base, and its padding is bytes below that endpoint covered by no slot at any lifetime. Padding is not instantaneous idle capacity and is not all of `P - L_charge`. The exporter declares owner, bank, reserved size and the slot's timing bound absent; research annotations must retain that provenance rather than invent production values. The current enumeration's optimum is only over its declared grid.
 
 ### The operational interface a producer must satisfy
 
@@ -144,7 +144,7 @@ The theorem concerns actual reservation lifetimes. A language may supply a proof
 ### Executable construction and structural witnesses
 
 `python tools/run.py static-memory structure --json` replays the construction in
-[static_memory_structure.py](../../tools/vos/static_memory_structure.py). It sorts
+[static_memory_structure.py](../../../tools/vos/static_memory_structure.py). It sorts
 reservation intervals by increasing start, decreasing end and identity, places
 each object above the active ancestor stack, and refuses crossing intervals.
 Equal intervals nest in identity order, giving their objects consecutive extents.
@@ -175,12 +175,12 @@ instances, not a machine-checked general proof.
 
 ### Mechanized statement
 
-[StaticMemoryLaminar.v](../../proofs/StaticMemoryLaminar.v) states the laminar theorem
+[StaticMemoryLaminar.v](../../../proofs/StaticMemoryLaminar.v) states the laminar theorem
 above in Rocq and proves it outright, with no admitted step, axiom or parameter;
 `python tools/run.py proofs` compiles it with the other shipped artifacts and reports
 every constant closed under the global context. It is a companion to this research
 document: it changes no admission criterion, accepts no requirement and confers no
-landing credit, and the [requirements register](../requirements-register.md) remains
+landing credit, and the [requirements register](../../requirements-register.md) remains
 authoritative.
 
 Its model is the theorem's. An object is an identity, a positive weight and a half-open
@@ -198,7 +198,7 @@ on a laminar family; that its span is at most the load on any well-formed family
 every feasible placement spans at least the load; and therefore that on a laminar family
 the construction spans exactly the load and no feasible placement spans less.
 
-A bridge section reads a [memory-plan](../../proofs/MemoryPlan.v) `Plan`'s `live_from`,
+A bridge section reads a [memory-plan](../../../proofs/MemoryPlan.v) `Plan`'s `live_from`,
 `live_to` and `length_of` fields over the regions below `region_count` as a family and
 proves, where that family is well formed and laminar, that the constructed `Placement`
 satisfies `NoInterference` with span equal to the load, and that every `Placement`
@@ -207,7 +207,7 @@ satisfying `NoInterference` spans at least the load. The bridge speaks to
 placement-list charge are neither assumed nor concluded, and nothing is said about the
 plan's own `base_of`.
 
-The witnesses follow the [proof-artifact discipline](../../README.md#the-proof-artifacts-themselves).
+The witnesses follow the [proof-artifact discipline](../../../README.md#the-proof-artifacts-themselves).
 The constructor's `equal-nested-disjoint` family, with numeric identities in the
 receipt's identity order, has its bases, span and load computed by `vm_compute` and
 checked by reflexivity, and the general theorem is instantiated at it; a two-object
@@ -277,8 +277,8 @@ Two unit objects with lifetimes `[0,1)` and `[1,2)` safely share base zero after
 
 ## Scope disposition for the register and its prose
 
-The [requirements register](../requirements-register.md) and
-[static-memory-plan prose](../spec.md#r-08-010) state the reconciled scope. The
+The [requirements register](../../requirements-register.md) and
+[static-memory-plan prose](../../spec.md#r-08-010) state the reconciled scope. The
 statement artifact and search contract read those requirements; the implementation
 and source-to-plan obligations remain distinct from their wording.
 
@@ -323,7 +323,7 @@ deliverables, not missing definitions or an assumed universal placement theorem.
 
 ## Reclamation as a bounded capacity obligation
 
-The [Q22a qualification](../assurance/revocation-qualification.md) distinguishes publication, successful containment, full post-barrier sweep and reuse. Its finite host fixture gives interface evidence, not an implementation or measured target latency. In particular, it gives a bounded failure decision for an unresponsive peer, not a finite successful-reclamation bound for that failure.
+The [Q22a qualification](../../assurance/revocation-qualification.md) distinguishes publication, successful containment, full post-barrier sweep and reuse. Its finite host fixture gives interface evidence, not an implementation or measured target latency. In particular, it gives a bounded failure decision for an unresponsive peer, not a finite successful-reclamation bound for that failure.
 
 For one arena, let a release `i` arrive at `r_i = payload_end_i` with charge `w_i`, including padding. Let `u_i = reuse_i`. Define cumulative released charge over a half-open window and a worst-case arrival envelope:
 
@@ -372,7 +372,7 @@ If releases can enter failed containment and remain quarantined, the uniform suc
 
 ## Structural questions left open
 
-For the agenda's parameterized problem, keep positive integer sizes and endpoints encoded in binary, one origin-zero arena, unit alignment, unrestricted nonnegative integer bases and no pinning. Let `k` be the minimum number of intervals whose deletion makes the remaining reservation family laminar, with equal intervals allowed. The construction above settles `k = 0`. Whether exact placement has running time `f(k) * poly(input length)`, or is hard for some fixed small `k`, remains open here. The [deletion-parameter study](static-memory-structure.md) computes the parameter in polynomial time, supplies a two-stack construction for bipartite crossing graphs and refutes candidate decompositions. The remaining question concerns non-bipartite crossing graphs with `k >= 2`.
+For the agenda's parameterized problem, keep positive integer sizes and endpoints encoded in binary, one origin-zero arena, unit alignment, unrestricted nonnegative integer bases and no pinning. Let `k` be the minimum number of intervals whose deletion makes the remaining reservation family laminar, with equal intervals allowed. The construction above settles `k = 0`. Whether exact placement has running time `f(k) * poly(input length)`, or is hard for some fixed small `k`, remains open here. The [deletion-parameter study](structure.md) computes the parameter in polynomial time, supplies a two-stack construction for bipartite crossing graphs and refutes candidate decompositions. The remaining question concerns non-bipartite crossing graphs with `k >= 2`.
 
 An enumeration bounded polynomially in numerical span is not such a result when the span is binary encoded. Supplying a deletion set instead of asking the algorithm to find one is a different problem variant. Added alignment, owner, bank, multiple-execution or segment constraints also need separately stated parameters; the small witnesses identify failed extensions of peak equality, not hardness proofs for these variants.
 

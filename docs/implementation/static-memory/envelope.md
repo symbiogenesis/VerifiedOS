@@ -1,12 +1,12 @@
 # Adversarial retirement envelopes and release-to-reuse bounds
 
-> Non-normative research for the [static-memory agenda](../background/static-memory-research.md).
-> The [requirements register](../requirements-register.md) remains authoritative. This
+> Non-normative research for the [static-memory agenda](../../background/static-memory-research.md).
+> The [requirements register](../../requirements-register.md) remains authoritative. This
 > document accepts no requirement, proposes no register change and confers no
 > implementation landing credit. It supplies a declared finite adversary over the
-> [fixed reclamation calendar](static-memory-reclamation.md), closed-form bounds with
+> [fixed reclamation calendar](reclamation.md), closed-form bounds with
 > their proofs, and bounded search evidence in that calendar's synthetic units.
-> [Q22a](../assurance/revocation-qualification.md) owns the authority boundary, and
+> [Q22a](../../assurance/revocation-qualification.md) owns the authority boundary, and
 > nothing here changes its barrier, its predicates or any requirement they serve.
 
 ## Replay and artifact identity
@@ -34,7 +34,7 @@ The public request calendar, the fixed extent and payload per request, the resul
 phase, the permanent metadata charge, the fabric, workload and control reservations,
 the padded containment interval, the pass-eligibility rule and the whole-slot FIFO
 zeroization rule all come from the
-[reclamation experiment](static-memory-reclamation.md) unchanged. This module adds
+[reclamation experiment](reclamation.md) unchanged. This module adds
 one thing: the moves an admitted workload may make inside that envelope, and the
 bounds that survive every combination of them. Where the two disagree, the imported
 calendar is the owner, and the focused tests hold the derived envelope equal to the

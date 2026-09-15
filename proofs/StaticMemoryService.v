@@ -11,7 +11,7 @@
    their chunk starts partition the index interval.
 
    What this file is. A machine-checked form of the elementary algorithm
-   argument docs/implementation/static-memory-transformations.md states in
+   argument docs/implementation/static-memory/transformations.md states in
    prose: modular addition is associative, so reducing consecutive chunks
    gives the whole-list checksum; the shift/add/mask map equals the
    multiply/mod map on every byte; and an in-place pass that overwrites

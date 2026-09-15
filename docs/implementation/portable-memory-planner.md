@@ -119,7 +119,7 @@ that requires them.
 
 Scheduling changes, recomputation, splitting, movement and changed revocation
 rules alter the feasible instance. They remain separate opt-in transformations
-in the [existing research experiments](static-memory-experiments.md), rather than
+in the [existing research experiments](static-memory/experiments.md), rather than
 transparent offset substitutions.
 
 ## Compatibility boundaries
@@ -150,7 +150,7 @@ conventions. Heavy search belongs on the development host; a small runtime plan
 consumer does not eliminate persistent objects, weights or temporary allocations.
 Tensor preservation and alignment are part of its caller contract.
 
-The [idealloc candidate integration](static-memory-candidates.md) supplies an
+The [idealloc candidate integration](static-memory/candidates.md) supplies an
 optional research comparator behind the original checker and retained baseline.
 TVM v0.18.0 USMP supplies useful pool/conflict prior art. XLA heap simulation and IREE Stream layout have additional
 compiler-specific semantics. None is represented as a shipped universal allocator
@@ -164,7 +164,7 @@ domain or restricted by the retained baseline's pool limits. Incomplete replay
 cannot certify an optimum. Independent candidate feasibility and exclusion of
 every better placement are separate obligations.
 
-The [LRAT certificate experiment](static-memory-certificates.md) uses a pinned external
+The [LRAT certificate experiment](static-memory/certificates.md) uses a pinned external
 checker for a bounded Boolean encoding. Its verdict is portable research evidence
 under R-05-011b and grounds no admitted placement or infeasibility claim. It does
 not produce the instance-specific Rocq term R-05-015 requires, and it does not
@@ -173,7 +173,7 @@ DRCP and CakePB are comparison ecosystems with their own encoding and execution 
 solver solutions to legal placements establishes only one direction: excluding
 all better layouts additionally requires every legal better layout to have an
 encoded witness. No external certificate dependency is admitted merely by naming
-one of these systems. The [literature adoption map](static-memory-literature.md)
+one of these systems. The [literature adoption map](static-memory/literature.md)
 states each relevant donor's disposition and the evidence for adopted techniques.
 
 The [contract extractor](../../tools/vos/memory_planner_contracts.py) models bounded
@@ -187,7 +187,7 @@ proves conflict-graph separation, the conjunction required by the reuse barrier,
 and checked-selection non-regression. Temporal ordering of interpreter events is
 an executable check; its refinement to that mathematical model is not proved.
 
-The [resource-aware contract layer](static-memory-resource-contracts.md) ties
+The [resource-aware contract layer](static-memory/resource-contracts.md) ties
 bounded credits and release obligations to independently checked fixed backing.
 Free-byte totals alone do not establish a suitably shaped allocation. Its finite
 proofs and executable evidence preserve the source and target refinement boundary.

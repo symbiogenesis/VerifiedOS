@@ -1,12 +1,12 @@
 # Fixed-schedule reclamation and capacity experiment
 
-> Non-normative research for the [static-memory agenda](../background/static-memory-research.md).
+> Non-normative research for the [static-memory agenda](../../background/static-memory-research.md).
 > This experiment supplies synthetic calendar arithmetic and finite host observations.
 > It qualifies no hardware service rate, executable workload, source-holder map or theorem.
-> The [requirements register](../requirements-register.md) remains authoritative: this
+> The [requirements register](../../requirements-register.md) remains authoritative: this
 > experiment accepts no requirement, and its outputs confer no landing credit.
-> [Q22a](../assurance/revocation-qualification.md) owns the authority boundary, and the
-> [baseline](static-memory-baseline.md) states the release-to-reuse model.
+> [Q22a](../../assurance/revocation-qualification.md) owns the authority boundary, and the
+> [baseline](baseline.md) states the release-to-reuse model.
 
 ## Replay and artifact identity
 
@@ -110,7 +110,7 @@ all-executions capacity theorem.
 
 ## Holder coverage, and what it is coverage of
 
-Coverage here means coverage of [Q22a](../assurance/revocation-qualification.md)'s
+Coverage here means coverage of [Q22a](../../assurance/revocation-qualification.md)'s
 own fixture holder map and its admitted shapes. It is not coverage of a production
 binary: nothing in this experiment discovers a root, a saved image or a derived
 base in emitted code, and a green coverage result confers no such discovery.

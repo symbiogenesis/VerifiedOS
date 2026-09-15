@@ -1,25 +1,25 @@
 # Static-memory mode families: three models, three checkers
 
-> Non-normative host research. The [requirements register](../requirements-register.md)
+> Non-normative host research. The [requirements register](../../requirements-register.md)
 > remains authoritative and controls admission. Nothing here is an admission input,
 > a requirement, or a change to one; a research output confers no landing credit and
 > accepts no requirement. The families below are declared synthetic contracts in
 > their own byte and time units, not a measured workload or a product roster.
 
-The [research agenda](../background/static-memory-research.md) states that a
+The [research agenda](../../background/static-memory-research.md) states that a
 capacity result must say which problem it optimizes: one known trace, a
 conservative interference relation over all admitted executions, or a finite
-family of checked bindings. The [baseline](static-memory-baseline.md) settles the
+family of checked bindings. The [baseline](baseline.md) settles the
 single-trace case and records the witness in which one layout across modes costs
-more than each mode's own peak. The [experiment contract](static-memory-experiments.md)
+more than each mode's own peak. The [experiment contract](experiments.md)
 already says that two modes solved independently do not give one layout, and that
 a global-mode relation or an admitted family of bindings is a separate input and a
 separate proof obligation.
 
 This artifact makes those three models executable and comparable on one declared
-input. The [mode-family module](../../tools/vos/static_memory_modes.py) owns the
+input. The [mode-family module](../../../tools/vos/static_memory_modes.py) owns the
 contract, the three computations and their checkers; the
-[placement oracle](../../tools/vos/static_memory.py) keeps the single-trace
+[placement oracle](../../../tools/vos/static_memory.py) keeps the single-trace
 checker, exact search and optimality replay it already owns.
 
 ## Replay and receipt
@@ -196,7 +196,7 @@ search's ordering, its pruning nor its conflict test. An exhausted budget report
 `incomplete`: it leaves the claim unchecked and never refutes it, and it is never
 infeasibility.
 
-The [focused tests](../../tools/tests/test_static_memory_modes.py) compare the
+The [focused tests](../../../tools/tests/test_static_memory_modes.py) compare the
 bounded exact search with an independent enumeration of every legal base tuple
 over all small graphs on four vertices, in two size families, and check that the
 relation the family induces is exactly the declared edge set. They mutate the

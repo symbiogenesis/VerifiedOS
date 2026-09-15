@@ -608,7 +608,7 @@ COUNTEREXAMPLES: dict[str, tuple[Calendar, Policy, str | None]] = {
 
 SOURCES = ("tools/vos/static_memory_lending.py",
            "tools/tests/test_static_memory_lending.py",
-           "docs/implementation/static-memory-lending.md")
+           "docs/implementation/static-memory/lending.md")
 
 
 def _counterexamples() -> dict[str, dict[str, Any]]:

@@ -4,20 +4,20 @@ This optional host path uses the existing LRAT ecosystem. CaDiCaL searches a
 bounded Boolean encoding and produces a binary LRAT certificate; the upstream
 `lrat_isa` checker decides whether that certificate refutes the encoded formula.
 An ordinary placement independently passes the
-[portable checker](../../tools/vos/memory_planner.py) before optional work starts.
+[portable checker](../../../tools/vos/memory_planner.py) before optional work starts.
 An invalid certificate or exhausted budget preserves that checked feasible
 placement and leaves optimality unknown.
 
 This is evidence-producing research under
-[R-05-011b and R-15-094](../requirements-register.md), outside the admitted
+[R-05-011b and R-15-094](../../requirements-register.md), outside the admitted
 VerifiedOS production toolchain. **Its acceptance criterion is that no native
 checker verdict or receipt is the ground of a refinement claim or an admitted
 optimality or infeasibility verdict.** R-05-016, R-05-020, R-05-065, R-05-066 and
 R-05-104 through R-05-106 remain unchanged. The experiment does not reopen
-[Q27a](implementation-checklist.md)'s certified-search disposition, admit its
+[Q27a](../implementation-checklist.md)'s certified-search disposition, admit its
 refused checker arm, supply the kernel-rechecked term R-05-015 requires, or close
 Q5b's actual-workload comparison. The
-[implementation](../../tools/vos/memory_planner_certificates.py) contains no Python
+[implementation](../../../tools/vos/memory_planner_certificates.py) contains no Python
 LRAT checker.
 
 Every query identity and receipt carries fixed fields identifying the portable
@@ -29,7 +29,7 @@ and native execution assumptions; they are never admitted VerifiedOS verdicts.
 
 ## Selected upstreams and trust endpoint
 
-[certificates.json](../../tools/memory-planner/certificates.json) pins both source
+[certificates.json](../../../tools/memory-planner/certificates.json) pins both source
 revisions and records the MIT licenses read before incorporation. Upstream source,
 native builds, CNF files, certificates, logs and receipts live beneath the active
 lane's `/root/build` directory. No upstream source is vendored into this repository.
@@ -40,7 +40,7 @@ parsing and the exported LLVM implementation. Its
 [MIT license](https://github.com/lammich/lrat_isa/blob/99b832b501f473f7890f20b99755b5ace86eae48/LICENSE)
 and the exact LLVM/support-file hashes are in the manifest. This integration
 compiles that unchanged LLVM with an
-[authored I/O wrapper](../../tools/memory-planner/certificates/checker_main.cpp).
+[authored I/O wrapper](../../../tools/memory-planner/certificates/checker_main.cpp).
 The wrapper reads bytes and invokes the upstream checker. It supplies no logical
 checking rules. It replaces the upstream Boost-based command wrapper so the
 optional path needs no system Boost installation.
@@ -98,7 +98,7 @@ The two directions have different jobs:
   pool-height vector. Therefore an UNSAT refutation excludes every such layout;
   no domain may be truncated merely to make the Boolean instance small.
 
-[MemoryPlannerCertificates.v](../../proofs/MemoryPlannerCertificates.v) proves
+[MemoryPlannerCertificates.v](../../../proofs/MemoryPlannerCertificates.v) proves
 `finite_encoding_equivalent` for the finite one-hot constraint model in both
 directions. `unsat_excludes_every_legal_selection` uses the completeness direction.
 The physical optimum corollary explicitly requires coverage of every better legal

@@ -8,7 +8,7 @@
    a contiguous, aligned extent. Neither an online allocator nor a collector
    is implemented by these definitions. No donor implementation or proof is
    imported. The specification pattern is discussed in
-   docs/implementation/static-memory-resource-contracts.md.
+   docs/implementation/static-memory/resource-contracts.md.
 
    required_credit is the exact initial credit required for a finite sequence
    of Take and Return actions. Returns are protocol facts, supplied only at

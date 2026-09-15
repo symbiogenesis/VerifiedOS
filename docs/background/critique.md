@@ -463,7 +463,7 @@ contract extraction proof remains conditional on actual executions matching the
 declared bounded behavior. Q10 decides useful admitted workload after these
 costs and input-model assumptions are qualified.
 
-Q5b's [static-memory literature disposition](../implementation/static-memory-literature.md)
+Q5b's [static-memory literature disposition](../implementation/static-memory/literature.md)
 separates genuine artifact reuse from an independently authored implementation of
 a paper's idea. The optional LRAT experiment supplies portable evidence under
 R-05-011b and grounds no admitted claim; the refused certificate-checker arm is

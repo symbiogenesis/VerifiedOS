@@ -7,13 +7,13 @@ lexical release to safe reuse. It is a host analysis of an admitted contract.
 Source completeness, compiler preservation, hardware behavior and real elapsed
 bounds remain separate proof obligations. No requirement is discharged here.
 
-The implementation is [memory_planner_resources.py](../../tools/vos/memory_planner_resources.py),
+The implementation is [memory_planner_resources.py](../../../tools/vos/memory_planner_resources.py),
 over the bounded interpreter in
-[memory_planner_contracts.py](../../tools/vos/memory_planner_contracts.py).
+[memory_planner_contracts.py](../../../tools/vos/memory_planner_contracts.py).
 The mathematical models are
-[MemoryPlannerResources.v](../../proofs/MemoryPlannerResources.v) and
-[MemoryPlannerContracts.v](../../proofs/MemoryPlannerContracts.v).
-The [planner contract](portable-memory-planner.md) owns the placement
+[MemoryPlannerResources.v](../../../proofs/MemoryPlannerResources.v) and
+[MemoryPlannerContracts.v](../../../proofs/MemoryPlannerContracts.v).
+The [planner contract](../portable-memory-planner.md) owns the placement
 checker and its evidence boundaries.
 
 ## Backing and release semantics
@@ -142,7 +142,7 @@ language, compiler and target machine are outside these finite models.
 Every adoption below is an adaptation of a specification or accounting idea into
 repository-authored code and proofs. No donor source, proof library, runtime,
 collector or allocator is imported. The broader
-[static-memory literature disposition](static-memory-literature.md) owns the
+[static-memory literature disposition](literature.md) owns the
 implementation mapping beyond this bounded interface; the proof inventory and
 Q27 retain source qualification, policy disposition and consumer assignment.
 
@@ -167,7 +167,7 @@ Q27 retain source qualification, policy disposition and consumer assignment.
 
 Koka's own [license file](https://raw.githubusercontent.com/koka-lang/koka/master/LICENSE)
 states Apache-2.0. This establishes the inspected candidate's terms, not an import.
-The [SYS-MEMMGR qualification](../assurance/proof-reuse/systems.md#sys-memmgr-a-resource-aware-allocator-specification-under-reciprocal-terms)
+The [SYS-MEMMGR qualification](../../assurance/proof-reuse/systems.md#sys-memmgr-a-resource-aware-allocator-specification-under-reciprocal-terms)
 records LGPL v3 from the DeepSpecDB README, `COPYING` and `COPYING.LESSER`.
 Those are the allocator artifact's terms; VST's separate license does not replace
 them. This implementation adapts the specification idea and conveys no donor

@@ -28,7 +28,7 @@
    behind only because it overwrites each one. The census this file feeds is an
    emitted-instruction count on plain RV64, the target R-18-002 forbids, so
    every figure taken from it is a proxy and never a target measurement. See
-   `docs/implementation/static-memory-census.md`.
+   `docs/implementation/static-memory/census.md`.
 
    Where the one live array shows in the emitted code. Both loops address one
    base pointer, so the C carries one array parameter and one address

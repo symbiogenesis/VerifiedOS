@@ -3,8 +3,8 @@
 The portable planner can consume the real pinned
 [idealloc](https://github.com/cappadokes/idealloc/tree/3b7eb67f234905ebccb90e252b220189770c9dcb)
 implementation as an untrusted candidate generator. Its original algorithm runs
-through an [authored Rust bridge](../../tools/memory-planner/idealloc/bridge.rs).
-The [portable checker](portable-memory-planner.md) checks every returned identity,
+through an [authored Rust bridge](../../../tools/memory-planner/idealloc/bridge.rs).
+The [portable checker](../portable-memory-planner.md) checks every returned identity,
 offset and original constraint before selecting a result. Failure, timeout,
 unsupported input or a worse candidate preserves the checked baseline. This is
 an optional host research integration, with no production admission authority.
@@ -22,7 +22,7 @@ The runner selects the native guest lane. The build, Rust installation, Cargo
 cache and evidence live beneath that lane's `memory-planner-idealloc` directory.
 No upstream source is vendored into the tracked tree. The exact revision, source
 file hashes and reviewed MIT license are in the
-[pin manifest](../../tools/memory-planner/idealloc.json). The upstream copyright
+[pin manifest](../../../tools/memory-planner/idealloc.json). The upstream copyright
 and permission notice remain in the downloaded workspace. Registry dependency
 licenses and source identities are recorded separately in the build receipt.
 
@@ -54,7 +54,7 @@ conflict edges or fixed offsets. Other portable-model features are refused,
 including richer models that could be approximated conservatively. A refused
 field is never discarded to make the upstream call succeed. Object counts and
 total size also have explicit reviewed limits in
-[the adapter](../../tools/vos/memory_planner_candidates.py).
+[the adapter](../../../tools/vos/memory_planner_candidates.py).
 
 The core uses half-open lifetimes. Idealloc's `Job` operations use open discrete
 intervals. For all distinct endpoints, the adapter assigns increasing ranks
@@ -95,7 +95,7 @@ Python checking work. These synthetic traces are not the paper's benchmark
 suite, a composed VerifiedOS roster, target timing evidence, or a demonstration
 of the upstream paper's large-instance scaling claims. Repeated execution may
 change timings and stochastic candidates. The
-[existing scaling and transformation experiments](static-memory-experiments.md)
+[existing scaling and transformation experiments](experiments.md)
 remain separate artifacts and predate this adapter.
 
 ## Disposition of the allocation literature
@@ -113,7 +113,7 @@ remain separate artifacts and predate this adapter.
 
 The [idealloc paper](https://arxiv.org/abs/2504.04874) motivates adopting an
 implemented candidate generator. The placement checker supplies the acceptance
-boundary. The [static-memory research agenda](../background/static-memory-research.md)
+boundary. The [static-memory research agenda](../../background/static-memory-research.md)
 and its existing experiments own changes to movement, segmentation, scheduling
 and recomputation assumptions; naming these donors does not discharge those
 separate semantic and physical-cost obligations.

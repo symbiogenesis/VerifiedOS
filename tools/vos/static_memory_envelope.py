@@ -713,8 +713,8 @@ SOURCES = ("tools/vos/static_memory_envelope.py",
            "tools/tests/test_static_memory_envelope.py",
            "tools/vos/static_memory_reclaim.py", "tools/vos/revocation.py",
            "docs/assurance/revocation-qualification.md",
-           "docs/implementation/static-memory-reclamation.md",
-           "docs/implementation/static-memory-envelope.md")
+           "docs/implementation/static-memory/reclamation.md",
+           "docs/implementation/static-memory/envelope.md")
 
 PUBLIC_SCHEDULES = (("spread-slow", (1, 2, 7, 8), 24, 4),
                     ("spread-faster", (1, 2, 7, 8), 12, 4),

@@ -3,7 +3,7 @@
    StaticMemoryLaminar.v
 
    The laminar placement theorem of the static-memory research baseline
-   (docs/implementation/static-memory-baseline.md, "A complete laminar
+   (docs/implementation/static-memory/baseline.md, "A complete laminar
    special case"), mechanized. A companion to that research document and
    to MemoryPlan.v and part of neither: it changes no admission criterion,
    accepts no requirement, confers no landing credit, adds no field to

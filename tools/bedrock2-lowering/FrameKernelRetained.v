@@ -30,7 +30,7 @@
    needs is charged nowhere in this file. The census this file feeds is an
    emitted-instruction count on plain RV64, the target R-18-002 forbids, so
    every figure taken from it is a proxy and never a target measurement. See
-   `docs/implementation/static-memory-census.md`.
+   `docs/implementation/static-memory/census.md`.
 
    Where the second live array shows in the emitted code. The first loop
    addresses two base pointers, one loaded from and one stored to, so the C

@@ -1,17 +1,17 @@
 # An emitted-instruction census for two frame-service variants
 
 This host artifact answers one reachable part of the *bytes-versus-work* item in
-the [static-memory research agenda](../background/static-memory-research.md):
+the [static-memory research agenda](../../background/static-memory-research.md):
 what the frame service's pure value kernel costs in emitted instructions when
 two of its variants are lowered through a real compilation route rather than
 counted in an interpreter. It is research, not normative. The
-[requirements register](../requirements-register.md) remains authoritative, and
+[requirements register](../../requirements-register.md) remains authoritative, and
 nothing here confers landing credit or accepts a requirement. The item stays
 open under its full acceptance conditions.
 
 ## What is measured, and by which commands
 
-The census runs over the existing [Bedrock2 lowering loop](../../tools/bedrock2-lowering/README.md),
+The census runs over the existing [Bedrock2 lowering loop](../../../tools/bedrock2-lowering/README.md),
 whose route is Gallina to bedrock2 by Rupicola's relational compilation, bedrock2
 to C by bedrock2's printer, and C to assembly by the contained CompCert of the
 compiler milestone's lane. Two derivations of one kernel are added to that
@@ -30,23 +30,23 @@ python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/cen
 ```
 
 Every figure the run reports lives in
-[DIGESTS.md](../../tools/bedrock2-lowering/DIGESTS.md), which records the digest,
+[DIGESTS.md](../../../tools/bedrock2-lowering/DIGESTS.md), which records the digest,
 size and line count of each emitted C file and the plain-RV64 census of each
 assembly file, and in that directory's
-[measurements table](../../tools/bedrock2-lowering/README.md#measurements). This
+[measurements table](../../../tools/bedrock2-lowering/README.md#measurements). This
 document keeps no second copy of any of them. `--check` recomputes the digests
 and exits nonzero on drift, which is what makes the emitted C reproducible
 rather than merely present.
 
-The kernel is [the transformation experiment's](static-memory-transformations.md)
+The kernel is [the transformation experiment's](transformations.md)
 own value contract: each input byte is mapped by an affine function modulo 256,
 the mapped values are reduced to a checksum modulo 256, and each mapped value is
 combined with that checksum. The two derivations differ in exactly one place.
-[FrameKernelRetained.v](../../tools/bedrock2-lowering/FrameKernelRetained.v)
+[FrameKernelRetained.v](../../../tools/bedrock2-lowering/FrameKernelRetained.v)
 reads the input buffer and writes the mapped values into a second buffer, which
 is the shape a borrowed input forces and the assumption the `lexical-cache` row
 of the transformation experiment keeps.
-[FrameKernelInPlace.v](../../tools/bedrock2-lowering/FrameKernelInPlace.v)
+[FrameKernelInPlace.v](../../../tools/bedrock2-lowering/FrameKernelInPlace.v)
 overwrites each element after it has been read and runs its second pass over the
 same buffer, which is the `in-place-phased` row and is legal only because that
 experiment's service owns its input exclusively.
@@ -65,14 +65,14 @@ input, and none is claimed.
 
 **An image size is not reachable by any path in this tree**, and the census is
 not a proxy for one. No tool here consumes a C compiler's output into an image:
-[vos/asm.py](../../tools/vos/asm.py) reads this repository's own assembly
-dialect and [vos/image.py](../../tools/vos/image.py) is not the composer that
+[vos/asm.py](../../../tools/vos/asm.py) reads this repository's own assembly
+dialect and [vos/image.py](../../../tools/vos/image.py) is not the composer that
 M1.2f joins. The *code-size growth* the research item asks for therefore remains
 unanswered, and an assembly instruction count is not a substitute for it.
 
 **The target is wrong, by construction.** The contained `ccomp` reaches the
 stock RISC-V backend and emits plain RV64 with the capability arms stubbed.
-[R-18-002](../requirements-register.md) forbids a plain-RV64 compilation target
+[R-18-002](../../requirements-register.md) forbids a plain-RV64 compilation target
 anywhere on this platform, so every figure in this census is a proxy taken on a
 target the platform does not admit. The `-dcapasm` stub count that the loop also
 records is the size of the gap to the backend M1.2b through M1.2f author, not a
@@ -144,7 +144,7 @@ external paper is carried into it.
 
 ## Licence facts for the route
 
-These are the terms [THIRD-PARTY.md](../../THIRD-PARTY.md) records, read at the
+These are the terms [THIRD-PARTY.md](../../../THIRD-PARTY.md) records, read at the
 route rather than restated from lineage.
 
 | Component | Terms | How this repository stands to it |

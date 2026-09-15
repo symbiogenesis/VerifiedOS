@@ -28,23 +28,23 @@ the [assurance presets](languages/assurance-profiles.md) state the policy those
 rules are selected under: which claims a build must establish, what an
 unestablished claim may be used for, and what the build reports about each.
 
-The [static-memory experiments](implementation/static-memory-experiments.md) join
-the [mathematical baseline](implementation/static-memory-baseline.md) and
-[synthetic capacity corpus](implementation/static-memory-corpus.md) to replayable
+The [static-memory experiments](implementation/static-memory/experiments.md) join
+the [mathematical baseline](implementation/static-memory/baseline.md) and
+[synthetic capacity corpus](implementation/static-memory/corpus.md) to replayable
 byte accounting and bounded placement comparisons, the corpus recording which
 research families its witnesses cover and which composed-roster input is still
-absent. The [artifact inventory](implementation/static-memory-artifact.md) indexes the
+absent. The [artifact inventory](implementation/static-memory/artifact.md) indexes the
 experiments, classifications and replay commands, including service transformations,
 reclamation, modes, representability, structural algorithms, phases and lending.
-The [compiled census](implementation/static-memory-census.md) supplies a plain-RV64
-proxy, while the [laminar theorem](implementation/static-memory-baseline.md#mechanized-statement)
-and [functional service equivalence](implementation/static-memory-transformations.md#mechanized-equivalence)
+The [compiled census](implementation/static-memory/census.md) supplies a plain-RV64
+proxy, while the [laminar theorem](implementation/static-memory/baseline.md#mechanized-statement)
+and [functional service equivalence](implementation/static-memory/transformations.md#mechanized-equivalence)
 have separate Rocq proofs with their implementation bridges stated as remaining work.
 
 The [portable memory planner](implementation/portable-memory-planner.md) exposes
 checked fixed-instance placement, retained baselines, pinned framework adapters
 and bounded contract extraction for desktop and embedded components.
-The [static-memory literature adoption map](implementation/static-memory-literature.md)
+The [static-memory literature adoption map](implementation/static-memory/literature.md)
 connects allocation and reusable-capacity research to the pinned candidate and
 certificate integrations, finite resource contracts and remaining proof obligations.
 

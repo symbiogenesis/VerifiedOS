@@ -24,4 +24,4 @@ What the contained `ccomp` emits from each of those files, at `-S` and at `-S -d
 | `frame_kernel_retained.s` | 158 | 124 | 23 | 23 | 20 | 7 | 46 (18) |
 | `frame_kernel_inplace.s` | 157 | 123 | 23 | 23 | 19 | 7 | 46 (18) |
 
-The census is per program and not per length: both kernels take their length as a runtime argument and emit two `while` loops, so no figure in their rows moves with the frame size. That is the first thing this census does not share with [the transformation experiment](../../docs/implementation/static-memory-transformations.md), whose schedule is unrolled at a public length and whose instruction count therefore grows with it.
+The census is per program and not per length: both kernels take their length as a runtime argument and emit two `while` loops, so no figure in their rows moves with the frame size. That is the first thing this census does not share with [the transformation experiment](../../docs/implementation/static-memory/transformations.md), whose schedule is unrolled at a public length and whose instruction count therefore grows with it.

@@ -1,13 +1,13 @@
 # Static-memory structure: the deletion parameter
 
-> Non-normative research. The [requirements register](../requirements-register.md)
+> Non-normative research. The [requirements register](../../requirements-register.md)
 > remains authoritative; nothing here changes an admission criterion, and research
 > outputs confer no landing credit and accept no requirement. The proofs below are
 > human-readable arguments over the baseline's finite integer model, not
 > machine-checked theorems. Each claim is labelled as a peer-reviewed citation, an
 > elementary argument proved here, a finite executable outcome, or an open question.
 
-The [baseline](static-memory-baseline.md#structural-questions-left-open) leaves one
+The [baseline](baseline.md#structural-questions-left-open) leaves one
 parameterized question open: with `k` the least number of reservation intervals whose
 deletion makes the family laminar, is exact placement solvable in time `f(k)` times a
 polynomial of the binary input length, or hard for some small fixed `k`? This
@@ -30,7 +30,7 @@ and no owner, bank, bounds or multiple-execution constraint applies. A placement
 assigns each object a base `a_i`; it is legal when any two objects whose intervals
 intersect have disjoint extents `[a_i, a_i + w_i)`. `L_charge` is the largest sum of
 extents live at one instant and `OPT` the least span of a legal placement, so
-`L_charge <= OPT` by the [baseline's inequality](static-memory-baseline.md#executions-objects-and-physical-charge).
+`L_charge <= OPT` by the [baseline's inequality](baseline.md#executions-objects-and-physical-charge).
 
 Two intervals **cross** when they intersect and neither contains the other, which
 with half-open integer intervals is the strict interlacing `b_i < b_j < e_i < e_j`
@@ -50,7 +50,7 @@ python tools/run.py test --only static_memory_structure
 python tools/run.py test --only static_memory_structure --slow
 ```
 
-The command calls [`report`](../../tools/vos/static_memory_structure.py), whose
+The command calls [`report`](../../../tools/vos/static_memory_structure.py), whose
 receipt keeps every field of the earlier structural report and adds, per case, the
 dynamic programme's deletion set, the crossing graph's two-colouring or odd cycle,
 and the justified exact search; it adds the evaluated decomposition contracts, their
@@ -103,7 +103,7 @@ has at most `4 n^2` cells and each is filled by at most `2n` additions of counts
 one sort of the endpoints; the magnitudes of the endpoints are only compared. The
 work is therefore polynomial in the binary input length.
 
-**Finite outcome.** [`maximum_laminar_subfamily`](../../tools/vos/static_memory_structure.py)
+**Finite outcome.** [`maximum_laminar_subfamily`](../../../tools/vos/static_memory_structure.py)
 implements the recurrence with equal intervals grouped by their compressed endpoint
 pair, reconstructs the kept set, and checks that the removed set hits every crossing
 pair. The focused tests compare its minimum with the existing subset enumeration on
@@ -116,7 +116,7 @@ check equal intervals, adjacent endpoints, the empty family and input permutatio
 is exactly the case that the crossing graph is bipartite, then `OPT = L_charge`, and a
 placement attaining it is constructed by sorting and two stack passes.
 
-*Proof.* Place the first subfamily by the [baseline construction](static-memory-baseline.md#a-complete-laminar-special-case):
+*Proof.* Place the first subfamily by the [baseline construction](baseline.md#a-complete-laminar-special-case):
 at any instant its live objects form a chain of nested groups placed consecutively
 from the origin, so they occupy exactly `[0, load_1(t))`. Place the second subfamily
 by the same construction and reflect it, giving each object the base
@@ -139,7 +139,7 @@ canonical-remainder witness below has a triangle in its crossing graph and still
 attains its load, so the theorem is a sufficient condition and not a
 characterization.
 
-**Finite outcome.** [`two_stack_placement`](../../tools/vos/static_memory_structure.py)
+**Finite outcome.** [`two_stack_placement`](../../../tools/vos/static_memory_structure.py)
 builds the placement, passes it through the independent checker, and refuses a
 non-laminar half, a non-partition, non-unit alignment and a capacity below the load.
 The tests replay the placement cell by cell, independently of the module's checker,
@@ -161,9 +161,9 @@ Without triangle-freeness the same theorem excludes deletion numbers zero and on
 
 *Upper bound.* Use the following objects, each row giving identity, extent and
 reservation interval. These are the `g0` through `g6` definitions of the already
-mechanized `gap_family` in [StaticMemoryLaminar.v](../../proofs/StaticMemoryLaminar.v),
+mechanized `gap_family` in [StaticMemoryLaminar.v](../../../proofs/StaticMemoryLaminar.v),
 now emitted as the `five-cycle-load-gap` contract by
-[`load_gap_contract`](../../tools/vos/static_memory_structure.py):
+[`load_gap_contract`](../../../tools/vos/static_memory_structure.py):
 
 ```text
 g0: 1, [2, 4)    g1: 2, [3, 5)    g2: 2, [4, 6)
@@ -211,7 +211,7 @@ does not. A gap at fixed deletion number is not a hardness result for that param
 
 Each contract below is a natural way to reduce placement to the deleted objects and
 the laminar remainder. Each is stated so that a single family can refute it, is
-evaluated by [`decomposition_values`](../../tools/vos/static_memory_structure.py)
+evaluated by [`decomposition_values`](../../../tools/vos/static_memory_structure.py)
 for every minimum deletion set of that family, and is refuted by a named contract in
 the report whose optimum the existing exact oracle establishes and independently
 replays. The stated object count is the least at which the contract is known to fail:
@@ -311,7 +311,7 @@ identity. Each object's supporting neighbour has a smaller base and so precedes 
 A search that places objects in nondecreasing base order, with identity ties, and
 offers each object only base zero and the tops of already placed interfering
 objects, therefore visits every left-justified placement of a given height.
-[`justified_exact`](../../tools/vos/static_memory_structure.py) runs that search as a
+[`justified_exact`](../../../tools/vos/static_memory_structure.py) runs that search as a
 feasibility test, remembering placed sets whose completion failed because the
 remaining subproblem depends only on the placed set, and finds the least feasible
 height by binary search over multiples of the extent gcd between the load, below
@@ -400,7 +400,7 @@ any fixed `k` is claimed here.
 - The source-lifetime bridge: none of this establishes that a compiler exports
   reservation intervals with a small deletion number, or any interval family at all.
 
-The [research agenda's structural item](../background/static-memory-research.md#research-todo-list)
+The [research agenda's structural item](../../background/static-memory-research.md#research-todo-list)
 remains open under its full acceptance conditions; this document supplies the
 polynomial parameter, the bipartite extension, the sharp triangle-free gap threshold,
 the refutations and the exact search over the extent-gcd lattice, and names the

@@ -1,14 +1,14 @@
 # Compositional reuse under public phases
 
-> Non-normative research for the [static-memory agenda](../background/static-memory-research.md).
-> The [requirements register](../requirements-register.md) remains authoritative.
+> Non-normative research for the [static-memory agenda](../../background/static-memory-research.md).
+> The [requirements register](../../requirements-register.md) remains authoritative.
 > This experiment supplies a finite model, refuted candidate rules, reduced
 > counterexamples and one conjecture with explicit premises. It is not a theorem, a
 > barrier implementation, a leakage model or a measurement; it confers no
 > implementation landing credit and accepts no requirement. The
-> [revocation qualification](../assurance/revocation-qualification.md) owns the
+> [revocation qualification](../../assurance/revocation-qualification.md) owns the
 > completion and reuse predicates, and the
-> [baseline](static-memory-baseline.md) owns the lifecycle order this model refines.
+> [baseline](baseline.md) owns the lifecycle order this model refines.
 
 The agenda's open proof problem asks whether per-component phase certificates can
 establish global non-overlap and bounded reuse without enumerating every
@@ -32,7 +32,7 @@ common research command. Figures stay in the generated receipt rather than being
 maintained here a second time.
 
 The public Python entry point is `vos.static_memory_phases.report(revision)` in
-[static_memory_phases.py](../../tools/vos/static_memory_phases.py). It writes no
+[static_memory_phases.py](../../../tools/vos/static_memory_phases.py). It writes no
 file, runs no solver and selects no schedule. Ticks, extents and phase indices are
 synthetic model quantities; none is a measured time, an address or a target
 schedule.

@@ -88,47 +88,47 @@ def _copied_tree_reports_each_incompleteness() -> None:
         _commit(root)
         ensure(not manifest.report(root)["errors"], "the copied artifact must be complete")
         _place(root, "tools/vos/static_memory_orphan.py", SPDX)
-        _place(root, "docs/implementation/static-memory-orphan.md", "# Orphan\n")
+        _place(root, "docs/implementation/static-memory/orphan.md", "# Orphan\n")
         _place(root, "tools/tests/test_static_memory_ghost.py", SPDX)
         _place(root, "proofs/StaticMemoryOrphan.v", "(* fixture *)\n")
         errors = manifest.report(root)["errors"]
         for path, phrase in (
                 ("tools/vos/static_memory_orphan.py", "registered action"),
-                ("docs/implementation/static-memory-orphan.md", "links to this document"),
-                ("docs/implementation/static-memory-orphan.md", "carries no row"),
+                ("docs/implementation/static-memory/orphan.md", "links to this document"),
+                ("docs/implementation/static-memory/orphan.md", "carries no row"),
                 ("tools/tests/test_static_memory_ghost.py", "'ghost'"),
                 ("proofs/StaticMemoryOrphan.v", manifest.PROOF_LEDGER)):
             ensure(_named(errors, path, phrase),
                    f"no finding for {path} naming {phrase}: {errors}")
-        _place(root, "docs/implementation/static-memory-experiments.md",
-               (root / "docs/implementation/static-memory-experiments.md").read_text(
-                   encoding="utf-8") + "\n[Orphan](static-memory-orphan.md) is reachable.\n")
+        _place(root, "docs/implementation/static-memory/experiments.md",
+               (root / "docs/implementation/static-memory/experiments.md").read_text(
+                   encoding="utf-8") + "\n[Orphan](orphan.md) is reachable.\n")
         ensure(not _named(manifest.report(root)["errors"],
-                          "docs/implementation/static-memory-orphan.md",
+                          "docs/implementation/static-memory/orphan.md",
                           "links to this document"),
                "one inbound link from another document clears the reachability finding")
 
 
 def _a_mention_is_not_a_link_and_the_index_is_not_a_witness() -> None:
-    experiments = "docs/implementation/static-memory-experiments.md"
+    experiments = "docs/implementation/static-memory/experiments.md"
     with sandbox_tree(_artifact_files()) as root:
         _commit(root)
         _place(root, "tools/vos/static_memory_orphan.py", SPDX)
-        _place(root, "docs/implementation/static-memory-orphan.md", "# Orphan\n")
-        _append(root, experiments, "\n```console\nrm static-memory-orphan.md\n```\n")
+        _place(root, "docs/implementation/static-memory/orphan.md", "# Orphan\n")
+        _append(root, experiments, "\n```console\nrm orphan.md\n```\n")
         _append(root, manifest.ARTIFACT_DOC,
                 "\nstatic_memory_orphan.py is one of the artifact's modules.\n")
         errors = manifest.report(root)["errors"]
-        ensure(_named(errors, "docs/implementation/static-memory-orphan.md",
+        ensure(_named(errors, "docs/implementation/static-memory/orphan.md",
                       "links to this document"),
                f"a basename inside a fenced block is a mention and not a link: {errors}")
         ensure(_named(errors, "tools/vos/static_memory_orphan.py", "registered action"),
                f"the index naming a module is not a witness of its reachability: {errors}")
-        _append(root, experiments, "\n[Orphan](static-memory-orphan.md#results) says so.\n")
-        _append(root, "docs/implementation/static-memory-transformations.md",
+        _append(root, experiments, "\n[Orphan](orphan.md#results) says so.\n")
+        _append(root, "docs/implementation/static-memory/transformations.md",
                 "\nstatic_memory_orphan.py carries the orphan experiment.\n")
         errors = manifest.report(root)["errors"]
-        ensure(not _named(errors, "docs/implementation/static-memory-orphan.md",
+        ensure(not _named(errors, "docs/implementation/static-memory/orphan.md",
                           "links to this document"),
                f"an anchored link from another document is a link: {errors}")
         ensure(not _named(errors, "tools/vos/static_memory_orphan.py", "registered action"),
@@ -142,7 +142,7 @@ def _index_membership_decides_as_the_checker_reads_it() -> None:
         errors = manifest.report(root)["errors"]
         ensure(_named(errors, "tools/vos/static_memory_ghost.py", "git index does not carry"),
                f"an untracked module is a finding: {errors}")
-        gone = "docs/implementation/static-memory-scaling.md"
+        gone = "docs/implementation/static-memory/scaling.md"
         (root / gone).unlink()
         errors = manifest.report(root)["errors"]
         ensure(_named(errors, gone, "working tree does not carry it"),
@@ -153,28 +153,28 @@ def _classification_join_holds_both_directions() -> None:
     files = _artifact_files()
     document = files[manifest.ARTIFACT_DOC]
     row = next(line for line in document.splitlines()
-               if line.startswith("| [") and "static-memory-baseline.md)" in line)
+               if line.startswith("| [") and "baseline.md)" in line)
     last = next(line for line in document.splitlines()
-                if line.startswith("| [") and "static-memory-artifact.md)" in line)
+                if line.startswith("| [") and "artifact.md)" in line)
     with sandbox_tree(files) as root:
         _commit(root)
         path = root / manifest.ARTIFACT_DOC
         path.write_text(document.replace(f"{row}\n", ""), encoding="utf-8", newline="")
         ensure(_named(manifest.report(root)["errors"],
-                      "docs/implementation/static-memory-baseline.md", "carries no row"),
+                      "docs/implementation/static-memory/baseline.md", "carries no row"),
                "a document with no classification row is a finding")
-        twice = ("| [Mathematical baseline](static-memory-baseline.md) "
+        twice = ("| [Mathematical baseline](baseline.md) "
                  "| peer-reviewed result cited | elsewhere |")
         path.write_text(document.replace(row, f"{row}\n{twice}"), encoding="utf-8",
                         newline="")
         ensure(_named(manifest.report(root)["errors"],
-                      "docs/implementation/static-memory-baseline.md", "carries 2 rows"),
+                      "docs/implementation/static-memory/baseline.md", "carries 2 rows"),
                "a second row claiming other classes for the same document is a finding")
-        ghost = "| [Ghost](static-memory-ghost.md) | new conjecture | nowhere |"
+        ghost = "| [Ghost](ghost.md) | new conjecture | nowhere |"
         path.write_text(document.replace(last, f"{last}\n{ghost}"), encoding="utf-8",
                         newline="")
         ensure(_named(manifest.report(root)["errors"],
-                      "docs/implementation/static-memory-ghost.md",
+                      "docs/implementation/static-memory/ghost.md",
                       "names a document the artifact does not carry"),
                "a row naming no document is a finding")
         path.write_text(document.replace("elementary argument in prose", "folklore"),
