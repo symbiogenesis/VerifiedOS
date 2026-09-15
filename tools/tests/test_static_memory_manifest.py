@@ -232,6 +232,46 @@ def _replayed_receipt_is_read_and_a_refusal_is_a_finding() -> None:
            f"a replay that refused is a finding: {errors}")
 
 
+def _malformed_replay_receipts_are_findings_even_after_exit_zero() -> None:
+    schema = "static-memory-experiment-v1"
+    malformed: list[object] = [[], {}, {"schema": "unknown"}, {"schema": schema}]
+    malformed += [{"schema": schema, "experiment": value}
+                  for value in (None, [], "", 0)]
+    malformed += [{"schema": schema, "experiment": {}}]
+    malformed += [{"schema": schema, "experiment": {"errors": value}}
+                  for value in (None, {}, "", 0, [None], [3], [[]])]
+    for receipt in malformed:
+        with patch.object(manifest, "_run", return_value=(0, receipt)):
+            entry = manifest.replay_action("structure")
+        ensure(entry["exit_code"] == 0 and bool(entry["errors"]),
+               f"an exit-zero malformed receipt must still be a finding: {receipt}, {entry}")
+        ensure(bool(manifest._replay_findings([entry])),
+               f"a malformed row must reach the manifest findings: {entry}")
+    receipt = {"schema": schema, "experiment": {"scope": "fixture", "errors": ["bad replay"]}}
+    with patch.object(manifest, "_run", return_value=(0, receipt)):
+        entry = manifest.replay_action("structure")
+    ensure(entry["errors"] == ["bad replay"],
+           "a reported experiment error cannot be hidden behind exit zero")
+
+
+def _research_replays_preserve_intentional_diagnostics() -> None:
+    for action in ("corpus", "check", "compare"):
+        argv = [action, *manifest.REPLAY_SETTINGS.get(action, ()), "--json"]
+        code, receipt = manifest._run(argv)
+        if action == "corpus":
+            ensure(any(request["verdict"] == "refused"
+                       for case in receipt["cases"] for request in case["requests"]),
+                   "the corpus smoke replay must exercise intentional request refusals")
+        if action == "compare":
+            ensure(any(case["exact"]["status"] == "incomplete" for case in receipt["cases"]),
+                   "the comparison smoke replay must exercise incomplete search")
+        with patch.object(manifest, "_run", return_value=(code, receipt)):
+            entry = manifest.replay_action(action)
+        ensure(entry["schema"] == "static-memory-research-v1"
+               and entry["exit_code"] == 0 and not entry["errors"],
+               f"valid research diagnostics must leave the replay clean: {entry}")
+
+
 def _readers_fail_closed_on_an_unreadable_subject() -> None:
     optional = argparse.ArgumentParser()
     optional.add_argument("--only", action="store_true")
@@ -269,5 +309,9 @@ def cases() -> list[Case]:
              _replay_runs_every_other_action_and_the_default_runs_none),
         Case("manifest replayed receipt and refusal",
              _replayed_receipt_is_read_and_a_refusal_is_a_finding),
+        Case("manifest rejects malformed exit-zero replay receipts",
+             _malformed_replay_receipts_are_findings_even_after_exit_zero),
+        Case("manifest research replays preserve diagnostic refusals and search cutoffs",
+             _research_replays_preserve_intentional_diagnostics),
         Case("manifest readers fail closed", _readers_fail_closed_on_an_unreadable_subject),
     ]

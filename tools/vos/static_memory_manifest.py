@@ -484,13 +484,25 @@ def replay_action(action: str) -> ReplayEntry:
     if not isinstance(receipt, dict):
         entry["errors"] = ["the receipt is not an object"]
         return entry
-    experiment = receipt.get("experiment", {})
-    inner = experiment if isinstance(experiment, dict) else {}
     entry["schema"] = str(receipt.get("schema", "n/a"))
-    entry["scope"] = str(inner.get("scope") or receipt.get("scope") or "n/a")
-    reported = inner.get("errors", [])
-    entry["errors"] = [str(error) for error in reported] if isinstance(reported, list) else [
-        str(reported)]
+    if entry["schema"] == "static-memory-experiment-v1":
+        experiment = receipt.get("experiment")
+        if not isinstance(experiment, dict):
+            entry["errors"].append("the experiment receipt requires an experiment object")
+        else:
+            entry["scope"] = str(experiment.get("scope") or "n/a")
+            reported = experiment.get("errors")
+            if not isinstance(reported, list) or any(not isinstance(error, str)
+                                                     for error in reported):
+                entry["errors"].append("experiment.errors must be a list of strings")
+            else:
+                entry["errors"].extend(reported)
+    elif entry["schema"] == "static-memory-research-v1":
+        # These actions report per-case diagnostics and decide their own exit code.
+        # An intentional request refusal or incomplete search is not a replay error.
+        entry["scope"] = str(receipt.get("scope") or "n/a")
+    else:
+        entry["errors"].append(f"unsupported receipt schema: {entry['schema']}")
     if code != 0:
         entry["errors"].append(f"the action exited {code}")
     return entry
