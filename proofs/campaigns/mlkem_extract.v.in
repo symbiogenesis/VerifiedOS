@@ -1,0 +1,8 @@
+(* SPDX-License-Identifier: Apache-2.0 *)
+From Stdlib Require Import Extraction ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZBigInt.
+Require Import MlKem.
+Extraction Language OCaml.
+Extraction "mlkem_reference.ml"
+  mlkem1024_keygen mlkem1024_encaps mlkem1024_decaps
+  encapsulation_key_valid decapsulation_input_valid
+  mlkem_1024 shake_oracles sha3_bytes shake_bytes.

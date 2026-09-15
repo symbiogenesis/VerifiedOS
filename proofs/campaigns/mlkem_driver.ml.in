@@ -1,0 +1,52 @@
+(* SPDX-License-Identifier: Apache-2.0 *)
+module M = Mlkem_reference
+
+let bytes_of_hex text =
+  if text = "-" then [] else
+  if String.length text mod 2 <> 0 then invalid_arg "odd hex length" else
+  List.init (String.length text / 2)
+    (fun i -> Big_int_Z.big_int_of_int
+      (int_of_string ("0x" ^ String.sub text (2 * i) 2)))
+
+let hex_of_bytes bytes =
+  let result = Buffer.create (2 * List.length bytes) in
+  List.iter (fun byte ->
+    let value = Big_int_Z.int_of_big_int byte in
+    if value < 0 || value > 255 then invalid_arg "non-byte output";
+    Buffer.add_string result (Printf.sprintf "%02X" value)) bytes;
+  Buffer.contents result
+
+let pair = function
+  | None -> "REJECT"
+  | Some (a, b) -> hex_of_bytes a ^ ":" ^ hex_of_bytes b
+
+let one = function None -> "REJECT" | Some a -> hex_of_bytes a
+
+let evaluate line =
+  match String.split_on_char ' ' line with
+  | [operation; a; b] ->
+      let x = bytes_of_hex a in
+      let y = bytes_of_hex b in
+      (match operation with
+       | "keygen" -> pair (M.mlkem1024_keygen x y)
+       | "encaps" -> pair (M.mlkem1024_encaps x y)
+       | "decaps" -> one (M.mlkem1024_decaps x y)
+       | "ekcheck" -> string_of_bool (M.encapsulation_key_valid M.mlkem_1024 x)
+       | "dkcheck" -> string_of_bool
+           (M.decapsulation_input_valid M.mlkem_1024 (M.shake_oracles M.mlkem_1024) x
+              (List.init 1568 (fun _ -> Big_int_Z.zero_big_int)))
+       | "sha3-256" -> hex_of_bytes (M.sha3_bytes 256 x)
+       | "sha3-512" -> hex_of_bytes (M.sha3_bytes 512 x)
+       | "shake128" -> hex_of_bytes (M.shake_bytes 128 32 x)
+       | "shake256" -> hex_of_bytes (M.shake_bytes 256 32 x)
+       | _ -> invalid_arg "unknown operation")
+  | _ -> invalid_arg "expected operation and two hex fields"
+
+let () =
+  try
+    while true do
+      let line = read_line () in
+      print_endline (evaluate line);
+      flush stdout
+    done
+  with End_of_file -> ()
