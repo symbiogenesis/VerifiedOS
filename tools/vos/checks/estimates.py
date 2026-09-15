@@ -9,7 +9,8 @@ checking it off moves every figure above it, and a subtotal that no longer sums 
 renders as a subtotal, so the drift survives exactly the reading anyone gives it.
 
 So the document declares one shape and this group owns everything derived from it.
-Two things are authored: an open item's range and a completed item's actual. The
+The authored weights are an open item's range, a completed item's actual, or an
+explicitly retained estimate when historical actual time is unavailable. The
 midpoint is the mean of the range ends, an item's share is that midpoint over the
 grand total, and every subtotal, the grand range, and the progress pair are sums over
 the items beneath them. All of it is arithmetic, so a repair rewrites all of it;
@@ -73,9 +74,11 @@ SCAN_RE = re.compile(
     r"\* \[(?P<box>[ x])\] \*\*(?P<label>[^*]+)\*\*(?P<rest>[^\r\n]*)"
     r"|\*\*(?P<sec>[^*]+) subtotal:\*\*(?P<tail>[^\r\n]*))")
 
-# the estimate cell in its two forms, each capturing the tail after it, which is prose
+# the estimate cell's forms, each capturing the tail after it, which is prose
 # (`Parallel`, and what it is parallel with) that no figure here may disturb
 DONE_RE = re.compile(r"^ · (?P<h>[\d.,]+) h actual · (?P<pct>[\d.]+)%(?P<tail>.*)$")
+RETAINED_RE = re.compile(r"^ · (?P<h>[\d.,]+) h retained estimate, actual n/a "
+                         r"· (?P<pct>[\d.]+)%(?P<tail>.*)$")
 OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) "
                      r"· (?P<pct>[\d.]+)%(?P<tail>.*)$")
 
@@ -127,7 +130,7 @@ AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A
 # member is the open item carrying that label, or every open child of one that carries no
-# cell of its own, which is how M1.2 enters as its six children. The membership is the
+# cell of its own, which is how M1.2 enters through its open children. The membership is the
 # author's, as the two partitions above are; what is held is that each member is occupied
 # and that the range, the midpoint and the horizon the plan states are the arithmetic over
 # those cells
@@ -194,6 +197,8 @@ class Item:
     # the label head of the cell-less parent this item is nested under, where it is; a
     # chain member that carries no cell enters as its children through this
     parent: str | None = None
+    # A retained planning weight contributes to completed scope, never to a fit.
+    measured_actual: bool = True
 
 
 @dataclass
@@ -246,12 +251,13 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             parent = None
 
         done = DONE_RE.match(rest)
+        retained = RETAINED_RE.match(rest)
         opened = OPEN_RE.match(rest)
-        # `cell` is whichever of the two matched, and the guard is written as one
+        # `cell` is whichever of the forms matched, and the guard is written as one
         # test on it rather than as `not done and not opened` so that what follows
         # reads a match rather than a value that is a match on the strength of a
         # condition two statements away.
-        cell = done or opened
+        cell = done or retained or opened
         if cell is None:
             if rest.strip():
                 malformed.append(f"{label}: '{rest.strip()}' is not an estimate cell")
@@ -260,6 +266,9 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
                 parent = (_head(label), indent)
             continue
 
+        if retained and m.group("box") != "x":
+            malformed.append(f"{label}: a retained estimate with actual n/a requires "
+                             "a completed checkbox")
         lo = _hours(opened.group("lo")) if opened else 0.0
         hi = _hours(opened.group("hi")) if opened else 0.0
         klass = CLASS_RE.match(cell.group("tail"))
@@ -272,12 +281,13 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
         item = Item(
             label=label, line=m.group(),
             head=m.group()[:len(m.group()) - len(rest)],
-            done=bool(done),
+            done=bool(done or retained),
             stated=_hours(cell.group("h")),
             hours=round((lo + hi) / 2, 1) if opened else _hours(cell.group("h")),
             lo=lo, hi=hi, tail=cell.group("tail"),
             cls=klass.group("cls") if klass else None,
-            parent=parent[0] if parent else None)
+            parent=parent[0] if parent else None,
+            measured_actual=bool(done))
         items.append(item)
         bucket.append(item)
 
@@ -340,6 +350,10 @@ def _fit(record: list[tuple[str, str, str]], actuals: dict[str, Item], what: str
                            "of the plan")
             continue
         if pool == NOT_APPLICABLE and est == NOT_APPLICABLE:
+            continue
+        if not actuals[item].measured_actual:
+            derived.append(f"{item}: actual n/a requires n/a in both calibration "
+                           "columns; a retained estimate is not a measured actual")
             continue
         if pool not in POOLS or not HOURS_RE.match(est):
             derived.append(f"{item}: pool '{pool}' and estimate '{est}' are not one of "
@@ -478,6 +492,8 @@ def run(ctx: Context) -> None:
     open_items = [i for i in items if not i.done]
     grand = round(sum(i.hours for i in items), 1)
     done_h = round(sum(i.hours for i in items if i.done), 1)
+    retained_items = [i for i in items if i.done and not i.measured_actual]
+    retained_h = round(sum(i.hours for i in retained_items), 1)
     open_lo = round(sum(i.lo for i in open_items), 1)
     open_hi = round(sum(i.hi for i in open_items), 1)
 
@@ -569,7 +585,9 @@ def run(ctx: Context) -> None:
     edits: list[tuple[str, str, str]] = []
     for item in items:
         pct = percent(item.hours, grand, 1)
-        cell = (f" · {format_hours(item.hours)} h actual · {pct}%" if item.done
+        cell = (f" · {format_hours(item.hours)} h retained estimate, actual n/a · {pct}%"
+                if item.done and not item.measured_actual else
+                f" · {format_hours(item.hours)} h actual · {pct}%" if item.done
                 else f" · {format_hours(item.hours)} h, range {format_hours(item.lo)}–"
                      f"{format_hours(item.hi)} · {pct}%")
         new = item.head + cell + item.tail
@@ -624,6 +642,10 @@ def run(ctx: Context) -> None:
     lo_t = format_hours(done_h + open_lo)
     hi_t = format_hours(done_h + open_hi)
     derived_lines = [
+        ("the retained completion weights",
+         r"(?m)^\* Retained estimates in completed scope: (?P<h>[\d.,]+) h across "
+         r"(?P<n>\d+) items; their cumulative actual is n/a",
+         {"h": format_hours(retained_h), "n": str(len(retained_items))}),
         ("the total estimate",
          r"(?m)^\* Total estimate: (?P<mid>[\d.,]+) h midpoint, class I (?P<ci>[\d.,]+) h "
          r"and class X (?P<cx>[\d.,]+) h over the open items",

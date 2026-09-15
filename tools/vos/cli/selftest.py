@@ -1039,6 +1039,11 @@ CASES: list[Case] = [
      _renumber(PLAN, rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+)(?= h, range )",
                1, "999")),
 
+    ("K-34", "a retained completion estimate attached to an open checkbox",
+     _first_match(PLAN,
+                  r"(?m)^\s*\* \[x\] \*\*[^*]+\*\* · [\d.,]+ h retained estimate, actual n/a",
+                  lambda m: m.group().replace("[x]", "[ ]", 1))),
+
     # the range is narrowed about its own stated midpoint rather than at one end, so the
     # mean still holds and K-35 stays quiet: the seeded defect is the span alone, which is
     # what makes this case evidence that K-86 reads the width and not the arithmetic.
@@ -1093,6 +1098,9 @@ CASES: list[Case] = [
     # cannot ask, its rows being a different table under a different heading
     ("K-96", "an agent-parallel ratio the second record's estimates do not give",
      _renumber(PLAN, r"(?m)^\| M6\.0b \| X-authored \| ([\d.,]+) \|", 1, "999")),
+
+    ("K-96", "a retained estimate presented as a calibration measurement",
+     _literal(PLAN, "| M1.2b | n/a | n/a |", "| M1.2b | X-authored | 6 |")),
 
     ("K-38", "a table row of the wrong width",
      _literal(MATRIX, "| `B-01` | `P-1` |", "| seeded | `B-01` | `P-1` |")),

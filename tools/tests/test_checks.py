@@ -99,6 +99,51 @@ def _estimates_repair_reaches_fixpoint() -> None:
                f"and report no rewrite: {again.rep.out!r}")
 
 
+def _retained_estimates_are_scope_not_actuals() -> None:
+    plan = ("# Plan\n\n"
+            "* Retained estimates in completed scope: 999 h across 999 items; "
+            "their cumulative actual is n/a.\n"
+            "* M8a gate: 999 h of open work falls at or before it, of which 999 h is class X.\n"
+            "* [x] **M1.2b · Accepted** · 6 h retained estimate, actual n/a · 99.0%"
+            " · agent-parallel\n"
+            "* [ ] **M1.2g · Open** · 9 h, range 5–13 · 60.0% · X\n\n"
+            "**M1 subtotal:** 15 h · 100% · 6 h complete · open range 5–13 h.\n\n"
+            "#### The agent-parallel series\n\n"
+            "| Item | Pool | Estimate |\n| --- | --- | --- |\n"
+            "| M1.2b | n/a | n/a |\n")
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       PLAN: plan}) as root:
+        ctx = _context(root, fix=True)
+        estimates.run(ctx)
+        repaired = ctx.fixed[PLAN]
+        ensure("6 h retained estimate, actual n/a · 40.0%" in repaired,
+               f"repair must preserve the unavailable actual: {repaired!r}")
+        ensure("6 h across 1 items; their cumulative actual is n/a" in repaired,
+               "retained scope must be reported separately")
+        ensure("9 h of open work falls at or before it, of which 9 h is class X" in repaired,
+               "completed estimated scope must leave the remaining-work budget")
+        ensure(not _findings_under(ctx, "K-34"), "the completed form must be readable")
+    items, _, malformed = estimates._parse(repaired)
+    ensure(not malformed, f"the repaired plan must parse: {malformed!r}")
+    completed = {"M1.2b": items[0]}
+    findings: list[str] = []
+    fit = estimates._fit([("M1.2b", "n/a", "n/a")], completed,
+                         "record", "completed item", findings)
+    ensure(not findings and not any(fit.values()), "unmeasured work cannot enter a fit")
+    estimates._fit([("M1.2b", "X-authored", "6")], completed,
+                   "record", "completed item", findings)
+    ensure(any("not a measured actual" in f for f in findings),
+           "a retained estimate cannot masquerade as a calibration measurement")
+    _, _, malformed = estimates._parse(repaired.replace("* [x]", "* [ ]"))
+    ensure(any("completed checkbox" in f for f in malformed),
+           "an open checkbox cannot carry completed unmeasured work")
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       PLAN: repaired}) as root:
+        again = _context(root, fix=True)
+        estimates.run(again)
+        ensure(not again.fixed, "retained-cell repair must reach its fixpoint")
+
+
 def _optional_inference_work_stays_outside_both_gates() -> None:
     # Exercise the reported budgets, including _head's handling of full labels.
     # Adding every module child must leave both independent gate figures unchanged.
@@ -468,6 +513,7 @@ def cases() -> list[Case]:
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),
+        Case("retained-estimates-are-scope-not-actuals", _retained_estimates_are_scope_not_actuals),
         Case("optional-inference-work-stays-outside-both-gates",
              _optional_inference_work_stays_outside_both_gates),
         Case("k96-record-is-held-total-in-both-directions",

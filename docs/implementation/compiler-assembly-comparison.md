@@ -1,7 +1,7 @@
 # Compiler assembly comparison
 
-This is the replacement comparison contract for [M1.2b](implementation-checklist.md)
-and the remaining assembly debt in [F-318](../assurance/findings-register.md).
+This is the assembly comparison contract for [M1.2b](implementation-checklist.md)
+and the accepted campaign recorded in [F-318](../assurance/findings-register.md).
 It qualifies preservation of the stock RV64 assembly emitted while removing the
 scalar float bank. It does not establish the purecap backend's correctness,
 source correspondence, target execution or M1.2f's differential verdict.
@@ -71,10 +71,10 @@ Every manifest member must return `equal`. The scalar-FP refusal remains a
 separate successful negative control: the candidate exits unsuccessfully,
 names R-15-039, and creates no assembly. M1.2b's clean-build, unchanged-admit,
 representation, width and source-boundary clauses are unchanged. The historical
-comment-masked agreement reported in the checklist is not a run of this
-comparator. Its register-changing pairs still fail this predicate, and F-318
-remains open until an accepted run or a separately reviewed stronger contract
-discharges every member.
+comment-masked agreement preserved in the completion log is not a run of this
+comparator. Its register-changing pairs still fail this predicate. F-318 records
+the later accepted campaign over retained and explicitly reviewed replacement
+sources; that acceptance makes no equality claim about lost historical outputs.
 
 ## Register and calling-convention boundary
 
