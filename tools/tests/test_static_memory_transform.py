@@ -43,6 +43,16 @@ def every_byte_has_exactly_one_charge() -> None:
                                            for s in plan["snapshots"]), "load bound mismatch")
 
 
+def partial_tail_and_boundary_frames_match_the_independent_reference() -> None:
+    for length, tile in ((1, 64), (3, 1), (13, 5), (63, 8), (64, 5), (64, 64)):
+        frames = [bytes(length), bytes([255] * length),
+                  bytes((17 * index + 251) & 255 for index in range(length))]
+        for variant in t.VARIANTS:
+            program = t.emit_program(variant, length, tile)
+            ensure(not t.equivalence_findings(program, frames),
+                   f"{variant}/{length}/{tile}: boundary or partial tail changes output or erasure")
+
+
 def counters_and_addresses_do_not_depend_on_frame_values() -> None:
     for variant in t.VARIANTS:
         program = t.emit_program(variant, 13, 5)
@@ -112,6 +122,22 @@ def independent_placement_checker_rejects_early_reuse() -> None:
                sm.check_placement(case, sm.standing_placement(case))), "collision was accepted")
 
 
+def ingress_source_bounds_refuse_even_when_values_would_match() -> None:
+    original = t.emit_program("phased-cache", 3)
+    first_ingress = next(index for index, ins in enumerate(original.instructions)
+                         if ins.op == "ingress")
+    for source_index in (-1, original.length):
+        mutant = replace(original, instructions=tuple(
+            replace(ins, other_index=source_index) if index == first_ingress else ins
+            for index, ins in enumerate(original.instructions)))
+        try:
+            t.execute(mutant, bytes(original.length))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("ingress read outside the declared input view was accepted")
+
+
 def negative_results_and_tradeoffs_remain_visible() -> None:
     rows = {variant: (t.layout(t.emit_program(variant, 64)),
                      t.execute(t.emit_program(variant, 64), bytes(64))["counts"])
@@ -150,11 +176,13 @@ def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         bounded_equivalence_and_receipt_are_replayable,
         every_byte_has_exactly_one_charge,
+        partial_tail_and_boundary_frames_match_the_independent_reference,
         counters_and_addresses_do_not_depend_on_frame_values,
         omitted_control_scrub_leaves_observable_modeled_state,
         independent_reference_detects_a_functional_mutant,
         inactive_alias_and_narrowing_mutants_are_rejected,
         independent_placement_checker_rejects_early_reuse,
+        ingress_source_bounds_refuse_even_when_values_would_match,
         negative_results_and_tradeoffs_remain_visible,
         malformed_bounds_refuse_without_silent_specialization,
     )]

@@ -74,11 +74,12 @@ theorem.
 
 The report exhausts its declared small alphabet at its declared small lengths and
 also executes deterministic generated full-size frames. Its input digest and
-execution count are computed. The tests additionally exercise partial chunks,
-mutate XOR into a copy, omit the control scrub, introduce an early retirement and
-an out-of-bounds view, and corrupt placement into overlap. A value test alone would miss the latter
-failures, so authority/index checks and the separate placement checker reject
-them independently.
+execution count are computed. The tests additionally compare partial chunks,
+unit tiles and clamped tiles at boundary frame lengths against the independent
+reference. They mutate XOR into a copy, omit the control scrub, introduce an early
+retirement and out-of-bounds resource and ingress source views, and corrupt
+placement into overlap. A value test alone would miss the latter failures, so
+authority/index checks and the separate placement checker reject them independently.
 
 ### Mechanized equivalence
 
@@ -166,6 +167,13 @@ planner assigns each identity its immutable offset with deterministic first fit;
 the independent placement checker then checks bounds, alignment and all
 simultaneous reservations. The program performs no runtime address search.
 
+The offline layout pass also validates every ingress source index against the
+configured input length. It refuses negative indices and the first index past
+the frame before backing is constructed, including on uniform frames where a
+wrong source could return the same value. This static validation adds no emitted
+instruction or executed bounds-check charge; modeled data accesses retain their
+existing bounds-check and descriptor charges.
+
 Each resource contains its useful byte extent, alignment/tail padding and a
 literal descriptor reserve. The descriptor model contains a capability-sized
 base/extent representation and scalar bookkeeping; its size is an experimental
@@ -213,6 +221,27 @@ events, never elapsed-time deadlines. Emitted instruction counts expose abstract
 unrolling growth while target code-size and instruction-selection costs stay
 explicitly unknown.
 
+## Finite prototype disposition
+
+The finite emitted-service comparison is complete at interpreter scope under the
+service and ownership contract above. Its evidence is replayable through the
+commands in [Replay and identity](#replay-and-identity):
+
+| Accepted finite claim | Evidence |
+| --- | --- |
+| Compare retention, phases, early release and bounded chunks on the same configured service. | `emit_program` supplies the fixed variants; `transformation_report` binds programs, input envelope and independent output comparisons. |
+| Preserve output and erase modeled backing, including partial tails and boundary extents. | The [focused tests](../../../tools/tests/test_static_memory_transform.py) compare those frames with `reference`; value-correct omitted-scrub and changed-output mutants fail separate oracles. |
+| Refuse invalid views, early retirement and simultaneous physical overlap. | The focused tests exercise resource and ingress bounds, inactive authority and the independent placement checker. |
+| Distinguish changed retention from changed placement with every reserved byte charged. | The report separates `charged_peak`, `reserved_span` and event categories; independent byte enumeration checks disjoint occupancy and ledger conservation, including descriptors, padding and staging. |
+
+This completes a nested prototype deliverable within the lifetime/representation
+research item. The full item still requires refinement of emitted instruction
+semantics to the functional proofs, target capability narrowing and alias/loan
+evidence, vectorization and actual DMA staging/completion. The bytes-versus-work
+item additionally retains target costs and admission under the original deadlines,
+memory classes, power constraints and image. No implementation milestone or
+requirement gains acceptance from this finite disposition.
+
 ## Findings and open disposition
 
 The report's `modeled_pareto_frontier` compares reserved span, arithmetic operations
@@ -237,5 +266,5 @@ Q8 still owes emitted target code, execution/bandwidth bounds and power evidence
 Q22 owns the target reuse join. A composition-level comparison additionally needs
 the real roster, memory classes, vectorization behavior, DMA completion, source
 and receiver charges, original deadlines and admitted image. The report leaves
-those quantities unknown and grants neither research checkbox completion nor
+those quantities unknown and grants neither full research-item completion nor
 implementation landing credit.
