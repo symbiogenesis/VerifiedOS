@@ -102,6 +102,12 @@ permitted and still charge their overhead. Activation `notifications` records
 observed hints for cadence independently of the per-request generated counts:
 R-12-096 permits spurious and coalesced notifications. This instrument implements
 no notification counter in the ring and proves no lost-wakeup property.
+Each activation's observed count covers the interval ending at that activation,
+starting at the prior activation or the window start. The rate denominator is the
+observed span from window start to the last activation, exposed as
+`observed_interval_ticks`. An observation only at the window's starting boundary
+has no elapsed span and reports a null rate. An unmeasured tail cannot reduce the
+reported observed cadence by entering its denominator.
 
 The report gives per-ring queue/batch maxima, per-operation accounting, activation
 costs and remaining budgets, observed notification totals and exact rates, and

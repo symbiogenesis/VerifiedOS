@@ -42,8 +42,8 @@ the call is a placeholder M1.2d replaces, and the run says so.
 **The third reading of the trace** is M1.7's own test that a capability went through
 memory rather than only through the register file: one aligned eight-byte `W` whose tag
 is set, read back by an `R` at the same address with the same value and tag before any
-overlapping write. It is reported beside the digest and gates nothing, because only a
-purecap backend can make it true.
+overlapping write. It is reported beside the digest; an authored assembly stream can
+satisfy this observation without establishing that a purecap backend emitted it.
 
 **The component level** holds one Gallina component's host run on the CertiCoq-to-Wasm
 oracle against its purecap run under one declared output encoding: the side's exit

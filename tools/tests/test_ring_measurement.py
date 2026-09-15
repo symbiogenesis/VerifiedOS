@@ -84,14 +84,24 @@ def _hand_accounting() -> None:
     ensure(ring.queue_high_water == 5, "producer-provided queue maximum")
     ensure(ring.observed_notifications == 4 and ring.generated_notifications == 2,
            "spurious and coalesced observed notifications differ from generated counts")
-    ensure((ring.observed_notifications_per_second.numerator,
-            ring.observed_notifications_per_second.denominator) == (7, 25),
-           "four observed hints times 7 ticks/second divided by 100 ticks")
+    rate = ring.observed_notifications_per_second
+    ensure(rate is not None, "observed interval has a measurable duration")
+    assert rate is not None
+    ensure((rate.numerator, rate.denominator) == (14, 15),
+           "four observed hints times 7 ticks/second divided by 30 observed ticks")
+    ensure(ring.observed_interval_ticks == 30, "unmeasured tail cannot dilute cadence")
     ensure(ring.activation_gaps_ticks == (20,) and ring.unmeasured_tail_ticks == 70,
            "finite observation gaps and unmeasured tail stay explicit")
     ensure(ring.activations[0].remaining_budget == ring.slot_budget - 19, "slot subtraction")
     ensure(result.milestone_acceptance == "open" and "host" in result.scope, "fixture cannot qualify target")
     ensure(result.capture_sha256 == _hash(_blob(capture)), "actual raw capture bytes")
+    only = _first(capture)
+    only["tick"] = capture["window"]["start_tick"]
+    capture["rings"][0]["activations"] = [only]
+    boundary = _run(capture, expected).rings[0]
+    ensure(boundary.observed_interval_ticks == 0
+           and boundary.observed_notifications_per_second is None,
+           "a boundary-only observation supplies no elapsed-time rate")
 
 
 def _declared_boundaries() -> None:

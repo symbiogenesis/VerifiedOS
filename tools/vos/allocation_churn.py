@@ -66,8 +66,11 @@ def _noninteger(_value: str) -> Never:
 
 
 def _load(raw: bytes) -> Json:
-    return cast(Json, json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs,
-                                parse_float=_noninteger, parse_constant=_noninteger))
+    try:
+        return cast(Json, json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs,
+                                    parse_float=_noninteger, parse_constant=_noninteger))
+    except RecursionError as err:
+        raise ValueError("JSON nesting exceeds the decoder limit") from err
 
 
 def _object(value: Json, keys: set[str], what: str) -> dict[str, Json]:

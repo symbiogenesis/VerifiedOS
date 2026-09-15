@@ -73,7 +73,8 @@ class RingSummary:
     request_count: int
     observed_notifications: int
     generated_notifications: int
-    observed_notifications_per_second: Rate
+    observed_interval_ticks: int
+    observed_notifications_per_second: Rate | None
     activation_gaps_ticks: tuple[int, ...]
     unmeasured_tail_ticks: int
     activations: tuple[Activation, ...]
@@ -218,16 +219,16 @@ def _ring(value: Json, worlds: dict[str, ring_owner.World], window: Window,
         if not window.start_tick <= activation.tick < window.end_tick or activation.tick <= previous:
             raise ValueError(f"{name}: activation ticks must strictly increase inside the window")
         previous = activation.tick
-    duration = window.end_tick - window.start_tick
+    duration = activations[-1].tick - window.start_tick
     notifications = sum(activation.notifications for activation in activations)
-    rate = Fraction(notifications * window.tick_hz, duration)
+    rate = Fraction(notifications * window.tick_hz, duration) if duration else None
     constants = world["ring"]
     return RingSummary(name, world_name, constants["capacity"], constants["max_batch_size"],
                        constants["slot_budget"], max(row.queue_high_water for row in activations),
                        max(row.batch_size for row in activations), max(row.cost for row in activations),
                        sum(row.batch_size for row in activations), notifications,
                        sum(row.generated_notifications for row in activations),
-                       Rate(rate.numerator, rate.denominator),
+                       duration, Rate(rate.numerator, rate.denominator) if rate is not None else None,
                        tuple(right.tick - left.tick for left, right in pairwise(activations)),
                        window.end_tick - activations[-1].tick, activations)
 

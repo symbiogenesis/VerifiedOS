@@ -192,7 +192,7 @@ def _malformed_records() -> None:
     _refused(json.dumps(capture).encode("utf-8"))
     raw = json.dumps(_capture()).encode("utf-8")
     _refused(raw.replace(b'"schema_version": 1', b'"schema_version": 1, "schema_version": 1'))
-    for raw in (b'{"number":NaN}', b'\xff', b'{'):
+    for raw in (b'{"number":NaN}', b'\xff', b'{', b'[' * 2000 + b'0' + b']' * 2000):
         _refused(raw)
 
 
