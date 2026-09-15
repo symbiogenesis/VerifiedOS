@@ -234,21 +234,39 @@ def _replayed_receipt_is_read_and_a_refusal_is_a_finding() -> None:
 
 def _malformed_replay_receipts_are_findings_even_after_exit_zero() -> None:
     schema = "static-memory-experiment-v1"
+    experiment: dict[str, object] = {"scope": "fixture", "errors": []}
+    receipt = {"schema": schema, "action": "structure", "experiment": experiment}
     malformed: list[object] = [[], {}, {"schema": "unknown"}, {"schema": schema}]
-    malformed += [{"schema": schema, "experiment": value}
-                  for value in (None, [], "", 0)]
-    malformed += [{"schema": schema, "experiment": {}}]
-    malformed += [{"schema": schema, "experiment": {"errors": value}}
+    malformed += [{key: value for key, value in receipt.items() if key != missing}
+                  for missing in ("action", "experiment")]
+    malformed += [{**receipt, "action": value}
+                  for value in (None, [], "", "reclaim", "corpus")]
+    malformed += [{**receipt, "experiment": value} for value in (None, [], "", 0)]
+    malformed += [{**receipt, "experiment": {key: value for key, value in experiment.items()
+                                            if key != missing}}
+                  for missing in ("scope", "errors")]
+    malformed += [{**receipt, "experiment": {**experiment, "scope": value}}
+                  for value in (None, 3, [], {}, "", " ", "\t\n")]
+    malformed += [{**receipt, "experiment": {**experiment, "errors": value}}
                   for value in (None, {}, "", 0, [None], [3], [[]])]
-    for receipt in malformed:
-        with patch.object(manifest, "_run", return_value=(0, receipt)):
+    for broken in malformed:
+        with patch.object(manifest, "_run", return_value=(0, broken)):
             entry = manifest.replay_action("structure")
         ensure(entry["exit_code"] == 0 and bool(entry["errors"]),
-               f"an exit-zero malformed receipt must still be a finding: {receipt}, {entry}")
+               f"an exit-zero malformed receipt must still be a finding: {broken}, {entry}")
         ensure(bool(manifest._replay_findings([entry])),
                f"a malformed row must reach the manifest findings: {entry}")
-    receipt = {"schema": schema, "experiment": {"scope": "fixture", "errors": ["bad replay"]}}
+    for action in ("corpus", "check", "compare"):
+        with patch.object(manifest, "_run", return_value=(0, {**receipt, "action": action})):
+            entry = manifest.replay_action(action)
+        ensure(bool(entry["errors"]) and bool(manifest._replay_findings([entry])),
+               f"a research action cannot return an experiment receipt: {entry}")
     with patch.object(manifest, "_run", return_value=(0, receipt)):
+        entry = manifest.replay_action("structure")
+    ensure(entry["scope"] == "fixture" and not entry["errors"],
+           f"a valid experiment receipt must remain accepted: {entry}")
+    failed = {**receipt, "experiment": {**experiment, "errors": ["bad replay"]}}
+    with patch.object(manifest, "_run", return_value=(0, failed)):
         entry = manifest.replay_action("structure")
     ensure(entry["errors"] == ["bad replay"],
            "a reported experiment error cannot be hidden behind exit zero")
