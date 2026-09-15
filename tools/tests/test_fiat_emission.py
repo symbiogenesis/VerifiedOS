@@ -7,7 +7,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 import fiat_crypto_emit as fiat
-
 from tests.harness import Case, ensure
 
 
@@ -62,5 +61,43 @@ def _sources() -> None:
         _refuses(lambda: fiat.source_receipt(receipt))
 
 
+def _host_record() -> None:
+    """Host identity checks remain useful without an installed Fiat executable."""
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        folder = root / fiat.DESTINATION
+        folder.mkdir(parents=True)
+        emitter = root / fiat.EMITTER
+        emitter.write_bytes(b"fixture emitter")
+        raw = b"/* emitted fixture body */\n"
+        for name in fiat.RECIPES:
+            (folder / name).write_bytes(fiat.wrap(name, raw))
+        record = {"schema": 1, "source_pin": fiat.PIN, "recipes": fiat.RECIPES,
+                  "owners": {fiat.EMITTER: fiat.digest(emitter.read_bytes())},
+                  "sources": [{"path": ".", "revision": fiat.PIN, "archive_sha256": "a" * 64}],
+                  "generator_sha256": "b" * 64, "build_command": ["fixture"],
+                  "outputs": {name: {"raw_sha256": fiat.digest(raw),
+                                     "header_sha256": fiat.digest(fiat.wrap(name, raw))}
+                              for name in fiat.RECIPES}}
+        manifest = root / fiat.MANIFEST
+        manifest.write_text(json.dumps(record), encoding="utf-8")
+        fiat.verify_record(root, fiat.PIN)
+        _refuses(lambda: fiat.verify_record(root, None))
+        _refuses(lambda: fiat.verify_record(root, "0" * 40))
+        emitter.write_bytes(b"changed emitter")
+        _refuses(lambda: fiat.verify_record(root, fiat.PIN))
+        emitter.write_bytes(b"fixture emitter")
+        for field, bad in (("sources", []), ("owners", {}), ("outputs", {}),
+                           ("recipes", {}), ("generator_sha256", ""),
+                           ("build_command", [])):
+            manifest.write_text(json.dumps({**record, field: bad}), encoding="utf-8")
+            _refuses(lambda: fiat.verify_record(root, fiat.PIN))
+        manifest.write_text(json.dumps(record), encoding="utf-8")
+        first = folder / next(iter(fiat.RECIPES))
+        first.write_bytes(first.read_bytes().replace(b"fixture body", b"altered body"))
+        _refuses(lambda: fiat.verify_record(root, fiat.PIN))
+
+
 def cases() -> list[Case]:
-    return [Case("header-and-receipt-drift", _headers), Case("source-pin-and-archive", _sources)]
+    return [Case("header-and-receipt-drift", _headers), Case("source-pin-and-archive", _sources),
+            Case("host-provenance-and-owner-drift", _host_record)]

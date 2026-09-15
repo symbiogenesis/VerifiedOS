@@ -58,6 +58,9 @@
       "archive_sha256": "a2f0e06ddcd00af9eead6bfe413a4d51439f47f23792f1221221991cbf6c2d5e"
     }
   ],
+  "owners": {
+    "tools/fiat_crypto_emit.py": "d79e55e609641691a4800a4cea68c031a91e34b2eacc787d2fb5e9a4d0faedd9"
+  },
   "recipes": {
     "25519_32.h": [
       "unsaturated-solinas",

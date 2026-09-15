@@ -22,6 +22,9 @@ RECIPES = {
                   "2^256 - 2^224 + 2^192 + 2^96 - 1", "--static"],
 }
 DESTINATION = "tools/generated/fiat-crypto"
+EMITTER = "tools/fiat_crypto_emit.py"
+MANIFEST = DESTINATION + "/manifest.json"
+ARTIFACTS = (MANIFEST, *(DESTINATION + "/" + name for name in RECIPES))
 
 
 def digest(data: bytes) -> str:
@@ -75,10 +78,54 @@ def verify_outputs(folder: Path, recorded: dict[str, Any], generated: dict[str, 
             or set(recorded.get("outputs", {})) != set(RECIPES) or set(generated) != set(RECIPES):
         raise ValueError("manifest schema, source, recipes or output set differs")
     for name, raw in generated.items():
+        if not raw:
+            raise ValueError("empty generated body: " + name)
         wrapped = wrap(name, raw)
         expected = {"raw_sha256": digest(raw), "header_sha256": digest(wrapped)}
         if recorded["outputs"][name] != expected or (folder / name).read_bytes() != wrapped:
             raise ValueError("generated header or receipt differs: " + name)
+
+
+def verify_record(root: Path, source_pin: str | None) -> None:
+    """Check host-readable provenance; only the native replay reruns Fiat itself."""
+    recorded = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+    if not isinstance(recorded, dict) or source_pin != PIN:
+        raise ValueError("Fiat manifest or indexed source pin differs")
+    owners = {EMITTER: digest((root / EMITTER).read_bytes())}
+    if recorded.get("owners") != owners:
+        raise ValueError("Fiat emission wrapper/recipe owner changed; regenerate and review")
+    sources = recorded.get("sources")
+    if not isinstance(sources, list) or not sources:
+        raise ValueError("Fiat source archive record is empty or malformed")
+    names: set[str] = set()
+    for source in sources:
+        if not isinstance(source, dict) or set(source) != {"path", "revision", "archive_sha256"}:
+            raise ValueError("Fiat source archive row is malformed")
+        name = source["path"]
+        if not isinstance(name, str) or not name or name in names:
+            raise ValueError("Fiat source archive names are invalid or repeated")
+        names.add(name)
+        for key, length in (("revision", 40), ("archive_sha256", 64)):
+            value = source[key]
+            if not isinstance(value, str) or len(value) != length or any(c not in "0123456789abcdef" for c in value):
+                raise ValueError("Fiat source archive identity is invalid")
+    if sources[0]["path"] != "." or sources[0]["revision"] != source_pin:
+        raise ValueError("Fiat source archive root differs from its indexed pin")
+    binary_hash = recorded.get("generator_sha256")
+    if not isinstance(binary_hash, str) or len(binary_hash) != 64 or any(c not in "0123456789abcdef" for c in binary_hash):
+        raise ValueError("Fiat generator identity is missing or invalid")
+    command = recorded.get("build_command")
+    if not isinstance(command, list) or not command or not all(isinstance(x, str) and x for x in command):
+        raise ValueError("Fiat build command is missing or malformed")
+    generated = {}
+    for name in RECIPES:
+        header = (root / DESTINATION / name).read_bytes()
+        # The sentinel is supplied only to recover this wrapper's two pieces.
+        prefix, suffix = wrap(name, b"\x00").split(b"\x00")
+        if not header.startswith(prefix) or not header.endswith(suffix):
+            raise ValueError("Fiat inclusion wrapper differs: " + name)
+        generated[name] = header[len(prefix):-len(suffix)]
+    verify_outputs(root / DESTINATION, recorded, generated)
 
 
 def main() -> int:
@@ -127,6 +174,7 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
         if build.get("exit") != 0 or not build.get("command"):
             raise ValueError("build receipt is not a successful invocation")
         recorded = {"schema": 1, "source_pin": PIN, "sources": sources,
+                    "owners": {EMITTER: digest((folder.parents[2] / EMITTER).read_bytes())},
                     "recipes": RECIPES, "generator_sha256": binary_hash,
                     "build_command": build["command"],
                     "outputs": {name: {"raw_sha256": digest(raw),
@@ -139,6 +187,7 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
     elif args.source_receipt is not None and recorded.get("sources") != source_receipt(args.source_receipt):
         raise ValueError("source archive identities differ from the reviewed emission")
     verify_outputs(folder, recorded, generated)
+    verify_record(folder.parents[2], PIN)
 
 
 if __name__ == "__main__":

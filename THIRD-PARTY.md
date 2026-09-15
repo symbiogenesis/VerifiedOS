@@ -112,7 +112,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/cerisier` | `logsem/cerisier` | `57ed584a` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Extension of that contract to local attestation. | pinned to read later |
 | `upstream/sail-cheri-riscv-verif` | `CTSRD-CHERI/sail-cheri-riscv-verif` | `4da8fd10` | `BSD-2-Clause` | Source of [the transcribed property suite](model/model/unit_tests/cap_properties.sail), checked by `run.py model smt` at the frozen widths. No tool opens this pin; Isla is not installed. | read |
 | `upstream/TestRIG` | `CTSRD-CHERI/TestRIG` | `70717956` | `BSD-2-Clause` | `LICENSE` reviewed at the pin. Its `RVFI-DII.md` informs [the local protocol codec](tools/vos/rvfi.py). The upstream engine is TestRIG's own submodule; no build here uses this pin. | read |
-| `upstream/fiat-crypto` | `mit-plv/fiat-crypto` | `e6946985` | `MIT OR Apache-2.0 OR BSD-1-Clause`; this project elects `Apache-2.0` under `COPYRIGHT` | Required classical field-arithmetic generator. No recorded generation run or tracked emission satisfies the mandate yet. | pinned to read later |
+| `upstream/fiat-crypto` | `mit-plv/fiat-crypto` | `e6946985` | `MIT OR Apache-2.0 OR BSD-1-Clause`; this project elects `Apache-2.0` under `COPYRIGHT` | Classical field-arithmetic generator. The recorded derivation at this pin emits the tracked 32-bit 25519 and P256 inclusion headers; the generator and its dependencies remain external build inputs. | generated field headers incorporated |
 | `upstream/hacl-star` | `hacl-star/hacl-star` | `504c2987` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage. No differential run, build, copying, or extraction occurs here. | pinned to read later |
 | `upstream/libjade` | `formosa-crypto/libjade` | `755c7eaa` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. | pinned to read later |
 
@@ -186,6 +186,8 @@ The dependency review on 2026-09-06 records:
 - **etc/coq-scripts:** MIT, copyright 2014 Jason Gross. It compiles nothing; `etc/ensure_stack_limit.sh` runs during extraction linking.
 
 The record treats generated C as output of the generator, without applying coqprime's license solely because the generator uses that library. Whether coqprime code survives extraction into the standalone OCaml binary remains unresolved. Review extraction before distributing such a binary; it is currently built outside the checkout and is neither tracked nor distributed here.
+
+The generation build reviewed on 2026-09-14 uses the current parent `e6946985c9165b3270eae457c0fae887cd7b7b76` and the manifest's exact nested revisions: Rewriter `dc00bbafd4ac906fe3badcfd4b8284923ce1a699`, Coqprime `3371791217c6f8dff53972a53f0c3e860d4b54dc`, Coqutil `4876e4162ed1b8d204f7a5ac8109f3ed1ee4a22d`, and their recorded build-script revisions. The selected revisions' own COPYRIGHT/LICENSE/AUTHORS files were read. Fiat and Rewriter offer MIT / Apache-2.0 / BSD-1-Clause, with Apache-2.0 elected; Coqprime's LICENSE is LGPL-2.1; Coqutil and the script inputs' LICENSE files are MIT. The containing Rupicola and Bedrock2 revisions' own LICENSE files are MIT. The target builds 23 Coqprime, 147 Rewriter and 132 Coqutil proof objects and no Rupicola/Bedrock2 objects outside Coqutil. Kami and riscv-coq are recorded archived gitlinks but contribute no proof object under `SKIP_BEDROCK2=1`. These source libraries, proof objects and the standalone generator are external build inputs, neither tracked nor redistributed. The two generated C inclusion headers retain Fiat's authorship notices, all raw generator notices and an explicit Apache-2.0 provenance wrapper. The existing extraction-review prerequisite still applies if generator distribution changes.
 
 ### Development tools, contained by use
 
@@ -320,14 +322,14 @@ The cryptography milestone distinguishes generated arithmetic, authored specific
 
 | Component | Standing taken | What it is |
 | --- | --- | --- |
-| Fiat-Crypto | [Pinned as a submodule](#pinned-as-submodules). Historical generator-build review at `5691ca0d`; no tracked emission or recorded generation run yet satisfies the mandate. | Required classical field arithmetic, admitted by a recorded derivation. |
+| Fiat-Crypto | [Pinned as a submodule](#pinned-as-submodules). Recorded generation at `e6946985` emits `tools/generated/fiat-crypto/25519_32.h` and `p256_32.h`; the [emission record](docs/implementation/fiat-crypto-emission.md) and manifest bind source and output. Historical build measurements describe a different revision. | Required classical field arithmetic, admitted by a recorded derivation. |
 | VST's `sha/` and `hmacdrbg/` | Reviewed, not acquired. The directories use BSD-2-Clause through `LICENSE` and `LICENSE-OPAM`; the project authors its own specifications. | SHA-256 and HMAC-DRBG-SHA-256 specifications, refinement proofs, and an FCF security proof. |
 | FIPS 202 and NIST ACVP known-answer vectors | Reviewed at publication sources. No ACVP fetch declaration or corpus is tracked; existing vector literals are documented below. | Validation inputs for authored primitives. |
 | Behavioral oracles | HACL* at `504c2987` and libjade at `755c7eaa`, [pinned as submodules](#pinned-as-submodules). No copying, extraction, or differential run here. | Comparators from independent verification lineages. |
 
 #### Fiat-Crypto
 
-The register requires each field-arithmetic implementation to trace to a Fiat-Crypto derivation. A generation record must identify the pinned input and emitted artifact; a pin or unexplained output alone does not satisfy that requirement. The generator has been built, but no qualifying generation run or tracked emission exists.
+The register requires each field-arithmetic implementation to trace to a Fiat-Crypto derivation. The recorded run at `e6946985c9165b3270eae457c0fae887cd7b7b76` produces the two static 32-bit inclusion headers in `tools/generated/fiat-crypto/`. Its [emission contract and record](docs/implementation/fiat-crypto-emission.md) state the field scope, exact commands, wrapper, replay checks and remaining target obligations. The adjacent manifest records raw and wrapped hashes, the generator identity and every archived gitlink revision. This incorporates the emitted field routines only, without incorporating a complete curve protocol, generator binary or proof library.
 
 `COPYRIGHT` offers `MIT OR Apache-2.0 OR BSD-1-Clause`, with full texts in `LICENSE-MIT`, `LICENSE-APACHE`, and `LICENSE-BSD-1`; there is no root `LICENSE`. This project elects Apache-2.0, including its express patent grant. The other upstream options remain available for a later use. [The generator-build record](#the-fiat-crypto-generators-own-build) covers its dependencies separately.
 

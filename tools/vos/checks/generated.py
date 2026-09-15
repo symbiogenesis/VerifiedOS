@@ -45,6 +45,16 @@ What is left is exactly one question: *would Sail, run now, write these bytes?* 
 rather than at every landing. It is named in the `ok` line, so a green K-88 says which
 half it decided and never claims the other.
 
+The Fiat rows use a separate host-readable receipt. They require the indexed Fiat
+gitlink, an exact nonempty output/recipe set, the current emission driver's SHA-256,
+unique immutable source-archive identities, a generator identity and build command,
+and raw/wrapped hashes for both nonempty inclusion headers. The wrapper is recomputed
+from the current driver. Missing or malformed records are findings, including an
+empty owner or source list. Fiat rows are report-only: no repair invents an emission
+receipt or restores old generated code over a changed recipe. Native replay runs
+each recipe twice using the identified external binary. The host gate verifies
+record consistency, not that a binary was built from its claimed source archives.
+
 **Why not simply make the checker run the bundle's generator.** Two reasons, and both
 are disqualifying on their own. The host has no Sail, so a rule that ran that generator
 would be red on the machine this repository is edited from, which is a rule that gets
@@ -83,6 +93,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
+import fiat_crypto_emit as fiat
 from vos import corpus as corpus_mod
 from vos import dialectgen, memplan, sailbundle, socmap
 
@@ -106,6 +117,36 @@ class Emitter(Protocol):
     """
 
     def __call__(self, root: Path, bundle: sailbundle.Bundle | None) -> str: ...
+
+
+class GuestInspector(Protocol):
+    """The host-readable identity checks of a generator that runs in the guest."""
+
+    def __call__(self, ctx: Context, row: Row) -> Reading: ...
+
+
+def _fiat_row(ctx: Context, row: Row) -> Reading:
+    """Bind all Fiat receipt members and this artifact to their reviewed bytes.
+
+    Missing, malformed or incomplete owner records refuse here. The native command
+    reruns the recorded binary; the host checks its recipe/wrapper, indexed source
+    pin and recorded raw/wrapped hashes. It cannot attest how a binary was built.
+    No repair restores old code over a changed recipe or invents a new run receipt.
+    """
+    out = Reading(findings=[], fixed=[])
+    missing = sorted({*fiat.ARTIFACTS, fiat.EMITTER} - ctx.corpus.indexed)
+    if missing:
+        out.findings.append("Fiat emission members are not indexed: " + ", ".join(missing))
+        return out
+    try:
+        fiat.verify_record(ctx.root, ctx.corpus.gitlinks.get("upstream/fiat-crypto"))
+        staged = corpus_mod.staged_bytes(ctx.root, row.path)
+        if staged is None or (ctx.root / row.path).read_bytes() != staged:
+            out.findings.append(f"{row.path} differs from its indexed emission; "
+                                f"run and review `{row.checker}` before staging")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        out.findings.append(f"{row.path} has invalid Fiat emission provenance: {exc}")
+    return out
 
 
 def _dialect_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
@@ -148,6 +189,7 @@ class Row:
     owners: str
     checker: str
     emit: Emitter | None = None
+    inspect: GuestInspector | None = None
 
 
 # The generated artifacts, one row each. Adding one is a row here and nothing else: the
@@ -190,6 +232,12 @@ GENERATED: tuple[Row, ...] = (
         owners="the memory plan's proof file",
         checker="this gate",
         emit=_memplan_emit),
+    *(Row(path=path,
+          generator="tools/fiat_crypto_emit.py --emit",
+          lane="guest",
+          owners="the Fiat gitlink, recorded generator and recipe/wrapper source",
+          checker="tools/fiat_crypto_emit.py --check --generator <recorded> --work-dir <native-lane>",
+          inspect=_fiat_row) for path in fiat.ARTIFACTS),
 )
 
 
@@ -420,8 +468,12 @@ def run(ctx: Context) -> None:
         # The order of the table is load-bearing here and nowhere else: a host row's
         # generator reads what an earlier row settled on, so the bundle the run has
         # repaired is the one this decides against rather than a second copy off disk.
-        reading = _host_row(ctx, row, settled) if row.lane == "host" \
-            else _row(ctx, row)
+        if row.lane == "host":
+            reading = _host_row(ctx, row, settled)
+        elif row.inspect is not None:
+            reading = row.inspect(ctx, row)
+        else:
+            reading = _row(ctx, row)
         findings += reading.findings
         fixed += reading.fixed
         owners += reading.owners
@@ -437,9 +489,9 @@ def run(ctx: Context) -> None:
         findings,
         f"all {len(GENERATED)} generated artifact(s) are carried by the git index, "
         f"{hosted} of them held against what their generator writes here and now, and "
-        f"the rest against the bytes the index holds and {owners} owner(s) this checkout "
-        f"still hashes to; the Sail emitter itself is not on this lane, so `{guest}` is "
-        f"what holds those against it")
+        f"the rest against their indexed bytes and host-readable provenance, including "
+        f"{owners} Sail owner(s) and the Fiat source pin/recipe/wrapper/hashes; "
+        f"guest regeneration remains `{guest}`")
     for line in fixed:
         rep.line(line)
     rep.line()

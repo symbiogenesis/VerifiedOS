@@ -1606,6 +1606,17 @@ CASES: list[Case] = [
     ("K-88", "a third host row's generated artifact declaring a fetch constant its "
              "proof file does not",
      _literal(MEMORY_PLAN, '"second_fetch": 15', '"second_fetch": 16')),
+    ("K-88", "a Fiat inclusion header changed after the recorded emission",
+     _literal("tools/generated/fiat-crypto/25519_32.h",
+              "static void fiat_25519_carry_mul", "static void fiat_25519_carry_mul_changed")),
+    ("K-88", "the second Fiat field header changed after emission",
+     _literal("tools/generated/fiat-crypto/p256_32.h",
+              "static void fiat_p256_mul(", "static void fiat_p256_mul_changed(")),
+    ("K-88", "the Fiat receipt no longer enumerates its source archives",
+     _literal("tools/generated/fiat-crypto/manifest.json", '"sources": [', '"lost_sources": [')),
+    ("K-88", "the Fiat wrapper changed without regenerating its emission",
+     _literal("tools/fiat_crypto_emit.py", "Inclusion wrapper added by VerifiedOS",
+              "Inclusion wrapper revised by VerifiedOS")),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written
