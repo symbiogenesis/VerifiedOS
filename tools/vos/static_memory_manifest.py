@@ -505,11 +505,16 @@ def replay_action(action: str) -> ReplayEntry:
         return entry
     entry["schema"] = str(receipt.get("schema", "n/a"))
     if entry["schema"] == "static-memory-experiment-v1":
+        if action not in registration()["per_action"] or receipt.get("action") != action:
+            entry["errors"].append("the experiment receipt must name the replayed experiment action")
         experiment = receipt.get("experiment")
         if not isinstance(experiment, dict):
             entry["errors"].append("the experiment receipt requires an experiment object")
         else:
-            entry["scope"] = str(experiment.get("scope") or "n/a")
+            scope = experiment.get("scope")
+            entry["scope"] = str(scope or "n/a")
+            if not isinstance(scope, str) or not scope.strip():
+                entry["errors"].append("the experiment receipt requires a nonempty scope string")
             reported = experiment.get("errors")
             if not isinstance(reported, list) or any(not isinstance(error, str)
                                                      for error in reported):
