@@ -71,6 +71,11 @@ are rejected. Placement files contain an array of `{id, pool, offset}` objects.
 The result's `placement` array is the ordinary return value; preserve the complete
 result separately when replaying its evidence with `verify`.
 
+The command refuses explicitly supplied input files and controls that its selected
+action cannot use, including a budget set to its usual default. For example,
+`check --certify` is refused rather than returning feasibility evidence for a
+requested optimality check. Refusal happens before input files are opened.
+
 The [core](../../tools/vos/memory_planner.py) models fixed-size objects, explicit
 active intervals and conflicts, alignment, permitted pools, reserved ranges,
 fixed locations and declared views. Instances and results preserve object
