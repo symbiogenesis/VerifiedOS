@@ -49,6 +49,10 @@ digest between runs.
 
 Replay receipt checks cover the two shapes the command emits. Experiment actions use
 `static-memory-experiment-v1` and report action errors in `experiment.errors`.
+An experiment receipt must name the replayed experiment action and carry a nonempty
+string in `experiment.scope`. Missing or mismatched action identity, a research action
+using the experiment envelope, and absent, blank or non-string scope are findings even
+when the action exits successfully. Valid experiment receipts remain accepted.
 The `corpus`, `check` and `compare` actions use `static-memory-research-v1` and decide
 their result through the exit code. Their receipts must name the replayed research
 action and carry a nonempty scope string, a settings object and a nonempty list of case

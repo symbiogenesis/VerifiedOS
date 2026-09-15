@@ -191,6 +191,13 @@ witness and explicitly grants no runtime permission. Such a result cannot
 authorize online placement or allow a new tenant to outlive the next declared
 occupant. Sample requests are diagnostics and do not change the trace's demand.
 
+An alignment-stranding witness isolates the slot-base restriction: sufficient idle
+declared backing and aligned free geometry can coexist with a `slot-alignment`
+refusal when no size-eligible slot has the requested base alignment. Relaxing only
+the request alignment must make that same slot fit. Its ledger must conserve arena
+capacity at every event, and its finite trace supplies no CHERI representability
+claim or unavoidable offline-placement gap.
+
 The `split-free-extents` witness scales down the research agenda's separated-extents
 example. Idle declared slots flank a live middle object, so their total free bytes
 exceed the largest contiguous free extent. A slot-sized request fits at that instant;

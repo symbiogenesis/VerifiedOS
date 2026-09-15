@@ -39,6 +39,11 @@ contract's other fields; omitting `--candidate` checks the standing bases.
 The input hash covers the same bytes that are parsed. Source hashes identify the
 working-tree implementation beside its Git revision and dirty-state flag.
 
+An explicit `--max-nodes` is supported only by `compare` and `scale`. Other actions
+must reject it as a usage error before running an experiment or reading input files;
+they must not report a search budget they never use. Both supported actions retain
+positive-budget validation and their existing defaults when the option is omitted.
+
 The contract contains an explicit mode, owner-bound arenas and object lifetimes.
 It models one finite schedule per case. Independently solving two modes does not
 produce one fixed layout valid for both: a global-mode interference relation or
