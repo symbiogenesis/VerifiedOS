@@ -199,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.max_nodes is not None and args.max_nodes < 1:
         parser().error("--max-nodes must be positive")
+    if args.max_nodes is not None and args.action not in ("compare", "scale"):
+        parser().error("--max-nodes is supported by compare and scale")
     if args.sizes is not None and (args.action != "scale" or any(n < 1 for n in args.sizes)):
         parser().error("--sizes requires scale and positive object counts")
     if args.q5_max_leaves is not None and (args.action != "scale" or args.q5_max_leaves < 1):
@@ -212,8 +214,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.action in EXPERIMENT_SOURCES:
         if args.case or args.contract or args.candidate:
             parser().error("this experiment uses declared fixtures; case/contract/candidate are unsupported")
-        if args.max_nodes is not None and args.action != "scale":
-            parser().error("--max-nodes is supported by compare and scale")
     root = Path(__file__).resolve().parents[3]
     try:
         if args.action in EXPERIMENT_SOURCES:
