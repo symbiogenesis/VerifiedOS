@@ -239,6 +239,54 @@ def _harness_assembles_a_dialect_stream() -> None:
         ensure(not (scratch / "d.elf").exists(), "no image is written for a refused stream")
 
 
+def _capability_roundtrip_tracks_the_stored_value() -> None:
+    def access(kind: str, address: int = 0x80008010, width: int = 8,
+               tag: int = 1, value: int = 0x8000C000) -> str:
+        return f"{kind} {address:09X} {width} {tag} {value:0{width * 2}X}"
+
+    written, read = access("W"), access("R")
+    other = 0x8000D000
+    cases: list[tuple[str, list[str], bool]] = [
+        ("tagged capability", [written, read], True),
+        ("no write", [read], False),
+        ("read precedes write", [read, written], False),
+        ("untagged write", [access("W", tag=0), read], False),
+        ("untagged read", [written, access("R", tag=0)], False),
+        ("different payload", [written, access("R", value=other)], False),
+        ("different address", [written, access("R", address=0x80008018)], False),
+        ("different width", [written, access("R", width=4)], False),
+        ("short tagged pair", [access("W", width=4), access("R", width=4)], False),
+        ("wide tagged pair", [access("W", width=16), access("R", width=16)], False),
+        ("unaligned pair", [access("W", address=0x80008011),
+                            access("R", address=0x80008011)], False),
+        ("same-slot overwrite", [written, access("W", tag=0), read], False),
+        ("last-byte overwrite", [written, access("W", address=0x80008017,
+                                                width=1, tag=0, value=0), read], False),
+        ("overlap from below", [written, access("W", address=0x8000800C,
+                                                tag=0, value=0), read], False),
+        ("block overwrite", [written, access("W", address=0x80008000,
+                                            width=64, tag=0, value=0), read], False),
+        ("tagged replacement differs", [written, access("W", value=other), read], False),
+        ("read latest replacement", [written, access("W", value=other),
+                                     access("R", value=other)], True),
+        ("write before slot", [written, access("W", address=0x80008008, tag=0), read], True),
+        ("write after slot", [written, access("W", address=0x80008018, tag=0), read], True),
+        ("ordinary read preserves slot", [written, access("R", width=4, tag=0), read], True),
+        ("fresh write restores candidate", [written, access("W", tag=0), written, read], True),
+        ("second slot survives", [written, access("W", address=0x80008018),
+                                  access("W", tag=0),
+                                  access("R", address=0x80008018)], True),
+        ("register writes alone", ["X 8 1 000000008000C000", read], False),
+        ("truncated payload", [written[:-1], read[:-1]], False),
+        ("truncated intervening write", [written, access("W", tag=0)[:-1], read], False),
+        ("malformed intervening write", [written, "W malformed", read], False),
+        ("zero-width intervening write", [written, "W 080008010 0 0 0", read], False),
+    ]
+    failures = [name for name, records, expected in cases
+                if cd.cap_roundtrip(records) != expected]
+    ensure(not failures, f"capability round-trip evidence disagrees: {failures}")
+
+
 def _loop_over_fake_ccomp_dialect() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         scratch = Path(td)
@@ -581,6 +629,8 @@ def cases() -> list[Case]:
         Case("generator-is-deterministic", _generator_is_deterministic),
         Case("scan-names-what-the-dialect-refuses", _scan_names_what_the_dialect_refuses),
         Case("harness-assembles-a-dialect-stream", _harness_assembles_a_dialect_stream),
+        Case("capability-roundtrip-tracks-the-stored-value",
+             _capability_roundtrip_tracks_the_stored_value),
         Case("loop-over-fake-ccomp-dialect", _loop_over_fake_ccomp_dialect),
         Case("loop-over-fake-ccomp-lp64d", _loop_over_fake_ccomp_lp64d),
         Case("recorded-run-disagreements", _recorded_run_disagreements),
