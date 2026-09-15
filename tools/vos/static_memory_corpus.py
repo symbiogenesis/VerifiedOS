@@ -353,6 +353,21 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
              "the live larger slot holds a two-byte prefix; its remaining byte is slack",
              "unit alignment; all slots are consecutive, so alignment hides no free bytes",
              "capacity equals the declared slots, with no layout gaps or unreserved tail")),
+        Spec("alignment-stranding", "idle-misaligned-slot", [
+            _arena("arena", "owner", 6)], [
+            _object("slot", "arena", 2, 4, 4, 0, 2, 2, 2, 2, 2),
+        ], [_request(2, "owner", "arena", 4, 4),
+            _request(2, "owner", "arena", 4, 2)],
+         "One sufficient-size declared slot is idle, and aligned free geometry is "
+         "sufficient, but its fixed base fails the request alignment. Relaxing only "
+         "that request alignment makes the same slot fit.",
+         covers=("adversarial-sizes",),
+         costs=_costs(
+             "payload equals the slot; all release and reuse boundaries coincide",
+             "the two-byte-aligned slot base fails a four-byte-aligned request; "
+             "this standing base is not an offline pinning constraint",
+             "capacity ends at the slot end; a two-byte layout gap precedes the slot "
+             "and no other slot or unreserved tail can supply a fit")),
     ]
     digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     result: list[dict[str, Any]] = []

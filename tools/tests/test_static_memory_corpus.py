@@ -247,6 +247,41 @@ def fixed_size_classes_strand_contiguous_same_owner_backing() -> None:
            "a class-stranding diagnostic granted runtime permission")
 
 
+def alignment_stranding_changes_only_the_request_alignment() -> None:
+    case = _case("alignment-stranding")
+    strict, relaxed = case["requests"]
+    ensure(relaxed == {**strict, "alignment": 2} and strict["alignment"] == 4,
+           "the fitting control changed more than the requested alignment")
+    ensure(len(case["arenas"]) == len(case["objects"]) == 1,
+           "alignment stranding acquired another arena or a competing slot")
+    arena, slot = case["arenas"][0], case["objects"][0]
+    ensure(arena["owner"] == strict["owner"] and arena["id"] == strict["arena"]
+           and slot["size"] >= strict["size"]
+           and slot["payload_end"] == slot["authority_end"] == slot["sweep_end"]
+           == slot["reuse"] <= strict["time"],
+           "ownership, size or incomplete reuse can explain the refusal")
+    row = c.ledger(case, strict["time"], strict["alignment"])["rows"][0]
+    expected = dict.fromkeys(c.CHARGES, 0)
+    expected.update(idle_reserved=4, layout_gaps=2)
+    ensure(row["charges"] == expected and sum(expected.values()) == row["capacity"]
+           and row["occupancy"] == row["unreusable_retired_bytes"] == 0,
+           "the idle slot lost conservation or acquired an occupied or retired charge")
+    ensure(row["free_physical_bytes"] == row["largest_free_aligned_extent"] == 6
+           and row["largest_idle_declared_slot_extent"] == 0,
+           "sufficient aligned free geometry became a compatible declared slot")
+    blocked = c.diagnose_request(case, **strict)
+    fits = c.diagnose_request(case, **relaxed)
+    ensure(blocked["verdict"] == "refused" and blocked["reason"] == "slot-alignment",
+           "the fixed slot base did not refuse the incompatible alignment")
+    ensure(fits["verdict"] == "fits-at-instant" and fits["slot_witnesses"] == [(2, 4)]
+           and fits["largest_idle_declared_slot_extent"] == slot["size"],
+           "relaxing request alignment did not fit the same idle declared slot")
+    ensure(c.ledger(case, relaxed["time"], relaxed["alignment"])["rows"][0]["charges"]
+           == row["charges"], "a query alignment changed physical byte charges")
+    ensure(not blocked["runtime_permission"] and not fits["runtime_permission"],
+           "an alignment diagnostic granted runtime permission")
+
+
 def malformed_lifetimes_and_overlap_fail_before_accounting() -> None:
     for mutation in ("overlap", "early-reuse", "boolean-time"):
         case = copy.deepcopy(_case("bounded-parser"))
@@ -448,6 +483,7 @@ def cases() -> list[Case]:
         aligned_geometric_extent_does_not_merge_across_live_bytes,
         split_free_extents_preserve_contiguity_and_declared_slot_limits,
         fixed_size_classes_strand_contiguous_same_owner_backing,
+        alignment_stranding_changes_only_the_request_alignment,
         malformed_lifetimes_and_overlap_fail_before_accounting,
         q5_bridge_preserves_absence_instead_of_inventing_owners,
     )]
