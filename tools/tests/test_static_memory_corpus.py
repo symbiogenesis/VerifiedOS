@@ -219,6 +219,34 @@ def split_free_extents_preserve_contiguity_and_declared_slot_limits() -> None:
            "a diagnostic request granted runtime permission")
 
 
+def fixed_size_classes_strand_contiguous_same_owner_backing() -> None:
+    case = _case("fixed-size-class-stranding")
+    row = c.ledger(case, 2)["rows"][0]
+    expected = dict.fromkeys(c.CHARGES, 0)
+    expected.update(useful_payload=2, slot_slack=1, idle_reserved=4)
+    ensure(row["owner"] == "service" and len(case["arenas"]) == 1,
+           "class stranding became a cross-owner or cross-arena refusal")
+    ensure(row["charges"] == expected and sum(expected.values()) == row["capacity"],
+           "idle backing, live payload and live slack lost their disjoint charges")
+    ensure(row["free_extents"] == [{"base": 0, "end": 4}]
+           and row["free_physical_bytes"] == row["largest_free_aligned_extent"] == 4
+           and row["largest_idle_declared_slot_extent"] == 2,
+           "class stranding was replaced by separated free extents or a larger slot")
+    blocked = c.diagnose_request(case, **case["requests"][0])
+    ensure(blocked["verdict"] == "refused" and blocked["reason"] == "slot-occupied"
+           and blocked["unreusable_retired_bytes"] == 0,
+           "idle small slots satisfied a larger request while its class was occupied")
+    small = c.diagnose_request(case, **case["requests"][1])
+    ensure(small["verdict"] == "fits-at-instant"
+           and small["slot_witnesses"] == [(0, 2), (2, 2)],
+           "idle small-class backing did not remain available to its own size")
+    large = c.diagnose_request(case, **case["requests"][2])
+    ensure(large["verdict"] == "fits-at-instant" and large["slot_witnesses"] == [(4, 3)],
+           "the larger request did not fit its declared slot at the reuse boundary")
+    ensure(not any(answer["runtime_permission"] for answer in (blocked, small, large)),
+           "a class-stranding diagnostic granted runtime permission")
+
+
 def malformed_lifetimes_and_overlap_fail_before_accounting() -> None:
     for mutation in ("overlap", "early-reuse", "boolean-time"):
         case = copy.deepcopy(_case("bounded-parser"))
@@ -419,6 +447,7 @@ def cases() -> list[Case]:
         typed_refusals_preserve_owner_and_declared_slot_limits,
         aligned_geometric_extent_does_not_merge_across_live_bytes,
         split_free_extents_preserve_contiguity_and_declared_slot_limits,
+        fixed_size_classes_strand_contiguous_same_owner_backing,
         malformed_lifetimes_and_overlap_fail_before_accounting,
         q5_bridge_preserves_absence_instead_of_inventing_owners,
     )]

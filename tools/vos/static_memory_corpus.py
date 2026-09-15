@@ -337,6 +337,22 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
              "constraint on offline search",
              "capacity equals the three consecutive slots; the model bytes scale down "
              "the research agenda's separated-extents example")),
+        Spec("fixed-size-class-stranding", "large-class-full", [
+            _arena("pool", "service", 7)], [
+            _object("small-a", "pool", 0, 2, 2, 0, 2, 2, 2, 2),
+            _object("small-b", "pool", 2, 2, 2, 0, 2, 2, 2, 2),
+            _object("large", "pool", 4, 3, 2, 0, 4, 4, 4, 4),
+        ], [_request(2, "service", "pool", 3),
+            _request(2, "service", "pool", 2),
+            _request(4, "service", "pool", 3)],
+         "One owner's two adjacent small slots are idle while its only larger slot "
+         "is live. Their contiguous free backing exceeds the larger request, but "
+         "no declared slot of that size is idle until the larger occupant ends.",
+         covers=("adversarial-sizes",),
+         costs=_costs(
+             "the live larger slot holds a two-byte prefix; its remaining byte is slack",
+             "unit alignment; all slots are consecutive, so alignment hides no free bytes",
+             "capacity equals the declared slots, with no layout gaps or unreserved tail")),
     ]
     digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     result: list[dict[str, Any]] = []

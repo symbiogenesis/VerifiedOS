@@ -200,6 +200,16 @@ base belongs to this standing layout; the fixture adds no pinning constraint to 
 offline placement model and establishes no unavoidable optimum gap. Replay it with
 `python tools/run.py static-memory corpus --case split-free-extents --json`.
 
+The `fixed-size-class-stranding` witness isolates a different limit within one
+owner's arena. Two adjacent small slots are idle while the only larger slot is live.
+Their contiguous free backing exceeds a larger request, but `slot-occupied` refuses
+it because only the occupied slot has the declared size. A small request fits either
+idle slot; the larger request fits at its own slot's reuse boundary. The ledger keeps
+idle backing, useful payload and the live slot's slack disjoint, with no layout gaps,
+unreserved tail, alignment loss or delayed reuse. This is a fixed-slot snapshot,
+not an unavoidable offline-placement gap or a measured size-class policy. Replay it
+with `python tools/run.py static-memory corpus --case fixed-size-class-stranding --json`.
+
 ## Q5 bridge and validation
 
 `q5_bridge(root, source_revision)` calls the existing
