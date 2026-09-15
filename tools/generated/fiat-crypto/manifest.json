@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "source_pin": "e6946985c9165b3270eae457c0fae887cd7b7b76",
+  "sources": [
+    {
+      "path": ".",
+      "revision": "e6946985c9165b3270eae457c0fae887cd7b7b76",
+      "archive_sha256": "bc627b64b5189a2b2b44e59a83809e9d1fda0fc469cc2483a997f24ce9cd93b1"
+    },
+    {
+      "path": "coqprime",
+      "revision": "3371791217c6f8dff53972a53f0c3e860d4b54dc",
+      "archive_sha256": "2ec1bd5f3a0b5646a417479d537e0305c162796f9e92b038fcf4881b0ee36747"
+    },
+    {
+      "path": "etc/coq-scripts",
+      "revision": "458047730c42be8b6818c5776003ddc5707ae032",
+      "archive_sha256": "1d0c37ecdf0743d2b452e3295ae4a675ac698d6e433d5e63e5162ce2d4977512"
+    },
+    {
+      "path": "rewriter",
+      "revision": "dc00bbafd4ac906fe3badcfd4b8284923ce1a699",
+      "archive_sha256": "08c01f5994ba2af33cde4023bd77afc8f08fd7c93a850207e4650b4e60d87295"
+    },
+    {
+      "path": "rewriter/etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "archive_sha256": "bc91290061f508d4c3f3235ff3f4be0f5c929ec2823e151aa9fd974402426741"
+    },
+    {
+      "path": "rupicola",
+      "revision": "5d37f8567667a3c699d2730574c35dfbe772dd67",
+      "archive_sha256": "5d7a6d65d6e629a751d287a3e5ba63f450d63cbac244b6826f732c5d655351c6"
+    },
+    {
+      "path": "rupicola/bedrock2",
+      "revision": "06655844959f089c90d91d41041dd475cb2489f9",
+      "archive_sha256": "9a86f97a99b16042fef8061dec9795f83939cbd44d0744d57470dbbe12d07855"
+    },
+    {
+      "path": "rupicola/bedrock2/deps/coqutil",
+      "revision": "4876e4162ed1b8d204f7a5ac8109f3ed1ee4a22d",
+      "archive_sha256": "b55ca9c64a3d4259ef73577977cf1ee121d815581a9510076943db089861209a"
+    },
+    {
+      "path": "rupicola/bedrock2/deps/coqutil/etc/coq-scripts",
+      "revision": "458047730c42be8b6818c5776003ddc5707ae032",
+      "archive_sha256": "1d0c37ecdf0743d2b452e3295ae4a675ac698d6e433d5e63e5162ce2d4977512"
+    },
+    {
+      "path": "rupicola/bedrock2/deps/kami",
+      "revision": "3f9c603aaff3ea35ca6deb880a49ac2a9e62738b",
+      "archive_sha256": "e3321eef98fc034c5b118b11ecb7e501e50d01116f91e04d14bd4196c4bc6a12"
+    },
+    {
+      "path": "rupicola/bedrock2/deps/riscv-coq",
+      "revision": "fa95ba9007846d0af8294fe2e277c81e829b5fbb",
+      "archive_sha256": "a2f0e06ddcd00af9eead6bfe413a4d51439f47f23792f1221221991cbf6c2d5e"
+    }
+  ],
+  "recipes": {
+    "25519_32.h": [
+      "unsaturated-solinas",
+      "25519",
+      "32",
+      "10",
+      "2^255 - 19",
+      "carry_mul",
+      "carry_square",
+      "carry_scmul121666",
+      "carry",
+      "add",
+      "sub",
+      "opp",
+      "selectznz",
+      "to_bytes",
+      "from_bytes",
+      "--static"
+    ],
+    "p256_32.h": [
+      "word-by-word-montgomery",
+      "p256",
+      "32",
+      "2^256 - 2^224 + 2^192 + 2^96 - 1",
+      "--static"
+    ]
+  },
+  "generator_sha256": "0c165961c4fb496a843b5dfd411e9356c835897e0944aff48891ebacb1f8ee3a",
+  "build_command": [
+    "opam",
+    "exec",
+    "--switch=verifiedos-rocq-9.2.0-ocaml-5.4.1",
+    "--",
+    "make",
+    "-j2",
+    "SKIP_BEDROCK2=1",
+    "COQC=/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/bin/rocq c",
+    "standalone-unified-ocaml"
+  ],
+  "outputs": {
+    "25519_32.h": {
+      "raw_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "header_sha256": "65d3a1a45457f912872c3977d7ee0e53363050a62f14a1b4c425fffc7c50b6c6"
+    },
+    "p256_32.h": {
+      "raw_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "header_sha256": "f332877f11b8569e950616bccb75aaa5dd2fc81e8e976669196f0e3ba5116ab8"
+    }
+  }
+}
