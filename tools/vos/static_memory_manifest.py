@@ -75,7 +75,7 @@ REPLAY_SETTINGS: dict[str, tuple[str, ...]] = {
 # links another. Reachability is decided on this and not on a bare mention, so a
 # document named inside a fenced block or in a sentence carrying no link stays a
 # finding until somebody gives a reader a way to arrive at it.
-LINK_RE = re.compile(r"\(([^()\s#]+\.md)(?:#[^()\s]*)?\)")
+LINK_RE = re.compile(r"(?<![!\\])\[[^\]\n]*\]\(([^()\s#]+\.md)(?:#[^()\s]*)?\)")
 
 
 class Kind(TypedDict):
@@ -318,9 +318,11 @@ def resolved(root: Path, source: str, target: str) -> str:
 
 
 def links(root: Path, source: str, text: str) -> set[str]:
-    """Every document one document links to, excluding a link back to itself."""
+    """Every unfenced document link, excluding a link back to itself."""
+    document = corpus.from_text(text, source)
     return {resolved(root, source, found.group(1))
-            for found in LINK_RE.finditer(text)} - {source}
+            for found in LINK_RE.finditer(text)
+            if not document.is_fenced(found.start())} - {source}
 
 
 def _index_findings(items: Inventory) -> list[str]:

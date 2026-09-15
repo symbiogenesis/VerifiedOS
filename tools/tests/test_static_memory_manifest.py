@@ -124,6 +124,17 @@ def _a_mention_is_not_a_link_and_the_index_is_not_a_witness() -> None:
                f"a basename inside a fenced block is a mention and not a link: {errors}")
         ensure(_named(errors, "tools/vos/static_memory_orphan.py", "registered action"),
                f"the index naming a module is not a witness of its reachability: {errors}")
+        original = (root / experiments).read_text(encoding="utf-8")
+        for displayed in ("The orphan is named here (orphan.md).\n",
+                          "```markdown\n[Orphan](orphan.md#results)\n```\n",
+                          "~~~markdown\n[Orphan](orphan.md)\n~~~\n",
+                          "![Orphan](orphan.md)\n"):
+            _place(root, experiments, original + "\n" + displayed)
+            errors = manifest.report(root)["errors"]
+            ensure(_named(errors, "docs/implementation/static-memory/orphan.md",
+                          "links to this document"),
+                   f"displayed or parenthesized text cannot supply a link: {displayed}, {errors}")
+        _place(root, experiments, original)
         _append(root, experiments, "\n[Orphan](orphan.md#results) says so.\n")
         _append(root, "docs/implementation/static-memory/transformations.md",
                 "\nstatic_memory_orphan.py carries the orphan experiment.\n")
