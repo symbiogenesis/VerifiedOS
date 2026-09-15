@@ -320,6 +320,23 @@ def corpus(source_revision: str) -> list[dict[str, Any]]:
              "payload is at or just below each stage's extent, so slack does not make the gap",
              "four-byte stage bases; this premise, not the crossing, is what the optimum pays",
              "capacity admits the optimal span; a smaller arena would refuse the family")),
+        Spec("split-free-extents", "middle-live", [_arena("arena", "owner", 6)], [
+            _object("left", "arena", 0, 2, 2, 0, 2, 2, 2, 2),
+            _object("middle", "arena", 2, 2, 2, 0, 4, 4, 4, 4),
+            _object("right", "arena", 4, 2, 2, 0, 2, 2, 2, 2),
+        ], [_request(2, "owner", "arena", 4),
+            _request(2, "owner", "arena", 2),
+            _request(4, "owner", "arena", 4)],
+         "Two idle slots flank one live middle object in the standing layout; their "
+         "combined free bytes cannot satisfy one contiguous request. Once the middle "
+         "ends, coalesced free geometry still supplies no larger declared slot.",
+         covers=("adversarial-sizes",),
+         costs=_costs(
+             "payload equals every slot; no padding or delayed reuse masks the geometry",
+             "unit alignment; the middle base is fixed for this snapshot, not a pinning "
+             "constraint on offline search",
+             "capacity equals the three consecutive slots; the model bytes scale down "
+             "the research agenda's separated-extents example")),
     ]
     digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     result: list[dict[str, Any]] = []

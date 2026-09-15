@@ -191,6 +191,15 @@ witness and explicitly grants no runtime permission. Such a result cannot
 authorize online placement or allow a new tenant to outlive the next declared
 occupant. Sample requests are diagnostics and do not change the trace's demand.
 
+The `split-free-extents` witness scales down the research agenda's separated-extents
+example. Idle declared slots flank a live middle object, so their total free bytes
+exceed the largest contiguous free extent. A slot-sized request fits at that instant;
+a larger request is refused. At the middle object's reuse boundary the free geometry
+coalesces, but the same larger request still exceeds every declared slot. The middle
+base belongs to this standing layout; the fixture adds no pinning constraint to the
+offline placement model and establishes no unavoidable optimum gap. Replay it with
+`python tools/run.py static-memory corpus --case split-free-extents --json`.
+
 ## Q5 bridge and validation
 
 `q5_bridge(root, source_revision)` calls the existing
