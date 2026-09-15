@@ -189,6 +189,36 @@ def aligned_geometric_extent_does_not_merge_across_live_bytes() -> None:
            "interior gaps and tail merged")
 
 
+def split_free_extents_preserve_contiguity_and_declared_slot_limits() -> None:
+    case = _case("split-free-extents")
+    blocked = c.diagnose_request(case, **case["requests"][0])
+    row = c.ledger(case, 2)["rows"][0]
+    ensure(row["free_extents"] == [{"base": 0, "end": 2}, {"base": 4, "end": 6}],
+           "free extents crossed the live middle object")
+    ensure(row["free_physical_bytes"] == 4 and row["largest_free_aligned_extent"] == 2,
+           "separated free bytes became one contiguous extent")
+    ensure(row["charges"]["idle_reserved"] == 4 and row["charges"]["useful_payload"] == 2,
+           "the separated slots lost their disjoint physical charges")
+    ensure(blocked["verdict"] == "refused" and blocked["reason"] == "slot-size",
+           "a larger request combined separated declared slots")
+    fits = c.diagnose_request(case, **case["requests"][1])
+    ensure(fits["verdict"] == "fits-at-instant"
+           and fits["slot_witnesses"] == [(0, 2), (4, 2)],
+           "a slot-sized request lost either idle slot witness")
+
+    # Ending the middle object changes geometry alone; it creates no larger slot.
+    row = c.ledger(case, 4)["rows"][0]
+    ensure(row["free_extents"] == [{"base": 0, "end": 6}]
+           and row["largest_free_aligned_extent"] == 6
+           and row["largest_idle_declared_slot_extent"] == 2,
+           "coalesced free geometry changed the declared slot size")
+    coalesced = c.diagnose_request(case, **case["requests"][2])
+    ensure(coalesced["verdict"] == "refused" and coalesced["reason"] == "slot-size",
+           "free geometry was turned into a larger runtime slot")
+    ensure(not any(answer["runtime_permission"] for answer in (blocked, fits, coalesced)),
+           "a diagnostic request granted runtime permission")
+
+
 def malformed_lifetimes_and_overlap_fail_before_accounting() -> None:
     for mutation in ("overlap", "early-reuse", "boolean-time"):
         case = copy.deepcopy(_case("bounded-parser"))
@@ -388,6 +418,7 @@ def cases() -> list[Case]:
         crossing_optimum_exceeds_load_only_under_the_declared_alignment,
         typed_refusals_preserve_owner_and_declared_slot_limits,
         aligned_geometric_extent_does_not_merge_across_live_bytes,
+        split_free_extents_preserve_contiguity_and_declared_slot_limits,
         malformed_lifetimes_and_overlap_fail_before_accounting,
         q5_bridge_preserves_absence_instead_of_inventing_owners,
     )]
