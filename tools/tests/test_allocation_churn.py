@@ -371,6 +371,48 @@ def _cli_escaped_diagnostics() -> None:
                            f"{defect}: JSON retains a structured verdict")
 
 
+def _cli_legacy_encoding() -> None:
+    # Redirected Windows output may use a legacy code page rather than UTF-8.
+    # A valid Unicode identifier must not turn findings or refusals into crashes.
+    with TemporaryDirectory(prefix="vos-churn-codepage-") as directory:
+        root = Path(directory).resolve()
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        domain = "kernel-\u96ea"
+        for defect, expected_code in (("none", 0), ("budget-excess", 1), ("duplicate-domain", 2)):
+            capture = _capture()
+            capture["domains"][0]["id"] = domain
+            for row in [*capture["teardowns"], *capture["sweep_quanta"]]:
+                row["domain"] = domain
+            if defect == "budget-excess":
+                capture["domains"][0]["background_ticks_per_period"] = 3
+            elif defect == "duplicate-domain":
+                capture["domains"].append(capture["domains"][0])
+            raw = json.dumps(capture).encode("utf-8")
+            capture_path.write_bytes(raw)
+            expected_path.write_text(json.dumps(asdict(_expected(raw))), encoding="utf-8", newline="")
+            for flags in ([], ["--json"]):
+                buffer = BytesIO()
+                with TextIOWrapper(buffer, encoding="cp1252", errors="strict") as output:
+                    with redirect_stdout(output):
+                        actual = cli.main([str(capture_path), "--expected-identity",
+                                           str(expected_path), *flags])
+                    output.flush()
+                    rendered = buffer.getvalue().decode("cp1252")
+                ensure(actual == expected_code and "\\u96ea" in rendered,
+                       f"{defect}: legacy output escapes identifiers and preserves the verdict")
+                if flags:
+                    report = json.loads(rendered)
+                    ensure(report["milestone_acceptance"] == "open",
+                           "encoding cannot close target acceptance")
+                    if defect == "duplicate-domain":
+                        ensure(domain in report["error"], "JSON preserves the refused identifier")
+                    else:
+                        ensure(report["domains"][0]["id"] == domain
+                               and report["totals"]["teardowns_per_second"]
+                               == {"numerator": 10, "denominator": 1},
+                               "JSON preserves Unicode identifiers and exact measurements")
+
+
 def cases() -> list[Case]:
     return [Case("hand-counted-boundaries", _hand_counted_boundaries),
             Case("zero-and-exact-rates", _zero_activity_and_fractional_rates),
@@ -382,4 +424,5 @@ def cases() -> list[Case]:
             Case("malformed-records", _malformed_records),
             Case("identity-and-raw-bytes", _independent_identity_and_raw_bytes),
             Case("cli-verdicts", _cli_verdicts),
-            Case("cli-escaped-diagnostics", _cli_escaped_diagnostics)]
+            Case("cli-escaped-diagnostics", _cli_escaped_diagnostics),
+            Case("cli-legacy-encoding", _cli_legacy_encoding)]
