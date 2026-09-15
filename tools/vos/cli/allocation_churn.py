@@ -36,7 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     else:
         reason = (report["error"] if "error" in report else
                   "within declared limits" if code == 0 else report["findings"])
-        print(f"{'ok' if code == 0 else 'FAIL'} allocation-churn: {reason}")
+        # Keep free-form diagnostics as printable as the JSON fields below,
+        # including when Windows redirects stdout through a legacy code page.
+        reason_text = str(reason).encode("ascii", errors="backslashreplace").decode("ascii")
+        print(f"{'ok' if code == 0 else 'FAIL'} allocation-churn: {reason_text}")
         if "totals" in report:
             print(f"  measurements: {json.dumps(report['totals'], sort_keys=True)}")
             print(f"  domains: {json.dumps(report['domains'], sort_keys=True)}")
