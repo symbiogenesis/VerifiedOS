@@ -47,6 +47,13 @@ classification rows, any replay verdicts and the findings. A digest binds the re
 one replay produced, and an action that records host elapsed time does not repeat that
 digest between runs.
 
+Replay receipt checks cover the two shapes the command emits. Experiment actions use
+`static-memory-experiment-v1` and report action errors in `experiment.errors`.
+The `corpus`, `check` and `compare` actions use `static-memory-research-v1` and decide
+their result through the exit code. Their per-case diagnostics can include deliberate
+request refusals or incomplete searches, so those fields are not action errors.
+These checks establish receipt readability; they do not validate every nested result.
+
 ## What the completeness check decides
 
 The command exits nonzero on any finding, and each finding names a path and the rule it
@@ -61,7 +68,7 @@ violates:
 | A test module has no module of its own topic | A test naming a subject the artifact does not ship is evidence about nothing |
 | A proof under `proofs/StaticMemory*.v` has no row in [the proof ledger](../../tools/generated/proof-ledger.md) | The ledger is the join of the register with what the shipped proofs cite; a proof no row reaches cites no live requirement, or the ledger is owed its regeneration by `run.py check --fix` |
 | A static-memory document has no classification row or more than one, a row names a document the artifact does not carry, or a row names a class outside the declared vocabulary | The table below is a completeness statement and not a derived count, so both directions of the join are held. Exactly one row and not at least one, because two rows for one document can claim class sets that contradict each other |
-| A replayed action refused, or reported its own errors | An action that no longer runs is a part of the artifact that no longer replays |
+| A replayed action refused, reported its own errors, or returned an unreadable receipt | The replay requires a recognized receipt schema. An experiment receipt must carry an object body and an explicit list of string errors; malformed or missing fields cannot count as a clean replay |
 
 The link graph has one root, and it is this document. This document is the subject of no
 reachability rule, and it is the witness for none either: it is written beside the rules
