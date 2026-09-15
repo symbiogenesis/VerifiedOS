@@ -25,6 +25,9 @@ def last_number(log: str, pattern: str) -> float:
 def outputs() -> dict[Path, str]:
     packet_path = ROOT / "ternary-observations.json"
     packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    loader_logs = packet.get("loader_logs")
+    if not isinstance(loader_logs, dict) or set(loader_logs) != {"f16", "q8_0"}:
+        raise ValueError("loader observations must contain exactly f16 and q8_0")
     download = packet["download"]
     listed = packet["publisher_listing"]
     if not (download["verified"] and download["bytes"] == listed["size"]
@@ -40,7 +43,8 @@ def outputs() -> dict[Path, str]:
     density = static["total_bytes"] * 8 / static["n_params_from_ne"]
     base_density = base["total_bytes"] * 8 / base["n_params_from_ne"]
     rows = []
-    for cache, log in packet["loader_logs"].items():
+    for cache in ("f16", "q8_0"):
+        log = loader_logs[cache]
         ctx = int(last_number(log, r"n_ctx\s+= (\d+)"))
         if ctx != terms["context_tokens"]:
             raise ValueError("loader context differs from the comparison context")
