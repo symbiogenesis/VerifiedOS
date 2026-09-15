@@ -1,6 +1,6 @@
 # Compiler, extraction, checker and ownership proof precedents
 
-This inventory records upstream proof artifacts examined between 2026-09-10 and 2026-09-13. A mature result can be a strong reference while failing this project's admission conditions. The entries distinguish a theorem in its original semantics, a reusable proof component, and a promising project whose required theorem is absent. No entry discharges a VerifiedOS requirement merely by association.
+This inventory records upstream proof artifacts examined between 2026-09-10 and 2026-09-13, with the bounded CIC literature follow-up dated separately below. A mature result can be a strong reference while failing this project's admission conditions. The entries distinguish a theorem in its original semantics, a reusable proof component, and a promising project whose required theorem is absent. No entry discharges a VerifiedOS requirement merely by association.
 
 The integration baseline is the [implementation checklist](../../implementation/implementation-checklist.md): M1.1/M1.1a/M1.1b and M1.2a are completed compiler investigations, M1.6 is the completed lowering investigation, M6.1a supplies the supervision-tree reference, and M6.2a supplies the admission-path statement artifact. The corresponding target refinements and hardening proofs remain separate work. [AdmissionPath.v](../../../proofs/AdmissionPath.v) expressly distinguishes its closed statement artifacts from an implemented, verified checker; [VerifiedExit.v](../../../tools/bedrock2-lowering/VerifiedExit.v) expressly distinguishes its RV32I measurement from the descriptor derivation over 64-bit words. Those distinctions apply to completed work throughout this inventory.
 
@@ -89,6 +89,50 @@ Source inspection, upstream publications and license inspection support the asse
 **Artifact.** At the same revision, [ErasureCorrectness.v](https://github.com/MetaRocq/metarocq/blob/c8cd46054518193103c3bb33aa6e15c7f489e72c/erasure/theories/ErasureCorrectness.v) proves `erases_correct`: given a well-formed environment, a closed well-typed term, erasure and dependency relations, and an evaluation, the erased term evaluates to a related erased value. The file also supplies `erases_global_wf_glob`.
 
 **Use and limits.** Strong proof component for M1.6's extraction alternatives and the R-05-164 proof-artifact boundary. The authorship, publication, prover range and MIT terms are those of the preceding entry. This result concerns erasure of types and proofs from a program representation. It is unrelated to secret zeroization: it proves none of R-05-126d's must-erase obligations. It also supplies no arena-allocation theorem, bounded-memory proof, Rust frontend correctness or CHERI backend correctness. Treat a proposed MetaRocq-to-Rust route as a new composition of verified and unverified boundaries, not as a corollary of `erases_correct`.
+
+### Bounded CIC starting points
+
+**Reading dated 2026-09-14.** These references inform M6.2b-0's [staged foundation work](../cic-checker-qualification.md#bounded-foundation-execution-route). They supply published methods and artifact leads, not a qualified replacement for the selected MetaRocq tuple. No source is incorporated, no native replay is claimed, and no estimate or acceptance obligation is removed. Source reuse requires an immutable edition, its own license reading, a compatible dependency closure and the instantiated assumption audit. Publication terms do not establish source-code terms.
+
+#### Conversion certification without normalization
+
+**Authority and artifact.** Meven Lennon-Bertrand, *What Does It Take to Certify a Conversion Checker?*, FSCD 2025, DOI [10.4230/LIPIcs.FSCD.2025.27](https://drops.dagstuhl.de/storage/00lipics/lipics-vol337-fscd2025/html/LIPIcs.FSCD.2025.27/LIPIcs.FSCD.2025.27.html). The paper links the [`fscd25` formalization](https://github.com/CoqHott/logrel-coq/tree/fscd25) and [versioned artifact](https://zenodo.org/records/15359259), published 2025-05-07, version v1.
+
+**Use and limits.** Separates positive soundness, negative soundness and termination of conversion checking. In its MLTT setting, type-constructor injectivity suffices for positive soundness; normalization is needed for termination of the unbounded procedure. This is the principal method reference for M6.2b-0's bounded partial route. A PCUIC application still needs its own proved structural properties, guard semantics, universe and environment treatment. The paper's parameterized metatheory cannot become undeclared local axioms.
+
+**License and disposition.** The paper states CC BY 4.0. The archived source's own license and complete dependency terms are unread; the branch is a locator, not the frozen local input. Reference for the proof decomposition; unqualified source lead pending that reading and native qualification.
+
+#### Martin-Löf à la Coq and executable partial checking
+
+**Authority and artifact.** Arthur Adjedj, Meven Lennon-Bertrand, Kenji Maillard, Pierre-Marie Pédrot and Loïc Pujet, *Martin-Löf à la Coq*, CPP 2024, DOI 10.1145/3636501.3636951; [paper](https://arxiv.org/abs/2310.06376) and [`logrel-coq` development](https://github.com/CoqHott/logrel-coq).
+
+**Use and limits.** A mechanized MLTT with dependent functions and pairs, natural numbers, identity types and one universe. Its fuelled checker is executable using soundness independently of the separate total decision-procedure proof. This supplies M6.2b-0 a worked implementation pattern. The smaller calculus does not establish containment of the CIC corpus, and the related FSCD result uses the same development rather than supplying an independent second foundation.
+
+**License and disposition.** The current repository advertises MIT and Coq 8.20 compatibility; its own selected-edition license and dependency closure remain unread and unbuilt here. Method reference and unqualified source lead. A current branch is not evidence about the CPP artifact's exact edition or compatibility with the local Rocq tuple.
+
+#### PartialFun infrastructure
+
+**Authority and artifact.** Théo Winterhalter's [PartialFun library](https://github.com/TheoWinterhalter/rocq-partialfun) and [*Composable partial functions in Coq* presentation](https://theowinterhalter.github.io/res/slides/partial-fun-types23.pdf). The repository identifies `theories/PartialFun.v` as the library and `Examples.v` as examples.
+
+**Use and limits.** Supports dependent partial functions and proofs about terminating outputs. Evaluate its open-recursion and induction infrastructure for the Gallina reference checker before writing equivalent machinery. Its execution and extraction support supplies no PCUIC soundness, cumulative step bound, bounded arena or CompCert-C theorem. In particular, a recursion-depth fuel argument alone does not bound total work across recursive branches.
+
+**License and disposition.** The repository advertises MIT; the actual license text at an immutable selected revision is unread. Its README describes an early-stage library targeting Rocq 9.0 and matching Equations, not a local 9.2 compatibility result. Unqualified source lead for M6.2b-0; evaluate or reimplement the method only through the foundation's qualification step.
+
+#### Rocq guard specification and reimplementation
+
+**Authority and artifact.** Yee-Jian Tan and Yannick Forster, [*Towards Formalising the Guard Checker of Rocq*](https://msp.cis.strath.ac.uk/types2025/abstracts/TYPES2025_paper15.pdf), TYPES 2025 extended abstract; the earlier [Coq Workshop 2024 abstract](https://www.yeejian.dev/files/240914-coqws-extended-abstract.pdf) points to [`inria-cambium/m1-tan` at `v1.0.0`](https://github.com/inria-cambium/m1-tan/tree/v1.0.0). Thomas Lamiaux, Yann Leray, Yee-Jian Tan, Yannick Forster, Matthieu Sozeau and Nicolas Tabareau, [*40 years of Guard Conditions*](https://coq-workshop.gitlab.io/2026/files/EA5.pdf), Rocqshop 2026 extended abstract, 2026-07-25.
+
+**Use and limits.** The 2026 work supplies a specification and proof-of-concept MetaRocq reimplementation, decomposing the guard into an eliminator-oriented core, restricted beta-iota cuts, reduction that checks erasable subterms, and extended subterm analysis through fixpoints and matches. Use that decomposition to select only the features M6.2b-0's real corpus needs and to choose regression cases. The abstracts do not establish the seven local preservation laws or an axiom-free instantiated checker. The earlier repository is not asserted to be the 2026 implementation.
+
+**License and disposition.** Source terms at the earlier tag are unread, and the exact code edition implementing the 2026 specification is unqualified. Specification reference and source-discovery lead; no upstream guard is admitted by this entry.
+
+#### Coq in Coq as a smaller-theory reference
+
+**Authority and artifact.** Bruno Barras and Benjamin Werner, [*Coq in Coq*](https://www.lix.polytechnique.fr/~barras/publi/coqincoq.pdf), with the author's [formalization and extracted checker](https://pauillac.inria.fr/~barras/typechecker/index-eng.html).
+
+**Use and limits.** Proves strong normalization and decidable type inference for the Calculus of Constructions and extracts a certified checker. The absence of CIC inductives limits direct use for M6.2b-0. Retain it as a secondary metatheory reference if the exported corpus justifies a smaller profile; do not assume a universe cap alone makes this result apply, or erase necessary recursion to fit it.
+
+**License and disposition.** Historical source terms are unread and the linked development targets Coq 6.1. Reference only; no modern build or local corpus translation is claimed.
 
 ### CertiRocq: verified Gallina compiler components
 

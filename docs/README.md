@@ -121,6 +121,8 @@ Every row cites its governing requirement, and each view is defective, never aut
 Proof tooling has a [qualification contract](assurance/proof-qualification-contract.md)
 and an [executed comparison](assurance/proof-tooling-qualification.md).
 The [CIC checker qualification](assurance/cic-checker-qualification.md) records its
-missing premises and bounded refinement endpoint. The
+missing premises, [staged bounded foundation route](assurance/cic-checker-qualification.md#bounded-foundation-execution-route)
+and bounded refinement endpoint, with [literature starting points](assurance/proof-reuse/languages.md#bounded-cic-starting-points)
+for conversion soundness, partial checking and guarded recursion. The
 [Fiat emission record](implementation/fiat-crypto-emission.md) binds the incorporated
 field headers to their actual generator run and replay checks.
