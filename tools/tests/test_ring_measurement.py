@@ -85,8 +85,8 @@ def _hand_accounting() -> None:
     ensure(ring.observed_notifications == 4 and ring.generated_notifications == 2,
            "spurious and coalesced observed notifications differ from generated counts")
     rate = ring.observed_notifications_per_second
-    ensure(rate is not None, "observed interval has a measurable duration")
-    assert rate is not None
+    if rate is None:
+        raise AssertionError("observed interval has a measurable duration")
     ensure((rate.numerator, rate.denominator) == (14, 15),
            "four observed hints times 7 ticks/second divided by 30 observed ticks")
     ensure(ring.observed_interval_ticks == 30, "unmeasured tail cannot dilute cadence")
