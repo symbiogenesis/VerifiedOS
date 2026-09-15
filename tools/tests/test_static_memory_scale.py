@@ -312,11 +312,18 @@ def _q5_keeps_original_predicates_and_grid_limits() -> None:
 
 def _receipts_bind_results_separately_from_host_time() -> None:
     first = scale.report(ROOT, "test", (8,), 10000, 1)
-    second = scale.report(ROOT, "test", (8,), 10000, 1)
+    with patch.object(scale.platform, "machine", return_value="other-host-architecture"):
+        second = scale.report(ROOT, "test", (8,), 10000, 1)
     ensure(first["reproducible"] == second["reproducible"]
            and first["result_sha256"] == second["result_sha256"],
            "settings, inputs and algorithmic results must replay byte-for-byte")
     ensure(not first["host_measurements"]["reproducible"], "wall time is a host measurement")
+    environment = first["host_measurements"]["environment"]
+    ensure(all(environment[key] for key in ("system", "release", "machine",
+                                           "python_implementation", "python_version")),
+           "host timing must identify its operating system, architecture and Python runtime")
+    ensure(second["host_measurements"]["environment"]["machine"] == "other-host-architecture",
+           "host identity must be recorded separately from the reproducible result")
     ensure(scale.GENERATOR in first["reproducible"]["sources_sha256"],
            "receipts bind working-tree generator bytes")
     ensure("tools/vos/static_memory_bounds.py" in first["reproducible"]["sources_sha256"],

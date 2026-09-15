@@ -8,6 +8,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import memplan
@@ -79,6 +80,40 @@ def deterministic_identity_and_explicit_assumptions() -> None:
         "frame-pipeline", "resident-inference", "crossing-lifetimes",
         "adversarial-alignment", "burst-teardown", "delayed-device-completion"},
         "research scenario coverage missing")
+
+
+def diagnostics_preserve_source_scope_and_service_contract_labels() -> None:
+    witnesses = {case["name"]: case for case in c.corpus("test-revision")}
+    probes = (
+        ("bounded-sessions", 2, "owner-a", "absent", 4, 1, "unknown-arena"),
+        ("bounded-sessions", 2, "owner-a", "b-pool", 4, 1, "foreign-owner"),
+        ("bounded-sessions", 2, "owner-a", "a-pool", 4, 1, "slot-occupied"),
+        ("adversarial-alignment", 5, "owner", "arena", 8, 1, "slot-size"),
+        ("adversarial-alignment", 5, "owner", "arena", 5, 16, "slot-alignment"),
+        ("burst-teardown", 3, "service", "pool", 4, 1, "reuse-pending"),
+        ("burst-teardown", 5, "service", "pool", 4, 1, None),
+    )
+    # Metadata labels are documentary premises, not facts established by a fit.
+    # Check every early return and keep alternative service promises distinguishable.
+    fields = ("provenance", "source_revision", "source_hashes", "manifest", "covers",
+              "demand_envelope", "cost_assumptions", "telemetry_label",
+              "service_contract", "reuse_semantics")
+    for comparison in ("no service change", "alternative service promise"):
+        for name, time, owner, arena, size, alignment, reason in probes:
+            case = copy.deepcopy(witnesses[name])
+            case["telemetry_label"] = "test-only opaque telemetry label"
+            case["service_contract"]["comparison"] = comparison
+            diagnostic = c.diagnose_request(case, time, owner, arena, size, alignment)
+            ensure(diagnostic["reason"] == reason,
+                   "the metadata test did not exercise its intended refusal or fit")
+            ensure(diagnostic["verdict"] == ("refused" if reason else "fits-at-instant")
+                   and not diagnostic["runtime_permission"],
+                   "a documentary contract label changed a diagnostic's authority")
+            for report in (diagnostic, c.ledger(case, time, alignment)):
+                ensure(all(report.get(field) == case[field] for field in fields),
+                       f"{name}/{reason}: source identity or service scope was lost")
+                ensure(not report["service_contract"]["product_admission_evidence"],
+                       "a preserved service label became product evidence")
 
 
 def byte_enumeration_independently_checks_every_snapshot() -> None:
@@ -342,6 +377,36 @@ def malformed_lifetimes_and_overlap_fail_before_accounting() -> None:
             raise AssertionError(f"accounted a malformed {mutation} case")
 
 
+def standalone_contract_identity_binds_dirty_model_source() -> None:
+    source_name = "tools/vos/static_memory.py"
+    source_path = Path(sm.__file__)
+    original_read = Path.read_bytes
+    original_bytes = original_read(source_path)
+    dirty_bytes = original_bytes + b"\n# Source-identity test input.\n"
+    clean = c.corpus("same-revision")
+
+    def read_dirty(path: Path) -> bytes:
+        return dirty_bytes if path == source_path else original_read(path)
+
+    # Change only the bytes presented to hashing, without changing executable code.
+    with patch.object(Path, "read_bytes", read_dirty):
+        dirty = c.corpus("same-revision")
+    for before, after in zip(clean, dirty, strict=True):
+        ensure(before["source_hashes"][source_name] == hashlib.sha256(original_bytes).hexdigest(),
+               "standalone contract omitted the model reader's actual source")
+        ensure(after["source_hashes"][source_name] == hashlib.sha256(dirty_bytes).hexdigest(),
+               "unchanged revision hid a dirty model source")
+        ensure(before["source_hashes"][c.GENERATOR] == after["source_hashes"][c.GENERATOR]
+               and before["source_revision"] == after["source_revision"],
+               "model-source identity changed an unrelated input identity")
+        ensure(before["manifest"] == after["manifest"]
+               and before["demand_series"] == after["demand_series"],
+               "source identity changed the declared witness or demand")
+    dirty[0]["source_hashes"][source_name] = "changed"
+    ensure(dirty[1]["source_hashes"][source_name] != "changed",
+           "standalone contracts share mutable source identities")
+
+
 def q5_bridge_preserves_absence_instead_of_inventing_owners() -> None:
     root = Path(__file__).resolve().parents[2]
     bridge = c.q5_bridge(root, "test-revision")
@@ -513,6 +578,7 @@ def crossing_optimum_exceeds_load_only_under_the_declared_alignment() -> None:
 def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         deterministic_identity_and_explicit_assumptions,
+        diagnostics_preserve_source_scope_and_service_contract_labels,
         existing_contracts_keep_their_base_revision_identities,
         every_contract_declares_exact_fields_and_an_accepted_standing_plan,
         family_audit_is_computed_from_a_closed_label_vocabulary,
@@ -531,5 +597,6 @@ def cases() -> list[Case]:
         alignment_stranding_changes_only_the_request_alignment,
         same_owner_arena_stranding_changes_only_the_request_arena,
         malformed_lifetimes_and_overlap_fail_before_accounting,
+        standalone_contract_identity_binds_dirty_model_source,
         q5_bridge_preserves_absence_instead_of_inventing_owners,
     )]

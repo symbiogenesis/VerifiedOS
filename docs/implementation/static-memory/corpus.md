@@ -23,14 +23,17 @@ optimum exceeds its charged load. The generator has no randomness or runtime dem
 inputs. Its literal byte sizes and ordinal event ticks are deliberately small model
 quantities; neither is a measurement of the named service.
 
-Every case records its source revision, the generator's actual SHA-256, a manifest
-identity, its agenda coverage, a demand envelope and computed demand series, cost
-assumptions, telemetry label, service-contract label and reuse assumptions. The
-manifest hashes its schema, generator path, case name, mode, arena declarations,
-object declarations and diagnostic requests. The source digest binds the generator
-contents even when its checkout has uncommitted edits. Labels identify the evidence's
-scope; they do not authenticate a workload or prove that a source revision is a
-deployed image.
+Every case records its source revision, the actual SHA-256 of both the generator and
+its placement model, a manifest identity, its agenda coverage, a demand envelope and
+computed demand series, cost assumptions, telemetry label, service-contract label and
+reuse assumptions. The manifest hashes its schema, generator path, case name, mode,
+arena declarations, object declarations and diagnostic requests. The source digests
+bind the generator and placement-model contents even when their checkout has
+uncommitted edits. A
+standalone contract therefore retains both identities when separated from the CLI's
+broader source receipt. A source-only edit can change these hashes without changing
+the manifest's declared trace. Labels identify the evidence's scope; they do not
+authenticate a workload or prove that a source revision is a deployed image.
 
 The demand envelope describes a finite declared trace and its bounded object
 occurrences and horizon. It explicitly declines an all-execution bound. Target
@@ -144,6 +147,24 @@ and initialization. The report preserves the input provenance, coverage and tele
 labels. Total physical charges may be summed for reporting, while the arena-local
 capacity restrictions remain in force.
 
+## Finite-trace ledger disposition
+
+The finite-trace witness ledger has an independently checked byte partition and
+source-labeled request diagnostics. The byte-at-a-time oracle checks every fixture
+tick. Focused witnesses check retirement charges, overlaid backing, completed-reuse
+boundaries and geometric versus declared-slot capacity. Each row identifies its
+owner, arena, mode and instant. The request diagnostics cover both instantaneous
+fits and every typed refusal while retaining the source identity, telemetry label,
+cost assumptions, reuse premises and service-contract label.
+
+This completes the witness ledger subitem in the
+[research agenda](../../background/static-memory-research.md). Target telemetry,
+compiled-service cost extraction and measured comparisons of equivalent and
+alternative service contracts remain open. Preserving a comparison label does not
+prove functional equivalence or measure a changed promise. An idle slot extent is
+an instantaneous geometric result, not the complete legal-use certificate an
+admitted execution would need.
+
 ## The demand envelope of one contract
 
 `demand_series` is the computed companion to the declared envelope. Per arena it
@@ -184,6 +205,13 @@ unknown arena, foreign ownership, an inadequate slot size, incompatible slot-bas
 alignment, occupied slots and pending safe reuse. Idle bytes belonging to another
 owner cannot turn a refusal into a fit. The report also exposes free physical
 bytes, so a size-class refusal can be seen beside its stranded capacity.
+
+Every diagnostic preserves the ledger's source and contract metadata, including on
+an unknown-arena or foreign-owner refusal. A standalone fit or refusal therefore
+retains its telemetry and service-contract labels; an alternative service promise
+cannot lose its declared comparison scope when the diagnostic is separated from
+the containing corpus receipt. These documentary labels are carried unchanged,
+not authenticated or decided by the placement model.
 
 A `fits-at-instant` result supplies only slot geometry. It carries no requested end
 time, future non-overlap argument, binding certificate or semantic completion
@@ -291,3 +319,27 @@ premise alone.
 bounded exact oracle and its independent optimality replay. These checks validate the
 diagnostic instrument against its bounded model. Equivalent service measurements,
 alternative service promises and product admission evidence remain separate outputs.
+
+## Synthetic corpus disposition
+
+The reproducible synthetic-input deliverable is complete within its declared finite
+model. The generator supplies every family named by the agenda, with source and
+manifest identities, explicit cost assumptions, bounded demand traces and witness
+labels. The coverage audit derives family membership from the contracts, the demand
+series agrees with the independent extent sweep, and the Q5 bridge preserves the
+export and reports the operational inputs it lacks. The source-identity test changes
+the model bytes supplied to hashing while keeping the revision and generated trace
+fixed; the standalone contract's model hash changes and its manifest stays stable.
+
+Replay the complete corpus and its Q5 bridge with
+`python tools/run.py static-memory corpus --json`, and run the focused checks with
+`python tools/run.py test --only static_memory_corpus --jobs 2`. The replay must carry
+no standing placement errors, no uncovered agenda families, synthetic contract
+provenance and an unavailable Q5 operational ledger with its missing inputs retained.
+These are reproducibility and finite-model checks, not product admission evidence.
+
+The agenda's full corpus item remains open. Closing its roster obligation requires
+real per-component memory extents, owning pool entries, complete demand and cost
+contracts, and the authority-completion inputs the bridge names. A synthetic family
+witness cannot supply those inputs, and the existing component-identity roster does
+not contain them.
