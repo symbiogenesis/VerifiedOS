@@ -293,6 +293,37 @@ both in its peers' zeroization slots and in the later request its retained slot
 refuses; and a drifted class map refuses the whole receipt instead of re-deriving a
 calendar from it. These are bounded independent checks, not formal verification.
 
+## Finite reclamation research disposition
+
+The finite calendar and envelope deliverable is complete within the declared
+synthetic model. The evidence addresses the research acceptance conditions as
+follows:
+
+- **Fixed schedules and capacity.** The [receipt walkthrough](#receipt-walkthrough)
+  compares the same public service across retirement and sweep ablations, charges
+  permanent backing and fixed grants, and distinguishes recovered backing from
+  peak quarantine. A reservation that removes workload service is refused.
+- **Retirement and reuse bounds.** The [adversarial envelope](envelope.md#the-bounds-and-the-argument-for-each)
+  states admitted budgets and conditional bounds. Its finite search compares
+  observations against those bounds and preserves every unattained tightness gap.
+- **Retention and failure.** Saved contexts, loans, stalled endpoints, restart
+  storms and stale copies behind the cursor have calendar or Q22a witnesses.
+  Q22a's completion and reuse refusals keep the extent charged and block its later
+  fixed binding, including a refusal after a completed pass.
+- **Independent finite checks.** The focused reclamation tests compare calendars
+  with a tick machine. The [envelope checks](envelope.md#what-the-finite-search-shows-and-what-it-does-not)
+  additionally enumerate separately identified bytes across loan cancellation,
+  context sweeping, reuse, failed containment and exhausted zeroization slots.
+  These check the measurement used in the bound comparison, including completion
+  and a new retirement at the same timestamp.
+
+This closes a finite research experiment. The top-level reclamation agenda retains
+the actual holder inventory, admitted workload and restart contracts, qualified
+target service rates, hardware reuse gate and all-executions proof obligations.
+The remaining work below owns those joins; no finite maximum supplies them.
+
+## Production obligations
+
 What holder coverage still does not supply is the production side of the same
 question. Admission owes the discovery of holders in a real binary: every root,
 saved image, capability-bearing location and admitted derived base must be shown to

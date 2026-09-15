@@ -179,6 +179,90 @@ def calendar_placement_matches_an_independent_tick_machine() -> None:
                    f"{name}: the calendar differs from the independent tick machine")
 
 
+def retirement_charges_match_byte_enumeration_at_lifecycle_boundaries() -> None:
+    """Check the charge reader separately from its bound and signed-delta sweep."""
+    env = replace(reclaim.Envelope(), period=12, requests=2)
+    limits = envelope.Limits(loans=2, loan_bytes=3, saved_bytes=5, windows=4)
+    scenarios = (
+        ("loan-cancellation", (2, 8), 4,
+         (envelope.Move(0, 0, loans=2), envelope.Move(0, 1, loans=2))),
+        ("context-completion", (2, 8), 4,
+         (envelope.Move(0, 0, saved=True), envelope.Move(1, 0, saved=True))),
+        ("context-before-completion", (1, 8), 4,
+         (envelope.Move(0, 0, saved=True), envelope.Move(1, 0, saved=True))),
+        ("reuse-completion", (2, 3), 4,
+         (envelope.Move(0, 0), envelope.Move(1, 1))),
+        ("stalled-and-behind-cursor", (2, 8), 4,
+         (envelope.Move(0, 0, stall=1, loans=1, saved=True, behind=True),
+          envelope.Move(1, 1, loans=1, saved=True))),
+        ("uncancelled-loan", (2, 8), 4,
+         (envelope.Move(0, 0, loans=2, saved=True, loan_persists=True),
+          envelope.Move(3, 1, loans=1, saved=True))),
+        ("zero-slot-overflow", (1, 2), 1,
+         (envelope.Move(0, 0, saved=True), envelope.Move(0, 1, saved=True),
+          envelope.Move(2, 0, saved=True), envelope.Move(2, 1, saved=True))),
+    )
+    for name, phases, zeros, moves in scenarios:
+        policy = reclaim.Policy(name, phases, 12, 2, env.extent_bytes,
+                                zeros, env.extent_bytes)
+        horizon = envelope.horizon_of(env, policy, limits)
+        # Distinct release instants bind each independently scheduled event back
+        # to its move without reading production Assignment records.
+        ordered = sorted(moves, key=lambda move: move.window * env.period
+                         + phases[move.slot])
+        stamps = _tick_machine(env, policy, moves, horizon)
+        ensure(len({stamp[0] for stamp in stamps}) == len(moves),
+               f"{name}: the reference requires distinct release instants")
+        if name == "loan-cancellation":
+            ensure(stamps[0][1] == stamps[1][0], "loan boundary witness drifted")
+        if name.startswith("context-"):
+            begin = stamps[0][2]
+            ensure(begin is not None and begin + policy.sweep_ticks - stamps[1][0]
+                   == (1 if name == "context-before-completion" else 0),
+                   "context completion boundary witness drifted")
+        if name == "reuse-completion":
+            ensure(stamps[0][3] == stamps[1][0], "reuse boundary witness drifted")
+        peak = control = latency = unserved = 0
+        arrivals = []
+        for move, (release, _, _, reuse) in zip(ordered, stamps, strict=True):
+            arrivals.append((release, env.extent_bytes + move.loans * limits.loan_bytes
+                             + (limits.saved_bytes if move.saved else 0)))
+            if reuse is None:
+                unserved += 1
+            else:
+                latency = max(latency, reuse - release)
+        for tick in range(horizon):
+            occupied: set[tuple[int, str, int]] = set()
+            active = 0
+            for index, (move, (release, barrier, begin, reuse)) in enumerate(
+                    zip(ordered, stamps, strict=True)):
+                if tick < release:
+                    continue
+                if reuse is None or tick < reuse:
+                    occupied.update((index, "extent", byte)
+                                    for byte in range(env.extent_bytes))
+                if barrier is None or tick < barrier:
+                    active += env.control_work_bytes_per_request_tick
+                    occupied.update((index, "loan", byte)
+                                    for byte in range(move.loans * limits.loan_bytes))
+                if move.saved and (begin is None or tick < begin + policy.sweep_ticks):
+                    occupied.update((index, "context", byte)
+                                    for byte in range(limits.saved_bytes))
+            peak = max(peak, len(occupied))
+            control = max(control, active)
+        expected = envelope.Measurement(peak, latency, unserved,
+                                        env.control_bytes_per_tick - control,
+                                        tuple(arrivals))
+        actual = envelope.measure(env, policy, limits,
+                                  envelope.assign(env, policy, moves), horizon)
+        ensure(actual == expected,
+               f"{name}: retirement charges differ from byte enumeration: "
+               f"{actual} != {expected}")
+    ensure(envelope.measure(env, policy, limits, [], horizon)
+           == envelope.Measurement(0, 0, 0, env.control_bytes_per_tick, ()),
+           "an idle calendar invents a retirement or control charge")
+
+
 def barrier_mutants_reach_the_stale_capability() -> None:
     comp, initial = authority.fixture()
     safe = authority.reclaimed(comp, initial)
@@ -296,6 +380,7 @@ def cases() -> list[Case]:
         larger_budgets_count_actual_events_and_prior_periods,
         observed_envelope_matches_direct_window_enumeration,
         calendar_placement_matches_an_independent_tick_machine,
+        retirement_charges_match_byte_enumeration_at_lifecycle_boundaries,
         barrier_mutants_reach_the_stale_capability,
         an_undercounted_bound_is_reported_as_a_finding,
         restart_storm_and_uncancelled_loan_leave_the_admitted_bound,

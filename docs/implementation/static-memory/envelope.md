@@ -149,6 +149,16 @@ consumes zeroization grants without the next-pass formula, the cohort arithmetic
 the production record reader, and its placement must agree with the calendar's on
 every sampled schedule.
 
+The charge reader has a separate byte-enumeration check using that tick machine's
+events. It identifies each event's retired extent, loan footprint and saved context
+separately at every tick, then compares peak bytes, control demand, retirement
+arrivals, latency and unserved events with the receipt's measurement. Boundary
+witnesses put a new retirement at loan cancellation, context-sweep completion and
+reuse, with a neighboring retirement before context completion. Uncancelled loans
+retain their charges through the horizon; a completed sweep with no reserved zero
+slot retains its extent after its saved context is cleared. The idle calendar
+carries no retirement or control demand.
+
 The search is a lower-bound instrument on the adversary, so an attained bound is a
 tightness witness and an unattained one leaves tightness open with its gap reported.
 The control-grant demand and the short-window envelope are attained. The
