@@ -52,6 +52,59 @@ authority-completion times. The synthetic checker is a separate small-instance
 model for investigating the research questions. It does not replace the
 [placement-search admission predicates](placement-search.md).
 
+## Walkthrough: three kinds of unavailable capacity
+
+Replay these small witnesses individually:
+
+```console
+python tools/run.py static-memory corpus --case bounded-sessions --json
+python tools/run.py static-memory corpus --case split-free-extents --json
+python tools/run.py static-memory corpus --case delayed-device-completion --json
+```
+
+In each receipt, open `cases[0]`. Its `standing_errors` should be empty even when
+its `requests` contain refusals: the standing placement is valid, and the requests
+are hypothetical diagnostics. Read each request's `request`, `verdict` and
+`reason` beside `contract.objects` and `timeline`. The timeline contains only
+charge-changing instants; for a request between them, use the last snapshot at
+or before `request.time`.
+
+Within `timeline[*].rows[*]`, keep the `owner` and `arena` attached to each result:
+
+- `free_physical_bytes` counts all free bytes; `free_extents` shows where they
+  lie, and `largest_free_aligned_extent` measures contiguous free geometry.
+- `largest_idle_declared_slot_extent` measures an available declared slot at the
+  query alignment. Free geometry can exceed it without creating a larger slot.
+- `unreusable_retired_bytes` sums `charges.retained`, `charges.quarantined` and
+  `charges.initializing`. Follow `segments` and the object's `payload_end`,
+  `authority_end`, `sweep_end` and `reuse` to distinguish those phases.
+
+Read the witnesses in this order:
+
+1. **Cross-owner stranded capacity (`bounded-sessions`).** The request to
+   `a-pool` reports `slot-occupied` while `b-pool` has idle reserved backing.
+   Asking for that backing as `owner-a` reports `foreign-owner`. The foreign-owner
+   refusal omits geometry fields; inspect the timeline's `b-pool` row to see the
+   idle capacity that cannot serve the requesting owner.
+2. **Separated free extents and slot size (`split-free-extents`).** While the
+   middle object is live, total free bytes exceed the largest free extent. The
+   smaller request reports `fits-at-instant`; the larger reports `slot-size`.
+   After the middle object's reuse boundary, free geometry coalesces but the
+   larger request still reports `slot-size`: no declared slot grew. This witnesses
+   the standing layout, without establishing an unavoidable offline placement gap.
+3. **Delayed safe reuse (`delayed-device-completion`).** The earlier request
+   reports `reuse-pending` while the device buffer is retained and restart work
+   occupies the other slot. The later request reports `fits-at-instant` while
+   unreusable retired bytes remain. Match its `slot_witnesses` base and size to
+   `restart-workspace` in `contract.objects`: that slot has completed reuse while
+   `device-buffer` is quarantined. Continue through the device buffer's
+   initialization and reuse events to see its backing become idle.
+
+Every request retains `runtime_permission: false`, including a fit. The
+[corpus contract](static-memory-corpus.md#geometric-fit-and-typed-refusals) scopes
+this to instantaneous geometry; the declared completion times assume successful
+barriers and do not supply target safe-reuse evidence.
+
 ## What comparison decides
 
 The deterministic heuristic candidates move bases within each arena. The exact

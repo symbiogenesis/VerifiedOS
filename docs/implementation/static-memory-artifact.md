@@ -50,9 +50,12 @@ digest between runs.
 Replay receipt checks cover the two shapes the command emits. Experiment actions use
 `static-memory-experiment-v1` and report action errors in `experiment.errors`.
 The `corpus`, `check` and `compare` actions use `static-memory-research-v1` and decide
-their result through the exit code. Their per-case diagnostics can include deliberate
+their result through the exit code. Their receipts must name the replayed research
+action and carry a nonempty scope string, a settings object and a nonempty list of case
+objects, each with a contract object. Their per-case diagnostics can include deliberate
 request refusals or incomplete searches, so those fields are not action errors.
-These checks establish receipt readability; they do not validate every nested result.
+These checks establish the stated receipt structure; they do not validate nested
+contracts or results, settings contents or source identity fields.
 
 ## What the completeness check decides
 
@@ -68,7 +71,7 @@ violates:
 | A test module has no module of its own topic | A test naming a subject the artifact does not ship is evidence about nothing |
 | A proof under `proofs/StaticMemory*.v` has no row in [the proof ledger](../../tools/generated/proof-ledger.md) | The ledger is the join of the register with what the shipped proofs cite; a proof no row reaches cites no live requirement, or the ledger is owed its regeneration by `run.py check --fix` |
 | A static-memory document has no classification row or more than one, a row names a document the artifact does not carry, or a row names a class outside the declared vocabulary | The table below is a completeness statement and not a derived count, so both directions of the join are held. Exactly one row and not at least one, because two rows for one document can claim class sets that contradict each other |
-| A replayed action refused, reported its own errors, or returned an unreadable receipt | The replay requires a recognized receipt schema. An experiment receipt must carry an object body and an explicit list of string errors; malformed or missing fields cannot count as a clean replay |
+| A replayed action refused, reported its own errors, or returned an unreadable receipt | The replay requires a recognized receipt schema. An experiment receipt must carry an object body and an explicit list of string errors. A research receipt must satisfy the action, scope, settings and case-container checks stated above; malformed or missing required fields cannot count as a clean replay |
 
 The link graph has one root, and it is this document. This document is the subject of no
 reachability rule, and it is the witness for none either: it is written beside the rules

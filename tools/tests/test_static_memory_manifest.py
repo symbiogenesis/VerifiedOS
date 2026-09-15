@@ -272,6 +272,31 @@ def _research_replays_preserve_intentional_diagnostics() -> None:
                f"valid research diagnostics must leave the replay clean: {entry}")
 
 
+def _malformed_research_receipts_are_findings_even_after_exit_zero() -> None:
+    receipt: dict[str, object] = {
+        "schema": "static-memory-research-v1", "action": "corpus",
+        "scope": "fixture", "settings": {}, "cases": [{"contract": {}}],
+    }
+    malformed: list[dict[str, object]] = [{"schema": receipt["schema"]}]
+    malformed += [{key: value for key, value in receipt.items() if key != missing}
+                  for missing in ("action", "scope", "settings", "cases")]
+    malformed += [{**receipt, "action": "check"}, {**receipt, "action": "structure"}]
+    malformed += [{**receipt, "scope": value} for value in (None, 3, "", " ")]
+    malformed += [{**receipt, "settings": value} for value in (None, 3, "", [])]
+    malformed += [{**receipt, "cases": value}
+                  for value in (None, {}, [], [None], [{}], [{"contract": []}])]
+    for broken in malformed:
+        with patch.object(manifest, "_run", return_value=(0, broken)):
+            entry = manifest.replay_action("corpus")
+        ensure(entry["exit_code"] == 0 and bool(entry["errors"]),
+               f"an exit-zero malformed research receipt must be a finding: {broken}, {entry}")
+        ensure(bool(manifest._replay_findings([entry])),
+               f"a malformed research row must reach the manifest findings: {entry}")
+    with patch.object(manifest, "_run", return_value=(0, {**receipt, "action": "structure"})):
+        entry = manifest.replay_action("structure")
+    ensure(bool(entry["errors"]), "an experiment action cannot return a research receipt")
+
+
 def _readers_fail_closed_on_an_unreadable_subject() -> None:
     optional = argparse.ArgumentParser()
     optional.add_argument("--only", action="store_true")
@@ -313,5 +338,7 @@ def cases() -> list[Case]:
              _malformed_replay_receipts_are_findings_even_after_exit_zero),
         Case("manifest research replays preserve diagnostic refusals and search cutoffs",
              _research_replays_preserve_intentional_diagnostics),
+        Case("manifest rejects malformed exit-zero research receipts",
+             _malformed_research_receipts_are_findings_even_after_exit_zero),
         Case("manifest readers fail closed", _readers_fail_closed_on_an_unreadable_subject),
     ]
