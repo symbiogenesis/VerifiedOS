@@ -127,6 +127,18 @@ including the relevant classical, choice and extensionality assumptions.
 Neither an Apache licence nor a theorem-name match establishes that bridge.
 This inventory does not introduce Lean as a project trust language.
 
+## Research-scale formalization as planning evidence
+
+These completed projects demonstrate that coordinated formalization can reach substantial research mathematics. They are evidence for feasibility and work organization, not a conversion from published calendar time to VerifiedOS engineering hours or a proof that its outstanding statements are true.
+
+| Project and primary account | Evidence and local limit |
+| --- | --- |
+| Gowers, Green, Manners and Tao's Marton/PFR result over characteristic two; [the authors' formalization project](https://teorth.github.io/pfr/) and [Tao's November 2023 workflow account](https://terrytao.wordpress.com/2023/11/18/formalizing-the-proof-of-pfr-in-lean4-using-blueprint-a-short-tour/) | The completed Lean formalization uses a proof blueprint and develops Shannon entropy infrastructure. A modular proof graph and explicit prerequisite library are useful planning patterns. It does not certify CIC normalization, compiler preservation or hardware observations; the mathematics and the available library determine the amount of new work. |
+| Busy Beaver Challenge, [July 2024 completion announcement](https://discuss.bbchallenge.org/t/july-2nd-2024-we-have-proved-bb-5-47-176-870/237) | The Coq proof of BB(5) = 47,176,870 combines finite enumeration, proved deciders and specialized arguments, with independent review of the theorem statement. The project reports two years of collaboration and roughly ten hours to compile on a standard laptop. These are different costs, neither a measured port of this project's proofs. |
+| [Liquid Tensor Experiment completion](https://leanprover-community.github.io/blog/posts/lte-final/), July 2022 | The Lean project completed its main theorem about liquid vector spaces about a year and a half after the challenge. Its linked blueprint and library development demonstrate the value of explicit dependencies and staged milestones. They do not establish the metatheoretic premises or resource behavior of an on-device Rocq checker. |
+
+Use these cases in the [estimate basis](../../implementation/implementation-checklist.md#estimate-and-schedule-basis) as external existence evidence alongside this repository's own calibration. Before repricing a research-heavy item, obtain a representative local checked result, its assumption audit, dependency closure and measured authoring/checking costs; record unsupported features and replan at that boundary. M6.2b-0's first recursive corpus example and U-25's instantiated compiler criterion are local checkpoints of that kind. No theorem source is imported here, no local replay is claimed and no estimated hours are removed by this evidence.
+
 ## Certified search and the register's standing refusals
 
 The constraint-programming and pseudo-Boolean literature carries proof

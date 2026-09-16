@@ -26,6 +26,14 @@ Source inspection, upstream publications and license inspection support the asse
 
 **License and disposition.** [LICENSE at the pin](https://github.com/secure-compilation/SECOMP/blob/5c20b839/LICENSE) has the CompCert non-commercial grant and enumerated LGPL subset. The capability backend is outside that subset. This is reference evidence under the existing containment decision, not directly vendorable proof code. The current README names Rocq 9.1 but also retains older Coq commands; use the archived artifact's own toolchain for reproducing its claims.
 
+### Trace-relating secure compilation and composition
+
+**Reading dated 2026-09-15. Authority and artifact.** Carmine Abate, Roberto Blanco, Stefan Ciobaca, Adrien Durier, Deepak Garg, Catalin Hritcu, Marco Patrignani, Eric Tanter and Jeremy Thibault, [*Trace-Relating Compiler Correctness and Secure Compilation*](https://arxiv.org/abs/1907.05320), ESOP 2020, and the [extended TOPLAS account](https://doi.org/10.1145/3460860). Their framework relates distinct source and target trace spaces and derives preservation criteria, including secure compilation against linked adversarial code. The [Coq development](https://github.com/secure-compilation/different_traces) contains the trace, hyperproperty and robust-preservation criteria; `Composition.v` studies conjunction of trace relations and property mappings. It is not a VerifiedOS tower theorem.
+
+**Use and limits.** These results rule out treating different observation vocabularies as an absence of compositional theory. They guide R-05-161 and R-17-064's explicit transport obligations, with U-25 supplying the local robust-compilation criterion after U-01 fixes the policy. For each seam, instantiate observations, context quantifiers, release policy and progress sensitivity, state the property class preserved, then prove the adjacent relation fits. A relation that erases a target timing leak can make a functional refinement true without establishing the desired non-interference. Include that refuted transport and a context/release mismatch in the local statement evidence. Physical channel coverage is still a modeling judgment; the paper does not certify that the chosen trace alphabet includes everything an attacker can observe.
+
+**License and disposition.** Method reference and unqualified source lead. The repository advertises Apache-2.0 and Coq 8.8/8.9 with MathComp 1.8/1.9. No immutable source edition, incorporation-time license reading or native replay is established here. The inspected `Composition.v` includes an explicit propositional-extensionality axiom and imports classical/extensionality infrastructure; a closed theorem's actual dependencies require an instantiated native audit, not an inference from its imports. No upstream source or assumptions are incorporated.
+
 ### RustCompCert: a Rust front end over CompCertO, on CompCert's terms
 
 **Authority and artifact.** Jinhua Wu, Yuting Wang, Liukun Yu and Linglong Meng, *RustCompCert: A Verified and Verifying Compiler for a Sequential Subset of Rust*, [arXiv:2602.07455](https://arxiv.org/abs/2602.07455) of 7 February 2026, whose comments field reads "Submitted to Rust Verify 2026" and for which no acceptance is established. The development is a branch of a CompCert fork, [rust-verified-compiler](https://github.com/SJTU-PLV/CompCert/tree/rust-verified-compiler), carrying `rustfrontend/`, `rustparser/` and `rustexamples/`.
@@ -93,6 +101,8 @@ Source inspection, upstream publications and license inspection support the asse
 ### Bounded CIC starting points
 
 **Reading dated 2026-09-14.** These references inform M6.2b-0's [staged foundation work](../cic-checker-qualification.md#bounded-foundation-execution-route). They supply published methods and artifact leads, not a qualified replacement for the selected MetaRocq tuple. No source is incorporated, no native replay is claimed, and no estimate or acceptance obligation is removed. Source reuse requires an immutable edition, its own license reading, a compatible dependency closure and the instantiated assumption audit. Publication terms do not establish source-code terms.
+
+**Profile selection.** The [profile and metatheory decision](../cic-checker-qualification.md#profile-and-metatheory-decision) compares the real export closure with the calculi these developments already cover before selecting new metatheory work. Prefer a covered candidate when it retains the required propositions and checked computations; otherwise identify the exact unsupported feature and its proof cost. Neither choosing full PCUIC first nor choosing a smaller calculus while discarding required terms meets that decision.
 
 #### Conversion certification without normalization
 
