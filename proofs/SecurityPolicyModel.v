@@ -1617,7 +1617,7 @@ Theorem a_named_output_cannot_smuggle_another_objects_content :
   ~ T (apex_vocabulary reference smuggles_another_object consent_powerbox
          licensed inside_scope).
 Proof.
-  intros H. destruct (H (conj I (conj I I)) victim
+  intros H. destruct (H (conj I (conj I (conj I (conj I I)))) victim
     (the_victim_set_is_admissible smuggles_another_object consent_powerbox licensed inside_scope)
     quiet port_content other_object_variation_stays_inside_the_release_relation) as [Hv _].
   pose proof (f_equal (fun k : nat -> nat -> nat -> Prop => k O 1 O) Hv) as E.
@@ -1663,7 +1663,7 @@ Proof.
   { split; [exact quiet_and_secret_content_are_indistinguishable|].
     intros c s Hc Hl. unfold licensed in Hl. cbn in Hl.
     rewrite andb_false_r in Hl. discriminate Hl. }
-  destruct (H (conj I (conj I I)) victim
+  destruct (H (conj I (conj I (conj I (conj I I)))) victim
     (the_victim_set_is_admissible releases_named_object consent_powerbox
       licensed outside_scope) quiet secret_content
     Hi) as [Hv _].
@@ -1684,7 +1684,7 @@ Theorem the_leaking_composition_is_rejected_by_T :
          licensed no_grants).
 Proof.
   intros H.
-  destruct (H (conj I (conj I I)) victim
+  destruct (H (conj I (conj I (conj I (conj I I)))) victim
               (the_victim_set_is_admissible (leaks_content reference)
                  consent_powerbox licensed no_grants)
               quiet secret_content

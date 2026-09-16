@@ -504,7 +504,7 @@ Proof.
   intros H.
   assert (Hind : ensemble_indist leaky_ensemble leaky_adversary true false).
   { intros m; destruct m; cbn; (split; [reflexivity | intro Hc; discriminate Hc]). }
-  specialize (H (fun _ => conj I (conj I I)) leaky_members_hold
+  specialize (H (fun _ => conj I (conj I (conj I (conj I I)))) leaky_members_hold
                 (fun _ => conj I I) leaky_adversary leaky_wire_is_permitted
                 true false Hind).
   destruct (H true) as [Hvalue _].
