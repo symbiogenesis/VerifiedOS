@@ -1,6 +1,6 @@
 # The TRNG Source Model: What a Submission Must State, and What Nothing Here Supplies
 
-> A derived view, governed by [R-15-241a](../requirements-register.md).
+> A derived view, governed by [R-15-241a and R-15-241ca](../requirements-register.md).
 > It decides nothing. It states what a source stochastic model must say for this platform to read it, the schema a submission is checked against, how the start-up sample budget is derived from that model, the review that reads a submission, and every input no artifact in this repository supplies.
 > Where this document and [the register](../requirements-register.md) disagree, the register wins and this document is defective.
 
@@ -168,7 +168,117 @@ the independent assurance reviewer owns their acceptance under §5.
 | `L_seed` | Programme cryptographic architecture owner | Land DRBG seed length and strength/reseed discipline at R-15-241d and its crypto-core contract before evaluating the seeding term. |
 | Cold-boot latency bound | Programme product owner | Land a cold-boot delay ceiling at R-09-006a or the product-gate contract, including corner and operating-point scope; evaluate clause 9 against it. |
 
-After these acts, the source-model owner computes TM-13 from the accepted inputs,
+After these acts and the extraction qualification in §10, the source-model owner computes TM-13 from the accepted inputs,
 records the calculation and representation check, and submits all nine clauses
 for independent review. Failure of any required premise leaves the budget owed;
 the configured emulation budget supplies none of the missing evidence.
+
+## 10. Two-source extraction qualification
+
+R-15-241ca requires a recorded decision before TRNG selection closes: evaluate a
+deterministic two-source extractor before the vetted conditioner, with the
+conditioner and DRBG-only consumer interface retained. This is a qualification
+obligation, not selection of a circuit or credit for an implemented theorem.
+Q28b owns the finite theorem and its qualification record; existing entropy-root
+implementation and supplier-characterization work retain their own owners.
+An unqualified candidate is recorded with its failed premises; the baseline
+R-15-241b through R-15-241e obligations remain unchanged. The source count and
+mechanism diversity do not supply the missing finite entropy parameters.
+
+There are explicit constructions for much weaker independent sources than the
+simple inner-product route. Chattopadhyay and Zuckerman construct a two-source
+extractor at polylogarithmic min-entropy; Li's later work reaches asymptotically
+optimal `O(log n)` entropy for the stated error regime. These results establish
+mathematical possibilities, not this part's block sizes, error target, latency,
+side-information security or mechanized implementation. The qualification uses
+an exact finite theorem and its constants, not the phrase "polylogarithmic".
+[*Explicit two-source extractors and resilient functions*, Annals 2019](https://annals.math.princeton.edu/wp-content/uploads/annals-v189-n3-p01-s.pdf),
+[Li, *Two Source Extractors for Asymptotically Optimal Entropy, and (Many) More*](https://eccc.weizmann.ac.il/report/2023/023/)
+
+### A finite first candidate
+
+The initial proof target is the binary inner product of the Chor-Goldreich
+construction, rather than an unspecified finite-field variant:
+
+```text
+IP(x, y) = XOR over i = 1..n of (x_i AND y_i)
+
+X, Y in {0,1}^n independent
+max_x Pr[X=x] <= 2^(-k_X), max_y Pr[Y=y] <= 2^(-k_Y)
+
+Delta(IP(X,Y), U_1) <= (1/2) * 2^((n-k_X-k_Y)/2)
+```
+
+Here `Delta` is total variation distance and `U_1` a uniform bit. The target
+bound follows from the Walsh-Hadamard matrix's norm and the two distributions'
+collision-probability bounds; this paragraph is the mathematical proof route,
+not a checked Gallina theorem. At entropy exactly `n/2` in each source,
+independent distributions on suitable orthogonal subspaces can make the output
+constant. Independence without a sufficient **sum** of finite min-entropies
+therefore does not entail extraction. [Chor and Goldreich, *Unbiased Bits from
+Sources of Weak Randomness and Probabilistic Communication Complexity*, 1988](https://doi.org/10.1137/0217015)
+
+The useful theorem must also name the observer. For a classical side-information
+value `e`, a sufficient premise is that `X` and `Y` are independent **conditioned
+on every supported `e`**, with the displayed entropy bounds holding for each
+conditional distribution. Then the same error bounds the joint output with that
+observer's information. Marginal entropy, unconditional independence, average
+conditional entropy and passing health tests cannot silently substitute for
+those pointwise premises. Health-test success, prior draws, and any observable
+rejection or timing transcript belong in the conditioned information where the
+claim is made after observing them. Conditioning itself can introduce dependence
+or reduce entropy.
+
+For `m` output bits from successive block pairs, the record must prove the
+corresponding conditional premises at each invocation, including the prior
+history, or supply a separate multi-output theorem. A hybrid argument then gives
+total error at most the sum of the `m` individual bounds. Repeating the one-bit
+operation on one pair is not such a theorem. A sufficient symbolic target is
+`k_X + k_Y >= n + 2s`, giving per-bit error at most `2^(-s-1)` and aggregate
+error at most `m * 2^(-s-1)` for qualifying fresh pairs. A concrete witness must
+instantiate every symbol from the selected source and seed contract; none is
+filled from a nominal entropy rate or the configured startup placeholder.
+
+Quantum side information requires its own theorem and physical scope.
+Kasher and Kempe analyze the inner-product family against specifically bounded
+quantum-storage adversaries; their premises are not a theorem against arbitrary
+quantum leakage. Non-malleable extraction likewise requires a stated tampering
+family and entropy premises. Neither label closes R-17-049a's undetectable source
+subversion, common-mode control of both sources, or absent entropy.
+[*Two-Source Extractors Secure Against Quantum Adversaries*, 2012](https://doi.org/10.4086/toc.2012.v008a021)
+
+### Qualification record and acceptance
+
+The cryptographic architecture owner supplies the finite proof and implementation
+contract; the supplier's stochastic-model owner supplies source evidence; the
+independent assurance reviewer checks that their premises match. In addition to
+TM-1 through TM-14, the record carries:
+
+| Field | Required decision evidence |
+| --- | --- |
+| Construction | Exact function, source pairing and block boundaries; source attribution preserved; widths and representation fixed |
+| Entropy | Per-block lower bounds derived from TM-4/TM-4a with temporal dependence, corners, life and the conditioned transcript explicit |
+| Joint model | Independence and leakage premises matched to TM-7; supply, clock, substrate, thermal and injection coupling reviewed; no inference from mechanism count alone |
+| Finite theorem | Checked term, declared assumptions, instantiated widths, output length and statistical distance; accepted and failing parameter witnesses |
+| Seed accumulation | Invocation count, prior-history premises, exact seed-length relation and aggregate error for startup and every reseed; no reuse of blocks without a theorem |
+| Conditioner join | Exact TM-8 map and a theorem or separately declared cryptographic assumption connecting extracted input to conditioned seed; output width and additional error or advantage stated |
+| Implementation | Refinement of the actual bit operations to the function, fixed execution and memory bounds, buffering and erasure, health tests before credit and the existing fail-stop latch |
+| Cost | Raw-sample counts, representation fit, TM-3 throughput, startup/reseed delay, storage, conditioner work and sustainable DRBG demand |
+| Verdict | Qualified candidate with all premises supplied, or unqualified candidate naming each failed or unavailable premise; neither verdict is inferred from a configured emulation value |
+
+For the conditioner join, post-processing preserves distance from the image of
+uniform input, not necessarily from uniform **output**. If the extracted block
+is `epsilon`-close to `U_m`, then a fixed conditioner `C` produces an output
+`epsilon`-close to `C(U_m)`. A statistical seed claim additionally needs a bound
+`delta_C` from `C(U_m)` to the target uniform seed, giving total error at most
+`epsilon + delta_C`. A cryptographic claim is recorded as such, with its own
+advantage and model; hashing cannot silently turn this into a statistical claim.
+TM-9 and the §4 seed-budget calculation must be recomputed for the selected chain,
+including extraction's output loss. The simple raw-entropy sum in §4 cannot be
+used as its output-rate formula.
+
+Qualification fails when any required premise, correspondence or resource bound
+is absent. No source model, finite theorem artifact, selected extractor or
+qualified output-rate claim is present today. This record identifies exactly
+what would earn a statistical claim before the conditioner; it supplies no new
+physical assumption by implication.
