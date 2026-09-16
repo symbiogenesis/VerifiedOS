@@ -32,13 +32,13 @@ Deletion requires all of the following clauses.
 | Clause | Existing decision procedure | Remaining input or evidence |
 | --- | --- | --- |
 | Preserve the architectural ordering contract | n/a | Refinement from the proposed ordered path to the current ordering, fence, exception and device rules |
-| Represent every permitted joint arrival | Finite joint arrival alternatives are enumerated | A sound extraction from the actual schedule, routes and instruction streams, including the RoT's independently serviced traffic |
+| Represent every permitted joint arrival | `phase-schedule` resolves named banks, harts and operations into finite joint alternatives from digest-bound schedule and resource inputs | A sound extraction from the actual schedule, routes and instruction streams, including the RoT's independently serviced traffic |
 | Accept each joint arrival in one legal transition, or charge its wait | The phase-service checker rejects unavailable injection, conflicting bank use and occupied destinations | Qualified per-slot injection and issue limits and all applicable arbitration resources; lockstep partners are not extra requesters |
 | Carry resource state through frame wrap and close the reachable transition set | The checker explores phase, busy-bank and in-flight states from empty startup until closure | A justification that real startup and every permitted mode or schedule transition are covered by those initial states and transitions |
 | Respect ordered arrival along the path | The checker detects within-hart order inversion and path contention | A correspondence between the finite paths and the actual fabric; queues, backpressure and shared resources absent from the model require an extended model |
-| Bound quiescent drain and switch saving | The checker reports longest in-flight time until bank acceptance | The physical pipeline drain and bank completion bounds; the reported bound excludes completion of bank occupancy |
-| Meet every deadline with the candidate's extra stalls | n/a | Whole-image WCET and schedule analysis using qualified costs, including trap residency and the padded boundary in admission duty |
-| Establish a favorable implementation cost | n/a | Measured or qualified area, service stalls, maintenance and switch operands, with stated uncertainty and workload coverage |
+| Bound quiescent drain and switch saving | The optional completion analysis carries operations through bank occupancy and checks same-hart completion order; the cost evaluator distinguishes switch saving from net saving | The physical pipeline drain and bank completion bounds and their correspondence to modeled completion |
+| Meet every deadline with the candidate's extra stalls | `phase-cost` checks supplied per-slot and frame cost intervals, including stalls, trap residency and once-only boundaries | Whole-image WCET soundness and schedule analysis using qualified costs, including the padded boundary in admission duty |
+| Establish a favorable implementation cost | `phase-cost` compares time, area and power intervals and budgets without substituting zero for missing operands | Measured or qualified area, service stalls, maintenance and switch operands, with stated uncertainty and workload coverage |
 
 The synthetic checker is executable evidence about its finite contract. It is
 not a proof that an arbitrary RTL implementation, arrival language, or physical
@@ -76,6 +76,54 @@ positive result. Tests check the expected closure verdict, require a refusal
 reason on each negative case and a drain bound on each positive case. An
 opposite verdict or malformed fixture fails the suite.
 
+## Executable prerequisite preparation
+
+The [preparation contract](phase-service/prerequisite-contract.md) fixes the scope
+and acceptance of three host instruments:
+
+- [Schedule extraction](phase-service/schedule-input.md) resolves named joint
+  arrivals against a separate resource declaration whose exact bytes the schedule
+  binds. Its emitted contract can be passed directly to `phase-service`. The
+  extractor preserves conflicting arrivals so the phase checker can refute them;
+  a per-hart issue restriction is checked rather than assumed.
+- [Completion analysis](phase-service/completion-model.md), selected with
+  `phase-service --completion`, checks same-hart completion order and drain through
+  bank completion. The original `drain` continues to mean in-flight time to bank
+  acceptance; the completion result reports its own bound and status.
+- [Cost arithmetic](phase-service/cost-input.md) binds a named workload to exact
+  schedule bytes and compares baseline and candidate intervals. Favorable
+  arithmetic requires conservative budget compliance and no regression in time,
+  area or power, with a strict improvement in at least one. Overlap and tradeoffs
+  remain inconclusive, and missing operands remain explicit.
+
+The schema pages include runnable synthetic examples. Source hashes bind the
+receipts to their inputs and implementations. These instruments do not extract
+instruction traffic from binaries, prove an arbiter, measure a macro or establish
+WCET. Their target comparison stays open independently of a synthetic verdict.
+
+`python tools/run.py phase-evaluate SCHEDULE RESOURCES --costs COSTS --json`
+joins the instruments for the declared zero-wait branch. The cost input must bind
+the same schedule path, exact bytes and name. Its completion-drain interval must
+cover at least the model's quiescent bound; a wholly smaller interval refutes the
+join and an overlapping interval is inconclusive. The cost input's common clock
+also applies to the phase contract's cycles. This is a declared unit convention,
+not measured clock correspondence. The cost frame covers one serial admission
+domain; the service period is not itself a task frame or a certificate of its
+visit counts. A whole-image join across cores and modes remains owed.
+
+Run the synthetic joined example with:
+
+```console
+python tools/run.py phase-evaluate docs/implementation/phase-service/schedule-examples/closed-companion.json docs/implementation/phase-service/schedule-examples/resources.json --costs docs/implementation/phase-service/schedule-examples/costs.json --json
+```
+
+The command returns 1 for a refuted branch, 2 for invalid or mismatched inputs,
+and 0 for a completed analysis whose verdict may be favorable, inconclusive or
+open; read `branch_verdict`, not the exit code alone. It always reports
+`target_comparison: open`. Refuting zero wait does not refute every deleting
+candidate: a candidate that waits needs a stalled transition model and a fresh
+arrival/WCET analysis. No successful cost comparison repairs that missing model.
+
 ## Cost operands and present verdict
 
 The comparison starts from
@@ -104,12 +152,13 @@ values. The [unassigned proof map](../assurance/unassigned-proof-map.md) propose
 the arbiter/schedule and timing work at U-03, U-05, U-08 and U-09; these remain
 proposals rather than available producers.
 
-Even a closed finite contract leaves completion and visibility unresolved. For
+Acceptance closure alone leaves completion and visibility unresolved. For
 example, independent banks can accept one hart's long write followed by its short
 write without waiting, while the later write's occupancy ends first. With zero
 fabric latency the reported `drain` is zero even while a bank is busy. The
-behavioral suite preserves this scope distinction: neither result supplies an
-ordering proof or the physical quiescent bound needed by the cost comparison.
+completion analysis detects that inversion and accounts for residual occupancy;
+its finite model still supplies neither a visibility/refinement proof nor a
+qualified physical quiescent bound.
 
 ## Joint register act needed for second-class stores
 
@@ -127,6 +176,14 @@ requirement.
 Each arm also needs its corresponding specification text, timing inputs,
 admission evidence and coverage review. Selecting an arm here would conceal a
 normative decision; neither is included in the present baseline cost.
+
+The unbuffered arm must define where a slot-boundary timer meets an outstanding
+operation. R-07-040 owns the padded boundary and trap residency, R-15-220 and
+R-15-220a own switch and context costs, and R-11-009 consumes that boundary. A
+completion-before-retirement rule alone does not locate a residual memory wait
+in those costs. The joint amendment must assign it exactly once and prove the
+successor's release instant, rather than assuming every operation finished before
+the switch. This remains part of the arm's admission and refinement work.
 
 ## Acceptance predicate
 

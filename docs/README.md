@@ -56,6 +56,9 @@ The implementation interfaces are recorded in the
 [compatibility workflow](implementation/compatibility-contract.md),
 [entropy observer](implementation/entropy-observer-contract.md), and
 [store-buffer comparison](implementation/store-buffer-comparison.md).
+Its [executable prerequisite contract](implementation/phase-service/prerequisite-contract.md)
+covers schedule extraction, completion and quiescent drain, and workload cost
+arithmetic while target qualification remains open.
 The [roster measurement contract](implementation/roster-measurement-contract.md)
 fixes the allocation-churn and ring-accounting analyzers' inputs and limits;
 the accepted composed roster supplies the eventual target measurements.

@@ -91,6 +91,9 @@ caught by nothing, which is a residue the findings register carries.
 | `session-binding` | host | Checks two symbolic attestation/session-binding models, the TLS application binding and the ensemble link session, against replay, parallel-session substitution, unit-substitution, foreign-ensemble-identity and relay cases. Cryptographic and implementation correspondence remain separate obligations. |
 | `assembly-compare` | host | Compares stock compiler assembly under the [reviewed annotation-only contract](../docs/implementation/compiler-assembly-comparison.md). `LEFT RIGHT --json` reports input and tool identities; equal bytes supply no compiler-campaign verdict. |
 | `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits traces reaching the earliest failing cycle for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
+| `phase-schedule` | host | Resolves named joint arrivals and digest-bound resource declarations into a phase-service contract, retaining grant conflicts and frame-wrap occupancy for checking. The [input schema](../docs/implementation/phase-service/schedule-input.md) includes runnable synthetic examples; target schedule correspondence remains open. |
+| `phase-cost` | host | Checks declared per-slot, frame, area and power cost intervals, with once-only boundaries and unknown operands preserved. The [input schema](../docs/implementation/phase-service/cost-input.md) states conservative verdicts and synthetic examples; a favorable arithmetic result is not target qualification. |
+| `phase-evaluate` | host | Joins schedule extraction, completion and cost arithmetic against the same schedule path, bytes and name, and checks that the declared pipeline drain covers the modeled bound. The [comparison](../docs/implementation/store-buffer-comparison.md#executable-prerequisite-preparation) states its zero-wait scope and verdicts; target qualification remains open. |
 | `storage-index` | host | Compares a fixed-height buffered index and plain CoW B+ tree under one conditional redo contract. Reports bounded block costs, map equivalence and crash cases; [Q22f's predicate](../docs/implementation/storage-index-comparison.md) leaves device qualification and target WCET open. `--json` includes source identities and every measured case. |
 | `static-memory` | host | Replays capacity ledgers, checked placements, bounded exact oracles, structural and service experiments, reclamation envelopes, mode families, representability, mutations, phases and lending. `manifest --replay --json` inventories and replays the registered actions. [The experiment contract](../docs/implementation/static-memory/experiments.md) states each action's finite scope and remaining target obligations; `--json` binds working-tree sources and inputs. |
 | `memory-planner` | host; demo-tflm in wsl | Checks portable pool/offset plans, retains a checked baseline during bounded search, replays finite optimization evidence and extracts bounded component contracts. `demo --json` runs the non-ML worker example; `demo-tflm --json` compiles the pinned-interface demonstration in the guest lane. The [portable contract](../docs/implementation/portable-memory-planner.md) distinguishes model, API and deployment evidence. |
@@ -147,6 +150,16 @@ misspelled refresh fields cannot disappear from an accepted contract. Receipts
 include the composition's source hash and the hash of the exact supplied contract
 bytes parsed. Acceptance order and the in-flight drain bound do not establish
 completion/visibility order or bank-completion drain.
+
+Add `--completion` to a supplied contract run for the separate
+[completion analysis](../docs/implementation/phase-service/completion-model.md).
+Its `quiescent_drain` includes residual bank occupancy after stopping arrivals;
+scheduled refresh continues, and a blocked drain receives no finite bound. It
+also checks whether a later operation of one hart completes before an earlier
+one. The original acceptance result and `drain` retain their meanings. Mode
+transitions, physical completion and architectural visibility require separate
+evidence. The [preparation contract](../docs/implementation/phase-service/prerequisite-contract.md)
+connects this analysis to schedule extraction and workload cost arithmetic.
 
 `compiler-diff` is M1.2f's driver, and what it does not yet decide is stated with
 what it does. At the program level it runs the `ccomp` its command line names, which
