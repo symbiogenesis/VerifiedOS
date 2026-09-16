@@ -45,8 +45,9 @@
    and FunctionalExtensionality are unavailable and every state equality
    below is stated pointwise for that reason. A Require naming a sibling
    artifact would be admissible, and there is none to name. PartitionContext
-   .v's switch_cost is R-15-220's partition-switch constant, which R-11-009
-   puts inside R-11-006's interval arithmetic, where this file's dwell is
+   .v's switch_cost is R-15-220's platform cost; BoundaryCost.v combines it
+   with context and residency for R-11-009's full boundary in R-11-006's
+   interval arithmetic, where this file's dwell is
    R-15-247g's mode-transition constant entering the R-15-189i transition
    budget. The two budgets do not meet, so a Require here would be a
    citation rather than a dependency, which is the thing CyclicExecutive.v's
