@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "workload": "synthetic-foreground",
+  "schedule": {
+    "id": "synthetic-frame",
+    "path": "schedule.json",
+    "sha256": "20a1af090442da7d7661238c0705bb653f2c930ea17507e0beb0f39f965132ef"
+  },
+  "clock": {
+    "id": "synthetic-core",
+    "hz": 100000000
+  },
+  "units": {
+    "time": "cycles",
+    "area": "um2",
+    "power": "uW"
+  },
+  "slots": [
+    {
+      "id": "foreground",
+      "switches": 2,
+      "deadline": [
+        200,
+        200
+      ],
+      "baseline": {
+        "execution": [
+          100,
+          100
+        ],
+        "stalls": [
+          10,
+          10
+        ],
+        "trap_per_switch": [
+          2,
+          2
+        ],
+        "other": [
+          4,
+          4
+        ]
+      },
+      "candidate": {
+        "execution": [
+          100,
+          100
+        ],
+        "stalls": [
+          10,
+          10
+        ],
+        "trap_per_switch": [
+          2,
+          2
+        ],
+        "other": [
+          4,
+          4
+        ]
+      }
+    }
+  ],
+  "boundary": {
+    "fence_t": [
+      10,
+      10
+    ],
+    "d_pipe_completion": [
+      2,
+      2
+    ],
+    "vmclear": [
+      3,
+      3
+    ],
+    "opp_relock": [
+      5,
+      5
+    ]
+  },
+  "budgets": {
+    "frame": [
+      200,
+      200
+    ],
+    "area": [
+      1200,
+      1200
+    ],
+    "power": [
+      120,
+      120
+    ]
+  },
+  "area": {
+    "baseline": [
+      1000,
+      1000
+    ],
+    "candidate": [
+      900,
+      900
+    ]
+  },
+  "power": {
+    "baseline": [
+      100,
+      100
+    ],
+    "candidate": [
+      130,
+      130
+    ]
+  },
+  "domain": {
+    "id": "synthetic-serial-core",
+    "kind": "serial"
+  }
+}
