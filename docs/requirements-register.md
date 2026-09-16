@@ -1111,7 +1111,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T
 
 **R-05-161** MUST: The composition meta-lemma states that the four invariants and the seam lemmas, transported through the refinement tower, entail T, and carries its own coverage obligation: no attacker-observable channel, authorized flow, timing leak, liveness stall, or admitted binary escapes their union, and each seam's conclusion is stated in the vocabulary of the next's premise.
-· Accept: the coverage argument is written and reviewed; each seam's interface types are shown to meet.
+· Accept: the coverage argument is written and reviewed; each seam's interface types are shown to meet. Each transport names the source and target observations, their relation, attacker contexts, permitted declassifications, termination/progress treatment and the preserved property class. Adjacent transports compose through proved interface relations; a functional trace-inclusion theorem alone cannot discharge an arbitrary hyperproperty. The composition argument includes refuting examples for an omitted timing observation and an incompatible context or declassification relation. Completeness of the modeled channel inventory against the physical system remains a reviewed modeling obligation under R-05-162, not a consequence of composing correctly typed lemmas.
 · Trace: CJ-T
 
 **R-05-161a** MUST: The binding between the composed artifact and the booted die has two halves, both carried in the apex vocabulary: the ninth seam's image binding, which is code identity, and R-07-028's initialisation refinement, which is the installed capability distribution; the refinement enters the ninth seam as a premise beside attestation and capability safety, so the graph whose permitted adversary sets T quantifies over is the graph the booted machine runs, not only the one the image was composed against.
@@ -5755,7 +5755,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022); a crypto primitive whose lowering resists constant-time hardening is refused rather than shipped with a hand-written leaf, on the same delivery-side footing (R-05-068); the same pass rejects a composition whose per-mode power vector would switch off an SRAM array some admitted capability can still reach (R-15-189g), and an install-path proof that exhausts the on-device kernel's declared budget ends the same way, the artifact unadmitted and the cost on delivery rather than on a running device (R-06-015a).
-· Accept: the one member whose denial cannot reach a running unit, named so that the register is not read as uniformly a field risk.
+· Accept: refusal leaves the running generation unchanged but can indefinitely delay a valid update or package, including a remediation. A semantically safe binary can lack a derivation in the frozen TAL fragment, and a well-typed CIC proof can exceed a generation's budget. Exhaustion establishes neither ill-typing nor unsafe code. A cheaper proof or larger budget is a possible remedy, not a guarantee that a deliverable fits finite device resources; no availability claim assumes eventual successful installation.
 · Trace: CJ-TAL-SOUND
 
 **R-17-030f** IS: Fail-closed seam **the sealed cutoffs ⋈ emergency calling**: the thrown-cutoff consequences R-12-054 states (R-15-145), deliberately not overridden.
@@ -5894,7 +5894,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE, CJ-RTL-SAIL
 
 **R-17-038** IS: The admission-checker stratification seam carries six named residuals: the CHERI-TAL soundness metatheorem as a new crown jewel; the net-new temporal-safety type discipline; relevance bounding the drop but never the response; no-ambient-state forbidding re-manufacture but not over-injection; the frozen theory buying the line-budget axiom by spending expressiveness one-directionally; and totalized arithmetic being per-install decidable only where bounds are closed.
-· Accept: each is stated with its compensating fact and its scope boundary; least authority stays in the compose-time topology as a crown-jewel policy statement rather than a typing obligation.
+· Accept: each is stated with its compensating fact and its scope boundary; least authority stays in the compose-time topology as a crown-jewel policy statement rather than a typing obligation. Arithmetic uses TAL-039's fixed rule expressions over closed bounded numerals, with a profile-fixed maximum width, not quantified constraints or satisfiability over unknown integers. The expressiveness and resource limits can refuse semantically safe binaries; R-06-015a's proof budgets can refuse well-typed proofs, with R-17-030e owning the installation-availability consequence. Neither general arithmetic lower bounds nor an engineering effort estimate establishes completeness of this admitted fragment.
 · Trace: CJ-TAL-SOUND
 
 **R-17-039** IS: The Sail ⋈ RTL seam is split rather than left as one undifferentiated trust residual: the Coq refinement is the sole unbounded close, the timing and ordering obligations are hyperproperties needing a timing-annotated model, and no such artifact exists at full-application-core scale, the least-built layer of the stack.
@@ -6128,7 +6128,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 17.9 The composition obligation
 
 **R-17-064** IS: The residual the whole list rolls up into is the composition meta-lemma: that the capability-safety substrate and the seam lemmas, transported down the refinement tower, entail T.
-· Accept: it is the single largest verification deliverable and exists for no system of this scope; the single-prover discipline makes it literal proof composition rather than cross-tool glue, which is what makes it tractable, not what makes it done.
+· Accept: the instantiated end-to-end theorem remains open here. Existing theories of trace-relating secure compilation and compositional non-interference are candidate methods, not a proof of this tower. R-05-161's observation/context relations and their composition must be instantiated at every seam; using one prover supplies no missing interface theorem or channel-completeness proof. The literature does not justify a blanket claim that no compositional theory exists, and the local missing theorem is not presented as an impossibility result.
 · Trace: CJ-T
 
 **R-17-065** IS: T is true only modulo the boundary R-05-162 states, each element of it a residual above.

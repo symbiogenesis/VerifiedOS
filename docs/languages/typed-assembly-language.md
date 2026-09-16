@@ -560,11 +560,16 @@ The closed vocabulary is the grammar of §8.2 and nothing beside it: a former ab
 
 **TAL-039** IS: The only computation the checker performs is bounded-width arithmetic over closed numerals: cost sums and comparisons along a max-path, and overflow range side conditions at arithmetic rules, the operand bounds those conditions compare being immediates, widths, and the range premises of §8.7. Each is decided in constant time per node.
 · Accept: no rule reduces an open term; every numeral in a certificate is closed and within the declared width; an arithmetic site whose side condition has no closed operand bound and no declared range premise rejects.
+· Accept: the rule table fixes each arithmetic expression and its operators; the certificate supplies numeral operands, never an expression or constraint language. An operand is a literal, a decoded width or immediate, a previously computed closed attribute, or a permitted premise's closed bound. Cost expressions use bounded addition, multiplication and maximum; range rules evaluate their fixed bounded endpoint operations and comparisons on these operands. There are no unknown integer variables, quantifiers, user functions, satisfiability queries or symbolic width expressions. The pinned profile fixes a finite maximum numeral width, checked before evaluation; constant time per node is relative to that fixed maximum, not to an arbitrary binary-encoded width supplied by an artifact. Qualification refuses an open operand, an injected constraint expression and a width above that maximum.
 · Trace: §8.5
 
 **TAL-040** MUST: Cost arithmetic saturates rather than wraps, and saturation is a rejection: an addition or a multiplication that would exceed the declared width fails admission at that site.
 · Accept: the cost carrier is the declared-width naturals with a top element that no accepted certificate reaches; a certificate whose cost overflows is rejected with the site named.
 · Trace: §8.5, §10.4
+
+This is evaluation of fixed rules on closed data, not an arithmetic decision procedure over unknowns. Multiplication of two such numerals does not introduce Hilbert's tenth problem. Complexity claims about [first-order Presburger arithmetic](https://upload.wikimedia.org/wikipedia/commons/0/03/Super-exponential_Complexity_of_Presburger_Arithmetic_by_Fischer_and_Rabin_%281974%29_-_MIT-LCS-TM-043.pdf) concern a quantified formula language absent here; results for [quantified bit-vectors with binary-encoded widths](https://arxiv.org/abs/1612.01263) also depend on quantification and encoding and cannot be transferred to this grammar. A richer side-condition language requires TAL-037's amendment review, not a solver added behind a rule.
+
+Soundness does not promise admission of every semantically safe binary. The frozen grammar, numeral limits and available premise evidence can exclude a safe program. The consumer's CIC checker may additionally refuse a well-typed proof on budget exhaustion. Exhaustion is not evidence of ill-typing, and a larger budget or a different proof is not guaranteed to fit the device's finite capacity. VerifiedOS records that delivery and availability boundary in R-17-030e and R-17-038; the TAL checker's own traversal still has its language-defined termination and work bound.
 
 ### 7.7 The theory binds the checker, not the producer
 
