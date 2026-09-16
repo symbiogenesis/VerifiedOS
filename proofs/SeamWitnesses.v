@@ -119,12 +119,16 @@ Definition conclusion_witness_vocabulary
   image_binding := w_image_binding;
   die_matches_rtl := True;
   hardness_conjectures := True;
+  idealized_model_assumptions := True;
   consent_correctness := True;
   Ax_machine := True;
   Ax_hardness := True;
+  Ax_model := True;
+  Ax_estimate := True;
   Ax_human := True;
   ax_machine_carries_die_matches_rtl := fun _ => I;
   ax_hardness_carries_conjectures := fun _ => I;
+  ax_model_carries_assumptions := fun _ => I;
   ax_human_carries_consent := fun _ => I
 |}.
 
@@ -229,7 +233,7 @@ Definition refutes_seam_crypto_hardness : Vocabulary :=
 (*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_crypto_hardness_distinguishing :
   ~ seam_crypto_hardness refutes_seam_crypto_hardness.
-Proof. exact (fun H => H (conj I I)). Qed.
+Proof. exact (fun H => H (conj I (conj I I))). Qed.
 
 (* 9. Attestation joins capability safety: image_binding refused under
       all three premises, the initialisation refinement included. *)

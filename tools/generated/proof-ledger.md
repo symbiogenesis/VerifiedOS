@@ -1451,6 +1451,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-043 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-049 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-049 | proofs/RomVerifier.v | n/a | cited |
+| R-17-049e | proofs/ApexTheorem.v | n/a | cited |
+| R-17-049f | proofs/ApexTheorem.v | n/a | cited |
 | R-17-049b | proofs/RomVerifier.v | n/a | cited |
 | R-17-049d | proofs/ComposedNonInterference.v | n/a | cited |
 | R-17-058a | proofs/ApexTheorem.v | n/a | cited |

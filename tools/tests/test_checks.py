@@ -146,7 +146,7 @@ def _retained_estimates_are_scope_not_actuals() -> None:
 
 def _optional_inference_work_stays_outside_both_gates() -> None:
     # Exercise the reported budgets, including _head's handling of full labels.
-    # Adding every module child must leave both independent gate figures unchanged.
+    # Module and research qualification must leave both gate figures unchanged.
     plan = ("# Plan\n\n"
             "* M8a gate: 999 h of open work falls at or before it, of which 999 h is class X.\n"
             "* M8b gate: a 999 h chain of open work.\n\n"
@@ -155,11 +155,14 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
     modules = "".join(
         f"* [ ] **Q24{suffix} · Module fixture** · 3 h, range 2–4 · 0.0% · X · "
         "after the M8a gate\n" for suffix in "abcdefgh")
+    research = "".join(
+        f"* [ ] **Q28{suffix} · Research fixture** · 6 h, range 3–9 · 0.0% · X · "
+        "after the M8a gate\n" for suffix in "abc")
     expected = [
         "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",
         "* M8b gate: a 20 h chain of open work.",
     ]
-    for addition in ("", modules):
+    for addition in ("", modules, research, modules + research):
         with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                            PLAN: plan + addition}) as root:
             ctx = _context(root, fix=True)
@@ -168,7 +171,7 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
             actual = [line for line in repaired.splitlines()
                       if line.startswith(("* M8a gate:", "* M8b gate:"))]
             ensure(actual == expected,
-                   f"optional module work changed a required gate budget: {actual!r}")
+                   f"deferred qualification changed a required gate budget: {actual!r}")
 
 
 def _k96_record_is_held_total_in_both_directions() -> None:

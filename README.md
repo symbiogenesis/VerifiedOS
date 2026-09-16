@@ -333,7 +333,7 @@ Each row names the owner of a real obligation met outside the platform; an unnam
 
 ### What this inventory does not claim
 
-This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings, not whether an independent peer accepts the same language; no single-party proof can establish that, so parser differentials remain untrusted evidence and a recorded residual.
+This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings. Agreement with an independent peer additionally requires that peer's grammar, interpretation, and implementation correspondence. A cooperating peer can supply artifacts for a bounded equivalence proof; without them, parser differentials remain untrusted evidence and a [recorded residual](docs/spec.md#r-17-016b).
 
 The transferred rows count limits owned elsewhere. The specification's [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) and [critique.md](docs/background/critique.md) record those limits and open proof work.
 

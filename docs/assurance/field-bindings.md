@@ -43,10 +43,13 @@
 | `attestation_chain` | `seam_attestation_capability_safety` | the measured boot chain (R-05-161a) | none yet |
 | `image_binding` | `seam_attestation_capability_safety` | the two-halved boot binding (R-05-161a) | none yet |
 | `die_matches_rtl` | `ax_machine_carries_die_matches_rtl` | an element of Ax's machine class (R-05-162, R-05-162a) | none yet |
-| `hardness_conjectures` | `ax_hardness_carries_conjectures, seam_crypto_hardness` | MLWE/MSIS and ECDLP/CDH (R-17-049) | none yet |
+| `hardness_conjectures` | `ax_hardness_carries_conjectures, seam_crypto_hardness` | the selected computational conjectures, including symmetric/hash property formulations (R-17-049, R-17-049f) | none yet |
+| `idealized_model_assumptions` | `ax_model_carries_assumptions, seam_crypto_hardness` | the selected oracle/permutation model and concrete-instantiation premises (R-17-049f) | none yet |
 | `consent_correctness` | `ax_human_carries_consent, seam_consent_declassification` | the human class of Ax (R-17-013, R-17-013e) | none yet |
 | `Ax_machine` | `Ax, ax_machine_carries_die_matches_rtl` | the machine class of the R-18-031(c) ledger (R-05-162a) | none yet |
-| `Ax_hardness` | `Ax, ax_hardness_carries_conjectures` | the hardness class of the same ledger (R-05-162a) | none yet |
+| `Ax_hardness` | `Ax, ax_hardness_carries_conjectures` | the computational-security class of the ledger (R-05-162a, R-17-049) | none yet |
+| `Ax_model` | `Ax, ax_model_carries_assumptions` | the idealized-model class of the ledger (R-05-162a, R-17-049f) | none yet |
+| `Ax_estimate` | `Ax` | the concrete-estimate class, consumed only by claims using those estimates (R-05-162a, R-17-049e) | none yet |
 | `Ax_human` | `Ax, ax_human_carries_consent` | the human class of the same ledger (R-05-162a) | none yet |
 
 ## Standing obligations

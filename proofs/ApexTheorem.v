@@ -64,8 +64,8 @@
       observations live inside the channels per R-08-027a, bound when
       row 2's policy model lands; "in-scope" is §17's scoping, so the
       analog power and EM observation is outside T (R-05-162, R-17-058a).
-   10. Ax is three classes, not one pool (R-05-162a): machine, hardness,
-      and human, each a field, with Ax the definition conjoining them; a
+   10. Ax indexes machine, computational, idealized-model, concrete-estimate
+      and human premises (R-05-162a), each a field, with Ax conjoining them; a
       companion theorem over this record cites only the classes it
       consumes, and the ledger elements some seam or rung consumes are
       pinned inside their classes by the coercions.
@@ -100,9 +100,9 @@
    Requirements: R-01-002 R-05-102 R-05-156 R-05-156a R-05-156b R-05-158 R-05-159 R-05-160
       R-05-161 R-05-161a R-05-162 R-05-162a R-05-163 R-05-164 R-05-165 R-05-166 R-06-008
       R-06-012 R-06-014 R-07-021 R-07-028 R-08-026 R-08-027 R-08-027a R-08-028 R-10-025 R-11-017
-      R-15-101 R-17-003 R-17-013 R-17-013e R-17-041 R-17-042 R-17-043 R-17-049 R-17-058a
-      R-18-003b R-18-031
-   SHA256: 74dd117b55d0f355064e0c616a1b3c83db48cf1595c00344f3d1502ea2e16b46
+      R-15-101 R-17-003 R-17-013 R-17-013e R-17-041 R-17-042 R-17-043 R-17-049 R-17-049e
+      R-17-049f R-17-058a R-18-003b R-18-031
+   SHA256: 0db7c47e397d5bd014a761ef745c9bd227b85f72a2a0fb31610efab677552e02
    (*| END derived |*)
    ========================================================================= *)
 
@@ -238,25 +238,31 @@ Record Vocabulary : Type := {
                                             booted machine (R-05-161a)        *)
 
   (* --- the boundary (R-05-162, R-05-162a): the R-18-031(c) ledger is
-         indexed by claim class, machine, hardness, and human, each class
-         a field here, with Ax defined below as their conjunction; a
+         indexed by claim class, with computational, model and estimate premises
+         separate from machine and human premises, and Ax their conjunction; a
          companion theorem over this record cites only the classes it
-         consumes (decision 10). The three ledger elements some seam or
+         consumes (decision 10). The ledger elements some seam or
          rung consumes are pinned inside their classes by the coercions.
          Specification faithfulness and invasive physical attack are
          machine-class elements no Prop of this statement can carry; they
          stay §17 residuals. ----------------------------------------------- *)
 
   die_matches_rtl : Prop;
-  hardness_conjectures : Prop;           (* MLWE/MSIS, ECDLP/CDH (R-17-049)    *)
+  hardness_conjectures : Prop;           (* computational conjectures, including
+                                            symmetric/hash games (R-17-049)   *)
+  idealized_model_assumptions : Prop;    (* selected oracle/permutation models
+                                            and instantiation (R-17-049f)     *)
   consent_correctness : Prop;            (* the human half (R-17-013, R-17-013e) *)
   Ax_machine : Prop;                     (* die-matches-RTL, specification
                                             faithfulness, invasive physical
                                             attack                            *)
   Ax_hardness : Prop;
+  Ax_model : Prop;
+  Ax_estimate : Prop;                    (* concrete bounds only (R-17-049e)  *)
   Ax_human : Prop;
   ax_machine_carries_die_matches_rtl : Ax_machine -> die_matches_rtl;
   ax_hardness_carries_conjectures : Ax_hardness -> hardness_conjectures;
+  ax_model_carries_assumptions : Ax_model -> idealized_model_assumptions;
   ax_human_carries_consent : Ax_human -> consent_correctness
 }.
 
@@ -265,7 +271,8 @@ Record Vocabulary : Type := {
    Vocabulary cites only the classes it consumes, which is the indexing's
    point: what each claim rests on is answerable per claim. *)
 Definition Ax (v : Vocabulary) : Prop :=
-  v.(Ax_machine) /\ v.(Ax_hardness) /\ v.(Ax_human).
+  v.(Ax_machine) /\ v.(Ax_hardness) /\ v.(Ax_model)
+  /\ v.(Ax_estimate) /\ v.(Ax_human).
 
 (* -------------------------------------------------------------------------
    The apex theorem T (R-05-156), with its four elements in order: the
@@ -359,11 +366,14 @@ Definition seam_liveness_schedulability (v : Vocabulary) : Prop :=
 Definition seam_consent_declassification (v : Vocabulary) : Prop :=
   v.(consent_correctness) -> v.(declassified_flows_authorized).
 
-(* 8. Crypto joins hardness (R-17-049); the hardness side is Ax's hardness
-      class, and the conclusion is seam 5's premise. *)
+(* 8. Crypto joins computational conjectures and selected model premises
+      (R-17-049, R-17-049f); the conclusion is seam 5's premise. A
+      model-free reduction instantiates the model constituent with True.
+      Concrete estimates are consumed only by claims using those bounds,
+      not by this abstract reduction seam (R-17-049e). *)
 Definition seam_crypto_hardness (v : Vocabulary) : Prop :=
   v.(crypto_reductions) /\ v.(hardness_conjectures)
-  -> v.(ae_ind_cca_int_ctxt).
+  /\ v.(idealized_model_assumptions) -> v.(ae_ind_cca_int_ctxt).
 
 (* 9. Attestation joins capability safety, the substrate's spatial_safety
       (R-05-159); consumes R-07-028's initialisation refinement as its
@@ -462,12 +472,16 @@ Definition trivial_vocabulary : Vocabulary := {|
   image_binding := True;
   die_matches_rtl := True;
   hardness_conjectures := True;
+  idealized_model_assumptions := True;
   consent_correctness := True;
   Ax_machine := True;
   Ax_hardness := True;
+  Ax_model := True;
+  Ax_estimate := True;
   Ax_human := True;
   ax_machine_carries_die_matches_rtl := fun _ => I;
   ax_hardness_carries_conjectures := fun _ => I;
+  ax_model_carries_assumptions := fun _ => I;
   ax_human_carries_consent := fun _ => I
 |}.
 
@@ -542,19 +556,23 @@ Definition leaky_vocabulary : Vocabulary := {|
   image_binding := True;
   die_matches_rtl := True;
   hardness_conjectures := True;
+  idealized_model_assumptions := True;
   consent_correctness := True;
   Ax_machine := True;
   Ax_hardness := True;
+  Ax_model := True;
+  Ax_estimate := True;
   Ax_human := True;
   ax_machine_carries_die_matches_rtl := fun _ => I;
   ax_hardness_carries_conjectures := fun _ => I;
+  ax_model_carries_assumptions := fun _ => I;
   ax_human_carries_consent := fun _ => I
 |}.
 
 Lemma statement_distinguishing_instance : ~ T leaky_vocabulary.
 Proof.
   intros H.
-  specialize (H (conj I (conj I I)) (fun _ => True)
+  specialize (H (conj I (conj I (conj I (conj I I)))) (fun _ => True)
                 (conj I (fun _ _ contra => contra))
                 true false I).
   destruct H as [Hvalue _].

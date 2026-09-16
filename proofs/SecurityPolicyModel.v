@@ -1402,12 +1402,16 @@ Definition apex_vocabulary (m : PolicyModel) (x : Execution) (p : Powerbox)
   image_binding := True;
   die_matches_rtl := True;
   hardness_conjectures := True;
+  idealized_model_assumptions := True;
   consent_correctness := True;
   Ax_machine := True;
   Ax_hardness := True;
+  Ax_model := True;
+  Ax_estimate := True;
   Ax_human := True;
   ax_machine_carries_die_matches_rtl := fun _ => I;
   ax_hardness_carries_conjectures := fun _ => I;
+  ax_model_carries_assumptions := fun _ => I;
   ax_human_carries_consent := fun _ => I
 |}.
 

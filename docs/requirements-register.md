@@ -658,8 +658,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each primitive's functional specification is in the crown-jewel inventory and is the shared object of the layer-1/2 refinement and the layer-3 game.
 · Trace: CJ-CRYPTO-SPEC, CJ-REDUCTION
 
-**R-05-077** IS: The reduction isolates and names the residual hardness assumptions (MLWE/MSIS; ECDLP/CDH) and cannot discharge them.
-· Accept: each appears in the §17 axiom set `Ax`, not in the theorem set.
+**R-05-077** IS: The reduction isolates and names its computational conjectures and idealized-model premises, as indexed by R-17-049 and R-17-049f, and cannot discharge them. Concrete parameter estimates carry their separate R-17-049e premises only where the claim consumes them.
+· Accept: each consumed premise appears in the R-05-162a class and §17 entry that governs it, with the selected game and assumption formulation explicit, not as an established theorem.
 · Trace: CJ-REDUCTION
 
 **R-05-077a** IS: The three layers carry a precondition on the entropy root rather than a conclusion about it: a reduction is stated over uniformly drawn keys, nonces, and blinding factors, and constant-time verification constrains a draw's observable behaviour and never its distribution, so a predictable root breaks IND-CCA and EUF-CMA while all three layers verify unchanged.
@@ -5524,7 +5524,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ### 17.1 The index
 
-**R-17-001** IS: Residuals are grouped by trust source in an index table: proof gap (deferred, not assumed), spec gap (crown jewels), physical/fab gap, human consent, hardness assumption, and commercial acceptance.
+**R-17-001** IS: Residuals are grouped by trust source in an index table: proof gap (deferred, not assumed), spec gap (crown jewels), physical/fab gap, human consent, cryptographic premises (computational conjectures, idealized models and concrete estimates), and commercial acceptance.
 · Accept: every §17 entry belongs to exactly one group, and every group's listed residuals have entries below.
 · Trace: CJ-T
 
@@ -5960,7 +5960,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: booked as an evidence loss rather than as trust growth, nothing joining the trusted set. The instrument spent is the one that reports spec-versus-intent divergence, which no proof covers (R-17-016), so the compensating obligations are named rather than assumed: the representation-correctness proof (R-15-007a), the enumerated permission lattice (R-15-007b), and the bounds-precision cost carried by the static memory plan (R-15-007c). The rule the case establishes for any later amendment is that conformance is worth what its oracles are worth, so the number of amendments to the frozen dialect is itself a quantity to keep small, and the second term is what makes that rule bind rather than advise, the proportionality that makes a short deviation list affordable being carried by the algebraic term alone. The eligible oracle set, the emulators, the independent CHERI implementations, and the provers usable as re-checkers, is a moving baseline of the kind R-15-067k reviews, and it is watched the same way and with no instrument: it is re-read by a person at each re-pin act the profile's standing adoptions are reviewed at (R-15-067k) and at each amendment to the frozen dialect this entry keeps few, and at R-15-007's ratified RVY comparison, the reading recorded with the act that triggers it. A proposed RVY re-pin identifies which independent oracles actually cover the proposed format and semantics; ratification or a format name alone does not recover coverage. No instrument is owed beyond that reading.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
-**R-17-049** IS: Reductions isolate premises but do not remove them: computational conjectures (MLWE, the selected MSIS or SelfTargetMSIS formulation, ECDLP/CDH and the construction-specific symmetric/hash properties) remain assumptions, with the exact selected reduction determining which are consumed. The implementation ⋈ reduction seam joins at the primitive's functional specification, a crown-jewel spec neither side catches; idealized-model and concrete attack-estimate premises are separate ledger classes under R-05-162a.
+**R-17-049** IS: Reductions isolate premises but do not remove them: computational conjectures (MLWE, the MSIS and/or SelfTargetMSIS premises consumed by the selected game and reduction, ECDLP/CDH and the construction-specific symmetric/hash properties) remain assumptions, with the exact selected reduction determining which are consumed. The implementation ⋈ reduction seam joins at the primitive's functional specification, a crown-jewel spec neither side catches; idealized-model and concrete attack-estimate premises are separate ledger classes under R-05-162a.
 · Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach, machine-checked upstream over the analyzed models for the four radio protocols (R-12-043e) with the R-12-043f remainder booked, and unnarrowed for TLS 1.3, WireGuard, and the ensemble link session (R-12-015d), which this design authors with no upstream analysis to curate from.
 · Accept: the selected reduction names its exact algorithm edition, parameters, security game, classical or quantum adversary access, quantitative loss, computational premises and idealized models; a Kyber/Dilithium theorem is not attributed to ML-KEM-1024/ML-DSA-87 without the algorithm and parameter correspondence. No implementation-correctness theorem or failed attack establishes computational hardness.
 · Trace: CJ-REDUCTION
@@ -6428,7 +6428,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1455 requirements. §19 is non-normative and yields none. Counts include the 502 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1459 requirements. §19 is non-normative and yields none. Counts include the 506 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6446,9 +6446,9 @@ All eighteen normative sections are extracted, at 1455 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **138** |
 | **§13 Packaging & Supply Chain** | **extracted** | **43** |
 | **§14 Userland** | **extracted** | **29** |
-| **§15 Hardware Platform** | **extracted** | **427** |
+| **§15 Hardware Platform** | **extracted** | **428** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **147** |
+| **§17 Residual Risks** | **extracted** | **150** |
 | **§18 Realization** | **extracted** | **59** |
 
 §19 is non-normative and yields no requirements.

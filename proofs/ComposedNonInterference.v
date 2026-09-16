@@ -144,7 +144,7 @@
    Requirements: R-01-002 R-02-003a R-05-156a R-05-157 R-05-160 R-05-162 R-05-163 R-05-164
       R-05-165 R-05-166 R-08-028 R-12-007a R-12-008 R-12-015d R-15-211 R-15-228b R-15-228d
       R-17-003d R-17-014a R-17-049d R-17-061b R-18-031
-   SHA256: c6a9bb26845f4ef4a070606a029bab248bb60aa89bb3b970d042ab7faf78fddc
+   SHA256: 51651c44f3452891567886d144b0064e9b1a0b0f9d19f67599cbc72362200f7c
    (*| END derived |*)
    ========================================================================= *)
 
@@ -377,12 +377,16 @@ Definition wire_member_vocabulary : Vocabulary := {|
   image_binding := True;
   die_matches_rtl := True;
   hardness_conjectures := True;
+  idealized_model_assumptions := True;
   consent_correctness := True;
   Ax_machine := True;
   Ax_hardness := True;
+  Ax_model := True;
+  Ax_estimate := True;
   Ax_human := True;
   ax_machine_carries_die_matches_rtl := fun _ => I;
   ax_hardness_carries_conjectures := fun _ => I;
+  ax_model_carries_assumptions := fun _ => I;
   ax_human_carries_consent := fun _ => I
 |}.
 
