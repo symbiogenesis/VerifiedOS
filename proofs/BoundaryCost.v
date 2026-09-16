@@ -1,5 +1,6 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Boundary admission arithmetic for R-07-040 and R-11-009. R-15-220's
+(* =========================================================================
+   Boundary admission arithmetic for R-07-040 and R-11-009. R-15-220's
    platform cost remains owned by PartitionContext; R-15-220a's context
    bound is a separate composition input. These are declared cycle bounds,
    not measured timing evidence. A residency case covers one complete
@@ -10,7 +11,13 @@
    Refinement must establish coverage of every reachable successful prefix,
    soundness of its costs and continued service after timer delivery. The
    arithmetic below establishes none of those physical premises. Faults
-   requiring fail-stop have no successful-release obligation. *)
+   requiring fail-stop have no successful-release obligation.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-07-040 R-11-009 R-15-220 R-15-220a
+   SHA256: e4879da5a843cad4b3300d0dbc7fbf6511254dd70469302400371b42f9a22a24
+   (*| END derived |*)
+   ========================================================================= *)
 
 Require Import PartitionContext.
 

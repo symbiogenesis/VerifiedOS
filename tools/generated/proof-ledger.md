@@ -528,6 +528,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-037d | proofs/PartitionContext.v | n/a | cited |
 | R-07-039 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-039 | proofs/PartitionContext.v | n/a | cited |
+| R-07-040 | proofs/BoundaryCost.v | n/a | cited |
+| R-07-040 | proofs/CyclicExecutive.v | n/a | cited |
 | R-07-040 | proofs/PartitionContext.v | n/a | cited |
 | R-07-042 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-044 | proofs/EndpointIPC.v | the_specification_delivery_sees_its_own_pending_only | claimed |
@@ -931,6 +933,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-006b | proofs/CyclicExecutive.v | n/a | cited |
 | R-11-006b | proofs/PartitionContext.v | n/a | cited |
 | R-11-008 | proofs/HandlerGraph.v | n/a | cited |
+| R-11-009 | proofs/BoundaryCost.v | n/a | cited |
 | R-11-009 | proofs/CyclicExecutive.v | n/a | cited |
 | R-11-009 | proofs/DischargeSequence.v | n/a | cited |
 | R-11-009 | proofs/KernelInstance.v | n/a | cited |
@@ -1368,6 +1371,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-214 | proofs/PartitionContext.v | n/a | cited |
 | R-15-218 | proofs/PartitionContext.v | n/a | cited |
 | R-15-219 | proofs/PartitionContext.v | n/a | cited |
+| R-15-220 | proofs/BoundaryCost.v | n/a | cited |
 | R-15-220 | proofs/CyclicExecutive.v | n/a | cited |
 | R-15-220 | proofs/DischargeSequence.v | n/a | cited |
 | R-15-220 | proofs/EndpointIPC.v | n/a | cited |
@@ -1375,6 +1379,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-220 | proofs/PartitionContext.v | drain_counted_once | claimed |
 | R-15-220 | proofs/PartitionContext.v | switch_pays_all_three | claimed |
 | R-15-220 | proofs/SupervisionTree.v | n/a | cited |
+| R-15-220a | proofs/BoundaryCost.v | n/a | cited |
+| R-15-220a | proofs/CyclicExecutive.v | n/a | cited |
 | R-15-220a | proofs/PartitionContext.v | n/a | cited |
 | R-15-228 | proofs/DischargeSequence.v | n/a | cited |
 | R-15-228b | proofs/ComposedNonInterference.v | n/a | cited |

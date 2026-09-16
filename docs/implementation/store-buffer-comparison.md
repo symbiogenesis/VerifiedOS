@@ -195,6 +195,16 @@ may conservatively reserve unused capacity, but no second operation or handler
 charge is appended to H for the same work. Successful paths are padded to the
 same release instant; fatal faults retain fail-stop.
 
+[BoundaryCost.v](../../proofs/BoundaryCost.v) makes this arithmetic explicit:
+each declared prefix adds its remaining operation and handler, H bounds their
+finite case list, and the full boundary adds platform and context costs.
+[CyclicExecutive.v](../../proofs/CyclicExecutive.v)'s `slot_fits` consumes that
+boundary and refuses an empty case list. Its slot theorem covers every declared
+prefix; padding and component monotonicity are proved separately. The rung-change
+cost consumes the full switch plus its table load, with residency kept in the
+boundary. Refutations exercise omitted context, omitted residual operation and
+the incorrect maximum of two sequential segments.
+
 The declared-prefix arithmetic does not prove coverage of real executions.
 The memory-service model, actual emitted schedule, qualified bounds and their
 refinement still owe that connection. In particular, the candidate's total
