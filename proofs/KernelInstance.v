@@ -1154,6 +1154,7 @@ Definition kernel_machine : Machine := {|
 
 Definition kernel_composition : Composition := {|
   machine := kernel_machine;
+  boundary_inputs := BoundaryCost.demo_boundary_inputs;
   Tenant := nat;
   harmonic := fun _ _ => true;
   focus_majority := fun w total => Nat.leb total (w + w);

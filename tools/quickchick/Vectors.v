@@ -53,6 +53,7 @@
 
 From Stdlib Require Import String List Ascii.
 Require Import PartitionContext.
+Require Import BoundaryCost.
 Require Import CyclicExecutive.
 Require Import Probe.
 Require EndpointIPC.
@@ -122,7 +123,7 @@ Definition majors : list nat := [100; 200].
 
 Definition reserved_grid : list quad :=
   [ (60, 0, 40, 100)
-  ; (60, 0, 45, 100)
+  ; (60, 0, 41, 100)
   ; (60, 0, 46, 100)
   ; (40, 0, 20, 50)
   ; (60, 10, 40, 100)
@@ -133,7 +134,7 @@ Definition reserved_grid : list quad :=
 
 Definition focus_grid : list quad :=
   [ (90, 60, 70, 100)
-  ; (90, 60, 75, 100)
+  ; (90, 60, 71, 100)
   ; (90, 60, 76, 100)
   ; (70, 60, 50, 100)
   ; (90, 55, 70, 100)
@@ -158,7 +159,7 @@ Definition background_grid : list quad :=
   ; (60, 150, 45, 50)
   ; (10, 190, 0, 100)
   ; (50, 150, 30, 9)
-  ; (15, 45, 0, 100)
+  ; (20, 40, 0, 100)
   ].
 
 Definition frame_of (mf : nat) (r f b : quad) : Frame bool :=
@@ -762,6 +763,25 @@ Definition ipc_report : list string :=
   (List.app (map hlf_line EndpointIPC.all_halves)
             (cons dec_line nil))))))))))))))))))).
 
-Definition report : list string := List.app ce_report ipc_report.
+(* Boundary campaign: generated cases at and either side of the admission
+   threshold, including an absent case list. These are declared arithmetic
+   inputs, not qualified target latency values. *)
+Definition boundary_line (ctx op handler delta : nat) (populated : bool) : string :=
+  let c := probe_boundary ctx op handler populated in
+  let width := 14 + ctx + op + handler + delta in
+  let s := Build_Slot bool width 0 0 100 true in
+  "boundary " ++ ns ctx ++ " " ++ ns op ++ " " ++ ns handler ++ " " ++ ns delta
+    ++ " " ++ bs populated ++ " -> " ++ ns (boundary_cost (machine c) (boundary_inputs c))
+    ++ " " ++ ns (full_switch_cost (machine c) (boundary_inputs c))
+    ++ " " ++ bs (slot_fits c (width + 1) s)
+    ++ " " ++ ns (padded_release (machine c) (boundary_inputs c) 100
+                        (op + handler + full_switch_cost (machine c) (boundary_inputs c))).
+
+Definition boundary_report : list string :=
+  flat_map (fun ctx => flat_map (fun op => flat_map (fun handler =>
+    flat_map (fun delta => map (boundary_line ctx op handler delta) [false; true])
+      [0; 1; 2]) [0; 1; 3; 8]) [0; 1; 2; 9]) [0; 1; 2; 7].
+
+Definition report : list string := List.app ce_report (List.app boundary_report ipc_report).
 
 Compute report.

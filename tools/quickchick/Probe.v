@@ -22,6 +22,7 @@
    ========================================================================= *)
 
 Require Import PartitionContext.
+Require Import BoundaryCost.
 Require Import CyclicExecutive.
 
 Definition probe_harmonic (period major : nat) : bool :=
@@ -29,6 +30,7 @@ Definition probe_harmonic (period major : nat) : bool :=
 
 Definition probe_composition : Composition := {|
   machine := demo_rotation_swaps;
+  boundary_inputs := demo_boundary_inputs;
   Tenant := bool;
   harmonic := probe_harmonic;
   focus_majority := fun w total => Nat.leb total (w + w);
@@ -45,3 +47,21 @@ Definition probe_composition : Composition := {|
 Definition probe_frame (mf : nat) (r f b : Slot bool) : Frame bool :=
   Build_Frame bool mf 0 (cons r nil)
     (Build_Band bool f (cons b nil)).
+
+(* Vary every boundary component independently. Nonempty cases include idle,
+   a live kernel path, unbuffered completion and completion followed by its
+   synchronous handler. An absent list exercises admission refusal. *)
+Definition probe_boundary (ctx op handler : nat) (populated : bool) : Composition := {|
+  machine := demo_rotation_swaps;
+  boundary_inputs := Build_BoundaryInputs ctx
+    (if populated then
+       cons idle_prefix (cons (Build_ResidencyCase 0 handler)
+         (cons (Build_ResidencyCase op 0) (cons (Build_ResidencyCase op handler) nil)))
+     else nil);
+  Tenant := bool;
+  harmonic := fun _ _ => true;
+  focus_majority := fun w total => Nat.leb total (w + w);
+  rung_of_count := fun n => n;
+  top_rung_capacity := 2;
+  table_load_cost := 4
+|}.

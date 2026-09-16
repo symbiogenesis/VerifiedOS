@@ -12,10 +12,9 @@
    offset and one major-frame length.
 
    The Require is load-bearing rather than decorative: R-11-009 has
-   admission count the partition-switch constant explicitly instead of
-   absorbing it into slack, and that constant is PartitionContext.v's
-   switch_cost, which is R-15-220's three terms. This file consumes it and
-   restates none of it.
+   admission count the full padded boundary explicitly instead of absorbing
+   it into slack. BoundaryCost.v adds the declared residency and context
+   bounds to PartitionContext.v's unchanged R-15-220 platform cost.
 
    What this file is. A statement artifact in ApexTheorem.v's idiom.
    Composition constants are fields of the Composition record, never
@@ -117,6 +116,7 @@
    ========================================================================= *)
 
 Require Import PartitionContext.
+Require Import BoundaryCost.
 
 (* -------------------------------------------------------------------------
    The composition: every schedule quantity the register leaves to
@@ -125,9 +125,9 @@ Require Import PartitionContext.
    ------------------------------------------------------------------------- *)
 
 Record Composition : Type := {
-  machine : Machine;             (* R-11-009's partition-switch constant is
-                                    R-15-220's three terms, consumed and
-                                    not restated                            *)
+  machine : Machine;             (* R-15-220's platform terms              *)
+  boundary_inputs : BoundaryInputs; (* R-07-040 residency and R-15-220a
+                                      context bounds; physically unqualified *)
   Tenant : Type;                 (* R-11-023: a sole compartment or one
                                     R-07-037b same-label group              *)
   harmonic : nat -> nat -> bool; (* R-11-006 says "harmonic" and not in
@@ -220,9 +220,41 @@ Fixpoint total_width {T : Type} (l : list (Slot T)) : nat :=
    ------------------------------------------------------------------------- *)
 
 Definition slot_fits (c : Composition) (mf : nat) (s : Slot (Tenant c)) : bool :=
-  andb (Nat.leb (slot_offset s + slot_width s) mf)
-       (andb (Nat.leb (slot_bound s + switch_cost c.(machine)) (slot_width s))
-             (c.(harmonic) (slot_period s) mf)).
+  andb (boundary_nonempty c.(boundary_inputs))
+    (andb (Nat.leb (slot_offset s + slot_width s) mf)
+       (andb (Nat.leb (slot_bound s + boundary_cost c.(machine) c.(boundary_inputs)) (slot_width s))
+             (c.(harmonic) (slot_period s) mf))).
+
+Theorem accepted_slot_has_full_boundary : forall c mf s,
+  slot_fits c mf s = true ->
+  boundary_nonempty c.(boundary_inputs) = true /\
+  Nat.leb (slot_bound s + boundary_cost c.(machine) c.(boundary_inputs)) (slot_width s) = true.
+Proof.
+  intros c mf s H. unfold slot_fits in H.
+  destruct (boundary_nonempty (boundary_inputs c)) eqn:Hcases; [|discriminate H].
+  split; [reflexivity |].
+  destruct (Nat.leb (slot_offset s + slot_width s) mf); [|discriminate H].
+  destruct (Nat.leb (slot_bound s + boundary_cost (machine c) (boundary_inputs c)) (slot_width s))
+    eqn:Hfit; [reflexivity |discriminate H].
+Qed.
+
+Theorem empty_cases_refuse_every_slot : forall c mf s,
+  residency_cases c.(boundary_inputs) = nil -> slot_fits c mf s = false.
+Proof.
+  intros c mf s H. unfold slot_fits, boundary_nonempty. rewrite H. reflexivity.
+Qed.
+
+Theorem accepted_slot_covers_each_prefix : forall c mf s p,
+  slot_fits c mf s = true -> DeclaredCase p (residency_cases c.(boundary_inputs)) ->
+  Nat.leb (slot_bound s + (prefix_cost p + full_switch_cost c.(machine) c.(boundary_inputs)))
+    (slot_width s) = true.
+Proof.
+  intros c mf s p Hfit Hp.
+  destruct (accepted_slot_has_full_boundary c mf s Hfit) as [_ Hroom].
+  apply (bc_leb_trans _ (slot_bound s + boundary_cost c.(machine) c.(boundary_inputs)) _).
+  - apply bc_add_left. apply boundary_bounds_declared_prefix. exact Hp.
+  - exact Hroom.
+Qed.
 
 Definition disjoint {T : Type} (s t : Slot T) : bool :=
   orb (Nat.leb (slot_offset s + slot_width s) (slot_offset t))
@@ -243,6 +275,15 @@ Fixpoint pairwise_disjoint {T : Type} (l : list (Slot T)) : bool :=
 Definition admits (c : Composition) (f : Frame (Tenant c)) : bool :=
   andb (all_of (slot_fits c (major_frame f)) (frame_slots f))
        (pairwise_disjoint (frame_slots f)).
+
+Theorem empty_cases_refuse_every_frame : forall c f,
+  residency_cases c.(boundary_inputs) = nil -> admits c f = false.
+Proof.
+  intros c [mf ph res [focus background]] H.
+  unfold admits, frame_slots, band_slots. simpl.
+  destruct res as [|s rest]; simpl;
+    rewrite (empty_cases_refuse_every_slot c mf _ H); reflexivity.
+Qed.
 
 (* R-11-020's half of the verdict: the reserved band alone. *)
 Definition reserved_half (c : Composition) (f : Frame (Tenant c)) : bool :=
@@ -539,7 +580,7 @@ Qed.
 
 (* R-11-024's cost: "one partition-switch constant plus the table load". *)
 Definition rung_change_cost (c : Composition) (b : Band (Tenant c)) : nat :=
-  switch_cost c.(machine) + c.(table_load_cost).
+  full_switch_cost c.(machine) c.(boundary_inputs) + c.(table_load_cost).
 
 Definition SizeIndependent (c : Composition)
                            (cost : Band (Tenant c) -> nat) : Prop :=
@@ -773,6 +814,7 @@ Qed.
 
 Definition demo_composition : Composition := {|
   machine := demo_rotation_swaps;
+  boundary_inputs := demo_boundary_inputs;
   Tenant := bool;
   harmonic := fun _ _ => true;
   focus_majority := fun w total => Nat.leb total (w + w);
@@ -781,13 +823,13 @@ Definition demo_composition : Composition := {|
   table_load_cost := 4
 |}.
 
-Definition reserved_slot : Slot bool := Build_Slot bool 60 0 40 100 true.
-Definition focus_slot_a : Slot bool := Build_Slot bool 90 60 70 100 false.
-Definition background_a : Slot bool := Build_Slot bool 50 150 30 100 true.
+Definition reserved_slot : Slot bool := Build_Slot bool 60 0 35 100 true.
+Definition focus_slot_a : Slot bool := Build_Slot bool 90 60 65 100 false.
+Definition background_a : Slot bool := Build_Slot bool 50 150 25 100 true.
 
-Definition focus_slot_b : Slot bool := Build_Slot bool 70 60 50 100 false.
-Definition background_b1 : Slot bool := Build_Slot bool 35 130 15 100 true.
-Definition background_b2 : Slot bool := Build_Slot bool 35 165 15 100 true.
+Definition focus_slot_b : Slot bool := Build_Slot bool 70 60 45 100 false.
+Definition background_b1 : Slot bool := Build_Slot bool 35 130 10 100 true.
+Definition background_b2 : Slot bool := Build_Slot bool 35 165 10 100 true.
 
 Definition demo_reserved : list (Slot bool) := cons reserved_slot nil.
 
@@ -796,6 +838,9 @@ Definition band_a : Band bool :=
 
 Definition band_b : Band bool :=
   Build_Band bool focus_slot_b (cons background_b1 (cons background_b2 nil)).
+
+Example rung_change_counts_context_and_table_load :
+  rung_change_cost demo_composition band_a = 21 := eq_refl.
 
 Definition rung_a : Frame bool := Build_Frame bool 200 0 demo_reserved band_a.
 Definition rung_b : Frame bool := Build_Frame bool 200 0 demo_reserved band_b.
@@ -814,7 +859,7 @@ Example band_a_is_focus_shaped :
 
 (* A frame whose arithmetic does not close: the background slot overlaps
    the focus slot, and nothing else about it differs. *)
-Definition overlapping_background : Slot bool := Build_Slot bool 50 140 30 100 true.
+Definition overlapping_background : Slot bool := Build_Slot bool 50 140 25 100 true.
 
 Definition overlapping_rung : Frame bool :=
   Build_Frame bool 200 0 demo_reserved
@@ -823,7 +868,7 @@ Definition overlapping_rung : Frame bool :=
 Example overlap_is_refused :
   admits demo_composition overlapping_rung = false := eq_refl.
 
-(* A slot whose declared bound plus R-15-220's three terms exceeds its
+(* A slot whose declared bound plus the full boundary exceeds its
    width, which is R-11-009's switch duty counted rather than absorbed. *)
 Definition underwide_background : Slot bool := Build_Slot bool 50 150 40 100 true.
 
@@ -835,14 +880,14 @@ Example switch_duty_is_counted :
   admits demo_composition underwide_rung = false := eq_refl.
 
 (* And the margin, which is where the constant is load-bearing rather than
-   merely present: one slot's declared bound plus R-15-220's three terms
+   merely present: one slot's declared bound plus the full boundary
    exactly fills its width, and one unit more is refused. R-11-009 counts
    the switch-duty ratio explicitly instead of absorbing it into slack, so
-   a change to PartitionContext.v's switch_cost changes this verdict, which
+   a change to BoundaryCost.v's boundary_cost changes this verdict, which
    is what makes the Require at the top of this file a dependency rather
    than a citation. *)
-Definition tight_focus : Slot bool := Build_Slot bool 90 60 75 100 false.
-Definition overtight_focus : Slot bool := Build_Slot bool 90 60 76 100 false.
+Definition tight_focus : Slot bool := Build_Slot bool 90 60 70 100 false.
+Definition overtight_focus : Slot bool := Build_Slot bool 90 60 71 100 false.
 
 Definition tight_rung : Frame bool :=
   Build_Frame bool 200 0 demo_reserved
@@ -857,11 +902,27 @@ Example one_unit_of_switch_duty_decides :
   /\ admits demo_composition overtight_rung = false :=
   conj eq_refl eq_refl.
 
+(* The actual admission refuses the old underprices. Widths remain large
+   enough for the other conjuncts, so the boundary sum decides each pair. *)
+Example omitted_context_cannot_admit :
+  Nat.leb (3 + switch_cost demo_rotation_swaps) 18 = true /\
+  slot_fits demo_composition 100 (Build_Slot bool 18 0 0 100 true) = false :=
+  conj eq_refl eq_refl.
+Example omitted_residency_cannot_admit :
+  Nat.leb (full_switch_cost demo_rotation_swaps demo_boundary_inputs) 17 = true /\
+  slot_fits demo_composition 100 (Build_Slot bool 17 0 0 100 true) = false :=
+  conj eq_refl eq_refl.
+Example max_instead_of_sum_cannot_admit :
+  Nat.leb (Nat.max 2 1 + full_switch_cost demo_rotation_swaps demo_boundary_inputs) 19 = true /\
+  slot_fits demo_composition 100 (Build_Slot bool 19 0 0 100 true) = false :=
+  conj eq_refl eq_refl.
+
 (* The harmonic conjunct is live rather than dead code: the same frame is
    refused by a composition whose harmonic predicate refuses. This fixes no
    direction and says only that the clause decides something. *)
 Definition refusing_harmonic : Composition := {|
   machine := demo_rotation_swaps;
+  boundary_inputs := demo_boundary_inputs;
   Tenant := bool;
   harmonic := fun _ _ => false;
   focus_majority := fun w total => Nat.leb total (w + w);
@@ -972,7 +1033,7 @@ Qed.
 Fixpoint switch_per_slot (c : Composition) (l : list (Slot (Tenant c))) : nat :=
   match l with
   | nil => 0
-  | cons _ r => switch_cost c.(machine) + switch_per_slot c r
+  | cons _ r => full_switch_cost c.(machine) c.(boundary_inputs) + switch_per_slot c r
   end.
 
 Definition per_slot_swap_cost (c : Composition) (b : Band (Tenant c)) : nat :=
@@ -1081,11 +1142,19 @@ Definition witness_Slot : Slot bool := reserved_slot.
    ------------------------------------------------------------------------- *)
 
 Print Assumptions admits.
+Print Assumptions accepted_slot_has_full_boundary.
+Print Assumptions empty_cases_refuse_every_slot.
+Print Assumptions empty_cases_refuse_every_frame.
+Print Assumptions accepted_slot_covers_each_prefix.
+Print Assumptions omitted_context_cannot_admit.
+Print Assumptions omitted_residency_cannot_admit.
+Print Assumptions max_instead_of_sum_cannot_admit.
 Print Assumptions reserved_half.
 Print Assumptions rung_index.
 Print Assumptions arrive.
 Print Assumptions slot_index_at.
 Print Assumptions rung_change_cost.
+Print Assumptions rung_change_counts_context_and_table_load.
 Print Assumptions FocusShaped.
 Print Assumptions same_geometry_refl.
 Print Assumptions same_geometry_app.

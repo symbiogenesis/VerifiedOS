@@ -1795,9 +1795,9 @@ Qed.
    nothing, and the brittle one counts the delta and is not monotone.
    ------------------------------------------------------------------------- *)
 
-(* The arithmetic of the bound clause, stated over the partition-switch
-   constant as an anonymous term rather than by name: R-11-009's constant is
-   PartitionContext.v's and this file consumes the check that carries it
+(* The arithmetic of the bound clause, stated over the full boundary
+   cost as an anonymous term rather than by name: R-11-009's boundary is
+   BoundaryCost.v's and this file consumes the check that carries it
    without restating either. *)
 Lemma charged_bound_mono :
   forall b d e sw x : nat,
@@ -1818,8 +1818,10 @@ Lemma slot_fits_charge_mono :
     slot_fits c mf (charge_slot d s) = true.
 Proof.
   intros c mf d e s Hde H. unfold slot_fits in H. unfold slot_fits. simpl in H. simpl.
-  destruct (andb_split _ _ H) as [ H1 H2 ].
+  destruct (andb_split _ _ H) as [ Hcases Hbody ].
+  destruct (andb_split _ _ Hbody) as [ H1 H2 ].
   destruct (andb_split _ _ H2) as [ H3 H4 ].
+  apply andb_join; [ exact Hcases | ].
   apply andb_join; [ exact H1 | ].
   apply andb_join; [ | exact H4 ].
   exact (charged_bound_mono (slot_bound s) d e (slot_width s) _ Hde H3).
@@ -3195,9 +3197,9 @@ Definition slot_escaping_plan : Plan :=
    the rung CyclicExecutive.v composes with two declared in-slot bounds
    moved and no other field touched, which the comparison below states
    field by field against that file's own slots. *)
-Definition tight_reserved : Slot bool := Build_Slot bool 60 0 44 100 true.
+Definition tight_reserved : Slot bool := Build_Slot bool 60 0 39 100 true.
 
-Definition slack_background : Slot bool := Build_Slot bool 50 150 32 100 true.
+Definition slack_background : Slot bool := Build_Slot bool 50 150 27 100 true.
 
 Definition charged_rung : Frame bool :=
   Build_Frame bool 200 0 (cons tight_reserved nil)

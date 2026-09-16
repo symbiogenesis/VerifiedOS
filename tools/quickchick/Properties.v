@@ -95,6 +95,7 @@
 From QuickChick Require Import QuickChick.
 From Stdlib Require Import List String.
 Require Import PartitionContext.
+Require Import BoundaryCost.
 Require Import CyclicExecutive.
 Require Import Probe.
 Require EndpointIPC.
@@ -198,6 +199,32 @@ QuickChick (forAll genFrame (fun f =>
               forAll genFrame (fun g => prop_cost_is_size_independent f g))).
 
 QuickChick (forAll genFrame prop_width_splits).
+
+(* An independently written arithmetic decision over generated boundary
+   inputs. The expected cost adds each sequential component; it reads no
+   residency_max, boundary_cost or full_switch_cost result. *)
+Definition prop_boundary_admission (ctx op handler width workload : nat) (populated : bool) : bool :=
+  let c := probe_boundary ctx op handler populated in
+  Bool.eqb (slot_fits c (width + 1) (Build_Slot bool width 0 workload 100 true))
+    (andb populated (Nat.leb (workload + (op + handler + (7 + 5 + 3 + ctx))) width)).
+
+Definition prop_boundary_padding (ctx op handler sample : nat) : bool :=
+  let c := probe_boundary ctx op handler true in
+  let total := op + handler + (7 + 5 + 3 + ctx) in
+  let elapsed := Nat.modulo sample (S total) in
+  Nat.eqb (padded_release (machine c) (boundary_inputs c) 100
+              elapsed) (100 + total).
+
+QuickChick (forAll (choose (0, 30)) (fun ctx =>
+  forAll (choose (0, 30)) (fun op => forAll (choose (0, 30)) (fun handler =>
+    forAll (choose (0, 150)) (fun width => forAll (choose (0, 30)) (fun workload =>
+      forAll (elems_ true [false; true]) (fun populated =>
+        prop_boundary_admission ctx op handler width workload populated))))))).
+
+QuickChick (forAll (choose (0, 30)) (fun ctx =>
+  forAll (choose (0, 30)) (fun op => forAll (choose (0, 30)) (fun handler =>
+    forAll (choose (0, 150)) (fun sample =>
+      prop_boundary_padding ctx op handler sample))))).
 
 (* =========================================================================
    The second subject: EndpointIPC.v (R-07-027a, R-07-029a, R-07-031,

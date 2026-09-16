@@ -1226,7 +1226,7 @@ Qed.
    occupy.
    ========================================================================= *)
 
-(* Two cores of one member. `demo_composition`'s partition-switch constant
+(* Two cores of one member. `demo_composition`'s full boundary cost
    is what each slot's declared bound is checked against, so a slot's bound
    plus that constant fits its width or the frame is refused. *)
 
@@ -1246,12 +1246,12 @@ Definition core_one_focus : Slot bool := Build_Slot bool 60 50 40 200 false.
 
 (* The crypto core's slot that verifies the leader link's frame. It is index
    2 of `frame_slots core_one`, the reserved band's one slot coming first
-   and the band's focus second. Its declared bound plus the partition-switch
-   constant CyclicExecutive.v's own check charges exactly fills its width,
+   and the band's focus second. Its declared bound plus the full boundary
+   cost CyclicExecutive.v's own check charges exactly fills its width,
    which is where that constant is load-bearing here rather than merely
    present: one unit more is refused, and
    `a_link_task_that_does_not_fit_its_slot_is_refused` is that unit. *)
-Definition core_one_verify : Slot bool := Build_Slot bool 50 110 35 200 true.
+Definition core_one_verify : Slot bool := Build_Slot bool 50 110 30 200 true.
 
 Definition core_one : Frame bool :=
   Build_Frame bool 200 0 (cons core_one_reserved nil)
@@ -1558,10 +1558,10 @@ Example a_verifying_slot_that_is_not_there_is_refused :
 
 (* R-11-017a's third refusal, which this file states by not stating it: the
    link's own work is ordinary slots of the member's own frames, so a link
-   task whose declared bound plus the partition-switch constant overruns its
+   task whose declared bound plus the full boundary cost overruns its
    slot is refused by R-11-006's interval arithmetic and by nothing added
    here (reading 1, gap f). *)
-Definition core_one_overlong_verify : Slot bool := Build_Slot bool 50 110 36 200 true.
+Definition core_one_overlong_verify : Slot bool := Build_Slot bool 50 110 31 200 true.
 
 Definition core_one_overlong : Frame bool :=
   Build_Frame bool 200 0 (cons core_one_reserved nil)
