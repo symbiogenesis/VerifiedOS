@@ -5,7 +5,9 @@ With no argument the fixed synthetic scenarios run and the exit code says whethe
 each still decides as expected. `--contract FILE` checks one JSON contract instead
 (`grants`, `arrivals`, and optionally `banks`, `refresh`, `paths`, shaped as the
 `Contract` dataclass is), exiting 0 on zero wait, 1 on a refutation and 2 on a
-malformed contract. Either way the receipt reads the composition's own `qualified`
+malformed contract. With `--contract`, `--completion` also requires completion
+order and reports total issued-operation drain separately from fabric drain.
+Either way the receipt reads the composition's own `qualified`
 and `frozen` flags: the target comparison stays open while any of them is false,
 and while the emitted schedule has no artifact this tool could read at all.
 """
@@ -17,7 +19,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import cast
 
-from vos import config
+from vos import config, phase_completion
 from vos.jsonc import Json, strip_comments
 from vos.phase_service import Batch, Contract, Result, check, scenarios
 
@@ -112,9 +114,11 @@ def open_because(flags: dict[str, Json]) -> list[str]:
     return [name for name, value in flags.items() if value is not True]
 
 
-def _receipt(root: Path, flags: dict[str, Json]) -> dict[str, Json]:
+def _receipt(root: Path, flags: dict[str, Json], *, completion: bool = False) -> dict[str, Json]:
     sources = ("tools/vos/phase_service.py", "tools/vos/cli/phase_service.py",
                "tools/tests/test_phase_service.py", CONFIG)
+    if completion:
+        sources += ("tools/vos/phase_completion.py", "tools/tests/test_phase_completion.py")
     because: list[Json] = list(open_because(flags))
     digests: dict[str, Json] = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                                 for name in sources}
@@ -144,10 +148,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--contract", type=Path, metavar="FILE",
                         help="check this JSON contract instead of the fixed scenarios")
+    parser.add_argument("--completion", action="store_true",
+                        help="also check completion order and total quiescent drain")
     args = parser.parse_args(argv)
+    if args.completion and args.contract is None:
+        parser.error("--completion requires --contract")
     root = Path(__file__).resolve().parents[3]
     flags = inputs(root)
-    report = _receipt(root, flags)
+    report = _receipt(root, flags, completion=args.completion)
     standing = ", ".join(open_because(flags))
     verdict = "open" if standing else "evaluable"
     if args.contract is not None:
@@ -157,6 +165,7 @@ def main(argv: list[str] | None = None) -> int:
             report["contract_sha256"] = hashlib.sha256(raw).hexdigest()
             contract = _parse_contract(raw)
             result = check(contract)
+            completion = phase_completion.check(contract) if args.completion else None
         except (OSError, TypeError, ValueError) as err:
             if args.json:
                 print(json.dumps({**report, "error": str(err)}, indent=2))
@@ -164,13 +173,20 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"malformed contract: {err}")
             return 2
         report["result"] = _case(contract, result)
+        if completion is not None:
+            report["completion"] = asdict(completion)
         if args.json:
             print(json.dumps(report, indent=2))
         else:
             print(_line(args.contract.name, result))
+            if completion is not None:
+                print(f"completion: ordered={completion.ordered}, "
+                      f"quiescent_drain={completion.quiescent_drain}, "
+                      f"drain_status={completion.drain_status}, reason={completion.reason}")
             print(f"synthetic predicate over the supplied contract; target comparison "
                   f"{verdict}: {standing}")
-        return 0 if result.zero_wait else 1
+        passed = result.zero_wait and (completion is None or completion.ordered is True)
+        return 0 if passed else 1
     contracts = scenarios()
     results = {name: check(contract) for name, contract in contracts.items()}
     passed = all(result.zero_wait == (name in EXPECTED_ZERO_WAIT)
