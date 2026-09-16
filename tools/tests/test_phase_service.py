@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Check joint acceptance, ordering and closure beyond the first schedule frame."""
 
+import hashlib
 import json
 import tempfile
 from contextlib import redirect_stdout
@@ -46,6 +47,7 @@ def _invalid() -> None:
                      Contract((1,), ((((0, 1, 0, 0),),),)),
                      Contract((1,), ((((0,),),),)),
                      Contract((1,), (((),),), refresh=((), ())),
+                     Contract((1,), (((),),), refresh=(((),),)),
                      Contract((1,), (((),),), refresh=(((1, 1),),)),
                      Contract((1,), (((),),), refresh=(((0, 0),),)),
                      Contract((1,), (((),),), refresh=(((0, 1, 0),),)),
@@ -136,6 +138,9 @@ def _report() -> None:
            and report["cases"]["path-equal"]["drain"] == 1
            and report["cases"]["path-order"]["drain"] is None,
            "report carries the ordering verdict and the drain bound of a closed set")
+    config_hash = hashlib.sha256((TOOLS.parent / cli.CONFIG).read_bytes()).hexdigest()
+    ensure(report["sources_sha256"][cli.CONFIG] == config_hash,
+           "receipt binds the configuration supplying qualification and frozen flags")
 
 
 def _contract_file() -> None:
@@ -151,6 +156,8 @@ def _contract_file() -> None:
         ensure(code == 1 and report["result"]["reason"] == "order-inverted"
                and report["result"]["contract"]["paths"] == [2, 0],
                "a supplied contract is checked and its refutation exits 1")
+        ensure(report["contract_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest(),
+               "receipt binds the raw bytes parsed as the supplied contract")
         path.write_text(json.dumps({**contract, "paths": [1, 1]}), encoding="utf-8")
         output = StringIO()
         with redirect_stdout(output):
@@ -168,6 +175,38 @@ def _contract_file() -> None:
         with redirect_stdout(output):
             code = cli.main(["--contract", str(path)])
         ensure(code == 2 and "malformed" in output.getvalue(), "a boolean bank count is refused")
+
+
+def _unsupported_contracts() -> None:
+    contract = {"grants": [0], "arrivals": [[[]]]}
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "contract.json"
+        for extra in ({"refresh": [[[]]]}, {"modes": []}, {"transitions": []},
+                      {"refesh": [[[0, 1]]]}):
+            path.write_text(json.dumps({**contract, **extra}), encoding="utf-8")
+            output = StringIO()
+            with redirect_stdout(output):
+                code = cli.main(["--contract", str(path), "--json"])
+            report = json.loads(output.getvalue())
+            ensure(code == 2 and "error" in report and "result" not in report,
+                   f"unsupported or malformed input was silently accepted: {extra}")
+        for unreadable in (Path(tmp) / "missing.json", Path(tmp)):
+            output = StringIO()
+            with redirect_stdout(output):
+                code = cli.main(["--contract", str(unreadable), "--json"])
+            report = json.loads(output.getvalue())
+            ensure(code == 2 and "error" in report and "result" not in report,
+                   "missing or unreadable input must produce a structured exit-2 refusal")
+
+
+def _scope_limits() -> None:
+    # The first request is accepted in cycle zero and occupies its bank for three
+    # cycles. The same hart's later request is accepted and finishes in cycle one.
+    # The contract still closes: acceptance order is not completion order.
+    contract = Contract((1, 1, 0), ((((0, 3),),), (((1, 1),),), ((),)), banks=2)
+    result = check(contract)
+    ensure(result.zero_wait and result.drain == 0,
+           "acceptance closure and zero fabric drain do not certify bank completion")
 
 
 def _tracked_contracts() -> None:
@@ -196,4 +235,5 @@ def cases() -> list[Case]:
     return [Case("counterexamples", _counterexamples), Case("long-residue", _long_residue),
             Case("invalid", _invalid), Case("refresh", _refresh), Case("paths", _paths),
             Case("report", _report), Case("contract-file", _contract_file),
+            Case("unsupported-contracts", _unsupported_contracts), Case("scope-limits", _scope_limits),
             Case("tracked-contracts", _tracked_contracts)]

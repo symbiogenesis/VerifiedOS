@@ -15,9 +15,10 @@ import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
+from typing import cast
 
 from vos import config
-from vos.jsonc import Json, load
+from vos.jsonc import Json, strip_comments
 from vos.phase_service import Batch, Contract, Result, check, scenarios
 
 CONFIG = "model/config/verifiedos.json"
@@ -55,12 +56,15 @@ def _batches(node: Json, what: str) -> tuple[Batch, ...]:
     return tuple(batches)
 
 
-def load_contract(path: Path) -> Contract:
-    """One contract out of a JSON file; a wrong shape is a `TypeError` and a wrong
+def _parse_contract(raw: bytes) -> Contract:
+    """One contract from its input bytes; a wrong shape is a `TypeError` and a wrong
     figure a `ValueError`, and the command reports either as malformed."""
-    data = load(path)
+    data = cast("Json", json.loads(strip_comments(raw.decode("utf-8"))))
     if not isinstance(data, dict):
         raise TypeError("a contract is a JSON object")
+    unknown = set(data) - {"grants", "arrivals", "banks", "refresh", "paths"}
+    if unknown:
+        raise ValueError(f"unsupported contract fields: {', '.join(sorted(unknown))}")
     arrivals = data.get("arrivals")
     if not isinstance(arrivals, list):
         raise TypeError("arrivals must list one alternative set per phase")
@@ -74,6 +78,11 @@ def load_contract(path: Path) -> Contract:
         refresh=_batches(data.get("refresh", []), "refresh"),
         paths=_ints(data.get("paths", []), "paths"),
     )
+
+
+def load_contract(path: Path) -> Contract:
+    """Read one supported contract without discarding unmodeled fields."""
+    return _parse_contract(path.read_bytes())
 
 
 def inputs(root: Path) -> dict[str, Json]:
@@ -105,7 +114,7 @@ def open_because(flags: dict[str, Json]) -> list[str]:
 
 def _receipt(root: Path, flags: dict[str, Json]) -> dict[str, Json]:
     sources = ("tools/vos/phase_service.py", "tools/vos/cli/phase_service.py",
-               "tools/tests/test_phase_service.py")
+               "tools/tests/test_phase_service.py", CONFIG)
     because: list[Json] = list(open_because(flags))
     digests: dict[str, Json] = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                                 for name in sources}
@@ -142,16 +151,18 @@ def main(argv: list[str] | None = None) -> int:
     standing = ", ".join(open_because(flags))
     verdict = "open" if standing else "evaluable"
     if args.contract is not None:
+        report["contract"] = str(args.contract)
         try:
-            contract = load_contract(args.contract)
+            raw = args.contract.read_bytes()
+            report["contract_sha256"] = hashlib.sha256(raw).hexdigest()
+            contract = _parse_contract(raw)
             result = check(contract)
-        except (TypeError, ValueError) as err:
+        except (OSError, TypeError, ValueError) as err:
             if args.json:
                 print(json.dumps({**report, "error": str(err)}, indent=2))
             else:
                 print(f"malformed contract: {err}")
             return 2
-        report["contract"] = str(args.contract)
         report["result"] = _case(contract, result)
         if args.json:
             print(json.dumps(report, indent=2))

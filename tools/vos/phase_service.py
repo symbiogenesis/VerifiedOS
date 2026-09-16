@@ -84,9 +84,9 @@ def _validate(contract: Contract) -> tuple[tuple[Batch, ...], tuple[int, ...]]:
     if len(refresh) != phases:
         raise ValueError("refresh must cover every phase")
     for batch in refresh:
-        if (len({entry[0] for entry in batch}) != len(batch)
-                or any(len(entry) != 2 or entry[0] < 0 or entry[0] >= contract.banks
-                       or entry[1] < 1 for entry in batch)):
+        if (any(len(entry) != 2 or entry[0] < 0 or entry[0] >= contract.banks
+                or entry[1] < 1 for entry in batch)
+                or len({entry[0] for entry in batch}) != len(batch)):
             raise ValueError("invalid refresh bank or occupancy")
     paths = contract.paths or (0,) * contract.banks
     if len(paths) != contract.banks or any(path < 0 for path in paths):
@@ -95,7 +95,7 @@ def _validate(contract: Contract) -> tuple[tuple[Batch, ...], tuple[int, ...]]:
 
 
 def check(contract: Contract) -> Result:
-    """Explore to closure, or return a shortest failing arrival trace.
+    """Explore to closure, or return a trace reaching an earliest failing cycle.
 
     A successful result covers arbitrarily many frames of this finite contract,
     including all nondeterministic arrival histories, not just one frame replay.
