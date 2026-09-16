@@ -37,8 +37,10 @@ and joint traffic alternatives into the existing phase contract. Give banks,
 harts and operation classes stable names; resolve each request through its bank
 and operation occupancy from a separate resource declaration. Check per-hart
 issue limits and aggregate phase injection, including simultaneous requests.
-Preserve every declared alternative and its order. Reject an impossible
-alternative rather than deleting it or combining individually legal requests.
+Preserve every declared alternative and its order. Refuse a violated per-hart
+issue restriction as an inconsistent input; preserve traffic exceeding aggregate
+grants so the phase predicate can refute it. Never delete an alternative or
+combine individually legal requests in place of the declared joint alternatives.
 Represent refresh and paths without losing frame-wrap state.
 
 Read resource bytes once and check their expected SHA-256 from the schedule.
@@ -86,6 +88,18 @@ budget violations, duplicate identities, stale schedule bytes and once-only
 boundary accounting. Publish the exact schema and synthetic examples.
 
 ## Integration acceptance
+
+An orchestration command joins the three instruments against the same exact
+schedule bytes, name and resource declaration. It checks that the cost input's
+schedule path, hash and identity match the extracted schedule, and that the
+candidate's declared completion-drain interval is no smaller than the finite
+completion bound. A missing bound remains open; an acceptance or completion
+refutation is not turned into a positive result by favorable arithmetic. The
+zero-wait orchestration branch cannot price a waiting candidate: such a case
+requires its own stalled transition model and arrival analysis. Its verdict
+therefore names this narrower scope and leaves the target comparison open.
+Tests exercise a complete synthetic join, a stale or mismatched schedule, an
+understated drain and an arithmetic success with a service refutation.
 
 Each instrument has focused behavioral tests through `tools/run.py`. The
 integrator registers commands, updates the comparison and tool guide, reviews
