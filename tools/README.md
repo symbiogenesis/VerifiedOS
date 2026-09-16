@@ -90,7 +90,7 @@ caught by nothing, which is a residue the findings register carries.
 | `witness` | host | `qualify` enumerates bounded witness quorums; `test --only witness` exercises durable recovery and policy transitions. Both separate honest intersection from availability and selective delivery. |
 | `session-binding` | host | Checks two symbolic attestation/session-binding models, the TLS application binding and the ensemble link session, against replay, parallel-session substitution, unit-substitution, foreign-ensemble-identity and relay cases. Cryptographic and implementation correspondence remain separate obligations. |
 | `assembly-compare` | host | Compares stock compiler assembly under the [reviewed annotation-only contract](../docs/implementation/compiler-assembly-comparison.md). `LEFT RIGHT --json` reports input and tool identities; equal bytes supply no compiler-campaign verdict. |
-| `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits shortest failing arrival traces for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
+| `phase-service` | host | Explores synthetic finite phase-service contracts to closure and emits traces reaching the earliest failing cycle for Q22e, per-hart acceptance order over stated fabric paths and the in-flight drain bound included. `--json` binds source identities, contracts and the composition's own `qualified` and `frozen` flags, which are what keep the target comparison open; `--contract FILE` checks a supplied contract. Target arbiter correspondence and cost qualification remain open. |
 | `storage-index` | host | Compares a fixed-height buffered index and plain CoW B+ tree under one conditional redo contract. Reports bounded block costs, map equivalence and crash cases; [Q22f's predicate](../docs/implementation/storage-index-comparison.md) leaves device qualification and target WCET open. `--json` includes source identities and every measured case. |
 | `static-memory` | host | Replays capacity ledgers, checked placements, bounded exact oracles, structural and service experiments, reclamation envelopes, mode families, representability, mutations, phases and lending. `manifest --replay --json` inventories and replays the registered actions. [The experiment contract](../docs/implementation/static-memory/experiments.md) states each action's finite scope and remaining target obligations; `--json` binds working-tree sources and inputs. |
 | `memory-planner` | host; demo-tflm in wsl | Checks portable pool/offset plans, retains a checked baseline during bounded search, replays finite optimization evidence and extracts bounded component contracts. `demo --json` runs the non-ML worker example; `demo-tflm --json` compiles the pinned-interface demonstration in the guest lane. The [portable contract](../docs/implementation/portable-memory-planner.md) distinguishes model, API and deployment evidence. |
@@ -141,7 +141,12 @@ cannot proceed. Quiet-window fixtures state arrival restrictions as inputs; they
 supply no emitted-code certificate. The receipt's `inputs` are read from the
 composition rather than stated, and its `schedule` is null because R-11-017's
 artifact does not exist; `--contract FILE` takes the shape of the `Contract`
-dataclass and exits 0 on zero wait, 1 on a refutation and 2 on a malformed file.
+dataclass and exits 0 on zero wait, 1 on a refutation and 2 on a malformed or
+unreadable file. Unknown fields are refused, so unsupported mode transitions or
+misspelled refresh fields cannot disappear from an accepted contract. Receipts
+include the composition's source hash and the hash of the exact supplied contract
+bytes parsed. Acceptance order and the in-flight drain bound do not establish
+completion/visibility order or bank-completion drain.
 
 `compiler-diff` is M1.2f's driver, and what it does not yet decide is stated with
 what it does. At the program level it runs the `ccomp` its command line names, which

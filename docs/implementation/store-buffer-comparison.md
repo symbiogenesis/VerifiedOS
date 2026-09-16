@@ -52,7 +52,12 @@ Run an individual fixture with
 `python tools/run.py phase-service --contract <path> --json`.
 Paths below are relative to [phase-service/](phase-service/).
 Exit 0 means closure for the supplied model; exit 1 means refutation; exit 2
-means an invalid contract. The behavioral suite reads every tracked fixture:
+means an invalid or unreadable contract. Only `grants`, `arrivals`, `banks`,
+`refresh` and `paths` are supported; unknown fields are refused, including mode
+transitions the model cannot check. The receipt binds the composition's bytes
+and, for a supplied contract, the exact bytes parsed, by SHA-256. A failing trace
+reaches the earliest failing cycle; failures before that cycle's arrivals carry
+only the accepted prefix. The behavioral suite reads every tracked fixture:
 `python tools/run.py test --only phase_service`.
 
 | Refuted contract | Verdict | Closed companion contract |
@@ -88,6 +93,24 @@ timing, an absent schedule and unfrozen C/V/M/S/RoT inputs. Its synthetic cases
 pass, while `target_comparison` remains `open`. Unknown operands stay unknown;
 no numeric break-even or area saving is claimed here.
 
+The [composition](../../model/config/verifiedos.json) labels its memory and timing
+figures as placeholders and explicitly states that the schedule is unauthored.
+The [cyclic-executive proof](../../proofs/CyclicExecutive.v) supplies symbolic
+bounds and demonstration witnesses, not that emitted composition. The
+[macro qualification protocol](../hardware/macro-qualification-protocol.md)
+supplies R5's measurement procedure, not qualified specimens or measurements.
+Those artifacts cannot supply the missing operands by substituting their example
+values. The [unassigned proof map](../assurance/unassigned-proof-map.md) proposes
+the arbiter/schedule and timing work at U-03, U-05, U-08 and U-09; these remain
+proposals rather than available producers.
+
+Even a closed finite contract leaves completion and visibility unresolved. For
+example, independent banks can accept one hart's long write followed by its short
+write without waiting, while the later write's occupancy ends first. With zero
+fabric latency the reported `drain` is zero even while a bank is busy. The
+behavioral suite preserves this scope distinction: neither result supplies an
+ordering proof or the physical quiescent bound needed by the cost comparison.
+
 ## Joint register act needed for second-class stores
 
 R-15-015b admits only SRAM stores to the buffer, while R-15-218 justifies the
@@ -107,10 +130,14 @@ normative decision; neither is included in the present baseline cost.
 
 ## Acceptance predicate
 
-The authorable Q22e comparison is acceptable when the seven refutations and
-seven closed fixtures have reproducible verdicts, the three required
+The authorable Q22e comparison is acceptable when the refuted and closed
+fixtures have reproducible verdicts, the three required
 counterexamples remain load-bearing tests, each deletion clause names its
 evidence and missing inputs, and the second-class baseline dependency is
-explicit. Architecture adoption remains open until the ordered-path proof,
-joint register act where applicable, qualified coefficients, whole-image WCET
-and favorable cost comparison all hold for the selected target.
+explicit. This predicate accepts the synthetic comparison artifact only;
+Q22e's checklist completion still requires a declared target workload and
+schedule satisfying the full deletion predicate or yielding a reasoned refusal.
+Missing coefficients leave Q22e open. Architecture adoption remains open until
+the ordered-path proof, joint register act where applicable, qualified
+coefficients, whole-image WCET and favorable cost comparison all hold for the
+selected target.
