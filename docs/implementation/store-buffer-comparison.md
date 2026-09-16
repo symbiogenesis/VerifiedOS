@@ -156,6 +156,16 @@ values. The [unassigned proof map](../assurance/unassigned-proof-map.md) propose
 the arbiter/schedule and timing work at U-03, U-05, U-08 and U-09; these remain
 proposals rather than available producers.
 
+The current Sail executor cannot supply these measurements by running the
+comparison workloads: [RAM access](../../model/model/sys/mem.sail) is
+synchronous, [fence.t](../../model/model/extensions/platform/fence_t.sail) has no
+modeled store buffer to drain, and the [timing annotations](../../model/model/core/timing.sail)
+do not execute memory-service cycles. U-03 needs a schedule and cycle-aware
+execution connection before a functional run becomes arbiter evidence. A real
+refresh schedule also needs a tractable interval or symbolic representation;
+expanding each cycle of the declared bulk-memory refresh period into the host
+checker's literal phase list is not an established target extraction.
+
 Acceptance closure alone leaves completion and visibility unresolved. For
 example, independent banks can accept one hart's long write followed by its short
 write without waiting, while the later write's occupancy ends first. With zero
