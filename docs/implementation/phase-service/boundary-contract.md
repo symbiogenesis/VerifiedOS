@@ -35,6 +35,10 @@ padding when it finishes early. Faults that require fail-stop do not release a
 successor. R-11-009 charges the boundary once per visit; elapsed instruction
 service before the table instant stays in the in-slot cost and its remaining
 post-timer service stays in H.
+This partitions executed time, not separately maximized reservations: retain
+the sound full-instruction WCET bound, with no guessed residual subtraction.
+WCET plus the padded boundary may conservatively reserve unused capacity. Do
+not add another per-boundary operation or handler charge already covered by H.
 
 Acceptance of the decision requires paired register/spec edits at R-15-015b,
 R-15-218, R-07-040 and R-11-009, resolution of affected cross-references and
