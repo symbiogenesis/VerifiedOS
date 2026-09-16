@@ -49,18 +49,26 @@ is the available duration for this slot, not an absolute timestamp. Both cost
 objects accept exactly the interval operands `execution`, `stalls`,
 `trap_per_switch`, and `other`. The first two are per-slot execution excluding the
 separately reported costs, and service stall cycles. `other` is the total per-slot
-remainder, including scalar context-save cost and any reservations or idle periods
-that consume the declared budget. `trap_per_switch` is trap residency per boundary
-visit, multiplied by `switches`. Every boundary visit must be included in that
-count. Trap residency excludes the separately charged fence/drain, clear and
-relock costs; the categories must not overlap.
+remainder, including the total context restoration cost and any reservations or
+idle periods that consume the declared budget. `trap_per_switch` retains its
+schema name but means R-07-040's complete residency bound H per boundary visit,
+including residual unbuffered operations and consequent faults, multiplied by
+`switches`. Every boundary visit must be included in that count. Residency
+excludes the separately charged fence/drain, clear and relock costs; the
+categories must not overlap.
 
 The baseline boundary is `fence_t + vmclear + opp_relock`; the candidate boundary
 is `d_pipe_completion + vmclear + opp_relock`. `d_pipe_completion` must bound
 completion-aware pipeline and bank quiescence, not merely fabric acceptance.
-This tool accepts the declared interval and does not prove that bound. Scalar
-context save is included in `other` exactly as many times as the workload uses
-it. All OPP effects must be converted conservatively to the named common clock
+This tool accepts the declared interval and does not prove that bound. These
+fields describe platform costs, not the full admitted boundary, which also
+includes H and context restoration. If H already completes an outstanding
+operation, its drain is not also charged to `d_pipe_completion`; the input must
+declare sound costs at distinct timing boundaries. The joined phase evaluator's
+quiescent bound starts when new phase arrivals stop and has no timer/handler
+model, so its comparison cannot establish this decomposition. Context restoration
+is included in `other` exactly as many times as the workload uses it. All OPP
+effects must be converted conservatively to the named common clock
 before entry, retaining relock cost. There is no implicit conversion or frequency
 scaling, and fields that attempt to add another clock or mode are rejected.
 

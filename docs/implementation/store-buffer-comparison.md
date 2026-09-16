@@ -10,7 +10,11 @@ The baseline retains the bounded store buffer and the current Ztso contract.
 Its switch cost includes the class-padded `fence.t` drain exactly once, followed
 by `vmclear` and any required OPP relock (R-15-218, R-15-220). Device accesses
 use the separately ordered path in R-15-015b. Their endpoint latency is not a
-hidden term in the SRAM buffer drain.
+hidden term in the SRAM buffer drain. Second-class stores also use an ordered
+unbuffered path under that entry. Both paths owe qualified instruction service
+and a bound on any operation still outstanding at timer expiry. The full
+admitted boundary includes that complete residency prefix and context
+restoration, beyond the three platform terms.
 
 The candidate deletes the store buffer and uses an ordered path with bounded
 pipeline drain. It owes preservation of the architectural ordering contract,
@@ -160,41 +164,44 @@ completion analysis detects that inversion and accounts for residual occupancy;
 its finite model still supplies neither a visibility/refinement proof nor a
 qualified physical quiescent bound.
 
-## Joint register act needed for second-class stores
+## Second-class baseline and the timer boundary
 
-R-15-015b admits only SRAM stores to the buffer, while R-15-218 justifies the
-padded drain using SRAM service. Second-class memory is not resolved by calling
-it a device. Before including second-class stores, choose and co-read one of
-these joint amendments. The following text is a proposal, not an adopted
-requirement.
+The [boundary contract](phase-service/boundary-contract.md) selects the unbuffered
+baseline in R-15-015b and retains R-15-218's SRAM-only buffer bound. A second-class
+store waits for prior buffered stores to enter the fabric, completes the bank's
+atomic data/tag/ECC commit before retirement, and cannot be overtaken by a later
+memory operation. R-15-015a still owns cross-path arrival and visibility order.
+Keeping the existing SRAM FIFO avoids adding second-class refresh to every
+buffer drain; it makes no claim that the complete boundary is cheaper. Qualified
+instruction-service and residency bounds remain required.
 
-| Arm | Proposed addition to R-15-015b | Proposed addition to R-15-218 |
-| --- | --- | --- |
-| Buffered second-class stores | Second-class stores may enter the bounded store buffer only when admission supplies a qualified bound for completion through every permitted refresh phase and fabric state; otherwise they are refused. Device stores remain excluded. | The class-padded drain includes the worst permitted refresh wait, routing and bank completion for every buffered second-class store at the declared maximum depth. Missing qualification or an unbounded phase causes admission refusal. The pad does not complete early. |
-| Unbuffered second-class stores | Second-class stores use an explicitly ordered unbuffered path after prior buffered stores have drained, with instruction service charged against a qualified bound covering refresh, routing and bank completion. Device ordering remains separately applicable. | The store-buffer drain remains SRAM-only. Outstanding unbuffered second-class operations must reach the defined quiescent boundary before the switch, with their worst-case cost charged explicitly and exactly once; the switch pad may not assume they have already completed. Missing bounds cause admission refusal. |
+R-07-040 derives residency H over complete reachable timer-to-handler prefixes.
+These include an outstanding operation and any consequent synchronous fault
+path, or the remainder of an already live kernel path. Service after timer expiry
+must remain scheduled without borrowing a peer's grant. A missing finite bound
+refuses admission. The boundary is H plus the platform and context switch costs;
+R-11-009 charges it once per visit. Separately maximized WCET and boundary costs
+may conservatively reserve unused capacity, but no second operation or handler
+charge is appended to H for the same work. Successful paths are padded to the
+same release instant; fatal faults retain fail-stop.
 
-Each arm also needs its corresponding specification text, timing inputs,
-admission evidence and coverage review. Selecting an arm here would conceal a
-normative decision; neither is included in the present baseline cost.
-
-The unbuffered arm must define where a slot-boundary timer meets an outstanding
-operation. R-07-040 owns the padded boundary and trap residency, R-15-220 and
-R-15-220a own switch and context costs, and R-11-009 consumes that boundary. A
-completion-before-retirement rule alone does not locate a residual memory wait
-in those costs. The joint amendment must assign it exactly once and prove the
-successor's release instant, rather than assuming every operation finished before
-the switch. This remains part of the arm's admission and refinement work.
+The declared-prefix arithmetic does not prove coverage of real executions.
+The memory-service model, actual emitted schedule, qualified bounds and their
+refinement still owe that connection. In particular, the candidate's total
+operation drain cannot be counted both in its residency H and again as the
+replacement fence term. Each side must state the timing boundary at which its
+drain is measured and assign every remaining operation to one term.
 
 ## Acceptance predicate
 
 The authorable Q22e comparison is acceptable when the refuted and closed
 fixtures have reproducible verdicts, the three required
 counterexamples remain load-bearing tests, each deletion clause names its
-evidence and missing inputs, and the second-class baseline dependency is
-explicit. This predicate accepts the synthetic comparison artifact only;
+evidence and missing inputs, and the second-class baseline and its outstanding
+qualification are explicit. This predicate accepts the synthetic comparison artifact only;
 Q22e's checklist completion still requires a declared target workload and
 schedule satisfying the full deletion predicate or yielding a reasoned refusal.
 Missing coefficients leave Q22e open. Architecture adoption remains open until
-the ordered-path proof, joint register act where applicable, qualified
+the ordered-path proof, qualified
 coefficients, whole-image WCET and favorable cost comparison all hold for the
 selected target.

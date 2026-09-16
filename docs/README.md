@@ -59,6 +59,9 @@ The implementation interfaces are recorded in the
 Its [executable prerequisite contract](implementation/phase-service/prerequisite-contract.md)
 covers schedule extraction, completion and quiescent drain, and workload cost
 arithmetic while target qualification remains open.
+The [boundary admission contract](implementation/phase-service/boundary-contract.md)
+resolves the second-class baseline and the complete timer residency that the
+cyclic executive must charge alongside platform and context costs.
 The [roster measurement contract](implementation/roster-measurement-contract.md)
 fixes the allocation-churn and ring-accounting analyzers' inputs and limits;
 the accepted composed roster supplies the eventual target measurements.
