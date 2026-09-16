@@ -1,0 +1,24 @@
+{
+  "schema": "phase-resources-v1",
+  "harts": [
+    {
+      "name": "cpu0",
+      "issue_limit": 2
+    }
+  ],
+  "operations": [
+    "read",
+    "write"
+  ],
+  "banks": [
+    {
+      "name": "sram0",
+      "path_cycles": 0,
+      "occupancy_cycles": {
+        "read": 1,
+        "write": 2
+      },
+      "refresh_cycles": null
+    }
+  ]
+}

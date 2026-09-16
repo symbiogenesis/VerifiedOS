@@ -1,0 +1,33 @@
+{
+  "schema": "phase-schedule-v1",
+  "name": "synthetic-same-bank-joint",
+  "mode": "periodic",
+  "resources_sha256": "51ed12d93cbfb4cd0a6c256aa251fd75202512a2ac85cdbb0259c20765801a88",
+  "phases": [
+    {
+      "grant": 2,
+      "alternatives": [
+        [
+          {
+            "hart": "cpu0",
+            "bank": "sram0",
+            "operation": "read"
+          }
+        ],
+        [
+          {
+            "hart": "cpu0",
+            "bank": "sram0",
+            "operation": "read"
+          },
+          {
+            "hart": "cpu0",
+            "bank": "sram0",
+            "operation": "read"
+          }
+        ]
+      ],
+      "refresh": []
+    }
+  ]
+}
