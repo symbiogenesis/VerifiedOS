@@ -21,6 +21,8 @@
 > **What is built against this profile, and what is not.**
 > One interface declaration exists, [the ring reference](../../interfaces/ring-reference.json), and one generator compiles it to the §4.3.6 interface artifact, [RingContract.v](../../proofs/RingContract.v). Marshalling code, verified parsers, systems-language bindings, and an admission checker remain to be built. Sections 4 and 6 specify their obligations.
 
+The [web application host](../implementation/userspace-porting.md#web-applications-one-engine-and-a-capability-scoped-host) is another consumer of this profile under R-14-008i. Its WASI-inspired API vocabulary and generated web/native bindings use the same declarations, narrowing and ring lifecycles as server interfaces. This adds no constructor, Canonical ABI or Component Model runtime; [Q29](../implementation/implementation-checklist.md#web-application-qualification) owns the bounded bridge pilot and qualification, while this document continues to own the profile.
+
 ---
 
 ## 1. The start-from, and what survives the read
