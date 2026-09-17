@@ -159,6 +159,7 @@ def _parallel_wave_blocks_stale_dependents() -> None:
         with patch.object(gate, "workspace", return_value=work), \
                 patch.object(gate, "_inputs", side_effect=receipts.snapshot), \
                 patch.object(gate, "_toolchain", return_value={}), \
+                patch.object(gate, "_cache_context", return_value={}), \
                 patch.object(gate, "_hold", side_effect=lambda _: os.open(os.devnull, os.O_RDONLY)), \
                 patch.object(gate, "_check_source", side_effect=check), \
                 contextlib.redirect_stdout(io.StringIO()):
@@ -207,6 +208,7 @@ def _staged_run_binds_original_inputs() -> None:
             with patch.object(gate, "workspace", return_value=work), \
                     patch.object(gate, "_inputs", side_effect=receipts.snapshot), \
                     patch.object(gate, "_toolchain", return_value={}), \
+                    patch.object(gate, "_cache_context", return_value={}), \
                     patch.object(gate, "_hold", side_effect=lambda _: os.open(os.devnull, os.O_RDONLY)), \
                     patch.object(gate.shutil, "copyfile", side_effect=copy), \
                     patch.object(gate, "_check_source", side_effect=check), \
@@ -246,6 +248,7 @@ def _native_gate_regressions() -> None:
     """The actual compiler and kernel rechecker, in an isolated guest directory."""
     positive = ("From Stdlib Require Import Program.\nModule N.\n"
                 "Local Lemma hidden_subproof : True. Proof. exact I. Qed.\nEnd N.\n"
+                "Record Load := { level : nat }.\n"
                 "Program Definition bounded : { n : nat | n = 0 } := 0.\n")
     bad = ["Theorem good : True. Proof. exact I. Qed.\nPrint Assumptions good.\n"
            "Axiom injected : False. Theorem bad : False. Proof. exact injected. Qed.\n",
@@ -270,6 +273,12 @@ def _native_gate_regressions() -> None:
             ensure(result == 0, "native local/generated proof without an authored footer must pass")
             ensure(not source.with_suffix(".vo").exists(), "guest compile wrote into its inputs")
             record = json.loads(gate.receipt_path(root).read_text(encoding="utf-8"))
+            ensure(record.get("cache_context") is not None,
+                   "the pinned native toolchain must have a reusable content identity")
+            with patch.object(gate, "_compile", side_effect=AssertionError("unexpected compile")), \
+                    patch.object(gate, "_recheck", side_effect=AssertionError("unexpected recheck")), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                ensure(gate._run(root, 2) == 0, "identical native run did not reuse kernel evidence")
             names = [symbol["name"] for symbol in record["artifacts"][source.name]["symbols"]]
             ensure("ApexTheorem.bounded_obligation_1" in names
                    and "ApexTheorem.N.hidden_subproof" in names,

@@ -7,8 +7,10 @@ then asks Print Assumptions about every returned symbol. This includes local lem
 nested modules and generated obligations. Claims must resolve to compiled propositions.
 The existing record-witness check remains the decidable part of the non-vacuity gate.
 
-Independent dependency-wave members run concurrently under one directory lock. Build
-products are cleared before the wave, and failed dependencies block their consumers.
+Independent dependency-wave members run concurrently under one directory lock. Unchanged
+compiled products are reused from successful receipts; changed dependencies invalidate
+their consumers. A wholly unchanged run validates its previous receipt. Otherwise
+audits and the joint kernel recheck run again; --fresh disables all reuse.
 Every accepted module is rechecked by rocqchk before a content-bound JSON receipt is
 written. Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and receipt stay there. `proofs status`
@@ -16,6 +18,7 @@ uses the guest hop to hash those outputs without invoking Rocq again.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -23,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -278,8 +282,8 @@ def _hold(proofs: Path) -> int:
     """Hold the lane's native proof workspace for the whole run.
 
     Two concurrent gates rewrite each other's .vo mid-Require, so the second blocks
-    until the first is done, which the unconditional recompile then makes a correct
-    second verdict rather than a stale one. The lock is the directory's own descriptor
+    until the first is done, when content identities determine reusable outputs.
+    The lock is the directory's own descriptor
     rather than a lock file. Staged sources can then be replaced under that stable
     native directory without touching the original checkout. The descriptor
     stays open, and locked, until the process exits.
@@ -372,7 +376,8 @@ class Checked:
     error: str = ""
 
 
-def _check_source(root: Path, source: Path, sources: list[Path]) -> Checked:
+def _check_source(root: Path, source: Path, sources: list[Path], *,
+                  compiled: bool = False) -> Checked:
     try:
         text = source.read_text(encoding="utf-8")
         unsupported = proofaudit.unsupported_abstractions(text)
@@ -380,11 +385,12 @@ def _check_source(root: Path, source: Path, sources: list[Path]) -> Checked:
             raise proofaudit.AuditError(
                 "native inventory cannot enumerate inaccessible module bodies: "
                 + "; ".join(unsupported))
-        done = _compile(root, source)
-        if done.returncode:
-            raise proofaudit.AuditError(
-                f"compile exited {done.returncode}: "
-                f"{done.stderr.strip() or done.stdout.strip() or 'no diagnostic'}")
+        if not compiled:
+            done = _compile(root, source)
+            if done.returncode:
+                raise proofaudit.AuditError(
+                    f"compile exited {done.returncode}: "
+                    f"{done.stderr.strip() or done.stdout.strip() or 'no diagnostic'}")
         with tempfile.TemporaryDirectory(prefix="audit-", dir=root) as temporary:
             directory = Path(temporary)
             output = _query(root, directory, "Inventory",
@@ -497,22 +503,159 @@ def _status(root: Path) -> int:
         return 0
 
 
-def _run_locked(root: Path, jobs: int) -> int:
+def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
+    """Hash installed libraries and runtime files, including actual load paths.
+
+    Unrecognized configurations disable caching, not checking. Dynamic source/ML
+    loads can read undeclared inputs, so they cannot use this cache. File timestamps
+    never stand in for bytes. Only shell launch bookkeeping and WSL's per-launch
+    interop socket are excluded from the environment identity. Other irrelevant
+    environment changes may cause extra work, but cannot preserve a stale hit.
+    """
+    if any(re.match(
+            r'^(?:(?:Local|Global|Time|Fail|Succeed)\s+|Timeout\s+\d+\s+'
+            r'|Redirect\s+"[^"]*"\s+|#\[[^\]]*\]\s*)*'
+            r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
+            r'|Declare\s+ML\s+Module)\b', sentence)
+           for source in sources for sentence in _sentences(source.read_text(encoding="utf-8"))):
+        return None
+    try:
+        command = env.rocq_command()
+        config = subprocess.run([*command, "-config"], cwd=work, capture_output=True,
+                                text=True, encoding="utf-8", check=False)
+        where = subprocess.run([*env.rocqchk_command(), "-where"], cwd=work,
+                               capture_output=True, text=True, encoding="utf-8", check=False)
+        paths = subprocess.run([*command[:-1], "top", "-q", "-quiet"], cwd=work,
+                               input="Print LoadPath.\n", capture_output=True,
+                               text=True, encoding="utf-8", check=False)
+        if config.returncode or where.returncode or paths.returncode or not where.stdout.strip():
+            return None
+        settings = dict(line.split("=", 1) for line in config.stdout.splitlines() if "=" in line)
+        roots = {Path(settings[key]).resolve() for key in ("COQLIB", "COQCORELIB")}
+        roots.add(Path(where.stdout.strip()).resolve())
+        listing = re.sub(r"\n\s+(/)", r" \1", paths.stdout).splitlines()
+        if not listing or listing[0] != "Installed / Logical Path / Physical path:":
+            return None
+        for line in listing[1:]:
+            found = re.fullmatch(r"\s*(?:i\s+)?(?:<>|[\w.]+)\s+(/.+)", line)
+            if found is None:
+                return None
+            path = Path(found.group(1)).resolve()
+            if path != work.resolve():
+                roots.add(path)
+        # Print LoadPath lists every subdirectory. Hash each tree only once.
+        minimal = sorted(path for path in roots
+                         if not any(path != other and path.is_relative_to(other) for other in roots))
+        files: dict[str, str] = {}
+        for directory in minimal:
+            if not directory.is_dir():
+                return None
+            for path in sorted(directory.rglob("*")):
+                if path.is_symlink() and path.is_dir():
+                    return None
+                if path.is_file():
+                    files[str(path)] = receipts.digest(path)
+        if not files:
+            return None
+        return {"files": files, "config": config.stdout,
+                "load_path": paths.stdout,
+                "environment_sha256": hashlib.sha256(
+                    json.dumps({key: value for key, value in os.environ.items()
+                                if key not in {"WSL_INTEROP", "SHLVL", "_"}},
+                               sort_keys=True).encode("utf-8")).hexdigest()}
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str],
+              toolchain: dict[str, object], context: dict[str, object] | None) -> dict[str, str]:
+    """Reuse only byte-identical products with unchanged prerequisite closures.
+
+    This is a compilation cache, never a kernel verdict: every reused object still
+    goes through native inventory, assumption auditing and the joint rocqchk pass.
+    Source-set or gate changes invalidate the whole cache. Unsupported dynamic
+    source loading disables reuse because Require alone cannot capture its inputs.
+    """
+    try:
+        if context is None:
+            return {}
+        raw: object = json.loads((work / RECEIPT).read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return {}
+        record = cast("dict[str, object]", raw)
+        previous, outputs = record.get("inputs"), record.get("outputs")
+        if (record.get("schema") != RECEIPT_SCHEMA or record.get("status") != "passed"
+                or record.get("kernel_recheck") != "passed"
+                or record.get("toolchain") != toolchain
+                or record.get("cache_context") != context
+                or record.get("declared_assumptions") != sorted(DECLARED)
+                or not isinstance(previous, dict) or not isinstance(outputs, dict)
+                or set(previous) != set(inputs)):
+            return {}
+        names = {source.relative_to(root).as_posix() for source in sources}
+        if any(previous[name] != value for name, value in inputs.items() if name not in names):
+            return {}
+        reusable: dict[str, str] = {}
+        stems = {source.stem for source in sources}
+        for wave in proofs_mod.waves(sources):
+            for source in wave:
+                name = source.relative_to(root).as_posix()
+                staged = work / PROOFS / source.name
+                product = staged.with_suffix(".vo")
+                if (previous[name] == inputs[name]
+                        and proofs_mod.local_requires(source, stems) <= reusable.keys()
+                        and staged.is_file() and not staged.is_symlink()
+                        and product.is_file() and not product.is_symlink()
+                        and receipts.digest(staged) == inputs[name]
+                        and (product_hash := receipts.digest(product))
+                        == outputs.get(product.relative_to(work).as_posix())):
+                    reusable[source.stem] = product_hash
+    except (OSError, ValueError, TypeError):
+        return {}
+    else:
+        return reusable
+
+
+def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
+    started = time.perf_counter()
     work = workspace(root)
-    (work / RECEIPT).unlink(missing_ok=True)
-    sources = _sources(root)
-    inputs = _inputs(root, sources)
-    toolchain = _toolchain()
-    # This private staging directory is the only subtree the gate replaces. The
-    # lock lives in its parent, so replacing it never releases another gate.
     folder = work / PROOFS
     if folder.is_symlink():
         raise ValueError(f"proof staging directory must not be a symlink: {folder}")
-    if folder.exists():
-        shutil.rmtree(folder)
-    folder.mkdir()
-    for source in sources:
-        shutil.copyfile(source, folder / source.name)
+    sources = _sources(root)
+    inputs = _inputs(root, sources)
+    toolchain = _toolchain()
+    context = _cache_context(work, sources)
+    reusable = {} if fresh else _reusable(root, work, sources, inputs, toolchain, context)
+    if sources and len(reusable) == len(sources):
+        try:
+            _validate_receipt(root)
+        except (OSError, TypeError, ValueError):
+            pass
+        else:
+            if (inputs == _inputs(root, _sources(root)) and toolchain == _toolchain()
+                    and context == _cache_context(work, sources)):
+                _validate_receipt(root)
+                print(f"ok: reused previous full kernel check for {len(sources)} proof(s); "
+                      f"all input, output and toolchain hashes match ({time.perf_counter() - started:.2f}s); "
+                      "use --fresh to rebuild and recheck")
+                return 0
+    (work / RECEIPT).unlink(missing_ok=True)
+    # This private staging directory is the only subtree the gate replaces. The
+    # lock lives in its parent, so replacing it never releases another gate.
+    with tempfile.TemporaryDirectory(prefix="stage-", dir=work) as temporary:
+        replacement = Path(temporary) / PROOFS
+        replacement.mkdir()
+        for source in sources:
+            shutil.copyfile(source, replacement / source.name)
+            if source.stem in reusable:
+                product = source.with_suffix(".vo").name
+                shutil.copyfile(folder / product, replacement / product)
+                if receipts.digest(replacement / product) != reusable[source.stem]:
+                    raise ValueError(f"cached object changed while being staged: {product}")
+        if folder.exists():
+            shutil.rmtree(folder)
+        replacement.replace(folder)
     staged = [folder / source.name for source in sources]
     source_inputs = {source.relative_to(root).as_posix(): inputs[source.relative_to(root).as_posix()]
                      for source in sources}
@@ -522,18 +665,26 @@ def _run_locked(root: Path, jobs: int) -> int:
     needs = {source.stem: proofs_mod.local_requires(source, stems) for source in staged}
     checked: list[Checked] = []
     failed: set[str] = set()
+    compile_started = time.perf_counter()
+
+    def check(source: Path) -> Checked:
+        if source.stem in reusable:
+            return _check_source(work, source, staged, compiled=True)
+        return _check_source(work, source, staged)
+
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         for wave in proofs_mod.waves(staged):
             ready: list[Path] = []
             for source in wave:
                 blocked = needs[source.stem] & failed
                 if blocked:
+                    source.with_suffix(".vo").unlink(missing_ok=True)
                     failed.add(source.stem)
                     checked.append(Checked(source, error="blocked by failed dependencies: "
                                            + ", ".join(sorted(blocked))))
                 else:
                     ready.append(source)
-            results = list(pool.map(lambda source: _check_source(work, source, staged), ready))
+            results = list(pool.map(check, ready))
             checked.extend(results)
             failed.update(item.source.stem for item in results if item.error)
     if failed:
@@ -545,17 +696,25 @@ def _run_locked(root: Path, jobs: int) -> int:
     if not total:
         print("FAIL: native Rocq inventory contains no compiled constant")
         return 1
+    compile_seconds = time.perf_counter() - compile_started
+    outputs = receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))
+    recheck_started = time.perf_counter()
+    print(f"  compile/audit: {compile_seconds:.2f}s; "
+          f"{len(reusable)}/{len(staged)} compiled objects reused; "
+          "starting full kernel recheck", flush=True)
     rechecked = _recheck(work, staged)
+    recheck_seconds = time.perf_counter() - recheck_started
     said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
     if rechecked.returncode or said:
         print(f"FAIL: rocqchk recheck (exit {rechecked.returncode}): "
               f"{said or 'no diagnostic'}")
         return 1
     if (inputs != _inputs(root, _sources(root)) or toolchain != _toolchain()
-            or receipts.snapshot(work, staged) != source_inputs):
-        print("FAIL: proof inputs or the toolchain changed during the run")
+            or context != _cache_context(work, sources)
+            or receipts.snapshot(work, staged) != source_inputs
+            or outputs != receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))):
+        print("FAIL: proof inputs, compiled outputs or the toolchain changed during the run")
         return 1
-    outputs = receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))
     artifacts: dict[str, object] = {}
     witnessed = 0
     for item in sorted(checked, key=lambda item: item.source.name):
@@ -571,14 +730,21 @@ def _run_locked(root: Path, jobs: int) -> int:
     receipts.write(work / RECEIPT, {
         "schema": RECEIPT_SCHEMA, "status": "passed", "inputs": inputs,
         "outputs": outputs, "toolchain": toolchain, "artifacts": artifacts,
-        "declared_assumptions": sorted(DECLARED), "kernel_recheck": "passed"})
+        "cache_context": context,
+        "declared_assumptions": sorted(DECLARED), "kernel_recheck": "passed",
+        "timings": {"compile_audit_seconds": compile_seconds,
+                    "kernel_recheck_seconds": recheck_seconds,
+                    "total_seconds": time.perf_counter() - started},
+        "reused_compilations": len(reusable)})
+    print(f"  kernel recheck: {recheck_seconds:.2f}s; "
+          f"total: {time.perf_counter() - started:.2f}s")
     print(f"ok: {total} constant(s), each enumerated by Rocq, closed under the "
           "global context and re-checked by rocqchk, which shares the kernel's "
           f"lineage; {witnessed} witness(es); evidence: {work / RECEIPT}")
     return 0
 
 
-def _run(root: Path, jobs: int) -> int:
+def _run(root: Path, jobs: int, fresh: bool = False) -> int:
     proofs = root / PROOFS
     if not (proofs / STATEMENT).exists():
         print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
@@ -589,7 +755,7 @@ def _run(root: Path, jobs: int) -> int:
         print(f"FAIL: proof gate: {err}")
         return 1
     try:
-        result = _run_locked(root, jobs)
+        result = _run_locked(root, jobs, fresh)
     except (OSError, ValueError) as err:
         print(f"FAIL: proof gate: {err}")
         return 1
@@ -606,14 +772,17 @@ def main(argv: list[str] | None = None) -> int:
         return proofheaders.main(args[1:])
     parser = argparse.ArgumentParser(
         prog="run.py proofs",
-        description="Compile dependency waves concurrently; enumerate symbols, types "
+        description="Reuse content-matched proof evidence or compile dependency waves "
+                    "incrementally and concurrently; enumerate symbols, types "
                     "and assumptions through Rocq; validate claims and witnesses; "
                     "recheck with rocqchk and record content-bound evidence.")
     parser.add_argument("command", nargs="?", choices=("run", "status"), default="run")
     parser.add_argument("--jobs", type=int, default=min(4, os.process_cpu_count() or 1),
                         help="maximum concurrent proof jobs (default: at most four)")
+    parser.add_argument("--fresh", action="store_true",
+                        help="recompile every source and run a fresh full kernel recheck")
     parsed = parser.parse_args(args)
     if parsed.jobs < 1:
         parser.error("--jobs must be positive")
     root = find_root()
-    return _status(root) if parsed.command == "status" else _run(root, parsed.jobs)
+    return _status(root) if parsed.command == "status" else _run(root, parsed.jobs, parsed.fresh)

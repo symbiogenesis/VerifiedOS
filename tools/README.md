@@ -343,6 +343,8 @@ $ python tools/run.py quickchick freeze          # the freeze's model, stated tw
 $ python tools/run.py seed coq --sample 20
 $ python tools/run.py seed sail --spec keccak --sample 14
 $ python tools/run.py proofs
+$ python tools/run.py proofs --jobs 8            # bound concurrent compilation and audits
+$ python tools/run.py proofs --fresh             # force compilation and full kernel recheck
 ```
 
 There is no `-d` on the `wsl` invocation `run.py` makes: it uses WSL's default distribution, expected to be the Ubuntu installation carrying the toolchain. No release number or distribution name is enforced by the tools. `wsl --install` can change that default, so check `wsl -l -v` after installing another distribution; `wsl -s Ubuntu` selects Ubuntu again.
@@ -809,6 +811,23 @@ concurrently. `seed properties` mutates the checkout and still requires exclusiv
 against every reader of that checkout.
 Proof compilation uses bounded workers within dependency waves, preserves report order,
 and does not compile a dependent against a failed prerequisite's stale output.
+The default run reuses compiled objects only from a successful receipt with matching
+source bytes, compiled-object hashes, gate inputs and toolchain context. A changed
+source or object invalidates its transitive dependents. Source-set and gate changes
+invalidate all objects. Timestamps do not establish freshness.
+
+When the entire proof set is unchanged, the gate validates and reuses its previous
+full kernel result without rewriting that receipt. The cache also hashes installed
+library and runtime files discovered through the compiler configuration and actual
+load paths, the checker library, and the environment (only its digest is recorded;
+shell launch bookkeeping and WSL's per-launch interop socket are excluded).
+Unknown load-path formats, directory symlinks or dynamic source/ML loading disable
+reuse. The first run after upgrading the gate needs a full check to establish this
+identity. `proofs --fresh` forces all work; `--jobs N` bounds compilation and auditing.
+Runs that change any proof still audit every module and perform the full joint
+kernel recheck. Per-phase wall times and the reused-object count are recorded in
+the receipt and printed, so compilation cost can be distinguished from kernel cost.
+
 The final `rocqchk` pass uses one shared environment and the pinned tool's default
 kernel conversion. Enabling its bytecode compiler would also trust the serialized
 bytecode and VM; that option is left disabled. The checker offers no parallel worker
