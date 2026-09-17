@@ -345,6 +345,8 @@ Neither outcome is the whole-machine failure the static-allocation objection exp
 
 The selected strategy is **standards-based web frontends over the same Servo-derived engine as the browser, with an optional capability-confined native backend**. Tabs, standalone app windows and views embedded in native applications differ in presentation and declared interfaces, not in engine selection. R-14-008g through R-14-008j own the contract; [Q29](implementation-checklist.md#web-application-qualification) owns the qualification work. This extends the deferred browser program, not the first-release floor.
 
+The [frozen web application pilot contract](contracts/web-application-profile.md) selects the hosted and packaged clients, identity and bridge boundaries, budgets, lifecycle/refusal corpus, numeric workflow limits and prerequisite assignments. It is the input to Q29b/Q29c, not evidence that the browser or either pilot runs.
+
 The priorities are the project's existing order: security first, then performance, then compatibility. Sharing the engine reduces duplicate porting, patching and executable-footprint work. It does not share mutable origin state, prove browser correctness or make interpreter-heavy applications as fast as their JIT-based originals. A native backend can improve selected work while preserving a portable web frontend; its value must include the cost of serialization, scheduling and rendering.
 
 **What the existing approaches contribute.** These are architectural references, not proposed runtime dependencies. The linked primary documentation supplies the comparison; source and licence qualification happens at the revision selected for incorporation.

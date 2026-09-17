@@ -16,6 +16,10 @@ strategy, core design and workflow contract share the `languages/` directory.
 | Performance | [Performance estimates](performance/performance-estimates.md), [inference demand](performance/inference-demand.md) and its [measurement artifacts](performance/inference-demand/), [ensemble sharding traffic](performance/ensemble-sharding-traffic.md) and its [derived artifacts](performance/ensemble-sharding-traffic/), [toolchain residency](performance/toolchain-residency.md) and its [measurement artifacts](performance/toolchain-residency/) |
 | Background and design assessment | [Inspirations and prior art](background/inspirations.md), [architectural alternatives](background/architectural-alternatives.md), [critique](background/critique.md), [static-memory research agenda](background/static-memory-research.md) |
 
+The [web application pilot contract](implementation/contracts/web-application-profile.md)
+freezes the hosted/packaged subset, bridge lifecycle, budgets and qualification
+thresholds before the deferred browser pilots are implemented.
+
 The [matrix margin contract](implementation/contracts/matrix-margin-contract.md) defines
 the M-class comparison and its strongest-RVV denominator before instruction admission.
 

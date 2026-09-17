@@ -1739,6 +1739,58 @@ Landed: Tier A. The record states new claims about which upstream's terms reach
 which open cell, so it took a full attended read rather than a spot read of its
 findings.
 
+#### Q29a · Freeze the web application profile and qualification contract
+
+The [web application profile](contracts/web-application-profile.md) freezes
+`vos-web-pilot/1` before either pilot is authored. Its hosted checklist exercises
+offline persistence; its packaged byte inspector compares an interpreted
+operation with one bounded, object-scoped native operation. The contract fixes
+app/profile/origin identity, immutable script resolution, embedding and IDL
+generation, authenticated epochs, borrowed-handle lifetime, Promise completion,
+resource ceilings, eviction and reboot semantics. Its qualification cases pair
+success with refusal and lifecycle observations, and its numeric thresholds
+separate target time from host measurements and native work from frontend cost.
+
+The Tier-A read covered R-14-008e through R-14-008j, R-14-009, R-14-010,
+R-14-014, the IDL constructor/world/ring rules and the userspace strategy.
+Navigation cannot inherit an old reply or grant; timeout cannot release a
+borrow; a free bitmap cannot replace Reusable; an all-protected pool has a
+declared outcome. Packaged cache substitution and cross-profile probes are
+explicit cases. Unsupported web features and framework adapters cannot be
+counted as standard compatibility. The register, IDL and co-read ledger are
+unchanged.
+
+The prerequisite ledger retains existing owners and estimates, and assigns
+conditional, separately priced browser packages outside the checklist totals.
+In particular U-15/U-16 supply the Wasm route and semantics, not its interpreter
+or two required theorems; U-12/U-13/U-14 supply parser foundation work. The Rust
+route has its own opening decision because the C backend cannot supply it.
+These assignments release contract-based preparation only. Missing machine
+logic, admitted runtime artifacts, executable services and qualified timing
+still block their consumers. Q29b and Q29c remain open.
+
+The estimate checker's milestone partition omitted Q29's explicitly deferred
+children. Its owner table now includes them beyond M8a/M8b, and the checklist's
+gate figures are regenerated from that corrected partition. No implementation
+dependency moves into the software MVP.
+
+Validation: `python tools/run.py check` passed on the unchanged base
+`fa7bd1722e4af406a7495a4c46b48bb2ec801875`. After supported arithmetic repair,
+`python tools/run.py --check --tests` passed on that revision plus the uncommitted
+Q29a document batch: this log, the checklist, userspace strategy, document
+index, new profile contract and `tools/vos/checks/estimates.py`'s milestone table.
+The final wave comprises the checker, mutation selftest, typecheck and default
+behavioral suite. No target executable, model or proof changed; target runs and
+the Q29b/Q29c corpus are deferred to their named owners.
+
+Accounting: the original estimate was 12 h, range 8–16. No reliable exclusive
+session duration was captured, so the cell retains that planning estimate with
+actual `n/a` and is excluded from the calibration fit. This is completion of the
+contract-authoring item, not a measured implementation saving.
+
+Landed: Tier A. The full read accepts a bounded qualification contract and its
+opening assignments; it confers no browser implementation or admission proof.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models
