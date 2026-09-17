@@ -831,6 +831,39 @@ Landed: Tier A. The existing holder rules decide manifest equality and exclusion
 the attended read also checks the unchanged authored meaning. Final batch evidence
 is recorded with Q11.
 
+#### Q19a · Qualify source-oriented proof diagnostics and rendered review
+
+**Closeout, 2026-09-17: rejected qualification.** Q19's parent explicitly permits a child to reject a candidate with a reproducible failing comparison, and the [qualification contract](../assurance/proof-qualification-contract.md#q19a-and-q19b) admits rejection as a trial outcome. This closes that negative route. The [qualification record](../assurance/proof-tooling-qualification.md) preserves the Pytanque and source-located diagnostic trials on both named clients, their provisional status, and the batch refusals. It does not supply the positive presentation workflow: imported-dependency freshness fails, human review effort remains unmeasured, and Q20b's retained-environment prerequisite remains unmet. A later adoption proposal must reopen Q19a and meet its original positive predicate; neither that predicate nor R-05-018a is weakened by this decision.
+
+The [replay experiment](../../proofs/campaigns/q19a-render-cache.py) runs against the sources at `cab1edadaeac56313c803ae511b3b76d2886a543` in a fresh native directory with the already-qualified candidate switch and renderer. It reproduces the original admitted-import result, then supplies a stronger control: rename `ring_capacity` throughout the staged import and recompile it successfully. The unchanged review still renders successfully from the old cache, while rendering against a fresh cache fails because `ring_capacity` is absent. This demonstrates a stale success against an actually invalid client, not merely equal output bytes after a proof-body edit. Source and configuration invalidation controls still refuse their bad inputs. Both repository proof files remain byte-identical to their inputs; no installed package is changed.
+
+The successful run's receipt is `/root/build/q19a-closeout-20260916-b/receipt.json`, exported to `out/q19a-closeout-20260916/receipt.json`. It records commands, source/configuration and executable hashes, installed candidate package versions, diagnostics, elapsed times, HTML hashes and the unchanged-source check. Its experiment SHA-256 is `7de444800811063b924313adafc41cffeb3efa6ae605d0235a17e22209976610`. The [replay instructions](../assurance/proof-tooling-qualification.md#reproducing-the-rejected-rendering-candidate) require an unused work directory and describe the success-as-reproduced-rejection exit convention.
+
+| Rendering case | Exit | Seconds | Observation |
+| --- | --- | --- | --- |
+| Cold baseline | 0 | 9.060 | Both named invariant proofs render |
+| Warm baseline | 0 | 0.848 | Same HTML digest |
+| Admitted imported lemma | 0 | 0.676 | Stale baseline HTML |
+| Renamed imported definition, old cache | 0 | 0.457 | Stale baseline HTML |
+| Renamed imported definition, fresh cache | 1 | 7.593 | Missing `ring_capacity` diagnostic |
+| Changed configuration | 1 | 12.092 | Configuration invalidation and explicit errors |
+| Broken publisher bound | 1 | 7.415 | Inclusive `Hg` cannot meet the strict bound |
+
+The original estimate is **14 h, range 8–20**. Earlier parallel qualification and recovery work lacks complete item-specific authoring, setup and review intervals. The new replay timings cannot reconstruct that historical effort, so the checklist retains the planning weight with actual n/a and excludes this item from calibration. No human-effort saving is inferred from these machine timings.
+
+The integration validation record is `out/q19a-closeout-20260916/validation.json`: base revision above, the replay script and the three changed documents as the uncommitted scope, `python tools/run.py proofs` over unchanged proof inputs, and `python tools/run.py --fix --tests --summary out/q19a-closeout-20260916/host-gate.json` over the settled batch. The receipts carry the verdicts. Target execution and a positive presentation or human-effort qualification are not claimed.
+
+Recorded entry checkpoint, before the rejection decision:
+
+  * **Qualification checkpoint:** [The actual trials](../assurance/proof-tooling-qualification.md) obtain both named clients through Pytanque, expose provisional goals and reject stale or admitted proofs at batch acceptance. The selected Alectryon cache fails imported-lemma invalidation and is declined. The full positive predicate remains open: no retained freshness-safe presentation workflow or measured human review-effort comparison is supplied. Q20b is not released by this rejection.
+  * **Execute:** Use the named existing proof and one deliberate broken obligation to decide diagnostic value before adding presentation tooling. Qualify one compatible editor server, measure freshness and latency, and retain only useful integration. Q19b may work on its own client copy in a separate environment.
+  * **Dispatch. Start:** the locked prover environment and [CopyRingService.v](../../proofs/CopyRingService.v)'s two named invariant lemmas, with one deliberate edit breaking a bound obligation. **Owns:** the diagnostic and rendered-review qualification and one selected editor server, with the rendered backend qualified apart from the LSP session. **Check:** the Done-when clause below. **Join:** none for entry; Q20b requires this environment retained and usable.
+  * On an existing proof, drive Rocq LSP through Pytanque to obtain source-located goals, premises, errors and current environment identity. Compare Alectryon's rendered goals and messages as a review aid, qualifying its supported backend separately rather than assuming its VsRocq path shares the LSP session. Select one editor server; do not require conflicting extensions or a Markdown migration. Keep Q18's generated requirement headers and the host metadata parsers in their existing roles.
+  * Use [CopyRingService.v](../../proofs/CopyRingService.v)'s `publish_keeps_the_invariant` and `take_keeps_the_invariant` as the initial diagnostic clients, including an edit that breaks a bound obligation. Preserve their statements and the generated `RingContract` dependency; source-level proof feedback claims no executed service or CHERI memory theorem.
+  * **Done when** a reproducible launcher invocation returns diagnostics tied to the exact source and dependency/configuration identity, exposes unfinished goals as provisional, and invalidates feedback after a source, imported lemma or configuration change. Demonstrate that an unfinished interactive proof and a stale rendered result cannot pass the existing batch compilation, assumption audit and `rocqchk` gate. Record latency and review effort against the current workflow, and retain an integration only for a demonstrated use; HTML and interactive caches remain presentation, never acceptance evidence.
+
+Landed: Tier A. The read checks the negative-outcome rule, the reproduced failure and the unmet downstream prerequisite separately; no normative entry or co-read pair changes.
+
 #### Q19b · Qualify selective libraries and replayable automation
 
 The [qualification record](../assurance/proof-tooling-qualification.md) retains the handwritten helpers and dependent definitions after actual selective Stdlib, Equations and standalone `sauto dep: off` comparisons. All 526 CopyRing native statements and empty assumption sets are preserved; the representative client edit replays over both helper implementations. Concrete computation, generated equations and decidable-index transport pass without global UIP. The existing `AdmissionPath.Package D/read_cert` record trial has 18 closed constants; no synthetic-only client stands in for that task. No external search service was used. The maintenance comparison declines candidate incorporation and keeps the locked batch environment unchanged.

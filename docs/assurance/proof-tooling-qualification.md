@@ -1,6 +1,6 @@
 # Proof tooling and selective-library qualification
 
-Q19a rejects adoption of the tested cached presentation workflow because changing an imported proof did not invalidate its rendered result. The editor server itself ran and gave useful source diagnostics. Q19b retains the handwritten helpers and dependent match: the selective Stdlib and Equations candidates replayed without additional assumptions, but this small client does not justify their integration and maintenance cost. Neither decision changes the locked prover or the acceptance gates.
+Q19a's completed qualification rejects adoption of the tested cached presentation workflow because changing an imported proof did not invalidate its rendered result. The editor server itself ran and gave useful source diagnostics. Q19b retains the handwritten helpers and dependent match: the selective Stdlib and Equations candidates replayed without additional assumptions, but this small client does not justify their integration and maintenance cost. Neither decision changes the locked prover or the acceptance gates.
 
 This is the result under the [qualification contract](proof-qualification-contract.md), R-05-017, R-05-018a, R-05-018b and R-05-163. The baseline is revision `7ad95cb6830805fcd9e015d931f96eac5db997f5`, with the qualification contract committed before the experiments. `CopyRingService.v` had SHA-256 `1f4bfe599fd49e0b70adbbc719cf5bc5c9bde7091b7c158c98232787a45bb06c`; `RingContract.v` had `de0f337da91e247d60a15edf91d42f8e58be2fa3314546aad20beea697f092ee`. Both source files remain byte-identical to their pre-trial contents. Repository-wide proof and host gates belong to the integrator; the checks here use only these two modules and the named experimental dependent module.
 
@@ -56,6 +56,25 @@ Changing the render configuration to `--rocq-arg=-noinit` produced an explicit o
 These are machine latency measurements, not a human usability study. Source diagnostics localized the failed bound and exposed its context; batch diagnostics already named the same failing range. Rendering made both proof paths inspectable in one page, but no measured reduction in human review time is claimed. Setup, semantic inspection and human review effort were not timed as person-hours. A fresh `python3 -m venv` lacked ensurepip; `uv venv` and installation of the immutable Alectryon source in the native lane succeeded in 4.95 s without a system-package change.
 
 Thus the positive predicate's measured review-effort clause is also unsatisfied. The observed freshness failure independently rejects this candidate integration; recording that rejection does not silently waive the missing measurement or qualify a human-review workflow. A later retained presentation candidate must perform that comparison as well as passing all invalidation cases.
+
+## Reproducing the rejected rendering candidate
+
+Q19 permits a child to reject a candidate with a reproducible failing comparison. Q19a closes under that negative-outcome rule, with its [completion evidence](../implementation/completion-log.md#q19a-qualify-source-oriented-proof-diagnostics-and-rendered-review). The positive predicate remains unsatisfied: no freshness-safe presentation workflow or measured human review-effort comparison is retained. Q20b still requires a retained usable environment; a later adoption proposal must reopen Q19a and meet that original predicate before it can supply one.
+
+[The replay experiment](../../proofs/campaigns/q19a-render-cache.py) consumes the existing qualified renderer and separate candidate switch. From the repository root in WSL, run:
+
+```console
+python3 proofs/campaigns/q19a-render-cache.py \
+  --work /root/build/q19a-render-replay \
+  --renderer /root/build/lane-recover-qualification-20260914/render-env/bin/alectryon \
+  --switch /root/.opam/verifiedos-q19-recovery-20260914
+```
+
+The work directory must be unused and reside under `/root/build`; choose a new name for each replay. The renderer and switch paths name separately provisioned external tools, not repository dependencies that this command installs. The script stages the current repository sources, rebuilds the import with the candidate prover, and renders the original prefix through both named invariant lemmas. It changes only staged inputs and writes its commands, identities, diagnostics and timings to `receipt.json` in the chosen directory.
+
+The admitted-import case repeats the original failure. An additional control renames the imported `ring_capacity` definition, including all uses within the import, and successfully recompiles that import. The cached rendering still succeeds with the original page, while an independent fresh cache exposes the missing definition in the unchanged client and exits unsuccessfully. This control distinguishes stale feedback from a fresh computation that happens to emit identical HTML. The source-bound and configuration controls must also fail for the experiment to report a reproduced rejection.
+
+Exit zero means the candidate's rejection was reproduced, never that the presentation workflow was accepted. Missing setup, a changed cache result or a missing expected refusal makes the experiment fail. The receipt verifies that both repository proof sources remain unchanged. No script result replaces the locked batch proof, assumption and kernel gates, and no human review-effort result is inferred from rendering latency.
 
 ## Q19b: unchanged native statements and assumptions
 
