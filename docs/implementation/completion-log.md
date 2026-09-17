@@ -1739,6 +1739,53 @@ Landed: Tier A. The record states new claims about which upstream's terms reach
 which open cell, so it took a full attended read rather than a spot read of its
 findings.
 
+#### Q28a · Bind one cryptographic claim to its concrete premise dossier
+
+The [AES-GCM premise dossier](../assurance/aes-gcm-premise-dossier.md) selects
+one per-extent authentication consumer and binds AES-256-GCM's functional
+reference to a classical ideal-permutation authenticity game. It records the
+selected theorem and symbolic loss, key/nonce and AES replacement terms,
+resource accounting, the class-indexed premises and the exact limits of the
+storage correspondence. The source reading covers the selected GCM proof
+repair, FIPS 197 and the current SP 800-38D revision consultation. It imports
+no upstream code or proof.
+
+[OracleInstantiation.v](../../proofs/OracleInstantiation.v) supplies the
+required finite oracle case: the ideal fresh answer's prediction bound has
+no global axioms, while replacing its distribution by a constant oracle
+refutes the transferred conclusion. This is a model-boundary witness and
+not a GCM security proof. The dossier also records change-to-claim
+invalidation and a creation-based stored-secret horizon review covering
+captured ciphertext, controlled copies, key destruction, support and update
+budgets, and the immutable verifier. Other cryptographic consumers remain
+explicitly outside the pilot.
+
+The Tier-A reading checks the dossier against R-05-162a, R-17-049e through
+R-17-049g and the three Q28a acceptance bullets at the input revision. The
+outcome accepts the dossier and refuses numerical/deployment qualification:
+resource limits, production correspondence, cryptographic reductions and
+physical/support evidence remain with their existing owners. No requirement,
+coverage cell, crown-jewel status or co-read pair changes.
+
+Validation is recorded against base
+`712afc03624eefbf29539c44d7bab6b8c15b2bf2` plus this uncommitted batch: the
+dossier, oracle proof, document index, crypto inventory, checklist, completion
+log and generated proof metadata. `python tools/run.py proofs` passed:
+OracleInstantiation.v contributes nine enumerated constants, all closed
+under the global context, and the full kernel recheck passed. After generated
+repairs, `python tools/run.py --check --summary out/q28a-host-gate.json`
+passed the checker, mutation selftest and Python checks. Target execution and
+complete cryptographic reductions are outside the accepted dossier and remain
+deferred.
+
+Accounting: the original estimate is 14 h, range 8–20. No complete session
+timer covers the initial candidate survey and source selection, so the
+planning weight is retained with actual `n/a`, outside the calibration fit.
+The later timed proof/review interval does not replace that missing scope.
+
+Landed: Tier A. The full read accepts the premise dossier's bounded scope;
+it grants no numerical cryptographic margin or release admission.
+
 #### Q29a · Freeze the web application profile and qualification contract
 
 The [web application profile](contracts/web-application-profile.md) freezes

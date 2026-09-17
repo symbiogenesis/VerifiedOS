@@ -160,6 +160,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-162 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-162 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-05-162a | proofs/ApexTheorem.v | n/a | cited |
+| R-05-162a | proofs/OracleInstantiation.v | n/a | cited |
 | R-05-163 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-163 | proofs/AesGcm.v | n/a | cited |
 | R-05-163 | proofs/ApexTheorem.v | n/a | cited |
@@ -1459,6 +1460,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-049 | proofs/RomVerifier.v | n/a | cited |
 | R-17-049e | proofs/ApexTheorem.v | n/a | cited |
 | R-17-049f | proofs/ApexTheorem.v | n/a | cited |
+| R-17-049f | proofs/OracleInstantiation.v | n/a | cited |
 | R-17-049b | proofs/RomVerifier.v | n/a | cited |
 | R-17-049d | proofs/ComposedNonInterference.v | n/a | cited |
 | R-17-058a | proofs/ApexTheorem.v | n/a | cited |

@@ -747,6 +747,12 @@
         ]
       }
     },
+    "OracleInstantiation.v": {
+      "constants": 9,
+      "inventory_sha256": "dae2c88de490f792994d92185f3d4536730f3e133bdd26845842d38c544a81ef",
+      "requires": [],
+      "witnesses": {}
+    },
     "PartitionContext.v": {
       "constants": 108,
       "inventory_sha256": "c3342350eb0ec51bb31057e44132c68de98de35ccd107773a24b27a90a080e6c",
@@ -1066,6 +1072,7 @@
     "proofs/ModuleAdmission.v": "fdd50e4e26edda598f1d7e5bf28ad94a7e38dd9b2cfd6b15300b20fb16a66367",
     "proofs/ObjectRouter.v": "4c69caa3da6c28ea84e3c0dbffd1cea7ebf325a5cf82e8e1af448b7d5674f1e3",
     "proofs/ObjectTransactor.v": "e07446fe64d79ea285de4c23c5a9c3181204e84f29e15a024e5a8fc92d1e9595",
+    "proofs/OracleInstantiation.v": "421f015b9c46edb694cf4e643192e51e742ce1f4a64a41054c79b90fd32fbc56",
     "proofs/PartitionContext.v": "59074387ad4fb550cdf7683660d5a6e32a7c78fab1b5b3dd897f2ba52d25f836",
     "proofs/PqArith.v": "54fc9b41150e6135efb2411268217ae341f0a11bfe3acebc5ec4c92c03760ef5",
     "proofs/ProbingModel.v": "21b0a6e0783ee4d23d55689df6eb75a8c68dd60f49ca244820b12d1c8a9b7ae9",
@@ -1085,7 +1092,7 @@
     "tools/uv.lock": "8fe683e8b687740927cbed240a159d782f2feefadd4d3f301b4a08518b8e6ece",
     "tools/vos/__init__.py": "f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c",
     "tools/vos/cli/__init__.py": "fd144255e8a6ae5a79a6f78b4f637667bc116edb947fd84bcd2609ff0394d053",
-    "tools/vos/cli/proofs.py": "27720532b2673423c6364341a9755088923354ff0ddfbd353ac426cf211e656e",
+    "tools/vos/cli/proofs.py": "dbf50859afeb01b7b5570a4f8b8fc4be5544e40079a7aa227ef907736d936e4b",
     "tools/vos/corpus.py": "18c7354e0b89dba5191af698706ca37a421bf8120fba7c04f1d00fbf8c95594e",
     "tools/vos/env.py": "f18276ba8c54bfbd78b51ceff8c6bebad7123b4d4a398d2ff558a84624981ee6",
     "tools/vos/proofaudit.py": "ed44065dea6641e890e12175dbaebee56f9a373232019b70876f990d30c70510",
@@ -1096,7 +1103,7 @@
     "tools/vos/toolenv.py": "1a54d85eb5b00b74d4fe4e4ceb3fce78a929d41afaec230a96d37def0ce3f44a"
   },
   "kernel_recheck": "passed",
-  "native_receipt_sha256": "c7ba1631b79e4488150d66708dcf4a0861b1b055069a0db650c9adebdbbb149d",
+  "native_receipt_sha256": "21794bbbdbd3abec09e47855ffa10f422c9970268e35be785dd2dbe8f6bfcce9",
   "outputs": {
     "proofs/AdmissionPath.vo": "2eb5f9f215787f34fb3cc97ecee2365eddb8e56bea58581fa72d6a60598e75df",
     "proofs/AesGcm.vo": "935a01c7e913dfa5c57550bfba485f44f4dcf881ea241170fe7197eee9588c39",
@@ -1115,7 +1122,7 @@
     "proofs/InferenceAdmission.vo": "daf4ac59e95f8d6a0311dbc9f26687f8f726aecdfdf02e3c70914068c2a989f1",
     "proofs/JournalIndex.vo": "1e23f213540f2b43633afb529326c2ac52dbb5bff0c15713a29b6506cc771d33",
     "proofs/Keccak.vo": "dc9bc77c0e3d2fd731fb7a8f18170b8a603b35776f7a5fa0e98bf7602811cccb",
-    "proofs/KernelInstance.vo": "647d69460688a09629ed1426b9fdd43bc3a481116ceb07b3df521fd98e4292f6",
+    "proofs/KernelInstance.vo": "98a9c9690dd53662e900822748df5e978f157530da14dbd1f4b1dae0dd7262cd",
     "proofs/KeyspaceDomains.vo": "7979ff758bebbc35e18943e2c513bbf1fe3929c974c68849befb2ec6f6308966",
     "proofs/MModeFirmware.vo": "542dd57200bae3b5704aaf2a1d6307d4fe41fdebc42c5f25e8f12e42b3365e4b",
     "proofs/MemoryPlan.vo": "08da5719569fe625e16eddd3487fe89e7e1aa1805d66ffaf1a4e9e3289e00d4d",
@@ -1127,6 +1134,7 @@
     "proofs/ModuleAdmission.vo": "cbede5fda01970675a77ce22bb17348ba8f77ff01a993b3fbfa66e1afac1e1d7",
     "proofs/ObjectRouter.vo": "ffd75a27d7f5b111a3566231346d7bfc14a99a1bd6527d63a9d5121cf827118a",
     "proofs/ObjectTransactor.vo": "3fc49eb108eabc3a0ce3e97057336c0cf014cde8dde3c0384092d1b5b5b72415",
+    "proofs/OracleInstantiation.vo": "bf2811428c72e2b1b90a3b71af161003323bc9a3800b4ad8aadd8cd30da51a62",
     "proofs/PartitionContext.vo": "94ca28c18b4e76b76b860c7c521f88ccda6921c4d92e31835e6556f58f523cf4",
     "proofs/PqArith.vo": "fb79cfe72af7d7ca3a0f6ba73b8584c8d92a61e17db11859609f19bf51b3a21d",
     "proofs/ProbingModel.vo": "6e21bff3f93066cea55b36d66a5ad62556a559a4ec82acb98f7125cef5e4ec98",
@@ -1146,9 +1154,9 @@
   "schema": 1,
   "status": "passed",
   "timings": {
-    "compile_audit_seconds": 262.12156853299996,
-    "kernel_recheck_seconds": 2317.3390706299997,
-    "total_seconds": 2591.023229136
+    "compile_audit_seconds": 159.33679929399997,
+    "kernel_recheck_seconds": 1239.5920989709998,
+    "total_seconds": 1401.887385984
   },
   "toolchain": {
     "checker_sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",

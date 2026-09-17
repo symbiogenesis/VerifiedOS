@@ -82,6 +82,9 @@ The [post-quantum reference contract](assurance/pq-reference-contract.md) fixes
 the shared arithmetic and scheme campaign boundaries; the
 [probing model contract](assurance/probing-model-contract.md) separates finite
 algebra and circuit-model results from probability-library and physical qualification.
+The [AES-GCM premise dossier](assurance/aes-gcm-premise-dossier.md) binds one
+storage-authentication claim to its game, model and key/nonce assumptions,
+with a finite oracle counterexample and a stored-secret horizon review.
 The [security policy candidate](assurance/security-policy-model.md) and
 [opening hardening obligations](assurance/hardening-opening-obligations.md)
 state their remaining implementation and proof premises. The

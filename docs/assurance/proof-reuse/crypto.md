@@ -10,6 +10,12 @@ The completed M3.4a, M3.4c-i and M3.4d items in [the implementation plan](../../
 
 These references qualify the boundary ledger under R-05-162a and R-17-049e/f/g. They provide no local reduction or certified attack-cost estimate. The [PQ reference contract](../pq-reference-contract.md#security-premise-qualification) states the qualification record separately from implementation correctness.
 
+Q28a's [AES-GCM premise dossier](../aes-gcm-premise-dossier.md) applies that
+separation to one storage-authentication consumer. It selects a classical
+ideal-permutation bound, records the concrete AES and nonce hybrids, and
+refuses numerical deployment qualification while its resource and physical
+inputs remain absent. The remaining consumers retain their own dossiers.
+
 ### Lattice conjectures and core-SVP estimates
 
 [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) relates ML-KEM security to Module Learning with Errors. The [CRYSTALS-Kyber round-three specification](https://pq-crystals.org/kyber/data/kyber-specification-round3-20210804.pdf), sections 5.1.4 and 5.2, separately gives core-SVP estimates and discusses costs omitted by that measure. Its classical `2^(0.292b + o(b))` sieving model is not an unconditional lower bound on attack cost; dropping the hidden terms is a modeling choice at the chosen block size. The concrete estimate therefore has its own index, with estimator edition, attack coverage and finite-size assumptions; it does not replace MLWE/MSIS.
