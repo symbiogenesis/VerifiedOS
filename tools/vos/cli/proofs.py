@@ -13,8 +13,9 @@ their consumers. A wholly unchanged run validates its previous receipt. Otherwis
 audits and the joint kernel recheck run again; --fresh disables all reuse.
 Every accepted module is rechecked by rocqchk before a content-bound JSON receipt is
 written. Sources are staged into this checkout's native guest build lane; compiler
-outputs, audit scratch, the directory lock and receipt stay there. `proofs status`
-uses the guest hop to hash those outputs without invoking Rocq again.
+outputs, audit scratch, the directory lock and full receipt stay there. Successful
+runs also publish a portable receipt in the checkout. `proofs status` uses the guest
+hop to hash native outputs; `proofs export` preserves an existing run without Rocq.
 """
 
 import argparse
@@ -434,7 +435,7 @@ def _toolchain() -> dict[str, object]:
             "checker": {"path": str(checker), "sha256": receipts.digest(checker)}}
 
 
-def _validate_receipt(root: Path) -> None:
+def _validate_receipt(root: Path, *, historical: bool = False) -> None:
     work = workspace(root)
     raw: object = json.loads((work / RECEIPT).read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -442,12 +443,17 @@ def _validate_receipt(root: Path) -> None:
     record = cast("dict[str, object]", raw)
     if record.get("schema") != RECEIPT_SCHEMA or record.get("status") != "passed":
         raise ValueError("receipt has no supported successful verdict")
-    sources = _sources(root)
-    if record.get("inputs") != _inputs(root, sources):
+    sources = _sources(work if historical else root)
+    inputs = record.get("inputs")
+    if not isinstance(inputs, dict):
+        raise TypeError("receipt has no input manifest")
+    if not historical and inputs != _inputs(root, sources):
         raise ValueError("proof inputs or proof-gate implementation have changed")
     staged = [work / PROOFS / source.name for source in sources]
-    if receipts.snapshot(work, staged) != receipts.snapshot(root, sources):
-        raise ValueError("staged proof sources differ from the current originals")
+    recorded_sources = {name: digest for name, digest in inputs.items()
+                        if isinstance(name, str) and name.startswith(PROOFS + "/")}
+    if receipts.snapshot(work, staged) != recorded_sources:
+        raise ValueError("staged proof sources differ from the recorded inputs")
     outputs = receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))
     if record.get("outputs") != outputs:
         raise ValueError("compiled proof artifacts have changed")
@@ -485,6 +491,63 @@ def _validate_receipt(root: Path) -> None:
         raise ValueError("receipt uses a different declared assumption set")
     if record.get("kernel_recheck") != "passed":
         raise ValueError("receipt has no successful kernel recheck")
+
+
+def _json_digest(value: object) -> str:
+    """Identity of a JSON value, independent of its on-disk indentation."""
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
+                                     separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _portable_receipt(path: Path) -> dict[str, object]:
+    """Project a validated native receipt without recording guest-specific paths."""
+    raw = path.read_bytes()
+    record = json.loads(raw)
+    artifacts = {
+        name: {"constants": len(artifact["symbols"]),
+               "inventory_sha256": _json_digest(artifact["symbols"]),
+               "requires": artifact["requires"], "witnesses": artifact["witnesses"]}
+        for name, artifact in record["artifacts"].items()}
+    toolchain = record["toolchain"]
+    return {
+        "format": "verifiedos-portable-proof-receipt", "schema": 1,
+        "native_receipt_sha256": hashlib.sha256(raw).hexdigest(),
+        "status": record["status"], "kernel_recheck": record["kernel_recheck"],
+        "inputs": record["inputs"], "outputs": record["outputs"],
+        "toolchain": {"pin": toolchain["pin"], "version": toolchain["version"],
+                      "compiler_sha256": toolchain["compiler"]["sha256"],
+                      "checker_sha256": toolchain["checker"]["sha256"]},
+        "cache_context_sha256": _json_digest(record["cache_context"]),
+        "declared_assumptions": record["declared_assumptions"],
+        "artifacts": artifacts, "timings": record["timings"],
+        "reused_compilations": record["reused_compilations"]}
+
+
+def _publish_receipt(root: Path, *, check: bool = False) -> None:
+    target = root / RECEIPT
+    portable = _portable_receipt(receipt_path(root))
+    if check:
+        if json.loads(target.read_text(encoding="utf-8")) != portable:
+            raise ValueError("portable receipt differs from the completed native run")
+    else:
+        receipts.write(target, portable)
+
+
+def _export(root: Path, *, check: bool = False) -> int:
+    """Export historical evidence, never changing its recorded input identities."""
+    try:
+        held = _hold(workspace(root))
+        try:
+            _validate_receipt(root, historical=True)
+            _publish_receipt(root, check=check)
+        finally:
+            os.close(held)
+    except (OSError, KeyError, TypeError, ValueError) as err:
+        print(f"FAIL: proof evidence export: {err}")
+        return 1
+    print(f"ok: {root / RECEIPT} {'matches' if check else 'records'} the completed native run; "
+          "original input hashes retained; current checkout freshness is not asserted")
+    return 0
 
 
 def _status(root: Path) -> int:
@@ -636,9 +699,10 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
             if (inputs == _inputs(root, _sources(root)) and toolchain == _toolchain()
                     and context == _cache_context(work, sources)):
                 _validate_receipt(root)
+                _publish_receipt(root)
                 print(f"ok: reused previous full kernel check for {len(sources)} proof(s); "
                       f"all input, output and toolchain hashes match ({time.perf_counter() - started:.2f}s); "
-                      "use --fresh to rebuild and recheck")
+                      f"evidence: {root / RECEIPT}; use --fresh to rebuild and recheck")
                 return 0
     (work / RECEIPT).unlink(missing_ok=True)
     # This private staging directory is the only subtree the gate replaces. The
@@ -736,11 +800,13 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
                     "kernel_recheck_seconds": recheck_seconds,
                     "total_seconds": time.perf_counter() - started},
         "reused_compilations": len(reusable)})
+    _publish_receipt(root)
     print(f"  kernel recheck: {recheck_seconds:.2f}s; "
           f"total: {time.perf_counter() - started:.2f}s")
     print(f"ok: {total} constant(s), each enumerated by Rocq, closed under the "
           "global context and re-checked by rocqchk, which shares the kernel's "
-          f"lineage; {witnessed} witness(es); evidence: {work / RECEIPT}")
+          f"lineage; {witnessed} witness(es); evidence: {root / RECEIPT}; "
+          f"full native receipt: {work / RECEIPT}")
     return 0
 
 
@@ -776,7 +842,9 @@ def main(argv: list[str] | None = None) -> int:
                     "incrementally and concurrently; enumerate symbols, types "
                     "and assumptions through Rocq; validate claims and witnesses; "
                     "recheck with rocqchk and record content-bound evidence.")
-    parser.add_argument("command", nargs="?", choices=("run", "status"), default="run")
+    parser.add_argument("command", nargs="?", choices=("run", "status", "export"), default="run")
+    parser.add_argument("--check", action="store_true",
+                        help="with export, compare the portable receipt without writing")
     parser.add_argument("--jobs", type=int, default=min(4, os.process_cpu_count() or 1),
                         help="maximum concurrent proof jobs (default: at most four)")
     parser.add_argument("--fresh", action="store_true",
@@ -784,5 +852,11 @@ def main(argv: list[str] | None = None) -> int:
     parsed = parser.parse_args(args)
     if parsed.jobs < 1:
         parser.error("--jobs must be positive")
+    if parsed.check and parsed.command != "export":
+        parser.error("--check requires export")
+    if parsed.fresh and parsed.command != "run":
+        parser.error("--fresh requires run")
     root = find_root()
+    if parsed.command == "export":
+        return _export(root, check=parsed.check)
     return _status(root) if parsed.command == "status" else _run(root, parsed.jobs, parsed.fresh)

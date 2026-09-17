@@ -111,7 +111,7 @@ caught by nothing, which is a residue the findings register carries.
 | `placement` | host / wsl | `export`, `check`, `admit` and `search` read the memory plan on either lane. `consistency` asks Z3 to select a jointly admissible candidate from the existing finite island grid, labels constraints with requirement IDs, and replays witnesses and contradiction cores through the exact predicates. A truncated grid can produce a witness but cannot establish unsatisfiability. The proof status remains with the Gallina artifact. |
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
-| `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
+| `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 
 `rtl widthcheck` checks frozen transport widths and every store-rotation bit/lane.
 `rtl device-regs` emits register constants from their pinned owner; `rtl devicescheck`
@@ -401,7 +401,7 @@ A lane standing up for the first time is seeded from the primary worktree's tree
 
 ## Where a file lives, and which lane touches it
 
-**A file sits on the side of the OS boundary whose tools read it most, and a guest output never lands in the checkout.** WSL mounts each Windows drive into the guest under `/mnt/<drive>` and shows the guest's own disk to Windows as `\\wsl.localhost\<distribution>`, and either direction works at a cost paid per file rather than per byte. [Microsoft's guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) is to keep a project on the filesystem of the command line that works on it, and this repository is worked on from both: the host edits and checks the documents, and the guest builds the model, elaborates the RTL and runs the provers. So the layout is a split, every loop here keeps it, and `run.py model lane` prints each of a lane's paths beside the filesystem under it.
+**A file sits on the side of the OS boundary whose tools read it most; explicit evidence exports and tracked generated artifacts may land in the checkout.** WSL mounts each Windows drive into the guest under `/mnt/<drive>` and shows the guest's own disk to Windows as `\\wsl.localhost\<distribution>`, and either direction works at a cost paid per file rather than per byte. [Microsoft's guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) is to keep a project on the filesystem of the command line that works on it, and this repository is worked on from both: the host edits and checks the documents, and the guest builds the model, elaborates the RTL and runs the provers. So the layout is a split, every loop here keeps it, and `run.py model lane` prints each of a lane's paths beside the filesystem under it.
 
 | What | Where it sits | Who touches it, and from which side |
 | --- | --- | --- |
@@ -410,7 +410,8 @@ A lane standing up for the first time is seeded from the primary worktree's tree
 | Build trees, fast trees, SMT memo caches, and the work directories of the bundle, oracle, seed, QuickChick, RTL and evidence loops | `/root/build`, in a `lane-<name>` directory per linked worktree | Guest loops only; no host tool opens them |
 | Logs | `/root/logs`, the lane in the file name | Guest loops write them; a person reads them through `run.py model wait`, `run.py rtl wait` or `wsl -e cat`, never through a host tool pointed at the share |
 | The opam switches, the pinned solver, ccache | `/root/.opam`, `/root/z3-<version>`, `/root/.ccache` | The guest toolchain |
-| Proof staging, compiled `.vo`, audit scratch, lock and `proofs/proof-evidence.json` | `<lane_root>/proof-gate/` | The proof gate and `proofs status`, reached through the guest hop; source identities still bind the original checkout |
+| Proof staging, compiled `.vo`, audit scratch, lock and full `proofs/proof-evidence.json` | `<lane_root>/proof-gate/` | The proof gate, `proofs status` and `proofs export`, reached through the guest hop; source identities still bind the original checkout |
+| Portable [proof receipt](../proofs/proof-evidence.json) | `proofs/proof-evidence.json` in the checkout, tracked by Git | Successful proof runs and `proofs export` publish it atomically; `proofs export --check` compares it with the native run |
 | Exported evidence in `out/evidence/` and tracked generated artifacts | Inside the checkout | The evidence exporter and artifact generators; host readers consume their explicit outputs |
 
 The crossing that stays is priced, and the price is what fixed the split. [vos/env.py](vos/env.py)'s docstring carries the figures with their dates: a cmake configure walks the whole model project and pays per stat, about 17 s from `/mnt/c` against 1 s from ext4; a `git status` over the checkout is 3.2 s from the guest against 0.14 s on the host; and a tool's bootstrap through the Linux environment in the checkout is 0.78 s against 0.37 s. The host pays the same tax in reverse and pays it oftener, `tools/check.py` costing about 1 s over the NTFS checkout against 11 to 18 s over the same tree on the `wsl.localhost` share, on the loop that runs after every document edit, which is why the plan's I1 measured moving the checkout onto ext4 and refused it. What would flip the whole table is a person working from inside the guest, the Remote-WSL posture `run.py provision` prints as not reached: then the checkout belongs on ext4 too, the host gates run there as they do on the Ubuntu CI runner, and nothing crosses.
@@ -419,9 +420,9 @@ The rules that follow from the table, each a thing a worker or a brief gets wron
 
 - **Create a lane from the host.** `run.py worktree create` is Windows git writing the Windows filesystem; the same checkout made through `/mnt/c` from the guest pays the mount's per-file cost for every file it writes and lands in the same place. A checkout is never placed on `\\wsl.localhost`: host git refuses it until `safe.directory` is relaxed, and the checker pays the tax above on every run.
 - **Send guest work through the front door.** `python tools/run.py <command>` on the host hops with the checkout as the guest's working directory, so the guest reads the sources across the mount and writes every output under this lane's directory, which `run.py worktree create --json` names as `lane_root` and a brief for guest work carries. Inside the guest, `python3 tools/run.py <command>` is the same command.
-- **Never send a guest output back across, and never park one on tmpfs.** `VOS_BUILD_ROOT`, `VOS_LOG_DIR` and an `--out` pointed under `/mnt/` make every write cross the boundary, and `/tmp` is gone when the instance idle-terminates. `run.py provision` probes the build root and the log root and fails the lane for either.
+- **Keep guest build products native, and never park one on tmpfs.** `VOS_BUILD_ROOT`, `VOS_LOG_DIR` and build outputs pointed under `/mnt/` make every write cross the boundary, and `/tmp` is gone when the instance idle-terminates. `run.py provision` probes the build root and the log root and fails the lane for either. Explicit evidence exports and tracked generated artifacts use the checkout destinations named above.
 - **Ask the host about the checkout.** `git status`, a recursive search and a directory walk over `/mnt/c` each cost seconds from the guest, so the guest tools run `git` exactly where a build needs it, `git describe` at configure and `git ls-files` for a receipt, and a worker asks a host shell for the rest.
-- **The source-writing commands are named.** `seed properties` writes mutants into `model/` because cmake is pointed there and owns the checkout for the run; `model bundle` writes the tracked bundle. Proof compilation stages source bytes in its native lane, and `proofs status` takes the guest hop to hash the resulting artifacts.
+- **The source-writing commands are named.** `seed properties` writes mutants into `model/` because cmake is pointed there and owns the checkout for the run; `model bundle` writes the tracked bundle. Proof compilation stages source bytes in its native lane, and `proofs status` takes the guest hop to hash the resulting artifacts. Successful proof runs and `proofs export` write the portable receipt in the checkout.
 - **The two sides disagree about case.** NTFS folds it and ext4 does not, which is why a lane name is lowercased on creation and why [.gitignore](../.gitignore) excludes the `.Codex` and `.codex` worktree roots separately.
 
 ## The lane as a fact list, and what no provisioner reaches
@@ -788,6 +789,26 @@ proposition expresses the English requirement; that remains the requirement-to-c
 review. Status checks freshness without invoking Rocq; the receipt records the prover
 identity measured during the proof run.
 
+The tracked [portable proof receipt](../proofs/proof-evidence.json) records the last
+successful run's source, gate-input and compiled-object hashes, prover version and
+executable hashes, module constant counts, dependencies, witnesses and timings.
+It includes the SHA-256 of the complete native receipt and digests of each symbol
+inventory and the cache context. Those JSON-value digests use UTF-8, sorted keys,
+literal Unicode and comma/colon separators without whitespace. Guest executable and
+library paths stay in the full native receipt, alongside the complete symbol types
+and assumptions. The portable record is historical evidence, not a cache authority
+or a claim that today's checkout has been rechecked.
+
+`python tools/run.py proofs export` validates the recorded staged sources and compiled
+objects, then publishes the portable receipt without compiling or invoking Rocq.
+It retains the original input hashes even after gate or source edits. The full native
+receipt is never rewritten by export. `proofs export --check` checks agreement with
+that native run without writing; `proofs status` separately checks current inputs.
+New successful runs, including cache hits, automatically publish the portable receipt.
+Publication failure fails the command but preserves the native evidence, allowing an
+export retry without a proof recheck. A failed proof run leaves the previous portable
+receipt intact; its recorded input hashes still identify only the earlier run.
+
 The requirements register remains the authored normative source. K-109 holds each
 non-generated proof's compact reference manifest against the entries selected by its
 authored citations. The manifest records the owner, IDs and a SHA-256 fingerprint of
@@ -817,7 +838,8 @@ source or object invalidates its transitive dependents. Source-set and gate chan
 invalidate all objects. Timestamps do not establish freshness.
 
 When the entire proof set is unchanged, the gate validates and reuses its previous
-full kernel result without rewriting that receipt. The cache also hashes installed
+full kernel result without rewriting the native receipt, and republishes the portable
+receipt. The cache also hashes installed
 library and runtime files discovered through the compiler configuration and actual
 load paths, the checker library, and the environment (only its digest is recorded;
 shell launch bookkeeping and WSL's per-launch interop socket are excluded).

@@ -32,7 +32,9 @@ def _incremental_run() -> None:
         compiled_names: list[str] = []
         audited: list[str] = []
         context: dict[str, object] = {"library_hash": "first"}
-        toolchain = {"pin": gate.env.ROCQ_VERSION, "binary": "first"}
+        toolchain = {"pin": gate.env.ROCQ_VERSION, "version": "fixture",
+                     "compiler": {"path": "/native/bin/rocq", "sha256": "first"},
+                     "checker": {"path": "/native/bin/rocqchk", "sha256": "checker"}}
         failing: set[str] = set()
 
         def inputs(base: Path, sources: list[Path]) -> dict[str, str]:
@@ -69,10 +71,50 @@ def _incremental_run() -> None:
 
             run(set(texts))
             receipt = (work / gate.RECEIPT).read_bytes()
+            portable = root / gate.RECEIPT
+            exported = json.loads(portable.read_text(encoding="utf-8"))
+            ensure(exported["inputs"] == inputs(root, gate._sources(root)),
+                   "portable receipt must retain the completed run's input hashes")
+            ensure(exported["native_receipt_sha256"] == receipts.digest(work / gate.RECEIPT),
+                   "portable receipt lost the full native receipt identity")
+            ensure("/native/" not in portable.read_text(encoding="utf-8"),
+                   "portable receipt leaked native executable paths")
+            portable.unlink()
             run(set(), kernel=False)
             ensure(not audited, "unchanged receipt must avoid repeated native audits")
             ensure((work / gate.RECEIPT).read_bytes() == receipt,
                    "reuse must retain the original completed run's evidence")
+            ensure(json.loads(portable.read_text(encoding="utf-8")) == exported,
+                   "cached success must restore the portable receipt")
+            with patch.object(gate, "_hold", side_effect=lambda _: os.open(os.devnull, os.O_RDONLY)):
+                ensure(gate._export(root, check=True) == 0, "fresh export must compare equal")
+                portable.write_text("{}", encoding="utf-8")
+                ensure(gate._export(root, check=True) == 1, "altered export must fail comparison")
+                # Export must preserve a completed run after gate inputs change, with no Rocq.
+                owner.write_text("changed since the completed run", encoding="utf-8")
+                ensure(gate._export(root) == 0, "historical export must not require a recheck")
+                ensure(json.loads(portable.read_text(encoding="utf-8")) == exported,
+                       "historical export rewrote the recorded inputs")
+                ensure((work / gate.RECEIPT).read_bytes() == receipt,
+                       "historical export changed the original receipt")
+                ensure(gate._status(root) == 1, "historical export must not bless current inputs")
+                owner.write_text("gate input", encoding="utf-8")
+                product = work / "proofs" / "Base.vo"
+                saved = product.read_bytes()
+                product.write_bytes(b"tampered")
+                ensure(gate._export(root) == 1, "export must reject altered native objects")
+                product.write_bytes(saved)
+            with patch.object(gate.receipts, "write", side_effect=OSError("export unavailable")):
+                try:
+                    run(set(), kernel=False)
+                except OSError:
+                    pass
+                else:
+                    raise AssertionError("failed publication reported a successful run")
+            ensure((work / gate.RECEIPT).read_bytes() == receipt,
+                   "failed publication destroyed the native receipt")
+            ensure(json.loads(portable.read_text(encoding="utf-8")) == exported,
+                   "failed publication destroyed the previous portable receipt")
 
             # A content change with exactly preserved timestamps still invalidates.
             source = folder / "Base.v"
@@ -91,7 +133,7 @@ def _incremental_run() -> None:
             run({"Consumer"})
             context["library_hash"] = "changed-library"
             run(set(texts))
-            toolchain["binary"] = "changed-compiler"
+            toolchain["compiler"] = {"path": "/native/bin/rocq", "sha256": "changed-compiler"}
             run(set(texts))
             owner.write_text("changed gate input", encoding="utf-8")
             run(set(texts))
@@ -107,10 +149,13 @@ def _incremental_run() -> None:
 
             # A failed prerequisite cannot leave a dependent's stale object or receipt.
             failing.add("Base")
+            saved_portable = portable.read_bytes()
             (folder / "Base.v").write_text("broken", encoding="utf-8")
             run({"Base"}, result=1, kernel=False)
             ensure(not (work / "proofs" / "Consumer.vo").exists(), "stale consumer survived")
             ensure(not (work / gate.RECEIPT).exists(), "failed run left successful evidence")
+            ensure(portable.read_bytes() == saved_portable,
+                   "failed run must preserve the last completed run's portable evidence")
             failing.clear()
 
             def tamper(_root: Path, sources: list[Path]) -> subprocess.CompletedProcess[str]:
