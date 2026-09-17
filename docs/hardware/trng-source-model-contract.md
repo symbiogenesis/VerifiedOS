@@ -96,7 +96,7 @@ Nine clauses. Each is decidable by reading a submission against an artifact name
 6. **The health tests are the adopted class, sized to this submission.** TM-10 is the repetition-count and adaptive-proportion class and its cutoffs are computed from TM-4 rather than taken from a default. Decidable today against the prose carrying R-15-241b's bookmark. **Its second half is not writable**: TM-11's false-positive rate is the input a cutoff is computed from and nothing in this repository fixes one. Owed at R-15-241b.
 7. **The budget satisfies both terms.** §4's expression holds at the submitted `N`, under the premises the second term adds under: TM-4a read at clause 1, TM-7 at clause 3, TM-8 at clause 5, so a submission that passes the arithmetic while failing one of those three fails here rather than passing. **Not evaluable today**: every symbol but `k` is owed.
 8. **The budget is representable.** `N` lies in `range(0, 65535)` and is not zero. Decidable today, and it is a schema-conformance check and never an argument that the budget is right.
-9. **The budget is affordable.** `N` divided by TM-3's sampling rate, over the sources the composition declares, fits the boot delay R-09-006a's ordering imposes. **Not writable today**: TM-3 is owed to the supplier and no entry states a bound the quotient would be compared against. Owed at R-09-006a, or to a declared parameter in [the product-gate contract](../implementation/product-gate-contract.md).
+9. **The budget is affordable.** `N` divided by TM-3's sampling rate, over the sources the composition declares, fits the boot delay R-09-006a's ordering imposes. **Not writable today**: TM-3 is owed to the supplier and no entry states a bound the quotient would be compared against. Owed at R-09-006a, or to a declared parameter in [the product-gate contract](../implementation/contracts/product-gate-contract.md).
 
 **Verdict, on the day this instrument lands: no source stochastic model has been submitted, and no clause above has been evaluated.** Four of the nine are decidable against artifacts that exist, three are refused for want of a register act, clause 4 waits on a part, and clause 7 waits on all of it at once. That distribution is the review's finding about the register and not about any submission.
 
@@ -131,7 +131,7 @@ Nine clauses. Each is decidable by reading a submission against an artifact name
 | TM-12, the detection target | the supplier's model, against R-15-241b | the entry states the tests and no parameter |
 | TM-3, the sampling rate | the supplier | the review's clause 9 turns a budget into a boot delay through it |
 | `L_seed`, the DRBG's seed length | R-15-241d | already booked there by [HmacDrbg.v](../../proofs/HmacDrbg.v)'s gaps (a) and (b); §4 consumes it and this row cites that booking rather than raising it again |
-| a bound on cold-boot latency | a register act at R-09-006a, or a declared parameter in [the product-gate contract](../implementation/product-gate-contract.md) | nothing bounds it; §4 states the consequence |
+| a bound on cold-boot latency | a register act at R-09-006a, or a declared parameter in [the product-gate contract](../implementation/contracts/product-gate-contract.md) | nothing bounds it; §4 states the consequence |
 
 Every row has an owner and no row has a placeholder. A row whose owner is the supplier is one this repository cannot close by any act of its own, which is what makes the selection of a TRNG the gate on the whole of §5 rather than one clause of it.
 

@@ -61,7 +61,7 @@ PLATFORM_CONFIG = "model/model/core/platform_config.sail"
 PLATFORM = "model/model/sys/platform.sail"
 ROT = "model/model/sys/rot.sail"
 MODEL = "model/model"
-CONTRACT = "docs/implementation/replay-record-contract.md"
+CONTRACT = "docs/implementation/contracts/replay-record-contract.md"
 
 # The entropy root's one function. Every draw in the model passes through it, which
 # is what makes a call-graph answer about it an answer about draws.

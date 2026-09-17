@@ -79,7 +79,7 @@ VIEWS: list[View] = [
     # to a measurement, so the entries naming that deferral are what the contract must
     # carry: each either puts a choice into the measured act or states the act's
     # gating artifacts
-    View(file="docs/implementation/freeze-measurement-contract.md", governing="R-15-014a",
+    View(file="docs/implementation/contracts/freeze-measurement-contract.md", governing="R-15-014a",
          body=r"R-15-014a|the freeze from measurement|re-derived at the freeze"),
     # the welded block size is one parameter four instructions share, so what the
     # constraint document must carry is the entries that decide any of them: the

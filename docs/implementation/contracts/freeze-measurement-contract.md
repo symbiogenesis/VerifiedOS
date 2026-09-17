@@ -1,8 +1,8 @@
 # The Profile-Freeze Measurement Contract
 
-*Normative as a **view** where it restates the register, and **instrument-defining** where it does not. This is the artifact §0 of the [implementation plan](implementation-checklist.md) assigns to M0: the versioned corpus manifest and its generated-source inputs, the composition recipe, the admitted region classes, the acceptance threshold for every choice, the emitter-provenance schema that labels operand classes before assembly, and the one report format that records the realized dictionary, bytes, and Sail-model worst-case cycles. M1.8 builds and wires the instrument this document specifies, and M1.2's backend emits the sidecars §4 defines; neither is a prerequisite of this document, which is a specification act of the R-18-003b class and gates on nothing.*
+*Normative as a **view** where it restates the register, and **instrument-defining** where it does not. This is the artifact §0 of the [implementation plan](../implementation-checklist.md) assigns to M0: the versioned corpus manifest and its generated-source inputs, the composition recipe, the admitted region classes, the acceptance threshold for every choice, the emitter-provenance schema that labels operand classes before assembly, and the one report format that records the realized dictionary, bytes, and Sail-model worst-case cycles. M1.8 builds and wires the instrument this document specifies, and M1.2's backend emits the sidecars §4 defines; neither is a prerequisite of this document, which is a specification act of the R-18-003b class and gates on nothing.*
 
-> **Precedence.** Where this document and [requirements-register.md](../requirements-register.md) disagree, **the register wins and this document is defective.** It decides nothing the register decides, and it may not add, remove, or reorder a member of R-15-014a's closed final-freeze delta. What it adds is the *instrumentation*: how a measurement the register already mandates is taken, against what, and which number separates a win from noise. Every such number is either **derived**, with its arithmetic shown where it is stated, or **declared**, and the declared ones are collected in §8 rather than scattered through the text, so every judgment in the contract is findable in one table.
+> **Precedence.** Where this document and [requirements-register.md](../../requirements-register.md) disagree, **the register wins and this document is defective.** It decides nothing the register decides, and it may not add, remove, or reorder a member of R-15-014a's closed final-freeze delta. What it adds is the *instrumentation*: how a measurement the register already mandates is taken, against what, and which number separates a win from noise. Every such number is either **derived**, with its arithmetic shown where it is stated, or **declared**, and the declared ones are collected in §8 rather than scattered through the text, so every judgment in the contract is findable in one table.
 
 ## Why this document exists
 
@@ -182,7 +182,7 @@ Each decision states its question, its corpus, its unit, its procedure, its thre
 
 **The bar is met or missed on `FM-1`, and `FM-1` is never a deployed image** (§3, R-18-003c). The density figure the report carries is therefore a property of the corpus and not of what ships: a shipped image is encoded at the second act under the same realized dictionary but over its own histogram, and its bits per instruction are a fact about that image that this report does not state and no threshold here reads.
 
-R-15-036k fixes the optimistic break-even in *p*; the [packing-corrected model](../spec.md#r-15-036j) is the sole source for the pessimistic break-even value. Both express their respective counterfactuals through R-15-036h's slot model and R-15-036j's packing term. They are **diagnostics here and not the acceptance test**, because the bytes are observed and the model is not: the report carries measured bits per instruction against the bar, and carries modelled bits per instruction beside it as the residual check of §8.
+R-15-036k fixes the optimistic break-even in *p*; the [packing-corrected model](../../spec.md#r-15-036j) is the sole source for the pessimistic break-even value. Both express their respective counterfactuals through R-15-036h's slot model and R-15-036j's packing term. They are **diagnostics here and not the acceptance test**, because the bytes are observed and the model is not: the report carries measured bits per instruction against the bar, and carries modelled bits per instruction beside it as the residual check of §8.
 
 **Selection policy.** Whichever policy is realized, it is recorded with the freeze (R-15-036k). The report carries both policies' curves, because the difference between them is exactly the site-varying class's fate and that class is the density model's dominant risk factor.
 
@@ -322,7 +322,7 @@ One report, two renderings, generated together and never authored apart: a machi
 
 ### Skeleton
 
-Generate the complete record from [the instrument](../../tools/quarantine/freeze-report.py), whose serialization supplies the field names and cell representation:
+Generate the complete record from [the instrument](../../../tools/quarantine/freeze-report.py), whose serialization supplies the field names and cell representation:
 
 ```console
 python tools/quarantine/freeze-report.py --json --no-fixture
@@ -361,7 +361,7 @@ These are the numbers this document chooses. Each has a ground and a stated way 
 
 The freeze gate rejects a freeze whose report omits a required corpus member, provenance stratum, region class, byte column, or worst-case-cycle column (§0). Stated as predicates over the record of §7, so that the rejection is mechanical and its reason is nameable.
 
-**It is a gate a person runs, not a continuous-integration gate.** The predicates are [the quarantined instrument's](../../tools/quarantine/README.md), run by hand against a report until M1.2's backend exists and M1.8b returns the instrument to the landing loop, where a person runs it still. A continuous integration over the three host gates `tools/run.py` runs does not run this one, because none of those three reads a freeze report; a freeze whose report was never put through these predicates is a freeze nobody gated.
+**It is a gate a person runs, not a continuous-integration gate.** The predicates are [the quarantined instrument's](../../../tools/quarantine/README.md), run by hand against a report until M1.2's backend exists and M1.8b returns the instrument to the landing loop, where a person runs it still. A continuous integration over the three host gates `tools/run.py` runs does not run this one, because none of those three reads a freeze report; a freeze whose report was never put through these predicates is a freeze nobody gated.
 
 | Id | The gate rejects when | Governing |
 | --- | --- | --- |

@@ -2,7 +2,7 @@
 
 Status: **workflow and authority contract authored; target execution open**.
 Q9 selects the reference Zed editor's edit, build and native-test cycle,
-already named in [the porting guide](userspace-porting.md#zed-the-reference-editor).
+already named in [the porting guide](../userspace-porting.md#zed-the-reference-editor).
 The blocked step is running the newly built native test program immediately
 inside the generation that built it. R-02-008 excludes that step. The supported
 replacement is edit, build, prove, admit, consent to signing, boot the successor
@@ -109,7 +109,7 @@ may prevent access to such a repository. It does not strengthen the threat
 model. Reopening the arm would require an explicit R-12-020/foreign-computer
 decision plus protocol, resource and trust contracts before implementation.
 This records the same decision shape as Q15's
-[contactless disposition](../background/architectural-alternatives.md#the-contactless-proximity-surface-declined-across-all-four-uses).
+[contactless disposition](../../background/architectural-alternatives.md#the-contactless-proximity-surface-declined-across-all-four-uses).
 
 ## Turnaround comparison owed
 
@@ -129,7 +129,7 @@ boot and test phases separately. Report both user elapsed time and machine
 time excluding the measured consent wait. Cold and reused-cache trials are
 separate, with complete identities and invalidation cases recorded.
 
-[Q26's host observations](../performance/toolchain-residency.md) supply a
+[Q26's host observations](../../performance/toolchain-residency.md) supply a
 working-set and stage comparator. They supply no device wall-clock, and its
 local offline act does not meet the network predicate attached to the proposed
 DP-3 turnaround limit. The chosen product limit therefore remains an explicit

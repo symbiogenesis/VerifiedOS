@@ -23,7 +23,7 @@ The intent variants and ambiguity policy remain owner decisions at R-12-013a and
 
 ## 2. Single kernel instance
 
-`proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. `RunAnswersM44` supplies the three trace questions with unique attempts and exact observed-write multiplicity; `QualifiedRunAnswersM44` adds the semantic barrier and sanitized-image join. Both have reference/refuting traces. The [scalar ABI contract](purecap-abi-contract.md) and the differential corpus schema own register, primitive and target conventions.
+`proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. `RunAnswersM44` supplies the three trace questions with unique attempts and exact observed-write multiplicity; `QualifiedRunAnswersM44` adds the semantic barrier and sanitized-image join. Both have reference/refuting traces. The [scalar ABI contract](contracts/purecap-abi-contract.md) and the differential corpus schema own register, primitive and target conventions.
 
 The partition-root clause checks declared in-program derivation attempts past the partition root and every declared shared window. Refusal is the resulting cleared capability tag; the trace reader must not independently decode capability bounds. Attempt coverage, result identity and observation presence must be checked, so absence of an attempted derivation cannot pass as refusal.
 

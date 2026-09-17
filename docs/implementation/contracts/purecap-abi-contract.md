@@ -1,8 +1,8 @@
 # Purecap ABI and primitive contract
 
-This is the ABI and primitive contract [M1.2d](implementation-checklist.md)
+This is the ABI and primitive contract [M1.2d](../implementation-checklist.md)
 implements and M3.5 and M4.4 author against, the first row of
-[the plan's sequencing table](implementation-checklist.md#sequencing). It states
+[the plan's sequencing table](../implementation-checklist.md#sequencing). It states
 the register roles over the merged file, the frame and the spill discipline over
 the plan laid out at composition, the sentry call and return sequences and the
 cross-compartment sequence, the float-typed value's route, each primitive
@@ -14,10 +14,10 @@ interface. Those choices are identified below; they do not freeze the production
 ABI or close the backend's emission and proof work. Unresolved choices remain in
 [the last section](#8-what-the-register-leaves-open).
 
-**Precedence.** The [register](../requirements-register.md) governs; the
-[profile](../hardware/isa-profile.md) is its derived view of the ISA; the
+**Precedence.** The [register](../../requirements-register.md) governs; the
+[profile](../../hardware/isa-profile.md) is its derived view of the ISA; the
 meaning of every instruction is its Sail clause and nothing else (R-05-019b,
-R-05-023b); the statement artifacts under [proofs/](../../proofs/) fix what the
+R-05-023b); the statement artifacts under [proofs/](../../../proofs) fix what the
 switch restores and what the handoff supplies; this document is read after all
 four and is defective wherever it disagrees with any of them. The start-from is
 read last: SECOMP's `riscV/` backend at the pinned gitlink
@@ -30,14 +30,14 @@ scalar convention from the start-from and records the remaining production join.
 each use; the start-from references are `riscV/Conventions1.v`, `Machregs.v`,
 `Asm.v`, `Asmgen.v` and `Stacklayout.v` at the pin above.
 M1.2b's partial backend deletes the float bank; its
-note in [the checklist](implementation-checklist.md) carries what moved,
+note in [the checklist](../implementation-checklist.md) carries what moved,
 and this document cites that note rather than the contained revision where the
 two differ.
 
 ## 1. The register file and its roles
 
 **One file, 32 registers of 64+1 bits** (R-15-007i,
-[reg_type.sail](../../model/model/core/reg_type.sail)). A register's integer
+[reg_type.sail](../../../model/model/core/reg_type.sail)). A register's integer
 reading is its 64 data bits, its capability reading is the same bits with the
 validity tag, and an integer write clears the tag, so reading a register as an
 integer and writing it back is the identity on the value and destroys the
@@ -47,7 +47,7 @@ also an authority discipline, an ABI integer name being an authority destroyer,
 so the roles below name which registers may hold authority at a boundary rather
 than which bank a value sits in. The dialect provides integer and capability aliases,
 `x5`, `t0`, `c5` and `ct0` naming one register
-([dialect.py](../../tools/vos/dialect.py)), and the zero register's capability
+([dialect.py](../../../tools/vos/dialect.py)), and the zero register's capability
 reading is `cnull`, the null capability the all-zeroes granule decodes as
 (R-15-182). The vector file `v0` to `v31` is a second file of `VLEN` bits and
 holds no capability.
@@ -56,9 +56,9 @@ The architectural roles and start-from that the scalar convention selects from:
 
 | Register | Role | Fixed by |
 | --- | --- | --- |
-| `x0` / `cnull` | Architectural zero; reads as the null capability | the model (`zero_reg` in [reg_type.sail](../../model/model/core/reg_type.sail)) |
-| `x1` / `cra` | The link register: `cjal` and `cjalr` with a non-zero destination write the next instruction's PCC sealed as a backward-edge sentry into it (R-15-068). At reset it holds the store-side root (below), which every corpus member moves out with `cmove c8, c1` before its first call | the model's `link_capability` ([cheri_insts.sail](../../model/model/extensions/CHERI/cheri_insts.sail)) and the dialect's `call` and `ret` expansions ([asm.py](../../tools/vos/asm.py)) |
-| `x2` / `csp` | The stack capability. Its permission shape is `perms_stack`, codepoint `0b01001`, the one admitted shape carrying store-local (R-15-074, [cap_common.sail](../../model/model/core/cap_common.sail) line 119), so it is derivable only from the store-side root `root_data_cap`, `candperm` being able only to remove | the permission by R-15-074; the register number by the start-from (`SP := X2`, `Asm.v` line 102) and the psABI, which no entry fixes (gap a) |
+| `x0` / `cnull` | Architectural zero; reads as the null capability | the model (`zero_reg` in [reg_type.sail](../../../model/model/core/reg_type.sail)) |
+| `x1` / `cra` | The link register: `cjal` and `cjalr` with a non-zero destination write the next instruction's PCC sealed as a backward-edge sentry into it (R-15-068). At reset it holds the store-side root (below), which every corpus member moves out with `cmove c8, c1` before its first call | the model's `link_capability` ([cheri_insts.sail](../../../model/model/extensions/CHERI/cheri_insts.sail)) and the dialect's `call` and `ret` expansions ([asm.py](../../../tools/vos/asm.py)) |
+| `x2` / `csp` | The stack capability. Its permission shape is `perms_stack`, codepoint `0b01001`, the one admitted shape carrying store-local (R-15-074, [cap_common.sail](../../../model/model/core/cap_common.sail) line 119), so it is derivable only from the store-side root `root_data_cap`, `candperm` being able only to remove | the permission by R-15-074; the register number by the start-from (`SP := X2`, `Asm.v` line 102) and the psABI, which no entry fixes (gap a) |
 | `x3` / `gp`, `x4` / `tp` | Reserved and unused by the start-from (`Machregs.v` lines 30 to 32). No entry names a global-pointer or a thread-pointer role: a global is reached by PCC-relative materialization, `auipcc` then `cincoffset` (R-15-031b), or by the composition-time absolute form R-15-036l decides at the freeze, and no entry names a thread pointer | nothing; the absence is the start-from's and the roles are gap a |
 | `x5` to `x7`, `x28` to `x31` / `t0` to `t6` | Caller-clobbered temporaries. `x31` is the assembly generator's reserved scratch, never allocatable (`Machregs.v` lines 33 to 34; `Asmgen.v` materializes immediates, comparisons and global addresses through `X31`). `x5` is destroyed by a jump table (`Machregs.v` line 202). `x30` is the parent-frame temporary, destroyed at function entry, through which a parent's argument is loaded (`Machregs.v` lines 234 to 236, `Asmgen.v` `Mgetparam`) | the start-from; no entry fixes a scratch set, and the second scratch the M1.2 cell's axis 7 asks for is gap b |
 | `x8` to `x9`, `x18` to `x27` / `s0` to `s11` | The psABI's callee-saved set, and **at the pin the start-from preserves none of it**: `is_callee_save r` is `false` for every `r`, `int_callee_save_regs` is `nil` and the standard split is commented out (`Conventions1.v` lines 35 to 49 and 67 to 68), so `destroyed_at_call` is every allocatable register. `x8` also spells `fp` and `cfp`, and the start-from keeps no frame pointer, loading the back link through `x30` | the start-from; which convention the purecap backend keeps is gap c |
@@ -96,7 +96,7 @@ reset distribution the roles sit over is the model's: PCC, `nextPCC`, MTCC and
 MEPCC start at `default_cap`, the execute-side root carrying access-system-
 registers over the whole space, MTDC at the null capability, and `x1` at
 `root_data_cap`, the store-side root, with every other register null
-([step_ext.sail](../../model/model/postlude/step_ext.sail) lines 31 to 71);
+([step_ext.sail](../../../model/model/postlude/step_ext.sail) lines 31 to 71);
 the split is R-15-007l's and R-15-007p's, no admitted permission set holding
 both store and execute. Firmware narrows what it is given and installs the
 composed distribution (R-07-019, R-07-028); the roles above are what code runs
@@ -106,7 +106,7 @@ under after that.
 carries a capability and an integer alike, and the callee reads which from the
 signature rather than from a bank; the route contract's `call` rule fixes the
 required and provided ABI and authority at every call
-([compiler-route-contract.md](../languages/compiler-route-contract.md)). A
+([compiler-route-contract.md](../../languages/compiler-route-contract.md)). A
 capability argument is a capability in `a0` to `a7` with its tag, and an integer
 argument is an untagged register; nothing in the file distinguishes the two but
 the tag, which is why a spill of either follows [section 3](#3-the-spill-discipline-and-the-validity-tag)
@@ -118,7 +118,7 @@ and not the register's name.
 runtime allocator exists (R-08-010); the whole-program slot plan fixes every
 object's slot and live range (R-08-011); stacks and register-save areas are
 first-class regions of that plan (R-15-247s, the `Stacks` and
-`RegisterSaveAreas` kinds of [MemoryPlan.v](../../proofs/MemoryPlan.v)). A
+`RegisterSaveAreas` kinds of [MemoryPlan.v](../../../proofs/MemoryPlan.v)). A
 region carries a base, a length, its base and length in granules and a live
 range, and the plan lays **no per-function frame**: the stack a partition or a
 compartment runs on is a plan region, and every frame inside it is the backend's
@@ -143,7 +143,7 @@ decided before emission and never reported at runtime. In the plan's own terms
 a narrowing is a `Narrowing` record, a region, an offset in granules, a stride
 in granules, a dynamic index and a length in granules, and it is `Exact` when
 its base is a whole number of that region's granules
-([MemoryPlan.v](../../proofs/MemoryPlan.v) lines 2336 to 2363); a quantized
+([MemoryPlan.v](../../../proofs/MemoryPlan.v) lines 2336 to 2363); a quantized
 region base narrows exactly at every index (`a_quantized_slot_base_narrows_exactly`,
 lines 2370 to 2382) and the plan's own check admits only exact narrowings
 (`spec_narrow_ok`, lines 2396 to 2408). A frame carved from `csp` is such a
@@ -173,7 +173,7 @@ convention below selects the first. Under either, a capability slot is 8 bytes a
 M1.2b's partial backend pinning the capability to one `Mint64`/`Q64` slot, one
 tag per 64-bit granule (R-15-203), and a capability access straddling a granule
 faulting as a misaligned access
-([cap-trap.s](../../corpus/cap-trap.s) lines 81 to 90); the start-from's 8-byte
+([cap-trap.s](../../../corpus/cap-trap.s) lines 81 to 90); the start-from's 8-byte
 slots and 16-byte frame alignment therefore stand, and no entry asks for a wider
 one.
 
@@ -224,7 +224,7 @@ register's name.
   derivation, not the later dereference. The route contract
   refuses integer spill and reload of a capability outright and requires
   tag-preserving spills under the `frame` rule
-  ([compiler-route-contract.md](../languages/compiler-route-contract.md)).
+  ([compiler-route-contract.md](../../languages/compiler-route-contract.md)).
 - **A local capability may be spilled only to the stack.** A local capability is
   storable only through a capability bearing store-local, which by construction
   only the stack carries (R-15-074), so a delegated buffer bounded to a call
@@ -254,14 +254,14 @@ register's name.
 ## 4. Calls and returns
 
 **The two sentry otypes** are the reserved codepoints `0b1110`, the forward
-edge, and `0b1101`, the backward edge ([cap_common.sail](../../model/model/core/cap_common.sail)
+edge, and `0b1101`, the backward edge ([cap_common.sail](../../../model/model/core/cap_common.sail)
 lines 63 to 65), reported by `cgettype` as the architectural values -2 and -3.
 A forward-edge sentry is a call target and a backward-edge sentry is a return
 address, and `cjalr` admits each only in its own role (R-15-008, R-15-071); the
 profile carries no other sentry (R-15-070).
 
 **The admission table of `cjalr cd, cs1, imm`**, read from its clause
-([cheri_insts.sail](../../model/model/extensions/CHERI/cheri_insts.sail) lines
+([cheri_insts.sail](../../../model/model/extensions/CHERI/cheri_insts.sail) lines
 122 to 163): the source must be tagged; if it is sealed, then with a non-zero
 `cd` it must be a forward-edge sentry and with `cd` equal to `x0` it may be
 either edge, and in both cases `imm` must be zero, any other sealed type, any
@@ -270,14 +270,14 @@ violation; it must carry execute permission; the target must be
 four-byte aligned and inside the source's bounds by at least one instruction
 (`min_instruction_bytes` is 4, R-15-036). On success `cd` receives the next
 PCC sealed as a backward edge and the source, unsealed, becomes the executing
-PCC, so entering a sentry installs its bounds ([cap-control.s](../../corpus/cap-control.s)
+PCC, so entering a sentry installs its bounds ([cap-control.s](../../../corpus/cap-control.s)
 check 4). `cjal cd, imm` writes the same link and jumps within PCC.
 
 The sequences, in the dialect's spelling and in the start-from's constructor:
 
 | Sequence | Emission | Start-from constructor |
 | --- | --- | --- |
-| Direct call | `call sym`, which is `cjal cra, off` ([asm.py](../../tools/vos/asm.py) `_p_call`); the link is the return sentry | `Pjal_s symb sig true` (`Asmgen.v` line 878) |
+| Direct call | `call sym`, which is `cjal cra, off` ([asm.py](../../../tools/vos/asm.py) `_p_call`); the link is the return sentry | `Pjal_s symb sig true` (`Asmgen.v` line 878) |
 | Indirect call | `cjalr cra, cs, 0` on a forward-edge sentry or on an unsealed executable capability | `Pjal_r r sig true` (line 876) |
 | Return | `ret`, which is `cjalr cnull, cra, 0` (`_p_ret`): a jump writing no link, the one role a backward edge is reachable in | `Pj_r RA sig true` after the epilogue (line 896) |
 | Tail call or computed jump | `cjr cs`, which is `cjalr cnull, cs, 0` (`_p_cjr`): enters either edge or unsealed code and keeps `cra` | `Pj_r r sig false` and `Pj_s symb sig` after the epilogue (lines 881 to 883) |
@@ -295,7 +295,7 @@ the switcher. A return address is never software's to forge, the
 backward edge being minted by the jump alone (`link_capability`, lines 67 to 72;
 `csealentry` mints the forward edge only, lines 271 to 277). And a call that
 enters a return sentry traps, which
-[cap-trap.s](../../corpus/cap-trap.s) check 5 exhibits as a seal violation with
+[cap-trap.s](../../../corpus/cap-trap.s) check 5 exhibits as a seal violation with
 the raising register in `mtval`.
 
 **The cross-compartment sequence.** The only path between two compartments is a
@@ -352,7 +352,7 @@ soft-float-register calling convention as its accepted ABI cost (R-15-040), and
 the profile fixes what that means at the instruction: a scalar operand of a
 vector-FP instruction is the low `SEW` bits of an integer register, and
 `vfmv.f.s` writes its element zero-extended into an integer register rather than
-NaN-boxed ([the profile's exclusion notes](../hardware/isa-profile.md#6-exclusions),
+NaN-boxed ([the profile's exclusion notes](../../hardware/isa-profile.md#6-exclusions),
 R-15-040). So a float-typed value lives in an integer register, is passed and
 returned in the integer argument and result registers, and spills as an untagged
 integer slot. M1.2b's partial backend exhibits the passing half: `double id(double x)`
@@ -397,9 +397,9 @@ The four the M1.2 cell names, each from its own clause:
 
 | Primitive | Sail constructor and file | Assembly form | Encoding | Operands | Consumer |
 | --- | --- | --- | --- | --- | --- |
-| `vmclear` | `VMClear : unit`, [vmclear.sail](../../model/model/extensions/platform/vmclear.sail) | `vmclear` | custom-0, `funct3` 001, every other field zero, decoded only where `hartSupports(Ext_Zve32x)` | none | the partition switch, M4.4 |
-| `fence.t` | `FENCE_T : unit`, [fence_t.sail](../../model/model/extensions/platform/fence_t.sail) | `fence.t` | MISC-MEM, `funct3` 100, every other field zero | none | the partition switch, M4.4 |
-| `cspecialrw` | `CSpecialRW : (regidx, screg, regidx)`, [cheri_insts.sail](../../model/model/extensions/CHERI/cheri_insts.sail) lines 560 to 618 | `cspecialrw cd, scr, cs1` | `0b0000001 @ scr @ cs1 @ 000 @ cd @ 0b1011011` | a destination capability register, a special register name, a source capability register | M3.5's firmware and M4.4's kernel for the three trap registers; any code for reading `pcc` |
+| `vmclear` | `VMClear : unit`, [vmclear.sail](../../../model/model/extensions/platform/vmclear.sail) | `vmclear` | custom-0, `funct3` 001, every other field zero, decoded only where `hartSupports(Ext_Zve32x)` | none | the partition switch, M4.4 |
+| `fence.t` | `FENCE_T : unit`, [fence_t.sail](../../../model/model/extensions/platform/fence_t.sail) | `fence.t` | MISC-MEM, `funct3` 100, every other field zero | none | the partition switch, M4.4 |
+| `cspecialrw` | `CSpecialRW : (regidx, screg, regidx)`, [cheri_insts.sail](../../../model/model/extensions/CHERI/cheri_insts.sail) lines 560 to 618 | `cspecialrw cd, scr, cs1` | `0b0000001 @ scr @ cs1 @ 000 @ cd @ 0b1011011` | a destination capability register, a special register name, a source capability register | M3.5's firmware and M4.4's kernel for the three trap registers; any code for reading `pcc` |
 | `csealentry` | `CSealEntry : (regidx, regidx)`, the same file, lines 264 to 283 | `csealentry cd, cs1` | `0b1111111 @ 0b10001 @ cs1 @ 000 @ cd @ 0b1011011` | a destination and a source capability register | the composer and firmware minting entry points; the backend minting a call target it hands across a boundary |
 
 **`vmclear`** takes no operand and names no destination because the class's
@@ -431,7 +431,7 @@ test must show.
 **`cspecialrw cd, scr, cs1`** names one of four special registers and no other,
 the bank being closed by R-15-001b and R-15-073 rather than by upstream's
 numbering: `pcc` at `0b00000`, `mtcc` at `0b11100`, `mtdc` at `0b11101` and
-`mepcc` at `0b11111` ([cap_regs.sail](../../model/model/core/cap_regs.sail)
+`mepcc` at `0b11111` ([cap_regs.sail](../../../model/model/core/cap_regs.sail)
 lines 41 to 48), an absent number being an illegal instruction (R-15-014). `cd`
 receives the register's old value, `pcc` read at the architectural PC and
 `mepcc` legalized on the way out; when `cs1` is not `cnull` the register is
@@ -443,7 +443,7 @@ file's indices (lines 565 to 615, R-15-003, R-15-073a). Its emission shapes are
 the corpus's: `cspecialrw cnull, mtcc, c9` installs a handler,
 `cspecialrw c19, pcc, cnull` reads the executing capability, and
 `cspecialrw c10, mtdc, c8` writes MTDC and reads what it held
-([cap-inspect.s](../../corpus/cap-inspect.s), [zicond-csr.s](../../corpus/zicond-csr.s)).
+([cap-inspect.s](../../../corpus/cap-inspect.s), [zicond-csr.s](../../../corpus/zicond-csr.s)).
 Its consumers are the kernel and the firmware, a compartment's PCC lacking the
 permission (R-07-023); a compartment reaches it only to read `pcc`.
 
@@ -454,13 +454,13 @@ never a return address; it needs no permission, a sentry holding neither
 (R-15-007o, R-15-068). Its source is an unsealed capability carrying execute
 permission with its address at the entry and its bounds at the entry's extent,
 which is what installs those bounds as the callee's PCC; the corpus mints one
-from `pcc` ([cap-derive.s](../../corpus/cap-derive.s) check 10), from a
-materialized code capability ([cap-control.s](../../corpus/cap-control.s)
+from `pcc` ([cap-derive.s](../../../corpus/cap-derive.s) check 10), from a
+materialized code capability ([cap-control.s](../../../corpus/cap-control.s)
 checks 2 and 3) and from one narrowed to the callee's eight bytes (check 4).
 The scalar choice for ordinary function pointers is stated in section 4.
 
 Beside the four, **`cclear h, mask`** (`CClear : (bits(1), bits(16))`,
-[cheri_custom.sail](../../model/model/extensions/CHERI/cheri_custom.sail) lines
+[cheri_custom.sail](../../../model/model/extensions/CHERI/cheri_custom.sail) lines
 68 to 85) is the switcher's instruction and not a backend primitive a component
 names: it clears the sixteen registers `mask` selects in the half `h` selects to
 untagged NULL, reusing the S-type field layout with no destination named, and
@@ -468,7 +468,7 @@ R-18-014a puts its one selection rule in the switcher's emitter (R-15-069a,
 R-15-069b). And `cjalr` and `cjal` are not primitives at all, being the
 control-transfer instructions every call lowers to.
 
-**Source identity.** The [profile's CHERI table](../hardware/isa-profile.md#4-cheri-feature-set)
+**Source identity.** The [profile's CHERI table](../../hardware/isa-profile.md#4-cheri-feature-set)
 names `cspecialrw cd, scr, cs1` and `csealentry cd, cs1` explicitly beside the
 custom-instruction rows for `fence.t` and `vmclear`. A primitive's registered key
 is that exact mnemonic with its operand form; a source language that cannot use
@@ -492,12 +492,12 @@ graph as running kernel state (R-07-028), derives each core's partition-bounded
 root and goes quiescent with nothing resident (R-07-019, R-07-024). The core the
 RoT releases starts from the model's reset state of section 1, and the sequence
 table the RoT executes is the devicetree's (R-15-198).
-[MModeFirmware.v](../../proofs/MModeFirmware.v) fixes the handoff as a relation:
+[MModeFirmware.v](../../../proofs/MModeFirmware.v) fixes the handoff as a relation:
 the installed distribution equals the plan edge for edge, every root the
 firmware hands a core lies inside that core's partition (R-07-006's criterion,
 "the root capability's bounds are the partition's"), every core has a root, and
 the resident inventory is the kernel alone (`Handoff`, lines 800 to 805);
-[its landed note](completion-log.md#m33-implement-m-mode-firmware-in-gallina)
+[its landed note](../completion-log.md#m33-implement-m-mode-firmware-in-gallina)
 records that no artifact distinguishes a region's text from its data, so the
 permission split R-15-007p makes of the root is stated there only as some root
 per core.
@@ -541,7 +541,7 @@ What M4.4's kernel holds at its first instruction, each item with what fixes it:
 6. **The hart's identity.** `mhartid` is read-only and the one implementation
    identifier with a consumer: the kernel selects its per-hart state, the core's
    class and the island binding from it at boot
-   ([the profile's CSR bank](../hardware/isa-profile.md#51-present), R-07-012).
+   ([the profile's CSR bank](../../hardware/isa-profile.md#51-present), R-07-012).
 7. **The partition contexts and the schedule table.** Whether "running kernel
    state" in R-07-028 includes the contexts R-07-015 restores and the table
    R-11-024 swaps is unstated, which MModeFirmware.v reports as its gap b and
@@ -577,7 +577,7 @@ MEPCC from it: `cspecialrw` with source `cnull` only reads and does not clear a
 special register. It clears noninputs, keeps `c2`, `c5`, `c10`, `c11` and `c12`,
 and issues `cjr c5`, which is `cjalr cnull, c5, 0`. The entry stub immediately
 clears `c5`. The masks and instructions are executable assembly in the
-[scalar witness](../../interfaces/examples/scalar-abi.s); they describe this
+[scalar witness](../../../interfaces/examples/scalar-abi.s); they describe this
 one-time handoff only and decide no cross-compartment switcher mask. Firmware
 leaves ordinary interrupt delivery disabled until the kernel has installed its
 initial dispatch state. Entry code is nonreturning; null `cra` is no return
@@ -595,7 +595,7 @@ Those are producer/consumer checks, not Sail capability faults. This authoring
 split answers who writes initial state without claiming that
 `MModeFirmware.Handoff` already proves its context and schedule components.
 
-**What M4.4's switch restores**, from [PartitionContext.v](../../proofs/PartitionContext.v):
+**What M4.4's switch restores**, from [PartitionContext.v](../../../proofs/PartitionContext.v):
 every one of the 32 registers, value and validity tag together, is written
 from the successor's context before its first instruction (`RestoresRegisters`,
 R-07-015, R-15-007i), so the save area is tag-carrying memory written and read
@@ -618,7 +618,7 @@ under the access-system-registers gate (R-15-003), carried by PartitionContext.v
 as a field rather than a copy.
 
 **Positive scalar case and refusal review.** The
-[assembly witness](../../interfaces/examples/scalar-abi.s) begins at the final
+[assembly witness](../../../interfaces/examples/scalar-abi.s) begins at the final
 firmware transfer with its capability inputs stated as preconditions. It clears
 MEPCC through a nonzero null-valued source, scrubs noninputs, and enters the
 forward sentry without minting a firmware return. The kernel stub clears its
@@ -632,10 +632,10 @@ ends with its original `csp`, root-table input and boot descriptor restored,
 and null `cra`. It remains nonreturning.
 
 The review reads `CJALR`, `CIncOffsetImmediate`, `CSpecialRW`, `LoadCapImm` and `StoreCapImm`
-from [the CHERI instructions](../../model/model/extensions/CHERI/cheri_insts.sail)
-and [the capability memory path](../../model/model/extensions/CHERI/cheri_mem.sail),
-the permission accessors from [cap_common.sail](../../model/model/core/cap_common.sail),
-and `CClear` from [cheri_custom.sail](../../model/model/extensions/CHERI/cheri_custom.sail).
+from [the CHERI instructions](../../../model/model/extensions/CHERI/cheri_insts.sail)
+and [the capability memory path](../../../model/model/extensions/CHERI/cheri_mem.sail),
+the permission accessors from [cap_common.sail](../../../model/model/core/cap_common.sail),
+and `CClear` from [cheri_custom.sail](../../../model/model/extensions/CHERI/cheri_custom.sail).
 Its refusal cases distinguish an admission defect from an architectural trap:
 
 | Changed input or sequence | Decisive consequence |

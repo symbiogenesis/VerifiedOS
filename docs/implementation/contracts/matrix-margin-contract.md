@@ -1,9 +1,9 @@
 # M-class sustained GEMM comparison
 
 This is M0.8c's measurement contract for R-15-116 and R-15-116a in the
-[requirements register](../requirements-register.md), which takes precedence.
+[requirements register](../../requirements-register.md), which takes precedence.
 It prepares the instruction decision at R-15-014a (ix). The implemented
-[scratchpad](../../model/model/unit_tests/test_matrix_scratchpad.sail) remains
+[scratchpad](../../../model/model/unit_tests/test_matrix_scratchpad.sail) remains
 the starting point; no matrix instruction or opcode is admitted by this contract.
 
 ## Measurement and denominator
@@ -44,7 +44,7 @@ Do not charge different work to the two GEMM arms or hide it in warm-up.
 
 Run `python tools/run.py matrix-margin PLAN REPORT --json` to check the pair;
 `python tools/run.py test --only matrix_margin` exercises the instrument.
-The [host checker](../../tools/vos/matrix_margin.py) consumes two strict JSON files. Unknown or duplicate
+The [host checker](../../../tools/vos/matrix_margin.py) consumes two strict JSON files. Unknown or duplicate
 keys, floats, booleans in integer fields, empty sets and duplicate members are
 refused. Digests are full lowercase SHA-256 identities of retained artifacts.
 They bind supplied bytes by identity; the checker does not authenticate receipts,

@@ -1,16 +1,16 @@
 # Deterministic-replay nondeterminism record
 
 This is S6's record contract, a view of R-15-241 and R-16-015 through
-R-16-022 in the [requirements register](../requirements-register.md). The
+R-16-022 in the [requirements register](../../requirements-register.md). The
 register wins wherever this view disagrees. The contract specifies the logical
 record and its acceptance cases, and qualifies the producer adapters below against
 them. It does not claim an operational recorder, authenticated export, or replay.
 
-The [host fixtures](../../tools/vos/replay_record.py) implement structural decoding,
+The [host fixtures](../../../tools/vos/replay_record.py) implement structural decoding,
 a demand cursor, and bounded callback capture. Run
 `python tools/run.py test --only replay_record` for the
-[reader controls](../../tools/tests/test_replay_record.py) and
-[recorder controls](../../tools/tests/test_replay_record_recorder.py).
+[reader controls](../../../tools/tests/test_replay_record.py) and
+[recorder controls](../../../tools/tests/test_replay_record_recorder.py).
 The supplied identities, counts and endpoint profiles are independent fixture
 inputs; these checks supply no authentication or production replay evidence.
 
@@ -22,9 +22,9 @@ these records account for the values that input trace cannot supply.
 
 | Source tag | Required representation | Existing surface and missing adapter |
 | --- | --- | --- |
-| `entropy` | Opaque RoT-sealed commitment to each secret draw; never the draw, seed, or an exposed hash | [rot_draw](../../model/model/sys/rot.sail) returns a conditioned word or refuses. The RoT's `ROT_TRNG_DRAW` door in [platform.sail](../../model/model/sys/platform.sail) calls it; the watchdog calls it internally too, so observing MMIO alone misses draws. This is an emulation stand-in. The synchronous root observer exposes every draw to a trusted harness callback. The production DRBG, commitment writer and sealing primitive remain absent. |
+| `entropy` | Opaque RoT-sealed commitment to each secret draw; never the draw, seed, or an exposed hash | [rot_draw](../../../model/model/sys/rot.sail) returns a conditioned word or refuses. The RoT's `ROT_TRNG_DRAW` door in [platform.sail](../../../model/model/sys/platform.sail) calls it; the watchdog calls it internally too, so observing MMIO alone misses draws. This is an emulation stand-in. The synchronous root observer exposes every draw to a trusted harness callback. The production DRBG, commitment writer and sealing primitive remain absent. |
 | `link_address` | Drawn address bytes verbatim | MAC randomization is specified; no producing link-address interface or replay adapter exists in the model or host tools. |
-| `time_read` | Returned time-service bytes verbatim at the client's granted precision | R-08-031 grants precision through the time service. [platform.sail](../../model/model/sys/platform.sail) has the platform timer, which is not an implemented capability-authorized time-service reply. That service and its adapter are absent. |
+| `time_read` | Returned time-service bytes verbatim at the client's granted precision | R-08-031 grants precision through the time service. [platform.sail](../../../model/model/sys/platform.sail) has the platform timer, which is not an implemented capability-authorized time-service reply. That service and its adapter are absent. |
 | `physical_event` | Public sentinel event bytes verbatim | The model contains fault causes and architectural health state, but no complete sentinel event producer or replay adapter. ECC corrections, tag traps, thermal and voltage telemetry belong to this source. Capacity events retain R-16-028's bounded, labeled record rather than acquiring a free-form payload. |
 
 The classification is fixed by the source, never selected by a caller. An entropy
@@ -147,16 +147,16 @@ and interception of every source remain the production adapter's obligations.
 
 ## Producer adapters over the composed model
 
-[replay_adapter.py](../../tools/vos/replay_adapter.py) is the producer half, and
+[replay_adapter.py](../../../tools/vos/replay_adapter.py) is the producer half, and
 it states no address, offset, width or draw site of its own. A window's base and
-extent are read from [the composition](../../model/config/verifiedos.json), a door's
-offset from the `let ROT_*` declaration in [rot.sail](../../model/model/sys/rot.sail)
+extent are read from [the composition](../../../model/config/verifiedos.json), a door's
+offset from the `let ROT_*` declaration in [rot.sail](../../../model/model/sys/rot.sail)
 and its admitted access width from the arm's own `'n ==` guard,
 the window-to-handler routing from `mmio_read` and `mmio_write` in
-[platform.sail](../../model/model/sys/platform.sail), and whether a door reaches the
+[platform.sail](../../../model/model/sys/platform.sail), and whether a door reaches the
 entropy root from the model's own call graph. Run
 `python tools/run.py test --only replay_adapter` for the
-[controls](../../tools/tests/test_replay_adapter.py), which state what the model
+[controls](../../../tools/tests/test_replay_adapter.py), which state what the model
 carries now, so a door added, an offset moved or a third caller of the root fails
 there rather than quietly changing what a record accounts for.
 
@@ -179,7 +179,7 @@ The model's two non-test callers of the root are the `ROT_TRNG_DRAW` door read a
 MMIO draws, and it cannot be inferred from a bus trace for a structural reason
 rather than for want of effort. The nonce is issued inside the RoT with no bus
 transaction accompanying it, and the [commit-trace
-schema](../assurance/differential-corpus.md) carries retires, register and CSR
+schema](../../assurance/differential-corpus.md) carries retires, register and CSR
 writes, data reads and writes, and traps, so an internal draw is not a record that
 dialect can express. Neither is the outcome that would let one be inferred:
 `watchdog_pet` draws only on its accepted arm and `watchdog_arm` only where the
@@ -195,7 +195,7 @@ is the recorder's existing promise that no value was consumed; the host verifies
 neither answer. The [entropy-root observer](entropy-observer-contract.md) supplies
 the missing observation boundary: every root invocation synchronously reports
 its outcome to the C++ callback interface, including internal watchdog draws.
-`RootProducer` in [replay_adapter.py](../../tools/vos/replay_adapter.py) seals
+`RootProducer` in [replay_adapter.py](../../../tools/vos/replay_adapter.py) seals
 successful callback values through an injected primitive and submits them to the
 bounded recorder. Refusals add no event; capture failure latches. The root
 producer replaces the bus-derived entropy producer for that capture, so the
@@ -212,8 +212,8 @@ that scope, there being no comparator here for it to bound.
 
 ## Reuse and security boundary
 
-The existing [commit-trace grammar](../assurance/differential-corpus.md) and
-[trace reader](../../tools/vos/trace.py) provide local retired-instruction anchors
+The existing [commit-trace grammar](../../assurance/differential-corpus.md) and
+[trace reader](../../../tools/vos/trace.py) provide local retired-instruction anchors
 for development fixtures. A local adapter may recognize `I` records with
 `COMMIT_RE`, preserving their order. `normalize_commit` deliberately removes
 that order, and `digest` deliberately truncates SHA-256 for regression reporting;

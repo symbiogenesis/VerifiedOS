@@ -46,7 +46,7 @@ The first inequality assumes payload is counted only while its incarnation reser
 
 `OPT - L_charge` is the unavoidable gap for the declared placement model; `P - OPT` is planner suboptimality. `P - L_charge` therefore combines two causes. Moving bases with fixed extents and endpoints changes neither live-load quantity. Changing payload lifetime, release time or sweep service changes the instance and must be reported as such.
 
-A whole-image capacity report sums each arena's required reservation and each disjoint external charge once. Its conservative sum of arena peaks need not equal the peak of the whole machine's useful payload. Tags, ECC and macro periphery also need a physical-capacity convention consistent with the [product gate](../product-gate-contract.md); payload-address span is not die area. A diagnostic ledger partitions charged bytes by one primary state at each time and adds non-additive explanation labels. A quarantined padded byte belongs to one primary charge, even if both quarantine and padding explain it.
+A whole-image capacity report sums each arena's required reservation and each disjoint external charge once. Its conservative sum of arena peaks need not equal the peak of the whole machine's useful payload. Tags, ECC and macro periphery also need a physical-capacity convention consistent with the [product gate](../contracts/product-gate-contract.md); payload-address span is not die area. A diagnostic ledger partitions charged bytes by one primary state at each time and adds non-additive explanation labels. A quarantined padded byte belongs to one primary charge, even if both quarantine and padding explain it.
 
 ## The interference predicate and the existing artifacts
 

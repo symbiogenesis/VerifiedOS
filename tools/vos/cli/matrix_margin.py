@@ -21,7 +21,7 @@ def main(argv: list[str] | None = None) -> int:
         result = compare(args.plan.read_bytes(), args.report.read_bytes())
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                    for name in ("tools/vos/matrix_margin.py", "tools/vos/cli/matrix_margin.py",
-                                "docs/implementation/matrix-margin-contract.md")}
+                                "docs/implementation/contracts/matrix-margin-contract.md")}
     except (OSError, ValueError, RecursionError) as error:
         if args.json:
             print(json.dumps({"verdict": "incomplete", "reason": str(error),

@@ -1,7 +1,7 @@
 # Composed-roster measurement instruments
 
 This contract fixes the host-authorable instrumentation for M7.2 and M7.3 before
-implementation. The [checklist](implementation-checklist.md)
+implementation. The [checklist](../implementation-checklist.md)
 owns their final acceptance: both still need M7.1's accepted composed roster and
 its workload captures. The instruments analyze supplied observations; they do not
 establish that a producer observed the machine completely or truthfully.
@@ -75,7 +75,7 @@ Observed reuse times supply no proof that retired authority is dead.
 
 The capture additionally contains `declaration_sha256`,
 `cost_unit: "declaration_units"`, and a nonempty `rings` array. The digest must match
-the actual bytes of [the ring declaration](../../interfaces/ring-reference.json),
+the actual bytes of [the ring declaration](../../../interfaces/ring-reference.json),
 whose existing reader owns each world's capacity, batch and operation constants.
 The analyzer reads these constants instead of restating a second table.
 
