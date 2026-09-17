@@ -1,6 +1,6 @@
 # Service authoring contracts
 
-These contracts bind the host-authorable portions of M6.3b, M4.4, M6.6 through M6.8 and Q23d. The [requirements register](../requirements-register.md) and the [implementation checklist](implementation-checklist.md) remain normative. This document owns the interfaces and acceptance scope of the service source artifacts. It does not record an independent review, a target run, or completion of those checklist items.
+These contracts bind the host-authorable portions of M6.3b, M4.4, M6.6 through M6.8 and Q23d. The [requirements register](../../requirements-register.md) and the [implementation checklist](../implementation-checklist.md) remain normative. This document owns the interfaces and acceptance scope of the service source artifacts. It does not record an independent review, a target run, or completion of those checklist items.
 
 ## 1. Object router and credential handles
 
@@ -23,13 +23,13 @@ The intent variants and ambiguity policy remain owner decisions at R-12-013a and
 
 ## 2. Single kernel instance
 
-`proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. `RunAnswersM44` supplies the three trace questions with unique attempts and exact observed-write multiplicity; `QualifiedRunAnswersM44` adds the semantic barrier and sanitized-image join. Both have reference/refuting traces. The [scalar ABI contract](contracts/purecap-abi-contract.md) and the differential corpus schema own register, primitive and target conventions.
+`proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. `RunAnswersM44` supplies the three trace questions with unique attempts and exact observed-write multiplicity; `QualifiedRunAnswersM44` adds the semantic barrier and sanitized-image join. Both have reference/refuting traces. The [scalar ABI contract](purecap-abi-contract.md) and the differential corpus schema own register, primitive and target conventions.
 
 The partition-root clause checks declared in-program derivation attempts past the partition root and every declared shared window. Refusal is the resulting cleared capability tag; the trace reader must not independently decode capability bounds. Attempt coverage, result identity and observation presence must be checked, so absence of an attempted derivation cannot pass as refusal.
 
 The switch clause consumes the exact merged-register value/tag restoration and the profile-owned nameable CSR obligations. A roster used for enumeration must cover the owner predicate. The trace may omit architectural zero-register writes only under an explicit architectural invariant. The contract must distinguish the merged register/CSR observation clause from out-of-file capability registers and pending interrupt state, rather than treating an unobserved component as proved restored.
 
-The revocation join must connect a barrier-sanitized saved image or the defined filtered-load result to exact restored values/tags. Completion requires the resident-register, saved-context, loan and device conditions from [revocation-qualification.md](../assurance/revocation-qualification.md), not an epoch counter alone. A faithfully restored stale image is a negative example, not a successful revocation test.
+The revocation join must connect a barrier-sanitized saved image or the defined filtered-load result to exact restored values/tags. Completion requires the resident-register, saved-context, loan and device conditions from [revocation-qualification.md](../../assurance/revocation-qualification.md), not an epoch counter alone. A faithfully restored stale image is a negative example, not a successful revocation test.
 
 The frame predicate reads instruction PCs against declared partition and switch extents, requires the table's sequence and exactly one occurrence of each reserved slot, rejects astray PCs and extraneous switches, and makes no runtime scheduling choice. It does not read a cycle counter or infer duration from retire order; duration is the static admitted max-path sum.
 
@@ -58,7 +58,7 @@ Acceptance for the authorable scope:
 - The admitted rate spends no more than the declared bank grant; an above-grant request is refused, not degraded. Session exhaustion neither overcommits nor alters other server resources.
 - Focused native proof/audit/recheck and selected parser/admission arithmetic mutations pass with all survivors investigated.
 
-All bandwidth, latency, work, format widths and residency capacities that DSE or qualification owns remain symbolic composition fields. [Inference demand](../performance/inference-demand.md) and its manifest supply demand provenance only. Q4b owns timed target figures; these contracts claim none. Optional module qualification failure must not silently forward a request to another destination (R-12-085f).
+All bandwidth, latency, work, format widths and residency capacities that DSE or qualification owns remain symbolic composition fields. [Inference demand](../../performance/inference-demand.md) and its manifest supply demand provenance only. Q4b owns timed target figures; these contracts claim none. Optional module qualification failure must not silently forward a request to another destination (R-12-085f).
 
 ## 4. Ensemble schedule statement and emission
 

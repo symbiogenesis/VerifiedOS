@@ -49,7 +49,7 @@ connects allocation and reusable-capacity research to the pinned candidate and
 certificate integrations, finite resource contracts and remaining proof obligations.
 
 The implementation interfaces are recorded in the
-[service authoring contracts](implementation/service-authoring-contracts.md),
+[service authoring contracts](implementation/contracts/service-authoring-contracts.md),
 [object transactor contract](implementation/contracts/object-transactor-contract.md),
 [recovery policy input](implementation/storage-recovery-policy.md),
 [attested TLS protocol](implementation/attested-tls-protocol.md),
