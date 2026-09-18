@@ -737,9 +737,12 @@ def refused_by(plan: Plan) -> list[str]:
 
 
 def worst_case_timing(plan: Plan) -> int:
-    """The sum of every region's placement delta: what the plan charges §11 admission
-    over the whole roster. A base search leaves it where it is, the delta reading the
-    class and the fetch count and never the base."""
+    """Scalar search objective summing every region's placement delta.
+
+    This is not schedule admission: MemoryPlan.v's plan_timing_admission charges
+    the per-slot totals into a frame. A base search leaves this objective unchanged,
+    since each delta reads the class and fetch count, never the base.
+    """
     return sum(placement_delta(plan, r) for r in plan.regions())
 
 

@@ -519,8 +519,8 @@
       }
     },
     "MemoryPlan.v": {
-      "constants": 584,
-      "inventory_sha256": "778cdb081c12b2ce52b6dd97354055a1f778980540a3f150e6cce2a6696c311c",
+      "constants": 600,
+      "inventory_sha256": "743ed013b5eca9910224e6fc191b15370737f8cb9ede418eb65a634ac1f568ff",
       "requires": [
         "CyclicExecutive"
       ],
@@ -1063,7 +1063,7 @@
     "proofs/KernelInstance.v": "aea6dc52e038c57ba5a68ba3bf55041fd886948c996d71b280b73547a77cb250",
     "proofs/KeyspaceDomains.v": "c7ed0a028d77b89511a06297e7dfcba8a09f0ffc11f780906b7f3e4711abcd66",
     "proofs/MModeFirmware.v": "0ccd49a26e0b91c7e0d244bf6d81f86387820bf106b41710f6589dd74dde9e5c",
-    "proofs/MemoryPlan.v": "3b31098f1e666855628d7d675a09732a5757d0fc3c7caaf0348443f6231e9dab",
+    "proofs/MemoryPlan.v": "7082dfcd0e52b4186e24b388aa56d22d7677a97881d877205f5ec1308df42e5f",
     "proofs/MemoryPlannerCertificates.v": "52d7ffec1d9b6489ede419d815f5e4d260161d68c1bfce01bf69c022e2d40f1a",
     "proofs/MemoryPlannerContracts.v": "f6f0bb3037ce0ae91b973b525703503bff47284d029cf1d0307aff26749d8f0c",
     "proofs/MemoryPlannerResources.v": "bf5e19ef683d7012e8e26b6ade5c941f0e6950b524553ea7f90d7eb3b5ae1470",
@@ -1103,8 +1103,13 @@
     "tools/vos/toolenv.py": "1a54d85eb5b00b74d4fe4e4ceb3fce78a929d41afaec230a96d37def0ce3f44a"
   },
   "kernel_evidence": {
-    "basis_sha256": null,
+    "basis_sha256": "1b023fabe810322761b33f6861aca476cf57a1f8dcebef51e102f0aa4f67e069",
     "checked": [
+      "MemoryPlan",
+      "StaticMemoryLaminar"
+    ],
+    "mode": "incremental",
+    "reused": [
       "AdmissionPath",
       "AesGcm",
       "ApexTheorem",
@@ -1125,7 +1130,6 @@
       "KernelInstance",
       "KeyspaceDomains",
       "MModeFirmware",
-      "MemoryPlan",
       "MemoryPlannerCertificates",
       "MemoryPlannerContracts",
       "MemoryPlannerResources",
@@ -1144,17 +1148,14 @@
       "SeamWitnesses",
       "SecurityPolicyModel",
       "Sha256",
-      "StaticMemoryLaminar",
       "StaticMemoryService",
       "StorageRecovery",
       "SupervisionTree",
       "WitnessContinuity"
-    ],
-    "mode": "full",
-    "reused": []
+    ]
   },
   "kernel_recheck": "passed",
-  "native_receipt_sha256": "1b023fabe810322761b33f6861aca476cf57a1f8dcebef51e102f0aa4f67e069",
+  "native_receipt_sha256": "86e7a258fa2f0b0cf9a39401b6de0b79c7a90584c86768cbf85703247baaef05",
   "outputs": {
     "proofs/AdmissionPath.vo": "2eb5f9f215787f34fb3cc97ecee2365eddb8e56bea58581fa72d6a60598e75df",
     "proofs/AesGcm.vo": "935a01c7e913dfa5c57550bfba485f44f4dcf881ea241170fe7197eee9588c39",
@@ -1176,7 +1177,7 @@
     "proofs/KernelInstance.vo": "98a9c9690dd53662e900822748df5e978f157530da14dbd1f4b1dae0dd7262cd",
     "proofs/KeyspaceDomains.vo": "1dcc0edb0851550a4e36a66dcc633c2f180d1cbd06f423ec5992ea0f19d33a4e",
     "proofs/MModeFirmware.vo": "542dd57200bae3b5704aaf2a1d6307d4fe41fdebc42c5f25e8f12e42b3365e4b",
-    "proofs/MemoryPlan.vo": "08da5719569fe625e16eddd3487fe89e7e1aa1805d66ffaf1a4e9e3289e00d4d",
+    "proofs/MemoryPlan.vo": "5f3b440efb9507ff366d9baf5a7b7f30b78587c0307a64f401b938108e7e7372",
     "proofs/MemoryPlannerCertificates.vo": "c17438d82eb6281ad7e5c411268ad0248ad6a3f1c086baebb980a17b1beaa4de",
     "proofs/MemoryPlannerContracts.vo": "1b13b3a9d961e567fc923219d3cd07634878e689e6d47e5d928aadd58a659135",
     "proofs/MemoryPlannerResources.vo": "8e4fc8078db4b6759fa103abfc51c5c8199c3f85b7f9fd1062fca999d60a47e4",
@@ -1195,20 +1196,20 @@
     "proofs/SeamWitnesses.vo": "2cc4a73c61eb57a3761acc9624a934c83562b28397faa97d9909e5c9a8aeea86",
     "proofs/SecurityPolicyModel.vo": "5dc89cfe4b1a760fed183361dbd284a26f506b65d1c6184f790b76c6d36d0d80",
     "proofs/Sha256.vo": "6d0cd8a911be5a3dc4e541ec6ce34e1e44e0db2ee2b2d87c43935508409ff8f4",
-    "proofs/StaticMemoryLaminar.vo": "d32ba62a243b8634586e920cd58f639bd5c99ebfa067dc2b35cafb4e1f9e7bef",
+    "proofs/StaticMemoryLaminar.vo": "a83ddeeb2f7b2519073b73d860caa3903b3a72317fa20b6dda45203b7f34edfa",
     "proofs/StaticMemoryService.vo": "19b6300ea912884011081ee38d141b09243b2e7eee173d40d0fced78dff49f89",
     "proofs/StorageRecovery.vo": "07ecd4e37866f4d4c0c931ebc88af5c31ad2a21de401dd41101b69c7ba70be68",
     "proofs/SupervisionTree.vo": "eeddb2e3e079aed901b14b6709dd4a2884f44830cd69f59e00a3dbab710152ef",
     "proofs/WitnessContinuity.vo": "16f9a6516871df1e20311d71d4249d8177d4b5ad87fa25c580cd48717705754f"
   },
-  "reused_audits": 0,
-  "reused_compilations": 0,
+  "reused_audits": 42,
+  "reused_compilations": 42,
   "schema": 2,
   "status": "passed",
   "timings": {
-    "compile_audit_seconds": 158.26090704099988,
-    "kernel_recheck_seconds": 1242.5500517179998,
-    "total_seconds": 1405.4990707610004
+    "compile_audit_seconds": 72.13707600000089,
+    "kernel_recheck_seconds": 26.811908738000056,
+    "total_seconds": 101.80915379399994
   },
   "toolchain": {
     "checker_sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",

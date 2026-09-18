@@ -247,11 +247,12 @@
       inductive below is therefore the register's own names plus the
       by-criterion arm, and it is a floor rather than a total: no count is
       asserted over it. Owed at R-15-247s.
-   b. Whether the delta is charged per region or per task. R-15-247j says
-      second-class *code placement* carries the delta, and R-11-009
-      charges a *task*'s real cost. A task whose code spans two regions is
-      addressed by neither, and this file charges per region and sums
-      nothing. Owed at R-15-247j.
+   b. How source paths establish each region's fetch count. The timing
+      endpoint below conservatively sums the deltas of every region
+      assigned to each slot, then checks the charged frame once. A
+      producer still owes the connection between those declared counts
+      and all executable paths; the sum supplies no path analysis.
+      Owed at R-15-247j and R-11-015.
    c. Whether a hard task may hold any code on the second class at all.
       R-15-247j places all hard-task code on the first class and says
       nothing about a hard task calling a cold second-class routine, which
@@ -1657,6 +1658,9 @@ Definition Admission : Type :=
 
 Definition spec_admission : Admission := fun c p a r f =>
   admits c (charge_frame_at (p.(slot_of) r) (placement_delta p a r) f).
+
+(* This is a one-region probe for the laws below. Whole-plan timing
+   admission is plan_timing_admission, which accumulates all regions. *)
 
 (* R-15-247j's own words read the other way: the delta computed, published
    beside the schedule, and not consumed. It is the construction that
@@ -4749,6 +4753,133 @@ Qed.
    declares it.
    ------------------------------------------------------------------------- *)
 
+(* Whole-plan timing admission. The charged roster is derived from the
+   region count, not supplied by the caller. The declared placement list
+   must nevertheless enumerate it exactly once, and every slot must exist.
+   Other geometric and memory-budget checks remain separate obligations. *)
+Fixpoint sum_slot_deltas (p : Plan) (a : Assignment) (slot : nat)
+                        (regions : list nat) : nat :=
+  match regions with
+  | nil => 0
+  | cons r rest =>
+      (if Nat.eqb (p.(slot_of) r) slot then placement_delta p a r else 0)
+      + sum_slot_deltas p a slot rest
+  end.
+
+Definition slot_delta (p : Plan) (a : Assignment) (slot : nat) : nat :=
+  sum_slot_deltas p a slot (upto p.(region_count)).
+
+Lemma sum_slot_deltas_app : forall p a slot left right,
+  sum_slot_deltas p a slot (app left right) =
+  sum_slot_deltas p a slot left + sum_slot_deltas p a slot right.
+Proof.
+  intros p a slot left. induction left as [|r rest IH]; intros right.
+  - reflexivity.
+  - simpl. rewrite IH. apply add_assoc.
+Qed.
+
+Fixpoint charge_slots_from {T : Type} (p : Plan) (a : Assignment)
+                          (slot : nat) (slots : list (Slot T)) : list (Slot T) :=
+  match slots with
+  | nil => nil
+  | cons s rest => cons (charge_slot (slot_delta p a slot) s)
+                       (charge_slots_from p a (S slot) rest)
+  end.
+
+Definition charge_plan {T : Type} (p : Plan) (a : Assignment)
+                       (f : Frame T) : Frame T :=
+  let focus_index := count_of (reserved_band f) in
+  Build_Frame T (major_frame f) (phase_offset f)
+    (charge_slots_from p a 0 (reserved_band f))
+    (Build_Band T
+      (charge_slot (slot_delta p a focus_index) (band_focus (discretionary_band f)))
+      (charge_slots_from p a (S focus_index) (band_background (discretionary_band f)))).
+
+Lemma charge_slots_from_app : forall (T : Type) p a slot (left right : list (Slot T)),
+  charge_slots_from p a slot (app left right) =
+  app (charge_slots_from p a slot left)
+      (charge_slots_from p a (slot + count_of left) right).
+Proof.
+  intros T p a slot left. revert slot.
+  induction left as [|s rest IH]; intros slot right.
+  - simpl. rewrite add_0_r. reflexivity.
+  - simpl. rewrite IH. rewrite add_succ_r. reflexivity.
+Qed.
+
+Theorem frame_slots_charge_plan : forall (T : Type) p a (f : Frame T),
+  frame_slots (charge_plan p a f) = charge_slots_from p a 0 (frame_slots f).
+Proof.
+  intros T p a f. unfold frame_slots, charge_plan, band_slots. simpl.
+  rewrite charge_slots_from_app. reflexivity.
+Qed.
+
+Definition plan_timing_admission (c : Composition) (p : Plan) (a : Assignment)
+                                 (f : Frame (Tenant c)) : bool :=
+  andb (plan_ok_against p p.(placed) f)
+    (andb (places_ok p a) (admits c (charge_plan p a f))).
+
+Theorem plan_timing_admission_sound : forall c p a f,
+  plan_timing_admission c p a f = true ->
+  WellFormedAgainstTheFrame p p.(placed) f /\
+  PlacesAsTheRegisterPlaces p a /\
+  all_of (slot_fits c (major_frame f))
+         (charge_slots_from p a 0 (frame_slots f)) = true /\
+  pairwise_disjoint (charge_slots_from p a 0 (frame_slots f)) = true.
+Proof.
+  intros c p a f H. unfold plan_timing_admission in H.
+  destruct (andb_split _ _ H) as [Hplan Hrest].
+  destruct (andb_split _ _ Hrest) as [Hplaces Hadmits].
+  unfold admits in Hadmits. rewrite frame_slots_charge_plan in Hadmits.
+  change (major_frame (charge_plan p a f)) with (major_frame f) in Hadmits.
+  exact (conj (plan_ok_against_sound _ p p.(placed) f Hplan)
+    (conj (places_ok_sound p a Hplaces) (andb_split _ _ Hadmits))).
+Qed.
+
+(* Two regions each add six ticks. Both isolated probes fit a ten-tick
+   spare budget; their combined twelve ticks must be refused. *)
+Definition aggregate_demo_plan (latency second_slot : nat) (roster : list nat) : Plan :=
+  {| region_count := 2; kind_of := fun _ => ColdStaticallyPlacedCode;
+     cycle_critical := fun _ => false; class_of := fun _ => SecondClass;
+     base_of := fun r => r * 8; length_of := fun _ => 8;
+     live_from := fun _ => 0; live_to := fun _ => 1;
+     base_granules := fun r => r; length_granules_of := fun _ => 1;
+     island_of := fun _ => 0; island_base := fun _ => 0; island_span := fun _ => 16;
+     first_fetch := 10; second_fetch := latency; fetch_count := fun _ => 1;
+     slot_of := fun r => match r with 0 => 1 | S _ => second_slot end;
+     placed := roster; origin_regions := nil; fixed_first_class := 0; first_budget := 0 |}.
+
+Definition aggregate_demo_frame : Frame bool :=
+  Build_Frame bool 200 0 (cons (Build_Slot bool 60 0 30 100 true) nil)
+    (Build_Band bool (Build_Slot bool 90 60 60 100 false) (cons background_a nil)).
+
+Example isolated_probes_miss_the_combined_overrun :
+  let p := aggregate_demo_plan 16 1 (cons 0 (cons 1 nil)) in
+  spec_admission demo_composition p (spec_assign p) 0 aggregate_demo_frame = true /\
+  spec_admission demo_composition p (spec_assign p) 1 aggregate_demo_frame = true /\
+  slot_delta p (spec_assign p) 1 = 12 /\
+  plan_timing_admission demo_composition p (spec_assign p) aggregate_demo_frame = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
+Example combined_delta_accepts_the_exact_budget :
+  let p := aggregate_demo_plan 15 1 (cons 0 (cons 1 nil)) in
+  slot_delta p (spec_assign p) 1 = 10 /\
+  plan_timing_admission demo_composition p (spec_assign p) aggregate_demo_frame = true :=
+  conj eq_refl eq_refl.
+
+Example separate_slots_receive_their_own_totals :
+  let p := aggregate_demo_plan 16 0 (cons 0 (cons 1 nil)) in
+  slot_delta p (spec_assign p) 0 = 6 /\ slot_delta p (spec_assign p) 1 = 6 /\
+  plan_timing_admission demo_composition p (spec_assign p) aggregate_demo_frame = true :=
+  conj eq_refl (conj eq_refl eq_refl).
+
+Example an_omitted_region_cannot_evade_timing_admission :
+  let p := aggregate_demo_plan 15 1 (cons 0 nil) in
+  plan_timing_admission demo_composition p (spec_assign p) aggregate_demo_frame = false := eq_refl.
+
+Example a_nonexistent_slot_cannot_evade_timing_admission :
+  let p := aggregate_demo_plan 15 3 (cons 0 (cons 1 nil)) in
+  plan_timing_admission demo_composition p (spec_assign p) aggregate_demo_frame = false := eq_refl.
+
 Definition witness_Narrowing : Narrowing := inner_narrowing.
 Definition witness_Plan : Plan := demo_plan.
 
@@ -4760,6 +4891,22 @@ Definition witness_Plan : Plan := demo_plan.
    ------------------------------------------------------------------------- *)
 
 Print Assumptions any_of.
+Print Assumptions sum_slot_deltas.
+Print Assumptions slot_delta.
+Print Assumptions sum_slot_deltas_app.
+Print Assumptions charge_slots_from.
+Print Assumptions charge_plan.
+Print Assumptions charge_slots_from_app.
+Print Assumptions frame_slots_charge_plan.
+Print Assumptions plan_timing_admission.
+Print Assumptions plan_timing_admission_sound.
+Print Assumptions aggregate_demo_plan.
+Print Assumptions aggregate_demo_frame.
+Print Assumptions isolated_probes_miss_the_combined_overrun.
+Print Assumptions combined_delta_accepts_the_exact_budget.
+Print Assumptions separate_slots_receive_their_own_totals.
+Print Assumptions an_omitted_region_cannot_evade_timing_admission.
+Print Assumptions a_nonexistent_slot_cannot_evade_timing_admission.
 Print Assumptions map_over.
 Print Assumptions filter_of.
 Print Assumptions upto.
