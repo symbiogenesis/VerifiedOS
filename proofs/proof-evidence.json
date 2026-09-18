@@ -372,8 +372,8 @@
       }
     },
     "JournalIndex.v": {
-      "constants": 445,
-      "inventory_sha256": "a3130c69fc883423c5d25fcf88372f1679a74acea4aab3960fc272daea7fdcd7",
+      "constants": 458,
+      "inventory_sha256": "45dde05e9ec36b10c1ba5b5557d1ace12cea3aa76a2d4e89fdfb1e6344fbce5d",
       "requires": [],
       "witnesses": {
         "Blk": [
@@ -1038,7 +1038,7 @@
       }
     }
   },
-  "cache_context_sha256": "9ee8d17c7ba0671a3e37e5b144926f45c1a7b49393ae4c39e81a75d782eb04be",
+  "cache_context_sha256": "895273d21bd009c97d22745574a813c449346a884dd30cb50eacafcfe818a0ac",
   "declared_assumptions": [],
   "format": "verifiedos-portable-proof-receipt",
   "inputs": {
@@ -1058,7 +1058,7 @@
     "proofs/HandlerGraph.v": "4b34f84370e002bfe6446d4e0753c4e836b601697a277a6554aba028cdb0edb3",
     "proofs/HmacDrbg.v": "35529e9eec3e5b94937c4d57fe356df5f3cb74628d2ca79c981ba7b75b61a6e4",
     "proofs/InferenceAdmission.v": "efc4c5c9e1f6aa4c66b633b4d848fe98e46605be84858f07bf8ac0c557d3d1ec",
-    "proofs/JournalIndex.v": "59e76f5ee26b37711ca659e7e0fb3ac73d7a0ca51515580d4f122cc0ffbb18b2",
+    "proofs/JournalIndex.v": "48cf7ec10db39bbd0e87862ed1fa18b0b8a7c84d5c9b77ee1029185dd3577177",
     "proofs/Keccak.v": "660dbf2e5f9ebdfd018705525c6551c38d7d2d1c54ed099ac550f53f4c870902",
     "proofs/KernelInstance.v": "aea6dc52e038c57ba5a68ba3bf55041fd886948c996d71b280b73547a77cb250",
     "proofs/KeyspaceDomains.v": "c7ed0a028d77b89511a06297e7dfcba8a09f0ffc11f780906b7f3e4711abcd66",
@@ -1103,12 +1103,8 @@
     "tools/vos/toolenv.py": "1a54d85eb5b00b74d4fe4e4ceb3fce78a929d41afaec230a96d37def0ce3f44a"
   },
   "kernel_evidence": {
-    "basis_sha256": "aeb422a3b42154592e4460d59df3196a46c9bafc531df1b31be40b09fcee2311",
+    "basis_sha256": null,
     "checked": [
-      "WitnessContinuity"
-    ],
-    "mode": "incremental",
-    "reused": [
       "AdmissionPath",
       "AesGcm",
       "ApexTheorem",
@@ -1151,11 +1147,14 @@
       "StaticMemoryLaminar",
       "StaticMemoryService",
       "StorageRecovery",
-      "SupervisionTree"
-    ]
+      "SupervisionTree",
+      "WitnessContinuity"
+    ],
+    "mode": "full",
+    "reused": []
   },
   "kernel_recheck": "passed",
-  "native_receipt_sha256": "73b6ec98371ba5ad6d76086c407898e62ab59974f758b858abb17d80bc4d6b04",
+  "native_receipt_sha256": "1b023fabe810322761b33f6861aca476cf57a1f8dcebef51e102f0aa4f67e069",
   "outputs": {
     "proofs/AdmissionPath.vo": "2eb5f9f215787f34fb3cc97ecee2365eddb8e56bea58581fa72d6a60598e75df",
     "proofs/AesGcm.vo": "935a01c7e913dfa5c57550bfba485f44f4dcf881ea241170fe7197eee9588c39",
@@ -1172,10 +1171,10 @@
     "proofs/HandlerGraph.vo": "a1eea9114ad048e4a513d2316248f3b5a231829f085deabddfb8aac238072c35",
     "proofs/HmacDrbg.vo": "1ab99fcd5ddb9d54cd1794ac2ec3156f850bae5bc9761656c2a0605364efaabe",
     "proofs/InferenceAdmission.vo": "daf4ac59e95f8d6a0311dbc9f26687f8f726aecdfdf02e3c70914068c2a989f1",
-    "proofs/JournalIndex.vo": "1e23f213540f2b43633afb529326c2ac52dbb5bff0c15713a29b6506cc771d33",
+    "proofs/JournalIndex.vo": "80f5885589e31258c5cd2d0f8bfcc09a68f74a25e0bd36ed338f882397f4e831",
     "proofs/Keccak.vo": "dc9bc77c0e3d2fd731fb7a8f18170b8a603b35776f7a5fa0e98bf7602811cccb",
-    "proofs/KernelInstance.vo": "1bd3094334184a417abdf65ef6a75fcad74e7f73710531a1c5b58b2fddc53e57",
-    "proofs/KeyspaceDomains.vo": "7979ff758bebbc35e18943e2c513bbf1fe3929c974c68849befb2ec6f6308966",
+    "proofs/KernelInstance.vo": "98a9c9690dd53662e900822748df5e978f157530da14dbd1f4b1dae0dd7262cd",
+    "proofs/KeyspaceDomains.vo": "1dcc0edb0851550a4e36a66dcc633c2f180d1cbd06f423ec5992ea0f19d33a4e",
     "proofs/MModeFirmware.vo": "542dd57200bae3b5704aaf2a1d6307d4fe41fdebc42c5f25e8f12e42b3365e4b",
     "proofs/MemoryPlan.vo": "08da5719569fe625e16eddd3487fe89e7e1aa1805d66ffaf1a4e9e3289e00d4d",
     "proofs/MemoryPlannerCertificates.vo": "c17438d82eb6281ad7e5c411268ad0248ad6a3f1c086baebb980a17b1beaa4de",
@@ -1185,7 +1184,7 @@
     "proofs/MlKem.vo": "7b138065edc7d5f6e7b20714882b35d90df297c6dd39b3df42d00565bad986a5",
     "proofs/ModuleAdmission.vo": "cbede5fda01970675a77ce22bb17348ba8f77ff01a993b3fbfa66e1afac1e1d7",
     "proofs/ObjectRouter.vo": "ffd75a27d7f5b111a3566231346d7bfc14a99a1bd6527d63a9d5121cf827118a",
-    "proofs/ObjectTransactor.vo": "3fc49eb108eabc3a0ce3e97057336c0cf014cde8dde3c0384092d1b5b5b72415",
+    "proofs/ObjectTransactor.vo": "d783a839a0bbfd1eebd432ca73e2b8cc60021dbbdd3cae22ea38ff8948e724e5",
     "proofs/OracleInstantiation.vo": "bf2811428c72e2b1b90a3b71af161003323bc9a3800b4ad8aadd8cd30da51a62",
     "proofs/PartitionContext.vo": "94ca28c18b4e76b76b860c7c521f88ccda6921c4d92e31835e6556f58f523cf4",
     "proofs/PqArith.vo": "fb79cfe72af7d7ca3a0f6ba73b8584c8d92a61e17db11859609f19bf51b3a21d",
@@ -1198,18 +1197,18 @@
     "proofs/Sha256.vo": "6d0cd8a911be5a3dc4e541ec6ce34e1e44e0db2ee2b2d87c43935508409ff8f4",
     "proofs/StaticMemoryLaminar.vo": "d32ba62a243b8634586e920cd58f639bd5c99ebfa067dc2b35cafb4e1f9e7bef",
     "proofs/StaticMemoryService.vo": "19b6300ea912884011081ee38d141b09243b2e7eee173d40d0fced78dff49f89",
-    "proofs/StorageRecovery.vo": "e1210fce1d28cd11e5a923d22324d206341bde2dcf5363ed9122c7091c24bfbf",
+    "proofs/StorageRecovery.vo": "07ecd4e37866f4d4c0c931ebc88af5c31ad2a21de401dd41101b69c7ba70be68",
     "proofs/SupervisionTree.vo": "eeddb2e3e079aed901b14b6709dd4a2884f44830cd69f59e00a3dbab710152ef",
     "proofs/WitnessContinuity.vo": "16f9a6516871df1e20311d71d4249d8177d4b5ad87fa25c580cd48717705754f"
   },
-  "reused_audits": 43,
-  "reused_compilations": 43,
+  "reused_audits": 0,
+  "reused_compilations": 0,
   "schema": 2,
   "status": "passed",
   "timings": {
-    "compile_audit_seconds": 7.627031631000136,
-    "kernel_recheck_seconds": 3.4891681359995346,
-    "total_seconds": 14.162454790000083
+    "compile_audit_seconds": 158.26090704099988,
+    "kernel_recheck_seconds": 1242.5500517179998,
+    "total_seconds": 1405.4990707610004
   },
   "toolchain": {
     "checker_sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",

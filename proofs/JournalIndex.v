@@ -34,6 +34,14 @@
    nothing is axiomatized: the Print Assumptions block at the end reports
    every shipped constant closed under the global context.
 
+   L1's Index is an ordered association list used as a logical map, not a
+   B-tree implementation. block_admissible checks the four block-publication
+   conditions only. The structural admission predicate additionally checks
+   complete, address-bounded nodes, occupancy and termination within the
+   declared height. Its general walk bound excludes cycles. Separator/key
+   routing, balance, buffered insertion/split/flush and their correspondence
+   to this logical map remain M5.3's executable index work.
+
    What the gate's green line means. Compiled, axiom-free, non-vacuous and
    enumerated, and it does not mean verified. No constant here is compiled,
    lowered, or run on either emulator, and nothing here executes anywhere.
@@ -1848,7 +1856,7 @@ Definition kids_resolve (m : Machine) (md : Medium) (c : Commit) : bool :=
                           (node_kids (w_node w)))
          (cm_plan c).
 
-Definition admissible (m : Machine) (md : Medium) (c : Commit) : bool :=
+Definition block_admissible (m : Machine) (md : Medium) (c : Commit) : bool :=
   andb (root_is_last c)
   (andb (allocates_blank md c)
   (andb (spares_the_retained m md c)
@@ -2251,7 +2259,7 @@ Qed.
 Theorem an_admissible_commit_is_crash_consistent :
   forall (m : Machine) (md : Medium) (c : Commit),
     covered m md (cm_old_root c) = true ->
-    admissible m md c = true ->
+    block_admissible m md c = true ->
     CrashConsistent m md c spec_sequencer.
 Proof.
   intros m md c Hold Hadm i g.
@@ -3056,7 +3064,7 @@ Example the_commit_is_admissible :
   /\ allocates_blank demo_medium demo_commit = true
   /\ spares_the_retained demo demo_medium demo_commit = true
   /\ kids_resolve demo demo_medium demo_commit = true
-  /\ admissible demo demo_medium demo_commit = true :=
+  /\ block_admissible demo demo_medium demo_commit = true :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
 
 Example the_commit_shares_the_sibling_it_did_not_rewrite :
@@ -3199,7 +3207,7 @@ Definition root_first_commit : Commit := {|
 
 Theorem the_root_first_plan_is_refused_by_the_conjunct :
   root_is_last root_first_commit = false
-  /\ admissible demo demo_medium root_first_commit = false.
+  /\ block_admissible demo demo_medium root_first_commit = false.
 Proof. split; reflexivity. Qed.
 
 Theorem the_root_first_plan_is_still_crash_consistent_under_the_specification :
@@ -3854,7 +3862,7 @@ Proof. intros H. specialize (H 0 0). discriminate H. Qed.
 Example the_empty_plan_is_refused_at_the_publish_conjunct :
   root_is_last empty_commit = false
   /\ count_of (cm_plan empty_commit) = 0
-  /\ admissible demo demo_medium empty_commit = false
+  /\ block_admissible demo demo_medium empty_commit = false
   /\ cm_retained empty_commit = cons 3 nil
   /\ cm_new_root empty_commit = cm_new_root demo_commit :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
@@ -3865,7 +3873,7 @@ Example the_empty_plan_is_refused_at_the_publish_conjunct :
        nothing above would notice. ------------------------------------- *)
 
 Example the_four_admission_conjuncts_are_independent :
-  map_over (fun c => admissible demo demo_medium c)
+  map_over (fun c => block_admissible demo demo_medium c)
            (cons demo_commit (cons empty_commit (cons inplace_commit
            (cons retained_reuse_commit (cons dangling_commit nil)))))
   = cons true (cons false (cons false (cons false (cons false nil))))
@@ -3905,6 +3913,114 @@ Example the_duplicate_value_the_family_inserts :
    declares it.
    ------------------------------------------------------------------------- *)
 
+(* Structural admission is distinct from the block-completeness theorem.
+   A traversal that merely truncates at height accepts a cyclic graph of
+   whole blocks. Here the final level must have no children. *)
+Fixpoint bounded_tree (m : Machine) (md : Medium) (fuel b : nat) : bool :=
+  andb (Nat.ltb b (block_count m))
+  (andb (complete (md b))
+  (andb (node_fits m (blk_node (md b)))
+    (match fuel with
+     | 0 => match kids_of md b with nil => true | cons _ _ => false end
+     | S k => all_of (bounded_tree m md k) (kids_of md b)
+     end))).
+
+Fixpoint Follows (md : Medium) (b : nat) (path : list nat) : Prop :=
+  match path with
+  | nil => True
+  | cons child rest => mem_of child (kids_of md b) = true /\ Follows md child rest
+  end.
+
+Theorem bounded_tree_limits_every_walk :
+  forall (m : Machine) (md : Medium) (fuel b : nat) (path : list nat),
+    bounded_tree m md fuel b = true -> Follows md b path ->
+    Nat.leb (count_of path) fuel = true.
+Proof.
+  intros m md fuel. induction fuel as [ | k IH ]; intros b path H W;
+    simpl in H; apply andb_split in H as [_ H];
+    apply andb_split in H as [_ H]; apply andb_split in H as [_ H].
+  - destruct path as [ | child rest ]; [reflexivity | ].
+    destruct (kids_of md b) eqn:E; [ | discriminate H].
+    simpl in W. destruct W as [W _]. rewrite E in W. discriminate W.
+  - destruct path as [ | child rest ]; [reflexivity | ].
+    destruct W as [W Wr]. simpl.
+    exact (IH child rest (all_of_elim _ _ child H W) Wr).
+Qed.
+
+Theorem bounded_tree_rejects_a_self_edge :
+  forall (m : Machine) (md : Medium) (fuel b : nat),
+    mem_of b (kids_of md b) = true -> bounded_tree m md fuel b = false.
+Proof.
+  intros m md fuel. induction fuel as [ | k IH ]; intros b E.
+  destruct (bounded_tree m md 0 b) eqn:H; [ | reflexivity].
+  - simpl in H. apply andb_split in H as [_ H].
+    apply andb_split in H as [_ H]. apply andb_split in H as [_ H].
+    destruct (kids_of md b); [discriminate E | discriminate H].
+  - destruct (bounded_tree m md (S k) b) eqn:H; [ | reflexivity].
+    simpl in H. apply andb_split in H as [_ H].
+    apply andb_split in H as [_ H]. apply andb_split in H as [_ H].
+    pose proof (all_of_elim _ _ b H E) as C. rewrite (IH b E) in C.
+    discriminate C.
+Qed.
+
+Definition admissible (m : Machine) (md : Medium) (c : Commit) : bool :=
+  andb (block_admissible m md c)
+       (bounded_tree m (landed m c md) (height m) (cm_new_root c)).
+
+Theorem structurally_admissible_commit_is_crash_consistent :
+  forall (m : Machine) (md : Medium) (c : Commit),
+    covered m md (cm_old_root c) = true -> admissible m md c = true ->
+    CrashConsistent m md c spec_sequencer.
+Proof.
+  intros m md c Hold H. apply andb_split in H as [H _].
+  exact (an_admissible_commit_is_crash_consistent m md c Hold H).
+Qed.
+
+Theorem admitted_root_has_no_overlong_walk :
+  forall (m : Machine) (md : Medium) (c : Commit) (path : list nat),
+    admissible m md c = true ->
+    Follows (landed m c md) (cm_new_root c) path ->
+    Nat.leb (count_of path) (height m) = true.
+Proof.
+  intros m md c path H W. apply andb_split in H as [_ H].
+  exact (bounded_tree_limits_every_walk m _ _ _ path H W).
+Qed.
+
+(* The logical journal's six-block view does not bound the physical demo's
+   fresh addresses 10 and 11. Structural tests declare that larger inventory. *)
+Definition tree_demo : Machine := {|
+  record_granules := record_granules demo; block_count := 16;
+  fanout := fanout demo; height := height demo; node_granules := node_granules demo;
+  fresh_block := fresh_block demo; root_block := root_block demo; mac := mac demo
+|}.
+
+Definition self_edge_commit : Commit := {|
+  cm_plan := cons {| w_block := 11; w_node := node_over (cons 11 nil) (cons 12 nil) |} nil;
+  cm_new_root := 11; cm_old_root := 0; cm_retained := nil
+|}.
+
+Definition two_edge_cycle_commit : Commit := {|
+  cm_plan := cons {| w_block := 10; w_node := node_over (cons 11 nil) (cons 12 nil) |}
+             (cons {| w_block := 11; w_node := node_over (cons 10 nil) (cons 11 nil) |} nil);
+  cm_new_root := 11; cm_old_root := 0; cm_retained := nil
+|}.
+
+Example structural_admission_accepts_the_acyclic_demo :
+  admissible tree_demo demo_medium demo_commit = true := eq_refl.
+
+Example complete_blocks_do_not_establish_a_tree :
+  block_admissible tree_demo demo_medium self_edge_commit = true /\
+  block_admissible tree_demo demo_medium two_edge_cycle_commit = true /\
+  admissible tree_demo demo_medium self_edge_commit = false /\
+  admissible tree_demo demo_medium two_edge_cycle_commit = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
+Example structural_admission_checks_depth_and_addresses :
+  bounded_tree tree_demo demo_medium 0 0 = false /\
+  bounded_tree tree_demo demo_medium 1 0 = true /\
+  admissible demo demo_medium demo_commit = false :=
+  conj eq_refl (conj eq_refl eq_refl).
+
 Definition witness_Blk : Blk := blank_block.
 Definition witness_Commit : Commit := demo_commit.
 Definition witness_KeyAlgebra : KeyAlgebra := nat_keys.
@@ -3919,6 +4035,19 @@ Definition witness_Write : Write := new_leaf.
    ------------------------------------------------------------------------- *)
 
 Print Assumptions all_of.
+Print Assumptions bounded_tree.
+Print Assumptions Follows.
+Print Assumptions bounded_tree_limits_every_walk.
+Print Assumptions bounded_tree_rejects_a_self_edge.
+Print Assumptions admissible.
+Print Assumptions structurally_admissible_commit_is_crash_consistent.
+Print Assumptions admitted_root_has_no_overlong_walk.
+Print Assumptions tree_demo.
+Print Assumptions self_edge_commit.
+Print Assumptions two_edge_cycle_commit.
+Print Assumptions structural_admission_accepts_the_acyclic_demo.
+Print Assumptions complete_blocks_do_not_establish_a_tree.
+Print Assumptions structural_admission_checks_depth_and_addresses.
 Print Assumptions any_of.
 Print Assumptions count_of.
 Print Assumptions map_over.
@@ -4096,7 +4225,7 @@ Print Assumptions allocates_blank.
 Print Assumptions spares_the_retained.
 Print Assumptions root_is_last.
 Print Assumptions kids_resolve.
-Print Assumptions admissible.
+Print Assumptions block_admissible.
 Print Assumptions CrashConsistent.
 Print Assumptions RetainedRootsUnmoved.
 Print Assumptions in_plan_cons.
