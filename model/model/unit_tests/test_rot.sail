@@ -290,8 +290,38 @@ function test_a_pet_outside_the_window_bites_at_either_end() -> unit = {
   watchdog_arm();
   let challenge2 = watchdog_nonce;
   watchdog_advance(plat_rot_watchdog_late + 1);
-  assert(watchdog_pet(challenge2) == Pet_Late);
   assert(watchdog_bitten);
+  assert(watchdog_pet(challenge2) == Pet_Bitten);
+  assert(watchdog_bitten);
+}
+
+// A stopped petter must be detected by the clock alone. Exercise the exact
+// inclusive deadline, expiry by one tick, a bulk advance beyond 64 bits, and
+// the absorbing latch, without issuing any pet to cause the expiry.
+$[test]
+function test_watchdog_expires_without_a_pet_and_cannot_wrap() -> unit = {
+  assert(rot_run_startup_tests());
+  watchdog_arm();
+  watchdog_advance(0);
+  watchdog_advance(-1);
+  assert(watchdog_ticks == zeros() & not(watchdog_bitten));
+  watchdog_advance(plat_rot_watchdog_late);
+  assert(not(watchdog_bitten));
+  assert(unsigned(watchdog_ticks) == plat_rot_watchdog_late);
+  watchdog_advance(1);
+  assert(watchdog_bitten & watchdog_nonce == zeros());
+  assert(unsigned(watchdog_ticks) == plat_rot_watchdog_late + 1);
+  watchdog_arm();
+  watchdog_advance(18446744073709551616);
+  assert(watchdog_bitten & watchdog_nonce == zeros());
+  assert(unsigned(watchdog_ticks) == plat_rot_watchdog_late + 1);
+
+  // Only the test resets the latch to exercise an independent bulk advance.
+  watchdog_bitten = false;
+  watchdog_arm();
+  watchdog_advance(18446744073709551616);
+  assert(watchdog_bitten & watchdog_nonce == zeros());
+  assert(unsigned(watchdog_ticks) == plat_rot_watchdog_late + 1);
 }
 
 // **A pet is a challenge-response over a nonce the device issued** (R-15-240),

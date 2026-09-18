@@ -533,24 +533,27 @@ register watchdog_ticks : bits(64) = zeros()
 register watchdog_nonce : bits(64) = zeros()
 register watchdog_bitten : bool = false
 
-// The advance, and **nothing in this model calls it**, which is the position
-// `memory_sequencer_discharge_phase` already holds: the slow clock is a failure
-// domain disjoint from the cores, the main clock tree and the scheduler
-// (R-15-240), so advancing it from this model's own instruction tick would make
-// the timeout a function of instruction retirement, which is precisely the
-// coupling an independent clock exists to remove. What walks it is the RoT
-// firmware's own schedule (M3.2), exactly as the RoT's sequence table walks the
-// sequencer's phases (R-15-198).
-function watchdog_advance(ticks : int) -> unit =
-  if ticks <= 0 | watchdog_bitten then ()
-  else watchdog_ticks = watchdog_ticks + to_bits_truncate(64, ticks)
-
 // The bite. R-16-005 makes it the last resort and equal to a reset, and R-15-198
 // makes it the only signal that asserts the die, so it is a latch and not a
 // report: a bitten watchdog is not petted back to life from inside the machine.
 private function watchdog_bite() -> unit = {
   watchdog_bitten = true;
   watchdog_nonce = zeros();
+}
+
+// External slow-clock progress, independent of retirement and of firmware
+// petting (R-15-240). The harness supplies ticks; no instruction tick or
+// firmware schedule advances this clock. Crossing the inclusive late bound
+// latches the bite immediately, even if no further pet ever arrives. Compare
+// the unbounded sum before narrowing it, so a large advance cannot wrap back
+// into the window. Retain the first expired count as the saturated reading.
+function watchdog_advance(ticks : int) -> unit = {
+  if ticks <= 0 | watchdog_bitten then return ();
+  let elapsed = unsigned(watchdog_ticks) + ticks;
+  if elapsed > plat_rot_watchdog_late then {
+    watchdog_ticks = to_bits_truncate(64, plat_rot_watchdog_late + 1);
+    watchdog_bite();
+  } else watchdog_ticks = to_bits_truncate(64, elapsed);
 }
 
 // The challenge. **A pet is a challenge-response over a nonce the device
