@@ -793,7 +793,9 @@ The tracked [portable proof receipt](../proofs/proof-evidence.json) records the 
 successful run's source, gate-input and compiled-object hashes, prover version and
 executable hashes, module constant counts, dependencies, witnesses and timings.
 It includes the SHA-256 of the complete native receipt and digests of each symbol
-inventory and the cache context. Those JSON-value digests use UTF-8, sorted keys,
+inventory and the cache context. Schema 2 also records the modules kernel-checked
+in this run, the modules whose checked results were reused, and the prior native
+receipt's SHA-256 when reuse contributed. Those JSON-value digests use UTF-8, sorted keys,
 literal Unicode and comma/colon separators without whitespace. Guest executable and
 library paths stay in the full native receipt, alongside the complete symbol types
 and assumptions. The portable record is historical evidence, not a cache authority
@@ -832,25 +834,49 @@ concurrently. `seed properties` mutates the checkout and still requires exclusiv
 against every reader of that checkout.
 Proof compilation uses bounded workers within dependency waves, preserves report order,
 and does not compile a dependent against a failed prerequisite's stale output.
-The default run reuses compiled objects only from a successful receipt with matching
-source bytes, compiled-object hashes, gate inputs and toolchain context. A changed
-source or object invalidates its transitive dependents. Source-set and gate changes
-invalidate all objects. Timestamps do not establish freshness.
+The default run reuses compiled objects, native assumption audits and kernel verdicts
+only from a successful native receipt with matching source bytes, compiled-object
+hashes, dependency resolution, gate inputs and toolchain context. A changed source
+or object invalidates its transitive dependents. Adding or removing a source retains
+unaffected components; any change to a module's local dependency resolution invalidates
+that module. Gate implementation changes invalidate all objects. Register prose is
+recorded in each receipt but does not invalidate native checks: annotations still
+bind the exact proof source, K-109 holds its reference manifest, and semantic
+agreement with a requirement remains a review obligation. Timestamps do not establish
+freshness. Portable receipts alone never authorize reuse.
 
 When the entire proof set is unchanged, the gate validates and reuses its previous
-full kernel result without rewriting the native receipt, and republishes the portable
+kernel evidence without rewriting the native receipt, and republishes the portable
 receipt. The cache also hashes installed
 library and runtime files discovered through the compiler configuration and actual
 load paths, the checker library, and the environment (only its digest is recorded;
 shell launch bookkeeping and WSL's per-launch interop socket are excluded).
-Unknown load-path formats, directory symlinks or dynamic source/ML loading disable
-reuse. The first run after upgrading the gate needs a full check to establish this
-identity. `proofs --fresh` forces all work; `--jobs N` bounds compilation and auditing.
-Runs that change any proof still audit every module and perform the full joint
-kernel recheck. Per-phase wall times and the reused-object count are recorded in
-the receipt and printed, so compilation cost can be distinguished from kernel cost.
+Unknown load-path formats, directory symlinks, dynamic source/ML loading or unsupported
+wrapped Require commands disable reuse. The first run after upgrading the gate needs
+a full check to establish this identity. `proofs --fresh` forces all work; `--jobs N`
+bounds compilation and auditing. Per-phase wall times and reused-object/audit counts
+are recorded in the receipt and printed.
 
-The final `rocqchk` pass uses one shared environment and the pinned tool's default
+Changed runs use Rocq's documented
+[`-admit` incremental checking](https://rocq-prover.org/doc/V9.2.0/refman/practical-tools/coq-commands.html):
+only byte-validated, previously kernel-checked modules and their unchanged dependency
+closures may skip repeated type checking. Every changed module is an explicit check
+target, which overrides admission. A freshly compiled empty joining module requires
+every current module, including disconnected reused ones, so the checker still loads
+one joint environment and checks dependency consistency. New external dependencies
+are checked recursively unless already covered by a reused module's checked closure.
+Cached object hashes are verified after staging, after compilation/auditing and after
+the kernel pass; source and toolchain identities are verified again before publishing.
+A failed run cannot publish new success evidence. When rebuilding with reusable modules,
+the prior successful native receipt is retained only as private cache input. Unchanged
+staged objects can be recovered on retry; no current receipt is published until the
+whole run succeeds.
+This follows the pinned checker's
+[selection algorithm](https://github.com/rocq-prover/rocq/blob/V9.2.0/checker/checkLibrary.ml);
+the native regressions exercise incremental success, incompatible objects and
+contradictory universe constraints across separately valid libraries.
+
+The `rocqchk` pass uses one shared environment and the pinned tool's default
 kernel conversion. Enabling its bytecode compiler would also trust the serialized
 bytecode and VM; that option is left disabled. The checker offers no parallel worker
 option.

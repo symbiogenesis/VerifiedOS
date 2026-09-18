@@ -68,6 +68,12 @@ def _incremental_run() -> None:
                 ensure(set(compiled_names) == expected,
                        f"compiled {compiled_names}, expected {expected}")
                 ensure(recheck.call_count == int(kernel), "wrong kernel recheck reuse decision")
+                if result == 0:
+                    ensure(set(audited) == expected, "unchanged module was audited again")
+                if kernel and result == 0:
+                    available = {source.stem for source in gate._sources(root)}
+                    ensure(recheck.call_args.args[2] == frozenset(available - expected),
+                           "kernel admission differs from the validated reusable objects")
 
             run(set(texts))
             receipt = (work / gate.RECEIPT).read_bytes()
@@ -122,7 +128,7 @@ def _incremental_run() -> None:
             source.write_text(texts["Base"].replace("0", "1"), encoding="utf-8")
             os.utime(source, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
             run({"Base", "Consumer"})
-            ensure(set(audited) == set(texts), "changed runs must audit even cached objects")
+            ensure(set(audited) == {"Base", "Consumer"}, "audits must follow invalidation")
 
             source = folder / "Consumer.v"
             source.write_text(texts["Consumer"] + "\n(* edited *)", encoding="utf-8")
@@ -139,13 +145,50 @@ def _incremental_run() -> None:
             run(set(texts))
             run(set(texts), fresh=True)
 
-            # Source-set changes and malformed prior receipts are conservative misses.
+            # Independent additions/removals retain previously checked components.
             (folder / "Added.v").write_text("Definition value := 1.", encoding="utf-8")
-            run({*texts, "Added"})
+            run({"Added"})
             (folder / "Added.v").unlink()
-            run(set(texts))
+            run(set())
+            # Register identity is refreshed without repeating native proof work.
+            register = root / "docs" / "requirements-register.md"
+            register.parent.mkdir()
+            register.write_text("new prose", encoding="utf-8")
+            with patch.object(gate, "_inputs", side_effect=lambda base, sources:
+                              receipts.snapshot(base, [*sources, owner, register])):
+                run(set())
+                ensure(gate._validate_receipt(root) is None, "metadata refresh is stale")
+            run(set())
+            # A changed resolution graph is not reusable even when the source is unchanged.
+            (folder / "Consumer.v").write_text("Require Added. Definition value := 0.",
+                                               encoding="utf-8")
+            run({"Consumer"})
+            (folder / "Added.v").write_text("Definition value := 1.", encoding="utf-8")
+            run({"Added", "Consumer"})
+            (folder / "Added.v").unlink()
+            (folder / "Consumer.v").write_text(texts["Consumer"], encoding="utf-8")
+            run({"Consumer"})
+            # Malformed coverage/audits cannot authorize kernel admissions.
+            saved = (work / gate.RECEIPT).read_text(encoding="utf-8")
+            for field in ("kernel_evidence", "artifacts"):
+                damaged = json.loads(saved)
+                damaged[field] = {}
+                (work / gate.RECEIPT).write_text(json.dumps(damaged), encoding="utf-8")
+                run(set(texts))
             (work / gate.RECEIPT).write_text("{broken", encoding="utf-8")
             run(set(texts))
+
+            # Kernel refusal must leave the earlier portable evidence intact and
+            # retain only byte-matching prior successes for the next attempt.
+            saved_portable = portable.read_bytes()
+            (folder / "Consumer.v").write_text(texts["Consumer"] + "\n(* kernel retry *)",
+                                               encoding="utf-8")
+            recheck.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="refused")
+            run({"Consumer"}, result=1)
+            ensure(not (work / gate.RECEIPT).exists(), "kernel failure published success")
+            ensure(portable.read_bytes() == saved_portable, "kernel failure rewrote history")
+            recheck.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+            run({"Consumer"})
 
             # A failed prerequisite cannot leave a dependent's stale object or receipt.
             failing.add("Base")
@@ -158,14 +201,30 @@ def _incremental_run() -> None:
                    "failed run must preserve the last completed run's portable evidence")
             failing.clear()
 
-            def tamper(_root: Path, sources: list[Path]) -> subprocess.CompletedProcess[str]:
+            def tamper(_root: Path, sources: list[Path],
+                       _reused: frozenset[str]) -> subprocess.CompletedProcess[str]:
                 sources[0].with_suffix(".vo").write_bytes(b"changed during kernel check")
                 return subprocess.CompletedProcess([], 0, stdout="", stderr="")
 
             recheck.side_effect = tamper
-            run(set(texts), result=1)
+            run({"Base", "Consumer"}, result=1)
             ensure(not (work / gate.RECEIPT).exists(), "changed kernel input received a receipt")
             recheck.side_effect = None
+            run(set(texts))
+            # Compiling a changed module cannot overwrite a cached dependency and
+            # then ask the kernel to admit its newly captured (unchecked) bytes.
+            original_check = check
+
+            def corrupt_cached(base: Path, source: Path, sources: list[Path], *,
+                               compiled: bool = False) -> gate.Checked:
+                result = original_check(base, source, sources, compiled=compiled)
+                (work / "proofs" / "Base.vo").write_bytes(b"unchecked replacement")
+                return result
+
+            (folder / "Consumer.v").write_text(texts["Consumer"] + "\n(* changed *)",
+                                               encoding="utf-8")
+            with patch.object(gate, "_check_source", side_effect=corrupt_cached):
+                run({"Consumer"}, result=1, kernel=False)
             with patch.object(gate, "_cache_context", return_value=None):
                 run(set(texts))
                 run(set(texts))
@@ -182,6 +241,8 @@ def _context_hashes_library_bytes() -> None:
         artifact.write_bytes(b"first")
         source = work / "Example.v"
         source.write_text("Record Load := { level : nat }.\n"
+                          "Definition RequiresEveryQuantity := 0.\n"
+                          "Inductive Phase := PhaseRescanRequired.\n"
                           "Theorem sound : True. Proof. exact I. Qed.", encoding="utf-8")
         # Print LoadPath uses absolute POSIX paths in the guest.
         physical = library.as_posix()
@@ -214,12 +275,87 @@ def _context_hashes_library_bytes() -> None:
             os.utime(artifact, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
             ensure(before != gate._cache_context(work, [source]), "library bytes escaped identity")
             for command in ('Load "external.v".', 'Time Load "external.v".',
+                            'Time Require Base.', 'Fail Require Base.',
                             'Add ML Path "external".', 'Declare ML Module "external".'):
                 source.write_text(command, encoding="utf-8")
                 ensure(gate._cache_context(work, [source]) is None,
                        f"dynamic command reused evidence: {command}")
 
 
+def _native_incremental_kernel() -> None:
+    """Exercise real selective checking, including disconnected roots and rejection."""
+    lane = gate.workspace(Path(__file__).resolve().parents[2])
+    lane.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="incremental-test-", dir=lane) as temporary:
+        root = Path(temporary) / "source"
+        folder = root / "proofs"
+        folder.mkdir(parents=True)
+        work = Path(temporary) / "output"
+        texts = {"ApexTheorem": "Theorem sound : True. Proof. exact I. Qed.\n",
+                 "Base": "Definition value := 0.\n",
+                 "Consumer": "Require Base. Theorem same : Base.value = 0. reflexivity. Qed.\n"}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+        recheck = gate._recheck
+        with patch.object(gate, "workspace", return_value=work), \
+                patch.object(gate, "_inputs", side_effect=receipts.snapshot), \
+                patch.object(gate, "_recheck", wraps=recheck) as kernel, \
+                contextlib.redirect_stdout(io.StringIO()):
+            ensure(gate._run(root, 2) == 0, "fresh native fixture failed")
+            for name in ("Consumer", "Base"):
+                source = folder / f"{name}.v"
+                source.write_text(source.read_text(encoding="utf-8") + "(* edit *)\n",
+                                  encoding="utf-8")
+                ensure(gate._run(root, 2) == 0, f"selective native check failed for {name}")
+                expected = {"ApexTheorem", "Base"} if name == "Consumer" else {"ApexTheorem"}
+                ensure(kernel.call_args.args[2] == frozenset(expected),
+                       "native gate reused the wrong dependency closure")
+            added = folder / "Added.v"
+            added.write_text("Require Consumer. Lemma added : True. exact I. Qed.\n",
+                             encoding="utf-8")
+            ensure(gate._run(root, 2) == 0, "native module addition failed")
+            ensure(kernel.call_args.args[2] == frozenset(texts), "addition lost checked roots")
+            added.unlink()
+            ensure(gate._run(root, 2) == 0, "all-cached joint check after removal failed")
+            ensure(kernel.call_args.args[2] == frozenset(texts), "removal lost checked roots")
+
+            original = (folder / "Base.v").read_bytes()
+            (folder / "Base.v").write_text("Definition value := 1.\n", encoding="utf-8")
+            ensure(gate._run(root, 2) == 1, "changed dependency silently kept its old consumer")
+            ensure(gate._status(root) == 1, "failed native run retained current success status")
+            (folder / "Base.v").write_bytes(original)
+            ensure(gate._run(root, 2) == 0, "native retry after failure did not recover")
+            ensure(kernel.call_args.args[2] == frozenset({"ApexTheorem"}),
+                   "native retry discarded its unaffected checked module")
+
+            # Even admitted roots must agree in the joint environment. Consumer
+            # was compiled against Base.value = 0, and cannot join a different Base.
+            base = work / "proofs" / "Base.v"
+            base.write_text("Definition value := 1.\n", encoding="utf-8")
+            ensure(gate._compile(work, base).returncode == 0, "mismatched fixture did not compile")
+            refused = recheck(work, gate._sources(work), frozenset(texts))
+            ensure(refused.returncode != 0, "joint check accepted incompatible cached modules")
+
+            # Separately valid libraries can impose contradictory constraints on
+            # shared universes. A new root must join the cached roots, even when
+            # no source dependency connects the two constrained libraries.
+            joint = work / "joint-universes"
+            (joint / "proofs").mkdir(parents=True)
+            libraries = {"SharedUniverses": "Universe u v.\n",
+                         "Left": "Require SharedUniverses.\n"
+                                 "Constraint SharedUniverses.u < SharedUniverses.v.\n",
+                         "Right": "Require SharedUniverses.\n"
+                                  "Constraint SharedUniverses.v < SharedUniverses.u.\n"}
+            for name, text in libraries.items():
+                path = joint / "proofs" / f"{name}.v"
+                path.write_text(text, encoding="utf-8")
+                ensure(gate._compile(joint, path).returncode == 0,
+                       f"individually valid universe fixture failed: {name}")
+            refused = recheck(joint, gate._sources(joint), frozenset({"SharedUniverses", "Left"}))
+            ensure(refused.returncode != 0, "incremental join accepted contradictory universes")
+
+
 def cases() -> list[Case]:
     return [Case("incremental-proof-cache-invalidation", _incremental_run),
-            Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest")]
+            Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest"),
+            Case("native-incremental-kernel", _native_incremental_kernel, lane="toolchain")]

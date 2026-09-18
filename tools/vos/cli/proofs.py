@@ -9,10 +9,9 @@ The existing record-witness check remains the decidable part of the non-vacuity 
 
 Independent dependency-wave members run concurrently under one directory lock. Unchanged
 compiled products are reused from successful receipts; changed dependencies invalidate
-their consumers. A wholly unchanged run validates its previous receipt. Otherwise
-audits and the joint kernel recheck run again; --fresh disables all reuse.
-Every accepted module is rechecked by rocqchk before a content-bound JSON receipt is
-written. Sources are staged into this checkout's native guest build lane; compiler
+their consumers. Audits and kernel verdicts are reused for the same checked bytes.
+A joint kernel environment checks changed modules against those checked dependencies;
+--fresh disables all reuse. Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and full receipt stay there. Successful
 runs also publish a portable receipt in the checkout. `proofs status` uses the guest
 hop to hash native outputs; `proofs export` preserves an existing run without Rocq.
@@ -28,6 +27,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -47,7 +47,7 @@ from vos.proofs import sentences as _sentences
 
 PROOFS = "proofs"
 RECEIPT = "proofs/proof-evidence.json"
-RECEIPT_SCHEMA = 1
+RECEIPT_SCHEMA = 2
 
 
 def workspace(root: Path) -> Path:
@@ -308,26 +308,37 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
-def _recheck(root: Path, sources: list[Path]) -> subprocess.CompletedProcess[str]:
-    """Every compiled module handed to the kernel's own re-checker, in one invocation.
+def _recheck(root: Path, sources: list[Path],
+             reused: frozenset[str] = frozenset()) -> subprocess.CompletedProcess[str]:
+    """One joint environment, admitting only previously checked dependency closures.
 
-    One invocation over all of them rather than one per artifact, for a reason that is
-    about what is decided and only then about cost. `rocqchk` loads a module's
-    dependencies whichever way it is called, so per-artifact re-checks the shared ones
-    once per dependent, and it builds **one** global environment out of what it was
-    handed, so a single run is also the only one of the two shapes that decides the
-    modules are consistent *together* rather than eighteen times apart. It was the
-    faster shape as well when the two were timed against each other, though by a margin
-    inside the run-to-run spread, so cost did not decide it.
-
-    `-silent` suppresses the per-constant trace, which is a progress report rather than
-    evidence; a rejection still prints. `-Q proofs ""` is the compile's own mapping, so
-    a module is named by its bare stem exactly as the artifacts Require it.
+    Rocq's -admit skips a root and its dependencies, except explicit check targets.
+    A fresh, empty joining module requires ALL roots, including disconnected cached
+    ones. This preserves joint consistency and makes every -admit root reachable.
+    Changed roots are explicit targets, so no admission can accidentally skip them.
+    No -norec or VM trust is used. The caller verifies bytes before and after this act.
     """
-    return subprocess.run(
-        [*env.rocqchk_command(), "-silent", "-Q", PROOFS, "",
-         *(source.stem for source in sources)],
-        cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
+    command = [*env.rocqchk_command(), "-silent", "-Q", PROOFS, ""]
+    changed = [source.stem for source in sources if source.stem not in reused]
+    if not reused:
+        return subprocess.run([*command, *changed], cwd=root, capture_output=True,
+                              text=True, encoding="utf-8", check=False)
+    with tempfile.TemporaryDirectory(prefix="kernel-", dir=root) as temporary:
+        # Avoid collision with an authored module, even if it uses our usual name.
+        name = "VerifiedOSProofClosure"
+        stems = {source.stem for source in sources}
+        while name in stems:
+            name += "_"
+        join = Path(temporary) / f"{name}.v"
+        join.write_text("".join(f"Require {source.stem}.\n" for source in sources),
+                        encoding="utf-8", newline="")
+        compiled = _compile(root, join)
+        if compiled.returncode or compiled.stderr.strip():
+            return compiled
+        return subprocess.run(
+            [*command, str(join.with_suffix(".vo")), *changed,
+             *(arg for stem in sorted(reused) for arg in ("-admit", stem))],
+            cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
 def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
@@ -435,6 +446,47 @@ def _toolchain() -> dict[str, object]:
             "checker": {"path": str(checker), "sha256": receipts.digest(checker)}}
 
 
+def _record_symbols(filename: str, artifact: object) -> list[proofaudit.Symbol]:
+    """Validate cached native audit data before any of it can authorize reuse."""
+    if not isinstance(artifact, dict) or not isinstance(artifact.get("symbols"), list):
+        raise TypeError(f"{filename} has no native symbol inventory")
+    symbols = artifact["symbols"]
+    names: set[str] = set()
+    for symbol in symbols:
+        if not isinstance(symbol, dict):
+            raise TypeError(f"{filename} carries a malformed symbol")
+        name, typ = symbol.get("name"), symbol.get("type")
+        if (not isinstance(name, str) or not name.startswith(Path(filename).stem + ".")
+                or name in names or not isinstance(typ, str) or not typ):
+            raise ValueError(f"{filename} carries an invalid native symbol or type")
+        if symbol.get("assumptions") != []:
+            raise ValueError(f"{name} has no closed assumption verdict")
+        claims = symbol.get("claims")
+        if not isinstance(claims, list) or any(not isinstance(c, str) for c in claims):
+            raise ValueError(f"{name} has malformed claims")
+        names.add(name)
+    return cast("list[proofaudit.Symbol]", symbols)
+
+
+def _kernel_evidence(record: dict[str, object], stems: set[str]) -> None:
+    evidence = record.get("kernel_evidence")
+    if not isinstance(evidence, dict):
+        raise TypeError("receipt has no kernel coverage evidence")
+    checked, reused = evidence.get("checked"), evidence.get("reused")
+    if (not isinstance(checked, list) or not isinstance(reused, list)
+            or any(not isinstance(name, str) for name in [*checked, *reused])
+            or len(set(checked + reused)) != len(checked + reused)
+            or set(checked + reused) != stems):
+        raise ValueError("kernel evidence does not cover exactly the proof set")
+    basis = evidence.get("basis_sha256")
+    if reused:
+        if (evidence.get("mode") != "incremental" or not isinstance(basis, str)
+                or re.fullmatch(r"[0-9a-f]{64}", basis) is None):
+            raise ValueError("incremental kernel evidence has no prior receipt identity")
+    elif evidence.get("mode") != "full" or basis is not None:
+        raise ValueError("full kernel evidence has an invalid reuse declaration")
+
+
 def _validate_receipt(root: Path, *, historical: bool = False) -> None:
     work = workspace(root)
     raw: object = json.loads((work / RECEIPT).read_text(encoding="utf-8"))
@@ -464,24 +516,7 @@ def _validate_receipt(root: Path, *, historical: bool = False) -> None:
     for filename, artifact in artifacts.items():
         if not isinstance(filename, str) or not isinstance(artifact, dict):
             raise TypeError("malformed artifact identity")
-        symbols = artifact.get("symbols")
-        if not isinstance(symbols, list):
-            raise TypeError(f"{filename} has no native symbol inventory")
-        names: set[str] = set()
-        for symbol in symbols:
-            if not isinstance(symbol, dict):
-                raise TypeError(f"{filename} carries a malformed symbol")
-            name, typ = symbol.get("name"), symbol.get("type")
-            if (not isinstance(name, str) or not name.startswith(Path(filename).stem + ".")
-                    or name in names or not isinstance(typ, str) or not typ):
-                raise ValueError(f"{filename} carries an invalid native symbol or type")
-            if symbol.get("assumptions") != []:
-                raise ValueError(f"{name} has no closed assumption verdict")
-            claims = symbol.get("claims")
-            if not isinstance(claims, list) or any(not isinstance(c, str) for c in claims):
-                raise ValueError(f"{name} has malformed claims")
-            names.add(name)
-        total += len(names)
+        total += len(_record_symbols(filename, artifact))
     if not total:
         raise ValueError("receipt has no native symbols")
     toolchain = record.get("toolchain")
@@ -491,6 +526,7 @@ def _validate_receipt(root: Path, *, historical: bool = False) -> None:
         raise ValueError("receipt uses a different declared assumption set")
     if record.get("kernel_recheck") != "passed":
         raise ValueError("receipt has no successful kernel recheck")
+    _kernel_evidence(record, {source.stem for source in sources})
 
 
 def _json_digest(value: object) -> str:
@@ -510,9 +546,10 @@ def _portable_receipt(path: Path) -> dict[str, object]:
         for name, artifact in record["artifacts"].items()}
     toolchain = record["toolchain"]
     return {
-        "format": "verifiedos-portable-proof-receipt", "schema": 1,
+        "format": "verifiedos-portable-proof-receipt", "schema": RECEIPT_SCHEMA,
         "native_receipt_sha256": hashlib.sha256(raw).hexdigest(),
         "status": record["status"], "kernel_recheck": record["kernel_recheck"],
+        "kernel_evidence": record["kernel_evidence"],
         "inputs": record["inputs"], "outputs": record["outputs"],
         "toolchain": {"pin": toolchain["pin"], "version": toolchain["version"],
                       "compiler_sha256": toolchain["compiler"]["sha256"],
@@ -520,7 +557,8 @@ def _portable_receipt(path: Path) -> dict[str, object]:
         "cache_context_sha256": _json_digest(record["cache_context"]),
         "declared_assumptions": record["declared_assumptions"],
         "artifacts": artifacts, "timings": record["timings"],
-        "reused_compilations": record["reused_compilations"]}
+        "reused_compilations": record["reused_compilations"],
+        "reused_audits": record["reused_audits"]}
 
 
 def _publish_receipt(root: Path, *, check: bool = False) -> None:
@@ -575,12 +613,19 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
     interop socket are excluded from the environment identity. Other irrelevant
     environment changes may cause extra work, but cannot preserve a stale hit.
     """
+    source_sentences = [sentence for source in sources
+                        for sentence in _sentences(source.read_text(encoding="utf-8"))]
+    # Dependency parsing intentionally supports only plain Require sentences.
+    # A wrapped Require must not hide an edge from incremental invalidation.
+    if any(re.search(r"\bRequire\b", sentence) and not proofs_mod.REQUIRE.fullmatch(sentence)
+           for sentence in source_sentences):
+        return None
     if any(re.match(
             r'^(?:(?:Local|Global|Time|Fail|Succeed)\s+|Timeout\s+\d+\s+'
             r'|Redirect\s+"[^"]*"\s+|#\[[^\]]*\]\s*)*'
             r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
             r'|Declare\s+ML\s+Module)\b', sentence)
-           for source in sources for sentence in _sentences(source.read_text(encoding="utf-8"))):
+           for sentence in source_sentences):
         return None
     try:
         command = env.rocq_command()
@@ -630,49 +675,72 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
         return None
 
 
-def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str],
-              toolchain: dict[str, object], context: dict[str, object] | None) -> dict[str, str]:
-    """Reuse only byte-identical products with unchanged prerequisite closures.
+@dataclass(frozen=True)
+class Cached:
+    sha256: str
+    symbols: list[proofaudit.Symbol]
 
-    This is a compilation cache, never a kernel verdict: every reused object still
-    goes through native inventory, assumption auditing and the joint rocqchk pass.
-    Source-set or gate changes invalidate the whole cache. Unsupported dynamic
-    source loading disables reuse because Require alone cannot capture its inputs.
+
+def _cache_receipt(work: Path) -> Path:
+    current = work / RECEIPT
+    return current if current.is_file() else work / "previous-proof-evidence.json"
+
+
+def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str],
+              toolchain: dict[str, object], context: dict[str, object] | None) -> dict[str, Cached]:
+    """Reuse checked objects and audits only across identical prerequisite closures.
+
+    Gate/toolchain changes invalidate all evidence. Register prose is recorded but
+    is not a compiler or audit input: claims bind IDs from the source; their semantic
+    agreement with requirements belongs to review and K-109. Adding/removing a source
+    invalidates any changed local dependency resolution, not unrelated components.
     """
     try:
         if context is None:
             return {}
-        raw: object = json.loads((work / RECEIPT).read_text(encoding="utf-8"))
+        raw: object = json.loads(_cache_receipt(work).read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
             return {}
         record = cast("dict[str, object]", raw)
-        previous, outputs = record.get("inputs"), record.get("outputs")
+        previous, outputs, artifacts = (record.get("inputs"), record.get("outputs"),
+                                        record.get("artifacts"))
         if (record.get("schema") != RECEIPT_SCHEMA or record.get("status") != "passed"
                 or record.get("kernel_recheck") != "passed"
                 or record.get("toolchain") != toolchain
                 or record.get("cache_context") != context
                 or record.get("declared_assumptions") != sorted(DECLARED)
                 or not isinstance(previous, dict) or not isinstance(outputs, dict)
-                or set(previous) != set(inputs)):
+                or not isinstance(artifacts, dict)):
             return {}
-        names = {source.relative_to(root).as_posix() for source in sources}
-        if any(previous[name] != value for name, value in inputs.items() if name not in names):
+        _kernel_evidence(record, {Path(name).stem for name in artifacts})
+
+        def gate_inputs(values: Mapping[str, object]) -> dict[str, object]:
+            return {name: value for name, value in values.items()
+                    if not name.startswith(PROOFS + "/")
+                    and name != "docs/requirements-register.md"}
+
+        if gate_inputs(previous) != gate_inputs(inputs):
             return {}
-        reusable: dict[str, str] = {}
+        reusable: dict[str, Cached] = {}
         stems = {source.stem for source in sources}
         for wave in proofs_mod.waves(sources):
             for source in wave:
                 name = source.relative_to(root).as_posix()
                 staged = work / PROOFS / source.name
                 product = staged.with_suffix(".vo")
-                if (previous[name] == inputs[name]
-                        and proofs_mod.local_requires(source, stems) <= reusable.keys()
+                needs = proofs_mod.local_requires(source, stems)
+                artifact = artifacts.get(source.name)
+                if (previous.get(name) == inputs[name]
+                        and isinstance(artifact, dict)
+                        and artifact.get("requires") == sorted(needs)
+                        and needs <= reusable.keys()
                         and staged.is_file() and not staged.is_symlink()
                         and product.is_file() and not product.is_symlink()
                         and receipts.digest(staged) == inputs[name]
                         and (product_hash := receipts.digest(product))
                         == outputs.get(product.relative_to(work).as_posix())):
-                    reusable[source.stem] = product_hash
+                    reusable[source.stem] = Cached(product_hash,
+                                                    _record_symbols(source.name, artifact))
     except (OSError, ValueError, TypeError):
         return {}
     else:
@@ -700,10 +768,16 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
                     and context == _cache_context(work, sources)):
                 _validate_receipt(root)
                 _publish_receipt(root)
-                print(f"ok: reused previous full kernel check for {len(sources)} proof(s); "
+                print(f"ok: reused previous kernel evidence for {len(sources)} proof(s); "
                       f"all input, output and toolchain hashes match ({time.perf_counter() - started:.2f}s); "
                       f"evidence: {root / RECEIPT}; use --fresh to rebuild and recheck")
                 return 0
+    basis = receipts.digest(_cache_receipt(work)) if reusable else None
+    # Keep the last success as cache input, never as today's status. Failed runs
+    # preserve unchanged staged objects, whose bytes this receipt can still bind.
+    # Changed/absent outputs and their consumers must earn new evidence on retry.
+    if reusable and (work / RECEIPT).is_file():
+        (work / RECEIPT).replace(work / "previous-proof-evidence.json")
     (work / RECEIPT).unlink(missing_ok=True)
     # This private staging directory is the only subtree the gate replaces. The
     # lock lives in its parent, so replacing it never releases another gate.
@@ -715,7 +789,7 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
             if source.stem in reusable:
                 product = source.with_suffix(".vo").name
                 shutil.copyfile(folder / product, replacement / product)
-                if receipts.digest(replacement / product) != reusable[source.stem]:
+                if receipts.digest(replacement / product) != reusable[source.stem].sha256:
                     raise ValueError(f"cached object changed while being staged: {product}")
         if folder.exists():
             shutil.rmtree(folder)
@@ -733,7 +807,9 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
 
     def check(source: Path) -> Checked:
         if source.stem in reusable:
-            return _check_source(work, source, staged, compiled=True)
+            return Checked(source, reusable[source.stem].symbols,
+                           scan_witnesses(source.read_text(encoding="utf-8"),
+                                          _imported(source, staged)))
         return _check_source(work, source, staged)
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
@@ -762,11 +838,15 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
         return 1
     compile_seconds = time.perf_counter() - compile_started
     outputs = receipts.snapshot(work, (source.with_suffix(".vo") for source in staged))
+    if any(outputs[f"{PROOFS}/{stem}.vo"] != cached.sha256
+           for stem, cached in reusable.items()):
+        print("FAIL: previously checked object changed during compilation or auditing")
+        return 1
     recheck_started = time.perf_counter()
     print(f"  compile/audit: {compile_seconds:.2f}s; "
-          f"{len(reusable)}/{len(staged)} compiled objects reused; "
-          "starting full kernel recheck", flush=True)
-    rechecked = _recheck(work, staged)
+          f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
+          f"starting {'incremental' if reusable else 'full'} kernel recheck", flush=True)
+    rechecked = _recheck(work, staged, frozenset(reusable))
     recheck_seconds = time.perf_counter() - recheck_started
     said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
     if rechecked.returncode or said:
@@ -796,10 +876,14 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
         "outputs": outputs, "toolchain": toolchain, "artifacts": artifacts,
         "cache_context": context,
         "declared_assumptions": sorted(DECLARED), "kernel_recheck": "passed",
+        "kernel_evidence": {"mode": "incremental" if reusable else "full",
+                            "checked": sorted(source.stem for source in sources
+                                              if source.stem not in reusable),
+                            "reused": sorted(reusable), "basis_sha256": basis},
         "timings": {"compile_audit_seconds": compile_seconds,
                     "kernel_recheck_seconds": recheck_seconds,
                     "total_seconds": time.perf_counter() - started},
-        "reused_compilations": len(reusable)})
+        "reused_compilations": len(reusable), "reused_audits": len(reusable)})
     _publish_receipt(root)
     print(f"  kernel recheck: {recheck_seconds:.2f}s; "
           f"total: {time.perf_counter() - started:.2f}s")
