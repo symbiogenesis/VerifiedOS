@@ -123,7 +123,7 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "Q22g",
              # the ensemble instantiation is later than the first release (R-02-003a) and none
              # of its artifacts sits on either chain
-             "Q23b", "Q23c", "Q23d", "Q23e", "Q23f", "Q23g",
+             "Q23b", "Q23c", "Q23d", "Q23e", "Q23f", "Q23g", "Q23h",
              # optional inference modules supply no first-release gate prerequisite
              "Q24a", "Q24b", "Q24c", "Q24d", "Q24e", "Q24f", "Q24g", "Q24h",
              # research qualification adds no executable bring-up prerequisite
