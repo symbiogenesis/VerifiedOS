@@ -497,7 +497,7 @@ the installed distribution equals the plan edge for edge, every root the
 firmware hands a core lies inside that core's partition (R-07-006's criterion,
 "the root capability's bounds are the partition's"), every core has a root, and
 the resident inventory is the kernel alone (`Handoff`, lines 800 to 805);
-[its landed note](../completion-log.md#m33-implement-m-mode-firmware-in-gallina)
+[its landed note](../completion-log.md#m33-specify-m-mode-firmware-in-gallina)
 records that no artifact distinguishes a region's text from its data, so the
 permission split R-15-007p makes of the root is stated there only as some root
 per core.
