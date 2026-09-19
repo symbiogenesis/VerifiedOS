@@ -158,11 +158,14 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
     research = "".join(
         f"* [ ] **Q28{suffix} · Research fixture** · 6 h, range 3–9 · 0.0% · X · "
         "after the M8a gate\n" for suffix in "abc")
+    workflows = "".join(
+        f"* [ ] **Q31{suffix} · Workflow fixture** · 6 h, range 3–9 · 0.0% · X · "
+        "after the M8a gate\n" for suffix in "abc")
     expected = [
         "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",
         "* M8b gate: a 20 h chain of open work.",
     ]
-    for addition in ("", modules, research, modules + research):
+    for addition in ("", modules, research, workflows, modules + research + workflows):
         with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                            PLAN: plan + addition}) as root:
             ctx = _context(root, fix=True)
@@ -508,11 +511,25 @@ def _counted_clause_scope() -> None:
            "repaired does not confer a pair count")
     ensure(not counts.counted_clause("seventeen are register gaps, and two are coverage cells"),
            "the later clause's cells do not describe the gap count")
+    ensure(not counts.counted_clause(
+        "fifty-one and the early-release count from four to seven while the cell stood"),
+        "a later coordinated subject does not supply the first count's noun")
+    ensure(counts.counted_clause("fifty-one requirements and the old table disagree"),
+           "a counted noun before a new subject remains a candidate")
+
+
+def _count_form_numeric_groups() -> None:
+    pattern = counts.count_form_pattern(["521", "fifty-one", "1,454"])
+    raw = "521,712 pairs; 1,521 pairs; 521 requirements; 1,454 requirements; fifty-one seams"
+    found = [match.group() for match in counts._form_sites(pattern, ["521", "fifty-one", "1,454"], raw)]
+    ensure(found == ["521", "1,454", "fifty-one"],
+           f"numeric groups are not independent count forms: {found}")
 
 
 def cases() -> list[Case]:
     return [
         Case("counted-clause-scope", _counted_clause_scope),
+        Case("count-form-numeric-groups", _count_form_numeric_groups),
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),

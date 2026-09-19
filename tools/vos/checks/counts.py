@@ -304,7 +304,16 @@ def counted_clause(text: str) -> bool:
     the coverage cell mentioned in the next clause. Numeric separators remain
     inside a count, since a clause delimiter must be followed by whitespace.
     """
-    return COUNTED_NOUN.search(re.split(r"[.;,]\s", text, maxsplit=1)[0]) is not None
+    clause = re.split(r"[.;,]\s|\band (?:the|an?|its|their)\s", text,
+                      maxsplit=1, flags=re.IGNORECASE)[0]
+    return COUNTED_NOUN.search(clause) is not None
+
+
+def count_form_pattern(forms: list[str]) -> re.Pattern[str]:
+    """Match complete count forms, never one group of a comma-separated integer."""
+    return re.compile(
+        r"(?i)(?<![\w-])(?<!\d,)(?:" + "|".join(re.escape(f) for f in forms)
+        + r")(?![\w-]|,\d)")
 
 # The trailing lookahead keeps CRLF out of the match: an anchored `\|$` never matches a
 # CRLF file, and every row would read as missing.
@@ -601,8 +610,7 @@ def run(ctx: Context) -> None:
         # word form is never eaten by its own prefix; the hits are grouped back by form
         # so the findings keep the per-form order the quantity table gives them
         ordered = sorted(forms, key=len, reverse=True)
-        form_re = re.compile(
-            r"(?i)(?<![\w-])(?:" + "|".join(re.escape(f) for f in ordered) + r")(?![\w-])")
+        form_re = count_form_pattern(ordered)
 
         for doc in ctx.corpus.docs:
             was_fixed = doc.name in ctx.fixed

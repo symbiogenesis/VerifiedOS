@@ -79,6 +79,10 @@ The [baseline](../implementation/static-memory/baseline.md) states the proof ass
 
 [R-08-014's interference predicate](../implementation/placement-search.md#4-the-constraints-and-who-decides-them) requires physical disjointness when reservation lifetimes overlap. Disjoint lifetimes may share backing after the complete reuse gate. The feasibility check does not establish that gate or planner optimality.
 
+## Application lifecycle and workflow profiles
+
+The [workflow and hibernation contract](../implementation/workflow-profiles.md) carries the 19 September 2026 follow-up literature review and Q31's qualification scope. Frozen residency saves execution but retains memory. Semantic checkpoint, complete authority retirement and sanitization can release an app's private working set into a prechecked slate binding; immutable code, checkpoint storage, services, quarantine and transition scratch remain charged. Joint optimization must include every transition and repeated mode changes, not only endpoint peaks. The revocation mechanism remains required; a general online heap allocator is deferred pending a concrete fixed-pool/region failure under the same workload.
+
 ## Research with a plausible path to this design
 
 The sources below supply methods and counterexamples. Their measured gains belong to their workloads and machines; this document transfers none of those percentages to VerifiedOS.

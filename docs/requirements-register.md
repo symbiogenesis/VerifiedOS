@@ -1668,8 +1668,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: at one advance per microsecond the epoch does not wrap in 5 × 10⁵ years, so wrap is not a reachable state and no reuse semantics are owed; reset is not a wrap, since the R-15-182 eager zeroize leaves no capability alive to be misread under a restarted counter. A stale saved-context or outside-interval copy and a write behind the sweep cursor must prevent reuse in the functional and mutation cases. The static holder map includes saved contexts and grant-table storage; every capability-bearing location outside the swept intervals must be proved unable to retain or recreate retired authority. No live register or outstanding loan can repopulate a location behind the sweep cursor. The reuse gate is the R-08-008 quarantine seen from the reuse side, and it is what makes the address key sound for R-08-004a's subtree case: a grant slot cannot be re-minted into while a stale handle bounded to it might still be loadable. The quarantine pool is composition-sized, so the set-to-reuse interval is a derived constant. The gate is a sweep and not a generation compare, on R-08-004b's ground: a generation discriminates only if the handle carries it and no field exists to carry it in, while a generation carried out of band as an integer presented at invocation is a bearer token a stale holder can guess, which is the forgery the capability substrate exists to remove. There is no colour space to exhaust and no retirement set to bound under R-08-004b; the grant-slot count that stands in its place exhausts as a capacity under R-08-004c, not as a namespace.
 · Trace: CJ-CERISE, CJ-WCET
 
-**R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown (grant expiry, session close, restart, and the R-08-043a user retraction), so a compartment that churns grants forces sweeps only of its own footprint, paid from its own and the sweeper's fixed slots.
-· Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task; retraction is the one trigger whose submitter need not hold the grant, so this entry does not price it and R-08-043f does.
+**R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown (bounded pool-member retirement, app hibernation, grant expiry, session close, restart, and the R-08-043a user retraction), with retirement bursts, pending work and quarantine charged to composition-fixed owner and sweeper reservations.
+· Accept: a compartment's churn cannot perturb a hard task or borrow another owner's slots or backing. The holder map determines scan coverage, including permitted copies outside the retiring object's interval; admission charges that complete coverage rather than assuming object size equals swept footprint. Bounded backlog delays the requester's reuse, and exhaustion takes the declared refusal action. Retraction is the trigger whose submitter need not hold the grant, so R-08-043f prices it separately.
 · Trace: CJ-WCET, CJ-ISOL
 
 **R-08-008a** IS: The sweep's economics rest on a rate no artifact has measured. That static composition holds kernel-mediated teardown, and with it the quarantine interval and the sweep work the R-08-007 background slot class is sized for, to a small share of the machine's memory traffic is what R-08-010's compiled heap, §10's GC-free storage and §16's crash-only explicit state are expected to buy, and it is carried as an expectation: no entry here states the rate, and the first artifact able to take it is the measured composed roster R-15-100b's static-code-overlay trigger already reads.
@@ -1729,6 +1729,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 **R-08-015** MUST: Temporal safety at a slot's reuse points composes with the plan: R-08-006's barrier contains the prior tenant's authority, and R-08-007a's complete reuse gate holds before the next tenant is installed.
 · Accept: placement ⋈ temporal-safety, with the escape bounded by the same region and ownership discipline that fixed the live ranges.
 · Trace: CJ-CERISE, CJ-MEMPLAN
+
+**R-08-015a** MUST: Bounded runtime heap reclamation within a compartment uses the composition-fixed slots, regions or pools of R-08-010 and R-08-018; changing occupancy creates neither an online placement decision nor permission to omit the complete reuse gate.
+· Accept: each reusable class declares retirement-burst and backlog bounds, holder coverage, barrier and sweep service, quarantine capacity, initialization cost and its full-pool outcome; admission checks their joint memory and schedule fit. Release request, containment and Reusable are distinct states. A local lifetime proof earns only its stated alias-elimination result, not an exemption from R-08-006 or R-08-007a for a revocable slot. No unbounded allocation search, cross-owner borrowing or general variable-size online allocator is admitted under this entry.
+· Trace: CJ-CERISE, CJ-MEMPLAN, CJ-WCET
 
 **R-08-016** IS: Placement, disjointness, and initialization are three attributes over one interference structure, all checked in the same on-device pass and all rejecting a bad artifact rather than trapping a bad execution.
 · Accept: each slot enters its live range uninitialized, eager-zeroize makes that state a deterministic zero, and the definite-initialization attribute decides that no load precedes a store within the range.
@@ -2521,7 +2525,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-11-014d** MUST: Every rung of the R-11-021 ladder shares one major-frame length, subdividing the discretionary band rather than lengthening the frame (its reserved band being identical across rungs by R-11-020), so no rung swap shifts a frame origin.
-· Accept: the R-11-014b bounds are proved once per generation rather than per rung; a global mode change (R-11-018) re-phases and carries its own offsets and chain bounds as part of being an independently admitted complete schedule.
+· Accept: the R-11-014b bounds are proved once per generation rather than per rung; a global mode change (R-11-018) may re-phase and carries its own offsets and chain bounds, including that entry's separately checked transition interval.
 · Trace: CJ-WCET
 
 **R-11-015** MUST: WCET tables are derived, not asserted: each per-(class, operating-point) entry is a syntax-directed max-path sum over the binary's typed control-flow graph with the timing-annotated Sail model as its per-instruction latency table, riding as cost annotations on the CHERI-TAL derivation the on-device checker already validates.
@@ -2549,9 +2553,15 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each member's admission refuses its own artifact where a guard band on any of its links is below the composition's skew bound plus that link's latency bound, where the re-alignment cadence times both members' declared oscillator tolerance exceeds the guard band, or where the link server's slot does not cover the frames its table grants it; two ends of one link holding different tables are refused at the link's establishment, each binding its table's digest into the session's context (R-12-015d, collected by R-17-030z), so no payload crosses a table one end does not hold and no admission is asked to read another machine's artifact; the tables are entries of the attested schedule artifact, public constants of the generation as the widths and offsets are (R-11-014a).
 · Trace: CJ-WCET, CJ-ISOL
 
-**R-11-018** MUST: Global mode schedules are each independently admission-proved complete schedules, and switching between them is a rare, RoT-attested global transition on explicit authority, never load-following.
-· Accept: consistent with R-15-189.
-· Trace: CJ-NI
+**R-11-018** MUST: Global mode schedules are each independently admission-proved complete schedules, and switching between them is a rare, RoT-attested global transition on explicit authority, never load-following. Every permitted directed transition also carries an admission-checked certificate.
+· Accept: each edge fixes its guard, entry phase, carry-in work, continuing hard-service deadlines, bounded queues, checkpoint/restore work, revocation and zeroization service, peak memory, completion deadline and failure destination. Re-phasing includes the old schedule's last service and the new schedule's first service in every cross-boundary chain bound. Requests are serialized with bounded pending storage and a fixed dwell or equivalent service bound. Endpoint feasibility alone is insufficient; arbitrary transition sequences preserve the declared invariants. The power and attestation path remains consistent with R-15-189.
+· Fail-closed: an absent or invalid edge certificate refuses composition; a failed runtime guard leaves the current admitted state running, while a failure after teardown follows the edge's pre-reserved recovery state without early backing reuse.
+· Trace: CJ-NI, CJ-WCET, CJ-MEMPLAN, CJ-KERNEL
+
+**R-11-018a** MUST: A generation declares a finite catalog of workflow profiles selecting app rosters, foreground and continuing-service budgets, allowed slate bindings and checkpoint policies, distinct from power modes and the focus/population mechanisms. Product composition provides preconfigured everyday, word-processing, internet-browsing, image-editing, instant-messaging and development recipes, each either instantiated with its required admitted apps or explicitly unavailable with the missing port or capacity reason.
+· Accept: admission covers every reachable combination of workflow, power mode and population rung and every permitted edge under R-11-018's transition criteria; a factored check needs a composition theorem. A local selection keeps operating points, fabric/watchdog settings, memory power vector and the reserved band unchanged and uses only admitted discretionary schedules and bindings. Any change to those global settings takes R-11-018's attested path; development builds retain R-13-027a's composition mode. Selection is an explicit user-authorized lifecycle event under R-17-007a's observation policy, never activity- or pressure-driven cross-label redistribution, and changes no grant. Each enabled recipe declares concrete resource and resume bounds, companion-app combinations, protected states, continuing services and refusal behavior. Required product-floor services remain reserved in the modes to which that floor applies; a deferred browser or other missing app is not claimed implemented by its recipe. Custom catalog or budget changes require a new generation.
+· Fail-closed: unavailable recipes, unlisted combinations and unproved transitions cannot be selected; no runtime schedule synthesis, silent thinning or broader authority substitutes for admission.
+· Trace: CJ-NI, CJ-WCET, CJ-MEMPLAN, CJ-VELUS
 
 ### 11.3 Compartment population as a schedule axis
 
@@ -2589,7 +2599,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI
 
 **R-11-026** MUST: (7) The top rung is a hard ceiling: past it a new tenant receives no slot rather than a thinner one, and the owning population manager suspends a live tenant to retained state to make room.
-· Accept: suspension keeps state and removes a slot; it is not termination, and it is the mechanism, not a heuristic.
+· Accept: frozen-resident suspension keeps state and removes an execution slot, with no memory-reclamation credit. Freeing backing instead requires R-14-011a's hibernation or declared discard and the complete Reusable predicate; the population ceiling creates no exception.
 · Trace: CJ-WCET
 
 **R-11-027** MUST: Tasks using vector or matrix instructions carry those units' bounded worst-case latencies into the WCET inputs, and eager vector/matrix zeroize costs enter the partition-switch terms (zeroize only: the switch saves nothing, R-07-014a, and a slot-spanning task's own sink is in-slot WCET, R-07-014b).
@@ -3512,13 +3522,22 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: opening a tab binds a free pool member and raises the §11 population rung; closing one is an ordinary kernel-mediated session teardown whose authority is contained at R-08-006's barrier completion. Rebinding waits for the member's resource-specific Reusable predicate, including R-08-007a's quarantine gate, required zeroization and device completion; bitmap publication alone releases no member.
 · Trace: CJ-CERISE, CJ-MEMPLAN
 
-**R-14-010** MUST: Past the ceiling the browser evicts and the platform does not refuse: the (*P*+1)-th tab suspends a live origin and takes its member, the victim chosen by the browser among its own origins with no authority crossing.
-· Accept: an unverifiable component decides which tab is slow and never how much time any tab gets, the §11 rung fixing the widths it may not touch.
-· Trace: CJ-WCET, CJ-NI
+**R-14-010** MUST: Past the origin-pool ceiling, the browser selects a permitted victim among its own origins under R-14-014 and can bind the new origin only after the old member becomes Reusable; frozen-resident suspension alone does not release its backing.
+· Accept: hibernation or declared discard establishes R-14-011a's applicable lifecycle result and R-14-009's complete reuse gate before rebinding. Protected origins, unavailable checkpoint space and missed completion deadlines take the manifest's bounded outcome, including refusal when no permitted member is reusable. Browser policy chooses which tab is slow and never changes the admitted slot widths, authority boundary or quarantine gate.
+· Trace: CJ-WCET, CJ-NI, CJ-CERISE, CJ-MEMPLAN
 
 **R-14-011** IS: Deep tab sets are retained state, not concurrent computation; the honest form of that statement, with numbers, is §17's population wall.
 · Accept: consistent with R-17-002.
 · Trace: CJ-WCET
+
+**R-14-011a** MUST: App lifecycle distinguishes active/background execution, frozen-resident state, quiescing, checkpointed retirement, hibernated state, restore and close. Successful hibernation leaves zero private volatile app working-set bytes and zero app execution slots only after required semantic state is durably committed, execution and ingress stop, bounded calls and devices complete or cancel, authority is contained, the post-barrier sweep completes and data/tag sanitization makes the backing Reusable.
+· Accept: the bounded lifecycle record, durable checkpoint, resident immutable code/shared engine and any continuing service remain separately charged. A checkpoint binds app identity, schema, confidentiality label and generation compatibility under the existing authenticated storage/freshness policy; ordinary document rollback retains R-10-012's residual, while security-critical state uses its declared Fresh class. It stores semantic data and logical references, never raw tagged heaps/registers, executable authority, live grants or session keys. Restore uses a reserved, initialized admitted binding, validates the checkpoint, reconstructs capabilities, checks current grants and runs only boot-admitted code. Its refinement preserves declared document/resume semantics and acknowledged durable work across each crash boundary, with explicit reconnect, protected-state, incompatible-schema/generation and access-revocation outcomes. No old grant or session is revived; only declared durable state survives reboot. Discard preserves only its separately declared recovery point and is never reported as successful checkpointing.
+· Fail-closed: absent checkpoint space, failed authentication/commit, an unbounded operation or incomplete containment, sweep or sanitization prevents successful hibernation and backing release; the declared bounded failure ladder retains quarantine and protects unrelated services.
+· Trace: CJ-CERISE, CJ-MEMPLAN, CJ-WCET, CJ-KERNEL, CJ-T
+
+**R-14-011b** MUST: Slate-slot swapping selects among a finite composition-fixed set of app-to-arena bindings and transfers private working-set backing only after the previous occupant satisfies the complete Reusable predicate. A slate is a bounded set of open-app records, and its slots are physical arenas, not virtual pages.
+· Accept: every allowed binding fixes extent, alignment, capability representability, bank/island, memory class and interference with all simultaneously permitted bindings. Admission charges the actual placed span through all steady and transition states, including frozen residents, checkpoint/restore workspace, quarantined backing, metadata, permanent services and resident code; durable checkpoints also fit storage and endurance/I/O budgets. Mutually exclusive backing is counted once only with non-overlap proved through the reuse endpoint. Restored references are reconstructed for the new fixed binding. No demand paging, live capability relocation, runtime executable loading, arbitrary pool borrowing or foreground growth outside the enumerated bindings occurs. Foreground-memory savings are reported against the same workload with both steady-state and transition peaks.
+· Trace: CJ-MEMPLAN, CJ-CERISE, CJ-WCET
 
 **R-14-014** MUST: The origin pool's eviction policy is declared rather than improvised: its manifest states the victim equivalence class; which origin states are protected (focused, consent-bearing, audio-active, mid-transaction, non-checkpointable); a deterministic tie-break among equivalent candidates; whether the action is suspension, checkpoint-and-termination, or discard; the bound by which the evicted member is Reusable; the declared outcome when every origin is protected; and repeated-eviction rate telemetry.
 · Accept: the browser chooses user-experience policy only within the statically bounded candidate set, and cannot alter slot widths, borrow memory, evade quarantine, or terminate a different confidentiality label (R-14-010 contains the authority; this pins the policy); the eviction rate enters the R-17-030m accounting through R-16-027.
@@ -5620,6 +5639,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: both are user-originated, the state space is a handful of rungs, and the rate is bounded by human lifecycle actions, so it is a coarse low-bandwidth channel an origin can observe but not clock, a channel nonetheless, and the price of not making a tab an attested global transition.
 · Trace: CJ-NI
 
+**R-17-007a** IS: Workflow-profile selection and hibernation expose lifecycle information through selected budgets, transition timing, resume latency and availability. A finite catalog bounds the choice alphabet but does not alone bound event timing or rate and does not establish non-interference.
+· Accept: each composition's policy states the authorized selector, observers, public/declassified event fields, timing precision and request-rate/service bound; transitions preserve that policy through success, refusal and recovery. Compartment activity or secret-dependent pressure cannot select cross-label resource redistribution. The information-flow and timing proofs cover arbitrary admitted transition sequences, and unsupported observation equivalence remains an explicit residual rather than an absence claim.
+· Trace: CJ-NI, CJ-WCET
+
 **R-17-008** IS: The product-level statement belongs beside the §1 throughput trade rather than behind it, and it holds per machine: on one machine a core's discretionary frame carries a small number of live tenants at a time and holds the rest as retained state (R-14-011), and an ensemble (R-02-003a) carries more only by adding machines, each dividing its own frames, never by sharing a frame, a slot, or a memory across an ensemble link.
 · Accept: the statement appears in the goals-adjacent material at the scope where it holds, per machine, and no goals-adjacent text implies that a server's capacity is a share of one frame, that any member's frame is relieved by a peer's, or names the design by a count of what runs on it.
 · Trace: CJ-WCET
@@ -5893,10 +5916,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the denial spends the affected store's availability without publishing a partial transaction, returning unverified bytes, lowering the anti-rollback floor or erasing other stores. Ordinary reset or crash within the persistence contract still preserves every acknowledged transaction; corruption refusal is not an alternative to that guarantee. The existing bulk-data freshness residual remains unchanged.
 · Trace: CJ-T
 
+**R-17-030zc** IS: Fail-closed seam **workflow transition and hibernation ⋈ foreground availability**: missing transition evidence, unavailable recipes, failed guards and incomplete checkpoint or retirement prevent the requested workflow or backing transfer (R-11-018, R-11-018a, R-14-011a).
+· Accept: before teardown the old admitted state remains available; after teardown the pre-reserved recovery path determines availability, without promising instant restoration. Checkpoint-space exhaustion, incomplete revocation, failed restore and repeated requests may delay or deny the foreground but never release unready backing, restore revoked grants or consume protected-service reservations. Composition accounts for transition peaks and sustained request bounds, not only endpoint fit.
+· Trace: CJ-NI, CJ-WCET, CJ-MEMPLAN
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted. The collector is a set of entries and not one sentence, so it grows by a seam written beside the others and a new refusal reopens no entry that already stands.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: the conferral gates the collection here, which is the opposite of the direction R-10-013a takes and for the reason that entry states: this register holds no budget, R-03-009 pricing every member against availability alone and member by member, so what a seam adds is the composition none of its members states alone and never the admission of any of them. Growth by addition is what makes that safe, an author with a refusal to book owing a seam of their own rather than an amendment to somebody else's obligation.
-· Accept: forty-eight requirements confer a refusal and twenty-three seams collect them, both figures recomputed rather than maintained here.
+· Accept: fifty-one requirements confer a refusal and twenty-four seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -6469,7 +6496,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1468 requirements. §19 is non-normative and yields none. Counts include the 515 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1474 requirements. §19 is non-normative and yields none. Counts include the 521 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6480,16 +6507,16 @@ All eighteen normative sections are extracted, at 1468 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **213** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **65** |
-| **§8 Authority Model** | **extracted** | **90** |
+| **§8 Authority Model** | **extracted** | **91** |
 | **§9 Boot & Root of Trust** | **extracted** | **44** |
 | **§10 Storage & State** | **extracted** | **55** |
-| **§11 Updates** | **extracted** | **39** |
+| **§11 Updates** | **extracted** | **40** |
 | **§12 System Servers** | **extracted** | **139** |
 | **§13 Packaging & Supply Chain** | **extracted** | **46** |
-| **§14 Userland** | **extracted** | **33** |
+| **§14 Userland** | **extracted** | **35** |
 | **§15 Hardware Platform** | **extracted** | **428** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **150** |
+| **§17 Residual Risks** | **extracted** | **152** |
 | **§18 Realization** | **extracted** | **59** |
 
 §19 is non-normative and yields no requirements.

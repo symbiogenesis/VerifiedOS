@@ -129,7 +129,9 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              # research qualification adds no executable bring-up prerequisite
              "Q28a", "Q28b", "Q28c",
              # the shared browser and web application pilots are release-deferred
-             "Q29a", "Q29b", "Q29c"]
+             "Q29a", "Q29b", "Q29c",
+             # workflow hibernation qualification is not a bring-up prerequisite
+             "Q31a", "Q31b", "Q31c"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A

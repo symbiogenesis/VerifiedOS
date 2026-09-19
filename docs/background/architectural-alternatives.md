@@ -2615,6 +2615,12 @@ The scoping fact that makes the admitted form consistent with the §7 impossibil
 
 ---
 
+## App hibernation and multi-mode scheduling: adopt bounded lifecycle reuse, retain revocation
+
+The [source-backed workflow review](../implementation/workflow-profiles.md#literature-findings-and-transfer-limits) distinguishes IMA integration-time schedules, mode-transition analysis, browser freeze/discard and CHERI heap reclamation. Its disposition adopts semantic app hibernation and finite slate-slot rebinding under R-14-011a/R-14-011b, with workflow presets under R-11-018a and proofs of transitions under R-11-018. Raw machine-image restore, demand paging and arbitrary runtime borrowing remain excluded. Suspending execution alone reclaims no backing; an authenticated checkpoint alone retires no authority.
+
+Bounded revocation is retained. CHERIoT and Cornucopia supply relevant mechanisms, while PoisonCap, CHERI-D and the September 2026 Reincarnate draft change capability or metadata semantics and supply no drop-in fixed-latency proof for this machine. Q31 qualifies the lifecycle and measures its retirement demand; the expectation of low teardown traffic in R-08-008a is not a measured premise. A general online heap allocator is deferred: reopen only for a required workload that fails bounded region, pool and segmented representations, with worst-case fragmentation, quarantine, latency and proof costs charged. A local no-alias theorem does not waive the existing full reuse gate. Q22a, M4.4 and R2 retain their barrier and machine-connection work; Q31 does not mark it complete.
+
 ## The Oberon quiescent point: retain the register barrier, keep the sweep in background slots
 
 Oberon's collector runs when no command is executing, making its module-level roots sufficient because no procedure activation remains. That particular whole-system non-overlap rule is unnecessary for this design's linear bitmap-driven sweep: R-08-007b's `creclaim` traces no reachability graph, and R-08-007 reserves its own incremental, preemptible background slots. Moving a sweep quantum into each partition boundary would add work to the fixed switch cost and is still declined.
