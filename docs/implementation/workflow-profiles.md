@@ -1,6 +1,6 @@
 # Workflow profiles, app hibernation and reusable slate slots
 
-This design and qualification contract interprets the [requirements register](../requirements-register.md), which remains authoritative. The lifecycle and transition proofs, executable presets and target measurements are open under Q32 in the [implementation checklist](implementation-checklist.md). A preset recipe is not an implemented application. Literature was checked on 19 September 2026; the source findings below distinguish published results, implementation documentation and preprints. No source or implementation is incorporated by this survey.
+This design and qualification contract interprets the [requirements register](../requirements-register.md), which remains authoritative. The [finite formal contract](workflow-formal-contract.md) supplies the lifecycle model, transition-admission proofs and runtime refinement interfaces. Executable presets, runtime refinement and target measurements remain open under Q32 in the [implementation checklist](implementation-checklist.md). A preset recipe is not an implemented application. Literature was checked on 19 September 2026; the source findings below distinguish published results, implementation documentation and preprints. No source or implementation is incorporated by this survey.
 
 ## Decisions and scope
 
@@ -35,7 +35,7 @@ Voice, radio, display, storage, revocation, consent and required inference reser
 
 ## Lifecycle and the meaning of zero
 
-The lifecycle distinguishes **active**, **background-service**, **frozen-resident**, **quiescing**, **checkpointed-retiring**, **hibernated**, **restoring**, and **closed**. These are proposed contract states for Q32's formalization, not a claim that a state machine is implemented. A background service is a separately charged live component; calling its UI inactive does not erase its cost. Frozen-resident removes app execution while keeping its backing and authority inventory charged.
+The lifecycle distinguishes **active**, **background-service**, **frozen-resident**, **quiescing**, **checkpointed-retiring**, **hibernated**, **restoring**, and **closed**. These are the finite model's contract states; the runtime implementation remains Q32b's work. A background service is a separately charged live component; calling its UI inactive does not erase its cost. Frozen-resident removes app execution while keeping its backing and authority inventory charged.
 
 For successful hibernation:
 
