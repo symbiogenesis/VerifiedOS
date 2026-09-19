@@ -91,6 +91,9 @@ state their remaining implementation and proof premises. The
 [ternary static demand](performance/ternary-static-demand.md) and
 [prompt-processing term](performance/prompt-processing-term.md) keep measured
 bytes distinct from the target rate still owed.
+The [BITCOS assessment](performance/bitcos-assessment.md) proposes RVV unpacking
+and a comparison against the existing ternary baseline, with representation
+overhead, aligned sign reads and fixed-grant target evidence included.
 
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
