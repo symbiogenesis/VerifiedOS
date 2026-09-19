@@ -20,6 +20,10 @@ The [web application pilot contract](implementation/contracts/web-application-pr
 freezes the hosted/packaged subset, bridge lifecycle, budgets and qualification
 thresholds before the deferred browser pilots are implemented.
 
+The [compute compatibility contract](implementation/compute-compatibility.md) records
+the OpenCL/SPIR-V and HIP source/API path, standards and prior-art evidence,
+unchanged admission guarantees and Q30 qualification predicates.
+
 The [matrix margin contract](implementation/contracts/matrix-margin-contract.md) defines
 the M-class comparison and its strongest-RVV denominator before instruction admission.
 
@@ -115,7 +119,7 @@ The [typed assembly language](languages/typed-assembly-language.md), the typed m
 
 ## The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1463 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1467 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
