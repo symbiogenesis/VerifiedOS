@@ -174,7 +174,11 @@ def _framing_refusals() -> None:
         _refused(partial(_verify, _wire(version=version)))
     # Independently reauthenticate malformed lengths, so MAC failure cannot
     # disguise a parser that trusts a length or accepts a trailing artifact.
-    for offset in (33, 41, 49):
+    lengths_start = len(b"VerifiedOS host replay envelope\x00") + 1
+    for index, field in enumerate((_ORIGIN, _TRACE, _BODY)):
+        offset = lengths_start + 8 * index
+        ensure(int.from_bytes(value[offset:offset + 8], "big") == len(field),
+               "independent oracle is not addressing the intended length field")
         for declared in (0, 1, (1 << 64) - 1):
             message = value[:-32]
             message = message[:offset] + declared.to_bytes(8, "big") + message[offset + 8:]
