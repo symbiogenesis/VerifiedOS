@@ -1,6 +1,6 @@
 # Storage recovery policy decision
 
-This is M5.3's decision input and contract for its policy-independent recovery work. It recommends a discipline and does not select it. The [register](../requirements-register.md), [JournalIndex.v](../../proofs/JournalIndex.v), [block-device contract](../../interfaces/block-device-contract.md), and [Q22f comparison](storage-index-comparison.md) retain their existing authority. M5.3's target execution and M5.4's policy-dependent transactor behavior remain open.
+This is M5.3's decision input and contract for its policy-independent recovery work. It recommends a discipline and does not select it. The [register](../requirements-register.md), [JournalIndex.v](../../proofs/JournalIndex.v), [block-device contract](../../interfaces/block-device-contract.md), and [Q22f comparison](comparisons/storage-index.md) retain their existing authority. M5.3's target execution and M5.4's policy-dependent transactor behavior remain open.
 
 ## The observable choice
 
@@ -28,7 +28,7 @@ Let `L` be the composition's bounded record count and `P` the bound on changed n
 
 The replay choice acts at L0. L1 must publish only a complete authenticated CoW root and preserve retained roots under either arm. L2's object, metadata and secondary-index effects stay in the same transaction, and post-commit notifications must follow that transaction's validated publication. L3's domain authentication and `Fresh` epoch acknowledgement remain separate: a recovered mutable-volume root does not become rollback-fresh, and no recovery arm authorizes cross-domain deduplication or bypasses the sealed epoch. [KeyspaceDomains.v](../../proofs/KeyspaceDomains.v) owns those statements.
 
-Q22f's measured redo experiment uses an authenticated commit that binds payload count, order, addresses and content identities; durable acknowledgement follows checkpoint publication, and a complete commit with a bad payload refuses recovery. That is stronger than bare `scan` or `sieve`. Its write, barrier and reservation formulas remain owned by the [comparison's shared contract](storage-index-comparison.md#shared-journal-recovery-and-integrity-contract); copying its preferred scan into an implementation without its commit and acknowledgement contract cannot inherit its measurements.
+Q22f's measured redo experiment uses an authenticated commit that binds payload count, order, addresses and content identities; durable acknowledgement follows checkpoint publication, and a complete commit with a bad payload refuses recovery. That is stronger than bare `scan` or `sieve`. Its write, barrier and reservation formulas remain owned by the [comparison's shared contract](comparisons/storage-index.md#shared-journal-recovery-and-integrity-contract); copying its preferred scan into an implementation without its commit and acknowledgement contract cannot inherit its measurements.
 
 ## Selected policy and implementation criteria
 

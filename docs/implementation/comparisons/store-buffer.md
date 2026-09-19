@@ -1,7 +1,7 @@
 # Store-buffer deletion comparison
 
 Status: **open cost comparison**. This artifact evaluates Q22e against the
-[architectural alternative](../background/architectural-alternatives.md).
+[architectural alternative](../../background/architectural-alternatives.md).
 It does not select a new memory-ordering implementation or change the register.
 
 ## Baseline and candidate
@@ -54,7 +54,7 @@ positive receipt until their transitions and resources are represented.
 Run `python tools/run.py phase-service --json` for the composition receipt.
 Run an individual fixture with
 `python tools/run.py phase-service --contract <path> --json`.
-Paths below are relative to [phase-service/](phase-service/).
+Paths below are relative to [phase-service/](../phase-service/).
 Exit 0 means closure for the supplied model; exit 1 means refutation; exit 2
 means an invalid or unreadable contract. Only `grants`, `arrivals`, `banks`,
 `refresh` and `paths` are supported; unknown fields are refused, including mode
@@ -82,19 +82,19 @@ opposite verdict or malformed fixture fails the suite.
 
 ## Executable prerequisite preparation
 
-The [preparation contract](phase-service/prerequisite-contract.md) fixes the scope
+The [preparation contract](../phase-service/prerequisite-contract.md) fixes the scope
 and acceptance of three host instruments:
 
-- [Schedule extraction](phase-service/schedule-input.md) resolves named joint
+- [Schedule extraction](../phase-service/schedule-input.md) resolves named joint
   arrivals against a separate resource declaration whose exact bytes the schedule
   binds. Its emitted contract can be passed directly to `phase-service`. The
   extractor preserves conflicting arrivals so the phase checker can refute them;
   a per-hart issue restriction is checked rather than assumed.
-- [Completion analysis](phase-service/completion-model.md), selected with
+- [Completion analysis](../phase-service/completion-model.md), selected with
   `phase-service --completion`, checks same-hart completion order and drain through
   bank completion. The original `drain` continues to mean in-flight time to bank
   acceptance; the completion result reports its own bound and status.
-- [Cost arithmetic](phase-service/cost-input.md) binds a named workload to exact
+- [Cost arithmetic](../phase-service/cost-input.md) binds a named workload to exact
   schedule bytes and compares baseline and candidate intervals. Favorable
   arithmetic requires conservative budget compliance and no regression in time,
   area or power, with a strict improvement in at least one. Overlap and tradeoffs
@@ -145,21 +145,21 @@ timing, an absent schedule and unfrozen C/V/M/S/RoT inputs. Its synthetic cases
 pass, while `target_comparison` remains `open`. Unknown operands stay unknown;
 no numeric break-even or area saving is claimed here.
 
-The [composition](../../model/config/verifiedos.json) labels its memory and timing
+The [composition](../../../model/config/verifiedos.json) labels its memory and timing
 figures as placeholders and explicitly states that the schedule is unauthored.
-The [cyclic-executive proof](../../proofs/CyclicExecutive.v) supplies symbolic
+The [cyclic-executive proof](../../../proofs/CyclicExecutive.v) supplies symbolic
 bounds and demonstration witnesses, not that emitted composition. The
-[macro qualification protocol](../hardware/macro-qualification-protocol.md)
+[macro qualification protocol](../../hardware/macro-qualification-protocol.md)
 supplies R5's measurement procedure, not qualified specimens or measurements.
 Those artifacts cannot supply the missing operands by substituting their example
-values. The [unassigned proof map](../assurance/unassigned-proof-map.md) proposes
+values. The [unassigned proof map](../../assurance/unassigned-proof-map.md) proposes
 the arbiter/schedule and timing work at U-03, U-05, U-08 and U-09; these remain
 proposals rather than available producers.
 
 The current Sail executor cannot supply these measurements by running the
-comparison workloads: [RAM access](../../model/model/sys/mem.sail) is
-synchronous, [fence.t](../../model/model/extensions/platform/fence_t.sail) has no
-modeled store buffer to drain, and the [timing annotations](../../model/model/core/timing.sail)
+comparison workloads: [RAM access](../../../model/model/sys/mem.sail) is
+synchronous, [fence.t](../../../model/model/extensions/platform/fence_t.sail) has no
+modeled store buffer to drain, and the [timing annotations](../../../model/model/core/timing.sail)
 do not execute memory-service cycles. U-03 needs a schedule and cycle-aware
 execution connection before a functional run becomes arbiter evidence. A real
 refresh schedule also needs a tractable interval or symbolic representation;
@@ -176,7 +176,7 @@ qualified physical quiescent bound.
 
 ## Second-class baseline and the timer boundary
 
-The [boundary contract](phase-service/boundary-contract.md) selects the unbuffered
+The [boundary contract](../phase-service/boundary-contract.md) selects the unbuffered
 baseline in R-15-015b and retains R-15-218's SRAM-only buffer bound. A second-class
 store waits for prior buffered stores to enter the fabric, completes the bank's
 atomic data/tag/ECC commit before retirement, and cannot be overtaken by a later
@@ -195,10 +195,10 @@ may conservatively reserve unused capacity, but no second operation or handler
 charge is appended to H for the same work. Successful paths are padded to the
 same release instant; fatal faults retain fail-stop.
 
-[BoundaryCost.v](../../proofs/BoundaryCost.v) makes this arithmetic explicit:
+[BoundaryCost.v](../../../proofs/BoundaryCost.v) makes this arithmetic explicit:
 each declared prefix adds its remaining operation and handler, H bounds their
 finite case list, and the full boundary adds platform and context costs.
-[CyclicExecutive.v](../../proofs/CyclicExecutive.v)'s `slot_fits` consumes that
+[CyclicExecutive.v](../../../proofs/CyclicExecutive.v)'s `slot_fits` consumes that
 boundary and refuses an empty case list. Its slot theorem covers every declared
 prefix; padding and component monotonicity are proved separately. The rung-change
 cost consumes the full switch plus its table load, with residency kept in the

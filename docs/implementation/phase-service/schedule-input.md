@@ -39,7 +39,7 @@ Each bank has exactly these fields:
 Operation occupancy and refresh occupancy include the acceptance or reservation
 cycle. Banks accept at most one request in a cycle. Refresh starts before request
 acceptance, reserves its bank for its stated occupancy, and consumes no injection
-grant. These are the existing [phase-service semantics](../store-buffer-comparison.md),
+grant. These are the existing [phase-service semantics](../comparisons/store-buffer.md),
 including carried fabric and bank state across frame wrap.
 
 The schedule object has exactly these fields:

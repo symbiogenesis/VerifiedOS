@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                    for name in ("tools/vos/assembly_compare.py",
                                 "tools/vos/cli/assembly_compare.py",
-                                "docs/implementation/compiler-assembly-comparison.md")}
+                                "docs/implementation/comparisons/compiler-assembly.md")}
     except OSError as err:
         if args.json:
             print(json.dumps({"verdict": "unsupported", "reason": str(err),

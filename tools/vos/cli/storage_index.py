@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
         name: hashlib.sha256((root / name).read_bytes()).hexdigest()
         for name in ("tools/vos/storage_index.py", "tools/vos/cli/storage_index.py",
                      "tools/tests/test_storage_index.py", "proofs/JournalIndex.v",
-                     "docs/implementation/storage-index-comparison.md")}
+                     "docs/implementation/comparisons/storage-index.md")}
     if args.json:
         print(json.dumps(result, indent=2))
     else:
