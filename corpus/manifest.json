@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "trace_schema": 1,
   "members": [
     {
@@ -183,6 +183,13 @@
       "checks": 11,
       "records": 341,
       "digest": "e55fa211df468baa"
+    },
+    {
+      "name": "block-authority",
+      "source": "block-authority.s",
+      "checks": 10,
+      "records": 11533,
+      "digest": "14e25733a5e0ce2c"
     }
   ]
 }

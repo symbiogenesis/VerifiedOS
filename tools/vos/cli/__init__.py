@@ -150,6 +150,8 @@ COMMANDS: tuple[Command, ...] = (
             "sustained GEMM ratios and strongest-RVV campaign bindings"),
     Command("compiler-diff", "vos.cli.compiler_diff",
             "M1.2f's two acceptance loops, against a contained ccomp and the Wasm oracle"),
+    Command("block-authority", "vos.cli.block_authority",
+            "generate and check the block-device architectural authority corpus"),
     Command("provision", "vos.cli.provision",
             "the lane this repository builds in, as an executable fact list",
             lane="guest"),
