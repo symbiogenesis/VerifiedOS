@@ -690,8 +690,8 @@ before adding work to every gate run.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | 0.0.80 | Every expression, against the types it can infer, with `--error all` |
-| [ruff](https://github.com/astral-sh/ruff) | 0.16.6 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
+| [ty](https://github.com/astral-sh/ty) | 0.0.82 | Every expression, against the types it can infer, with `--error all` |
+| [ruff](https://github.com/astral-sh/ruff) | 0.16.8 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
 annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
