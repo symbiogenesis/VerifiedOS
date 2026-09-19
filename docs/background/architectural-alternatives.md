@@ -479,6 +479,17 @@ Non-normative; no spec-body change is made here.
 
 ---
 
+## A fixed package layer with a declared contract: deferred to the comparison R-13-028 names
+
+The proposal is modular proof-carrying packages: a package's image, data-initializer, correspondence theorem and hyperproperty certificates emitted once against a contract the package declares ahead of any roster, roster-invariant as the base image's are, so that installing one package re-checks that package and re-runs only the roster's own acts, the slot plan, the schedule, the wiring table and the handler graph, in place of re-lowering the whole package closure outside the base image. The motivation is R-17-035a's first cost read from the user's side: under R-13-028 an install's cost tracks the roster and not the change.
+
+**What the register decides before any measurement.** R-13-028 declines a second fixed package layer across rosters by default, names the cost it accepts for that, the merge and specialization reach of R-13-010b over the package closure, and names what reopens it, the bytes-versus-WCET comparison from the R-18-014a backend with the layer's composition and reproducibility duties included. Several readings narrow that comparison before it runs. The dictionary is a freeze-time constant (R-15-036i), so encoded bytes can be roster-invariant and the only position question is R-15-036l's: a package placed per roster takes the PC-relative forms at its own sites and pays R-15-036p's escape term there, while cross-package edges are sentries through the wiring table and pay nothing. TAL-068 admits no relocatable artifact, so the CHERI-TAL derivation stays re-bound and re-checked per roster and only the CIC correspondence theorem becomes roster-invariant, which is the half R-06-015a budgets. Outlining is intra-compartment (R-15-036o), specialization does not cross a sealed sentry, and a shared service compartment is a package with an export world, so what the merge reach loses across packages is identical-function merging and the exports no roster member imports. And R-13-001b is not touched: a contract composes no reservation ahead of its occupant.
+
+**Disposition:** deferred behind the comparison, not declined. [The package-layer comparison](../implementation/package-layer-comparison.md) states the contract with the entry that owns each clause, the objects each side re-emits, and the adoption predicate with its evidence boundary; Q31 runs it when the backend and the composed roster exist. Until then the position-fixed image and roster-wide re-lowering stand, and no relocatable artifact, second manifest, or runtime binding is introduced under this entry.
+Non-normative; no spec-body change.
+
+---
+
 ## Sigstore, in-toto, and SLSA: signing an identity, attesting a process, and a level ladder, all declined as inputs to admission
 
 The proposal is to adopt the industry's supply-chain stack as the admission evidence: `cosign`-style keyless signatures over the image, in-toto link metadata attesting the build steps, and a SLSA level as the claim the whole thing makes. All three are declined at the same seam, and the seam is worth stating once because these are the names an auditor will arrive holding.

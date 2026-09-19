@@ -161,11 +161,14 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
     workflows = "".join(
         f"* [ ] **Q32{suffix} · Workflow fixture** · 6 h, range 3–9 · 0.0% · X · "
         "after the M8a gate\n" for suffix in "abc")
+    packages = ("* [ ] **Q31 · Package comparison** · 12 h, range 8–16 · 0.0% · I · "
+                "after the M8a gate\n")
     expected = [
         "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",
         "* M8b gate: a 20 h chain of open work.",
     ]
-    for addition in ("", modules, research, workflows, modules + research + workflows):
+    for addition in ("", modules, research, workflows, packages,
+                     modules + research + workflows + packages):
         with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                            PLAN: plan + addition}) as root:
             ctx = _context(root, fix=True)

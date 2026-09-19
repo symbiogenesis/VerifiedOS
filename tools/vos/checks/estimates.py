@@ -130,6 +130,8 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "Q28a", "Q28b", "Q28c",
              # the shared browser and web application pilots are release-deferred
              "Q29a", "Q29b", "Q29c",
+             # the fixed package-layer comparison is also explicitly deferred
+             "Q31",
              # workflow hibernation qualification is not a bring-up prerequisite
              "Q32a", "Q32b", "Q32c"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
