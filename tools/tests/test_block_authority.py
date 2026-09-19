@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import asm, block_authority, differential, env, jsonc
+from vos import asm, block_authority, differential, env, jsonc, toolenv
 from vos.cli.model import _run_member
 
 ROOT = TOOLS.parent
@@ -24,8 +24,7 @@ def _regeneration() -> None:
 
 
 def _owner_drift() -> None:
-    scratch = ((ROOT / "out") if sys.platform == "win32" else
-               env.load(toolchain=False).lane_root) / "block-authority-tests"
+    scratch = toolenv.environment(ROOT, sys.platform).parent / "block-authority-tests"
     scratch.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=scratch) as temporary:
         root = Path(temporary)

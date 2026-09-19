@@ -309,9 +309,17 @@ earlier corruption, reset priority and stale events. They compare the actual
 modeled medium and inspect device state. They do not emit architectural case
 verdicts through HTIF or establish the complete acceptance family above.
 
+The [payload and reset campaigns](../model/test/unit_tests/README.md) execute
+generated families over the admitted fixture, including whole-medium comparisons,
+all declared progress boundaries and stale responses. The generated
+[authority corpus](../corpus/block-authority.s) supplies the capability-refusal
+subset through HTIF, with separate observations of staging and medium state.
+Their [scoped predicates](../docs/implementation/contracts/block-device-prerequisites.md)
+retain the limits of finite fixture evidence.
+
 The host backing-image adapter and its persistence/reopen boundary, image and
-event receipts, exhaustive reset-boundary and payload families, architectural
-capability-refusal cases and the HTIF corpus remain open. In particular, a Sail
+event receipts, and the remaining architectural HTIF acceptance cases stay open.
+In particular, a Sail
 persistent register models durability across an explicit reset, but cannot
 establish persistence across a host process exit; starting the current emulator
 again loads its supplied configuration fixture. A restart harness must supply

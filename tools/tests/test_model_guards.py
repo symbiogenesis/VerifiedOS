@@ -108,7 +108,7 @@ def _stale_build() -> None:
         })
         with patch.object(model, "build_identity", return_value=identity):
             model.verified_build(e)
-            for target in (e.simulator, elf):
+            for target in (*(e.build_dir / rel for rel in model.BUILD_ARTIFACTS), elf):
                 original = target.read_bytes()
                 target.write_bytes(b"replaced")
                 try:

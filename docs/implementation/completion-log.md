@@ -2888,6 +2888,90 @@ The completion audit records specification completion only. M5.3 owns executable
   * Exit evidence: the proof gate green with **397 constants from this file**, every one closed under the global context, with one `Require` naming a sibling in `proofs/`, no `Compute` and no top-level axiom; the **whole** seeded population at **377 mutants over eight operators, 377 killed, none surviving and none stillborn**, one survivor of the previous run closed by adding the statement its absence exposed rather than by narrowing; every backticked identifier resolved against a declaration by hand; the three host gates green; and both type checkers clean.
   * Landed: Tier A.
 
+### M5.3a · Generate and execute block-device payload families
+
+The [native campaign](../../model/test/unit_tests/block_payload.cpp) calls the
+actual generated Sail model under the [precommitted predicate](contracts/block-device-prerequisites.md#payload-family).
+At worker commit `d9489c76`, the admitted two-block, 64-byte fixture generates
+17 pattern planes, 34 full write/read pairs and 20 staging refusals. Its 238
+progress events compare the entire allocated medium before and after completion;
+4,352 returned bytes are checked through the tag-checking memory helper.
+Shuffled writes replace a previously staged word; both BLOCK reselection and
+each omitted word refuse incomplete submission. The deliberately wrong
+expectation exits 1 at `returned payload byte 0 expected 1 got 0`.
+
+The worker's canonical `model build --background` and `model wait` passed all
+five registered tests on base `6f51ac9a` plus its two source changes. Its interval
+was approximately 20:11 to 20:20:48 UTC on 2026-09-19. The completed cell includes
+an apportioned share of the concurrent integration and review interval, rounded
+to tenths of an hour. The integrator read the campaign and its negative control.
+The final combined validation uses the commands recorded under M5.3c.
+Host-image persistence and storage authentication remain M5.3d's obligations.
+
+Landed: Tier A.
+
+### M5.3b · Execute every block-device reset boundary
+
+The [reset campaign](../../model/test/unit_tests/block_reset.cpp) generates its
+boundaries and buffers from the actual model's fixture and capacity owners.
+At worker commit `9b17f499`, READ/WRITE/FLUSH service counts of 3/4/2 produce
+504 command-boundary cases and 12 idle/validation cases: 516 resets and 10,320
+stale-response checks. It includes zero, full and non-prefix masks, injected
+corruption before the tear, success and IO error, reset/final-step priority,
+every volatile field and the epoch, and old responses before, during and after
+new commands. Both deliberate controls fail at their intended comparisons:
+`whole-medium byte comparison failed` and `reset left a volatile buffer byte`.
+
+The worker's canonical build and wait passed all six registered tests; the
+focused verbose CTest run passed its three campaign/control registrations.
+Tested inputs were base `6f51ac9a` plus the C++ source and CMake registration.
+The worker interval was approximately 20:11 to 20:22:40 UTC on 2026-09-19;
+the completed cell apportions shared integration and review as M5.3a does.
+The integrator read the full state comparison and boundary enumeration.
+This evidence covers explicit modeled resets, not persistence across process
+exit. M5.3d retains that boundary and the storage join.
+
+Landed: Tier A.
+
+### M5.3c · Exercise block-device capability refusals through HTIF
+
+The [generator](../../tools/vos/block_authority.py) reads the composition,
+permission and exception owners and emits the
+[purecap corpus member](../../corpus/block-authority.s).
+At worker commit `00eec542`, corpus version 11 records 10 HTIF check groups,
+24 capability refusals and 11,533 commit records, digest `14e25733a5e0ce2c`.
+Valid authority writes and reads the complete medium. Untagged, insufficiently
+bounded and permission-restricted accesses check cause, capability trap detail
+and exact fault PC. Separate trials observe unchanged medium and retained
+staging, so a later successful write cannot hide an earlier mutation.
+Wrong-byte, missing-refusal and wrong-cause variants assemble and fail their
+intended HTIF checks; no compilation failure is credited as detection.
+
+Worker checks include corpus refresh followed by digest verification, the
+focused host tests, the guest slow executor controls and Python typechecking.
+The integrator reviewed the generator and corrected native-Linux test scratch
+placement using the existing environment selector. The item ran from
+approximately 20:11 to 20:25 UTC on 2026-09-19 through its canonical build handoff, with
+shared review and integration apportioned as above. This is finite device
+evidence; kernel authority distribution and the complete storage image remain
+M5.3d's work.
+
+The batch integrates all three dedicated worker branches into
+`work/block-integration-20260919`. A separate integration lane preserves
+unrelated concurrent edits in the primary checkout. The combined acceptance
+commands are `python tools/run.py model build --background`, `model wait`,
+`model corpus --member block-authority`, the guest
+`test --only block_authority --slow --jobs 2`, and
+`python tools/run.py --check --tests` after derived repair. The build receipt
+also binds both native campaign executables; its regression replaces each
+declared artifact and requires stale-evidence refusal. Final command verdicts
+and the tested integration revision are retained in the integration lane's
+`out/evidence/block-integration-validation.json`; the host wave's member
+verdicts are in `out/evidence/block-integration-host.json`, and the native
+model build writes `/root/logs/model-build-block-integration-20260919.json`.
+
+Landed: Tier A.
+
 ### M5.5 · Prove witness-policy continuity
 
 [WitnessContinuity.v](../../proofs/WitnessContinuity.v) states Q22b's witness policy as a Gallina reference model and proves honest intersection, compatible accepted histories within and across qualifying epochs, crash/recovery continuity, terminal closure and unique terminal destinations. Policy scope, epoch, keys, threshold and fault bound are explicit inputs. Certificate acceptance requires a well-formed policy, exact binding, distinct signers and an authenticated result for every signature. Availability is separate; authenticated rebootstrap records surrender of the previous scope's continuity claim, and selective delivery of independently valid variants remains R-13-023a's residual.
