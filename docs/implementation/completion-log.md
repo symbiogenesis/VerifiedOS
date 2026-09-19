@@ -2964,7 +2964,7 @@ The batch integrates all three dedicated worker branches into
 `work/block-integration-20260919`. A separate integration lane preserves
 unrelated concurrent edits in the primary checkout. The combined acceptance
 commands are `python tools/run.py model build --background`, `model wait`,
-`model corpus --member block-authority`, the guest
+`model corpus block-authority`, the guest
 `test --only block_authority --slow --jobs 2`, and
 `python tools/run.py --check --tests` after derived repair. The build receipt
 also binds both native campaign executables; its regression replaces each
