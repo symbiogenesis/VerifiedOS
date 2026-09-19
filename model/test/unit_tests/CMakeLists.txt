@@ -23,3 +23,10 @@ add_test(NAME "block_payload" COMMAND $<TARGET_FILE:block_payload>)
 add_test(NAME "block_payload_wrong_expected_byte"
     COMMAND $<TARGET_FILE:block_payload> --wrong-expected-byte)
 set_tests_properties(block_payload_wrong_expected_byte PROPERTIES WILL_FAIL TRUE)
+
+add_executable(block_reset "block_reset.cpp")
+target_link_libraries(block_reset PRIVATE riscv_model default_config)
+add_test(NAME "block_reset" COMMAND $<TARGET_FILE:block_reset>)
+add_test(NAME "block_reset_wrong_byte" COMMAND $<TARGET_FILE:block_reset> --negative-byte)
+add_test(NAME "block_reset_residual_volatile" COMMAND $<TARGET_FILE:block_reset> --negative-volatile)
+set_tests_properties(block_reset_wrong_byte block_reset_residual_volatile PROPERTIES WILL_FAIL TRUE)
