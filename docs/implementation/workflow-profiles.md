@@ -1,6 +1,6 @@
 # Workflow profiles, app hibernation and reusable slate slots
 
-This design and qualification contract interprets the [requirements register](../requirements-register.md), which remains authoritative. The lifecycle and transition proofs, executable presets and target measurements are open under Q31 in the [implementation checklist](implementation-checklist.md). A preset recipe is not an implemented application. Literature was checked on 19 September 2026; the source findings below distinguish published results, implementation documentation and preprints. No source or implementation is incorporated by this survey.
+This design and qualification contract interprets the [requirements register](../requirements-register.md), which remains authoritative. The lifecycle and transition proofs, executable presets and target measurements are open under Q32 in the [implementation checklist](implementation-checklist.md). A preset recipe is not an implemented application. Literature was checked on 19 September 2026; the source findings below distinguish published results, implementation documentation and preprints. No source or implementation is incorporated by this survey.
 
 ## Decisions and scope
 
@@ -35,7 +35,7 @@ Voice, radio, display, storage, revocation, consent and required inference reser
 
 ## Lifecycle and the meaning of zero
 
-The lifecycle distinguishes **active**, **background-service**, **frozen-resident**, **quiescing**, **checkpointed-retiring**, **hibernated**, **restoring**, and **closed**. These are proposed contract states for Q31's formalization, not a claim that a state machine is implemented. A background service is a separately charged live component; calling its UI inactive does not erase its cost. Frozen-resident removes app execution while keeping its backing and authority inventory charged.
+The lifecycle distinguishes **active**, **background-service**, **frozen-resident**, **quiescing**, **checkpointed-retiring**, **hibernated**, **restoring**, and **closed**. These are proposed contract states for Q32's formalization, not a claim that a state machine is implemented. A background service is a separately charged live component; calling its UI inactive does not erase its cost. Frozen-resident removes app execution while keeping its backing and authority inventory charged.
 
 For successful hibernation:
 
@@ -112,6 +112,6 @@ The newer temporal-safety proposals are candidates for a future measured compari
 
 ## Qualification sequence
 
-Q31a freezes a finite formal model and its interfaces before implementation. Q31b connects one checkpointable editor-like app and one competing image-workspace app to the actual storage, kernel and schedule paths. Q31c instantiates the preset catalog against available ports and compares frozen residency, semantic hibernation and fixed-pool reuse on the same workload.
+Q32a freezes a finite formal model and its interfaces before implementation. Q32b connects one checkpointable editor-like app and one competing image-workspace app to the actual storage, kernel and schedule paths. Q32c instantiates the preset catalog against available ports and compares frozen residency, semantic hibernation and fixed-pool reuse on the same workload.
 
 Required refuting cases include an endpoint-safe but transition-overloaded schedule; two bindings overlapping during quarantine; a stale register or saved capability; a late DMA or bridge reply; incomplete checkpoint or replay of security-critical state; out-of-space during commit; protected unsaved state; crash at each commit boundary; failed restore after old-state retirement; rapid repeated profile requests; and a profile that drops a standing service to manufacture a saving. Generated finite traces should supply cases where a model oracle exists. Passing host examples supplies no target WCET, physical erasure or universal refinement evidence.

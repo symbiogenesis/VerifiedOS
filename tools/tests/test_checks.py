@@ -159,7 +159,7 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
         f"* [ ] **Q28{suffix} · Research fixture** · 6 h, range 3–9 · 0.0% · X · "
         "after the M8a gate\n" for suffix in "abc")
     workflows = "".join(
-        f"* [ ] **Q31{suffix} · Workflow fixture** · 6 h, range 3–9 · 0.0% · X · "
+        f"* [ ] **Q32{suffix} · Workflow fixture** · 6 h, range 3–9 · 0.0% · X · "
         "after the M8a gate\n" for suffix in "abc")
     expected = [
         "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",

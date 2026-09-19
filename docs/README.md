@@ -22,7 +22,7 @@ thresholds before the deferred browser pilots are implemented.
 
 The [workflow profile and hibernation contract](implementation/workflow-profiles.md)
 records preset recipes, slate-slot reuse, transition admission and the source-backed
-revocation decision; Q31 owns its formalization and qualification.
+revocation decision; Q32 owns its formalization and qualification.
 
 The [compute compatibility contract](implementation/compute-compatibility.md) records
 the OpenCL/SPIR-V and HIP source/API path, standards and prior-art evidence,
