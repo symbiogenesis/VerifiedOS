@@ -85,7 +85,7 @@ Adoption requires every clause below. Each names the decision procedure that exi
 
 | Clause | Existing decision procedure | Remaining input or evidence |
 | --- | --- | --- |
-| Bytes: cross-package identical-function merging forgone | [The freeze measurement contract](../contracts/freeze-measurement-contract.md)'s S3 step records the merged-function count | The R-18-014a backend and the M7.1 roster, with the count split by whether the merged pair crosses a package boundary |
+| Bytes: cross-package identical-function merging forgone | [The freeze measurement contract](../contracts/freeze-measurement.md)'s S3 step records the merged-function count | The R-18-014a backend and the M7.1 roster, with the count split by whether the merged pair crosses a package boundary |
 | Bytes: exports resident that no roster member imports | R-13-010a's reachability roots, re-run with the contract's roots | The same roster, reporting retained-closure size under both root sets |
 | Bytes and cycles: the PC-relative escape at intra-package sites | R-15-036p's arithmetic over site-invariant and site-varying strata, R-15-036k's stratified measurement | R-15-036l's freeze decision; if the PC-relative forms stand, this clause costs nothing against the baseline |
 | Cycles: schedule looseness from bounds tabulated per contract rather than per roster | R-11-006's interval-arithmetic check over the emitted artifact | The R-11-017 artifact for one roster composed both ways |

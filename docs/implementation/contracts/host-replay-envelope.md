@@ -2,7 +2,7 @@
 
 This is the acceptance contract for S6a in the
 [implementation checklist](../implementation-checklist.md). It adds an executable
-host integrity boundary around the existing [replay body](replay-record-contract.md).
+host integrity boundary around the existing [replay body](replay-record.md).
 It is not S6's production export envelope, a device key service, image-signature
 verification, entropy sealing, source-completeness evidence or paired replay.
 Those obligations remain open at S6 and its named prerequisites.
@@ -67,4 +67,4 @@ Use `python tools/run.py test --only replay_envelope` for focused evidence and t
 integrator's host wave for tool acceptance. This is an executable host artifact
 predicate. Passing it supplies no operational producer, CT scope proof, signed-root
 trust, machine recording or replay verdict. Its remaining runtime consumers retain
-the [replay contract's operational acceptance](replay-record-contract.md#acceptance-fixed-before-implementation).
+the [replay contract's operational acceptance](replay-record.md#acceptance-fixed-before-implementation).

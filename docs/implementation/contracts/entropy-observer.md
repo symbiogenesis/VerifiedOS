@@ -2,7 +2,7 @@
 
 This is the S6 implementation contract for a model observer at `rot_draw` in
 [rot.sail](../../../model/model/sys/rot.sail). It supplies the missing observation
-boundary identified by the [replay record contract](replay-record-contract.md).
+boundary identified by the [replay record contract](replay-record.md).
 It does not implement the M3.2 record writer, the M3.4 sealing primitive, or replay
 injection. The existing architectural draw result and state transitions remain
 the owner's.

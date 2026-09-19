@@ -12,7 +12,7 @@ strategy, core design and workflow contract share the `languages/` directory.
 | Languages and compilation | [Verification strategy](languages/verification-strategy.md), [core design](languages/core-design.md), [assurance presets](languages/assurance-profiles.md), [workflow contract](languages/workflow-contract.md), [compiler routes](languages/compiler-route-contract.md), [typed assembly language](languages/typed-assembly-language.md), [IDL profile](languages/idl-profile.md) |
 | Hardware and ISA | [ISA profile](hardware/isa-profile.md), [absence contract](hardware/absence-contract.md), [CHERI foundations](hardware/cheri-foundation-map.md), [CHERI versions](hardware/cheri-version-matrix.md), [RTL re-parameterization](hardware/rtl-reparameterization-delta.md), [block geometry](hardware/block-geometry-constraint.md), [bank counts](hardware/bank-count-dse-contract.md), [second-class memory macros](hardware/second-class-macro-architecture.md), [immutable module contract](hardware/immutable-module-contract.md), [ensemble link](hardware/ensemble-link-contract.md), [TRNG source model](hardware/trng-source-model-contract.md), [protected-sequence fault model](hardware/protected-sequence-fault-model.md) |
 | Assurance and review | [Reviewer onramp](assurance/reviewer-onramp.md), [crown jewels](assurance/crown-jewels.md), [coverage matrix](assurance/coverage-matrix.md), [field bindings](assurance/field-bindings.md), [differential corpus](assurance/differential-corpus.md), [revocation qualification](assurance/revocation-qualification.md), [witness policy](assurance/witness-policy-qualification.md), [session binding](assurance/session-binding-qualification.md), [RTL correspondence boundary](assurance/rtl-correspondence-boundary.md), [findings register](assurance/findings-register.md), [proof reuse inventory](assurance/proof-reuse.md) and its [subject records](assurance/proof-reuse/), [bearing record](assurance/proof-reuse-bearing.md), [unassigned proof map](assurance/unassigned-proof-map.md) |
-| Implementation and qualification | [Implementation checklist](implementation/implementation-checklist.md), [completion log](implementation/completion-log.md), [compiler assembly comparison](implementation/comparisons/compiler-assembly.md), [purecap ABI contract](implementation/contracts/purecap-abi-contract.md), [replay record](implementation/contracts/replay-record-contract.md), [freeze measurements](implementation/contracts/freeze-measurement-contract.md), [placement search](implementation/placement-search.md), [storage index comparison](implementation/comparisons/storage-index.md), [package-layer comparison](implementation/comparisons/package-layer.md), [product gate](implementation/contracts/product-gate-contract.md), [userspace porting](implementation/userspace-porting.md) |
+| Implementation and qualification | [Implementation checklist](implementation/implementation-checklist.md), [completion log](implementation/completion-log.md), [compiler assembly comparison](implementation/comparisons/compiler-assembly.md), [purecap ABI contract](implementation/contracts/purecap-abi.md), [replay record](implementation/contracts/replay-record.md), [freeze measurements](implementation/contracts/freeze-measurement.md), [placement search](implementation/placement-search.md), [storage index comparison](implementation/comparisons/storage-index.md), [package-layer comparison](implementation/comparisons/package-layer.md), [product gate](implementation/contracts/product-gate.md), [userspace porting](implementation/userspace-porting.md) |
 | Performance | [Performance estimates](performance/performance-estimates.md), [inference demand](performance/inference-demand.md) and its [measurement artifacts](performance/inference-demand/), [ensemble sharding traffic](performance/ensemble-sharding-traffic.md) and its [derived artifacts](performance/ensemble-sharding-traffic/), [toolchain residency](performance/toolchain-residency.md) and its [measurement artifacts](performance/toolchain-residency/) |
 | Background and design assessment | [Inspirations and prior art](background/inspirations.md), [architectural alternatives](background/architectural-alternatives.md), [critique](background/critique.md), [static-memory research agenda](background/static-memory-research.md) |
 
@@ -28,7 +28,7 @@ The [compute compatibility contract](implementation/compute-compatibility.md) re
 the OpenCL/SPIR-V and HIP source/API path, standards and prior-art evidence,
 unchanged admission guarantees and Q30 qualification predicates.
 
-The [matrix margin contract](implementation/contracts/matrix-margin-contract.md) defines
+The [matrix margin contract](implementation/contracts/matrix-margin.md) defines
 the M-class comparison and its strongest-RVV denominator before instruction admission.
 
 The full-language design has dossiers for the [graded foundation](languages/graded-foundation.md),
@@ -61,12 +61,12 @@ connects allocation and reusable-capacity research to the pinned candidate and
 certificate integrations, finite resource contracts and remaining proof obligations.
 
 The implementation interfaces are recorded in the
-[service authoring contracts](implementation/contracts/service-authoring-contracts.md),
-[object transactor contract](implementation/contracts/object-transactor-contract.md),
+[service authoring contracts](implementation/contracts/service-authoring.md),
+[object transactor contract](implementation/contracts/object-transactor.md),
 [recovery policy input](implementation/storage-recovery-policy.md),
 [attested TLS protocol](implementation/attested-tls-protocol.md),
-[compatibility workflow](implementation/contracts/compatibility-contract.md),
-[entropy observer](implementation/contracts/entropy-observer-contract.md), and
+[compatibility workflow](implementation/contracts/compatibility.md),
+[entropy observer](implementation/contracts/entropy-observer.md), and
 [store-buffer comparison](implementation/comparisons/store-buffer.md).
 Its [executable prerequisite contract](implementation/phase-service/prerequisite-contract.md)
 covers schedule extraction, completion and quiescent drain, and workload cost
@@ -74,7 +74,7 @@ arithmetic while target qualification remains open.
 The [boundary admission contract](implementation/phase-service/boundary-contract.md)
 resolves the second-class baseline and the complete timer residency that the
 cyclic executive must charge alongside platform and context costs.
-The [roster measurement contract](implementation/contracts/roster-measurement-contract.md)
+The [roster measurement contract](implementation/contracts/roster-measurement.md)
 fixes the allocation-churn and ring-accounting analyzers' inputs and limits;
 the accepted composed roster supplies the eventual target measurements.
 
@@ -136,7 +136,7 @@ Nine **derived views** collect what the register states across many entries but 
 - **The [microarchitectural absence contract](hardware/absence-contract.md)**: twenty-three enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
 - **The [crown-jewel inventory](assurance/crown-jewels.md)**: the thirty specifications the review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the ten theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
 - **The [coverage matrix](assurance/coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the [root README inventory](../README.md#bug-classes-removed-by-construction) names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
-- **The [profile-freeze measurement contract](implementation/contracts/freeze-measurement-contract.md)**: the corpus, recipe, provenance schema, region classes, thresholds, report columns, and CI predicates for the freeze's second act, the one place the profile defers its own decisions to a measurement against generated output. It is written before the backend that produces that output exists, which is the point: a threshold chosen after the measurement is not a threshold.
+- **The [profile-freeze measurement contract](implementation/contracts/freeze-measurement.md)**: the corpus, recipe, provenance schema, region classes, thresholds, report columns, and CI predicates for the freeze's second act, the one place the profile defers its own decisions to a measurement against generated output. It is written before the backend that produces that output exists, which is the point: a threshold chosen after the measurement is not a threshold.
 
 - **The [welded block-size constraint](hardware/block-geometry-constraint.md)**: the one size four instructions share, the closed list of what constrains it, and which of those constraints can be worked out today against which are owed to a chip that does not exist yet. It names no size, on purpose: the point is that the block has to suit the fast memory and the dense memory at once, and picking a size that suits only the fast one would look exactly like picking a size that suits both.
 

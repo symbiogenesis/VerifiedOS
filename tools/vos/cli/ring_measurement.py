@@ -18,7 +18,7 @@ def _display(value: str) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="run.py ring-measurement", description=__doc__)
-    parser.add_argument("capture", type=Path, help="ring capture JSON under roster-measurement-contract")
+    parser.add_argument("capture", type=Path, help="ring capture JSON under roster-measurement")
     parser.add_argument("--expected-identity", type=Path, required=True,
                         help="independent roster, image, composition and capture identities")
     parser.add_argument("--json", action="store_true", help="emit identities, accounting and exact rates")
@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         result = analyze(args.capture.read_bytes(), args.expected_identity.read_bytes(), root)
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                    for name in ("tools/vos/ring_measurement.py", "tools/vos/cli/ring_measurement.py",
-                                "tools/vos/cli/ring.py", "docs/implementation/contracts/roster-measurement-contract.md")}
+                                "tools/vos/cli/ring.py", "docs/implementation/contracts/roster-measurement.md")}
     except (OSError, ValueError, RecursionError) as error:
         if args.json:
             print(json.dumps({"verdict": "malformed", "reason": str(error),

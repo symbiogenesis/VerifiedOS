@@ -2,7 +2,7 @@
 """Check supplied GEMM measurements against a separately reviewed campaign plan.
 
 This checks identities, completeness and arithmetic, never producer truth or ISA
-admission. The contract is docs/implementation/contracts/matrix-margin-contract.md.
+admission. The contract is docs/implementation/contracts/matrix-margin.md.
 """
 
 import hashlib

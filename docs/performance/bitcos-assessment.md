@@ -159,7 +159,7 @@ uses floating activations, an int8 activation arm is a separate quality-tested
 candidate. For prompt processing or batching, also compare reuse of one
 expanded tile across several activation rows. Charge tile storage, staging,
 reloads and zeroization. Select the matrix route only when its instruction
-surface and [matrix-margin obligations](../implementation/contracts/matrix-margin-contract.md)
+surface and [matrix-margin obligations](../implementation/contracts/matrix-margin.md)
 are satisfied; a specified array geometry does not supply an executable opcode.
 
 ## Alternatives worth measuring

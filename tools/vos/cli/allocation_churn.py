@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
         report["sources_sha256"] = {
             name: sha256((root / name).read_bytes()).hexdigest()
             for name in ("tools/vos/allocation_churn.py", "tools/vos/cli/allocation_churn.py",
-                         "docs/implementation/contracts/roster-measurement-contract.md")
+                         "docs/implementation/contracts/roster-measurement.md")
         }
         expected = expected_identity(args.expected_identity.read_bytes())
         report.update(analyze(args.capture.read_bytes(), expected))

@@ -15,7 +15,7 @@ Three rules govern the limits:
 - **Proposed envelope values are not binding limits.** Sustained power, temperature and update turnaround belong to the physical envelope that R-18-004a's fifth acceptance criterion leaves outside the pre-silicon gate. Q10 reserves the resulting product choices to the product's owner. The declared parameters in §2 bind a candidate only after that owner ratifies them.
 
 R-18-004d's versioned demonstration set supplies the per-member details: live compartments, population rung, composited surfaces, radio state, input cadence and pass condition. It must be fixed before R-15-108's exploration. Section 1 defines capabilities and transitions without fixing those details.
-This contract specifies the result format and rejection rules, following [the freeze contract's report and gate](freeze-measurement-contract.md#7-the-report) and [the bank-count contract's inadmissibility table](../../hardware/bank-count-dse-contract.md#5-what-makes-a-report-inadmissible). It implements no measurement instrument and contains no candidate measurements. Q1's completion means *gate authored, nothing measured*.
+This contract specifies the result format and rejection rules, following [the freeze contract's report and gate](freeze-measurement.md#7-the-report) and [the bank-count contract's inadmissibility table](../../hardware/bank-count-dse-contract.md#5-what-makes-a-report-inadmissible). It implements no measurement instrument and contains no candidate measurements. Q1's completion means *gate authored, nothing measured*.
 
 ## 1. The workload
 
