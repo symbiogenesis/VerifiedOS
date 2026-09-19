@@ -2,7 +2,7 @@
 
 Read [README.md](README.md) first for the project's purpose, design goals, and current status.
 
-AGENTS.md owns shared agent instructions; [CLAUDE.md](CLAUDE.md) contains only `@AGENTS.md` and a final newline. Edit shared rules here. The linked artifacts own the detailed contracts summarized below; check them before changing the relevant area and resolve disagreements at their source. See [instruction synchronization](tools/README.md#synchronizing-agent-instructions).
+AGENTS.md owns shared agent instructions. Edit shared rules here. The linked artifacts own the detailed contracts summarized below; check them before changing the relevant area and resolve disagreements at their source.
 
 ## Repository map
 
@@ -77,7 +77,7 @@ Use `python tools/run.py <command>` on Windows; it dispatches toolchain commands
 | Repair followed by a fresh host wave | `python tools/run.py --fix` |
 | CI-equivalent host validation | `python tools/run.py --check --tests` |
 
-The host wave runs the checker, mutation selftest, and typecheck. Bare `run.py` also validates AGENTS.md and restores a missing CLAUDE.md import before readers start; unexpected instruction content is preserved and reported. `--check` leaves source artifacts unchanged, though bootstrap may populate ignored environments and caches. `--fix` prepares instructions and repairs supported derived artifacts before validation; `--tests` adds the default behavioral suite. K-110 checks the tracked instruction source and import.
+The host wave runs the checker, mutation selftest, and typecheck. Bare `run.py` runs the same default wave read-only. `--check` leaves source artifacts unchanged, though bootstrap may populate ignored environments and caches. `--fix` repairs supported derived artifacts before validation; `--tests` adds the default behavioral suite. K-110 checks that AGENTS.md is tracked as the nonempty UTF-8 shared instruction source.
 
 Append `--tests` for tool changes or CI-equivalent validation. Before the final wave, settle authored changes, track new deliverables by path, resolve co-reads and known findings, and finish all writes. A red checker baseline must be resolved before selftesting. Keep the checkout stable while gates read it. Record the command, tested revision and uncommitted input scope, verdict, and deferred checks. Repeat only when changed inputs or unresolved findings invalidate evidence. [CI](.github/workflows/host-gates.yml) runs host validation, with a `--summary` path that names the member that went red and adds no gate, on Windows and Ubuntu; required slow tests and guest measurements remain separate acceptance work under the [landing conventions](docs/implementation/implementation-checklist.md#checklist-conventions).
 

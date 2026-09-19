@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Instruction preparation and repair finish before parallel readers.
+"""Repair and validation waves, and the one verdict they close on.
 
-Temporary state and synchronized workers exercise ordering, conflict refusal, read-only
-behavior and a repair that leaves either a clean or still-failing tree. Real subprocess
-checks preserve successful and unsupported-argument exits. The optional slow case runs
-the complete read-only gate over this checkout.
+Temporary state and synchronized workers exercise ordering and a repair that leaves
+either a clean or still-failing tree. Real subprocess checks preserve successful and
+unsupported-argument exits. The optional slow case runs the complete read-only gate
+over this checkout.
 """
 
 import io
@@ -15,7 +15,6 @@ import tempfile
 import threading
 from contextlib import redirect_stderr
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
@@ -62,66 +61,24 @@ def _tests_join_the_wave_only_when_asked() -> None:
            "tests must only join the final read-only wave after repair")
 
 
-def _sync_precedes_parallel_readers() -> None:
-    synchronized = threading.Event()
+def _members_run_in_parallel() -> None:
     barrier = threading.Barrier(len(gate.MEMBERS) + 1)
     calls: list[str] = []
 
-    def sync(root: Path) -> str:
-        ensure(root == _ROOT, "synchronization used a different checkout")
-        calls.append("sync")
-        synchronized.set()
-        return "ok sync: fixture instructions agree"
-
     def launch(root: Path, member: gate.Launch) -> gate.Result:
-        ensure(root == _ROOT and synchronized.is_set(), "a reader began before synchronization")
+        ensure(root == _ROOT, "a reader used a different checkout")
         calls.append(member.name)
         barrier.wait(timeout=10)
         return gate.Result(member, 0, [f"completed {member.name}"])
 
-    isolated = SimpleNamespace(sync=sync, SyncError=gate.sync_instructions.SyncError)
-    with patch.object(gate, "sync_instructions", isolated), patch.object(gate, "_launch", launch):
+    with patch.object(gate, "_launch", launch):
         rep = gate.run(_ROOT, tests=True)
-    ensure(rep.findings == 0 and calls[0] == "sync"
-           and len(calls) == len(gate.MEMBERS) + 2,
-           f"synchronization and all four parallel readers must run once: {calls}, {rep.out}")
+    ensure(rep.findings == 0 and len(calls) == len(gate.MEMBERS) + 1,
+           f"all parallel readers must run once: {calls}, {rep.out}")
     headings = [line for line in rep.out if line.startswith("--- ")]
     ensure([line.split(":", 1)[0] for line in headings]
            == [f"--- {m.name}" for m in (*gate.MEMBERS, gate.TESTS)],
            "parallel completion changed the declared report order")
-
-
-def _readonly_mode_never_synchronizes() -> None:
-    def sync(root: Path) -> str:
-        raise AssertionError(f"read-only validation invoked synchronization at {root}")
-
-    def launch(root: Path, member: gate.Launch) -> gate.Result:
-        ensure(root == _ROOT and not member.args, "read-only validation launched a repair")
-        code = 1 if member.tool == "check" else 0
-        return gate.Result(member, code, ["FAIL K-110: invalid instruction import"] if code else [])
-
-    isolated = SimpleNamespace(sync=sync, SyncError=gate.sync_instructions.SyncError)
-    with patch.object(gate, "sync_instructions", isolated), patch.object(gate, "_launch", launch):
-        rep = gate.run(_ROOT, check=True)
-    ensure(rep.findings == 1 and "FAIL K-110:" in "\n".join(rep.out),
-           "read-only mode must preserve the checker's instruction-drift failure")
-
-
-def _invalid_import_prevents_every_reader() -> None:
-    error = gate.sync_instructions.SyncError
-
-    def sync(root: Path) -> str:
-        raise error(f"unexpected CLAUDE.md content at {root}")
-
-    def launch(root: Path, member: gate.Launch) -> gate.Result:
-        raise AssertionError(f"{member.name} read {root} after synchronization failed")
-
-    isolated = SimpleNamespace(sync=sync, SyncError=error)
-    with patch.object(gate, "sync_instructions", isolated), patch.object(gate, "_launch", launch):
-        for fix in (False, True):
-            rep = gate.run(_ROOT, fix=fix)
-            ensure(rep.findings == 1 and "unexpected CLAUDE.md content" in "\n".join(rep.out),
-                   "the invalid import must be the final failed verdict")
 
 
 def _repair_verdict_comes_from_the_fresh_wave() -> None:
@@ -130,16 +87,10 @@ def _repair_verdict_comes_from_the_fresh_wave() -> None:
             root = Path(td)
             state = root / "state.txt"
             state.write_text("old", encoding="utf-8")
-            synchronized = threading.Event()
             calls: list[str] = []
 
-            def sync(found: Path) -> str:
-                ensure(found == root, "synchronization used the wrong root")
-                synchronized.set()
-                return "ok sync: instructions agree"
-
             def launch(found: Path, member: gate.Launch) -> gate.Result:
-                ensure(found == root and synchronized.is_set(), "repair preceded synchronization")
+                ensure(found == root, "repair used the wrong root")
                 calls.append(member.name)
                 if member.args == ("--fix",):
                     state.write_text("repaired", encoding="utf-8")
@@ -149,9 +100,7 @@ def _repair_verdict_comes_from_the_fresh_wave() -> None:
                 code = 1 if remaining and member.tool == "check" else 0
                 return gate.Result(member, code, ["FAIL K-24: unresolved"] if code else [])
 
-            isolated = SimpleNamespace(sync=sync, SyncError=gate.sync_instructions.SyncError)
-            with patch.object(gate, "sync_instructions", isolated), \
-                    patch.object(gate, "_launch", launch):
+            with patch.object(gate, "_launch", launch):
                 rep = gate.run(root, fix=True)
             ensure(rep.findings == int(remaining),
                    f"the old finding must not override the final checker: {rep.out}")
@@ -175,9 +124,7 @@ def _crashed_repair_stops_before_readers() -> None:
                    "a validation reader ran after a repair without a verdict")
             return gate.Result(member, code, ["repair failed to execute"])
 
-        isolated = SimpleNamespace(sync=lambda _: "ok sync: instructions agree",
-                                   SyncError=gate.sync_instructions.SyncError)
-        with patch.object(gate, "sync_instructions", isolated), patch.object(gate, "_launch", launch):
+        with patch.object(gate, "_launch", launch):
             rep = gate.run(_ROOT, fix=True)
         ensure(rep.findings == 1 and "repair did not complete" in "\n".join(rep.out),
                "a crashed or timed-out repair must remain fatal")
@@ -259,10 +206,7 @@ def _summary_names_every_member_and_its_code() -> None:
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-summary-") as td:
         path = Path(td) / "nested" / "verdict.json"
-        isolated = SimpleNamespace(sync=lambda _: "ok sync: instructions agree",
-                                   SyncError=gate.sync_instructions.SyncError)
-        with patch.object(gate, "sync_instructions", isolated), \
-                patch.object(gate, "_launch", launch):
+        with patch.object(gate, "_launch", launch):
             rep = gate.run(_ROOT, tests=True, summary=path)
         written = json.loads(path.read_text(encoding="utf-8"))
 
@@ -293,26 +237,22 @@ def _summary_names_every_member_and_its_code() -> None:
 def _summary_names_a_wave_that_never_ran() -> None:
     """A stopped run writes the sentence a bare exit code cannot carry.
 
-    An invalid instruction import fails before any member starts, so there is no member
-    to name and the reason is the whole answer; written as an empty member list alone it
-    would be indistinguishable from a wave nobody asked for.
+    A repair that crashes fails before any validation member starts, so there is no
+    member to name and the reason is the whole answer; written as an empty member
+    list alone it would be indistinguishable from a wave nobody asked for.
     """
-    error = gate.sync_instructions.SyncError
-
-    def sync(root: Path) -> str:
-        raise error(f"unexpected CLAUDE.md content at {root}")
+    def launch(root: Path, member: gate.Launch) -> gate.Result:
+        return gate.Result(member, 2, ["repair failed to execute"])
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-stopped-") as td:
         path = Path(td) / "verdict.json"
-        isolated = SimpleNamespace(sync=sync, SyncError=error)
-        with patch.object(gate, "sync_instructions", isolated), \
-                patch.object(gate, "_launch", lambda root, member: gate.Result(member, 0, [])):
-            gate.run(_ROOT, summary=path)
+        with patch.object(gate, "_launch", launch):
+            gate.run(_ROOT, fix=True, summary=path)
         written = json.loads(path.read_text(encoding="utf-8"))
 
     ensure(written["members"] == [] and written["green"] is False,
            f"no member ran, so none is named and nothing is green, got {written!r}")
-    ensure("unexpected CLAUDE.md content" in written["stopped"],
+    ensure("repair did not complete" in written["stopped"],
            f"the reason the wave never ran is the answer, got {written['stopped']!r}")
 
 
@@ -326,10 +266,7 @@ def _unwritable_summary_is_a_finding() -> None:
         # a file where the verdict's parent directory must be, so `mkdir` refuses
         blocked = Path(td) / "occupied"
         blocked.write_text("not a directory", encoding="utf-8")
-        isolated = SimpleNamespace(sync=lambda _: "ok sync: instructions agree",
-                                   SyncError=gate.sync_instructions.SyncError)
-        with patch.object(gate, "sync_instructions", isolated), \
-                patch.object(gate, "_launch", launch):
+        with patch.object(gate, "_launch", launch):
             rep = gate.run(_ROOT, summary=blocked / "verdict.json")
 
     ensure(rep.findings == 1 and any("could not be written" in line for line in rep.out),
@@ -360,9 +297,7 @@ def cases() -> list[Case]:
              _members_name_commands_the_table_carries),
         Case("tests-join-the-wave-only-when-asked",
              _tests_join_the_wave_only_when_asked),
-        Case("sync-precedes-parallel-readers", _sync_precedes_parallel_readers),
-        Case("readonly-mode-never-synchronizes", _readonly_mode_never_synchronizes),
-        Case("invalid-import-prevents-every-reader", _invalid_import_prevents_every_reader),
+        Case("members-run-in-parallel", _members_run_in_parallel),
         Case("repair-verdict-comes-from-the-fresh-wave", _repair_verdict_comes_from_the_fresh_wave),
         Case("crashed-repair-stops-before-readers", _crashed_repair_stops_before_readers),
         Case("repair-and-readonly-flags-are-exclusive", _repair_and_readonly_flags_are_exclusive),

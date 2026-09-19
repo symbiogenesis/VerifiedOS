@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Validate shared instructions, then validate the checkout with one host-gate verdict.
+"""Validate the checkout with one host-gate verdict.
 
-The default validates AGENTS.md and its CLAUDE.md import, restoring a missing import
-before any reader starts. `--check` is read-only and leaves findings for K-110.
-`--fix` prepares instructions, repairs derived facts alone, then runs a fresh
+The default runs the checker, selftest and typecheck read-only, each in its own
+process. `--check` is the same read-only run, named for a caller that wants no
+ambiguity with `--fix`. `--fix` repairs derived facts alone, then runs a fresh
 read-only checker alongside the selftest and typecheck.
 Repair findings describe the old tree; only the final wave decides the repaired tree.
-Invalid instructions or a repair without a verdict stop before that wave.
+A repair without a verdict stops before that wave.
 
 Independent gates run concurrently and report in declaration order. `--tests` adds the
 tools' behavioral tests; those stay optional to keep document checks small and avoid
@@ -29,7 +29,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from vos import corpus as corpus_mod
-from vos.cli import sync_instructions
 from vos.report import Reporter
 
 HEADING = "=== gate: every host gate over this tree, in one run ==="
@@ -156,7 +155,7 @@ def _verdict_data(results: list[Result], stopped: str = "") -> dict[str, object]
     the command that ran, the code it exited, and whether that code is a verdict at all.
     `stopped` is the sentence that stands where no wave ran, which is the case a bare
     exit code cannot distinguish from a failing member and the one a reader most needs
-    named: an invalid instruction import and a repair that crashed both end here.
+    named: a repair that crashed without reaching a verdict ends here.
     """
     return {
         "green": bool(results) and all(r.code == 0 for r in results),
@@ -190,20 +189,11 @@ def _write_summary(rep: Reporter, path: Path, data: dict[str, object]) -> None:
 
 def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
         summary: Path | None = None) -> Reporter:
-    """Complete mutations before readers, then decide only the final validation wave."""
+    """Run the repair wave, if asked, then decide only the final validation wave."""
     if fix and check:
         raise ValueError("--fix and --check are mutually exclusive")
     rep = Reporter()
     rep.line(HEADING)
-    if not check:
-        try:
-            rep.line(sync_instructions.sync(root))
-        except (sync_instructions.SyncError, OSError, subprocess.SubprocessError) as err:
-            rep.report("gate", "instruction preparation failed:", [str(err)])
-            if summary is not None:
-                _write_summary(rep, summary,
-                               _verdict_data([], f"instruction preparation failed: {err}"))
-            return rep
 
     plan = _plan(fix, tests)
     if fix:
@@ -234,10 +224,9 @@ def main(argv: list[str] | None = None) -> int:
         description="Run the host's gates together and answer with one verdict.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--fix", action="store_true",
-                      help="validate instructions, restore a missing import, "
-                           "repair derived facts, then validate")
+                      help="repair derived facts, then validate")
     mode.add_argument("--check", action="store_true",
-                      help="validate without restoring the instruction import or repairing files")
+                      help="validate without repairing files")
     parser.add_argument("--tests", action="store_true",
                         help="add the tools' own behavioral tests to the wave")
     parser.add_argument("--summary", metavar="PATH", type=Path,
@@ -249,9 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     # Printed rather than accumulated, which the report itself is not: the longest
     # member is most of a minute and this is the only line that can say what is
     # being waited for while it runs.
-    preflight = ("" if args.check else "preparing shared instructions; ")
-    if args.fix:
-        preflight += "repairing derived facts; "
+    preflight = "repairing derived facts; " if args.fix else ""
     print(preflight + f"running {len(plan[-1])} host gate(s): "
           + ", ".join(m.name for m in plan[-1]), flush=True)
 

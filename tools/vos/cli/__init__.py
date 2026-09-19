@@ -104,8 +104,6 @@ COMMANDS: tuple[Command, ...] = (
             "the tools' own Python, under two pinned checkers"),
     Command("test", "vos.cli.test",
             "the tools' own behavioral tests"),
-    Command("sync-instructions", "vos.cli.sync_instructions",
-            "validate shared AGENTS.md instructions and the CLAUDE.md import"),
     Command("worktree", "vos.cli.worktree",
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("coread", "vos.cli.coread",

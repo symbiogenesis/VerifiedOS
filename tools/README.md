@@ -74,12 +74,11 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Validates shared agent instructions and restores a missing import, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
+| `gate` | host | Runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
-| `sync-instructions` | host | Validates AGENTS.md and its CLAUDE.md import; creates a missing import. `--check` only validates; `--migrate` converts identical legacy copies without discarding independent edits. |
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
 | `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
 | `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
@@ -615,17 +614,16 @@ reserves a quiet tree for their readers.
 | --- | --- |
 | Documents and cross-artifact facts | `python tools/run.py check` (or `python tools/check.py`) after a coherent edit batch. It checks the whole corpus; there is no file or rule filter. |
 | A checker rule | `python tools/run.py selftest --rule K-110`, substituting the changed rule, once the whole checker baseline is clean. This supplies only the selected rule's mutation evidence. |
-| Tool behavior | `python tools/run.py test --only sync_instructions`, substituting a module-name substring for the affected tests. |
+| Tool behavior | `python tools/run.py test --only gate`, substituting a module-name substring for the affected tests. |
 | Python sources or checker configuration | `python tools/run.py typecheck` after a coherent batch when feedback is needed before integration. It checks all tools; there is no path filter. |
 | Model, RTL or proofs | The changed artifact's required guest checks, against its real inputs and isolated outputs. Coordinate shared builds and proof runs; use `evidence` when its complete sweep is the acceptance check. |
 
 Use the existing verdict for unchanged inputs. If a checker run already reports
-arithmetic drift, instruction disagreement or owed co-reads, resolve those findings
+arithmetic drift, invalid instructions or owed co-reads, resolve those findings
 before running a selftest: its baseline runs the whole checker even under `--rule`,
 and a failed baseline supplies no mutation verdict. Workers report deferred repair
-and checks explicitly. They do not run `--fix` or bare `run.py`; the latter also
-validates AGENTS.md and restores a missing CLAUDE.md import. A separately justified
-full lane gate uses `--check` and a slot agreed with the integrator.
+and checks explicitly. They do not run `--fix` or bare `run.py`. A separately
+justified full lane gate uses `--check` and a slot agreed with the integrator.
 
 **Budget workers across the machine.** The full runner already parallelizes its
 gates; selftest, behavioral tests and typecheck also run internal workers. Keep one
@@ -641,14 +639,13 @@ The integrator closes the batch in this order:
 1. Join the lane outputs, resolve shared edits, read the affected prose, and record
    required co-read judgments. Inspect `git status --short --untracked-files=all`
    and each intended diff; track new deliverables by path so the checker sees them.
-   Finish instruction maintenance, generated artifacts and other writes before gate readers
-   start. Keep the validated checkout stable until its readers finish.
-2. Resolve known findings cheaply. Use `python tools/run.py sync-instructions` for
-   import validation and `python tools/run.py check --fix` for arithmetic repair
-   alone when more editing or co-reading remains. Repair once after the batch's
-   authored inputs settle; repeat only if new input changes or findings require it.
-   An intermediate merge needs a targeted check only when its answer affects the
-   next integration decision.
+   Finish generated artifacts and other writes before gate readers start. Keep the
+   validated checkout stable until its readers finish.
+2. Resolve known findings cheaply. Use `python tools/run.py check --fix` for
+   arithmetic repair alone when more editing or co-reading remains. Repair once
+   after the batch's authored inputs settle; repeat only if new input changes or
+   findings require it. An intermediate merge needs a targeted check only when its
+   answer affects the next integration decision.
 3. Run one complete host wave: `python tools/run.py --check` on the settled tree,
    or `python tools/run.py --fix` when only repair remains. Append `--tests` for tool
    changes or CI-equivalent host validation. `--fix --tests` already includes a
@@ -886,37 +883,18 @@ the finite consistency pilot. It uses the memory plan's candidate domains and ex
 predicates, with other islands fixed. Its `sat`, `unsat` and `unknown` results concern
 that declared grid, not arbitrary placements or all natural-language requirements.
 
-## Synchronizing agent instructions
+## Agent instructions
 
-[AGENTS.md](../AGENTS.md) is the shared instruction source. [CLAUDE.md](../CLAUDE.md)
-contains only `@AGENTS.md` and a final newline, the
-[documented import](https://code.claude.com/docs/en/memory#agentsmd) Claude Code loads
-at session start. Both files are tracked regular files. LF and CRLF import line endings
-are accepted, so checkout normalization on Windows does not change the contract.
-Edit shared rules in AGENTS.md; directory placement and lifecycle rules are the same
-for every agent. Personal standing preferences defer repository-specific paths and
-procedures to this repository instead of repeating them in a global configuration.
-
-`python tools/run.py sync-instructions` validates the nonempty UTF-8 source and its
-import, creating CLAUDE.md only when it is missing. It leaves valid files untouched
-and refuses unexpected content or unsafe paths. `--check` validates without writes.
-The retained command name supports existing callers; it performs no bidirectional
-merge, writes no checkpoint and never replaces the shared source from CLAUDE.md.
-
-For a checkout with identical legacy copies, `sync-instructions --migrate` converts
-CLAUDE.md to the import. If the copies differ, review and preserve their intended
-shared rules in AGENTS.md first; the tool does not discard an independent edit.
-The old `--from` options are refused with migration guidance. Existing ignored
-instruction-sync checkpoints are no longer read and may be removed when no older
-session needs them.
-
-A normal `python tools/run.py` performs validation and missing-import restoration
-before starting readers. K-110 checks the tracked source and import inside check.py.
-`run.py --check` performs the full read-only gate; CI adds `--tests`. `run.py --fix`
-performs the same instruction preparation, repairs derived artifacts, then runs a
-fresh validation wave. The tools run on Windows and Linux and install no hooks.
-Start a fresh agent session after changing instructions so its loaded guidance
-matches the files; existing worktrees retain the instructions at their own revision.
+[AGENTS.md](../AGENTS.md) is the one shared instruction source, a tracked nonempty
+UTF-8 regular file, which is what K-110 checks inside check.py. Edit shared rules
+there; directory placement and lifecycle rules are the same for every agent.
+Personal standing preferences defer repository-specific paths and procedures to
+this repository instead of repeating them in a global configuration. `run.py --check`
+performs the full read-only gate; CI adds `--tests`. `run.py --fix` repairs derived
+artifacts, then runs a fresh validation wave. The tools run on Windows and Linux and
+install no hooks. Start a fresh agent session after changing instructions so its
+loaded guidance matches the file; existing worktrees retain the instructions at
+their own revision.
 
 ## The conventions
 
