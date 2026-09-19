@@ -172,10 +172,40 @@ reduction tree is a different, separately admitted entry and reference.
 
 | Pilot | Frozen algorithm, domain and benchmark shapes | Observable |
 | --- | --- | --- |
-| Reduction | `uint32` modular sum and FP32 sum. Each group of 64 loads a padded tile, uses a fixed balanced pairwise tree with barriers at each level, writes one partial, then a second fixed tree reduces partials. Lengths 0, 1, 63, 64, 65, 255, 256, 257, 4096. Empty reduction is a host no-work result, not an invalid zero-sized C 1.2 enqueue. | Exact integer bits and FP32 sequence result. Include a separate 32-bit atomic-add count fixture with 64 work-items; old-value multiset 0..63 and final count 64. |
+| Reduction | `uint32` modular sum and FP32 sum, with the exact two-stage tree and empty result defined below. Lengths 0, 1, 63, 64, 65, 255, 256, 257, 4096. | Exact integer bits and FP32 sequence result. Include a separate 32-bit atomic-add count fixture with 64 work-items; old-value multiset 0..63 and final count 64. |
 | Barrier stencil | One-dimensional three-point Jacobi step: output interior `fma(0.25f,left,fma(0.5f,center,0.25f*right))`; copy endpoints unchanged. Group width 64 loads a tile plus halo into local scratch, all lanes barrier, active lanes store. Lengths 0, 1, 2, 63, 64, 65, 257, 4096; 1 and 4 iterations with alternating disjoint buffers. | Exact bytes for unchanged endpoints and comparator result elsewhere; tail lanes contribute no illegal read/write and still synchronize. |
-| GEMM kernels | FP32 `C = alpha*A*B + beta*C`, column-major. Dot product starts +0 and visits k in increasing order using explicit `fma`; epilogue computes `fma(alpha,dot,beta*C)` with a separately rounded multiplication. Transpose combinations NN/NT/TN/TT. `(m,n,k)` = (0,7,5), (1,1,1), (7,5,3), (16,16,16), (31,33,17), (64,64,64), (256,256,256), (7,5,0). Alpha/beta pairs (1,0), (1,1), (-1,0.5), (0,1). Leading dimensions are minimal and minimal+3. | Exact source-sequence result, untouched padding, no A/B/C alias. Zero output dimension is no work; k=0 executes the specified beta scaling. |
+| GEMM kernels | FP32 `C = alpha*A*B + beta*C`, column-major. For k>0, dot product starts +0 and visits k in increasing order using explicit `fma`; epilogue computes `fma(alpha,dot,beta*C)` with a separately rounded multiplication. The k=0 source branch is defined below. Transpose combinations NN/NT/TN/TT. `(m,n,k)` = (0,7,5), (1,1,1), (7,5,3), (16,16,16), (31,33,17), (64,64,64), (256,256,256), (7,5,0). Alpha/beta pairs (1,0), (1,1), (-1,0.5), (0,1). Leading dimensions are minimal and minimal+3. | Exact source-sequence result, untouched padding, no A/B/C alias. Zero output dimension is no work; k=0 uses the explicit branch rather than the k>0 epilogue. |
 | Named BLAS operation | `hipblasSgemm` with the same shape/transpose/layout set, `HIPBLAS_POINTER_MODE_HOST`, FP32 default math, and alpha/beta copied before submission. The operation uses the API's BLAS semantics, including cases that do not reference A/B or C. Its direct comparator implements those semantics rather than blindly evaluating an unused operand. | Zero-ULP to the frozen admitted implementation sequence on the finite benchmark domain; exceptional cases obey the pinned BLAS contract. No wider BLAS accuracy or library coverage claim. |
+
+The reduction domain is 0 <= N <= 4096. For N>0 there are G = ceil(N/64)
+groups numbered 0 through G-1. Group g initializes a 64-element tile in
+increasing input order: tile[i] is input[64*g+i] for 0 <= i < 64 when
+that index is below N, otherwise integer zero or FP32 **+0** (bits 0x00000000).
+For each level, form a new array with half as many elements by
+next[j] = add(previous[2*j], previous[2*j+1]), in that operand order. Addition
+is modulo 2^32 for `uint32` and one RNE FP32 addition for float. The levels
+have widths 64, 32, 16, 8, 4, 2, 1, with all 64 work-items participating in
+the barrier between levels; storage must preserve the complete previous level
+until its reads finish. There is no odd-element carry rule: the initial tile
+is always padded to 64 before pairing. Its final element is partial[g].
+
+The second stage always applies that same 64-to-1 tree to partials in increasing
+group order, padding the unused positions with the same positive zero, even
+when only one group produced a partial. For N=0, the host writes integer zero
+or FP32 +0 as the reduction result and enqueues no kernel. These padding and
+empty rules are part of the source and the bit-level reference; in particular,
+an input -0 is not promised to survive additions with padded +0.
+
+For nonempty GEMM output with k=0, both source kernels and their reference
+take an explicit branch: each result is the single RNE FP32 multiplication
+`beta*C`, with no subsequent `fma` and no reference to alpha, A or B. Thus
+beta=1 and C=-0 produces -0. This source branch reads C even when beta=0;
+BLAS has its separate no-reference cases and must not inherit that behavior.
+For k>0, the source always evaluates the stated dot and epilogue, including
+when alpha or beta is zero. Empty m or n performs no data access in either
+source branch. These distinctions must be represented in the original source,
+the admitted preconditions and the independent reference, not repaired only
+inside the test comparator.
 
 Generated numeric vectors include signed zeros, unit values, alternating signs,
 largest/smallest finite values, smallest normal and subnormal values, infinities
