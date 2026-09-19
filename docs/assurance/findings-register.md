@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 698 of them across 125 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 700 of them across 126 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -864,6 +864,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-384** owed-act: the host-run per-pass peak this item asked for is owed by no item after its landing
 · Raised: Q26
 · Disposition: open, and no artifact owns it; the item asked for a per-pass peak taken from a host run of the same act the device will perform, the report declined it and named M1.10, and M1.10 owns a recorded peak per pass rather than a measurement of a host run while its own join line reads that Q26 prices what those compartments occupy. The host-run form falls between the two and is recorded as an unowned product rather than assigned to M1.10, whose text excludes it; assigning an owner is the plan's act
+
+**F-392** owed-act: no entry tied a second-class domain's retention across a transition to what it holds, so a session-derived domain, the KV cache above all, could stay RETAINED in plaintext through the lock one entry states as keys-not-resident, and the set a wake retained was by no rule the public one
+· Raised: Q33, in prose
+· Disposition: closed, taken at R-15-247t, which labels every second-class domain at composition and confines RETAINED to the image-derived ones, with R-09-019 and R-15-190a amended to read the label
+
+**F-393** owed-act: no entry bounded the latency of any re-execution of the measured chain, the TRNG contract reporting the start-up sample budget as a term with nothing pushing the other way
+· Raised: Q33, in prose
+· Disposition: closed at the register, taken at R-09-006b, which makes every re-execution's worst case a composition constant; the ceilings it is read against are DP-6 and DP-7 of the product-gate contract, proposed and binding nothing until ratified, and the development vehicle's own ceiling stays F-000l's
 
 ## M0 · Hardware reference
 
