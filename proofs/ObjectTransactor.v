@@ -251,7 +251,7 @@
    is writable today.
 
    The source acceptance predicate was committed before implementation in
-   docs/implementation/contracts/object-transactor-contract.md. It requires a native
+   docs/implementation/contracts/object-transactor.md. It requires a native
    source audit, inhabited positive executions, generated crash families,
    and substantive guard mutants classified as killed, stillborn or
    investigated survivors. The integrator's final full-tree command is

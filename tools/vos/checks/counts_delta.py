@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from . import Context
 
 # K-70: the freeze's closed delta and the instrument that quantifies over it.
-CONTRACT = "docs/implementation/contracts/freeze-measurement-contract.md"
+CONTRACT = "docs/implementation/contracts/freeze-measurement.md"
 DELTA_OWNER = "R-15-014a"
 
 # The markers the entry enumerates its delta with, in the order it writes them. The

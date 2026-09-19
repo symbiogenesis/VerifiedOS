@@ -9,7 +9,7 @@ release-model replacement is established here.
 
 This review extends the [BITCOS comparison](bitcos-assessment.md). Q4b owns
 target selection, M6.6/M6.8 own the server and grant, and the
-[product-gate contract](../implementation/contracts/product-gate-contract.md)
+[product-gate contract](../implementation/contracts/product-gate.md)
 owns quality acceptance. A model is best for a declared workload and resource
 envelope; a publisher's aggregate benchmark does not decide that comparison.
 

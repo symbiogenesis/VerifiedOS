@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Bounded review-body fixtures for replay-record-contract.md.
+"""Bounded review-body fixtures for replay-record.md.
 
 This is structural fixture validation. It neither authenticates opaque seals nor
 records, exports, or replays a machine. In particular, an Event's secret payload

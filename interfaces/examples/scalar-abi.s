@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Scalar authoring witness for docs/implementation/contracts/purecap-abi-contract.md.
+# Scalar authoring witness for docs/implementation/contracts/purecap-abi.md.
 # This is an assembler and Sail-clause review fixture, not boot firmware or
 # evidence of execution. Its input capabilities are producer obligations:
 #

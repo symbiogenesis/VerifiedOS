@@ -192,7 +192,7 @@ names the site. The operational form of that case, this contract's injected
 unrecorded watchdog draw, waits on a real producer. An account may be supplied on
 the same footing as the binding and the expected count, and it may decline, which
 is the recorder's existing promise that no value was consumed; the host verifies
-neither answer. The [entropy-root observer](entropy-observer-contract.md) supplies
+neither answer. The [entropy-root observer](entropy-observer.md) supplies
 the missing observation boundary: every root invocation synchronously reports
 its outcome to the C++ callback interface, including internal watchdog draws.
 `RootProducer` in [replay_adapter.py](../../../tools/vos/replay_adapter.py) seals
@@ -309,7 +309,7 @@ register decides that; no adapter may, and none here does.
 ## What is still owed, and by whom
 
 - **Binding the root observer to the operational recorder.** The synchronous
-  [observer and its acceptance](entropy-observer-contract.md) expose every draw;
+  [observer and its acceptance](entropy-observer.md) expose every draw;
   a capture must install the trusted callback and provide the sealed writer and
   its independently authenticated schedule point.
 - **The sealing primitive** (M3.4) and **the RoT firmware's record writer** (M3.2),

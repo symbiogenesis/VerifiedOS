@@ -4,7 +4,7 @@
 This format authenticates bytes under an external shared development key. It
 does not seal entropy, verify image signatures, authorize export, establish
 capture completeness, or replay a machine. The input trace remains plaintext.
-See docs/implementation/contracts/host-replay-envelope-contract.md.
+See docs/implementation/contracts/host-replay-envelope.md.
 """
 
 import hashlib

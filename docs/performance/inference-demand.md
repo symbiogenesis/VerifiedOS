@@ -22,7 +22,7 @@ Not measured here, each with the reason:
 - **The rest of the simultaneous workload.** R-18-004a's other seven members share the aggregate bandwidth and the two capacities; only the inference member is measured, and the budget says so where the aggregate is compared.
 - **Concurrency above one session.** One session, batch size one, which is the low-batch case [the critique](../background/critique.md) names as the one that streams the weight set each token.
 - **A mixture-of-experts model.** R-12-085's expert-count and top-k terms are unmeasured; R-15-171 admits such a model only with every expert resident and top-k fixed, which makes its demand the dense arithmetic below over the resident expert set, and no MoE weight was loaded.
-- **The acceptability threshold.** This report records the comparator but does not declare a configuration quality-acceptable. The [product-gate contract](../implementation/contracts/product-gate-contract.md#2-the-limits), authored under Q1, defines the inference-quality limit PL-9 and its proposed parameters DP-4 and DP-5. Those parameters require the product owner's ratification before they bind a candidate.
+- **The acceptability threshold.** This report records the comparator but does not declare a configuration quality-acceptable. The [product-gate contract](../implementation/contracts/product-gate.md#2-the-limits), authored under Q1, defines the inference-quality limit PL-9 and its proposed parameters DP-4 and DP-5. Those parameters require the product owner's ratification before they bind a candidate.
 
 ## 2. The instrument
 
@@ -158,7 +158,7 @@ The two formats' own declarations in the pin's `ggml/src/ggml-common.h` say why,
 
 **Over the k-quant ladder the comparator is monotone and the four-bit row is where quality falls fastest.** Between Q4_K_M and Q5_K_M, 0.78 more bits per parameter divides the mean KL divergence by 6.0 and lifts top-1 agreement by 8.1 points; between Q5_K_M and Q6_K, 0.83 more bits divides it by 1.8 and lifts agreement by 1.9 points. So the format the floor names, four bits, is on the steep part of this model's curve, and the format one step above it costs 16% more bytes per token for that difference. **Which of those is quality-acceptable is exactly the judgment this report does not make.**
 
-**The comparator is recorded and the threshold is not this report's.** Which mean KL divergence and which top-1 agreement make a configuration quality-acceptable is the inference-quality `PG-` predicate of the product-gate contract at `docs/implementation/contracts/product-gate-contract.md`, Q1's document, and **quality-acceptable is Q1's to decide**. Nothing here declares a configuration acceptable, and the corpus is this repository's own prose rather than a representative task set, which is Q1's to fix as well.
+**The comparator is recorded and the threshold is not this report's.** Which mean KL divergence and which top-1 agreement make a configuration quality-acceptable is the inference-quality `PG-` predicate of the product-gate contract at `docs/implementation/contracts/product-gate.md`, Q1's document, and **quality-acceptable is Q1's to decide**. Nothing here declares a configuration acceptable, and the corpus is this repository's own prose rather than a representative task set, which is Q1's to fix as well.
 
 ## 8. The target traffic budget
 
