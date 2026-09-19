@@ -62,6 +62,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 | `CJ-WASM-SOUND` | Platform-interpreter soundness and robust guest confinement over the pinned guest semantics (§14) |
 | `CJ-ATTEST` | The attestation-session reference model, including appraisal, freshness, authenticated key ownership and compromise assumptions (§12) |
 | `CJ-WITNESS` | The witness-policy reference model, including quorum faults, persistent history, recovery and trust transitions (§13) |
+| `CJ-PKI` | The X.509 chain-validation policy reference model: the judgment deciding which presented certificate chain authenticates a TLS peer (§12) |
 
 ---
 
@@ -2845,6 +2846,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 **R-12-032** IS: For TLS 1.3 the trust-base-uniform target is a Rust-native hax-verified TLS in the Bertie lineage, with miTLS the more mature F\*/Z3 option; either way the protocol proof is *bonus* over the memory-safety floor and never trust base, and the crypto binds to the §5 verified core.
 · Accept: no protocol proof enters the trust base (R-05-010, R-05-078).
 · Trace: CJ-REDUCTION
+
+**R-12-032a** MUST: Every TLS peer the platform authenticates by certificate (the browser's hosted content, the resolver's DNS-over-TLS upstream, NTS key establishment and §13 fetches among them) is authenticated by X.509 chain validation held to the handshake's own two disciplines: the DER certificate and chain grammar is an R-05-042 wire format with its own Narcissus descriptor, and the validator is a contained compartment separate from the record layer whose start-from is Rust-native in the Verdict lineage, its Verus proofs bonus over the memory-safety floor and never trust base; the validation policy that validator is checked against, path construction, signature acceptance through the §5 verified core, validity against authenticated time, name constraints and host-name matching over a trust-anchor set, is a crown-jewel spec, because no one true specification of chain validity exists and a verified validator against the wrong policy is a correct proof of the wrong property.
+· Accept: the wire-format inventory carries the X.509 DER certificate and chain descriptors; the crown-jewel inventory carries the policy as one row, curated from RFC 5280 and the published Verdict policy models and subject to R-05-150 review; a session is authenticated only by a chain that policy validates, and in R-09-014's time-unknown state no chain validates; the trust-anchor set is content of the validator's admitted image, changed only by the §13 successor-generation path, and no anchor enters from a peer, from hosted content or from a runtime channel; no validator proof enters the trust base (R-05-010, R-05-078).
+· Trace: CJ-PKI, CJ-FORMAT
 
 **R-12-033** MUST: Where no Coq-native verified peer exists, mature verified artifacts in other provers serve as differential-test oracles that enter no trust base: IRONSIDES for the resolver, and SPARK-verified TCP with Huginn-TCP conformance for smoltcp.
 · Accept: the oracle pattern matches R-05-051.
@@ -6448,7 +6453,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1463 requirements. §19 is non-normative and yields none. Counts include the 510 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1464 requirements. §19 is non-normative and yields none. Counts include the 511 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6463,7 +6468,7 @@ All eighteen normative sections are extracted, at 1463 requirements. §19 is non
 | **§9 Boot & Root of Trust** | **extracted** | **44** |
 | **§10 Storage & State** | **extracted** | **55** |
 | **§11 Updates** | **extracted** | **39** |
-| **§12 System Servers** | **extracted** | **138** |
+| **§12 System Servers** | **extracted** | **139** |
 | **§13 Packaging & Supply Chain** | **extracted** | **43** |
 | **§14 Userland** | **extracted** | **33** |
 | **§15 Hardware Platform** | **extracted** | **428** |
