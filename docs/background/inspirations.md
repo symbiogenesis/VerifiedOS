@@ -1890,7 +1890,7 @@ The first-release work includes compositing, 2D and text, codecs and the ISP; wh
 
 **Why it stopped, and why that cause is not on this machine's bill.**
 The consumer part was cancelled on the compatibility contract rather than on the architecture: it had to be conformant and competitive at DirectX and OpenGL against parts whose fixed-function stages it was emulating in software, and the same cores then shipped for years as Knights Corner and Knights Landing once no graphics API stood in the way.
-This platform never signs that contract, exposing no GL, Vulkan, Metal, wgpu, software ICD, command-buffer personality, or runtime shader compiler at all, with direct dispatch of certified kernels over capability-scoped buffers as the interface instead (§12, §13), and paying in the other currency, a native backend per toolkit, at the line the alternatives entry books it on.
+The current display contract exposes no full GL, Vulkan, Metal, wgpu or software-ICD personality, command-stream validator or runtime shader compiler (§12, §13). Its direct dispatch of certified kernels over capability-scoped buffers can nevertheless carry standard build-time languages and qualified bounded adapters. The [OpenCL/SPIR-V and HIP work](../implementation/compute-compatibility.md) shares that execution path; toolkit integration and complete graphics conformance remain distinct costs under R-04-001a.
 The transferable lesson is therefore not that software rendering works, which Larrabee only half demonstrated, but that **the API burden and the rendering thesis are separable**, so the machine that declines the first is not the machine that was cancelled.
 
 **One ISA, reached for and not quite held.**

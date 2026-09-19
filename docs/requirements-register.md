@@ -193,6 +193,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the test is applied at the R-05-150 review gate to every addition or amendment; an entry meeting none of the three is inadmissible, and the finding lands in the R-05-152 review record against the entry's ID.
 · Trace: CJ-T
 
+**R-04-001a** MUST: Prefer existing open standards and their compatible source interfaces, formats and semantics over project-specific replacements wherever the existing security, verification, authority, timing, resource and hardware-absence obligations can all be preserved. Compatibility work changes none of those obligations or the assurance tiers and residuals summarized in the root README.
+· Accept: each new interface or format decision and each compatibility assessment records the applicable standard and revision, the supported features, and a disposition for every considered omission or divergence: a specific conflict naming the affected requirement and why a bounded adapter or ahead-of-time translation cannot resolve it; a measured resource limit under the admitted composition; or an implementation/proof gap with an owner and acceptance predicate. A gap remains open work rather than evidence that the standard is incompatible. Engineering effort alone, the absence of a stock port, or an upstream implementation's mechanism is insufficient reason to invent different semantics. Among alternatives meeting the obligations, select the one retaining the greatest applicable standard surface; record concrete tradeoffs when candidates preserve different surfaces. The record distinguishes an open standard from an open-source implementation or vendor API and states source, API, binary and conformance scope separately. Existing decisions are assessed when their surface is changed, without silently reversing an existing prohibition.
+· Trace: CJ-T
+
 **R-04-002** IS: Two orthogonal security properties are both required: capabilities control *access* and information-flow control governs *propagation*, each blind to the other.
 · Accept: static composition is the structural prerequisite for proving both: a fixed component graph has a fixed capability topology *and* a fixed flow policy, over which one non-interference theorem can be stated.
 · Trace: CJ-NI, CJ-CERISE
@@ -3324,6 +3328,18 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no compiler and no shader-IR compiler sits in any datapath: compilation is a producer act finished before the image is admitted, never a step a running compartment takes on the display or inference path, and the resident toolchain does not change that (R-13-027a), a build's output reaching a datapath only as the next generation's admitted image.
 · Trace: CJ-TAL-SOUND
 
+**R-13-018a** MUST: The compute compatibility path targets OpenCL C and applicable SPIR-V semantics ahead of time, with HIP source/API adaptation onto the same admitted V/M-class execution path. R-04-001a governs feature selection; adopting these interfaces confers no exemption from ordinary Tier-1/Tier-2 admission.
+· Accept: the package carries the original source closure, translation inputs and options, and checked correspondence through every frontend, IR transform, vectorization, library substitution, assembly and linking step to its final image, beside the tier's required binary derivation. A theorem starting only at a translated intermediate does not establish correspondence to the original source. Host adapters, libraries and dispatch code carry their own applicable evidence. SPIR-V is a producer input, never executable authority or a runtime shader compiler. Program handles select only code already in the boot-admitted image; newly built source, IL or binary objects reach execution only in a successor generation under R-02-008 and R-13-001a. TCB code retains R-05-001's compiler route; untrusted compiler pedigree, conformance tests and upstream proof claims grant no admission authority.
+· Trace: CJ-TAL-SOUND, CJ-COMPCERT, CJ-SECOMP
+
+**R-13-018b** MUST: Compute compatibility preserves the declared standard semantics on its supported domain while using the existing capability, bounded-pool and fixed-schedule substrate.
+· Accept: the admitted contract maps work-items/work-groups, address spaces, barriers, atomic operations and scopes, numerical rules and errors to the frozen ISA and memory model. It accounts for every buffer, queue, event, handle, work-group scratch area and private spill region under R-08-046/R-08-047, including initialization, aliasing, release and restart; declares launch-dimension and outstanding-work bounds, fixed worker ownership and schedule budgets; and applies the tier's safety obligations, deadline obligations where claimed, and R-13-020's secret-label rule unchanged. Runtime dimensions and occupancy may vary within those bounds. API discovery exposes only manifest-delegated resources; queue ordering never borrows another partition's time. Unsupported semantics have a documented diagnostic or error, never a silent weakening; resource exhaustion uses the existing typed pool verdict and its explicit API mapping. A work-group barrier or atomic operation is supported only with a semantics-preserving lowering and its applicable progress argument, not merely because the frontend accepts it.
+· Trace: CJ-TAL-SOUND, CJ-MEMPLAN, CJ-WCET, CJ-CT-SOUND, CJ-NI
+
+**R-13-018c** MUST: Every compute support claim identifies the exact language/API revision, feature and extension set, execution target, resource limits and qualification evidence, distinguishing source compatibility from complete API, binary, library or standards conformance.
+· Accept: the feature record covers the mandatory requirements of each claimed standard profile, reports implemented, unsupported and unimplemented features separately, and identifies conformance-test revision, configuration, passes, failures and exclusions. OpenCL full-profile online compilation is not claimed by a boot-only AOT implementation; embedded-profile eligibility, binary/built-in program semantics and every other mandatory feature require a separate standards audit before any conformance claim. HIP is identified as an open-source portability API rather than a Khronos standard. HIP source support establishes neither AMD GPU execution nor ROCm library compatibility: each claimed library/version has its own supported operations, numerical and resource contract and evidence. No full ROCm stack or hardware exception follows from a RISC-V host demonstration.
+· Trace: CJ-TAL-SOUND, CJ-SAIL
+
 **R-13-019** MUST: Apps needing `unsafe` are inadmissible at Tier 2 unless the `unsafe` routes through the verified HAL or the app ships a manual memory-safety proof.
 · Accept: no third disposition exists.
 · Trace: CJ-HAL, CJ-TAL-SOUND
@@ -6453,14 +6469,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1464 requirements. §19 is non-normative and yields none. Counts include the 511 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1468 requirements. §19 is non-normative and yields none. Counts include the 515 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
 | **§1 Goals** | **extracted** | **8** |
 | **§2 Non-Goals** | **extracted** | **9** |
 | **§3 Threat Model** | **extracted** | **9** |
-| **§4 Organizing Principle** | **extracted** | **14** |
+| **§4 Organizing Principle** | **extracted** | **15** |
 | **§5 Languages & Verification** | **extracted** | **213** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **65** |
@@ -6469,7 +6485,7 @@ All eighteen normative sections are extracted, at 1464 requirements. §19 is non
 | **§10 Storage & State** | **extracted** | **55** |
 | **§11 Updates** | **extracted** | **39** |
 | **§12 System Servers** | **extracted** | **139** |
-| **§13 Packaging & Supply Chain** | **extracted** | **43** |
+| **§13 Packaging & Supply Chain** | **extracted** | **46** |
 | **§14 Userland** | **extracted** | **33** |
 | **§15 Hardware Platform** | **extracted** | **428** |
 | **§16 Reliability** | **extracted** | **35** |

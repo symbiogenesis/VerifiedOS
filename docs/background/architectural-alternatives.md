@@ -1021,13 +1021,11 @@ The honest cost is the net-new engineering and lower peak throughput of a no-JIT
 
 ## Vulkan and software GPU personalities: declined
 
-Vulkan is the most explicit mainstream graphics API, but its central runtime operation is pipeline creation from shader IR.
-Implementing that contract in software would reintroduce runtime code generation and the shader compiler W^X excludes; interpreting SPIR-V would avoid executable promotion but spend the graphics throughput budget while retaining the other surfaces.
-Command buffers recreate an attacker-authored stream and validator even without GPU hardware, and descriptor sets, queues, heaps, ICDs, and extensions emulate a discrete device and memory model the machine does not have.
+The current display contract excludes a runtime shader-IR compiler, command-stream validator and GPU driver (R-12-082, R-15-239). A software backend that introduces those mechanisms does not fit that contract. This is a decision about the execution path; neither software rendering nor a standard source language inherently requires runtime native-code generation.
 
-**Disposition:** expose no Vulkan, GL, Metal, wgpu, software ICD, command-buffer personality, or runtime shader compiler.
-The certified-kernel interface used instead is documented in [Inspirations & Prior Art](inspirations.md).
-The honest cost is a native backend per toolkit rather than one inherited compatibility layer.
+**Disposition:** full Vulkan, GL, Metal, wgpu and software-ICD personalities remain outside the current display contract. Standard build-time inputs and bounded source/API adapters are evaluated independently under R-04-001a. The [compute compatibility plan](../implementation/compute-compatibility.md) selects OpenCL C/SPIR-V and HIP adaptation onto the existing AOT-certified native-kernel interface. It introduces no display command-stream validator. Reusing a shader source still requires its complete pre-admission closure, checked lowering, capability-scoped buffers and fixed resource/schedule contract. A future graphics-API proposal must identify the exact supported surface and conflicts rather than treating the absence of a GPU as an API-level impossibility.
+
+The open cost is qualifying each frontend and adapter and connecting toolkit backends to the shared execution path; full graphics conformance is not a result of that work.
 
 ---
 
@@ -1039,9 +1037,9 @@ The media row is one of the largest costs in [performance-estimates.md](../perfo
 
 **An autonomous bitstream engine** is the interesting near miss, and it is the shape a vendor would reach for once the block is refused: leave the syntax and the pixel work in software, and give the range decoder a small engine handed a descriptor and left to walk the coded data. It fails admission test 5 (R-15-010) as a memory-touching walker, on the same ground as the CHERIoT TBRE sweep engine (R-08-009), and the platform's answer is the same one temporal safety got: refuse the walker, admit the core-issued instruction that carries its inner loop. That instruction is `rcstep` (R-15-067f), which touches no memory, ends at the step it names, and buys the serial stage's cycles and its worst-case bound together.
 
-**Compute-shader decode**, the GPU-side route that would otherwise be the interesting third option, is unavailable by construction rather than declined on its merits: there is no GPU, no SPIR-V, and no shader compiler (R-15-239, and the Vulkan entry above), and the general-purpose datapath the work would land on is the V-class the decoder already runs on. It is also weaker than it looks upstream: the compute-shader codecs that exist in practice are intra-only mezzanine formats whose entropy stage parallelizes across slices, which is precisely the property the inter-coded consumer formats do not have.
+**Compute-shader source reuse** can feed the same AOT-certified RVV pixel kernels through R-13-018a. SPIR-V is a build-time input, not a runtime decoder or GPU execution path. Any candidate still owes the verified bitstream parser, supported codec semantics, correspondence proof and declared decode ceiling; its source language alone supplies no throughput result. The compute compatibility work does not replace those decoder obligations.
 
-**Disposition:** no codec block, no bitstream engine, no shader-based decode path. The admitted acceleration is the stage split (R-15-238a), the RVV pixel kernels, and one fixed-latency range-coder instruction whose carriage the freeze measurement still decides (R-15-067h).
+**Disposition:** no codec block, autonomous bitstream engine or runtime GPU/shader-compilation path; qualified shader-source reuse remains available for the admitted software stages. The admitted acceleration is the stage split (R-15-238a), the RVV pixel kernels, and one fixed-latency range-coder instruction whose carriage the freeze measurement still decides (R-15-067h).
 The honest cost is a declared decode ceiling (R-15-238c), a persistent energy-per-frame multiple over fixed function, and no protected media path at all (R-15-238e, R-17-053a).
 
 ---
