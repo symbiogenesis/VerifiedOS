@@ -2950,8 +2950,12 @@ intended HTIF checks; no compilation failure is credited as detection.
 Worker checks include corpus refresh followed by digest verification, the
 focused host tests, the guest slow executor controls and Python typechecking.
 The integrator reviewed the generator and corrected native-Linux test scratch
-placement using the existing environment selector. The item ran from
-approximately 20:11 to 20:25 UTC on 2026-09-19 through its canonical build handoff, with
+placement using the existing environment selector.
+The composer regression's pre-extension image hash was reproduced over all
+old members before extending its frozen fixture; the new member accounts for
+the complete size and hash change. Its measured comparison is retained in
+`out/evidence/block-authority-compose-baseline.json`.
+The item ran from approximately 20:11 to 20:25 UTC on 2026-09-19 through its canonical build handoff, with
 shared review and integration apportioned as above. This is finite device
 evidence; kernel authority distribution and the complete storage image remain
 M5.3d's work.

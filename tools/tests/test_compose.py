@@ -15,8 +15,7 @@ rather than becoming a measurement by accident.
 
 The third is the regression M1.4-prime may not move: the differential corpus assembles
 to the same bytes it always did. The digest is over every member's image in manifest
-order, one figure rather than twenty-six, because it moves for exactly the reasons the
-twenty-six would and a table of them would be twenty-six chances to rerecord one.
+order, keeping one aggregate regression fixture for the complete manifest.
 """
 
 import hashlib
@@ -55,9 +54,15 @@ _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 # those two numbers differ and why neither can be derived from the other by counting
 # instructions. The reading below is the corpus as it now stands, and a red run is still
 # never repaired by rerecording alone.
+#
+# M5.3c extends the manifest with block-authority. Before recording its new total,
+# assembling every other member reproduced the prior 26-image, 56,008-byte hash
+# a287542f3c5385b6f5b2074a42ac068897738a4cc42fdce88e3fb49d2116689f exactly.
+# Thus the extension changes only the new member, not any old encoded image.
 _CORPUS_IMAGES: Final[str] = \
-    "a287542f3c5385b6f5b2074a42ac068897738a4cc42fdce88e3fb49d2116689f"
-_CORPUS_BYTES: Final[int] = 56_008
+    "821d0753a511378632d7b0cb760daf45d2be11b7e366dcf14f7f295a1b599e57"
+_CORPUS_BYTES: Final[int] = 110_424
+_CORPUS_MEMBERS: Final[int] = 27
 
 
 def _program(rows: int) -> str:
@@ -172,8 +177,8 @@ def _corpus_images_have_not_moved() -> None:
             blob = elf.read_bytes()
             digest.update(blob)
             total += len(blob)
-    ensure(len(manifest.members) == 26,
-           f"the corpus carries {len(manifest.members)} members, recorded 26")
+    ensure(len(manifest.members) == _CORPUS_MEMBERS,
+           f"the corpus carries {len(manifest.members)} members, recorded {_CORPUS_MEMBERS}")
     ensure(total == _CORPUS_BYTES,
            f"the corpus assembles to {total} bytes, recorded {_CORPUS_BYTES}")
     ensure(digest.hexdigest() == _CORPUS_IMAGES,
