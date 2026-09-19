@@ -1,6 +1,6 @@
 # Storage index comparison
 
-Q22f qualifies a bounded comparison for R-10-004 in the [requirements register](../requirements-register.md). The result is a design experiment; [M5.3](implementation-checklist.md) owns the executable storage path and its target measurements. The current Bε design remains the incumbent until the actual composition satisfies the selection predicate. A successful synthetic case admits no product configuration.
+Q22f qualifies a bounded comparison for R-10-004 in the [requirements register](../../requirements-register.md). The result is a design experiment; [M5.3](../implementation-checklist.md) owns the executable storage path and its target measurements. The current Bε design remains the incumbent until the actual composition satisfies the selection predicate. A successful synthetic case admits no product configuration.
 
 ## Predicate fixed before measurement
 
@@ -20,7 +20,7 @@ Each arm passes a bounded case only when it preserves the map/snapshot and stays
 
 ## Shared journal, recovery and integrity contract
 
-The fixture instantiates the open parameters in [JournalIndex.v](../../proofs/JournalIndex.v); it neither executes nor refines that statement artifact. It selects a prefix redo log, one transaction outstanding, no background checkpoint overlap, and authenticated full-block redo images. A transaction with `p` changed nodes writes `p` redo blocks, persists them, writes and persists one authenticated commit block, writes `p` fresh home blocks and one alternate authenticated root checkpoint, then persists the checkpoint before reusing the journal. Acknowledgement follows that final barrier. Both arms pay `2p + 2` writes and three barriers. Changing that acknowledgement/checkpoint policy changes this experiment's cost model for both arms.
+The fixture instantiates the open parameters in [JournalIndex.v](../../../proofs/JournalIndex.v); it neither executes nor refines that statement artifact. It selects a prefix redo log, one transaction outstanding, no background checkpoint overlap, and authenticated full-block redo images. A transaction with `p` changed nodes writes `p` redo blocks, persists them, writes and persists one authenticated commit block, writes `p` fresh home blocks and one alternate authenticated root checkpoint, then persists the checkpoint before reusing the journal. Acknowledgement follows that final barrier. Both arms pay `2p + 2` writes and three barriers. Changing that acknowledgement/checkpoint policy changes this experiment's cost model for both arms.
 
 The valid commit binds the payload length, record order, target addresses and content identities. A crash before a complete commit selects the previous committed map. A complete commit with intact payload replays to the new map, including a partially completed home copy or final drain. A complete commit with a torn, corrupted or misdirected payload refuses recovery; it cannot silently discard an acknowledged generation. Repeated recovery is idempotent, and the journal remains reserved until checkpoint persistence. An interrupted recovery can repeat the bounded recovery operation; arbitrary repeated power failure has no finite aggregate liveness bound.
 
@@ -38,7 +38,7 @@ Both arms owe key ordering and lookup refinement, CoW ownership and retained-roo
 
 ## Reproduction and disposition
 
-Run `python tools/run.py storage-index --json` for every measured workload, budget disposition, bounded semantic/crash population, reservation and input-source digest; `python tools/run.py test --only storage_index` exercises its behavioral and rejection checks. The predicate precedes the executable experiment in commit `38cebaa`; the [Q22f completion record](completion-log.md) owns the measured execution evidence. Results are emitted from the implementation, with no separately maintained measurement table here.
+Run `python tools/run.py storage-index --json` for every measured workload, budget disposition, bounded semantic/crash population, reservation and input-source digest; `python tools/run.py test --only storage_index` exercises its behavioral and rejection checks. The predicate precedes the executable experiment in commit `38cebaa`; the [Q22f completion record](../completion-log.md) owns the measured execution evidence. Results are emitted from the implementation, with no separately maintained measurement table here.
 
 **Retain the Bε incumbent provisionally; admit no target composition from this experiment.** Under the central synthetic endurance budget, buffered singleton-update cases pass and their B+ counterparts fail. Under the strictest budget those same cases reject both arms; the wider budget admits both, and the larger transaction widths admit both throughout the declared budget sweep. Buffering therefore has a demonstrated use under this conditional full-block redo cost, while application transaction batching changes the comparison. B+ removes the fixture's message-refinement obligations, but that advantage does not satisfy the central envelope's singleton endurance requirement. Neither arm receives a global performance or proof-cost claim.
 

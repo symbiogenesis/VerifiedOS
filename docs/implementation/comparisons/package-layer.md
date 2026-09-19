@@ -1,6 +1,6 @@
 # Fixed package layer comparison
 
-Status: **open cost comparison**. This artifact evaluates Q31 against the default R-13-028 states and the [alternatives entry](../background/architectural-alternatives.md#a-fixed-package-layer-with-a-declared-contract-deferred-to-the-comparison-r-13-028-names) records. It selects no layer, amends no entry, and qualifies no external source.
+Status: **open cost comparison**. This artifact evaluates Q31 against the default R-13-028 states and the [alternatives entry](../../background/architectural-alternatives.md#a-fixed-package-layer-with-a-declared-contract-deferred-to-the-comparison-r-13-028-names) records. It selects no layer, amends no entry, and qualifies no external source.
 
 ## 1. Baseline and candidate
 
@@ -8,7 +8,7 @@ The baseline is R-13-028 as it stands. A package is content plus its content-add
 
 The candidate is a **fixed package layer**. Each package's code-and-rodata image, data-initializer, correspondence theorem and hyperproperty certificates are emitted once against a declared **package contract** (section 3) and are roster-invariant, as the base image's are. A composition maps such a package rather than re-lowering it, and re-runs only the acts that are the roster's by nature: the slot plan over the packages' declared extents, the schedule over their declared bounds, the capability-wiring table (R-13-006), the handler graph (R-12-024b) and the manifest consistency check. An install then pays the correspondence check over the packages whose fixed objects the store does not already hold as admitted, which on an ordinary install is the package that changed.
 
-What the candidate does not change is stated first, because the proposal is easily read as more than it is. An install is still a generation that takes effect at the next boot (R-13-001a); nothing binds at runtime, no compartment is minted, and no reservation is composed ahead of its occupant (R-13-001b). The composer is still an untrusted producer wherever it runs (R-13-001c), the on-device checks still gate admission (R-13-025, R-11-005), and the per-install source-correspondence check stays on the device, the off-device form being declined at [its own entry](../background/architectural-alternatives.md#source-correspondence-checked-off-device-leaving-only-the-tal-checker-on-the-install-path-declined). What moves is which objects a composition re-emits, and therefore what an install re-checks.
+What the candidate does not change is stated first, because the proposal is easily read as more than it is. An install is still a generation that takes effect at the next boot (R-13-001a); nothing binds at runtime, no compartment is minted, and no reservation is composed ahead of its occupant (R-13-001b). The composer is still an untrusted producer wherever it runs (R-13-001c), the on-device checks still gate admission (R-13-025, R-11-005), and the per-install source-correspondence check stays on the device, the off-device form being declined at [its own entry](../../background/architectural-alternatives.md#source-correspondence-checked-off-device-leaving-only-the-tal-checker-on-the-install-path-declined). What moves is which objects a composition re-emits, and therefore what an install re-checks.
 
 ## 2. What the register decides ahead of any measurement
 
@@ -85,14 +85,14 @@ Adoption requires every clause below. Each names the decision procedure that exi
 
 | Clause | Existing decision procedure | Remaining input or evidence |
 | --- | --- | --- |
-| Bytes: cross-package identical-function merging forgone | [The freeze measurement contract](contracts/freeze-measurement-contract.md)'s S3 step records the merged-function count | The R-18-014a backend and the M7.1 roster, with the count split by whether the merged pair crosses a package boundary |
+| Bytes: cross-package identical-function merging forgone | [The freeze measurement contract](../contracts/freeze-measurement-contract.md)'s S3 step records the merged-function count | The R-18-014a backend and the M7.1 roster, with the count split by whether the merged pair crosses a package boundary |
 | Bytes: exports resident that no roster member imports | R-13-010a's reachability roots, re-run with the contract's roots | The same roster, reporting retained-closure size under both root sets |
 | Bytes and cycles: the PC-relative escape at intra-package sites | R-15-036p's arithmetic over site-invariant and site-varying strata, R-15-036k's stratified measurement | R-15-036l's freeze decision; if the PC-relative forms stand, this clause costs nothing against the baseline |
 | Cycles: schedule looseness from bounds tabulated per contract rather than per roster | R-11-006's interval-arithmetic check over the emitted artifact | The R-11-017 artifact for one roster composed both ways |
-| Capacity: the plan places declared spans rather than colouring package internals | [The placement search](placement-search.md) over a witness plan | The same roster, both ways, reporting reserved span, unused reservation and padding per island |
-| Install cost: correspondence checks over the changed packages against the closure | [The toolchain residency instruments](../performance/toolchain-residency.md) and Q9's turnaround measurement on both paths | M6.10's composer and one roster with one package changed |
-| Proof: the correspondence theorem stated over bytes with wired capabilities as premises | M1.2's correspondence route; the typed modular linkage experiment in [the verification strategy](../languages/verification-strategy.md) | A statement with the R-13-006 entries as typed premises and a linking lemma for the wiring check |
-| Proof: the derivation re-bound per roster and re-checked | TAL-067 and TAL-068 as they stand; [AdmissionPath.v](../../proofs/AdmissionPath.v)'s certificate binding | The composer's re-binding pass, exhibited on one package at two layouts |
+| Capacity: the plan places declared spans rather than colouring package internals | [The placement search](../placement-search.md) over a witness plan | The same roster, both ways, reporting reserved span, unused reservation and padding per island |
+| Install cost: correspondence checks over the changed packages against the closure | [The toolchain residency instruments](../../performance/toolchain-residency.md) and Q9's turnaround measurement on both paths | M6.10's composer and one roster with one package changed |
+| Proof: the correspondence theorem stated over bytes with wired capabilities as premises | M1.2's correspondence route; the typed modular linkage experiment in [the verification strategy](../../languages/verification-strategy.md) | A statement with the R-13-006 entries as typed premises and a linking lemma for the wiring check |
+| Proof: the derivation re-bound per roster and re-checked | TAL-067 and TAL-068 as they stand; [AdmissionPath.v](../../../proofs/AdmissionPath.v)'s certificate binding | The composer's re-binding pass, exhibited on one package at two layouts |
 | Composition duties: the contract's clauses cover every quantity the fixed proofs depend on | Section 3's owner column | A review that no fixed object's proof reads a quantity outside the contract, taken at the statement |
 | Reproducibility duty: the logged name's scope | R-13-023b and R-13-026 as they stand | The register act that takes one of section 5's arms |
 | Security invariants unchanged | R-13-025, R-14-002, R-14-004, R-13-001b, R-05-136 | A reading that the wiring table remains the only capability-producing act and that no fixed object carries a capability |
@@ -100,7 +100,7 @@ Adoption requires every clause below. Each names the decision procedure that exi
 
 ## 8. Prior art read against the candidate
 
-Each source is a published reading and none is inspected, pinned or qualified here; a record in [the proof reuse inventory](../assurance/proof-reuse.md) is owed before any import.
+Each source is a published reading and none is inspected, pinned or qualified here; a record in [the proof reuse inventory](../../assurance/proof-reuse.md) is owed before any import.
 
 | Source | What it establishes | What it does not supply here |
 | --- | --- | --- |

@@ -3,7 +3,7 @@
 This Q22e dependency resolves the baseline path of second-class stores and makes
 the existing cyclic-executive admission consume the full boundary it already
 owes. It does not select store-buffer deletion, qualify memory or timing, or
-supply an emitted target schedule. The [comparison](../store-buffer-comparison.md)
+supply an emitted target schedule. The [comparison](../comparisons/store-buffer.md)
 retains its target completion predicate.
 
 ## Register decision

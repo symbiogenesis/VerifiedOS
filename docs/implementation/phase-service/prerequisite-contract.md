@@ -1,7 +1,7 @@
 # Executable preparation for the Q22e comparison
 
 This contract owns the bounded host preparation for the open
-[store-buffer comparison](../store-buffer-comparison.md). It does not commission
+[store-buffer comparison](../comparisons/store-buffer.md). It does not commission
 silicon characterization or implement the U-03 arbiter, U-05 admission emitter,
 U-08 timing projection or U-09 RTL measurement rig. Their target correspondence
 and qualification remain required. The work below makes their eventual outputs

@@ -1,7 +1,7 @@
 # Compiler assembly comparison
 
-This is the assembly comparison contract for [M1.2b](implementation-checklist.md)
-and the accepted campaign recorded in [F-318](../assurance/findings-register.md).
+This is the assembly comparison contract for [M1.2b](../implementation-checklist.md)
+and the accepted campaign recorded in [F-318](../../assurance/findings-register.md).
 It qualifies preservation of the stock RV64 assembly emitted while removing the
 scalar float bank. It does not establish the purecap backend's correctness,
 source correspondence, target execution or M1.2f's differential verdict.
@@ -30,7 +30,7 @@ all operands, immediate values, memory widths and offsets, branch and call
 targets, labels, symbol binding, relocation spelling, section and alignment
 directives, literal data, other comments, whitespace and line endings. No sorting,
 register renaming, alias substitution, instruction expansion or relocation
-normalization is admitted. The existing [assembler](../../tools/vos/asm.py)
+normalization is admitted. The existing [assembler](../../../tools/vos/asm.py)
 expands `ret` and `la` for the purecap dialect, so it cannot normalize these stock
 RV64 inputs without changing their meaning.
 
@@ -99,7 +99,7 @@ control-flow joins and loops, memory addressing and widths, and all live values
 at every interface. A whole-function register permutation or an opcode multiset
 alone decides none of those conditions. Unsupported instruction semantics or
 unresolved liveness must refuse. Compiler source remains in its contained
-repository under [M1.1a's decision](../../THIRD-PARTY.md).
+repository under [M1.1a's decision](../../../THIRD-PARTY.md).
 
 ## Qualification controls
 
