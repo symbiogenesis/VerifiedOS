@@ -1,11 +1,18 @@
 # Open compute compatibility
 
-Status: **design and qualification contract; no implementation or conformance claim**.
+Status: **standards and pilot semantic contract frozen for review; no implementation or conformance claim**.
 This companion applies R-04-001a and R-13-018a through R-13-018c of the
 [requirements register](../requirements-register.md). Those entries own the
 obligations; this document explains their application and fixes the acceptance
 boundary for [Q30](implementation-checklist.md#open-compute-qualification).
 It adds no first-release capability to R-18-004a.
+
+The Q30a record comprises the [feature and full/embedded profile audit](compute-feature-map.md),
+[source-to-ISA and bounded-resource contract](compute-semantic-contract.md), and
+[exact-revision source, license and dependency review](compute-upstream-review.md).
+The audit distinguishes proposed mappings from implemented support and retains
+every missing foundation with its checklist owner. Q30b/Q30c start only after
+their required correspondence, lowering and native-dispatch foundations land.
 
 ## Selected direction
 
@@ -31,6 +38,8 @@ full ROCm stack. A conforming profile remains a qualification question.
 
 Primary-source readings below are dated 2026-09-19. They are candidate and
 feasibility evidence, not dependency pins or VerifiedOS qualification results.
+The [candidate review](compute-upstream-review.md) selects exact source revisions
+and records the component-level license and dependency readings behind Q30a.
 
 | Source | Evidence and consequence for this design |
 | --- | --- |
@@ -99,10 +108,13 @@ them.
 
 ## Qualification contract
 
-Q30a freezes exact source/API revisions, candidate implementation revisions,
-feature dispositions, semantic interfaces, finite input domains and resource
-bounds before pilot implementation. Its reviewed record names every missing
-prerequisite and a separately priced implementation owner. M1's certifier and
+The Q30a record fixes exact source/API revisions, candidate implementation
+revisions, feature dispositions, semantic interfaces, finite input domains and
+resource bounds before pilot implementation. Q30d/Q30e/Q30f own the bounded
+correspondence, V/M lowering and native dispatch/pool foundations; Q30g selects
+and prices the next standards/library slice, including the newer standard's
+delta audit. These are conditional pilot or slice costs, not a blanket estimate
+for full conformance or the entire compiler proof program. M1's certifier and
 source-correspondence work, the native admission/boot path, the V/M execution
 work and the matrix margin contract retain their existing obligations. Q30
 does not absorb those programs or treat a source survey as their completion.
