@@ -110,6 +110,8 @@ COMMANDS: tuple[Command, ...] = (
             "a register entry against the prose it cites, and the reading recorded"),
     Command("view", "vos.cli.view",
             "the specification and the register woven into one reading view"),
+    Command("compute-audit", "vos.cli.compute_audit",
+            "pinned OpenCL core API inventory against the authored feature audit"),
     Command("blast", "vos.cli.blast",
             "what an edit to the apex statement re-opens, before the work starts"),
     Command("revocation", "vos.cli.revocation",

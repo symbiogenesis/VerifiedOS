@@ -7,6 +7,10 @@ It is not S6's production export envelope, a device key service, image-signature
 verification, entropy sealing, source-completeness evidence or paired replay.
 Those obligations remain open at S6 and its named prerequisites.
 
+The [host module](../../../tools/vos/replay_envelope.py) implements creation and
+verification; its [independent oracle and refusal campaign](../../../tools/tests/test_replay_envelope.py)
+exercise the acceptance boundary below.
+
 ## Inputs and trust boundary
 
 The caller supplies a development authentication key of at least 32 bytes outside
@@ -18,7 +22,7 @@ development key provides authentication between its holders, not provenance
 against another holder of the same key or an asymmetric signature.
 
 Verification receives the expected image-root identity, composition digest,
-input-trace digest, capture origin, event count, capacities and interface profiles
+input-trace digest, nonempty capture origin, event count, capacities and interface profiles
 independently. It compares the input trace's SHA-256 with the independently expected
 digest and uses the existing replay-body decoder to check the binding, event count,
 source/interface pairing and capacities. Matching a root identity does not verify

@@ -78,6 +78,33 @@ The checklist's current summary carried the paragraphs below on the day the note
   * Exit evidence: the twelve runs above, taken against model revision `d359483-dirty`; build green; **ctest at 2 of 2**; the model's own `$[test]` harness at **96 properties**; the profile sweep unmoved at **199 refusals of 199**; the differential corpus green at **26 of 26** with 245 checks over 8,830 records at manifest version 9; `model reference` green and `model devicetree` at 5,717 bytes; the proof gate closing **180 constants**; the checker green on all **84 rules** with every one of **94 mutants** killed, the repair path holding and the registry covered; both type checkers clean; and the co-read ledger unmoved at **1,384 pairs**, this item touching no register entry and no prose span.
   * Landed: Tier A.
 
+### S6a · Authenticate bounded host replay artifacts
+
+The [host envelope contract](contracts/host-replay-envelope.md) landed at
+`f555b70b` before implementation. The [module](../../tools/vos/replay_envelope.py)
+authenticates framed version, capture origin, trace digest and exact body bytes
+using an independent development HMAC-SHA-256 key, then decodes the bounded replay
+body. The caller supplies expected identities; self-described bindings establish
+no trust. Malformed framing, identity or capacity is refused before a body is
+returned. A separately generated expected trace digest is required even for an
+empty trace.
+
+Exit evidence at `7dfb1cfa`: `python tools/run.py test --only replay_envelope`
+passed all eleven cases, including an independently constructed wire oracle,
+tampering, wrong identities, truncation, trailing bytes, encoded lengths and
+capacity refusal. Typecheck and Ruff passed. Integrator review checked framing,
+authentication before decoding and explicit oracle offsets. The integrated host
+wave is required for the settled batch.
+
+The original estimate was 3 h, range 2–4. The measured authoring and repair
+intervals were 2026-09-19 15:57:58–16:06:19 and 16:07:08–16:08:01 CDT, 554 seconds
+summed and rounded upward to 0.2 h on the agent-parallel clock. The preceding
+survey of S6's missing operational inputs is outside this supporting item's scope.
+
+Landed: Tier A. This accepts a development host instrument only. Production
+sealing, device export authority, source completeness, signed-image trust and
+paired machine replay remain open under S6, whose operational estimate is unchanged.
+
 ### S7 · Reconnaissance passes on R1b, M4.4, M6.2 and M2.3
 
   * Four passes in M1.2's shape, each grounded in a measurement or a quoted licence file rather than a reading, and each refuted from two lenses afterwards, on grounding and on completeness. The refutations bit: one scout claim truncated the requirement it declared satisfied, one cited an entry it never located, and one presented an address-map gap as uncovered where R1c's cell already books it. What survives is below; what did not is struck from it.

@@ -130,6 +130,8 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "Q28a", "Q28b", "Q28c",
              # the shared browser and web application pilots are release-deferred
              "Q29a", "Q29b", "Q29c",
+             # compute foundations consume the later certifier and native execution path
+             "Q30d", "Q30e", "Q30f", "Q30g",
              # the fixed package-layer comparison is also explicitly deferred
              "Q31",
              # workflow hibernation qualification is not a bring-up prerequisite
