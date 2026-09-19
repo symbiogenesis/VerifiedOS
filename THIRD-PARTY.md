@@ -268,6 +268,34 @@ adds a static comparator, not an admitted inference runtime or a target rate.
 
 These reviews support future incorporation decisions in the [implementation plan](docs/implementation/implementation-checklist.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.
 
+### Bonsai 2 and Swift model research
+
+The [Bonsai 2 assessment](docs/performance/bonsai2-assessment.md) is a source
+review for a prospective Q4b experiment. On 2026-09-19,
+`prism-ml/Ternary-Bonsai-2-27B-gguf` revision
+`6ed5e12bf84b7a63069882c91dd9e9218647d17b` was reviewed at its own
+[LICENSE](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/blob/6ed5e12bf84b7a63069882c91dd9e9218647d17b/LICENSE)
+and [NOTICE.txt](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/blob/6ed5e12bf84b7a63069882c91dd9e9218647d17b/NOTICE.txt):
+Apache-2.0, with Prism ML, Inc., 2026-present, and Qwen3.8-27B/Alibaba Cloud,
+2026, attribution. Intended use is model data for comparison in an experiment
+lane, with required notices retained if later redistributed. This review
+incorporates no weights, runtime source, executable or upstream notice. The
+required Prism runtime is a separate upstream whose exact revision and compiled
+dependency licenses must be reviewed before it is built or incorporated;
+Q12's stock llama.cpp review does not cover that fork.
+
+`ukisai/Swift-Qwen3.8-27b` revision
+`048328f4059015b63f860a453bf94834af0db683` was reviewed on the same date at its
+[LICENSE](https://huggingface.co/ukisai/Swift-Qwen3.8-27b/blob/048328f4059015b63f860a453bf94834af0db683/LICENSE)
+and [NOTICE](https://huggingface.co/ukisai/Swift-Qwen3.8-27b/blob/048328f4059015b63f860a453bf94834af0db683/NOTICE).
+The Swift contribution uses Swift Open License v1.0, with a revenue-conditioned
+commercial-use grant and separate enterprise licensing. Its Apache-2.0 base
+does not make the trained contribution Apache-2.0. No Swift weights, deltas,
+training data or outputs are selected for incorporation. The assessment takes
+the general post-training idea as a research input; independently authored
+training must identify its own permitted code and data. Reusing Swift or its
+ThinkingCap transfer component requires a separate provenance and terms decision.
+
 ### The RTL substrate
 
 The scalar datapath, tag controller, bring-up SoC, and RoT references are already pinned. Vector and matrix candidates remain under advance review:

@@ -94,6 +94,9 @@ bytes distinct from the target rate still owed.
 The [BITCOS assessment](performance/bitcos-assessment.md) proposes RVV unpacking
 and a comparison against the existing ternary baseline, with representation
 overhead, aligned sign reads and fixed-grant target evidence included.
+The [Bonsai 2 assessment](performance/bonsai2-assessment.md) adds the newer
+27B candidate and a conditional post-training experiment, with rotation,
+hybrid-state, licensing and useful-answer quality requirements.
 
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.

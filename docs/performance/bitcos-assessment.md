@@ -7,6 +7,12 @@ The [prompt-processing contract](prompt-processing-term.md) owns the coordinated
 quality, demonstration-set and register act needed to select a ternary release
 member. This assessment adds no ISA instruction or hardware block.
 
+The [Bonsai 2 and post-training review](bonsai2-assessment.md) adds a g128,
+rotated hybrid-attention candidate for a larger resource budget. Its tensor
+census, activation transforms and state costs are separate from Q12's g64
+baseline. Any reasoning-efficient derivative is finalized and quality-tested
+before choosing its BITCOS layout.
+
 ## What the paper establishes
 
 [Georganas, Heinecke and Dubey, BITCOS v1](https://arxiv.org/html/2609.16338v1)
