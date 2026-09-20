@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: Apache-2.0
+# Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
+# defines the scope. Each run installs isolated toolchains and rebuilds evidence.
+# Only Python downloads are cached. Logs and receipts survive failed checks.
+
+name: guest-gates
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  guest-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    defaults:
+      run:
+        # Explicit bash enables pipefail, so tee cannot hide a gate failure.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          # These gates need indexed pins, not imported-core source trees.
+          submodules: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Bootstrap guest toolchains
+        id: bootstrap
+        timeout-minutes: 120
+        run: |
+          /usr/bin/time -p python3 tools/ci/bootstrap_guest.py \
+            --root "$HOME/verifiedos-guest" --jobs 2 --install-system \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
+
+      - name: Model and proof evidence
+        id: evidence
+        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 180
+        # evidence already overlaps proofs with the model consumers.
+        run: |
+          /usr/bin/time -p python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json" \
+            2>&1 | tee "$VOS_LOG_DIR/evidence-console.log"
+
+      - name: Check generated model bundle
+        id: bundle
+        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 15
+        run: |
+          /usr/bin/time -p python3 tools/run.py model bundle --check \
+            2>&1 | tee "$VOS_LOG_DIR/bundle.log"
+
+      - name: Lint standalone RTL
+        id: lint
+        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          /usr/bin/time -p python3 tools/run.py rtl lint \
+            2>&1 | tee "$VOS_LOG_DIR/rtl-lint.log"
+
+      - name: Crosscheck RTL against fresh model vectors
+        id: crosscheck
+        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          /usr/bin/time -p python3 tools/run.py rtl crosscheck \
+            2>&1 | tee "$VOS_LOG_DIR/rtl-crosscheck.log"
+
+      - name: Report guest results
+        if: ${{ !cancelled() }}
+        env:
+          STEP_RESULTS: ${{ toJSON(steps) }}
+        shell: python
+        run: |
+          import json
+          import os
+          import shutil
+          from pathlib import Path
+
+          logs = Path.home() / "verifiedos-guest" / "logs"
+          logs.mkdir(parents=True, exist_ok=True)
+          console = Path(os.environ["RUNNER_TEMP"]) / "guest-bootstrap-console.log"
+          if console.is_file():
+              shutil.copyfile(console, logs / "bootstrap-console.log")
+          steps = json.loads(os.environ["STEP_RESULTS"])
+          outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in
+                      ("bootstrap", "evidence", "bundle", "lint", "crosscheck")}
+          result = {"revision": os.environ["GITHUB_SHA"], "commands": outcomes}
+          (logs / "results.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+          rows = ["### Guest gates", "", "| Command | Outcome |", "| --- | --- |"]
+          rows.extend(f"| {name} | {outcome} |" for name, outcome in outcomes.items())
+          record = logs / "evidence.json"
+          if record.is_file():
+              try:
+                  members = json.loads(record.read_text(encoding="utf-8"))["members"]
+                  rows.extend(("", "| Evidence member | Exit | Seconds |", "| --- | --- | --- |"))
+                  rows.extend(f"| {m['name']} | {m['exit_code']} | {m['seconds']:.1f} |" for m in members)
+                  if any(m["name"] == "proofs" and m["exit_code"] == 0 for m in members):
+                      shutil.copyfile("proofs/proof-evidence.json", logs / "proof-evidence.json")
+              except (OSError, ValueError, KeyError, TypeError) as err:
+                  rows.extend(("", f"Evidence report could not be read: {type(err).__name__}. See logs."))
+          else:
+              rows.extend(("", "No evidence record was written; see the bootstrap and gate logs."))
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
+              summary.write("\n".join(rows) + "\n")
+
+      - name: Preserve guest logs and receipts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: guest-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: ~/verifiedos-guest/logs/
+          if-no-files-found: error
+          retention-days: 14
