@@ -579,6 +579,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-014 | proofs/StaticMemoryLaminar.v | n/a | cited |
 | R-08-015 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-015 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-08-015a | proofs/WorkflowProfiles.v | n/a | cited |
 | R-08-019e | proofs/StaticMemoryService.v | n/a | cited |
 | R-08-045 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-046 | proofs/HandlerGraph.v | n/a | cited |
@@ -965,6 +966,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-017a | proofs/EnsembleSchedule.v | the_link_hop_term_is_derived | claimed |
 | R-11-017a | proofs/EnsembleSchedule.v | on_the_declared_arm_the_cadence_check_is_independent | claimed |
 | R-11-017a | proofs/EnsembleSchedule.v | the_scopes_differ_only_on_a_link_the_composer_refuses | claimed |
+| R-11-018 | proofs/WorkflowProfiles.v | n/a | cited |
+| R-11-018a | proofs/WorkflowProfiles.v | n/a | cited |
 | R-11-020 | proofs/CyclicExecutive.v | reserved_band_discharged_once | claimed |
 | R-11-020 | proofs/CyclicExecutive.v | rung_change_is_a_table_swap | claimed |
 | R-11-020 | proofs/MemoryPlan.v | n/a | cited |
@@ -1223,6 +1226,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-14-003 | proofs/MModeFirmware.v | no_promotion_primitive_exists | claimed |
 | R-14-009 | proofs/MemoryPlan.v | n/a | cited |
 | R-14-010 | proofs/MemoryPlan.v | n/a | cited |
+| R-14-011a | proofs/WorkflowProfiles.v | n/a | cited |
+| R-14-011b | proofs/WorkflowProfiles.v | n/a | cited |
 | R-14-012a | proofs/KeyspaceDomains.v | the_specification_reads_no_global_directory | claimed |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_places_the_arenas_second | claimed |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_places_the_interpreter_body_first | claimed |

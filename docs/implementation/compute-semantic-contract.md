@@ -216,7 +216,7 @@ all benchmark accumulations fit exactly in FP32 and bf16 inputs represent these
 operands exactly. The witness must prove every conversion, accumulation and
 tail agrees with the source. This restricted M case cannot justify narrowing
 general SGEMM inputs. If no admitted M operation implements it, Q30b/Q30c's
-matrix comparison remains open; the [matrix margin contract](contracts/matrix-margin-contract.md)
+matrix comparison remains open; the [matrix margin contract](contracts/matrix-margin.md)
 and M0.8c/M10 keep their independent gates and estimates.
 
 The HIP kernel repeats these reduction/stencil/GEMM definitions using

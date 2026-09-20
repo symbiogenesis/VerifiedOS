@@ -162,9 +162,12 @@ switches through endurance exhaustion. The generated corpus size is a computed
 run result, not a maintained document count.
 
 Replay uses `python tools/run.py proofs --jobs 3` in an isolated worktree,
-including native symbol/assumption audit and kernel recheck. A bounded mutation
-campaign uses `python tools/run.py seed coq --file proofs/WorkflowProfiles.v --sample 24
---jobs 3 --region edge_ok --region propose --region reusable --region cp_ok
---region ram --region store`; compilation failures are stillborn, not killed, and survivors need
-individual investigation. The integrator owns the requirement-header generation,
-portable receipt and final host wave after integration.
+including native symbol/assumption audit and kernel recheck. Bounded mutation
+qualification uses `vos.seeded.chosen` to select 24 mutants over `edge_ok`,
+`propose`, `reusable`, `cp_ok`, `ram` and `store`, plus targeted memory-inventory
+omissions. Compile each mutant's definitions independently in the native proof
+environment before checking its proofs: definition failures are stillborn,
+not killed, and survivors need individual investigation. The completion evidence
+identifies the actual prover and replay helper; the separate `seed coq` vector
+harness is not interchangeable evidence. The integrator owns requirement-header
+generation, the portable receipt and the final host wave after integration.

@@ -1,5 +1,6 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Finite workflow qualification for Q32a. R-08-015a keeps fixed placement;
+(* =========================================================================
+   Finite workflow qualification for Q32a. R-08-015a keeps fixed placement;
    R-11-018 and R-11-018a require admitted edges and continuing service;
    R-14-011a and R-14-011b require semantic checkpoints and complete reuse.
    This is a source-level two-app, one-arena contract, not runtime evidence.
@@ -8,7 +9,12 @@
    denote authenticated durable commits under the existing Fresh policy.
    Timing numbers are abstract units supplied by the schedule adapter.
    No physical fact follows merely from constructing one of these records.
-*)
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-08-015a R-11-018 R-11-018a R-14-011a R-14-011b
+   SHA256: 7b1c95c6fdcdde48c98ceda05b9c8c0d17b1fe2a632bc5884b10cda5388651c0
+   (*| END derived |*)
+   ========================================================================= *)
 From Stdlib Require Import Bool List Arith Lia.
 Import ListNotations.
 

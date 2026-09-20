@@ -1867,6 +1867,97 @@ contract-authoring item, not a measured implementation saving.
 Landed: Tier A. The full read accepts a bounded qualification contract and its
 opening assignments; it confers no browser implementation or admission proof.
 
+#### Q30a · Freeze the standards feature map and compute semantic contract
+
+The [feature map](compute-feature-map.md), [semantic contract](compute-semantic-contract.md)
+and [upstream review](compute-upstream-review.md) freeze the OpenCL 3.0.19
+API/environment, OpenCL C 1.2 pilot source, SPIR-V 1.0 and ROCm 6.3.0
+HIP/hipBLAS targets. They dispose of the full/embedded profile gaps, specify the
+finite reduction, barrier-stencil and GEMM domains, and bind source correspondence,
+numeric ordering, atomic actors, resource lifetimes, error outcomes and benchmark
+comparators before implementation. All execution features remain unimplemented.
+
+The integrator accepts the finite certifier and V/M interfaces. Q30d through
+Q30g own the separately priced source-to-IR correspondence, pilot lowering,
+native dispatch and next standards/library slice; their ranges are conditional
+on existing foundations and confer no general compiler or full conformance claim.
+The source review records selected revisions, licences, component terms and
+dependency gaps for PoCL, Codeplay and chipStar without incorporating them.
+
+Exit evidence at `503285e5`: the document checker, typecheck and Ruff passed;
+`python tools/run.py test --only compute_audit` passed three refusal groups.
+The inventory derived from OpenCL-Docs revision
+`85da0d12c298ffa9eefd2adb1864f2c8193cbe3e` contains 114 core commands, with no
+missing, unknown or duplicate audit entries. Its `xml/cl.xml` SHA-256 is
+`eb5178c428da9e77ede6350bc74ab302890a8e321a44cd84dbf54ea16bdd6946`.
+The registered `compute-audit` command reproduces membership against those bytes;
+semantic completeness remains an attended reading. Independent review identified
+the empty-GEMM signed-zero branch and reduction pairing/padding ambiguity; the
+repair fixes both source/reference sequences explicitly.
+
+The original estimate was 24 h, range 12–36. Accounting uses the conservative
+provision-to-handoff interval 2026-09-19 20:50:24–21:12:10 UTC, the repair pass
+21:14:43–21:16:30 UTC and independent review 21:11:44–21:14:20 UTC. Their summed
+agent-session duration is 1,569 seconds, rounded upward to 0.5 h. Parallel
+intervals are summed, not merged; shared integration/gate time is outside this
+worker-clock measurement.
+
+Landed: Tier A. The accepted artifact is a reviewed contract and source audit;
+admitted execution, runtime resource evidence and standards conformance remain
+the open implementation and qualification owners' obligations.
+
+#### Q32a · Formalize app lifecycle and workflow transition admission
+
+[WorkflowProfiles.v](../../proofs/WorkflowProfiles.v) and its
+[formal contract](workflow-formal-contract.md) supply the reviewed finite model
+for two abstract apps, one fixed arena and one power/population setting. The
+model proves exclusive ownership, admitted RAM/storage bounds, complete
+transition-peak reservation and conditional non-resurrection. Checkpoint commit
+preserves declared data; crash preserves acknowledged durable state; successful
+release needs a committed checkpoint and every reuse condition. Recovery is a
+distinct closed/default outcome. Restore uses current grants and retains no
+old session. Stage work and continuing-service gaps have explicit consumer premises.
+
+The integrator accepts the kernel, storage and scheduler interfaces at this
+source-model boundary. The machine inventory includes live registers, raw saved
+contexts, ordinary capability-bearing memory inside and outside the retired
+interval, minting roots, loans, proxies and devices. Receipt correspondence and
+derivation closure remain implementation premises. Q32b and existing runtime
+owners retain the physical inventory, durable-byte, schedule and forward-simulation
+proofs; Q32c retains concrete presets and measurements. No application port,
+universal allocator or production checker is supplied by this landing.
+
+Exit evidence at `8e76b43b`: independent native compilation and `rocqchk` passed;
+the repository's native source audit enumerated this file's 252 constants with
+zero assumptions and five quantified-record witnesses. The same source computed
+293 accepted depth-five event words and 3,654 rejected one-event neighbors;
+the generator's acceptance/refusal properties hold for every depth. Named cases
+cover invalid overlap, each omitted reuse condition, checkpoint fields, transition
+overload, service gaps, stage costs, failed commit/restore, every crash boundary,
+grant revocation and repeated switching through endurance exhaustion.
+
+The deterministic 24-sample mutation population over `edge_ok`, `propose`,
+`reusable`, `cp_ok`, `ram` and `store`, plus two targeted ordinary-memory
+omissions, had 26 compiling definitions and 26 proof kills, with zero stillborn
+mutants, survivors or timeouts. The replay used native Rocq 9.2 and the seed
+sampler's selected population of 115 candidates, with a retained definitions-first
+helper and per-mutant logs; it did not run the separate `seed coq` 9.1 vector
+harness. Definitions were compiled independently before classifying proof
+failures. Six initial survivors prompted exact ledger and
+recovery examples before the same population was rerun. An earlier full lane
+audit was stopped during expensive aggregate kernel reduction and supplies no
+successful gate verdict; general generator proofs replace those conversions.
+The integrator's full native gate supplies the portable integrated receipt.
+
+The original estimate was 24 h, range 12–36. The conservative provision-to-handoff
+interval is 2026-09-19 20:50:34–21:25:30 UTC, rounded upward to 0.6 h on the
+agent-parallel clock. It includes authoring, source review repairs, the stopped
+audit and final focused verification; shared integration/gate time is outside
+this worker-clock bound.
+
+Landed: Tier A. This accepts the finite formalization and its explicit refinement
+interfaces, not the open operational pilot or measured reclamation economics.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models
