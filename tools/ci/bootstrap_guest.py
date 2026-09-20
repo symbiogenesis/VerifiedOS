@@ -23,7 +23,11 @@ if f"{sys.version_info.major}.{sys.version_info.minor}" != PYTHON_VERSION:
     raise SystemExit(f"guest bootstrap requires Python {PYTHON_VERSION}; found {platform.python_version()}")
 sys.path.insert(0, str(TOOLS))
 
-from vos import cli, env, receipts  # noqa: E402  (standalone bootstrap precedes the locked environment)
+from vos import (  # noqa: E402  (standalone bootstrap precedes the locked environment)
+    cli,
+    env,
+    receipts,
+)
 from vos.cli import rtl  # noqa: E402
 
 OPAM_VERSION = "2.5.2"
