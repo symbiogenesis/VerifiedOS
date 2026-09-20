@@ -1453,8 +1453,11 @@ CASES: list[Case] = [
     # The floor the gate actually runs on, which is the copy that decides whether a
     # green run says anything: a workflow an interpreter below the floor would admit
     # constructs the tools are written to refuse.
-    ("K-75", "a workflow interpreter below the floor ty.toml fixes",
+    ("K-75", "a host workflow interpreter below the floor ty.toml fixes",
      _literal(".github/workflows/host-gates.yml", 'python-version: "3.14"',
+              'python-version: "3.13"')),
+    ("K-75", "a guest workflow interpreter below the floor ty.toml fixes",
+     _literal(".github/workflows/guest-gates.yml", 'python-version: "3.14"',
               'python-version: "3.13"')),
     ("K-75", "a project admitting an interpreter below the typing target",
      _literal("tools/pyproject.toml", 'requires-python = ">=3.14,<3.15"',
