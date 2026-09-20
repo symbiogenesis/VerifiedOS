@@ -395,7 +395,8 @@ def _cache_root(repo: Path) -> Path:
     return Path(tempfile.gettempdir()) / f"verifiedos-selftest-cache-{digest}"
 
 
-def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]]] | None:
+def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]],
+                                         dict[str, str]] | None:
     """The highest-numbered snapshot carrying a readable manifest, as its path, the
     manifest's own write time, and what it says each file was placed from."""
     if not cache.is_dir():
@@ -406,18 +407,47 @@ def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]]
             data = json.loads((path / _MANIFEST).read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        built, files = data.get("built_ns"), data.get("files")
-        if isinstance(built, int) and isinstance(files, dict):
-            return path, built, cast("dict[str, list[int | str]]", files)
+        if not isinstance(data, dict):
+            continue
+        built, files, gitlinks = data.get("built_ns"), data.get("files"), data.get("gitlinks")
+        if (isinstance(built, int) and isinstance(files, dict)
+                and isinstance(gitlinks, dict)
+                and all(isinstance(path, str) and isinstance(oid, str)
+                        for path, oid in gitlinks.items())):
+            return (path, built, cast("dict[str, list[int | str]]", files),
+                    cast("dict[str, str]", gitlinks))
     return None
 
 
 def _link_tree(src: Path, dst: Path) -> None:
-    for dirpath, _dirnames, filenames in src.walk():
+    def failed(error: OSError) -> None:
+        raise error
+
+    for dirpath, _dirnames, filenames in src.walk(on_error=failed):
         target = dst / dirpath.relative_to(src)
         target.mkdir(parents=True, exist_ok=True)
         for name in filenames:
             _link_or_copy(dirpath / name, target / name)
+
+
+def _complete_index(root: Path, files: Iterable[str]) -> bool:
+    """A carried index must resolve every expected blob in its own object store.
+
+    Git reads object headers in one batch, without rehashing their contents. An
+    interrupted cache copy cannot authorize an index shortcut: `add` alone may
+    skip an unchanged entry even when the object that entry names is missing.
+    """
+    names = list(files)
+    if not names:
+        return True
+    try:
+        done = subprocess.run(["git", "cat-file", "--batch-check=%(objecttype)"],
+                              input="".join(f":{name}\n" for name in names),
+                              cwd=root, capture_output=True, encoding="utf-8",
+                              errors="replace", check=False, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return done.returncode == 0 and done.stdout.splitlines() == ["blob"] * len(names)
 
 
 def _publish(template: Path, cache: Path) -> None:
@@ -503,14 +533,15 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     remove_tree(into)
     into.mkdir(parents=True)
 
-    listed: list[str] = []
-    for extra in ([], ["--others", "--exclude-standard"]):
-        proc = subprocess.run(
-            ["git", "-c", "core.quotepath=false", "ls-files", "--full-name", *extra],
-            cwd=repo, capture_output=True, text=True, encoding="utf-8", check=False)
-        if proc.returncode != 0:
-            raise SystemExit("git ls-files failed in the repository")
-        listed += proc.stdout.splitlines()
+    index = corpus_mod.read_index(repo)
+    proc = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "ls-files", "--full-name",
+         "--others", "--exclude-standard"],
+        cwd=repo, capture_output=True, text=True, encoding="utf-8", check=False,
+        env=corpus_mod._git_environment(repo))
+    if proc.returncode != 0:
+        raise SystemExit("git ls-files failed in the repository")
+    listed = [*index.files, *index.gitlinks, *proc.stdout.splitlines()]
 
     # the directories first and once each, so that the writes below share nothing and go
     # in together: a thousand small files is the case `_across` is for
@@ -518,7 +549,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
         parent.mkdir(parents=True, exist_ok=True)
 
     held = _newest_snapshot(_cache_root(repo))
-    snapshot, built_ns, old_files = held or (None, 0, {})
+    snapshot, built_ns, old_files, old_gitlinks = held or (None, 0, {}, {})
     if snapshot is not None:
         # the pick is marked on the snapshot itself, which is what `_publish`'s sweep
         # ages: a tree some build is still linking out of always reads as just used
@@ -565,35 +596,39 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     copied = sum(one for one, _ in counts)
     carried = sum(one for _, one in counts)
 
-    # The index, and no commit on top of it. `ls-files --stage` is the whole of what the
-    # checker asks git and `add` is what answers it, so a commit would be a third of a
-    # second per run spent writing a HEAD that nothing here ever reads: a case is undone
-    # from the pristine tree beside it rather than out of git. When every copied file
-    # was carried and the manifests agree entry for entry, the snapshot's index already
-    # describes this exact tree, empty stand-ins included, and is carried the same way;
-    # any file this run copied afresh means the index is rebuilt from scratch.
+    # Keep the snapshot's immutable Git objects even when a source changed. Git's
+    # index updates use a lock and rename, so `add` can refresh the carried index
+    # without modifying its linked source. Rebuilding the object store for one edit
+    # would hash and compress every unchanged blob again. A missing or partial store
+    # still takes the cold path.
     manifest = {rel: [size, mtime, kind] for rel, (size, mtime, kind) in placed.items()}
+    gitlinks = index.gitlinks
     carried_index = False
-    if (snapshot is not None and manifest == old_files
-            and carried == sum(1 for _, _, kind in placed.values() if kind == "copy")):
+    if snapshot is not None:
         # a snapshot swept mid-carry surfaces as a link that fails or a walk that
         # yields nothing, and either answers like every other doubt: rebuild
         try:
             _link_tree(snapshot / ".git", into / ".git")
-            carried_index = (into / ".git" / "index").is_file()
+            carried_index = ((into / ".git" / "index").is_file()
+                             and _complete_index(into, old_files))
         except OSError:
             carried_index = False
     if not carried_index:
         remove_tree(into / ".git")
-        for args in (["-c", "init.defaultBranch=main", "init", "-q"], ["add", "-A"]):
-            proc = subprocess.run(["git", *args], cwd=into, capture_output=True, check=False)
-            if proc.returncode != 0:
-                raise SystemExit(f"could not build the sandbox index: git {args[0]}")
-    stamp_gitlinks(into, corpus_mod.load(repo).gitlinks)
+        proc = subprocess.run(["git", "-c", "init.defaultBranch=main", "init", "-q"],
+                              cwd=into, capture_output=True, check=False)
+        if proc.returncode != 0:
+            raise SystemExit("could not build the sandbox index: git init")
+    if (not carried_index or manifest != old_files or gitlinks != old_gitlinks
+            or carried != sum(1 for _, _, kind in placed.values() if kind == "copy")):
+        proc = subprocess.run(["git", "add", "-A"], cwd=into, capture_output=True, check=False)
+        if proc.returncode != 0:
+            raise SystemExit("could not build the sandbox index: git add")
+    stamp_gitlinks(into, gitlinks)
 
     # written after the index is built, so no `git add` ever sees it
     (into / _MANIFEST).write_text(
-        json.dumps({"built_ns": time.time_ns(), "files": manifest}),
+        json.dumps({"built_ns": time.time_ns(), "files": manifest, "gitlinks": gitlinks}),
         encoding="utf-8")
     return copied, carried
 
