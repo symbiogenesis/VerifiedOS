@@ -160,6 +160,9 @@ def _merge_conflict_one_document() -> None:
 def _deleted_but_indexed_dropped() -> None:
     with sandbox_tree({"docs/a.md": "# A\n", "docs/b.md": "# B\n"}) as root:
         (root / "docs" / "b.md").unlink()
+        index = corpus_mod.read_index(root)
+        ensure(index.files == ("docs/a.md", "docs/b.md"),
+               "index membership is independent of working-tree deletions")
         corpus = corpus_mod.load(root)
         ensure("docs/b.md" not in corpus.by_name,
                "a deleted-but-indexed document is dropped, not read")
@@ -181,6 +184,20 @@ def _indexed_files_exclude_gitlinks_and_untracked_files() -> None:
                f"only stage-zero files supply indexed bytes: {corpus.indexed}")
         ensure(corpus.gitlinks == {"upstream/example": "1" * 40},
                "gitlink membership remains separate and checkout-independent")
+
+
+def _index_is_independent_of_document_bytes_and_refreshes() -> None:
+    with sandbox_tree({"docs/a.md": "# A\n"}) as root:
+        (root / "docs" / "a.md").write_bytes(b"\xff")
+        first = corpus_mod.read_index(root)
+        ensure(first.files == ("docs/a.md",) and first.indexed == {"docs/a.md"},
+               "index-only callers do not require readable document contents")
+        (root / "docs" / "b.md").write_text("# B\n", encoding="utf-8")
+        _git(root, "add", "docs/b.md")
+        second = corpus_mod.read_index(root)
+        ensure(second.files == ("docs/a.md", "docs/b.md"),
+               "a fresh index read observes files staged between calls")
+        ensure(first.files == ("docs/a.md",), "the earlier reading stays independent")
 
 
 def _non_utf8_names_the_document() -> None:
@@ -295,6 +312,8 @@ def cases() -> list[Case]:
         Case("deleted-but-indexed-dropped", _deleted_but_indexed_dropped),
         Case("indexed-files-exclude-gitlinks-and-untracked-files",
              _indexed_files_exclude_gitlinks_and_untracked_files),
+        Case("index-independent-of-document-bytes-and-refreshes",
+             _index_is_independent_of_document_bytes_and_refreshes),
         Case("non-utf8-names-the-document", _non_utf8_names_the_document),
         Case("reads-a-checkout-git-cannot-find",
              _reads_a_checkout_git_cannot_find_by_itself),
