@@ -18,9 +18,12 @@ string literal outside one is kept whole, and that is the whole of what they are
 """
 
 import re
+from collections.abc import Mapping
 from contextlib import suppress
+from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
+from types import MappingProxyType
 
 # What a source Requires. `From X Require Import Y` and the bare forms all land here,
 # and the names are split on whitespace because one command may Require several.
@@ -72,15 +75,55 @@ def sentences(text: str) -> list[str]:
 def local_requires(source: Path, stems: set[str]) -> set[str]:
     """The proofs this source Requires from its own directory, by file stem; what a
     library provides is not this module's to order."""
-    text = source.read_text(encoding="utf-8")
+    return _requires(sentences(source.read_text(encoding="utf-8")), stems)
+
+
+def _requires(statements: list[str] | tuple[str, ...], stems: set[str]) -> set[str]:
+    """Resolve the shared lexical parse against this source set's local names."""
     named: set[str] = set()
-    for sentence in sentences(text):
+    for sentence in statements:
         found = REQUIRE.fullmatch(sentence)
         if found:
             prefix = found.group(1)
             named.update(f"{prefix}.{name}" if prefix else name
                          for name in found.group(2).split())
     return named & stems
+
+
+@dataclass(frozen=True)
+class SourceIndex:
+    """One immutable source snapshot, with shared parsing and dependency closures.
+
+    This is analysis data, never freshness evidence. A new invocation reads new
+    bytes; the proof gate still validates its input and output hashes independently.
+    Mapping proxies and immutable values permit workers to share the same snapshot.
+    """
+
+    texts: Mapping[Path, str]
+    statements: Mapping[Path, tuple[str, ...]]
+    needs: Mapping[Path, frozenset[Path]]
+    ordered: tuple[tuple[Path, ...], ...]
+    imports: Mapping[Path, tuple[Path, ...]]
+
+    @classmethod
+    def read(cls, sources: list[Path]) -> SourceIndex:
+        texts = {source: source.read_text(encoding="utf-8") for source in sources}
+        statements = {source: tuple(sentences(text)) for source, text in texts.items()}
+        by_stem = {source.stem: source for source in sources}
+        stems = set(by_stem)
+        needs = {source: frozenset(by_stem[stem] for stem in _requires(parsed, stems))
+                 for source, parsed in statements.items()}
+        ordered = tuple(tuple(wave) for wave in _waves(
+            {source: set(required) for source, required in needs.items()}))
+        closures: dict[Path, frozenset[Path]] = {}
+        for wave in ordered:
+            for source in wave:
+                closures[source] = needs[source].union(
+                    *(closures[required] for required in needs[source]))
+        imports = {source: tuple(sorted(reached, key=lambda path: path.stem))
+                   for source, reached in closures.items()}
+        return cls(MappingProxyType(texts), MappingProxyType(statements),
+                   MappingProxyType(needs), ordered, MappingProxyType(imports))
 
 
 def marker_depths(text: str, marker: str) -> dict[int, int]:
