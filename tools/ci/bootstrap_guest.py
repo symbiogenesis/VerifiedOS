@@ -77,7 +77,7 @@ def prepare_root(root: Path) -> Path:
     if root.is_relative_to(Path("/tmp")) or root.is_relative_to(Path("/var/tmp")):  # noqa: S108
         raise ValueError("--root must preserve logs outside temporary storage")
     kind = env.filesystem(root)
-    if kind is None or kind in env.CROSS_OS_FILESYSTEMS | env.VOLATILE_FILESYSTEMS:
+    if not kind or kind in env.CROSS_OS_FILESYSTEMS | env.VOLATILE_FILESYSTEMS:
         raise ValueError(f"--root must be on a native persistent filesystem, found {kind}")
     return claim_root(root)
 

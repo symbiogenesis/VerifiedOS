@@ -120,6 +120,20 @@ def _owned_directory_reused() -> None:
                "resuming bootstrap discarded its existing state")
 
 
+def _unsupported_filesystem_refused() -> None:
+    root = Path.home() / "guest-bootstrap-placement-fixture"
+    for kind in ("", "9p", "tmpfs"):
+        with (patch.object(bootstrap.env, "filesystem", return_value=kind),
+              patch.object(bootstrap, "claim_root") as claimed):
+            try:
+                bootstrap.prepare_root(root)
+            except ValueError as error:
+                ensure("native persistent filesystem" in str(error), "wrong placement refusal")
+            else:
+                raise AssertionError(f"unsupported filesystem {kind!r} was accepted")
+            ensure(not claimed.called, "installer wrote into unverified storage")
+
+
 def _environment_is_private_and_exports_validated() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -152,5 +166,6 @@ def cases() -> list[Case]:
         Case("failed process remains failure", _failed_child_remains_failure),
         Case("foreign directory not adopted", _foreign_directory_is_not_adopted),
         Case("owned directory resumed", _owned_directory_reused),
+        Case("unverified or unsuitable filesystem refused", _unsupported_filesystem_refused),
         Case("private native environment and validated export", _environment_is_private_and_exports_validated),
     ]
