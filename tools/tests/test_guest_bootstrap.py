@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Guest installation refuses corrupt inputs and preserves failed process verdicts."""
 
+import argparse
 import hashlib
 import io
+import json
 import os
 import subprocess
 import sys
@@ -61,6 +63,28 @@ def _missing_dependency_refuses() -> None:
         else:
             raise AssertionError("missing dependency was accepted")
         ensure(not launched.called, "check-only mode attempted a system mutation")
+
+
+def _package_query_is_batched() -> None:
+    packages = ("installed", "missing", "unconfigured", "multiarch")
+    result = subprocess.CompletedProcess([], 1, stdout=(
+        "installed\tinstall ok installed\n"
+        "unconfigured\tinstall ok unpacked\n"
+        "multiarch\tinstall ok installed\nmultiarch\tinstall ok installed\n"))
+    with (patch.object(bootstrap, "PACKAGES", packages),
+          patch.object(bootstrap.subprocess, "run", return_value=result) as query):
+        ensure(bootstrap.missing_packages() == list(packages[1:]),
+               "batch query lost missing, unconfigured or ambiguous packages")
+        ensure(query.call_count == 1 and query.call_args.args[0][-4:] == packages,
+               "package detection did not use one query for every dependency")
+    result = subprocess.CompletedProcess([], 2, stdout="", stderr="database unreadable")
+    with patch.object(bootstrap.subprocess, "run", return_value=result):
+        try:
+            bootstrap.missing_packages()
+        except subprocess.CalledProcessError as error:
+            ensure(error.returncode == 2, "fatal query failure was changed")
+        else:
+            raise AssertionError("a broken package database was treated as missing packages")
 
 
 def _nonroot_system_install() -> None:
@@ -172,6 +196,22 @@ def _owned_directory_reused() -> None:
                "resuming bootstrap discarded its existing state")
 
 
+def _invalid_marker_refused() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        marker = root / bootstrap.MARKER
+        for content in ("", "2\n", "unrelated\n"):
+            marker.write_text(content, encoding="utf-8", newline="")
+            try:
+                bootstrap.claim_root(root)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("invalid ownership marker accepted")
+            ensure(marker.read_text(encoding="utf-8") == content,
+                   "refused ownership marker was overwritten")
+
+
 def _unsupported_filesystem_refused() -> None:
     root = Path.home() / "guest-bootstrap-placement-fixture"
     for kind in ("", "9p", "tmpfs"):
@@ -195,12 +235,18 @@ def _environment_is_private_and_exports_validated() -> None:
                     "TMPDIR", "UV_CACHE_DIR"):
             ensure(Path(values[key]).is_relative_to(root), f"{key} escapes the private root")
         env_file, path_file = root / "github-env", root / "github-path"
-        bootstrap.export_environment(values, root / "bin", env_file, path_file)
+        paths = (root / "z3" / "bin", root / "bin")
+        bootstrap.export_environment(values, paths, env_file, path_file)
         ensure(f"TMPDIR={root / 'tmp'}\n" in env_file.read_text(encoding="utf-8"),
                "GitHub environment did not retain native scratch path")
         before = env_file.read_bytes()
+        ensure(path_file.read_text(encoding="utf-8").splitlines() ==
+               [str(path) for path in reversed(paths)], "GitHub PATH precedence was changed")
+        activation = bootstrap.activation(values, paths)
+        ensure(str(paths[0]) in activation and str(paths[1]) in activation,
+               "shell activation omitted a private tool directory")
         try:
-            bootstrap.export_environment({"TMPDIR": "a\nINJECTED=b"}, root, env_file, path_file)
+            bootstrap.export_environment({"TMPDIR": "a\nINJECTED=b"}, paths, env_file, path_file)
         except ValueError:
             pass
         else:
@@ -208,11 +254,65 @@ def _environment_is_private_and_exports_validated() -> None:
         ensure(env_file.read_bytes() == before, "invalid export partially wrote its output")
 
 
+def _failed_retention_preserves_verdict() -> None:
+    with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
+        root = Path(directory)
+        logs = root / "logs"
+        logs.mkdir()
+        stale = (root / "environment.sh", logs / "evidence.json", logs / "proof-evidence.json",
+                 logs / "results.json")
+        for path in stale:
+            path.write_text("old success", encoding="utf-8")
+        (logs / "bootstrap.json").write_text('{"exit_code": 0}', encoding="utf-8")
+        args = argparse.Namespace(jobs=2, install_system=False, github_env=None, github_path=None)
+        with (patch.object(bootstrap, "system_packages",
+                           side_effect=subprocess.CalledProcessError(7, ("apt-get", "update"))),
+              patch.object(bootstrap, "retain_logs", side_effect=OSError("copy failed"))):
+            code = bootstrap.install(args, root, "fixture")
+        record = json.loads((logs / "bootstrap.json").read_text(encoding="utf-8"))
+        ensure(code == record["exit_code"] == 1, "diagnostic failure lost the bootstrap verdict")
+        ensure("7" in record["error"] and record["diagnostic_error"] == "copy failed",
+               "log retention failure masked the original command error")
+        ensure("seconds" in record, "failure lost its duration")
+        ensure(not any(path.exists() for path in stale), "retry retained stale gate evidence")
+
+
+def _busy_root_is_untouched() -> None:
+    manifest = bootstrap.tomllib.loads((bootstrap.TOOLS / "pyproject.toml").read_text(encoding="utf-8"))
+    version = manifest["tool"]["uv"]["required-version"].removeprefix("==")
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        logs = root / "logs"
+        logs.mkdir()
+        record = logs / "environment.json"
+        record.write_text("another bootstrap owns this", encoding="utf-8")
+        args = argparse.Namespace(root=root, jobs=2, install_system=False,
+                                  github_env=None, github_path=None)
+        with (patch.object(bootstrap.sys, "platform", "linux"),
+              patch.object(bootstrap.platform, "machine", return_value="x86_64"),
+              patch.object(bootstrap.subprocess, "run", return_value=subprocess.CompletedProcess(
+                  [], 0, stdout=f"uv {version}\n")),
+              patch.object(bootstrap, "prepare_root", return_value=root),
+              patch.object(bootstrap.env, "hold_lock", side_effect=SystemExit("already held")),
+              patch.object(bootstrap, "install") as install):
+            try:
+                bootstrap.bootstrap(args)
+            except SystemExit as error:
+                ensure(str(error) == "already held", "lock refusal was changed")
+            else:
+                raise AssertionError("a busy root was accepted")
+            ensure(not install.called, "bootstrap installed into a busy root")
+        ensure(record.read_text(encoding="utf-8") == "another bootstrap owns this",
+               "bootstrap wrote run state before acquiring its lock")
+        ensure(not (root / "bin").exists(), "bootstrap created directories in a busy root")
+
+
 def cases() -> list[Case]:
     return [
         Case("download integrity and verified reuse", _download_integrity),
         Case("corrupt download never published", _bad_download_never_published),
         Case("missing dependency refusal", _missing_dependency_refuses),
+        Case("batched package query preserves missing and fatal outcomes", _package_query_is_batched),
         Case("unattended non-root package installation", _nonroot_system_install),
         Case("retry imports existing switch", _existing_switch_resumes_import),
         Case("failed process remains failure", _failed_child_remains_failure),
@@ -220,6 +320,9 @@ def cases() -> list[Case]:
         Case("failed Sail probe stops subsequent builds", _sail_probe_failure_stops_remaining_builds),
         Case("foreign directory not adopted", _foreign_directory_is_not_adopted),
         Case("owned directory resumed", _owned_directory_reused),
+        Case("invalid ownership marker refused without replacement", _invalid_marker_refused),
         Case("unverified or unsuitable filesystem refused", _unsupported_filesystem_refused),
         Case("private native environment and validated export", _environment_is_private_and_exports_validated),
+        Case("log retention failure preserves verdict and discards stale evidence", _failed_retention_preserves_verdict),
+        Case("busy root preserves the active bootstrap's state", _busy_root_is_untouched),
     ]

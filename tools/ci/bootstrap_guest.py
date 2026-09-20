@@ -3,8 +3,6 @@
 """Install the guest gate's toolchains in one private, native Linux directory."""
 
 import argparse
-import hashlib
-import json
 import os
 import platform
 import shlex
@@ -26,15 +24,15 @@ if f"{sys.version_info.major}.{sys.version_info.minor}" != PYTHON_VERSION:
     raise SystemExit(f"guest bootstrap requires Python {PYTHON_VERSION}; found {platform.python_version()}")
 sys.path.insert(0, str(TOOLS))
 
-from vos import env  # noqa: E402  (standalone bootstrap precedes the locked environment)
+from vos import env, receipts  # noqa: E402  (standalone bootstrap precedes the locked environment)
 from vos.cli import rtl  # noqa: E402
 
 OPAM_VERSION = "2.5.2"
-OPAM_HASHES = {
+OPAM_HASHES: dict[str, tuple[str, str]] = {
     "aarch64": ("arm64", "c4106ece84bcb60c68342573d2d6b4f0d6770ee088015c2216adc83d8854dcf9"),
     "x86_64": ("x86_64", "edfca2630c373b44b7ee1c2f81cd8dcf67468d0db57d6c02158de553ac63dbd4"),
 }
-PACKAGES = tuple(dict.fromkeys((
+PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
     "build-essential", "bubblewrap", "ca-certificates", "curl", "unzip", "patch",
     "pkg-config", "m4", "cmake", "ninja-build", "libgmp-dev", "clang", "ccache",
     "device-tree-compiler", "git", "time", *rtl.VERILATOR_PACKAGES,
@@ -42,15 +40,10 @@ PACKAGES = tuple(dict.fromkeys((
 MARKER = ".verifiedos-guest-root"
 
 
-def digest(path: Path) -> str:
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
-
-
 def download(url: str, target: Path, expected: str) -> None:
     """Verify both newly downloaded bytes and reused downloads before executing."""
     if target.exists():
-        if digest(target) != expected:
+        if receipts.digest(target) != expected:
             raise ValueError(f"{target}: cached download SHA-256 does not match {expected}")
         return
     pending = target.with_suffix(".download")
@@ -59,7 +52,7 @@ def download(url: str, target: Path, expected: str) -> None:
         with (urllib.request.urlopen(url, timeout=120) as response,  # noqa: S310
               pending.open("wb") as stream):
             shutil.copyfileobj(response, stream)
-        if digest(pending) != expected:
+        if receipts.digest(pending) != expected:
             raise ValueError(f"{url}: downloaded SHA-256 does not match {expected}")
         pending.replace(target)
     finally:
@@ -70,6 +63,8 @@ def prepare_root(root: Path) -> Path:
     """Reject accidental reuse of a developer's directory or non-native storage."""
     if not root.is_absolute():
         raise ValueError("--root must be an absolute path")
+    if any(character in str(root) for character in "\r\n\0"):
+        raise ValueError("--root must not contain line breaks or NUL bytes")
     root = root.resolve()
     checkout = TOOLS.parent.resolve()
     if root == Path(root.anchor) or root == Path.home().resolve() or root.is_relative_to(checkout):
@@ -86,7 +81,13 @@ def prepare_root(root: Path) -> Path:
 def claim_root(root: Path) -> Path:
     """An empty directory becomes owned; a previous successful claim can resume."""
     marker = root / MARKER
-    if root.exists() and any(root.iterdir()) and not marker.is_file():
+    if marker.is_symlink():
+        raise ValueError(f"bootstrap ownership marker must not be a symlink: {marker}")
+    if marker.exists():
+        if not marker.is_file() or marker.read_text(encoding="utf-8") != "1\n":
+            raise ValueError(f"unrecognized bootstrap ownership marker: {marker}")
+        return root
+    if root.exists() and any(root.iterdir()):
         raise ValueError(f"refusing nonempty unowned bootstrap directory {root}")
     root.mkdir(parents=True, exist_ok=True)
     marker.write_text("1\n", encoding="utf-8", newline="")
@@ -122,13 +123,20 @@ def run(argv: tuple[str, ...], log: IO[str]) -> None:
 
 
 def missing_packages() -> list[str]:
-    absent: list[str] = []
-    for package in PACKAGES:
-        done = subprocess.run(("dpkg-query", "-W", "-f=${Status}", package),
-                              capture_output=True, text=True, check=False)
-        if done.returncode or done.stdout.strip() != "install ok installed":
-            absent.append(package)
-    return absent
+    """Read the package database once; exit 1 means some requested names are absent."""
+    done = subprocess.run(
+        ("dpkg-query", "-W", "-f=${Package}\t${Status}\n", *PACKAGES),
+        capture_output=True, text=True, check=False, timeout=60)
+    if done.returncode not in (0, 1):
+        done.check_returncode()
+    statuses: dict[str, list[str]] = {}
+    for line in done.stdout.splitlines():
+        name, separator, status = line.partition("\t")
+        if not separator:
+            raise ValueError(f"unrecognized dpkg-query output: {line!r}")
+        statuses.setdefault(name, []).append(status)
+    # Preserve the individual query's refusal of ambiguous multiarch results.
+    return [name for name in PACKAGES if statuses.get(name) != ["install ok installed"]]
 
 
 def system_packages(install: bool, log: IO[str]) -> None:
@@ -148,7 +156,8 @@ def system_packages(install: bool, log: IO[str]) -> None:
 
 def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
     existing = subprocess.run(("opam", "switch", "list", "--short"),
-                              capture_output=True, text=True, check=True).stdout.splitlines()
+                              stdout=subprocess.PIPE, stderr=log, text=True,
+                              check=True, timeout=60).stdout.splitlines()
     for argv in steps:
         if argv[:3] == ("opam", "switch", "create") and argv[3] in existing:
             continue
@@ -172,22 +181,29 @@ def install_toolchains(root: Path, jobs: int, log: IO[str]) -> None:
     run((sys.executable, str(TOOLS / "run.py"), "rtl", "install", "--jobs", str(jobs)), log)
 
 
-def export_environment(values: dict[str, str], binary_dir: Path,
+def export_environment(values: dict[str, str], paths: tuple[Path, ...],
                        github_env: Path | None, github_path: Path | None) -> None:
-    if any("\n" in value or "\r" in value for value in (*values.values(), str(binary_dir))):
-        raise ValueError("environment paths must not contain line breaks")
+    validate_environment(values, paths)
     if github_env:
         with github_env.open("a", encoding="utf-8", newline="") as stream:
             stream.writelines(f"{key}={value}\n" for key, value in values.items())
     if github_path:
         with github_path.open("a", encoding="utf-8", newline="") as stream:
-            stream.write(f"{binary_dir}\n")
+            # GitHub prepends entries; reverse them to match the shell activation.
+            stream.writelines(f"{path}\n" for path in reversed(paths))
 
 
-def activation(values: dict[str, str], binary_dir: Path) -> str:
+def validate_environment(values: dict[str, str], paths: tuple[Path, ...]) -> None:
+    if any(character in value for value in (*values.values(), *map(str, paths))
+           for character in "\r\n\0"):
+        raise ValueError("environment paths must not contain line breaks or NUL bytes")
+
+
+def activation(values: dict[str, str], paths: tuple[Path, ...]) -> str:
     """A sourceable shell file; values cannot become shell syntax."""
+    validate_environment(values, paths)
     exports = [f"export {key}={shlex.quote(value)}" for key, value in values.items()]
-    exports.append(f"export PATH={shlex.quote(str(binary_dir))}:\"$PATH\"")
+    exports.append(f"export PATH={shlex.quote(':'.join(map(str, paths)))}:\"$PATH\"")
     return "\n".join(exports) + "\n"
 
 
@@ -197,9 +213,9 @@ def retain_logs(root: Path) -> None:
     verilator = root / "build" / f"verilator-{rtl.VERILATOR_PIN}-source" / "build.log"
     if verilator.is_file():
         shutil.copyfile(verilator, destination / "verilator-install.log")
+    (destination / "opam").mkdir(exist_ok=True)
     for path in (root / "opam" / "log").glob("*"):
         if path.suffix in {".out", ".info"} and path.is_file():
-            (destination / "opam").mkdir(exist_ok=True)
             shutil.copyfile(path, destination / "opam" / path.name)
 
 
@@ -213,38 +229,52 @@ def bootstrap(args: argparse.Namespace) -> int:
     manifest = tomllib.loads((TOOLS / "pyproject.toml").read_text(encoding="utf-8"))
     uv_version = manifest["tool"]["uv"]["required-version"].removeprefix("==")
     found_uv = subprocess.run(("uv", "--version"), capture_output=True, text=True,
-                              check=True).stdout.split()
+                              check=True, timeout=60).stdout.split()
     if len(found_uv) < 2 or found_uv[1] != uv_version:
         raise ValueError(f"bootstrap requires uv {uv_version} from tools/pyproject.toml")
     root = prepare_root(args.root)
+    with env.hold_lock(root / "bootstrap", "guest bootstrap"):
+        return install(args, root, uv_version)
+
+
+def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
+    """Mutate an owned root only while the caller holds its bootstrap lock."""
     values = environment(root, args.jobs)
+    paths = (root / "z3" / "bin", root / "bin")
+    validate_environment(values, paths)
     for name in ("VOS_BUILD_ROOT", "VOS_LOG_DIR", "TMPDIR", "CCACHE_DIR", "UV_CACHE_DIR"):
         Path(values[name]).mkdir(parents=True, exist_ok=True)
     binary_dir = root / "bin"
     binary_dir.mkdir(exist_ok=True)
     os.environ.update(values)
     os.environ["PATH"] = str(binary_dir) + os.pathsep + os.environ.get("PATH", "")
-    (root / "logs" / "environment.json").write_text(json.dumps(values, indent=2) + "\n",
-                                                     encoding="utf-8", newline="")
+    logs = root / "logs"
+    receipts.write(logs / "environment.json", values)
+    # A resumed installation cannot publish verdicts or activation from its prior run.
+    for path in (root / "environment.sh", logs / "evidence.json", logs / "proof-evidence.json",
+                 logs / "results.json", logs / "bootstrap.json"):
+        path.unlink(missing_ok=True)
     started = time.monotonic()
     record: dict[str, object] = {
         "schema": 1, "started_utc": datetime.now(UTC).isoformat(),
         "platform": platform.platform(), "python": sys.version,
-        "bootstrap_sha256": digest(Path(__file__)),
+        "bootstrap_sha256": receipts.digest(Path(__file__)),
         "uv": uv_version, "opam": OPAM_VERSION, "sail": env.SAIL_VERSION,
         "rocq": env.ROCQ_VERSION, "z3": env.Z3_VERSION, "verilator": rtl.VERILATOR_PIN,
-        "snapshots": {name: digest(TOOLS / "opam" / f"{name}.lock")
+        "snapshots": {name: receipts.digest(TOOLS / "opam" / f"{name}.lock")
                       for name in ("sail", "rocq")}, "exit_code": 1,
     }
-    log_path = root / "logs" / "bootstrap.log"
+    record_path = logs / "bootstrap.json"
+    receipts.write(record_path, record)
+    log_path = logs / "bootstrap.log"
     print(f"Bootstrap log: {log_path}", flush=True)
-    with env.hold_lock(root / "bootstrap", "guest bootstrap"), log_path.open(
-            "w", encoding="utf-8", newline="") as log:
+    with log_path.open("w", encoding="utf-8", newline="") as log:
         try:
             system_packages(args.install_system, log)
             record["source_revision"] = subprocess.run(
                 ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
-                text=True, check=True, env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
+                text=True, check=True, timeout=60,
+                env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
             architecture, expected = OPAM_HASHES[platform.machine()]
             opam = binary_dir / "opam"
             download(f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
@@ -255,22 +285,27 @@ def bootstrap(args: argparse.Namespace) -> int:
             run(("opam", "repository", "add", "rocq-released",
                  "https://rocq-prover.org/opam/released", "--dont-select", "-y"), log)
             install_toolchains(root, args.jobs, log)
-            export_environment(values, binary_dir, args.github_env, args.github_path)
-            (root / "environment.sh").write_text(activation(values, binary_dir),
+            (root / "environment.sh").write_text(activation(values, paths),
                                                   encoding="utf-8", newline="")
+            export_environment(values, paths, args.github_env, args.github_path)
             record["exit_code"] = 0
-        except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
             record["error"] = str(error)
             log.write(f"FAIL bootstrap: {error}\n")
             log.flush()
             print(f"FAIL bootstrap: {error}; see {log_path}", file=sys.stderr)
-            with log_path.open(encoding="utf-8", errors="replace") as failed:
-                print("".join(deque(failed, maxlen=40)), end="", file=sys.stderr)
         finally:
-            retain_logs(root)
+            try:
+                retain_logs(root)
+            except OSError as error:
+                record["diagnostic_error"] = str(error)
+                record["exit_code"] = 1
+                print(f"FAIL retaining bootstrap logs: {error}", file=sys.stderr)
             record["seconds"] = round(time.monotonic() - started, 2)
-            (root / "logs" / "bootstrap.json").write_text(
-                json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="")
+            receipts.write(record_path, record)
+    if record["exit_code"] != 0:
+        with log_path.open(encoding="utf-8", errors="replace") as failed:
+            print("".join(deque(failed, maxlen=40)), end="", file=sys.stderr)
     return 0 if record["exit_code"] == 0 else 1
 
 
@@ -286,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return bootstrap(args)
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"FAIL bootstrap: {error}", file=sys.stderr)
         return 1
 

@@ -21,8 +21,9 @@ so a smaller runner needs a separate resource measurement.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
 when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
-tuple owns that list. Python must satisfy [the manifest](../pyproject.toml), and uv
-must match its exact pin before bootstrap starts. The script checks the downloaded
+tuple owns that list. One package-database query checks all prerequisites; a fatal
+query error stops installation. Python must satisfy [the manifest](../pyproject.toml),
+and uv must match its exact pin before bootstrap starts. The script checks the downloaded
 opam executable, imports the [package snapshots](../opam/README.md), and calls the
 existing pinned Verilator installer. It installs and probes Z3 first, prepending its
 private binary directory to `PATH` before Sail starts: Sail initializes its solver
@@ -48,13 +49,24 @@ For a Windows worktree, run inside WSL and substitute its assigned
 `/root/build/lane-<name>/ci` root. Bootstrap refuses a nonempty directory it does not
 own. Retrying the same owned root resumes switch imports. Its environment file sets
 private opam, build, log, solver, temporary and compiler-cache directories; it does
-not edit the user's shell profile or replace existing switches.
+not edit the user's shell profile or replace existing switches. Shell activation and
+GitHub's exported `PATH` both include the private solver and opam directories.
+Bootstrap validates its ownership marker and holds the root's lock before changing
+run state. A retry discards old gate records and activation, then writes an initial
+failure record before installation. JSON records are replaced atomically, and a log
+retention error is recorded separately without hiding the original installation error.
 
 The workflow bounds each command and keeps independent checks running after a gate
 failure. [report_guest.py](report_guest.py) retains their outcomes in `results.json`,
 renders the job summary, and copies the proof receipt only when the evidence record
-reports a successful proof member. The `guest-evidence` artifact retains logs and
-receipts for 14 days. A canceled run may end before it uploads diagnostics.
+reports a successful proof member. It validates all member names, exit codes and
+durations before rendering the evidence table. Skipped evidence and malformed records
+cannot authorize retaining an old proof receipt. Diagnostic copies are atomic;
+copy failures appear in the summary without discarding command outcomes or other
+diagnostics. The reporter uses `VOS_LOG_DIR`, with the workflow's default log directory
+as its fallback when bootstrap did not export an environment. The `guest-evidence`
+artifact retains logs and receipts for 14 days. A canceled run may end before it
+uploads diagnostics.
 
 uv downloads, opam's source download cache and verified Verilator source archives
 are restored between runs; installed toolchains and evidence are rebuilt. The source
