@@ -8,8 +8,13 @@ pull-request check needs a measured hosted run time and reliability record.
 ## Running it
 
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
-every Monday at 04:23 UTC or through GitHub's **Run workflow** control. It needs no
-repository secrets or initialized submodules. The public repository's standard
+every Monday at 04:23 UTC or through GitHub's **Run workflow** control. A scheduled
+run first reads the latest completed run on the same branch. If that run succeeded
+at the current revision, it skips the guest job before allocating its runner or
+installing tools. New revisions, failed or canceled runs, absent history and failed
+history lookups run all gates. Manual dispatch and explicit reruns always execute
+them. The history job alone has `actions: read`; the gate job keeps `contents: read`.
+It needs no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 has 16 GB of RAM; the proof kernel recheck has historically exceeded 8 GiB,
 so a smaller runner needs a separate resource measurement.
@@ -40,11 +45,20 @@ own. Retrying the same owned root resumes switch imports. Its environment file s
 private opam, build, log, solver, temporary and compiler-cache directories; it does
 not edit the user's shell profile or replace existing switches.
 
-The workflow bounds each command, keeps independent checks running after a gate
-failure, and reports their outcomes in the job summary. The `guest-evidence` artifact
-retains logs and receipts for 14 days. Only uv downloads are restored between runs;
-the toolchains and evidence are rebuilt. A canceled run may end before it uploads
-diagnostics.
+The workflow bounds each command and keeps independent checks running after a gate
+failure. [report_guest.py](report_guest.py) retains their outcomes in `results.json`,
+renders the job summary, and copies the proof receipt only when the evidence record
+reports a successful proof member. The `guest-evidence` artifact retains logs and
+receipts for 14 days. A canceled run may end before it uploads diagnostics.
+
+uv downloads, opam's source download cache and verified Verilator source archives
+are restored between runs; installed toolchains and evidence are rebuilt. The source
+cache includes bootstrap's ownership marker so the restored private root can resume.
+Its key includes the runner OS and architecture, Sail and Rocq snapshots, bootstrap
+and Verilator installer. A prefix fallback reuses older source downloads, with the
+installers' checksum verification still required. Cache eviction simply means a cold
+installation. The evidence command owns concurrency between proofs and model
+consumers; the remaining commands stay sequential within the runner's memory budget.
 
 ## Inputs and execution
 

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
-# defines the scope. Each run installs isolated toolchains and rebuilds evidence.
-# Only Python downloads are cached. Logs and receipts survive failed checks.
+# defines the scope. Download caches accelerate fresh toolchains and evidence.
 
 name: guest-gates
 
@@ -21,14 +20,46 @@ env:
   PYTHONUTF8: "1"
   PYTHONUNBUFFERED: "1"
 
+defaults:
+  run:
+    # Explicit bash enables pipefail, so tee cannot hide a gate failure.
+    shell: bash
+
 jobs:
+  changes:
+    # Manual dispatch and explicit reruns always execute the gates.
+    if: ${{ github.event_name == 'schedule' && github.run_attempt == 1 }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      unchanged: ${{ steps.previous.outputs.unchanged }}
+    steps:
+      - name: Check the previous completed run
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          unchanged=false
+          if previous=$(gh api --method GET \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/guest-gates.yml/runs" \
+            -f branch="$GITHUB_REF_NAME" -f status=completed -F per_page=1 \
+            --jq '.workflow_runs[0] | [.head_sha, .conclusion] | @tsv'); then
+            if [[ "$previous" == "$GITHUB_SHA"$'\t'success ]]; then
+              unchanged=true
+              echo "Scheduled guest gates skipped: revision $GITHUB_SHA already passed." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "::warning::Could not read run history; running all guest gates."
+          fi
+          echo "unchanged=$unchanged" >> "$GITHUB_OUTPUT"
+
   guest-gates:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 360
-    defaults:
-      run:
-        # Explicit bash enables pipefail, so tee cannot hide a gate failure.
-        shell: bash
     steps:
       - uses: actions/checkout@v7
         with:
@@ -48,6 +79,18 @@ jobs:
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
+
+      - name: Cache guest source downloads
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          # The ownership marker lets bootstrap resume this private root.
+          # No installed switches, build outputs or verdicts are restored.
+          path: |
+            ~/verifiedos-guest/.verifiedos-guest-root
+            ~/verifiedos-guest/opam/download-cache
+            ~/verifiedos-guest/build/verilator-*-source/*.tar.gz
+          key: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py') }}
+          restore-keys: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Bootstrap guest toolchains
         id: bootstrap
@@ -95,39 +138,7 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           STEP_RESULTS: ${{ toJSON(steps) }}
-        shell: python
-        run: |
-          import json
-          import os
-          import shutil
-          from pathlib import Path
-
-          logs = Path.home() / "verifiedos-guest" / "logs"
-          logs.mkdir(parents=True, exist_ok=True)
-          console = Path(os.environ["RUNNER_TEMP"]) / "guest-bootstrap-console.log"
-          if console.is_file():
-              shutil.copyfile(console, logs / "bootstrap-console.log")
-          steps = json.loads(os.environ["STEP_RESULTS"])
-          outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in
-                      ("bootstrap", "evidence", "bundle", "lint", "crosscheck")}
-          result = {"revision": os.environ["GITHUB_SHA"], "commands": outcomes}
-          (logs / "results.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-          rows = ["### Guest gates", "", "| Command | Outcome |", "| --- | --- |"]
-          rows.extend(f"| {name} | {outcome} |" for name, outcome in outcomes.items())
-          record = logs / "evidence.json"
-          if record.is_file():
-              try:
-                  members = json.loads(record.read_text(encoding="utf-8"))["members"]
-                  rows.extend(("", "| Evidence member | Exit | Seconds |", "| --- | --- | --- |"))
-                  rows.extend(f"| {m['name']} | {m['exit_code']} | {m['seconds']:.1f} |" for m in members)
-                  if any(m["name"] == "proofs" and m["exit_code"] == 0 for m in members):
-                      shutil.copyfile("proofs/proof-evidence.json", logs / "proof-evidence.json")
-              except (OSError, ValueError, KeyError, TypeError) as err:
-                  rows.extend(("", f"Evidence report could not be read: {type(err).__name__}. See logs."))
-          else:
-              rows.extend(("", "No evidence record was written; see the bootstrap and gate logs."))
-          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
-              summary.write("\n".join(rows) + "\n")
+        run: python3 tools/ci/report_guest.py
 
       - name: Preserve guest logs and receipts
         if: ${{ !cancelled() }}
