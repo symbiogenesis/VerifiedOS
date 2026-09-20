@@ -406,9 +406,9 @@ def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> l
                 for component in components]
     batches: list[list[Path]] = [[] for _ in range(min(jobs, len(components)))]
     loads = [0] * len(batches)
-    for size, component in sorted(weighted, key=lambda item: (-item[0], item[1])):
+    for size, members in sorted(weighted, key=lambda item: (-item[0], item[1])):
         slot = min(range(len(batches)), key=lambda slot: (loads[slot], len(batches[slot]), slot))
-        batches[slot].extend(component)
+        batches[slot].extend(members)
         loads[slot] += size
     return [sorted(batch) for batch in batches]
 

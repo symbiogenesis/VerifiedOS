@@ -393,8 +393,8 @@ def _kernel_single_process_paths() -> None:
             source.with_suffix(".vo").write_bytes(b"object")
         answer = subprocess.CompletedProcess([], 0, stdout="", stderr="")
         samples: tuple[tuple[int, frozenset[str]], ...] = (
-            (1, frozenset()), (4, frozenset({"Base"})),
-            (4, frozenset({"Base", "Consumer"})), (4, frozenset()))
+            (1, frozenset[str]()), (4, frozenset({"Base"})),
+            (4, frozenset({"Base", "Consumer"})), (4, frozenset[str]()))
         for jobs, reused in samples:
             with patch.object(gate, "_recheck_joint", return_value=answer) as joint:
                 ensure(gate._recheck(root, sources, reused, jobs=jobs) is answer,
