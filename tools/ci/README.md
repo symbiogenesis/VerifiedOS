@@ -7,7 +7,7 @@ pull-request check needs a measured hosted run time and reliability record.
 
 ## Running it
 
-[guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 24.04,
+[guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
 every Monday at 04:23 UTC or through GitHub's **Run workflow** control. It needs no
 repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
