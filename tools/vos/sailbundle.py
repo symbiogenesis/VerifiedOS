@@ -27,25 +27,21 @@ and nothing here may say which revision it describes. What it does record is the
 every file it read, which is the stronger fact for the question actually being asked:
 whether the bundle still describes the sources in this checkout.
 
-## The precondition on those hashes, which is a precondition and not a normalization
+## Portable library locations
 
-Of the 158 files the emitter hashes, most are keyed relative to `model/model/` and
+Of the files the emitter hashes, most are keyed relative to `model/model/` and
 resolve in this checkout. The rest are the Sail library's own, keyed by the **absolute
 host path** they were read from, under the selected switch's `share/sail/lib/`.
-Those keys are the emitter's output and the tracked artifact is exactly what
-the emitter wrote, which is the property the whole generated-artifact discipline buys,
-so they are not rewritten here: a normalizer would make the tracked bytes a function of
-this module rather than of Sail.
+`canonicalize_library` relocates only these hash keys from the selected switch to
+`LIBRARY_PREFIX`, retaining source text, locations and every digest. Both publication
+and guest comparison use this transformation and compact UTF-8 JSON with a final
+newline. An absolute hash key outside the selected library, or one escaping it,
+fails before publication. A changed library digest still fails the byte comparison.
 
-What stands in place of a normalizer is a stated precondition. The comparison below
-holds **under the layout `vos/env.py` fixes**: the guest lane runs as root against the
-opam switch named by `env.SAIL_SWITCH`, so the library prefix is `LIBRARY_PREFIX`. A hashes key that is
-neither relative nor under that prefix means the bundle was emitted against a Sail
-library this repository does not fix, and `library_owners` **fails closed** on it,
-naming the key, rather than dropping it and reporting agreement over the rest.
-`env.opam_root()` is deliberately not consulted: it answers with the *running* lane's
-root, which on the Windows host is not the root the artifact was emitted under, so a
-rule built on it would decide different things on the two lanes about one file.
+The tracked artifact keeps the canonical prefix regardless of the emitter's opam
+root. `library_owners` fails closed on any other absolute prefix. Host readers do not
+consult `env.opam_root()`: the host need not have the guest toolchain installed, and
+both readers must decide the same thing about the same tracked bytes.
 """
 
 import json
@@ -71,7 +67,7 @@ SOURCE_ROOT = "model/model"
 # The only version whose shapes are written down here.
 VERSION = 1
 
-# The emitted artifact uses the canonical guest root on both host and guest readers.
+# The tracked artifact uses the canonical guest root on both host and guest readers.
 # Its switch name comes from the same owner that selects the compiler for emission.
 LIBRARY_PREFIX = f"/root/.opam/{env.SAIL_SWITCH}/share/sail/"
 
@@ -213,9 +209,10 @@ class Bundle:
                 for key, digest in self.hashes.items() if not key.startswith("/")}
 
     def library_owners(self) -> dict[str, str]:
-        """The Sail library files the emitter read, keyed by the absolute path it read
-        them at. Fails closed on a key under any other root: see this module's docstring
-        for why that is a precondition and not something to normalize away."""
+        """The Sail library files keyed by their canonical absolute locations.
+
+        Emission relocates the selected library prefix; readers reject other roots.
+        """
         out: dict[str, str] = {}
         for key, digest in self.hashes.items():
             if not key.startswith("/"):
@@ -223,9 +220,8 @@ class Bundle:
             if not key.startswith(LIBRARY_PREFIX):
                 raise BundleError(
                     f"{self.path} was emitted against {key}, which is outside "
-                    f"{LIBRARY_PREFIX}: the layout vos/env.py fixes is the one this "
-                    f"comparison holds under, and under any other OPAMROOT the "
-                    f"library this bundle describes is not the pinned one")
+                    f"{LIBRARY_PREFIX}: regenerate with `run.py model bundle` "
+                    f"to record the selected library at its canonical location")
             out[key] = digest
         return out
 
@@ -574,6 +570,31 @@ def _names(pattern: object) -> tuple[str, ...] | None:
             out.append(ident)
         return tuple(out)
     return None
+
+
+def canonicalize_library(data: bytes, library: Path) -> bytes:
+    """Relocate only emitted library hash keys; retain all source and digest values."""
+    try:
+        raw = json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise BundleError(f"emitted bundle is not readable as JSON: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise BundleError("emitted bundle is not a JSON object")
+    bundle = Bundle(raw)
+    selected = library.as_posix().rstrip("/") + "/"
+    hashes: dict[str, object] = {}
+    for key in bundle.hashes:
+        canonical = key
+        if key.startswith("/"):
+            if not key.startswith(selected):
+                raise BundleError(f"emitted library {key} is outside selected library {selected}")
+            suffix = key.removeprefix(selected)
+            if any(part in ("", ".", "..") for part in suffix.split("/")):
+                raise BundleError(f"emitted library path escapes its selected root: {key}")
+            canonical = LIBRARY_PREFIX + suffix
+        hashes[canonical] = raw["hashes"][key]
+    raw["hashes"] = hashes
+    return (json.dumps(raw, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
 
 
 def load(root: Path, path: str = BUNDLE) -> Bundle | None:

@@ -10,7 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from tests.harness import Case, ensure
+from tests.harness import Case, ensure, sandbox_tree
 from vos import env, receipts
 from vos.cli import model
 
@@ -135,6 +135,32 @@ def _stale_build() -> None:
         raise AssertionError("removing every sweep input must invalidate its receipt")
 
 
+def _proof_publication_keeps_build_identity() -> None:
+    with sandbox_tree({"model/source.sail": "model bytes\n",
+                       "proofs/proof-evidence.json": "old receipt\n"}) as root:
+        subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"],
+                       check=True, capture_output=True, timeout=60)
+        e = _environment(root)
+        with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
+            before = model.build_identity(e)
+            receipt = root / "proofs/proof-evidence.json"
+            receipt.write_text("new receipt\n", encoding="utf-8")
+            ensure(model.build_identity(e) == before,
+                   "publishing proof evidence must not stale the completed model build")
+            receipt.unlink()
+            ensure(model.build_identity(e) == before,
+                   "removing a proof output must not change model inputs")
+            source = root / "model/source.sail"
+            source.write_text("changed model bytes\n", encoding="utf-8")
+            ensure(model.build_identity(e) != before,
+                   "model source edits must still invalidate the build")
+            source.write_text("model bytes\n", encoding="utf-8")
+            (root / "model/new.sail").write_text("new model input\n", encoding="utf-8")
+            ensure(model.build_identity(e) != before,
+                   "new model inputs must still invalidate the build")
+
+
 def _empty_sweep_is_refused() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         e = _environment(Path(td))
@@ -215,6 +241,7 @@ def _invalid_test_corpus_pin() -> None:
 def cases() -> list[Case]:
     return [Case("solver-failure", _solver_failure), Case("detach-race", _detach_race),
             Case("reference-failure", _reference_failure), Case("stale-build", _stale_build),
+            Case("proof-publication-keeps-build-identity", _proof_publication_keeps_build_identity),
             Case("empty-sweep-refused", _empty_sweep_is_refused),
             Case("warm-test-corpus", _warm_test_corpus),
             Case("invalid-test-corpus-pin", _invalid_test_corpus_pin),

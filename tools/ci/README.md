@@ -119,6 +119,11 @@ The pipeline runs the existing commands:
 Each required command has a bounded execution time and retains its exit status.
 Independent checks may still run after another fails when their bootstrap succeeded.
 The evidence command owns its existing internal concurrency and freshness checks.
+Proof receipt publication changes an output rather than the model's input identity;
+working model bytes remain bound by the build manifest. Bundle comparison relocates
+only the selected switch's absolute library hash keys to the canonical locations
+used by the tracked artifact. A private opam root therefore does not change the
+comparison, while changed library digests and model contents still fail it.
 Download caches may accelerate installation, but a cache hit never establishes a
 validation verdict. A cold run must work without any cache. Avoid caching built
 model/proof outputs until their reuse is separately justified and measured.

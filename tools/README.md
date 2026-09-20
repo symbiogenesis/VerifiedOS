@@ -788,13 +788,22 @@ separate [owned-lane procedure](#worktree-isolation-during-fan-out).
 ## Current evidence and generated documentation
 
 A model build records the selected source bytes and git revision, tool executable hashes,
-build options, output artifacts, stage exits and test-log digest. The evidence sweep
+build options, output artifacts, stage exits and test-log digest. The revision excludes
+Git's repository-wide dirty flag; the input manifest binds working bytes, so publishing
+the proof receipt does not invalidate the model build. The evidence sweep
 checks that record before and after consuming the model and holds the build lock while
 it runs. After all members finish it revalidates and embeds the proof receipt, including
 compiled output hashes. It also binds the device-tree compiler's identity. Its JSON
 output identifies one execution; a missing result, a failed process
 or an input change prevents successful measurements from being published. These records
 identify evidence and do not certify a translation or replace the proof kernel.
+
+`model bundle` relocates the selected Sail switch's absolute library hash keys to
+the canonical prefix in [vos/sailbundle.py](vos/sailbundle.py), then writes compact
+UTF-8 JSON. Source text, locations and digests remain intact. Regeneration and
+`model bundle --check` use the same transformation; an unrelated library root is
+refused, and changed library bytes still fail comparison. Regeneration publishes
+atomically after successful emission and validation.
 
 `proofs headers` reads the sources on either OS. `proofs status` takes the guest hop
 on Windows, holds the proof workspace lock, and hashes staged sources and compiled

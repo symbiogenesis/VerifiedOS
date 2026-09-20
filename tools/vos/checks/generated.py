@@ -32,13 +32,15 @@ line rather than passing over:
   writing the staged bytes back. What every *other* rule reads is still the working
   tree's copy, on the same ground the corpus reads a document rather than its blob: the
   index says what is tracked and the file says what it says.
-- **the artifact against its own owners.** The bundle records the md5 of all 158 files
+- **the artifact against its own owners.** The bundle records the md5 of every file
   the emitter read, so the staleness question, *does this artifact still describe the
   model beside it*, is answered out of the artifact with no second list to maintain and
   no Sail to run. A curated source edited without a regeneration is caught here, on the
   host, at the gate the edit lands at.
-- **the artifact against the layout it was emitted under**, which is the precondition
-  [vos/sailbundle.py](../sailbundle.py) states and fails closed on.
+- **the artifact against its canonical library locations**, which
+  [vos/sailbundle.py](../sailbundle.py) states and fails closed on. The guest generator
+  relocates only the selected switch's library hash keys before publishing or
+  comparing, preserving model content and library digests across opam roots.
 
 What is left is exactly one question: *would Sail, run now, write these bytes?* That is
 `run.py model bundle --check` and it runs in the guest, on the evidence sweep's path
@@ -280,7 +282,7 @@ def _owners(ctx: Context, row: Row, bundle: sailbundle.Bundle) -> tuple[int, lis
     Both halves of the record are read and they are read differently, because they are
     different facts. The in-tree sources are here, so each is hashed and held against
     what the artifact says it was hashed at. The library's are not, so what is held is
-    the precondition: `library_owners` raises on a key outside the pinned root, and that
+    the precondition: `library_owners` raises on a key outside the canonical root, and that
     raise is this rule's finding rather than this rule's crash.
     """
     findings: list[str] = []

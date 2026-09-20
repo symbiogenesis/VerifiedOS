@@ -108,7 +108,9 @@ def build_identity(e: env.Environment) -> dict[str, object]:
     if e.model.resolve() != (e.root / "model").resolve():
         raise ValueError("recorded builds require this checkout's model; unset VOS_MODEL")
     version = subprocess.run(
-        ["git", "describe", "--tags", "--always", "--dirty", "--broken"],
+        # Working bytes are bound by BUILD_INPUTS below. A repository-wide dirty
+        # flag also changes when the proof gate publishes its output receipt.
+        ["git", "describe", "--tags", "--always"],
         cwd=e.model, capture_output=True, text=True, check=False, timeout=60,
         env={**os.environ, **env.git_env(e.root)})
     if version.returncode or not version.stdout.strip():
@@ -274,10 +276,10 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
 
     This is the generator half of K-88, and it is the half a Windows host cannot run.
     The bundle is Sail's own view of the model it just typechecked, so it is emitted by
-    Sail and by nothing else here: what this function contributes is the lane, the lock,
-    the warm cache and the byte comparison, never a transformation of the output. A
-    tracked artifact that is not exactly what the emitter wrote would make the rule that
-    holds it a rule about this function.
+    Sail. Only the selected switch's absolute library hash keys are relocated to
+    the canonical prefix defined by sailbundle; source text and hashes are preserved.
+    The same transformation precedes publication and byte comparison, so a private
+    CI opam root and the local installation produce the same tracked artifact.
 
     **Sail is invoked directly rather than through cmake's `generated_sail_riscv_docs`
     target.** That target chains `generated_html_tgz` (model/model/CMakeLists.txt), so
@@ -300,16 +302,16 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
     _require("sail", SAIL_HOW)
     build_dir = e.build_dir
     lock = env.build_lock(build_dir)
+    scratch = e.lane_root / "bundle"
     try:
         _seed_tree(e, build_dir)
         tracked = e.root / sailbundle.BUNDLE
-        scratch = e.lane_root / "bundle"
-        remove = scratch if args.check else None
-        into = scratch if args.check else tracked.parent
-        into.mkdir(parents=True, exist_ok=True)
-        # read before the emission, because without --check the emitter writes over the
-        # very path the comparison is against and every run would report itself unchanged
+        scratch.mkdir(parents=True, exist_ok=True)
+        # Always emit in the lane. Failed emission or provenance validation must
+        # preserve the tracked artifact, including during regeneration.
         before = tracked.read_bytes() if tracked.is_file() else None
+        written = scratch / sailbundle.BUNDLE_NAME
+        written.unlink(missing_ok=True)
         code = env.stage("bundle", [
             "sail",
             "--strict-var", "--strict-bitvector", "--strict-exponentials",
@@ -319,20 +321,28 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
             "--doc-compact",
             "--doc-embed", "plain",
             "--doc-embed-with-location",
-            "-o", str(into),
+            "-o", str(scratch),
             "--doc-bundle", sailbundle.BUNDLE_NAME,
             "--all-modules", "riscv.sail_project",
         ], cwd=e.model / "model", add_env={"GIT_DIR": _NO_GIT})
         if code:
             return code
-        written = into / sailbundle.BUNDLE_NAME
         if not written.is_file():
             print(f"sail exited 0 and wrote no {written}", file=sys.stderr)
             return 1
+        fresh = sailbundle.canonicalize_library(
+            written.read_bytes(), env.opam_root() / env.SAIL_SWITCH / "share/sail")
+        written.write_bytes(fresh)
+        if not args.check:
+            with receipts.atomic_path(tracked) as pending:
+                pending.write_bytes(fresh)
         code = _bundle_verdict(written, before, check=args.check)
+    except (OSError, sailbundle.BundleError) as err:
+        print(str(err), file=sys.stderr)
+        return 1
     finally:
-        if remove is not None and remove.is_dir():
-            shutil.rmtree(remove, ignore_errors=True)
+        if scratch.is_dir():
+            shutil.rmtree(scratch, ignore_errors=True)
         if lock is not None:
             lock.close()
     return code
@@ -364,8 +374,8 @@ def _bundle_verdict(written: Path, held: bytes | None, *, check: bool) -> int:
               f"{len(fresh)}, first differing at byte {where}; regenerate it with "
               "`run.py model bundle`", file=sys.stderr)
         return 1
-    print(f"ok {sailbundle.BUNDLE}: {len(fresh)} bytes, byte-identical to what the "
-          "emitter writes from the model in this checkout")
+    print(f"ok {sailbundle.BUNDLE}: {len(fresh)} bytes, byte-identical after "
+          "canonical library-path relocation from the model in this checkout")
     return 0
 
 
