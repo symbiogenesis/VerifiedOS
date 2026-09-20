@@ -212,7 +212,8 @@ Delta(IP(X,Y), U_1) <= (1/2) * 2^((n-k_X-k_Y)/2)
 Here `Delta` is total variation distance and `U_1` a uniform bit. The target
 bound follows from the Walsh-Hadamard matrix's norm and the two distributions'
 collision-probability bounds; this paragraph is the mathematical proof route,
-not a checked Gallina theorem. At entropy exactly `n/2` in each source,
+and the checked Gallina theorem it describes is the one this section's closing
+paragraph records. At entropy exactly `n/2` in each source,
 independent distributions on suitable orthogonal subspaces can make the output
 constant. Independence without a sufficient **sum** of finite min-entropies
 therefore does not entail extraction. [Chor and Goldreich, *Unbiased Bits from
@@ -278,7 +279,23 @@ including extraction's output loss. The simple raw-entropy sum in §4 cannot be
 used as its output-rate formula.
 
 Qualification fails when any required premise, correspondence or resource bound
-is absent. No source model, finite theorem artifact, selected extractor or
-qualified output-rate claim is present today. This record identifies exactly
-what would earn a statistical claim before the conditioner; it supplies no new
-physical assumption by implication.
+is absent. The finite theorem for this candidate is landed at
+[TwoSourceExtractor.v](../../proofs/TwoSourceExtractor.v): over integer weight
+functions on `n`-bit strings, with min-entropy stated as `weight * 2^k <= total`
+and independence stated as the product of the two weight functions, it proves
+`B^2 * 2^(k_X + k_Y) <= W^2 * V^2 * 2^n` for the signed bias numerator `B` and
+the totals `W` and `V`, the scaling `2 * Delta = |B| / (W * V)`, the
+`k_X + k_Y >= n + 2s` corollary, the `m`-invocation hybrid sum, and
+post-processing by a fixed conditioner, with an accepted and a failing parameter
+witness and a refuting construction at min-entropy exactly `n/2` per source. Of
+the Finite theorem row it leaves two parts unfilled: the output length is the
+one bit the inner product implies rather than a named quantity, and the accepted
+parameter witness is a record of widths that no source pair at those widths
+instantiates, the only instantiated application running at `n = 2`. Its
+invocation count is a field no theorem consumes, so the aggregate seed-error
+budget is proved in generic form only. It supplies none of the other required
+fields: no source model, selected extractor, TM-8 conditioner map,
+seed-accumulation invocation premise or qualified output-rate claim is present
+today. This record identifies exactly what would earn a statistical claim before
+the conditioner; the landed artifact supplies no new physical assumption by
+implication.

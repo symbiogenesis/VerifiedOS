@@ -133,6 +133,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-135a | proofs/AdmissionPath.v | n/a | cited |
 | R-05-135b | proofs/AdmissionPath.v | n/a | cited |
 | R-05-150 | proofs/HandlerGraph.v | n/a | cited |
+| R-05-150 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-05-150 | proofs/WitnessContinuity.v | n/a | cited |
 | R-05-156 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-156 | proofs/KeyspaceDomains.v | n/a | cited |
@@ -197,6 +198,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/StaticMemoryLaminar.v | n/a | cited |
 | R-05-163 | proofs/StaticMemoryService.v | n/a | cited |
 | R-05-163 | proofs/SupervisionTree.v | n/a | cited |
+| R-05-163 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-05-163 | proofs/WitnessContinuity.v | n/a | cited |
 | R-05-164 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-164 | proofs/AesGcm.v | n/a | cited |
@@ -220,6 +222,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/SecurityPolicyModel.v | n/a | cited |
 | R-05-164 | proofs/Sha256.v | n/a | cited |
 | R-05-164 | proofs/SupervisionTree.v | n/a | cited |
+| R-05-164 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-05-164 | proofs/WitnessContinuity.v | n/a | cited |
 | R-05-165 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-165 | proofs/AesGcm.v | n/a | cited |
@@ -292,6 +295,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/StaticMemoryService.v | missing_chunk_prefix_refuted | claimed |
 | R-05-165 | proofs/StaticMemoryService.v | duplicate_chunk_refuted | claimed |
 | R-05-165 | proofs/SupervisionTree.v | n/a | cited |
+| R-05-165 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-05-165 | proofs/WitnessContinuity.v | n/a | cited |
 | R-05-166 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-166 | proofs/AesGcm.v | n/a | cited |
@@ -380,6 +384,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/StaticMemoryService.v | missing_chunk_prefix_refuted | claimed |
 | R-05-166 | proofs/StaticMemoryService.v | duplicate_chunk_refuted | claimed |
 | R-05-166 | proofs/SupervisionTree.v | n/a | cited |
+| R-05-166 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-05-166 | proofs/WitnessContinuity.v | n/a | cited |
 | R-06-001 | proofs/ObjectTransactor.v | n/a | cited |
 | R-06-001 | proofs/SecurityPolicyModel.v | n/a | cited |
@@ -1261,6 +1266,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-007l | proofs/MModeFirmware.v | the_two_pmp_roles_this_file_carries_are_carried | claimed |
 | R-15-007p | proofs/MModeFirmware.v | the_root_set_has_two_members_where_both_authorities_are_needed | claimed |
 | R-15-014a | proofs/DischargeSequence.v | n/a | cited |
+| R-15-037 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-15-041 | proofs/Sha256.v | n/a | cited |
 | R-15-053a | proofs/AesGcm.v | n/a | cited |
 | R-15-053a | proofs/ProbingModel.v | reindexing_preserves_probability | claimed |
@@ -1438,9 +1444,30 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-238c | proofs/InferenceAdmission.v | a_model_above_the_ceiling_is_refused_when_the_session_opens | claimed |
 | R-15-240 | proofs/RotFirmware.v | n/a | cited |
 | R-15-241 | proofs/RotFirmware.v | n/a | cited |
+| R-15-241a | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-15-241b | proofs/HmacDrbg.v | n/a | cited |
 | R-15-241b | proofs/RotFirmware.v | n/a | cited |
+| R-15-241b | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-15-241c | proofs/HmacDrbg.v | n/a | cited |
+| R-15-241c | proofs/TwoSourceExtractor.v | n/a | cited |
+| R-15-241ca | proofs/TwoSourceExtractor.v | chor_goldreich_squared | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | total_variation_scaling | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | total_variation_squared | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | per_bit_squared_error | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | per_bit_total_variation_squared | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | conditional_pairs_carry_the_same_bound | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | conditional_pairs_meet_the_parameter_premise | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | hybrid_aggregation | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | hybrid_error_budget | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | conditioner_join | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | conditioner_join_over_bit_strings | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | accepted_source_witness | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | independence_without_an_entropy_sum_does_not_extract | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | conditioning_can_destroy_independence | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | post_processing_keeps_distance_from_the_image_only | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | hybrid_sum_is_not_a_maximum | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | parameter_witnesses | claimed |
+| R-15-241ca | proofs/TwoSourceExtractor.v | witness_premises_are_jointly_inhabited | claimed |
 | R-15-241d | proofs/HmacDrbg.v | a_reseed_resets_the_counter | claimed |
 | R-15-241d | proofs/HmacDrbg.v | a_draw_advances_the_counter | claimed |
 | R-15-241d | proofs/HmacDrbg.v | a_draw_emits_before_it_updates | claimed |
@@ -1454,6 +1481,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-241d | proofs/Keccak.v | n/a | cited |
 | R-15-241d | proofs/RotFirmware.v | n/a | cited |
 | R-15-241d | proofs/Sha256.v | n/a | cited |
+| R-15-241d | proofs/TwoSourceExtractor.v | n/a | cited |
+| R-15-241e | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-16-001 | proofs/SupervisionTree.v | n/a | cited |
 | R-16-003 | proofs/JournalIndex.v | an_admissible_commit_is_crash_consistent | claimed |
 | R-16-003 | proofs/JournalIndex.v | the_demo_commit_is_crash_consistent | claimed |
@@ -1480,6 +1509,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-013 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-013e | proofs/ApexTheorem.v | n/a | cited |
 | R-17-014a | proofs/ComposedNonInterference.v | n/a | cited |
+| R-17-016 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-17-016 | proofs/WitnessContinuity.v | n/a | cited |
 | R-17-024a | proofs/DischargeSequence.v | authority_invalidation_is_independent_of_residue_sanitization | claimed |
 | R-17-030n | proofs/DischargeSequence.v | specification_latches_on_a_negative_reading | claimed |
@@ -1505,6 +1535,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-049f | proofs/OracleInstantiation.v | n/a | cited |
 | R-17-049b | proofs/RomVerifier.v | n/a | cited |
 | R-17-049d | proofs/ComposedNonInterference.v | n/a | cited |
+| R-17-049a | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-17-058a | proofs/ApexTheorem.v | n/a | cited |
 | R-17-058a | proofs/ProbingModel.v | n/a | cited |
 | R-17-058d | proofs/ProbingModel.v | n/a | cited |
