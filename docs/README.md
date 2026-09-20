@@ -23,7 +23,7 @@ thresholds before the deferred browser pilots are implemented.
 The [workflow profile and hibernation contract](implementation/workflow-profiles.md)
 records preset recipes, slate-slot reuse, transition admission and the source-backed
 revocation decision; Q32 owns its formalization and qualification.
-The [finite workflow formal contract](implementation/workflow-formal-contract.md)
+The [finite workflow formal contract](implementation/contracts/workflow-formal.md)
 states the lifecycle model's machine, storage and timing premises and the
 interfaces its runtime consumers must discharge.
 
@@ -31,7 +31,7 @@ The [compute compatibility contract](implementation/compute-compatibility.md) re
 the OpenCL/SPIR-V and HIP source/API path, standards and prior-art evidence,
 unchanged admission guarantees and Q30 qualification predicates.
 Its [feature map](implementation/compute-feature-map.md),
-[semantic contract](implementation/compute-semantic-contract.md) and
+[semantic contract](implementation/contracts/compute-semantic.md) and
 [upstream review](implementation/compute-upstream-review.md) freeze the pilot
 subset, numerical references, resource boundaries and candidate source readings.
 

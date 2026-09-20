@@ -2,7 +2,7 @@
 
 This is Q30a's authored decision record, read with the
 [compatibility boundary](compute-compatibility.md) and
-[semantic contract](compute-semantic-contract.md). It freezes inputs for Q30b/Q30c,
+[semantic contract](contracts/compute-semantic.md). It freezes inputs for Q30b/Q30c,
 not implemented support. **Every execution feature below is unimplemented.**
 An intended semantics-preserving mapping is not a qualification verdict.
 R-04-001a and R-13-018a through R-13-018c remain the normative owners.

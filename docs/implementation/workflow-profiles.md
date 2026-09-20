@@ -1,6 +1,6 @@
 # Workflow profiles, app hibernation and reusable slate slots
 
-This design and qualification contract interprets the [requirements register](../requirements-register.md), which remains authoritative. The [finite formal contract](workflow-formal-contract.md) supplies the lifecycle model, transition-admission proofs and runtime refinement interfaces. Executable presets, runtime refinement and target measurements remain open under Q32 in the [implementation checklist](implementation-checklist.md). A preset recipe is not an implemented application. Literature was checked on 19 September 2026; the source findings below distinguish published results, implementation documentation and preprints. No source or implementation is incorporated by this survey.
+This design and qualification contract interprets the [requirements register](../requirements-register.md), which remains authoritative. The [finite formal contract](contracts/workflow-formal.md) supplies the lifecycle model, transition-admission proofs and runtime refinement interfaces. Executable presets, runtime refinement and target measurements remain open under Q32 in the [implementation checklist](implementation-checklist.md). A preset recipe is not an implemented application. Literature was checked on 19 September 2026; the source findings below distinguish published results, implementation documentation and preprints. No source or implementation is incorporated by this survey.
 
 ## Decisions and scope
 

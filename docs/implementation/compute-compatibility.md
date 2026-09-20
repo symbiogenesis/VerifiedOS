@@ -8,7 +8,7 @@ boundary for [Q30](implementation-checklist.md#open-compute-qualification).
 It adds no first-release capability to R-18-004a.
 
 The Q30a record comprises the [feature and full/embedded profile audit](compute-feature-map.md),
-[source-to-ISA and bounded-resource contract](compute-semantic-contract.md), and
+[source-to-ISA and bounded-resource contract](contracts/compute-semantic.md), and
 [exact-revision source, license and dependency review](compute-upstream-review.md).
 The audit distinguishes proposed mappings from implemented support and retains
 every missing foundation with its checklist owner. Q30b/Q30c start only after

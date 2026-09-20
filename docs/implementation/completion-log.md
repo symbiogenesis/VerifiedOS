@@ -1869,7 +1869,7 @@ opening assignments; it confers no browser implementation or admission proof.
 
 #### Q30a · Freeze the standards feature map and compute semantic contract
 
-The [feature map](compute-feature-map.md), [semantic contract](compute-semantic-contract.md)
+The [feature map](compute-feature-map.md), [semantic contract](contracts/compute-semantic.md)
 and [upstream review](compute-upstream-review.md) freeze the OpenCL 3.0.19
 API/environment, OpenCL C 1.2 pilot source, SPIR-V 1.0 and ROCm 6.3.0
 HIP/hipBLAS targets. They dispose of the full/embedded profile gaps, specify the
@@ -1909,7 +1909,7 @@ the open implementation and qualification owners' obligations.
 #### Q32a · Formalize app lifecycle and workflow transition admission
 
 [WorkflowProfiles.v](../../proofs/WorkflowProfiles.v) and its
-[formal contract](workflow-formal-contract.md) supply the reviewed finite model
+[formal contract](contracts/workflow-formal.md) supply the reviewed finite model
 for two abstract apps, one fixed arena and one power/population setting. The
 model proves exclusive ownership, admitted RAM/storage bounds, complete
 transition-peak reservation and conditional non-resurrection. Checkpoint commit
