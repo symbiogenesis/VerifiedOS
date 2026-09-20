@@ -99,6 +99,45 @@ def _estimates_repair_reaches_fixpoint() -> None:
                f"and report no rewrite: {again.rep.out!r}")
 
 
+def _nested_estimates_keep_chain_membership() -> None:
+    plan = ("# Plan\n\n"
+            "* [ ] **M1.2 · Backend**\n"
+            "  * [ ] **M1.2g · Carrier**\n"
+            "    * [ ] **M1.2g-i · Memory** · 1.5 h, range 1–2 · 0.0% · X\n"
+            "    * [ ] **M1.2g-ii · Integration** · 7.5 h, range 4–11 · 0.0% · X\n"
+            "  * [ ] **M1.2f · Campaign** · 7 h, range 4–10 · 0.0% · X\n"
+            "* [ ] **M1.7 · Boot** · 9 h, range 6–12 · 0.0% · I\n"
+            "**M1 subtotal:** 25 h · 100% · open range 15–35 h.\n"
+            "* Critical chain through M8a: Over those items the chain sums to "
+            "999–999 h at a 999 h midpoint.\n")
+    items, _, malformed = estimates._parse(plan)
+    ensure(not malformed, f"nested cell-less parents are legal: {malformed}")
+    ensure([item.ancestors for item in items] == [
+        ("M1.2", "M1.2g"), ("M1.2", "M1.2g"), ("M1.2",), ()],
+        "grandchildren retain the outer parent and the next sibling restores it")
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       PLAN: plan}) as root:
+        ctx = _context(root, fix=True)
+        estimates.run(ctx)
+        ensure(not any("names M1.2 " in finding
+                       for finding in _findings_under(ctx, "K-96")),
+               "a nested chain member is occupied by its priced descendants")
+        ensure("at a 25 h midpoint" in ctx.fixed[PLAN],
+               "the chain counts nested leaves and the later sibling exactly once")
+
+
+def _nested_milestone_roster_cannot_skip_roman_children() -> None:
+    plan = ("* [x] **M1.2g-i · Memory** · 1 h actual · 100.0%\n"
+            "**M1 subtotal:** 1 h · 100% · 1 h complete.\n")
+    items, _, malformed = estimates._parse(plan)
+    ensure(not malformed, f"completed child parses: {malformed}")
+    ensure(bool(estimates._roster("* Completed: M1.2b\n", items)),
+           "a Roman-suffixed milestone must not disappear from roster checking")
+    for named in ("M1.2g-i", "M1.2g"):
+        ensure(not estimates._roster(f"* Completed: {named}\n", items),
+               f"the child can be named directly or by its parent: {named}")
+
+
 def _retained_estimates_are_scope_not_actuals() -> None:
     plan = ("# Plan\n\n"
             "* Retained estimates in completed scope: 999 h across 999 items; "
@@ -536,6 +575,9 @@ def cases() -> list[Case]:
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),
+        Case("nested-estimates-keep-chain-membership", _nested_estimates_keep_chain_membership),
+        Case("nested-milestone-roster-cannot-skip-roman-children",
+             _nested_milestone_roster_cannot_skip_roman_children),
         Case("retained-estimates-are-scope-not-actuals", _retained_estimates_are_scope_not_actuals),
         Case("optional-inference-work-stays-outside-both-gates",
              _optional_inference_work_stays_outside_both_gates),

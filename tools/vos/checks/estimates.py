@@ -90,13 +90,13 @@ CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
 # K-102's sites, declared here rather than located by a sentence. An id is one of the five
 # families the plan numbers items in, so a label that is prose (the initial tooling clause)
 # is outside the subject rather than a finding, and a prime suffix is part of the id.
-ID_RE = re.compile(r"^(?:[SQIR]\d+[a-z]?(?:-[iv]+)?|M\d+(?:\.\d+)?[a-z]?\u2032?)$")
+ID_RE = re.compile(r"^(?:[SQIR]\d+[a-z]?(?:-[iv]+)?|M\d+(?:\.\d+)?[a-z]?(?:-[iv]+)?\u2032?)$")
 ROSTER_RE = re.compile(r"(?m)^\* Completed: .*$")
 RUN_RE = re.compile(r"[SQIRM]\d+(?:\.\d+)?[a-z]?(?:-[iv]+)?\u2032?")
 RANGE_RE = re.compile(r"(M\d+)\.(\d+)–(?:M\d+\.)?(\d+)")
 PART_RE = re.compile(r"(M\d+\.\d+[a-z])\s*\(([a-z])\d+–[a-z](\d+)\)")
-# the parent of a lettered child, which is the id with its letter and any prime removed
-PARENT_RE = re.compile(r"[a-z]?\u2032?$")
+# The immediate parent drops a Roman child suffix, or a letter and prime.
+PARENT_RE = re.compile(r"(?:-[iv]+|[a-z]?\u2032?)$")
 
 # the gate is two gates over two chains, so the partition is two lists rather than one. A
 # label names a position in the order rather than one item, and `Post-M10` carries several,
@@ -207,6 +207,8 @@ class Item:
     # the label head of the cell-less parent this item is nested under, where it is; a
     # chain member that carries no cell enters as its children through this
     parent: str | None = None
+    # All cell-less ancestors, outermost first, retain membership in a nested chain.
+    ancestors: tuple[str, ...] = ()
     # A retained planning weight contributes to completed scope, never to a fit.
     measured_actual: bool = True
 
@@ -226,17 +228,16 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
     bucket: list[Item] = []
     malformed: list[str] = []
     pending: tuple[str, int] | None = None
-    # the cell-less parent whose children are still arriving: it outlives `pending`,
-    # which is cleared by the first child, and is closed by the next item at its own
-    # depth or shallower, or by the subtotal that closes its section
-    parent: tuple[str, int] | None = None
+    # A stack restores the enclosing parent after a nested group ends. A single
+    # parent loses both grandchildren and later siblings from the outer chain.
+    parents: list[tuple[str, int]] = []
 
     for m in SCAN_RE.finditer(raw):
         if m.group("sec") is not None:
             if pending:
                 malformed.append(f"{pending[0]}: no estimate cell, and no nested item to carry one")
                 pending = None
-            parent = None
+            parents.clear()
             tail = m.group("tail")
             sections.append(Section(name=m.group("sec"), line=m.group(),
                                     head=m.group()[:len(m.group()) - len(tail)],
@@ -257,8 +258,8 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             if indent <= pending[1]:
                 malformed.append(f"{pending[0]}: no estimate cell, and no nested item to carry one")
             pending = None
-        if parent and indent <= parent[1]:
-            parent = None
+        while parents and indent <= parents[-1][1]:
+            parents.pop()
 
         done = DONE_RE.match(rest)
         retained = RETAINED_RE.match(rest)
@@ -273,7 +274,7 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
                 malformed.append(f"{label}: '{rest.strip()}' is not an estimate cell")
             else:
                 pending = (label, indent)
-                parent = (_head(label), indent)
+                parents.append((_head(label), indent))
             continue
 
         if retained and m.group("box") != "x":
@@ -296,7 +297,8 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             hours=round((lo + hi) / 2, 1) if opened else _hours(cell.group("h")),
             lo=lo, hi=hi, tail=cell.group("tail"),
             cls=klass.group("cls") if klass else None,
-            parent=parent[0] if parent else None,
+            parent=parents[-1][0] if parents else None,
+            ancestors=tuple(head for head, _ in parents),
             measured_actual=bool(done))
         items.append(item)
         bucket.append(item)
@@ -532,8 +534,10 @@ def run(ctx: Context) -> None:
     # ---- K-96, first half: the critical chain, summed over the cells its list names ----
     derived: list[str] = []
     chain = [i for i in open_items
-             if _head(i.label) in CHAIN_M8A or (i.parent in CHAIN_M8A)]
-    occupied = {_head(i.label) for i in chain} | {i.parent for i in chain if i.parent}
+             if _head(i.label) in CHAIN_M8A
+             or any(parent in CHAIN_M8A for parent in i.ancestors)]
+    occupied = {_head(i.label) for i in chain} | {
+        parent for i in chain for parent in i.ancestors}
     derived.extend(f"the critical chain names {label} and the document carries no open "
                    "item under it" for label in CHAIN_M8A if label not in occupied)
     chain_lo = round(sum(i.lo for i in chain), 1)
