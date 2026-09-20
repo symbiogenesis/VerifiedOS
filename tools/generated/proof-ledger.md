@@ -197,6 +197,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-163 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-163 | proofs/EnsembleSchedule.v | n/a | cited |
+| R-05-163 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-163 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-163 | proofs/HmacDrbg.v | n/a | cited |
 | R-05-163 | proofs/InferenceAdmission.v | n/a | cited |
@@ -233,6 +234,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-05-164 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-164 | proofs/EndpointIPC.v | n/a | cited |
+| R-05-164 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-164 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-164 | proofs/JournalIndex.v | n/a | cited |
 | R-05-164 | proofs/Keccak.v | n/a | cited |
@@ -274,6 +276,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-165 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-165 | proofs/EnsembleSchedule.v | n/a | cited |
+| R-05-165 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-165 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-165 | proofs/HmacDrbg.v | n/a | cited |
 | R-05-165 | proofs/InferenceAdmission.v | n/a | cited |
@@ -353,6 +356,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-166 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-166 | proofs/EnsembleSchedule.v | n/a | cited |
+| R-05-166 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-166 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-166 | proofs/HmacDrbg.v | n/a | cited |
 | R-05-166 | proofs/InferenceAdmission.v | n/a | cited |
@@ -790,6 +794,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-001a | proofs/ObjectTransactor.v | a_torn_copy_costs_a_copy_and_not_the_generation | claimed |
 | R-10-001a | proofs/ObjectTransactor.v | the_stored_pointer_loses_what_the_enumeration_keeps | claimed |
 | R-10-001a | proofs/ObjectTransactor.v | no_torn_record_of_the_stage_is_admitted_under_either_arm | claimed |
+| R-10-002 | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-002 | proofs/JournalIndex.v | the_specification_recovers_honestly_from_every_journal | claimed |
 | R-10-002 | proofs/JournalIndex.v | no_later_crash_point_uncommits_a_transaction | claimed |
 | R-10-002 | proofs/KeyspaceDomains.v | the_specification_is_noninterferent | claimed |
@@ -801,9 +806,20 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-002 | proofs/ObjectTransactor.v | no_crash_point_short_of_the_whole_stage_is_admitted | claimed |
 | R-10-002 | proofs/ObjectTransactor.v | no_torn_record_of_the_stage_is_admitted_under_either_arm | claimed |
 | R-10-002 | proofs/StorageRecovery.v | intact_input_does_not_choose_a_recovery_arm | claimed |
+| R-10-002a | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-002a | proofs/JournalIndex.v | n/a | cited |
 | R-10-002a | proofs/ObjectTransactor.v | n/a | cited |
 | R-10-002a | proofs/StorageRecovery.v | n/a | cited |
+| R-10-003 | proofs/ExecutableIndex.v | lookup_answers_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | an_insert_publishes_spanning_nodes | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | an_insert_represents_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_checked_insert_answers_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_checked_root_insert_answers_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | an_admitted_tree_fits_everywhere | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | an_insert_keeps_the_leaves_at_one_depth | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_checked_insert_keeps_the_leaves_at_one_depth | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_root_insert_keeps_the_leaves_at_one_depth | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_root_insert_keeps_one_leaf_depth | claimed |
 | R-10-003 | proofs/JournalIndex.v | inserting_preserves_the_order | claimed |
 | R-10-003 | proofs/JournalIndex.v | the_key_just_written_reads_back | claimed |
 | R-10-003 | proofs/JournalIndex.v | no_other_key_moves | claimed |
@@ -816,9 +832,11 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-003 | proofs/KeyspaceDomains.v | the_l2_index_inherits_the_frame_theorem | claimed |
 | R-10-003 | proofs/KeyspaceDomains.v | the_l2_index_inherits_the_transposition_theorem | claimed |
 | R-10-003 | proofs/ObjectRouter.v | n/a | cited |
+| R-10-004 | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-004 | proofs/JournalIndex.v | a_buffered_message_shadows_the_entry_beneath_it | claimed |
 | R-10-004 | proofs/JournalIndex.v | an_unbuffered_key_falls_through | claimed |
 | R-10-004 | proofs/JournalIndex.v | a_flushed_node_has_an_empty_buffer | claimed |
+| R-10-005 | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-005 | proofs/JournalIndex.v | n/a | cited |
 | R-10-005 | proofs/KeyspaceDomains.v | the_specification_snapshot_adds_at_most_the_declared_constant | claimed |
 | R-10-005 | proofs/KeyspaceDomains.v | the_specification_snapshot_keeps_every_read_it_already_had | claimed |
@@ -855,6 +873,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-007 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-10-008 | proofs/JournalIndex.v | n/a | cited |
 | R-10-008 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-10-009 | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-009 | proofs/JournalIndex.v | n/a | cited |
 | R-10-009 | proofs/ObjectTransactor.v | the_specification_flip_makes_live_only_a_servable_root | claimed |
 | R-10-009 | proofs/ObjectTransactor.v | what_each_recovery_reading_lands | claimed |
@@ -863,6 +882,10 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-009 | proofs/ObjectTransactor.v | the_journal_trusting_verdict_moves_with_the_recovery_discipline | claimed |
 | R-10-009 | proofs/ObjectTransactor.v | the_journal_trusting_flip_makes_live_an_unservable_root | claimed |
 | R-10-009 | proofs/ObjectTransactor.v | the_journal_trusting_verdict_is_not_backed | claimed |
+| R-10-010 | proofs/ExecutableIndex.v | an_insert_only_appends | claimed |
+| R-10-010 | proofs/ExecutableIndex.v | a_retained_root_survives_a_later_insert | claimed |
+| R-10-010 | proofs/ExecutableIndex.v | a_checked_root_insert_answers_the_logical_map | claimed |
+| R-10-010 | proofs/ExecutableIndex.v | a_root_insert_keeps_the_leaves_at_one_depth | claimed |
 | R-10-010 | proofs/JournalIndex.v | the_specification_leaves_every_retained_root_unmoved | claimed |
 | R-10-011 | proofs/JournalIndex.v | n/a | cited |
 | R-10-011 | proofs/KeyspaceDomains.v | n/a | cited |
@@ -934,6 +957,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-033 | proofs/RotFirmware.v | n/a | cited |
 | R-10-035 | proofs/JournalIndex.v | n/a | cited |
 | R-10-035 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-10-036 | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-036 | proofs/JournalIndex.v | a_discipline_leaves_untouched_blocks_alone | claimed |
 | R-10-036 | proofs/JournalIndex.v | a_discipline_lands_every_committed_write | claimed |
 | R-10-036 | proofs/JournalIndex.v | an_honest_recovery_replays_idempotently | claimed |

@@ -782,6 +782,148 @@ Definition boundary_report : list string :=
     flat_map (fun delta => map (boundary_line ctx op handler delta) [false; true])
       [0; 1; 2]) [0; 1; 3; 8]) [0; 1; 2; 9]) [0; 1; 2; 7].
 
-Definition report : list string := List.app ce_report (List.app boundary_report ipc_report).
+(* -------------------------------------------------------------------------
+   The third subject: the executable index of proofs/ExecutableIndex.v, which
+   is M5.3d's index half.
+
+   Its names are qualified for the reason the second subject's are. `lookup`,
+   `insert`, `route`, `admitted`, `flatten` and `Geometry` are ordinary words
+   and the blocks above have already spent several of them, so every symbol
+   of this subject is spelled `ExecutableIndex.x` and every symbol of the
+   layer it is stated against is spelled `JournalIndex.x`.
+
+   What crosses here is a differential and not a self-check. Each member
+   builds a tree by repeated copy-on-write insertion from an empty leaf root
+   and prints, beside the tree's own answers, the answers of M5.1's ordered
+   association list built over the same key sequence by `ins_all`. The two
+   sides are computed independently and compared as text, so a disagreement
+   is a line whose columns differ rather than a proof obligation nobody
+   stated. The columns are the published height, the arena occupancy, the
+   structural and order admission, the occupancy invariant, whether every
+   leaf sits at one shared depth, whether the tree's map equals the
+   association list, and the two lookup answers.
+
+   Where each column's weight sits. The map-equality column is decided on
+   every published member and is the one that compares whole maps. On a probe
+   for a key the member never entered, the two lookup columns agree at `n` on
+   both sides and refuse only a tree that invents a value; the routing they
+   otherwise test is decided on a probe for a key that is present, so each
+   member is probed at two keys it did in fact insert beside the fixed probe
+   list. The short run lengths
+   publish height-zero trees, which exercise the leaf path and not the split
+   path; the longer ones are where routing, splitting and a moving height are
+   decided.
+
+   It also measures one obligation the proof leaves open. `insert_root`
+   re-decides admission on what it published and refuses a result that does
+   not decide true; that the check never refuses a well formed insert is owed
+   at M5.3d and is not proved there. A `refused` line under the ordinary
+   geometry would be that check firing, and the tight-arena family beside it
+   is the control that shows a refusal is reachable at all.
+
+   The depth column measures a different open edge. What `insert_root`
+   re-decides is admission, which does not decide equal leaf depth, so this
+   column is not a restatement of the one beside it: it is the check's blind
+   spot, watched over a build that begins at an empty leaf whose leaves
+   trivially share a depth. ExecutableIndex.v proves that such a build keeps
+   it and computes a skewed arena that admission accepts, so a `0` here under
+   the ordinary geometry would refute that proof rather than merely fail.
+   ------------------------------------------------------------------------- *)
+
+Require JournalIndex.
+Require ExecutableIndex.
+
+Definition ix_geometry : ExecutableIndex.Geometry :=
+  {| ExecutableIndex.arena_cap := 256;
+     ExecutableIndex.fan := 2;
+     ExecutableIndex.depth := 8 |}.
+
+(* The control: an arena whose declared capacity a short run already spends. *)
+Definition ix_tight : ExecutableIndex.Geometry :=
+  {| ExecutableIndex.arena_cap := 6;
+     ExecutableIndex.fan := 2;
+     ExecutableIndex.depth := 8 |}.
+
+Definition ix_state : Type :=
+  option (ExecutableIndex.Arena JournalIndex.nat_keys * (nat * nat))%type.
+
+(* One empty leaf at address 0, walked at height 0. *)
+Definition ix_seed : ix_state :=
+  Some (cons (ExecutableIndex.leaf_of JournalIndex.nat_keys nil) nil, (0, 0)).
+
+Fixpoint ix_build (g : ExecutableIndex.Geometry) (ks : list nat)
+                  (st : ix_state) : ix_state :=
+  match ks with
+  | nil => st
+  | k :: rest =>
+      match st with
+      | None => None
+      | Some (ar, (root, h)) =>
+          ix_build g rest
+            (ExecutableIndex.insert_root JournalIndex.nat_keys g ar h
+               None None root k (10 * k))
+      end
+  end.
+
+Definition ix_oracle (ks : list nat) : JournalIndex.Index JournalIndex.nat_keys :=
+  JournalIndex.ins_all JournalIndex.nat_keys
+    (map (fun k => (k, 10 * k)) ks) nil.
+
+Definition ix_answer (g : ExecutableIndex.Geometry) (st : ix_state)
+                     (ks : list nat) (tag : string) (q : nat) : string :=
+  match st with
+  | None => "index " ++ tag ++ " " ++ ns (length ks) ++ " " ++ ns q ++ " -> refused"
+  | Some (ar, (root, h)) =>
+      "index " ++ tag ++ " " ++ ns (length ks) ++ " " ++ ns q ++ " -> "
+        ++ ns h ++ " " ++ ns (length ar)
+        ++ " " ++ bs (ExecutableIndex.admitted JournalIndex.nat_keys g ar h
+                        None None root)
+        ++ " " ++ bs (ExecutableIndex.node_fits_everywhere JournalIndex.nat_keys
+                        g ar h root)
+        ++ " " ++ bs (ExecutableIndex.leaves_share_one_depth
+                        JournalIndex.nat_keys ar h root)
+        ++ " " ++ bs (JournalIndex.pairs_eqb
+                        (ExecutableIndex.flatten JournalIndex.nat_keys ar h root)
+                        (ix_oracle ks))
+        ++ " " ++ os (ExecutableIndex.lookup JournalIndex.nat_keys ar h root q)
+        ++ " " ++ os (JournalIndex.look JournalIndex.nat_keys q (ix_oracle ks))
+  end.
+
+Definition ix_probes : list nat := [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 11].
+
+(* The first and the last key the member actually entered, so that at least
+   two of its lines decide the lookup columns on a key that is present. A
+   member that entered nothing contributes none. *)
+Definition ix_hits (ks : list nat) : list nat :=
+  match ks with
+  | nil => nil
+  | k :: rest => [k; List.last rest k]
+  end.
+
+Definition ix_lengths : list nat := [0; 1; 2; 4; 6; 8; 12].
+
+(* Four key orders over the same keys: ascending, descending, every key
+   entered twice, and a stride that visits the keyspace out of order. *)
+Definition ix_up (n : nat) : list nat := seq 1 n.
+Definition ix_down (n : nat) : list nat := rev (seq 1 n).
+Definition ix_dup (n : nat) : list nat := List.app (seq 1 n) (seq 1 n).
+Definition ix_stride (n : nat) : list nat :=
+  map (fun i => 1 + Nat.modulo (i * 3) 11) (seq 0 n).
+
+Definition ix_family (g : ExecutableIndex.Geometry) (tag : string)
+                     (ks : list nat) : list string :=
+  let st := ix_build g ks ix_seed in
+  map (ix_answer g st ks tag) (List.app ix_probes (ix_hits ks)).
+
+Definition ix_report : list string :=
+  flat_map (fun n =>
+    List.app (ix_family ix_geometry "up" (ix_up n))
+    (List.app (ix_family ix_geometry "down" (ix_down n))
+    (List.app (ix_family ix_geometry "dup" (ix_dup n))
+    (List.app (ix_family ix_geometry "stride" (ix_stride n))
+              (ix_family ix_tight "tight" (ix_up n)))))) ix_lengths.
+
+Definition report : list string :=
+  List.app ce_report (List.app boundary_report (List.app ipc_report ix_report)).
 
 Compute report.
