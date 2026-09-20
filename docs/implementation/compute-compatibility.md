@@ -25,6 +25,9 @@ source/API adaptation over that same execution path, qualifying libraries
 separately. Prefer existing frontends, transformations, semantics, test corpora
 and library interfaces over a new project-specific kernel language or a second
 runtime. Reuse still needs licence review and the platform's proof chain.
+The graphics surface assessed on the same path is Vulkan SC-shaped, with
+OpenGL entering only as producer-side source; the [graphics API surface](#graphics-api-surface)
+states its three separately claimed surfaces and their start-froms.
 
 OpenCL and SPIR-V are Khronos standards. [HIP](https://rocm.docs.amd.com/projects/HIP/en/latest/what_is_hip.html) is an
 open-source portability API in the AMD ecosystem; open source does not make it an independently standardized
@@ -105,6 +108,115 @@ interfaces. Q30c begins with one named BLAS GEMM interface. rocBLAS, MIOpen,
 framework compatibility and their broader dependency closures remain separate
 ports with separate evidence and owners; one successful kernel proves none of
 them.
+
+## Graphics API surface
+
+Status: **assessed direction for Q30g's slice selection; nothing selected,
+priced, implemented or claimed conformant**. Primary-source readings in this
+section are dated 2026-09-20. They are feasibility evidence, not dependency
+pins or qualification results, and no source is incorporated by this section.
+
+The compatibility boundary above sorts an API by when it decides what code
+runs. OpenGL decides at draw time, compiling shader text and state-dependent
+program variants while the application runs. Vulkan decides at pipeline
+creation, earlier but still at runtime. Vulkan SC decides offline, before the
+application starts. This platform decides at admission, with a proof. Each
+step in that chain moves the decision earlier, and only the last step is this
+project's own. [Zink](https://docs.mesa3d.org/drivers/zink.html) shows the
+first step is viable: it is a Gallium driver that emits Vulkan calls, and its
+debug options include disabling its asynchronous pipeline compiles, which is
+the runtime compilation R-13-018 excludes from every datapath. The layering
+lesson transfers; the layer's placement does not. Translation here is a
+producer act, and the surface layered on is the certified-kernel dispatch,
+not a runtime Vulkan driver.
+
+[Vulkan SC](https://www.khronos.org/vulkansc/) is the standardized form of
+the subset that fits. Khronos's [overview of its differences](https://www.khronos.org/blog/vulkan-sc-overview)
+states that it is based on Vulkan 1.2, that "Vulkan SC does not support
+online pipeline compilation, and thus all pipelines must be compiled offline"
+by a pipeline cache compiler from SPIR-V and a JSON description of every
+pipeline's state, that "VkShaderModule objects are not used in Vulkan SC",
+that device creation must supply `VkDeviceObjectReservationCreateInfo` naming
+the maximum simultaneous count of every object type, that sparse resources,
+memory freeing and pipeline-cache merging are removed, and that faults are
+reported through a registered callback and a query. At runtime a pipeline is
+named by identifier through [`VkPipelineOfflineCreateInfo`](https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkPipelineOfflineCreateInfo.html),
+and a pipeline absent from the cache fails with the standard
+[`VK_ERROR_NO_PIPELINE_MATCH`](https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkResult.html).
+That is the shape the [semantic contract](contracts/compute-semantic.md)
+already gives OpenCL: a program handle names a pre-admitted image entry, a
+well-formed binary absent from this generation is an explicit adapter
+divergence, and every object binds a slot in a fixed pool with a typed
+exhaustion result. Vulkan SC has a standard result for the case the OpenCL
+adapter must document as a divergence. Read against R-04-001a, it fits at
+least as well as the OpenCL embedded profile and better than the full
+profile, whose online compiler is mandatory.
+
+| Surface | Required mapping or question |
+| --- | --- |
+| Pipeline creation | A lookup of an admitted kernel by closure identity; a miss is the standard no-match result, never a compile. The pipeline cache compiler's JSON description and SPIR-V are producer inputs to the same `ComputeClosure` the semantic contract defines. |
+| Shader modules and SPIR-V | Producer input in the `Shader` execution model with `Logical` addressing, pinned as a second SPIR-V environment beside the frozen `Kernel` one. Every access passes through a bound descriptor with declared bounds, which suits the capability lowering better than `Physical64` pointers; physical storage buffers and buffer device addresses are excluded for the reason the feature map excludes physical pointer authority. Derivative instructions need quad execution, which the logical work-item model can carry as masked lanes. |
+| Descriptor sets and pipeline layouts | Indices into a pre-delegated per-session table, the shape ring payloads already take; a descriptor never carries a capability. |
+| Device memory and object reservation | Fixed pools declared at composition. The object reservation structure maps onto the pilot's slot limits, and `VK_ERROR_OUT_OF_DEVICE_MEMORY` onto the typed exhaustion result. |
+| Command buffers | Data naming admitted pipelines and delegated resources, so recording at runtime is permitted. Indirect draw and dispatch counts stay under a declared maximum, which is the bounded data scheduling over a predeclared kernel graph the boundary table names for device-side launches. |
+| Fences, semaphores and events | The queued, submitted, running, completed and error states Q30f already owns, with timeline semaphores, where enabled, as bounded counters. |
+| Queries and timestamps | The timing-authority limits of the profiling row; presentation feedback stays within R-15-236c. |
+| Swapchain and presentation | A thin layer over compositor surface handoff under the display contract R-12-082 states; the compositor, not the adapter, owns scanout. |
+| Loader, ICDs and layers | Absent. There is no dynamic linking, so the adapter is linked or reached as a compartment, and enumeration reflects the manifest as the OpenCL discovery row does. The [Khronos loader's](https://github.com/KhronosGroup/VulkanSC-Loader) own README states it is for development environments and not for production. |
+| Sparse binding, ray tracing, mesh shading, device-generated commands | Excluded, or a named-invariant conflict recorded at selection. |
+
+Three claims follow, each stated separately under R-13-018c:
+
+1. **Compute pipelines** are nearly the pilot's path: ahead-of-time SPIR-V,
+   fixed pools and work-groups lowered to RVV. Adding the `Shader` execution
+   model beside the `Kernel` model is a Q30g slice candidate whose
+   correspondence and lowering owners are Q30d and Q30e.
+2. **The SC-shaped host object model** over Q30f's dispatch is adapter work,
+   audited command family by command family as the feature map audits OpenCL.
+   Selecting it amends R-13-018a's enumeration of adapted interfaces, a
+   register act taken at selection and not by this section.
+3. **Graphics pipelines** wait on the R-12-083 renderer and on the image and
+   sampler audit the pilot disables. The adapter is a thin shell over that
+   renderer; the renderer is the cost. The porting plan lists it among the
+   net-new artifacts the userland gates on, and no checklist cell yet prices
+   it. Larrabee is the caution the [prior-art entry](../background/inspirations.md#larrabee-the-software-renderer-on-general-cores-the-one-industrial-run-of-the-v-class-thesis-and-the-sampler-its-own-team-kept)
+   records: it was cancelled on the compatibility contract, not the
+   architecture, and this surface never promises the runtime personality.
+
+OpenGL is online by contract: it accepts shader text at runtime, and its
+pipeline set depends on state known only at draw time, which is why Zink
+compiles asynchronously. It enters this platform only as a producer-side
+source dialect, GLSL and each named application's enumerated state
+combinations translated at the producer into SC-shaped pipelines. There is no
+runtime GL personality and no GL conformance claim, for the reason the OpenCL
+full profile is barred. The claim is GLSL source compatibility for named
+applications, parallel to HIP's. An application's complete pipeline
+inventory is part of its source closure; runtime-generated variants remain
+the porting gap the [porting discipline](userspace-porting.md#the-porting-discipline-five-obstacles-every-target-meets)
+records.
+
+### Start-froms and what each establishes
+
+| Source | Evidence and consequence for this design |
+| --- | --- |
+| [Vulkan SC emulation layer and pipeline cache compiler](https://github.com/KhronosGroup/VulkanSC-Emulation) | Khronos's emulation ICD and mock pipeline cache compiler define the offline pipeline JSON and cache format concretely. They are the reference for the producer-side pipeline closure, not a runtime: the emulation layer runs over a stock Vulkan driver and is excluded from any admitted image. |
+| [Vulkan SC conformance tests](https://github.com/KhronosGroup/VK-GL-CTS) | VK-GL-CTS carries Vulkan SC tests as the `deqp-vksc` target. It is the conformance corpus candidate for claim 2; Q30g pins its revision and configuration before any result is quoted, as the feature map requires for OpenCL. |
+| [glslang](https://github.com/KhronosGroup/glslang) | The Khronos reference GLSL/ESSL front end with SPIR-V generation under both Vulkan and OpenGL target semantics. It is the producer candidate for GL-dialect source; its SPIR-V is a translated input owing the same original-source correspondence as PoCL's or Vecz's output. |
+| [naga](https://github.com/gfx-rs/wgpu/blob/trunk/naga/README.md) | wgpu's Rust shader translator: WGSL fully validated, GLSL 440 and later under Vulkan semantics only, SPIR-V in and out. It is the producer candidate on the porting plan's Rust route and the path for wgpu-based toolkits whose shader sets are fixed at build time. |
+| [rust-gpu](https://github.com/Rust-GPU/rust-gpu) | Compiles Rust to SPIR-V shaders and states it is at an early stage and not production-ready. Here a shader written in Rust is ordinary certified native code and needs no SPIR-V; rust-gpu matters only for source that must also target other platforms. |
+| [clspv](https://github.com/google/clspv) | Compiles a subset of OpenCL C 1.2 to Vulkan compute-shader SPIR-V through LLVM passes. It is evidence that the `Kernel` and `Shader` dialects are bridgeable, so one certified-kernel path can serve both, and its passes are candidate producer transforms owing the same correspondence obligations as PoCL's. |
+| [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools) | The validator checks the rules of the SPIR-V specification with one-sided error, reporting a violation only for the rules it implements. It is a producer-side precheck; the semantic contract already denies a frontend validator the role of trust root. |
+| [Fossilize](https://github.com/ValveSoftware/Fossilize) | Captures Vulkan pipeline state for replay and precompilation ahead of a run. It is evidence that application pipeline inventories are enumerable ahead of time and a capture-based route to an application's closure; a capture proves only the pipelines it saw, so a closure claim rests on the application's own enumeration. |
+| [llvmpipe](https://docs.mesa3d.org/drivers/llvmpipe.html) and lavapipe | Mesa's software rasterizer "uses LLVM to do runtime code generation", and [lavapipe](https://www.collabora.com/news-and-blog/blog/2021/06/14/zink-summer-2021-update/) is the Vulkan implementation reusing its rasterizer that runs Zink in Mesa's CI. Together they show the whole GL-on-Vulkan-on-CPU stack working in software, and they confirm R-12-083: the working software 3D paths JIT. Their structure is a reference; their code is not a start-from. |
+| [SwiftShader](https://github.com/google/swiftshader) | A CPU implementation of Vulkan with stated Vulkan 1.3 conformance, carrying the Subzero and LLVM code generators in its tree. The same disposition as llvmpipe: evidence that a complete software Vulkan exists, structure without code. |
+| [OpenSWR](https://www.openswr.org/) | Intel's CPU rasterizer built on LLVM and targeting AVX, AVX2 and AVX-512, removed from mainline Mesa after 21.3. It is the nearest later industrial run of software rasterization on wide vector units after Larrabee, and the same disposition applies: wide-vector coverage and binning as design reference, its LLVM-compiled stages replaced by certified code. |
+| Mesa softpipe | Listed on Mesa's [platforms page](https://docs.mesa3d.org/systems.html) as "a reference Gallium driver with a shader interpreter". It is a working no-JIT GL implementation, slow by design; it serves as a semantic reference for pipeline behavior and not as a renderer. |
+| [euc](https://github.com/zesterer/euc) | A Rust CPU rasterizer whose vertex, fragment and blend stages are methods of a pipeline trait compiled by rustc, with no JIT, plus depth buffers, textures and samplers, MSAA, multithreading and `no_std`. It is small, but it is the one start-from whose shader model is literally R-13-018's: a shader is ordinary compiled code. |
+
+None of these carries a licence or dependency-closure reading here. Q30g's
+candidate selection records exact revisions, licence files and closures as the
+[upstream review](compute-upstream-review.md) did for Q30a, and nothing is
+vendored, pinned or trusted before that record exists.
 
 ## Qualification contract
 

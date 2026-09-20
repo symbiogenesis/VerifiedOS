@@ -28,8 +28,9 @@ states the lifecycle model's machine, storage and timing premises and the
 interfaces its runtime consumers must discharge.
 
 The [compute compatibility contract](implementation/compute-compatibility.md) records
-the OpenCL/SPIR-V and HIP source/API path, standards and prior-art evidence,
-unchanged admission guarantees and Q30 qualification predicates.
+the OpenCL/SPIR-V and HIP source/API path, the Vulkan SC-shaped graphics
+surface that path can carry with its start-froms, standards and prior-art
+evidence, unchanged admission guarantees and Q30 qualification predicates.
 Its [feature map](implementation/compute-feature-map.md),
 [semantic contract](implementation/contracts/compute-semantic.md) and
 [upstream review](implementation/compute-upstream-review.md) freeze the pilot
