@@ -18,26 +18,12 @@ The 5.1.1 wrapper compilation and Gallina vector checks pass, but the full Certi
 
 CertiRocq and its Wasm library require Rocq below 9.2. QuickChick independently requires `coq-simple-io`, which caps Coq below 9.2 and dune below 3.22. Their Coq 9.1.1 compatibility package fixes the standard library at 9.0.0. Those library constraints do not limit the proof gate or Rupicola switch.
 
-The validation client is [opam 2.5.2](https://github.com/ocaml/opam/releases/tag/2.5.2), installed in `$HOME/build/toolchains/opam-2.5.2/bin`. The release publishes these Linux binary hashes:
-
-| Archive | SHA-256 |
-| --- | --- |
-| `opam-2.5.2-arm64-linux` | `c4106ece84bcb60c68342573d2d6b4f0d6770ee088015c2216adc83d8854dcf9` |
-| `opam-2.5.2-x86_64-linux` | `edfca2630c373b44b7ee1c2f81cd8dcf67468d0db57d6c02158de553ac63dbd4` |
-
-For the arm64 guest, download into the checkout's ignored output directory, verify the hash, install into the versioned prefix and select that client for the shell session:
-
-```console
-$ mkdir -p out/deps "$HOME/build/toolchains/opam-2.5.2/bin"
-$ curl -fL https://github.com/ocaml/opam/releases/download/2.5.2/opam-2.5.2-arm64-linux \
-    -o out/deps/opam-2.5.2-arm64-linux
-$ printf '%s  %s\n' c4106ece84bcb60c68342573d2d6b4f0d6770ee088015c2216adc83d8854dcf9 \
-    out/deps/opam-2.5.2-arm64-linux | sha256sum -c -
-$ install -m 755 out/deps/opam-2.5.2-arm64-linux "$HOME/build/toolchains/opam-2.5.2/bin/opam"
-$ export PATH="$HOME/build/toolchains/opam-2.5.2/bin:$PATH"
-$ opam --version
-2.5.2
-```
+The [guest bootstrap](../ci/bootstrap_guest.py) owns the reviewed opam client release
+and architecture-specific SHA-256 hashes. It initializes an isolated root, registers
+the package repositories and imports the Sail and proof snapshots without changing
+the developer's active switch. See [the CI guide](../ci/README.md) for invocation,
+placement and environment setup. The remaining experimental switches are installed
+separately into an initialized root.
 
 From the repository root in the guest, register the repositories and import a snapshot into its dedicated switch:
 

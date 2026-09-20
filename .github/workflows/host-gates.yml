@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Read-only host validation on Windows and Ubuntu. Sail, Rocq and Verilator
-# evidence belongs to separate guest runs; see tools/README.md for the gate contract.
+# evidence runs in guest-gates.yml; see tools/README.md for the gate contracts.
 #
 # run.py runs the checker, mutation selftest, typecheck and behavioral tests
 # concurrently. uv installs locked dependencies into a checkout-local environment;

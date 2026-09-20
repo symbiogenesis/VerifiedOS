@@ -5,6 +5,47 @@ RTL on Linux. It complements [host validation](../../.github/workflows/host-gate
 Its initial triggers are manual dispatch and a weekly schedule; making it a required
 pull-request check needs a measured hosted run time and reliability record.
 
+## Running it
+
+[guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 24.04,
+every Monday at 04:23 UTC or through GitHub's **Run workflow** control. It needs no
+repository secrets or initialized submodules. The public repository's standard
+[runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+has 16 GB of RAM; the proof kernel recheck has historically exceeded 8 GiB,
+so a smaller runner needs a separate resource measurement.
+
+[bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
+when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
+tuple owns that list. Python must satisfy [the manifest](../pyproject.toml), and uv
+must match its exact pin before bootstrap starts. The script checks the downloaded
+opam executable, imports the [package snapshots](../opam/README.md), and calls the
+existing pinned Verilator installer. Package repositories provide the archive
+checksums for the snapshot imports; distribution package versions follow the runner
+image. This records a package resolution, not a bit-for-bit toolchain image.
+
+On native Linux, from the repository root:
+
+```sh
+python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --jobs 2 --install-system
+. "$HOME/build/guest-ci/environment.sh"
+python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json"
+python3 tools/run.py model bundle --check
+python3 tools/run.py rtl lint
+python3 tools/run.py rtl crosscheck
+```
+
+For a Windows worktree, run inside WSL and substitute its assigned
+`/root/build/lane-<name>/ci` root. Bootstrap refuses a nonempty directory it does not
+own. Retrying the same owned root resumes switch imports. Its environment file sets
+private opam, build, log, solver, temporary and compiler-cache directories; it does
+not edit the user's shell profile or replace existing switches.
+
+The workflow bounds each command, keeps independent checks running after a gate
+failure, and reports their outcomes in the job summary. The `guest-evidence` artifact
+retains logs and receipts for 14 days. Only uv downloads are restored between runs;
+the toolchains and evidence are rebuilt. A canceled run may end before it uploads
+diagnostics.
+
 ## Inputs and execution
 
 The checked-out revision owns the Sail and Rocq package snapshots, solver and

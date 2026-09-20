@@ -34,14 +34,16 @@ path. It was seventeen executables, and using them meant knowing which file answ
 which question and which of the two lanes it ran in; both of those are now the tool's
 to know. `python tools/run.py` with no command runs the host gate wave, which is what
 has to be green before anything lands, and `run.py <command> --help` is that command's
-own help. CI uses one read-only invocation, `run.py --check --tests`, in
+own help. Host CI uses one read-only invocation, `run.py --check --tests`, in
 [.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
 runners at every push and pull request to `main`, over a clone with no submodule
-checked out; the guest lane's loops run only by hand, on a machine that holds the
-toolchain. CI green is a witness that the host gates passed on that commit and never a
-substitute for the guest lane's evidence.
+checked out. [Guest CI](../.github/workflows/guest-gates.yml) runs the model evidence
+sweep, proof gate, bundle comparison and standalone RTL checks on Linux, on manual
+dispatch and a weekly schedule. Its [bootstrap and acceptance contract](ci/README.md)
+states the toolchain setup and the remaining experimental loops. Host and guest
+verdicts establish only the checks each workflow actually runs.
 
-**A red CI run has to name which member went red, to a reader who cannot open its
+**A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and
 the API as *process completed with exit code 1* and says nothing. So that invocation
 carries `--summary`, which writes the per-member verdict as JSON beside the run rather
@@ -439,7 +441,7 @@ The rules that follow from the table, each a thing a worker or a brief gets wron
 
 [run.py provision](vos/cli/provision.py) is that machine written down. Its probes cover four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor, a handful of distribution packages, and the lane's layout: one memo cache per lane, and every guest output on the guest's own filesystem. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself. [The opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch, which has its own [installation recipe](bedrock2-lowering/README.md).
 
-It is native rather than containerized: the prover and model toolchains are built on the guest. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. Creating an opam root and the CertiRocq oracle switch remains manual; the latter's recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
+It is native rather than containerized: the prover and model toolchains are built on the guest. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. [Guest CI bootstrap](ci/README.md) initializes an isolated opam root and installs the Sail and proof snapshots plus their native prerequisites. It does not install the experimental CertiRocq oracle switch; that switch's manual recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
 
 **What it does not reach it prints rather than absorbs.** Two settings decide how this lane behaves and neither is in this tree: WSL2's memory reclamation, which lives in a per-user file global to every distribution, and whether a person edits from the host or from inside the guest. Both are printed at the end of a run as not reached and neither is counted into the verdict, which is the same boundary [vos/env.py](vos/env.py) draws around the idle timer.
 
