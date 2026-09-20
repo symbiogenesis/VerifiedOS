@@ -186,6 +186,9 @@ COMMANDS: tuple[Command, ...] = (
     Command("proofs", "vos.cli.proofs",
             "every shipped proof, and its assumptions against the declared set",
             lane="guest", host_ok=frozenset({"headers"})),
+    Command("cic-corpus", "vos.cli.cic_corpus",
+            "what the compiled proof corpus asks a CIC checker to decide, from Rocq",
+            lane="guest"),
 )
 
 BY_NAME: dict[str, Command] = {command.name: command for command in COMMANDS}
