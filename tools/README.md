@@ -344,8 +344,8 @@ $ python tools/run.py quickchick vectors         # the Gallina front's answers
 $ python tools/run.py quickchick freeze          # the freeze's model, stated twice
 $ python tools/run.py seed coq --sample 20
 $ python tools/run.py seed sail --spec keccak --sample 14
-$ python tools/run.py proofs
-$ python tools/run.py proofs --jobs 8            # bound compilation, audits and kernel workers
+$ python tools/run.py proofs                     # choose CPU/memory limits for each phase
+$ python tools/run.py proofs --jobs 8            # explicitly override both worker limits
 $ python tools/run.py proofs --jobs 1            # keep kernel checking in one process
 $ python tools/run.py proofs --fresh             # force compilation and full kernel recheck
 ```
@@ -863,14 +863,27 @@ after upgrading the gate needs a full check to establish this identity.
 workers. Per-phase wall times and reused-object/audit counts are recorded in the
 receipt and printed.
 
+Without `--jobs`, each phase selects as many workers as the available logical CPUs
+and its memory planning budget permit. The guest samples `MemAvailable` immediately
+before compilation/auditing and again before kernel checking, after acquiring the
+workspace lock. [The resource policy](vos/env.py) owns the headroom, per-worker budgets
+and conservative fallbacks when memory cannot be read. Kernel workers receive a larger
+budget because the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs)
+show substantially higher memory use for a full recheck than for compilation.
+These are estimates, not measured limits for the current parallel batches. The selected
+limits are printed. An explicit `--jobs N` overrides automatic CPU/memory sizing for
+both phases; the single-process fallback for an unknown library identity still applies.
+Help, status, export and whole-set cache hits do not sample worker capacity.
+
 Changed runs use Rocq's documented
 [`-admit` incremental checking](https://rocq-prover.org/doc/V9.2.0/refman/practical-tools/coq-commands.html):
-only byte-validated, previously kernel-checked modules and their unchanged dependency
-closures may skip repeated type checking. Every changed module is an explicit check
-target, which overrides admission. A freshly compiled empty joining module requires
-every current module, including disconnected reused ones, so the checker still loads
-one joint environment and checks dependency consistency. New external dependencies
-are checked recursively unless already covered by a reused module's checked closure.
+byte-validated, previously kernel-checked modules and their unchanged dependency
+closures may skip repeated type checking. Every changed module must be an explicit
+check target in one worker, which overrides admission in that worker. A freshly
+compiled empty joining module requires every current module, including disconnected
+reused ones, so the checker still loads one joint environment and checks dependency
+consistency. New external dependencies
+are covered by recursive worker checks or a reused module's checked closure.
 Cached object hashes are verified after staging, after compilation/auditing and after
 the kernel pass; source and toolchain identities are verified again before publishing.
 A failed run cannot publish new success evidence. When rebuilding with reusable modules,
@@ -882,24 +895,31 @@ This follows the pinned checker's
 the native regressions exercise incremental success, incompatible objects and
 contradictory universe constraints across separately valid libraries.
 
-The `rocqchk` pass uses one shared environment and the pinned tool's default
-kernel conversion for its final consistency decision. Before that join, the launcher
-groups changed modules by connected local dependency components and distributes those
-components over at most `--jobs` checker processes. Components stay together so their
-shared changed prerequisites are checked once. Compiled-object sizes balance the
-batches; they never authorize reuse. Each worker recursively checks every changed
-module assigned to it and admits only previously validated reusable roots. External
-dependencies can be checked by more than one worker.
+The launcher groups changed modules by connected local dependency components and
+distributes them within the selected kernel-worker limit. Components stay
+together so their shared changed prerequisites are checked once. Compiled-object sizes
+balance the batches and select the lightest batch to carry the complete joint
+environment; sizes never authorize reuse. That worker type-checks its own targets
+while also checking dependency identities and combined universe constraints for all
+roots. It provisionally admits peer targets and their dependencies. Every peer
+recursively checks its targets, admitting only previously validated reusable roots.
+External dependencies can be checked by more than one worker.
 
-Only silent success from every worker permits the final joining module to admit the
-complete checked set. Compiled-object hashes must still match before that admission;
-the join loads all roots together and checks dependency identities and combined
-universe constraints. This preserves the joint decision across disconnected batches.
-`--fresh` checks all proof modules during the current run, then avoids repeating their
-type checks in the final join. `--jobs 1`, a single changed component or an unavailable
-installed-library identity keeps the single-process path. Whole-set cache hits still
-avoid invoking the kernel. Enabling the checker's bytecode compiler would also trust
-the serialized bytecode and VM; that option is left disabled. The launcher supplies
+The launcher verifies complete, disjoint target coverage before any worker starts.
+A provisional admission supplies no reusable evidence: acceptance requires silent
+success from every worker plus unchanged object, source, toolchain and library hashes.
+The joint worker may finish first, but a peer failure still refuses the entire run.
+The pinned checker's admission path still checks dependency identities and inserts
+universe constraints through
+[`Safe_typing.import`](https://github.com/rocq-prover/rocq/blob/V9.2.0/kernel/safe_typing.ml).
+The launcher composes these verdicts over identical bytes; there is no separate
+consistency pass after the workers finish.
+
+`--fresh` checks all proof modules during the current run. `--jobs 1`, a single changed
+component or an unavailable installed-library identity keeps the single-process path.
+Whole-set cache hits still avoid invoking the kernel. The pinned tool's default kernel
+conversion remains in use: enabling its bytecode compiler would also trust the
+serialized bytecode and VM, so that option is left disabled. The launcher supplies
 parallelism; the checker itself offers no parallel worker option.
 
 `placement consistency --plan demo_plan --max-candidates 64 --timeout 5` exercises

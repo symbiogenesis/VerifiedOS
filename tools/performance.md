@@ -136,24 +136,44 @@ proof receipts under the normal proof-evidence contract.
 ## Parallel kernel execution
 
 The proof launcher distributes independent changed dependency components across
-bounded `rocqchk` processes, followed by one joint consistency pass. Shared changed
-prerequisites remain in the same batch. Compiled size is a scheduling heuristic;
-the source, object, gate and installed-library hashes still own freshness. A
-worker failure or diagnostic prevents the join, and an object change between
-workers and the join refuses admission. Unknown installed-library contexts use
-one checker process.
+bounded `rocqchk` processes. The smallest estimated batch also checks the complete
+joint environment within its worker, so no separate consistency pass follows the
+pool. Shared changed prerequisites remain in the same batch. Compiled size is a
+scheduling heuristic; the source, object, gate and installed-library hashes still
+own freshness. Unknown installed-library contexts use one checker process.
+
+Automatic worker sizing uses the guest's usable logical CPUs and available memory
+at each phase, with separate compile/audit and kernel budgets owned by
+[`env.proof_jobs`](vos/env.py). The budgets are informed by the
+[historical prover residency measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs),
+not a measurement of the current parallel batches. A large core count therefore
+does not automatically launch a memory-heavy checker on every core. Explicit
+`--jobs` overrides resource sizing. Unknown memory uses conservative defaults,
+and help, metadata commands and complete cache hits perform no capacity probe.
 
 Every changed module must be an explicit recursive check target in one batch.
-Only after all batches succeed may the final joint pass admit those newly
-checked modules alongside validated cache hits. The joint module loads the full
-proof set, retaining dependency and universe consistency across batches. This
-uses the pinned checker's existing incremental mechanism and default conversion;
-it adds no trusted evaluator, library exemption or persistent cache.
+The launcher verifies complete, disjoint target coverage before starting workers.
+The joint worker provisionally admits peer roots and their dependency closures;
+the other workers check those roots recursively, with only validated cache hits
+admitted there. Its own explicit targets override admissions. Consequently a
+dependency skipped in the joint worker is covered by a peer or prior evidence.
+The joint worker loads the full proof set, retaining dependency and universe
+consistency across batches through the pinned checker's existing import path.
+Its success is provisional until every peer succeeds silently and all recorded
+bytes still match. Worker failures, diagnostics or changed objects refuse the
+whole run even when the joint worker already succeeded. No partial worker result
+is published or cached. The arrangement adds no trusted evaluator, library
+exemption or persistent cache.
 
 [Proof-cache regressions](tests/test_proofcache.py) specify bounded concurrent
 execution, complete target coverage, shared-prerequisite placement, serial
-fallbacks, refusal on worker failures and object changes, and the final joint
-verdict. The native case includes contradictory universe constraints across
+fallbacks, refusal on worker failures and object changes, and joint consistency
+within the same worker pool. A completed joint worker followed by a failed peer
+must still fail, and malformed partitions cannot authorize provisional admissions.
+The [environment cases](tests/test_env.py) cover phase-specific limits and distinguish
+exhausted memory from an unavailable reading. The proof-cache cases cover explicit
+overrides, independent phase sampling and commands that must avoid resource probes.
+The native case includes contradictory universe constraints across
 separately valid batches. These additions and the parallel implementation are
 unvalidated: execution of checks, tests and benchmarks is explicitly deferred for
 this change. The [historical proof receipt](../proofs/proof-evidence.json) remains

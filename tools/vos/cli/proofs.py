@@ -11,7 +11,7 @@ Independent dependency-wave members run concurrently under one directory lock. U
 compiled products are reused from successful receipts; changed dependencies invalidate
 their consumers. Audits and kernel verdicts are reused for the same checked bytes.
 Independent dependency components are kernel-checked in bounded parallel batches,
-then joined in one kernel environment; --fresh disables reuse from prior runs.
+with one worker also checking the joint environment; --fresh disables reuse from prior runs.
 Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and full receipt stay there. Successful
 runs also publish a portable receipt in the checkout. `proofs status` uses the guest
@@ -342,18 +342,19 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
 
 
 def _recheck_joint(root: Path, sources: list[Path],
-                   reused: frozenset[str]) -> subprocess.CompletedProcess[str]:
-    """One joint environment, admitting only previously checked dependency closures.
+                   admitted: frozenset[str]) -> subprocess.CompletedProcess[str]:
+    """Check selected roots and the consistency of the entire supplied environment.
 
     Rocq's -admit skips a root and its dependencies, except explicit check targets.
-    A fresh, empty joining module requires ALL roots, including disconnected cached
-    ones. This preserves joint consistency and makes every -admit root reachable.
-    Changed roots are explicit targets, so no admission can accidentally skip them.
-    No -norec or VM trust is used. The caller verifies bytes before and after this act.
+    A fresh, empty joining module requires ALL supplied roots, including disconnected
+    admitted ones. Every root outside admitted is an explicit check target.
+    Admissions are either byte-validated prior evidence or provisional peer work
+    whose success the caller MUST await. This result alone is not acceptance evidence.
+    No -norec or VM trust is used. The caller binds all bytes before and after the run.
     """
     command = [*env.rocqchk_command(), "-silent", "-Q", PROOFS, ""]
-    changed = [source.stem for source in sources if source.stem not in reused]
-    if not reused:
+    changed = [source.stem for source in sources if source.stem not in admitted]
+    if not admitted:
         return subprocess.run([*command, *changed], cwd=root, capture_output=True,
                               text=True, encoding="utf-8", check=False)
     with tempfile.TemporaryDirectory(prefix="kernel-", dir=root) as temporary:
@@ -370,7 +371,7 @@ def _recheck_joint(root: Path, sources: list[Path],
             return compiled
         return subprocess.run(
             [*command, str(join.with_suffix(".vo")), *changed,
-             *(arg for stem in sorted(reused) for arg in ("-admit", stem))],
+             *(arg for stem in sorted(admitted) for arg in ("-admit", stem))],
             cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
@@ -414,18 +415,21 @@ def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> l
 
 def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset(), *,
              jobs: int = 1) -> subprocess.CompletedProcess[str]:
-    """Check independent batches, then import their checked bytes into one environment.
+    """Check batches and their joint consistency in the same bounded worker pool.
 
-    Every changed module is an explicit recursive check target in one batch. A
-    worker admits only the caller's content-validated reusable roots. Only after
-    ALL workers succeed silently may the final joint pass admit the complete set.
-    That pass still checks checksums and combined universe constraints, including
-    disconnected modules; separate worker successes alone cannot accept the set.
+    Every changed module is an explicit check target in exactly one batch. The
+    lightest batch also loads ALL roots, provisionally admitting peer targets so
+    that their terms are not checked twice. The other workers recursively check
+    those peer targets, admitting only the caller's byte-validated reusable roots.
+    Thus every skipped dependency is covered by a peer's recursive check or prior
+    evidence. Explicit targets override admissions even through their closures.
+    The joint worker checks dependency identities and combined universe constraints;
+    ALL workers must succeed silently before their combined verdict can be accepted.
 
     The caller holds the workspace lock and binds sources, outputs, toolchain and
     installed libraries before and after this operation. It selects one job when
     the installed-library context cannot be bound. --fresh still checks every root
-    in this run; only the final join avoids checking those same terms twice.
+    in this run. No provisional worker result is published or cached separately.
     """
     if jobs < 1:
         raise ValueError("kernel jobs must be positive")
@@ -437,15 +441,25 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     batches = _kernel_batches(sources, reused, jobs)
     if len(batches) < 2:
         return _recheck_joint(root, sources, reused)
+    assigned = [source for batch in batches for source in batch]
+    if (any(not batch for batch in batches) or len(assigned) != len(set(assigned))
+            or set(assigned) != {source for source in sources if source.stem not in reused}):
+        raise ValueError("kernel batches must cover every changed module exactly once")
     products = [source.with_suffix(".vo") for source in sources]
     before = receipts.snapshot(root, products)
     cached = [source for source in sources if source.stem in reused]
+    # Give the extra full-environment imports to the smallest estimated workload.
+    joint = min(range(len(batches)), key=lambda index: sum(
+        source.with_suffix(".vo").stat().st_size for source in batches[index]))
 
-    def check(batch: list[Path]) -> subprocess.CompletedProcess[str]:
+    def check(item: tuple[int, list[Path]]) -> subprocess.CompletedProcess[str]:
+        index, batch = item
+        if index == joint:
+            return _recheck_joint(root, sources, stems - {source.stem for source in batch})
         return _recheck_joint(root, sorted([*batch, *cached]), reused)
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(batches))) as pool:
-        results = list(pool.map(check, batches))
+        results = list(pool.map(check, enumerate(batches)))
     for batch, result in zip(batches, results, strict=True):
         if result.returncode or result.stdout.strip() or result.stderr.strip():
             names = ", ".join(source.stem for source in batch)
@@ -454,7 +468,7 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
                 stderr=f"kernel batch [{names}] failed:\n{result.stderr}")
     if receipts.snapshot(root, products) != before:
         raise ValueError("compiled proof artifacts changed during parallel kernel checking")
-    return _recheck_joint(root, sources, stems)
+    return results[joint]
 
 
 def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
@@ -861,7 +875,7 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
         return reusable
 
 
-def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
+def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     started = time.perf_counter()
     work = workspace(root)
     folder = work / PROOFS
@@ -919,6 +933,9 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
              for source, required_sources in analysis.index.needs.items()}
     checked: list[Checked] = []
     failed: set[str] = set()
+    compile_jobs = env.proof_jobs() if jobs is None else jobs
+    print(f"  compile/audit worker limit: {compile_jobs} "
+          f"({'automatic' if jobs is None else 'explicit'})", flush=True)
 
     def check(source: Path) -> Checked:
         if source.stem in reusable:
@@ -926,7 +943,7 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
                            analysis.witnesses[source])
         return _check_source(work, source, analysis)
 
-    with ThreadPoolExecutor(max_workers=jobs) as pool:
+    with ThreadPoolExecutor(max_workers=compile_jobs) as pool:
         for wave in analysis.index.ordered:
             ready: list[Path] = []
             for source in wave:
@@ -957,13 +974,14 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
         print("FAIL: previously checked object changed during compilation or auditing")
         return 1
     recheck_started = time.perf_counter()
-    print(f"  compile/audit: {compile_seconds:.2f}s; "
-          f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
-          f"starting {'incremental' if reusable else 'full'} kernel recheck", flush=True)
     # Same-run kernel admissions need the installed-library identity too. Unknown
     # contexts retain the single-process recursive check, even on a fresh run.
-    rechecked = _recheck(work, staged, frozenset(reusable),
-                        jobs=jobs if context is not None else 1)
+    kernel_jobs = 1 if context is None else (env.proof_jobs(kernel=True) if jobs is None else jobs)
+    print(f"  compile/audit: {compile_seconds:.2f}s; "
+          f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
+          f"starting {'incremental' if reusable else 'full'} kernel recheck "
+          f"with worker limit {kernel_jobs}", flush=True)
+    rechecked = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs)
     recheck_seconds = time.perf_counter() - recheck_started
     said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
     if rechecked.returncode or said:
@@ -1011,7 +1029,7 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
     return 0
 
 
-def _run(root: Path, jobs: int, fresh: bool = False) -> int:
+def _run(root: Path, jobs: int | None, fresh: bool = False) -> int:
     proofs = root / PROOFS
     if not (proofs / STATEMENT).exists():
         print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
@@ -1046,13 +1064,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("command", nargs="?", choices=("run", "status", "export"), default="run")
     parser.add_argument("--check", action="store_true",
                         help="with export, compare the portable receipt without writing")
-    parser.add_argument("--jobs", type=int, default=min(4, os.process_cpu_count() or 1),
+    parser.add_argument("--jobs", type=int,
                         help="maximum concurrent compilation, audit and kernel jobs "
-                             "(default: at most four; 1 keeps one kernel process)")
+                             "(default: available cores limited by each phase's memory budget; "
+                             "an explicit value overrides automatic sizing)")
     parser.add_argument("--fresh", action="store_true",
                         help="recompile every source and run a fresh full kernel recheck")
     parsed = parser.parse_args(args)
-    if parsed.jobs < 1:
+    if parsed.jobs is not None and parsed.jobs < 1:
         parser.error("--jobs must be positive")
     if parsed.check and parsed.command != "export":
         parser.error("--check requires export")

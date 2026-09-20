@@ -18,6 +18,7 @@ win32 returns at the platform refusal before it gets to the preparations, so wha
 `toolchain=False` skips is decidable only where a toolchain could have been prepared.
 """
 
+import io
 import json
 import os
 import shlex
@@ -25,8 +26,9 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stderr
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, with_env
 from vos import env
@@ -178,6 +180,35 @@ def _jobs_env_reads() -> None:
         lambda: env._jobs(12, 15700), "not a positive count", "zero VOS_JOBS"))
     with_env("VOS_JOBS", "-3", lambda: _expect_exit(
         lambda: env._jobs(12, 15700), "not a positive count", "negative VOS_JOBS"))
+
+
+def _proof_jobs_use_phase_resources() -> None:
+    samples = ((12, 128 * 1024, 12, 12), (64, 128 * 1024, 64, 12),
+               (2, 128 * 1024, 2, 2), (12, 16 * 1024, 12, 1),
+               (12, 32 * 1024, 12, 3), (12, 2048, 1, 1),
+               (12, 0, 1, 1), (None, 64 * 1024, 1, 1),
+               (12, None, 4, 1), (None, None, 1, 1))
+    for cpus, memory, compilation, kernel in samples:
+        with patch.object(env.os, "process_cpu_count", return_value=cpus), \
+                patch.object(env, "_read_mem_available_mb", return_value=memory), \
+                patch.dict(os.environ, {"VOS_JOBS": "99"}), \
+                redirect_stderr(io.StringIO()) as warnings:
+            ensure(env.proof_jobs() == compilation, "wrong automatic compile/audit limit")
+            ensure(env.proof_jobs(kernel=True) == kernel, "wrong automatic kernel limit")
+            ensure(bool(warnings.getvalue()) == (memory is None),
+                   "only unavailable memory should produce a fallback diagnostic")
+
+
+def _memory_reading_distinguishes_exhaustion_from_unknown() -> None:
+    samples = (("MemAvailable: 1048576 kB\n", 1024), ("MemAvailable: 0 kB\n", 0),
+               ("MemAvailable: -1024 kB\n", None), ("MemAvailable: invalid kB\n", None),
+               ("MemAvailable:\n", None), ("MemAvailable: 1024 MB\n", None),
+               ("MemTotal: 1048576 kB\n", None))
+    for text, expected in samples:
+        with patch.object(env.Path, "read_text", return_value=text):
+            ensure(env._read_mem_available_mb() == expected, "wrong memory availability reading")
+    with patch.object(env.Path, "read_text", side_effect=OSError("unavailable")):
+        ensure(env._read_mem_available_mb() is None, "unreadable memory must be unknown")
 
 
 def _keepalive_hours_reads() -> None:
@@ -418,6 +449,9 @@ def cases() -> list[Case]:
         Case("mount-type-reads-the-table", _mount_type_reads_the_table),
         Case("jobs-arithmetic", _jobs_arithmetic),
         Case("jobs-env-reads", _jobs_env_reads),
+        Case("proof-jobs-use-phase-resources", _proof_jobs_use_phase_resources),
+        Case("memory-reading-distinguishes-exhaustion",
+             _memory_reading_distinguishes_exhaustion_from_unknown),
         Case("keepalive-hours-reads", _keepalive_hours_reads),
         Case("keepalive-pidfile-read", _keepalive_pidfile_read),
         Case("git-env-names-the-work-tree", _git_env_names_the_work_tree),

@@ -365,18 +365,52 @@ def _cpus() -> int:
     return os.process_cpu_count() or 1
 
 
-def _mem_available_mb() -> int:
+def _read_mem_available_mb() -> int | None:
+    """Guest memory available without swapping, in MiB; None when unreadable."""
     try:
         for line in Path("/proc/meminfo").read_text().splitlines():
             if line.startswith("MemAvailable:"):
-                return int(line.split()[1]) // 1024
-    except OSError:
-        pass
+                fields = line.split()
+                if len(fields) == 3 and fields[2] == "kB":
+                    value = int(fields[1])
+                    if value >= 0:
+                        return value // 1024
+                return None
+    except (OSError, ValueError):
+        return None
+    return None
+
+
+def _mem_available_mb() -> int:
+    available = _read_mem_available_mb()
+    if available is not None:
+        return available
     # Announced rather than passed over: with no figure the memory guard in `_jobs`
     # cannot bind, and a silent zero would look like a policy instead of a blindness.
     print("WARNING no MemAvailable figure from /proc/meminfo: the memory guard is "
           "blind and jobs are sized from cores alone", file=sys.stderr)
     return 0
+
+
+def proof_jobs(*, kernel: bool = False) -> int:
+    """Use available cores subject to a phase-specific memory planning budget.
+
+    The historical toolchain-residency report records compilation below 1 GiB per
+    module but a whole-set kernel recheck above 8 GiB. Reserve 2 GiB of headroom,
+    then budget 1 GiB per compile/audit worker or 10 GiB per kernel worker. These
+    are scheduling estimates, not bounds on future proof workloads. Sample in the
+    guest just before each phase, after the workspace lock has been acquired.
+    """
+    cpus = _cpus()
+    available = _read_mem_available_mb()
+    if available is None:
+        jobs = min(cpus, 1 if kernel else 4)
+        phase = "kernel" if kernel else "compile/audit"
+        print(f"WARNING no MemAvailable figure from /proc/meminfo: automatic {phase} "
+              f"jobs limited to {jobs}; use --jobs to override", file=sys.stderr)
+        return jobs
+    per_job = 10240 if kernel else 1024
+    return min(cpus, max(1, (available - 2048) // per_job))
 
 
 def _jobs(cpus: int, mem_mb: int) -> int:
