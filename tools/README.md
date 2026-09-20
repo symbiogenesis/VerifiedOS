@@ -345,7 +345,8 @@ $ python tools/run.py quickchick freeze          # the freeze's model, stated tw
 $ python tools/run.py seed coq --sample 20
 $ python tools/run.py seed sail --spec keccak --sample 14
 $ python tools/run.py proofs
-$ python tools/run.py proofs --jobs 8            # bound concurrent compilation and audits
+$ python tools/run.py proofs --jobs 8            # bound compilation, audits and kernel workers
+$ python tools/run.py proofs --jobs 1            # keep kernel checking in one process
 $ python tools/run.py proofs --fresh             # force compilation and full kernel recheck
 ```
 
@@ -856,10 +857,11 @@ library and runtime files discovered through the compiler configuration and actu
 load paths, the checker library, and the environment (only its digest is recorded;
 shell launch bookkeeping and WSL's per-launch interop socket are excluded).
 Unknown load-path formats, directory symlinks, dynamic source/ML loading or unsupported
-wrapped Require commands disable reuse. The first run after upgrading the gate needs
-a full check to establish this identity. `proofs --fresh` forces all work; `--jobs N`
-bounds compilation and auditing. Per-phase wall times and reused-object/audit counts
-are recorded in the receipt and printed.
+wrapped Require commands disable reuse and parallel kernel checking. The first run
+after upgrading the gate needs a full check to establish this identity.
+`proofs --fresh` forces all work; `--jobs N` bounds compilation, auditing and kernel
+workers. Per-phase wall times and reused-object/audit counts are recorded in the
+receipt and printed.
 
 Changed runs use Rocq's documented
 [`-admit` incremental checking](https://rocq-prover.org/doc/V9.2.0/refman/practical-tools/coq-commands.html):
@@ -881,9 +883,24 @@ the native regressions exercise incremental success, incompatible objects and
 contradictory universe constraints across separately valid libraries.
 
 The `rocqchk` pass uses one shared environment and the pinned tool's default
-kernel conversion. Enabling its bytecode compiler would also trust the serialized
-bytecode and VM; that option is left disabled. The checker offers no parallel worker
-option.
+kernel conversion for its final consistency decision. Before that join, the launcher
+groups changed modules by connected local dependency components and distributes those
+components over at most `--jobs` checker processes. Components stay together so their
+shared changed prerequisites are checked once. Compiled-object sizes balance the
+batches; they never authorize reuse. Each worker recursively checks every changed
+module assigned to it and admits only previously validated reusable roots. External
+dependencies can be checked by more than one worker.
+
+Only silent success from every worker permits the final joining module to admit the
+complete checked set. Compiled-object hashes must still match before that admission;
+the join loads all roots together and checks dependency identities and combined
+universe constraints. This preserves the joint decision across disconnected batches.
+`--fresh` checks all proof modules during the current run, then avoids repeating their
+type checks in the final join. `--jobs 1`, a single changed component or an unavailable
+installed-library identity keeps the single-process path. Whole-set cache hits still
+avoid invoking the kernel. Enabling the checker's bytecode compiler would also trust
+the serialized bytecode and VM; that option is left disabled. The launcher supplies
+parallelism; the checker itself offers no parallel worker option.
 
 `placement consistency --plan demo_plan --max-candidates 64 --timeout 5` exercises
 the finite consistency pilot. It uses the memory plan's candidate domains and existing

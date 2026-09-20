@@ -10,8 +10,9 @@ The existing record-witness check remains the decidable part of the non-vacuity 
 Independent dependency-wave members run concurrently under one directory lock. Unchanged
 compiled products are reused from successful receipts; changed dependencies invalidate
 their consumers. Audits and kernel verdicts are reused for the same checked bytes.
-A joint kernel environment checks changed modules against those checked dependencies;
---fresh disables all reuse. Sources are staged into this checkout's native guest build lane; compiler
+Independent dependency components are kernel-checked in bounded parallel batches,
+then joined in one kernel environment; --fresh disables reuse from prior runs.
+Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and full receipt stay there. Successful
 runs also publish a portable receipt in the checkout. `proofs status` uses the guest
 hop to hash native outputs; `proofs export` preserves an existing run without Rocq.
@@ -340,8 +341,8 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
-def _recheck(root: Path, sources: list[Path],
-             reused: frozenset[str] = frozenset()) -> subprocess.CompletedProcess[str]:
+def _recheck_joint(root: Path, sources: list[Path],
+                   reused: frozenset[str]) -> subprocess.CompletedProcess[str]:
     """One joint environment, admitting only previously checked dependency closures.
 
     Rocq's -admit skips a root and its dependencies, except explicit check targets.
@@ -371,6 +372,89 @@ def _recheck(root: Path, sources: list[Path],
             [*command, str(join.with_suffix(".vo")), *changed,
              *(arg for stem in sorted(reused) for arg in ("-admit", stem))],
             cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
+
+
+def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> list[list[Path]]:
+    """Balance independent changed components without rechecking shared local proofs.
+
+    Keep each connected component together after removing reusable nodes. Splitting
+    a component would recursively type-check its shared prerequisites in each worker.
+    Compiled size is only a scheduling estimate, never evidence or a cache key.
+    """
+    index = proofs_mod.SourceIndex.read(sources)
+    changed = {source for source in sources if source.stem not in reused}
+    neighbours = {source: set(index.needs[source]) & changed for source in changed}
+    for source, required in index.needs.items():
+        if source in changed:
+            for dependency in required & changed:
+                neighbours[dependency].add(source)
+    components: list[list[Path]] = []
+    remaining = set(changed)
+    while remaining:
+        frontier = {min(remaining)}
+        component: set[Path] = set()
+        while frontier:
+            source = frontier.pop()
+            if source not in remaining:
+                continue
+            remaining.remove(source)
+            component.add(source)
+            frontier.update(neighbours[source] & remaining)
+        components.append(sorted(component))
+    weighted = [(sum(source.with_suffix(".vo").stat().st_size for source in component), component)
+                for component in components]
+    batches: list[list[Path]] = [[] for _ in range(min(jobs, len(components)))]
+    loads = [0] * len(batches)
+    for size, component in sorted(weighted, key=lambda item: (-item[0], item[1])):
+        slot = min(range(len(batches)), key=lambda slot: (loads[slot], len(batches[slot]), slot))
+        batches[slot].extend(component)
+        loads[slot] += size
+    return [sorted(batch) for batch in batches]
+
+
+def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset(), *,
+             jobs: int = 1) -> subprocess.CompletedProcess[str]:
+    """Check independent batches, then import their checked bytes into one environment.
+
+    Every changed module is an explicit recursive check target in one batch. A
+    worker admits only the caller's content-validated reusable roots. Only after
+    ALL workers succeed silently may the final joint pass admit the complete set.
+    That pass still checks checksums and combined universe constraints, including
+    disconnected modules; separate worker successes alone cannot accept the set.
+
+    The caller holds the workspace lock and binds sources, outputs, toolchain and
+    installed libraries before and after this operation. It selects one job when
+    the installed-library context cannot be bound. --fresh still checks every root
+    in this run; only the final join avoids checking those same terms twice.
+    """
+    if jobs < 1:
+        raise ValueError("kernel jobs must be positive")
+    stems = frozenset(source.stem for source in sources)
+    if not reused <= stems:
+        raise ValueError("kernel reuse names modules outside the proof set")
+    if jobs == 1 or len(stems - reused) < 2:
+        return _recheck_joint(root, sources, reused)
+    batches = _kernel_batches(sources, reused, jobs)
+    if len(batches) < 2:
+        return _recheck_joint(root, sources, reused)
+    products = [source.with_suffix(".vo") for source in sources]
+    before = receipts.snapshot(root, products)
+    cached = [source for source in sources if source.stem in reused]
+
+    def check(batch: list[Path]) -> subprocess.CompletedProcess[str]:
+        return _recheck_joint(root, sorted([*batch, *cached]), reused)
+
+    with ThreadPoolExecutor(max_workers=min(jobs, len(batches))) as pool:
+        results = list(pool.map(check, batches))
+    for batch, result in zip(batches, results, strict=True):
+        if result.returncode or result.stdout.strip() or result.stderr.strip():
+            names = ", ".join(source.stem for source in batch)
+            return subprocess.CompletedProcess(
+                result.args, result.returncode, stdout=result.stdout,
+                stderr=f"kernel batch [{names}] failed:\n{result.stderr}")
+    if receipts.snapshot(root, products) != before:
+        raise ValueError("compiled proof artifacts changed during parallel kernel checking")
+    return _recheck_joint(root, sources, stems)
 
 
 def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
@@ -876,7 +960,10 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
     print(f"  compile/audit: {compile_seconds:.2f}s; "
           f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
           f"starting {'incremental' if reusable else 'full'} kernel recheck", flush=True)
-    rechecked = _recheck(work, staged, frozenset(reusable))
+    # Same-run kernel admissions need the installed-library identity too. Unknown
+    # contexts retain the single-process recursive check, even on a fresh run.
+    rechecked = _recheck(work, staged, frozenset(reusable),
+                        jobs=jobs if context is not None else 1)
     recheck_seconds = time.perf_counter() - recheck_started
     said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
     if rechecked.returncode or said:
@@ -960,7 +1047,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true",
                         help="with export, compare the portable receipt without writing")
     parser.add_argument("--jobs", type=int, default=min(4, os.process_cpu_count() or 1),
-                        help="maximum concurrent proof jobs (default: at most four)")
+                        help="maximum concurrent compilation, audit and kernel jobs "
+                             "(default: at most four; 1 keeps one kernel process)")
     parser.add_argument("--fresh", action="store_true",
                         help="recompile every source and run a fresh full kernel recheck")
     parsed = parser.parse_args(args)

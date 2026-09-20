@@ -132,3 +132,37 @@ historical input population after later source edits. The native proof-cache and
 assumption-audit regressions exercise actual Rocq behavior; these timing scripts
 do not issue proof evidence. Changed gate inputs invalidate existing native
 proof receipts under the normal proof-evidence contract.
+
+## Parallel kernel execution
+
+The proof launcher distributes independent changed dependency components across
+bounded `rocqchk` processes, followed by one joint consistency pass. Shared changed
+prerequisites remain in the same batch. Compiled size is a scheduling heuristic;
+the source, object, gate and installed-library hashes still own freshness. A
+worker failure or diagnostic prevents the join, and an object change between
+workers and the join refuses admission. Unknown installed-library contexts use
+one checker process.
+
+Every changed module must be an explicit recursive check target in one batch.
+Only after all batches succeed may the final joint pass admit those newly
+checked modules alongside validated cache hits. The joint module loads the full
+proof set, retaining dependency and universe consistency across batches. This
+uses the pinned checker's existing incremental mechanism and default conversion;
+it adds no trusted evaluator, library exemption or persistent cache.
+
+[Proof-cache regressions](tests/test_proofcache.py) specify bounded concurrent
+execution, complete target coverage, shared-prerequisite placement, serial
+fallbacks, refusal on worker failures and object changes, and the final joint
+verdict. The native case includes contradictory universe constraints across
+separately valid batches. These additions and the parallel implementation are
+unvalidated: execution of checks, tests and benchmarks is explicitly deferred for
+this change. The [historical proof receipt](../proofs/proof-evidence.json) remains
+the timing owner; it contains no measurement of this implementation.
+
+Performance acceptance still requires equivalent fresh serial and parallel runs
+on the same source and toolchain, with the worker count and input scope recorded.
+Compare kernel and whole-gate elapsed time and peak memory, and exercise changed,
+unchanged and unavailable-cache-context paths. The largest connected component,
+unequal proof costs and repeated external-library reads can limit improvement;
+compiled size does not predict conversion time exactly. No speedup is claimed
+until the focused host/native regressions, stable host wave and comparison pass.

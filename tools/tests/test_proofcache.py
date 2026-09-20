@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 from unittest.mock import patch
 
@@ -60,7 +61,7 @@ def _incremental_run() -> None:
                 contextlib.redirect_stdout(io.StringIO()):
 
             def run(expected: set[str], *, fresh: bool = False, result: int = 0,
-                    kernel: bool = True) -> None:
+                    kernel: bool = True, kernel_jobs: int = 2) -> None:
                 compiled_names.clear()
                 audited.clear()
                 recheck.reset_mock()
@@ -74,6 +75,8 @@ def _incremental_run() -> None:
                     available = {source.stem for source in gate._sources(root)}
                     ensure(recheck.call_args.args[2] == frozenset(available - expected),
                            "kernel admission differs from the validated reusable objects")
+                    ensure(recheck.call_args.kwargs["jobs"] == kernel_jobs,
+                           "kernel workers require a bound installed-library context")
 
             run(set(texts))
             receipt = (work / gate.RECEIPT).read_bytes()
@@ -202,7 +205,8 @@ def _incremental_run() -> None:
             failing.clear()
 
             def tamper(_root: Path, sources: list[Path],
-                       _reused: frozenset[str]) -> subprocess.CompletedProcess[str]:
+                       _reused: frozenset[str], *, jobs: int) -> subprocess.CompletedProcess[str]:
+                ensure(jobs == 2, "kernel job limit was not forwarded")
                 sources[0].with_suffix(".vo").write_bytes(b"changed during kernel check")
                 return subprocess.CompletedProcess([], 0, stdout="", stderr="")
 
@@ -226,8 +230,141 @@ def _incremental_run() -> None:
             with patch.object(gate, "_check_source", side_effect=corrupt_cached):
                 run({"Consumer"}, result=1, kernel=False)
             with patch.object(gate, "_cache_context", return_value=None):
-                run(set(texts))
-                run(set(texts))
+                run(set(texts), kernel_jobs=1)
+                run(set(texts), kernel_jobs=1)
+
+
+def _kernel_batches_preserve_dependencies() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-kernel-batches-") as temporary:
+        folder = Path(temporary)
+        texts = {"Cached": "Definition value := 0.",
+                 "Base": "Require Cached.", "Left": "Require Base.",
+                 "Right": "Require Base.", "Independent": "Require Cached.",
+                 "Other": "Definition value := 1."}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+            (folder / f"{name}.vo").write_bytes(b"object" * len(name))
+        sources = sorted(folder.glob("*.v"))
+        reused = frozenset({"Cached"})
+        for jobs in (1, 2, 3, 8):
+            batches = gate._kernel_batches(sources, reused, jobs)
+            groups = [{source.stem for source in batch} for batch in batches]
+            flattened = [name for group in groups for name in group]
+            ensure(len(batches) == min(jobs, 3) and all(groups),
+                   "kernel batches must be nonempty and bounded by independent components")
+            ensure(set(flattened) == set(texts) - reused and len(flattened) == len(set(flattened)),
+                   "changed roots must be covered exactly once, with no cached targets")
+            ensure(any({"Base", "Left", "Right"} <= group for group in groups),
+                   "shared changed prerequisites must stay in the same kernel batch")
+            ensure(batches == gate._kernel_batches(list(reversed(sources)), reused, jobs),
+                   "kernel scheduling must be deterministic for the same source set")
+
+
+def _parallel_kernel_requires_every_batch_and_joint_pass() -> None:
+    """A partial success, noisy worker or changed object can never authorize the join."""
+    with tempfile.TemporaryDirectory(prefix="vos-parallel-kernel-") as temporary:
+        root = Path(temporary)
+        folder = root / "proofs"
+        folder.mkdir()
+        texts = {"Cached": "Definition value := 0.", "Base": "Require Cached.",
+                 "Consumer": "Require Base.", "Independent": "Require Cached."}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+        sources = gate._sources(root)
+        stems = frozenset(texts)
+
+        def exercise(failure: str) -> None:
+            for source in sources:
+                source.with_suffix(".vo").write_bytes(b"original object")
+            barrier = threading.Barrier(2, timeout=5)
+            calls: list[tuple[set[str], frozenset[str]]] = []
+
+            def recheck(base: Path, batch: list[Path],
+                        reused: frozenset[str]) -> subprocess.CompletedProcess[str]:
+                ensure(base == root, "kernel worker escaped its workspace")
+                names = {source.stem for source in batch}
+                calls.append((names, reused))
+                if reused == stems:
+                    ensure(len(calls) == 3 and names == stems,
+                           "joint pass must follow every worker and include every root")
+                    return subprocess.CompletedProcess([], int(failure == "joint"),
+                                                       stdout="", stderr="")
+                ensure(reused == frozenset({"Cached"}) and "Cached" in names,
+                       "a worker admitted unchecked peers or omitted the reusable closure")
+                barrier.wait()
+                targeted = "Independent" in names
+                if targeted and failure == "tamper":
+                    (folder / "Base.vo").write_bytes(b"changed after the other worker read it")
+                if targeted and failure == "exception":
+                    raise OSError("worker could not start")
+                return subprocess.CompletedProcess(
+                    [], int(targeted and failure == "exit"),
+                    stdout="unexpected output" if targeted and failure == "stdout" else "",
+                    stderr="unexpected diagnostic" if targeted and failure == "stderr" else "")
+
+            with patch.object(gate, "_recheck_joint", side_effect=recheck):
+                try:
+                    result = gate._recheck(root, sources, frozenset({"Cached"}), jobs=2)
+                except (OSError, ValueError):
+                    ensure(failure in {"tamper", "exception"}, "unexpected kernel exception")
+                else:
+                    clean = not (result.returncode or result.stdout.strip() or result.stderr.strip())
+                    ensure(clean == (failure == "none"), f"kernel lost {failure} verdict")
+                    ensure(failure not in {"tamper", "exception"}, "kernel input failure was ignored")
+            ensure(len(calls) == (3 if failure in {"none", "joint"} else 2),
+                   "a failed batch authorized a final joint pass")
+            targets = [name for names, reused in calls[:2] for name in names - reused]
+            ensure(set(targets) == stems - {"Cached"} and len(targets) == len(set(targets)),
+                   "parallel kernel workers duplicated or omitted a changed root")
+
+        for failure in ("none", "exit", "stdout", "stderr", "tamper", "exception", "joint"):
+            exercise(failure)
+
+
+def _kernel_single_process_paths() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-serial-kernel-") as temporary:
+        root = Path(temporary)
+        sources = [root / "Base.v", root / "Consumer.v"]
+        for source, text in zip(sources, ("Definition value := 0.", "Require Base."), strict=True):
+            source.write_text(text, encoding="utf-8")
+            source.with_suffix(".vo").write_bytes(b"object")
+        answer = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        samples: tuple[tuple[int, frozenset[str]], ...] = (
+            (1, frozenset()), (4, frozenset({"Base"})),
+            (4, frozenset({"Base", "Consumer"})), (4, frozenset()))
+        for jobs, reused in samples:
+            with patch.object(gate, "_recheck_joint", return_value=answer) as joint:
+                ensure(gate._recheck(root, sources, reused, jobs=jobs) is answer,
+                       "serial kernel path lost its verdict")
+                joint.assert_called_once_with(root, sources, reused)
+
+
+def _joint_kernel_keeps_recursive_targets() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-joint-kernel-") as temporary:
+        root = Path(temporary)
+        sources = [root / "proofs" / f"{name}.v"
+                   for name in ("Cached", "Changed", "VerifiedOSProofClosure")]
+        answer = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+        def compile_join(base: Path, source: Path) -> subprocess.CompletedProcess[str]:
+            ensure(base == root and source.is_relative_to(root), "join escaped its native lane")
+            ensure(source.stem == "VerifiedOSProofClosure_", "join collided with an authored module")
+            ensure(source.read_text(encoding="utf-8") == "".join(
+                f"Require {item.stem}.\n" for item in sources),
+                "joint module must load every root, including disconnected cached ones")
+            return answer
+
+        with patch.object(gate.env, "rocqchk_command", return_value=["rocqchk"]), \
+                patch.object(gate, "_compile", side_effect=compile_join), \
+                patch.object(gate.subprocess, "run", return_value=answer) as run:
+            ensure(gate._recheck_joint(root, sources, frozenset({"Cached"})) is answer,
+                   "joint kernel verdict was lost")
+            command = run.call_args.args[0]
+            ensure(command[:5] == ["rocqchk", "-silent", "-Q", "proofs", ""]
+                   and command[6:] == ["Changed", "VerifiedOSProofClosure", "-admit", "Cached"],
+                   "joint kernel changed explicit targets, admissions or default conversion")
+            ensure(Path(command[5]).stem == "VerifiedOSProofClosure_",
+                   "joint environment was not an explicit kernel target")
 
 
 def _context_hashes_library_bytes() -> None:
@@ -333,7 +470,7 @@ def _native_incremental_kernel() -> None:
             base = work / "proofs" / "Base.v"
             base.write_text("Definition value := 1.\n", encoding="utf-8")
             ensure(gate._compile(work, base).returncode == 0, "mismatched fixture did not compile")
-            refused = recheck(work, gate._sources(work), frozenset(texts))
+            refused = recheck(work, gate._sources(work), frozenset(texts), jobs=2)
             ensure(refused.returncode != 0, "joint check accepted incompatible cached modules")
 
             # Separately valid libraries can impose contradictory constraints on
@@ -351,11 +488,25 @@ def _native_incremental_kernel() -> None:
                 path.write_text(text, encoding="utf-8")
                 ensure(gate._compile(joint, path).returncode == 0,
                        f"individually valid universe fixture failed: {name}")
+            for name in ("Left", "Right"):
+                accepted = recheck(joint, [joint / "proofs" / f"{stem}.v"
+                                          for stem in ("SharedUniverses", name)])
+                ensure(not (accepted.returncode or accepted.stdout.strip() or accepted.stderr.strip()),
+                       f"individually valid kernel batch failed: {name}")
             refused = recheck(joint, gate._sources(joint), frozenset({"SharedUniverses", "Left"}))
             ensure(refused.returncode != 0, "incremental join accepted contradictory universes")
+            # The two changed roots form separate batches once their shared base
+            # is cached. Both can pass alone, but their joint environment cannot.
+            refused = recheck(joint, gate._sources(joint), frozenset({"SharedUniverses"}), jobs=2)
+            ensure(refused.returncode != 0, "parallel join accepted contradictory universes")
 
 
 def cases() -> list[Case]:
     return [Case("incremental-proof-cache-invalidation", _incremental_run),
+            Case("kernel-batches-preserve-dependencies", _kernel_batches_preserve_dependencies),
+            Case("parallel-kernel-requires-all-verdicts",
+                 _parallel_kernel_requires_every_batch_and_joint_pass),
+            Case("kernel-single-process-paths", _kernel_single_process_paths),
+            Case("joint-kernel-recursive-targets", _joint_kernel_keeps_recursive_targets),
             Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest"),
             Case("native-incremental-kernel", _native_incremental_kernel, lane="toolchain")]
