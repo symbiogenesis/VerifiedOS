@@ -390,6 +390,46 @@ def find_root(start: Path | None = None) -> Path:
     )
 
 
+@dataclass(frozen=True)
+class Index:
+    """The index's file membership and pins, without reading the working tree.
+
+    `files` includes deleted and unmerged paths, once each in Git's order.
+    `indexed` is narrower: only stage-zero files can supply an indexed blob.
+    """
+
+    files: tuple[str, ...]
+    gitlinks: dict[str, str]
+    indexed: frozenset[str]
+
+
+def read_index(root: Path) -> Index:
+    """Read file membership, stage-zero membership and gitlinks in one Git call.
+
+    Callers that only need the index need not parse every document or stat every
+    tracked path. Working-tree existence is deliberately left to each reader.
+    """
+    files: list[str] = []
+    gitlinks: dict[str, str] = {}
+    indexed: set[str] = set()
+    seen: set[str] = set()
+    for entry in _git(root, "ls-files", "--stage", "--full-name"):
+        staged, _, path = entry.partition("\t")
+        mode, oid, stage = staged.split()
+        if stage == "0" and mode != GITLINK_MODE:
+            indexed.add(path)
+        # A conflict lists each stage separately. Retain the first entry's kind
+        # and pin, as load does, rather than silently choosing the last side.
+        if path in seen:
+            continue
+        seen.add(path)
+        if mode == GITLINK_MODE:
+            gitlinks[path] = oid
+        else:
+            files.append(path)
+    return Index(tuple(files), gitlinks, frozenset(indexed))
+
+
 def load(root: Path) -> Corpus:
     """Every tracked Markdown document, plus the gitlinks and the commit each records.
 
@@ -420,27 +460,10 @@ def load(root: Path) -> Corpus:
     # same reason and it is what makes the pin rule work on such a checkout: the id is
     # in the index whether or not anything was ever fetched, and most checkouts here
     # have `upstream/` unpopulated.
+    index = read_index(root)
     names: list[str] = []
-    gitlinks: dict[str, str] = {}
-    indexed: set[str] = set()
     tracked: list[str] = []
-    seen: set[str] = set()
-    for entry in _git(root, "ls-files", "--stage", "--full-name"):
-        staged, _, path = entry.partition("\t")     # `<mode> <object> <stage>\t<path>`
-        mode, oid, stage = staged.split()
-        if stage == "0" and mode != GITLINK_MODE:
-            indexed.add(path)
-        # A merge conflict lists an unmerged path once per stage, and the first is
-        # taken whatever the entry is. One path read as two documents would report
-        # every anchor it declares as declared twice; one gitlink read three times
-        # would keep whichever stage git happened to list last, which for a
-        # conflicted submodule is *theirs* rather than a pin anybody chose.
-        if path in seen:
-            continue
-        seen.add(path)
-        if mode == GITLINK_MODE:
-            gitlinks[path] = oid
-            continue
+    for path in index.files:
         if not (root / path).is_file():
             continue
         tracked.append(path)
@@ -456,4 +479,4 @@ def load(root: Path) -> Corpus:
             # checkout: dropped exactly as a deletion that landed before the listing
             # is, so its absence stays reportable on every rule's own terms
             continue
-    return Corpus(root, docs, gitlinks, sorted(tracked), indexed)
+    return Corpus(root, docs, index.gitlinks, sorted(tracked), set(index.indexed))
