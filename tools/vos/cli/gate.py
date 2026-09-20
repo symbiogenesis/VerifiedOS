@@ -24,6 +24,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,11 +34,9 @@ from vos.report import Reporter
 
 HEADING = "=== gate: every host gate over this tree, in one run ==="
 
-# The bound a member must answer within. The selftest is the only one that comes
-# near a minute, and it is a whole checker run per rule over sandboxes it builds
-# first, so the bound is sized for a cold cache on a slow machine rather than for
-# the half-minute it takes here. A member that reaches it is hung, and a hung gate
-# must become a finding rather than a command that never returns.
+# Allow cold sandbox construction and the complete mutation and behavioral suites
+# on slower runners. A member that reaches this bound must become a finding rather
+# than a command that never returns.
 TIMEOUT = 900
 
 # What a member that never answered exited with. It has no code of its own, and a
@@ -62,11 +61,12 @@ class Launch:
 
 @dataclass
 class Result:
-    """What one member answered: its own whole output, and the code it exited."""
+    """One member's output, exit code and elapsed wall time, including launch."""
 
     launch: Launch
     code: int
     out: list[str]
+    elapsed_seconds: float = 0.0
 
 
 MEMBERS: tuple[Launch, ...] = (
@@ -108,23 +108,28 @@ def _launch(root: Path, member: Launch) -> Result:
     both findings, on the convention typecheck.py's own runner keeps.
     """
     argv = [sys.executable, str(root / "tools" / "run.py"), member.tool, *member.args]
+    started = time.perf_counter()
     try:
         done = subprocess.run(argv, capture_output=True, encoding="utf-8",
                               errors="replace", cwd=root, check=False, timeout=TIMEOUT)
     except subprocess.TimeoutExpired:
         return Result(member, NO_VERDICT,
-                      [f"{member.name} gave no verdict within {TIMEOUT}s"])
+                      [f"{member.name} gave no verdict within {TIMEOUT}s"],
+                      time.perf_counter() - started)
     except OSError as err:
-        return Result(member, NO_VERDICT, [f"{member.name} could not be run: {err}"])
+        return Result(member, NO_VERDICT, [f"{member.name} could not be run: {err}"],
+                      time.perf_counter() - started)
     # stderr after stdout and never instead of it: a member reports on stdout, so
     # anything on stderr is what it said while dying and belongs under its heading
     # rather than lost.
-    return Result(member, done.returncode, (done.stdout + done.stderr).splitlines())
+    return Result(member, done.returncode, (done.stdout + done.stderr).splitlines(),
+                  time.perf_counter() - started)
 
 
 def _show(rep: Reporter, result: Result) -> None:
     """Keep a process's diagnostic output even when a later check supersedes it."""
     rep.line(f"--- {result.launch.name}: {result.launch.decides} ---")
+    rep.line(f"elapsed: {result.elapsed_seconds:.2f}s")
     rep.out.extend(result.out)
     rep.line()
 
@@ -163,6 +168,7 @@ def _verdict_data(results: list[Result], stopped: str = "") -> dict[str, object]
         "members": [{"name": r.launch.name,
                      "decides": r.launch.decides,
                      "code": r.code,
+                     "elapsed_seconds": r.elapsed_seconds,
                      "reached_verdict": r.code in (0, 1),
                      "clean": r.code == 0}
                     for r in results],
@@ -235,9 +241,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     plan = _plan(args.fix, args.tests)
-    # Printed rather than accumulated, which the report itself is not: the longest
-    # member is most of a minute and this is the only line that can say what is
-    # being waited for while it runs.
+    # The member reports remain accumulated in declaration order; this preflight
+    # states what is running while the wave has not yet returned.
     preflight = "repairing derived facts; " if args.fix else ""
     print(preflight + f"running {len(plan[-1])} host gate(s): "
           + ", ".join(m.name for m in plan[-1]), flush=True)

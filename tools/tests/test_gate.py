@@ -177,6 +177,33 @@ def _launch_names_a_member_that_gave_no_verdict() -> None:
            f"the finding names the command and that it reached no verdict, got {rep.out!r}")
 
 
+def _launch_times_success_findings_and_missing_verdicts() -> None:
+    member = gate.MEMBERS[0]
+    outcomes = [
+        (subprocess.CompletedProcess([], 0, "ok\n", ""), 0),
+        (subprocess.CompletedProcess([], 1, "FAIL\n", "diagnostic\n"), 1),
+        (subprocess.CompletedProcess([], 2, "", "usage\n"), 2),
+        (subprocess.TimeoutExpired("check", gate.TIMEOUT), gate.NO_VERDICT),
+        (OSError("cannot launch"), gate.NO_VERDICT),
+    ]
+    for outcome, expected in outcomes:
+        with (patch.object(gate.subprocess, "run") as launched,
+              patch.object(gate.time, "perf_counter", side_effect=[10.0, 12.75])):
+            if isinstance(outcome, Exception):
+                launched.side_effect = outcome
+            else:
+                launched.return_value = outcome
+            result = gate._launch(_ROOT, member)
+        ensure(result.code == expected and result.elapsed_seconds == 2.75,
+               f"timing lost the member's verdict or duration: {result}")
+        if isinstance(outcome, subprocess.CompletedProcess):
+            ensure(result.out == (outcome.stdout + outcome.stderr).splitlines(),
+                   "timing changed the member's diagnostics")
+        rep = Reporter()
+        gate._show(rep, result)
+        ensure(rep.out[1] == "elapsed: 2.75s", "the log must carry the measured duration")
+
+
 def _verdict_names_the_member_that_reported() -> None:
     results = [gate.Result(gate.MEMBERS[0], 0, ["ok whatever: fine"]),
                gate.Result(gate.MEMBERS[1], 1, ["FAIL K-99: 1 thing"]),
@@ -202,7 +229,7 @@ def _summary_names_every_member_and_its_code() -> None:
     codes = {"check": 0, "selftest": 1, "typecheck": gate.NO_VERDICT, "test": 0}
 
     def launch(root: Path, member: gate.Launch) -> gate.Result:
-        return gate.Result(member, codes[member.tool], [])
+        return gate.Result(member, codes[member.tool], [], 1.25)
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-summary-") as td:
         path = Path(td) / "nested" / "verdict.json"
@@ -220,13 +247,16 @@ def _summary_names_every_member_and_its_code() -> None:
     # at REPAIRS: reordering MEMBERS must not quietly move which member this holds.
     selftest = next(m for m in gate.MEMBERS if m.tool == "selftest")
     ensure(by_name["selftest"] == {"name": "selftest", "decides": selftest.decides,
-                                   "code": 1, "reached_verdict": True, "clean": False},
+                                   "code": 1, "elapsed_seconds": 1.25,
+                                   "reached_verdict": True, "clean": False},
            f"a member that reported findings reached a verdict, got {by_name['selftest']!r}")
     ensure(by_name["typecheck"]["reached_verdict"] is False
            and by_name["typecheck"]["code"] == gate.NO_VERDICT,
            f"a member that never decided says so, got {by_name['typecheck']!r}")
     ensure(by_name["check"]["clean"] is True and by_name["test"]["clean"] is True,
            f"a member that exited 0 is clean, got {by_name!r}")
+    ensure(all(m["elapsed_seconds"] == 1.25 for m in written["members"]),
+           "every member's JSON record must retain its measured duration")
     written_at = [i for i, line in enumerate(rep.out)
                   if line.startswith("ok summary: written to")]
     decided_at = [i for i, line in enumerate(rep.out) if line.startswith("FAIL gate:")]
@@ -305,6 +335,8 @@ def cases() -> list[Case]:
              lane="host"),
         Case("launch-names-a-member-that-gave-no-verdict",
              _launch_names_a_member_that_gave_no_verdict, lane="host"),
+        Case("launch-times-success-findings-and-missing-verdicts",
+             _launch_times_success_findings_and_missing_verdicts),
         Case("verdict-names-the-member-that-reported",
              _verdict_names_the_member_that_reported),
         Case("summary-names-every-member-and-its-code",

@@ -54,6 +54,9 @@ before the wave finished is named as that rather than left looking like a failin
 `--summary` adds no member and decides nothing about the tree; asked to write that
 verdict and unable to, it reports
 one finding of its own, which is the only way it reaches the exit code.
+Each member's elapsed wall time, including process launch, appears in its log
+section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrently,
+so these durations overlap and must not be added to obtain the wave's duration.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. The two OS jobs run independently, and `run.py` runs their gate

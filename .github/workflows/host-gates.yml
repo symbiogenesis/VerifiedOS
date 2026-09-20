@@ -80,14 +80,15 @@ jobs:
                   "stopped": "No verdict file was written; the gate never started or did not finish. See earlier steps.",
                   "members": [],
               }
-              rows = ["| Member | Exit | Verdict |", "| --- | --- | --- |"]
+              rows = ["| Member | Seconds | Exit | Verdict |", "| --- | --- | --- | --- |"]
               if stopped := report.get("stopped"):
                   annotate("error", stopped)
-                  rows.append(f"| n/a | n/a | {stopped} |")
+                  rows.append(f"| n/a | n/a | n/a | {stopped} |")
               for member in report["members"]:
                   state = "clean" if member["clean"] else (
                       "reported findings" if member["reached_verdict"] else "never reached a verdict")
-                  rows.append(f"| `{member['name']}` | {member['code']} | {state} |")
+                  rows.append(f"| `{member['name']}` | {member['elapsed_seconds']:.2f} | "
+                              f"{member['code']} | {state} |")
                   if not member["clean"]:
                       annotate("error", f"{member['name']}: {state} (exit {member['code']}); "
                                f"it decides {member['decides']}. See the gate log.")
