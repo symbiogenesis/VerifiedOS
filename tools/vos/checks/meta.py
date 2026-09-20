@@ -23,7 +23,7 @@ K-75 is that rule one figure over, on the version the tools are *written* to rat
 than the versions they run. The interpreter floor decides what the two checkers admit
 and what this directory's Python may say, and it is written as a setting in ty's
 dialect and in ruff's, restated in prose, and restated as a literal the provisioner
-probes the running interpreter against and as the version the push workflow installs;
+probes the running interpreter against and as the version the CI workflows install;
 ty.toml's is the source because it is the environment an editor's language server and
 this gate both resolve against, and the only site that writes the figure bare. The
 sites are enumerated rather than counted here, because the count is `_FLOOR_SITES`' to
@@ -33,10 +33,10 @@ read as a disagreement with the other, and every prose site was a hand-copy noth
 owned. The provisioner explicitly restates the floor, while tools/pyproject.toml constrains
 the interpreter used for dependency resolution. Both are held against ty's target.
 
-The window is the enumerated sites rather than a directory, as K-67's is: `tools/`
-carries all but one, and the push workflow's `python-version` is the copy the gate
-actually runs on. The plan restates the floor in two of its own cells and is outside by
-decision, a rule about how this directory is written having no business holding a
+The window is the enumerated sites rather than a directory, as K-67's is: the host
+and guest workflows' `python-version` settings sit outside `tools/` and select the
+interpreters their gates run on. The plan restates the floor in two of its own cells
+and is outside by decision, a rule about how this directory is written having no business holding a
 sentence in a document about the build order; that pairing is the plan's to own if
 anything is to own it.
 
@@ -193,7 +193,8 @@ _README_RUFF_ROW_RE = re.compile(r"(?m)^\| \[ruff\]\([^)]*\) \| ([^ |]+) \|")
 # a pin cannot be paired wrongly and a site added here moves the ok line's count with
 # it: the derived-fact discipline this rule enforces on the README, applied to the
 # rule's own prose, which is where a hand-copied count last went stale.
-_WORKFLOW = ".github/workflows/host-gates.yml"
+_HOST_WORKFLOW = ".github/workflows/host-gates.yml"
+_GUEST_WORKFLOW = ".github/workflows/guest-gates.yml"
 
 _PIN_SITES: list[tuple[str, str, re.Pattern[str], str]] = [
     ("checker-table row", README, _README_TY_ROW_RE, "ty"),
@@ -309,7 +310,9 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
      re.compile(r"`uv python install --no-config ([^`\s]+)`"), _plain),
     ("provisioned floor", PROVISION,
      re.compile(r'(?m)^INTERPRETER_FLOOR = "([^"\r\n]*)"'), _plain),
-    ("workflow interpreter", _WORKFLOW,
+    ("workflow interpreter", _HOST_WORKFLOW,
+     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
+    ("workflow interpreter", _GUEST_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
 ]
 
