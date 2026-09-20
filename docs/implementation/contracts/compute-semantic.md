@@ -1,7 +1,7 @@
 # Bounded compute pilot semantic contract
 
 This is the Q30a interface accepted for implementation planning alongside the
-[feature audit](compute-feature-map.md). Q30b and Q30c remain blocked on their
+[feature audit](../compute-feature-map.md). Q30b and Q30c remain blocked on their
 listed foundations. All sizes and performance cutoffs here are prospective
 qualification thresholds, not measurements. This document neither admits an
 instruction nor changes R-13-018a through R-13-018c.
@@ -216,7 +216,7 @@ all benchmark accumulations fit exactly in FP32 and bf16 inputs represent these
 operands exactly. The witness must prove every conversion, accumulation and
 tail agrees with the source. This restricted M case cannot justify narrowing
 general SGEMM inputs. If no admitted M operation implements it, Q30b/Q30c's
-matrix comparison remains open; the [matrix margin contract](contracts/matrix-margin.md)
+matrix comparison remains open; the [matrix margin contract](matrix-margin.md)
 and M0.8c/M10 keep their independent gates and estimates.
 
 The HIP kernel repeats these reduction/stencil/GEMM definitions using

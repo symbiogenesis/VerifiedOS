@@ -1,9 +1,9 @@
 # Finite workflow lifecycle and admission contract
 
-[WorkflowProfiles.v](../../proofs/WorkflowProfiles.v) is Q32a's executable Gallina
-qualification of the [workflow design](workflow-profiles.md), under R-08-015a,
+[WorkflowProfiles.v](../../../proofs/WorkflowProfiles.v) is Q32a's executable Gallina
+qualification of the [workflow design](../workflow-profiles.md), under R-08-015a,
 R-11-018, R-11-018a, R-14-011a and R-14-011b in the
-[requirements register](../requirements-register.md). It supplies a bounded
+[requirements register](../../requirements-register.md). It supplies a bounded
 source model and consumer interfaces. Q32b owns the actual kernel, storage and
 schedule pilot; Q32c owns instantiated recipes and capacity measurements.
 
@@ -101,7 +101,7 @@ complete holder inventory and derivable bases, closed ingress, live register
 and raw saved-state cleanup, minting roots, loans, proxy acknowledgement,
 devices, barrier completion, a sweep begun after that barrier, complete sweep
 coverage, and data/tag sanitization. These are the
-[Q22a reuse interface](../assurance/revocation-qualification.md), not independent
+[Q22a reuse interface](../../assurance/revocation-qualification.md), not independent
 shortcuts around it. Neither elapsed time nor a set bitmap can construct the
 required physical receipt.
 
