@@ -596,10 +596,12 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     copied = sum(one for one, _ in counts)
     carried = sum(one for _, one in counts)
 
-    # Keep the snapshot's immutable Git objects even when a source changed. Git's
-    # index updates use a lock and rename, so `add` can refresh the carried index
-    # without modifying its linked source. Rebuilding the object store for one edit
-    # would hash and compress every unchanged blob again. A missing or partial store
+    # Keep the snapshot's immutable Git objects even when a source changed. An
+    # unchanged index can travel with them; otherwise detach it before `add`, so
+    # normalization and ignore rules are applied as they are on the cold path.
+    # A prior index can otherwise retain CRLF blobs under new text=auto attributes
+    # or preserve files excluded by new ignore rules. Rebuilding the object store
+    # would also compress every unchanged blob again. A missing or partial store
     # still takes the cold path.
     manifest = {rel: [size, mtime, kind] for rel, (size, mtime, kind) in placed.items()}
     gitlinks = index.gitlinks
@@ -621,6 +623,8 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
             raise SystemExit("could not build the sandbox index: git init")
     if (not carried_index or manifest != old_files or gitlinks != old_gitlinks
             or carried != sum(1 for _, _, kind in placed.values() if kind == "copy")):
+        # Unlink rather than truncate: the old index is still a snapshot's hardlink.
+        (into / ".git" / "index").unlink(missing_ok=True)
         proc = subprocess.run(["git", "add", "-A"], cwd=into, capture_output=True, check=False)
         if proc.returncode != 0:
             raise SystemExit("could not build the sandbox index: git add")

@@ -66,6 +66,55 @@ def _failed_carry_rebuilds_index() -> None:
         ensure(not (fresh / ".git" / "partial").exists(), "partial Git store survived fallback")
 
 
+def _attribute_change_matches_cold_index() -> None:
+    normalized = "* text=auto eol=lf\n"
+    scenarios: list[tuple[str, dict[str, str], str, str | None]] = [
+        ("changed", {".gitattributes": "* -text\n"}, ".gitattributes", normalized),
+        ("added", {".gitattributes": "* -text\n"}, "docs/.gitattributes", normalized),
+        ("deleted", {".gitattributes": normalized, "docs/.gitattributes": "* -text\n"},
+         "docs/.gitattributes", None),
+        ("nested", {".gitattributes": "* -text\n", "docs/.gitattributes": "* -text\n"},
+         "docs/.gitattributes", normalized),
+    ]
+    for name, attributes, changed, after in scenarios:
+        with sandbox_tree({".gitignore": "out/\n", "docs/a.txt": "first\r\nsecond\r\n",
+                           **attributes}) as root:
+            output = root / "out"
+            cache = output / "cache"
+            with patch.object(selftest, "_cache_root", return_value=cache), \
+                    patch.object(selftest, "_GRACE_NS", 0):
+                selftest.build_template(root, output / "first", 2)
+                selftest._publish(output / "first", cache)
+                if after is None:
+                    (root / changed).unlink()
+                else:
+                    (root / changed).write_bytes(after.encode())
+                selftest.build_template(root, output / "warm", 2)
+            with patch.object(selftest, "_cache_root", return_value=output / "empty-cache"):
+                selftest.build_template(root, output / "cold", 2)
+            warm = corpus.staged_bytes(output / "warm", "docs/a.txt")
+            cold = corpus.staged_bytes(output / "cold", "docs/a.txt")
+            ensure(warm == cold == b"first\nsecond\n",
+                   f"{name} attributes must match cold indexing: warm={warm!r}, cold={cold!r}")
+
+
+def _ignore_change_matches_cold_index() -> None:
+    with sandbox_tree({".gitignore": "out/\n", "a.txt": "kept on disk\n"}) as root:
+        output = root / "out"
+        cache = output / "cache"
+        with patch.object(selftest, "_cache_root", return_value=cache), \
+                patch.object(selftest, "_GRACE_NS", 0):
+            selftest.build_template(root, output / "first", 2)
+            selftest._publish(output / "first", cache)
+            (root / ".gitignore").write_bytes(b"out/\na.txt\n")
+            selftest.build_template(root, output / "warm", 2)
+        with patch.object(selftest, "_cache_root", return_value=output / "empty-cache"):
+            selftest.build_template(root, output / "cold", 2)
+        warm, cold = corpus.read_index(output / "warm"), corpus.read_index(output / "cold")
+        ensure(warm.files == cold.files and "a.txt" not in warm.indexed,
+               f"ignore edits must match cold membership: warm={warm!r}, cold={cold!r}")
+
+
 def _pin_changes_refresh_index() -> None:
     with sandbox_tree({".gitignore": "out/\n", "a.txt": "kept\n"}) as root:
         output = root / "out"
@@ -137,6 +186,8 @@ def cases() -> list[Case]:
     return [
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
         Case("failed-carry-rebuilds-index", _failed_carry_rebuilds_index),
+        Case("attribute-change-matches-cold-index", _attribute_change_matches_cold_index),
+        Case("ignore-change-matches-cold-index", _ignore_change_matches_cold_index),
         Case("pin-changes-refresh-index", _pin_changes_refresh_index),
         Case("missing-object-rebuilds-index", _missing_object_rebuilds_index),
         Case("snapshot-shape-falls-back", _snapshot_shape_falls_back),
