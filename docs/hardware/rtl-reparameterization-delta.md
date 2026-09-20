@@ -75,7 +75,7 @@ All of `core/include/cva6_cheri_pkg.sv`, which is where the format is fixed.
 | 186 to 193 | `cap_cbounds_t`, the union over the two packings | deletion | the packed bounds are three adjacent fields at fixed positions |
 | 196 to 203 | `cap_meta_data_t`, comparisons over the full 14-bit mantissa against `r` | rewrite | the frozen model derives the representable limit from the top three mantissa bits and compares in three bits. The correspondence between the two formulations is itself part of what R-15-007a's representation-correctness proof owes |
 | 241 to 285 | `DEFAULT_BOUNDS_CAP`, `REG_ROOT_CAP`, `REG_NULL_CAP`, `MEM_NULL_CAP` | structure | one root capability becomes **two**: no admitted permission set holds both store and execute, so composition hands each core an execute-side and a store-side authority and a single almighty root is inexpressible (R-15-007l, R-15-007p) |
-| 311 to 319 | `legalize_arch_perms` | deletion | the enumeration is total, so no encoding is illegal and there is nothing to legalize. Its two consumers in `cheri_unit.sv` become constant-false (§2.3) |
+| 311 to 319 | `legalize_arch_perms` | deletion | the enumeration is total, so no encoding is illegal and there is nothing to legalize. Its three consumers in `cheri_unit.sv` go: the two malformed-permission tests become constant false and `candperm`'s re-legalization becomes the narrowing (§2.3) |
 | 332 to 336 | `set_cap_mem_addr_inc`, 12-bit immediate sign-extended over `CAP_ADDR_WIDTH` | width | over 36 |
 | 391 | `exp > CAP_MAX_EXP ? CAP_MAX_EXP` | literal | 30 |
 | 394, 395 | `{2'b00, cap.addr}` at 66 bits, sliced `[XLEN+1-exp -: CAP_M_WIDTH]` | literal | 38 bits, sliced at the frozen widths |
@@ -132,10 +132,15 @@ implemented width/metadata slice. [The transform registry](../../tools/rtl-width
 is the owner of its exact selected-source identities and replacements; native
 staging emits source-to-output diffs and refuses drift. Its branch, issue, LSU,
 CSR and CHERI-unit edits include the metadata declarations, assignments and
-helper arguments omitted from the original width rows. The ariane package's
-single-root reader and the remaining cause/permission/sentry interfaces remain
-outside that implemented slice. The full site register remains an open curation
-inventory; a passing width probe does not qualify those functional changes.
+helper arguments omitted from the original width rows, and its second layer
+carries this section's cause consumers, §2.1's permission rewrite rows and the
+mode deletion at the commit stage and the top level. The ariane package's
+single-root reader, the CHERI unit's seal-entry arm and its two mode
+instructions remain outside that implemented slice, as do the member reads the
+deletion rows of this section and of §2.1 and §2.3 own, which
+[the contract's seam 3 decisions](scalar-width-transform-contract.md#seam-3-decisions)
+enumerate. The full site register remains an open curation inventory; a passing
+width probe does not qualify those functional changes.
 
 ### 2.3 Permissions, object type and mode, in the functional units
 

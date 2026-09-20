@@ -30,7 +30,7 @@
     {
       "path": "core/branch_unit.sv",
       "source_sha256": "4be691d6ab951f5976b021e866356a1bddb27cec377757fb0f6ca4e3dae46e01",
-      "output_sha256": "bb67b2c9546f33fcdc6c744c756f38991a8216e901b43cacdd44030180da8e9c",
+      "output_sha256": "8181220f6ded36cb01bdf1cfb29aa1402781211ecf8cdf0344e1a9267553d628",
       "edits": [
         {
           "old": "  cva6_cheri_pkg::cap_meta_data_t target_pcc_meta;",
@@ -53,6 +53,11 @@
           "count": 1
         },
         {
+          "old": "  assign target_pcc_address = target_pcc.addr;\n",
+          "new": "  assign target_pcc_address = target_pcc.address;\n",
+          "count": 1
+        },
+        {
           "old": "set_cap_reg_address(\n        jump_base_cap,\n        target_address[CVA6Cfg.VLEN-1:0],\n        cva6_cheri_pkg::get_cap_reg_meta_data(\n          jump_base_cap)\n      )",
           "new": "set_cap_reg_address(\n        jump_base_cap,\n        target_address[CVA6Cfg.VLEN-1:0])",
           "count": 1
@@ -61,13 +66,63 @@
           "old": "set_cap_reg_address(\n                  compare_pcc,\n                  compare_target_cap[CVA6Cfg.XLEN-1:0],\n                  cva6_cheri_pkg::get_cap_reg_meta_data(\n                      pcc)\n              )",
           "new": "set_cap_reg_address(\n                  compare_pcc,\n                  compare_target_cap[CVA6Cfg.XLEN-1:0])",
           "count": 1
+        },
+        {
+          "old": "        branch_result_o = cva6_cheri_pkg::set_cap_reg_otype(next_pc, cva6_cheri_pkg::SENTRY_CAP);\n",
+          "new": "        branch_result_o =\n            cva6_cheri_pkg::set_cap_reg_otype(next_pc, cva6_cheri_pkg::SENTRY_BWD_CAP);\n",
+          "count": 1
+        },
+        {
+          "old": "          compare_pcc = cva6_cheri_pkg::set_cap_reg_flags(pcc, 0);\n          compare_target_cap = cva6_cheri_pkg::set_cap_reg_flags(\n              cva6_cheri_pkg::set_cap_reg_otype(operand_a, cva6_cheri_pkg::UNSEALED_CAP), 0);\n",
+          "new": "          compare_pcc = pcc;\n          compare_target_cap =\n              cva6_cheri_pkg::set_cap_reg_otype(operand_a, cva6_cheri_pkg::UNSEALED_CAP);\n",
+          "count": 1
+        },
+        {
+          "old": "          // If jumping into intmode, we must have been in capmode, so always mispredict\n          if (cva6_cheri_pkg::get_cap_reg_flags(target_address) == 1'b1)\n            resolved_branch_o.is_mispredict = branch_valid_i;\n",
+          "new": "          // One encoding mode, so no jump enters an integer mode and none\n          // mispredicts for that reason.\n",
+          "count": 1
+        },
+        {
+          "old": "    automatic cva6_cheri_pkg::cap_tval2_t cheri_tval2 = '0;\n",
+          "new": "    automatic logic [CVA6Cfg.XLEN-1:0] cheri_tval = '0;\n",
+          "count": 1
+        },
+        {
+          "old": "    cheri_tval2.fault_type = cva6_cheri_pkg::CAP_JUMP_BRANCH_FAULT;\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "        cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_BOUNDS_VIOLATION;\n",
+          "new": "        cheri_tval = cva6_cheri_pkg::capex_tval(\n            cva6_cheri_pkg::CapEx_LengthViolation,\n            (fu_data_i.operation inside {ariane_pkg::CJALR}) ?\n                cva6_cheri_pkg::capreg_idx_of_regidx(fu_data_i.rs1) :\n                cva6_cheri_pkg::PCC_IDX);\n",
+          "count": 1
+        },
+        {
+          "old": "        if (!operand_a.hperms.permit_execute) begin\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n",
+          "new": "        if (!vos_cheri_pkg::cap_permit_execute(operand_a)) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitExecuteViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(fu_data_i.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "        if ((operand_a.otype != cva6_cheri_pkg::UNSEALED_CAP) && (($signed(\n                operand_a.otype\n            ) != cva6_cheri_pkg::SENTRY_CAP) || (|fu_data_i.imm[CVA6Cfg.VLEN-1:0]))) begin\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_SEAL_VIOLATION;\n",
+          "new": "        if ((operand_a.otype != cva6_cheri_pkg::UNSEALED_CAP) &&\n            ((operand_a.otype != cva6_cheri_pkg::SENTRY_FWD_CAP) ||\n             (|fu_data_i.imm[CVA6Cfg.VLEN-1:0]))) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_SealViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(fu_data_i.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_TAG_VIOLATION;\n",
+          "new": "          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_TagViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(fu_data_i.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "        branch_exception_o.tval  = '0;\n        branch_exception_o.tval2 = {'0, cheri_tval2};\n",
+          "new": "        branch_exception_o.tval  = cheri_tval;\n        branch_exception_o.tval2 = '0;\n",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/issue_read_operands.sv",
       "source_sha256": "92971a15045fd619b27710a31a13bdd1e0838e43f3f5012469990326183c6861",
-      "output_sha256": "29c18b8005022d47dfbe60c2f692159343718b1e002fdc32bd85b13fabb2c38f",
+      "output_sha256": "17932ecb66ac4d4eabac31bbf66a13fc273a5420ddc6b3c420876e59479ffb1e",
       "edits": [
         {
           "old": "  cva6_cheri_pkg::cap_meta_data_t pcc_meta;",
@@ -103,13 +158,53 @@
           "old": "set_cap_reg_address(pcc[0], issue_instr_i[0].pc, pcc_meta)",
           "new": "set_cap_reg_address(pcc[0], issue_instr_i[0].pc)",
           "count": 1
+        },
+        {
+          "old": "  assign int_mode_o   = cva6_cheri_pkg::get_cap_reg_flags(pcc_q);\n",
+          "new": "  assign int_mode_o   = 1'b0;\n",
+          "count": 1
+        },
+        {
+          "old": "        pcc[i] = cva6_cheri_pkg::set_cap_reg_flags(pcc_q, issue_instr_i[i].int_mode);\n",
+          "new": "        pcc[i] = pcc_q;\n",
+          "count": 1
+        },
+        {
+          "old": "        automatic cva6_cheri_pkg::cap_tval2_t cheri_tval2;\n        cheri_tval2.fault_type = cva6_cheri_pkg::CAP_INSTR_FETCH_FAULT;\n",
+          "new": "        automatic logic [CVA6Cfg.XLEN-1:0] cheri_tval = '0;\n",
+          "count": 1
+        },
+        {
+          "old": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_BOUNDS_VIOLATION;\n          issue_pcc_ex_o[i].tval2 = cheri_tval2;\n",
+          "new": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval = cva6_cheri_pkg::capex_tval(cva6_cheri_pkg::CapEx_LengthViolation,\n                                                  cva6_cheri_pkg::PCC_IDX);\n          issue_pcc_ex_o[i].tval = cheri_tval;\n",
+          "count": 1
+        },
+        {
+          "old": "        if (issue_instr_i[i].needs_asr && !pcc[i].hperms.access_sys_regs) begin\n          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n          issue_pcc_ex_o[i].tval2 = cheri_tval2;\n",
+          "new": "        if (issue_instr_i[i].needs_asr &&\n            !vos_cheri_pkg::cap_access_system_regs(pcc[i])) begin\n          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_AccessSystemRegsViolation, cva6_cheri_pkg::PCC_IDX);\n          issue_pcc_ex_o[i].tval = cheri_tval;\n",
+          "count": 1
+        },
+        {
+          "old": "        if (!pcc[i].hperms.permit_execute) begin\n          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n          issue_pcc_ex_o[i].tval2 = cheri_tval2;\n",
+          "new": "        if (!vos_cheri_pkg::cap_permit_execute(pcc[i])) begin\n          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitExecuteViolation, cva6_cheri_pkg::PCC_IDX);\n          issue_pcc_ex_o[i].tval = cheri_tval;\n",
+          "count": 1
+        },
+        {
+          "old": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_SEAL_VIOLATION;\n          issue_pcc_ex_o[i].tval2 = cheri_tval2;\n",
+          "new": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval = cva6_cheri_pkg::capex_tval(cva6_cheri_pkg::CapEx_SealViolation,\n                                                  cva6_cheri_pkg::PCC_IDX);\n          issue_pcc_ex_o[i].tval = cheri_tval;\n",
+          "count": 1
+        },
+        {
+          "old": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_TAG_VIOLATION;\n          issue_pcc_ex_o[i].tval2 = cheri_tval2;\n",
+          "new": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval = cva6_cheri_pkg::capex_tval(cva6_cheri_pkg::CapEx_TagViolation,\n                                                  cva6_cheri_pkg::PCC_IDX);\n          issue_pcc_ex_o[i].tval = cheri_tval;\n",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/load_store_unit.sv",
       "source_sha256": "3f49206ef5e4ecd3534639ee7df8d3ca6f8c0c3e61905fbaa66d29bf304036f3",
-      "output_sha256": "65cf3aa77df5f85cd82288b0e4122c9b1bfa19893283004c362718e07c0d4b9e",
+      "output_sha256": "5ef199dbe8fe150f6b70cd5910bee25d1ec5fe76ea4cd05b5a706986196bb148",
       "edits": [
         {
           "old": "  cva6_cheri_pkg::cap_meta_data_t check_cap_meta_data;",
@@ -135,13 +230,53 @@
           "old": "are_cap_reg_bounds_root(check_cap, check_cap_meta_data)",
           "new": "are_cap_reg_bounds_root(check_cap)",
           "count": 1
+        },
+        {
+          "old": "      automatic cva6_cheri_pkg::cap_tval2_t cheri_tval2;\n",
+          "new": "      automatic logic [CVA6Cfg.XLEN-1:0] cheri_tval;\n",
+          "count": 1
+        },
+        {
+          "old": "      cheri_tval2 = '0;\n      cheri_tval2.fault_type = cva6_cheri_pkg::CAP_DATA_ACCESS_FAULT;\n",
+          "new": "      cheri_tval = '0;\n",
+          "count": 1
+        },
+        {
+          "old": "          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_BOUNDS_VIOLATION;\n",
+          "new": "          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_LengthViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "        if (!check_cap.hperms.permit_load && does_load) begin\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n",
+          "new": "        if (!vos_cheri_pkg::cap_permit_load(check_cap) && does_load) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitLoadViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "        if (!check_cap.hperms.permit_store && does_store) begin\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n",
+          "new": "        if (!vos_cheri_pkg::cap_permit_store(check_cap) && does_store) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitStoreViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_SEAL_VIOLATION;\n",
+          "new": "          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_SealViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_TAG_VIOLATION;\n",
+          "new": "          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_TagViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n",
+          "count": 1
+        },
+        {
+          "old": "        cheri_exception.tval2 = {{CVA6Cfg.GPLEN - 22{1'b0}}, cheri_tval2};\n",
+          "new": "        cheri_exception.tval = cheri_tval;\n",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/csr_regfile.sv",
       "source_sha256": "5f0a8cfca5f393bfb58e824d740221911d9eaa8b4d8c743d4115bbefb7e1bd2f",
-      "output_sha256": "64e066da0aaf56a18cc50dd78f1ea25d83f37c5dacc0dce4205b495855d0b245",
+      "output_sha256": "0c707a29454252cf8ae2a5c80c4c11b16c8bf7fa3a7d058fadaba341657d1da6",
       "edits": [
         {
           "old": "      automatic\n      cap_meta_data_t\n      csr_update_cap_meta = get_cap_reg_meta_data(\n          csr_update_cap_prelegal\n      );",
@@ -152,13 +287,33 @@
           "old": "set_cap_reg_address(csr_update_cap_prelegal, csr_wdata_legalised, csr_update_cap_meta)",
           "new": "set_cap_reg_address(csr_update_cap_prelegal, csr_wdata_legalised)",
           "count": 1
+        },
+        {
+          "old": "    automatic cva6_cheri_pkg::cap_tval2_t cheri_tval2;\n",
+          "new": "    automatic logic [CVA6Cfg.XLEN-1:0] cheri_tval;\n",
+          "count": 1
+        },
+        {
+          "old": "    cheri_tval2 = '{default: 0};\n",
+          "new": "    cheri_tval = '0;\n",
+          "count": 1
+        },
+        {
+          "old": "        if (!pcc.hperms.access_sys_regs) begin\n",
+          "new": "        if (!vos_cheri_pkg::cap_access_system_regs(pcc)) begin\n",
+          "count": 1
+        },
+        {
+          "old": "      cheri_tval2.fault_type = cva6_cheri_pkg::CAP_INSTR_FETCH_FAULT;\n      cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n      csr_exception_o.cause = cva6_cheri_pkg::CAP_EXCEPTION;\n      csr_exception_o.tval = '0;\n      csr_exception_o.tval2 = {'0, cheri_tval2};\n",
+          "new": "      cheri_tval = cva6_cheri_pkg::capex_tval(\n          cva6_cheri_pkg::CapEx_AccessSystemRegsViolation, cva6_cheri_pkg::PCC_IDX);\n      csr_exception_o.cause = cva6_cheri_pkg::CAP_EXCEPTION;\n      csr_exception_o.tval = cheri_tval;\n      csr_exception_o.tval2 = '0;\n",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/cheri_unit.sv",
       "source_sha256": "189a7dc04eb17680a440b405cc10aa00ee9186278fc1bfb4d9feb77787825897",
-      "output_sha256": "b8c893408932c6aafa9528d99753fb548bdb155039536989f8521b7238726dbc",
+      "output_sha256": "af85538b4e8e5a08ef5b3414fdac803e4a0ebf5b1629454e9871cea641a87157",
       "edits": [
         {
           "old": "  cap_meta_data_t op_a_meta_info;",
@@ -219,6 +374,41 @@
           "old": "set_cap_reg_address(operand_a, address, op_a_meta_info)",
           "new": "set_cap_reg_address(operand_a, address)",
           "count": 1
+        },
+        {
+          "old": "        address                         = operand_b.addr;\n",
+          "new": "        address                         = operand_b.address;\n",
+          "count": 1
+        },
+        {
+          "old": "    operand_a_address = operand_a.addr;\n",
+          "new": "    operand_a_address = operand_a.address;\n",
+          "count": 1
+        },
+        {
+          "old": "    operand_b_address = operand_b.addr;\n",
+          "new": "    operand_b_address = operand_b.address;\n",
+          "count": 1
+        },
+        {
+          "old": "        automatic cap_report_perms_t new_perms;\n        check_operand_a_violations.seal = 1'b1;\n        tmp_cap = operand_a;\n        new_perms = hperms_and_uperms_to_report_perms(operand_a.hperms, operand_a.uperms,\n                                                      operand_a_hperms_malformed);\n        new_perms &= cap_report_perms_t'(operand_b_address);\n        tmp_cap.uperms = new_perms.uperms;\n        tmp_cap.hperms = legalize_arch_perms(report_perms_to_hperms(new_perms));\n        if (!tmp_cap.hperms.permit_execute) tmp_cap.flags.int_mode = 1'b0;\n",
+          "new": "        automatic vos_cheri_pkg::cap_perms_t new_perms;\n        check_operand_a_violations.seal = 1'b1;\n        tmp_cap = operand_a;\n        new_perms = vos_cheri_pkg::get_cap_perms(operand_a) &\n            vos_cheri_pkg::cap_perms_t'(operand_b_address);\n        tmp_cap = vos_cheri_pkg::set_cap_perms(tmp_cap, new_perms);\n",
+          "count": 1
+        },
+        {
+          "old": "            {CVA6Cfg.XLEN - $bits(cap_report_perms_t) {1'b0}},\n            hperms_and_uperms_to_report_perms(\n              operand_a.hperms, operand_a.uperms, operand_a_hperms_malformed\n            )\n",
+          "new": "            {CVA6Cfg.XLEN - vos_cheri_pkg::CapPermsWidth {1'b0}},\n            vos_cheri_pkg::get_cap_perms(operand_a)\n",
+          "count": 1
+        },
+        {
+          "old": "    operand_a_hperms_malformed = (operand_a.hperms != legalize_arch_perms(operand_a.hperms)) |\n        (!operand_a.hperms.permit_execute & operand_a.flags.int_mode);\n",
+          "new": "    operand_a_hperms_malformed = 1'b0;\n",
+          "count": 1
+        },
+        {
+          "old": "    operand_b_hperms_malformed = (operand_b.hperms != legalize_arch_perms(operand_b.hperms)) |\n        (!operand_b.hperms.permit_execute & operand_b.flags.int_mode);\n",
+          "new": "    operand_b_hperms_malformed = 1'b0;\n",
+          "count": 1
         }
       ]
     },
@@ -230,6 +420,30 @@
         {
           "old": "  function automatic [CVA6Cfg.CLEN-1:0] data_align(logic [3:0] addr, logic [CVA6Cfg.CLEN-1:0] data);\n    // Set addr[2] to 1'b0 when 32bits\n    logic [3:0] addr_tmp = {\n      (addr[3] && CVA6Cfg.IS_XLEN64 && CVA6Cfg.CheriPresent),\n      (addr[2] && CVA6Cfg.IS_XLEN64),\n      addr[1:0]\n    };\n    logic [CVA6Cfg.CLEN-1:0] data_tmp = {CVA6Cfg.CLEN{1'b0}};\n    case (addr_tmp)\n      4'b0000: data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-1:0]};\n      4'b0001:\n      data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-9:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-8]};\n      4'b0010:\n      data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-17:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-16]};\n      4'b0011:\n      data_tmp[CVA6Cfg.XLEN-1:0] = {data[CVA6Cfg.XLEN-25:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-24]};\n      default: begin\n        if (CVA6Cfg.CheriPresent) begin\n          case (addr_tmp)\n            4'b1000: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[CVA6Cfg.XLEN-1:0]};\n            4'b1001:\n            data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {\n              data[CVA6Cfg.XLEN-9:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-8]\n            };\n            4'b1010:\n            data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {\n              data[CVA6Cfg.XLEN-17:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-16]\n            };\n            4'b1011:\n            data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {\n              data[CVA6Cfg.XLEN-25:0], data[CVA6Cfg.XLEN-1:CVA6Cfg.XLEN-24]\n            };\n            4'b1100: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[31:0], data[63:32]};\n            4'b1101: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[23:0], data[63:24]};\n            4'b1110: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[15:0], data[63:16]};\n            4'b1111: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = {data[7:0], data[63:8]};\n            default: data_tmp[CVA6Cfg.CLEN-1:CVA6Cfg.XLEN] = '0;\n          endcase\n        end\n        if (CVA6Cfg.IS_XLEN64) begin\n          case (addr_tmp)\n            4'b0100: data_tmp[CVA6Cfg.XLEN-1:0] = {data[31:0], data[63:32]};\n            4'b0101: data_tmp[CVA6Cfg.XLEN-1:0] = {data[23:0], data[63:24]};\n            4'b0110: data_tmp[CVA6Cfg.XLEN-1:0] = {data[15:0], data[63:16]};\n            4'b0111: data_tmp[CVA6Cfg.XLEN-1:0] = {data[7:0], data[63:8]};\n            default: data_tmp[CVA6Cfg.XLEN-1:0] = {data[63:0]};\n          endcase\n        end\n      end\n    endcase\n    return data_tmp;\n  endfunction",
           "new": "  function automatic [CVA6Cfg.CLEN-1:0] data_align(logic [3:0] addr, logic [CVA6Cfg.CLEN-1:0] data);\n    return vos_scalar_width_pkg::align_store(addr, data);\n  endfunction",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/commit_stage.sv",
+      "source_sha256": "27e4004bcd7cd29b94d1a863b77c44df1ff1e3563f17cf41f48c70aafd889639",
+      "output_sha256": "d3b33b410251c09ed5797a6d903ec304b0e085f9ecb513d5c20b50129b17415e",
+      "edits": [
+        {
+          "old": "    pcc_o = cva6_cheri_pkg::set_cap_reg_flags(pcc_o, commit_instr_i[0].int_mode);\n",
+          "new": "",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/cva6.sv",
+      "source_sha256": "9146b6f6009005ba56105c28fc7cdeef169056860dbbfb06ab9e208607116314",
+      "output_sha256": "c9323f8de4d89aa0801e4d66f6266641382c117cfd3ffe3150c6ff9990f02071",
+      "edits": [
+        {
+          "old": "      .int_mode_resolved_branch_i(cva6_cheri_pkg::get_cap_reg_flags(\n          resolved_branch.target_address\n      )),\n",
+          "new": "      .int_mode_resolved_branch_i(1'b0),\n",
           "count": 1
         }
       ]

@@ -2,6 +2,7 @@
 """Guard semantic staging against source drift and partial or invented output."""
 
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -9,6 +10,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import rtl_width as width
+from vos.corpus import find_root
 
 _TEXT = "// upstream notice\npackage p; old old endpackage\n"
 _NOTICE = "// Modified by VerifiedOS test\n"
@@ -97,8 +99,97 @@ def _registry_rejects_unsafe_and_duplicate_sources() -> None:
             raise AssertionError("duplicate source accepted")
 
 
+# The imported names the frozen format has no member for. A staged output that
+# still carries one would compile the datapath against a format the model does
+# not state, which is the failure the transform route exists to make visible.
+_RETIRED = ("cap_meta_data_t", "get_cap_reg_meta_data", "cap_tval2_t", "cap_report_perms_t",
+            "hperms_and_uperms_to_report_perms", "report_perms_to_hperms",
+            "legalize_arch_perms", "get_cap_reg_flags", "set_cap_reg_flags",
+            "CAP_TAG_VIOLATION", "CAP_SEAL_VIOLATION", "CAP_PERM_VIOLATION",
+            "CAP_BOUNDS_VIOLATION", "CAP_INVALID_ADDRESS_VIOLATION",
+            "CAP_INSTR_FETCH_FAULT", "CAP_DATA_ACCESS_FAULT", "CAP_JUMP_BRANCH_FAULT",
+            "REG_ROOT_CAP", "cap_flags_t")
+
+# Where a qualified name an edit writes has to be declared. The adapter exports
+# the format package, so a name it reaches through that export counts as its own.
+_PACKAGE_FILE = {"cva6_cheri_pkg": ("rtl/vos_cva6_cheri_pkg.sv", "rtl/vos_cheri_pkg.sv"),
+                 "vos_cheri_pkg": ("rtl/vos_cheri_pkg.sv",),
+                 "vos_scalar_width_pkg": ("rtl/vos_scalar_width_pkg.sv",)}
+
+_QUALIFIED = re.compile(r"\b(cva6_cheri_pkg|vos_cheri_pkg|vos_scalar_width_pkg)::(\w+)")
+
+# A bare `SENTRY_CAP` is retired and the edge pair is not, so the retired-name
+# search has to see the whole identifier rather than a prefix of one.
+_WORD = re.compile(r"\w+")
+
+# The imported capability record's members that `vos_cheri_pkg::capability_t`
+# does not declare. A staged output reading one of them names a field of a
+# format the model does not state, which the elaborator cannot report while it
+# is still stopping at an unresolved type or constant name, so the registry's
+# own edits are held against the frozen field list here instead. The member
+# form is matched rather than the bare word, so `.address` is not `.addr` and
+# an `int_mode_o` port is not the deleted `.int_mode` field.
+_ABSENT_MEMBER = re.compile(
+    r"\.(addr|hperms|uperms|flags|res_lo|res_hi|EF|int_mode|permit_cap|cap_level"
+    r"|permit_store_level|permit_elevate_level|fault_type|fault_cause|wpri)\b")
+
+
+def _checked_in_registry_loads_with_exact_identities() -> None:
+    pin, notice, sources = width.load(find_root())
+    ensure(len(pin) == 40 and sources != (), "the checked-in registry names a pin and sources")
+    ensure(notice.startswith("// Modified by VerifiedOS"), "the modification notice is carried")
+    for source in sources:
+        ensure(source.source_sha256 != source.output_sha256,
+               f"{source.path}: a transform that changes nothing is not a transform")
+        ensure(all(edit.old != edit.new for edit in source.edits),
+               f"{source.path}: a replacement that rewrites its match to itself is not one")
+        # Two rows sharing a match text make the ordered application decide which
+        # count is checked against what, so each row's matches are distinct.
+        olds = [edit.old for edit in source.edits]
+        ensure(len(set(olds)) == len(olds),
+               f"{source.path}: two replacements name the same match text")
+
+
+def _no_edit_reintroduces_a_retired_name() -> None:
+    _, _, sources = width.load(find_root())
+    for source in sources:
+        for edit in source.edits:
+            words = set(_WORD.findall(edit.new))
+            found = sorted(name for name in (*_RETIRED, "SENTRY_CAP") if name in words)
+            ensure(not found,
+                   f"{source.path}: a staged output reintroduces {', '.join(found)}")
+
+
+def _no_edit_reads_an_absent_member() -> None:
+    _, _, sources = width.load(find_root())
+    for source in sources:
+        for edit in source.edits:
+            found = sorted(set(_ABSENT_MEMBER.findall(edit.new)))
+            ensure(not found,
+                   f"{source.path}: a staged output reads .{', .'.join(found)}, "
+                   "which the frozen capability record does not declare")
+
+
+def _every_frozen_name_an_edit_uses_is_declared() -> None:
+    root = find_root()
+    text = {rel: (root / rel).read_text(encoding="utf-8")
+            for rels in _PACKAGE_FILE.values() for rel in rels}
+    _, _, sources = width.load(root)
+    used = 0
+    for source in sources:
+        for edit in source.edits:
+            for package, name in _QUALIFIED.findall(edit.new):
+                used += 1
+                ensure(any(name in set(_WORD.findall(text[rel]))
+                           for rel in _PACKAGE_FILE[package]),
+                       f"{source.path}: {package}::{name} is declared by no authored source")
+    ensure(used > 0, "the registry reaches the authored packages by name")
+
+
 def cases() -> list[Case]:
     return [Case(fn.__name__.lstrip("_"), fn) for fn in (
         _exact_edits_retain_notices, _identity_and_match_guards,
         _staging_requires_one_member_and_exact_pin, _registry_rejects_unsafe_and_duplicate_sources,
+        _checked_in_registry_loads_with_exact_identities, _no_edit_reintroduces_a_retired_name,
+        _no_edit_reads_an_absent_member, _every_frozen_name_an_edit_uses_is_declared,
     )]
