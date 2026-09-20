@@ -17,7 +17,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
-from tests.harness import Case, ensure
+from tests.harness import Case, ensure, sandbox_tree
 from vos import env, receipts
 from vos.cli import evidence
 from vos.report import Reporter
@@ -158,6 +158,30 @@ def _changed_inputs_and_artifacts_invalidate_measurements() -> None:
                "source or artifact changes after successful members invalidate the sweep")
 
 
+def _proof_receipt_is_an_output() -> None:
+    with sandbox_tree({"proofs/Theorem.v": "Theorem bytes\n",
+                       "proofs/proof-evidence.json": "old receipt\n",
+                       "proofs/README.md": "proof metadata\n"}) as root:
+        before = evidence._inputs(root)
+        receipt = root / "proofs/proof-evidence.json"
+        receipt.write_text("new receipt\n", encoding="utf-8")
+        ensure(evidence._inputs(root) == before,
+               "fresh proof publication must not invalidate the sweep's input manifest")
+        receipt.unlink()
+        ensure(evidence._inputs(root) == before,
+               "an absent output receipt must not be required as a source input")
+        for name in ("Theorem.v", "README.md"):
+            path = root / "proofs" / name
+            held = path.read_bytes()
+            path.write_bytes(b"changed proof input\n")
+            ensure(evidence._inputs(root) != before,
+                   f"excluding the receipt must still bind {name}")
+            path.write_bytes(held)
+        (root / "proofs/New.v").write_text("new proof\n", encoding="utf-8")
+        ensure(evidence._inputs(root) != before,
+               "new proof sources must still change the input manifest")
+
+
 def _missing_measurement_is_a_failure() -> None:
     report, text, _ = _scenario(absent="reference")
     record = json.loads(text)
@@ -267,6 +291,7 @@ def cases() -> list[Case]:
         Case("build-failure-stops-consumers", _build_failure_stops_consumers),
         Case("missing-stale-receipts-stop-consumers", _missing_or_stale_receipt_stops_consumers),
         Case("changed-inputs-artifacts-invalidate", _changed_inputs_and_artifacts_invalidate_measurements),
+        Case("proof-receipt-is-an-output", _proof_receipt_is_an_output),
         Case("missing-measurement-fails", _missing_measurement_is_a_failure),
         Case("changed-proof-outputs-invalidate", _changed_proof_outputs_invalidate_measurements),
         Case("lock-refusal-recorded", _lock_refusal_records_failure),

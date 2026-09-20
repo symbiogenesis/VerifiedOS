@@ -127,6 +127,13 @@ def _proof_record(root: Path) -> dict[str, object]:
         os.close(held)
 
 
+def _inputs(root: Path) -> dict[str, str]:
+    """Bind proof sources without treating the receipt they publish as an input."""
+    return receipts.inputs(root, *model_cli.BUILD_INPUTS,
+                           "proofs", "docs/requirements-register.md",
+                           f":(exclude){proofs_cli.RECEIPT}")
+
+
 def run(build: bool = True, out: Path | None = None) -> Reporter:
     e = env.load()
     rep = Reporter()
@@ -143,8 +150,7 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
     held: IO[str] | None = None
     try:
         held = env.hold_lock(e.lane_root / "exit-evidence", "an evidence sweep")
-        sources = receipts.inputs(e.root, *model_cli.BUILD_INPUTS,
-                                  "proofs", "docs/requirements-register.md")
+        sources = _inputs(e.root)
         consumer_tools = receipts.executables("dtc")
         if build:
             print(f"model build log: {e.log('model-build')}", flush=True)
@@ -169,8 +175,7 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
             finally:
                 if lock is not None:
                     lock.close()
-        if receipts.inputs(e.root, *model_cli.BUILD_INPUTS,
-                           "proofs", "docs/requirements-register.md") != sources:
+        if _inputs(e.root) != sources:
             faults.append("the evidence inputs changed during the sweep")
         if receipts.executables("dtc") != consumer_tools:
             faults.append("the evidence consumer tools changed during the sweep")
