@@ -26,6 +26,17 @@
    and R-11-006's interval arithmetic with R-11-009's switch duty inside
    it, which is what the delta is an input to.
 
+   And R-15-247t's second-class domain label beside R-15-189f's power
+   vector, which is the plan's other declared schema: every second-class
+   domain labelled image-derived or session-derived, the label a total
+   function of this plan beside the vector, and RETAINED (R-15-247k)
+   available to image-derived domains alone. The composition check that
+   reads the label is stated here with the admitted case computed and two
+   seeded cases refused, on the pass R-15-247t's own acceptance clause
+   names, the one that checks R-15-189g's containment. What the label lets
+   a re-entry keep is R-15-190b's and is stated in DischargeSequence.v,
+   not here.
+
    What this file is. A statement artifact in ApexTheorem.v's idiom, not a
    proof development and not an implementation. It is a Gallina statement
    artifact rather than a Wasm-parallel item because this cell carries no
@@ -368,9 +379,10 @@
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
-      R-08-045 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
-      R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247m R-15-247r R-15-247s R-18-004b
-   SHA256: 4fa69178ddedcb91c5d0bfdde1945cf846544aed59ee1277c69ac02ee8131f6b
+      R-08-045 R-09-019 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
+      R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247k R-15-247m R-15-247r R-15-247s
+      R-15-247t R-15-189f R-15-189g R-15-190a R-15-190b R-15-228a R-18-004b
+   SHA256: c5381f3770c88ca4887ab9060cee92dfa72421b8371baee39c29304bd7ebd2c6
    (*| END derived |*)
    ========================================================================= *)
 
@@ -4880,8 +4892,370 @@ Example a_nonexistent_slot_cannot_evade_timing_admission :
   let p := aggregate_demo_plan 15 3 (cons 0 (cons 1 nil)) in
   plan_timing_admission demo_composition p (spec_assign p) aggregate_demo_frame = false := eq_refl.
 
+(* =========================================================================
+   R-15-247t's label and R-15-189f's power vector.
+
+   R-15-247t labels every second-class domain image-derived or
+   session-derived and makes the label a total function of this plan
+   beside the power vector: an image-derived domain holds extents of the
+   content-addressed image alone, delegated without the capability-store
+   permission so that no granule of it carries a set validity tag, and a
+   session-derived domain holds what running compartments write. RETAINED
+   (R-15-247k) is available to the first kind alone, and that entry's own
+   acceptance clause names where a vector breaking it is refused: the pass
+   that checks R-15-189g's containment, which is the same on-device pass
+   this file's slot disjointness is decided by.
+
+   R-15-189f fixes the vector's shape. Composition emits, per global mode,
+   one {ON, RETAINED, OFF} entry per gating domain, a total function of
+   the static memory plan, the bank/macro/tier to island map, and the
+   mode's resident island set. `PowerVector` below is that schema with the
+   label as a declared field of it.
+
+   What is stated here is the label in the declared schema and the
+   composition checks that read it, with the admitted case computed and
+   two seeded cases refused. What is not stated here is the label's
+   derivation from the region roster: no field of `Plan` names a domain,
+   R-15-228a making the island map an input the plan reads only as
+   `island_of`, `island_base` and `island_span`, so the label is a
+   declared field a composition may get wrong exactly as `class_of` is,
+   and these checks are what it is held against. Nothing here computes a
+   retention decision either; which domains a re-entry keeps is
+   R-15-190b's, stated in [DischargeSequence.v](DischargeSequence.v).
+
+   Readings this section takes, each a reviewable judgment:
+
+   v1. The vector is indexed by mode and by domain, which is R-15-189f's
+       own shape, and `PowerState` carries those three states and no
+       fourth. The rosters are counts with total functions over them, on
+       the same ground the Plan record's rosters are, so a domain is an
+       index below `domain_count` and a mode one below `mode_count`.
+   v2. Residency is read here and never constrained. R-15-189f makes the
+       mode's resident island set an input to the vector and R-15-228a
+       makes the island map an input to the plan, so `island_resident` and
+       `domain_island` are fields the checks read and no check below
+       decides either. R-15-189g's containment is the pass these checks
+       ride, not a property this section restates.
+   v3. The narrow check and the whole rule are two obligations, and the
+       first is strictly weaker. `session_retention_ok` is the sentence
+       R-15-247t's acceptance clause states, a session-derived domain
+       marked RETAINED in a mode its island is not resident in;
+       `label_vector_ok` additionally fixes ON exactly in the resident
+       modes and OFF in every other, so it refuses a session-derived
+       domain RETAINED even where its island is resident. The implication
+       one way is proved and a vector satisfying the narrow check and
+       breaking the whole rule is exhibited, so the two are ordered rather
+       than one stated twice.
+   ========================================================================= *)
+
+Inductive DomainLabel : Type :=
+| ImageDerived    (* R-15-247t: extents of the content-addressed image alone,
+                     tag-free by delegation                                   *)
+| SessionDerived. (* R-15-247t: what running compartments write, the KV cache,
+                     framebuffers, decoded media, interpreter arenas          *)
+
+Inductive PowerState : Type :=
+| DomainOn
+| DomainRetained
+| DomainOff.
+
+Record PowerVector : Type := {
+
+  (* --- the two rosters R-15-189f indexes by (reading v1) -------------- *)
+
+  domain_count : nat;
+  mode_count : nat;
+
+  (* --- R-15-247t's label, one per gating domain ---------------------- *)
+
+  label_of : nat -> DomainLabel;
+
+  (* --- the island a domain is bound to and each mode's resident island
+         set, both read and never written here (reading v2) ------------- *)
+
+  domain_island : nat -> nat;
+  island_resident : nat -> nat -> bool;
+
+  (* --- R-15-189f's entry per mode per domain ------------------------- *)
+
+  power_of : nat -> nat -> PowerState
+}.
+
+Definition session_derived (v : PowerVector) (d : nat) : bool :=
+  match v.(label_of) d with ImageDerived => false | SessionDerived => true end.
+
+Definition retained_here (v : PowerVector) (mode d : nat) : bool :=
+  match v.(power_of) mode d with DomainRetained => true | _ => false end.
+
+Definition on_here (v : PowerVector) (mode d : nat) : bool :=
+  match v.(power_of) mode d with DomainOn => true | _ => false end.
+
+Definition off_here (v : PowerVector) (mode d : nat) : bool :=
+  match v.(power_of) mode d with DomainOff => true | _ => false end.
+
+Definition resident_here (v : PowerVector) (mode d : nat) : bool :=
+  v.(island_resident) mode (v.(domain_island) d).
+
+(* The narrow check, in R-15-247t's own words: a vector marking a
+   session-derived domain RETAINED in a mode its island is not resident in
+   is rejected. *)
+Definition session_retention_ok (v : PowerVector) : bool :=
+  all_of (fun mode =>
+            all_of (fun d =>
+                      only_if (andb (session_derived v d)
+                                    (negb (resident_here v mode d)))
+                              (negb (retained_here v mode d)))
+                   (upto v.(domain_count)))
+         (upto v.(mode_count)).
+
+(* And the whole rule the same entry states: a session-derived domain is ON
+   in the modes its owning island is resident in and OFF in every other, so
+   RETAINED is available to image-derived domains alone (reading v3). *)
+Definition label_vector_ok (v : PowerVector) : bool :=
+  all_of (fun mode =>
+            all_of (fun d =>
+                      only_if (session_derived v d)
+                              (if resident_here v mode d
+                               then on_here v mode d
+                               else off_here v mode d))
+                   (upto v.(domain_count)))
+         (upto v.(mode_count)).
+
+Definition RetainsNoSessionDerivedDomainOutsideResidency (v : PowerVector) : Prop :=
+  forall mode d : nat,
+    Nat.ltb mode v.(mode_count) = true ->
+    Nat.ltb d v.(domain_count) = true ->
+    session_derived v d = true ->
+    resident_here v mode d = false ->
+    retained_here v mode d = false.
+
+Definition SessionDomainIsOnExactlyWhenResident (v : PowerVector) : Prop :=
+  forall mode d : nat,
+    Nat.ltb mode v.(mode_count) = true ->
+    Nat.ltb d v.(domain_count) = true ->
+    session_derived v d = true ->
+    (if resident_here v mode d then on_here v mode d else off_here v mode d) = true.
+
+Lemma negb_gives_false : forall b : bool, negb b = true -> b = false.
+Proof. intros b H. destruct b; [ discriminate H | reflexivity ]. Qed.
+
+Lemma false_gives_negb : forall b : bool, b = false -> negb b = true.
+Proof. intros b H. rewrite H. reflexivity. Qed.
+
+Lemma off_is_not_retained :
+  forall (v : PowerVector) (mode d : nat),
+    off_here v mode d = true -> retained_here v mode d = false.
+Proof.
+  intros v mode d H. unfold off_here in H. unfold retained_here.
+  destruct (v.(power_of) mode d); [ discriminate H | discriminate H | reflexivity ].
+Qed.
+
+(* V1 (R-15-247t): the check decides the obligation, so a vector the check
+   admits retains no session-derived domain outside its island's
+   residency. *)
+(*| discharges: R-15-247t |*)
+Lemma session_retention_ok_sound :
+  forall v : PowerVector,
+    session_retention_ok v = true ->
+    RetainsNoSessionDerivedDomainOutsideResidency v.
+Proof.
+  intros v H mode d Hm Hd Hs Hr. unfold session_retention_ok in H.
+  assert (Hrow := all_of_upto _ v.(mode_count) mode H Hm). cbv beta in Hrow.
+  assert (Hcell := all_of_upto _ v.(domain_count) d Hrow Hd). cbv beta in Hcell.
+  apply negb_gives_false. apply (only_if_elim _ _ Hcell).
+  rewrite Hs. rewrite Hr. reflexivity.
+Qed.
+
+(* And the other direction, which is what makes a false answer a refutation
+   of the vector rather than a report that the check moved. *)
+(*| discharges: R-15-247t |*)
+Lemma session_retention_ok_complete :
+  forall v : PowerVector,
+    RetainsNoSessionDerivedDomainOutsideResidency v ->
+    session_retention_ok v = true.
+Proof.
+  intros v H. unfold session_retention_ok.
+  apply all_of_upto_intro. intros mode Hm. cbv beta.
+  apply all_of_upto_intro. intros d Hd. cbv beta.
+  apply only_if_intro. intros Ha.
+  destruct (andb_split _ _ Ha) as [ Hs Hnr ].
+  apply false_gives_negb.
+  exact (H mode d Hm Hd Hs (negb_gives_false _ Hnr)).
+Qed.
+
+(* V2 (R-15-247t, R-15-189f): the whole rule's check decides its own
+   obligation the same way. *)
+(*| discharges: R-15-247t, R-15-189f |*)
+Lemma label_vector_ok_sound :
+  forall v : PowerVector,
+    label_vector_ok v = true -> SessionDomainIsOnExactlyWhenResident v.
+Proof.
+  intros v H mode d Hm Hd Hs. unfold label_vector_ok in H.
+  assert (Hrow := all_of_upto _ v.(mode_count) mode H Hm). cbv beta in Hrow.
+  assert (Hcell := all_of_upto _ v.(domain_count) d Hrow Hd). cbv beta in Hcell.
+  exact (only_if_elim _ _ Hcell Hs).
+Qed.
+
+(* V3 (R-15-247t): the whole rule carries the narrow check, at every
+   vector, which is reading v3's ordering proved rather than asserted. *)
+(*| discharges: R-15-247t |*)
+Theorem the_whole_rule_carries_the_narrow_check :
+  forall v : PowerVector,
+    label_vector_ok v = true -> session_retention_ok v = true.
+Proof.
+  intros v H. apply session_retention_ok_complete.
+  intros mode d Hm Hd Hs Hr.
+  assert (Hc := label_vector_ok_sound v H mode d Hm Hd Hs).
+  rewrite Hr in Hc. simpl in Hc. exact (off_is_not_retained v mode d Hc).
+Qed.
+
+(* -------------------------------------------------------------------------
+   One composition and two seeded ones. Three domains and two modes are
+   what distinguish the cases the clauses turn on: an image-derived domain
+   on an island resident in both modes, a session-derived domain on an
+   island resident in the first mode alone, and a second image-derived
+   domain on that same non-resident island, which is R-15-190a's retention
+   case beside R-15-247t's discharge case at the same residency. The
+   vectors carry no composition claim; they are witness values.
+   ------------------------------------------------------------------------- *)
+
+Definition bound_labels (d : nat) : DomainLabel :=
+  match d with 0 => ImageDerived | 1 => SessionDerived | _ => ImageDerived end.
+
+Definition bound_island_of_domain (d : nat) : nat :=
+  match d with 0 => 0 | _ => 1 end.
+
+Definition resident_islands (mode island : nat) : bool :=
+  match mode with
+  | 0 => true
+  | _ => match island with 0 => true | _ => false end
+  end.
+
+(* The vector composition emits: both image-derived domains kept, the one
+   on the non-resident island RETAINED (R-15-190a's default on the second
+   class), and the session-derived one ON where its island is resident and
+   OFF where it is not (R-15-247t). *)
+Definition composed_vector_power (mode d : nat) : PowerState :=
+  match mode with
+  | 0 => DomainOn
+  | _ => match d with
+         | 0 => DomainOn
+         | 1 => DomainOff
+         | _ => DomainRetained
+         end
+  end.
+
+(* The first seeded vector: the session-derived domain kept RETAINED in the
+   mode that leaves its island non-resident, which is the plaintext KV
+   cache riding a lock R-09-019 states as keys-not-resident. *)
+Definition retaining_vector_power (mode d : nat) : PowerState :=
+  match mode with 0 => DomainOn | _ => DomainRetained end.
+
+(* The second: the session-derived domain RETAINED in a mode its island
+   *is* resident in, which the narrow check admits and the whole rule
+   refuses (reading v3). *)
+Definition resident_retaining_vector_power (mode d : nat) : PowerState :=
+  match mode with
+  | 0 => match d with 1 => DomainRetained | _ => DomainOn end
+  | _ => match d with
+         | 0 => DomainOn
+         | 1 => DomainOff
+         | _ => DomainRetained
+         end
+  end.
+
+Definition composed_vector : PowerVector := {|
+  domain_count := 3;
+  mode_count := 2;
+  label_of := bound_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := composed_vector_power
+|}.
+
+Definition retaining_vector : PowerVector := {|
+  domain_count := 3;
+  mode_count := 2;
+  label_of := bound_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := retaining_vector_power
+|}.
+
+Definition resident_retaining_vector : PowerVector := {|
+  domain_count := 3;
+  mode_count := 2;
+  label_of := bound_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := resident_retaining_vector_power
+|}.
+
+(* V4 (R-15-247t, R-15-189f): the composed vector is admitted by both
+   checks, computed rather than claimed. *)
+(*| discharges: R-15-247t, R-15-189f |*)
+Example the_composed_vector_is_admitted :
+  session_retention_ok composed_vector = true
+  /\ label_vector_ok composed_vector = true := conj eq_refl eq_refl.
+
+(* V5 (R-15-247t): and the seeded one is refused by both, which is the
+   composition check refusing a plan that retains a session-derived domain
+   outside its island's residency. *)
+(*| discharges: R-15-247t |*)
+Example a_retained_session_derived_domain_is_refused :
+  session_retention_ok retaining_vector = false
+  /\ label_vector_ok retaining_vector = false := conj eq_refl eq_refl.
+
+(* V6 (R-15-247t): the two checks are not one. The second seeded vector
+   satisfies the narrow one and breaks the whole rule, so the implication
+   proved above is strict and neither check is the other under a different
+   name. *)
+(*| discharges: R-15-247t |*)
+Example the_whole_rule_refuses_what_the_narrow_check_admits :
+  session_retention_ok resident_retaining_vector = true
+  /\ label_vector_ok resident_retaining_vector = false := conj eq_refl eq_refl.
+
+(* V7 (R-05-165, R-05-166): the obligations at the property level, so
+   neither check is decided against a property nothing satisfies and
+   neither is one everything satisfies. *)
+(*| discharges: R-15-247t |*)
+Theorem the_composed_vector_meets_the_obligation :
+  RetainsNoSessionDerivedDomainOutsideResidency composed_vector
+  /\ SessionDomainIsOnExactlyWhenResident composed_vector.
+Proof.
+  split.
+  - exact (session_retention_ok_sound composed_vector eq_refl).
+  - exact (label_vector_ok_sound composed_vector eq_refl).
+Qed.
+
+(*| discharges: R-15-247t |*)
+Theorem the_retaining_vector_breaks_the_obligation :
+  ~ RetainsNoSessionDerivedDomainOutsideResidency retaining_vector.
+Proof.
+  intros H. specialize (H 1 1 eq_refl eq_refl eq_refl eq_refl). discriminate H.
+Qed.
+
+(* And the label decides something rather than refusing retention outright
+   (R-15-190a): the image-derived domain on the same non-resident island as
+   the session-derived one is RETAINED in exactly the mode where the
+   session-derived one must be OFF, and both checks admit it. The two
+   domains differ in the label and in nothing else the checks read, which
+   is what makes the label load-bearing here. *)
+(*| discharges: R-15-247t, R-15-190a |*)
+Example the_image_derived_domain_may_be_retained_outside_residency :
+  session_derived composed_vector 2 = false
+  /\ session_derived composed_vector 1 = true
+  /\ resident_here composed_vector 1 2 = false
+  /\ resident_here composed_vector 1 1 = false
+  /\ retained_here composed_vector 1 2 = true
+  /\ off_here composed_vector 1 1 = true
+  /\ session_retention_ok composed_vector = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl eq_refl))))).
+
 Definition witness_Narrowing : Narrowing := inner_narrowing.
 Definition witness_Plan : Plan := demo_plan.
+Definition witness_PowerVector : PowerVector := composed_vector.
 
 (* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
@@ -5424,3 +5798,28 @@ Print Assumptions the_demo_pool_survives_every_promotion.
 Print Assumptions the_brittle_bound_is_refuted.
 Print Assumptions the_brittle_bound_refuses_a_costless_member.
 Print Assumptions the_brittle_bound_agrees_on_the_demo_placement.
+Print Assumptions DomainLabel.
+Print Assumptions PowerState.
+Print Assumptions PowerVector.
+Print Assumptions session_derived.
+Print Assumptions retained_here.
+Print Assumptions on_here.
+Print Assumptions off_here.
+Print Assumptions resident_here.
+Print Assumptions session_retention_ok.
+Print Assumptions label_vector_ok.
+Print Assumptions RetainsNoSessionDerivedDomainOutsideResidency.
+Print Assumptions SessionDomainIsOnExactlyWhenResident.
+Print Assumptions negb_gives_false.
+Print Assumptions false_gives_negb.
+Print Assumptions off_is_not_retained.
+Print Assumptions session_retention_ok_sound.
+Print Assumptions session_retention_ok_complete.
+Print Assumptions label_vector_ok_sound.
+Print Assumptions the_whole_rule_carries_the_narrow_check.
+Print Assumptions the_composed_vector_is_admitted.
+Print Assumptions a_retained_session_derived_domain_is_refused.
+Print Assumptions the_whole_rule_refuses_what_the_narrow_check_admits.
+Print Assumptions the_composed_vector_meets_the_obligation.
+Print Assumptions the_retaining_vector_breaks_the_obligation.
+Print Assumptions the_image_derived_domain_may_be_retained_outside_residency.

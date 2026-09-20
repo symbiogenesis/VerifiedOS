@@ -13,6 +13,20 @@
    and R-15-198's sequence table, which R-15-247d rides rather than
    standing beside.
 
+   And R-15-190b's retained re-entry as the further case of that same
+   sequence: a second-class domain R-15-247t labels image-derived is held
+   RETAINED across a chain re-execution the RoT sequences and is re-admitted
+   by a read of its tag plane and a re-verification of its extents in place
+   against the content-addressed root of the generation being entered,
+   rather than by a discharge. R-15-247d's own clause says why that is no
+   exception to the order above: the domain being tag-free by delegation,
+   its authority invalidation is the measured stage's read of every validity
+   tag clear before any requester names it, by a read of the plane rather
+   than a write to it, and the data plane owes no sanitization there because
+   what it holds is verified image content and not residue. A domain whose
+   verdict is negative takes the discharge path this file already states
+   (R-15-190a).
+
    What this file is. A statement artifact in ApexTheorem.v's idiom, not a
    proof development and not an implementation. Every quantity the register
    leaves to composition or to a measurement is a field of the Machine
@@ -40,6 +54,34 @@
    declared composition constant (R-15-247g's mode-transition dwell
    constant) rather than a function of what the sweep found. The
    whole-path invariance is M3.6b's.
+
+   What R-15-190b's case leaves owed, and to whom. Three things, each
+   named here rather than implied by what is proved:
+
+   i.   Which domains are image-derived. R-15-247t makes the label a total
+        function of the static memory plan beside the power vector
+        (R-15-189f), so a domain's eligibility for the retained path is
+        decided at the memory plan's own schema and not here. Nothing
+        below computes a label, and the retained path is stated of a
+        domain a plan has already labelled.
+   ii.  The staged release and the boot through it. R-15-198a puts the
+        release of each island at a fixed point of the reset table, and
+        M3.5's firmware and M7.1's composed image are what lower the
+        in-place verification and that staged release into a boot. This
+        file states the order and the refusals and lowers nothing: no
+        constant here is compiled, lowered, or run on either emulator, so
+        the emulator boot through a staged release, with every
+        image-derived domain re-verified and every session-derived one
+        discharged across a lock and an unlock, is owed by those items and
+        is not evidence this file supplies.
+   iii. The constants and the ceilings. R-09-006b makes each re-entry's
+        worst-case latency a composition constant stated in the attested
+        devicetree, one figure per release point, and the emulator reading
+        recorded beside it. No number below is one of those terms: the
+        dwell is the machine's declared field and the re-entry carries no
+        duration at all here. The ceilings the product gate reads the
+        figure against are the product owner's, proposed until ratified,
+        and this file ratifies nothing about any of them.
 
    No Require. Nothing beyond the Rocq prelude is reachable, so Classical
    and FunctionalExtensionality are unavailable and every state equality
@@ -125,16 +167,57 @@
       schedule names in no phase would be a composition defect and not a
       state this file can reach; a coverage obligation, if the register
       wants one stated, belongs at R-15-247g.
+   9. The retained re-entry is one further path over the same steps, not a
+      second sequence. R-15-190b puts the re-entry at a suffix of
+      R-15-198's table that holds the image-derived domains RETAINED, and
+      R-15-247d keeps its order, so `reentry_sequence` below is the
+      requesters in reset, then the loader-sequenced pass, then that pass's
+      one verdict, and then either the entry path, on a positive verdict,
+      or the exit path already stated here, on a negative one. The pass and
+      the verdict are two steps rather than one because R-15-190b names two
+      facts about them: the measured stage runs the pass on the cores of
+      the island the domain is bound to, and no other requester addresses
+      the domain until its verdict. What the negative verdict reaches is
+      R-15-190a's OFF->ON path and not the fail-stop latch, which is the
+      one place the retained case departs from the exit path's shape: a
+      tag that reads set or an extent that does not verify is a domain to
+      refill, where a discharge that does not complete is a transition to
+      stop (R-15-247f).
+  10. The pass reads two planes and a reader may read either alone, which
+      is what makes the two refutations constructions rather than
+      restrictions of one. `ExtentVerdicts` is what the verification of
+      each extent against the content-addressed root returned and
+      `TagPlane` is what each validity-tag granule read, and the
+      specification's reader is the conjunction over both rosters. The
+      reader that consults the extents alone and the reader that consults
+      the tag plane alone are both expressible, both exhibited below, and
+      each keeps the obligation it does not break, so what refutes each is
+      the plane it never reads.
+  11. Released in place is stated as addressability without a discharge,
+      and it needs the domain to have a phase. `carries_no_discharge`
+      composes the per-phase check over the phase roster, and the
+      load-bearing theorem takes the phase list being a cons as a
+      hypothesis rather than assuming it: a domain with no phase at all
+      would make the refused verdict's path carry no discharge either, and
+      reading 8 already books such a domain as a composition defect rather
+      than a state this file can reach. The hypothesis is a composition
+      quantity stated where it is used, on the same ground the Machine
+      record's fields are fields.
 
-   The literals taken from the design, and there are three. R-15-247d's
+   The literals taken from the design, and there are four. R-15-247d's
    Accept clause and R-15-247g's schedule fix the step order, so
    `admission_sequence` is that order written out over the phase list and
-   is this file's one structural literal. R-15-247f fixes the completion
+   is one of this file's two structural literals. R-15-190b's sentence
+   fixes the other, `reentry_sequence` being the retained re-entry's order
+   written out the same way, with the verdict's two arms as that entry
+   states them. R-15-247f fixes the completion
    read at one per phase, so `single_read_ok` compares each phase's read
    count against 1. And R-15-247f fixes the retry count at zero and
    R-15-247d the pass count at one, so `NoStepStandsTwice` bounds every
    step's occurrences by 1 on every reading. Every other magnitude is a
-   field: the dwell length, because R-15-247m measures it on a repaired
+   field: the extent and tag-granule rosters of a retained image, because
+   the extent decomposition is the R-09-006 loader's and the tag
+   granularity R-15-247b's; the dwell length, because R-15-247m measures it on a repaired
    macro and R-15-247g folds it into the transition budget; the phase count
    and each phase's banks, because R-15-247g fixes them at composition and
    R-15-247p puts the per-class bank count in R-15-014a's frozen parameter
@@ -217,10 +300,11 @@
    nothing satisfies and none from one everything satisfies.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
-   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-11-006 R-11-009 R-15-014a R-15-247b
-      R-15-247c R-15-247d R-15-247e R-15-247f R-15-247g R-15-247h R-15-247m R-15-247p R-15-247q
-      R-15-189i R-15-189j R-15-189n R-15-198 R-15-220 R-15-228 R-17-024a R-17-030n R-17-058f
-   SHA256: e2b60c9bf93da7720ba9f77f5667fa619096c8e1b3110b8ed18ae1abe3c21045
+   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-09-006 R-09-006b R-11-006 R-11-009
+      R-15-014a R-15-247b R-15-247c R-15-247d R-15-247e R-15-247f R-15-247g R-15-247h R-15-247m
+      R-15-247p R-15-247q R-15-247t R-15-189f R-15-189i R-15-189j R-15-189n R-15-190a R-15-190b
+      R-15-198 R-15-198a R-15-220 R-15-228 R-17-024a R-17-030n R-17-058f
+   SHA256: 9a18841adbf1c11e04b1ba73f0732250641ca55e12900f2ca15378f751c0bdb7
    (*| END derived |*)
    ========================================================================= *)
 
@@ -255,6 +339,19 @@ Record Machine : Type := {
 
   Chunk : Type;
   chunks_of : Bank -> list Chunk;
+
+  (* --- R-15-190b's retained image, in the two units its one pass reads.
+         The extents are what the pass verifies in place against the
+         content-addressed root of the generation being entered, and the
+         tag granules are what it reads clear over the whole domain. Both
+         rosters are composition quantities, the extent decomposition
+         being the R-09-006 loader's and the tag granularity R-15-247b's,
+         so both are fields and neither is a literal here (reading 10) --- *)
+
+  Extent : Type;
+  extents : list Extent;
+  TagGranule : Type;
+  tag_granules : list TagGranule;
 
   (* --- R-15-247f's fixed worst-corner dwell, one per phase, the whole
          entering §11 as R-15-247g's mode-transition dwell constant. The
@@ -489,6 +586,12 @@ Inductive Step : Type :=
                               taken at mode exit per R-15-247q, phase k        *)
 | PhaseDwell (k : nat)     (* R-15-247f's fixed dwell for phase k              *)
 | PhaseRead (k : nat)      (* R-15-247f's one read of phase k's indication     *)
+| ImagePass                (* R-15-190b: the loader-sequenced pass the measured
+                              stage runs in place on the island's cores, every
+                              extent verified against the content-addressed root
+                              and every validity tag read, in the one pass      *)
+| ImageVerdict             (* R-15-190b: that pass's verdict, which no other
+                              requester addressing the domain may precede       *)
 | FailStopLatch            (* R-15-247f fail-closed, in the RoT domain, R-17-030n *)
 | DomainAddressable        (* R-15-247d: a requester may now name the domain   *)
 | ResidueConfirmed         (* R-15-247d's second boundary, crossed on the
@@ -501,6 +604,8 @@ Definition step_eqb (p q : Step) : bool :=
   | PhaseDischarge i, PhaseDischarge j => Nat.eqb i j
   | PhaseDwell i, PhaseDwell j => Nat.eqb i j
   | PhaseRead i, PhaseRead j => Nat.eqb i j
+  | ImagePass, ImagePass => true
+  | ImageVerdict, ImageVerdict => true
   | FailStopLatch, FailStopLatch => true
   | DomainAddressable, DomainAddressable => true
   | ResidueConfirmed, ResidueConfirmed => true
@@ -1803,6 +1908,10 @@ Definition demo : Machine := {|
   banks_of := fun k => match k with 0 => cons true nil | _ => cons false nil end;
   Chunk := bool;
   chunks_of := fun _ => cons true (cons false nil);
+  Extent := bool;
+  extents := cons true (cons false nil);
+  TagGranule := bool;
+  tag_granules := cons true (cons false nil);
   dwell_cycles := 9
 |}.
 
@@ -2120,6 +2229,329 @@ Theorem a_late_release_is_admitted :
   /\ NoRequesterNamesTheDomainEarly demo (fun _ => MeasuredExecution).
 Proof. split; intros r; reflexivity. Qed.
 
+(* =========================================================================
+   R-15-190b's retained re-entry, the further case of the same sequence.
+
+   A second-class domain R-15-247t labels image-derived is held RETAINED
+   across a chain re-execution the RoT sequences, and is re-admitted by a
+   read of its tag plane and a re-verification of its extents in place
+   rather than by a discharge. What is stated here is the path, the two
+   obligations on the reader that releases such a domain, and the two
+   readings R-15-190b refuses, each an alternative construction that keeps
+   the obligation it does not break. What is not stated here is which
+   domains carry the label, which is R-15-247t's total function of the
+   memory plan, or any duration, which is R-09-006b's constant (readings 9
+   through 11 and the owed list above).
+   ========================================================================= *)
+
+(* What the one pass found, in the two units it reads: whether each extent
+   verified against the content-addressed root of the generation being
+   entered, and whether each validity-tag granule read set. Two functions
+   rather than one record, so that a reader of either half alone is
+   expressible and the refutations below are constructions (reading 10). *)
+Definition ExtentVerdicts (m : Machine) : Type := m.(Extent) -> bool.
+
+Definition TagPlane (m : Machine) : Type := m.(TagGranule) -> bool.
+
+(* The re-entry path (reading 9). A positive verdict releases the domain as
+   it stands, no byte rewritten and no phase discharged; a negative one is
+   R-15-190a's OFF->ON path, which is the exit path stated above. *)
+Definition reentry_sequence (ks : list nat) (v : bool) (r : Readings) : list Step :=
+  cons RequestersInReset (cons ImagePass (cons ImageVerdict
+    (if v then entry_path else staggered r ks entry_path))).
+
+(* R-15-247d's order on this path: the requesters in reset before the pass,
+   the pass before its verdict, the verdict before addressability, and then
+   the two entry pairs unchanged. *)
+Definition reentry_order : list (Step * Step) :=
+  app (cons (RequestersInReset, ImagePass)
+      (cons (ImagePass, ImageVerdict)
+      (cons (ImageVerdict, DomainAddressable) nil)))
+      entry_pairs.
+
+Definition reentry_ordered_ok (l : list Step) : bool :=
+  all_of (pair_precedes l) reentry_order.
+
+(* D16 (R-15-190b, R-15-247d): the retained re-entry is ordered, whatever
+   the phase roster and whatever the exit path's readings would have been. *)
+(*| discharges: R-15-190b, R-15-247d |*)
+Theorem the_retained_reentry_keeps_the_order :
+  forall (ks : list nat) (r : Readings),
+    reentry_ordered_ok (reentry_sequence ks true r) = true.
+Proof. intros ks r. reflexivity. Qed.
+
+(* D17 (R-15-190b, R-15-247t): and it takes no discharge. This is the whole
+   of what the retained case changes: the domain is re-admitted by a read
+   of its tag plane, so no phase of it is discharged, dwelt on or read. *)
+(*| discharges: R-15-190b, R-15-247t |*)
+Theorem the_retained_reentry_takes_no_discharge :
+  forall (ks : list nat) (r : Readings) (k : nat),
+    occurs (PhaseDischarge k) (reentry_sequence ks true r) = false
+    /\ occurs (PhaseDwell k) (reentry_sequence ks true r) = false
+    /\ occurs (PhaseRead k) (reentry_sequence ks true r) = false.
+Proof. intros ks r k. split; [ reflexivity | split; reflexivity ]. Qed.
+
+(* D18 (R-15-247d, R-15-190b): authority invalidation is confirmed before
+   addressability on this path as on every other, by a read of the plane
+   rather than a write to it. *)
+(*| discharges: R-15-247d, R-15-190b |*)
+Theorem no_requester_names_a_retained_domain_before_its_verdict :
+  forall (ks : list nat) (r : Readings),
+    precedes ImagePass ImageVerdict (reentry_sequence ks true r) = true
+    /\ precedes ImageVerdict DomainAddressable (reentry_sequence ks true r) = true.
+Proof. intros ks r. split; reflexivity. Qed.
+
+(* D19 (R-15-190b, R-15-190a): a negative verdict is the refill and not the
+   latch. The path continues into the exit path already stated here, whose
+   first phase's discharge stands on it, which is what makes the two arms
+   of the verdict distinguishable rather than two names for one list. *)
+(*| discharges: R-15-190b, R-15-190a |*)
+Theorem a_refused_retained_domain_takes_the_discharge_path :
+  forall (ks : list nat) (r : Readings) (k : nat),
+    reentry_sequence ks false r
+    = cons RequestersInReset (cons ImagePass (cons ImageVerdict
+        (staggered r ks entry_path)))
+    /\ occurs (PhaseDischarge k) (reentry_sequence (cons k ks) false r) = true.
+Proof.
+  intros ks r k. split.
+  - reflexivity.
+  - simpl. rewrite nat_eqb_refl. reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   The reader that releases a retained domain, and the two readings
+   R-15-190b's own sentence refuses.
+   ------------------------------------------------------------------------- *)
+
+Definition ReEntryReader (m : Machine) : Type :=
+  ExtentVerdicts m -> TagPlane m -> bool.
+
+(* The specification's: every extent of the retained image verified against
+   the content-addressed root, and every validity tag of the domain read
+   clear, in the one pass. *)
+Definition spec_reentry_reader (m : Machine) : ReEntryReader m := fun ver tag =>
+  andb (all_of ver m.(extents)) (all_of (fun g => negb (tag g)) m.(tag_granules)).
+
+(* R-15-190b: a domain any of whose tags reads set is discharged and
+   refilled, so no reader releases one. *)
+Definition ReleasesNoDomainWithATagSet (m : Machine) (rd : ReEntryReader m) : Prop :=
+  forall (ver : ExtentVerdicts m) (tag : TagPlane m),
+    rd ver tag = true -> any_of tag m.(tag_granules) = false.
+
+(* R-15-190b: no extent is released to a requester unverified. *)
+Definition ReleasesNoUnverifiedExtent (m : Machine) (rd : ReEntryReader m) : Prop :=
+  forall (ver : ExtentVerdicts m) (tag : TagPlane m),
+    rd ver tag = true -> all_of ver m.(extents) = true.
+
+Lemma all_clear_is_none_set :
+  forall (A : Type) (p : A -> bool) (l : list A),
+    all_of (fun x => negb (p x)) l = true -> any_of p l = false.
+Proof.
+  intros A p l. induction l as [ | x r IH ]; simpl; intros H.
+  - reflexivity.
+  - destruct (andb_split _ _ H) as [ Hx Hr ]. apply negb_true in Hx.
+    rewrite Hx. simpl. exact (IH Hr).
+Qed.
+
+(* D20 (R-15-190b, R-15-247d): the specification's reader releases no
+   domain carrying a set validity tag, at every machine. *)
+(*| discharges: R-15-190b, R-15-247d |*)
+Theorem the_reentry_reader_releases_no_domain_with_a_tag_set :
+  forall m : Machine, ReleasesNoDomainWithATagSet m (spec_reentry_reader m).
+Proof.
+  intros m ver tag H. unfold spec_reentry_reader in H.
+  destruct (andb_split _ _ H) as [ _ Ht ].
+  exact (all_clear_is_none_set m.(TagGranule) tag m.(tag_granules) Ht).
+Qed.
+
+(* D21 (R-15-190b): and it releases no unverified extent, at every machine. *)
+(*| discharges: R-15-190b |*)
+Theorem the_reentry_reader_releases_no_unverified_extent :
+  forall m : Machine, ReleasesNoUnverifiedExtent m (spec_reentry_reader m).
+Proof.
+  intros m ver tag H. unfold spec_reentry_reader in H.
+  destruct (andb_split _ _ H) as [ Hv _ ]. exact Hv.
+Qed.
+
+(* The demo machine's readings: a pass that verified every extent and read
+   every tag clear, a pass one of whose extents did not verify, and a pass
+   one of whose tag granules read set. Two extents and two tag granules are
+   what distinguish a roster all of whose members answer one way from one
+   that carries a single dissenter, which is the case each refutation below
+   turns on. *)
+Definition verdicts_clean : ExtentVerdicts demo := fun _ => true.
+
+Definition verdicts_stale : ExtentVerdicts demo := fun e => e.
+
+Definition tags_clear : TagPlane demo := fun _ => false.
+
+Definition tags_dirty : TagPlane demo := fun g => negb g.
+
+(* D21a (R-05-165): the reader confirms on one reading and refuses on each
+   of the other two, so neither theorem above is proved from an empty
+   antecedent and neither is a property every reader has. *)
+Theorem the_reentry_reader_confirms_and_refuses :
+  spec_reentry_reader demo verdicts_clean tags_clear = true
+  /\ spec_reentry_reader demo verdicts_stale tags_clear = false
+  /\ spec_reentry_reader demo verdicts_clean tags_dirty = false.
+Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+
+(* The first reading R-15-190b refuses: a reader that re-verifies the
+   extents and never reads the tag plane, releasing a domain while a
+   validity tag in the retained image is set. R-15-247d makes the read of
+   every tag clear the authority invalidation on this path, so a release
+   taken on the extents alone admits an authority the generation being
+   entered never delegated, the image-derived domain being tag-free by
+   delegation and a set tag therefore being exactly the fact that something
+   other than the image wrote there (R-15-247t). *)
+Definition extent_only_reader (m : Machine) : ReEntryReader m := fun ver _ =>
+  all_of ver m.(extents).
+
+Theorem the_extent_only_reader_releases_a_domain_with_a_tag_set :
+  extent_only_reader demo verdicts_clean tags_dirty = true
+  /\ any_of tags_dirty demo.(tag_granules) = true
+  /\ ~ ReleasesNoDomainWithATagSet demo (extent_only_reader demo).
+Proof.
+  split; [ reflexivity | split; [ reflexivity | ] ].
+  intros H. specialize (H verdicts_clean tags_dirty eq_refl). discriminate H.
+Qed.
+
+(* And it keeps the other obligation outright and at every machine, so what
+   refutes it is the plane it never reads and not a reader that admits
+   everything. *)
+Theorem the_extent_only_reader_still_releases_no_unverified_extent :
+  forall m : Machine, ReleasesNoUnverifiedExtent m (extent_only_reader m).
+Proof. intros m ver tag H. exact H. Qed.
+
+(* The second reading R-15-190b refuses: a reader that reads the tag plane
+   and never re-verifies the extents, releasing a domain with an extent
+   unverified against its digest. R-15-190b's pass verifies every extent in
+   place against the content-addressed root of the generation being entered
+   and releases no extent to a requester unverified, and a tag plane that
+   reads clear says nothing about what the bytes under it are. *)
+Definition tag_only_reader (m : Machine) : ReEntryReader m := fun _ tag =>
+  all_of (fun g => negb (tag g)) m.(tag_granules).
+
+Theorem the_tag_only_reader_releases_an_unverified_extent :
+  tag_only_reader demo verdicts_stale tags_clear = true
+  /\ all_of verdicts_stale demo.(extents) = false
+  /\ ~ ReleasesNoUnverifiedExtent demo (tag_only_reader demo).
+Proof.
+  split; [ reflexivity | split; [ reflexivity | ] ].
+  intros H. specialize (H verdicts_stale tags_clear eq_refl). discriminate H.
+Qed.
+
+(* And it keeps the other obligation outright and at every machine, on the
+   same ground: what refutes it is the extents it never verifies. *)
+Theorem the_tag_only_reader_still_releases_no_domain_with_a_tag_set :
+  forall m : Machine, ReleasesNoDomainWithATagSet m (tag_only_reader m).
+Proof.
+  intros m ver tag H.
+  exact (all_clear_is_none_set m.(TagGranule) tag m.(tag_granules) H).
+Qed.
+
+(* -------------------------------------------------------------------------
+   Where the re-entry path and its reader meet. The path a machine takes on
+   a reading is `reentry_sequence` run over that reading's verdict, and a
+   domain released in place is one every extent of which verified and no
+   tag of which read set.
+   ------------------------------------------------------------------------- *)
+
+Definition reentry_path_of (m : Machine) (ver : ExtentVerdicts m) (tag : TagPlane m)
+    (r : Readings) : list Step :=
+  reentry_sequence (phases m) (spec_reentry_reader m ver tag) r.
+
+(* Released in place: addressable, and no phase of the domain discharged
+   (reading 11). *)
+Definition carries_no_discharge (m : Machine) (l : list Step) : bool :=
+  all_of (fun k => negb (occurs (PhaseDischarge k) l)) (phases m).
+
+Lemma all_of_at_mem :
+  forall (p : nat -> bool) (l : list nat) (k : nat),
+    all_of p l = true -> mem_nat k l = true -> p k = true.
+Proof.
+  intros p l k. induction l as [ | j r IH ]; simpl; intros H Hm.
+  - discriminate Hm.
+  - destruct (andb_split _ _ H) as [ Hj Hr ].
+    destruct (Nat.eqb k j) eqn:E.
+    + rewrite (nat_eqb_true k j E). exact Hj.
+    + simpl in Hm. exact (IH Hr Hm).
+Qed.
+
+(* D22 (R-15-190b, R-15-247t): a verdict the reader confirms releases the
+   domain as it stands, at every machine and every phase roster, with no
+   phase of it discharged. *)
+(*| discharges: R-15-190b, R-15-247t |*)
+Theorem a_verified_retained_domain_is_released_in_place :
+  forall (m : Machine) (ver : ExtentVerdicts m) (tag : TagPlane m) (r : Readings),
+    spec_reentry_reader m ver tag = true ->
+    occurs DomainAddressable (reentry_path_of m ver tag r) = true
+    /\ carries_no_discharge m (reentry_path_of m ver tag r) = true.
+Proof.
+  intros m ver tag r H. unfold reentry_path_of. rewrite H. split.
+  - reflexivity.
+  - unfold carries_no_discharge. apply all_of_by_mem. intros k _. reflexivity.
+Qed.
+
+(* D23 (R-15-190b, R-15-247d). The case's load-bearing theorem: on every
+   machine whose domain has a phase, a path that releases the domain in
+   place is one on which every extent verified and no validity tag read
+   set. The hypothesis is reading 11's, and it is what the refused
+   verdict's own discharge supplies the contradiction against. *)
+(*| discharges: R-15-190b, R-15-247d |*)
+Theorem no_retained_domain_is_released_unverified :
+  forall (m : Machine) (ver : ExtentVerdicts m) (tag : TagPlane m)
+         (r : Readings) (k : nat) (rest : list nat),
+    phases m = cons k rest ->
+    carries_no_discharge m (reentry_path_of m ver tag r) = true ->
+    all_of ver m.(extents) = true /\ any_of tag m.(tag_granules) = false.
+Proof.
+  intros m ver tag r k rest Hp Hd.
+  assert (Hv := the_reentry_reader_releases_no_unverified_extent m).
+  assert (Ht := the_reentry_reader_releases_no_domain_with_a_tag_set m).
+  unfold ReleasesNoUnverifiedExtent in Hv.
+  unfold ReleasesNoDomainWithATagSet in Ht.
+  destruct (spec_reentry_reader m ver tag) eqn:E.
+  - split.
+    + exact (Hv ver tag E).
+    + exact (Ht ver tag E).
+  - unfold carries_no_discharge in Hd. rewrite Hp in Hd.
+    assert (Hk : negb (occurs (PhaseDischarge k) (reentry_path_of m ver tag r)) = true).
+    { apply (all_of_at_mem _ (cons k rest) k Hd). simpl. rewrite nat_eqb_refl.
+      reflexivity. }
+    unfold reentry_path_of, reentry_sequence in Hk. rewrite E in Hk. rewrite Hp in Hk.
+    simpl in Hk. rewrite nat_eqb_refl in Hk. discriminate Hk.
+Qed.
+
+(* D23a (R-05-165): the demo machine's three readings made visible as three
+   paths, so the theorem above is not proved from an antecedent nothing
+   satisfies and its hypothesis is not one nothing meets. *)
+Example the_demo_reentry_paths_are_the_verdicts :
+  phases demo = cons 0 (cons 1 nil)
+  /\ reentry_path_of demo verdicts_clean tags_clear all_positive
+     = cons RequestersInReset (cons ImagePass (cons ImageVerdict entry_path))
+  /\ carries_no_discharge demo (reentry_path_of demo verdicts_clean tags_clear
+       all_positive) = true
+  /\ carries_no_discharge demo (reentry_path_of demo verdicts_stale tags_clear
+       all_positive) = false
+  /\ carries_no_discharge demo (reentry_path_of demo verdicts_clean tags_dirty
+       all_positive) = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
+
+(* And the refused verdict's path is the exit path this file already
+   states, addressable only where that path's own readings confirm, which
+   is R-15-190a's OFF->ON refill reached through the sequence rather than
+   beside it. *)
+Example the_refused_retained_domain_runs_the_exit_path :
+  reentry_path_of demo verdicts_clean tags_dirty all_positive
+  = cons RequestersInReset (cons ImagePass (cons ImageVerdict
+      (phase_chain demo_phases entry_path)))
+  /\ occurs DomainAddressable
+       (reentry_path_of demo verdicts_clean tags_dirty all_positive) = true
+  /\ occurs DomainAddressable
+       (reentry_path_of demo verdicts_clean tags_dirty (fun _ => false)) = false :=
+  conj eq_refl (conj eq_refl eq_refl).
+
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this
    file's statements quantify over, named for that record and ascribed at it.
@@ -2270,6 +2702,33 @@ Print Assumptions per_domain_reader_admits_a_partially_sanitized_bank.
 Print Assumptions occurs_entry_discharges.
 Print Assumptions the_per_transition_path_is_the_per_domain_reader.
 Print Assumptions the_per_transition_path_admits_an_undrained_bank.
+Print Assumptions ExtentVerdicts.
+Print Assumptions TagPlane.
+Print Assumptions reentry_sequence.
+Print Assumptions reentry_order.
+Print Assumptions reentry_ordered_ok.
+Print Assumptions spec_reentry_reader.
+Print Assumptions ReleasesNoDomainWithATagSet.
+Print Assumptions ReleasesNoUnverifiedExtent.
+Print Assumptions reentry_path_of.
+Print Assumptions carries_no_discharge.
+Print Assumptions all_clear_is_none_set.
+Print Assumptions all_of_at_mem.
+Print Assumptions the_retained_reentry_keeps_the_order.
+Print Assumptions the_retained_reentry_takes_no_discharge.
+Print Assumptions no_requester_names_a_retained_domain_before_its_verdict.
+Print Assumptions a_refused_retained_domain_takes_the_discharge_path.
+Print Assumptions the_reentry_reader_releases_no_domain_with_a_tag_set.
+Print Assumptions the_reentry_reader_releases_no_unverified_extent.
+Print Assumptions the_reentry_reader_confirms_and_refuses.
+Print Assumptions the_extent_only_reader_releases_a_domain_with_a_tag_set.
+Print Assumptions the_extent_only_reader_still_releases_no_unverified_extent.
+Print Assumptions the_tag_only_reader_releases_an_unverified_extent.
+Print Assumptions the_tag_only_reader_still_releases_no_domain_with_a_tag_set.
+Print Assumptions a_verified_retained_domain_is_released_in_place.
+Print Assumptions no_retained_domain_is_released_unverified.
+Print Assumptions the_demo_reentry_paths_are_the_verdicts.
+Print Assumptions the_refused_retained_domain_runs_the_exit_path.
 Print Assumptions touch_reader_admits_a_partially_sanitized_bank.
 Print Assumptions the_touch_reader_still_refuses_an_unreached_bank.
 Print Assumptions the_reader_arity_is_observable.
