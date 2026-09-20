@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
@@ -155,6 +156,8 @@ def _merge_conflict_one_document() -> None:
                "an unmerged file cannot supply a stage-zero blob")
         ensure(corpus_mod.staged_bytes(root, "docs/a.md") is None,
                "the membership must agree with Git's stage-zero blob lookup")
+        ensure(corpus_mod.staged_blobs(root, ["docs/a.md"]) == {"docs/a.md": None},
+               "a batch cannot read a conflict stage as the stage-zero blob")
 
 
 def _deleted_but_indexed_dropped() -> None:
@@ -198,6 +201,59 @@ def _index_is_independent_of_document_bytes_and_refreshes() -> None:
         ensure(second.files == ("docs/a.md", "docs/b.md"),
                "a fresh index read observes files staged between calls")
         ensure(first.files == ("docs/a.md",), "the earlier reading stays independent")
+
+
+def _staged_batch_preserves_bytes_and_refreshes() -> None:
+    with sandbox_tree({".gitattributes": "* -text\n", "docs/a.md": "# A\n"}) as root:
+        bodies = {"binary.dat": b"\0\xff\r\nnot a header\0",
+                  "space and \u00e9.txt": b"before\r\nafter\r\n", "empty.txt": b""}
+        for name, body in bodies.items():
+            (root / name).write_bytes(body)
+        _git(root, "add", "--", *bodies)
+        _git(root, "update-index", "--add", "--cacheinfo",
+             "160000", "1" * 40, "upstream/example")
+        (root / "binary.dat").unlink()
+        paths = [*bodies, "absent.txt", "upstream/example", "binary.dat"]
+        expected = {name: corpus_mod.staged_bytes(root, name) for name in paths}
+        ensure(corpus_mod.staged_blobs(root, paths) == expected,
+               "a batch preserves binary/CRLF/empty blobs and missing-file semantics")
+        ensure(all(expected[name] == body for name, body in bodies.items()),
+               "the bytes belong to the index even after working-tree deletion")
+        (root / "empty.txt").write_bytes(b"new\0bytes")
+        _git(root, "add", "empty.txt")
+        ensure(corpus_mod.staged_blobs(root, ["empty.txt"]) == {"empty.txt": b"new\0bytes"},
+               "a later batch observes newly staged bytes without a path cache")
+        ensure(corpus_mod.staged_blobs(root, []) == {}, "an empty request reads nothing")
+
+
+def _batch_framing_refuses_incomplete_output() -> None:
+    name = "space\nand tab\there"
+    request = f":0:{name}".encode()
+    body = b"first\0second\nthird\r\n"
+    header = b"a" * 40 + b" blob " + str(len(body)).encode() + b"\0"
+    encoded = header + body + b"\0"
+    ensure(corpus_mod._batch_blobs(encoded, {name: request}) == {name: body},
+           "only header framing uses NUL; payload bytes and path delimiters survive")
+    ensure(corpus_mod._batch_blobs(request + b" missing\0", {name: request}) == {name: None},
+           "a missing name with line separators is one response")
+    for bad in (b"", header, encoded[:-1], encoded + b"extra",
+                b"wrong missing\0", b"a blob -1\0", b"a blob nope\0"):
+        try:
+            corpus_mod._batch_blobs(bad, {name: request})
+        except RuntimeError:
+            continue
+        raise AssertionError(f"malformed batch output was accepted: {bad!r}")
+
+
+def _batch_failure_keeps_individual_results() -> None:
+    replies = [subprocess.CompletedProcess([], 129, b"", b"unsupported option"),
+               subprocess.CompletedProcess([], 0, b"contents\0\r\n", b""),
+               subprocess.CompletedProcess([], 1, b"", b"missing")]
+    with patch.object(corpus_mod.subprocess, "run", side_effect=replies) as run:
+        found = corpus_mod.staged_blobs(TOOLS.parent, ["present", "missing"])
+        ensure(found == {"present": b"contents\0\r\n", "missing": None},
+               "a batch failure preserves the existing per-path reader's verdicts")
+        ensure(run.call_count == 3, "failed batch retries each requested path once")
 
 
 def _non_utf8_names_the_document() -> None:
@@ -314,6 +370,10 @@ def cases() -> list[Case]:
              _indexed_files_exclude_gitlinks_and_untracked_files),
         Case("index-independent-of-document-bytes-and-refreshes",
              _index_is_independent_of_document_bytes_and_refreshes),
+        Case("staged-batch-preserves-bytes-and-refreshes",
+             _staged_batch_preserves_bytes_and_refreshes),
+        Case("batch-framing-refuses-incomplete-output", _batch_framing_refuses_incomplete_output),
+        Case("batch-failure-keeps-individual-results", _batch_failure_keeps_individual_results),
         Case("non-utf8-names-the-document", _non_utf8_names_the_document),
         Case("reads-a-checkout-git-cannot-find",
              _reads_a_checkout_git_cannot_find_by_itself),
