@@ -207,6 +207,7 @@ Tools used to observe, execute, or accelerate a build do not automatically licen
 | Verilator | `LGPL-3.0-only OR Artistic-2.0`, at the recipient's option | Elaborates and simulates RTL, pinned at **5.052**. |
 | Node.js | `MIT`, with dependency notices in the upstream `LICENSE` | Runs the host-side Wasm oracle. [The runtime helper](tools/wasm-oracle/node.sh) pins its release, verifies the official archive hash, and installs it under a versioned project prefix. |
 | pre-commit | `MIT` | Optional model hooks. [tools/pyproject.toml](tools/pyproject.toml) pins the runner; [tools/uv.lock](tools/uv.lock) records dependencies. |
+| astral-sh/setup-uv | `MIT` | [Host CI](.github/workflows/host-gates.yml) downloads and runs the action to install uv and cache its downloads. The reviewed revision `bec219d24cd3e171d82865faccec33120bb574f4` has an [MIT LICENSE](https://github.com/astral-sh/setup-uv/blob/bec219d24cd3e171d82865faccec33120bb574f4/LICENSE). No action source or bundled dependency is redistributed here. |
 | QuickChick | `MIT` | Gallina input generator, version **2.2.0**, in a dedicated switch. |
 | Rupicola, Bedrock2, and the Bedrock2 compiler | `MIT` | Gallina lowering: Rupicola **0.0.11**, Bedrock2 and its compiler **0.0.9**. [tools/bedrock2-lowering/](tools/bedrock2-lowering/) tracks the local sources, driver, output digest, and size; emitted C remains external. |
 | coqutil | `MIT` | Bedrock2 dependency, version **0.0.7**. |

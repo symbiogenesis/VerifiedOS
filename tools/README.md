@@ -47,10 +47,17 @@ the API as *process completed with exit code 1* and says nothing. So that invoca
 carries `--summary`, which writes the per-member verdict as JSON beside the run rather
 than into the checkout, and the workflow's next step renders it into one annotation per
 member that did not come back clean and a table into the job summary. That step runs
-whether or not the gate did, so a gate that stopped before the wave finished is named
-as that rather than left looking like a failing member. `--summary` adds no member and
-decides nothing about the tree; asked to write that verdict and unable to, it reports
+after success or failure, unless the workflow was cancelled, so a gate that stopped
+before the wave finished is named as that rather than left looking like a failing member.
+`--summary` adds no member and decides nothing about the tree; asked to write that
+verdict and unable to, it reports
 one finding of its own, which is the only way it reaches the exit code.
+
+New commits cancel superseded runs of the same pull request; each push to `main`
+keeps its own run. The two OS jobs run independently, and `run.py` runs their gate
+members concurrently. Both jobs cache uv downloads keyed by the manifest and lockfile,
+with only pushes to `main` saving caches; PRs restore them. Environments and gate
+results are rebuilt on every run.
 
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no

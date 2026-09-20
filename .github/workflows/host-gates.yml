@@ -1,48 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
+# Read-only host validation on Windows and Ubuntu. Sail, Rocq and Verilator
+# evidence belongs to separate guest runs; see tools/README.md for the gate contract.
 #
-# The host gate wave, run on a clone at every push and pull request to main.
+# run.py runs the checker, mutation selftest, typecheck and behavioral tests
+# concurrently. uv installs locked dependencies into a checkout-local environment;
+# only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
-# `python tools/run.py --check --tests` runs the three host gates and the tools'
-# behavioral tests together, without changing tracked files. All
-# of it is pure Python over the checkout, so it runs on Windows and Linux with no
-# toolchain: what needs Sail, Rocq or Verilator is the guest lane, which run.py
-# re-launches inside WSL on a developer's machine and which nothing here reaches. A
-# green run here is a witness that the host gates passed on this commit, never a
-# substitute for the guest evidence a completion note quotes.
-#
-# The checker's corpus is the git index, and the upstream/ entries it reads are
-# gitlinks, so the checkout deliberately initializes no submodule: an empty upstream/
-# directory is the tree the checker is written for. K-75 holds the interpreter floor
-# below against tools/ty.toml and tools/pyproject.toml. setup-uv reads its own version
-# from that manifest; run.py synchronizes tools/uv.lock into a checkout-local, OS-specific
-# environment before dispatch. The cache stores downloads, never a shared venv.
-# No global Python packages are installed. K-67 holds the documented checker pins
-# and lockfile against the manifest, and uv refuses stale resolution under --locked.
-# On Linux no WSL hop is made. PYTHONUTF8 keeps subprocess output in the corpus's
-# encoding as well as the streams run.py configures itself.
-#
-# The matrix exercises the Windows host cases and the Linux guest cases, with the
-# lane-neutral cases on both. Toolchain cases remain skipped on these runners,
-# neither of which holds the Sail switch.
-#
-# The wave stays one step, so the four members still run concurrently and CI still
-# exercises the gate itself rather than four commands standing in for it. What that
-# costs is diagnosis: four members reach a reader as one step name and one exit code,
-# and a failure is then "Process completed with exit code 1" to anyone who cannot open
-# the log. `--summary` is the answer to that. It is not a fifth member and decides
-# nothing about the tree: it writes down what the four decided, as JSON under the
-# runner's temporary directory, never into the checkout. Asked to write that verdict
-# and unable to, it reports one finding of its own, which is the only way it reaches
-# the exit code. The step after the gate renders that file into one annotation per
-# member that did not come back clean, plus the whole table into the job summary. Both
-# surfaces are readable without opening the log. That step runs on failure as well as
-# success and states its own absence: no verdict file means the gate stopped before the
-# wave finished, which is a different fault from any member's and is named as one.
-#
-# Nothing in this repository reads a workflow expression, so the context each one may
-# use is held by the next push and by nothing here. `runner` in particular is available
-# to a step and not to a job's `env:`, which is why the verdict's path is exported by a
-# step below rather than declared once at the job.
+# Per-member JSON in runner.temp supplies failure annotations and the job summary.
+# Reporting is diagnostic; the gate step owns the job's verdict.
 
 name: host-gates
 
@@ -55,101 +20,79 @@ on:
 permissions:
   contents: read
 
+# Superseded PR runs are disposable; every push to main keeps its own run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   PYTHONUTF8: "1"
+  VERDICT_FILE: host-gates-verdict.json
 
 jobs:
   host-gates:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
     steps:
-      - name: Check out the tree, gitlinks and no submodule
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
+          persist-credentials: false
+          # The checker reads gitlinks from the index; submodule sources are unnecessary.
           submodules: false
 
-      - name: Set up Python at the floor tools/README.md states
-        uses: actions/setup-python@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
+          # PRs reuse main's downloads without uploading a cache for each merge ref.
+          save-cache: ${{ github.event_name == 'push' }}
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
 
-      - name: Name the file the gate writes its verdict to
-        # One name the two steps below share, so they cannot come to name different
-        # files, and under the runner's own temporary directory so nothing is written
-        # into the tree the gates are reading. Exported from a step rather than declared
-        # in the job's `env:`, because the runner context is not available there: a
-        # workflow that reaches for it at that key is rejected before any job starts,
-        # and a rejected workflow produces no log to read the rejection in. bash is on
-        # both runners, so one spelling serves both arms.
-        shell: bash
-        run: echo "VERDICT=$RUNNER_TEMP/host-gates-verdict.json" >> "$GITHUB_ENV"
+      - name: Host gates and behavioral tests
+        # run.py already runs all four members concurrently with locked dependencies.
+        run: python tools/run.py --check --tests --summary "${{ runner.temp }}/${{ env.VERDICT_FILE }}"
 
-      - name: Host gates and behavioral tests, read-only
-        run: python tools/run.py --check --tests --summary "${{ env.VERDICT }}"
-
-      - name: Name the member that did not come back clean
-        if: always()
+      - name: Report gate results
+        if: ${{ !cancelled() }}
         shell: python
         run: |
           import json
           import os
-          import pathlib
+          from pathlib import Path
 
-          # Both of these are read before the guard below and so must not be able to
-          # raise: the guard is what keeps a reporting failure from turning a green wave
-          # red, and a lookup outside it escapes that.
-          rows = []
-          named = os.environ.get("VERDICT", "")
+          def annotate(level: str, message: str) -> None:
+              message = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::{level} title=host-gates::{message}")
+
           try:
-              if not named:
-                  print("::error title=host-gates::no verdict path was named, so the step "
-                        "that names it did not run; read the steps above")
-                  rows.append("| n/a | n/a | no verdict path was named |")
-              elif not pathlib.Path(named).is_file():
-                  # Several faults reach here and this step cannot tell them apart, so
-                  # it states the observation and its span rather than picking one.
-                  print("::error title=host-gates::the gate wrote no per-member verdict, "
-                        "so it stopped before the wave finished: it never started, it "
-                        "crashed, or it was killed; read the step above")
-                  rows.append("| n/a | n/a | no verdict file was written |")
-              else:
-                  verdict = pathlib.Path(named)
-                  report = json.loads(verdict.read_text(encoding="utf-8"))
-                  stopped = report.get("stopped") or ""
-                  if stopped:
-                      print(f"::error title=host-gates::{stopped}")
-                      rows.append(f"| n/a | n/a | {stopped} |")
-                  for member in report.get("members", []):
-                      state = ("clean" if member["clean"]
-                               else "reported findings, read the step above"
-                               if member["reached_verdict"] else "never reached a verdict")
-                      if not member["clean"]:
-                          print(f"::error title=host-gates/{member['name']}::"
-                                f"`{member['name']}` {state} (exit {member['code']}); "
-                                f"it decides {member['decides']}")
-                      rows.append(f"| `{member['name']}` | {member['code']} | {state} |")
-              # Appended rather than written, because a job summary belongs to the job
-              # and this step is one contributor to it.
-              with pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]).open(
-                      "a", encoding="utf-8") as out:
-                  out.write("### host gates\n\n| member | exit | verdict |\n")
-                  out.write("| --- | --- | --- |\n")
-                  out.write("".join(row + "\n" for row in rows))
+              verdict = Path(os.environ["RUNNER_TEMP"]) / os.environ["VERDICT_FILE"]
+              report = json.loads(verdict.read_text(encoding="utf-8")) if verdict.is_file() else {
+                  "stopped": "No verdict file was written; the gate never started or did not finish. See earlier steps.",
+                  "members": [],
+              }
+              rows = ["| Member | Exit | Verdict |", "| --- | --- | --- |"]
+              if stopped := report.get("stopped"):
+                  annotate("error", stopped)
+                  rows.append(f"| n/a | n/a | {stopped} |")
+              for member in report["members"]:
+                  state = "clean" if member["clean"] else (
+                      "reported findings" if member["reached_verdict"] else "never reached a verdict")
+                  rows.append(f"| `{member['name']}` | {member['code']} | {state} |")
+                  if not member["clean"]:
+                      annotate("error", f"{member['name']}: {state} (exit {member['code']}); "
+                               f"it decides {member['decides']}. See the gate log.")
+              with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
+                  summary.write("### Host gates\n\n" + "\n".join(rows) + "\n")
           except Exception as err:
-              # A reporting failure must not be the thing that turns a green wave red:
-              # the gates above have already decided, and their exit code stands.
-              print(f"::warning title=host-gates::the per-member verdict at "
-                    f"{named or '(unnamed)'} could not be rendered: {err!r}")
+              # Reporting is diagnostic; the gate step owns the job's verdict.
+              annotate("warning", f"Could not render gate results: {err!r}")
