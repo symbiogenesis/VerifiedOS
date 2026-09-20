@@ -12,6 +12,7 @@ last entry would compare two files that agree on everything they carry.
 
 import argparse
 import io
+import os
 import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -133,6 +134,41 @@ def _cycle_refusals_include_only_blocked_sources() -> None:
             raise AssertionError("a self-Require was given a compile order")
 
 
+def _source_index_is_one_immutable_snapshot() -> None:
+    files = {"A.v": _A, "B.v": _B, "C.v": "Require A.\n", "X.v": "",
+             "D.v": "Require B C X.\n"}
+    with _tree(files) as td:
+        sources = sorted(Path(td).glob("*.v"))
+        read_text = Path.read_text
+        with patch.object(Path, "read_text", autospec=True, side_effect=read_text) as read:
+            index = proofs.SourceIndex.read(sources)
+        ensure(read.call_count == len(sources), "the source snapshot read a proof more than once")
+        ensure([list(wave) for wave in index.ordered] == proofs.waves(sources),
+               "the shared source snapshot changed dependency order")
+        root = Path(td)
+        ensure([path.stem for path in index.imports[root / "D.v"]] == ["A", "B", "C", "X"],
+               "a diamond import closure duplicated or omitted a dependency")
+        original = index.texts[root / "B.v"]
+        source = root / "B.v"
+        stamp = source.stat()
+        source.write_text(original.replace("Require Import A.", "Require Import C."),
+                          encoding="utf-8", newline="")
+        os.utime(source, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        ensure(source.stat().st_size == stamp.st_size, "the fixture changed source length")
+        changed = proofs.SourceIndex.read(sources)
+        ensure(index.texts[source] == original and changed.texts[source] != original,
+               "an edit changed an existing snapshot or escaped a new one")
+        ensure(changed.needs[source] == frozenset({root / "C.v"}),
+               "preserved timestamps hid a changed dependency")
+        source.write_text("Require D.\n", encoding="utf-8")
+        try:
+            proofs.SourceIndex.read(sources)
+        except SystemExit as err:
+            ensure("Require cycle among B.v, D.v" in str(err), f"cycle refusal changed: {err}")
+        else:
+            raise AssertionError("an old snapshot hid a newly introduced cycle")
+
+
 def _comment_lexing_preserves_source_and_newlines() -> None:
     fixtures = {
         "before(* hidden *)after": "beforeafter",
@@ -251,6 +287,7 @@ def cases() -> list[Case]:
         Case("a Require cycle is refused", _a_require_cycle_is_refused),
         Case("branched dependencies keep sorted waves", _branched_dependencies_keep_sorted_waves),
         Case("cycle refusals include only blocked sources", _cycle_refusals_include_only_blocked_sources),
+        Case("source index is one immutable snapshot", _source_index_is_one_immutable_snapshot),
         Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",

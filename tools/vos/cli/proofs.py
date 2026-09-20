@@ -31,6 +31,7 @@ from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import cast
 
 from vos import env, proofaudit, receipts
@@ -101,6 +102,14 @@ _SECTION_BINDER = re.compile(r"^(" + "|".join(SECTION_BINDERS) + r")\s+(.*)", re
 _BINDER = re.compile(r"[({]\s*[\w']+(?:\s+[\w']+)*\s*:\s*([^)}]*)[)}]")
 _QUANTIFIER = re.compile(r"\b(?:forall|exists)\s+[\w']+(?:\s+[\w']+)*\s*:\s*([^,]*),")
 _HEAD = re.compile(r"^([\w']+)")
+_TOP_DELIMITERS = {mark: re.compile(r"[()\[\]{}]|" + re.escape(mark))
+                   for mark in (":", ":=", "->")}
+_REQUIRE_TOKEN = re.compile(r"\bRequire\b")
+_DYNAMIC_SOURCE = re.compile(
+    r'^(?:(?:Local|Global|Time|Fail|Succeed)\s+|Timeout\s+\d+\s+'
+    r'|Redirect\s+"[^"]*"\s+|#\[[^\]]*\]\s*)*'
+    r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
+    r'|Declare\s+ML\s+Module)\b')
 
 
 @dataclass(frozen=True)
@@ -129,35 +138,24 @@ def _split_top(text: str, mark: str) -> tuple[str, str] | None:
     """`text` cut at the first `mark` outside every bracket, or None. A `:` is only
     the ascription colon when it is not the first character of `:=`, `::` or `:>`."""
     depth = 0
-    i = 0
-    while i < len(text):
-        ch = text[i]
+    # Skip ordinary text in the regex engine; only bracket and marker sites can
+    # change the answer. Keep the lexical treatment of strings and nesting intact.
+    for token in _TOP_DELIMITERS[mark].finditer(text):
+        ch = token.group()
         if ch in "([{":
             depth += 1
         elif ch in ")]}":
             depth -= 1
-        elif depth == 0 and text.startswith(mark, i):
+        elif depth == 0:
+            i = token.start()
             if mark == ":" and text[i + 1:i + 2] in ("=", ":", ">"):
-                i += 1
                 continue
-            return text[:i], text[i + len(mark):]
-        i += 1
+            return text[:i], text[token.end():]
     return None
 
 
 def _has_top_arrow(text: str) -> bool:
-    depth = 0
-    i = 0
-    while i < len(text):
-        ch = text[i]
-        if ch in "([{":
-            depth += 1
-        elif ch in ")]}":
-            depth -= 1
-        elif depth == 0 and text.startswith("->", i):
-            return True
-        i += 1
-    return False
+    return _split_top(text, "->") is not None
 
 
 def _instance_head(typ: str) -> str | None:
@@ -210,51 +208,85 @@ def scan_witnesses(text: str, imported: tuple[str, ...] = ()) -> Witnesses:
     locally, because an artifact may state its obligations over a record a companion
     declares and inhabit it with the companion's witness.
     """
+    return _combine_witnesses(_witness_facts(tuple(_sentences(text))),
+                              tuple(_witness_facts(tuple(_sentences(source)))
+                                    for source in imported))
+
+
+@dataclass(frozen=True)
+class _WitnessFacts:
+    records: frozenset[str]
+    witnesses: Mapping[str, tuple[str, ...]]
+    quantified: Mapping[str, int]
+
+
+def _witness_facts(statements: tuple[str, ...]) -> _WitnessFacts:
+    """Parse a source's declarations once, before choosing an importing context."""
     records: set[str] = set()
     witnesses: dict[str, list[str]] = {}
     quantified: dict[str, int] = {}
-    for index, source in enumerate((text, *imported)):
-        own = index == 0
-        for sentence in _sentences(source):
-            record = _RECORD.match(sentence)
-            if record:
-                records.add(record.group(1))
-                continue
-            binder = _SECTION_BINDER.match(sentence)
-            if binder and own:
-                for head in _quantified_heads(f"({binder.group(2)})"):
-                    quantified[head] = quantified.get(head, 0) + 1
-                continue
-            definer = _DEFINER.match(sentence)
-            if not definer:
-                continue
-            keyword, name, rest = definer.groups()
-            split = _split_top(rest, ":")
-            if split is None:
-                continue
-            binders, typ = split
-            body = _split_top(typ, ":=")
-            if body is not None:
-                typ = body[0]
-            if own and keyword in STATEMENTS:
-                for head in _quantified_heads(f"{binders} {typ}"):
-                    quantified[head] = quantified.get(head, 0) + 1
-            # A witness is a Definition, takes no argument, and is ascribed at the very
-            # record its name claims: `witness_Plan : Plan` and, where the record is a
-            # family, `witness_Installed : Installed demo_wx`, whose head is the record.
-            # Each of the three is checked rather than assumed, so a `witness_Plan`
-            # ascribed at something else is not a witness and says so by its absence.
-            if keyword != "Definition" or not name.startswith(WITNESS_PREFIX):
-                continue
-            if binders.strip():
-                continue
-            claimed = name[len(WITNESS_PREFIX):]
-            if _instance_head(typ) == claimed and name not in witnesses.get(claimed, []):
-                witnesses.setdefault(claimed, []).append(name)
+    for sentence in statements:
+        record = _RECORD.match(sentence)
+        if record:
+            records.add(record.group(1))
+            continue
+        binder = _SECTION_BINDER.match(sentence)
+        if binder:
+            for head in _quantified_heads(f"({binder.group(2)})"):
+                quantified[head] = quantified.get(head, 0) + 1
+            continue
+        definer = _DEFINER.match(sentence)
+        if not definer:
+            continue
+        keyword, name, rest = definer.groups()
+        split = _split_top(rest, ":")
+        if split is None:
+            continue
+        binders, typ = split
+        body = _split_top(typ, ":=")
+        if body is not None:
+            typ = body[0]
+        if keyword in STATEMENTS:
+            for head in _quantified_heads(f"{binders} {typ}"):
+                quantified[head] = quantified.get(head, 0) + 1
+        # Only a closed, correctly ascribed Definition names a record witness.
+        if keyword != "Definition" or not name.startswith(WITNESS_PREFIX) or binders.strip():
+            continue
+        claimed = name[len(WITNESS_PREFIX):]
+        if _instance_head(typ) == claimed and name not in witnesses.get(claimed, []):
+            witnesses.setdefault(claimed, []).append(name)
+    return _WitnessFacts(frozenset(records), MappingProxyType(
+        {record: tuple(names) for record, names in witnesses.items()}),
+        MappingProxyType(quantified))
 
-    ranged = {record: count for record, count in quantified.items() if record in records}
-    unbuilt = sorted(record for record in ranged if record not in witnesses)
-    return Witnesses(quantified=ranged, witnesses=witnesses, unbuilt=unbuilt)
+
+def _combine_witnesses(own: _WitnessFacts, imported: tuple[_WitnessFacts, ...]) -> Witnesses:
+    records: set[str] = set()
+    witnesses: dict[str, list[str]] = {}
+    for source in (own, *imported):
+        records.update(source.records)
+        for record, names in source.witnesses.items():
+            found = witnesses.setdefault(record, [])
+            found.extend(name for name in names if name not in found)
+    ranged = {record: count for record, count in own.quantified.items() if record in records}
+    return Witnesses(quantified=ranged, witnesses=witnesses,
+                     unbuilt=sorted(record for record in ranged if record not in witnesses))
+
+
+@dataclass(frozen=True)
+class ProofAnalysis:
+    """Run-local lexical analysis shared by dependency scheduling and witness audits."""
+
+    index: proofs_mod.SourceIndex
+    witnesses: Mapping[Path, Witnesses]
+
+    @classmethod
+    def read(cls, sources: list[Path]) -> ProofAnalysis:
+        index = proofs_mod.SourceIndex.read(sources)
+        facts = {source: _witness_facts(parsed) for source, parsed in index.statements.items()}
+        witnesses = {source: _combine_witnesses(own, tuple(facts[path] for path in index.imports[source]))
+                     for source, own in facts.items()}
+        return cls(index, MappingProxyType(witnesses))
 
 
 def _imported(source: Path, sources: list[Path]) -> tuple[str, ...]:
@@ -388,10 +420,11 @@ class Checked:
     error: str = ""
 
 
-def _check_source(root: Path, source: Path, sources: list[Path], *,
+def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis, *,
                   compiled: bool = False) -> Checked:
     try:
-        text = source.read_text(encoding="utf-8")
+        text = (sources.index.texts[source] if isinstance(sources, ProofAnalysis)
+                else source.read_text(encoding="utf-8"))
         unsupported = proofaudit.unsupported_abstractions(text)
         if unsupported:
             raise proofaudit.AuditError(
@@ -417,7 +450,8 @@ def _check_source(root: Path, source: Path, sources: list[Path], *,
         if undeclared:
             raise proofaudit.AuditError("undeclared assumptions: " + "; ".join(
                 f"{name}: {assumption}" for name, assumption in undeclared))
-        witnesses = scan_witnesses(text, _imported(source, sources))
+        witnesses = (sources.witnesses[source] if isinstance(sources, ProofAnalysis)
+                     else scan_witnesses(text, _imported(source, sources)))
         if witnesses.unbuilt:
             raise proofaudit.AuditError(
                 "quantified records have no named witness: " + ", ".join(witnesses.unbuilt))
@@ -617,15 +651,11 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
                         for sentence in _sentences(source.read_text(encoding="utf-8"))]
     # Dependency parsing intentionally supports only plain Require sentences.
     # A wrapped Require must not hide an edge from incremental invalidation.
-    if any(re.search(r"\bRequire\b", sentence) and not proofs_mod.REQUIRE.fullmatch(sentence)
+    if any("Require" in sentence and _REQUIRE_TOKEN.search(sentence)
+           and not proofs_mod.REQUIRE.fullmatch(sentence)
            for sentence in source_sentences):
         return None
-    if any(re.match(
-            r'^(?:(?:Local|Global|Time|Fail|Succeed)\s+|Timeout\s+\d+\s+'
-            r'|Redirect\s+"[^"]*"\s+|#\[[^\]]*\]\s*)*'
-            r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
-            r'|Declare\s+ML\s+Module)\b', sentence)
-           for sentence in source_sentences):
+    if any(_DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
         return None
     try:
         command = env.rocq_command()
@@ -722,13 +752,13 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
         if gate_inputs(previous) != gate_inputs(inputs):
             return {}
         reusable: dict[str, Cached] = {}
-        stems = {source.stem for source in sources}
-        for wave in proofs_mod.waves(sources):
+        index = proofs_mod.SourceIndex.read(sources)
+        for wave in index.ordered:
             for source in wave:
                 name = source.relative_to(root).as_posix()
                 staged = work / PROOFS / source.name
                 product = staged.with_suffix(".vo")
-                needs = proofs_mod.local_requires(source, stems)
+                needs = {required.stem for required in index.needs[source]}
                 artifact = artifacts.get(source.name)
                 if (previous.get(name) == inputs[name]
                         and isinstance(artifact, dict)
@@ -799,21 +829,21 @@ def _run_locked(root: Path, jobs: int, fresh: bool = False) -> int:
                      for source in sources}
     if receipts.snapshot(work, staged) != source_inputs:
         raise ValueError("proof sources changed while being staged")
-    stems = {source.stem for source in sources}
-    needs = {source.stem: proofs_mod.local_requires(source, stems) for source in staged}
+    compile_started = time.perf_counter()
+    analysis = ProofAnalysis.read(staged)
+    needs = {source.stem: {required.stem for required in required_sources}
+             for source, required_sources in analysis.index.needs.items()}
     checked: list[Checked] = []
     failed: set[str] = set()
-    compile_started = time.perf_counter()
 
     def check(source: Path) -> Checked:
         if source.stem in reusable:
             return Checked(source, reusable[source.stem].symbols,
-                           scan_witnesses(source.read_text(encoding="utf-8"),
-                                          _imported(source, staged)))
-        return _check_source(work, source, staged)
+                           analysis.witnesses[source])
+        return _check_source(work, source, analysis)
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
-        for wave in proofs_mod.waves(staged):
+        for wave in analysis.index.ordered:
             ready: list[Path] = []
             for source in wave:
                 blocked = needs[source.stem] & failed

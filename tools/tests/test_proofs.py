@@ -20,6 +20,7 @@ gate's green line reports.
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos.cli import proofs as gate
@@ -252,9 +253,14 @@ def _every_shipped_artifact_names_a_witness() -> None:
     sources = sorted((_ROOT / gate.PROOFS).glob("*.v"))
     ensure(bool(sources), f"no proof under {gate.PROOFS}/")
     findings: list[str] = []
+    with patch.object(gate, "_witness_facts", wraps=gate._witness_facts) as parse:
+        analysis = gate.ProofAnalysis.read(sources)
+    ensure(parse.call_count == len(sources), "the proof analysis reparsed imported declarations")
     for source in sources:
         found = gate.scan_witnesses(source.read_text(encoding="utf-8"),
                                     gate._imported(source, sources))
+        ensure(analysis.witnesses[source] == found,
+               f"shared analysis changed witness decisions for {source.name}")
         findings.extend(f"{source.name}: {record}" for record in found.unbuilt)
     ensure(not findings, f"a shipped artifact quantifies over a record it never "
                          f"witnesses: {findings!r}")
@@ -269,6 +275,30 @@ def _imports_follow_the_require_closure() -> None:
            "SeamWitnesses reaches the apex statement and nothing else")
     ensure(gate._imported(Path(_ROOT / gate.PROOFS / "ApexTheorem.v"), sources) == (),
            "the apex statement Requires no local proof")
+
+
+def _delimiter_scan_preserves_lexical_boundaries() -> None:
+    fixtures = {
+        "(x : nat) : Machine := demo": ("(x : nat) ", " Machine := demo"),
+        "{x : nat} [y : nat] : Machine": ("{x : nat} [y : nat] ", " Machine"),
+        "value := [1; 2]": None,
+        "value :> Type": None,
+        "value :: nil": ("value :", " nil"),
+        '"literal : colon"': ('"literal ', ' colon"'),
+        "(unclosed : Type": None,
+        ")extra : Type": None,
+        ")extra( : Type": (")extra( ", " Type"),
+    }
+    for text, expected in fixtures.items():
+        ensure(gate._split_top(text, ":") == expected,
+               f"delimiter candidate scanning changed the lexical boundary for {text!r}")
+    for text, expected in (("Machine -> Prop", True), ("(Machine -> Prop)", False),
+                           ("family (nat -> nat)", False), (") ->", False),
+                           ('"->"', True), ("[x] -> Y", True)):
+        ensure(gate._has_top_arrow(text) == expected,
+               f"top-level arrow changed for {text!r}")
+    ensure(gate._split_top("(x := 1) : Machine := demo", ":=")
+           == ("(x := 1) : Machine ", " demo"), "a nested assignment became the body")
 
 
 def cases() -> list[Case]:
@@ -292,4 +322,5 @@ def cases() -> list[Case]:
         Case("commented-witness-witnesses-nothing", _a_witness_inside_a_comment_witnesses_nothing),
         Case("shipped-artifacts-name-a-witness", _every_shipped_artifact_names_a_witness),
         Case("imports-follow-require-closure", _imports_follow_the_require_closure),
+        Case("delimiter-scan-preserves-lexical-boundaries", _delimiter_scan_preserves_lexical_boundaries),
     ]
