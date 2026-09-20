@@ -51,17 +51,27 @@
       which is the scaling 2 * Delta = |B| / (W * V) written without
       division. The squared bound is then the contract's displayed
       Delta <= (1/2) * 2^((n - kX - kY)/2).
-   3. per_bit_squared_error and per_bit_total_variation_squared. Under the
-      contract's symbolic target kX + kY >= n + 2s, squared error at most
-      2^(-2s) in the bias scaling, which is Delta^2 <= 2^(-2s-2) in the
-      total-variation reading.
-   4. conditional_pairs_carry_the_same_bound. The observer clause. A
-      conditioned family supplies, for every supported side-information
-      value, a pair that is independent and carries both entropy bounds
-      after conditioning; the same bound then holds for each conditional
-      pair. The premises are pointwise by construction, which is what the
-      contract requires and what conditioning_can_destroy_independence shows
-      cannot be inferred from the marginal premises.
+   3. per_bit_squared_error, per_bit_total_variation_squared and
+      bias_linear_bound. Under the contract's symbolic target
+      kX + kY >= n + 2s, squared error at most 2^(-2s) in the bias scaling,
+      which is Delta^2 <= 2^(-2s-2) in the total-variation reading; and the
+      same bound without the square, |B| * 2^s <= W * V, both sides being
+      squares of non-negative integers, so no square root is taken.
+   4. conditional_pairs_carry_the_same_bound,
+      observer_joint_distance_is_the_weighted_bias and
+      observer_joint_meets_the_per_bit_budget. The observer clause. A
+      conditioned family supplies a weight for every supported
+      side-information value and, at each of them, a pair that is independent
+      and carries both entropy bounds after conditioning. Each conditional
+      pair then carries the bound; and the joint object (side value, output
+      bit) stands at statistical distance exactly twice the weighted sum of
+      the conditional biases from that same observer beside a uniform bit, so
+      the per-invocation budget bounds the observer's joint view and not one
+      conditional pair at a time. The premises are pointwise by construction,
+      which is what the contract requires and what
+      conditioning_can_destroy_independence and
+      cond_joint_marginals_keep_full_min_entropy show cannot be inferred from
+      the marginal premises.
    5. hybrid_aggregation and hybrid_error_budget. Statistical distance in the
       same integer scaling is a metric, so an m-step hybrid has total error
       at most the sum of the m per-invocation errors, and m invocations each
@@ -69,6 +79,13 @@
    6. conditioner_join and conditioner_join_over_bit_strings. A fixed map
       does not increase statistical distance, so a block epsilon-close to
       uniform is carried to an output epsilon-close to the image of uniform.
+   7. parameters_bound_a_matching_pair, parameter_output_budget and
+      accepted_parameters_are_realized. The parameter record joined to the
+      distributions it prices: an admissible record bounds every pair whose
+      three widths it names, out_width reads the output width off the record
+      as the invocation count of one-bit outputs, the aggregate budget is
+      stated at that width, and the accepted record is realized by a pair
+      whose block width and min-entropy bounds are its own.
 
    What this file does not author, with the owner of each decision.
 
@@ -103,6 +120,14 @@
    e. Implementation refinement. No bit operation, buffer, erasure or
       execution bound is modelled, so nothing here connects an implemented
       circuit to the function IP.
+   f. Which widths a fabricated source meets. accepted_pair realizes the
+      accepted parameter record with a uniform pair, which is a mathematical
+      object and no evidence about silicon; the block width, the two
+      min-entropy bounds, the invocation count and the security parameter a
+      real source supports are the qualification record's to fill. out_width
+      names the output width as this construction's own invocation count of
+      one-bit outputs, which is not a decision about the selected chain's
+      output rate or the seed length R-15-241d owns.
 
    Readings of the register and the contract this statement takes, each a
    reviewable judgment rather than a neutral transcription.
@@ -130,14 +155,24 @@
       weight differences, so distributions compared by it share a total. A
       normalized reading divides by twice that total, which is the same
       scaling the total-variation corollary states.
+   6. The conditioned family is the premise's shape and not a derivation. It
+      carries the enumerated side-information values, their weights and the
+      conditional pairs, and nothing here derives those pairs from an
+      unconditioned joint by conditioning on an observer's value. That the
+      supplied family is the one a real observer induces, and that its
+      enumeration is the supported set, are premises the qualification record
+      owes and that no theorem below checks.
 
    Non-vacuity (R-05-165, R-05-166). Every record the statements quantify
    over carries a closed inhabitant named for it. Each positive theorem has a
    refuting construction beside it: orthogonal supports whose sum of
    min-entropies only reaches n, a conditional joint no product of weights
-   realizes, a conditioner carrying a uniform input to the maximum distance
-   from uniform, and a hybrid whose aggregate reaches the sum of its steps
-   rather than their maximum. Whether a refuted construction is a telling one
+   realizes although both its marginals keep full min-entropy, a conditioner
+   carrying a uniform input to the maximum distance from uniform, and a
+   hybrid whose aggregate reaches the sum of its steps rather than their
+   maximum. The observer statement, the accepted parameter record and its
+   realizing pair are instantiated at computed values rather than left
+   quantified. Whether a refuted construction is a telling one
    is a reading, discharged at R-05-150's review gate and booked under
    R-17-016 rather than claimed here.
    (*| BEGIN derived: cited entries |*)
@@ -770,12 +805,80 @@ Proof.
   cbn [two_pow]. lia.
 Qed.
 
+(* ---- the same bound without the square, and the widths a record names ---- *)
+
+Lemma abs_sq : forall z : Z, Z.abs z * Z.abs z = z * z.
+Proof. intro z. rewrite <- Z.abs_mul. apply Z.abs_eq. apply sq_nonneg. Qed.
+
+Lemma two_pow_double : forall k, two_pow k * two_pow k = two_pow (2 * k).
+Proof.
+  intro k. replace (2 * k)%nat with (k + k)%nat by lia.
+  rewrite two_pow_add. reflexivity.
+Qed.
+
+Lemma sq_le_nonneg : forall a b : Z, 0 <= a -> 0 <= b -> a * a <= b * b -> a <= b.
+Proof.
+  intros a b Ha Hb H.
+  destruct (Z.le_gt_cases a b) as [Hle | Hgt]; [exact Hle | exfalso].
+  assert (Hlt : b * b < a * a) by (apply Z.mul_lt_mono_nonneg; lia).
+  lia.
+Qed.
+
+(* Both sides of the squared bound are squares of non-negative integers, so the
+   bound also holds without the square: |B| * 2^s <= W * V, which is the
+   total-variation reading 2 * Delta <= 2^(-s). No square root is taken and no
+   rounding convention is introduced; the linear form is what a weighted sum
+   over an observer's values can be compared term by term. *)
+(*| discharges: R-15-241ca |*)
+Corollary bias_linear_bound : forall (s : TwoSource) (sec : nat),
+  (ts_n s + 2 * sec <= ts_kX s + ts_kY s)%nat ->
+  Z.abs (cg_bias s) * two_pow sec <= totX s * totY s.
+Proof.
+  intros s sec Hp.
+  pose proof (per_bit_squared_error s sec Hp) as Hsq.
+  pose proof (two_pow_pos sec) as Hpow.
+  assert (HX : 0 < totX s) by (unfold totX; apply ts_w_positive).
+  assert (HY : 0 < totY s) by (unfold totY; apply ts_v_positive).
+  apply sq_le_nonneg.
+  - apply Z.mul_nonneg_nonneg; [apply Z.abs_nonneg | lia].
+  - apply Z.mul_nonneg_nonneg; lia.
+  - replace (Z.abs (cg_bias s) * two_pow sec * (Z.abs (cg_bias s) * two_pow sec))
+      with (Z.abs (cg_bias s) * Z.abs (cg_bias s) * (two_pow sec * two_pow sec))
+      by ring.
+    rewrite abs_sq, two_pow_double.
+    replace (totX s * totY s * (totX s * totY s))
+      with (totX s * totX s * (totY s * totY s)) by ring.
+    exact Hsq.
+Qed.
+
+(* The construction emits one bit per invocation, so a parameter record's
+   output width in bits is its invocation count. Naming it makes the register's
+   output-width field a quantity of the statement rather than a sentence beside
+   it; which width a selected source contract fills is not decided here. *)
+Definition out_width (p : Params) : nat := p_m p.
+
+(* A parameter record bounds any pair whose widths it names. Without this step
+   the record and the distributions are two disconnected objects and
+   `admissible` decides nothing about any source. *)
+(*| discharges: R-15-241ca |*)
+Theorem parameters_bound_a_matching_pair : forall (p : Params) (s : TwoSource),
+  admissible p = true ->
+  ts_n s = p_n p -> ts_kX s = p_kX p -> ts_kY s = p_kY p ->
+  cg_bias s * cg_bias s * two_pow (2 * p_s p)
+  <= (totX s * totX s) * (totY s * totY s).
+Proof.
+  intros p s Ha Hn HkX HkY. apply admissible_premise in Ha.
+  apply per_bit_squared_error. rewrite Hn, HkX, HkY. exact Ha.
+Qed.
+
 (* ---- the observer clause: premises conditioned on every supported value ---- *)
 
 Record ConditionedFamily : Type := {
   cf_side : Type;
   cf_enum : list cf_side;
-  cf_pair : cf_side -> TwoSource
+  cf_pair : cf_side -> TwoSource;
+  cf_w : cf_side -> Z;
+  cf_w_nonneg : forall e, In e cf_enum -> 0 <= cf_w e
 }.
 
 (*| discharges: R-15-241ca |*)
@@ -881,6 +984,18 @@ Proof.
   lia.
 Qed.
 
+(* The output width is the invocation count, so a parameter record's aggregate
+   budget is its own m times the per-invocation bound: p_m enters a statement
+   here rather than sitting inert in the record. *)
+(*| discharges: R-15-241ca |*)
+Corollary parameter_output_budget : forall (p : Params) (A : Type) (l : list A)
+    (hyb : nat -> (A -> Z)) (bound : Z),
+  (forall i, In i (natupto (out_width p)) ->
+     statdist l (hyb i) (hyb (S i)) * two_pow (p_s p) <= bound) ->
+  statdist l (hyb O) (hyb (out_width p)) * two_pow (p_s p)
+  <= Z.of_nat (out_width p) * bound.
+Proof. intros p A l hyb bound H. apply hybrid_error_budget. exact H. Qed.
+
 Definition pushforward {A B} (enumA : list A) (eqB : B -> B -> bool)
     (C : A -> B) (f : A -> Z) (b : B) : Z :=
   sumZ enumA (fun a => f a * (if eqB (C a) b then 1 else 0)).
@@ -937,6 +1052,93 @@ Corollary conditioner_join_over_bit_strings :
 Proof.
   intros n n' C f g HC. apply conditioner_join.
   intros a Ha. apply bits_enumerated_once. apply HC. exact Ha.
+Qed.
+
+(* ---- the observer's joint output, as one statistical distance ---- *)
+
+(* The observer holds a value e of weight cf_w e, and the pair conditioned on
+   it is cf_pair e. The object compared below is the joint (side value, output
+   bit), carried in the doubled scaling that keeps both halves integers: the
+   real joint gives (e, b) the weight 2 * cf_w e * ip_mass e b, and the ideal
+   joint gives each of the two bits cf_w e * totX e * totY e, which is the
+   observer's own weight beside a uniform bit. *)
+Definition obs_enum (f : ConditionedFamily) : list (cf_side f * bool) :=
+  flat_map (fun e => [(e, false); (e, true)]) (cf_enum f).
+
+Definition obs_real (f : ConditionedFamily) (p : cf_side f * bool) : Z :=
+  2 * cf_w f (fst p) * ip_mass (cf_pair f (fst p)) (snd p).
+
+Definition obs_ideal (f : ConditionedFamily) (p : cf_side f * bool) : Z :=
+  cf_w f (fst p) * (totX (cf_pair f (fst p)) * totY (cf_pair f (fst p))).
+
+Lemma sumZ_obs_enum : forall (f : ConditionedFamily) (g : cf_side f * bool -> Z),
+  sumZ (obs_enum f) g = sumZ (cf_enum f) (fun e => g (e, false) + g (e, true)).
+Proof.
+  intros f g. unfold obs_enum.
+  induction (cf_enum f) as [| e r IH]; cbn [flat_map app sumZ]; [reflexivity |].
+  rewrite IH. lia.
+Qed.
+
+Lemma obs_pointwise : forall (f : ConditionedFamily) (e : cf_side f),
+  In e (cf_enum f) ->
+  Z.abs (obs_real f (e, false) - obs_ideal f (e, false))
+  + Z.abs (obs_real f (e, true) - obs_ideal f (e, true))
+  = 2 * (cf_w f e * Z.abs (cg_bias (cf_pair f e))).
+Proof.
+  intros f e He.
+  pose proof (cf_w_nonneg f e He) as Hw.
+  pose proof (ip_mass_split (cf_pair f e)) as Hs.
+  pose proof (ip_mass_difference (cf_pair f e)) as Hd.
+  unfold obs_real, obs_ideal. cbn [fst snd].
+  set (s := cf_pair f e) in *. set (c := cf_w f e) in *.
+  assert (H0 : 2 * ip_mass s false - totX s * totY s = cg_bias s) by lia.
+  assert (H1 : 2 * ip_mass s true - totX s * totY s = - cg_bias s) by lia.
+  replace (2 * c * ip_mass s false - c * (totX s * totY s))
+    with (c * (2 * ip_mass s false - totX s * totY s)) by ring.
+  replace (2 * c * ip_mass s true - c * (totX s * totY s))
+    with (c * (2 * ip_mass s true - totX s * totY s)) by ring.
+  rewrite H0, H1, !Z.abs_mul, Z.abs_opp, (Z.abs_eq c Hw). lia.
+Qed.
+
+(* The observer's value is inside the object the distance is taken over, so
+   this is the distance of the pair (side value, output bit) from that same
+   observer beside a uniform bit, and not a distance taken for one conditional
+   pair at a time. *)
+(*| discharges: R-15-241ca |*)
+Theorem observer_joint_distance_is_the_weighted_bias :
+  forall f : ConditionedFamily,
+  statdist (obs_enum f) (obs_real f) (obs_ideal f)
+  = 2 * sumZ (cf_enum f) (fun e => cf_w f e * Z.abs (cg_bias (cf_pair f e))).
+Proof.
+  intro f. unfold statdist. rewrite sumZ_obs_enum, <- sumZ_scale.
+  apply sumZ_ext. intros e He. cbv beta. apply obs_pointwise. exact He.
+Qed.
+
+(*| discharges: R-15-241ca |*)
+Corollary observer_joint_meets_the_per_bit_budget :
+  forall (f : ConditionedFamily) (sec : nat),
+  (forall e, In e (cf_enum f) ->
+     (ts_n (cf_pair f e) + 2 * sec
+      <= ts_kX (cf_pair f e) + ts_kY (cf_pair f e))%nat) ->
+  statdist (obs_enum f) (obs_real f) (obs_ideal f) * two_pow sec
+  <= 2 * sumZ (cf_enum f)
+         (fun e => cf_w f e * (totX (cf_pair f e) * totY (cf_pair f e))).
+Proof.
+  intros f sec Hp.
+  rewrite observer_joint_distance_is_the_weighted_bias.
+  assert (Hstep :
+    sumZ (cf_enum f) (fun e => cf_w f e * Z.abs (cg_bias (cf_pair f e)))
+      * two_pow sec
+    <= sumZ (cf_enum f)
+         (fun e => cf_w f e * (totX (cf_pair f e) * totY (cf_pair f e)))).
+  { rewrite sumZ_mul_r. apply sumZ_le. intros e He. cbv beta.
+    pose proof (bias_linear_bound (cf_pair f e) sec (Hp e He)) as Hb.
+    pose proof (cf_w_nonneg f e He) as Hw.
+    assert (Hm : cf_w f e * (Z.abs (cg_bias (cf_pair f e)) * two_pow sec)
+                 <= cf_w f e * (totX (cf_pair f e) * totY (cf_pair f e)))
+      by (apply Z.mul_le_mono_nonneg_l; [exact Hw | exact Hb]).
+    lia. }
+  lia.
 Qed.
 
 (* ---- an accepted witness: two uniform n-bit sources ---- *)
@@ -1044,9 +1246,10 @@ Proof. repeat split; vm_compute; reflexivity. Qed.
 (* ---- a refuting witness for the observer clause ---- *)
 
 (* The joint weight of two uniform bits conditioned on their exclusive-or
-   being one. Both marginals keep full min-entropy; no pair of weight
-   functions has this joint as its product, so conditional independence is a
-   premise to be supplied and never a consequence of the marginal premises. *)
+   being one. No pair of weight functions has this joint as its product, and
+   the marginals keep full min-entropy, which the two theorems below state
+   separately: conditional independence is a premise to be supplied and never
+   a consequence of the marginal premises. *)
 Definition cond_joint (x y : list bool) : Z := if eqbits x y then 0 else 1.
 
 (*| discharges: R-15-241ca |*)
@@ -1067,6 +1270,19 @@ Proof.
               = (w [false] * v [true]) * (w [true] * v [false])) by ring.
   rewrite <- H00, <- H11, <- H01, <- H10 in E. lia.
 Qed.
+
+(* Each marginal of that conditioned joint carries mass 1 against the total 2,
+   which is the min-entropy premise at k = n = 1 met with equality. Flat
+   marginals therefore supply no conditional independence, and the observer
+   clause's pointwise premises are not recoverable from them. *)
+(*| discharges: R-15-241ca |*)
+Theorem cond_joint_marginals_keep_full_min_entropy :
+  sumZ (strings 1) (fun x => sumZ (strings 1) (fun y => cond_joint x y)) = 2
+  /\ sumZ (strings 1) (fun y => cond_joint [false] y) * two_pow 1 = 2
+  /\ sumZ (strings 1) (fun y => cond_joint [true] y) * two_pow 1 = 2
+  /\ sumZ (strings 1) (fun x => cond_joint x [false]) * two_pow 1 = 2
+  /\ sumZ (strings 1) (fun x => cond_joint x [true]) * two_pow 1 = 2.
+Proof. repeat split; vm_compute; reflexivity. Qed.
 
 (* ---- a refuting witness for the conditioner join ---- *)
 
@@ -1109,9 +1325,76 @@ Theorem parameter_witnesses :
   admissible accepted_params = true /\ admissible short_params = false.
 Proof. split; vm_compute; reflexivity. Qed.
 
+Lemma six_le_eight : (6 <= 8)%nat.
+Proof. lia. Qed.
+
+Lemma unif_minent_at : forall n k, (k <= n)%nat ->
+  forall x, In x (strings n) -> unif x * two_pow k <= sumZ (strings n) unif.
+Proof.
+  intros n k Hk x _. rewrite unif_total. unfold unif.
+  pose proof (two_pow_mono k n Hk). lia.
+Qed.
+
+(* The accepted parameter record realized as a pair of sources: a uniform pair
+   at the record's block width, whose min-entropy premises hold at the record's
+   two bounds because they lie below that width. Without it the record and the
+   theorem are two objects and nothing says the accepted widths are ever met.
+   The pair is a mathematical object; which distribution a fabricated source
+   has is decided by the qualification record and not here. *)
+Definition accepted_pair : TwoSource :=
+  {| ts_n := 8; ts_kX := 6; ts_kY := 6; ts_w := unif; ts_v := unif;
+     ts_w_nonneg := unif_nonneg 8; ts_v_nonneg := unif_nonneg 8;
+     ts_w_positive := unif_positive 8; ts_v_positive := unif_positive 8;
+     ts_w_minent := unif_minent_at 8 6 six_le_eight;
+     ts_v_minent := unif_minent_at 8 6 six_le_eight |}.
+
+(*| discharges: R-15-241ca |*)
+Theorem accepted_parameters_are_realized :
+  ts_n accepted_pair = p_n accepted_params
+  /\ ts_kX accepted_pair = p_kX accepted_params
+  /\ ts_kY accepted_pair = p_kY accepted_params
+  /\ (out_width accepted_params = 4)%nat
+  /\ admissible accepted_params = true
+  /\ cg_bias accepted_pair * cg_bias accepted_pair
+       * two_pow (2 * p_s accepted_params)
+     <= (totX accepted_pair * totX accepted_pair)
+        * (totY accepted_pair * totY accepted_pair).
+Proof.
+  split; [reflexivity |]. split; [reflexivity |]. split; [reflexivity |].
+  split; [reflexivity |]. split; [reflexivity |].
+  apply parameters_bound_a_matching_pair; reflexivity.
+Qed.
+
+Lemma demo_weight_nonneg : forall e : bool, In e [true; false] -> 0 <= 1.
+Proof. intros e _. lia. Qed.
+
 Definition demo_family : ConditionedFamily :=
   {| cf_side := bool; cf_enum := [true; false];
-     cf_pair := fun _ => uniform_pair |}.
+     cf_pair := fun _ => uniform_pair;
+     cf_w := fun _ => 1;
+     cf_w_nonneg := demo_weight_nonneg |}.
+
+(* The observer statement instantiated: two side-information values of weight
+   one over the uniform pair, the joint (value, bit) at distance 16 from that
+   observer beside a uniform bit, against the budget 64 at s = 1. *)
+(*| discharges: R-15-241ca |*)
+Theorem observer_joint_witness :
+  statdist (obs_enum demo_family) (obs_real demo_family) (obs_ideal demo_family)
+    = 16
+  /\ 2 * sumZ (cf_enum demo_family)
+           (fun e => cf_w demo_family e
+                     * (totX (cf_pair demo_family e)
+                        * totY (cf_pair demo_family e)))
+     = 64
+  /\ statdist (obs_enum demo_family) (obs_real demo_family)
+       (obs_ideal demo_family) * two_pow 1 <= 64.
+Proof.
+  split; [vm_compute; reflexivity |].
+  split; [vm_compute; reflexivity |].
+  replace (statdist (obs_enum demo_family) (obs_real demo_family)
+             (obs_ideal demo_family)) with 16 by (vm_compute; reflexivity).
+  cbn [two_pow]. lia.
+Qed.
 
 (*| discharges: R-15-241ca |*)
 Theorem witness_premises_are_jointly_inhabited :
@@ -1151,18 +1434,26 @@ Print Assumptions total_variation_scaling.
 Print Assumptions total_variation_squared.
 Print Assumptions per_bit_squared_error.
 Print Assumptions per_bit_total_variation_squared.
+Print Assumptions bias_linear_bound.
+Print Assumptions parameters_bound_a_matching_pair.
 Print Assumptions conditional_pairs_carry_the_same_bound.
 Print Assumptions conditional_pairs_meet_the_parameter_premise.
+Print Assumptions observer_joint_distance_is_the_weighted_bias.
+Print Assumptions observer_joint_meets_the_per_bit_budget.
 Print Assumptions hybrid_aggregation.
 Print Assumptions hybrid_error_budget.
+Print Assumptions parameter_output_budget.
 Print Assumptions conditioner_join.
 Print Assumptions conditioner_join_over_bit_strings.
 Print Assumptions accepted_source_witness.
 Print Assumptions accepted_source_meets_the_budget.
 Print Assumptions independence_without_an_entropy_sum_does_not_extract.
 Print Assumptions conditioning_can_destroy_independence.
+Print Assumptions cond_joint_marginals_keep_full_min_entropy.
 Print Assumptions post_processing_keeps_distance_from_the_image_only.
 Print Assumptions hybrid_sum_is_not_a_maximum.
 Print Assumptions parameter_witnesses.
+Print Assumptions accepted_parameters_are_realized.
+Print Assumptions observer_joint_witness.
 Print Assumptions witness_premises_are_jointly_inhabited.
 Print Assumptions inhabited_conditional_application.

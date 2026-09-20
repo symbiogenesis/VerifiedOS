@@ -285,17 +285,17 @@ functions on `n`-bit strings, with min-entropy stated as `weight * 2^k <= total`
 and independence stated as the product of the two weight functions, it proves
 `B^2 * 2^(k_X + k_Y) <= W^2 * V^2 * 2^n` for the signed bias numerator `B` and
 the totals `W` and `V`, the scaling `2 * Delta = |B| / (W * V)`, the
-`k_X + k_Y >= n + 2s` corollary, the `m`-invocation hybrid sum, and
+`k_X + k_Y >= n + 2s` corollary, the observer clause as one distance over the
+joint side-information value and output bit, the `m`-invocation hybrid sum, and
 post-processing by a fixed conditioner, with an accepted and a failing parameter
-witness and a refuting construction at min-entropy exactly `n/2` per source. Of
-the Finite theorem row it leaves two parts unfilled: the output length is the
-one bit the inner product implies rather than a named quantity, and the accepted
-parameter witness is a record of widths that no source pair at those widths
-instantiates, the only instantiated application running at `n = 2`. Its
-invocation count is a field no theorem consumes, so the aggregate seed-error
-budget is proved in generic form only. It supplies none of the other required
-fields: no source model, selected extractor, TM-8 conditioner map,
-seed-accumulation invocation premise or qualified output-rate claim is present
-today. This record identifies exactly what would earn a statistical claim before
-the conditioner; the landed artifact supplies no new physical assumption by
-implication.
+witness and a refuting construction at min-entropy exactly `n/2` per source. The
+Finite theorem row above reads against it as follows: the checked term, its
+declared assumptions and the statistical distance are supplied; the output width
+is named as the invocation count of one-bit outputs, which is this
+construction's width and not the selected chain's; and the accepted widths are
+instantiated by a uniform pair, a mathematical object and not a characterized
+source. It supplies none of the other required fields: no source model, selected
+extractor, TM-8 conditioner map, seed-accumulation invocation premise or
+qualified output-rate claim is present today. This record identifies exactly
+what would earn a statistical claim before the conditioner; the landed artifact
+supplies no new physical assumption by implication.
