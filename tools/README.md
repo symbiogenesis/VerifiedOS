@@ -667,6 +667,10 @@ its checkout exclusively against every other reader and writer for the whole run
 
 ## Checking the tools themselves
 
+Performance changes follow the [tool performance acceptance](performance.md):
+measure equivalent work, preserve failure behavior, and share parsed owner facts
+within an explicit input snapshot rather than caching decisions by path.
+
 The documents are checked against each other by [check.py](check.py), and the checker is
 checked against its own mutants by [run.py selftest](vos/cli/selftest.py). Neither of
 them reads a line of Python as Python, so without a gate of their own the tools are the
