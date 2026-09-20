@@ -44,6 +44,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-04-008 | proofs/EndpointIPC.v | the_badge_return_path_discharges_all_four | claimed |
 | R-04-008 | proofs/EndpointIPC.v | the_specification_grant_mints_nothing | claimed |
 | R-04-008 | proofs/EndpointIPC.v | the_specification_grant_transfers_only_what_is_named | claimed |
+| R-04-010b | proofs/ModuleFormats.v | n/a | cited |
 | R-05-004a | proofs/AesGcm.v | n/a | cited |
 | R-05-004a | proofs/ArithmeticComposition.v | prime_field_sharing_hides_from_short_share_lists | claimed |
 | R-05-004a | proofs/ArithmeticComposition.v | each_stage_refreshes_the_previous_tuple | claimed |
@@ -72,6 +73,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-038 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-039 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-042 | proofs/HandlerGraph.v | every_parsed_format_is_inventoried_and_verified | claimed |
+| R-05-042 | proofs/ModuleFormats.v | n/a | cited |
+| R-05-046 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-050 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-051a | proofs/InferenceAdmission.v | re_encoding_its_bytes_gives_decode_injectivity | claimed |
 | R-05-051a | proofs/InferenceAdmission.v | the_schema_codec_re_encodes_its_bytes | claimed |
@@ -81,12 +84,24 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-051a | proofs/InferenceAdmission.v | the_shape_descriptor_re_encodes_its_bytes | claimed |
 | R-05-051a | proofs/InferenceAdmission.v | the_shape_descriptor_decode_is_injective | claimed |
 | R-05-051a | proofs/InferenceAdmission.v | the_shape_descriptor_decodes_what_it_encodes | claimed |
+| R-05-051a | proofs/ModuleFormats.v | manifest_parse_of_serialize | claimed |
+| R-05-051a | proofs/ModuleFormats.v | manifest_serialize_of_parse | claimed |
+| R-05-051a | proofs/ModuleFormats.v | manifest_has_one_admissible_encoding | claimed |
+| R-05-051a | proofs/ModuleFormats.v | certificate_parse_of_serialize | claimed |
+| R-05-051a | proofs/ModuleFormats.v | certificate_serialize_of_parse | claimed |
+| R-05-051a | proofs/ModuleFormats.v | certificate_has_one_admissible_encoding | claimed |
 | R-05-051a | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-051b | proofs/InferenceAdmission.v | the_schema_codec_re_encodes_its_bytes | claimed |
 | R-05-051b | proofs/InferenceAdmission.v | the_schema_codec_length_is_a_schema_constant | claimed |
 | R-05-051b | proofs/InferenceAdmission.v | the_schema_codec_emits_admissible_bytes | claimed |
 | R-05-051b | proofs/InferenceAdmission.v | the_shape_descriptor_length_is_a_schema_constant | claimed |
+| R-05-051b | proofs/ModuleFormats.v | a_numeral_has_one_admissible_form | claimed |
+| R-05-051b | proofs/ModuleFormats.v | manifest_serialize_of_parse | claimed |
+| R-05-051b | proofs/ModuleFormats.v | manifest_refuses_trailing_bytes | claimed |
+| R-05-051b | proofs/ModuleFormats.v | certificate_serialize_of_parse | claimed |
+| R-05-051b | proofs/ModuleFormats.v | certificate_refuses_trailing_bytes | claimed |
 | R-05-051c | proofs/InferenceAdmission.v | n/a | cited |
+| R-05-051c | proofs/ModuleFormats.v | n/a | cited |
 | R-05-051c | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-052 | proofs/SupervisionTree.v | n/a | cited |
 | R-05-058 | proofs/MlKem.v | the_shared_secret_is_returned_exactly_where_re_encryption_reproduces_it | claimed |
@@ -194,6 +209,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-05-163 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-163 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-163 | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-163 | proofs/PartitionContext.v | n/a | cited |
@@ -274,6 +290,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/MlKem.v | a_distinguishable_refusal_is_refused | claimed |
 | R-05-165 | proofs/MlKem.v | a_bounded_check_accepts_what_the_equality_refuses | claimed |
 | R-05-165 | proofs/MlKem.v | an_encryption_that_omits_the_message_is_refused | claimed |
+| R-05-165 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-165 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-165 | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-165 | proofs/PartitionContext.v | n/a | cited |
@@ -348,6 +365,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlannerResources.v | n/a | cited |
 | R-05-166 | proofs/MlKem.v | n/a | cited |
+| R-05-166 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-166 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-166 | proofs/ObjectTransactor.v | n/a | cited |
 | R-05-166 | proofs/PartitionContext.v | n/a | cited |
@@ -425,6 +443,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-06-012 | proofs/ApexTheorem.v | n/a | cited |
 | R-06-014 | proofs/AdmissionPath.v | n/a | cited |
 | R-06-014 | proofs/ApexTheorem.v | n/a | cited |
+| R-06-015a | proofs/ModuleFormats.v | n/a | cited |
 | R-06-015b | proofs/AdmissionPath.v | the_two_halves_compose | claimed |
 | R-06-015b | proofs/AdmissionPath.v | the_specification_is_a_function_of_the_package | claimed |
 | R-06-015d | proofs/AdmissionPath.v | n/a | cited |
@@ -1165,10 +1184,15 @@ being a finding of the rules that read them rather than a row of this table.
 | R-12-085 | proofs/InferenceAdmission.v | the_server_is_fixed_at_composition | claimed |
 | R-12-085 | proofs/InferenceAdmission.v | a_model_above_the_ceiling_is_refused_when_the_session_opens | claimed |
 | R-12-085f | proofs/InferenceAdmission.v | an_unqualified_route_reaches_no_other_destination | claimed |
+| R-12-085f | proofs/ModuleFormats.v | n/a | cited |
 | R-12-085g | proofs/ModuleAdmission.v | n/a | cited |
+| R-12-085g | proofs/ModuleFormats.v | encoded_admission_pins_its_bytes | claimed |
 | R-12-085h | proofs/ModuleAdmission.v | n/a | cited |
+| R-12-085h | proofs/ModuleFormats.v | n/a | cited |
 | R-12-085i | proofs/ModuleAdmission.v | n/a | cited |
+| R-12-085i | proofs/ModuleFormats.v | n/a | cited |
 | R-12-085j | proofs/ModuleAdmission.v | n/a | cited |
+| R-12-085l | proofs/ModuleFormats.v | n/a | cited |
 | R-13-001 | proofs/AdmissionPath.v | n/a | cited |
 | R-13-001 | proofs/HandlerGraph.v | n/a | cited |
 | R-13-001 | proofs/ObjectTransactor.v | n/a | cited |
@@ -1475,6 +1499,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-228f | proofs/ModuleAdmission.v | n/a | cited |
 | R-15-228g | proofs/ModuleAdmission.v | n/a | cited |
 | R-15-228h | proofs/ModuleAdmission.v | n/a | cited |
+| R-15-228h | proofs/ModuleFormats.v | n/a | cited |
 | R-15-228i | proofs/ModuleAdmission.v | n/a | cited |
 | R-15-238c | proofs/InferenceAdmission.v | a_model_above_the_ceiling_is_refused_when_the_session_opens | claimed |
 | R-15-240 | proofs/RotFirmware.v | n/a | cited |
@@ -1577,6 +1602,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-058d | proofs/ArithmeticComposition.v | n/a | cited |
 | R-17-058d | proofs/ProbingModel.v | n/a | cited |
 | R-17-058f | proofs/DischargeSequence.v | authority_invalidation_is_independent_of_residue_sanitization | claimed |
+| R-17-058i | proofs/ModuleFormats.v | n/a | cited |
 | R-17-061b | proofs/ComposedNonInterference.v | n/a | cited |
 | R-18-003b | proofs/ApexTheorem.v | n/a | cited |
 | R-18-004a | proofs/InferenceAdmission.v | n/a | cited |

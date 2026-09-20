@@ -37,6 +37,23 @@ evidence must cover reset as well as ordinary reconnect; a reset does not erase 
 history against which the source decision refuses reuse. A real bounded freshness
 construction and its computational proof remain Q24c implementation work and U-20.
 
+The byte format those subjects are named in is `proofs/ModuleFormats.v`, over
+ModuleAdmission.v's manifest record and a certificate container that carries it.
+It fixes one canonical encoding for each: a total serializer and a total parser
+over byte lists, with parse of serialize and serialize of parse both proved, so a
+value has exactly one admissible encoding in R-05-051a's sense and a non-canonical
+length form is refused rather than normalized. Every maximum it enforces is a
+field of its bounds record, and it computes refusals for malformed bytes,
+over-budget lengths, a trailing byte, a non-canonical length form, a subject
+naming another design or model, and an assumption outside the permitted list. It
+implements no cryptography and no proof checking: an identity is an opaque bounded
+numeral, certificate evidence is opaque bytes the file bounds without inspecting,
+and the kernel receipt stays a host input beside the parsed bytes. It is a
+hand-authored reference codec, so the verified derived parser R-05-042 requires,
+proved against its descriptor under R-05-046, and its correspondence to this
+codec stay with U-12's inventory descriptors, U-14 keeps canonicity over the
+derived decoder, and a format theorem admits no card.
+
 Q24d's authorable statement gives the host an immutable composition containing its
 schedule, reserved endpoint objects/buffers and ceilings. An arbitrary frame can
 produce a bounded untrusted proposal only into the host-selected outstanding
