@@ -94,7 +94,7 @@ def _ctest(log: Path) -> str:
     return f"{total} of {total}"
 
 
-def _figures(results: list[Result], log: Path) -> dict[str, str]:
+def _figures(results: list[Result], log: Path, proof: dict[str, object]) -> dict[str, str]:
     """Display measurements only after every producing process succeeded."""
     said = {result.name: result.stdout for result in results}
     fields: tuple[tuple[str, str, str], ...] = (
@@ -104,9 +104,8 @@ def _figures(results: list[Result], log: Path) -> dict[str, str]:
         ("differential corpus", "corpus", r"TOTAL pass=\d+ fail=\d+ of \d+"),
         ("corpus size", "reference", r"corpus\s+v\d+, \d+ members, \d+ checks, \d+ records"),
         ("devicetree", "devicetree", r"at (\d+) bytes"),
-        ("proof gate", "proofs", r"ok: (\d+) constant"),
     )
-    figures: dict[str, str] = {"ctest": _ctest(log)}
+    figures: dict[str, str] = {"ctest": _ctest(log), "proof gate": str(proof["constants"])}
     for label, member, pattern in fields:
         found = re.search(pattern, said.get(member, ""))
         if found is None:
@@ -121,8 +120,11 @@ def _proof_record(root: Path) -> dict[str, object]:
     try:
         proofs_cli._validate_receipt(root)
         path = proofs_cli.receipt_path(root)
-        return {"sha256": receipts.digest(path),
-                "receipt": json.loads(path.read_text(encoding="utf-8"))}
+        record = json.loads(path.read_text(encoding="utf-8"))
+        # A reused proof run reports reuse, not the fresh run's constant-count line.
+        # Both have the same validated native inventory.
+        constants = sum(len(artifact["symbols"]) for artifact in record["artifacts"].values())
+        return {"sha256": receipts.digest(path), "receipt": record, "constants": constants}
     finally:
         os.close(held)
 
@@ -171,7 +173,7 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
                     faults.append("the build identity changed during the sweep")
                 if not faults:
                     proof_record = _proof_record(e.root)
-                    figures = _figures(results, e.log("model-build"))
+                    figures = _figures(results, e.log("model-build"), proof_record)
             finally:
                 if lock is not None:
                     lock.close()
