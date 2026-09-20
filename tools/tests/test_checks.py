@@ -136,6 +136,9 @@ def _nested_milestone_roster_cannot_skip_roman_children() -> None:
     for named in ("M1.2g-i", "M1.2g"):
         ensure(not estimates._roster(f"* Completed: {named}\n", items),
                f"the child can be named directly or by its parent: {named}")
+    primed, _, _ = estimates._parse(plan.replace("M1.2g-i", "M1.2g-i\u2032"))
+    ensure(not estimates._roster("* Completed: M1.2g\n", primed),
+           "a primed Roman child retains the same immediate parent")
 
 
 def _retained_estimates_are_scope_not_actuals() -> None:

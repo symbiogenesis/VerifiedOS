@@ -96,7 +96,7 @@ RUN_RE = re.compile(r"[SQIRM]\d+(?:\.\d+)?[a-z]?(?:-[iv]+)?\u2032?")
 RANGE_RE = re.compile(r"(M\d+)\.(\d+)–(?:M\d+\.)?(\d+)")
 PART_RE = re.compile(r"(M\d+\.\d+[a-z])\s*\(([a-z])\d+–[a-z](\d+)\)")
 # The immediate parent drops a Roman child suffix, or a letter and prime.
-PARENT_RE = re.compile(r"(?:-[iv]+|[a-z]?\u2032?)$")
+PARENT_RE = re.compile(r"(?:-[iv]+|[a-z]?)\u2032?$")
 
 # the gate is two gates over two chains, so the partition is two lists rather than one. A
 # label names a position in the order rather than one item, and `Post-M10` carries several,
