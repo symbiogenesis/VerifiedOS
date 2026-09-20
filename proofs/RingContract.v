@@ -171,9 +171,12 @@ Definition ring_descriptor_alignment_bytes : nat := 8.
 Definition ring_completion_size_bytes : nat := 32.
 Definition ring_completion_fill : nat := 5.
 Definition ring_max_batch_size : nat := 8.
+Definition ring_batch_slack : nat := 56.
 Definition ring_session_generation : nat := 1.
 Definition ring_completion_capacity : nat := 64.
 Definition ring_max_accepted : nat := 64.
+Definition ring_completion_capacity_slack : nat := 0.
+Definition ring_accepted_slack : nat := 0.
 Definition ring_max_segments : nat := 4.
 Definition ring_segment_max_bytes : nat := 1024.
 Definition ring_slot_budget : nat := 20000.
@@ -351,6 +354,15 @@ Definition op_cancellation_slack (o : op) : nat :=
   | op_poll_status => 0
   end.
 
+Definition op_commit_slack (o : op) : nat :=
+  match o with
+  | op_read_extent => 0
+  | op_write_extent => 1
+  | op_flush => 0
+  | op_query_geometry => 0
+  | op_poll_status => 0
+  end.
+
 (* The encoded size of a descriptor, by section 4.2's rows: the tag, the
    request identifier, the operation's scalars, its buffer references, its
    optional deadline, and the closed flag set, packed with no interior
@@ -553,12 +565,12 @@ Theorem ring_refuses_one_past_capacity :
   submit ring_capacity = submit_would_block.
 Proof. vm_compute; reflexivity. Qed.
 
-Theorem completion_capacity_covers_accepted :
-  andb (Nat.leb ring_max_accepted ring_completion_capacity) (Nat.leb ring_max_accepted ring_capacity) = true.
+Theorem completion_capacity_is_the_accepted_maximum_and_its_declared_slack :
+  andb (Nat.eqb (ring_max_accepted + ring_completion_capacity_slack) ring_completion_capacity) (Nat.eqb (ring_max_accepted + ring_accepted_slack) ring_capacity) = true.
 Proof. vm_compute; reflexivity. Qed.
 
-Theorem batch_is_bounded_by_capacity :
-  andb (Nat.ltb 0 ring_max_batch_size) (Nat.leb ring_max_batch_size ring_capacity) = true.
+Theorem the_batch_is_the_capacity_less_its_declared_slack :
+  andb (Nat.ltb 0 ring_max_batch_size) (Nat.eqb (ring_max_batch_size + ring_batch_slack) ring_capacity) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem drain_is_bounded_by_the_batch :
@@ -586,15 +598,15 @@ Theorem cancellation_spends_the_declared_interval :
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
 Theorem a_non_cancellable_operation_declares_no_cancellation :
-  forall o : op, implb (negb (op_cancellable o)) (Nat.eqb (rec_cancellation_cleanup_cost (op_declared_record o) + op_quiescence_bound o + op_max_to_terminal o + op_cancel_points o + op_commit_index o + op_cancellation_slack o) 0) = true.
+  forall o : op, implb (negb (op_cancellable o)) (Nat.eqb (rec_cancellation_cleanup_cost (op_declared_record o) + op_quiescence_bound o + op_max_to_terminal o + op_cancel_points o + op_commit_index o + op_cancellation_slack o + op_commit_slack o) 0) = true.
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
 Theorem cancellability_is_the_declaration_and_nothing_else :
   forall o : op, agree (op_cancellable o) (Nat.ltb 0 (op_cancel_points o)) = true.
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
-Theorem commit_point_is_one_of_the_declared_points :
-  forall o : op, Nat.leb (op_commit_index o) (op_cancel_points o) = true.
+Theorem the_commit_point_is_the_declared_points_less_its_slack :
+  forall o : op, Nat.eqb (op_commit_index o + op_commit_slack o) (op_cancel_points o) = true.
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
 Theorem labels_are_drawn_from_the_declared_lattice :
@@ -695,8 +707,8 @@ Print Assumptions the_index_span_is_the_declared_width.
 Print Assumptions the_capacity_divides_the_index_span.
 Print Assumptions ring_fills_to_capacity.
 Print Assumptions ring_refuses_one_past_capacity.
-Print Assumptions completion_capacity_covers_accepted.
-Print Assumptions batch_is_bounded_by_capacity.
+Print Assumptions completion_capacity_is_the_accepted_maximum_and_its_declared_slack.
+Print Assumptions the_batch_is_the_capacity_less_its_declared_slack.
 Print Assumptions drain_is_bounded_by_the_batch.
 Print Assumptions the_declared_batch_and_segment_maxima_are_attained.
 Print Assumptions notifications_are_coalesced_to_one.
@@ -705,7 +717,7 @@ Print Assumptions an_activation_spends_the_declared_slot_budget.
 Print Assumptions cancellation_spends_the_declared_interval.
 Print Assumptions a_non_cancellable_operation_declares_no_cancellation.
 Print Assumptions cancellability_is_the_declaration_and_nothing_else.
-Print Assumptions commit_point_is_one_of_the_declared_points.
+Print Assumptions the_commit_point_is_the_declared_points_less_its_slack.
 Print Assumptions labels_are_drawn_from_the_declared_lattice.
 Print Assumptions the_empty_validation_case_is_a_claim.
 Print Assumptions lifecycle_advances_monotonically.
@@ -869,9 +881,12 @@ Definition ring_descriptor_alignment_bytes : nat := 8.
 Definition ring_completion_size_bytes : nat := 32.
 Definition ring_completion_fill : nat := 5.
 Definition ring_max_batch_size : nat := 4.
+Definition ring_batch_slack : nat := 28.
 Definition ring_session_generation : nat := 1.
 Definition ring_completion_capacity : nat := 32.
 Definition ring_max_accepted : nat := 32.
+Definition ring_completion_capacity_slack : nat := 0.
+Definition ring_accepted_slack : nat := 0.
 Definition ring_max_segments : nat := 8.
 Definition ring_segment_max_bytes : nat := 4096.
 Definition ring_slot_budget : nat := 40000.
@@ -1030,6 +1045,14 @@ Definition op_cancellation_slack (o : op) : nat :=
   | op_stream_to_device => 488
   | op_stream_from_device => 656
   | op_map_window => 144
+  | op_quiesce_window => 0
+  end.
+
+Definition op_commit_slack (o : op) : nat :=
+  match o with
+  | op_stream_to_device => 1
+  | op_stream_from_device => 2
+  | op_map_window => 0
   | op_quiesce_window => 0
   end.
 
@@ -1235,12 +1258,12 @@ Theorem ring_refuses_one_past_capacity :
   submit ring_capacity = submit_would_block.
 Proof. vm_compute; reflexivity. Qed.
 
-Theorem completion_capacity_covers_accepted :
-  andb (Nat.leb ring_max_accepted ring_completion_capacity) (Nat.leb ring_max_accepted ring_capacity) = true.
+Theorem completion_capacity_is_the_accepted_maximum_and_its_declared_slack :
+  andb (Nat.eqb (ring_max_accepted + ring_completion_capacity_slack) ring_completion_capacity) (Nat.eqb (ring_max_accepted + ring_accepted_slack) ring_capacity) = true.
 Proof. vm_compute; reflexivity. Qed.
 
-Theorem batch_is_bounded_by_capacity :
-  andb (Nat.ltb 0 ring_max_batch_size) (Nat.leb ring_max_batch_size ring_capacity) = true.
+Theorem the_batch_is_the_capacity_less_its_declared_slack :
+  andb (Nat.ltb 0 ring_max_batch_size) (Nat.eqb (ring_max_batch_size + ring_batch_slack) ring_capacity) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem drain_is_bounded_by_the_batch :
@@ -1268,15 +1291,15 @@ Theorem cancellation_spends_the_declared_interval :
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
 Theorem a_non_cancellable_operation_declares_no_cancellation :
-  forall o : op, implb (negb (op_cancellable o)) (Nat.eqb (rec_cancellation_cleanup_cost (op_declared_record o) + op_quiescence_bound o + op_max_to_terminal o + op_cancel_points o + op_commit_index o + op_cancellation_slack o) 0) = true.
+  forall o : op, implb (negb (op_cancellable o)) (Nat.eqb (rec_cancellation_cleanup_cost (op_declared_record o) + op_quiescence_bound o + op_max_to_terminal o + op_cancel_points o + op_commit_index o + op_cancellation_slack o + op_commit_slack o) 0) = true.
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
 Theorem cancellability_is_the_declaration_and_nothing_else :
   forall o : op, agree (op_cancellable o) (Nat.ltb 0 (op_cancel_points o)) = true.
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
-Theorem commit_point_is_one_of_the_declared_points :
-  forall o : op, Nat.leb (op_commit_index o) (op_cancel_points o) = true.
+Theorem the_commit_point_is_the_declared_points_less_its_slack :
+  forall o : op, Nat.eqb (op_commit_index o + op_commit_slack o) (op_cancel_points o) = true.
 Proof. intro o; destruct o; vm_compute; reflexivity. Qed.
 
 Theorem labels_are_drawn_from_the_declared_lattice :
@@ -1604,8 +1627,8 @@ Print Assumptions the_index_span_is_the_declared_width.
 Print Assumptions the_capacity_divides_the_index_span.
 Print Assumptions ring_fills_to_capacity.
 Print Assumptions ring_refuses_one_past_capacity.
-Print Assumptions completion_capacity_covers_accepted.
-Print Assumptions batch_is_bounded_by_capacity.
+Print Assumptions completion_capacity_is_the_accepted_maximum_and_its_declared_slack.
+Print Assumptions the_batch_is_the_capacity_less_its_declared_slack.
 Print Assumptions drain_is_bounded_by_the_batch.
 Print Assumptions the_declared_batch_and_segment_maxima_are_attained.
 Print Assumptions notifications_are_coalesced_to_one.
@@ -1614,7 +1637,7 @@ Print Assumptions an_activation_spends_the_declared_slot_budget.
 Print Assumptions cancellation_spends_the_declared_interval.
 Print Assumptions a_non_cancellable_operation_declares_no_cancellation.
 Print Assumptions cancellability_is_the_declaration_and_nothing_else.
-Print Assumptions commit_point_is_one_of_the_declared_points.
+Print Assumptions the_commit_point_is_the_declared_points_less_its_slack.
 Print Assumptions labels_are_drawn_from_the_declared_lattice.
 Print Assumptions the_empty_validation_case_is_a_claim.
 Print Assumptions lifecycle_advances_monotonically.

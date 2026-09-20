@@ -105,12 +105,17 @@ OP_KEYS: tuple[str, ...] = ("scalars", "buffer_refs", "deadline",
                             "empty_validation_claim", "labels", "record",
                             "cancellation", "refinement", "fill", "activation_slack",
                             "payload_slack", "cancellation_slack", "dma")
-CANCEL_KEYS: tuple[str, ...] = ("points", "commit_index", "quiescence_bound",
-                                "max_to_terminal")
+CANCEL_KEYS: tuple[str, ...] = ("points", "commit_index", "commit_slack",
+                                "quiescence_bound", "max_to_terminal")
+# Each of the three slacks below sits beside the quantity it is the headroom of, and
+# every one of them exists so an obligation the register states as a bound is emitted
+# as an equality: the capacity a batch leaves unused, and the two the maximum
+# simultaneously accepted leaves under the completion capacity and under the ring.
 RING_KEYS: tuple[str, ...] = (
     "capacity", "index_width_bytes", "index_span", "descriptor_size_bytes",
     "descriptor_alignment_bytes", "completion_size_bytes", "completion_fill",
-    "max_batch_size", "session_generation", "completion_capacity", "max_accepted",
+    "max_batch_size", "batch_slack", "session_generation", "completion_capacity",
+    "max_accepted", "completion_capacity_slack", "accepted_slack",
     "max_segments", "segment_max_bytes", "slot_budget")
 DMA_KEYS: tuple[str, ...] = ("permissions", "direction_permission")
 # Left for the literal tuple type rather than widened to `tuple[str, ...]` like its
@@ -139,6 +144,7 @@ class Labels(TypedDict):
 class Cancellation(TypedDict):
     points: int
     commit_index: int
+    commit_slack: int
     quiescence_bound: int
     max_to_terminal: int
 
@@ -1025,6 +1031,12 @@ def _world_block(own: Owned, world: World) -> list[str]:
     for slack in ("fill", "activation_slack", "payload_slack", "cancellation_slack"):
         lines += _match(f"op_{slack}", "op", "op_", names, "nat",
                         [str(op[slack]) for op in ops])
+    # The margin the commit point leaves inside the declared cancellation points. It
+    # sits in the cancellation block rather than beside the other three, an operation
+    # that declares no cancellation declaring no commit point to leave room under.
+    lines += _match("op_commit_slack", "op", "op_", names, "nat",
+                    [str(op["cancellation"]["commit_slack"] if op["cancellation"] else 0)
+                     for op in ops])
 
     lines += [
         "(* The encoded size of a descriptor, by section 4.2's rows: the tag, the",
@@ -1230,15 +1242,28 @@ def _world_block(own: Owned, world: World) -> list[str]:
         "ring_refuses_one_past_capacity",
         f"submit ring_capacity = submit_{own.full_ring}.",
         "vm_compute; reflexivity.")
+    # Stated as equalities against declared slacks rather than as the bounds the
+    # register writes, because a bound absorbs an increment of the quantity it bounds
+    # and leaves the composition's headroom unstated: with the slack declared, moving
+    # either figure alone moves one side of the equality and the artifact stops
+    # compiling. No one-past companion is emitted beside them. Over naturals, every
+    # statement that the declaration one past its slack is refused reduces, under the
+    # equality standing above it, to `S n <> n`, so it holds of any declaration and
+    # certifies nothing the equality does not; it also kills no mutant the equality
+    # does not already kill. The refutations that carry their own content run the
+    # perturbed figure through a decision instead, as `ring_refuses_one_past_capacity`
+    # and `one_segment_past_the_maximum_is_refused` do, and the three slacks declared
+    # per operation are stated the same way, as an equality and nothing beside it.
     lines += _theorem(
-        "completion_capacity_covers_accepted",
-        "andb (Nat.leb ring_max_accepted ring_completion_capacity)"
-        " (Nat.leb ring_max_accepted ring_capacity) = true.",
+        "completion_capacity_is_the_accepted_maximum_and_its_declared_slack",
+        "andb (Nat.eqb (ring_max_accepted + ring_completion_capacity_slack)"
+        " ring_completion_capacity)"
+        " (Nat.eqb (ring_max_accepted + ring_accepted_slack) ring_capacity) = true.",
         "vm_compute; reflexivity.")
     lines += _theorem(
-        "batch_is_bounded_by_capacity",
+        "the_batch_is_the_capacity_less_its_declared_slack",
         "andb (Nat.ltb 0 ring_max_batch_size)"
-        " (Nat.leb ring_max_batch_size ring_capacity) = true.",
+        " (Nat.eqb (ring_max_batch_size + ring_batch_slack) ring_capacity) = true.",
         "vm_compute; reflexivity.")
     lines += _theorem(
         "drain_is_bounded_by_the_batch",
@@ -1283,7 +1308,8 @@ def _world_block(own: Owned, world: World) -> list[str]:
         "forall o : op, implb (negb (op_cancellable o))"
         " (Nat.eqb (rec_cancellation_cleanup_cost (op_declared_record o)"
         " + op_quiescence_bound o + op_max_to_terminal o + op_cancel_points o"
-        " + op_commit_index o + op_cancellation_slack o) 0) = true.",
+        " + op_commit_index o + op_cancellation_slack o + op_commit_slack o) 0)"
+        " = true.",
         "intro o; destruct o; vm_compute; reflexivity.")
     lines += _theorem(
         "cancellability_is_the_declaration_and_nothing_else",
@@ -1291,8 +1317,9 @@ def _world_block(own: Owned, world: World) -> list[str]:
         " agree (op_cancellable o) (Nat.ltb 0 (op_cancel_points o)) = true.",
         "intro o; destruct o; vm_compute; reflexivity.")
     lines += _theorem(
-        "commit_point_is_one_of_the_declared_points",
-        "forall o : op, Nat.leb (op_commit_index o) (op_cancel_points o) = true.",
+        "the_commit_point_is_the_declared_points_less_its_slack",
+        "forall o : op, Nat.eqb (op_commit_index o + op_commit_slack o)"
+        " (op_cancel_points o) = true.",
         "intro o; destruct o; vm_compute; reflexivity.")
     lines += _theorem(
         "labels_are_drawn_from_the_declared_lattice",
@@ -1417,8 +1444,10 @@ def _world_block(own: Owned, world: World) -> list[str]:
         "descriptor_fills_its_slot_exactly", "completion_fills_its_slot_exactly",
         "both_slots_are_aligned", "the_index_span_is_the_declared_width",
         "the_capacity_divides_the_index_span", "ring_fills_to_capacity",
-        "ring_refuses_one_past_capacity", "completion_capacity_covers_accepted",
-        "batch_is_bounded_by_capacity", "drain_is_bounded_by_the_batch",
+        "ring_refuses_one_past_capacity",
+        "completion_capacity_is_the_accepted_maximum_and_its_declared_slack",
+        "the_batch_is_the_capacity_less_its_declared_slack",
+        "drain_is_bounded_by_the_batch",
         "the_declared_batch_and_segment_maxima_are_attained",
         "notifications_are_coalesced_to_one",
         "the_payload_is_exactly_the_declared_segments",
@@ -1426,7 +1455,7 @@ def _world_block(own: Owned, world: World) -> list[str]:
         "cancellation_spends_the_declared_interval",
         "a_non_cancellable_operation_declares_no_cancellation",
         "cancellability_is_the_declaration_and_nothing_else",
-        "commit_point_is_one_of_the_declared_points",
+        "the_commit_point_is_the_declared_points_less_its_slack",
         "labels_are_drawn_from_the_declared_lattice",
         "the_empty_validation_case_is_a_claim",
         "lifecycle_advances_monotonically", "lifecycle_has_one_terminal_state",

@@ -16,9 +16,12 @@
         "completion_size_bytes": 32,
         "completion_fill": 5,
         "max_batch_size": 8,
+        "batch_slack": 56,
         "session_generation": 1,
         "completion_capacity": 64,
         "max_accepted": 64,
+        "completion_capacity_slack": 0,
+        "accepted_slack": 0,
         "max_segments": 4,
         "segment_max_bytes": 1024,
         "slot_budget": 20000
@@ -75,6 +78,7 @@
           "cancellation": {
             "points": 2,
             "commit_index": 2,
+            "commit_slack": 0,
             "quiescence_bound": 200,
             "max_to_terminal": 1800
           },
@@ -99,6 +103,7 @@
           "cancellation": {
             "points": 2,
             "commit_index": 1,
+            "commit_slack": 1,
             "quiescence_bound": 200,
             "max_to_terminal": 2000
           },
@@ -120,6 +125,7 @@
           "cancellation": {
             "points": 1,
             "commit_index": 1,
+            "commit_slack": 0,
             "quiescence_bound": 100,
             "max_to_terminal": 1200
           },
@@ -177,9 +183,12 @@
         "completion_size_bytes": 32,
         "completion_fill": 5,
         "max_batch_size": 4,
+        "batch_slack": 28,
         "session_generation": 1,
         "completion_capacity": 32,
         "max_accepted": 32,
+        "completion_capacity_slack": 0,
+        "accepted_slack": 0,
         "max_segments": 8,
         "segment_max_bytes": 4096,
         "slot_budget": 40000
@@ -240,6 +249,7 @@
           "cancellation": {
             "points": 3,
             "commit_index": 2,
+            "commit_slack": 1,
             "quiescence_bound": 600,
             "max_to_terminal": 6000
           },
@@ -271,6 +281,7 @@
           "cancellation": {
             "points": 3,
             "commit_index": 1,
+            "commit_slack": 2,
             "quiescence_bound": 800,
             "max_to_terminal": 6800
           },
@@ -301,6 +312,7 @@
           "cancellation": {
             "points": 2,
             "commit_index": 2,
+            "commit_slack": 0,
             "quiescence_bound": 300,
             "max_to_terminal": 1400
           },
