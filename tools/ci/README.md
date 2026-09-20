@@ -24,7 +24,12 @@ when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
 tuple owns that list. Python must satisfy [the manifest](../pyproject.toml), and uv
 must match its exact pin before bootstrap starts. The script checks the downloaded
 opam executable, imports the [package snapshots](../opam/README.md), and calls the
-existing pinned Verilator installer. Package repositories provide the archive
+existing pinned Verilator installer. It installs and probes Z3 first, prepending its
+private binary directory to `PATH` before Sail starts: Sail initializes its solver
+even for `--version`. Each tool is probed immediately after installation, so a failed
+Sail probe stops before building Rocq or Verilator. Bootstrap failures print the last
+40 log lines in the Actions console as well as retaining the complete log.
+Package repositories provide the archive
 checksums for the snapshot imports; distribution package versions follow the runner
 image. This records a package resolution, not a bit-for-bit toolchain image.
 

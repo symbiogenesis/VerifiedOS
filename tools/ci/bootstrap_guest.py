@@ -14,6 +14,7 @@ import sys
 import time
 import tomllib
 import urllib.request
+from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
@@ -154,6 +155,23 @@ def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
         run(argv, log)
 
 
+def install_toolchains(root: Path, jobs: int, log: IO[str]) -> None:
+    """Provide Sail's solver at startup and probe each tool before building the next."""
+    run(("uv", "pip", "install", "--python", sys.executable, "--target",
+         str(root / "z3"), f"z3-solver=={env.Z3_VERSION}.0"), log)
+    # Sail initializes its solver even for --version. VOS_Z3_BIN is consumed by
+    # run.py's environment setup, which does not run in this bootstrap process.
+    solver_bin = root / "z3" / "bin"
+    os.environ["PATH"] = str(solver_bin) + os.pathsep + os.environ.get("PATH", "")
+    run((str(solver_bin / "z3"), "--version"), log)
+    install_switch(env.SAIL_INSTALL, log)
+    run((str(root / "bin" / "opam"), "exec", f"--switch={env.SAIL_SWITCH}",
+         "--", "sail", "--version"), log)
+    install_switch(env.ROCQ_INSTALL, log)
+    run((str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)
+    run((sys.executable, str(TOOLS / "run.py"), "rtl", "install", "--jobs", str(jobs)), log)
+
+
 def export_environment(values: dict[str, str], binary_dir: Path,
                        github_env: Path | None, github_path: Path | None) -> None:
     if any("\n" in value or "\r" in value for value in (*values.values(), str(binary_dir))):
@@ -236,15 +254,7 @@ def bootstrap(args: argparse.Namespace) -> int:
                  "default", "https://opam.ocaml.org"), log)
             run(("opam", "repository", "add", "rocq-released",
                  "https://rocq-prover.org/opam/released", "--dont-select", "-y"), log)
-            install_switch(env.SAIL_INSTALL, log)
-            install_switch(env.ROCQ_INSTALL, log)
-            run(("uv", "pip", "install", "--python", sys.executable, "--target",
-                 str(root / "z3"), f"z3-solver=={env.Z3_VERSION}.0"), log)
-            run((sys.executable, str(TOOLS / "run.py"), "rtl", "install",
-                 "--jobs", str(args.jobs)), log)
-            run((str(opam), "exec", f"--switch={env.SAIL_SWITCH}", "--", "sail", "--version"), log)
-            run((str(env.opam_root() / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)
-            run((str(root / "z3" / "bin" / "z3"), "--version"), log)
+            install_toolchains(root, args.jobs, log)
             export_environment(values, binary_dir, args.github_env, args.github_path)
             (root / "environment.sh").write_text(activation(values, binary_dir),
                                                   encoding="utf-8", newline="")
@@ -252,7 +262,10 @@ def bootstrap(args: argparse.Namespace) -> int:
         except (OSError, ValueError, subprocess.CalledProcessError) as error:
             record["error"] = str(error)
             log.write(f"FAIL bootstrap: {error}\n")
+            log.flush()
             print(f"FAIL bootstrap: {error}; see {log_path}", file=sys.stderr)
+            with log_path.open(encoding="utf-8", errors="replace") as failed:
+                print("".join(deque(failed, maxlen=40)), end="", file=sys.stderr)
         finally:
             retain_logs(root)
             record["seconds"] = round(time.monotonic() - started, 2)

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import IO
 from unittest.mock import patch
 
 from ci import bootstrap_guest as bootstrap
@@ -94,6 +95,57 @@ def _failed_child_remains_failure() -> None:
             raise AssertionError("failed prerequisite was accepted")
 
 
+def _solver_available_before_sail() -> None:
+    root = Path.home() / "guest-bootstrap-toolchain-fixture"
+    solver_bin = str(root / "z3" / "bin")
+    observed: list[str] = []
+
+    def run(argv: tuple[str, ...], log: IO[str]) -> None:
+        if argv[0] == "uv":
+            observed.append("solver-install")
+        elif argv[0] == str(root / "z3" / "bin" / "z3"):
+            observed.append("solver-probe")
+        elif "sail" in argv:
+            ensure(observed == ["solver-install", "solver-probe", "sail-install"],
+                   "Sail started before its solver was installed and probed")
+            ensure(os.environ["PATH"].split(os.pathsep) == [solver_bin, "existing-tools"],
+                   "Sail cannot find the private solver ahead of existing tools")
+            observed.append("sail-probe")
+        elif argv[0] == str(root / "opam" / bootstrap.env.ROCQ_SWITCH / "bin" / "rocq"):
+            observed.append("rocq-probe")
+        elif "rtl" in argv:
+            observed.append("rtl-install")
+
+    def install(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
+        observed.append("sail-install" if steps == bootstrap.env.SAIL_INSTALL else "rocq-install")
+
+    with (patch.dict(os.environ, {"PATH": "existing-tools"}),
+          patch.object(bootstrap, "run", side_effect=run),
+          patch.object(bootstrap, "install_switch", side_effect=install)):
+        bootstrap.install_toolchains(root, 2, io.StringIO())
+    ensure(observed == ["solver-install", "solver-probe", "sail-install", "sail-probe",
+                        "rocq-install", "rocq-probe", "rtl-install"],
+           "toolchain probes were deferred until after unrelated builds")
+
+
+def _sail_probe_failure_stops_remaining_builds() -> None:
+    root = Path.home() / "guest-bootstrap-toolchain-fixture"
+
+    def run(argv: tuple[str, ...], log: IO[str]) -> None:
+        if "sail" in argv:
+            raise subprocess.CalledProcessError(2, argv)
+
+    with (patch.dict(os.environ), patch.object(bootstrap, "run", side_effect=run),
+          patch.object(bootstrap, "install_switch") as install):
+        try:
+            bootstrap.install_toolchains(root, 2, io.StringIO())
+        except subprocess.CalledProcessError as error:
+            ensure(error.returncode == 2, "the Sail probe failure was changed")
+        else:
+            raise AssertionError("failed Sail probe was accepted")
+        ensure(install.call_count == 1, "a failed Sail probe still built the Rocq switch")
+
+
 def _foreign_directory_is_not_adopted() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory) / "foreign"
@@ -164,6 +216,8 @@ def cases() -> list[Case]:
         Case("unattended non-root package installation", _nonroot_system_install),
         Case("retry imports existing switch", _existing_switch_resumes_import),
         Case("failed process remains failure", _failed_child_remains_failure),
+        Case("private solver precedes Sail startup", _solver_available_before_sail),
+        Case("failed Sail probe stops subsequent builds", _sail_probe_failure_stops_remaining_builds),
         Case("foreign directory not adopted", _foreign_directory_is_not_adopted),
         Case("owned directory resumed", _owned_directory_reused),
         Case("unverified or unsuitable filesystem refused", _unsupported_filesystem_refused),
