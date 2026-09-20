@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 import tomllib
-import urllib.request
 from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
@@ -24,7 +23,7 @@ if f"{sys.version_info.major}.{sys.version_info.minor}" != PYTHON_VERSION:
     raise SystemExit(f"guest bootstrap requires Python {PYTHON_VERSION}; found {platform.python_version()}")
 sys.path.insert(0, str(TOOLS))
 
-from vos import env, receipts  # noqa: E402  (standalone bootstrap precedes the locked environment)
+from vos import cli, env, receipts  # noqa: E402  (standalone bootstrap precedes the locked environment)
 from vos.cli import rtl  # noqa: E402
 
 OPAM_VERSION = "2.5.2"
@@ -38,25 +37,6 @@ PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
     "device-tree-compiler", "git", "time", *rtl.VERILATOR_PACKAGES,
 )))
 MARKER = ".verifiedos-guest-root"
-
-
-def download(url: str, target: Path, expected: str) -> None:
-    """Verify both newly downloaded bytes and reused downloads before executing."""
-    if target.exists():
-        if receipts.digest(target) != expected:
-            raise ValueError(f"{target}: cached download SHA-256 does not match {expected}")
-        return
-    pending = target.with_suffix(".download")
-    try:
-        # Callers supply an HTTPS release URL, never input from a workflow expression.
-        with (urllib.request.urlopen(url, timeout=120) as response,  # noqa: S310
-              pending.open("wb") as stream):
-            shutil.copyfileobj(response, stream)
-        if receipts.digest(pending) != expected:
-            raise ValueError(f"{url}: downloaded SHA-256 does not match {expected}")
-        pending.replace(target)
-    finally:
-        pending.unlink(missing_ok=True)
 
 
 def prepare_root(root: Path) -> Path:
@@ -178,7 +158,7 @@ def install_toolchains(root: Path, jobs: int, log: IO[str]) -> None:
          "--", "sail", "--version"), log)
     install_switch(env.ROCQ_INSTALL, log)
     run((str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)
-    run((sys.executable, str(TOOLS / "run.py"), "rtl", "install", "--jobs", str(jobs)), log)
+    run(tuple(cli.entry("rtl", "install", "--jobs", str(jobs))), log)
 
 
 def export_environment(values: dict[str, str], paths: tuple[Path, ...],
@@ -222,8 +202,6 @@ def retain_logs(root: Path) -> None:
 def bootstrap(args: argparse.Namespace) -> int:
     if sys.platform != "linux":
         raise ValueError("guest bootstrap runs on Linux; invoke it inside the assigned guest lane")
-    if args.jobs < 1:
-        raise ValueError("--jobs must be positive")
     if platform.machine() not in OPAM_HASHES:
         raise ValueError(f"no reviewed opam binary for {platform.machine()}")
     manifest = tomllib.loads((TOOLS / "pyproject.toml").read_text(encoding="utf-8"))
@@ -239,7 +217,8 @@ def bootstrap(args: argparse.Namespace) -> int:
 
 def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     """Mutate an owned root only while the caller holds its bootstrap lock."""
-    values = environment(root, args.jobs)
+    jobs = args.jobs if args.jobs is not None else env.worker_jobs(2048, label="toolchain")
+    values = environment(root, jobs)
     paths = (root / "z3" / "bin", root / "bin")
     validate_environment(values, paths)
     for name in ("VOS_BUILD_ROOT", "VOS_LOG_DIR", "TMPDIR", "CCACHE_DIR", "UV_CACHE_DIR"):
@@ -257,7 +236,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     started = time.monotonic()
     record: dict[str, object] = {
         "schema": 1, "started_utc": datetime.now(UTC).isoformat(),
-        "platform": platform.platform(), "python": sys.version,
+        "platform": platform.platform(), "python": sys.version, "jobs": jobs,
         "bootstrap_sha256": receipts.digest(Path(__file__)),
         "uv": uv_version, "opam": OPAM_VERSION, "sail": env.SAIL_VERSION,
         "rocq": env.ROCQ_VERSION, "z3": env.Z3_VERSION, "verilator": rtl.VERILATOR_PIN,
@@ -267,7 +246,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     record_path = logs / "bootstrap.json"
     receipts.write(record_path, record)
     log_path = logs / "bootstrap.log"
-    print(f"Bootstrap log: {log_path}", flush=True)
+    print(f"Bootstrap log: {log_path}; jobs: {jobs}", flush=True)
     with log_path.open("w", encoding="utf-8", newline="") as log:
         try:
             system_packages(args.install_system, log)
@@ -277,14 +256,14 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
                 env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
             architecture, expected = OPAM_HASHES[platform.machine()]
             opam = binary_dir / "opam"
-            download(f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
-                     f"opam-{OPAM_VERSION}-{architecture}-linux", opam, expected)
+            receipts.download(f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
+                              f"opam-{OPAM_VERSION}-{architecture}-linux", opam, expected)
             opam.chmod(0o755)
             run(("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y",
                  "default", "https://opam.ocaml.org"), log)
             run(("opam", "repository", "add", "rocq-released",
                  "https://rocq-prover.org/opam/released", "--dont-select", "-y"), log)
-            install_toolchains(root, args.jobs, log)
+            install_toolchains(root, jobs, log)
             (root / "environment.sh").write_text(activation(values, paths),
                                                   encoding="utf-8", newline="")
             export_environment(values, paths, args.github_env, args.github_path)
@@ -313,7 +292,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True,
                         help="private persistent native directory outside the source checkout")
-    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--jobs", type=cli.positive_int,
+                        help="worker override (default: available CPUs limited by memory)")
     parser.add_argument("--install-system", action="store_true",
                         help="install absent Ubuntu packages using root or passwordless sudo")
     parser.add_argument("--github-env", type=Path)

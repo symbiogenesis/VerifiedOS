@@ -38,6 +38,14 @@ type Handler = Callable[[argparse.Namespace], int]
 type Table = dict[str, tuple[Handler, str]]
 
 
+def positive_int(value: str) -> int:
+    """An argparse count that cannot accidentally request unlimited workers."""
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be positive")
+    return number
+
+
 def dispatch(doc: str | None, table: Table, argv: list[str] | None,
              flags: Callable[[str, argparse.ArgumentParser], None] | None = None,
              prog: str | None = None) -> int:

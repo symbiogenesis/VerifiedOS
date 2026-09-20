@@ -2,55 +2,19 @@
 """Guest installation refuses corrupt inputs and preserves failed process verdicts."""
 
 import argparse
-import hashlib
 import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
+from contextlib import redirect_stderr
 from pathlib import Path
 from typing import IO
 from unittest.mock import patch
 
 from ci import bootstrap_guest as bootstrap
 from tests.harness import Case, ensure
-
-
-def _download_integrity() -> None:
-    payload = b"verified release bytes"
-    expected = hashlib.sha256(payload).hexdigest()
-    with tempfile.TemporaryDirectory() as directory:
-        target = Path(directory) / "client"
-        with patch.object(bootstrap.urllib.request, "urlopen", return_value=io.BytesIO(payload)):
-            bootstrap.download("https://example.invalid/client", target, expected)
-        ensure(target.read_bytes() == payload, "verified bytes were not published")
-        with patch.object(bootstrap.urllib.request, "urlopen") as network:
-            bootstrap.download("https://example.invalid/client", target, expected)
-            ensure(not network.called, "a verified cached archive should require no download")
-        target.write_bytes(b"corrupt")
-        with patch.object(bootstrap.urllib.request, "urlopen") as network:
-            try:
-                bootstrap.download("https://example.invalid/client", target, expected)
-            except ValueError:
-                pass
-            else:
-                raise AssertionError("a corrupt cached executable was accepted")
-            ensure(not network.called, "corrupt cache must be refused explicitly")
-
-
-def _bad_download_never_published() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        target = Path(directory) / "client"
-        with patch.object(bootstrap.urllib.request, "urlopen", return_value=io.BytesIO(b"bad")):
-            try:
-                bootstrap.download("https://example.invalid/client", target, "0" * 64)
-            except ValueError:
-                pass
-            else:
-                raise AssertionError("a corrupt download was accepted")
-        ensure(not target.exists() and not target.with_suffix(".download").exists(),
-               "a failed download left executable or partial bytes behind")
 
 
 def _missing_dependency_refuses() -> None:
@@ -264,12 +228,16 @@ def _failed_retention_preserves_verdict() -> None:
         for path in stale:
             path.write_text("old success", encoding="utf-8")
         (logs / "bootstrap.json").write_text('{"exit_code": 0}', encoding="utf-8")
-        args = argparse.Namespace(jobs=2, install_system=False, github_env=None, github_path=None)
+        args = argparse.Namespace(jobs=None, install_system=False, github_env=None, github_path=None)
         with (patch.object(bootstrap, "system_packages",
                            side_effect=subprocess.CalledProcessError(7, ("apt-get", "update"))),
-              patch.object(bootstrap, "retain_logs", side_effect=OSError("copy failed"))):
+              patch.object(bootstrap, "retain_logs", side_effect=OSError("copy failed")),
+              patch.object(bootstrap.env, "worker_jobs", return_value=4)):
             code = bootstrap.install(args, root, "fixture")
         record = json.loads((logs / "bootstrap.json").read_text(encoding="utf-8"))
+        ensure(record["jobs"] == 4, "automatic worker selection was not recorded")
+        ensure(all(os.environ[key] == "4" for key in ("OPAMJOBS", "VOS_JOBS", "VOS_TEST_JOBS")),
+               "automatic workers did not reach the private environment")
         ensure(code == record["exit_code"] == 1, "diagnostic failure lost the bootstrap verdict")
         ensure("7" in record["error"] and record["diagnostic_error"] == "copy failed",
                "log retention failure masked the original command error")
@@ -307,10 +275,26 @@ def _busy_root_is_untouched() -> None:
         ensure(not (root / "bin").exists(), "bootstrap created directories in a busy root")
 
 
+def _job_arguments() -> None:
+    for extra, expected in (([], None), (["--jobs", "64"], 64)):
+        with patch.object(bootstrap, "bootstrap", return_value=0) as install:
+            ensure(bootstrap.main(["--root", str(Path.home() / "guest"), *extra]) == 0,
+                   "valid job selection was refused")
+            ensure(install.call_args.args[0].jobs == expected, "explicit or automatic selection lost")
+    for value in ("0", "-1", "invalid"):
+        with patch.object(bootstrap, "bootstrap") as install, redirect_stderr(io.StringIO()):
+            try:
+                bootstrap.main(["--root", str(Path.home() / "guest"), "--jobs", value])
+            except SystemExit as error:
+                ensure(error.code == 2, "invalid jobs must be an argument error")
+            else:
+                raise AssertionError("invalid worker count was accepted")
+            ensure(not install.called, "invalid jobs reached installation")
+
+
 def cases() -> list[Case]:
     return [
-        Case("download integrity and verified reuse", _download_integrity),
-        Case("corrupt download never published", _bad_download_never_published),
+        Case("automatic and explicit worker arguments", _job_arguments),
         Case("missing dependency refusal", _missing_dependency_refuses),
         Case("batched package query preserves missing and fatal outcomes", _package_query_is_batched),
         Case("unattended non-root package installation", _nonroot_system_install),

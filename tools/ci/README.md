@@ -30,6 +30,11 @@ private binary directory to `PATH` before Sail starts: Sail initializes its solv
 even for `--version`. Each tool is probed immediately after installation, so a failed
 Sail probe stops before building Rocq or Verilator. Bootstrap failures print the last
 40 log lines in the Actions console as well as retaining the complete log.
+Bootstrap and the Verilator installer share verified-download and atomic-publication
+helpers in [vos/receipts.py](../vos/receipts.py); the reporter and JSON writers use
+the same publication helper. Cached bytes are checked again before use, and corrupt
+or interrupted downloads never become the cached archive. These helpers need only
+the standard library, including when reporting a failed bootstrap.
 Package repositories provide the archive
 checksums for the snapshot imports; distribution package versions follow the runner
 image. This records a package resolution, not a bit-for-bit toolchain image.
@@ -37,13 +42,24 @@ image. This records a package resolution, not a bit-for-bit toolchain image.
 On native Linux, from the repository root:
 
 ```sh
-python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --jobs 2 --install-system
+python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --install-system
 . "$HOME/build/guest-ci/environment.sh"
 python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json"
 python3 tools/run.py model bundle --check
 python3 tools/run.py rtl lint
 python3 tools/run.py rtl crosscheck
 ```
+
+Bootstrap and standalone `rtl install` select workers through [vos/env.py](../vos/env.py).
+`os.process_cpu_count()` supplies usable logical CPUs, including Linux affinity limits;
+`/proc/meminfo` supplies available memory. Automatic toolchain sizing reserves 2 GiB
+and budgets 2 GiB per worker, with at least one worker and at most the CPU count.
+Unknown memory falls back to one worker with a warning. These are planning budgets,
+not measured bounds on every upstream build. `--jobs N` overrides automatic sizing;
+zero and negative counts are refused. Bootstrap records the selected count and exports
+it to opam, the model build and its tests. Proof compilation and kernel checking keep
+their separate memory budgets and resample before each phase. This sizing targets the
+native runner or WSL VM; it does not interpret container cgroup CPU or memory quotas.
 
 For a Windows worktree, run inside WSL and substitute its assigned
 `/root/build/lane-<name>/ci` root. Bootstrap refuses a nonempty directory it does not
@@ -71,10 +87,10 @@ uploads diagnostics.
 uv downloads, opam's source download cache and verified Verilator source archives
 are restored between runs; installed toolchains and evidence are rebuilt. The source
 cache includes bootstrap's ownership marker so the restored private root can resume.
-Its key includes the runner OS and architecture, Sail and Rocq snapshots, bootstrap
-and Verilator installer. A prefix fallback reuses older source downloads, with the
-installers' checksum verification still required. Cache eviction simply means a cold
-installation. The evidence command owns concurrency between proofs and model
+Its key includes the runner OS and architecture, Sail and Rocq snapshots, bootstrap,
+the Verilator installer and shared download helper. A prefix fallback reuses older
+source downloads, with the installers' checksum verification still required. Cache
+eviction simply means a cold installation. The evidence command owns concurrency between proofs and model
 consumers; the remaining commands stay sequential within the runner's memory budget.
 
 ## Inputs and execution

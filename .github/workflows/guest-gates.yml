@@ -89,7 +89,7 @@ jobs:
             ~/verifiedos-guest/.verifiedos-guest-root
             ~/verifiedos-guest/opam/download-cache
             ~/verifiedos-guest/build/verilator-*-source/*.tar.gz
-          key: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py') }}
+          key: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
           restore-keys: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Bootstrap guest toolchains
@@ -97,7 +97,7 @@ jobs:
         timeout-minutes: 120
         run: |
           /usr/bin/time -p python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --jobs 2 --install-system \
+            --root "$HOME/verifiedos-guest" --install-system \
             --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
 

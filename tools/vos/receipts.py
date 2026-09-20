@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Content identities and atomic JSON records for completed tool executions.
+"""Content identities, verified downloads and atomic publication of tool artifacts.
 
 A receipt records a run; it never substitutes for the checker that produced it.
 Consumers compare the complete input and output manifests before reusing evidence.
@@ -11,8 +11,8 @@ import os
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Iterable
-from contextlib import ExitStack
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from vos import env
@@ -22,6 +22,35 @@ def digest(path: Path) -> str:
     """Hash the bytes of one artifact, failing when it is absent or unreadable."""
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+@contextmanager
+def atomic_path(path: Path) -> Iterator[Path]:
+    """Publish only on successful exit; callers close all handles before returning."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",
+                                     suffix=".tmp", delete_on_close=False) as stream:
+        stream.close()  # Windows must release the handle before replace.
+        pending = Path(stream.name)
+        yield pending
+        pending.replace(path)
+
+
+def download(url: str, target: Path, expected: str) -> None:
+    """Authenticate cached bytes and publish new downloads only after verification."""
+    import urllib.request  # noqa: PLC0415  (ordinary receipt paths need no HTTP stack)
+
+    if target.exists():
+        if digest(target) != expected:
+            raise ValueError(f"{target}: cached download SHA256 does not match {expected}")
+        return
+    with atomic_path(target) as pending:
+        # Callers supply owned HTTPS release URLs, never workflow expressions.
+        with (urllib.request.urlopen(url, timeout=120) as response,  # noqa: S310
+              pending.open("wb") as stream):
+            shutil.copyfileobj(response, stream)
+        if digest(pending) != expected:
+            raise ValueError(f"{url}: downloaded SHA256 does not match {expected}")
 
 
 def snapshot(root: Path, paths: Iterable[Path]) -> dict[str, str]:
@@ -74,15 +103,9 @@ disappearing from the manifest. Git's own pathspecs select each command's closur
 
 def write(path: Path, payload: object) -> None:
     """Replace a complete receipt atomically, preserving the old one on failure."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with ExitStack() as cleanup:
-        with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", newline="", dir=path.parent,
-                prefix=f".{path.name}.", suffix=".tmp", delete=False) as stream:
-            temporary = Path(stream.name)
-            cleanup.callback(temporary.unlink, missing_ok=True)
-            json.dump(payload, stream, indent=2, sort_keys=True, ensure_ascii=False)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        temporary.replace(path)
+    with (atomic_path(path) as pending,
+          pending.open("w", encoding="utf-8", newline="") as stream):
+        json.dump(payload, stream, indent=2, sort_keys=True, ensure_ascii=False)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())

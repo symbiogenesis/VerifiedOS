@@ -76,20 +76,17 @@ file being exactly the kind of artifact two checkouts must not share.
 """
 
 import argparse
-import hashlib
 import json
 import re
 import shutil
 import subprocess
 import tarfile
-import urllib.error
-import urllib.request
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos import cli, device_regs, env, provenance, rtl_width, sailrig, socmap
+from vos import cli, device_regs, env, provenance, receipts, rtl_width, sailrig, socmap
 from vos.corpus import find_root
 
 # The release is built from its verified archive into a versioned project prefix.
@@ -347,11 +344,8 @@ def _require_verilator(out: list[str]) -> str | None:
 
 
 def _extract_verilator(archive: Path, work: Path) -> Path:
-    """Authenticate the complete source archive before extracting any member."""
-    with archive.open("rb") as stream:
-        actual = hashlib.file_digest(stream, "sha256").hexdigest()
-    if actual != VERILATOR_SHA256:
-        raise ValueError(f"{archive}: SHA256 {actual}, expected {VERILATOR_SHA256}")
+    """Fetch and authenticate the complete source archive before extracting any member."""
+    receipts.download(VERILATOR_URL, archive, VERILATOR_SHA256)
     source_dir = work / f"verilator-{VERILATOR_PIN}"
     if source_dir.is_symlink() or source_dir.resolve().parent != work.resolve():
         raise ValueError(f"{source_dir}: source directory escapes its build workspace")
@@ -393,17 +387,10 @@ def cmd_install(args: argparse.Namespace) -> int:
         print(f"== verilator {VERILATOR_PIN}: source and log {work}; install {prefix}",
               flush=True)
         try:
-            if not archive.is_file():
-                # The URL is an owned HTTPS constant; the whole download is hashed
-                # before tarfile sees it, and a partial download is never the cache.
-                pending = archive.with_suffix(".download")
-                with (urllib.request.urlopen(VERILATOR_URL, timeout=120) as response,  # noqa: S310
-                      pending.open("wb") as stream):
-                    shutil.copyfileobj(response, stream)
-                pending.replace(archive)
+            jobs = args.jobs if args.jobs is not None else env.worker_jobs(2048, label="toolchain")
             source = _extract_verilator(archive, work)
             steps = (("autoconf",), ("./configure", f"--prefix={prefix}"),
-                     ("make", f"-j{args.jobs}"), ("make", "install"))
+                     ("make", f"-j{jobs}"), ("make", "install"))
             with log_path.open("w", encoding="utf-8") as log:
                 for argv in steps:
                     print(f"== {' '.join(argv)}; log {log_path}", flush=True)
@@ -414,7 +401,7 @@ def cmd_install(args: argparse.Namespace) -> int:
                     if code:
                         print(f"FAIL {argv[0]} exited {code}; see {log_path}")
                         return 1
-        except (OSError, ValueError, tarfile.TarError, urllib.error.URLError) as error:
+        except (OSError, ValueError, tarfile.TarError) as error:
             print(f"FAIL Verilator installation: {error}")
             return 1
         if _verilator_version(str(binary)) != VERILATOR_PIN:
@@ -1317,8 +1304,8 @@ COMMANDS: cli.Table = {
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
     if name == "install":
-        sub.add_argument("--jobs", type=int, choices=range(1, 33), default=3,
-                         metavar="N", help="source-build workers (default: 3)")
+        sub.add_argument("--jobs", type=cli.positive_int, metavar="N",
+                         help="worker override (default: available CPUs limited by memory)")
     if name == "filelist":
         sub.add_argument("--show", action="store_true",
                          help="print the composed list itself, entry by entry")

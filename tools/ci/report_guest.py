@@ -7,7 +7,6 @@ import math
 import os
 import shutil
 import sys
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -55,10 +54,8 @@ def read_members(path: Path) -> list[Member]:
 def retain(source: Path, destination: Path, rows: list[str]) -> None:
     """A missing diagnostic must not discard the command outcomes or other diagnostics."""
     try:
-        with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".retain-") as directory:
-            pending = Path(directory) / destination.name
+        with receipts.atomic_path(destination) as pending:
             shutil.copyfile(source, pending)
-            pending.replace(destination)
     except OSError as error:
         print(f"Could not retain {destination}: {error}", file=sys.stderr)
         rows.extend(("", f"Could not retain {destination.name}: {type(error).__name__}. See logs."))

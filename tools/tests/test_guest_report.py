@@ -108,7 +108,7 @@ def _diagnostic_copy_failure_keeps_summary() -> None:
         for filename in ("bootstrap-console.log", "proof-evidence.json"):
             ensure(f"Could not retain {filename}" in summary, "copy failure was not reported")
             ensure(not (root / filename).exists(), "an incomplete diagnostic was published")
-        ensure(not list(root.glob(".retain-*")), "failed copies left temporary artifacts")
+        ensure(not list(root.glob(".*.tmp")), "failed copies left temporary artifacts")
         record = json.loads((root / "results.json").read_text(encoding="utf-8"))
         ensure(record["commands"]["evidence"] == "failure", "copy failure discarded gate outcomes")
 

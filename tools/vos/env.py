@@ -401,16 +401,20 @@ def proof_jobs(*, kernel: bool = False) -> int:
     are scheduling estimates, not bounds on future proof workloads. Sample in the
     guest just before each phase, after the workspace lock has been acquired.
     """
+    return worker_jobs(10240 if kernel else 1024, fallback=1 if kernel else 4,
+                       label="kernel" if kernel else "compile/audit")
+
+
+def worker_jobs(memory_mb: int, *, fallback: int = 1, label: str = "worker") -> int:
+    """Limit workers to usable CPUs and a per-worker MiB budget after a 2 GiB reserve."""
     cpus = _cpus()
     available = _read_mem_available_mb()
     if available is None:
-        jobs = min(cpus, 1 if kernel else 4)
-        phase = "kernel" if kernel else "compile/audit"
-        print(f"WARNING no MemAvailable figure from /proc/meminfo: automatic {phase} "
+        jobs = min(cpus, fallback)
+        print(f"WARNING no MemAvailable figure from /proc/meminfo: automatic {label} "
               f"jobs limited to {jobs}; use --jobs to override", file=sys.stderr)
         return jobs
-    per_job = 10240 if kernel else 1024
-    return min(cpus, max(1, (available - 2048) // per_job))
+    return min(cpus, max(1, (available - 2048) // memory_mb))
 
 
 def _jobs(cpus: int, mem_mb: int) -> int:

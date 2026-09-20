@@ -199,6 +199,15 @@ def _proof_jobs_use_phase_resources() -> None:
                    "only unavailable memory should produce a fallback diagnostic")
 
 
+def _toolchain_jobs_use_resources() -> None:
+    for cpus, memory, expected in ((4, 16384, 4), (64, 8192, 3), (64, 262144, 64),
+                                   (12, 0, 1), (None, 16384, 1), (12, None, 1)):
+        with (patch.object(env.os, "process_cpu_count", return_value=cpus),
+              patch.object(env, "_read_mem_available_mb", return_value=memory),
+              redirect_stderr(io.StringIO())):
+            ensure(env.worker_jobs(2048) == expected, "wrong CPU or memory worker limit")
+
+
 def _memory_reading_distinguishes_exhaustion_from_unknown() -> None:
     samples = (("MemAvailable: 1048576 kB\n", 1024), ("MemAvailable: 0 kB\n", 0),
                ("MemAvailable: -1024 kB\n", None), ("MemAvailable: invalid kB\n", None),
@@ -450,6 +459,7 @@ def cases() -> list[Case]:
         Case("jobs-arithmetic", _jobs_arithmetic),
         Case("jobs-env-reads", _jobs_env_reads),
         Case("proof-jobs-use-phase-resources", _proof_jobs_use_phase_resources),
+        Case("toolchain-jobs-use-resources", _toolchain_jobs_use_resources),
         Case("memory-reading-distinguishes-exhaustion",
              _memory_reading_distinguishes_exhaustion_from_unknown),
         Case("keepalive-hours-reads", _keepalive_hours_reads),
