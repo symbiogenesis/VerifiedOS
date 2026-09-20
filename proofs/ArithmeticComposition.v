@@ -71,8 +71,9 @@
       denominator is positive and whose normalizer identity is proved.
    5. The refutation. A completing set of shares at one stage recovers the
       secret, and at p = 5 with one mask and one refresh the completing
-      view separates two secrets by outcome weight 5 against 0, computed by
-      conversion. The bound therefore has a refuting instance and is not
+      view separates two secrets by outcome weight 5 against 0, both weights
+      computed by conversion and pinned as a statement rather than asserted
+      here alone. The bound therefore has a refuting instance and is not
       vacuous.
    6. What primality buys and what it does not. The hiding argument
       consumes the abelian-group laws and a translation-invariant
@@ -84,21 +85,27 @@
 
    WHAT REMAINS OWED, WITH ITS OWNER.
 
-   Arbitrary order d over the glitch/transition model is the parent probing
-   cell's and the Boolean half's, not this file's: nothing below observes a
-   glitch walk or a transition pair. Fresh-mask renewal and the pipeline
-   claims at that order are owed with it, since the refresh here is
-   algebraic and its masks are independent by construction rather than by a
-   proved property of a generator; R-05-004a's DRBG connection to uniform
-   independent masks is a named assumption elsewhere and is not proved
-   here. The algebraic-to-hardware arithmetic relation belongs at its
-   consumer, the dedicated masked datapath of R-05-004a, and no theorem
-   below relates a share tuple to a wire of that datapath. R-17-058d's
-   combined fault and probing reduction is separate work over both axioms.
-   R-17-058a keeps the physical residual: delay imbalance, coupling, layout
-   and collection beyond the modeled order are outside every statement
-   here. U-20 still owns any external probability foundation; the mass
-   algebra used below is ProbingModel.v's own finite counting measure.
+   Gadget composition is not among what is proved. Nothing is computed
+   between the stages below: the pipeline is k successive refreshes of one
+   sharing, and no gadget is applied to it, so "k-stage" here names the
+   refresh depth and not a chain of composed operations. The composition
+   notion R-15-053a requires, and the PINI ladder that carries it, stay with
+   the Boolean half. Arbitrary order d over the glitch/transition model is
+   the parent probing cell's and the Boolean half's, not this file's:
+   nothing below observes a glitch walk or a transition pair. Fresh-mask
+   renewal and the pipeline claims at that order are owed with it, since the
+   refresh here is algebraic and its masks are independent by construction
+   rather than by a proved property of a generator; R-05-004a's DRBG
+   connection to uniform independent masks is a named assumption elsewhere
+   and is not proved here. The algebraic-to-hardware arithmetic relation
+   belongs at its consumer, the dedicated masked datapath of R-05-004a, and
+   no theorem below relates a share tuple to a wire of that datapath.
+   R-17-058d's combined fault and probing reduction is separate work over
+   both axioms. R-17-058a keeps the physical residual: delay imbalance,
+   coupling, layout and collection beyond the modeled order are outside
+   every statement here. U-20 still owns any external probability
+   foundation; the mass algebra used below is ProbingModel.v's own finite
+   counting measure.
 
    READINGS THIS FILE TAKES, EACH A REVIEWABLE JUDGMENT.
 
@@ -120,15 +127,24 @@
    v.   Uniformity is the counting measure over that enumeration, and the
         probability reading is a pair of naturals with a proved normalizer
         rather than a rational.
+   vi.  The adversary interface every theorem below covers is the fixed one,
+        in the probing-model contract's own words, and no theorem here
+        covers an adaptive one. Each statement quantifies its observation,
+        a share index list or a stage-and-wire pair, ahead of the tape, and
+        nothing below lets a later choice read an earlier observed value. A
+        fixed observation list is not an adaptive strategy and is not
+        described as one.
 
    The proofs use the Rocq prelude, the standard List, Arith, Bool, Lia and
    Eqdep_dec modules, and ProbingModel.v. Decidable-equality uniqueness of
    identity proofs is the constructive Eqdep_dec result and introduces no
    axiom. No global axioms and no admitted proofs are introduced. The Print
-   Assumptions block at the end lists the file's main statements; what
-   covers every shipped constant, the record witnesses included, is
-   R-05-163's assumption gate run by `run.py proofs`, which section 11
-   names, and not the block.
+   Assumptions block at the end enumerates this file's named results, which
+   is not the same set as every constant it ships: the four inhabitation
+   witnesses of section 10 are reachable from no listed name. What covers
+   every shipped constant is R-05-163's assumption gate, run by
+   `run.py proofs`, which compares each constant's enumerated assumption set
+   against the declared set R-05-164 makes empty, as section 11 records.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-163 R-05-164 R-05-165 R-05-166 R-15-053a R-17-058a R-17-058d
@@ -1236,6 +1252,24 @@ Proof.
   vm_compute in H. discriminate H.
 Qed.
 
+(* The two weights that separation is made of, pinned as a statement rather
+   than left to the header's prose. The theorem above discriminates them and
+   so says only that they differ; these are the numbers. At p = 5 with one
+   mask and one refresh, five of the twenty-five tapes put both shares of
+   the completing view at zero when the secret is zero, and none do when
+   the secret is one. *)
+(*| discharges: R-05-165, R-15-053a |*)
+Example the_completing_stage_view_weighs_five_against_zero :
+  pr (counting (list (Fp five)) (pipeline_tapes (fp_sharing five) 1 1))
+     (fun tape => list_eqb (fp_eqb five)
+        (demo_stage_view (fp_of five 0) tape)
+        (cons (fp_of five 0) (cons (fp_of five 0) nil))) = 5
+  /\ pr (counting (list (Fp five)) (pipeline_tapes (fp_sharing five) 1 1))
+       (fun tape => list_eqb (fp_eqb five)
+          (demo_stage_view (fp_of five 1) tape)
+          (cons (fp_of five 0) (cons (fp_of five 0) nil))) = 0.
+Proof. split; vm_compute; reflexivity. Qed.
+
 (* And the single wire of that same demo is hidden, so the separation above
    is the completing set and not the pipeline. *)
 (*| discharges: R-15-053a |*)
@@ -1296,5 +1330,6 @@ Print Assumptions the_hiding_argument_does_not_consume_primality.
 Print Assumptions the_demo_single_wire_has_five_preimages.
 Print Assumptions a_completing_stage_view_recovers_the_secret.
 Print Assumptions the_completing_stage_view_distinguishes_two_secrets.
+Print Assumptions the_completing_stage_view_weighs_five_against_zero.
 Print Assumptions the_demo_single_wire_is_not_a_leak.
 Print Assumptions the_prime_field_inhabits_the_probing_model_sharing.

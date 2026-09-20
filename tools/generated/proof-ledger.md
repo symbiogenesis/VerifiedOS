@@ -260,6 +260,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/ArithmeticComposition.v | the_conditional_reading_of_the_single_wire_bound | claimed |
 | R-05-165 | proofs/ArithmeticComposition.v | the_hiding_argument_does_not_consume_primality | claimed |
 | R-05-165 | proofs/ArithmeticComposition.v | the_completing_stage_view_distinguishes_two_secrets | claimed |
+| R-05-165 | proofs/ArithmeticComposition.v | the_completing_stage_view_weighs_five_against_zero | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | quantifier_domains_inhabited | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | composed_premises_inhabited | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | composed_noninterference_inhabitation_witness | claimed |
@@ -1327,6 +1328,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-053a | proofs/ArithmeticComposition.v | the_demo_single_wire_has_five_preimages | claimed |
 | R-15-053a | proofs/ArithmeticComposition.v | a_completing_stage_view_recovers_the_secret | claimed |
 | R-15-053a | proofs/ArithmeticComposition.v | the_completing_stage_view_distinguishes_two_secrets | claimed |
+| R-15-053a | proofs/ArithmeticComposition.v | the_completing_stage_view_weighs_five_against_zero | claimed |
 | R-15-053a | proofs/ArithmeticComposition.v | the_demo_single_wire_is_not_a_leak | claimed |
 | R-15-053a | proofs/ProbingModel.v | reindexing_preserves_probability | claimed |
 | R-15-053a | proofs/ProbingModel.v | rerandomization_hides | claimed |
