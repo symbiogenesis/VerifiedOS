@@ -19,6 +19,10 @@ from pathlib import Path
 from typing import IO
 
 TOOLS = Path(__file__).resolve().parents[1]
+PYTHON_VERSION = tomllib.loads((TOOLS / "ty.toml").read_text(encoding="utf-8"))[
+    "environment"]["python-version"]
+if f"{sys.version_info.major}.{sys.version_info.minor}" != PYTHON_VERSION:
+    raise SystemExit(f"guest bootstrap requires Python {PYTHON_VERSION}; found {platform.python_version()}")
 sys.path.insert(0, str(TOOLS))
 
 from vos import env  # noqa: E402  (standalone bootstrap precedes the locked environment)
@@ -75,6 +79,11 @@ def prepare_root(root: Path) -> Path:
     kind = env.filesystem(root)
     if kind is None or kind in env.CROSS_OS_FILESYSTEMS | env.VOLATILE_FILESYSTEMS:
         raise ValueError(f"--root must be on a native persistent filesystem, found {kind}")
+    return claim_root(root)
+
+
+def claim_root(root: Path) -> Path:
+    """An empty directory becomes owned; a previous successful claim can resume."""
     marker = root / MARKER
     if root.exists() and any(root.iterdir()) and not marker.is_file():
         raise ValueError(f"refusing nonempty unowned bootstrap directory {root}")
@@ -86,6 +95,10 @@ def prepare_root(root: Path) -> Path:
 def environment(root: Path, jobs: int) -> dict[str, str]:
     return {
         "VOS_GUEST_ROOT": str(root), "VOS_LANE": "",
+        "VOS_ROOT": str(TOOLS.parent), "VOS_MODEL": str(TOOLS.parent / "model"),
+        "VOS_BUILD_DIR": str(root / "build" / env.MODEL_TREE),
+        "VOS_ROCQ": str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"),
+        "VOS_ROCQCHK": str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocqchk"),
         "OPAMROOT": str(root / "opam"), "OPAMJOBS": str(jobs),
         "VOS_BUILD_ROOT": str(root / "build"), "VOS_LOG_DIR": str(root / "logs"),
         "VOS_Z3_BIN": str(root / "z3" / "bin"), "CCACHE_DIR": str(root / "ccache"),
@@ -160,6 +173,18 @@ def activation(values: dict[str, str], binary_dir: Path) -> str:
     return "\n".join(exports) + "\n"
 
 
+def retain_logs(root: Path) -> None:
+    """Only diagnostic text leaves build directories; never tools or their sources."""
+    destination = root / "logs"
+    verilator = root / "build" / f"verilator-{rtl.VERILATOR_PIN}-source" / "build.log"
+    if verilator.is_file():
+        shutil.copyfile(verilator, destination / "verilator-install.log")
+    for path in (root / "opam" / "log").glob("*"):
+        if path.suffix in {".out", ".info"} and path.is_file():
+            (destination / "opam").mkdir(exist_ok=True)
+            shutil.copyfile(path, destination / "opam" / path.name)
+
+
 def bootstrap(args: argparse.Namespace) -> int:
     if sys.platform != "linux":
         raise ValueError("guest bootstrap runs on Linux; invoke it inside the assigned guest lane")
@@ -187,9 +212,6 @@ def bootstrap(args: argparse.Namespace) -> int:
     record: dict[str, object] = {
         "schema": 1, "started_utc": datetime.now(UTC).isoformat(),
         "platform": platform.platform(), "python": sys.version,
-        "source_revision": subprocess.run(
-            ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
-            text=True, check=True, env=os.environ | env.git_env(TOOLS.parent)).stdout.strip(),
         "bootstrap_sha256": digest(Path(__file__)),
         "uv": uv_version, "opam": OPAM_VERSION, "sail": env.SAIL_VERSION,
         "rocq": env.ROCQ_VERSION, "z3": env.Z3_VERSION, "verilator": rtl.VERILATOR_PIN,
@@ -202,6 +224,9 @@ def bootstrap(args: argparse.Namespace) -> int:
             "w", encoding="utf-8", newline="") as log:
         try:
             system_packages(args.install_system, log)
+            record["source_revision"] = subprocess.run(
+                ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
+                text=True, check=True, env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
             architecture, expected = OPAM_HASHES[platform.machine()]
             opam = binary_dir / "opam"
             download(f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
@@ -229,6 +254,7 @@ def bootstrap(args: argparse.Namespace) -> int:
             log.write(f"FAIL bootstrap: {error}\n")
             print(f"FAIL bootstrap: {error}; see {log_path}", file=sys.stderr)
         finally:
+            retain_logs(root)
             record["seconds"] = round(time.monotonic() - started, 2)
             (root / "logs" / "bootstrap.json").write_text(
                 json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="")

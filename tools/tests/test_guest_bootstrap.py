@@ -100,13 +100,12 @@ def _foreign_directory_is_not_adopted() -> None:
         root.mkdir()
         other = root / "valuable.txt"
         other.write_text("keep", encoding="utf-8")
-        with patch.object(bootstrap.env, "filesystem", return_value="ext4"):
-            try:
-                bootstrap.prepare_root(root)
-            except ValueError:
-                pass
-            else:
-                raise AssertionError("installer adopted an unrelated nonempty directory")
+        try:
+            bootstrap.claim_root(root)
+        except ValueError as error:
+            ensure("nonempty unowned" in str(error), "the ownership check was not reached")
+        else:
+            raise AssertionError("installer adopted an unrelated nonempty directory")
         ensure(other.read_text(encoding="utf-8") == "keep", "foreign contents changed")
         ensure(not (root / bootstrap.MARKER).exists(), "foreign directory acquired ownership")
 
@@ -114,10 +113,9 @@ def _foreign_directory_is_not_adopted() -> None:
 def _owned_directory_reused() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory) / "private"
-        with patch.object(bootstrap.env, "filesystem", return_value="ext4"):
-            first = bootstrap.prepare_root(root)
-            (first / "retained.txt").write_text("keep", encoding="utf-8")
-            second = bootstrap.prepare_root(root)
+        first = bootstrap.claim_root(root)
+        (first / "retained.txt").write_text("keep", encoding="utf-8")
+        second = bootstrap.claim_root(root)
         ensure(first == second and (second / "retained.txt").exists(),
                "resuming bootstrap discarded its existing state")
 
