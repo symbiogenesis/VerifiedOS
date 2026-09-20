@@ -5,6 +5,11 @@
 directory also call the actual generated Sail model:
 
 - `entropy_observer` checks the entropy-root callback boundary.
+- `watchdog_join` drives the RoT watchdog's external slow clock from the
+  emulator's own platform-layer source
+  ([`rot_slow_clock.h`](../../c_emulator/rot_slow_clock.h)) and follows the
+  latched bite to the die reset, with a stopped petter, a stopped main clock,
+  a detached-clock control and two deliberately inverted expectations.
 - `block_payload` generates byte/bit-distinguishing PIO payload and incomplete
   staging cases from the admitted block geometry.
 - `block_reset` enumerates command progress and reset boundaries, tear masks,

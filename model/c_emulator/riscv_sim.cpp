@@ -9,6 +9,7 @@
 #include "riscv_callbacks_rvfi.h"
 #include "riscv_callbacks_stop_at_pc.h"
 #include "riscv_model_impl.h"
+#include "rot_slow_clock.h"
 #ifdef SAILCOV
 #include "sail_coverage.h"
 #endif
@@ -430,6 +431,18 @@ void run_sail(
 
   uint64_t insns_per_tick = get_config_uint64({"platform", "instructions_per_tick"});
 
+  // The RoT watchdog's external slow clock (R-15-240, R-15-196). It is built
+  // from host time and from nothing the core moves, so `insns_per_tick` above
+  // is not an input to it and no ratio between the two clocks exists; what the
+  // loop below decides is when the ticks the host clock already produced are
+  // handed over, never how many there are. Absent unless the run asks for it.
+  std::unique_ptr<rot::slow_clock_source> slow_clock;
+  std::unique_ptr<rot::watchdog_join> watchdog;
+  if (opts.rot_slow_clock_ns != 0) {
+    slow_clock = std::make_unique<rot::host_time_slow_clock>(opts.rot_slow_clock_ns);
+    watchdog = std::make_unique<rot::watchdog_join>(model.rot_watchdog(), *slow_clock);
+  }
+
   auto interval_start = steady_clock::now();
 
   while (!model.htif_done() && !(stop_at_pc && stop_at_pc->stop_requested()) &&
@@ -510,6 +523,40 @@ void run_sail(
       model.tick_clock();
     } else if (wait_steps_remaining > 0) {
       model.tick_clock();
+    }
+
+    // Hand over whatever the external slow clock produced, whether or not this
+    // iteration retired anything, and take the die reset on the latch. The
+    // quantity delivered is the host clock's difference, so a core that retires
+    // nothing delivers exactly as many ticks as one that retires steadily and
+    // nothing here is a ratio to retirement. What this arm does not cover is a
+    // core that stops the loop rather than stalling inside it: a Sail exception,
+    // HTIF completion, the instruction limit, or a step that never returns ends
+    // the external clock with the loop, since both live on this one thread. The
+    // core that has stopped entirely is carried by test/unit_tests/
+    // watchdog_join.cpp, which drives the same join from an injected schedule
+    // with the model's step function never called.
+    //
+    // A run whose machine has already reported its own completion this
+    // iteration is not pumped: the loop is about to end on `htif_done`, and a
+    // bite printed after SUCCESS would leave one run holding two verdicts that
+    // disagree, a reader taking the last line calling it a die reset and a
+    // reader looking for SUCCESS calling it a pass.
+    //
+    // The retired count is printed beside the tick count because it is what
+    // separates a watchdog that expired while a core ran from a host period so
+    // short that the run's opening loop iterations already exceed the late
+    // bound (see `--rot-slow-clock-ns`); the latter's retired count is in the
+    // low single digits.
+    if (watchdog && !model.htif_done() && watchdog->pump()) {
+      fprintf(
+        stdout,
+        "FAILURE: the RoT watchdog bit and asserted the die reset after %" PRIu64
+        " external slow-clock ticks with %" PRIu64 " instructions retired\n",
+        watchdog->delivered(),
+        run_info.total_insns
+      );
+      exit(EXIT_FAILURE);
     }
 
     if (loop_detector->loop_detected()) {

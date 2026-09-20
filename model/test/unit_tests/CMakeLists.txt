@@ -24,6 +24,27 @@ add_test(NAME "block_payload_wrong_expected_byte"
     COMMAND $<TARGET_FILE:block_payload> --wrong-expected-byte)
 set_tests_properties(block_payload_wrong_expected_byte PROPERTIES WILL_FAIL TRUE)
 
+add_executable(watchdog_join "watchdog_join.cpp")
+target_link_libraries(watchdog_join PRIVATE riscv_model default_config)
+add_test(NAME "watchdog_join" COMMAND $<TARGET_FILE:watchdog_join>)
+
+# The two inverted expectations. These are registered by the assertion each one
+# must reach rather than with WILL_FAIL, which accepts any nonzero exit and so
+# would record a crash, or the usage error this harness returns for an
+# unrecognized argument, as the expected failure. PASS_REGULAR_EXPRESSION
+# requires the intended message, and FAIL_REGULAR_EXPRESSION refuses the success
+# line, so a run that both printed the message and claimed to pass is a failure.
+add_test(NAME "watchdog_join_retirement_bites"
+    COMMAND $<TARGET_FILE:watchdog_join> --negative-retirement-bites)
+set_tests_properties(watchdog_join_retirement_bites PROPERTIES
+    PASS_REGULAR_EXPRESSION "watchdog join: FAIL no external clock: retirement alone moved the watchdog"
+    FAIL_REGULAR_EXPRESSION "watchdog join: window=")
+add_test(NAME "watchdog_join_no_reset" COMMAND $<TARGET_FILE:watchdog_join> --negative-no-reset)
+set_tests_properties(watchdog_join_no_reset PROPERTIES
+    PASS_REGULAR_EXPRESSION
+        "watchdog join: FAIL stopped main clock: the bite did not assert the die reset with the core stopped"
+    FAIL_REGULAR_EXPRESSION "watchdog join: window=")
+
 add_executable(block_reset "block_reset.cpp")
 target_link_libraries(block_reset PRIVATE riscv_model default_config)
 add_test(NAME "block_reset" COMMAND $<TARGET_FILE:block_reset>)

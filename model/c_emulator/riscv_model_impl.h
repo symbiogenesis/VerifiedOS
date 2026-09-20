@@ -10,6 +10,7 @@
 
 #include "sail.h"
 #include "sail_riscv_model.h"
+#include "rot_slow_clock.h"
 
 struct MemoryRegion {
   uint64_t base = 0;
@@ -75,6 +76,11 @@ public:
 
   void tick_clock();
   bool try_step(int64_t step_no, bool exit_wait);
+
+  // The RoT watchdog and the die reset its bite asserts. The external slow
+  // clock that drives it is the host's (rot_slow_clock.h) and joins here
+  // rather than anywhere downstream of a retired instruction.
+  rot::watchdog_device &rot_watchdog() { return m_rot_watchdog; }
 
   int64_t xlen() const;
   int64_t physaddrbits_len() const;
@@ -167,6 +173,11 @@ private:
 
 
   bool m_enable_experimental_extensions = false;
+
+  // The generated class this wraps, behind the platform layer's watchdog
+  // interface. The derivation is private, so the adapter is constructed here
+  // where the conversion is in scope.
+  rot::model_watchdog m_rot_watchdog{*this};
 
   // Trace log file
   FILE *m_trace_log = stdout;

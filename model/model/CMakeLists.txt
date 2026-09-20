@@ -99,6 +99,13 @@ add_custom_command(
         --c-preserve init_boot_requirements
         --c-preserve try_step
         --c-preserve tick_clock
+        # The RoT watchdog's external slow-clock transition (sys/rot.sail,
+        # R-15-240). Its caller is the emulator's platform layer
+        # (c_emulator/rot_slow_clock.h) and no function in the model calls it,
+        # which is the whole point: a caller inside the model would make the
+        # timeout a function of retirement. Naming it here keeps the entry
+        # point from depending on a `$[test]` property holding it live.
+        --c-preserve watchdog_advance
         --c-preserve enable_htif
         --c-preserve set_pc_reset_address
         --c-preserve generate_dts

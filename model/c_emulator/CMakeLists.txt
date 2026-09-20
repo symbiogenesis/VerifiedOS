@@ -34,6 +34,8 @@ add_library(riscv_model
     riscv_platform_if.h
     riscv_model_impl.cpp
     riscv_model_impl.h
+    rot_slow_clock.cpp
+    rot_slow_clock.h
     riscv_softfloat.cpp
     riscv_softfloat.h
     config_utils.cpp

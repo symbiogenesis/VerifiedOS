@@ -30,6 +30,24 @@ struct CLIOptions {
   uint64_t insn_limit = 0;
   std::optional<uint64_t> stop_at_pc;
 
+  // Host nanoseconds per RoT slow-clock tick (R-15-240, R-15-196). Zero, the
+  // default, leaves the external clock absent and the watchdog unadvanced, so
+  // an ordinary run is unchanged. This is a host emulation fact and not a
+  // declared ratio between the two clocks: it reaches no configuration file and
+  // no attested devicetree node, exactly as the entropy seed does not.
+  //
+  // It carries no lower bound on purpose, because the useful period depends on
+  // the host and on the program: the emulator delivers ticks once per loop
+  // iteration, so a period for which the window's late bound is shorter than
+  // the host cost of a few emulated steps expires while the run is still
+  // starting, and the bite reports a retired count in the low single digits
+  // instead of a stalled core's. That is a true reading of a clock the core
+  // cannot outrun rather than a bug, but it is not a timeout, so the bite line
+  // prints the retired instruction count beside the tick count and a run
+  // meaning to observe a wedged core should choose a period whose late bound is
+  // longer than the program's own host running time.
+  uint64_t rot_slow_clock_ns = 0;
+
   std::string sig_file = {};
   unsigned signature_granularity = DEFAULT_SIGNATURE_GRANULARITY;
 
