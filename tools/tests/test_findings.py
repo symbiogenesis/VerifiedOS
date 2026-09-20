@@ -208,8 +208,8 @@ def _block_size_boundaries() -> None:
 
 
 def _log_headings() -> None:
-    # A section heading is two hashes and names no item; an entry is three or four,
-    # the fourth level being a child item of a split milestone.
+    # A section heading is two hashes and names no item; entries begin at three,
+    # with deeper headings for children of split milestones.
     log = _LOG.replace("### M2.1 ·", "#### M2.1 ·")
     read = findings.plan(_PLAN, log)
     ensure(read.log_items == {"M0.16", "M2.1", "Initial check/emit/FAST tooling"},
@@ -240,6 +240,20 @@ def _disagreements() -> None:
            "an absent register is one finding and not one per item")
     ensure(len(findings.disagreements(index, findings.plan("", _LOG))) == 1,
            "an absent plan is one finding too")
+
+
+def _nested_log_totality() -> None:
+    index = findings.parse(_REGISTER)
+    baseline = findings.disagreements(index, findings.plan(_PLAN, _LOG))
+    for depth in (4, 5, 6):
+        nested = _LOG.replace("### M0.16", "#" * depth + " M0.16")
+        found = findings.disagreements(index, findings.plan(_PLAN, nested))
+        ensure(found == baseline,
+               f"nested completion entry at depth {depth} disappeared: {found}")
+        extra = nested + "\n" + "#" * depth + " M1.2g-i · Unknown completion\n"
+        found = findings.disagreements(index, findings.plan(_PLAN, extra))
+        ensure(any("entry for M1.2g-i" in finding for finding in found),
+               "deeper entries are checked against landed items, not silently ignored")
 
 
 def _log_totality() -> None:
@@ -310,5 +324,6 @@ def cases() -> list[Case]:
         Case("log-headings", _log_headings),
         Case("disagreements", _disagreements),
         Case("log-totality", _log_totality),
+        Case("nested-log-totality", _nested_log_totality),
         Case("in-prose-is-not-counted", _in_prose_is_not_counted),
     ]

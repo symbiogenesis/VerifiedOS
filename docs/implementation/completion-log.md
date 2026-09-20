@@ -2512,6 +2512,60 @@ interfaces, not the open operational pilot or measured reclamation economics.
 
 Landed: Tier A. The technical acceptance and unavailable-actual accounting are reviewed judgments. The settled integration batch supplies the host validation; no repository rule replays the historical contained compiler campaign.
 
+##### M1.2g-i · Exercise inhabited capability-memory semantics
+
+Contained commit `4edef3bc2daa75e24c94abb9557c6ed28aa40495` satisfies the
+[inhabited-memory predicate](contracts/compiler-prerequisites.md#1-inhabited-capability-memory)
+with `test/verifiedos-m12g/`. Its generator reads the carrier width and constructs
+tagged, untagged and maximum-width metadata specimens over an actual allocated
+memory state. Stores are established through the real access decisions, never
+assumed. All four supported store/load chunk combinations preserve the complete
+value. Generated overlap, adjacent-write, restoration, misalignment, wrong-chunk
+and malformed/incomplete-fragment cases establish their explicit outcomes.
+An empty truncated encoding yields integer zero; other tested incomplete
+encodings yield `Vundef`. Neither yields a capability.
+
+The final run passes 429 propositions, recursive `coqchk`, and three deliberately
+false, well-typed equality controls, including a destructive byte write alleged
+to preserve a capability. Compilation takes 176.416 s, kernel checking 37.622 s,
+and the full qualification 215.873 s. The receipt's SHA256 is
+`e8099cb232686a80d8fa0bc971c46bb28bed8e2601108afed65a66cf94e2db7c`.
+The integrator checked its script hashes and 305 retained source hashes against
+the delivered tree. Generated proofs stay at
+`/root/build/lane-easy-m12g-20260920/acceptance`; logs stay at
+`/root/logs/carrier-acceptance-easy-m12g-20260920`.
+
+Four proposition audits are closed. The others use only the exact inherited
+baseline set: the `Archi.ptr64` parameter, `Classical_Prop.classic`,
+`FunctionalExtensionality.functional_extensionality_dep`, and
+`ClassicalDedekindReals.sig_not_dec` and `sig_forall_dec`. The target-specific
+statements quantify over `Archi.ptr64 = true`, whose runtime selection is bound
+to the RV64 extraction/configuration; no new axiom asserts it. The audit compares
+every proposition with the original memory/value APIs and rejects new or missing
+assumptions. No production compiler source, axiom or admitted proof is added.
+The immutable baseline's fresh proof, extraction and compiler build also pass.
+
+The unsupported-operation controls retain capability-valued address, pointer
+cast and arithmetic failures. M1.2g-ii and its d/f joins therefore retain source
+execution, emitted memory traffic and architectural Sail tag-clear refinement.
+Recorded actual: 0.7 h agent-parallel, approximately 31 minutes authoring,
+verification and repair rounded to 0.6 h, plus 0.1 h integration review; the
+reported initial six-minute scouting interval is excluded.
+
+The settled batch's host command is `python tools/run.py --check --tests --summary
+out/compiler-prerequisites-final-gates.json`. Its tested base is
+`a40f9e489ed50ee0bcfee080acf06b34489ada5f` with the uncommitted documentation batch
+in `docs/README.md`, this completion log and the implementation checklist,
+including generator-repaired arithmetic, plus the nested-heading reader repair
+in `tools/vos/findings.py` and its `tools/tests/test_findings.py` regression. The retained summary records each
+member's verdict. The tool changes are covered by the behavioral suite, mutation
+selftest and typecheck; the contained proof/kernel/oracle/build checks above are
+separate acceptance evidence. Full target execution remains with the open parent
+milestones, not a deferred check for these three qualification predicates.
+
+Landed: Tier A, by the integrator's full read of generated propositions, access
+proofs, inherited assumptions, destructive controls, receipts and scope limits.
+
 #### M1.2c · Author the permission lattice and the otype space
 
   * **Execute:** Read permissions and sentry roles from their Sail owners, generate comparison inputs and check the finite lattice before integration. Work beside g and e after b; avoid a second independently chosen permission vocabulary.
@@ -2522,6 +2576,75 @@ Landed: Tier A. The technical acceptance and unavailable-actual accounting are r
 **Closeout, 2026-09-15:** the helper authoring scope is complete on the accepted contained integration above, with M1.2b's accepted representation as its prerequisite. The model owners are unchanged from the accepted record at `b2acecfe` to reviewed tree `fbdd5cfd`. The historical midpoint 7 h, range 4–10, class X, is retained as estimated scope. Cumulative agent-session actual is `n/a`: no recovered receipt bounds the historical work. The retained estimate supplies no measured actual or calibration pair, and this review does not replace the missing time. A no-link jump admits either sentry; a linking call admits only a forward sentry. This is helper evidence, without an instruction-execution differential. Carrier, frame, narrowing-emission coverage and target integration retain their separate owners.
 
 Landed: Tier A. The helper acceptance is read against its model owners, and the settled integration batch supplies the host validation. No new contained compiler replay is claimed.
+
+##### M1.2d-i · Locate lost capability kinds and state the lowering prerequisites
+
+The [kind handoff](contracts/compiler-kind-handoff.md) satisfies the diagnostic
+predicate in the [prerequisite contract](contracts/compiler-prerequisites.md).
+Contained commit `f5a55d4cfa84b311a425d0c354e8a8439a3d33a6` retains the campaign
+under `test/verifiedos-m12d/`. It binds compiler source
+`cd1d3adbea95b9d7e1a25d335c4dd48e22435a6d`, the executable and configuration,
+source inputs, commands and outputs. Ten runs cover five source inputs at two
+optimization settings: eight compile, and two reproduce the first ninth-argument
+function's printer failure. The pointer ninth-argument printer is not separately
+executed. The integrator independently verified all 170 exported output hashes.
+
+The pointer-copy and integer-copy pair has distinct Clight types but identical
+Cminor signatures and bodies, then identical Mach bodies. Inspection locates the
+access-kind loss at Cshmgen's use of `Ctypes.access_mode` and the RV64 `Mptr`
+chunk. `Xptr` still survives extended signatures. Across-call pointer spills
+use scalar stores and loads. Nine refusal controls reject stale output,
+identity/source/configuration mismatches, missing or altered output, a changed
+copy-pair boundary and a lost signature distinction; the semantic controls
+refresh the output hash so that equality of digests cannot supply their verdict.
+
+The handoff assigns the source-value, typed-slot, authority, cast, primitive and
+plan-provenance joins to M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f. It preserves the
+scalar ABI and leaves the switcher protocol undecided. No emitted purecap
+program or target execution is claimed. The native diagnostic and refusal
+artifacts remain under `/root/build/lane-easy-m12d-20260920`.
+
+Recorded actual: 0.4 h agent-parallel, comprising the lane's approximately
+0.3 h authoring/verification and 0.1 h integrated review. Initial scouting is
+excluded. The shared host gate is recorded with M1.2g-i.
+Landed: Tier A, by a full read of the diagnostic, retained outputs, refusal
+checks and handoff against their acceptance contract.
+
+##### M1.2e-i · Check plan-relative narrowing requests
+
+Contained commit `1763baa14252d1e4fef96166eaa9446d54a18eaf` supplies
+`riscV/PlanNarrowing.v` and `test/verifiedos-m12e/` under the
+[prerequisite contract](contracts/compiler-prerequisites.md#3-plan-relative-narrowing-requests).
+The total decision checks the parent slot and derived granule, nonnegative
+byte fields, parent-granule multiples, containment and endpoint addressability.
+Four theorems establish its clause equivalence, explicit byte/granule
+correspondence, containment and exactness at every declared index, and the
+accepted helper's bounds round trip. All four assumption audits are closed;
+the generated receipt's dependency closure passes `coqchk`.
+
+The fresh campaign checks 53 requests, admitting 20 and refusing 33, and compares
+1,383 Sail observations, including 808 accepted-child observations and two
+inexact controls. Unique-index and complete-roster checks prevent vacuous
+agreement. Each of the eight exported MemoryPlan witness regions has an
+explicit granule/base-count/length-count check. The integrator and an independent
+peer verified all recorded source identities and reviewed the proof and driver.
+Finite witness agreement supplies no universal MemoryPlan or Sail refinement.
+
+Contained integration `c105b35` registers the module with the Makefile and
+extraction. Its incremental copy of the clean baseline passes `make depend`,
+`make -j2 proof`, `make extraction` and `make -j2 ccomp`; the extracted decision
+is present. `test/verifiedos-prerequisites-integration/` binds the three overlay
+sources, commands and logs. The inherited extraction opacity warning is retained
+in the log. Native integration products remain under
+`/root/build/compiler-prerequisites-integration-20260920`; the oracle and kernel
+campaign remains under `/root/build/lane-easy-m12e-20260920`.
+
+M1.2e-ii retains actual-plan membership, request provenance and nonempty coverage
+of every emitted narrowing; the parent milestone stays open. Recorded actual:
+0.6 h agent-parallel, the lane's 0.4 h plus 0.1 h independent review and 0.1 h
+integration review. The shared host gate is recorded with M1.2g-i.
+Landed: Tier A, by full integrator and independent reads of the proof, generator,
+source bindings and limitations against the qualification predicate.
 
 ### M1.4′ · Extend the in-tree assembler and composer to the emitted mix
 

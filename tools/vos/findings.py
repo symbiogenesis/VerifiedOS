@@ -81,7 +81,7 @@ _ITEM_RE = re.compile(r"^[^\S\r\n]*\* (?:\[(?P<box>[ x])\] |(?P<struck>~~))\*\*(
 # below the section it sits in and two below the log's own title, a child item of a
 # split milestone sitting one level below its parent. A section heading is two hashes
 # and is not an entry.
-_LOG_ITEM_RE = re.compile(r"^#{3,4} (?P<label>\S[^\r\n]*?)[ \t]*$")
+_LOG_ITEM_RE = re.compile(r"^#{3,6} (?P<label>\S[^\r\n]*?)[ \t]*$")
 # Longest first, so `Twenty-three` is read as itself rather than as a `Twenty` whose
 # alternative then fails on the hyphen and takes the block out of the reading with it.
 _BLOCK_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}(?P<word>"
