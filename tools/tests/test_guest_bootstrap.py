@@ -232,6 +232,9 @@ def _failed_retention_preserves_verdict() -> None:
         with (patch.object(bootstrap, "system_packages",
                            side_effect=subprocess.CalledProcessError(7, ("apt-get", "update"))),
               patch.object(bootstrap, "retain_logs", side_effect=OSError("copy failed")),
+              # Reading the real Windows platform with the environment cleared
+              # would cache an empty architecture for later modules in this worker.
+              patch.object(bootstrap.platform, "platform", return_value="fixture-host"),
               patch.object(bootstrap.env, "worker_jobs", return_value=4)):
             code = bootstrap.install(args, root, "fixture")
         record = json.loads((logs / "bootstrap.json").read_text(encoding="utf-8"))
