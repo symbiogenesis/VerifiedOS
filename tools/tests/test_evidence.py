@@ -17,7 +17,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
-from tests.harness import Case, ensure
+from tests.harness import Case, ensure, sandbox_tree
 from vos import env, receipts
 from vos.cli import evidence
 from vos.report import Reporter
@@ -36,7 +36,8 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
               receipt_error: Exception | None = None, changed_inputs: bool = False,
               changed_build: bool = False,
               proof_error: Exception | None = None,
-              lock_failed: str = "", changed_tools: bool = False
+              lock_failed: str = "", changed_tools: bool = False,
+              proof_output: str | None = None
               ) -> tuple[Reporter, str, list[str]]:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
         root = Path(temporary)
@@ -66,6 +67,7 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
         fake_model = SimpleNamespace(BUILD_INPUTS=("model",), verified_build=verify)
         verify_proofs = (Mock(side_effect=proof_error) if proof_error else
                          Mock(return_value={"sha256": "proof receipt",
+                                            "constants": 7,
                                             "receipt": {"outputs": {"proof.vo": "bytes"}}}))
         launched: list[str] = []
         proof_started = threading.Event()
@@ -82,9 +84,11 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
             elif member.name == "reference":
                 ensure(proof_started.wait(5), "the proof subprocess should already be running")
                 reference_finished.set()
+            stdout = proof_output if member.name == "proofs" and proof_output is not None else (
+                "" if member.name == absent else _OUTPUT[member.name])
             return evidence.Result(member.name, member.command,
                                    1 if member.name == failed else 0,
-                                   "" if member.name == absent else _OUTPUT[member.name],
+                                   stdout,
                                    "diagnostic\n" if member.name == failed else "", 0.01)
 
         out = root / "record.json"
@@ -156,6 +160,56 @@ def _changed_inputs_and_artifacts_invalidate_measurements() -> None:
         ensure(report.findings > 0 and record["measurements"] == {}
                and "=== exit evidence ===" not in report.out,
                "source or artifact changes after successful members invalidate the sweep")
+
+
+def _proof_receipt_is_an_output() -> None:
+    with sandbox_tree({"proofs/Theorem.v": "Theorem bytes\n",
+                       "proofs/proof-evidence.json": "old receipt\n",
+                       "proofs/README.md": "proof metadata\n"}) as root:
+        before = evidence._inputs(root)
+        receipt = root / "proofs/proof-evidence.json"
+        receipt.write_text("new receipt\n", encoding="utf-8")
+        ensure(evidence._inputs(root) == before,
+               "fresh proof publication must not invalidate the sweep's input manifest")
+        receipt.unlink()
+        ensure(evidence._inputs(root) == before,
+               "an absent output receipt must not be required as a source input")
+        for name in ("Theorem.v", "README.md"):
+            path = root / "proofs" / name
+            held = path.read_bytes()
+            path.write_bytes(b"changed proof input\n")
+            ensure(evidence._inputs(root) != before,
+                   f"excluding the receipt must still bind {name}")
+            path.write_bytes(held)
+        (root / "proofs/New.v").write_text("new proof\n", encoding="utf-8")
+        ensure(evidence._inputs(root) != before,
+               "new proof sources must still change the input manifest")
+
+
+def _reused_proofs_keep_their_measurement() -> None:
+    report, text, _ = _scenario(proof_output="ok: reused previous kernel evidence for 2 proof(s)\n")
+    record = json.loads(text)
+    ensure(report.findings == 0 and record["measurements"]["proof gate"] == "7",
+           "a validated reused proof inventory must supply the constant count")
+
+
+def _proof_measurement_counts_validated_inventory() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
+        root = Path(temporary)
+        path = root / "receipt.json"
+        receipts.write(path, {"artifacts": {"A.v": {"symbols": [1, 2]},
+                                           "B.v": {"symbols": [3]}}})
+        with path.open() as held:
+            validator = Mock()
+            fake_proofs = SimpleNamespace(workspace=lambda root: root,
+                                          _hold=lambda root: os.dup(held.fileno()),
+                                          _validate_receipt=validator,
+                                          receipt_path=lambda root: path)
+            with patch.object(evidence, "proofs_cli", fake_proofs):
+                record = evidence._proof_record(root)
+        validator.assert_called_once_with(root)
+        ensure(record["constants"] == 3 and record["sha256"] == receipts.digest(path),
+               "the proof measurement must count the full validated artifact inventory")
 
 
 def _missing_measurement_is_a_failure() -> None:
@@ -267,6 +321,9 @@ def cases() -> list[Case]:
         Case("build-failure-stops-consumers", _build_failure_stops_consumers),
         Case("missing-stale-receipts-stop-consumers", _missing_or_stale_receipt_stops_consumers),
         Case("changed-inputs-artifacts-invalidate", _changed_inputs_and_artifacts_invalidate_measurements),
+        Case("proof-receipt-is-an-output", _proof_receipt_is_an_output),
+        Case("reused-proofs-keep-measurement", _reused_proofs_keep_their_measurement),
+        Case("proof-measurement-counts-inventory", _proof_measurement_counts_validated_inventory),
         Case("missing-measurement-fails", _missing_measurement_is_a_failure),
         Case("changed-proof-outputs-invalidate", _changed_proof_outputs_invalidate_measurements),
         Case("lock-refusal-recorded", _lock_refusal_records_failure),

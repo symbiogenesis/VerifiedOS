@@ -94,7 +94,7 @@ def _ctest(log: Path) -> str:
     return f"{total} of {total}"
 
 
-def _figures(results: list[Result], log: Path) -> dict[str, str]:
+def _figures(results: list[Result], log: Path, proof: dict[str, object]) -> dict[str, str]:
     """Display measurements only after every producing process succeeded."""
     said = {result.name: result.stdout for result in results}
     fields: tuple[tuple[str, str, str], ...] = (
@@ -104,9 +104,8 @@ def _figures(results: list[Result], log: Path) -> dict[str, str]:
         ("differential corpus", "corpus", r"TOTAL pass=\d+ fail=\d+ of \d+"),
         ("corpus size", "reference", r"corpus\s+v\d+, \d+ members, \d+ checks, \d+ records"),
         ("devicetree", "devicetree", r"at (\d+) bytes"),
-        ("proof gate", "proofs", r"ok: (\d+) constant"),
     )
-    figures: dict[str, str] = {"ctest": _ctest(log)}
+    figures: dict[str, str] = {"ctest": _ctest(log), "proof gate": str(proof["constants"])}
     for label, member, pattern in fields:
         found = re.search(pattern, said.get(member, ""))
         if found is None:
@@ -121,10 +120,20 @@ def _proof_record(root: Path) -> dict[str, object]:
     try:
         proofs_cli._validate_receipt(root)
         path = proofs_cli.receipt_path(root)
-        return {"sha256": receipts.digest(path),
-                "receipt": json.loads(path.read_text(encoding="utf-8"))}
+        record = json.loads(path.read_text(encoding="utf-8"))
+        # A reused proof run reports reuse, not the fresh run's constant-count line.
+        # Both have the same validated native inventory.
+        constants = sum(len(artifact["symbols"]) for artifact in record["artifacts"].values())
+        return {"sha256": receipts.digest(path), "receipt": record, "constants": constants}
     finally:
         os.close(held)
+
+
+def _inputs(root: Path) -> dict[str, str]:
+    """Bind proof sources without treating the receipt they publish as an input."""
+    return receipts.inputs(root, *model_cli.BUILD_INPUTS,
+                           "proofs", "docs/requirements-register.md",
+                           f":(exclude){proofs_cli.RECEIPT}")
 
 
 def run(build: bool = True, out: Path | None = None) -> Reporter:
@@ -143,8 +152,7 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
     held: IO[str] | None = None
     try:
         held = env.hold_lock(e.lane_root / "exit-evidence", "an evidence sweep")
-        sources = receipts.inputs(e.root, *model_cli.BUILD_INPUTS,
-                                  "proofs", "docs/requirements-register.md")
+        sources = _inputs(e.root)
         consumer_tools = receipts.executables("dtc")
         if build:
             print(f"model build log: {e.log('model-build')}", flush=True)
@@ -165,12 +173,11 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
                     faults.append("the build identity changed during the sweep")
                 if not faults:
                     proof_record = _proof_record(e.root)
-                    figures = _figures(results, e.log("model-build"))
+                    figures = _figures(results, e.log("model-build"), proof_record)
             finally:
                 if lock is not None:
                     lock.close()
-        if receipts.inputs(e.root, *model_cli.BUILD_INPUTS,
-                           "proofs", "docs/requirements-register.md") != sources:
+        if _inputs(e.root) != sources:
             faults.append("the evidence inputs changed during the sweep")
         if receipts.executables("dtc") != consumer_tools:
             faults.append("the evidence consumer tools changed during the sweep")
