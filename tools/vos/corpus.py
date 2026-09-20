@@ -17,7 +17,7 @@ import bisect
 import os
 import re
 import subprocess
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -371,6 +371,55 @@ def staged_bytes(root: Path, path: str) -> bytes | None:
                           cwd=root, capture_output=True, check=False,
                           env=_git_environment(root))
     return proc.stdout if proc.returncode == 0 else None
+
+
+def staged_blobs(root: Path, paths: Iterable[str]) -> dict[str, bytes | None]:
+    """Read a batch of stage-zero blobs in one process, without retaining a cache.
+
+    Git's `cat-file --batch -Z` frames headers with NUL and contents by byte size.
+    Splitting the entire output on a delimiter would corrupt binary blobs. Explicit
+    stage zero also prevents an absent/conflicted path from resolving through HEAD.
+    Older Git versions without `-Z`, or another batch failure, retain the individual
+    reader's per-path decisions rather than turning every requested file into a miss.
+    """
+    requests = {path: f":0:{path}".encode() for path in paths}
+    if not requests:
+        return {}
+    if any(b"\0" in request for request in requests.values()):
+        raise ValueError("an indexed path cannot contain NUL")
+    proc = subprocess.run(
+        ["git", "cat-file", "--batch", "-Z"], cwd=root,
+        input=b"".join(request + b"\0" for request in requests.values()),
+        capture_output=True, check=False, env=_git_environment(root))
+    if proc.returncode != 0:
+        return {path: staged_bytes(root, path) for path in requests}
+    return _batch_blobs(proc.stdout, requests)
+
+
+def _batch_blobs(output: bytes, requests: dict[str, bytes]) -> dict[str, bytes | None]:
+    """Decode Git's byte-framed response, refusing incomplete or extra records."""
+    found: dict[str, bytes | None] = {}
+    cursor = 0
+    for path, request in requests.items():
+        end = output.find(b"\0", cursor)
+        if end < 0:
+            raise RuntimeError(f"git cat-file returned no complete header for {path}")
+        header = output[cursor:end]
+        cursor = end + 1
+        if header == request + b" missing" or header.endswith(b" submodule"):
+            found[path] = None
+            continue
+        fields = header.split()
+        if len(fields) != 3 or not fields[2].isdigit():
+            raise RuntimeError(f"git cat-file returned an invalid header for {path}")
+        end = cursor + int(fields[2])
+        if output[end:end + 1] != b"\0":
+            raise RuntimeError(f"git cat-file returned incomplete contents for {path}")
+        found[path] = output[cursor:end] if fields[1] == b"blob" else None
+        cursor = end + 1
+    if cursor != len(output):
+        raise RuntimeError("git cat-file returned unrequested contents")
+    return found
 
 
 def find_root(start: Path | None = None) -> Path:
