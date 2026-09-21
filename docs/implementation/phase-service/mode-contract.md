@@ -167,10 +167,14 @@ publishes, the actual schedule, instruction-stream and arbiter correspondence,
 whole-image WCET and physical area/power evidence, architectural ordering and
 visibility refinement, and qualified second-class service and timer-residency
 bounds (R-15-247m, R-07-040), is unchanged, this extension closing none of
-them. On a v2 declaration with more than one mode or any transition, `scope`
-reads `declared-mode-product-zero-wait-comparison`; a single-mode v2
-declaration and every v1 declaration keep
-`declared-single-mode-zero-wait-comparison`.
+them. The evaluator publishes that list for every declaration, each reason
+being true of a v1 join as well. On a v2 declaration with more than one mode
+or any transition, `phase-evaluate`'s `scope` reads
+`declared-mode-product-zero-wait-comparison` and `phase-schedule`'s reads
+`declared-mode-product-periodic-schedule`; a single-mode v2 declaration and
+every v1 declaration keep `declared-single-mode-zero-wait-comparison` and
+`declared-single-mode-periodic-schedule`, and `phase-schedule`'s `open_because`
+is unchanged for every schema.
 
 ## Cost join
 
@@ -214,9 +218,12 @@ declared refused; a final-phase write of mode A surviving the switch and
 blocking the first phase of mode B, `arrival-blocked` with the failure in B;
 mode B's refresh starting on a bank still occupied by mode A's write,
 `refresh-overlap` across the switch; a request issued in A over a nonzero path
-and finding its bank taken after the switch, `path-blocked`; a hart's two
-requests issued in mode A over unequal paths whose acceptance order inverts
-after the switch, `order-inverted` with the failure in B; a closed companion
+and finding its bank taken after the switch, `path-blocked`; a hart's request
+issued in mode A over a longer path and its next request issued in mode B's
+entry phase over a shorter path, `order-inverted` with the failure in B, an
+inversion between two requests both issued in A being detected at their
+arrival and attributed to A's continuation, which the exploration dequeues
+first; a closed companion
 whose switch point moves to the phase after which the carried state cannot
 conflict, closing with every declared transition taken; the single-mode
 regression; a completion inversion whose two operations of one hart issue in

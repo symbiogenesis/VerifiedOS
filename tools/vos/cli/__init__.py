@@ -135,7 +135,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("phase-service", "vos.cli.phase_service",
             "synthetic joint issue acceptance and frame-state closure for Q22e"),
     Command("phase-schedule", "vos.cli.phase_schedule",
-            "extract a finite phase contract from named schedule and resource inputs"),
+            "extract a finite phase contract or mode product from named schedule and resource inputs"),
     Command("phase-cost", "vos.cli.phase_cost",
             "compare declared workload, boundary, area and power cost intervals"),
     Command("phase-evaluate", "vos.cli.phase_evaluate",

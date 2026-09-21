@@ -38,7 +38,7 @@ Deletion requires all of the following clauses.
 | Preserve the architectural ordering contract | n/a | Refinement from the proposed ordered path to the current ordering, fence, exception and device rules, plus the register and absence-contract amendments the alternatives entry's disposition lists: the memory-model and fence requirements, the buffer and flush dependencies, the ISA-profile rows and an explicit §11 service obligation |
 | Represent every permitted joint arrival | `phase-schedule` resolves named banks, harts and operations into finite joint alternatives from digest-bound schedule and resource inputs | A sound extraction from the actual schedule, routes and instruction streams, including the RoT's independently serviced traffic |
 | Accept each joint arrival in one legal transition, or charge its wait | The phase-service checker rejects unavailable injection, conflicting bank use and occupied destinations | Qualified per-slot injection and issue limits and all applicable arbitration resources; lockstep partners are not extra requesters |
-| Carry resource state through frame wrap and close the reachable transition set | The checker explores phase, busy-bank and in-flight states from empty startup until closure | A justification that real startup and every permitted mode or schedule transition are covered by those initial states and transitions |
+| Carry resource state through frame wrap and close the reachable transition set | The checker explores phase, busy-bank and in-flight states from empty startup until closure; on a `phase-schedule-v2` declaration `phase-schedule` explores the product of declared modes, phases, occupancy and flights under the [mode-transition extension](../phase-service/mode-contract.md), each switch carrying boundary state unchanged | A justification that real startup and every permitted mode or schedule transition are covered by those initial states and declared transitions, and the actual instant, dwell and cost of a mode change |
 | Respect ordered arrival along the path | The checker detects within-hart order inversion and path contention | A correspondence between the finite paths and the actual fabric; queues, backpressure and shared resources absent from the model require an extended model |
 | Bound quiescent drain and switch saving | The optional completion analysis carries operations through bank occupancy and checks same-hart completion order; the cost evaluator distinguishes switch saving from net saving | The physical pipeline drain and bank completion bounds and their correspondence to modeled completion |
 | Meet every deadline with the candidate's extra stalls | `phase-cost` checks supplied per-slot and frame cost intervals, including stalls, with the platform boundary and residency charged once per declared switch and the context term a caller-declared part of `other` that the reader cannot count | Whole-image WCET soundness and schedule analysis using qualified costs, including the padded boundary in admission duty |
@@ -46,8 +46,9 @@ Deletion requires all of the following clauses.
 
 The synthetic checker is executable evidence about its finite contract. It is
 not a proof that an arbitrary RTL implementation, arrival language, or physical
-memory satisfies that contract. Unsupported modes must remain outside a
-positive receipt until their transitions and resources are represented.
+memory satisfies that contract. Declared mode transitions enter through the
+mode-transition extension; a mode change's actual instant, dwell and cost, and
+any field no instrument represents, remain outside a positive receipt.
 
 ## Reproducible phase contracts
 
@@ -57,12 +58,20 @@ Run an individual fixture with
 Paths below are relative to [phase-service/](../phase-service/).
 Exit 0 means closure for the supplied model; exit 1 means refutation; exit 2
 means an invalid or unreadable contract. Only `grants`, `arrivals`, `banks`,
-`refresh` and `paths` are supported; unknown fields are refused, including mode
-transitions the model cannot check. The receipt binds the composition's bytes
+`refresh` and `paths` are supported; unknown fields are refused, and declared
+mode transitions are read by `phase-schedule` from a `phase-schedule-v2`
+declaration, never by this reader. The receipt binds the composition's bytes
 and, for a supplied contract, the exact bytes parsed, by SHA-256. A failing trace
 reaches the earliest failing cycle; failures before that cycle's arrivals carry
 only the accepted prefix. The behavioral suite reads every tracked fixture:
-`python tools/run.py test --only phase_service`.
+`python tools/run.py test --only phase_service`. A second module,
+[test_phase_reference.py](../../../tools/tests/test_phase_reference.py), carries
+an independent bounded-horizon reference written from the documented
+conventions rather than from the checkers; it decides every tracked fixture and
+named scenario on its own before comparing both checkers against it on a seeded
+campaign of random contracts, and a deliberate one-convention perturbation of
+the reference is asserted to surface as a disagreement:
+`python tools/run.py test --only phase_reference`.
 
 | Refuted contract | Verdict | Closed companion contract |
 | --- | --- | --- |

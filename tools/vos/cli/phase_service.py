@@ -116,7 +116,8 @@ def open_because(flags: dict[str, Json]) -> list[str]:
 
 def _receipt(root: Path, flags: dict[str, Json], *, completion: bool = False) -> dict[str, Json]:
     sources = ("tools/vos/phase_service.py", "tools/vos/cli/phase_service.py",
-               "tools/tests/test_phase_service.py", CONFIG)
+               "tools/tests/test_phase_service.py", "tools/tests/test_phase_reference.py",
+               CONFIG)
     if completion:
         sources += ("tools/vos/phase_completion.py", "tools/tests/test_phase_completion.py")
     because: list[Json] = list(open_because(flags))
