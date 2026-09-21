@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/symbiogenesis/VerifiedOS/tools/sail-modular/report.schema.json",
+  "title": "Sail static-library qualification evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "verdict", "run", "limitations", "partitions", "methods", "declarations", "build_jobs", "compiler_cache", "identity", "manifest", "baseline_receipt", "suite_cases", "corpus", "stages", "artifacts"],
+  "properties": {
+    "schema": {"const": 1},
+    "verdict": {"const": "pass"},
+    "run": {"type": "string", "minLength": 1},
+    "limitations": {"type": "string", "minLength": 1},
+    "partitions": {"type": "integer", "minimum": 2, "maximum": 16},
+    "methods": {"type": "integer", "minimum": 2},
+    "declarations": {"type": "integer", "minimum": 3},
+    "build_jobs": {"type": "integer", "minimum": 1, "maximum": 4},
+    "compiler_cache": {"const": "disabled for both measured builds"},
+    "identity": {"type": "object"},
+    "manifest": {"$ref": "#/$defs/digests"},
+    "baseline_receipt": {"type": "object"},
+    "suite_cases": {"type": "integer", "minimum": 1},
+    "corpus": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/comparison"}},
+    "stages": {"type": "array", "minItems": 7, "items": {"$ref": "#/$defs/stage"}},
+    "artifacts": {"$ref": "#/$defs/digests"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "digests": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/digest"}},
+    "comparison": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "elf_sha256", "output_sha256", "records", "trace_digest"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "elf_sha256": {"$ref": "#/$defs/digest"},
+        "output_sha256": {"$ref": "#/$defs/digest"},
+        "trace_digest": {"$ref": "#/$defs/digest"},
+        "records": {"type": "integer", "minimum": 1}
+      }
+    },
+    "stage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "command", "exit_code", "wall_seconds", "log", "log_sha256", "user_seconds", "system_seconds", "peak_rss_kib"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "command": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "exit_code": {"const": 0},
+        "wall_seconds": {"type": "number", "minimum": 0},
+        "log": {"type": "string", "minLength": 1},
+        "log_sha256": {"$ref": "#/$defs/digest"},
+        "user_seconds": {"type": "number", "minimum": 0},
+        "system_seconds": {"type": "number", "minimum": 0},
+        "peak_rss_kib": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
