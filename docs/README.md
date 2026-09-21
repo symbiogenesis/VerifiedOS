@@ -86,6 +86,11 @@ arithmetic while target qualification remains open.
 The [boundary admission contract](implementation/phase-service/boundary-contract.md)
 resolves the second-class baseline and the complete timer residency that the
 cyclic executive must charge alongside platform and context costs.
+The [stalled-transition contract](implementation/phase-service/stall-contract.md)
+specifies the instrument that prices a candidate waiting at issue over declared
+per-hart programs, and the [mode-transition contract](implementation/phase-service/mode-contract.md)
+extends the finite phase model to declared global modes and their transitions;
+both leave target qualification open.
 The [roster measurement contract](implementation/contracts/roster-measurement.md)
 fixes the allocation-churn and ring-accounting analyzers' inputs and limits;
 the accepted composed roster supplies the eventual target measurements.
