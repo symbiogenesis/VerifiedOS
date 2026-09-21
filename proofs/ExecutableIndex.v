@@ -214,23 +214,6 @@ Proof.
     simpl in H. apply andb_true_iff in H as [ _ Hr ]. simpl. exact (IH r Hr).
 Qed.
 
-Lemma take_length_le :
-  forall (A : Type) (n : nat) (l : list A), length (take n l) <= n.
-Proof.
-  intros A n. induction n as [ | m IH ]; intros l; simpl.
-  - apply Nat.le_0_l.
-  - destruct l as [ | x r ]; simpl; [ apply Nat.le_0_l | ].
-    apply le_n_S. exact (IH r).
-Qed.
-
-Lemma drop_length :
-  forall (A : Type) (n : nat) (l : list A), length (drop n l) = length l - n.
-Proof.
-  intros A n. induction n as [ | m IH ]; intros l.
-  - simpl. rewrite Nat.sub_0_r. reflexivity.
-  - destruct l as [ | x r ]; simpl; [ reflexivity | exact (IH r) ].
-Qed.
-
 Lemma take_app_exact :
   forall (A : Type) (l r : list A) (n : nat), length l = n -> take n (l ++ r) = l.
 Proof.
@@ -267,9 +250,6 @@ Proof.
   - split; reflexivity.
   - split; [ lia | ]. simpl. apply le_n_S. exact IH1.
 Qed.
-
-Lemma halve_le : forall n : nat, halve n <= n.
-Proof. intros n. exact (proj1 (halve_bounds n)). Qed.
 
 Lemma halve_lt : forall n : nat, 0 < n -> halve n < n.
 Proof.
@@ -692,16 +672,6 @@ Definition insert_root (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
    Addresses, and the frame the append-only arena gives.
    ========================================================================= *)
 
-Lemma nth_error_lt :
-  forall (A : Type) (l : list A) (n : nat) (x : A),
-    nth_error l n = Some x -> n < length l.
-Proof.
-  intros A l. induction l as [ | y r IH ]; intros n x H.
-  - destruct n; discriminate H.
-  - destruct n as [ | m ]; simpl; [ lia | ].
-    simpl in H. apply IH in H. lia.
-Qed.
-
 Lemma nth_error_app_l :
   forall (A : Type) (l e : list A) (n : nat) (x : A),
     nth_error l n = Some x -> nth_error (app l e) n = Some x.
@@ -774,19 +744,6 @@ Proof.
   - destruct cs as [ | c ct ]; [ discriminate H | ].
     simpl in *. apply andb_true_iff in H as [ H1 H2 ].
     rewrite (Hm lo (Some s) c H1). exact (IH ct (Some s) hi Hm H2).
-Qed.
-
-Lemma chain_length :
-  forall (ka : KeyAlgebra) (r : Bound ka -> Bound ka -> nat -> bool)
-         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka),
-    chain ka r lo ss cs hi = true -> length cs = S (length ss).
-Proof.
-  intros ka r ss. induction ss as [ | s st IH ]; intros cs lo hi H.
-  - destruct cs as [ | c rest ]; [ discriminate H | ].
-    destruct rest as [ | y z ]; [ reflexivity | discriminate H ].
-  - destruct cs as [ | c ct ]; [ discriminate H | ].
-    simpl in H. apply andb_true_iff in H as [ _ H2 ].
-    simpl. rewrite (IH ct (Some s) hi H2). reflexivity.
 Qed.
 
 (* =========================================================================
@@ -902,9 +859,6 @@ Qed.
 Definition appended (ka : KeyAlgebra) (ar ar' : Arena ka) : Prop :=
   exists ext : Arena ka, ar' = app ar ext.
 
-Lemma appended_refl : forall (ka : KeyAlgebra) (ar : Arena ka), appended ka ar ar.
-Proof. intros ka ar. exists nil. rewrite app_nil_r. reflexivity. Qed.
-
 Lemma appended_trans :
   forall (ka : KeyAlgebra) (a b c : Arena ka),
     appended ka a b -> appended ka b c -> appended ka a c.
@@ -994,7 +948,7 @@ Proof.
       destruct (insert ka g ar f x k v) as [ [ ar1 [ a sp ] ] | ] eqn:E1;
         [ | discriminate H ].
       destruct (splice ka (route ka k (en_seps nd)) a sp (en_seps nd)
-                       (cons c cs)) as [ ss' cs' ] eqn:Esp.
+                       (cons c cs)) as [ ss' cs' ].
       apply (appended_trans ka ar ar1 ar').
       * exact (IH ar x k v ar1 (pair a sp) E1).
       * exact (publish_branch_appended ka g ar1 ss' cs' ar' gr H).
@@ -1082,20 +1036,6 @@ Proof.
   assert (Hba : key_leb ka b a = true)
     by (rewrite (key_eqb_true ka a c E); exact H2).
   rewrite (key_leb_antisym ka a b Hab Hba) in Hne. discriminate Hne.
-Qed.
-
-Lemma key_le_lt_trans :
-  forall (ka : KeyAlgebra) (a b c : Key ka),
-    key_leb ka a b = true -> key_lt ka b c = true -> key_lt ka a c = true.
-Proof.
-  intros ka a b c H1 H2. unfold key_lt in H2 |- *.
-  apply andb_true_iff in H2 as [ Hbc Hne ]. apply negb_true_iff in Hne.
-  apply andb_true_iff. split; [ exact (key_leb_trans ka a b c H1 Hbc) | ].
-  apply negb_true_iff. destruct (key_eqb ka a c) eqn:E; [ | reflexivity ].
-  assert (Hba : key_leb ka b a = true)
-    by (rewrite (key_eqb_true ka a c E); exact Hbc).
-  assert (Hab : a = b) by exact (key_eqb_true ka a b (key_leb_antisym ka a b H1 Hba)).
-  rewrite <- Hab in Hne. rewrite E in Hne. discriminate Hne.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -1270,7 +1210,7 @@ Lemma admitted_bounds :
     entries_within ka lo hi (flatten ka ar fuel b) = true.
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar lo hi b H;
-    simpl in H |- *; destruct (nth_error ar b) as [ nd | ] eqn:E;
+    simpl in H |- *; destruct (nth_error ar b) as [ nd | ];
     try discriminate H; apply andb_true_iff in H as [ _ H ].
   - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
     apply andb_true_iff in H as [ _ H ]. exact H.
@@ -1354,7 +1294,7 @@ Theorem lookup_answers_the_logical_map :
     lookup ka ar fuel b k = look ka k (flatten ka ar fuel b).
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar lo hi b k H Hw;
-    simpl in H |- *; destruct (nth_error ar b) as [ nd | ] eqn:E;
+    simpl in H |- *; destruct (nth_error ar b) as [ nd | ];
     try discriminate H; apply andb_true_iff in H as [ _ H ].
   - destruct (en_kids nd) as [ | c cs ]; [ reflexivity | discriminate H ].
   - destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
@@ -1447,7 +1387,7 @@ Proof.
       exact (spans_of_leaf ka ar1 fuel a0 ix
                (alloc_node ka g ar (leaf_of ka ix) a0 ar1 E1)).
     + intros s r Hc. rewrite <- H3 in Hc. discriminate Hc.
-  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s0 | ] eqn:Es;
+  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s0 | ];
       [ | discriminate H ].
     destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
       as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
@@ -1487,7 +1427,7 @@ Proof.
       rewrite He. apply (all_of_mono nat (spans ka ar f) (spans ka (app ar ext) f));
         [ intros x Hx; exact (spans_frame ka f ar ext x Hx) | exact Hcs ].
     + intros s r Hc. rewrite <- H3 in Hc. discriminate Hc.
-  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ] eqn:Es;
+  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ];
       [ | discriminate H ].
     destruct (alloc ka g ar
                 (branch_of ka (take (Nat.pred (halve (length cs))) ss)
@@ -1552,7 +1492,7 @@ Lemma an_insert_publishes_spanning_nodes :
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ];
     intros ar b k v ar' a sp Hs H; simpl in Hs, H;
-    destruct (nth_error ar b) as [ nd | ] eqn:E; try discriminate H.
+    destruct (nth_error ar b) as [ nd | ]; try discriminate H.
   - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
     exact (publish_leaf_spans ka g ar _ ar' a sp 0 H).
   - destruct (en_kids nd) as [ | c cs ].
@@ -1614,7 +1554,7 @@ Proof.
     rewrite flatten_grown_one.
     exact (flatten_of_leaf ka ar1 fuel a0 ix
              (alloc_node ka g ar (leaf_of ka ix) a0 ar1 E1)).
-  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s0 | ] eqn:Es;
+  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s0 | ];
       [ | discriminate H ].
     destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
       as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
@@ -1656,7 +1596,7 @@ Proof.
     exact (flat_map_agree nat (prod (Key ka) nat)
              (flatten ka (app ar ext) f) (flatten ka ar f)
              (spans ka ar f) cs Hcs (fun x Hx => flatten_frame ka f ar ext x Hx)).
-  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ] eqn:Es;
+  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ];
       [ | discriminate H ].
     destruct (alloc ka g ar
                 (branch_of ka (take (Nat.pred (halve (length cs))) ss)
@@ -1720,7 +1660,7 @@ Proof.
   intros ka g fuel. induction fuel as [ | f IH ];
     intros ar lo hi b k v ar' gr Hadm Hw H;
     simpl in Hadm, H |- *;
-    destruct (nth_error ar b) as [ nd | ] eqn:E; try discriminate H;
+    destruct (nth_error ar b) as [ nd | ]; try discriminate H;
     apply andb_true_iff in Hadm as [ _ Hadm ].
   - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
     exact (publish_leaf_flattens ka g ar _ ar' gr 0 H).
@@ -1832,13 +1772,13 @@ Theorem a_checked_insert_publishes_an_admitted_result :
     /\ insert ka g ar fuel b k v = Some (pair ar' gr).
 Proof.
   intros ka g fuel ar lo hi b k v ar' gr H. unfold insert_checked in H.
-  destruct (insert ka g ar fuel b k v) as [ [ ar1 gr1 ] | ] eqn:E1;
+  destruct (insert ka g ar fuel b k v) as [ [ ar1 gr1 ] | ];
     [ | discriminate H ].
   destruct (andb (arena_ok ka g ar1) (admitted_grown ka g ar1 fuel lo hi gr1))
     eqn:E2; [ | discriminate H ].
   injection H as H1 H2. apply andb_true_iff in E2 as [ EA EB ].
-  rewrite <- H1. rewrite <- H2. split; [ exact EA | split; [ exact EB | ] ].
-  reflexivity.
+  rewrite <- H1. rewrite <- H2.
+  split; [ exact EA | split; [ exact EB | reflexivity ] ].
 Qed.
 
 Lemma look_grown_agrees :
@@ -2024,7 +1964,7 @@ Theorem an_admitted_tree_fits_everywhere :
     node_fits_everywhere ka g ar fuel b = true.
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar lo hi b H;
-    simpl in H |- *; destruct (nth_error ar b) as [ nd | ] eqn:E;
+    simpl in H |- *; destruct (nth_error ar b) as [ nd | ];
     try discriminate H; apply andb_true_iff in H as [ Hf H ];
     apply andb_true_iff; split; try exact Hf.
   - destruct (en_kids nd) as [ | c cs ]; [ reflexivity | discriminate H ].
@@ -2085,7 +2025,7 @@ Lemma at_depth_spans :
     at_depth ka ar d b = true -> spans ka ar d b = true.
 Proof.
   intros ka ar d. induction d as [ | e IH ]; intros b H; simpl in H |- *;
-    destruct (nth_error ar b) as [ nd | ] eqn:E; try discriminate H.
+    destruct (nth_error ar b) as [ nd | ]; try discriminate H.
   - destruct (en_kids nd) as [ | c cs ]; [ reflexivity | discriminate H ].
   - destruct (en_kids nd) as [ | c cs ]; [ discriminate H | ].
     apply (all_of_mono nat (at_depth ka ar e) (spans ka ar e));
@@ -2172,7 +2112,7 @@ Proof.
       exact (at_depth_of_leaf ka ar1 a0 ix
                (alloc_node ka g ar (leaf_of ka ix) a0 ar1 E1)).
     + intros s r Hc. rewrite <- H3 in Hc. discriminate Hc.
-  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s0 | ] eqn:Es;
+  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s0 | ];
       [ | discriminate H ].
     destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
       as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
@@ -2219,7 +2159,7 @@ Proof.
   - assert (Hlen : 1 < length cs).
     { apply Nat.leb_gt in Eb. unfold geometry_ok in Hg.
       apply andb_true_iff in Hg as [ Hf _ ]. apply Nat.leb_le in Hf. lia. }
-    destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ] eqn:Es;
+    destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ];
       [ | discriminate H ].
     destruct (alloc ka g ar
                 (branch_of ka (take (Nat.pred (halve (length cs))) ss)
