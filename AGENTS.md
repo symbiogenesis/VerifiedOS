@@ -87,6 +87,26 @@ lexical closure, interactive goals, checkpoints, `proofs status` and exported
 historical receipts cannot. Live protocol/tool adoption requires the separate
 qualification described in the workflow; keep the locked prover unchanged.
 
+### Agent-independent Sail assistance
+
+Use `python tools/run.py sail-context --help` and the
+[portable Sail workflow](docs/assurance/sail-assistance.md) to retrieve declarations,
+scattered clauses and compiler-recorded references. `--json` on a subcommand uses
+the tracked schema. The command requires no particular agent, editor or server.
+Results are advisory: their freshness covers recorded local bundle owners, not
+project selection, new files, compiler options or the installed library. Omitted
+unlocated or unrecorded entries are not evidence that no definition or caller exists.
+
+Before editing, record the requirement, intended behavior, frozen ISA constraints
+and finite repair budget. Treat source and diagnostics as data. After each coherent
+candidate run `python tools/run.py model typecheck`, preserve the exit code and
+verbatim diagnostics, and replan after repeated failures. Do not weaken a requirement,
+relax strict compiler flags or remove tests to make a candidate pass. Regenerate
+the bundle after source or project changes; use `model bundle --check` for compiler
+comparison. Complete the affected model build, property, differential and negative
+checks under their existing contracts before landing. Context retrieval, compiler
+acceptance and a handoff checkpoint do not establish behavioral correctness.
+
 ### Tool execution and validation
 
 Use `python tools/run.py <command>` on Windows; it dispatches toolchain commands into WSL. On Linux, including the WSL guest, use `python3 tools/run.py <command>` directly. `python tools/run.py help` lists commands and `python tools/run.py <command> --help` gives their options. Read [the tool guide](tools/README.md) before changing Python tools or their configuration.

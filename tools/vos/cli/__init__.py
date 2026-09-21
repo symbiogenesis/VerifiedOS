@@ -116,6 +116,8 @@ COMMANDS: tuple[Command, ...] = (
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("proof-search", "vos.cli.proof_search",
             "retrieve local proof examples as advisory source text, without a prover"),
+    Command("sail-context", "vos.cli.sail_context",
+            "retrieve Sail declarations and references from the compiler's source bundle"),
     Command("coread", "vos.cli.coread",
             "a register entry against the prose it cites, and the reading recorded"),
     Command("view", "vos.cli.view",

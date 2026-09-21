@@ -542,6 +542,29 @@ required notices if source is copied, and record actual installation/distributio
 and the pinned dependency closure here. A permissive grant does not qualify a
 protocol, cache or assumption policy.
 
+### Sail agent assistance references
+
+The [portable Sail workflow](docs/assurance/sail-assistance.md) exposes the existing
+compiler documentation bundle and adapts the repository's bounded repair workflow.
+Its new Python, schema and instructions are authored here under the path-based
+licenses. This delivery copies no upstream implementation, installs no additional
+package and adds no gitlink. The compiler and curated model retain their existing
+pins and licensing records. These are source readings from 2026-09-21, not added
+runtime dependencies.
+
+| Reference | Selected reading and license instrument | Disposition |
+| --- | --- | --- |
+| Locked Sail 0.20.2 | [3b7af38d LICENSE](https://github.com/rems-project/sail/blob/3b7af38d66466ecadad563158b07ce2f82fe05da/LICENSE), BSD-2-Clause with its stated third-party exceptions | Consume the already tracked documentation bundle through the existing reader; no emitter code is copied. |
+| Current Sail and native LSP | [ce60ba57 LICENSE](https://github.com/rems-project/sail/blob/ce60ba570b4402a42431bc5033145d9aeb327f20/LICENSE), BSD-2-Clause; third-party inventory and server source headers also read | The standard protocol is a future integration candidate. No compiler upgrade, server or LSP dependency is installed. |
+| Current RISC-V model | [8890da78 LICENCE](https://github.com/riscv/sail-riscv/blob/8890da780108672e05cf87b6d119bf6a76113fbf/LICENCE), BSD-2-Clause with its dependency exclusions | Read source modules and the C++ generation recipe; no code or pin change. |
+| Modular SAIL experiment | [aa8cb46a LICENCE](https://github.com/imec-csa/sail-riscv/blob/aa8cb46a9284b30b537bcd803cd163d5517f2e2e/LICENCE), BSD-2-Clause with its stated exclusions; [paper v1](https://arxiv.org/abs/2507.12471v1) | Defer generated-C rewriting and extension loading. The paper is a research reference, not a software license. No scripts, patches or loader code are copied. |
+| Isla | [bf1a42f8 LICENSE](https://github.com/rems-project/isla/blob/bf1a42f8a6097089fba4810fccc73dcc640267ab/LICENSE), BSD-2-Clause; third-party exception inventory read | Symbolic exploration remains a separately qualified toolchain option; no installation. |
+| Isla test generation | [ee2d7efc LICENSE](https://github.com/rems-project/isla-testgen/blob/ee2d7efcec993fdb364bd74788b4fd39e857d151/LICENSE), BSD-2-Clause | Read as a future test-generation route; no generator, model adaptation or dependency is incorporated. |
+
+Future copying or installation needs a new reading of the selected files and their
+actual dependency closure. These readings grant no blanket permission over the
+exceptions each license names and establish no compatibility or correctness claim.
+
 ### Candidates whose terms decide a consumer
 
 An upstream's license is read at the milestone that would incorporate it, never at release. [COPYRIGHT.md](COPYRIGHT.md#terms-this-tree-does-not-carry) states that rule as what preserves this tree's freedom from reciprocal and non-commercial terms; this section records its other half, which candidate's terms decide which consumer and what that consumer would have to open. No reading here is performed in advance of its milestone, no row of the tables above moves, and nothing is incorporated, pinned, vendored, or fetched by this record. A terms cell states the shape of the grant and cites the artifact that read it; the reading itself stays with its owner. The last column states what remains owed even where an identifier is already known, because the identifiers this table does cite were read at branch tips and a reading at a branch tip is not a reading at a revision; the rows citing no license file at all owe a first reading rather than a re-reading. Consumers are open cells of the [implementation plan](docs/implementation/implementation-checklist.md); the certified-search rows reach theirs through the arm that plan's Q27a records, so a different arm moves their consumer and not their terms.

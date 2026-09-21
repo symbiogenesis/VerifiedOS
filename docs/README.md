@@ -127,6 +127,8 @@ The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
 The [portable proof workflow](assurance/proof-assistance.md) documents local example
 retrieval, bounded repair checkpoints and the unchanged proof-acceptance boundary.
+The [portable Sail workflow](assurance/sail-assistance.md) exposes compiler-produced
+context, a bounded edit loop, and the upstream LSP and modular-emulator decisions.
 
 The independent prerequisite batch adds a [schedule record](implementation/contracts/schedule-record.md),
 [device-register declarations](implementation/contracts/device-registers.md),
