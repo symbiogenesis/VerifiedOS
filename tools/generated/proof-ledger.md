@@ -140,6 +140,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-077a | proofs/Keccak.v | n/a | cited |
 | R-05-077a | proofs/RomVerifier.v | n/a | cited |
 | R-05-077a | proofs/Sha256.v | n/a | cited |
+| R-05-083 | proofs/DeviceRegisters.v | n/a | cited |
 | R-05-086 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-087 | proofs/MModeFirmware.v | the_firmware_holds_only_planned_authority | claimed |
 | R-05-091 | proofs/MModeFirmware.v | n/a | cited |
@@ -156,6 +157,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-126b | proofs/AesGcm.v | n/a | cited |
 | R-05-135a | proofs/AdmissionPath.v | n/a | cited |
 | R-05-135b | proofs/AdmissionPath.v | n/a | cited |
+| R-05-138 | proofs/DeviceRegisters.v | n/a | cited |
 | R-05-150 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-150 | proofs/TwoSourceExtractor.v | n/a | cited |
 | R-05-150 | proofs/WitnessContinuity.v | n/a | cited |
@@ -303,6 +305,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/ProbingModel.v | the_constant_gadget_satisfies_all_three_notions | claimed |
 | R-05-165 | proofs/RomVerifier.v | n/a | cited |
 | R-05-165 | proofs/RotFirmware.v | n/a | cited |
+| R-05-165 | proofs/ScheduleRecord.v | n/a | cited |
 | R-05-165 | proofs/SeamWitnesses.v | seam_lemmas_inhabitation | claimed |
 | R-05-165 | proofs/SeamWitnesses.v | substrate_and_tower_inhabitation | claimed |
 | R-05-165 | proofs/SeamWitnesses.v | composition_meta_lemma_inhabitation | claimed |
@@ -381,6 +384,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/ProbingModel.v | copy_gadget_refutes_sni | claimed |
 | R-05-166 | proofs/RomVerifier.v | n/a | cited |
 | R-05-166 | proofs/RotFirmware.v | n/a | cited |
+| R-05-166 | proofs/ScheduleRecord.v | n/a | cited |
 | R-05-166 | proofs/SeamWitnesses.v | seam_lemmas_inhabitation | claimed |
 | R-05-166 | proofs/SeamWitnesses.v | substrate_and_tower_inhabitation | claimed |
 | R-05-166 | proofs/SeamWitnesses.v | composition_meta_lemma_inhabitation | claimed |
@@ -1005,6 +1009,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-006 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-11-006 | proofs/KernelInstance.v | n/a | cited |
 | R-11-006 | proofs/MemoryPlan.v | n/a | cited |
+| R-11-006 | proofs/ScheduleRecord.v | n/a | cited |
 | R-11-006 | proofs/SupervisionTree.v | n/a | cited |
 | R-11-006b | proofs/CyclicExecutive.v | n/a | cited |
 | R-11-006b | proofs/PartitionContext.v | n/a | cited |
@@ -1032,6 +1037,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-017 | proofs/CyclicExecutive.v | n/a | cited |
 | R-11-017 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-11-017 | proofs/RotFirmware.v | n/a | cited |
+| R-11-017 | proofs/ScheduleRecord.v | n/a | cited |
 | R-11-017a | proofs/EnsembleSchedule.v | an_admitted_emission_agrees_on_every_link | claimed |
 | R-11-017a | proofs/EnsembleSchedule.v | an_admitted_emission_meets_the_guard_floor | claimed |
 | R-11-017a | proofs/EnsembleSchedule.v | an_admitted_follower_leaps_after_the_verifying_slot | claimed |
@@ -1040,6 +1046,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-017a | proofs/EnsembleSchedule.v | the_link_hop_term_is_derived | claimed |
 | R-11-017a | proofs/EnsembleSchedule.v | on_the_declared_arm_the_cadence_check_is_independent | claimed |
 | R-11-017a | proofs/EnsembleSchedule.v | the_scopes_differ_only_on_a_link_the_composer_refuses | claimed |
+| R-11-018 | proofs/ScheduleRecord.v | n/a | cited |
 | R-11-018 | proofs/WorkflowProfiles.v | n/a | cited |
 | R-11-018a | proofs/WorkflowProfiles.v | n/a | cited |
 | R-11-020 | proofs/CyclicExecutive.v | reserved_band_discharged_once | claimed |
@@ -1314,6 +1321,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-14-015 | proofs/MemoryPlan.v | the_register_placement_admits_every_population_a_promotion_admits | claimed |
 | R-15-001b | proofs/KernelInstance.v | n/a | cited |
 | R-15-001b | proofs/PartitionContext.v | n/a | cited |
+| R-15-002b | proofs/DeviceRegisters.v | n/a | cited |
 | R-15-003 | proofs/MModeFirmware.v | n/a | cited |
 | R-15-005 | proofs/KernelInstance.v | n/a | cited |
 | R-15-007 | proofs/EndpointIPC.v | n/a | cited |

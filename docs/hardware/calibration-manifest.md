@@ -2,7 +2,7 @@
 
 <!-- Generated from interfaces/calibration-schema.json by vos.calibration; repair with python tools/run.py check --fix. -->
 
-This unpopulated schema is U-07's prerequisite under [the implementation checklist](../implementation/implementation-checklist.md). It supplies field classes and the device-tree digest slot. It contains no trim values, certified magnitudes or admitted manifest.
+This unpopulated schema is U-07's prerequisite under [the implementation checklist](../implementation/implementation-checklist.md). It supplies field classes and reserves the device-tree digest binding. It contains no trim values, certified magnitudes or admitted manifest.
 
 | Field class | Ceiling owner | Physical qualification owner | Required containment | Required evidence |
 | --- | --- | --- | --- | --- |

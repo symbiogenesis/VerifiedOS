@@ -40,7 +40,7 @@ A second instrument stands behind the rows themselves. [run.py selftest](vos/cli
 | K-23 | confers | every candidate the judgment vocabulary catches is conferred, collected, or dispositioned by name | R-17-016, R-17-030r, R-10-013a |
 | K-24 | counts | every asserted count agrees with the artifact it derives from | R-18-034 |
 | K-25 | counts | every crown-jewel status is in one of the three declared classes | R-17-016a, R-18-034 |
-| K-26 | counts | no counted figure is restated where no claim holds it | R-18-034 The noun must start at a word boundary and belong to the same punctuation-delimited clause within the existing window; a repaired defect is not a pair count, and a later clause cannot make an unrelated historical number a crown-jewel count. |
+| K-26 | counts | no counted figure is restated where no claim holds it | R-18-034 The noun must start at a word boundary and belong to the same punctuation-delimited clause within the existing window; a repaired defect is not a pair count, and a later clause cannot make an unrelated historical number a crown-jewel count. A numeral that matches only crown-jewel quantities also requires an inventory subject; an unrelated proof obligation count is not a restatement of that inventory. |
 | K-27 | counts | the register's Coverage table carries one row per section | R-05-152 |
 | K-28 | counts | every Coverage row's count matches the register | R-05-152 |
 | K-29 | views | every row of the profile's CSR bank cites the requirement admitting or excluding it | R-15-001a, R-15-001b |

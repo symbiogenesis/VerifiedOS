@@ -86,7 +86,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos import cli, device_regs, env, provenance, receipts, rtl_width, sailrig, socmap
+from vos import (
+    cli,
+    device_registers,
+    device_regs,
+    env,
+    provenance,
+    receipts,
+    rtl_width,
+    sailrig,
+    socmap,
+)
 from vos.corpus import find_root
 
 # The release is built from its verified archive into a versioned project prefix.
@@ -138,6 +148,7 @@ AUTHORED: tuple[str, ...] = (
 GENERATED: tuple[str, ...] = (
     socmap.ARTIFACT,
     device_regs.ARTIFACT,
+    device_registers.RTL_ARTIFACT,
 )
 
 # What `lint` compiles, in the order a compiler must see it.

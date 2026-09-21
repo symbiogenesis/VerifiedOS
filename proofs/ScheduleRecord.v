@@ -1,5 +1,8 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* R-11-006, R-11-017 and R-11-018: the shared schedule statement.
+(* =========================================================================
+   ScheduleRecord.v
+
+   R-11-006, R-11-017 and R-11-018: the shared schedule statement.
    This extends CyclicExecutive's Frame without changing its consumers.
    Every duration is in the composition's common spine-time unit. Bounds,
    the finite operating-point catalog and its speed order are inputs, not
@@ -19,7 +22,13 @@
    mode transition. No theorem here claims that full requirement discharged.
 
    R-05-165 and R-05-166: closed record witnesses and executable accepted
-   and rejected instances follow. No timing measurement is asserted. *)
+   and rejected instances follow. No timing measurement is asserted.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-165 R-05-166 R-11-006 R-11-017 R-11-018
+   SHA256: f9f034c1b7e50ef72f9a62e13fb6bb15fbcdbdbf125cf1753c8f481bca1240e5
+   (*| END derived |*)
+   ========================================================================= *)
 
 Require Import CyclicExecutive.
 Require Import EnsembleSchedule.

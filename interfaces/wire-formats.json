@@ -801,9 +801,11 @@
       "descriptor": "absent",
       "transcription": "none authored",
       "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
-      "evidence": "The calibration schema is owned by U-07; its hardware validity and signed-envelope consumers remain separate from the absent Narcissus descriptor and canonical byte codec.",
+      "evidence": "S31d supplies unpopulated field classes and a digest binding; no concrete wire descriptor, parser, canonical serializer or authenticated manifest is present.",
       "references": [
-        "docs/requirements-register.md"
+        "docs/requirements-register.md",
+        "docs/hardware/calibration-manifest.md",
+        "interfaces/calibration-schema.json"
       ],
       "members_from": null
     },
