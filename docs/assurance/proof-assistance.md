@@ -54,9 +54,10 @@ python tools/run.py proof-search --requirement R-05-124 --exclude proofs/CopyRin
 python tools/run.py proofs headers --show proofs/CopyRingService.v
 ```
 
-The query matches lexical words in declaration names, statements and scripts;
-tactic filters select code tokens and requirement filters select authored
-file-level citations. Repeated filters narrow the results. Exclude the complete
+The query matches any supplied lexical word in declaration names, statements and
+scripts; tactic filters select script code tokens and requirement filters select
+authored file-level citations. Repeated tactic or requirement filters require all
+their terms and narrow the results. Exclude the complete
 target file when selecting independent examples. A declaration's location, not
 its short name alone, distinguishes same-named declarations in different modules.
 Ranking is a navigation heuristic, not RocqStar's trained similarity model.
@@ -85,7 +86,7 @@ Gallina or discover a transitive axiom closure.
 1. Select the requirement and exact declaration. Read its definitions, hypotheses,
    dependency context and requirement text. Save the base commit, source hash,
    statement and allowed assumptions in the checkpoint. Review non-vacuity before
-   searching. Declare the attempt and wall-time budgets before the first try.
+   searching. Declare the attempt and active-repair-time budgets before the first try.
 2. Retrieve a few examples by goal vocabulary, a likely tactic and applicable
    requirement IDs. Read the examples' full context; a matching short name or
    requirement citation is insufficient. Record which strategy each example
@@ -111,8 +112,10 @@ Gallina or discover a transitive axiom closure.
    normal Host CI and commit rules for the settled change.
 
 The retry numbers are operating limits, not measurements of the best search policy.
-Commands with a long legitimate kernel pass keep their ordinary completion wait;
-the active-repair budget does not authorize terminating unrelated shared jobs.
+Active repair time includes candidate editing and candidate-check waits; record the
+final full acceptance pass separately. Once the budget expires, finish the running
+check and start no further candidate. A long legitimate kernel pass keeps its
+ordinary completion wait; this budget does not authorize terminating unrelated jobs.
 No tool enforces this manual planning journal. The proof gate enforces acceptance.
 
 A minimal checkpoint is ordinary UTF-8 JSON with these fields; replace the example
@@ -148,9 +151,11 @@ Each attempt records its ordinal, source hash, strategy, command arguments, exit
 code, elapsed seconds and diagnostic or durable log path. Status is `in-progress`,
 `candidate` or `stopped`; none means accepted. The batch-evidence field may link an
 actual fresh gate receipt and revision after success, but the checkpoint itself
-never substitutes for that evidence. If the statement, definitions, imports,
-configuration or toolchain changes, refresh the frozen context and replay before
-using old feedback. Search hashes alone cannot establish this freshness.
+never substitutes for that evidence. Statement or definition changes require the
+owner's contract review and a new checkpoint; they cannot turn a failed repair
+into a success. Import, configuration or toolchain changes invalidate old feedback
+and require a new environment identity and replay. Search hashes alone cannot
+establish this freshness.
 
 ## Adoption and further qualification
 
