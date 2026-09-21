@@ -5,7 +5,9 @@ This contract supplies the reset-to-installation authority needed to construct
 mixed handle arguments of the [purecap ABI](purecap-abi.md#4-calls-and-returns).
 It specifies a prerequisite of M1.2d-ii and M1.2g-ii. Executable measured boot,
 the authenticated installation producer and their system joins remain M3.5's
-obligations. The existing reset model does not yet implement this contract.
+obligations. The reset model supplies the two object-type grants below; the
+compiler prerequisite also requires the installation and execution evidence in
+section 3.
 
 ## 1. Authority classes and existing state
 
