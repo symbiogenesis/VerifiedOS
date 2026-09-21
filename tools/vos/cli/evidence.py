@@ -26,7 +26,8 @@ from vos.cli import proofs as proofs_cli
 from vos.report import Reporter
 
 HEADING = "=== evidence: the exit-evidence sweep over the curated model ==="
-_CTEST_RE = re.compile(r"(\d+)% tests passed, (\d+) tests failed out of (\d+)")
+# Newer CTest omits the failed-test clause when every test passes.
+_CTEST_RE = re.compile(r"(\d+)% tests passed(?:, (\d+) tests failed)? out of (\d+)")
 
 
 @dataclass(frozen=True)
@@ -88,7 +89,7 @@ def _ctest(log: Path) -> str:
     if not matches or not text.rstrip().endswith("ALL_DONE"):
         raise ValueError("the verified build log carries no complete ctest result")
     found = matches[-1]
-    percentage, failed, total = map(int, found.groups())
+    percentage, failed, total = map(int, found.groups(default="0"))
     if percentage != 100 or failed or total == 0:
         raise ValueError("the build's ctest result is empty or failing")
     return f"{total} of {total}"

@@ -37,7 +37,8 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
               changed_build: bool = False,
               proof_error: Exception | None = None,
               lock_failed: str = "", changed_tools: bool = False,
-              proof_output: str | None = None
+              proof_output: str | None = None,
+              ctest_summary: str = "100% tests passed, 0 tests failed out of 3"
               ) -> tuple[Reporter, str, list[str]]:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
         root = Path(temporary)
@@ -45,7 +46,7 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
                             "", 4, 4096, 2, 2)
         e.log_dir.mkdir()
         e.log("model-build").write_text(
-            "100% tests passed, 0 tests failed out of 3\nALL_DONE\n", encoding="utf-8")
+            f"{ctest_summary}\nCTEST_EXIT=0\nALL_DONE\n", encoding="utf-8")
         held, locked = io.StringIO(), io.StringIO()
         lock_error = SystemExit("another process holds the workspace")
         fake_env = SimpleNamespace(
@@ -238,12 +239,32 @@ def _lock_refusal_records_failure() -> None:
                "a busy workspace must produce a failed execution record without consumers")
 
 
+def _ctest_summary_formats_publish_measurements() -> None:
+    for summary in ("100% tests passed, 0 tests failed out of 3",
+                    "100% tests passed out of 3",
+                    "\x1b[32m100% tests passed out of 3\x1b[0m"):
+        report, text, _ = _scenario(build=True, ctest_summary=summary)
+        record = json.loads(text)
+        ensure(report.findings == 0 and record["exit_code"] == 0,
+               f"successful CTest summary must publish evidence: {summary!r}")
+        ensure(record["measurements"]["ctest"] == "3 of 3",
+               "both CTest summary formats must retain the measured test count")
+
+
 def _ctest_requires_nonempty_complete_success() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
         path = Path(temporary) / "build.log"
         for text in ("100% tests passed, 0 tests failed out of 0\nALL_DONE\n",
+                     "100% tests passed out of 0\nALL_DONE\n",
                      "100% tests passed, 0 tests failed out of 3\n",
+                     "100% tests passed out of 3\n",
                      "67% tests passed, 1 tests failed out of 3\nALL_DONE\n",
+                     "67% tests passed out of 3\nALL_DONE\n",
+                     "100% tests passed, 1 tests failed out of 3\nALL_DONE\n",
+                     "100% tests passed out of 3\n"
+                     "67% tests passed, 1 tests failed out of 3\nALL_DONE\n",
+                     "100% tests passed, 0 tests failed out of 3\n"
+                     "100% tests passed out of 0\nALL_DONE\n",
                      "ALL_DONE\n"):
             path.write_text(text, encoding="utf-8")
             try:
@@ -327,6 +348,7 @@ def cases() -> list[Case]:
         Case("missing-measurement-fails", _missing_measurement_is_a_failure),
         Case("changed-proof-outputs-invalidate", _changed_proof_outputs_invalidate_measurements),
         Case("lock-refusal-recorded", _lock_refusal_records_failure),
+        Case("ctest-summary-formats", _ctest_summary_formats_publish_measurements),
         Case("ctest-complete-nonempty-success", _ctest_requires_nonempty_complete_success),
         Case("launch-subprocess-isolation", _launch_uses_an_isolated_subprocess),
         Case("launch-failure-recorded", _launch_failure_is_a_result),
