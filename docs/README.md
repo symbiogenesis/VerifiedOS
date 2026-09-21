@@ -126,6 +126,12 @@ hybrid-state, licensing and useful-answer quality requirements.
 The [tool guide](../tools/README.md) describes the checkers and build commands.
 [Working rules](../AGENTS.md) describe document maintenance and review.
 
+The independent prerequisite batch adds a [schedule record](implementation/contracts/schedule-record.md),
+[device-register declarations](implementation/contracts/device-registers.md),
+[wire-format inventory](assurance/wire-format-inventory.md) and
+[calibration field classes](hardware/calibration-manifest.md). Their acceptance and remaining
+consumer dependencies are recorded under S31 in the [implementation checklist](implementation/implementation-checklist.md).
+
 ## Specification and companions
 
 The normative design lives in [spec.md](spec.md), with non-normative companions covering [prior art](background/inspirations.md), [evaluated architectural alternatives](background/architectural-alternatives.md), an [implementation plan and execution checklist](implementation/implementation-checklist.md), and [performance estimates](performance/performance-estimates.md).

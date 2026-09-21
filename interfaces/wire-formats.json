@@ -1,0 +1,1025 @@
+{
+  "schema": 1,
+  "reviewed_row10_sha256": "b43cd633f495641ef38436bec1d42da27d9ae97376b752a5e81a3a54fea24c02",
+  "classes": {
+    "rrc": "ASN.1 UPER/aligned-PER RRC grammars",
+    "mlme": "802.11 MLME element grammars",
+    "nas": "IEI/TLV 5G-NAS grammar",
+    "usb": "USB grammars",
+    "image": "image",
+    "media": "media",
+    "font": "font",
+    "archive": "archive",
+    "document": "document formats",
+    "pack": "pack",
+    "manifest": "manifest descriptors",
+    "x509": "X.509 DER certificate and chain descriptors",
+    "module-manifest": "immutable-module manifest",
+    "module-certificate": "certificate",
+    "module-endorsement": "endorsement",
+    "module-message": "message descriptors",
+    "ensemble": "ensemble link's frame descriptor set"
+  },
+  "entries": [
+    {
+      "id": "nr-rrc",
+      "name": "NR RRC ASN.1 UPER and aligned-PER profiles",
+      "classes": [
+        "rrc"
+      ],
+      "requirements": [
+        "R-05-042",
+        "R-05-048",
+        "R-18-029"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The verified ASN.1-to-Narcissus front end and published-module instantiation are absent. NAS is separately inventoried as IEI/TLV, not ASN.1.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "fiveg-nas",
+      "name": "5G-core NAS IEI/TLV",
+      "classes": [
+        "nas"
+      ],
+      "requirements": [
+        "R-05-050",
+        "R-18-029"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "NAS grammar required",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The exceptional hand-transcribed grammar and its four-reference differential corpus are both absent.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "wifi-mlme",
+      "name": "802.11 MLME elements and security handshake framing",
+      "classes": [
+        "mlme"
+      ],
+      "requirements": [
+        "R-05-042",
+        "R-12-040",
+        "R-12-043b"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "cellular-lower",
+      "name": "NR MAC, RLC and PDCP framing",
+      "classes": [],
+      "requirements": [
+        "R-12-039",
+        "R-12-040"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "wifi-data",
+      "name": "802.11 data framing",
+      "classes": [],
+      "requirements": [
+        "R-12-039",
+        "R-12-040"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "bluetooth",
+      "name": "Bluetooth link, L2CAP, GATT and pairing records",
+      "classes": [],
+      "requirements": [
+        "R-12-039",
+        "R-12-040",
+        "R-12-043b"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "gnss",
+      "name": "GNSS receive navigation-message framing",
+      "classes": [],
+      "requirements": [
+        "R-12-038",
+        "R-05-042"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The receive-only service is named; its message profile, parser and bounded grammar remain unselected.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "ims",
+      "name": "IMS session and voice-transport grammars",
+      "classes": [],
+      "requirements": [
+        "R-12-041",
+        "R-18-004a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "Ordinary and emergency voice require these grammars. Session signalling, media transport and codec subsets remain to be fixed; no IMS parser is credited.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "euicc",
+      "name": "eUICC APDU and TPDU records",
+      "classes": [],
+      "requirements": [
+        "R-12-047"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "usb-enumeration",
+      "name": "USB enumeration, configuration, control and endpoint framing",
+      "classes": [
+        "usb"
+      ],
+      "requirements": [
+        "R-12-058",
+        "R-12-060",
+        "R-05-042"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "usb-auth",
+      "name": "USB device and cable authentication records",
+      "classes": [
+        "usb"
+      ],
+      "requirements": [
+        "R-12-061"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "usb-hid",
+      "name": "USB HID report descriptors and reports",
+      "classes": [
+        "usb"
+      ],
+      "requirements": [
+        "R-12-063"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "usb-class",
+      "name": "Other admitted USB class grammars",
+      "classes": [
+        "usb"
+      ],
+      "requirements": [
+        "R-12-058",
+        "R-12-062"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The per-device composition must enumerate each admitted class and profile before admission. No generic class parser or tunnelling grammar is admitted.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "edid",
+      "name": "Bounded EDID and display metadata",
+      "classes": [],
+      "requirements": [
+        "R-15-234",
+        "R-15-236d"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The composition-fixed block cap and fixed-size static mastering metadata are specified; no descriptor is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "network-link",
+      "name": "Ethernet framing and IPv6 network/control packets",
+      "classes": [],
+      "requirements": [
+        "R-12-031",
+        "R-12-034"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The admitted link, IPv6 extension-header and control-message subsets need bounded profiles; no descriptor is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "network-transport",
+      "name": "TCP and UDP transport framing",
+      "classes": [],
+      "requirements": [
+        "R-12-031",
+        "R-12-033"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "tls",
+      "name": "TLS 1.3 record and handshake messages",
+      "classes": [],
+      "requirements": [
+        "R-12-031",
+        "R-12-032"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "x509-certificate",
+      "name": "X.509 DER certificate",
+      "classes": [
+        "x509"
+      ],
+      "requirements": [
+        "R-12-032a",
+        "R-05-051a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "DER syntax, signed certificate bytes and bounded certificate policy inputs need their own descriptor. Chain-validation policy is separate crown-jewel row 30.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "x509-chain",
+      "name": "TLS peer certificate-chain container",
+      "classes": [
+        "x509"
+      ],
+      "requirements": [
+        "R-12-032a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "The bounded chain container and its certificate descriptor are separate from path validation, which supplies no parser theorem.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "tunnel",
+      "name": "WireGuard-style tunnel handshake and packet records",
+      "classes": [],
+      "requirements": [
+        "R-12-031"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "dns",
+      "name": "DNS-over-TLS request and response grammar",
+      "classes": [],
+      "requirements": [
+        "R-12-031",
+        "R-12-033"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "The TLS envelope does not discharge the DNS grammar, name interpretation or canonical cache-key obligation.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "roughtime",
+      "name": "Roughtime request, response and signed time records",
+      "classes": [],
+      "requirements": [
+        "R-12-031",
+        "R-12-035"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "nts",
+      "name": "NTS key-establishment and authenticated time records",
+      "classes": [],
+      "requirements": [
+        "R-12-035",
+        "R-12-037"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "ptp",
+      "name": "Secure PTP messages and authentication TLVs",
+      "classes": [],
+      "requirements": [
+        "R-12-037"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Time-receiver-only profile is specified; management and reconfiguration messages are refused.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "fetch",
+      "name": "Package-fetch and hosted-content transport messages",
+      "classes": [],
+      "requirements": [
+        "R-12-032a",
+        "R-14-008"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The transport application profiles remain to be selected. TLS and pack parsing do not cover a future fetch or hosted-content envelope.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "still-image",
+      "name": "Composition-selected still-image formats",
+      "classes": [
+        "image"
+      ],
+      "requirements": [
+        "R-12-024f",
+        "R-18-004a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "No concrete still-image format/version has been selected by the release demonstration set; that selection must create one descriptor entry per admitted grammar.",
+      "references": [
+        "docs/requirements-register.md",
+        "proofs/HandlerGraph.v"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "audio",
+      "name": "Composition-selected audio coding and containers",
+      "classes": [
+        "media"
+      ],
+      "requirements": [
+        "R-12-024f",
+        "R-18-004a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "Opus and AAC are algorithm/porting examples, not admitted parser profiles. The selected audio grammar and container need independent entries.",
+      "references": [
+        "docs/requirements-register.md",
+        "docs/implementation/userspace-porting.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "video-syntax",
+      "name": "Composition-selected video bitstream syntax",
+      "classes": [
+        "media"
+      ],
+      "requirements": [
+        "R-12-084a",
+        "R-15-238a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "The AV1 reference lineage is an algorithm and conformance starting point. Entropy arithmetic and RVV reconstruction do not supply its syntax descriptor.",
+      "references": [
+        "docs/requirements-register.md",
+        "docs/implementation/userspace-porting.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "video-container",
+      "name": "Composition-selected video containers",
+      "classes": [
+        "media"
+      ],
+      "requirements": [
+        "R-12-024f",
+        "R-18-004a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "The release container selection is open; a verified elementary syntax layer does not supply container parsing.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "fonts",
+      "name": "Composition-selected font formats",
+      "classes": [
+        "font"
+      ],
+      "requirements": [
+        "R-12-024f",
+        "R-18-004a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "archives",
+      "name": "Composition-selected archive formats",
+      "classes": [
+        "archive"
+      ],
+      "requirements": [
+        "R-12-024f"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "Archive metadata, entry names, bounds and any compression framing require selected profiles; no concrete archive grammar is admitted.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "documents",
+      "name": "Composition-selected document formats",
+      "classes": [
+        "document"
+      ],
+      "requirements": [
+        "R-12-024f",
+        "R-18-004a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "No descriptor, codec or correctness pair is authored.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "idl-mapping",
+      "name": "Typed IDL wire mapping and ring records",
+      "classes": [],
+      "requirements": [
+        "R-12-010",
+        "R-12-012",
+        "R-12-013"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "The IDL profile specifies the mapping. RingContract is generated encoding/contract evidence for ring members and K-99 checks those tables; it is not a Narcissus descriptor or whole-profile synthesis proof.",
+      "references": [
+        "docs/languages/idl-profile.md",
+        "proofs/RingContract.v#descriptor",
+        "proofs/RingContract.v#completion",
+        "interfaces/ring-reference.json"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "handler-graph",
+      "name": "Signed handler graph, typed metadata and reuse parameters",
+      "classes": [],
+      "requirements": [
+        "R-12-024b",
+        "R-12-024d",
+        "R-12-024f"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "HandlerGraph states abstract admitted-format and verified-parser flags; it neither defines nor verifies their byte grammars.",
+      "references": [
+        "proofs/HandlerGraph.v"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "pack",
+      "name": "Content-addressed pack header, flat object table and blob framing",
+      "classes": [
+        "pack"
+      ],
+      "requirements": [
+        "R-13-009",
+        "R-05-051a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "The bounded layout is specified; the object hashes do not replace the pack framing descriptor.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "pack-manifest",
+      "name": "Typed pack and generation manifest",
+      "classes": [
+        "manifest"
+      ],
+      "requirements": [
+        "R-13-003",
+        "R-13-009"
+      ],
+      "owner": "U-14",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Candidate for U-14, which selects one first descriptor and measures its cost. No choice or descriptor is credited here.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "store-objects",
+      "name": "Typed content-addressed objects and storage integrity metadata",
+      "classes": [],
+      "requirements": [
+        "R-10-005a",
+        "R-12-024d",
+        "R-05-051c"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Store object headers, typed metadata, Merkle-DAG and integrity records need bounded descriptors per admitted object kind. A raw blob has no semantic fields until a consumer interprets it.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "witness-records",
+      "name": "Public-log checkpoints, inclusion and consistency evidence",
+      "classes": [],
+      "requirements": [
+        "R-13-023b",
+        "R-13-023c"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "The fixed-layout evidence rides inside the pack; outer pack verification supplies no inner evidence grammar.",
+      "references": [
+        "docs/requirements-register.md",
+        "proofs/WitnessContinuity.v"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "attestation",
+      "name": "Attestation quotes, reference manifests and sealed-blob envelopes",
+      "classes": [],
+      "requirements": [
+        "R-12-014",
+        "R-12-015",
+        "R-12-015c"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "AttestedSession and CredentialHandles model symbolic identity and session operations, not wire descriptors.",
+      "references": [
+        "docs/requirements-register.md",
+        "proofs/AttestedSession.v",
+        "proofs/CredentialHandles.v"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "boot-config",
+      "name": "Signed boot configuration and devicetree",
+      "classes": [],
+      "requirements": [
+        "R-10-029",
+        "R-15-198"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Typed signed objects replace trusted runtime text. Their byte formats need descriptors even when a separate schema or semantic contract exists.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "calibration",
+      "name": "Signed calibration manifest",
+      "classes": [],
+      "requirements": [
+        "R-15-127",
+        "R-17-062",
+        "R-05-042",
+        "R-05-051a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "S31d supplies unpopulated field classes and a reserved digest binding; no concrete wire descriptor, parser, canonical serializer or authenticated manifest is present.",
+      "references": [
+        "docs/requirements-register.md",
+        "docs/hardware/calibration-manifest.md",
+        "interfaces/calibration-schema.json"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "proof-transport",
+      "name": "Admission proof, TAL derivation and certificate envelopes",
+      "classes": [],
+      "requirements": [
+        "R-13-001",
+        "R-13-003",
+        "R-06-015a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "A proof kernel checking an admitted term does not verify the outer byte parser, length accounting or any target certificate envelope.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "wasm",
+      "name": "Packaged WebAssembly binary",
+      "classes": [],
+      "requirements": [
+        "R-14-013b",
+        "R-05-042"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The binary parser remains open independently of selected Wasm semantics and interpreter refinement; no descriptor is credited by WasmCert selection.",
+      "references": [
+        "docs/assurance/unassigned-proof-map.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "inference-shape",
+      "name": "Inference model shape descriptor",
+      "classes": [],
+      "requirements": [
+        "R-12-085",
+        "R-05-051a"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "reference codec only",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "InferenceAdmission has a hand-authored fixed-width schema codec with round-trip and injectivity theorems. Narcissus derivation and its correspondence to this codec remain absent.",
+      "references": [
+        "proofs/InferenceAdmission.v#encode_shape",
+        "proofs/InferenceAdmission.v#decode_shape",
+        "proofs/InferenceAdmission.v#the_shape_descriptor_re_encodes_its_bytes",
+        "proofs/InferenceAdmission.v#the_shape_descriptor_decode_is_injective"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "inference-data",
+      "name": "Inference model tensors, tokenizer and graph data",
+      "classes": [],
+      "requirements": [
+        "R-12-085",
+        "R-12-085g"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required for content addressing and deterministic reuse keys; the admitted content profile must pin the canonical subset or refuse that identity role. No descriptor theorem exists.",
+      "evidence": "Opaque weights are data; each interpreted tensor, quantization, tokenizer or graph container needs its own bounded grammar. A shape theorem does not parse those bytes.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "module-manifest",
+      "name": "Immutable-module design manifest",
+      "classes": [
+        "module-manifest"
+      ],
+      "requirements": [
+        "R-12-085g",
+        "R-05-051a"
+      ],
+      "owner": "U-14",
+      "descriptor": "absent",
+      "transcription": "reference codec only",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "ModuleFormats carries a hand-authored minimal-numeral codec with both round trips and canonicity. Its bounds are parameters and its identities opaque numerals. U-14 may choose this first descriptor; no Narcissus correspondence is present.",
+      "references": [
+        "proofs/ModuleFormats.v#manifest_parse_of_serialize",
+        "proofs/ModuleFormats.v#manifest_serialize_of_parse",
+        "proofs/ModuleFormats.v#manifest_has_one_admissible_encoding",
+        "docs/hardware/immutable-module-contract.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "module-certificate",
+      "name": "Immutable-module proof-certificate transport",
+      "classes": [
+        "module-certificate"
+      ],
+      "requirements": [
+        "R-12-085g",
+        "R-12-085h",
+        "R-06-015a"
+      ],
+      "owner": "Q24c",
+      "descriptor": "absent",
+      "transcription": "reference codec only",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "ModuleFormats carries the bounded hand-authored certificate codec and canonicity theorem. Evidence bytes are opaque; no executable proof checker, Narcissus parser or circuit admission is established.",
+      "references": [
+        "proofs/ModuleFormats.v#certificate_parse_of_serialize",
+        "proofs/ModuleFormats.v#certificate_serialize_of_parse",
+        "proofs/ModuleFormats.v#certificate_has_one_admissible_encoding"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "module-endorsement",
+      "name": "Immutable-module unit-key endorsement",
+      "classes": [
+        "module-endorsement"
+      ],
+      "requirements": [
+        "R-12-085g",
+        "R-12-085i"
+      ],
+      "owner": "Q24c",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Q24c states the unit/design binding; symbolic endorsements are not a byte descriptor.",
+      "references": [
+        "proofs/ModuleAdmission.v",
+        "docs/hardware/immutable-module-contract.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "module-messages",
+      "name": "Immutable-module identification, handshake, transfer and management records",
+      "classes": [
+        "module-message"
+      ],
+      "requirements": [
+        "R-12-085g",
+        "R-15-228f",
+        "R-15-228g"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Q24a specifies the grammar and frame bounds; no operation has a Narcissus descriptor. Public pre-session padding is the fixed constant in the slot contract, not an authority-bearing message.",
+      "references": [
+        "docs/hardware/immutable-module-contract.md"
+      ],
+      "members_from": {
+        "path": "docs/hardware/immutable-module-contract.md",
+        "heading": "### 4.1 The grammar",
+        "until": "### 4.2 The decision"
+      }
+    },
+    {
+      "id": "ensemble-frames",
+      "name": "Ensemble fixed-size message-block forms",
+      "classes": [
+        "ensemble"
+      ],
+      "requirements": [
+        "R-15-228e",
+        "R-12-015d"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "Q23b specifies field order, admissible lengths and no-slack obligations for each form. The descriptor is over decoded message blocks, not error-correction symbols. No form has a Narcissus descriptor or canonicity theorem.",
+      "references": [
+        "docs/hardware/ensemble-link-contract.md"
+      ],
+      "members_from": {
+        "path": "docs/hardware/ensemble-link-contract.md",
+        "heading": "### 1.2 The four forms, and what selects between them",
+        "until": "### 1.3 `FF-1` and `FF-2`, the established-session message block"
+      }
+    },
+    {
+      "id": "replay",
+      "name": "Deterministic-replay event and nondeterminism records",
+      "classes": [],
+      "requirements": [
+        "R-16-016",
+        "R-16-017",
+        "R-05-042"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.",
+      "evidence": "The replay instrument has bounded host fixtures and private/public event distinctions; production public schemas, sealing and target parser correspondence remain open.",
+      "references": [
+        "docs/requirements-register.md",
+        "tools/vos/replay_record.py"
+      ],
+      "members_from": null
+    }
+  ]
+}

@@ -258,6 +258,14 @@ Two more are the RVFI-DII rig's and sit beside them for the same reason: [rvfi.p
 
 [check-rules.md](check-rules.md) is the checker's registry: one row per rule, what passing means, and on what ground. It is the reviewable account of the tool's reach, and the checker holds it against the code in both directions on every run.
 
+The prerequisite declarations have host-readable checks as well. `device-registers
+emit` generates Gallina accessors and SystemVerilog constants from
+`interfaces/device-registers.json`; `device-registers check` refuses stale output
+and unreviewed model layouts. The wire-format inventory and calibration schema
+also generate their review documents. K-88 checks these views and their source
+validators; `check --fix` regenerates them. These checks establish declaration
+consistency, not parser derivation, device behavior or physical qualification.
+
 ## Running them
 
 Install Python at the floor above and [uv](https://docs.astral.sh/uv/getting-started/installation/)

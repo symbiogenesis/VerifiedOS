@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "status": "unpopulated",
+  "requirements": ["R-15-126", "R-15-127", "R-15-128", "R-17-062"],
+  "device_tree": {
+    "property": "verifiedos,calibration-manifest-sha256",
+    "encoding": "bytes",
+    "length": 32,
+    "absence": "calibration-not-qualified"
+  },
+  "classes": [
+    {
+      "id": "emission-trim",
+      "ceiling_owner": "R-15-124",
+      "qualification_owner": "R5",
+      "containment": "The selected pre-certified passive path bounds emission independently of the trim.",
+      "required_evidence": "A physical envelope qualification for every selectable path."
+    },
+    {
+      "id": "emission-limit",
+      "ceiling_owner": "R-15-125",
+      "qualification_owner": "R5",
+      "containment": "Boot-latched limits are at or below the certified ceilings and have no runtime write path.",
+      "required_evidence": "Certified ceilings, the limit comparison and immutable-until-reset register behavior."
+    },
+    {
+      "id": "sram-assist",
+      "ceiling_owner": "R-15-127",
+      "qualification_owner": "R5",
+      "containment": "Mis-trim may degrade SRAM margin only within the ECC and fail-stop backstops.",
+      "required_evidence": "The allowed trim domain and characterized ECC and fail-stop coverage."
+    },
+    {
+      "id": "sensor-trim",
+      "ceiling_owner": "R-15-127",
+      "qualification_owner": "R5",
+      "containment": "Mis-trim costs sensor fidelity without granting authority or weakening integrity checks.",
+      "required_evidence": "The allowed trim domain and the sensor-to-authority boundary qualification."
+    }
+  ]
+}

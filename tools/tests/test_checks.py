@@ -561,6 +561,12 @@ def _counted_clause_scope() -> None:
         "a later coordinated subject does not supply the first count's noun")
     ensure(counts.counted_clause("fifty-one requirements and the old table disagree"),
            "a counted noun before a new subject remains a candidate")
+    ensure(not counts.counted_clause("Fourteen obligations carry a hypothesis", ["cj-unauthored"]),
+           "a coincident historical proof count is not a current crown-jewel count")
+    ensure(counts.counted_clause("Fourteen crown-jewel specifications are missing", ["cj-unauthored"]),
+           "an actual inventory restatement remains a candidate")
+    ensure(counts.counted_clause("Fourteen obligations carry a hypothesis", ["type-obligations"]),
+           "another candidate quantity retains its own subject")
 
 
 def _count_form_numeric_groups() -> None:

@@ -96,8 +96,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 import fiat_crypto_emit as fiat
+from vos import (
+    calibration,
+    device_registers,
+    dialectgen,
+    memplan,
+    sailbundle,
+    socmap,
+    wire_formats,
+)
 from vos import corpus as corpus_mod
-from vos import dialectgen, memplan, sailbundle, socmap
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -171,6 +179,26 @@ def _memplan_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return memplan.emit(root)
 
 
+def _calibration_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    """The unpopulated calibration classes and identity binding."""
+    del bundle
+    return calibration.emit(root)
+
+
+def _wire_formats_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    """The format inventory and the source evidence it distinguishes."""
+    del bundle
+    return wire_formats.emit(root)
+
+
+def _device_registers_proof(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    return device_registers.emit_gallina(root, bundle)
+
+
+def _device_registers_rtl(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    return device_registers.emit_sv(root, bundle)
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -233,6 +261,22 @@ GENERATED: tuple[Row, ...] = (
         owners="the memory plan's proof file",
         checker="this gate",
         emit=_memplan_emit),
+    Row(path=calibration.ARTIFACT,
+        generator="run.py check --fix", lane="host",
+        owners="the calibration schema and its requirement owners",
+        checker="this gate", emit=_calibration_emit),
+    Row(path=wire_formats.ARTIFACT,
+        generator="run.py check --fix", lane="host",
+        owners="the wire-format inventory, reviewed crown-jewel membership and grammar/proof owners",
+        checker="this gate", emit=_wire_formats_emit),
+    Row(path=device_registers.PROOF_ARTIFACT,
+        generator="run.py device-registers emit", lane="host",
+        owners="the register declarations and reviewed modeled MMIO functions",
+        checker="this gate", emit=_device_registers_proof),
+    Row(path=device_registers.RTL_ARTIFACT,
+        generator="run.py device-registers emit", lane="host",
+        owners="the register declarations and reviewed modeled MMIO functions",
+        checker="this gate", emit=_device_registers_rtl),
     *(Row(path=path,
           generator="tools/fiat_crypto_emit.py --emit",
           lane="guest",

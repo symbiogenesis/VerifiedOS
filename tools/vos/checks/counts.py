@@ -297,7 +297,7 @@ COUNTED_NOUN = re.compile(
     r"CSR|letter-suffixed|such entries|obligation|menu row)", re.IGNORECASE)
 
 
-def counted_clause(text: str) -> bool:
+def counted_clause(text: str, quantities: list[str] | None = None) -> bool:
     """A counted noun in this clause, not a later unrelated historical count.
 
     `repaired` is not `pair`; a count of defects before a comma does not count
@@ -306,6 +306,13 @@ def counted_clause(text: str) -> bool:
     """
     clause = re.split(r"[.;,]\s|\band (?:the|an?|its|their)\s", text,
                       maxsplit=1, flags=re.IGNORECASE)[0]
+    # A crown-jewel total can coincide with an unrelated proof's obligation
+    # count. Matching its numeral alone cannot turn that historical statement
+    # into a restatement of the inventory's current status.
+    if (quantities and all(quantity.startswith("cj-") for quantity in quantities)
+            and re.search(r"\b(?:crown.jewel|specification|premise|authored|written|partial)",
+                          clause, re.IGNORECASE) is None):
+        return False
     return COUNTED_NOUN.search(clause) is not None
 
 
@@ -633,7 +640,7 @@ def run(ctx: Context) -> None:
             for form, quantities in forms.items():
                 for m in by_form.get(form, []):
                     rest = raw[m.start():m.start() + 80].split("\n", 1)[0]
-                    if not counted_clause(rest):
+                    if not counted_clause(rest, quantities):
                         continue
                     if any(s.start() <= m.start() < s.end() for s in held):
                         continue

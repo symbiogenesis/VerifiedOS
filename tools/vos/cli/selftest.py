@@ -1662,6 +1662,24 @@ CASES: list[Case] = [
     ("K-88", "a third host row's generated artifact declaring a fetch constant its "
              "proof file does not",
      _literal(MEMORY_PLAN, '"second_fetch": 15', '"second_fetch": 16')),
+    ("K-88", "the calibration view accepts a populated manifest its schema does not",
+     _literal("docs/hardware/calibration-manifest.md",
+              "This unpopulated schema", "This populated schema")),
+    ("K-88", "a calibration field class outside the declared vocabulary",
+     _literal("interfaces/calibration-schema.json",
+              '"id": "sensor-trim"', '"id": "authority-trim"')),
+    ("K-88", "the wire-format view claiming a descriptor the inventory lacks",
+     _literal("docs/assurance/wire-format-inventory.md",
+              "Every Narcissus descriptor is absent", "Every Narcissus descriptor is present")),
+    ("K-88", "the wire-format inventory silently promoting an absent descriptor",
+     _literal("interfaces/wire-formats.json",
+              '"descriptor": "absent"', '"descriptor": "present"')),
+    ("K-88", "a generated device-register accessor shifts another field",
+     _literal("proofs/DeviceRegisters.v",
+              "N.shiftr word 32", "N.shiftr word 31")),
+    ("K-88", "the device-register RTL constants disagree with their declaration",
+     _literal("rtl/generated/device_registers_pkg.sv",
+              "TRNG_HEALTH_COMPLETE_SHIFT = 32", "TRNG_HEALTH_COMPLETE_SHIFT = 31")),
     ("K-88", "a Fiat inclusion header changed after the recorded emission",
      _literal("tools/generated/fiat-crypto/25519_32.h",
               "static void fiat_25519_carry_mul", "static void fiat_25519_carry_mul_changed")),
@@ -1783,14 +1801,14 @@ CASES: list[Case] = [
 
     # The defect this rule exists for, in the shape it actually arrived in twice: an item
     # lands, the summary's derived figures move with it under `--fix`, and the roster
-    # beside them keeps the set it had. `S28` is dropped rather than misspelled because a
+    # beside them keeps the set it had. `S30` is dropped rather than misspelled because a
     # misspelling would leave a token the reading could still resolve, where an omission
     # is what a landing commits. It is the id no other line reads: the two series' lists
     # and the calibration record carry it, and K-96 rewrites both from the cells rather
     # than from this sentence, so a roster missing it is exactly one rule's finding.
     ("K-102", "a completed item the summary's roster stops naming",
-     _literal("docs/implementation/implementation-checklist.md",
-              "S25, S26, S27, S28, S29, S30, Q1", "S25, S26, S27, S28, S29, Q1")),
+     _first_match(PLAN, r"^(\* Completed: [^\n]*), S30(?=,)",
+                  lambda m: m.group(1))),
 
     # A transposition rather than an invented id, because that is the shape the defect
     # actually takes: a header sentence is written from memory about an entry that turns
