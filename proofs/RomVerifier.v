@@ -253,14 +253,14 @@ Proof.
   induction a as [| a IH]; intros b H.
   - destruct b as [| b]. discriminate H. reflexivity.
   - destruct b as [| b]. discriminate H.
-    simpl. apply IH. simpl in H. exact H.
+    simpl. apply IH. exact H.
 Qed.
 
 Lemma andb_left : forall a b : bool, andb a b = true -> a = true.
-Proof. intros a b H. destruct a. reflexivity. simpl in H. discriminate H. Qed.
+Proof. intros a b H. destruct a. reflexivity. discriminate H. Qed.
 
 Lemma andb_right : forall a b : bool, andb a b = true -> b = true.
-Proof. intros a b H. destruct a. exact H. simpl in H. discriminate H. Qed.
+Proof. intros a b H. destruct a. exact H. discriminate H. Qed.
 
 (* -------------------------------------------------------------------------
    The parameter set: the seven quantities FIPS 205's Table 2 tabulates
@@ -464,7 +464,7 @@ Definition f_without_its_address (p : ParameterSet) (pk_seed address m : list bo
 Theorem the_chain_the_node_and_the_compression_are_one_function :
   forall (p : ParameterSet) (s a m : list bool),
     f_chain p s a m = h_node p s a m /\ h_node p s a m = t_compress p s a m.
-Proof. intros. split. reflexivity. reflexivity. Qed.
+Proof. intros. split; reflexivity. Qed.
 
 Theorem the_address_free_hash_ignores_its_address :
   forall (p : ParameterSet) (s a1 a2 m : list bool),
