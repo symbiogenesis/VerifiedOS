@@ -184,4 +184,7 @@ package device_registers_pkg;
   localparam int unsigned HTIF_TOHOST_EXIT_FLAG_SHIFT = 0;
   localparam int unsigned HTIF_TOHOST_EXIT_FLAG_WIDTH = 1;
   localparam logic [63:0] HTIF_TOHOST_EXIT_FLAG_MASK = 64'h0000000000000001;
+  localparam int unsigned HTIF_TOHOST_EXIT_CODE_SHIFT = 1;
+  localparam int unsigned HTIF_TOHOST_EXIT_CODE_WIDTH = 47;
+  localparam logic [63:0] HTIF_TOHOST_EXIT_CODE_MASK = 64'h00007fffffffffff;
 endpackage : device_registers_pkg
