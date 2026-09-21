@@ -96,8 +96,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 import fiat_crypto_emit as fiat
+from vos import (
+    calibration,
+    dialectgen,
+    memplan,
+    sailbundle,
+    socmap,
+)
 from vos import corpus as corpus_mod
-from vos import dialectgen, memplan, sailbundle, socmap
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -171,6 +177,12 @@ def _memplan_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return memplan.emit(root)
 
 
+def _calibration_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    """The unpopulated calibration classes and identity binding."""
+    del bundle
+    return calibration.emit(root)
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -233,6 +245,10 @@ GENERATED: tuple[Row, ...] = (
         owners="the memory plan's proof file",
         checker="this gate",
         emit=_memplan_emit),
+    Row(path=calibration.ARTIFACT,
+        generator="run.py check --fix", lane="host",
+        owners="the calibration schema and its requirement owners",
+        checker="this gate", emit=_calibration_emit),
     *(Row(path=path,
           generator="tools/fiat_crypto_emit.py --emit",
           lane="guest",
