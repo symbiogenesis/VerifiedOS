@@ -63,8 +63,9 @@ The resulting handoff states the obligations on source casts and authority,
 value kinds through intermediate representations, arithmetic, copies and
 spills, address materialization, primitive identity and plan-bound narrowing.
 Assign the implementation and producer joins to g, d, e and f without creating
-a second compiler owner. Distinguish the selected scalar ABI from the still
-unresolved switcher protocol in the ABI's section 8. Do not select runtime tag
+a second compiler owner. Distinguish the selected scalar ABI from the switcher
+protocol that was unresolved at the diagnostic boundary; section 4 below owns
+the review needed to select that protocol. Do not select runtime tag
 dispatch, reinterpret integer operations as capability operations, or weaken
 the source contract as a diagnostic shortcut.
 
@@ -108,3 +109,50 @@ The caller still owes the selected region's membership in the actual plan,
 provenance of every request and correspondence to every emitted narrowing.
 M1.2e-ii and M1.2f retain that nonvacuous emission coverage. A compiler that
 emits no narrowing cannot close them by passing this helper qualification.
+
+## 4. Reviewed source, kind and switcher agreement
+
+The next prerequisite is an implementable producer/consumer agreement for the
+decisions identified by the [kind handoff](compiler-kind-handoff.md). It is
+contract work within M1.2g-ii and M1.2d-ii, with no separate completion credit
+and no change to their estimates. Contract review can proceed before the
+compiler implementation and target joins.
+
+The agreement has three owners. The source-value contract chooses the
+abstract/concrete value boundary and specifies casts, arithmetic and memory
+behavior. The kind interface chooses how each compiler stage retains the
+information needed by its consumer. The scalar ABI chooses the switcher's
+edge transport, protected state, scrub sequence and authority. Each owner
+states the unsupported cases and the evidence its implementation must supply.
+
+Acceptance is a full Tier-A read of those contracts and their governing
+register, model and route clauses. Review must decide all of the following:
+
+* Every source operation has a value representation and a kind-preserving
+  path, or an explicit compile-time refusal. A refusal identifies an unsupported
+  implementation case; it cannot redefine source behavior or satisfy a
+  production-completeness obligation.
+* Every lowering boundary has a named producer and consumer. Same-width
+  pointer/integer pairs, joins, spills, stack arguments and optimization-created
+  operations remain distinguishable. Missing coverage refuses compilation.
+* The value relation identifies composition-supplied authority, including
+  writable globals, and exposes its unproved obligations. A kind annotation,
+  source hash or accepted bounds helper is not a refinement theorem.
+* The switcher can obtain its own authority using the actual ISA, transport
+  every admitted argument, preserve protected caller state, and clear its
+  transient authority before either boundary transfer. Nested calls, refusal,
+  return and interrupted execution have explicit state obligations. No step
+  may assume that a sentry also installs a data capability.
+* Source, kind and ABI choices agree on scalar signatures, null and tag state,
+  call effects, local capability lifetime and unsupported forms. A cross-review
+  by a lane other than the author reads these joins, and the integrator resolves
+  every finding before landing the agreement.
+* The implementation campaign has nonempty positive cases and a discriminating
+  refusal or fault for each boundary. Tests of a handwritten sequence cannot
+  be reported as compiler emission, and a green document gate cannot be
+  reported as a source-to-Sail proof.
+
+The integrator owns the shared handoff and checklist updates and the settled
+host wave. No compiler source, extraction manifest or proof artifact changes
+as part of this agreement. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f remain open
+until their existing implementation and target predicates hold.
