@@ -79,14 +79,15 @@ Fixpoint bytes_valid (xs : list nat) : bool :=
   end.
 
 Lemma andb_split : forall a b, andb a b = true -> a = true /\ b = true.
-Proof. destruct a, b; simpl; intros; try discriminate; split; reflexivity. Qed.
+Proof. now destruct a, b. Qed.
 
 Lemma eqb_refl : forall n, Nat.eqb n n = true.
 Proof. induction n; simpl; auto. Qed.
 
 Lemma eqb_equal : forall x y, Nat.eqb x y = true -> x = y.
 Proof.
-  induction x; destruct y; simpl; intros H; try discriminate; auto.
+  induction x as [|x IH]; destruct y; simpl; intros H; try discriminate;
+    [reflexivity | f_equal; exact (IH y H)].
 Qed.
 
 Lemma member_included : forall xs ys x,
@@ -96,8 +97,8 @@ Proof.
   - discriminate.
   - apply andb_split in Hsub as [Ha Hr].
     destruct (Nat.eqb x a) eqn:E.
-    + apply eqb_equal in E. subst x. exact Ha.
-    + simpl in Hin. exact (IH ys x Hr Hin).
+    + rewrite (eqb_equal _ _ E). exact Ha.
+    + exact (IH ys x Hr Hin).
 Qed.
 
 Lemma below_smaller_ceiling : forall used child parent,
@@ -178,10 +179,7 @@ Theorem admitted_schema_values_are_inside_their_declared_bounds : forall p r,
   bytes_valid (request_bytes r) = true.
 Proof.
   intros p r H. unfold schema_accepts, every in H.
-  repeat match goal with
-  | H : andb _ _ = true |- _ => apply andb_split in H as [? ?]
-  end.
-  repeat split; assumption.
+  repeat (apply andb_split in H as [? H]). repeat split; assumption.
 Qed.
 
 Definition bindings_match (c : Credential) (r : ClientRequest) : bool :=
@@ -237,40 +235,16 @@ Theorem delegated_bindings_are_parent_bindings : forall p parent child r,
   bindings_match parent r = true.
 Proof.
   intros p parent child r Hd Hb.
-  unfold delegates, delegation_checks, every in Hd.
-  unfold bindings_match in *.
-  repeat match goal with
-  | H : andb _ _ = true |- _ => apply andb_split in H as [? ?]
-  end.
-  repeat match goal with
-  | H : Nat.eqb _ _ = true |- _ => apply eqb_equal in H
-  end.
-  match goal with
-  | Hr : request_role r = credential_role child,
-    Hc : credential_role child = credential_role parent |- _ =>
-      rewrite Hr, Hc, eqb_refl
-  end.
-  match goal with
-  | Hr : request_principal r = credential_principal child,
-    Hc : credential_principal child = credential_principal parent |- _ =>
-      rewrite Hr, Hc, eqb_refl
-  end.
-  match goal with
-  | Hs : included (credential_scopes child) (credential_scopes parent) = true,
-    Hm : member (request_scope r) (credential_scopes child) = true |- _ =>
-      rewrite (member_included _ _ _ Hs Hm)
-  end.
-  match goal with
-  | Hs : included (credential_operations child) (credential_operations parent) = true,
-    Hm : member (request_operation r) (credential_operations child) = true |- _ =>
-      rewrite (member_included _ _ _ Hs Hm)
-  end.
-  match goal with
-  | Hr : request_transcript r = credential_transcript child,
-    Hc : credential_transcript child = credential_transcript parent |- _ =>
-      rewrite Hr, Hc, eqb_refl
-  end.
-  reflexivity.
+  unfold delegates, delegation_checks, every in Hd. unfold bindings_match in *.
+  apply andb_split in Hd as [Hrole Hd]. apply andb_split in Hd as [Hprincipal Hd].
+  apply andb_split in Hd as [Hscopes Hd]. apply andb_split in Hd as [Hoperations Hd].
+  apply andb_split in Hd as [Htranscript _].
+  apply andb_split in Hb as [Hr Hb]. apply andb_split in Hb as [Hp Hb].
+  apply andb_split in Hb as [Hs Hb]. apply andb_split in Hb as [Ho Ht].
+  rewrite (eqb_equal _ _ Hr), (eqb_equal _ _ Hrole), (eqb_equal _ _ Hp),
+    (eqb_equal _ _ Hprincipal), (eqb_equal _ _ Ht), (eqb_equal _ _ Htranscript),
+    (member_included _ _ _ Hscopes Hs), (member_included _ _ _ Hoperations Ho).
+  rewrite !eqb_refl. reflexivity.
 Qed.
 
 (* The trusted consent decision may deliberately distinguish a delegated
@@ -292,22 +266,17 @@ Theorem authority_requires_binding_budget_and_expiry : forall p c s r,
   expiry_valid p (credential_expiry c) (server_now s) = true.
 Proof.
   intros p c s r H. unfold authority_allows in H.
-  repeat match goal with
-  | H : andb _ _ = true |- _ => apply andb_split in H as [? ?]
-  end.
-  repeat split; assumption.
+  repeat (apply andb_split in H as [? H]). repeat split; assumption.
 Qed.
 
 Theorem authorization_checks_the_authority : forall p c s r,
   authorized p c s r = true -> authority_allows p c s r = true.
 Proof.
   intros p c s r H.
-  unfold authorized, authorization_checks, every in H.
-  unfold authority_allows.
-  destruct (bindings_match c r), (schema_accepts p r),
-    (Nat.ltb (account_used s (credential_account c)) (credential_use_ceiling c)),
-    (expiry_valid p (credential_expiry c) (server_now s));
-    simpl in *; try discriminate; reflexivity.
+  unfold authorized, authorization_checks, every in H. unfold authority_allows.
+  apply andb_split in H as [Hb H]. apply andb_split in H as [Hs H].
+  apply andb_split in H as [Hused H]. apply andb_split in H as [Hvalid _].
+  rewrite Hb, Hs, Hused, Hvalid. reflexivity.
 Qed.
 
 Theorem delegated_authority_is_monotone : forall p parent child s r,
@@ -315,29 +284,16 @@ Theorem delegated_authority_is_monotone : forall p parent child s r,
   authority_allows p child s r = true -> authority_allows p parent s r = true.
 Proof.
   intros p parent child s r Hexpiry Hd Ha.
-  assert (Hb : bindings_match parent r = true).
-  { unfold authority_allows in Ha. apply andb_split in Ha as [Hb _].
-    exact (delegated_bindings_are_parent_bindings p parent child r Hd Hb). }
-  unfold delegates, delegation_checks, every in Hd.
   unfold authority_allows in *.
-  repeat match goal with
-  | H : andb _ _ = true |- _ => apply andb_split in H as [? ?]
-  end.
-  rewrite Hb.
-  match goal with H : schema_accepts p r = true |- _ => rewrite H end.
-  match goal with
-  | Haccount : Nat.eqb (credential_account child) (credential_account parent) = true,
-    Hlimit : Nat.leb (credential_use_ceiling child) (credential_use_ceiling parent) = true,
-    Hused : Nat.ltb (account_used s (credential_account child))
-                    (credential_use_ceiling child) = true |- _ =>
-      apply eqb_equal in Haccount; rewrite Haccount in Hused;
-      rewrite (below_smaller_ceiling _ _ _ Hlimit Hused)
-  end.
-  match goal with
-  | Hn : expiry_narrower p (credential_expiry child) (credential_expiry parent) = true,
-    Hv : expiry_valid p (credential_expiry child) (server_now s) = true |- _ =>
-      rewrite (Hexpiry _ _ _ Hn Hv)
-  end.
+  apply andb_split in Ha as [Hb Ha]. apply andb_split in Ha as [Hs Ha].
+  apply andb_split in Ha as [Hused Hvalid].
+  rewrite (delegated_bindings_are_parent_bindings p parent child r Hd Hb), Hs.
+  unfold delegates, delegation_checks, every in Hd.
+  do 5 (apply andb_split in Hd as [_ Hd]).
+  apply andb_split in Hd as [Hlimit Hd]. apply andb_split in Hd as [Hnarrower Hd].
+  apply andb_split in Hd as [Haccount _].
+  rewrite (eqb_equal _ _ Haccount) in Hused.
+  rewrite (below_smaller_ceiling _ _ _ Hlimit Hused), (Hexpiry _ _ _ Hnarrower Hvalid).
   reflexivity.
 Qed.
 
@@ -348,12 +304,8 @@ Theorem authorization_checks_trusted_consent : forall p c s r,
 Proof.
   intros p c s r H Hrequired.
   unfold authorized, authorization_checks, every in H.
-  repeat match goal with
-  | H : andb _ _ = true |- _ => apply andb_split in H as [? ?]
-  end.
-  match goal with H : consent_gate p c s r = true |- _ =>
-    unfold consent_gate in H; rewrite Hrequired in H; exact H
-  end.
+  do 4 (apply andb_split in H as [_ H]). apply andb_split in H as [Hconsent _].
+  unfold consent_gate in Hconsent. rewrite Hrequired in Hconsent. exact Hconsent.
 Qed.
 
 Theorem operations_without_approval_skip_the_callback : forall p c s r,
@@ -376,14 +328,8 @@ Theorem a_delegated_charge_is_visible_to_the_parent : forall p parent child s,
   S (account_used s (credential_account parent)).
 Proof.
   intros p parent child s H. unfold delegates, delegation_checks, every in H.
-  repeat match goal with
-  | H : andb _ _ = true |- _ => apply andb_split in H as [? ?]
-  end.
-  match goal with
-  | H : Nat.eqb (credential_account child) (credential_account parent) = true |- _ =>
-    apply eqb_equal in H; rewrite H
-  end.
-  apply a_charge_increments_the_shared_account.
+  do 7 (apply andb_split in H as [_ H]). apply andb_split in H as [Haccount _].
+  rewrite (eqb_equal _ _ Haccount). apply a_charge_increments_the_shared_account.
 Qed.
 
 Theorem a_refused_request_changes_no_state : forall p c s r,
@@ -420,8 +366,7 @@ Definition state_after (p : CredentialPolicy) (c : Credential)
 
 Example the_fixture_expiry_relation_is_monotone : expiry_is_monotone demo_policy.
 Proof.
-  intros child parent now Hle Hlt.
-  exact (below_smaller_ceiling now child parent Hle Hlt).
+  intros child parent now. exact (below_smaller_ceiling now child parent).
 Qed.
 
 Example the_reference_delegation_and_request_are_admitted :
