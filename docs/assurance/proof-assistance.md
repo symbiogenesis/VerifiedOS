@@ -57,17 +57,21 @@ python tools/run.py proofs headers --show proofs/CopyRingService.v
 The query matches any supplied lexical word in declaration names, statements and
 scripts; tactic filters select script code tokens and requirement filters select
 authored file-level citations. Repeated tactic or requirement filters require all
-their terms and narrow the results. Exclude the complete
-target file when selecting independent examples. A declaration's location, not
-its short name alone, distinguishes same-named declarations in different modules.
+their terms and narrow the results. Exclude the complete target file when selecting
+independent examples; exclusions must name an existing source with exact path
+spelling. A declaration's one-based line and Unicode character column, not its
+short name alone, distinguish same-named declarations in different modules.
 Ranking is a navigation heuristic, not RocqStar's trained similarity model.
 No result is a suggested import until its declaration, context and dependencies
 have been reviewed.
 
-`--json` writes one JSON object to stdout. Errors go to stderr with a nonzero exit;
-zero matches are a successful search. The machine contract is
+`--limit` bounds result count from 1 to 50 (default 5); `--max-chars` bounds each
+excerpt from 256 to 16000 characters (default 1600). Truncation is explicit.
+`--json` writes one JSON object to stdout. Errors go to stderr: exit 2 means invalid
+arguments and exit 1 means the source search failed. Zero matches return exit 0.
+The machine contract is
 [proof-search.schema.json](../../tools/proof-search.schema.json). Clients must
-check the schema version and advisory marker, tolerate no invented proof verdict,
+check `version: 1` and `advisory_only: true`, tolerate no invented proof verdict,
 and use the relative path and location to read a result in the same checkout.
 UTF-8, ordinary process arguments, exit codes, JSON and JSON Schema are the
 interchange mechanisms. No provider-specific tool configuration is installed.
@@ -80,6 +84,12 @@ isolated, and do not overlap `seed properties` with any reader. Nested proof pat
 and unsupported source layouts are refused rather than silently treated as a
 complete corpus. The parser supplies source navigation only; it does not elaborate
 Gallina or discover a transitive axiom closure.
+
+Statuses describe source syntax: `complete` ends in `Qed` or `Defined`, `admitted`
+in `Admitted`, `aborted` in `Abort`, `definition` has a direct body, and `incomplete`
+has no recognized ending. They do not judge tactic semantics or assumptions.
+Navigation does not resolve module names, generated obligations, notation or
+secondary names in mutual declarations. Read the original context before reuse.
 
 ## Bounded repair workflow
 

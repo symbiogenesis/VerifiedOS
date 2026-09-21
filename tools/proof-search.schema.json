@@ -24,10 +24,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "line", "end_line", "name", "kind", "status", "source_sha256", "requirements", "excerpt", "excerpt_truncated", "score", "matched_terms"],
+        "required": ["path", "line", "column", "end_line", "name", "kind", "status", "source_sha256", "requirements", "excerpt", "excerpt_truncated", "score", "matched_terms"],
         "properties": {
           "path": {"$ref": "#/$defs/path"},
           "line": {"type": "integer", "minimum": 1},
+          "column": {"type": "integer", "minimum": 1, "description": "One-based Unicode character column of the declaration start, including any modifiers."},
           "end_line": {"type": "integer", "minimum": 1},
           "name": {"type": "string", "minLength": 1},
           "kind": {"type": "string", "minLength": 1},

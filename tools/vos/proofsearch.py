@@ -31,6 +31,7 @@ _HEAD = re.compile(
     r"Cumulative|NonCumulative)\s+)*"
     rf"(?P<kind>{'|'.join(proofcites.DEFINERS)})\s+(?P<name>[\w']+)")
 _CLOSE = re.compile(r"^[\s{}]*?(Qed|Defined|Admitted|Abort)\s*\.$")
+_BODY_TOKEN = re.compile(r"[\w']+|:=|[()[\]{}]")
 
 
 class Match(TypedDict):
@@ -38,6 +39,7 @@ class Match(TypedDict):
 
     path: str
     line: int
+    column: int
     end_line: int
     name: str
     kind: str
@@ -149,15 +151,28 @@ def _sentences(code: str) -> list[_Sentence]:
 
 
 def _direct_body(code: str) -> bool:
-    """Distinguish a top-level := body from a binder such as (n := 0)."""
-    depth = 0
-    for pos, char in enumerate(code):
-        if char in "([{":
+    """Skip bracketed and local let/fix binders before a declaration's := body.
+
+    A type can itself begin with a let, and that local assignment is not the
+    declaration body. Each such binder consumes its own next unbracketed :=.
+    This remains lexical navigation, not a parser for every Gallina extension.
+    """
+    depth = local_bindings = 0
+    previous = ""
+    for match in _BODY_TOKEN.finditer(code):
+        lexeme = str(match[0])
+        if lexeme in ("(", "[", "{"):
             depth += 1
-        elif char in ")]}":
+        elif lexeme in (")", "]", "}"):
             depth -= 1
-        elif depth == 0 and code[pos:pos + 2] == ":=":
-            return True
+        elif depth == 0:
+            if lexeme == "let" or (lexeme in ("fix", "cofix") and previous != "let"):
+                local_bindings += 1
+            elif lexeme == ":=":
+                if not local_bindings:
+                    return True
+                local_bindings -= 1
+        previous = lexeme
     return False
 
 
@@ -172,7 +187,7 @@ def _declarations(code: str) -> list[_Declaration]:
                 first, name, kind = pending
                 result.append(_Declaration(first.start, first.end, pending_end,
                                            name, kind, "incomplete"))
-            name, kind = head["name"], head["kind"]
+            name, kind = str(head["name"]), str(head["kind"])
             if sentence.terminated and _direct_body(sentence.code[head.end():]):
                 result.append(_Declaration(sentence.start, sentence.end, sentence.end,
                                            name, kind, "definition"))
@@ -200,7 +215,7 @@ def _declarations(code: str) -> list[_Declaration]:
 def _words(text: str) -> set[str]:
     """Case-insensitive identifier tokens and their underscore-separated words."""
     lowered = text.casefold()
-    return set(_TOKEN.findall(lowered)) | set(_WORD.findall(lowered))
+    return {str(match[0]) for pattern in (_TOKEN, _WORD) for match in pattern.finditer(lowered)}
 
 
 def _walk_error(error: OSError) -> None:
@@ -250,7 +265,7 @@ def search(root: Path, query: str = "", *, tactics: tuple[str, ...] = (),
 
     Query words are ORed, each contributing its strongest weight: name 8, statement
     4, script 1. Every tactic-token and requirement filter must match, contributing
-    2 and 1 respectively. Ties sort by path, line and name. Requirement references
+    2 and 1 respectively. Ties sort by path, line, column and name. Requirement references
     belong to the whole file and exclude proofcites' derived manifest regions.
     """
     validate(query, tactics, requirements, exclude, limit, max_chars)
@@ -259,6 +274,9 @@ def search(root: Path, query: str = "", *, tactics: tuple[str, ...] = (),
     wanted = set(requirements)
     matches: list[Match] = []
     sources = _sources(root)
+    names = {path.relative_to(root).as_posix() for path in sources}
+    if missing := sorted(set(exclude) - names):
+        raise ValueError("excluded sources must exist with exact path spelling: " + ", ".join(missing))
     read = 0
     for path in sources:
         rel = path.relative_to(root).as_posix()
@@ -294,12 +312,13 @@ def search(root: Path, query: str = "", *, tactics: tuple[str, ...] = (),
             excerpt = text[declaration.start:declaration.end]
             matches.append(Match(
                 path=rel, line=proofcites.line_at(text, declaration.start),
+                column=declaration.start - text.rfind("\n", 0, declaration.start),
                 end_line=proofcites.line_at(text, declaration.end - 1),
                 name=declaration.name, kind=declaration.kind, status=declaration.status,
                 source_sha256=digest, requirements=cited, excerpt=excerpt[:max_chars],
                 excerpt_truncated=len(excerpt) > max_chars, score=score,
                 matched_terms=sorted(found | tactic_terms | wanted)))
-    matches.sort(key=lambda hit: (-hit["score"], hit["path"], hit["line"], hit["name"]))
+    matches.sort(key=lambda hit: (-hit["score"], hit["path"], hit["line"], hit["column"], hit["name"]))
     return Report(version=1, advisory_only=True, notice=ADVISORY, query=query,
                   tactics=sorted(tactic_terms), requirements=sorted(wanted),
                   excluded=sorted(set(exclude)), limit=limit, max_chars=max_chars,

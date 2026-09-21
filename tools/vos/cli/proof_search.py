@@ -11,6 +11,7 @@ from vos.corpus import find_root
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
+        prog="run.py proof-search",
         description="Search current local Rocq sources; every result is advisory only.")
     parser.add_argument("query", nargs="?", default="",
                         help="query words (OR); name matches rank above statements and scripts")
@@ -19,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--requirement", action="append", default=[], metavar="ID",
                         help="require a file-level authored requirement citation (repeatable, AND)")
     parser.add_argument("--exclude", action="append", default=[], metavar="proofs/Name.v",
-                        help="omit a target source from examples (repeatable)")
+                        help="omit an existing source with exact path spelling (repeatable)")
     parser.add_argument("--limit", type=int, default=5, help="maximum results, 1..50 (default: 5)")
     parser.add_argument("--max-chars", type=int, default=1600,
                         help="maximum characters per excerpt, 256..16000 (default: 1600)")
@@ -47,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
              f"{len(report['matches'])} of {report['total_matches']} match(es); "
              f"{report['sources_read']} source(s) read."]
     for hit in report["matches"]:
-        lines.extend(["", f"{hit['path']}:{hit['line']}-{hit['end_line']} "
+        lines.extend(["", f"{hit['path']}:{hit['line']}:{hit['column']} (through line {hit['end_line']}) "
                       f"{hit['kind']} {hit['name']} [{hit['status']}; score {hit['score']}]",
                       f"source SHA-256: {hit['source_sha256']}",
                       "file citations: " + (", ".join(hit["requirements"]) or "none"),

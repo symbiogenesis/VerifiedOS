@@ -4,15 +4,16 @@
 import hashlib
 import io
 import json
+import os
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
-from vos import proofcites, proofsearch
-from vos.cli import proof_search
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from vos import proofcites, proofsearch
+from vos.cli import proof_search
 
 
 def _call(root: Path, args: list[str]) -> tuple[int, str, str]:
@@ -106,6 +107,21 @@ def _attributes_and_unfinished_strings() -> None:
                "an unfinished declaration must retain its final string in the raw excerpt")
 
 
+def _local_bindings_in_statements() -> None:
+    source = ("Lemma local_let : let n := 0 in n = 0. Proof. reflexivity. Qed.\n"
+              "Example nested_let : let n : let m := 0 in nat := 0 in n = 0. "
+              "Proof. reflexivity. Qed.\n"
+              "Definition typed_let : let n := 0 in nat := 0.\n")
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        hits = proofsearch.search(root, tactics=("reflexivity",))["matches"]
+        ensure({hit["name"] for hit in hits} == {"local_let", "nested_let"},
+               "local assignments inside theorem types must not hide proof scripts")
+        ensure(all(hit["status"] == "complete" and hit["excerpt"].endswith("Qed.")
+                   for hit in hits), "typed let statements must retain their lexical endings")
+        hit = proofsearch.search(root, "typed_let")["matches"][0]
+        ensure(hit["status"] == "definition", "the declaration's own body must remain distinct")
+
+
 def _citations_and_filters() -> None:
     source = (f"(* R-01-001a R-02-002\n{proofcites.DERIVED_BEGIN}\n"
               f"R-03-003\n{proofcites.DERIVED_END}\n*)\n"
@@ -127,9 +143,11 @@ def _fresh_reads_and_hashes() -> None:
     with sandbox_tree({"proofs/A.v": "Definition alpha := 1.\r\n"}) as root:
         path = root / "proofs/A.v"
         first = proofsearch.search(root, "alpha")["matches"][0]
+        old_stat = path.stat()
         ensure(first["source_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest(),
                "hash the original bytes including CRLF")
         path.write_text("Definition beta := 2.\n", encoding="utf-8", newline="")
+        os.utime(path, ns=(old_stat.st_atime_ns, old_stat.st_mtime_ns))
         ensure(not proofsearch.search(root, "alpha")["matches"], "edited sources must be reread")
         second = proofsearch.search(root, "beta")["matches"][0]
         ensure(second["source_sha256"] != first["source_sha256"], "content edits must change hashes")
@@ -175,10 +193,11 @@ def _input_errors() -> None:
                    ["value", "--exclude", "../A.v"], ["value", "--exclude", "proofs/nested/A.v"]]
         for args in invalid:
             status, stdout, stderr = _call(root, args)
-            ensure(status == 2 and not stdout and stderr,
+            ensure(status == 2 and not stdout and bool(stderr),
                    f"malformed selectors require a usage diagnostic: {args}, {status}, {stderr}")
         status, stdout, stderr = _call(root, ["--help"])
-        ensure(status == 0 and "--tactic" in stdout and not stderr, "help must need no search")
+        ensure(status == 0 and "usage: run.py proof-search" in stdout and not stderr,
+               "help must need no search and name the actual dispatcher command")
 
 
 def _source_errors() -> None:
@@ -216,16 +235,34 @@ def _corpus_boundaries() -> None:
                "linked files must be refused before they are read")
 
 
+def _unambiguous_locations_and_exclusions() -> None:
+    source = ("Module A. Lemma same : True. Proof. exact I. Qed. End A. "
+              "Module B. Lemma same : True. Proof. exact I. Qed. End B.\n")
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        hits = proofsearch.search(root, "same")["matches"]
+        ensure(len(hits) == 2 and hits[0]["line"] == hits[1]["line"] == 1,
+               "same-named declarations can share a source line")
+        ensure([hit["column"] for hit in hits] ==
+               [source.index("Lemma same") + 1, source.rindex("Lemma same") + 1],
+               "columns must distinguish declarations on the same line")
+        for excluded in ("proofs/a.v", "proofs/Missing.v"):
+            status, stdout, stderr = _call(root, ["same", "--exclude", excluded, "--json"])
+            ensure(status == 1 and not stdout and "exact path spelling" in stderr,
+                   "a misspelled exclusion must not silently expose a held-out solution")
+
+
 def cases() -> list[Case]:
     return [
         Case("ranking-and-exclusion", _ranking_and_exclusion),
         Case("comments-strings-locations", _comments_strings_and_locations),
         Case("lexical-statuses", _statuses_and_direct_bodies),
         Case("attributes-and-unfinished-strings", _attributes_and_unfinished_strings),
+        Case("local-bindings-in-statements", _local_bindings_in_statements),
         Case("authored-citations-and-filters", _citations_and_filters),
         Case("fresh-reads-and-byte-hashes", _fresh_reads_and_hashes),
         Case("bounded-output-and-json-schema", _bounded_output_and_schema),
         Case("input-errors", _input_errors),
         Case("source-errors", _source_errors),
         Case("corpus-boundaries", _corpus_boundaries),
+        Case("unambiguous-locations-and-exclusions", _unambiguous_locations_and_exclusions),
     ]
