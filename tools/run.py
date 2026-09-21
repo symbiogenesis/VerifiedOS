@@ -93,7 +93,7 @@ def _in_guest(root: Path, command: Command, argv: list[str]) -> int:
     of its own. The child's output is this run's output, streamed rather than
     captured, because a build is a quarter of an hour and its log is the point.
     """
-    print(f"== {command.name} runs in WSL; re-launching there", flush=True)
+    print(f"== {command.name} runs in WSL; re-launching there", file=sys.stderr, flush=True)
     try:
         return subprocess.run([*GUEST, command.name, *argv],
                               cwd=root, check=False).returncode

@@ -1,0 +1,16 @@
+{
+  "target": "Inspect cap_permit_load and check one coherent candidate",
+  "requirements": ["R-15-001"],
+  "frozen_constraints": [
+    "Preserve the frozen ISA profile and capability permission semantics",
+    "Do not weaken requirements, compiler strictness, properties or negative controls"
+  ],
+  "affected_paths": ["model/model/core/cap_common.sail"],
+  "validation_plan": [
+    "Retrieve the declaration and compiler-recorded callers with sail-context",
+    "Run sail-assist typecheck after each candidate",
+    "Regenerate the bundle and compare it after sources settle",
+    "Run the model build and applicable property, differential and negative-control gates",
+    "Review the source and generated diff and obtain Windows/Ubuntu Host CI"
+  ]
+}

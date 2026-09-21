@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS Sail assistance plan, checkpoint and process envelope, version 1",
+  "description": "Advisory repair state. Raw logs and source identities record observations, not behavioral acceptance.",
+  "oneOf": [{"$ref": "#/$defs/plan"}, {"$ref": "#/$defs/checkpoint"}, {"$ref": "#/$defs/status"}],
+  "$defs": {
+    "text": {"type": "string", "minLength": 1},
+    "texts": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^(?:[a-f0-9]{64}|gitlink:[a-f0-9]{40})$"}},
+    "plan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["target", "requirements", "frozen_constraints", "affected_paths", "validation_plan"],
+      "properties": {
+        "target": {"$ref": "#/$defs/text"}, "requirements": {"$ref": "#/$defs/texts"},
+        "frozen_constraints": {"$ref": "#/$defs/texts"}, "affected_paths": {"$ref": "#/$defs/texts"},
+        "validation_plan": {"$ref": "#/$defs/texts"},
+        "frozen_paths": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}}
+      }
+    },
+    "stream": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "bytes", "base64", "inline_truncated"],
+      "properties": {
+        "path": {"$ref": "#/$defs/text"}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "bytes": {"type": "integer", "minimum": 0}, "base64": {"type": ["string", "null"]},
+        "inline_truncated": {"type": "boolean"}
+      }
+    },
+    "process": {
+      "type": "object", "additionalProperties": false,
+      "required": ["command", "cwd", "started_at", "finished_at", "outcome", "exit_code", "elapsed_seconds", "timeout_seconds", "launch_error", "stdout", "stderr"],
+      "properties": {
+        "command": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "cwd": {"$ref": "#/$defs/text"}, "started_at": {"$ref": "#/$defs/text"}, "finished_at": {"$ref": "#/$defs/text"},
+        "outcome": {"enum": ["completed", "timeout", "cancelled", "launch_error"]},
+        "exit_code": {"type": ["integer", "null"]}, "elapsed_seconds": {"type": "number", "minimum": 0},
+        "timeout_seconds": {"type": "number", "exclusiveMinimum": 0}, "launch_error": {"type": ["string", "null"]},
+        "stdout": {"$ref": "#/$defs/stream"}, "stderr": {"$ref": "#/$defs/stream"}
+      }
+    },
+    "toolchain": {
+      "type": "object", "additionalProperties": false,
+      "required": ["binaries", "library_root", "libraries"],
+      "properties": {"binaries": {"$ref": "#/$defs/hashes"}, "library_root": {"type": ["string", "null"]}, "libraries": {"$ref": "#/$defs/hashes"}}
+    },
+    "attempt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["number", "change", "started_at", "finished_at", "outcome", "inputs_before", "inputs_after", "toolchain_before", "toolchain_after", "process", "reserved_seconds", "note"],
+      "properties": {
+        "number": {"type": "integer", "minimum": 1}, "change": {"$ref": "#/$defs/text"},
+        "started_at": {"$ref": "#/$defs/text"}, "finished_at": {"type": ["string", "null"]},
+        "outcome": {"enum": ["running", "passed", "failed", "timeout", "cancelled", "launch_error", "inputs_changed", "interrupted"]},
+        "inputs_before": {"$ref": "#/$defs/hashes"}, "inputs_after": {"oneOf": [{"$ref": "#/$defs/hashes"}, {"type": "null"}]},
+        "toolchain_before": {"$ref": "#/$defs/toolchain"}, "toolchain_after": {"oneOf": [{"$ref": "#/$defs/toolchain"}, {"type": "null"}]},
+        "process": {"oneOf": [{"$ref": "#/$defs/process"}, {"type": "null"}]},
+        "reserved_seconds": {"type": "number", "exclusiveMinimum": 0}, "note": {"type": ["string", "null"]}
+      }
+    },
+    "checkpoint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "advisory_only", "state", "base_revision", "created_at", "plan", "frozen_inputs", "initial_inputs", "attempt_limit", "active_seconds_limit", "active_seconds", "active_since", "attempts", "replans", "next_action", "completion"],
+      "properties": {
+        "version": {"const": 1}, "advisory_only": {"const": true}, "state": {"enum": ["ready", "running", "paused", "closed"]},
+        "base_revision": {"type": "string", "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"}, "created_at": {"$ref": "#/$defs/text"},
+        "plan": {"$ref": "#/$defs/plan"}, "frozen_inputs": {"$ref": "#/$defs/hashes"}, "initial_inputs": {"$ref": "#/$defs/hashes"},
+        "attempt_limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "active_seconds_limit": {"type": "integer", "minimum": 1, "maximum": 86400},
+        "active_seconds": {"type": "number", "minimum": 0}, "active_since": {"type": ["number", "null"], "minimum": 0},
+        "attempts": {"type": "array", "items": {"$ref": "#/$defs/attempt"}},
+        "replans": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["after_attempt", "at", "reason"],
+          "properties": {"after_attempt": {"type": "integer", "minimum": 0}, "at": {"$ref": "#/$defs/text"}, "reason": {"$ref": "#/$defs/text"}}
+        }},
+        "next_action": {"$ref": "#/$defs/text"},
+        "completion": {"oneOf": [{"type": "null"}, {
+          "type": "object", "additionalProperties": false, "required": ["at", "note", "acceptance_established"],
+          "properties": {"at": {"$ref": "#/$defs/text"}, "note": {"$ref": "#/$defs/text"}, "acceptance_established": {"const": false}}
+        }]}
+      }
+    },
+    "status": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "advisory_only", "checkpoint", "active_seconds_now", "remaining_seconds", "can_check", "reason"],
+      "properties": {
+        "version": {"const": 1}, "advisory_only": {"const": true}, "checkpoint": {"$ref": "#/$defs/checkpoint"},
+        "active_seconds_now": {"type": "number", "minimum": 0}, "remaining_seconds": {"type": "number", "minimum": 0},
+        "can_check": {"type": "boolean"}, "reason": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
