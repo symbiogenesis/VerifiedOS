@@ -428,7 +428,7 @@ Fixpoint nat_list_eqb (l m : list nat) : bool :=
    ------------------------------------------------------------------------- *)
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof. destruct a, b; simpl; intros H; try discriminate H; split; reflexivity. Qed.
+Proof. destruct a, b; intros H; try discriminate H; split; reflexivity. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
 Proof. induction n as [| k IH]; simpl; [ reflexivity | exact IH ]. Qed.
@@ -885,12 +885,12 @@ Theorem an_admitted_composition_sizes_its_queue :
 Proof.
   intros c H. unfold admissible_composition, composition_conjuncts in H.
   simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ]. clear H.
-  destruct (andb_split _ _ H1) as [ _ H2 ]. clear H1.
-  destruct (andb_split _ _ H2) as [ H3 H4 ]. clear H2.
-  destruct (andb_split _ _ H4) as [ H5 H6 ]. clear H4.
-  destruct (andb_split _ _ H6) as [ H7 _ ]. clear H6.
-  exact (conj H3 (conj H5 H7)).
+  destruct (andb_split _ _ H) as [ _ H1 ].
+  destruct (andb_split _ _ H1) as [ _ H2 ].
+  destruct (andb_split _ _ H2) as [ Hqueue H3 ].
+  destruct (andb_split _ _ H3) as [ Hring H4 ].
+  destruct (andb_split _ _ H4) as [ Hresult _ ].
+  exact (conj Hqueue (conj Hring Hresult)).
 Qed.
 
 (* =========================================================================
@@ -2084,20 +2084,14 @@ Qed.
 Theorem the_capability_writer_also_writes_the_authority :
   ~ WritesNoAuthority capability_write.
 Proof.
-  intros H.
-  assert (Hb : key_bits capability_write demo_cap = key_bits capability_write peer_cap).
-  { unfold key_bits. rewrite (H demo_composition demo_cap peer_cap demo_entry).
-    reflexivity. }
-  vm_compute in Hb. discriminate Hb.
+  intros H. specialize (H demo_composition demo_cap peer_cap demo_entry).
+  vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_stamped_writer_is_refuted : ~ WritesNoAuthority stamped_write.
 Proof.
-  intros H.
-  assert (Hb : key_bits stamped_write demo_cap = key_bits stamped_write peer_cap).
-  { unfold key_bits. rewrite (H demo_composition demo_cap peer_cap demo_entry).
-    reflexivity. }
-  vm_compute in Hb. discriminate Hb.
+  intros H. specialize (H demo_composition demo_cap peer_cap demo_entry).
+  vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_spilling_writer_is_refuted :
@@ -2299,24 +2293,17 @@ Theorem the_resuming_publisher_is_refuted :
   ~ NoFurtherDeltaAfterTheMarker resuming_publish.
 Proof.
   intros H.
-  assert (Hq : sb_queue (resuming_publish demo_composition committed_txn
-                           marked_subscription two_deltas)
-               = sb_queue marked_subscription).
-  { rewrite (H demo_composition committed_txn marked_subscription two_deltas
-               eq_refl). reflexivity. }
-  vm_compute in Hq. discriminate Hq.
+  specialize (H demo_composition committed_txn marked_subscription two_deltas
+                eq_refl).
+  vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_prepare_time_publisher_is_refuted :
   ~ PublishesOnlyAfterTheCommit prepare_publish.
 Proof.
   intros H.
-  assert (Hq : sb_queue (prepare_publish demo_composition open_txn
-                           demo_subscription two_deltas)
-               = sb_queue demo_subscription).
-  { rewrite (H demo_composition open_txn demo_subscription two_deltas eq_refl).
-    reflexivity. }
-  vm_compute in Hq. discriminate Hq.
+  specialize (H demo_composition open_txn demo_subscription two_deltas eq_refl).
+  vm_compute in H. discriminate H.
 Qed.
 
 (* The four publishers' own answers to the one overflowing publication, so
@@ -2353,24 +2340,17 @@ Example a_reboot_leaves_no_subscription_and_recovery_rescans :
 Theorem the_ring_blocking_commit_is_refuted :
   ~ NeverBackpressuresTheCommit ring_blocking_commit.
 Proof.
-  intros H.
-  assert (Hc : tx_committed (ring_blocking_commit nil submit_enqueued open_txn)
-               = tx_committed (ring_blocking_commit nil submit_would_block open_txn)).
-  { rewrite (H nil nil submit_enqueued submit_would_block open_txn). reflexivity. }
-  vm_compute in Hc. discriminate Hc.
+  intros H. specialize (H nil nil submit_enqueued submit_would_block open_txn).
+  vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_queue_sensitive_commit_is_refuted :
   ~ NeverBackpressuresTheCommit queue_sensitive_commit.
 Proof.
   intros H.
-  assert (Hc : tx_committed (queue_sensitive_commit nil submit_enqueued open_txn)
-               = tx_committed (queue_sensitive_commit
-                                 (cons marked_subscription nil)
-                                 submit_enqueued open_txn)).
-  { rewrite (H nil (cons marked_subscription nil) submit_enqueued
-               submit_enqueued open_txn). reflexivity. }
-  vm_compute in Hc. discriminate Hc.
+  specialize (H nil (cons marked_subscription nil) submit_enqueued
+                submit_enqueued open_txn).
+  vm_compute in H. discriminate H.
 Qed.
 
 (* The ring's two answers reach the specification's commit alike, which is
@@ -2730,11 +2710,13 @@ Theorem delivered_results_obey_the_bound_and_presented_capability : forall c f s
   all_of (derivable (se_cap s)) result = true.
 Proof.
   intros c f sid objects result s Hlive Hresult.
-  unfold bounded_result_delivery in Hresult; rewrite Hlive in Hresult.
+  unfold bounded_result_delivery in Hresult. rewrite Hlive in Hresult.
   destruct (andb (Nat.leb (count_of objects) (result_bound c))
-                (all_of (derivable (se_cap s)) objects)) eqn:E; try discriminate.
-  inversion Hresult; subst result; apply andb_split in E as [Hb Ha].
-  repeat split; assumption || reflexivity.
+                 (all_of (derivable (se_cap s)) objects)) eqn:E;
+    [ | discriminate Hresult ].
+  injection Hresult as Hr. subst result.
+  destruct (andb_split _ _ E) as [ Hbound Hderiv ].
+  exact (conj eq_refl (conj Hbound Hderiv)).
 Qed.
 Fixpoint result_copies (n : nat) (o : ObjCap) : list ObjCap :=
   match n with 0 => nil | S k => cons o (result_copies k o) end.
