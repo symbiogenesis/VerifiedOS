@@ -203,10 +203,7 @@ Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
 Proof. intros [ | ] [ | ] H; try discriminate H; reflexivity. Qed.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. intros [ | ] [ | ] H; try discriminate H; split; reflexivity. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
@@ -495,7 +492,7 @@ Proof.
     + apply (all_of_mono (Edge m) (fun e => holds m e r)
                (fun e => holds m e (cons x r)) r).
       * intros e He. unfold holds in He. unfold holds. simpl.
-        rewrite He. destruct (edge_eqb m e x); reflexivity.
+        rewrite He. apply orb_true_right.
       * exact IH.
 Qed.
 
@@ -602,7 +599,7 @@ Theorem no_promotion_primitive_exists :
 Proof.
   intros m f Hwx [ e [ _ [ _ [ Hs Hx ] ] ] ].
   assert (H := Hwx (edge_perm (f e))).
-  unfold edge_authority in Hs. unfold edge_authority in Hx.
+  unfold edge_authority in Hs, Hx.
   rewrite Hs in H. rewrite Hx in H. discriminate H.
 Qed.
 
@@ -693,10 +690,7 @@ Example every_intrusion_is_refused :
    computation over the four members it happens to have. *)
 Theorem no_second_resident_is_admitted :
   forall r : Resident, ~ InventoryHasOneEntry (intruded r).
-Proof.
-  intros r H. unfold InventoryHasOneEntry in H. unfold intruded in H.
-  simpl in H. discriminate H.
-Qed.
+Proof. intros r H. discriminate H. Qed.
 
 (* And the two clauses are independent: an inventory of one entry that is
    not the kernel passes R-07-024's count and fails R-07-020's occupant, so
@@ -1285,10 +1279,8 @@ Theorem a_resident_handler_refutes_quiescence :
     /\ ~ InventoryHasOneEntry (ins_resident (resident_handler_state m g)).
 Proof.
   intros m g. split.
-  - intros [ _ H ]. unfold resident_handler_state in H. simpl in H.
-    discriminate H.
-  - intros H. unfold InventoryHasOneEntry in H.
-    unfold resident_handler_state in H. simpl in H. discriminate H.
+  - intros [ _ H ]. discriminate H.
+  - intros H. discriminate H.
 Qed.
 
 (* And it installs exactly, so R-07-028's refinement does not carry
@@ -1485,14 +1477,7 @@ Proof.
   split; [ exact (the_adding_installer_is_satisfiable demo_wx
                     (demo_graph wx_free_decode) (rogue_edge wx_free_decode)) | ].
   intros H.
-  assert (Hin : ins_holds (added_state demo_wx (demo_graph wx_free_decode)
-                             (rogue_edge wx_free_decode))
-                  (rogue_edge wx_free_decode) = true) by reflexivity.
-  assert (Hasr : access_system_registers
-                   (edge_authority demo_wx (rogue_edge wx_free_decode)) = true)
-    by reflexivity.
-  assert (Hk := H (rogue_edge wx_free_decode) Hin Hasr).
-  discriminate Hk.
+  discriminate (H (rogue_edge wx_free_decode) eq_refl eq_refl).
 Qed.
 
 (* And the same construction with the firmware's own edge: an installer that
@@ -1505,10 +1490,7 @@ Theorem a_firmware_that_keeps_its_own_edge_is_refuted :
          (firmware_edge wx_free_decode)).
 Proof.
   intros [ H _ ].
-  assert (Hin : ins_holds (added_state demo_wx (demo_graph wx_free_decode)
-                             (firmware_edge wx_free_decode))
-                  (firmware_edge wx_free_decode) = true) by reflexivity.
-  assert (Hf := H (firmware_edge wx_free_decode) Hin). discriminate Hf.
+  discriminate (H (firmware_edge wx_free_decode) eq_refl).
 Qed.
 
 (* =========================================================================
@@ -1525,7 +1507,7 @@ Theorem the_distribution_check_is_not_the_encoding_check :
   /\ ~ WxAtTheEncoding demo_leaky.(decode).
 Proof.
   split; [ reflexivity | ].
-  intros H. assert (Hp := H p_both). discriminate Hp.
+  intros H. discriminate (H p_both).
 Qed.
 
 (* On the same machine the promotion primitive R-14-003 says never exists
@@ -1547,8 +1529,7 @@ Theorem the_specification_encoding_excludes_both :
   /\ forall f : Promotion demo_wx, ~ PromotesToWritableExecute demo_wx f.
 Proof.
   assert (Hwx : WxAtTheEncoding demo_wx.(decode)).
-  { destruct (the_finite_check_decides_wx demo_wx.(decode)) as [ Hsound _ ].
-    apply Hsound. reflexivity. }
+  { apply the_finite_check_decides_wx. reflexivity. }
   split; [ exact Hwx | ].
   intros f. exact (no_promotion_primitive_exists demo_wx f Hwx).
 Qed.
@@ -1567,7 +1548,7 @@ Theorem the_root_set_has_two_members_where_both_authorities_are_needed :
 Proof.
   intros m rt es ex Hwx _ Hs _ Hx Heq.
   assert (H := Hwx (edge_perm es)).
-  unfold edge_authority in Hs. unfold edge_authority in Hx.
+  unfold edge_authority in Hs, Hx.
   rewrite Hs in H. rewrite Heq in H. rewrite Hx in H. discriminate H.
 Qed.
 
@@ -1594,8 +1575,7 @@ Theorem a_refusing_region_table_is_refuted :
   ~ DecidesOnTheCapabilityAlone demo_wx (region_gated demo_wx (fun _ => false)).
 Proof.
   intros H.
-  assert (Hq := H (Build_Edge demo_wx DemoKernel true p_store) true).
-  discriminate Hq.
+  discriminate (H (Build_Edge demo_wx DemoKernel true p_store) true).
 Qed.
 
 Theorem the_demo_hidden_singleton_is_refuted :
