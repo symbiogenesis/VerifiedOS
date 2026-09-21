@@ -39,7 +39,8 @@ resident memory. Both measured builds use clean objects with the compiler cache
 disabled and the same bounded job count. The baseline is rebuilt after capturing
 header hashes. Source/tool identities are checked again before publication.
 Header or generated-input changes refuse reuse even if timestamps are preserved.
-CTest outputs must agree after replacing only their build-directory paths, and
+CTest captures up to 100 MiB per test and refuses any truncated output. Outputs
+must agree after replacing only their build-directory paths, and
 every corpus member must match both the frozen trace and the other emulator's
 full output. A nonzero stage exit leaves its log and timing record, and the run writes
 `last-failure.json`; only a completed passing comparison publishes `latest.json`.
