@@ -89,9 +89,9 @@
       That entry's arithmetic is over declared visit cadences and rotation
       orders that no artifact carries, so this file states the rotation's
       relation to the switch (in PartitionContext.v) and not its admission.
-   g. R-11-015's WCET magnitudes and R-11-017's OPP assignment. Both are
-      crown-jewel specifications that are not authored, so a slot's bound
-      and a machine's cost fields are declared inputs here.
+   g. R-11-015's WCET magnitudes. A slot's bound and a machine's cost
+      fields are declared inputs here. ScheduleRecord.v extends these
+      frames with R-11-017's three outputs and symbolic OPP admission.
 
    Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
    property of an arbitrary check, cost function, index function, arrival
