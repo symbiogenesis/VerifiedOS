@@ -25,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=True))
     else:
-        print(f"PASS {report['methods']} methods in {report['partitions']} static libraries; "
+        print(f"PASS {report['methods']} methods in {report['partitions']} method libraries; "
               f"{report['suite_cases']} suite cases and "
               f"{len(cast('list[object]', report['corpus']))} corpus members")
         print(f"Evidence: {report['run']}/qualification.json")

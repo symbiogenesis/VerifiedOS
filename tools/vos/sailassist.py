@@ -287,7 +287,13 @@ def _stop(process: subprocess.Popen[bytes]) -> None:
         return
     try:
         if sys.platform == "win32":
-            process.terminate()
+            # A venv's Windows python.exe can be a launcher with a child holding
+            # the diagnostic handles. Terminating only the launcher leaks that
+            # child and prevents complete log ownership/cleanup on timeout.
+            stopped = subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                     capture_output=True, check=False, timeout=10)
+            if stopped.returncode and process.poll() is None:
+                process.terminate()
         else:
             os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:

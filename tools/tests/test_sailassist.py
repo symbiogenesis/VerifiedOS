@@ -71,6 +71,25 @@ def _bounded_inline_output() -> None:
         ensure(Path(stream["path"]).stat().st_size == 2097153, "the bound must not truncate the original log")
 
 
+def _timeout_process_tree() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-sail-tree-") as temporary:
+        root = Path(temporary)
+        script = ("import subprocess,sys,time; "
+                  "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
+                  "print(child.pid,flush=True); time.sleep(30)")
+        report = _run_script(script, root, root / "tree", 2)
+        ensure(report["outcome"] == "timeout", "the parent must reach its finite deadline")
+        pid = int(base64.b64decode(report["stdout"]["base64"]))
+        if sys.platform == "win32":
+            # An inherited child handle prevents this unlink on Windows.
+            Path(report["stdout"]["path"]).unlink()
+            Path(report["stderr"]["path"]).unlink()
+        else:
+            proc = Path(f"/proc/{pid}/stat")
+            ensure(not proc.exists() or proc.read_text().split()[2] in {"Z", "X"},
+                   "timeout must stop descendants as well as their parent")
+
+
 def _attempt_budget_and_replan() -> None:
     original = sailassist.process
 
@@ -243,6 +262,7 @@ def _preparation_budget_and_foreign_model() -> None:
 
 def cases() -> list[Case]:
     return [Case("raw-process-status-and-bytes", _raw_process_bytes),
+            Case("timeout-stops-descendants", _timeout_process_tree),
             Case("bounded-inline-diagnostics", _bounded_inline_output),
             Case("attempt-budget-and-replan", _attempt_budget_and_replan),
             Case("active-clock-and-pause", _clock_pause_and_exhaustion),
