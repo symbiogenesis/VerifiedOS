@@ -1796,8 +1796,7 @@ Theorem the_unmeasured_run_executes_before_it_records :
   /\ verdict_before_any_run unmeasured_run_chain = true
   /\ measured_before_run unmeasured_run_chain = false.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity |
-    split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat apply conj; reflexivity.
 Qed.
 
 (* A chain that extends the lifecycle state after the payload measurements
@@ -1816,8 +1815,7 @@ Theorem the_late_lifecycle_chain_extends_it_second :
   /\ verdict_before_any_run late_lifecycle_chain = true
   /\ lifecycle_extended_first late_lifecycle_chain = false.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity |
-    split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat apply conj; reflexivity.
 Qed.
 
 (* A chain that measures the start-up verdict last: the root's health is in
@@ -1836,8 +1834,7 @@ Theorem the_blind_entropy_chain_draws_before_the_verdict :
   /\ stages_in_chain_order blind_entropy_chain all_stages = true
   /\ verdict_before_any_run blind_entropy_chain = false.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity |
-    split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat apply conj; reflexivity.
 Qed.
 
 (* Gap b as a construction rather than as a remark: a chain that measures
@@ -2163,7 +2160,7 @@ Theorem the_convenient_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (convenient_unseal m)
     /\ ExportsNoKey m (convenient_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  intros m. repeat split.
   - intros d c b H. unfold convenient_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold convenient_unseal. rewrite H.
@@ -2196,7 +2193,7 @@ Theorem the_portable_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (portable_unseal m)
     /\ ExportsNoKey m (portable_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  intros m. repeat split.
   - intros d c b H. unfold portable_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold portable_unseal. rewrite H.
@@ -2230,7 +2227,7 @@ Theorem the_stale_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (stale_unseal m)
     /\ ExportsNoKey m (stale_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  intros m. repeat split.
   - intros d c b H. unfold stale_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold stale_unseal. rewrite H.
@@ -2262,7 +2259,7 @@ Theorem the_best_effort_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (best_effort_unseal m)
     /\ ExportsNoKey m (best_effort_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  intros m. repeat split.
   - intros d c b H. unfold best_effort_unseal. rewrite H. reflexivity.
   - intros d c b H. unfold best_effort_unseal. rewrite H.
     destruct (policy_admits m d b.(bound_policy)); reflexivity.
@@ -2296,7 +2293,7 @@ Theorem the_promiscuous_unseal_keeps_the_other_five :
     /\ UnsealsNothingOnAFailedRoot m (promiscuous_unseal m)
     /\ ExportsNoKey m (promiscuous_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  intros m. repeat split.
   - intros d c b H. unfold promiscuous_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold promiscuous_unseal. rewrite H.
@@ -2325,7 +2322,7 @@ Theorem the_exporting_unseal_keeps_all_five_gates :
     /\ UnsealsNothingOnAFailedRoot m (exporting_unseal m)
     /\ BoundToTheCompartment m (exporting_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  intros m. repeat split.
   - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
@@ -2846,8 +2843,7 @@ Proof.
   intros current declared H. unfold spec_floor.
   destruct (Nat.ltb current declared) eqn:E.
   - exact (nat_leb_refl declared).
-  - assert (K : Nat.leb declared current = true) by exact (nat_ltb_false_gives_leb _ _ E).
-    exact K.
+  - exact (nat_ltb_false_gives_leb _ _ E).
 Qed.
 
 (* A floor that takes the image's own declared value, which is the
@@ -2960,9 +2956,8 @@ Theorem no_counter_of_the_enumeration_advances_on_a_data_commit :
   forall c : Counter, advances_on c DataCommit = false.
 Proof.
   intros c.
-  assert (E : negb (advances_on c DataCommit) = true)
-    by exact (all_of_counters _ c the_specification_advancement_spares_the_data_commit).
-  destruct (advances_on c DataCommit); [ discriminate E | reflexivity ].
+  exact (negb_true _ (all_of_counters _ c
+           the_specification_advancement_spares_the_data_commit)).
 Qed.
 
 (* The construction R-10-011 names: the freshness epoch root advanced once
@@ -3099,9 +3094,7 @@ Proof. intros n. reflexivity. Qed.
 (*| discharges: R-09-028 |*)
 Theorem the_specification_charge_spends_on_the_ordinary_failure :
   ChargesTheOrdinaryFailure spec_charge.
-Proof.
-  intros n. simpl. induction n as [ | k IH ]; [ reflexivity | simpl ]. exact IH.
-Qed.
+Proof. intros n. exact (nat_leb_refl (S n)). Qed.
 
 (* A boot counter that charges every failure, so a device whose entropy root
    latched off spends its attempts and takes the automatic revert, which is
@@ -3110,10 +3103,7 @@ Definition uniform_charge : Charge := fun _ n => S n.
 
 Theorem the_uniform_charge_still_spends_on_the_ordinary_failure :
   ChargesTheOrdinaryFailure uniform_charge.
-Proof.
-  intros n. unfold uniform_charge. simpl.
-  induction n as [ | k IH ]; [ reflexivity | simpl ]. exact IH.
-Qed.
+Proof. intros n. exact (nat_leb_refl (S n)). Qed.
 
 Theorem the_uniform_charge_spends_on_the_entropy_halt :
   ~ SpendsNoAttemptOnTheEntropyHalt uniform_charge.
@@ -3160,17 +3150,9 @@ Theorem reaching_the_other_slot_gives_the_involution :
   forall rv : Revert, RevertsToTheOtherSlot rv -> IsAnInvolution rv.
 Proof.
   intros rv H s.
-  destruct s.
-  - destruct (rv SlotA) eqn:E1.
-    + exfalso. exact (H SlotA E1).
-    + destruct (rv SlotB) eqn:E2.
-      * reflexivity.
-      * exfalso. exact (H SlotB E2).
-  - destruct (rv SlotB) eqn:E1.
-    + destruct (rv SlotA) eqn:E2.
-      * exfalso. exact (H SlotA E2).
-      * reflexivity.
-    + exfalso. exact (H SlotB E1).
+  destruct (rv SlotA) eqn:Ea; [ exfalso; exact (H SlotA Ea) | ].
+  destruct (rv SlotB) eqn:Eb; [ | exfalso; exact (H SlotB Eb) ].
+  destruct s; [ rewrite Ea | rewrite Eb ]; assumption.
 Qed.
 
 Definition stuck_revert : Revert := fun s => s.
@@ -3279,8 +3261,7 @@ Definition double_charging_settle : Settle := fun _ n => S n.
 Theorem the_double_charging_settlement_refunds_nothing :
   RefundsNothing double_charging_settle.
 Proof.
-  intros cut n. unfold double_charging_settle. simpl.
-  induction n as [ | k IH ]; [ reflexivity | ]. simpl. exact IH.
+  intros cut n. exact (nat_ltb_gives_leb n (S n) (nat_leb_refl (S n))).
 Qed.
 
 Theorem the_double_charging_settlement_charges_a_completed_attempt_twice :
@@ -3332,20 +3313,16 @@ Lemma the_unlockable_rom_takes_the_states_own_root :
   forall (m : Machine) (token : nat),
     unlockable_rom m token (m.(accepted_root) m.(state)) = true.
 Proof.
-  intros m token. unfold unlockable_rom.
-  assert (E : Nat.eqb (m.(accepted_root) m.(state))
-                      (m.(accepted_root) m.(state)) = true)
-    by exact (nat_eqb_refl _).
-  simpl. rewrite E. reflexivity.
+  intros m token. unfold unlockable_rom. simpl.
+  rewrite (nat_eqb_refl (m.(accepted_root) m.(state))). reflexivity.
 Qed.
 
 Lemma the_unlockable_rom_takes_the_token :
   forall (m : Machine) (token : nat), unlockable_rom m token token = true.
 Proof.
-  intros m token. unfold unlockable_rom.
-  assert (E : Nat.eqb token token = true) by exact (nat_eqb_refl token).
-  simpl. rewrite E.
-  destruct (Nat.eqb token (m.(accepted_root) m.(state))); reflexivity.
+  intros m token. unfold unlockable_rom. simpl.
+  destruct (Nat.eqb token (m.(accepted_root) m.(state)));
+    [ reflexivity | exact (nat_eqb_refl token) ].
 Qed.
 
 Theorem the_unlockable_rom_still_accepts_the_states_own_root :
@@ -3529,12 +3506,8 @@ Theorem the_registers_table_closes_every_other_state :
   forall m : Machine,
     CarriesTheRegistersDebugTable m -> ClosesTheDebugModuleEverywhereElse m.
 Proof.
-  intros m H l Hd Hr. rewrite (H l). destruct l.
-  - reflexivity.
-  - reflexivity.
-  - discriminate Hd.
-  - reflexivity.
-  - discriminate Hr.
+  intros m H l Hd Hr. rewrite (H l).
+  destruct l; try reflexivity; [ discriminate Hd | discriminate Hr ].
 Qed.
 
 (* The three clauses above are not three independent obligations, and this
@@ -3567,12 +3540,9 @@ Theorem the_two_independent_clauses_fix_the_table :
     ClosesTheDebugModuleEverywhereElse m ->
     CarriesTheRegistersDebugTable m.
 Proof.
-  intros m [ H2 H3 ] H4 l. destruct l.
-  - exact (H4 Raw eq_refl eq_refl).
-  - exact (H4 TestState eq_refl eq_refl).
-  - exact H2.
-  - exact (H4 Production eq_refl eq_refl).
-  - exact H3.
+  intros m [ H2 H3 ] H4 l.
+  destruct l; [ exact (H4 Raw eq_refl eq_refl) | exact (H4 TestState eq_refl eq_refl)
+              | exact H2 | exact (H4 Production eq_refl eq_refl) | exact H3 ].
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -4426,12 +4396,7 @@ Theorem the_dark_machine_keeps_the_other_two_clauses :
   /\ ClosesTheDebugModuleEverywhereElse demo_dark.
 Proof.
   split; [ reflexivity | ].
-  intros l Hd Hr. destruct l.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - discriminate Hr.
+  intros l Hd Hr. destruct l; try reflexivity. discriminate Hr.
 Qed.
 
 Theorem the_test_live_machine_opens_a_closed_manufacturing_state :
