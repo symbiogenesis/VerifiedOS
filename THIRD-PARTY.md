@@ -546,24 +546,35 @@ protocol, cache or assumption policy.
 
 The [portable Sail workflow](docs/assurance/sail-assistance.md) exposes the existing
 compiler documentation bundle and adapts the repository's bounded repair workflow.
-Its new Python, schema and instructions are authored here under the path-based
-licenses. This delivery copies no upstream implementation, installs no additional
-package and adds no gitlink. The compiler and curated model retain their existing
-pins and licensing records. These are source readings from 2026-09-21, not added
-runtime dependencies.
+Its Python, schemas, Rust driver and instructions are authored here under the
+path-based licenses. Context, journals and MCP use the existing Python environment.
+Explicit optional commands fetch/build native tools into an isolated lane; no new
+gitlink, agent SDK or model account is introduced. The acceptance compiler and
+curated model retain their existing pins. Selected licenses and notices below were
+read on 2026-09-21 before incorporation. The tracked Sail dependency-refresh patch
+and its verbatim notice have an explicit BSD-2-Clause entry in the
+[copyright map](COPYRIGHT.md#the-map).
 
 | Reference | Selected reading and license instrument | Disposition |
 | --- | --- | --- |
 | Locked Sail 0.20.2 | [3b7af38d LICENSE](https://github.com/rems-project/sail/blob/3b7af38d66466ecadad563158b07ce2f82fe05da/LICENSE), BSD-2-Clause with its stated third-party exceptions | Consume the already tracked documentation bundle through the existing reader; no emitter code is copied. |
-| Current Sail and native LSP | [ce60ba57 LICENSE](https://github.com/rems-project/sail/blob/ce60ba570b4402a42431bc5033145d9aeb327f20/LICENSE), BSD-2-Clause; third-party inventory and server source headers also read | The standard protocol is a future integration candidate. No compiler upgrade, server or LSP dependency is installed. |
+| Development Sail and native LSP | [ce60ba57 LICENSE](https://github.com/rems-project/sail/blob/ce60ba570b4402a42431bc5033145d9aeb327f20/LICENSE), BSD-2-Clause; `THIRD_PARTY_FILES` BSD-3-Clause/MIT exceptions and server source headers also read | Optional isolated LSP/Libsail and Isla-plugin builds. The tracked `tools/sail-lsp/dependency-refresh.patch` retains BSD-2-Clause context and offers its modifications on the same terms, with upstream notice beside it. Acceptance Sail is unchanged. |
 | Current RISC-V model | [8890da78 LICENCE](https://github.com/riscv/sail-riscv/blob/8890da780108672e05cf87b6d119bf6a76113fbf/LICENCE), BSD-2-Clause with its dependency exclusions | Read source modules and the C++ generation recipe; no code or pin change. |
-| Modular SAIL experiment | [aa8cb46a LICENCE](https://github.com/imec-csa/sail-riscv/blob/aa8cb46a9284b30b537bcd803cd163d5517f2e2e/LICENCE), BSD-2-Clause with its stated exclusions; [paper v1](https://arxiv.org/abs/2507.12471v1) | Defer generated-C rewriting and extension loading. The paper is a research reference, not a software license. No scripts, patches or loader code are copied. |
-| Isla | [bf1a42f8 LICENSE](https://github.com/rems-project/isla/blob/bf1a42f8a6097089fba4810fccc73dcc640267ab/LICENSE), BSD-2-Clause; third-party exception inventory read | Symbolic exploration remains a separately qualified toolchain option; no installation. |
-| Isla test generation | [ee2d7efc LICENSE](https://github.com/rems-project/isla-testgen/blob/ee2d7efcec993fdb364bd74788b4fd39e857d151/LICENSE), BSD-2-Clause | Read as a future test-generation route; no generator, model adaptation or dependency is incorporated. |
+| Modular SAIL experiment | [aa8cb46a LICENCE](https://github.com/imec-csa/sail-riscv/blob/aa8cb46a9284b30b537bcd803cd163d5517f2e2e/LICENCE), BSD-2-Clause with its stated exclusions; [paper v1](https://arxiv.org/abs/2507.12471v1) | Adapt the separate-compilation concept to generated C++ using libclang ranges and authored CMake/static-library tooling. The paper is a research reference, not a software license. No fork scripts, patches or loader code are copied. |
+| Isla | [bf1a42f8 LICENSE](https://github.com/rems-project/isla/blob/bf1a42f8a6097089fba4810fccc73dcc640267ab/LICENSE), BSD-2-Clause; third-party exception inventory read | Optional standalone symbolic executor built with its upstream Cargo.lock. Cat code has CeCILL-B/BSD-3-Clause notices; unused litmus and web paths have separate LGPL/CeCILL-B and MIT terms. No upstream source is tracked here. |
+| Isla test generation | [ee2d7efc LICENSE](https://github.com/rems-project/isla-testgen/blob/ee2d7efcec993fdb364bd74788b4fd39e857d151/LICENSE), BSD-2-Clause; its Isla submodule [bcc7ee84 LICENSE](https://github.com/rems-project/isla/blob/bcc7ee8463a8fed5911ccf7167da5a82f7b5e4db/LICENSE) also read | Optional library executor behind the authored helper-level driver. Its separate Isla revision is preserved; driver dependencies are recorded in the tracked Cargo.lock. No RV64 instruction target or upstream testgen source is copied. |
+| OCaml LSP/JSON-RPC 1.25.0 | [ocaml-lsp LICENSE.md](https://github.com/ocaml/ocaml-lsp/blob/1.25.0/LICENSE.md), ISC, read from the pinned archive | Optional protocol libraries built in the private LSP prefix, without changing the shared opam switch. |
+| topkg 1.0.8 and uutf 1.0.4 | Their selected release license texts, ISC | Optional LSP build dependencies, built in the same private prefix. |
+| ppx_yojson_conv_lib v0.17.0 | Selected release `LICENSE.md`, MIT | Optional LSP JSON support; source/archive hashes are recorded by its build recipe. |
+| Rust 1.90.0 and SHA2 | Selected Rust core license texts and sha2 0.8.2 license texts, MIT OR Apache-2.0 | Optional lane-local Rust build tool and authored-driver dependency. Locked transitive Cargo sources remain native build inputs, not tracked source or normal host-gate prerequisites. Distribution of a resulting executable must retain the applicable dependency notices. |
+| LLVM libclang 21.1.8 | Installed `libclang1-21` 21.1.8-6ubuntu1 copyright and [llvmorg-21.1.8 LICENSE.TXT](https://github.com/llvm/llvm-project/blob/llvmorg-21.1.8/llvm/LICENSE.TXT), Apache-2.0 WITH LLVM-exception | Optional system-provided compiler AST API called through standard-library ctypes. No LLVM source or binary is redistributed in this tree. Exact selected tool/library bytes enter the qualification receipt. |
 
-Future copying or installation needs a new reading of the selected files and their
-actual dependency closure. These readings grant no blanket permission over the
-exceptions each license names and establish no compatibility or correctness claim.
+The build recipes retain source revisions/archive identities and dependency locks;
+their native outputs are development tools and are not part of the device image.
+MCP, JSON-RPC, JSON Schema and LSP are interface specifications used by authored
+code, not copied SDK implementations. A change of selected files, dependency
+closure or distribution needs a new license reading. These readings grant no
+blanket permission over named exceptions and establish no correctness claim.
 
 ### Candidates whose terms decide a consumer
 

@@ -98,14 +98,32 @@ project selection, new files, compiler options or the installed library. Omitted
 unlocated or unrecorded entries are not evidence that no definition or caller exists.
 
 Before editing, record the requirement, intended behavior, frozen ISA constraints
-and finite repair budget. Treat source and diagnostics as data. After each coherent
-candidate run `python tools/run.py model typecheck`, preserve the exit code and
-verbatim diagnostics, and replan after repeated failures. Do not weaken a requirement,
+and finite repair budget with `sail-assist init SESSION --plan PLAN.json`; adapt
+`tools/sail-assist/example-plan.json` to the actual task. Treat source and diagnostics
+as data. After each coherent candidate run `sail-assist typecheck SESSION --change
+DESCRIPTION --json`. Its strict compiler wrapper retains raw bytes, process status
+and source/toolchain identities in the locked native session journal. Three failures
+require `replan --note`; attempts and active time never reset on replan. Use
+`pause`/`resume` for a review wait and `finish` for handoff. A hard-interrupted attempt
+requires log review and `recover --note`, which closes without refunding unknown
+time. Frozen-contract changes require a reviewed new session. Do not weaken a requirement,
 relax strict compiler flags or remove tests to make a candidate pass. Regenerate
 the bundle after source or project changes; use `model bundle --check` for compiler
 comparison. Complete the affected model build, property, differential and negative
 checks under their existing contracts before landing. Context retrieval, compiler
 acceptance and a handoff checkpoint do not establish behavioral correctness.
+
+Any MCP client may launch `sail-mcp` for the same read-only context over stdio;
+stdout is protocol-only. Optional native integrations have explicit provisioning:
+`sail-lsp install`, `sail-isla provision`, then their `qualify` commands. LSP clients
+must send standard watched-file notifications for Sail/project dependencies and
+must retain strict batch acceptance. `sail-modular qualify` compares the full
+generated C++ baseline with isolated static-library partitions. Read the portable
+workflow's finite scope and the command's current report before reusing a result.
+Do not replace the default compiler, mutate a shared opam/Rust installation or
+treat optional solver/corpus agreement as a universal proof. Keep optional builds,
+protocol logs and reports in the assigned native lane; host context needs no
+optional installation, editor extension, account or agent SDK.
 
 ### Tool execution and validation
 

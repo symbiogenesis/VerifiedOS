@@ -166,6 +166,13 @@ def _schema_and_path_refusals() -> None:
             sailassist.load(directory)
         except ValueError as exc:
             ensure("duplicate" in str(exc), "duplicate JSON keys must be rejected")
+        checkpoint.write_bytes(b'{"active_seconds":1e999}')
+        try:
+            sailassist.read_json(checkpoint)
+        except ValueError as exc:
+            ensure("finite" in str(exc), "overflowing JSON floats must refuse before schema validation")
+        else:
+            raise AssertionError("infinite active time was accepted")
         checkpoint.write_bytes(good)
         journal = sailassist.load(directory)
         journal["state"] = "paused"
@@ -212,7 +219,7 @@ def _preparation_budget_and_foreign_model() -> None:
     with _session(seconds=10) as (root, directory, logs):
         journal = sailassist.load(directory)
         started = journal["active_since"]
-        def slow_metadata() -> dict[str, Any]:
+        def slow_metadata(scratch: Path) -> dict[str, Any]:
             clock.return_value = started + 11
             return {"binaries": {}, "library_root": None, "libraries": {}}
         with (patch.object(sailassist.time, "time", return_value=started) as clock,

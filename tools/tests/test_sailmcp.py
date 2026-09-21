@@ -39,6 +39,8 @@ def _modern_and_legacy() -> None:
     ensure(discovery["supportedVersions"] == [sailmcp.MODERN, sailmcp.LEGACY] and
            discovery["capabilities"] == {"tools": {}}, "advertise only supported versions and capabilities")
     ensure(all(r["result"]["resultType"] == "complete" for r in results), "modern results need resultType")
+    ensure(all(r["result"]["ttlMs"] == 0 and r["result"]["cacheScope"] == "private" for r in results[:2]),
+           "modern discovery/list results must supply required cache policy without caching source state")
     declarations = results[1]["result"]["tools"]
     ensure([t["name"] for t in declarations] == ["sail_references", "sail_search", "sail_symbol"],
            "tool order and finite membership are stable")
@@ -70,7 +72,8 @@ def _wire_refusals() -> None:
     ensure([r["error"]["code"] for r in results] == [-32022, -32602, -32600, -32600, -32601, -32602],
            f"protocol errors must be precise: {results}")
     ensure(results[0]["error"]["data"]["requested"] == "9999-01-01", "version refusal retains request")
-    for raw in (b'{"jsonrpc":"2.0","jsonrpc":"2.0"}\n', b'{"x":NaN}\n', b'\xff\n'):
+    for raw in (b'{"jsonrpc":"2.0","jsonrpc":"2.0"}\n', b'{"x":NaN}\n', b'\xff\n',
+                b'{"x":1e999}\n', b'{"x":' + b'[' * 100_000 + b']' * 100_000 + b'}\n'):
         out = io.BytesIO()
         sailmcp.serve(TOOLS.parent, io.BytesIO(raw), out)
         ensure(json.loads(out.getvalue())["error"]["code"] == -32700, "invalid JSON must refuse")

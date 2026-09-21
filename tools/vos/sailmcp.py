@@ -7,6 +7,7 @@ The reader remains available during retrieval so cancellation can suppress repli
 """
 
 import json
+import math
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
@@ -37,9 +38,16 @@ def _constant(value: str) -> None:
     raise ValueError(f"not a JSON number: {value}")
 
 
+def _float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"JSON number exceeds finite precision: {value}")
+    return parsed
+
+
 def decode(raw: bytes) -> object:
     """RFC 8259 JSON; duplicate members and nonfinite numbers are refused."""
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=_object, parse_constant=_constant)
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=_object, parse_constant=_constant, parse_float=_float)
 
 
 def tool_schema(operation: str) -> dict[str, Any]:
@@ -214,13 +222,14 @@ class Server:
             modern = self.version(params)
             if method == "server/discover" and modern:
                 self.result(ident, {"supportedVersions": [MODERN, LEGACY], "capabilities": {"tools": {}},
-                                    "instructions": sailcontext.NOTICE}, modern)
+                                    "instructions": sailcontext.NOTICE, "ttlMs": 0, "cacheScope": "private"}, modern)
             elif method == "ping":
                 self.result(ident, {}, modern)
             elif method == "tools/list":
                 if params.get("cursor") is not None:
                     fail(-32602, "This finite tool list has no cursor")
-                self.result(ident, {"tools": tools(self.root)}, modern)
+                listing = {"tools": tools(self.root), **({"ttlMs": 0, "cacheScope": "private"} if modern else {})}
+                self.result(ident, listing, modern)
             elif method == "tools/call":
                 with self.lock:
                     if len(self.pending) >= MAX_PENDING:
@@ -248,7 +257,7 @@ def serve(root: Path, incoming: BinaryIO, outgoing: BinaryIO) -> int:
                 return 1
             try:
                 message = decode(raw)
-            except (ValueError, UnicodeError):
+            except (ValueError, UnicodeError, RecursionError):
                 server.error(None, -32700, "Invalid UTF-8 JSON")
                 continue
             server.receive(message)

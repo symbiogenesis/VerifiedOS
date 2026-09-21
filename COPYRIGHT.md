@@ -8,14 +8,17 @@ Copyright 2026 Edward Miller.
 
 | Path | License | Ground |
 | --- | --- | --- |
-| Every `.md` file outside `model/`, including [docs/](docs/) and [README.md](README.md) | `CC-BY-4.0`, in [LICENSE-docs.md](LICENSE-docs.md) | The prose is a specification meant to be cited, quoted, and inherited, and a document license says what a software license only gestures at. It is the license the RISC-V specifications themselves carry. |
+| Every original `.md` file outside `model/`, including [docs/](docs/) and [README.md](README.md), except the license texts named below | `CC-BY-4.0`, in [LICENSE-docs.md](LICENSE-docs.md) | The prose is a specification meant to be cited, quoted, and inherited, and a document license says what a software license only gestures at. It is the license the RISC-V specifications themselves carry. |
 | Every non-Markdown original file outside `model/`, including [tools/](tools/), [proofs/](proofs/) and [rtl/](rtl/) | `Apache-2.0`, in [LICENSE.md](LICENSE.md) | The patent grant is the reason rather than a side effect: this repository specifies a bespoke instruction set, a bespoke capability format, and bespoke block instructions, and an implementer of any of them is owed an explicit grant. |
 | [model/](model/) | `BSD-2-Clause`, in [model/LICENCE](model/LICENCE) | The curated tree is a derivative of the upstream Sail model and stays on upstream's terms, so a repair found here can go back upstream without a license negotiation. Modifications made here are offered on the same terms. |
 | `model/dependencies/` | each component's own, per [THIRD-PARTY.md](THIRD-PARTY.md) | Some components are vendored verbatim with their license files beside them. The rest are `FetchContent` declarations pinned to a content hash: the license file is tracked, the code is not, and it arrives from its own upstream when somebody configures a build. |
 | `upstream/` | not redistributed here | Submodule gitlinks: a URL and a commit hash, never the code. What a clone fetches from them answers to its own repository. |
+| `tools/sail-lsp/dependency-refresh.patch` | `BSD-2-Clause`, in [SAIL-LICENSE.md](tools/sail-lsp/SAIL-LICENSE.md) | Patch to the selected upstream Sail server. Its context retains upstream terms and authored modifications are offered on those same terms. |
+| [tools/sail-lsp/SAIL-LICENSE.md](tools/sail-lsp/SAIL-LICENSE.md) | the upstream instrument's own terms | Verbatim Sail license and copyright notice retained beside the patch. |
 | [LICENSE.md](LICENSE.md), [LICENSE-docs.md](LICENSE-docs.md) | the stewards' own terms | Verbatim license texts. Apache's appendix placeholder is filled in as Apache's own instructions direct; nothing else is changed in either file. |
 
-The split is decidable by path and extension alone, with no per-file judgment: a file is Markdown or it is not, and it is under `model/` or it is not.
+The split is decidable by path and extension alone. The named upstream patch and
+license instruments take precedence over the general original-file rows.
 
 ## Marking a new file
 

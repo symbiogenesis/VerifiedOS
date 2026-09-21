@@ -10,10 +10,10 @@ from typing import Any
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
-from vos import sailisla
-from vos.cli import sail_isla
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from vos import sailisla
+from vos.cli import sail_isla
 
 
 def _reject(call: Callable[[], object]) -> None:

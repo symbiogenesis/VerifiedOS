@@ -52,9 +52,16 @@ def _constant(value: str) -> None:
     raise ValueError(f"invalid JSON number: {value}")
 
 
+def _float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"JSON number exceeds finite precision: {value}")
+    return parsed
+
+
 def read_json(path: Path) -> dict[str, Any]:
     raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_pairs,
-                     parse_constant=_constant)
+                     parse_constant=_constant, parse_float=_float)
     if not isinstance(raw, dict):
         raise TypeError(f"{path}: expected a JSON object")
     return raw
@@ -105,7 +112,7 @@ def frozen(root: Path, extra: list[str]) -> dict[str, str]:
     return {name: receipts.digest(local_file(root, name)) for name in sorted(set(FROZEN) | set(extra))}
 
 
-def toolchain() -> dict[str, Any]:
+def toolchain(scratch: Path) -> dict[str, Any]:
     """The selected binaries and Sail's own reported installed library bytes."""
     binaries = {name: receipts.digest(Path(found)) for name in ("sail", "z3")
                 if (found := shutil.which(name)) is not None}
@@ -113,15 +120,16 @@ def toolchain() -> dict[str, Any]:
     libraries: dict[str, str] = {}
     library: str | None = None
     if compiler := shutil.which("sail"):
-        result = subprocess.run([compiler, "--dir"], capture_output=True, check=False, timeout=15)
+        result = subprocess.run([compiler, "--dir"], cwd=scratch, capture_output=True, check=False, timeout=15)
         if result.returncode:
             raise ValueError("cannot identify the selected Sail library with sail --dir")
         directory = Path(result.stdout.decode("utf-8").strip()).resolve()
         if not directory.is_dir():
             raise ValueError(f"Sail reported a missing library directory: {directory}")
-        library = str(directory)
-        libraries = {path.relative_to(directory).as_posix(): receipts.digest(path)
-                     for path in sorted(directory.rglob("*")) if path.is_file()}
+        library = str(directory.parent)
+        roots = (directory, directory.parent / "libsail/plugins")
+        libraries = {path.relative_to(directory.parent).as_posix(): receipts.digest(path)
+                     for owner in roots for path in sorted(owner.rglob("*")) if path.is_file()}
         if not libraries:
             raise ValueError("selected Sail library directory contains no files")
     return {"binaries": binaries, "library_root": library, "libraries": libraries}
@@ -348,7 +356,7 @@ def typecheck(root: Path, directory: Path, log_root: Path, change: str,
     number = len(journal["attempts"]) + 1
     # Resolving binaries is diagnostic here: the child still records a missing
     # compiler as its actual failed invocation, rather than inventing an exit code.
-    selected = toolchain()
+    selected = toolchain(directory)
     remaining = journal["active_seconds_limit"] - active_seconds(journal)
     if remaining <= 0:
         raise ValueError("active-time budget exhausted")
@@ -368,7 +376,7 @@ def typecheck(root: Path, directory: Path, log_root: Path, change: str,
     try:
         after = manifest(root)
         attempt["inputs_after"] = after
-        attempt["toolchain_after"] = toolchain()
+        attempt["toolchain_after"] = toolchain(directory)
         check_frozen(root, journal)
         unchanged = before == after and selected == attempt["toolchain_after"]
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
