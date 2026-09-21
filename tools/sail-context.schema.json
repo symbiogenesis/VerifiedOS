@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS advisory Sail context, version 1",
+  "description": "Compiler-recorded context checked against recorded local owners only. MD5 detects accidental source drift; SHA-256 identifies individual byte reads. Neither authenticates the bundle or establishes compilation or correctness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "advisory_only", "notice", "operation", "query", "kinds", "excluded", "known_symbol", "bundle_path", "bundle_sha256", "sources_checked", "coverage", "omitted_matches", "limit", "max_chars", "total_matches", "truncated", "matches"],
+  "properties": {
+    "version": {"const": 1},
+    "advisory_only": {"const": true},
+    "notice": {"type": "string", "minLength": 1},
+    "operation": {"enum": ["search", "symbol", "references"]},
+    "query": {"type": "string", "minLength": 1},
+    "kinds": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/kind"}},
+    "excluded": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/path"}},
+    "known_symbol": {"type": ["boolean", "null"], "description": "Null for search; exact symbol or recorded link-target membership otherwise, including names with no eligible local result."},
+    "bundle_path": {"const": "tools/generated/sail_riscv_model.json"},
+    "bundle_sha256": {"$ref": "#/$defs/sha256"},
+    "sources_checked": {"$ref": "#/$defs/count"},
+    "coverage": {
+      "type": "object", "additionalProperties": false,
+      "description": "Whole-bundle counts before query filters. Unlocated declarations are generated or otherwise carry no source location; unrecorded entries have a location but no recorded local owner digest.",
+      "required": ["local_declarations", "unlocated_declarations", "unrecorded_declarations", "local_references", "unlocated_references", "unrecorded_references"],
+      "properties": {
+        "local_declarations": {"$ref": "#/$defs/count"},
+        "unlocated_declarations": {"$ref": "#/$defs/count"},
+        "unrecorded_declarations": {"$ref": "#/$defs/count"},
+        "local_references": {"$ref": "#/$defs/count"},
+        "unlocated_references": {"$ref": "#/$defs/count"},
+        "unrecorded_references": {"$ref": "#/$defs/count"}
+      }
+    },
+    "omitted_matches": {
+      "type": "object", "additionalProperties": false,
+      "description": "Matching entries withheld because they have no checked local source. These are separate from eligible results omitted by the limit.",
+      "required": ["unlocated", "unrecorded"],
+      "properties": {"unlocated": {"$ref": "#/$defs/count"}, "unrecorded": {"$ref": "#/$defs/count"}}
+    },
+    "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+    "max_chars": {"type": "integer", "minimum": 256, "maximum": 16000},
+    "total_matches": {"$ref": "#/$defs/count"},
+    "truncated": {"type": "boolean"},
+    "matches": {
+      "type": "array", "maxItems": 50,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["kind", "symbol", "clause", "target", "reference_kind", "path", "line", "column", "end_line", "end_column", "start_byte", "end_byte", "source_sha256", "excerpt", "excerpt_start_byte", "excerpt_end_byte", "excerpt_truncated", "score", "matched_terms"],
+        "properties": {
+          "kind": {"$ref": "#/$defs/kind"},
+          "symbol": {"type": "string", "minLength": 1},
+          "clause": {"type": ["integer", "null"], "minimum": 0, "description": "Zero-based position within the declaration entry; null for compiler links."},
+          "target": {"type": ["string", "null"]},
+          "reference_kind": {"enum": ["function", "register", null]},
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"$ref": "#/$defs/position"},
+          "column": {"$ref": "#/$defs/position"},
+          "end_line": {"$ref": "#/$defs/position"},
+          "end_column": {"$ref": "#/$defs/position"},
+          "start_byte": {"$ref": "#/$defs/count"},
+          "end_byte": {"$ref": "#/$defs/count"},
+          "source_sha256": {"$ref": "#/$defs/sha256"},
+          "excerpt": {"type": "string", "maxLength": 16000},
+          "excerpt_start_byte": {"$ref": "#/$defs/count"},
+          "excerpt_end_byte": {"$ref": "#/$defs/count"},
+          "excerpt_truncated": {"type": "boolean"},
+          "score": {"$ref": "#/$defs/count"},
+          "matched_terms": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        },
+        "description": "One declaration/clause or incoming compiler link. Lines and Unicode code-point columns are one-based; byte offsets are zero-based and ends exclusive. A link excerpt contains its source line, while a declaration excerpt starts at its span. Excerpt offsets identify the returned, possibly shortened text. Link target names may differ from source spelling for compiler aliases."
+      }
+    }
+  },
+  "$defs": {
+    "kind": {"enum": ["function", "mapping", "val", "type", "register", "let"]},
+    "count": {"type": "integer", "minimum": 0},
+    "position": {"type": "integer", "minimum": 1},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "path": {"type": "string", "pattern": "^model/model/[^\\\\\u0000]+$"}
+  }
+}
