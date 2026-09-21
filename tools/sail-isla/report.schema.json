@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://verifiedos.org/schemas/sail-isla-v1.json",
+  "title": "VerifiedOS finite Isla qualification report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "advisory_only",
+    "notice",
+    "passed",
+    "source_sha256",
+    "tool_sha256",
+    "assets_sha256",
+    "ir_sha256",
+    "cases",
+    "symbolic_paths",
+    "baseline_matches",
+    "testgen_matches",
+    "controls",
+    "invocations",
+    "directory"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "advisory_only": {
+      "const": true
+    },
+    "notice": {
+      "type": "string"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "source_sha256": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "tool_sha256": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "assets_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ir_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 32,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "expanded",
+          "narrowed"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "expanded": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4095
+          },
+          "narrowed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          }
+        }
+      }
+    },
+    "symbolic_paths": {
+      "const": [
+        16,
+        16
+      ]
+    },
+    "baseline_matches": {
+      "const": 32
+    },
+    "testgen_matches": {
+      "const": 32
+    },
+    "controls": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "status",
+          "mismatches",
+          "log"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "semantic-defect",
+              "outside-scope",
+              "rejected-build"
+            ]
+          },
+          "status": {
+            "enum": [
+              "killed",
+              "survived",
+              "build_rejected"
+            ]
+          },
+          "mismatches": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            }
+          },
+          "log": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "invocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "argv",
+          "cwd",
+          "returncode",
+          "seconds",
+          "log"
+        ],
+        "properties": {
+          "argv": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "cwd": {
+            "type": "string"
+          },
+          "returncode": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "log": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "directory": {
+      "type": "string"
+    }
+  }
+}
