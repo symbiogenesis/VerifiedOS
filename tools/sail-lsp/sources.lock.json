@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "base_opam_lock": "tools/opam/sail.lock",
+  "sources": [
+    {"name": "topkg", "version": "1.0.8", "directory": "topkg-1.0.8", "url": "https://erratique.ch/software/topkg/releases/topkg-1.0.8.tbz", "sha256": "e72a91ef5052c045ed623d41e6bf5c4ee8f514e44786589a23599c521893dc61", "license": "ISC", "license_file": "LICENSE.md", "dependencies": ["ocaml", "ocamlfind", "ocamlbuild"]},
+    {"name": "uutf", "version": "1.0.4", "directory": "uutf-1.0.4", "url": "https://erratique.ch/software/uutf/releases/uutf-1.0.4.tbz", "sha256": "a7a578e6af9149a8894e18e3b4759c8565937a69c6c9ace7a30bbf0484619ca8", "license": "ISC", "license_file": "LICENSE.md", "dependencies": ["ocaml", "ocamlfind", "ocamlbuild", "topkg"]},
+    {"name": "ppx_yojson_conv_lib", "version": "v0.17.0", "directory": "ppx_yojson_conv_lib-0.17.0", "url": "https://github.com/janestreet/ppx_yojson_conv_lib/archive/refs/tags/v0.17.0.tar.gz", "sha256": "f6e6ee92408c53c5ecd8bb5ae93811aa4cf71f8dc144d5943be8fc2c7697b199", "license": "MIT", "license_file": "LICENSE.md", "dependencies": ["ocaml", "dune", "yojson"]},
+    {"name": "lsp", "version": "1.25.0", "packages": ["lsp", "jsonrpc"], "directory": "lsp-1.25.0", "url": "https://github.com/ocaml/ocaml-lsp/releases/download/1.25.0/lsp-1.25.0.tbz", "sha256": "e315d2bef3f89709ad2570846927996e54ff8dafce251188816ab97cef21f020", "license": "ISC", "license_file": "LICENSE.md", "dependencies": ["ocaml", "dune", "yojson", "ppx_yojson_conv_lib", "uutf"]},
+    {"name": "sail", "version": "ce60ba570b4402a42431bc5033145d9aeb327f20", "packages": ["sail_maker", "libsail", "sail_lsp"], "directory": "sail-ce60ba570b4402a42431bc5033145d9aeb327f20", "url": "https://codeload.github.com/rems-project/sail/tar.gz/ce60ba570b4402a42431bc5033145d9aeb327f20", "sha256": "a561fd10fb4c95562b043f93fd751a2bc41644b2f37393eae0e7b13bbb88173a", "license": "BSD-2-Clause AND BSD-3-Clause", "license_file": "LICENSE", "license_exceptions": "THIRD_PARTY_FILES.md", "dependencies": ["ocaml", "dune", "dune-site", "menhir", "ott", "lem", "linksem", "conf-gmp", "yojson", "pprint", "lsp", "jsonrpc"]}
+  ]
+}
