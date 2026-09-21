@@ -216,6 +216,14 @@ RESIDUE: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    ("THIRD-PARTY.md", "8890da780108672e05cf87b6d119bf6a76113fbf"):
+        "the current upstream model read for Sail assistance, not the local comparison gitlink",
+    ("docs/assurance/sail-assistance.md", "8890da780108672e05cf87b6d119bf6a76113fbf"):
+        "the external C++ generation recipe assessed for source versus binary modularity",
+    ("THIRD-PARTY.md", "aa8cb46a9284b30b537bcd803cd163d5517f2e2e"):
+        "the Modular SAIL paper fork whose license was read, not the upstream model gitlink",
+    ("docs/assurance/sail-assistance.md", "aa8cb46a9284b30b537bcd803cd163d5517f2e2e"):
+        "the paper's experimental extension-loader fork, assessed and deferred",
     ("docs/implementation/completion-log.md", "b5894db641d36616cdfce49352ec1d9833fcb411"):
         "the Rupicola edition recorded in the completed environment measurement",
     ("docs/implementation/completion-log.md", "beaf4499"):
