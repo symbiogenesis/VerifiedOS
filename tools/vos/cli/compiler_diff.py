@@ -30,14 +30,16 @@ CompCert's printer and the assembler's vocabulary, which the driver reports and 
 translate.
 
 **The harness.** A stream that assembles is wrapped before it is composed: `_start` moves
-the store-side root out of `c1` and derives the stack and the `tohost` authority from it,
+the store-side root out of `c1` into the reserved `c4` and derives the stack and the
+`tohost` authority from it,
 the way every corpus member derives an authority (R-15-001c), installs a trap handler
 through MTCC, calls `main`, and folds the return into the exit code the corpus convention
 reads back: `1` for success, `(code << 1) | 1` otherwise, where a code below `0x100` is
 `main`'s return masked to a byte (a nonzero return with a zero low byte reads as `0xFF`)
 and a code at or above it is `0x100 | mcause` for a trap that reached the handler. The
-frame `main` itself expects is the backend's, so the convention this harness assumes at
-the call is a placeholder M1.2d replaces, and the run says so.
+frame `main` itself expects is the backend's. The harness supplies a bounded local stack
+with store-local permission under the selected scalar convention in `purecap-abi.md`.
+It is a test composition; the firmware handoff remains a separate acceptance input.
 
 **The third reading of the trace** is M1.7's own test that a capability went through
 memory rather than only through the register file: one aligned eight-byte `W` whose tag
@@ -56,8 +58,8 @@ both sides' bytes are in hand.
 
 **What this does not decide, stated rather than implied.** No purecap component exists to
 run before M1.2's backend is integrated, so the component loop's purecap side is a record
-whose producer is still owed; the program loop's harness assumes a calling convention
-M1.2d has not fixed; a green run says this machine and this program agree and never that a
+whose producer is still owed; the program loop's harness supplies the selected scalar
+test convention; a green run says this machine and this program agree and never that a
 lowering is correct, R-05-023a's instrument being deferred hardening; and every report
 carries `milestone_acceptance: open` because the cell closes on the integrated backend and
 not on this driver.
@@ -109,7 +111,8 @@ NODE_RUNNER: Final[tuple[str, ...]] = (
 # What a run's evidence is a function of, beside the compiler it was pointed at.
 SOURCES: Final[tuple[str, ...]] = (
     "tools/vos/cli/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
-    "tools/generated/dialect-table.json", "docs/assurance/differential-corpus.md")
+    "tools/generated/dialect-table.json", "docs/assurance/differential-corpus.md",
+    "docs/implementation/contracts/purecap-abi.md", "model/model/core/cap_common.sail")
 
 # The verdict a program can end in. Listed once, in the order the summary counts them.
 VERDICTS: Final[tuple[str, ...]] = (
@@ -248,18 +251,26 @@ def _defines_main(stream: str) -> bool:
 # The harness, and assembling a stream under it
 # =====================================================================================
 
-PROLOGUE: Final = """\
+PROLOGUE: Final = f"""\
 # The M1.2f driver's harness around an emitted stream. Every authority is derived off the
-# store-side root the way a corpus member derives one (R-15-001c); the calling convention
-# assumed at `call main` is a placeholder until M1.2d fixes the frame and the sentry pair.
+# store-side root (R-15-001c). c4 is reserved by the selected scalar ABI; c8, like every
+# allocatable register, can be overwritten by main. Clearing expanded permission bit 0
+# removes globality while retaining root_data_cap's store-local stack shape.
         .text
         .globl _start
 _start:
-        cmove   c8, c1
+        cmove   c4, c1
         la      c9, __vos_handler
         cspecialrw cnull, mtcc, c9
+        li      t0, __vos_stack
+        csetaddr csp, c4, t0
+        li      t1, {STACK_BYTES}
+__vos_stack_bounds:
+        csetbounds csp, csp, t1
+        li      t1, 0xFFE
+        candperm csp, csp, t1
         li      t0, __vos_stack_top
-        csetaddr csp, c8, t0
+        csetaddr csp, csp, t0
         call    main
         beqz    a0, __vos_pass
         andi    gp, a0, 0xFF
@@ -273,7 +284,7 @@ __vos_pass:
         li      t0, 1
 __vos_exit:
         li      t1, tohost
-        csetaddr c31, c8, t1
+        csetaddr c31, c4, t1
         sd      t0, 0(c31)
 __vos_halt:
         j       __vos_halt
@@ -291,7 +302,7 @@ EPILOGUE: Final = f"""\
         .align  3
 tohost:
         .dword  0
-        .align  4
+        .align  8
 __vos_stack:
         .space  {STACK_BYTES}
 __vos_stack_top:
@@ -1019,7 +1030,7 @@ def _program(args: argparse.Namespace) -> int:
             return 2
         against = cast("dict[str, Json]", loaded) if isinstance(loaded, dict) else {}
 
-    ccomp = [str(args.ccomp)]
+    ccomp = [str(args.ccomp), *args.ccomp_arg]
     keep = Path(args.keep) if args.keep else None
     with tempfile.TemporaryDirectory(prefix="vos-compiler-diff-") as scratch:
         workdir = keep or Path(scratch)
@@ -1167,6 +1178,9 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("source", nargs="*", help="C sources to feed through the loop")
         sub.add_argument("--ccomp", required=True, metavar="PATH",
                          help="the contained ccomp executable, outside every checkout")
+        sub.add_argument("--ccomp-arg", action="append", default=[], metavar="ARG",
+                         help="pass one compiler argument unchanged (repeatable; use "
+                              "--ccomp-arg=-flag for an option)")
         sub.add_argument("--generate", type=int, default=0, metavar="N",
                          help="also run N generated programs (see `generate`)")
         sub.add_argument("--seed", type=int, default=1, help="the generator's seed")
