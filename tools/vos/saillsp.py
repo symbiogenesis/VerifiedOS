@@ -434,7 +434,10 @@ def qualify(e: env.Environment, *, timeout: float = 90) -> dict[str, Any]:
         baseline = _batch(e, project, directory, "baseline", timeout)
         record("baseline-diagnostics", response, not _has_diagnostic(response) and baseline["exit_code"] == 0,
                started, baseline, live_seconds=live_seconds)
-        position = {"textDocument": {"uri": dependent.as_uri()}, "position": {"line": 1, "character": 29}}
+        lines = main_text.splitlines()
+        line = next(i for i, content in enumerate(lines) if "helper(4)" in content)
+        position = {"textDocument": {"uri": dependent.as_uri()},
+                    "position": {"line": line, "character": lines[line].index("helper(4)") + 2}}
         for method in ("hover", "definition"):
             started = time.monotonic()
             response = session.request("textDocument/" + method, position)
