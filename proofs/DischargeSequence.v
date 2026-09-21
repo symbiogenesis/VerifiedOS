@@ -546,7 +546,7 @@ Proof.
   intros k n. induction n as [ | n IH ]; simpl.
   - reflexivity.
   - rewrite mem_nat_app. rewrite IH. rewrite nat_ltb_S. simpl.
-    destruct (Nat.ltb k n); destruct (Nat.eqb k n); reflexivity.
+    destruct (Nat.eqb k n); reflexivity.
 Qed.
 
 Lemma nodup_nat_snoc :
@@ -1190,7 +1190,7 @@ Proof.
   rewrite (nodup_once (success_path (upto n)) (PhaseRead k) (nodup_success_path n)).
   - reflexivity.
   - destruct (occurs_phase_step_chain k (upto n) entry_path Hk) as [ _ [ _ H3 ] ].
-    unfold success_path. simpl. exact H3.
+    exact H3.
 Qed.
 
 Definition transpositions (l : list Step) : list (list Step) :=
@@ -1381,10 +1381,8 @@ Proof. exact specification_is_ordered. Qed.
 Theorem specification_stops_on_a_negative_reading :
   StopsOnNegativeReading spec_sequencer.
 Proof.
-  intros ks r H. unfold spec_sequencer. split; [ | split ].
-  - rewrite (occurs_entry_admission DomainAddressable r ks eq_refl). exact H.
-  - rewrite (occurs_entry_admission ResidueConfirmed r ks eq_refl). exact H.
-  - rewrite (occurs_entry_admission MeasuredExecution r ks eq_refl). exact H.
+  intros ks r H. unfold spec_sequencer. split; [ | split ];
+    (rewrite occurs_entry_admission; [ exact H | reflexivity ]).
 Qed.
 
 (*| discharges: R-17-030n |*)
@@ -1411,14 +1409,13 @@ Proof.
   assert (Hm : mem_nat j (upto n) = true) by (rewrite mem_upto; exact Hj).
   destruct (occurs_phase_step_chain j (upto n) entry_path Hm) as [ H1 [ H2 H3 ] ].
   unfold success_path.
-  destruct s; try discriminate Hs; inversion Hs; subst; simpl; assumption.
+  destruct s; try discriminate Hs; injection Hs as ->; simpl; assumption.
 Qed.
 
 (*| discharges: R-15-247f |*)
 Theorem specification_reads_after_the_dwell : ReadFollowsTheDwell spec_sequencer.
 Proof.
-  intros ks r k H. unfold spec_sequencer, admission_sequence in *.
-  simpl in H. simpl. exact (staggered_phase_shape r k ks H).
+  intros ks r k H. exact (staggered_phase_shape r k ks H).
 Qed.
 
 (* =========================================================================
@@ -1572,8 +1569,7 @@ Proof.
   split; [ | split; [ | split ] ].
   - intros n. unfold optimistic_sequencer. rewrite <- admission_sequence_positive.
     exact (specification_is_ordered n).
-  - intros n r s. unfold optimistic_sequencer.
-    exact (nodup_at_most_once _ s (nodup_success_path n)).
+  - intros n r s. exact (nodup_at_most_once _ s (nodup_success_path n)).
   - intros n s j Hs Hj. unfold optimistic_sequencer.
     rewrite <- admission_sequence_positive.
     exact (specification_stands_each_phase_step_once n s j Hs Hj).
@@ -1601,15 +1597,10 @@ Theorem one_confirmation_still_stops_and_latches :
   /\ LatchesOnNegativeReading one_confirmation_sequencer.
 Proof.
   split.
-  - intros ks r H. unfold one_confirmation_sequencer. split; [ | split ]; simpl.
-    + rewrite (occurs_entry_staggered DomainAddressable r ks _ eq_refl). rewrite H.
-      reflexivity.
-    + rewrite (occurs_entry_staggered ResidueConfirmed r ks _ eq_refl). rewrite H.
-      reflexivity.
-    + rewrite (occurs_entry_staggered MeasuredExecution r ks _ eq_refl). rewrite H.
-      reflexivity.
+  - intros ks r H. unfold one_confirmation_sequencer. split; [ | split ]; simpl;
+      (rewrite occurs_entry_staggered; [ rewrite H; reflexivity | reflexivity ]).
   - split; intros ks r H; unfold one_confirmation_sequencer; simpl;
-      rewrite (occurs_latch_staggered r ks _); rewrite H; reflexivity.
+      rewrite occurs_latch_staggered; rewrite H; reflexivity.
 Qed.
 
 (* A sequencer that runs the drain again at the residue boundary: a second
@@ -1643,26 +1634,12 @@ Theorem the_second_pass_is_ordered_and_stops :
   /\ LatchesOnNegativeReading second_pass_sequencer.
 Proof.
   split; [ reflexivity | split ].
-  - intros ks r H. unfold second_pass_sequencer. split; [ | split ].
-    + change (occurs DomainAddressable (staggered r ks (second_pass_tail r ks)) = false).
-      rewrite (occurs_entry_staggered DomainAddressable r ks (second_pass_tail r ks) eq_refl).
-      rewrite H. reflexivity.
-    + change (occurs ResidueConfirmed (staggered r ks (second_pass_tail r ks)) = false).
-      rewrite (occurs_entry_staggered ResidueConfirmed r ks (second_pass_tail r ks) eq_refl).
-      rewrite H. reflexivity.
-    + change (occurs MeasuredExecution (staggered r ks (second_pass_tail r ks)) = false).
-      rewrite (occurs_entry_staggered MeasuredExecution r ks (second_pass_tail r ks) eq_refl).
-      rewrite H. reflexivity.
-  - split; intros ks r H; unfold second_pass_sequencer.
-    + change (occurs FailStopLatch (staggered r ks (second_pass_tail r ks)) = true).
-      rewrite (occurs_latch_staggered r ks (second_pass_tail r ks)). rewrite H.
-      reflexivity.
-    + change (occurs FailStopLatch (staggered r ks (second_pass_tail r ks)) = false).
-      rewrite (occurs_latch_staggered r ks (second_pass_tail r ks)). rewrite H.
-      change (occurs FailStopLatch
-                (staggered r ks (cons ResidueConfirmed (cons MeasuredExecution nil))) = false).
-      rewrite (occurs_latch_staggered r ks (cons ResidueConfirmed (cons MeasuredExecution nil))).
-      rewrite H. reflexivity.
+  - intros ks r H. unfold second_pass_sequencer, second_pass_tail. split; [ | split ]; simpl;
+      (rewrite occurs_entry_staggered; [ rewrite H; reflexivity | reflexivity ]).
+  - split; intros ks r H; unfold second_pass_sequencer, second_pass_tail; simpl;
+      rewrite occurs_latch_staggered; rewrite H; simpl.
+    + reflexivity.
+    + rewrite occurs_latch_staggered. rewrite H. reflexivity.
 Qed.
 
 (* A sequencer that latches on every reading rather than on the negative
@@ -1849,20 +1826,12 @@ Definition spec_path (m : Machine) (sw : Sweep m) : list Step :=
 Theorem admission_is_the_readers_confirmation :
   forall (m : Machine) (sw : Sweep m),
     occurs DomainAddressable (spec_path m sw) = spec_reader m sw.
-Proof.
-  intros m sw. unfold spec_path, path, spec_sequencer.
-  rewrite (occurs_entry_admission DomainAddressable (phase_read m sw) (phases m) eq_refl).
-  reflexivity.
-Qed.
+Proof. intros m sw. apply occurs_entry_admission. reflexivity. Qed.
 
 Theorem execution_is_the_readers_confirmation :
   forall (m : Machine) (sw : Sweep m),
     occurs MeasuredExecution (spec_path m sw) = spec_reader m sw.
-Proof.
-  intros m sw. unfold spec_path, path, spec_sequencer.
-  rewrite (occurs_entry_admission MeasuredExecution (phase_read m sw) (phases m) eq_refl).
-  reflexivity.
-Qed.
+Proof. intros m sw. apply occurs_entry_admission. reflexivity. Qed.
 
 (* D12 (R-15-247d, R-15-247f). The file's load-bearing theorem: on every
    machine and every sweep, a path that makes the domain addressable is
@@ -1875,9 +1844,7 @@ Theorem no_path_admits_a_partially_sanitized_bank :
 Proof.
   intros m sw H. rewrite admission_is_the_readers_confirmation in H.
   rewrite the_per_phase_reader_is_the_per_bank_reader in H.
-  split.
-  - exact H.
-  - exact (drained_domain_has_no_partial_bank m sw H).
+  split; [ exact H | exact (drained_domain_has_no_partial_bank m sw H) ].
 Qed.
 
 Theorem no_path_executes_over_a_partially_sanitized_bank :
@@ -2037,9 +2004,8 @@ Theorem touch_reader_admits_a_partially_sanitized_bank :
   /\ ~ AdmitsNoPartiallySanitizedBank demo (touch_reader demo)
   /\ ~ AdmitsOnlyDrainedDomains demo (touch_reader demo).
 Proof.
-  split; [ reflexivity | ]. split.
-  - intros H. specialize (H sweep_partial eq_refl). discriminate H.
-  - intros H. specialize (H sweep_partial eq_refl). discriminate H.
+  split; [ reflexivity | split ]; intros H; specialize (H sweep_partial eq_refl);
+    discriminate H.
 Qed.
 
 (* And the same reader on the sweep that reached nothing: it refuses, so
@@ -2313,9 +2279,7 @@ Theorem a_refused_retained_domain_takes_the_discharge_path :
         (staggered r ks entry_path)))
     /\ occurs (PhaseDischarge k) (reentry_sequence (cons k ks) false r) = true.
 Proof.
-  intros ks r k. split.
-  - reflexivity.
-  - simpl. rewrite nat_eqb_refl. reflexivity.
+  intros ks r k. split; [ reflexivity | simpl; rewrite nat_eqb_refl; reflexivity ].
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -2507,14 +2471,10 @@ Theorem no_retained_domain_is_released_unverified :
     all_of ver m.(extents) = true /\ any_of tag m.(tag_granules) = false.
 Proof.
   intros m ver tag r k rest Hp Hd.
-  assert (Hv := the_reentry_reader_releases_no_unverified_extent m).
-  assert (Ht := the_reentry_reader_releases_no_domain_with_a_tag_set m).
-  unfold ReleasesNoUnverifiedExtent in Hv.
-  unfold ReleasesNoDomainWithATagSet in Ht.
   destruct (spec_reentry_reader m ver tag) eqn:E.
   - split.
-    + exact (Hv ver tag E).
-    + exact (Ht ver tag E).
+    + exact (the_reentry_reader_releases_no_unverified_extent m ver tag E).
+    + exact (the_reentry_reader_releases_no_domain_with_a_tag_set m ver tag E).
   - unfold carries_no_discharge in Hd. rewrite Hp in Hd.
     assert (Hk : negb (occurs (PhaseDischarge k) (reentry_path_of m ver tag r)) = true).
     { apply (all_of_at_mem _ (cons k rest) k Hd). simpl. rewrite nat_eqb_refl.
