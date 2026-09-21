@@ -19,13 +19,15 @@ NOT_ESTABLISHED = ("the actual arbiter", "pipeline backpressure", "mode changes 
 
 STATEMENTS = {
     "serial_domain": "the named cost slots must belong to harts of one serial admission domain; "
-                     "the instrument cannot check that condition",
+                     "the instrument refuses named slots on different harts whose phase ranges "
+                     "overlap and cannot check serial execution beyond that",
     "residency_coverage": "the join compares declared intervals at the model's boundaries and "
                           "verifies no residency coverage: it has no timer or handler model and "
                           "no way to detect an input measured at other boundaries",
     "arbiter_class": "bounds hold for every arbiter that refuses a contender only for a busy "
-                     "zero-path bank, an exhausted phase grant or a same-cycle conflict and "
-                     "accepts every contender it can; a per-bank rotation is outside that class",
+                     "zero-path bank, an exhausted phase grant or a same-cycle conflict for a "
+                     "zero-path bank and accepts every contender it can; a per-bank rotation and "
+                     "an arbiter serialising same-cycle nonzero-path pairs are outside that class",
 }
 
 

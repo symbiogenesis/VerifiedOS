@@ -278,6 +278,15 @@ def _residency_overrun() -> None:
            "a request held into its next occurrence reports hart, slot, residency and trace")
 
 
+def _residency_transit() -> None:
+    # Refused at cycle 0 by the zero grant and accepted at issue at cycle 1, the
+    # path-2 read reaches f2 at cycle 3: residency counts its transit and occupancy.
+    analysis = _analyze("residency-transit", _program(
+        _phases([0, 1, 1, 1, 1, 1]), [_slot("sx", 0, 1, [_req("f2", "rd", 0)])]))
+    ensure(analysis.stalled.closed, "a held nonzero-path head still closes")
+    _expect(analysis, "sx", 1, 1, True, 3, 0)
+
+
 def _unrealizable() -> None:
     analysis = _analyze("unrealizable", _program(
         _phases([1, 1, 1]), [_slot("sx", 0, 3, [_req("b0", "wr", 0)], [_req("b0", "rd", 1)])]))
@@ -608,7 +617,8 @@ def cases() -> list[Case]:
             Case("zero-wait-paths", _zero_wait_paths), Case("path-blocked", _path_blocked),
             Case("refresh-overlap", _refresh_overlap),
             Case("completion-inversion", _completion_inversion),
-            Case("residency-overrun", _residency_overrun), Case("unrealizable", _unrealizable),
+            Case("residency-overrun", _residency_overrun),
+            Case("residency-transit", _residency_transit), Case("unrealizable", _unrealizable),
             Case("refusals", _refusals), Case("cost-identity", _cost_identity),
             Case("all-zero", _all_zero), Case("joins", _joins), Case("switches", _switches),
             Case("cut-join", _cut_join), Case("serial-domain", _serial_domain),

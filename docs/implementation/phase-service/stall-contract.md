@@ -384,7 +384,13 @@ closed with finite bounds, whatever `zero_wait` reports, and the join, if
 requested, is not refuted; 1 a program-contract refutation, `path-blocked`,
 `refresh-overlap`, a completion inversion or `residency-overrun`, or a refuted
 join; and 2 malformed or stale input. Read the named verdicts, not the exit
-code alone. Its consumers carry it: the command table of
+code alone. Without `--json` the report prints the bounds per slot, then for a
+requested join one line per named slot with each compared term's declared
+interval, modeled bound and status, its `switches` and `cut_max`, a drain line,
+the unjoined slots and the verdict with its reasons, or a skipped-join line
+when the program contract is refuted. Every receipt, a refusal included, binds
+the instrument sources and each input read before the refusal. Its consumers
+carry it: the command table of
 [the tool guide](../../../tools/README.md) holds a `phase-stall` row,
 `tools/vos/cli/__init__.py` registers the command, `phase-evaluate`'s
 refutation reason names `phase-stall`, the comparison's missing-model sentence
