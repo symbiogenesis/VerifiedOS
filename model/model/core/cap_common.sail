@@ -237,6 +237,23 @@ let default_cap : Capability = struct {
 
 let root_data_cap : Capability = { default_cap with perms = perms_stack | perms_global_bit }
 
+// These roots authorize object-type names, not memory. Their exact [0,13)
+// extent excludes the three reserved types. Firmware installs restricted
+// per-grant authorities and clears every broad copy before handoff
+// (R-15-007p, implementation/contracts/sealing-bootstrap.md).
+let root_seal_cap : Capability = struct {
+  tag        = true,
+  perms      = perms_seal | perms_global_bit,
+  normalized = false,
+  E          = zeros(),
+  B          = zeros(),
+  T          = to_bits(13),
+  otype      = otype_unsealed_bits,
+  address    = zeros(),
+}
+
+let root_unseal_cap : Capability = { root_seal_cap with perms = perms_unseal | perms_global_bit }
+
 // The permission accessors. The struct carries the codepoint rather than a
 // field per permission, so the only reachable permission sets are the admitted
 // ones and no derivation can construct a set outside the enumeration

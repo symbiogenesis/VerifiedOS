@@ -193,6 +193,79 @@ function test_csealentry_and_cgettype() -> unit = {
 // *****************************************************************
 // Memory.
 
+// The only bootstrap origin is the reset GPR grant. Every positive below
+// derives a one-type authority from it before executing the real instruction.
+$[test]
+function test_reset_roots_mint_and_redeem_exact_object_types() -> unit = {
+  ext_reset();
+  let seal_root = C(encdec_reg(0b00010));
+  let unseal_root = C(encdec_reg(0b00011));
+  let (_, object_region) = setCapBounds(root_data_cap, 0x080000000, 0b0 @ 0x080000008);
+  let object = setCapPerms(setCapAddrChecked(object_region, 0x0000000080000000), 0x007);
+  foreach (i from 0 to 12) {
+    let start : CapAddrBits = to_bits(i);
+    let finish : CapLenBits = to_bits(i + 1);
+    let (seal_exact, seal_auth) = setCapBounds(setCapAddrChecked(seal_root, zero_extend(start)), start, finish);
+    let (unseal_exact, unseal_auth) = setCapBounds(setCapAddrChecked(unseal_root, zero_extend(start)), start, finish);
+    assert(seal_exact & unseal_exact & seal_auth.tag & unseal_auth.tag);
+    let (seal_base, seal_top) = getCapBounds(seal_auth);
+    let (unseal_base, unseal_top) = getCapBounds(unseal_auth);
+    assert(seal_base == i & seal_top == i + 1);
+    assert(unseal_base == i & unseal_top == i + 1);
+    C(encdec_reg(0b00100)) = object;
+    C(encdec_reg(0b00101)) = seal_auth;
+    C(encdec_reg(0b00110)) = unseal_auth;
+    match execute(CSeal(encdec_reg(0b00111), encdec_reg(0b00100), encdec_reg(0b00101))) {
+      Retire_Success() => (), _ => assert(false, "valid mint must retire"),
+    };
+    let sealed = C(encdec_reg(0b00111));
+    assert(sealed.tag & sealed.otype == to_bits(i));
+    assert(unsealCap(sealed) == object);
+    match execute(CUnseal(encdec_reg(0b01000), encdec_reg(0b00111), encdec_reg(0b00110))) {
+      Retire_Success() => (), _ => assert(false, "valid redemption must retire"),
+    };
+    assert(C(encdec_reg(0b01000)) == object);
+    // The split authorities cannot exchange their roles.
+    match execute(CSeal(encdec_reg(0b01000), encdec_reg(0b00100), encdec_reg(0b00110))) {
+      Retire_Success() => (), _ => assert(false, "invalid mint is a tag-cleared result"),
+    };
+    assert(not(C(encdec_reg(0b01000)).tag));
+    match execute(CUnseal(encdec_reg(0b01000), encdec_reg(0b00111), encdec_reg(0b00101))) {
+      Retire_Success() => (), _ => assert(false, "invalid redemption is a tag-cleared result"),
+    };
+    assert(not(C(encdec_reg(0b01000)).tag));
+    // A copied payload without its tag cannot be repaired by either operation.
+    C(encdec_reg(0b00100)) = memBitsToCapability(false, capToMemBits(object));
+    match execute(CSeal(encdec_reg(0b01000), encdec_reg(0b00100), encdec_reg(0b00101))) {
+      Retire_Success() => (), _ => assert(false, "untagged mint must retire"),
+    };
+    assert(not(C(encdec_reg(0b01000)).tag));
+    C(encdec_reg(0b00111)) = memBitsToCapability(false, capToMemBits(sealed));
+    match execute(CUnseal(encdec_reg(0b01000), encdec_reg(0b00111), encdec_reg(0b00110))) {
+      Retire_Success() => (), _ => assert(false, "untagged redemption must retire"),
+    };
+    assert(not(C(encdec_reg(0b01000)).tag));
+  };
+  // No cursor outside the root extent selects an admitted type, including
+  // every reserved type. Memory roots cannot mint any of them either.
+  foreach (i from 13 to 16) {
+    C(encdec_reg(0b00100)) = object;
+    C(encdec_reg(0b00101)) = setCapAddrChecked(seal_root, to_bits(i));
+    match execute(CSeal(encdec_reg(0b01000), encdec_reg(0b00100), encdec_reg(0b00101))) {
+      Retire_Success() => (), _ => assert(false, "out-of-type-space mint must retire"),
+    };
+    assert(not(C(encdec_reg(0b01000)).tag));
+  };
+  foreach (i from 0 to 1) {
+    C(encdec_reg(0b00101)) = if i == 0 then root_data_cap else default_cap;
+    match execute(CSeal(encdec_reg(0b01000), encdec_reg(0b00100), encdec_reg(0b00101))) {
+      Retire_Success() => (), _ => assert(false, "memory root cannot mint"),
+    };
+    assert(not(C(encdec_reg(0b01000)).tag));
+  };
+  ext_reset();
+}
+
 // A capability survives a store and a load with its tag, and a load through an
 // authority without load-capability permission delivers it untagged rather than
 // faulting: the cleared tag is one of the load's defined results, which is what
