@@ -379,6 +379,10 @@ bool ModelImpl::try_step(int64_t step_no, bool exit_wait) {
   return is_waiting;
 }
 
+bool ModelImpl::core_fail_stopped() const {
+  return ztrap_fail_stop;
+}
+
 int64_t ModelImpl::xlen() const {
   return zxlen;
 }

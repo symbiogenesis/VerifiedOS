@@ -205,6 +205,26 @@ def _asciz_terminators() -> None:
     ensure(bytes(sections[1].data) == b"ab", ".ascii must append no terminator")
 
 
+def _executable_alignment() -> None:
+    for directive in (".align 4", ".p2align 4", ".balign 16"):
+        source = (f".text\n_start:\nnop\n{directive}\nafter:\naddi x10, x10, 1\n"
+                  f".data\n.byte 7\n{directive}\n.byte 9\n")
+        assembler = asm.Assembler(source, "padding.s")
+        sections, symbols, _ = assembler.assemble()
+        words = [int.from_bytes(sections[0].data[i:i + 4], "little") for i in range(0, 20, 4)]
+        ensure(words == [0x00000013] * 4 + [0x00150513],
+               "executable padding must decode as ordinary no-op instructions")
+        ensure(symbols["after"] == (".text", asm.TEXT_BASE + 16), "alignment moved the following label")
+        ensure(bytes(sections[1].data) == b"\x07" + b"\0" * 15 + b"\x09",
+               "data alignment must retain zero fill")
+        ensure([site.address for site in assembler.sites] == list(range(asm.TEXT_BASE, asm.TEXT_BASE + 20, 4)),
+               "padding instructions must participate in the emitted-site inventory")
+    _raises(AsmError, lambda: asm.Assembler(".text\n.half 1\n.balign 4\n", "short.s").assemble(),
+            "short.s:3", "whole 32-bit instructions")
+    _raises(AsmError, lambda: asm.Assembler(".balign 16, 0xff", "fill.s"),
+            "fill.s:1", "explicit fill is unsupported")
+
+
 def _split_operands() -> None:
     ensure(asm._split_operands('"a,\\"b", c') == ['"a,\\"b"', "c"],
            "a comma inside a quoted string must not split")
@@ -233,6 +253,7 @@ def cases() -> list[Case]:
         Case("pseudo-la-ret", _pseudo_la_ret),
         Case("bare-directives", _bare_directives),
         Case("asciz-terminators", _asciz_terminators),
+        Case("executable-alignment", _executable_alignment),
         Case("split-operands", _split_operands),
         Case("strict-no-symbol", _strict_no_symbol),
     ]

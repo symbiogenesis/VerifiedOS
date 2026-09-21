@@ -97,8 +97,8 @@ private function wait_is_nop(wr : WaitReason) -> bool =
 // in its retirement or a trap. WFI and WRS instructions can cause
 // the model to wait (hart_state is HART_WAITING), in which case
 // a step has not happened and `try_step()` returns true. Otherwise
-// it returns false. Equivalently, it returns whether the model is now
-// in a waiting state (HART_WAITING).
+// it returns false. A latched core fail-stop also returns true without
+// fetching, retiring or changing PC; the platform services the RoT bite.
 //
 // * step_no: the current step number; this is maintained by by the
 //            non-Sail harness and is incremented when `try_step()`
@@ -114,6 +114,7 @@ private function wait_is_nop(wr : WaitReason) -> bool =
 //              `try_step()` (but see `wait_is_nop()`).
 //
 function try_step(step_no : nat, exit_wait : bool) -> bool = {
+  if trap_fail_stop then { report_core_trap_failure(); return true };
   // for step extensions
   ext_pre_step_hook();
 
@@ -158,6 +159,8 @@ function try_step(step_no : nat, exit_wait : bool) -> bool = {
     Step_Execute(Ext_XRET_Priv_Failure(), _) => ext_fail_xret_priv(),
   };
 
+  if trap_fail_stop then { report_core_trap_failure(); return true };
+
   match hart_state {
     HART_WAITING(_) => true,
     HART_ACTIVE() => {
@@ -197,7 +200,7 @@ function try_step(step_no : nat, exit_wait : bool) -> bool = {
 function loop () : unit -> nat = {
   var i : nat = 0;
   var step_no : nat = 0;
-  while not(htif_done) do {
+  while not(htif_done) & not(trap_fail_stop) do {
     // This standalone loop always exits immediately out of waiting
     // states.
     let stepped = try_step(step_no, true);
@@ -219,6 +222,10 @@ function loop () : unit -> nat = {
     }
   };
 
+  if trap_fail_stop then {
+    print_endline("Fail-stop: synchronous fault on a live trap path; RoT bite latched");
+    return 1
+  };
   let exit_val = unsigned(htif_exit_code);
   if exit_val == 0
     then print_endline("SUCCESS")

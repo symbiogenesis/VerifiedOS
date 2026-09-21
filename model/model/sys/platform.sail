@@ -121,12 +121,14 @@ function clint_load(access, paddr, width) = {
   }
 }
 
-// The `mip_was_written` parameter went with the `msip` door, its only
-// `true` caller: the timer comparator is now the register's only
-// writer, so a callback is owed exactly when the bit changes.
+// The comparator latches pending state; trap delivery consumes it.
+// Its callback reports a change only when this dispatch changes the bit.
 function clint_dispatch() -> unit = {
   let old_mip = mip.bits;
-  mip[MTI] = bool_to_bit(mtimecmp <=_u mtime);
+  if boundary_timer_armed & (mtimecmp <=_u mtime) then {
+    mip[MTI] = 0b1;
+    boundary_timer_armed = false
+  };
   if get_config_print_clint()
   then print_log("clint mtime " ^ bits_str(mtime));
   if old_mip != mip.bits then {
@@ -142,18 +144,21 @@ function clint_store(paddr, width, data) = {
     if   get_config_print_clint()
     then print_log("clint<8>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtimecmp)");
     mtimecmp = zero_extend(64, data); // FIXME: Redundant zero_extend currently required by Lem backend
+    boundary_timer_armed = true;
     clint_dispatch();
     Ok(true)
   } else if addr == MTIMECMP_BASE & 'n == 4 then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtimecmp)");
     mtimecmp = vector_update_subrange(mtimecmp, 31, 0, zero_extend(32, data));  // FIXME: Redundant zero_extend currently required by Lem backend
+    boundary_timer_armed = true;
     clint_dispatch();
     Ok(true)
   } else if addr == MTIMECMP_BASE_HI & 'n == 4 then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtimecmp)");
     mtimecmp = vector_update_subrange(mtimecmp, 63, 32, zero_extend(32, data)); // FIXME: Redundant zero_extend currently required by Lem backend
+    boundary_timer_armed = true;
     clint_dispatch();
     Ok(true)
   } else if addr == MTIME_BASE & 'n == 8 then {

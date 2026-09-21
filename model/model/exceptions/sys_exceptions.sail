@@ -18,6 +18,19 @@
 
 type ext_exception = unit
 
+// R-15-073c's trap-path bit is private machine state, not a CSR. A second
+// synchronous trap latches the RoT fail-stop and cannot overwrite the first
+// saved context. Only reset clears that failure latch.
+register trap_path_live : bool = false
+register trap_fail_stop : bool = false
+
+function reset_trap_protocol() -> unit = {
+  trap_path_live = false;
+  trap_fail_stop = false;
+  boundary_timer_armed = false;
+  mip = Mk_Minterrupts(zeros())
+}
+
 // `mret` is permitted by the access-system-registers permission on the
 // executing PCC, which is what privilege is here (R-15-003).
 function ext_check_xret_priv () : unit -> bool = cap_access_system_regs(PCC)
@@ -61,8 +74,8 @@ function set_mepc(value : xlenbits) -> xlenbits = {
 }
 
 function prepare_xret_target() -> xlenbits = {
-  // A sentry unseals into the executing PCC, which is what makes a return
-  // capability usable exactly once as a control-flow target and nowhere else
+  // A sentry unseals into the executing PCC, which makes a return
+  // capability a control-flow target, without a hardware one-shot guarantee
   // (R-15-008, R-15-071). Any other sealed type stays sealed and faults at the
   // next fetch rather than here.
   let epcc = MEPCC;

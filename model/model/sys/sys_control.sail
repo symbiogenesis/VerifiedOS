@@ -35,32 +35,21 @@ function findPendingInterrupt(ip : xlenbits) -> option(InterruptType) = {
   else                     None()
 }
 
-// Return the pending, enabled set of interrupts.
-//
-// This is used when the hart is in the Active state.
+// The boundary timer has no software enable. While a synchronous kernel
+// trap path is live, retain it pending until the mret clears that path.
+// The in-order execution step completes the current instruction before this
+// dispatch, so a completed store cannot be replayed by a deferred timer.
 function getPendingSet() -> option(xlenbits) = {
-  let pending = mip.bits & mie.bits;
-
-  if   mstatus[MIE] == 0b1 & pending != zeros()
-  then Some(pending)
+  if mip[MTI] == 0b1 & not(trap_path_live) & not(trap_fail_stop)
+  then Some(mip.bits)
   else None()
 }
 
-// Check if a locally enabled interrupt is pending.
-//
-// This does not examine the global enable bit `mstatus.MIE`; it does
-// honor the local interrupt enable in `mie`, which after the narrowing
-// is `MTIE` alone (R-15-066a). The privileged spec states the rule
-// over the global bits and `mideleg` together, and both halves of that
-// exemption survive as one: what a wait instruction ignores is
-// `mstatus.MIE`, there being no delegation register left to ignore.
-//
-// This is used when the hart is in the Waiting state, caused by
-// instructions such as WFI and WRS.{NTO,STO}.
-//
-// https://riscv.github.io/riscv-isa-manual/snapshot/privileged/#wfi
+// A pending timer also wakes a wait without consulting writable enable bits.
+// Waking completes that instruction; normal dispatch still holds the timer
+// while a trap path is live.
 function shouldWakeForInterrupt() -> bool = {
-  (mip.bits & mie.bits) != zeros()
+  mip[MTI] == 0b1 & not(trap_fail_stop)
 }
 
 // Examine the current interrupt state and return an interrupt to be
@@ -95,6 +84,19 @@ function trap_handler(c : TrapCause, pc : xlenbits, info : option(xlenbits), ext
                      -> xlenbits = {
   let is_interrupt = trapCause_is_interrupt(c);
   let cause        = trapCause_bits(c);
+
+  // A timer is held, never nested. A second synchronous fault stops before
+  // any saved capability, cause, value or handler vector is overwritten.
+  if trap_fail_stop then return pc;
+  if trap_path_live then {
+    if not(is_interrupt) then trap_fail_stop = true;
+    return pc
+  };
+  if is_interrupt then {
+    mip[MTI] = 0b0;
+    csr_write_callback("mip", mip.bits)
+  };
+  trap_path_live = true;
 
   if   get_config_print_exception() | get_config_print_interrupt()
   then print_log("handling " ^ to_str(c) ^ " with tval " ^ bits_str(tval(info)));
@@ -176,6 +178,7 @@ function set_pc_reset_address(addr : bits(64)) -> unit = pc_reset_address = trun
 // This function is called on reset, so it should only perform the reset actions
 // described in the "Reset" section of the privileged architecture specification.
 function reset_sys() -> unit = {
+  reset_trap_protocol();
 
   // "The mstatus field MIE is reset to 0." (MPRV is gone with the
   // less-privileged mode whose accesses it retargeted.)

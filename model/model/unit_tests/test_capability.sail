@@ -350,6 +350,7 @@ function test_tag_plane_is_granule_keyed() -> unit = {
 // MTCC (R-15-073, R-07-022).
 $[test]
 function test_a_trap_saves_and_installs_capabilities() -> unit = {
+  reset_trap_protocol();
   let (_, handler) = setCapBounds(default_cap, 0x080000000, 0b0 @ 0x080001000);
   MTCC = setCapAddrChecked(handler, 0x0000000080000000);
   PCC = default_cap;
@@ -361,6 +362,7 @@ function test_a_trap_saves_and_installs_capabilities() -> unit = {
   assert(MEPCC.address == 0x000001000);
   assert(capBoundsEqual(MEPCC, default_cap));
   assert(get_mepc() == pc);
+  reset_trap_protocol();
 }
 
 // `mret` unseals a sentry into the executing PCC, which is what makes a return

@@ -196,7 +196,10 @@ relocation operators its PIC output addresses through) and the assembler's vocab
 (`.byte`, `.half`, `.word`, `.dword`, `.text`, `.data`, named labels, absolute layout),
 which the driver reports and does not translate; a tab between a mnemonic and its
 operands is normalized to a space before the scan, because the assembler's line parse
-splits on a space alone. A stream that assembles is
+splits on a space alone. In `.text`, `.align`, `.p2align` and `.balign` fill
+alignment gaps with canonical 32-bit `nop` instructions and include them in
+the emitted-site inventory. Partial instruction fill and explicit fill
+arguments are refused; data alignment remains zero-filled. A stream that assembles is
 wrapped in a harness that preserves the store-side root in reserved `c4`, derives a
 bounded local stack with store-local permission and the `tohost` authority from that
 root (R-15-001c), installs a trap handler and folds `main`'s return into the

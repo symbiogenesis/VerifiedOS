@@ -323,11 +323,13 @@ obligations; it supplies neither an executable switcher nor a proof of it.
 `system_register_edges_are_the_kernels` checker inspect an authority's ASR
 permission without distinguishing a sealed switcher sentry from an unsealed
 executable authority. They therefore do not qualify these exported sentries.
-M3.5 must refine that distribution relation and its proof so a principal may
-hold only the admitted sealed kernel entry/continuation forms, with unsealed
-ASR code and kernel data still exclusive to the kernel. The current theorem
-cannot be cited as evidence that this concrete producer already meets the
-selected protocol.
+[MModeFirmwareSealing.v](../../../proofs/MModeFirmwareSealing.v) refines the
+distribution with exact tag, seal, locality and entry-site identity. Its checked
+installed view permits only the admitted sealed kernel entry/continuation
+forms, with usable unsealed ASR code and kernel data still exclusive to the
+kernel. The concrete firmware producer must bind this policy to its measured
+image and live activation; the distribution theorem alone does not establish
+that instruction-level join.
 
 **Edge authority and composition provenance.** Each admitted directed edge has
 one immutable descriptor and one specialized entry stub. The descriptor binds
@@ -547,16 +549,17 @@ M4.4 owns the protected frames, timer/restart handling and kernel failure route.
 M1.2f must run their actual joined output on Sail and compare source results,
 register values/tags and declared memory effects.
 
-The target campaign first requires the model owner to realize R-07-040's
-unmaskable timer and R-15-073c's trap-live pending/clear and second-trap
-fail-stop semantics. The effective [sys_control.sail](../../../model/model/sys/sys_control.sail)
-path still gates timer delivery on interrupt-enable bits and writes trap state
-without the required live-path guard; [sys_exceptions.sail](../../../model/model/exceptions/sys_exceptions.sail)
-supplies capability trap transfers but no such guard. Current Sail execution
-therefore cannot qualify these boundary/fault obligations. The model repair
-needs its own positive/refusal evidence before M4.4's cleanup/restart joins
-and M1.2f's actual emitted switcher campaign. This agreement changes no model
-code and claims no target verdict over the missing behavior.
+The model prerequisite is R-07-040's unmaskable timer and R-15-073c's live
+trap-path guard. [sys_control.sail](../../../model/model/sys/sys_control.sail)
+holds a pending timer until a successful privileged `mret` clears the live
+path, then delivers it before another ordinary instruction. A second
+synchronous fault stops before overwriting the saved context and signals the
+RoT bite. The [assembled execution controls](../../../tools/tests/test_trap_boundary.py)
+check unmaskable one-event arming, deferred delivery without store replay and
+the second-fault reset path; the Sail unit tests also check repeated stopped
+steps. These model controls are prerequisites of M4.4's cleanup/restart join
+and M1.2f's actual emitted switcher campaign, whose own boundary invariants and
+timing evidence remain required.
 
 The acceptance includes:
 
