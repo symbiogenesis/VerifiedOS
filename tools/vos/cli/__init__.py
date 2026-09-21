@@ -140,6 +140,8 @@ COMMANDS: tuple[Command, ...] = (
             "compare declared workload, boundary, area and power cost intervals"),
     Command("phase-evaluate", "vos.cli.phase_evaluate",
             "join schedule identity, completion drain and costs for the zero-wait branch"),
+    Command("phase-stall", "vos.cli.phase_stall",
+            "bound stalls, boundary residency and drain over declared per-hart programs"),
     Command("storage-index", "vos.cli.storage_index",
             "bounded index cost, visibility and shared redo-recovery comparison"),
     Command("static-memory", "vos.cli.static_memory",

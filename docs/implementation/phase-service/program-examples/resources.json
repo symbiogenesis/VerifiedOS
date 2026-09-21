@@ -1,0 +1,44 @@
+{
+  "schema": "phase-resources-v1",
+  "harts": [
+    {
+      "name": "X",
+      "issue_limit": 2
+    },
+    {
+      "name": "Y",
+      "issue_limit": 1
+    }
+  ],
+  "operations": [
+    "rd",
+    "wr"
+  ],
+  "banks": [
+    {
+      "name": "b0",
+      "path_cycles": 0,
+      "occupancy_cycles": {
+        "rd": 1,
+        "wr": 3
+      },
+      "refresh_cycles": 2
+    },
+    {
+      "name": "b1",
+      "path_cycles": 0,
+      "occupancy_cycles": {
+        "rd": 1
+      },
+      "refresh_cycles": null
+    },
+    {
+      "name": "f2",
+      "path_cycles": 2,
+      "occupancy_cycles": {
+        "rd": 1
+      },
+      "refresh_cycles": null
+    }
+  ]
+}
