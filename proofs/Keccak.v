@@ -1230,7 +1230,7 @@ Proof. vm_compute. reflexivity. Qed.
    ------------------------------------------------------------------------- *)
 
 Lemma xorb_cancels : forall x y : bool, xorb (xorb x y) y = x.
-Proof. intros x y. destruct x; destruct y; reflexivity. Qed.
+Proof. destruct x, y; reflexivity. Qed.
 
 Lemma wxor_cancels : forall w c : word, length_of w = length_of c -> wxor (wxor w c) c = w.
 Proof.
@@ -1238,8 +1238,8 @@ Proof.
   - reflexivity.
   - destruct c as [|y c].
     + discriminate H.
-    + simpl in H. injection H as H. simpl.
-      rewrite xorb_cancels. rewrite (IH c H). reflexivity.
+    + injection H as H. simpl.
+      rewrite xorb_cancels, (IH c H). reflexivity.
 Qed.
 
 Theorem iota_is_an_involution :
@@ -1287,9 +1287,7 @@ Theorem the_short_form_is_the_last_rounds_and_not_the_first :
   forall (n : nat) (a : state), keccak_p n (keccak_prefix n a) = keccak_p rounds_total a.
 Proof.
   intros n a. unfold keccak_p, keccak_prefix, round_indices, prefix_indices.
-  rewrite <- fold_over_app. rewrite take_drop_join.
-  replace (rounds_total - rounds_total) with 0 by reflexivity.
-  rewrite drop_of_zero. reflexivity.
+  rewrite <- fold_over_app, take_drop_join. reflexivity.
 Qed.
 
 (*| discharges: R-15-056a |*)
@@ -1591,7 +1589,7 @@ Theorem pi_is_invertible_on_an_arbitrary_state :
     w10 :: w11 :: w12 :: w13 :: w14 ::
     w15 :: w16 :: w17 :: w18 :: w19 ::
     w20 :: w21 :: w22 :: w23 :: w24 :: nil.
-Proof. intros. vm_compute. reflexivity. Qed.
+Proof. intros. reflexivity. Qed.
 
 (* Every rotation the rho table uses is undone by its complement, on a lane
    of sixty-four arbitrary bits. That is rho's invertibility: the step moves
@@ -1608,7 +1606,7 @@ Theorem the_rho_rotations_are_invertible_on_an_arbitrary_lane :
       b48 :: b49 :: b50 :: b51 :: b52 :: b53 :: b54 :: b55 ::
       b56 :: b57 :: b58 :: b59 :: b60 :: b61 :: b62 :: b63 :: nil in
     map_over (fun r => rotl (width - r) (rotl r w)) rho_table = repeat_of lanes w.
-Proof. intros. vm_compute. reflexivity. Qed.
+Proof. intros. reflexivity. Qed.
 
 
 
