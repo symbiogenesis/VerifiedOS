@@ -1,0 +1,63 @@
+{
+  "schema": "phase-schedule-v2",
+  "name": "synthetic-mode-refresh-overlap",
+  "resources_sha256": "4b7b3618534b2c4c558b5b414aafe104898442231ff845eb9d376c4ccfed7fd8",
+  "modes": {
+    "A": {
+      "phases": [
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": []
+        },
+        {
+          "grant": 1,
+          "alternatives": [
+            [],
+            [
+              {
+                "hart": "cpu0",
+                "bank": "sram0",
+                "operation": "write"
+              }
+            ]
+          ],
+          "refresh": []
+        }
+      ]
+    },
+    "B": {
+      "phases": [
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": [
+            "sram0"
+          ]
+        },
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": []
+        }
+      ]
+    }
+  },
+  "initial": [
+    "A"
+  ],
+  "transitions": [
+    {
+      "from": "A",
+      "from_phase": 1,
+      "to": "B",
+      "to_phase": 0
+    }
+  ]
+}

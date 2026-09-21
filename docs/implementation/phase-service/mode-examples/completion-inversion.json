@@ -1,0 +1,68 @@
+{
+  "schema": "phase-schedule-v2",
+  "name": "synthetic-mode-completion-inversion",
+  "resources_sha256": "4b7b3618534b2c4c558b5b414aafe104898442231ff845eb9d376c4ccfed7fd8",
+  "modes": {
+    "A": {
+      "phases": [
+        {
+          "grant": 1,
+          "alternatives": [
+            [],
+            [
+              {
+                "hart": "cpu0",
+                "bank": "sram2",
+                "operation": "write"
+              }
+            ]
+          ],
+          "refresh": []
+        },
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": []
+        }
+      ]
+    },
+    "B": {
+      "phases": [
+        {
+          "grant": 1,
+          "alternatives": [
+            [],
+            [
+              {
+                "hart": "cpu0",
+                "bank": "sram1",
+                "operation": "read"
+              }
+            ]
+          ],
+          "refresh": []
+        },
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": []
+        }
+      ]
+    }
+  },
+  "initial": [
+    "A"
+  ],
+  "transitions": [
+    {
+      "from": "A",
+      "from_phase": 0,
+      "to": "B",
+      "to_phase": 0
+    }
+  ]
+}

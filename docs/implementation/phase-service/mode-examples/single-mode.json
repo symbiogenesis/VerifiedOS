@@ -1,0 +1,36 @@
+{
+  "schema": "phase-schedule-v2",
+  "name": "synthetic-single-mode",
+  "resources_sha256": "4b7b3618534b2c4c558b5b414aafe104898442231ff845eb9d376c4ccfed7fd8",
+  "modes": {
+    "only": {
+      "phases": [
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": []
+        },
+        {
+          "grant": 1,
+          "alternatives": [
+            [],
+            [
+              {
+                "hart": "cpu0",
+                "bank": "sram0",
+                "operation": "write"
+              }
+            ]
+          ],
+          "refresh": []
+        }
+      ]
+    }
+  },
+  "initial": [
+    "only"
+  ],
+  "transitions": []
+}
