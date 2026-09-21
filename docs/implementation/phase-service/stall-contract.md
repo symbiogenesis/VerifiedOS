@@ -3,8 +3,9 @@
 This contract owns the stalled transition model of the pair the
 [store-buffer comparison](../comparisons/store-buffer.md) names as missing: a
 candidate that waits at issue needs a bounded stall cost before the `stalls`
-interval of [the cost input](cost-input.md) means anything, and no instrument
-turns a declared program and resource declaration into that bound. The arrival
+interval of [the cost input](cost-input.md) means anything, and `phase-stall`
+is the instrument that turns a declared program and resource declaration into
+that bound. The arrival
 analysis named beside it stays open: arrivals here are declared gaps, and the
 proof that a binary presents no other sequence is the admission toolchain's, as
 the closing section states. It adds one host instrument,
@@ -281,38 +282,50 @@ cycle 8 with both banks free, so the exploration closes with these bounds.
 With `--costs` the instrument reads a `phase-cost` input. Its `schedule` object
 (`id`, `path`, `sha256`) must name the program document itself: the program's
 `name`, its path and its exact bytes; a mismatch is a stale-input refusal at
-exit 2. Each cost slot id must name a program slot, an unknown id being an
-error. The named slots must belong to harts of one serial admission domain,
-which the instrument cannot check and the receipt states; program slots the
-cost input does not name act as contention only and are reported unjoined. For
+exit 2 naming each mismatching field with both values, and path identity is
+decided after host resolution, so a portable cost input spells the path with
+forward slashes and exact case. Each cost slot id must name a program slot, an
+unknown id being an error whatever the program's verdict. The named slots must
+belong to harts of one serial admission domain: two named slots on different
+harts whose phase ranges overlap run concurrently in the model and are refused
+at exit 2, and serial execution beyond that necessary condition is the
+caller's, which the receipt states; program slots the cost input does not name
+act as contention only and are reported unjoined. For
 each named slot the candidate `stalls` interval is compared with
 `stall_total_max` by `phase-evaluate`'s three-way rule: an upper bound below it
 refutes the join, a lower bound below it is inconclusive, and otherwise the
 term is covered. The candidate `trap_per_switch` is compared with
 `boundary_residency_max` by the same rule; for a boundary-outstanding slot an
-unknown operand keeps the join open with reason
-`boundary-outstanding-uncovered`, and the receipt states that this compares
+unknown operand adds the reason `boundary-outstanding-uncovered` and keeps the
+join at least open, and the receipt states that this compares
 declared intervals at the model's boundaries and verifies no residency
 coverage, the join having no timer or handler model and no way to detect an
 input measured at other boundaries. The single document-level
 `boundary.d_pipe_completion` must cover the maximum `drain_max` over the named
 slots by the same rule; it is a per-switch boundary operand, not a per-slot
 term, so drain cycles are assigned to the boundary charge and never to a slot
-field. The join verdict is `refuted` when any compared term or the arithmetic
-is refuted, else `open` when any compared operand is unknown or the arithmetic
-is open, else `inconclusive` when any term overlaps or the arithmetic is
-inconclusive, and otherwise the arithmetic verdict; only `refuted` exits 1,
-favorable arithmetic never outweighs a refutation, and `phase-evaluate` keeps
-its zero-wait scope and verdicts.
+field. A named slot's `switches` must count the boundary visit the model
+exhibits once per frame at its slot end, so a named slot declaring `switches`
+zero refutes the join, its residency being charged nowhere. A named slot whose
+`cut_max` is nonzero keeps the join at least open, with a reason naming the
+slot and the count, because the compared bounds exclude the cut tail's own
+stall and drain. The join verdict is `refuted` when any compared term or the
+arithmetic is refuted, else `open` when any compared operand is unknown or the
+arithmetic is open, else `inconclusive` when any term overlaps or the
+arithmetic is inconclusive, and otherwise the arithmetic verdict; only
+`refuted` exits 1, every reason names the slot, field, declared interval and
+modeled bound that decided it or cites the arithmetic's own reason, favorable
+arithmetic never outweighs a refutation, and `phase-evaluate` keeps its
+zero-wait scope and verdicts.
 
 ## Acceptance cases
 
 Acceptance requires behavioral tests through
 `python tools/run.py test --only phase_stall`. The quantitative cases are
-synthetic fixtures the landing authors under `program-examples/`, each binding
-the resource declaration of the worked occurrence above; the numbers below are
-computed by hand from the semantics of this document, and the fixtures must
-remain visibly synthetic.
+the synthetic fixtures under `program-examples/`, each binding the resource
+declaration of the worked occurrence above; the numbers below are computed by
+hand from the semantics of this document, and the fixtures remain visibly
+synthetic.
 
 | Fixture | Program | Expected result |
 | --- | --- | --- |
@@ -335,7 +348,10 @@ and `ordered` false; a `residency-overrun` reporting hart, slot, residency
 reached and trace; an alternative whose expanded refutation is unrealizable,
 reported inconclusive while `program_zero_wait` decides the program language;
 a cut tail reported as `cut_max` one, both for a later request shifted past the
-slot end and for a zero-gap successor refused beside a held head;
+slot end and for a zero-gap successor refused beside a held head; a cost input
+naming overlapping slots on two harts refused, a named slot declaring
+`switches` zero refuting the join, and a named slot with a cut tail keeping it
+open;
 a per-hart issue-limit violation, a program leaving its slot, a stale resource
 digest, an unknown field, a cost input naming an unknown slot id and a cost
 input whose schedule object does not name the program, each refused; a
@@ -357,12 +373,11 @@ closed with finite bounds, whatever `zero_wait` reports, and the join, if
 requested, is not refuted; 1 a program-contract refutation, `path-blocked`,
 `refresh-overlap`, a completion inversion or `residency-overrun`, or a refuted
 join; and 2 malformed or stale input. Read the named verdicts, not the exit
-code alone. The landing owes its consumers: the command table of
-[the tool guide](../../../tools/README.md) gains a `phase-stall` row,
+code alone. Its consumers carry it: the command table of
+[the tool guide](../../../tools/README.md) holds a `phase-stall` row,
 `tools/vos/cli/__init__.py` registers the command, `phase-evaluate`'s
-refutation reason is re-worded from "stalled execution is unmodeled" to name
-`phase-stall`, the comparison's missing-model sentence becomes a pointer to
-this document while its arrival and WCET halves stay open, and
+refutation reason names `phase-stall`, the comparison's missing-model sentence
+points to this document while its arrival and WCET halves stay open, and
 [the document index](../../README.md) indexes this page.
 
 A stall bound over declared programs is not a WCET: it bounds memory-issue

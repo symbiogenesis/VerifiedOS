@@ -95,8 +95,9 @@ schedule path, hash and identity match the extracted schedule, and that the
 candidate's declared completion-drain interval is no smaller than the finite
 completion bound. A missing bound remains open; an acceptance or completion
 refutation is not turned into a positive result by favorable arithmetic. The
-zero-wait orchestration branch cannot price a waiting candidate: such a case
-requires its own stalled transition model and arrival analysis. Its verdict
+zero-wait orchestration branch cannot price a waiting candidate: such a case is
+bounded by `phase-stall` under [the stalled-transition contract](stall-contract.md),
+whose arrival analysis stays open. Its verdict
 therefore names this narrower scope and leaves the target comparison open.
 Tests exercise a complete synthetic join, a stale or mismatched schedule, an
 understated drain and an arithmetic success with a service refutation.

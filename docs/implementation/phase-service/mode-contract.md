@@ -3,9 +3,10 @@
 This contract extends the finite phase-service model of the
 [store-buffer comparison](../comparisons/store-buffer.md) from one periodic
 table to a declared set of global modes and the transitions between them. The
-zero-wait predicate ranges over startup, frame wrap and mode transitions, and
-every instrument of the [prerequisite contract](prerequisite-contract.md)
-refuses a `modes` or `transitions` field, so no receipt covers a transition.
+zero-wait predicate ranges over startup, frame wrap and mode transitions, which
+the v1 readers of the [prerequisite contract](prerequisite-contract.md) refuse
+as a `modes` or `transitions` field, so only a `phase-schedule-v2` declaration
+yields a receipt that covers a transition.
 R-11-018 makes each global mode an independently admission-proved schedule and
 gives every permitted directed transition a certificate fixing its guard, entry
 phase and carry-in work; R-11-014d permits a mode change to re-phase and defers
@@ -241,6 +242,5 @@ actual arbiter and fabric, and it establishes no correspondence to the
 R-11-017 artifact, to R-11-018's edge certificates or to qualified occupancy
 (R-15-247m); R-17-041's timing residuals remain. A closed multi-mode receipt is
 declared-input evidence and turns the zero-wait branch into no positive result
-on any island. Q22e stays open; its available-evidence sentence narrows from
-"mode changes" to actual mode changes, their instant, dwell and cost, an edit
-the integrator makes.
+on any island. Q22e stays open, and its available-evidence sentence names
+actual mode changes, their instant, dwell and cost, rather than mode changes.

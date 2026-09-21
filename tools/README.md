@@ -171,8 +171,9 @@ Add `--completion` to a supplied contract run for the separate
 Its `quiescent_drain` includes residual bank occupancy after stopping arrivals;
 scheduled refresh continues, and a blocked drain receives no finite bound. It
 also checks whether a later operation of one hart completes before an earlier
-one. The original acceptance result and `drain` retain their meanings. Mode
-transitions, physical completion and architectural visibility require separate
+one. The original acceptance result and `drain` retain their meanings. A
+declared mode product is what `phase-schedule --completion` checks; an actual
+mode change, physical completion and architectural visibility require separate
 evidence. The [preparation contract](../docs/implementation/phase-service/prerequisite-contract.md)
 connects this analysis to schedule extraction and workload cost arithmetic.
 

@@ -41,7 +41,7 @@ Deletion requires all of the following clauses.
 | Carry resource state through frame wrap and close the reachable transition set | The checker explores phase, busy-bank and in-flight states from empty startup until closure; on a `phase-schedule-v2` declaration `phase-schedule` explores the product of declared modes, phases, occupancy and flights under the [mode-transition extension](../phase-service/mode-contract.md), each switch carrying boundary state unchanged | A justification that real startup and every permitted mode or schedule transition are covered by those initial states and declared transitions, and the actual instant, dwell and cost of a mode change |
 | Respect ordered arrival along the path | The checker detects within-hart order inversion and path contention | A correspondence between the finite paths and the actual fabric; queues, backpressure and shared resources absent from the model require an extended model |
 | Bound quiescent drain and switch saving | The optional completion analysis carries operations through bank occupancy and checks same-hart completion order; the cost evaluator distinguishes switch saving from net saving | The physical pipeline drain and bank completion bounds and their correspondence to modeled completion |
-| Meet every deadline with the candidate's extra stalls | `phase-cost` checks supplied per-slot and frame cost intervals, including stalls, with the platform boundary and residency charged once per declared switch and the context term a caller-declared part of `other` that the reader cannot count | Whole-image WCET soundness and schedule analysis using qualified costs, including the padded boundary in admission duty |
+| Meet every deadline with the candidate's extra stalls | `phase-stall` bounds the candidate's issue waiting over declared per-hart programs and joins that bound to a declared `stalls` interval, and `phase-cost` checks supplied per-slot and frame cost intervals, including stalls, with the platform boundary and residency charged once per declared switch and the context term a caller-declared part of `other` that the reader cannot count | Whole-image WCET soundness and schedule analysis using qualified costs, including the padded boundary in admission duty |
 | Establish a favorable implementation cost | `phase-cost` compares time, area and power intervals and budgets without substituting zero for missing operands | Measured or qualified area, service stalls, maintenance and switch operands, with stated uncertainty and workload coverage |
 
 The synthetic checker is executable evidence about its finite contract. It is
@@ -92,7 +92,8 @@ opposite verdict or malformed fixture fails the suite.
 ## Executable prerequisite preparation
 
 The [preparation contract](../phase-service/prerequisite-contract.md) fixes the scope
-and acceptance of three host instruments:
+and acceptance of three host instruments, and the
+[stalled-transition contract](../phase-service/stall-contract.md) adds a fourth:
 
 - [Schedule extraction](../phase-service/schedule-input.md) resolves named joint
   arrivals against a separate resource declaration whose exact bytes the schedule
@@ -100,9 +101,13 @@ and acceptance of three host instruments:
   extractor preserves conflicting arrivals so the phase checker can refute them;
   a per-hart issue restriction is checked rather than assumed.
 - [Completion analysis](../phase-service/completion-model.md), selected with
-  `phase-service --completion`, checks same-hart completion order and drain through
-  bank completion. `drain` measures in-flight time to bank acceptance; the
-  completion result reports its own bound and status.
+  `phase-service --completion` or `phase-schedule --completion`, checks same-hart
+  completion order and drain through bank completion. `drain` measures in-flight
+  time to bank acceptance; the completion result reports its own bound and status.
+- [Stalled-transition bounds](../phase-service/stall-contract.md), `phase-stall`,
+  expand declared per-hart programs into the contract and bound a waiting
+  candidate's stalls, boundary residency, drain and cut tail under a maximal
+  arbiter; `--costs` joins those bounds against the cost input's intervals.
 - [Cost arithmetic](../phase-service/cost-input.md) binds a named workload to exact
   schedule bytes and compares baseline and candidate intervals. Favorable
   arithmetic requires conservative budget compliance and no regression in time,
@@ -133,7 +138,13 @@ python tools/run.py phase-evaluate docs/implementation/phase-service/schedule-ex
 The command returns 1 for a refuted branch, 2 for invalid or mismatched inputs,
 and 0 for a completed analysis whose verdict may be favorable, inconclusive or
 open; read `branch_verdict`, not the exit code alone. It always reports
-`target_comparison: open`. Refuting zero wait does not refute every deleting
+`target_comparison: open` and lists the mode-transition budget in
+`terms_not_carried` as a term the join does not carry; the two register acts
+the [mode-transition extension](../phase-service/mode-contract.md) records,
+R-11-018 fixing no exit instant of the source schedule for an edge and no entry
+stating whether a mode change is a visit of R-11-009's partition-switch
+boundary or whether the mode-transition budget enters this comparison, stay
+owed to their owners. Refuting zero wait does not refute every deleting
 candidate: a candidate that waits at issue is bounded by the
 [stalled-transition contract](../phase-service/stall-contract.md) over declared
 per-hart programs, and the arrival correspondence and WCET halves of that
