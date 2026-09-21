@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 /* These wrappers retain the SMT input alongside the actual curated result. */
 register vos_pc : bits(64)
 
