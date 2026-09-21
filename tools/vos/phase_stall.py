@@ -9,8 +9,8 @@ request every cycle, shifts every later request by the accumulated stall,
 branches over every maximal arbiter choice and reports per (hart, slot) stall,
 boundary-residency and drain bounds. Nothing here extracts traffic from a binary,
 models an arbiter's policy, pipeline backpressure or a mode change, or qualifies
-an occupancy: the stall contract states the semantics and the receipt names what
-stays open.
+an occupancy: the stalled-transition contract states the semantics and the receipt
+names what stays open.
 """
 
 import hashlib
@@ -151,6 +151,10 @@ class Analysis:
     zero_wait: bool
     stalled: Stalled
     program_zero_wait: bool
+    # Every declared slot as (hart name, slot id, start phase, end phase), present
+    # whether or not the exploration closed, so a cost input is validated against the
+    # declaration when `stalled.slots` is empty.
+    slots: tuple[tuple[str, str, int, int], ...]
 
 
 def _requests(node: Json, resources: Resources, bank_ids: dict[str, int], limit: int,
@@ -537,10 +541,13 @@ def analyze(program_raw: bytes, resources_raw: bytes) -> Analysis:
         realized = realizable(program, acceptance.trace)
         expansion = "refuted" if realized else "unrealizable"
     stalled = explore(program)
+    declared = tuple((hart, slot.name, slot.start, slot.end)
+                     for hart, slots in zip(program.hart_names, program.harts, strict=True)
+                     for slot in slots)
     return Analysis(program.name, program.program_sha256, program.resources_sha256,
                     program.bank_names, program.hart_names, program.resources.operations, contract,
                     acceptance, realized, expansion, acceptance.zero_wait, stalled,
-                    stalled.program_zero_wait)
+                    stalled.program_zero_wait, declared)
 
 
 def verify_identity(comparison: Comparison, analysis: Analysis, cost_path: Path,
@@ -549,63 +556,120 @@ def verify_identity(comparison: Comparison, analysis: Analysis, cost_path: Path,
     named = Path(comparison.schedule_path)
     if not named.is_absolute():
         named = cost_path.resolve().parent / named
-    if (named.resolve() != program_path.resolve()
-            or comparison.schedule_sha256 != analysis.program_sha256
-            or comparison.schedule_id != analysis.name):
-        raise ValueError("cost schedule path, SHA-256 and id must name the program document")
+    mismatches = [f"{field} expected {expected} got {actual}" for field, expected, actual in (
+        ("path", program_path.resolve(), named.resolve()),
+        ("sha256", analysis.program_sha256, comparison.schedule_sha256),
+        ("id", analysis.name, comparison.schedule_id)) if expected != actual]
+    if mismatches:
+        raise ValueError("cost schedule must name the program document: "
+                         + "; ".join(mismatches))
 
 
-def _cover(bound: Bound, required: int) -> str:
-    if bound is None:
-        return "unknown"
-    if bound.high < required:
-        return "refuted"
-    return "inconclusive" if bound.low < required else "covered"
+def verify_slots(comparison: Comparison, analysis: Analysis) -> None:
+    """Every cost slot names a declared slot, and no two named slots run concurrently.
+
+    A serial admission domain runs one slot at a time, so two named slots on
+    different harts whose phase ranges overlap cannot both belong to it; the
+    declared ranges decide, so the check stands whether or not the exploration closed.
+    """
+    declared = {slot_id: (hart, start, end) for hart, slot_id, start, end in analysis.slots}
+    named: list[tuple[str, str, int, int]] = []
+    for slot in comparison.slots:
+        if slot.name not in declared:
+            raise ValueError(f"cost slot names no program slot: {slot.name}")
+        hart, start, end = declared[slot.name]
+        named.append((slot.name, hart, start, end))
+    for (first, hart_a, start_a, end_a), (second, hart_b, start_b, end_b) in \
+            itertools.combinations(named, 2):
+        if hart_a != hart_b and start_a <= end_b and start_b <= end_a:
+            raise ValueError(f"cost slots {first} and {second} run concurrently on harts "
+                             f"{hart_a} and {hart_b}; a serial admission domain names no "
+                             "overlapping slots on different harts")
+
+
+def _interval(bound: Bound) -> str:
+    return "unknown" if bound is None else f"[{bound.low}, {bound.high}]"
+
+
+def _term(name: str, bound: Bound, required: int, quantity: str = "") -> tuple[str, str | None]:
+    """A term's status under the three-way rule and, unless covered, its reason.
+
+    `quantity` names the modeled value in the reason, as in "modeled residency 4",
+    and is empty for a term compared with a bound of its own name.
+    """
+    status = phase_cost.cover(bound, required)
+    if status == "covered":
+        return status, None
+    if status == "unknown":
+        return status, f"{name} unknown"
+    relation = "below" if status == "refuted" else "overlaps"
+    return status, f"{name} declared {_interval(bound)} {relation} modeled {quantity}{required}"
 
 
 def join(analysis: Analysis, comparison: Comparison) -> dict[str, Json]:
     """Compare declared candidate intervals with the modeled bounds by the three-way rule."""
     if analysis.stalled.refuted:
         raise ValueError("a refuted program contract has no bounds to join")
+    verify_slots(comparison, analysis)
     reports = {report.slot: report for report in analysis.stalled.slots}
     statuses: list[str] = []
     reasons: list[Json] = []
     slots: list[Json] = []
     named: list[SlotReport] = []
+    cut = False
     for slot in comparison.slots:
-        if slot.name not in reports:
-            raise ValueError(f"cost slot names no program slot: {slot.name}")
         report = reports[slot.name]
         named.append(report)
-        stalls = _cover(slot.candidate.stalls, report.stall_total_max)
-        residency = _cover(slot.candidate.trap_per_switch, report.boundary_residency_max)
-        statuses.extend((stalls, residency))
+        stalls, stalls_reason = _term(f"{slot.name}.stalls", slot.candidate.stalls,
+                                      report.stall_total_max)
+        residency, residency_reason = _term(f"{slot.name}.trap_per_switch",
+                                            slot.candidate.trap_per_switch,
+                                            report.boundary_residency_max, "residency ")
+        # Every occurrence visits the boundary once per frame, so a declared switch
+        # count of zero lies below the model on that term.
+        switches = "refuted" if slot.switches == 0 else "covered"
+        statuses.extend((stalls, residency, switches))
+        reasons.extend(reason for reason in (stalls_reason, residency_reason) if reason)
         if residency == "unknown" and report.boundary_outstanding:
             reasons.append("boundary-outstanding-uncovered")
+        if switches == "refuted":
+            reasons.append(f"{slot.name}.switches declared 0 below the one boundary visit per "
+                           "frame the model exhibits")
+        if report.cut_max > 0:
+            cut = True
+            reasons.append(f"{slot.name}: cut_max {report.cut_max}, the modeled bounds exclude "
+                           "a cut tail")
         slots.append({"id": slot.name, "hart": report.hart,
                       "stalls": {"declared": phase_cost._json(slot.candidate.stalls),
                                  "modeled": report.stall_total_max, "status": stalls},
                       "residency": {"declared": phase_cost._json(slot.candidate.trap_per_switch),
                                     "modeled": report.boundary_residency_max, "status": residency,
-                                    "boundary_outstanding": report.boundary_outstanding}})
+                                    "boundary_outstanding": report.boundary_outstanding},
+                      "switches": {"declared": slot.switches, "status": switches},
+                      "cut_max": report.cut_max})
     drain_required = max((report.drain_max for report in named), default=0)
-    drain = _cover(comparison.d_pipe_completion, drain_required)
+    drain, drain_reason = _term("boundary.d_pipe_completion", comparison.d_pipe_completion,
+                                drain_required, "drain ")
     statuses.append(drain)
+    if drain_reason:
+        reasons.append(drain_reason)
     arithmetic = phase_cost.assess(comparison)
     arithmetic_verdict = arithmetic["arithmetic_verdict"]
     if not isinstance(arithmetic_verdict, str):
         raise TypeError("cost analysis returned no arithmetic verdict")
+    if arithmetic_verdict != "favorable":
+        arithmetic_reason = f"arithmetic: {arithmetic['reason']}"
+        if arithmetic_verdict == "open":
+            unknown = arithmetic["unknown_operands"]
+            if isinstance(unknown, list):
+                arithmetic_reason += ": " + ", ".join(str(name) for name in unknown)
+        reasons.append(arithmetic_reason)
     if "refuted" in statuses or arithmetic_verdict == "refuted":
         verdict = "refuted"
-        reasons.append("a declared candidate interval lies wholly below a modeled bound "
-                       "or a candidate budget is definitely violated")
-    elif "unknown" in statuses or arithmetic_verdict == "open":
+    elif "unknown" in statuses or cut or arithmetic_verdict == "open":
         verdict = "open"
-        reasons.append("a compared operand is unknown")
     elif "inconclusive" in statuses or arithmetic_verdict == "inconclusive":
         verdict = "inconclusive"
-        reasons.append("a declared interval overlaps values below a modeled bound "
-                       "or the arithmetic is inconclusive")
     else:
         verdict = arithmetic_verdict
         reasons.append("every named term is covered; the scoped cost arithmetic decides")

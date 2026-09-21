@@ -212,6 +212,19 @@ def budget_status(cost: Bound, budget: Bound) -> str:
     return "violated" if cost.low > budget.high else "uncertain"
 
 
+def cover(bound: Bound, required: int) -> str:
+    """The three-way rule: a declared interval against a modeled bound it must cover.
+
+    `unknown` when the interval is absent, `refuted` when its upper bound lies below
+    the modeled value, `inconclusive` when only its lower bound does, else `covered`.
+    """
+    if bound is None:
+        return "unknown"
+    if bound.high < required:
+        return "refuted"
+    return "inconclusive" if bound.low < required else "covered"
+
+
 def _relation(saving: Bound) -> str:
     if saving is None:
         return "unknown"

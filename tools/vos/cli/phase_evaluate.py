@@ -51,13 +51,14 @@ def _join(acceptance: Acceptance, completion: Completion,
         return "refuted", "declared completion order or quiescent drain is refuted"
     if arithmetic["arithmetic_verdict"] == "refuted":
         return "refuted", "a declared candidate cost budget is definitely violated"
-    declared = costs.d_pipe_completion
     required = completion.quiescent_drain
-    if declared is None or required is None or completion.ordered is None:
+    drain = ("unknown" if required is None or completion.ordered is None
+             else phase_cost.cover(costs.d_pipe_completion, required))
+    if drain == "unknown":
         return "open", "the joined completion-drain bound is unavailable"
-    if declared.high < required:
+    if drain == "refuted":
         return "refuted", "the declared candidate drain is below the modeled completion bound"
-    if declared.low < required:
+    if drain == "inconclusive":
         return "inconclusive", "the declared drain interval overlaps values below the modeled bound"
     verdict = arithmetic["arithmetic_verdict"]
     if not isinstance(verdict, str):

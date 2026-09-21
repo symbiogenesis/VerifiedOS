@@ -13,7 +13,15 @@ from tests.harness import TOOLS, Case, ensure
 from vos.cli import phase_stall as cli
 from vos.jsonc import Json
 from vos.phase_cost import parse
-from vos.phase_stall import Analysis, SlotReport, analyze, join, read, verify_identity
+from vos.phase_stall import (
+    Analysis,
+    SlotReport,
+    analyze,
+    join,
+    read,
+    verify_identity,
+    verify_slots,
+)
 
 EXAMPLES = TOOLS.parent / "docs" / "implementation" / "phase-service" / "program-examples"
 
@@ -343,9 +351,23 @@ def _cost_identity() -> None:
         cast("dict[str, Json]", data["schedule"])[field] = wrong
         try:
             verify_identity(parse(_encode(data)), analysis, favorable, EXAMPLES / "worked-tail.json")
-        except ValueError:
+        except ValueError as err:
+            ensure("name the program" in str(err) and f"{field} expected" in str(err)
+                   and str(err).count(" expected ") == 1,
+                   f"the identity refusal names the one mismatched field: {err}")
             continue
         raise AssertionError(f"a schedule object with a wrong {field} named the program")
+    data = cast("dict[str, Json]", json.loads(favorable.read_bytes()))
+    cast("dict[str, Json]", data["schedule"]).update(id="synthetic-other", sha256="0" * 64)
+    try:
+        verify_identity(parse(_encode(data)), analysis, favorable, EXAMPLES / "worked-tail.json")
+    except ValueError as err:
+        ensure("sha256 expected " + analysis.program_sha256 + " got " + "0" * 64 in str(err)
+               and "id expected synthetic-worked-tail got synthetic-other" in str(err)
+               and "path expected" not in str(err),
+               f"two mismatches are listed with expected and actual values: {err}")
+    else:
+        raise AssertionError("two mismatched fields named the program")
 
 
 def _all_zero() -> None:
@@ -365,33 +387,135 @@ def _call(args: list[str]) -> tuple[int, dict[str, Json]]:
     return code, report
 
 
+def _text(args: list[str]) -> tuple[int, list[str]]:
+    output = StringIO()
+    with redirect_stdout(output):
+        code = cli.main(args)
+    return code, output.getvalue().splitlines()
+
+
+COVERED = "every named term is covered; the scoped cost arithmetic decides"
+UNJOINED_SY: list[Json] = [{"hart": "Y", "slot": "sy"}]
+UNJOINED_SX: list[Json] = [{"hart": "X", "slot": "sx"}]
+
+
 def _joins() -> None:
+    # Each fixture names one slot of the worked occurrence, the other hart's slot
+    # running concurrently and so acting as contention only.
     analysis = _fixture("worked-tail")
-    expected: tuple[tuple[str, str, int], ...] = (
-        ("favorable", "favorable", 0), ("understated-stalls", "refuted", 1),
-        ("trap-below-residency", "refuted", 1), ("overlap", "inconclusive", 0),
-        ("unknown-trap", "open", 0), ("drain-below", "refuted", 1))
-    for name, verdict, exit_code in expected:
+    expected: tuple[tuple[str, str, int, list[Json], list[Json]], ...] = (
+        ("favorable", "favorable", 0, UNJOINED_SY, [COVERED]),
+        ("understated-stalls", "refuted", 1, UNJOINED_SY,
+         ["sx.stalls declared [2, 2] below modeled 3"]),
+        ("trap-below-residency", "refuted", 1, UNJOINED_SY,
+         ["sx.trap_per_switch declared [3, 3] below modeled residency 4"]),
+        ("overlap", "inconclusive", 0, UNJOINED_SY,
+         ["sx.stalls declared [2, 4] overlaps modeled 3"]),
+        ("unknown-trap", "open", 0, UNJOINED_SY,
+         ["sx.trap_per_switch unknown", "boundary-outstanding-uncovered",
+          "arithmetic: mandatory numeric operands are unknown: "
+          "slots.sx.candidate.trap_per_switch"]),
+        ("drain-below", "refuted", 1, UNJOINED_SX,
+         ["boundary.d_pipe_completion declared [0, 0] below modeled drain 1"]))
+    for name, verdict, exit_code, unjoined, reasons in expected:
         joined = join(analysis, parse((EXAMPLES / f"costs-{name}.json").read_bytes()))
         ensure(joined["join_verdict"] == verdict, f"costs-{name} joined {joined['join_verdict']}")
-        ensure(joined["unjoined"] == [], f"costs-{name} names every program slot")
+        ensure(joined["unjoined"] == unjoined, f"costs-{name} leaves the other slot unjoined")
+        ensure(joined["reasons"] == reasons, f"costs-{name} reasons: {joined['reasons']}")
         code, report = _call([str(EXAMPLES / "worked-tail.json"), str(EXAMPLES / "resources.json"),
                               "--costs", str(EXAMPLES / f"costs-{name}.json")])
         ensure(code == exit_code and cast("dict[str, Json]", report["join"])["join_verdict"] == verdict,
                f"costs-{name}: exit {code}")
-    joined = join(analysis, parse((EXAMPLES / "costs-unknown-trap.json").read_bytes()))
-    ensure("boundary-outstanding-uncovered" in cast("list[Json]", joined["reasons"]),
-           "an unknown residency operand at an outstanding slot names its reason")
     joined = join(analysis, parse((EXAMPLES / "costs-drain-below.json").read_bytes()))
     ensure(cast("dict[str, Json]", joined["drain"])["modeled"] == 1
            and cast("dict[str, Json]", joined["arithmetic"])["arithmetic_verdict"] == "favorable",
            "favorable arithmetic never outweighs a refuted drain term")
-    data = cast("dict[str, Json]", json.loads((EXAMPLES / "costs-favorable.json").read_bytes()))
-    data["slots"] = [cast("list[Json]", data["slots"])[0]]
-    joined = join(analysis, parse(_encode(data)))
-    ensure(joined["unjoined"] == [{"hart": "Y", "slot": "sy"}]
-           and cast("dict[str, Json]", joined["drain"])["modeled"] == 0,
-           "unnamed program slots act as contention only and are reported unjoined")
+    joined = join(analysis, parse((EXAMPLES / "costs-favorable.json").read_bytes()))
+    slot = cast("dict[str, Json]", cast("list[Json]", joined["slots"])[0])
+    ensure(cast("dict[str, Json]", joined["drain"])["modeled"] == 0 and slot["cut_max"] == 0
+           and slot["switches"] == {"declared": 2, "status": "covered"},
+           "an unnamed slot's drain is not joined; the slot entry carries switches and cut_max")
+    code, lines = _text([str(EXAMPLES / "worked-tail.json"), str(EXAMPLES / "resources.json"),
+                         "--costs", str(EXAMPLES / "costs-unknown-trap.json")])
+    ensure(code == 0 and lines[-5:] == [
+        "join sx: stalls declared [3, 3] modeled 3 covered; trap_per_switch declared unknown "
+        "modeled 4 unknown; switches 2; cut_max 0",
+        "join drain: declared [1, 1] modeled 0 covered",
+        "join unjoined: Y/sy",
+        "join: open; sx.trap_per_switch unknown; boundary-outstanding-uncovered; arithmetic: "
+        "mandatory numeric operands are unknown: slots.sx.candidate.trap_per_switch",
+        "declared programs only; target comparison open"],
+        f"the text report prints each joined term, the drain, the unjoined slots and the verdict: "
+        f"{lines}")
+
+
+def _costs(name: str, **candidate: Json) -> dict[str, Json]:
+    """The named fixture with its one slot's candidate fields and switches overridden."""
+    data = cast("dict[str, Json]", json.loads((EXAMPLES / f"costs-{name}.json").read_bytes()))
+    slot = cast("dict[str, Json]", cast("list[Json]", data["slots"])[0])
+    if "switches" in candidate:
+        slot["switches"] = candidate.pop("switches")
+    cast("dict[str, Json]", slot["candidate"]).update(candidate)
+    return data
+
+
+def _switches() -> None:
+    analysis = _fixture("worked-tail")
+    joined = join(analysis, parse(_encode(_costs("favorable", switches=0))))
+    ensure(joined["join_verdict"] == "refuted" and joined["reasons"] == [
+        "sx.switches declared 0 below the one boundary visit per frame the model exhibits"],
+        f"a zero switch count is refuted by the boundary visit every frame: {joined['reasons']}")
+    joined = join(analysis, parse(_encode(_costs("favorable", switches=1))))
+    ensure(joined["join_verdict"] == "favorable" and joined["reasons"] == [COVERED],
+           "one switch per frame covers the boundary visit")
+
+
+def _cut_join() -> None:
+    analysis = _analyze("cut-shifted-join", _program(
+        _phases([1, 1, 1], {0: ["b0"]}),
+        [_slot("sx", 0, 3, [_req("b0", "rd", 0), _req("b1", "rd", 2)])]))
+    _expect(analysis, "sx", 2, 2, False, 0, 0, cut=1)
+    cut_reason = "sx: cut_max 1, the modeled bounds exclude a cut tail"
+    joined = join(analysis, parse(_encode(_costs("favorable", stalls=[2, 2],
+                                                  trap_per_switch=[0, 0]))))
+    slot = cast("dict[str, Json]", cast("list[Json]", joined["slots"])[0])
+    ensure(joined["join_verdict"] == "open" and joined["reasons"] == [cut_reason]
+           and slot["cut_max"] == 1 and joined["unjoined"] == [],
+           f"covered terms beside a cut tail leave the join open: {joined['reasons']}")
+    joined = join(analysis, parse(_encode(_costs("favorable", stalls=[1, 1],
+                                                  trap_per_switch=[0, 0]))))
+    ensure(joined["join_verdict"] == "refuted" and joined["reasons"]
+           == ["sx.stalls declared [1, 1] below modeled 2", cut_reason],
+           "a refuted term still wins over a cut tail")
+
+
+def _serial_domain() -> None:
+    analysis = _fixture("worked-tail")
+    both = _costs("favorable")
+    cast("list[Json]", both["slots"]).append(cast("list[Json]", _costs("drain-below")["slots"])[0])
+    concurrent = ("cost slots sx and sy run concurrently on harts X and Y; a serial admission "
+                  "domain names no overlapping slots on different harts")
+    for check in (lambda: verify_slots(parse(_encode(both)), analysis),
+                  lambda: join(analysis, parse(_encode(both)))):
+        try:
+            check()
+        except ValueError as err:
+            ensure(str(err) == concurrent, f"wrong refusal: {err}")
+        else:
+            raise AssertionError("two concurrent slots on different harts were joined")
+    ensure(analysis.slots == (("X", "sx", 0, 2), ("Y", "sy", 1, 2)),
+           "the analysis carries every declared slot's hart and phase range")
+    disjoint = _analyze("disjoint-slots", _program(
+        _phases([1, 1, 1, 1]), [_slot("sx", 0, 3, [_req("b0", "rd", 0)])],
+        [_slot("sy", 3, 1, [_req("b0", "wr", 0)])]))
+    verify_slots(parse(_encode(both)), disjoint)
+    with tempfile.TemporaryDirectory() as tmp:
+        costs = Path(tmp) / "costs.json"
+        cast("dict[str, Json]", both["schedule"])["path"] = str(EXAMPLES / "worked-tail.json")
+        costs.write_bytes(_encode(both))
+        code, report = _call([str(EXAMPLES / "worked-tail.json"), str(EXAMPLES / "resources.json"),
+                              "--costs", str(costs)])
+        ensure(code == 2 and report["error"] == concurrent, "the command refuses at exit 2")
 
 
 def _receipt() -> None:
@@ -429,8 +553,35 @@ def _receipt() -> None:
         code, report = _call([str(blocked), str(resources)])
         ensure(code == 1 and cast("dict[str, Json]", cast("dict[str, Json]", report["analysis"])["stalled"])["reason"]
                == "path-blocked", "a program-contract refutation exits 1")
+        blocked_costs = Path(tmp) / "blocked-costs.json"
+        cost_data = _costs("favorable")
+        cast("dict[str, Json]", cost_data["schedule"]).update(
+            id="synthetic-relation", path=str(blocked),
+            sha256=hashlib.sha256(blocked.read_bytes()).hexdigest())
+        blocked_costs.write_bytes(_encode(cost_data))
+        code, report = _call([str(blocked), str(resources), "--costs", str(blocked_costs)])
+        ensure(code == 1 and report["join"] is None
+               and "costs" in cast("dict[str, Json]", report["inputs_sha256"]),
+               "a refuted program contract joins nothing and still binds the cost bytes")
+        code, lines = _text([str(blocked), str(resources), "--costs", str(blocked_costs)])
+        ensure(code == 1 and lines[-2] == "join: skipped (program contract refuted)",
+               f"the text report says the join was skipped: {lines}")
         code, report = _call([str(Path(tmp) / "missing.json"), str(resources)])
         ensure(code == 2 and "error" in report, "a missing program exits 2 with a reason")
+        ensure(report["inputs_sha256"] == {} and report["sources_sha256"] == sources,
+               "a refusal before any read still binds the instrument sources")
+        code, report = _call([str(program), str(Path(tmp) / "missing-resources.json")])
+        ensure(code == 2 and "error" in report
+               and report["inputs_sha256"] == {"program": digests["program"]}
+               and report["sources_sha256"] == sources,
+               "a missing resources file leaves the program digest and the sources in the receipt")
+        malformed = Path(tmp) / "malformed.json"
+        malformed.write_bytes(b"{")
+        code, report = _call([str(program), str(resources), "--costs", str(malformed)])
+        ensure(code == 2 and "error" in report
+               and report["inputs_sha256"] == {**digests, "costs": hashlib.sha256(b"{").hexdigest()}
+               and report["sources_sha256"] == sources,
+               "a malformed cost file leaves every digest read before it in the receipt")
         stale = Path(tmp) / "resources.json"
         stale.write_bytes(resources.read_bytes() + b"\n")
         code, report = _call([str(program), str(stale)])
@@ -459,5 +610,6 @@ def cases() -> list[Case]:
             Case("completion-inversion", _completion_inversion),
             Case("residency-overrun", _residency_overrun), Case("unrealizable", _unrealizable),
             Case("refusals", _refusals), Case("cost-identity", _cost_identity),
-            Case("all-zero", _all_zero), Case("joins", _joins), Case("receipt", _receipt),
-            Case("consistency", _consistency)]
+            Case("all-zero", _all_zero), Case("joins", _joins), Case("switches", _switches),
+            Case("cut-join", _cut_join), Case("serial-domain", _serial_domain),
+            Case("receipt", _receipt), Case("consistency", _consistency)]

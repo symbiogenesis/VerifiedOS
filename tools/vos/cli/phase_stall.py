@@ -46,26 +46,30 @@ def main(argv: list[str] | None = None) -> int:
         "program": str(args.program), "resources": str(args.resources),
         "costs": None if args.costs is None else str(args.costs),
     }
+    # The receipt binds the instrument and every input it managed to read, so a
+    # refusal still names the sources and the digests read before it.
+    report["sources_sha256"] = {
+        name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in SOURCES
+    }
+    digests: dict[str, Json] = {}
+    report["inputs_sha256"] = digests
     joined: dict[str, Json] | None = None
     try:
         program_raw = args.program.read_bytes()
+        digests["program"] = hashlib.sha256(program_raw).hexdigest()
         resources_raw = args.resources.read_bytes()
-        digests: dict[str, Json] = {"program": hashlib.sha256(program_raw).hexdigest(),
-                                    "resources": hashlib.sha256(resources_raw).hexdigest()}
-        report["inputs_sha256"] = digests
+        digests["resources"] = hashlib.sha256(resources_raw).hexdigest()
         analysis = phase_stall.analyze(program_raw, resources_raw)
         if args.costs is not None:
             cost_raw = args.costs.read_bytes()
             digests["costs"] = hashlib.sha256(cost_raw).hexdigest()
             comparison = phase_cost.parse(cost_raw)
             phase_stall.verify_identity(comparison, analysis, args.costs, args.program)
+            phase_stall.verify_slots(comparison, analysis)
             if not analysis.stalled.refuted:
                 joined = phase_stall.join(analysis, comparison)
         report["analysis"] = asdict(analysis)
         report["join"] = joined
-        report["sources_sha256"] = {
-            name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in SOURCES
-        }
     except (OSError, TypeError, ValueError) as err:
         report["error"] = str(err)
         if args.json:
@@ -89,6 +93,41 @@ def main(argv: list[str] | None = None) -> int:
                   f"boundary_residency_max={slot.boundary_residency_max}, "
                   f"drain_max={slot.drain_max}, cut_max={slot.cut_max}")
         if joined is not None:
-            print(f"join: {joined['join_verdict']}; {joined['reasons']}")
+            _print_join(joined)
+        elif args.costs is not None:
+            print("join: skipped (program contract refuted)")
         print("declared programs only; target comparison open")
     return 1 if refuted else 0
+
+
+def _interval(value: Json) -> str:
+    if isinstance(value, list) and len(value) == 2:
+        return f"[{value[0]}, {value[1]}]"
+    return "unknown" if value is None else str(value)
+
+
+def _compared(term: Json) -> str:
+    if not isinstance(term, dict):
+        raise TypeError("a joined term is an object")
+    return f"declared {_interval(term['declared'])} modeled {term['modeled']} {term['status']}"
+
+
+def _print_join(joined: dict[str, Json]) -> None:
+    slots = joined["slots"]
+    unjoined = joined["unjoined"]
+    reasons = joined["reasons"]
+    if not isinstance(slots, list) or not isinstance(unjoined, list) \
+            or not isinstance(reasons, list):
+        raise TypeError("the join carries lists of slots, unjoined slots and reasons")
+    for slot in slots:
+        if not isinstance(slot, dict):
+            raise TypeError("a joined slot is an object")
+        switches = slot["switches"]
+        declared = switches["declared"] if isinstance(switches, dict) else switches
+        print(f"join {slot['id']}: stalls {_compared(slot['stalls'])}; "
+              f"trap_per_switch {_compared(slot['residency'])}; switches {declared}; "
+              f"cut_max {slot['cut_max']}")
+    print(f"join drain: {_compared(joined['drain'])}")
+    names = [f"{entry['hart']}/{entry['slot']}" for entry in unjoined if isinstance(entry, dict)]
+    print(f"join unjoined: {', '.join(names) if names else 'none'}")
+    print("; ".join([f"join: {joined['join_verdict']}", *(str(reason) for reason in reasons)]))
