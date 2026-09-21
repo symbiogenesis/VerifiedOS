@@ -449,12 +449,11 @@ Definition svc_least (a b : nat) : nat := if Nat.leb a b then a else b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
+  intros a b H. destruct a; destruct b; try discriminate H; split; reflexivity.
 Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. intros a b Ha Hb. rewrite Ha, Hb. reflexivity. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. induction n as [| k IH]; simpl; [ reflexivity | exact IH ]. Qed.
@@ -489,7 +488,7 @@ Lemma nat_sub_succ_l :
   forall p c : nat, Nat.leb c p = true -> S p - c = S (p - c).
 Proof.
   intros p c. revert p. induction c as [| k IH]; intros p H.
-  - simpl. rewrite (nat_sub_zero p). reflexivity.
+  - rewrite (nat_sub_zero p). reflexivity.
   - destruct p as [| q]; [ discriminate H | simpl in H; simpl; exact (IH q H) ].
 Qed.
 
@@ -871,7 +870,7 @@ Proof.
   - unfold rv_ok. apply andb_join.
     + exact (nat_leb_succ_r (rv_consumed v) (rv_produced v) Hord).
     + exact (leb_sub_succ (rv_produced v) (rv_consumed v) ring_capacity Hord Hg).
-  - unfold rv_ok. apply andb_join; [ exact Hord | exact Hbd ].
+  - exact H.
 Qed.
 
 Lemma take_keeps_the_invariant :
@@ -882,7 +881,7 @@ Proof.
   - unfold rv_ok. apply andb_join.
     + exact (nat_ltb_sub_pos (rv_produced v) (rv_consumed v) Hg).
     + exact (leb_pred_sub (rv_produced v) (rv_consumed v) ring_capacity Hbd).
-  - unfold rv_ok. apply andb_join; [ exact Hord | exact Hbd ].
+  - exact H.
 Qed.
 
 (* The SPSC statement: the invariant survives an arbitrary interleaving, which
@@ -979,8 +978,7 @@ Definition KeepsTheCapacity (f : ring_view -> ring_view) : Prop :=
 Theorem the_dual_producer_is_refuted : ~ KeepsTheInvariant rv_publish_dual.
 Proof.
   unfold KeepsTheInvariant. intro H.
-  assert (E : rv_ok brimming_view = true) by (vm_compute; reflexivity).
-  specialize (H brimming_view E). vm_compute in H. discriminate H.
+  specialize (H brimming_view eq_refl). vm_compute in H. discriminate H.
 Qed.
 
 (* And it breaks the capacity bound alone: it still writes only the producer
@@ -1005,8 +1003,7 @@ Qed.
 Theorem the_dual_consumer_is_refuted : ~ KeepsTheInvariant rv_take_dual.
 Proof.
   unfold KeepsTheInvariant. intro H.
-  assert (E : rv_ok single_view = true) by (vm_compute; reflexivity).
-  specialize (H single_view E). vm_compute in H. discriminate H.
+  specialize (H single_view eq_refl). vm_compute in H. discriminate H.
 Qed.
 
 (* The dual consumer breaks the ordering and keeps the capacity bound, which
@@ -1032,8 +1029,7 @@ Qed.
 Theorem the_untested_producer_is_refuted : ~ KeepsTheInvariant rv_publish_untested.
 Proof.
   unfold KeepsTheInvariant. intro H.
-  assert (E : rv_ok full_view = true) by (vm_compute; reflexivity).
-  specialize (H full_view E). vm_compute in H. discriminate H.
+  specialize (H full_view eq_refl). vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_untested_producer_keeps_the_ordering :
@@ -1047,8 +1043,7 @@ Qed.
 Theorem the_untested_consumer_is_refuted : ~ KeepsTheInvariant rv_take_untested.
 Proof.
   unfold KeepsTheInvariant. intro H.
-  assert (E : rv_ok empty_view = true) by (vm_compute; reflexivity).
-  specialize (H empty_view E). vm_compute in H. discriminate H.
+  specialize (H empty_view eq_refl). vm_compute in H. discriminate H.
 Qed.
 
 Theorem the_untested_consumer_keeps_the_capacity :
@@ -1703,10 +1698,7 @@ Definition ActivationIsBounded (b : nat) (l : list consumer_act) : Prop :=
 (*| discharges: R-07-029a, R-11-006 |*)
 Theorem the_specification_activation_is_bounded :
   ActivationIsBounded ring_max_batch_size spec_consumer_chain.
-Proof.
-  unfold ActivationIsBounded. intro p.
-  destruct p as [| [| [| [| k]]]]; vm_compute; reflexivity.
-Qed.
+Proof. exact the_specification_consumer_stays_inside_its_budget. Qed.
 
 (* The unbounded drain: a consumer that takes whatever is pending rather than
    what its budget admits, which is the shape a blocking wait would take here
@@ -1735,13 +1727,8 @@ Definition world_eqb (a b : world) : bool :=
 Lemma world_eqb_refl : forall w : world, world_eqb w w = true.
 Proof.
   intro w. unfold world_eqb, agree.
-  apply andb_join; [ apply eqb_reflexive | ].
-  apply andb_join; [ apply eqb_reflexive | ].
-  apply andb_join; [ destruct (w_armed w); reflexivity | ].
-  apply andb_join; [ apply eqb_reflexive | ].
-  apply andb_join; [ apply eqb_reflexive | ].
-  apply andb_join; [ apply eqb_reflexive | ].
-  destruct (w_asleep w); reflexivity.
+  repeat apply andb_join; try apply eqb_reflexive;
+    [ destruct (w_armed w) | destruct (w_asleep w) ]; reflexivity.
 Qed.
 
 (* A backlog past one budget, which is the boundary the bound is decided at. *)
@@ -1879,8 +1866,7 @@ Theorem the_state_setter_moves_only_the_state :
          (andb (Nat.eqb (sl_readers (with_state z t)) (sl_readers z))
                (agree (sl_validated (with_state z t)) (sl_validated z))) = true.
 Proof.
-  intros z t. apply andb_join; [ apply eqb_reflexive | ].
-  apply andb_join; [ apply eqb_reflexive | ].
+  intros z t. repeat apply andb_join; try apply eqb_reflexive.
   unfold with_state, agree. destruct (sl_validated z); reflexivity.
 Qed.
 
@@ -2766,7 +2752,7 @@ Theorem admission_is_exactly_the_absence_of_a_broken_conjunct :
     agree (admissible_service s) (Nat.eqb (service_broken s) 0) = true.
 Proof.
   intro s. unfold admissible_service, service_broken.
-  exact (all_of_is_none_broken (Service -> bool) (fun p => p s) service_conjuncts).
+  apply all_of_is_none_broken.
 Qed.
 
 Theorem the_declared_service_is_admitted :
