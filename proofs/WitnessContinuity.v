@@ -159,11 +159,6 @@ Import ListNotations.
 Fixpoint upto (n : nat) : list nat :=
   match n with 0 => [] | S m => m :: upto m end.
 
-Lemma upto_length : forall n, length (upto n) = n.
-Proof.
-  induction n as [| m IH]; simpl; [reflexivity | rewrite IH; reflexivity].
-Qed.
-
 Lemma in_upto : forall n x, In x (upto n) -> x < n.
 Proof.
   induction n as [| m IH]; intros x H; simpl in H; [contradiction |].
@@ -211,10 +206,7 @@ Proof.
 Qed.
 
 Lemma ltb_negb : forall i b, negb (i <? b) = (b <=? i).
-Proof.
-  intros i b. destruct (Nat.ltb_spec i b) as [H | H];
-    destruct (Nat.leb_spec b i) as [H2 | H2]; try reflexivity; lia.
-Qed.
+Proof. intros i b. symmetry. apply Nat.leb_antisym. Qed.
 
 Lemma card_lt : forall n b, b <= n -> card n (fun i => i <? b) = b.
 Proof.
@@ -248,7 +240,7 @@ Proof.
   intros n q H. unfold card in H.
   destruct (filter q (upto n)) as [| x rest] eqn:E; simpl in H; [lia |].
   assert (Hin : In x (filter q (upto n))) by (rewrite E; left; reflexivity).
-  apply filter_In in Hin. destruct Hin as [Hl Hq].
+  apply filter_In in Hin as [Hl Hq].
   exists x. split; [apply in_upto; exact Hl | exact Hq].
 Qed.
 
@@ -348,17 +340,7 @@ Theorem safe_matches_the_register_spelling :
   forall p : Policy, safeb p = register_safeb p.
 Proof.
   intros p. unfold safeb, register_safeb.
-  destruct (Nat.ltb_spec (population p + pol_faults p) (2 * pol_threshold p)) as [H1 | H1];
-    destruct (Nat.ltb_spec (pol_faults p) (2 * pol_threshold p - population p))
-      as [H2 | H2]; try reflexivity; lia.
-Qed.
-
-Lemma memb_true_In : forall x l, memb x l = true -> In x l.
-Proof.
-  intros x l. induction l as [| y ys IH]; simpl; [discriminate |].
-  intro H. apply orb_true_iff in H as [H | H].
-  - left. symmetry. apply Nat.eqb_eq. exact H.
-  - right. apply IH. exact H.
+  apply eq_iff_eq_true. rewrite !Nat.ltb_lt. lia.
 Qed.
 
 Lemma In_memb_true : forall x l, In x l -> memb x l = true.
@@ -378,10 +360,10 @@ Proof.
   destruct (memb x xs) eqn:Hm; simpl in Hx; [discriminate Hx |].
   destruct i as [| i']; destruct j as [| j'].
   - reflexivity.
-  - exfalso. assert (Hin : In x xs) by (rewrite He; apply nth_In; lia).
-    apply In_memb_true in Hin. rewrite Hm in Hin. discriminate Hin.
-  - exfalso. assert (Hin : In x xs) by (rewrite <- He; apply nth_In; lia).
-    apply In_memb_true in Hin. rewrite Hm in Hin. discriminate Hin.
+  - assert (Hin : In x xs) by (rewrite He; apply nth_In; lia).
+    apply In_memb_true in Hin. congruence.
+  - assert (Hin : In x xs) by (rewrite <- He; apply nth_In; lia).
+    apply In_memb_true in Hin. congruence.
   - f_equal. apply IH; [exact Hd | lia | lia | exact He].
 Qed.
 
@@ -440,12 +422,6 @@ Definition statement_eqb (x y : Statement) : bool :=
   if statement_eq_dec x y then true else false.
 Definition checkpoint_eqb (x y : Checkpoint) : bool :=
   if checkpoint_eq_dec x y then true else false.
-
-Lemma policy_eqb_eq : forall x y, policy_eqb x y = true <-> x = y.
-Proof.
-  intros x y. unfold policy_eqb. destruct (policy_eq_dec x y);
-    split; intro H; try discriminate; auto.
-Qed.
 
 Lemma statement_eqb_eq : forall x y, statement_eqb x y = true <-> x = y.
 Proof.
@@ -614,12 +590,6 @@ Defined.
 
 Definition durable_eqb (x y : Durable) : bool :=
   if durable_eq_dec x y then true else false.
-
-Lemma durable_eqb_refl : forall x, durable_eqb x x = true.
-Proof.
-  intros x. unfold durable_eqb. destruct (durable_eq_dec x x);
-    [reflexivity | contradiction].
-Qed.
 
 (* What an identity would sign if it released now. *)
 Definition statement_of (p : Policy) (d : Durable) : Statement :=
@@ -801,12 +771,10 @@ Proof.
   - destruct (dur_terminal (ws_trusted w)) eqn:Et; [discriminate |].
     destruct (prefixb (dur_checkpoint (ws_trusted w)) (st_checkpoint s)) eqn:Ep;
       [| discriminate].
-    destruct (st_terminal s) as [tr |] eqn:Est.
-    + destruct (terminal_bindsb p tr (st_checkpoint s)); [| discriminate].
-      injection H as H. subst w2. unfold Inv. simpl.
-      split; [exact Ep | intro Hc; exfalso; apply Hc; exact Et].
-    + injection H as H. subst w2. unfold Inv. simpl.
-      split; [exact Ep | intro Hc; exfalso; apply Hc; exact Et].
+    destruct (st_terminal s) as [tr |];
+      [destruct (terminal_bindsb p tr (st_checkpoint s)); [| discriminate] |];
+      injection H as H; subst w2; unfold Inv; simpl;
+      (split; [exact Ep | intros Hc; congruence]).
 Qed.
 
 Lemma commit_result : forall anchored w w2,
@@ -817,8 +785,7 @@ Proof.
   intros anchored w w2 H. unfold commit in H.
   destruct (current anchored w) as [cur |]; [| discriminate].
   destruct (ws_pending w) as [pend |] eqn:Ep; [| discriminate].
-  injection H as H. subst w2. exists pend. simpl.
-  split; [reflexivity | split; reflexivity].
+  injection H as H. subst w2. exists pend. repeat split; reflexivity.
 Qed.
 
 Lemma step_preserves_inv : forall p i w a w2 o,
@@ -834,15 +801,15 @@ Proof.
     unfold Inv. rewrite Hp, Ht. split; [apply prefixb_refl | intros _; reflexivity].
   - destruct (release true p w) as [[wr s] |] eqn:Er; [| discriminate].
     injection H as H1 H2. subst wr. unfold release in Er.
-    destruct (current true w) as [cur |]; [| discriminate].
-    destruct (ws_pending w); [| discriminate].
-    destruct (durable_eqb cur d); [| discriminate].
-    injection Er as Er1 Er2. subst w2. unfold Inv. simpl. exact I.
-  - injection H as H1 H2. subst w2. unfold Inv. simpl. exact I.
-  - injection H as H1 H2. subst w2. unfold Inv. simpl. exact Hinv.
+    destruct (current true w) as [cur |], (ws_pending w) as [pend |];
+      try discriminate.
+    destruct (durable_eqb cur pend); [| discriminate].
+    injection Er as Er1 Er2. subst w2. exact I.
+  - injection H as H1 H2. subst w2. exact I.
+  - injection H as H1 H2. subst w2. exact Hinv.
   - destruct (ev_authentic e && policy_eqb (ev_policy e) p && (ev_signer e =? i)
               && durable_eqb (ev_record e) (ws_trusted w)); [| discriminate].
-    injection H as H1 H2. subst w2. unfold Inv. simpl. exact I.
+    injection H as H1 H2. subst w2. exact I.
 Qed.
 
 Lemma step_trusted_extends : forall p i w a w2 o,
@@ -860,9 +827,9 @@ Proof.
     rewrite Ht. exact Hpre.
   - destruct (release true p w) as [[wr s] |] eqn:Er; [| discriminate].
     injection H as H1 H2. subst wr. unfold release in Er.
-    destruct (current true w) as [cur |]; [| discriminate].
-    destruct (ws_pending w); [| discriminate].
-    destruct (durable_eqb cur d); [| discriminate].
+    destruct (current true w) as [cur |], (ws_pending w) as [pend |];
+      try discriminate.
+    destruct (durable_eqb cur pend); [| discriminate].
     injection Er as Er1 Er2. subst w2. simpl. apply prefixb_refl.
   - injection H as H1 H2. subst w2. simpl. apply prefixb_refl.
   - injection H as H1 H2. subst w2. simpl. apply prefixb_refl.
@@ -882,8 +849,8 @@ Proof.
     injection H as H1 H2. subst wr s1. unfold release in Er.
     destruct (current true w) as [cur |] eqn:Ec; [| discriminate].
     apply current_true_is_trusted in Ec. subst cur.
-    destruct (ws_pending w); [| discriminate].
-    destruct (durable_eqb (ws_trusted w) d); [| discriminate].
+    destruct (ws_pending w) as [pend |]; [| discriminate].
+    destruct (durable_eqb (ws_trusted w) pend); [| discriminate].
     injection Er as Er1 Er2. subst w2. split; [congruence | reflexivity].
   - discriminate.
   - discriminate.
@@ -905,9 +872,9 @@ Proof.
     rewrite Ht. exact (Hsame Hseal).
   - destruct (release true p w) as [[wr s] |] eqn:Er; [| discriminate].
     injection H as H1 H2. subst wr. unfold release in Er.
-    destruct (current true w) as [cur |]; [| discriminate].
-    destruct (ws_pending w); [| discriminate].
-    destruct (durable_eqb cur d); [| discriminate].
+    destruct (current true w) as [cur |], (ws_pending w) as [pend |];
+      try discriminate.
+    destruct (durable_eqb cur pend); [| discriminate].
     injection Er as Er1 Er2. subst w2. reflexivity.
   - injection H as H1 H2. subst w2. reflexivity.
   - injection H as H1 H2. subst w2. reflexivity.
@@ -925,15 +892,6 @@ Qed.
    terminal statement every statement it ever released is a prefix of that
    statement's anchor.
    ========================================================================= *)
-
-Lemma run_state_inv : forall acts p i w,
-  Inv w -> Inv (run_state true p i w acts).
-Proof.
-  induction acts as [| a rest IH]; intros p i w Hinv; simpl; [exact Hinv |].
-  destruct (step true p i w a) as [[w2 o] |] eqn:E.
-  - apply IH. exact (step_preserves_inv p i w a w2 o Hinv E).
-  - apply IH. exact Hinv.
-Qed.
 
 Lemma run_trusted_extends : forall acts p i w,
   Inv w ->
@@ -1215,8 +1173,8 @@ Proof.
   assert (Hr2 : rel i s).
   { rewrite <- Hsig2. apply (Hunf2 s g2);
       [exact Hin2 | exact Hok2 | rewrite Hsig2; exact Hb]. }
-  exact (Hsealed i (sealed_statement old tr) s Hb Hr1
-           (fun H => match H with eq_refl => I end) Hr2).
+  apply (Hsealed i (sealed_statement old tr) s);
+    [exact Hb | exact Hr1 | discriminate | exact Hr2].
 Qed.
 
 (* T5 (R-13-023c). Across a bound transition, no accepted old-epoch
