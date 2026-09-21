@@ -381,6 +381,8 @@ def _suite(path: Path, root: Path) -> dict[str, tuple[str, str]]:
         if name in result:
             raise ValueError(f"duplicate CTest name {name}")
         output = case.findtext("system-out", "").replace(str(root), "<BUILD>")
+        if "[This part of the test output was removed" in output:
+            raise ValueError(f"CTest truncated output for {name}")
         result[name] = (case.attrib.get("status", ""), output)
     if not result:
         raise ValueError("CTest recorded no cases")
@@ -453,7 +455,9 @@ def _qualify_locked(e: env.Environment, count: int, root: Path,
     for label, directory in (("baseline", e.build_dir), ("partitioned", build)):
         junit = logs / f"{label}.xml"
         stages.append(_measure(label + "-suite", ["ctest", "--test-dir", str(directory),
-                              "-j", str(e.test_jobs), "--output-on-failure", "--output-junit", str(junit)],
+                              "-j", str(e.test_jobs), "--output-on-failure",
+                              "--test-output-size-passed", "104857600",
+                              "--test-output-size-failed", "104857600", "--output-junit", str(junit)],
                                e.root, logs))
         suites.append(_suite(junit, directory))
     if suites[0] != suites[1]:
