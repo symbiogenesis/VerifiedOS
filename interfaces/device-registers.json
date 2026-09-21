@@ -1,0 +1,1221 @@
+{
+  "schema": 1,
+  "platform": {
+    "clint": {
+      "kind": "registers",
+      "rationale": "Two timer words. Four-byte accesses select low or high fields; eight-byte accesses transfer both.",
+      "registers": [
+        {
+          "name": "mtimecmp",
+          "offset": 16384,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "MTIMECMP_BASE",
+              "contains": "zero_extend(${offset_hex})"
+            }
+          ],
+          "fields": [
+            {
+              "name": "lo",
+              "lsb": 0,
+              "width": 32,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "clint_load",
+                  "contains": "mtimecmp[${high}..${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "hi",
+              "lsb": 32,
+              "width": 32,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "clint_load",
+                  "contains": "mtimecmp[${high}..${lsb}]"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "mtime",
+          "offset": 49144,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "MTIME_BASE",
+              "contains": "zero_extend(${offset_hex})"
+            }
+          ],
+          "fields": [
+            {
+              "name": "lo",
+              "lsb": 0,
+              "width": 32,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "clint_load",
+                  "contains": "mtime[${high}..${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "hi",
+              "lsb": 32,
+              "width": 32,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "clint_load",
+                  "contains": "mtime[${high}..${lsb}]"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    },
+    "imsic": {
+      "kind": "registers",
+      "rationale": "Doorbell reads return zero; EIP stores clear reserved identity zero. Accessors do not implement these semantics.",
+      "registers": [
+        {
+          "name": "seteipnum",
+          "offset": 0,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "IMSIC_SETEIPNUM",
+              "contains": "zero_extend(${offset_hex3})"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "imsic_store",
+                  "contains": "unsigned(zero_extend(${width}, data))"
+                }
+              ]
+            }
+          ],
+          "views": [
+            {
+              "name": "identity",
+              "lsb": 0,
+              "width": 6,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "imsic_store",
+                  "contains": "zero_extend(64, data)[${high} .. ${lsb}]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "eip",
+          "offset": 8,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "IMSIC_EIP",
+              "contains": "zero_extend(${offset_hex3})"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "imsic_load",
+                  "contains": "zero_extend(${width}, imsic_eip)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    },
+    "revocation": {
+      "kind": "registers",
+      "rationale": "Indexed bitmap words; the model owns the dynamic extent.",
+      "registers": [
+        {
+          "name": "bitmap_word",
+          "offset": 0,
+          "access": "rw",
+          "repeat": "word index in [0, revocation_words), stride 8; core/revocation.sail owns extent",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "revocation_word_index",
+              "contains": "let offset = unsigned(addr - plat_revocation_base)"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "revocation_load",
+                  "contains": "zero_extend(${width}, revocation_read_word(word))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    },
+    "memory_sequencer": {
+      "kind": "refused",
+      "rationale": "Every CPU load and store faults; internal sequencer actions are not CPU register fields.",
+      "registers": []
+    },
+    "otp": {
+      "kind": "registers",
+      "rationale": "RoT-only lifecycle and fuse doors; field accessors make no burn-permission decision.",
+      "registers": [
+        {
+          "name": "state",
+          "offset": 0,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_OTP_STATE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "otp_load",
+                  "contains": "to_bits_truncate(${width}, lifecycle_to_index(otp_lifecycle))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "burn",
+          "offset": 8,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_OTP_BURN",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "otp_store",
+                  "contains": "unsigned(zero_extend(${width}, data))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "dm_gate",
+          "offset": 16,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_OTP_DM_GATE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "gated",
+              "lsb": 0,
+              "width": 1,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "otp_load",
+                  "contains": "if debug_module_fabric_gated() then ${mask64} else zeros()"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "fuse_count",
+          "offset": 24,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_OTP_FUSE_COUNT",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "otp_load",
+                  "contains": "to_bits_truncate(${width}, otp_fuse_words)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "fuse_word",
+          "offset": 256,
+          "access": "rw",
+          "repeat": "word index in [0, otp_fuse_words), stride 8",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_OTP_FUSE_BASE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "otp_load",
+                  "contains": "zero_extend(${width}, otp_read_fuse(word))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    },
+    "trng": {
+      "kind": "registers",
+      "rationale": "Conditioned draw and health words. ROT_TRNG_STARTUP at offset 32 ignores its payload, hence has no read field.",
+      "registers": [
+        {
+          "name": "draw",
+          "offset": 0,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_TRNG_DRAW",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "trng_load",
+                  "contains": "zero_extend(${width}, word)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "health",
+          "offset": 8,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_TRNG_HEALTH",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "started",
+              "lsb": 0,
+              "width": 4,
+              "bindings": [
+                {
+                  "kind": "type",
+                  "symbol": "rot_max_noise_sources",
+                  "contains": "type rot_max_noise_sources : Int = ${width}"
+                }
+              ]
+            },
+            {
+              "name": "complete",
+              "lsb": 32,
+              "width": 1,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "trng_load",
+                  "contains": "if rot_startup_complete() then ${mask64} else zeros()"
+                }
+              ]
+            },
+            {
+              "name": "stopped",
+              "lsb": 33,
+              "width": 1,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "trng_load",
+                  "contains": "if rot_entropy_fail_stop then ${mask64} else zeros()"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "sources",
+          "offset": 16,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_TRNG_SOURCES",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "trng_load",
+                  "contains": "to_bits_truncate(${width}, plat_rot_noise_sources)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "budget",
+          "offset": 24,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_TRNG_BUDGET",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "trng_load",
+                  "contains": "to_bits_truncate(${width}, plat_rot_startup_samples)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "startup",
+          "offset": 32,
+          "access": "command",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_TRNG_STARTUP",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [],
+          "views": []
+        }
+      ]
+    },
+    "monotonic_counters": {
+      "kind": "registers",
+      "rationale": "Counter advance consumes an index, never a counter value.",
+      "registers": [
+        {
+          "name": "counter",
+          "offset": 0,
+          "access": "ro",
+          "repeat": "word index in [0, monotonic_counter_count), stride 8",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_CTR_BASE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "monotonic_load",
+                  "contains": "zero_extend(${width}, monotonic_read(monotonic_counter_of_index(i)))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "advance",
+          "offset": 32,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_CTR_ADVANCE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "monotonic_store",
+                  "contains": "unsigned(zero_extend(${width}, data))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "count",
+          "offset": 40,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_CTR_COUNT",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "monotonic_load",
+                  "contains": "to_bits_truncate(${width}, monotonic_counter_count)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    },
+    "watchdog": {
+      "kind": "registers",
+      "rationale": "RoT-only challenge/status words. ROT_WDT_ARM at offset 48 ignores its payload, hence has no read field.",
+      "registers": [
+        {
+          "name": "nonce",
+          "offset": 0,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_NONCE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "watchdog_load",
+                  "contains": "zero_extend(${width}, watchdog_nonce)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "ticks",
+          "offset": 8,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_TICKS",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "watchdog_load",
+                  "contains": "zero_extend(${width}, watchdog_ticks)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "pet",
+          "offset": 16,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_PET",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "watchdog_store",
+                  "contains": "zero_extend(${width}, data)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "bitten",
+          "offset": 24,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_BITTEN",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "latched",
+              "lsb": 0,
+              "width": 1,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "watchdog_load",
+                  "contains": "if watchdog_bitten then ${mask64} else zeros()"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "early",
+          "offset": 32,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_EARLY",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "watchdog_load",
+                  "contains": "to_bits_truncate(${width}, plat_rot_watchdog_early)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "late",
+          "offset": 40,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_LATE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "watchdog_load",
+                  "contains": "to_bits_truncate(${width}, plat_rot_watchdog_late)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "arm",
+          "offset": 48,
+          "access": "command",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_WDT_ARM",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [],
+          "views": []
+        }
+      ]
+    },
+    "boot_rom": {
+      "kind": "memory",
+      "rationale": "Memory bytes, with no platform.sail register reader.",
+      "registers": []
+    },
+    "uart": {
+      "kind": "external",
+      "rationale": "No Sail register reader. Existing tools/vos/device_regs.py and rtl devicescheck own the upstream wrapper layout.",
+      "registers": []
+    },
+    "blkdev": {
+      "kind": "registers",
+      "rationale": "Functional block-device words delegated by platform.sail. Staging ownership remains the block-device contract.",
+      "registers": [
+        {
+          "name": "version",
+          "offset": 0,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "block_bytes",
+          "offset": 8,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "block_count",
+          "offset": 16,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "status",
+          "offset": 24,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "result",
+          "offset": 32,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "block",
+          "offset": 40,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "command",
+          "offset": 48,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_store",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "ack",
+          "offset": 56,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_store",
+              "contains": "offset == ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "data",
+          "offset": 256,
+          "access": "rw",
+          "repeat": "word index in [0, platform.blkdev.block_bytes/8), stride 8",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "blkdev_load",
+              "contains": "offset >= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "blkdev_load",
+                  "contains": "var value : bits(${width})"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    }
+  },
+  "harness": {
+    "htif": {
+      "kind": "registers",
+      "rationale": "Diagnostic HTIF is enabled externally, not a composed aperture. Overlapping transfer views are explicit and separate from fields.",
+      "registers": [
+        {
+          "name": "tohost",
+          "offset": 0,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "function",
+              "symbol": "htif_load",
+              "contains": "paddr == base"
+            }
+          ],
+          "fields": [
+            {
+              "name": "payload",
+              "lsb": 0,
+              "width": 48,
+              "bindings": [
+                {
+                  "kind": "type",
+                  "symbol": "htif_cmd",
+                  "contains": "payload : ${high} .. ${lsb}"
+                }
+              ]
+            },
+            {
+              "name": "cmd",
+              "lsb": 48,
+              "width": 8,
+              "bindings": [
+                {
+                  "kind": "type",
+                  "symbol": "htif_cmd",
+                  "contains": "cmd : ${high} .. ${lsb}"
+                }
+              ]
+            },
+            {
+              "name": "device",
+              "lsb": 56,
+              "width": 8,
+              "bindings": [
+                {
+                  "kind": "type",
+                  "symbol": "htif_cmd",
+                  "contains": "device : ${high} .. ${lsb}"
+                }
+              ]
+            }
+          ],
+          "views": [
+            {
+              "name": "lo",
+              "lsb": 0,
+              "width": 32,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "htif_load",
+                  "contains": "htif_tohost[${high}..${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "hi",
+              "lsb": 32,
+              "width": 32,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "htif_load",
+                  "contains": "htif_tohost[${high}..${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "payload_hi",
+              "lsb": 32,
+              "width": 16,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "htif_store",
+                  "contains": "htif_tohost[${high} .. ${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "terminal_byte",
+              "lsb": 0,
+              "width": 8,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "htif_store",
+                  "contains": "cmd[payload][${high}..${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "exit_flag",
+              "lsb": 0,
+              "width": 1,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "htif_store",
+                  "contains": "cmd[payload][${lsb}]"
+                }
+              ]
+            },
+            {
+              "name": "exit_code",
+              "lsb": 1,
+              "width": 47,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "htif_store",
+                  "contains": "(zero_extend(64, cmd[payload]) >> ${lsb})"
+                },
+                {
+                  "kind": "type",
+                  "symbol": "htif_cmd",
+                  "contains": "payload : ${high} .. 0"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "reviewed_functions": {
+    "blkdev_load": "12766584ff3b5e62129afa0166eecb4339dfccd564cde704a4a09a08e5977b2d",
+    "blkdev_store": "6b8adc4c1bd12d5369623cdab64b9f9229a12dcc2d4bd372bb85c501e697259b",
+    "clint_load": "db8e949ee19115e370a4b550e5dc3f8db2cb6b024c6535abf304a05e2119b6bf",
+    "clint_store": "185fe990d4ed8e5bbef921c92b64a57af91e999c6d00a9f2e077833fd9e65c3f",
+    "htif_load": "035e1a5d89183a32c6af26d46ba705977db04a5970b727169509008939c25cda",
+    "htif_store": "e13f541175ba30be0f95ddfcde25f350a4ead0b741a6ce59c7a73179fcd5e5e0",
+    "imsic_load": "5ffbfb6e54a6f191606cdbaf71c65ae2b134664379c7044cc6761b8a24ba53b5",
+    "imsic_store": "549bc26ad5b254ba14bee83ecfa690ff2a347067e46358cc866bc93587902f0c",
+    "memory_sequencer_load": "e4fb00fb8ba2ae2941521d0c470aa7c7f95e63fdb7fe1e5b6e5dd241f340a545",
+    "memory_sequencer_store": "f0ec45975c67838ef7167961f5889774d98537776dc74092919a0cceed542170",
+    "mmio_read": "fc60175214471ddd1e25b7a16457a0884513c871b20e36bd451d50073ca45a46",
+    "mmio_write": "440711ae22c1cf31110d51e7a4cd7310c9e3f5a9adb742f94e589a954356d75b",
+    "monotonic_door_index": "4cfcb05ba55e7b96f06548d8ea82ad61c0f1935a1bcda0aeb104d5da85ed192d",
+    "monotonic_load": "5ba53b2d280a7d7dab14cbef25a7acc7d5a3bb3fe4f101d82a7ba32b75684da6",
+    "monotonic_store": "3e1e21cfbe00b1ad8ff773e0690fc42761e53036990218d5f75a63af12779d1d",
+    "otp_fuse_index": "214780d6735a1027b29812274568d0aa121d29a9d86bfaf50c85b2c6960e44fa",
+    "otp_load": "07b727bc306662f822b6cb9f8c99062c582a828d036b97e44f22369ee7d0d12a",
+    "otp_store": "fd2e1e7e700fce8168da71f1b43dbf79fc53fb1b72cb2942ef22961132742de7",
+    "revocation_load": "4bbfde28d19c934eb82dcc7baa478c1862cabf62277e6e9762eb3ab25c24229c",
+    "revocation_store": "f46a0aac968b2482fed68dd8dab03384e85befe051520e7792e1e19d964b37b4",
+    "revocation_word_index": "df667b59b643455ab7eae4f2638cc1bea14fad68c1bda855cd44d53938e3a51a",
+    "trng_load": "929af5518a30ca610e1f212d7d6d3f5eb2aac8d57a0e04b75b52c8928e5ea59b",
+    "trng_store": "4dc9ae72a08f3790cfb397d36d90ba470759965b29362423805f6f0c996a1417",
+    "watchdog_load": "86c2f16d561c60190648390651b4b0cbc2f4c37b1e3cb373653c7beacd7986c4",
+    "watchdog_store": "f0a3b6b1f0f670611c07c77ce811b3062dd11e7a13352c2eceff24bb43be1ea5"
+  },
+  "reviewed_layout_sha256": "5b12c9b8539cfdceb2e065f60203f8b46c2ad375fa076b05be2f29f3f6a1aafd"
+}

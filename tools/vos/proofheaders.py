@@ -15,8 +15,8 @@ from vos import corpus as corpus_mod
 from vos import proofcites
 from vos.register import REGISTER, Register, read_register
 
-# The ring compiler owns this file whole; a second writer cannot share it.
-EXCLUDED = frozenset({"proofs/RingContract.v"})
+# These compilers own their files whole; a second writer cannot share them.
+EXCLUDED = frozenset({"proofs/RingContract.v", "proofs/DeviceRegisters.v"})
 
 # A refusable layout anchor, not a search for arbitrary comment syntax: the shipped
 # artifacts open with the licence comment and the ruled explanatory header.
