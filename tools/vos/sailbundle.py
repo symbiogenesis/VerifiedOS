@@ -46,6 +46,7 @@ both readers must decide the same thing about the same tracked bytes.
 
 import json
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, override
@@ -66,6 +67,12 @@ SOURCE_ROOT = "model/model"
 
 # The only version whose shapes are written down here.
 VERSION = 1
+
+# Public navigation kinds share the emitter's maps with the specific accessors.
+DECLARATION_KINDS = (("functions", "function"), ("mappings", "mapping"),
+                     ("vals", "val"), ("types", "type"),
+                     ("registers", "register"), ("lets", "let"))
+type Location = tuple[int, int, int, int, int, int]
 
 # The tracked artifact uses the canonical guest root on both host and guest readers.
 # Its switch name comes from the same owner that selects the compiler for emission.
@@ -104,6 +111,58 @@ class BundleError(RuntimeError):
     subject is the bundle: a reader that answered `None` for a version it does not know
     would let a rule report agreement between a document and a shape it never read.
     """
+
+
+@dataclass(frozen=True)
+class Source:
+    """An emitted source slot; generated text has no file or location.
+
+    Location positions are UTF-8 byte offsets, not Python character offsets.
+    The six fields are start line, start line offset, start offset, end line,
+    end line offset and exclusive end offset.
+    """
+
+    contents: str
+    file: str | None
+    loc: Location | None
+
+
+@dataclass(frozen=True)
+class Declaration:
+    """One declaration or scattered clause, retaining its order within the entry."""
+
+    kind: str
+    name: str
+    clause: int
+    source: Source
+
+
+@dataclass(frozen=True)
+class Reference:
+    """A compiler-recorded incoming link; this is not a complete call graph."""
+
+    kind: str
+    name: str
+    target: str
+    target_kind: str
+    file: str | None
+    start: int
+    end: int
+
+
+def _source_slot(raw: object, label: str) -> Source:
+    if isinstance(raw, str):
+        return Source(raw, None, None)
+    if not isinstance(raw, dict):
+        raise BundleError(f"{label}: missing or malformed source slot")
+    contents, file, loc = raw.get("contents"), raw.get("file"), raw.get("loc")
+    if (not isinstance(contents, str) or not isinstance(file, str) or not file
+            or not isinstance(loc, list) or len(loc) != 6
+            or any(type(value) is not int or value < 0 for value in loc)
+            or loc[0] < 1 or loc[3] < loc[0]
+            or not loc[1] <= loc[2] <= loc[5] or not loc[1] <= loc[4] <= loc[5]):
+        raise BundleError(f"{label}: malformed source contents, file or six-field byte location")
+    return Source(contents, file, (loc[0], loc[1], loc[2], loc[3], loc[4], loc[5]))
 
 
 @dataclass(frozen=True)
@@ -223,6 +282,57 @@ class Bundle:
                     f"{LIBRARY_PREFIX}: regenerate with `run.py model bundle` "
                     f"to record the selected library at its canonical location")
             out[key] = digest
+        return out
+
+    def _navigation_entries(self) -> Iterator[tuple[str, str, dict[str, Any]]]:
+        if self.embedding != "plain" or type(self._raw["version"]) is not int:
+            raise BundleError(f"{self.path}: navigation requires version 1 with plain embedding")
+        for table, kind in DECLARATION_KINDS:
+            for name, entry in self._map(table).items():
+                if not isinstance(name, str) or not name or not isinstance(entry, dict):
+                    raise BundleError(f"{self.path}: malformed {kind} entry")
+                yield kind, name, entry
+
+    def declarations(self) -> list[Declaration]:
+        """Read every supported emitted declaration shape without parsing Sail text.
+
+        Generated source strings remain visible as unlocated declarations. Missing
+        slots and malformed locations raise instead of silently shrinking the view.
+        """
+        out: list[Declaration] = []
+        for kind, name, entry in self._navigation_entries():
+            value = entry.get(kind)
+            if kind == "mapping" and not isinstance(value, list):
+                raise BundleError(f"{self.path}: mapping {name} must carry a clause list")
+            clauses = value if isinstance(value, list) and kind in ("function", "mapping") else [value]
+            if not clauses:
+                raise BundleError(f"{self.path}: {kind} {name} carries an empty clause list")
+            for index, clause in enumerate(clauses):
+                slot = (clause if kind == "type" else
+                        clause.get("source") if isinstance(clause, dict) else None)
+                out.append(Declaration(kind, name, index,
+                                       _source_slot(slot, f"{self.path}: {kind} {name}")))
+        return out
+
+    def references(self) -> list[Reference]:
+        """Compiler links keyed by their containing declaration, with byte locations."""
+        out: list[Reference] = []
+        for kind, name, entry in self._navigation_entries():
+            links = entry.get("links", [])
+            if not isinstance(links, list):
+                raise BundleError(f"{self.path}: {kind} {name} links must be a list")
+            for link in links:
+                if not isinstance(link, dict):
+                    raise BundleError(f"{self.path}: {kind} {name} has a malformed link")
+                target, target_kind = link.get("id"), link.get("type")
+                file, loc = link.get("file"), link.get("loc")
+                if (not isinstance(target, str) or not target or target_kind not in ("function", "register")
+                        or not isinstance(file, str)
+                        or not isinstance(loc, list) or len(loc) != 2
+                        or any(type(value) is not int or value < 0 for value in loc)
+                        or loc[1] < loc[0]):
+                    raise BundleError(f"{self.path}: {kind} {name} has malformed link fields")
+                out.append(Reference(kind, name, target, target_kind, file or None, loc[0], loc[1]))
         return out
 
     # -- definitions, by name ---------------------------------------------------------
@@ -595,6 +705,31 @@ def canonicalize_library(data: bytes, library: Path) -> bytes:
         hashes[canonical] = raw["hashes"][key]
     raw["hashes"] = hashes
     return (json.dumps(raw, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in out:
+            raise BundleError(f"duplicate JSON object key {key!r}")
+        out[key] = value
+    return out
+
+
+def _json_constant(value: str) -> None:
+    raise BundleError(f"non-JSON numeric constant {value}")
+
+
+def parse(data: bytes, path: str = BUNDLE) -> Bundle:
+    """Decode one byte snapshot, rejecting duplicate fields and non-JSON numbers."""
+    try:
+        raw = json.loads(data.decode("utf-8"), object_pairs_hook=_json_object,
+                         parse_constant=_json_constant)
+    except (UnicodeError, ValueError, BundleError) as exc:
+        raise BundleError(f"{path} is not readable as JSON: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise BundleError(f"{path} is a {type(raw).__name__} and not a bundle")
+    return Bundle(raw, path)
 
 
 def load(root: Path, path: str = BUNDLE) -> Bundle | None:
