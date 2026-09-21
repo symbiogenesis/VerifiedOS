@@ -506,9 +506,9 @@ return. No separate scratch exception weakens the predicate. The scalar subset
 has no live vector or matrix argument/state across this boundary; admitting
 such signatures requires gap d and the class's whole-state clear obligation.
 
-**Boundary overrun, exhaustion and failure.** Sentry entry does not set the
-model's trap-path-live bit. The slot timer may cut any instruction, including
-between the two clears or after publishing a phase. Under R-07-014a that cut
+**Boundary overrun, exhaustion and failure.** Sentry entry does not set
+R-15-073c's normative trap-live state. The slot timer may cut any instruction,
+including between the two clears or after publishing a phase. Under R-07-014a that cut
 is a broken WCET bound: neither the switcher nor its callee resumes. M4.4
 invalidates the old continuation and follows the crash-only restart route.
 Protected phase/depth state identifies every potentially live frame and stack
@@ -545,7 +545,20 @@ its bound. This convention adds no status register, trap bank or syscall.
 PCC attenuation and masks; M3.5 owns the authenticated table/capability producer;
 M4.4 owns the protected frames, timer/restart handling and kernel failure route.
 M1.2f must run their actual joined output on Sail and compare source results,
-register values/tags and declared memory effects. The acceptance includes:
+register values/tags and declared memory effects.
+
+The target campaign first requires the model owner to realize R-07-040's
+unmaskable timer and R-15-073c's trap-live pending/clear and second-trap
+fail-stop semantics. The effective [sys_control.sail](../../../model/model/sys/sys_control.sail)
+path still gates timer delivery on interrupt-enable bits and writes trap state
+without the required live-path guard; [sys_exceptions.sail](../../../model/model/exceptions/sys_exceptions.sail)
+supplies capability trap transfers but no such guard. Current Sail execution
+therefore cannot qualify these boundary/fault obligations. The model repair
+needs its own positive/refusal evidence before M4.4's cleanup/restart joins
+and M1.2f's actual emitted switcher campaign. This agreement changes no model
+code and claims no target verdict over the missing behavior.
+
+The acceptance includes:
 
 - A call with at least ten mixed word/local-buffer/handle arguments, a nested
   call and a returning result, exercising both register and copied stack slots;

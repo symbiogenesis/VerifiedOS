@@ -3,8 +3,8 @@
 This is M1.2d-i's diagnostic and prerequisite handoff under the
 [qualification contract](compiler-prerequisites.md#2-pointer-kind-diagnostic-and-lowering-prerequisites).
 It identifies the source information the functional backend must retain and
-links the selected source, kind and call interfaces for implementing that path. It does
-not implement or accept purecap code. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f
+links the selected source, kind and call interfaces for implementing that path.
+It does not implement or accept purecap code. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f
 retain their [implementation and target joins](../implementation-checklist.md).
 The [scalar ABI](purecap-abi.md) retains its existing authority.
 
@@ -120,8 +120,9 @@ wrong-kind and wrong-form refusals belong to the compiler acceptance.
 The [selected switcher protocol](purecap-abi.md#4-calls-and-returns) owns
 edge identity, protected saved state, bounded nesting, scrubbing and authority
 transfer. It also identifies the sealing-aware firmware refinement and
-crash-only timer-cut cleanup the real producer must establish. The one-time
-firmware handoff is not that producer. M1.2d-ii consumes the reviewed agreement;
+crash-only timer-cut cleanup the real producer must establish, including the
+explicitly missing timer/trap model behavior needed by its target campaign.
+The one-time firmware handoff is not that producer. M1.2d-ii consumes the reviewed agreement;
 its cross-compartment implementation and proof joins remain open.
 
 ## 4. Implementation ownership and decisive evidence

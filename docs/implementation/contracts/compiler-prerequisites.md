@@ -153,6 +153,6 @@ register, model and route clauses. Review must decide all of the following:
   reported as a source-to-Sail proof.
 
 The integrator owns the shared handoff and checklist updates and the settled
-host wave. No compiler source, extraction manifest or proof artifact changes
-as part of this agreement. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f remain open
+host wave. This agreement changes no compiler implementation, extraction manifest or
+proof statement; generated requirement-reference fingerprints follow their owner. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f remain open
 until their existing implementation and target predicates hold.
