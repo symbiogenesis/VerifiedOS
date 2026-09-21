@@ -486,7 +486,7 @@ Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
 Proof.
-  intros a b H Ha. unfold only_if in H. rewrite Ha in H. simpl in H. exact H.
+  intros a b H Ha. rewrite Ha in H. exact H.
 Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
@@ -554,7 +554,7 @@ Proof.
   intros A p l. induction l as [ | x r IH ].
   - reflexivity.
   - simpl. destruct (p x) eqn:E.
-    + simpl. rewrite E. simpl. exact IH.
+    + simpl. rewrite E. exact IH.
     + exact IH.
 Qed.
 
@@ -1693,7 +1693,7 @@ Proof.
   intros l. induction l as [ | s r IH ]; intros H.
   - reflexivity.
   - simpl in H. destruct (step_recognised s) eqn:E.
-    + simpl. rewrite E. simpl. exact (IH H).
+    + simpl. rewrite E. exact (IH H).
     + discriminate H.
 Qed.
 
@@ -1704,7 +1704,7 @@ Proof.
   intros l. induction l as [ | x r IH ]; intros s H.
   - discriminate H.
   - simpl in H. destruct (step_recognised x) eqn:E.
-    + simpl. rewrite E. simpl. exact (IH s H).
+    + simpl. rewrite E. exact (IH s H).
     + simpl. rewrite E. reflexivity.
 Qed.
 
@@ -1725,7 +1725,7 @@ Proof.
   intros c l. induction l as [ | f r IH ]; intros H.
   - reflexivity.
   - simpl in H. destruct (discharged c f) eqn:E.
-    + simpl. rewrite E. simpl. exact (IH H).
+    + simpl. rewrite E. exact (IH H).
     + discriminate H.
 Qed.
 
@@ -1736,7 +1736,7 @@ Proof.
   intros c l. induction l as [ | x r IH ]; intros f H.
   - discriminate H.
   - simpl in H. destruct (discharged c x) eqn:E.
-    + simpl. rewrite E. simpl. exact (IH f H).
+    + simpl. rewrite E. exact (IH f H).
     + simpl. rewrite E. reflexivity.
 Qed.
 
@@ -1967,15 +1967,9 @@ Theorem the_two_halves_compose :
     IsAFunctionOfThePackage D chk.
 Proof.
   intros D chk Hstate Hrun a1 a2 p.
-  assert (H1 : chk a1 p
-               = chk {| amb_run := a1.(amb_run); amb_state := a2.(amb_state) |} p)
-    by exact (Hstate a1 {| amb_run := a1.(amb_run);
-                           amb_state := a2.(amb_state) |} p eq_refl).
-  assert (H2 : chk {| amb_run := a1.(amb_run); amb_state := a2.(amb_state) |} p
-               = chk a2 p)
-    by exact (Hrun {| amb_run := a1.(amb_run);
-                      amb_state := a2.(amb_state) |} a2 p eq_refl).
-  rewrite H1. exact H2.
+  transitivity (chk {| amb_run := a1.(amb_run); amb_state := a2.(amb_state) |} p).
+  - apply Hstate. reflexivity.
+  - apply Hrun. reflexivity.
 Qed.
 
 Theorem the_conjunction_gives_back_both_halves :
@@ -1983,9 +1977,7 @@ Theorem the_conjunction_gives_back_both_halves :
     IsAFunctionOfThePackage D chk ->
     ReadsNoComposerState D chk /\ IsRunIndependent D chk.
 Proof.
-  intros D chk H. split.
-  - intros a1 a2 p H2. exact (H a1 a2 p).
-  - intros a1 a2 p H2. exact (H a1 a2 p).
+  intros D chk H. split; intros a1 a2 p _; apply H.
 Qed.
 
 (* S2 (R-06-015b, TAL-001). *)
@@ -2057,11 +2049,11 @@ Theorem the_verdict_is_a_function_of_the_reading :
     reads_alike D E rd re p q ->
     spec_check m D rd a p = spec_check m E re b q.
 Proof.
-  intros m D E rd re a b p q H. destruct H as [ Hid H2 ]. destruct H2 as [ Ht Hc ].
+  intros m D E rd re a b p q [ Hid [ Ht Hc ] ].
   unfold spec_check. unfold read_cert in Hc. unfold map_option in Hc.
   rewrite Ht. rewrite Hid.
-  remember (pkg_cert p) as cp. remember (pkg_cert q) as cq.
-  destruct cp as [ d | ]; destruct cq as [ e | ]; try discriminate Hc.
+  destruct (pkg_cert p) as [ d | ]; destruct (pkg_cert q) as [ e | ];
+    try discriminate Hc.
   - injection Hc as Hc2. rewrite Hc2. reflexivity.
   - reflexivity.
 Qed.
@@ -2124,22 +2116,18 @@ Theorem the_specification_fails_closed :
   forall (m : Machine) (D : Type) (rd : Reading D),
     FailsClosed m D rd (spec_check m D rd).
 Proof.
-  intros m D rd a p H. unfold FailsClosed in *. unfold spec_check in H.
-  remember (pkg_cert p) as cp.
-  destruct cp as [ d | ]; [ | discriminate H ].
+  intros m D rd a p H. unfold spec_check in H.
+  destruct (pkg_cert p) as [ d | ] eqn:Ec; [ | discriminate H ].
   unfold check_cert in H.
   destruct (versions_eqb (cert_versions (rd d)) (admitted_versions m)) eqn:Ev;
-    [ | simpl in H; discriminate H ].
-  simpl in H.
-  destruct (Nat.eqb (cert_binds (rd d)) (pkg_id p)) eqn:Eb;
-    [ | simpl in H; discriminate H ].
-  simpl in H.
+    [ | discriminate H ].
+  destruct (Nat.eqb (cert_binds (rd d)) (pkg_id p)) eqn:Eb; [ | discriminate H ].
   destruct (tier_of_code (pkg_tier p)) as [ t | ] eqn:Et; [ | discriminate H ].
   destruct (first_unrecognised (cert_steps (rd d))) as [ s | ] eqn:Eu;
     [ discriminate H | ].
   destruct (first_undischarged (rd d) (in_phase_order (required m t)))
     as [ f | ] eqn:Ed; [ discriminate H | ].
-  exists d. exists t. split; [ symmetry; exact Heqcp | ].
+  exists d. exists t. split; [ exact Ec | ].
   split; [ exact (versions_eqb_true _ _ Ev) | ].
   split; [ exact (nat_eqb_true _ _ Eb) | ].
   split; [ exact Et | ].
@@ -2159,10 +2147,7 @@ Theorem the_specification_is_complete_for_the_typing_relation :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CompleteFor D (WellTyped m D rd) (spec_check m D rd).
 Proof.
-  intros m D rd a p H.
-  destruct H as [ d H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ Hc H3 ]. destruct H3 as [ Hv H4 ].
-  destruct H4 as [ Hb H5 ]. destruct H5 as [ Ht H6 ]. destruct H6 as [ Hr Hcov ].
+  intros m D rd a p [ d [ t [ Hc [ Hv [ Hb [ Ht [ Hr Hcov ] ] ] ] ] ] ].
   unfold spec_check. rewrite Hc. unfold check_cert.
   rewrite Hv. rewrite Hb. rewrite (versions_eqb_refl (admitted_versions m)).
   rewrite (nat_eqb_refl (pkg_id p)). simpl. rewrite Ht.
@@ -2237,8 +2222,7 @@ Theorem fail_closed_refuses_an_absent_derivation :
 Proof.
   intros m D rd chk Hfc a p Hc.
   destruct (accepts (chk a p)) eqn:E; [ | reflexivity ].
-  destruct (Hfc a p E) as [ d H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ Hd _ ]. rewrite Hc in Hd. discriminate Hd.
+  destruct (Hfc a p E) as [ d [ t [ Hd _ ] ] ]. rewrite Hc in Hd. discriminate Hd.
 Qed.
 
 Theorem fail_closed_refuses_a_stale_version :
@@ -2247,8 +2231,7 @@ Theorem fail_closed_refuses_a_stale_version :
 Proof.
   intros m D rd chk Hfc a p d Hc Hv.
   destruct (accepts (chk a p)) eqn:E; [ | reflexivity ].
-  destruct (Hfc a p E) as [ e H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ Hd H3 ]. destruct H3 as [ Hver _ ].
+  destruct (Hfc a p E) as [ e [ t [ Hd [ Hver _ ] ] ] ].
   rewrite Hc in Hd. injection Hd as Hd2. rewrite <- Hd2 in Hver.
   rewrite Hver in Hv. rewrite (versions_eqb_refl (admitted_versions m)) in Hv.
   discriminate Hv.
@@ -2260,8 +2243,7 @@ Theorem fail_closed_refuses_a_wrong_binding :
 Proof.
   intros m D rd chk Hfc a p d Hc Hb.
   destruct (accepts (chk a p)) eqn:E; [ | reflexivity ].
-  destruct (Hfc a p E) as [ e H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ Hd H3 ]. destruct H3 as [ _ H4 ]. destruct H4 as [ Hbind _ ].
+  destruct (Hfc a p E) as [ e [ t [ Hd [ _ [ Hbind _ ] ] ] ] ].
   rewrite Hc in Hd. injection Hd as Hd2. rewrite <- Hd2 in Hbind.
   rewrite Hbind in Hb. rewrite (nat_eqb_refl (pkg_id p)) in Hb.
   discriminate Hb.
@@ -2273,9 +2255,8 @@ Theorem fail_closed_refuses_an_unrecognised_tier :
 Proof.
   intros m D rd chk Hfc a p Ht.
   destruct (accepts (chk a p)) eqn:E; [ | reflexivity ].
-  destruct (Hfc a p E) as [ d H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ _ H3 ]. destruct H3 as [ _ H4 ]. destruct H4 as [ _ H5 ].
-  destruct H5 as [ Hd _ ]. rewrite Ht in Hd. discriminate Hd.
+  destruct (Hfc a p E) as [ d [ t [ _ [ _ [ _ [ Hd _ ] ] ] ] ] ].
+  rewrite Ht in Hd. discriminate Hd.
 Qed.
 
 Theorem fail_closed_refuses_an_unrecognised_form :
@@ -2284,9 +2265,7 @@ Theorem fail_closed_refuses_an_unrecognised_form :
 Proof.
   intros m D rd chk Hfc a p d Hc Hr.
   destruct (accepts (chk a p)) eqn:E; [ | reflexivity ].
-  destruct (Hfc a p E) as [ e H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ Hd H3 ]. destruct H3 as [ _ H4 ]. destruct H4 as [ _ H5 ].
-  destruct H5 as [ _ H6 ]. destruct H6 as [ Hrec _ ].
+  destruct (Hfc a p E) as [ e [ t [ Hd [ _ [ _ [ _ [ Hrec _ ] ] ] ] ] ] ].
   rewrite Hc in Hd. injection Hd as Hd2. rewrite <- Hd2 in Hrec.
   rewrite Hrec in Hr. discriminate Hr.
 Qed.
@@ -2297,9 +2276,7 @@ Theorem fail_closed_refuses_an_undischarged_facet :
 Proof.
   intros m D rd k chk Hfc a p d t f Hc Ht Hm Hk Hd.
   destruct (accepts (chk a p)) eqn:E; [ | reflexivity ].
-  destruct (Hfc a p E) as [ e H1 ]. destruct H1 as [ u H2 ].
-  destruct H2 as [ He H3 ]. destruct H3 as [ _ H4 ]. destruct H4 as [ _ H5 ].
-  destruct H5 as [ Hu H6 ]. destruct H6 as [ _ Hcov ].
+  destruct (Hfc a p E) as [ e [ u [ He [ _ [ _ [ Hu [ _ Hcov ] ] ] ] ] ] ].
   rewrite Hc in He. injection He as He2. rewrite <- He2 in Hcov.
   rewrite Ht in Hu. injection Hu as Hu2. rewrite <- Hu2 in Hcov.
   rewrite (an_open_facet_breaks_the_coverage m t (rd d) f Hm Hd) in Hcov.
@@ -2320,30 +2297,16 @@ Theorem the_specification_satisfies_every_named_refusal :
     /\ RefusesAnUndischargedFacetOf m D rd CiteAnInvariant (spec_check m D rd)
     /\ RefusesAnUndischargedFacetOf m D rd EvaluateAnAttribute (spec_check m D rd).
 Proof.
-  intros m D rd.
-  split.
-  { exact (fail_closed_refuses_an_absent_derivation m D rd (spec_check m D rd)
-             (the_specification_fails_closed m D rd)). }
-  split.
-  { exact (fail_closed_refuses_a_stale_version m D rd (spec_check m D rd)
-             (the_specification_fails_closed m D rd)). }
-  split.
-  { exact (fail_closed_refuses_a_wrong_binding m D rd (spec_check m D rd)
-             (the_specification_fails_closed m D rd)). }
-  split.
-  { exact (fail_closed_refuses_an_unrecognised_tier m D rd (spec_check m D rd)
-             (the_specification_fails_closed m D rd)). }
-  split.
-  { exact (fail_closed_refuses_an_unrecognised_form m D rd (spec_check m D rd)
-             (the_specification_fails_closed m D rd)). }
-  split.
-  { exact (fail_closed_refuses_an_undischarged_facet m D rd ConfirmADeletion
-             (spec_check m D rd) (the_specification_fails_closed m D rd)). }
-  split.
-  { exact (fail_closed_refuses_an_undischarged_facet m D rd CiteAnInvariant
-             (spec_check m D rd) (the_specification_fails_closed m D rd)). }
-  exact (fail_closed_refuses_an_undischarged_facet m D rd EvaluateAnAttribute
-           (spec_check m D rd) (the_specification_fails_closed m D rd)).
+  intros m D rd. pose proof (the_specification_fails_closed m D rd) as Hfc.
+  repeat split.
+  - exact (fail_closed_refuses_an_absent_derivation m D rd _ Hfc).
+  - exact (fail_closed_refuses_a_stale_version m D rd _ Hfc).
+  - exact (fail_closed_refuses_a_wrong_binding m D rd _ Hfc).
+  - exact (fail_closed_refuses_an_unrecognised_tier m D rd _ Hfc).
+  - exact (fail_closed_refuses_an_unrecognised_form m D rd _ Hfc).
+  - exact (fail_closed_refuses_an_undischarged_facet m D rd ConfirmADeletion _ Hfc).
+  - exact (fail_closed_refuses_an_undischarged_facet m D rd CiteAnInvariant _ Hfc).
+  - exact (fail_closed_refuses_an_undischarged_facet m D rd EvaluateAnAttribute _ Hfc).
 Qed.
 
 (* =========================================================================
@@ -2381,12 +2344,12 @@ Proof.
   intros m D rd a p d t f Hc Ht Hm Hd.
   unfold spec_check. rewrite Hc. unfold check_cert.
   destruct (negb (versions_eqb (cert_versions (rd d)) (admitted_versions m))).
-  { unfold no_later_than. simpl. destruct (move_of f); reflexivity. }
+  { destruct (move_of f); reflexivity. }
   destruct (negb (Nat.eqb (cert_binds (rd d)) (pkg_id p))).
-  { unfold no_later_than. simpl. destruct (move_of f); reflexivity. }
+  { destruct (move_of f); reflexivity. }
   rewrite Ht.
   destruct (first_unrecognised (cert_steps (rd d))) as [ s | ].
-  { unfold no_later_than. simpl. destruct (move_of f); reflexivity. }
+  { destruct (move_of f); reflexivity. }
   destruct (first_undischarged (rd d) (in_phase_order (required m t)))
     as [ g | ] eqn:Eg.
   - unfold no_later_than. simpl.
@@ -2489,9 +2452,9 @@ Theorem waiving_one_rule_keeps_every_other :
     rule_eqb r r2 = false -> RefusesUnder D base r2 (waiving r D base).
 Proof.
   intros D base r r2 Hne a p H. unfold waiving.
-  remember (base a p) as v. destruct v as [ | r3 s ].
-  - simpl in H. discriminate H.
-  - simpl in H. injection H as H2. rewrite <- H2 in Hne. rewrite Hne. reflexivity.
+  destruct (base a p) as [ | r3 s ].
+  - discriminate H.
+  - injection H as H2. rewrite <- H2 in Hne. rewrite Hne. reflexivity.
 Qed.
 
 (* S8 (the twin, second half): and it drops its own, wherever the base uses
@@ -2502,10 +2465,9 @@ Theorem waiving_a_rule_admits_what_that_rule_refused :
     rule_of (base a p) = Some r -> accepts (waiving r D base a p) = true.
 Proof.
   intros D base r a p H. unfold waiving.
-  remember (base a p) as v. destruct v as [ | r2 s ].
-  - simpl in H. discriminate H.
-  - simpl in H. injection H as H2. rewrite H2. rewrite (rule_eqb_refl r).
-    reflexivity.
+  destruct (base a p) as [ | r2 s ].
+  - discriminate H.
+  - injection H as H2. rewrite H2. rewrite (rule_eqb_refl r). reflexivity.
 Qed.
 
 (* S9: and every waiving is therefore unsound, wherever its rule is reachable.
@@ -2518,13 +2480,10 @@ Theorem a_reachable_waived_rule_breaks_fail_closed :
     ~ FailsClosed m D rd (waiving r D (spec_check m D rd)).
 Proof.
   intros m D rd r a p H Hfc.
-  assert (Hacc : accepts (waiving r D (spec_check m D rd) a p) = true)
-    by exact (waiving_a_rule_admits_what_that_rule_refused D (spec_check m D rd) r a p H).
-  assert (Hwt : WellTyped m D rd p) by exact (Hfc a p Hacc).
-  assert (Hspec : accepts (spec_check m D rd a p) = true)
-    by exact (the_specification_is_complete_for_the_typing_relation m D rd a p Hwt).
-  destruct (spec_check m D rd a p) as [ | r2 s ];
-    [ simpl in H; discriminate H | simpl in Hspec; discriminate Hspec ].
+  pose proof (the_specification_is_complete_for_the_typing_relation m D rd a p
+                (Hfc a p (waiving_a_rule_admits_what_that_rule_refused
+                            D (spec_check m D rd) r a p H))) as Hspec.
+  destruct (spec_check m D rd a p); discriminate.
 Qed.
 
 (* =========================================================================
@@ -2554,8 +2513,7 @@ Theorem the_specification_reads_no_pedigree :
   forall (m : Machine) (D : Type) (rd : Reading D),
     ReadsNoPedigree D (spec_check m D rd).
 Proof.
-  intros m D rd a p q H.
-  destruct H as [ Hid H1 ]. destruct H1 as [ Ht Hc ].
+  intros m D rd a p q [ Hid [ Ht Hc ] ].
   unfold spec_check. rewrite Ht. rewrite Hid. rewrite Hc. reflexivity.
 Qed.
 
@@ -2572,8 +2530,7 @@ Theorem admission_does_not_move_with_the_producer :
                              pkg_cert := p.(pkg_cert) |}.
 Proof.
   intros m D rd a p who att.
-  apply (the_specification_reads_no_pedigree m D rd a).
-  split; [ reflexivity | ]. split; reflexivity.
+  apply (the_specification_reads_no_pedigree m D rd a). repeat split; reflexivity.
 Qed.
 
 (* =========================================================================
@@ -2675,11 +2632,8 @@ Proof.
   - reflexivity.
   - simpl. apply andb_join.
     + exact (mem_nat_here x.(pkg_id) (image_ids D s)).
-    + apply (all_of_mono (Package D)
-              (fun p => mem_nat p.(pkg_id) (image_ids D s))
-              (fun p => mem_nat p.(pkg_id) (cons x.(pkg_id) (image_ids D s))));
-        [ | exact IH ].
-      intros y Hy. exact (mem_nat_cons y.(pkg_id) x.(pkg_id) (image_ids D s) Hy).
+    + refine (all_of_mono _ _ _ _ _ IH).
+      intros y Hy. exact (mem_nat_cons _ _ _ Hy).
 Qed.
 
 (* S11 (R-11-005, R-13-001a, R-13-001c): the specification is atomic. *)
@@ -2710,13 +2664,9 @@ Theorem the_specification_emits_no_uncovered_stranger :
     EmitsNoUncoveredStranger D (spec_compose m D rd).
 Proof.
   intros m D rd a r g H. unfold spec_compose in H.
-  destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
+  destruct (admissible m D rd a r); [ | discriminate H ].
   injection H as H2. rewrite <- H2. simpl.
-  apply (all_of_mono (Package D)
-           (fun p => mem_nat p.(pkg_id) (image_ids D r))
-           (fun p => orb (mem_nat p.(pkg_id) (image_ids D r))
-                         (mem_nat p.(pkg_id) nil)));
-    [ | exact (every_member_names_itself D r) ].
+  refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
   intros y Hy. rewrite Hy. reflexivity.
 Qed.
 
@@ -2835,10 +2785,7 @@ Theorem inserting_a_refused_package_costs_the_generation :
     spec_compose m D rd a (insert_at n x r) = None.
 Proof.
   intros m D rd a x r n Hx. apply the_specification_is_all_or_nothing.
-  unfold admissible.
-  rewrite (all_of_insert (Package D) (fun p => accepts (spec_check m D rd a p))
-             x r n).
-  rewrite Hx. reflexivity.
+  unfold admissible. rewrite all_of_insert. rewrite Hx. reflexivity.
 Qed.
 
 (* And insertion of an admissible one into an admissible roster keeps the
@@ -2857,10 +2804,8 @@ Proof.
     [ | discriminate Hg ].
   injection Hg as Hg2.
   exists {| gen_image := insert_at n x r; gen_synthesized := nil |}. split.
-  - unfold spec_compose. unfold admissible.
-    rewrite (all_of_insert (Package D) (fun p => accepts (spec_check m D rd a p))
-               x r n).
-    rewrite Hx. unfold admissible in E. rewrite E. reflexivity.
+  - unfold spec_compose. unfold admissible. rewrite all_of_insert. rewrite Hx.
+    unfold admissible in E. rewrite E. reflexivity.
   - rewrite <- Hg2. simpl. exact (count_of_insert (Package D) x r n).
 Qed.
 
@@ -2872,8 +2817,7 @@ Theorem a_deletion_from_an_admissible_roster_still_composes :
          (r : Roster D) (n : nat),
     admissible m D rd a r = true -> admissible m D rd a (drop_at n r) = true.
 Proof.
-  intros m D rd a r n H. unfold admissible. unfold admissible in H.
-  exact (all_of_drop (Package D) (fun p => accepts (spec_check m D rd a p)) r n H).
+  intros m D rd a r n H. unfold admissible. apply all_of_drop. exact H.
 Qed.
 
 (* A transposition composes exactly as many, at any position of any roster,
@@ -2884,8 +2828,7 @@ Theorem a_transposition_composes_the_same_roster :
          (r : Roster D) (n : nat),
     admissible m D rd a (swap_at n r) = admissible m D rd a r.
 Proof.
-  intros m D rd a r n. unfold admissible.
-  exact (all_of_swap (Package D) (fun p => accepts (spec_check m D rd a p)) r n).
+  intros m D rd a r n. unfold admissible. apply all_of_swap.
 Qed.
 
 Theorem a_duplication_composes_the_same_roster :
@@ -2893,8 +2836,7 @@ Theorem a_duplication_composes_the_same_roster :
          (r : Roster D) (n : nat),
     admissible m D rd a (dup_at n r) = admissible m D rd a r.
 Proof.
-  intros m D rd a r n. unfold admissible.
-  exact (all_of_dup (Package D) (fun p => accepts (spec_check m D rd a p)) r n).
+  intros m D rd a r n. unfold admissible. apply all_of_dup.
 Qed.
 
 (* The four generators over a roster, as the families the enumerations below
@@ -2995,7 +2937,7 @@ Definition retaggings (c : Cert) : list Cert :=
    coincidences of the demo's own codes. *)
 Theorem an_unknown_form_is_never_recognised :
   forall s : Step, step_recognised (unknown_form s) = false.
-Proof. intros s. unfold step_recognised. unfold unknown_form. reflexivity. Qed.
+Proof. intros s. reflexivity. Qed.
 
 Theorem an_unknown_move_is_never_recognised :
   forall s : Step, step_recognised (unknown_move s) = false.
@@ -3871,7 +3813,7 @@ Example the_two_carriers_carry_the_same_package :
 
 Theorem the_two_carriers_are_read_alike :
   reads_alike Terse Cert terse_reading full_reading p_terse_thin p_thin.
-Proof. split; [ reflexivity | ]. split; reflexivity. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 (* S14: and therefore they are decided alike, in any ambient, by the theorem
    quantified over arbitrary carriers rather than by a conversion at these
@@ -4060,8 +4002,8 @@ Qed.
 Theorem the_tag_peeking_check_reads_no_pedigree :
   forall m : Machine, ReadsNoPedigree Tagged (tag_peeking_check m).
 Proof.
-  intros m a p q H. assert (H2 := H). destruct H2 as [ Hid H3 ].
-  destruct H3 as [ Ht Hc ]. unfold tag_peeking_check. rewrite Hc. rewrite Hid.
+  intros m a p q H. pose proof H as [ Hid [ Ht Hc ] ].
+  unfold tag_peeking_check. rewrite Hc. rewrite Hid.
   destruct (pkg_cert q) as [ x | ]; [ destruct (Nat.eqb (fst x) 0) | ];
     try reflexivity;
     exact (the_specification_reads_no_pedigree m Tagged tag_reading a p q H).
@@ -4094,7 +4036,7 @@ Example the_badged_package_differs_only_in_its_pedigree :
 
 Theorem the_badged_package_differs_only_there :
   same_but_the_pedigree Cert p_thin p_badged.
-Proof. split; [ reflexivity | ]. split; reflexivity. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 (* A checker that admits an attested package: the producer attestation read as
    evidence, which R-13-022's *another producer emitting equivalent checked
@@ -4149,7 +4091,7 @@ Definition p_other_author : Package Cert :=
 
 Theorem the_other_author_differs_only_there :
   same_but_the_pedigree Cert p_from_the_composer p_other_author.
-Proof. split; [ reflexivity | ]. split; reflexivity. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 (* The other author's package is attested and is still refused, which is what
    makes the trusting checker's defect the *composer's* identity rather than
@@ -4181,21 +4123,16 @@ Theorem the_thin_package_is_not_well_typed :
   ~ WellTyped demo Cert full_reading p_thin.
 Proof.
   intros H.
-  assert (Hacc : accepts (spec_check demo Cert full_reading amb_first p_thin) = true)
-    by exact (the_specification_is_complete_for_the_typing_relation
-                demo Cert full_reading amb_first p_thin H).
-  discriminate Hacc.
+  discriminate (the_specification_is_complete_for_the_typing_relation
+                  demo Cert full_reading amb_first p_thin H).
 Qed.
 
 Theorem the_composer_authored_package_is_not_well_typed :
   ~ WellTyped demo Cert full_reading p_from_the_composer.
 Proof.
   intros H.
-  assert (Hacc : accepts (spec_check demo Cert full_reading amb_first
-                            p_from_the_composer) = true)
-    by exact (the_specification_is_complete_for_the_typing_relation
-                demo Cert full_reading amb_first p_from_the_composer H).
-  discriminate Hacc.
+  discriminate (the_specification_is_complete_for_the_typing_relation
+                  demo Cert full_reading amb_first p_from_the_composer H).
 Qed.
 
 Theorem the_trusting_check_fails_open :
@@ -4271,8 +4208,7 @@ Theorem the_two_poles_satisfy_the_other_obligations :
 Proof.
   split; [ intros a1 a2 p; reflexivity | ].
   split.
-  - intros a p q H. destruct H as [ Hid _ ]. unfold paranoid_check. rewrite Hid.
-    reflexivity.
+  - intros a p q [ Hid _ ]. unfold paranoid_check. rewrite Hid. reflexivity.
   - split; [ intros a1 a2 p; reflexivity | ]. intros a p q H. reflexivity.
 Qed.
 
@@ -4390,31 +4326,26 @@ Theorem the_vacuous_check_keeps_the_other_seven :
     /\ RefusesAnUndischargedFacetOf m D rd EvaluateAnAttribute
          (nothing_to_check m D rd).
 Proof.
-  intros m D rd. unfold nothing_to_check. split.
-  { intros a p d Hc Hv. destruct (tier_of_code p.(pkg_tier)) as [ t | ];
-      [ | reflexivity ]. rewrite Hc.
-    exact (check_cert_refuses_a_stale_version m p.(pkg_id) p.(pkg_tier) (rd d) Hv). }
-  split.
-  { intros a p d Hc Hb. destruct (tier_of_code p.(pkg_tier)) as [ t | ];
-      [ | reflexivity ]. rewrite Hc.
-    exact (check_cert_refuses_a_wrong_binding m p.(pkg_id) p.(pkg_tier) (rd d) Hb). }
-  split.
-  { intros a p Ht. rewrite Ht. reflexivity. }
-  split.
-  { intros a p d Hc Hr. destruct (tier_of_code p.(pkg_tier)) as [ t | ];
-      [ | reflexivity ]. rewrite Hc.
-    exact (check_cert_refuses_an_unrecognised_form m p.(pkg_id) p.(pkg_tier) (rd d) Hr). }
-  split.
-  { intros a p d t f Hc Ht Hm Hk Hd. rewrite Ht. rewrite Hc.
+  intros m D rd.
+  assert (Hfacet : forall k : Move,
+            RefusesAnUndischargedFacetOf m D rd k (nothing_to_check m D rd)).
+  { intros k a p d t f Hc Ht Hm Hk Hd. unfold nothing_to_check. rewrite Ht. rewrite Hc.
     exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t (rd d)
              Ht (an_open_facet_breaks_the_coverage m t (rd d) f Hm Hd)). }
-  split.
-  { intros a p d t f Hc Ht Hm Hk Hd. rewrite Ht. rewrite Hc.
-    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t (rd d)
-             Ht (an_open_facet_breaks_the_coverage m t (rd d) f Hm Hd)). }
-  intros a p d t f Hc Ht Hm Hk Hd. rewrite Ht. rewrite Hc.
-  exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t (rd d)
-           Ht (an_open_facet_breaks_the_coverage m t (rd d) f Hm Hd)).
+  unfold nothing_to_check. repeat split.
+  - intros a p d Hc Hv. destruct (tier_of_code p.(pkg_tier)) as [ t | ];
+      [ | reflexivity ]. rewrite Hc.
+    exact (check_cert_refuses_a_stale_version m p.(pkg_id) p.(pkg_tier) (rd d) Hv).
+  - intros a p d Hc Hb. destruct (tier_of_code p.(pkg_tier)) as [ t | ];
+      [ | reflexivity ]. rewrite Hc.
+    exact (check_cert_refuses_a_wrong_binding m p.(pkg_id) p.(pkg_tier) (rd d) Hb).
+  - intros a p Ht. rewrite Ht. reflexivity.
+  - intros a p d Hc Hr. destruct (tier_of_code p.(pkg_tier)) as [ t | ];
+      [ | reflexivity ]. rewrite Hc.
+    exact (check_cert_refuses_an_unrecognised_form m p.(pkg_id) p.(pkg_tier) (rd d) Hr).
+  - exact (Hfacet ConfirmADeletion).
+  - exact (Hfacet CiteAnInvariant).
+  - exact (Hfacet EvaluateAnAttribute).
 Qed.
 
 Example the_vacuous_check_differs_at_exactly_one_witness :
@@ -4547,40 +4478,29 @@ Theorem the_permissive_check_keeps_the_other_seven :
     /\ RefusesAnUndischargedFacetOf m D rd EvaluateAnAttribute
          (permissive_form_check m D rd).
 Proof.
-  intros m D rd. unfold permissive_form_check. split.
-  { intros a p Hc. rewrite Hc. reflexivity. }
-  split.
-  { intros a p d Hc Hv. rewrite Hc.
+  intros m D rd.
+  assert (Hfacet : forall k : Move,
+            RefusesAnUndischargedFacetOf m D rd k (permissive_form_check m D rd)).
+  { intros k a p d t f Hc Ht Hm Hk Hd. unfold permissive_form_check. rewrite Hc.
+    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
+             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Ht
+             (an_open_facet_breaks_the_coverage m t
+                (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps)))
+                f Hm (an_open_facet_stays_open_when_records_are_dropped (rd d) f Hd))). }
+  unfold permissive_form_check. repeat split.
+  - intros a p Hc. rewrite Hc. reflexivity.
+  - intros a p d Hc Hv. rewrite Hc.
     exact (check_cert_refuses_a_stale_version m p.(pkg_id) p.(pkg_tier)
-             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Hv). }
-  split.
-  { intros a p d Hc Hb. rewrite Hc.
+             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Hv).
+  - intros a p d Hc Hb. rewrite Hc.
     exact (check_cert_refuses_a_wrong_binding m p.(pkg_id) p.(pkg_tier)
-             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Hb). }
-  split.
-  { intros a p Ht. destruct (pkg_cert p) as [ d | ]; [ | reflexivity ].
+             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Hb).
+  - intros a p Ht. destruct (pkg_cert p) as [ d | ]; [ | reflexivity ].
     exact (check_cert_refuses_an_unrecognised_tier m p.(pkg_id) p.(pkg_tier)
-             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Ht). }
-  split.
-  { intros a p d t f Hc Ht Hm Hk Hd. rewrite Hc.
-    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
-             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Ht
-             (an_open_facet_breaks_the_coverage m t
-                (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps)))
-                f Hm (an_open_facet_stays_open_when_records_are_dropped (rd d) f Hd))). }
-  split.
-  { intros a p d t f Hc Ht Hm Hk Hd. rewrite Hc.
-    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
-             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Ht
-             (an_open_facet_breaks_the_coverage m t
-                (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps)))
-                f Hm (an_open_facet_stays_open_when_records_are_dropped (rd d) f Hd))). }
-  intros a p d t f Hc Ht Hm Hk Hd. rewrite Hc.
-  exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
-           (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Ht
-           (an_open_facet_breaks_the_coverage m t
-              (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps)))
-              f Hm (an_open_facet_stays_open_when_records_are_dropped (rd d) f Hd))).
+             (with_steps (rd d) (filter_of step_recognised (rd d).(cert_steps))) Ht).
+  - exact (Hfacet ConfirmADeletion).
+  - exact (Hfacet CiteAnInvariant).
+  - exact (Hfacet EvaluateAnAttribute).
 Qed.
 
 (* On the golden roster it agrees with the specification exactly, so the
@@ -4800,21 +4720,17 @@ Theorem the_declared_order_check_fails_closed :
     FailsClosed m D rd (declared_order_check m D rd).
 Proof.
   intros m D rd a p H. unfold declared_order_check in H.
-  remember (pkg_cert p) as cp.
-  destruct cp as [ d | ]; [ | discriminate H ].
+  destruct (pkg_cert p) as [ d | ] eqn:Ec; [ | discriminate H ].
   unfold check_in_declared_order in H.
   destruct (versions_eqb (cert_versions (rd d)) (admitted_versions m)) eqn:Ev;
-    [ | simpl in H; discriminate H ].
-  simpl in H.
-  destruct (Nat.eqb (cert_binds (rd d)) (pkg_id p)) eqn:Eb;
-    [ | simpl in H; discriminate H ].
-  simpl in H.
+    [ | discriminate H ].
+  destruct (Nat.eqb (cert_binds (rd d)) (pkg_id p)) eqn:Eb; [ | discriminate H ].
   destruct (tier_of_code (pkg_tier p)) as [ t | ] eqn:Et; [ | discriminate H ].
   destruct (first_unrecognised (cert_steps (rd d))) as [ s | ] eqn:Eu;
     [ discriminate H | ].
   destruct (first_undischarged (rd d) (required m t)) as [ f | ] eqn:Ed;
     [ discriminate H | ].
-  exists d. exists t. split; [ symmetry; exact Heqcp | ].
+  exists d. exists t. split; [ exact Ec | ].
   split; [ exact (versions_eqb_true _ _ Ev) | ].
   split; [ exact (nat_eqb_true _ _ Eb) | ].
   split; [ exact Et | ].
@@ -4826,10 +4742,7 @@ Theorem the_declared_order_check_is_complete :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CompleteFor D (WellTyped m D rd) (declared_order_check m D rd).
 Proof.
-  intros m D rd a p H.
-  destruct H as [ d H1 ]. destruct H1 as [ t H2 ].
-  destruct H2 as [ Hc H3 ]. destruct H3 as [ Hv H4 ].
-  destruct H4 as [ Hb H5 ]. destruct H5 as [ Ht H6 ]. destruct H6 as [ Hr Hcov ].
+  intros m D rd a p [ d [ t [ Hc [ Hv [ Hb [ Ht [ Hr Hcov ] ] ] ] ] ] ].
   unfold declared_order_check. rewrite Hc. unfold check_in_declared_order.
   rewrite Hv. rewrite Hb. rewrite (versions_eqb_refl (admitted_versions m)).
   rewrite (nat_eqb_refl (pkg_id p)). simpl. rewrite Ht.
@@ -5177,46 +5090,33 @@ Theorem the_partial_version_check_keeps_the_other_seven :
     /\ RefusesAnUndischargedFacetOf m D rd EvaluateAnAttribute
          (partial_version_check m D rd).
 Proof.
-  intros m D rd. unfold partial_version_check. split.
-  { intros a p Hc. rewrite Hc. reflexivity. }
-  split.
-  { intros a p d Hc Hb. rewrite Hc.
+  intros m D rd.
+  assert (Hfacet : forall k : Move,
+            RefusesAnUndischargedFacetOf m D rd k (partial_version_check m D rd)).
+  { intros k a p d t f Hc Ht Hm Hk Hd. unfold partial_version_check. rewrite Hc.
+    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
+             (with_versions (only_the_spec_set (rd d).(cert_versions)
+                               m.(admitted_versions)) (rd d)) Ht
+             (an_open_facet_breaks_the_coverage m t
+                (with_versions (only_the_spec_set (rd d).(cert_versions)
+                                  m.(admitted_versions)) (rd d)) f Hm Hd)). }
+  unfold partial_version_check. repeat split.
+  - intros a p Hc. rewrite Hc. reflexivity.
+  - intros a p d Hc Hb. rewrite Hc.
     exact (check_cert_refuses_a_wrong_binding m p.(pkg_id) p.(pkg_tier)
              (with_versions (only_the_spec_set (rd d).(cert_versions)
-                               m.(admitted_versions)) (rd d)) Hb). }
-  split.
-  { intros a p Ht. destruct (pkg_cert p) as [ d | ]; [ | reflexivity ].
+                               m.(admitted_versions)) (rd d)) Hb).
+  - intros a p Ht. destruct (pkg_cert p) as [ d | ]; [ | reflexivity ].
     exact (check_cert_refuses_an_unrecognised_tier m p.(pkg_id) p.(pkg_tier)
              (with_versions (only_the_spec_set (rd d).(cert_versions)
-                               m.(admitted_versions)) (rd d)) Ht). }
-  split.
-  { intros a p d Hc Hr. rewrite Hc.
+                               m.(admitted_versions)) (rd d)) Ht).
+  - intros a p d Hc Hr. rewrite Hc.
     exact (check_cert_refuses_an_unrecognised_form m p.(pkg_id) p.(pkg_tier)
              (with_versions (only_the_spec_set (rd d).(cert_versions)
-                               m.(admitted_versions)) (rd d)) Hr). }
-  split.
-  { intros a p d t f Hc Ht Hm Hk Hd. rewrite Hc.
-    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
-             (with_versions (only_the_spec_set (rd d).(cert_versions)
-                               m.(admitted_versions)) (rd d)) Ht
-             (an_open_facet_breaks_the_coverage m t
-                (with_versions (only_the_spec_set (rd d).(cert_versions)
-                                  m.(admitted_versions)) (rd d)) f Hm Hd)). }
-  split.
-  { intros a p d t f Hc Ht Hm Hk Hd. rewrite Hc.
-    exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
-             (with_versions (only_the_spec_set (rd d).(cert_versions)
-                               m.(admitted_versions)) (rd d)) Ht
-             (an_open_facet_breaks_the_coverage m t
-                (with_versions (only_the_spec_set (rd d).(cert_versions)
-                                  m.(admitted_versions)) (rd d)) f Hm Hd)). }
-  intros a p d t f Hc Ht Hm Hk Hd. rewrite Hc.
-  exact (check_cert_refuses_an_undischarged_facet m p.(pkg_id) p.(pkg_tier) t
-           (with_versions (only_the_spec_set (rd d).(cert_versions)
-                             m.(admitted_versions)) (rd d)) Ht
-           (an_open_facet_breaks_the_coverage m t
-              (with_versions (only_the_spec_set (rd d).(cert_versions)
-                                m.(admitted_versions)) (rd d)) f Hm Hd)).
+                               m.(admitted_versions)) (rd d)) Hr).
+  - exact (Hfacet ConfirmADeletion).
+  - exact (Hfacet CiteAnInvariant).
+  - exact (Hfacet EvaluateAnAttribute).
 Qed.
 
 (* And a derivation stale in the profile rather than in the Sail model is
@@ -5286,15 +5186,9 @@ Proof.
     exact (all_of_filter (Package D) (fun p => accepts (spec_check m D rd a p)) r). }
   split.
   { intros a r g H. injection H as H2. rewrite <- H2. simpl.
-    apply (all_of_mono (Package D)
-             (fun p => mem_nat p.(pkg_id) (image_ids D r))
-             (fun p => orb (mem_nat p.(pkg_id) (image_ids D r))
-                           (mem_nat p.(pkg_id) nil))).
-    - intros y Hy. rewrite Hy. reflexivity.
-    - apply (filter_of_within (Package D)
-               (fun p => accepts (spec_check m D rd a p))
-               (fun p => mem_nat p.(pkg_id) (image_ids D r)) r).
-      exact (every_member_names_itself D r). }
+    refine (all_of_mono _ _ _ _ _
+              (filter_of_within _ _ _ r (every_member_names_itself D r))).
+    intros y Hy. rewrite Hy. reflexivity. }
   split.
   { intros a r g H. injection H as H2. rewrite <- H2. reflexivity. }
   intros a r H. unfold admissible in H.
@@ -5365,18 +5259,13 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. apply andb_join; [ exact (Hx a) | ].
-    exact E. }
+    injection H as H2. rewrite <- H2. simpl. apply andb_join; [ exact (Hx a) | exact E ]. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
     injection H as H2. rewrite <- H2. simpl. apply andb_join.
     - rewrite (mem_nat_here x.(pkg_id) nil).
       destruct (mem_nat x.(pkg_id) (image_ids D r)); reflexivity.
-    - apply (all_of_mono (Package D)
-               (fun p => mem_nat p.(pkg_id) (image_ids D r))
-               (fun p => orb (mem_nat p.(pkg_id) (image_ids D r))
-                             (mem_nat p.(pkg_id) (cons x.(pkg_id) nil))));
-        [ | exact (every_member_names_itself D r) ].
+    - refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
       intros y Hy. rewrite Hy. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
@@ -5385,11 +5274,8 @@ Proof.
   intros a r H. rewrite H.
   exists {| gen_image := cons x r; gen_synthesized := cons x.(pkg_id) nil |}.
   split; [ reflexivity | ]. simpl.
-  apply (all_of_mono (Package D)
-           (fun p => mem_nat p.(pkg_id) (image_ids D r))
-           (fun p => mem_nat p.(pkg_id) (cons x.(pkg_id) (image_ids D r))));
-    [ | exact (every_member_names_itself D r) ].
-  intros y Hy. exact (mem_nat_cons y.(pkg_id) x.(pkg_id) (image_ids D r) Hy).
+  refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
+  intros y Hy. exact (mem_nat_cons _ _ _ Hy).
 Qed.
 
 (* The compartment R-13-010b's pass emits is admissible in every ambient, and
@@ -5472,19 +5358,15 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. apply andb_join; [ exact (Hx a) | ].
-    exact E. }
+    injection H as H2. rewrite <- H2. simpl. apply andb_join; [ exact (Hx a) | exact E ]. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
     injection H as H2. rewrite <- H2. reflexivity. }
   intros a r H. rewrite H.
   exists {| gen_image := cons x r; gen_synthesized := nil |}.
   split; [ reflexivity | ]. simpl.
-  apply (all_of_mono (Package D)
-           (fun p => mem_nat p.(pkg_id) (image_ids D r))
-           (fun p => mem_nat p.(pkg_id) (cons x.(pkg_id) (image_ids D r))));
-    [ | exact (every_member_names_itself D r) ].
-  intros y Hy. exact (mem_nat_cons y.(pkg_id) x.(pkg_id) (image_ids D r) Hy).
+  refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
+  intros y Hy. exact (mem_nat_cons _ _ _ Hy).
 Qed.
 
 Theorem the_substituting_composer_at_the_stock_package_keeps_the_other_four :
@@ -5539,11 +5421,7 @@ Proof.
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
     injection H as H2. rewrite <- H2. simpl.
-    apply (all_of_mono (Package D)
-             (fun p => mem_nat p.(pkg_id) (image_ids D r))
-             (fun p => orb (mem_nat p.(pkg_id) (image_ids D r))
-                           (mem_nat p.(pkg_id) (cons i nil))));
-      [ | exact (every_member_names_itself D r) ].
+    refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
     intros y Hy. rewrite Hy. reflexivity. }
   intros a r H. rewrite H.
   exists {| gen_image := r; gen_synthesized := cons i nil |}.
@@ -5563,8 +5441,8 @@ Theorem the_starving_composer_drops_the_admissible :
   ~ CommitsEveryAccepted demo Cert full_reading
       (starving_composer demo Cert full_reading).
 Proof.
-  intros H. destruct (H amb_first golden_roster eq_refl) as [ g Hg ].
-  destruct Hg as [ He Hin ]. unfold starving_composer in He.
+  intros H. destruct (H amb_first golden_roster eq_refl) as [ g [ He Hin ] ].
+  unfold starving_composer in He.
   simpl in He. injection He as He2. rewrite <- He2 in Hin. simpl in Hin.
   discriminate Hin.
 Qed.
@@ -5635,29 +5513,16 @@ Theorem no_waived_rule_fails_closed :
   /\ ~ FailsClosed demo Cert full_reading (waived CitationMissing)
   /\ ~ FailsClosed demo Cert full_reading (waived AttributeMissing).
 Proof.
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             DerivationAbsent amb_first w_absent eq_refl). }
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             VersionMismatch amb_first w_stale_version eq_refl). }
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             BindingMismatch amb_first w_wrong_binding eq_refl). }
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             TierUnrecognised amb_first w_unknown_tier eq_refl). }
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             FormUnrecognised amb_first w_unknown_form eq_refl). }
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             DeletionUnconfirmed amb_first w_missing_deletion eq_refl). }
-  split.
-  { exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-             CitationMissing amb_first w_missing_citation eq_refl). }
-  exact (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading
-           AttributeMissing amb_first w_missing_attribute eq_refl).
+  pose proof (a_reachable_waived_rule_breaks_fail_closed demo Cert full_reading) as W.
+  repeat split.
+  - exact (W DerivationAbsent amb_first w_absent eq_refl).
+  - exact (W VersionMismatch amb_first w_stale_version eq_refl).
+  - exact (W BindingMismatch amb_first w_wrong_binding eq_refl).
+  - exact (W TierUnrecognised amb_first w_unknown_tier eq_refl).
+  - exact (W FormUnrecognised amb_first w_unknown_form eq_refl).
+  - exact (W DeletionUnconfirmed amb_first w_missing_deletion eq_refl).
+  - exact (W CitationMissing amb_first w_missing_citation eq_refl).
+  - exact (W AttributeMissing amb_first w_missing_attribute eq_refl).
 Qed.
 
 (* Each waiving against its own clause: eight theorems, one per rule, so that
@@ -5896,9 +5761,9 @@ Theorem every_transposition_index_is_admitted :
     check_of (with_steps demo_cert (swap_at n demo_cert.(cert_steps)))
     = check_of demo_cert.
 Proof.
-  intros n. unfold check_of. unfold demo_check. unfold spec_check.
-  simpl. exact (a_transposition_of_the_records_changes_no_verdict demo 6
-                  (code_of_tier TierTwo) demo_cert n eq_refl).
+  intros n.
+  exact (a_transposition_of_the_records_changes_no_verdict demo 6
+           (code_of_tier TierTwo) demo_cert n eq_refl).
 Qed.
 
 Theorem every_duplication_index_is_admitted :
@@ -5906,17 +5771,17 @@ Theorem every_duplication_index_is_admitted :
     check_of (with_steps demo_cert (dup_at n demo_cert.(cert_steps)))
     = check_of demo_cert.
 Proof.
-  intros n. unfold check_of. unfold demo_check. unfold spec_check.
-  simpl. exact (a_duplication_of_a_record_changes_no_verdict demo 6
-                  (code_of_tier TierTwo) demo_cert n eq_refl).
+  intros n.
+  exact (a_duplication_of_a_record_changes_no_verdict demo 6
+           (code_of_tier TierTwo) demo_cert n eq_refl).
 Qed.
 
 Theorem every_judgment_form_is_admitted :
   forall j : Judgment, check_of (retag j demo_cert) = check_of demo_cert.
 Proof.
-  intros j. unfold check_of. unfold demo_check. unfold spec_check.
-  simpl. exact (retagging_the_judgment_form_changes_no_verdict demo 6
-                  (code_of_tier TierTwo) j demo_cert eq_refl).
+  intros j.
+  exact (retagging_the_judgment_form_changes_no_verdict demo 6
+           (code_of_tier TierTwo) j demo_cert eq_refl).
 Qed.
 
 (* =========================================================================
