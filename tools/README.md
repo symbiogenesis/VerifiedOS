@@ -179,7 +179,9 @@ connects this analysis to schedule extraction and workload cost arithmetic.
 
 `compiler-diff` is M1.2f's driver, and what it does not yet decide is stated with
 what it does. At the program level it runs the `ccomp` its command line names, which
-stays outside every checkout under M1.1a's containment, with `-S` in a fresh directory,
+stays outside every checkout under M1.1a's containment, with `-S` in a fresh directory.
+Repeated `--ccomp-arg=ARG` options pass compiler flags unchanged and retain them in
+each invocation's receipt. The driver
 scans the emitted stream against [vos/dialect.py](vos/dialect.py)'s table and
 [vos/asm.py](vos/asm.py)'s directives before assembling it, and reports every refused
 mnemonic, directive and section by name and by line of the stream: stock `ccomp -S`
@@ -193,8 +195,9 @@ relocation operators its PIC output addresses through) and the assembler's vocab
 which the driver reports and does not translate; a tab between a mnemonic and its
 operands is normalized to a space before the scan, because the assembler's line parse
 splits on a space alone. A stream that assembles is
-wrapped in a harness that derives the stack and the `tohost` authority off the
-store-side root (R-15-001c), installs a trap handler and folds `main`'s return into the
+wrapped in a harness that preserves the store-side root in reserved `c4`, derives a
+bounded local stack with store-local permission and the `tohost` authority from that
+root (R-15-001c), installs a trap handler and folds `main`'s return into the
 HTIF exit code, and is run with the invocation `model corpus` makes; the HTIF verdict
 and the commit trace's digest are the two questions. A successful emulator exit must
 carry both the HTIF success line and a nonempty commit trace. `--against FILE` holds
@@ -212,8 +215,9 @@ and a missing exit verdict is a failed run even when both sides lack one. Captur
 one completed side alone remains available while the other side waits.
 What waits on the backend: no purecap
 component exists to run, so the purecap side is a record whose producer is owed; the
-harness's calling convention at `call main` is a placeholder until M1.2d fixes the
-frame and the sentry pair; and a green run says this machine and this program agree,
+harness supplies the [selected scalar ABI](../docs/implementation/contracts/purecap-abi.md)
+for a test composition, while the actual firmware handoff remains owed; and a green
+run says this machine and this program agree,
 never that a lowering is correct, so every report carries `milestone_acceptance: open`.
 
 Six directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. The [Fiat inclusion headers and manifest](generated/fiat-crypto/) are additional guest-generated inputs. K-88 checks their indexed source pin, exact recipes, emitter owner and raw/wrapped hashes without running Fiat. Native reproduction and independent integer-vector commands are documented in the [emission record](../docs/implementation/fiat-crypto-emission.md); these commands consume an explicitly identified external generator and do not install it. [oracle-specs/](oracle-specs/) is

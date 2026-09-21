@@ -22,8 +22,9 @@ from pathlib import Path
 from typing import Final
 
 from tests.harness import Case, ensure
-from vos import trace
+from vos import asm, env, trace
 from vos.cli import compiler_diff as cd
+from vos.cli.model import verified_build
 from vos.jsonc import Json
 
 # A stream in the frozen dialect, in the shape CompCert's printer writes: a tab between
@@ -237,6 +238,61 @@ def _harness_assembles_a_dialect_stream() -> None:
         ensure(found == [cd.Refusal("operand", "sd", 2, "sd takes 2 operands, given 3")],
                f"an operand the layout refuses is named by the stream's line, got {found}")
         ensure(not (scratch / "d.elf").exists(), "no image is written for a refused stream")
+
+
+def _harness_authority_on_sail() -> None:
+    """Exercise the test composition's ABI authority, independently of a compiler."""
+    environment = env.load()
+    verified_build(environment)
+    body = """\
+        .text
+main:
+        li a0, 1
+        cgetperm t0, csp
+        li t1, 0xFE
+        bne t0, t1, probe_return
+        li a0, 2
+        cgetbase t0, csp
+        li t1, __vos_stack
+        bne t0, t1, probe_return
+        cgettop t0, csp
+        li t1, __vos_stack_top
+        bne t0, t1, probe_return
+        cgetaddr t0, csp
+        bne t0, t1, probe_return
+        cincoffsetimm csp, csp, -16
+        sc csp, 0(csp)
+        lc c6, 0(csp)
+        cseqx t2, c6, csp
+        cincoffsetimm csp, csp, 16
+        li a0, 3
+        beqz t2, probe_return
+"""
+    # The scalar convention permits main to overwrite every allocatable register.
+    body += "".join(f"        li x{register}, 0\n" for register in range(5, 31))
+    body += "probe_return:\n        ret\n"
+    positive = cd.compose(body)
+    controls = (
+        ("positive", positive, "pass", 0),
+        ("caller-clobbered-root", positive.replace("c4,", "c8,"), "no-verdict", None),
+        ("global-stack", positive.replace("li      t1, 0xFFE", "li      t1, 0xFFF"),
+         "fail", 1),
+        ("unbounded-stack", positive.replace("csetbounds csp, csp, t1", "cmove csp, csp"),
+         "fail", 2),
+    )
+    directory = environment.lane_root / "compiler-harness-controls"
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, source, verdict, code in controls:
+        ensure(name == "positive" or source != positive, f"{name}: mutation did not apply")
+        assembly, elf = directory / f"{name}.s", directory / f"{name}.elf"
+        assembly.write_text(source, encoding="utf-8", newline="\n")
+        asm.assemble_file(assembly, elf)
+        result = cd.run_image([str(environment.simulator)], environment.profile, elf,
+                              directory, inst_limit=1000)
+        ensure((result.verdict, result.code) == (verdict, code) and result.records > 0,
+               f"{name}: expected {verdict}/{code}, got {result}")
+        if name == "positive":
+            ensure(result.cap_roundtrip, "the local stack must store and reload a tagged value")
 
 
 def _capability_roundtrip_tracks_the_stored_value() -> None:
@@ -511,7 +567,12 @@ def _cli_program() -> None:
                and "every program answered both questions" in out,
                f"a dialect stream runs green through the CLI: {out}")
         code, out, _ = _run_cli(["program", "--ccomp", str(ccomp), str(given),
-                                 "--simulator", str(sim), "--json"])
+                                 "--simulator", str(sim), "--json",
+                                 "--ccomp-arg=-fverifiedos-typed",
+                                 "--ccomp-arg=one argument with spaces"])
+        argv = json.loads(out)["programs"][0]["ccomp"]["argv"]
+        ensure(argv[1:3] == ["-fverifiedos-typed", "one argument with spaces"],
+               "compiler arguments reach the process unchanged and remain in its receipt")
         recorded = scratch / "recorded.json"
         recorded.write_text(out, encoding="utf-8")
         code, out, _ = _run_cli(["program", "--ccomp", str(ccomp), str(given),
@@ -629,6 +690,8 @@ def cases() -> list[Case]:
         Case("generator-is-deterministic", _generator_is_deterministic),
         Case("scan-names-what-the-dialect-refuses", _scan_names_what_the_dialect_refuses),
         Case("harness-assembles-a-dialect-stream", _harness_assembles_a_dialect_stream),
+        Case("harness-authority-on-sail", _harness_authority_on_sail,
+             slow=True, lane="toolchain"),
         Case("capability-roundtrip-tracks-the-stored-value",
              _capability_roundtrip_tracks_the_stored_value),
         Case("loop-over-fake-ccomp-dialect", _loop_over_fake_ccomp_dialect),
