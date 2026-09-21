@@ -519,6 +519,29 @@ The 2026-08-29 review records these references without adding gitlinks:
 
 **Rocq-native NTT.** The February 2026 Zenodo deposit supplies a README and an archive containing a patch and source directory for commit `af03839247c545987c20e99342ab2bbfcd517863` of `mit-plv/fiat-crypto`. The deposit, README, and record state no license. Its author's personal fork has older NTT branches under Fiat-Crypto's `MIT OR Apache-2.0 OR BSD-1-Clause` election, but their relationship to the published artifact and the grant's scope over contributed files remain unresolved. The project reads the artifact without pinning, copying, vendoring, or extracting it. The broader review of first-party licensing statements remains due as recorded [above](#behavioral-oracles).
 
+### Proof assistance design references
+
+The [portable proof workflow](docs/assurance/proof-assistance.md) adopts local
+example retrieval and bounded repair as concepts. Its command, schema, tests and
+instructions are authored here under the existing path-based licenses. No source,
+prompt, model weight or configuration is copied from the references below, and
+this delivery installs none of their packages. These immutable readings are
+provenance references, not fetched dependencies or gitlinks.
+
+| Reference | Selected reading | Use and disposition |
+| --- | --- | --- |
+| RocqStar paper | [arXiv 2505.22846v2](https://arxiv.org/html/2505.22846v2) | Proof-example retrieval and failure-driven replanning inform the workflow; no trained ranker, dataset or benchmark result is incorporated. |
+| LLM4Rocq workflow | [rocq-skills at 11cbe880](https://github.com/LLM4Rocq/rocq-skills/tree/11cbe8807e6e572530bd56905e65b6861ec47dd3) | Plan, checkpoint, review and bounded retry are design references; no skill or prompt file is installed or copied. |
+| Pytanque | [4092b123](https://github.com/LLM4Rocq/pytanque/tree/4092b1238b56468fdc1b3d100e078791c9690fd4) | Its Apache-2.0 license was read at this revision. The existing Q19a protocol probe is retained as evidence; no Pytanque runtime is added by this delivery. |
+| LLM4Rocq MCP | [6983113d](https://github.com/LLM4Rocq/rocq-mcp/tree/6983113d0844c0b7f987c79dab13988445109bfb) | Its Apache-2.0 license was read. External dependency rebuild freshness and its general axiom classification prevent using it as this repository's acceptance gate. No server is incorporated. |
+| JetBrains RocqStar implementation | [86963328](https://github.com/JetBrains-Research/rocqstar-agentic-system/tree/86963328445680671dfb6afbb5432e674fee92aa) | The server's LGPL-2.1 license was read; no license was located for the agent subtree in the inspected tree. No implementation is copied. Any later copying requires the selected files' actual grant and dependency review. |
+| MCP Market's Rocq server | [angrysky56/mcp-rocq at ef9e9a1e](https://github.com/angrysky56/mcp-rocq/tree/ef9e9a1e469ca9630dddf90d0a81b54911d6ce6b) | Its MIT license and implementation were read. The documented integration issues and proof-state handling defect make it an unsuitable starting dependency for this delivery. No code is incorporated. |
+
+Any future live adapter must re-read the selected revision's own grants, preserve
+required notices if source is copied, and record actual installation/distribution
+and the pinned dependency closure here. A permissive grant does not qualify a
+protocol, cache or assumption policy.
+
 ### Candidates whose terms decide a consumer
 
 An upstream's license is read at the milestone that would incorporate it, never at release. [COPYRIGHT.md](COPYRIGHT.md#terms-this-tree-does-not-carry) states that rule as what preserves this tree's freedom from reciprocal and non-commercial terms; this section records its other half, which candidate's terms decide which consumer and what that consumer would have to open. No reading here is performed in advance of its milestone, no row of the tables above moves, and nothing is incorporated, pinned, vendored, or fetched by this record. A terms cell states the shape of the grant and cites the artifact that read it; the reading itself stays with its owner. The last column states what remains owed even where an identifier is already known, because the identifiers this table does cite were read at branch tips and a reading at a branch tip is not a reading at a revision; the rows citing no license file at all owe a first reading rather than a re-reading. Consumers are open cells of the [implementation plan](docs/implementation/implementation-checklist.md); the certified-search rows reach theirs through the arm that plan's Q27a records, so a different arm moves their consumer and not their terms.
