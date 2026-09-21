@@ -64,7 +64,7 @@ def _omitted_field_loses_review() -> None:
 
 
 def _invalid_layouts_refuse() -> None:
-    for defect in ("overlap", "outside", "duplicate", "view"):
+    for defect in ("overlap", "outside", "duplicate", "view", "shift", "bit_width", "offset"):
         tree = dict(_fixture())
         declaration = json.loads(tree[regs.DECLARATION])
         register = declaration["harness"]["htif"]["registers"][0]
@@ -80,9 +80,18 @@ def _invalid_layouts_refuse() -> None:
         elif defect == "duplicate":
             register["fields"].append(register["fields"][0])
             expected = "field declared twice"
-        else:
+        elif defect == "view":
             declaration["platform"]["trng"]["registers"][1]["views"] = register["views"][:1]
             expected = "view extends outside declared fields"
+        elif defect == "shift":
+            declaration["platform"]["trng"]["registers"][1]["fields"][0]["lsb"] = 1
+            expected = "unshifted source field must start at bit zero"
+        elif defect == "bit_width":
+            register["views"][-1]["width"] = 2
+            expected = "single-bit source binding must have width one"
+        else:
+            register["offset"] = 8
+            expected = "base-relative source binding must have offset zero"
         tree[regs.DECLARATION] = _review_layout(declaration)
         _refused(tree, expected)
 

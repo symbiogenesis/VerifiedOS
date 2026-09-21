@@ -196,6 +196,12 @@ def _fields(raw: Json, bundle: sailbundle.Bundle, where: str, *, views: bool) ->
         bindings = _array(node["bindings"], where)
         if not bindings:
             raise RegisterError(f"{where}.{field.name}: no model correspondence")
+        templates = " ".join(_text(_object(binding, where).get("contains"), where)
+                             for binding in bindings)
+        if "${lsb}" not in templates and "${mask64}" not in templates and field.lsb != 0:
+            raise RegisterError(f"{where}.{field.name}: an unshifted source field must start at bit zero")
+        if not any(marker in templates for marker in ("${width}", "${high}", "${mask64}")) and field.width != 1:
+            raise RegisterError(f"{where}.{field.name}: a single-bit source binding must have width one")
         for binding in bindings:
             _binding(binding, bundle, substitutions, f"{where}.{field.name}")
         result.append(field)
@@ -267,8 +273,16 @@ def read(root: Path, bundle: sailbundle.Bundle | None = None) -> Layout:
                     raise RegisterError(f"{key}.{name}: invalid access or unaligned register")
                 if any(old.name == name or old.offset == offset for old in registers):
                     raise RegisterError(f"{key}.{name}: duplicate register name or offset")
-                for binding in _array(reg["bindings"], name):
-                    _binding(binding, bundle, {"offset": str(offset), "offset_hex": f"0x{offset:05x}"}, name)
+                bindings = _array(reg["bindings"], name)
+                if not bindings:
+                    raise RegisterError(f"{key}.{name}: no register model correspondence")
+                templates = " ".join(_text(_object(binding, name).get("contains"), name)
+                                     for binding in bindings)
+                if "${offset" not in templates and offset != 0:
+                    raise RegisterError(f"{key}.{name}: a base-relative source binding must have offset zero")
+                for binding in bindings:
+                    _binding(binding, bundle, {"offset": str(offset), "offset_hex": f"0x{offset:05x}",
+                                               "offset_hex3": f"0x{offset:03x}"}, name)
                 fields = _fields(reg["fields"], bundle, f"{key}.{name}", views=False)
                 views = _fields(reg["views"], bundle, f"{key}.{name}.views", views=True)
                 if bool(fields) == (access == "command") or (access == "command" and views):

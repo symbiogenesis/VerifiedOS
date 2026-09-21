@@ -100,7 +100,7 @@
             {
               "kind": "let",
               "symbol": "IMSIC_SETEIPNUM",
-              "contains": "zero_extend(0x000)"
+              "contains": "zero_extend(${offset_hex3})"
             }
           ],
           "fields": [
@@ -141,7 +141,7 @@
             {
               "kind": "let",
               "symbol": "IMSIC_EIP",
-              "contains": "zero_extend(0x008)"
+              "contains": "zero_extend(${offset_hex3})"
             }
           ],
           "fields": [
@@ -1200,5 +1200,5 @@
     "watchdog_load": "86c2f16d561c60190648390651b4b0cbc2f4c37b1e3cb373653c7beacd7986c4",
     "watchdog_store": "f0a3b6b1f0f670611c07c77ce811b3062dd11e7a13352c2eceff24bb43be1ea5"
   },
-  "reviewed_layout_sha256": "8ad84749f5e5a61b3eef190beac4aa47c6bbec6dee7486c12e22672616100c4a"
+  "reviewed_layout_sha256": "38382c58d4b89dd37484a3a54a78db5fdbf79a043f6a4e59dfa8e2b3d3d6edd4"
 }
