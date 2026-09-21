@@ -369,39 +369,33 @@ Fixpoint nth_or (l : list nat) (n : nat) (dflt : nat) : nat :=
 Definition only_if (a b : bool) : bool := orb (negb a) b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. intros a b H. destruct a; [ exact (conj eq_refl H) | discriminate H ]. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. intros a b H. destruct a; [ discriminate H | exact (conj eq_refl H) ]. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
 Proof.
-  intros a b H Ha. unfold only_if in H. rewrite Ha in H. simpl in H. exact H.
+  intros a b H Ha. rewrite Ha in H. exact H.
 Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma nat_eqb_true : forall a b : nat, Nat.eqb a b = true -> a = b.
 Proof.
   intros a. induction a as [ | x IH ]; intros b H.
   - destruct b as [ | y ]; [ reflexivity | discriminate H ].
   - destruct b as [ | y ]; [ discriminate H | ].
-    simpl in H. rewrite (IH y H). reflexivity.
+    rewrite (IH y H). reflexivity.
 Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma nat_leb_total : forall a b : nat, orb (Nat.leb a b) (Nat.leb b a) = true.
 Proof.
@@ -417,7 +411,7 @@ Proof.
   - reflexivity.
   - destruct b as [ | y ]; [ discriminate H1 | ].
     destruct c as [ | z ]; [ discriminate H2 | ].
-    simpl in H1. simpl in H2. simpl. exact (IH y z H1 H2).
+    exact (IH y z H1 H2).
 Qed.
 
 Lemma nat_leb_antisym :
@@ -426,7 +420,7 @@ Proof.
   intros a. induction a as [ | x IH ]; intros b H1 H2.
   - destruct b as [ | y ]; [ reflexivity | discriminate H2 ].
   - destruct b as [ | y ]; [ discriminate H1 | ].
-    simpl in H1. simpl in H2. simpl. exact (IH y H1 H2).
+    exact (IH y H1 H2).
 Qed.
 
 Lemma all_of_app :
@@ -435,8 +429,7 @@ Lemma all_of_app :
 Proof.
   intros A p l. induction l as [ | x s IH ]; intros r.
   - reflexivity.
-  - simpl. rewrite IH.
-    destruct (p x); destruct (all_of p s); destruct (all_of p r); reflexivity.
+  - simpl. rewrite IH. destruct (p x); reflexivity.
 Qed.
 
 Lemma any_of_app :
@@ -445,8 +438,7 @@ Lemma any_of_app :
 Proof.
   intros A p l. induction l as [ | x s IH ]; intros r.
   - reflexivity.
-  - simpl. rewrite IH.
-    destruct (p x); destruct (any_of p s); destruct (any_of p r); reflexivity.
+  - simpl. rewrite IH. destruct (p x); reflexivity.
 Qed.
 
 Lemma all_of_const :
@@ -497,7 +489,7 @@ Proof.
     unfold mem_of in Hm. simpl in Hm.
     destruct (Nat.eqb y x) eqn:E.
     + rewrite <- (nat_eqb_true y x E). exact Hy.
-    + simpl in Hm. exact (IH x Hr Hm).
+    + exact (IH x Hr Hm).
 Qed.
 
 Lemma all_of_intro :
@@ -612,7 +604,7 @@ Lemma leb_of_succ : forall a b : nat, Nat.leb (S a) b = true -> Nat.leb a b = tr
 Proof.
   intros a. induction a as [ | x IH ]; intros b H.
   - reflexivity.
-  - destruct b as [ | y ]; [ discriminate H | simpl; simpl in H; exact (IH y H) ].
+  - destruct b as [ | y ]; [ discriminate H | exact (IH y H) ].
 Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is
@@ -1063,11 +1055,10 @@ Theorem the_stopping_arm_keeps_every_shared_obligation :
 Proof.
   split; [ exact scan_admits_only_intact_records | ].
   split; [ exact scan_is_idempotent | ].
-  split; [ exact (a_discipline_leaves_untouched_blocks_alone scan) | ].
-  split; [ exact (a_discipline_lands_every_committed_write scan) | ].
-  split; [ exact (an_idempotent_discipline_reads_only_what_it_admits scan
-                    scan_is_idempotent)
-         | exact (a_discipline_replays_idempotently scan) ].
+  split; [ exact the_specification_leaves_untouched_blocks_alone | ].
+  split; [ exact the_specification_lands_every_committed_write | ].
+  split; [ exact the_specification_reads_only_what_the_discipline_admits
+         | exact the_specification_replay_is_idempotent ].
 Qed.
 
 Theorem the_skipping_arm_keeps_every_shared_obligation :
@@ -1615,8 +1606,7 @@ Lemma covered_intro :
     (forall x : nat, reaches m md b x = true -> complete (md x) = true) ->
     covered m md b = true.
 Proof.
-  intros m md b H. unfold covered. apply all_of_intro. intros x Hx.
-  exact (H x Hx).
+  intros m md b H. unfold covered. apply all_of_intro. exact H.
 Qed.
 
 (* A block the cover reaches is complete, so a blank block is out of every
@@ -2001,7 +1991,7 @@ Lemma land_stabilizes :
     Nat.leb (count_of p) i = true -> land m i p md = land m (count_of p) p md.
 Proof.
   intros m p. induction p as [ | w r IH ]; intros i md H.
-  - destruct i as [ | k ]; reflexivity.
+  - reflexivity.
   - destruct i as [ | k ]; [ discriminate H | ].
     simpl in H. simpl. exact (IH k _ H).
 Qed.
@@ -2011,7 +2001,7 @@ Lemma nth_opt_past_the_end :
     Nat.leb (count_of p) i = true -> nth_opt p i = None.
 Proof.
   intros p. induction p as [ | w r IH ]; intros i H.
-  - destruct i; reflexivity.
+  - reflexivity.
   - destruct i as [ | k ]; [ discriminate H | ].
     simpl in H. simpl. exact (IH k H).
 Qed.
@@ -2036,10 +2026,9 @@ Proof.
   - rewrite in_plan_cons in H. simpl.
     destruct (in_plan r b) eqn:Er.
     + exact (IH _ b Er).
-    + assert (Ew : Nat.eqb (w_block w) b = true).
-      { destruct (Nat.eqb (w_block w) b); [ reflexivity | discriminate H ]. }
+    + rewrite (orb_false_right _) in H.
       rewrite (land_untouched m r (count_of r) _ b Er).
-      unfold place. rewrite Ew. unfold complete. simpl.
+      unfold place. rewrite H. unfold complete. simpl.
       exact (nat_eqb_refl (node_granules m)).
 Qed.
 
@@ -2181,15 +2170,11 @@ Proof.
       destruct (orb_true_split _ _ Hr) as [ A | B ].
       * exact (every_planned_block_is_whole m (cm_plan c) md x A).
       * unfold covered_to in B.
-        change (layers (S k) (landed m c md) (cons x nil))
-          with (app (cons x nil)
-                 (layers k (landed m c md)
-                    (concat_of (map_over (kids_of (landed m c md))
-                                  (cons x nil))))) in B.
-        rewrite (all_of_app nat (fun y => complete (landed m c md y))
-                   (cons x nil) _) in B.
-        destruct (andb_split _ _ B) as [ B1 _ ]. simpl in B1.
-        destruct (andb_split _ _ B1) as [ B2 _ ]. exact B2.
+        destruct (andb_split _ _
+                    (covered_to_monotone (S k) 0 (landed m c md)
+                       (fun z => complete (landed m c md z)) (cons x nil)
+                       eq_refl B)) as [ B1 _ ].
+        exact B1.
     + apply (IH (concat_of (map_over (kids_of (landed m c md)) l)) Ha Hk
               (leb_of_succ k (height m) Hf)).
       apply all_of_intro. intros y Hy.
@@ -2370,7 +2355,7 @@ Proof.
   intros ka a b H.
   assert (Ht : orb (key_leb ka a b) (key_leb ka b a) = true)
     by exact (key_leb_total ka a b).
-  rewrite H in Ht. simpl in Ht. exact Ht.
+  rewrite H in Ht. exact Ht.
 Qed.
 
 Lemma ge_all_widen :
@@ -2397,17 +2382,13 @@ Lemma ins_keeps_ge_all :
     ge_all ka j ix = true -> ge_all ka j (ins ka k v ix) = true.
 Proof.
   intros ka j k v ix. induction ix as [ | e r IH ]; intros Hl He Hg.
-  - simpl. apply andb_join; [ apply andb_join | reflexivity ].
-    + exact Hl.
-    + rewrite He. reflexivity.
+  - simpl. rewrite Hl. rewrite He. reflexivity.
   - simpl in Hg. destruct (andb_split _ _ Hg) as [ Hh Hr ].
     simpl. destruct (key_eqb ka k (fst e)) eqn:Ek.
-    + simpl. apply andb_join; [ | exact Hr ].
-      apply andb_join; [ exact Hl | rewrite He; reflexivity ].
+    + simpl. rewrite Hl. rewrite He. exact Hr.
     + destruct (key_leb ka k (fst e)) eqn:El.
-      * simpl. apply andb_join.
-        { apply andb_join; [ exact Hl | rewrite He; reflexivity ]. }
-        simpl. apply andb_join; [ exact Hh | exact Hr ].
+      * simpl. rewrite Hl. rewrite He. simpl.
+        apply andb_join; [ exact Hh | exact Hr ].
       * simpl. apply andb_join; [ exact Hh | exact (IH Hl He Hr) ].
 Qed.
 
@@ -2426,16 +2407,13 @@ Proof.
     + simpl. apply andb_join; [ | exact Hr ].
       rewrite (key_eqb_true ka k (fst e) Ek). exact Hg.
     + destruct (key_leb ka k (fst e)) eqn:El.
-      * simpl. apply andb_join.
-        { apply andb_join.
-          - apply andb_join; [ exact El | rewrite Ek; reflexivity ].
-          - exact (ge_all_widen ka k (fst e) r El Ek Hg). }
-        simpl. apply andb_join; [ exact Hg | exact Hr ].
+      * simpl. rewrite El. rewrite Ek. simpl.
+        apply andb_join; [ exact (ge_all_widen ka k (fst e) r El Ek Hg) | ].
+        apply andb_join; [ exact Hg | exact Hr ].
       * simpl. apply andb_join; [ | exact (IH Hr) ].
-        apply (ins_keeps_ge_all ka (fst e) k v r).
-        { exact (key_not_leb_gives_leb ka k (fst e) El). }
-        { exact (key_eqb_false_sym ka k (fst e) Ek). }
-        { exact Hg. }
+        exact (ins_keeps_ge_all ka (fst e) k v r
+                 (key_not_leb_gives_leb ka k (fst e) El)
+                 (key_eqb_false_sym ka k (fst e) Ek) Hg).
 Qed.
 
 Theorem inserting_a_list_preserves_the_order :
@@ -2472,8 +2450,7 @@ Proof.
   intros ka k j v ix Hjk. induction ix as [ | e r IH ].
   - simpl. rewrite Hjk. reflexivity.
   - simpl. destruct (key_eqb ka k (fst e)) eqn:Ek.
-    + simpl. rewrite Hjk. rewrite <- (key_eqb_true ka k (fst e) Ek).
-      rewrite Hjk. reflexivity.
+    + simpl. rewrite <- (key_eqb_true ka k (fst e) Ek). rewrite Hjk. reflexivity.
     + destruct (key_leb ka k (fst e)) eqn:El.
       * simpl. rewrite Hjk. reflexivity.
       * simpl. destruct (key_eqb ka j (fst e)); [ reflexivity | exact IH ].
@@ -2575,7 +2552,7 @@ Lemma take_is_bounded :
   forall (A : Type) (n : nat) (l : list A), Nat.leb (count_of (take n l)) n = true.
 Proof.
   intros A n. induction n as [ | k IH ]; intros l.
-  - destruct l; reflexivity.
+  - reflexivity.
   - destruct l as [ | x r ]; [ reflexivity | simpl; exact (IH r) ].
 Qed.
 
@@ -3258,13 +3235,7 @@ Definition retained_reuse_commit : Commit := {|
 Theorem the_retained_reuse_moves_a_retained_block :
   ~ RetainedRootsUnmoved demo demo_medium retained_reuse_commit.
 Proof.
-  intros H.
-  assert (Hx : land_torn demo 0 0 (cm_plan retained_reuse_commit) demo_medium 4
-               = demo_medium 4) by exact (H 0 0 4 eq_refl).
-  assert (Hb : blk_landed (land_torn demo 0 0 (cm_plan retained_reuse_commit)
-                             demo_medium 4) = blk_landed (demo_medium 4))
-    by (rewrite Hx; reflexivity).
-  discriminate Hb.
+  intros H. specialize (H 0 0 4 eq_refl). discriminate (f_equal blk_landed H).
 Qed.
 
 (* The twin, and the separation: it is crash consistent under the
@@ -3952,8 +3923,8 @@ Theorem bounded_tree_rejects_a_self_edge :
     mem_of b (kids_of md b) = true -> bounded_tree m md fuel b = false.
 Proof.
   intros m md fuel. induction fuel as [ | k IH ]; intros b E.
-  destruct (bounded_tree m md 0 b) eqn:H; [ | reflexivity].
-  - simpl in H. apply andb_split in H as [_ H].
+  - destruct (bounded_tree m md 0 b) eqn:H; [ | reflexivity].
+    simpl in H. apply andb_split in H as [_ H].
     apply andb_split in H as [_ H]. apply andb_split in H as [_ H].
     destruct (kids_of md b); [discriminate E | discriminate H].
   - destruct (bounded_tree m md (S k) b) eqn:H; [ | reflexivity].
