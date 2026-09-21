@@ -524,6 +524,50 @@ paired machine replay remain open under S6, whose operational estimate is unchan
     * **The first mutant fired a second rule and had to be narrowed, which is a property of the sites rather than of the seed.** The run of ids it dropped occurs twice in the plan, once in the roster and once in a list K-102's neighbour rewrites from the cells, so the seeded defect was read by both and decided neither. The anchor is widened to a run the roster alone carries. Reported because the same trap stands for any future seed over this document: a mutation site shared with a recomputed list tests nothing, and the selftest reports it as a survivor rather than as an ambiguity.
   * Landed: Tier B under **K-102**, which holds the fact this landing created, with **K-00** holding the registry against the checks and the selftest's own coverage check holding the case against the row. No register, profile, crown-jewel, absence-contract or coverage-matrix edit is made, no co-read pair moves, and the checker is green with every mutant killed.
 
+### S31 · Supply independent specification and tooling prerequisites
+
+The batch accepts U-05, U-10, U-12 and U-07 under the predicates already landed in [the prerequisite map](../assurance/unassigned-proof-map.md) at base `82cb9d4b7f16f9e623ee60707efb8bfa1f6e97df`. S31's commissioning and sole estimate cells are recorded at `3f3a9fee`; the three worker branches were integrated without changing those predicates. Schedule, device-register and format authors worked in separate verified Git worktrees, with calibration and shared-file integration owned by the integrator. The format author independently reviewed the schedule; the schedule author independently reviewed calibration and the register work; the integrator read all four contracts and the changed crown-jewel entries. Crown-jewel rows 10, 11, 13 and 18 are partial, with missing descriptors, timing qualification, physical fields and HAL contracts still named at their owners.
+
+The integrated proof audit at implementation revision `9100fd96` passed compilation, complete symbol and assumption enumeration and kernel recheck. Later edits in this landing touch documentation and generated review wording, not proof-gate inputs. The native receipt is `/root/build/proof-gate/proofs/proof-evidence.json`; its portable snapshot is retained locally at `out/evidence/prereq-proof-evidence.json`. The pre-existing local modification of the tracked portable receipt is preserved byte for byte. Integrated Verilator lint passed on the complete standalone RTL set. Focused host evidence includes the prerequisite validators, checker behavior, K-26 and K-88 mutation checks and idempotent repair. The required final Windows and Ubuntu Host CI verdict is attached to the published landing revision rather than inferred from these focused runs.
+
+No target execution, physical measurement, device ownership theorem, Narcissus derivation or directed mode-transition implementation is accepted by this batch. Those remain the consumer work recorded in the prerequisite map. All children retain their original estimates because complete per-item authoring, cross-review and integration wall-clock intervals were not captured; build timings and partial lane intervals cannot reconstruct that effort. Their actuals and calibration pairs are n/a.
+
+Landed: Tier A. This is the integrator's full read of the four artifacts, the crown-jewel status edits and their generated coverage effects. **K-88** holds generated views and source validation; **K-109** holds the authored schedule's requirement fingerprint. Neither rule proves the semantic coverage judgments.
+
+#### S31a · Extend the shared schedule record
+
+[ScheduleRecord.v](../../proofs/ScheduleRecord.v) extends the existing frames with the three R-11-017 outputs, per-mode symbolic admission and a reserved target-side re-entry interval. Operating-point minimality compares every visit of one tenant jointly; NoC service, watchdog coverage and re-entry fit are executable checks. The fourth-output wrapper preserves Q23d's frames by construction. Accepted and refused instances cover the contract's boundary cases, including the shared tenant that needs the faster point. R-11-018's directed certificates and runtime guards remain open; the target entry interval alone permits no transition.
+
+Exit evidence: the integrated native gate enumerates 131 constants in `ScheduleRecord.v`, with no added assumptions, and kernel-checks the complete corpus. The lane's independent focused compile, assumption audit and kernel evidence is retained under `/root/build/lane-prereq-schedule-20260921/schedule-proof/`. The independent format-lane review found no blocking issue; the integrator normalized only the requirement header. Original estimate: 12 h, range 8–16. Actual n/a for the shared missing-interval reason above.
+
+Landed: Tier A, including the complete record/requirement read and the explicit distinction between symbolic inputs and qualified timing evidence.
+
+#### S31b · Generate device-register field accessors
+
+[The register contract](contracts/device-registers.md) defines the declaration language and reviewed source bindings. Its generator emits Gallina field projections and SystemVerilog constants without copying device base addresses. The complete modeled MMIO function roster and a layout fingerprint preserve the manual coverage review; source fragments bind shifts, widths and offsets. UART ownership remains with its existing generated wrapper; ROM and the refusing memory sequencer retain their declared kinds.
+
+Exit evidence: the integrated native gate enumerates 221 constants in `DeviceRegisters.v` and accepts the accessor equalities with no added assumptions; integrated RTL lint accepts the generated package. Behavioral checks reject stale generated constants, source/layout changes, omitted fields, new apertures and malformed bindings. The K-88 artifact-shift mutants are detected. A separate changed Gallina shift is refused at compilation as not convertible; that compile refusal is not counted as a killed executable mutant. The lane log is `/root/logs/lane-prereq-registers-20260921-device-registers.log`.
+
+Independent review found unbound implicit offsets, underspecified field bindings, an omitted HTIF exit-status view and blank-binding error handling. The author repaired them in `e578f802` and `70f76528`; the reviewer confirmed both revisions and no remaining blocker. These pure projections perform no MMIO and prove no capability ownership or device refinement. Original estimate: 14 h, range 9–19. Actual n/a for the shared missing-interval reason above.
+
+Landed: Tier A, including the full modeled-field inventory read. **K-88** holds generated equality and source validation; semantic Sail correspondence remains a reviewed judgment.
+
+#### S31c · Inventory attacker-facing wire formats
+
+[The generated inventory](../assurance/wire-format-inventory.md) records the required format families, descriptor status, ownership, transcription status and canonicity duties. It derives module and ensemble member forms from their contract tables and checks the reviewed crown-jewel membership, declared owners and reference proof symbols. Reference codecs are distinguished from Narcissus descriptors, all of which remain absent. U-13 owns toolchain qualification; U-14 owns the first descriptor and its correctness/canonicity proofs. The future bidirectional descriptor-aware rule remains proposed with its identifier owed, as U-12's predicate requires.
+
+Exit evidence: the focused wire-format suite passes, including missing-family, invalid-owner, malformed-table, proof-symbol and untracked-descriptor refusals; K-88 rejects stale views and an attempted descriptor promotion. Hardening at `bfe140ba` makes contract-table parsing and checklist-owner recognition fail closed. Original estimate: 8 h, range 5–11. Actual n/a because the reported authoring interval omits the complete review and integration work.
+
+Landed: Tier A, including the inventory's correspondence to the crown-jewel member classes and the limitation that no parser is admitted by a family row. **K-88** holds the generated view and its source checks.
+
+#### S31d · State calibration field classes and the digest binding
+
+[The calibration schema](../hardware/calibration-manifest.md) supplies unpopulated emission-trim, emission-limit, SRAM-assist and sensor-trim classes with their ceiling and physical-qualification owners. The validator refuses fields outside those classes, mismatched owners and extra measured-value keys. The device-tree property is a reserved binding for an accepted manifest's canonical digest; it is absent from the current model, and absence means calibration is unqualified.
+
+Exit evidence: the focused calibration tests pass, including an out-of-class declaration and malformed binding; K-88 detects both stale generated text and an invalid source class. Independent schedule-lane review found no blocker and required the description to retain the reserved-binding boundary. R5 still supplies concrete fields and qualified bounds; authentication, canonical encoding and measured-boot population remain open. Original estimate: 8 h, range 5–11. Actual n/a because calibration authoring and shared integration were interleaved without complete per-item intervals.
+
+Landed: Tier A, including the requirement/field-class read and independent review. **K-88** holds the generated schema view and validator; no physical containment or authenticity is established by schema validation.
+
 ## Q · Assessment actions
 
 ### Q1 · Establish the baseline and its rejection gates

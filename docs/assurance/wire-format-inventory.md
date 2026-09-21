@@ -1,7 +1,7 @@
 # Wire-format inventory
 
 <!-- Generated from interfaces/wire-formats.json by vos.wire_formats.emit; do not edit. -->
-<!-- Source SHA256: 5cbb84f8fc2ec0ac3abbbcaffd4d90812a9f3215c3d2a57f7613c4fd8df36fc7 -->
+<!-- Source SHA256: 7de3c88b94b2ea0d18d63c785b7276a0d235b729ab4dbc4e7115fd8a6e532d5c -->
 
 This is U-12's inventory of the attacker-facing format families the current design names, including crown-jewel row 10's member classes and row 3's IDL mapping. The authored source is [wire-formats.json](../../interfaces/wire-formats.json). A composition must specialize each open family into exact versions, subsets, byte/field/depth limits and descriptor identities before admitting it. The release's still-image, audio, container, font and document selections remain open; a family row does not choose a format or admit an implementation.
 
@@ -402,7 +402,7 @@ Canonicity means decode injectivity on the entire admissible byte language and r
 - Descriptor: **absent**. Owner: **none**.
 - Hand transcription: **none authored**.
 - Canonicity: Required: identity, signature, hash or equality consumers require a whole-language theorem against the eventual Narcissus descriptor; none is present.
-- Current evidence: S31d supplies unpopulated field classes and a digest binding; no concrete wire descriptor, parser, canonical serializer or authenticated manifest is present.
+- Current evidence: S31d supplies unpopulated field classes and a reserved digest binding; no concrete wire descriptor, parser, canonical serializer or authenticated manifest is present.
 - Requirements: R-15-127, R-17-062, R-05-042, R-05-051a.
 - Sources: [requirements-register.md](../../docs/requirements-register.md), [calibration-manifest.md](../../docs/hardware/calibration-manifest.md), [calibration-schema.json](../../interfaces/calibration-schema.json).
 

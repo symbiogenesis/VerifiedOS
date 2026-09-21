@@ -19,4 +19,4 @@ The device-tree binding reserves `verifiedos,calibration-manifest-sha256` as exa
 
 A proposed field declaration has exactly `name`, `class` and `ceiling_owner`. The validator refuses unknown classes, a mismatched ceiling owner, duplicate classes, malformed identity bindings and extra keys including measured values. Acceptance classifies a declaration only. It neither authenticates a manifest nor establishes the class's physical containment claim.
 
-The concrete wire descriptor, canonical parser and serializer remain with U-12/U-14; the executable RoT and RTL checks, physical trim domains and their population remain separate qualification work. This schema does not change the crown-jewel review status.
+The concrete wire descriptor, canonical parser and serializer remain with U-12/U-14; the executable RoT and RTL checks, physical trim domains and their population remain separate qualification work.
