@@ -488,7 +488,7 @@ Definition trivial_vocabulary : Vocabulary := {|
 Lemma statement_inhabitation_witness : T trivial_vocabulary.
 Proof.
   intros _ C _ i1 i2 _.
-  split; [reflexivity | split; reflexivity].
+  repeat split.
 Qed.
 
 (* T's premises are jointly satisfiable in that model, so the implication
@@ -498,7 +498,7 @@ Lemma premises_inhabited :
   /\ trivial_vocabulary.(indist) trivial_vocabulary.(policy)
        (fun _ => True) tt tt.
 Proof.
-  split; [split; [exact I | intros c _ contra; exact contra] | exact I].
+  now repeat split.
 Qed.
 
 (* A one-bit leak: the input is the secret, the value observation reveals
@@ -572,11 +572,8 @@ Definition leaky_vocabulary : Vocabulary := {|
 Lemma statement_distinguishing_instance : ~ T leaky_vocabulary.
 Proof.
   intros H.
-  specialize (H (conj I (conj I (conj I (conj I I)))) (fun _ => True)
-                (conj I (fun _ _ contra => contra))
-                true false I).
-  destruct H as [Hvalue _].
-  cbv in Hvalue.
+  destruct (H (conj I (conj I (conj I (conj I I)))) (fun _ => True)
+              (conj I (fun _ _ contra => contra)) true false I) as [Hvalue _].
   discriminate Hvalue.
 Qed.
 
