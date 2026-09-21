@@ -16,6 +16,7 @@ import signal
 import subprocess
 import sys
 import time
+from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -283,32 +284,37 @@ def transition(root: Path, directory: Path, action: str, note: str) -> dict[str,
 
 
 def _stop(process: subprocess.Popen[bytes]) -> None:
+    if sys.platform != "win32":
+        # start_new_session makes the child's pid the owned process-group id.
+        # Reaping its leader says nothing about surviving descendants, so always
+        # escalate the group, including when the leader exited before cleanup.
+        for signum in (signal.SIGTERM, signal.SIGKILL):
+            with suppress(ProcessLookupError):
+                os.killpg(process.pid, signum)
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                if signum == signal.SIGKILL:
+                    raise
+        return
     if process.poll() is not None:
         return
     try:
-        if sys.platform == "win32":
-            # A venv's Windows python.exe can be a launcher with a child holding
-            # the diagnostic handles. Terminating only the launcher leaks that
-            # child and prevents complete log ownership/cleanup on timeout.
-            stopped = subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                                     capture_output=True, check=False, timeout=10)
-            if stopped.returncode and process.poll() is None:
-                process.terminate()
-        else:
-            os.killpg(process.pid, signal.SIGTERM)
+        # A venv's Windows python.exe can be a launcher with a child holding
+        # the diagnostic handles. Terminating only the launcher leaks that
+        # child and prevents complete log ownership/cleanup on timeout.
+        stopped = subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                 capture_output=True, check=False, timeout=10)
+        if stopped.returncode and process.poll() is None:
+            process.terminate()
     except ProcessLookupError:
         process.wait()
         return
     try:
         process.wait(timeout=3)
     except subprocess.TimeoutExpired:
-        try:
-            if sys.platform == "win32":
-                process.kill()
-            else:
-                os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        with suppress(ProcessLookupError):
+            process.kill()
         process.wait()
 
 

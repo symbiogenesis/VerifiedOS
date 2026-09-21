@@ -5,8 +5,12 @@ import base64
 import hashlib
 import io
 import json
+import os
+import signal
+import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout, suppress
 from importlib.util import module_from_spec, spec_from_file_location
@@ -71,6 +75,19 @@ def _bounded_inline_output() -> None:
         ensure(Path(stream["path"]).stat().st_size == 2097153, "the bound must not truncate the original log")
 
 
+def _wait_stopped(pid: int) -> None:
+    deadline = time.monotonic() + 3
+    while True:
+        try:
+            state = Path(f"/proc/{pid}/stat").read_text().rpartition(")")[2].split()[0]
+        except FileNotFoundError:
+            return
+        if state in {"Z", "X"}:
+            return
+        ensure(time.monotonic() < deadline, f"descendant {pid} still running after cleanup (state {state})")
+        time.sleep(0.01)
+
+
 def _timeout_process_tree() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-sail-tree-") as temporary:
         root = Path(temporary)
@@ -85,9 +102,57 @@ def _timeout_process_tree() -> None:
             Path(report["stdout"]["path"]).unlink()
             Path(report["stderr"]["path"]).unlink()
         else:
-            proc = Path(f"/proc/{pid}/stat")
-            ensure(not proc.exists() or proc.read_text().split()[2] in {"Z", "X"},
-                   "timeout must stop descendants as well as their parent")
+            try:
+                _wait_stopped(pid)
+            finally:
+                with suppress(ProcessLookupError):
+                    os.kill(pid, signal.SIGKILL)
+
+
+def _resistant_descendant() -> None:
+    # The grandchild reports readiness only after installing its SIGTERM handler.
+    child_script = ("import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                    "print('ready',flush=True); time.sleep(30)")
+    for exited in (False, True):
+        with tempfile.TemporaryDirectory(prefix="vos-sail-resistant-") as temporary:
+            root = Path(temporary)
+            script = ("import subprocess,sys,time; "
+                      f"child=subprocess.Popen([sys.executable,'-c',{child_script!r}],stdout=subprocess.PIPE,text=True); "
+                      "print(child.pid,flush=True); print(child.stdout.readline().strip(),flush=True); "
+                      + ("raise SystemExit(0)" if exited else "time.sleep(30)"))
+            with (root.joinpath("stdout").open("wb") as output,
+                  subprocess.Popen([sys.executable, "-c", script], cwd=root, stdout=output,
+                                   start_new_session=True) as leader):
+                descendant = 0
+                try:
+                    deadline = time.monotonic() + 5
+                    while True:
+                        lines = (root / "stdout").read_text().splitlines()
+                        if lines:
+                            descendant = int(lines[0])
+                        if lines[1:] == ["ready"]:
+                            break
+                        ensure(time.monotonic() < deadline, "resistant child never completed its readiness handshake")
+                        time.sleep(0.01)
+                    if exited:
+                        ensure(leader.wait(timeout=5) == 0, "the parent must exit before testing remaining-group cleanup")
+                    else:
+                        try:
+                            leader.wait(timeout=0.03)
+                        except subprocess.TimeoutExpired:
+                            pass
+                        else:
+                            raise AssertionError("the ready process tree must reach its timeout")
+                    sailassist._stop(leader)
+                    if descendant <= 0:
+                        raise AssertionError("the readiness handshake must identify the child")
+                    _wait_stopped(descendant)
+                finally:
+                    with suppress(ProcessLookupError):
+                        os.killpg(leader.pid, signal.SIGKILL)
+                    leader.wait(timeout=5)
+                    if descendant > 0:
+                        _wait_stopped(descendant)
 
 
 def _attempt_budget_and_replan() -> None:
@@ -263,6 +328,7 @@ def _preparation_budget_and_foreign_model() -> None:
 def cases() -> list[Case]:
     return [Case("raw-process-status-and-bytes", _raw_process_bytes),
             Case("timeout-stops-descendants", _timeout_process_tree),
+            Case("resistant-descendant-after-parent-exit", _resistant_descendant, lane="guest"),
             Case("bounded-inline-diagnostics", _bounded_inline_output),
             Case("attempt-budget-and-replan", _attempt_budget_and_replan),
             Case("active-clock-and-pause", _clock_pause_and_exhaustion),
