@@ -293,28 +293,26 @@ Definition only_if (a b : bool) : bool := orb (negb a) b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
+  intros a b H. destruct a; [ | discriminate H ].
+  split; [ reflexivity | exact H ].
 Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. intros a b Ha Hb. rewrite Ha. exact Hb. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
 Proof.
-  intros a b H Ha. unfold only_if in H. rewrite Ha in H. simpl in H. exact H.
+  intros a b H Ha. rewrite Ha in H. exact H.
 Qed.
 
 Lemma all_of_true : forall (A : Type) (l : list A), all_of (fun _ => true) l = true.
 Proof.
-  intros A l. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. exact IH.
+  intros A l. induction l as [ | x r IH ]; [ reflexivity | exact IH ].
 Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 (* Whatever holds of every declared step and of the fallback holds of the
    delay at every attempt: the lemma R-16-007's bounded downtime rests on,
@@ -326,11 +324,9 @@ Lemma at_index_holds :
     forall n : nat, p (at_index l n dflt) = true.
 Proof.
   intros p l dflt Hl Hd. induction l as [ | x r IH ]; intros n.
-  - simpl. exact Hd.
+  - exact Hd.
   - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hr ].
-    destruct n as [ | k ]; simpl.
-    + exact Hx.
-    + exact (IH Hr k).
+    destruct n as [ | k ]; [ exact Hx | exact (IH Hr k) ].
 Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is
@@ -436,8 +432,7 @@ Proof. intros d. destruct d; reflexivity. Qed.
 
 Lemma detector_eqb_true : forall d e : Detector, detector_eqb d e = true -> d = e.
 Proof.
-  intros d e. destruct d; destruct e; simpl; intros H;
-    try discriminate H; reflexivity.
+  intros d e H. destruct d; destruct e; try discriminate H; reflexivity.
 Qed.
 
 Definition action_eqb (a b : Action) : bool :=
@@ -460,8 +455,7 @@ Proof. intros a. destruct a; reflexivity. Qed.
 
 Lemma action_eqb_true : forall a b : Action, action_eqb a b = true -> a = b.
 Proof.
-  intros a b. destruct a; destruct b; simpl; intros H;
-    try discriminate H; reflexivity.
+  intros a b H. destruct a; destruct b; try discriminate H; reflexivity.
 Qed.
 
 (* Which of the ten end a unit rather than costing it capacity. R-16-024
@@ -618,8 +612,8 @@ Qed.
 Lemma bringup_ok_complete :
   forall (m : Machine) (l : list nat), BroughtUpInOrder m l -> bringup_ok m l = true.
 Proof.
-  intros m l [ H1 [ H2 H3 ] ]. unfold bringup_ok.
-  apply andb_join; [ exact H1 | ]. apply andb_join; [ exact H2 | exact H3 ].
+  intros m l [ H1 [ H2 H3 ] ].
+  exact (andb_join _ _ H1 (andb_join _ _ H2 H3)).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -636,8 +630,8 @@ Proof.
   intros A p l r. induction l as [ | x s IH ]; intros H.
   - split; [ reflexivity | exact H ].
   - simpl in H. destruct (andb_split _ _ H) as [ Hx Hs ].
-    destruct (IH Hs) as [ Hl Hr ]. split; [ | exact Hr ].
-    simpl. apply andb_join; [ exact Hx | exact Hl ].
+    destruct (IH Hs) as [ Hl Hr ].
+    split; [ exact (andb_join _ _ Hx Hl) | exact Hr ].
 Qed.
 
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
@@ -646,9 +640,9 @@ Proof.
   - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
   - destruct k as [ | b ].
     + discriminate H.
-    + simpl in H. destruct (IH b H) as [ Hlt | Heq ].
+    + destruct (IH b H) as [ Hlt | Heq ].
       * left. exact Hlt.
-      * right. rewrite Heq. reflexivity.
+      * right. exact (f_equal S Heq).
 Qed.
 
 Lemma all_of_upto :
@@ -657,9 +651,9 @@ Lemma all_of_upto :
 Proof.
   intros p n. induction n as [ | k IH ]; intros v H Hv.
   - discriminate Hv.
-  - simpl in H. destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
+  - destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
     simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
-    simpl in Hv. destruct (leb_split v k Hv) as [ Hlt | Heq ].
+    destruct (leb_split v k Hv) as [ Hlt | Heq ].
     + exact (IH v Hk Hlt).
     + rewrite Heq. exact Hpk.
 Qed.
@@ -847,7 +841,7 @@ Theorem a_bounded_schedule_bounds_every_attempt :
   forall (s : list nat) (c : nat),
     BoundedSchedule c s -> WithinTheCeiling c (delay_at s c).
 Proof.
-  intros s c H n. unfold delay_at.
+  intros s c H n.
   exact (at_index_holds (fun d => Nat.leb d c) s c H (nat_leb_refl c) n).
 Qed.
 
@@ -939,7 +933,7 @@ Definition BootCounted (m : Machine) (adm : BootAdmission m) : Prop :=
 (*| discharges: R-16-007 |*)
 Theorem the_specification_counts_boots :
   forall m : Machine, BootCounted m (spec_boot_admit m).
-Proof. intros m s H. unfold spec_boot_admit. exact H. Qed.
+Proof. intros m s H. exact H. Qed.
 
 (* =========================================================================
    Hidden state (R-12-073's criterion, reading 6).
@@ -1319,7 +1313,7 @@ Theorem the_reverse_bringup_grants_before_the_grantee_is_up :
   each_unit_once demo reverse_bringup = true
   /\ no_stranger demo reverse_bringup = true
   /\ grants_nothing_early demo reverse_bringup = false.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. split; [ | split ]; reflexivity. Qed.
 
 Example the_reverse_bringup_grants_four_units_early :
   units_granted_early demo reverse_bringup = 4 := eq_refl.
@@ -1336,7 +1330,7 @@ Theorem the_stranger_bringup_adds_a_unit_to_the_graph :
   each_unit_once demo stranger_bringup = true
   /\ grants_nothing_early demo stranger_bringup = true
   /\ no_stranger demo stranger_bringup = false.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. split; [ | split ]; reflexivity. Qed.
 
 Example the_stranger_the_witness_names :
   occurs 9 stranger_bringup = true /\ count_of stranger_bringup = 6 :=
@@ -1452,7 +1446,7 @@ Theorem the_specification_detector_separates_the_two_signals :
   spec_detect demo sig_quiet PoolLow = spec_detect demo sig_backlog PoolLow
   /\ spec_detect demo sig_backlog QuarantineBacklogPastBound = true
   /\ spec_detect demo sig_quiet QuarantineBacklogPastBound = false.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. split; [ | split ]; reflexivity. Qed.
 
 (* The detector fires at its threshold and not below it, which is the
    boundary R-16-027's assertion threshold names. *)
@@ -1598,7 +1592,7 @@ Theorem the_eager_admission_ignores_the_dwell :
 Proof.
   split.
   - intros H. specialize (H (declared_at 0 0 0 0) eq_refl). discriminate H.
-  - intros s H. unfold eager_admits. exact H.
+  - intros s H. exact H.
 Qed.
 
 Definition patient_admits (m : Machine) : Admission m := fun s =>
@@ -1609,7 +1603,7 @@ Theorem the_patient_admission_ignores_the_window :
   /\ ~ RespectsTheWindow demo (patient_admits demo).
 Proof.
   split.
-  - intros s H. unfold patient_admits. exact H.
+  - intros s H. exact H.
   - intros H. specialize (H (declared_at 0 5 9 0) eq_refl). discriminate H.
 Qed.
 
@@ -1704,7 +1698,7 @@ Theorem the_specification_supervisor_is_inhabited_and_not_constant :
     = spec_supervisor demo probe_seen PoolExhausted
   /\ spec_supervisor demo probe_quiet PoolExhausted = ShedOwnerLocalState
   /\ spec_supervisor demo probe_quiet PoolLow = RefuseTheNewRequest.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. split; [ | split ]; reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this
