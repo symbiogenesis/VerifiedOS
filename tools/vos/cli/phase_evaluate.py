@@ -59,7 +59,8 @@ def main(argv: list[str] | None = None) -> int:
                          "initial states and mode transitions", "qualified memory and timing",
                          "whole-image WCET and physical area/power evidence",
                          "architectural ordering and visibility refinement",
-                         "second-class baseline decision where applicable"],
+                         "qualified second-class service and timer-residency bounds "
+                         "(R-15-247m, R-07-040)"],
     }
     try:
         schedule_raw = args.schedule.read_bytes()

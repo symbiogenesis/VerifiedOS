@@ -22,9 +22,11 @@ predicate forbids. One hart's requests must be accepted in issue order, batch or
 standing for issue order within a cycle and acceptance within one cycle counting as
 ordered: with no queue, a shorter path to a later bank either inverts that order or
 costs a wait, and the model reports the inversion rather than inventing the wait.
-The drain bound is the longest any reachable state keeps a request in flight ahead
-of its acceptance, the residue a partition switch still waits out once the buffer
-is gone; occupancy after acceptance is the bank's and is carried as a wait instead.
+The drain bound is the longest any reachable state keeps a request in flight,
+counted from the boundary after issue through the acceptance cycle, so a path of
+one leaves one cycle in flight at the boundary after issue; it is the residue a
+partition switch still waits out once the buffer is gone. Occupancy after
+acceptance is the bank's and is carried as a wait instead.
 """
 
 from collections import deque
@@ -34,7 +36,7 @@ from dataclasses import dataclass
 # other length, so the width is a validated fact rather than a type.
 type Request = tuple[int, ...]
 type Batch = tuple[Request, ...]
-# One request in the fabric: bank, cycles until acceptance, occupancy, hart.
+# One request in the fabric: bank, cycles to and including acceptance, occupancy, hart.
 type Flight = tuple[int, int, int, int]
 type State = tuple[int, tuple[int, ...], tuple[Flight, ...]]
 

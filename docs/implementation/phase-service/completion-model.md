@@ -63,7 +63,10 @@ when the whole exploration closes. `drain_status` is `finite` for that result,
 drain, and `not-evaluated` for another refutation. A blocked result identifies
 the source boundary, its admitted `trace`, the `drain_failure` boundary reached
 after `drain_cycles` empty-arrival cycles, and the reason. No partial exploration
-reports its observed maximum as a universal bound.
+reports its observed maximum as a universal bound. The exploration visits
+boundaries in cycle order and drains each before taking its arrivals, so the
+reported failure is the earliest source boundary whose drain blocks, and a
+blocked drain from an earlier boundary outranks a step failure at a later cycle.
 
 `ordered` is true only on closure, false for a completion-order inversion, and
 null when an acceptance or drain failure prevents the completion conclusion.

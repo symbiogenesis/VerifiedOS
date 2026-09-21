@@ -209,6 +209,18 @@ def _scope_limits() -> None:
            "acceptance closure and zero fabric drain do not certify bank completion")
 
 
+# The verdict the comparison document publishes for each refuted contract.
+REFUTED_REASONS = {
+    "average-gap-grant-2-0.json": "arrival-blocked",
+    "joint-two-harts-one-bank.json": "arrival-blocked",
+    "frame-wrap-final-write.json": "arrival-blocked",
+    "multi-frame-residue.json": "arrival-blocked",
+    "path-order-inversion.json": "order-inverted",
+    "second-class-refresh-slot.json": "arrival-blocked",
+    "shared-island-rotation.json": "arrival-blocked",
+}
+
+
 def _tracked_contracts() -> None:
     """Each cited contract decides as the directory holding it says it does.
 
@@ -216,17 +228,21 @@ def _tracked_contracts() -> None:
     `closed/` the restricted and structurally discharged cases it must accept. Both
     sides are floored: a directory that has lost its files would otherwise satisfy this
     vacuously, and a refutation that names no reason is a verdict with no trace behind
-    it.
+    it. Each refutation's reason is pinned to the one the comparison document
+    publishes, so a fixture or checker change cannot move a row silently.
     """
     for folder, zero_wait in (("refuted", False), ("closed", True)):
         files = sorted((CONTRACTS / folder).glob("*.json"))
         ensure(bool(files), f"{folder} holds no contract to decide")
+        if not zero_wait:
+            ensure({path.name for path in files} == set(REFUTED_REASONS),
+                   "every refuted contract needs its published reason pinned")
         for path in files:
             result = check(cli.load_contract(path))
             ensure(result.zero_wait is zero_wait,
                    f"{folder}/{path.name} decided zero_wait={result.zero_wait}")
-            ensure(zero_wait or result.reason is not None,
-                   f"{folder}/{path.name} refutes without naming a reason")
+            ensure(zero_wait or result.reason == REFUTED_REASONS[path.name],
+                   f"{folder}/{path.name} refutes with reason {result.reason}")
             ensure(not zero_wait or result.drain is not None,
                    f"{folder}/{path.name} closes without reporting a drain bound")
 

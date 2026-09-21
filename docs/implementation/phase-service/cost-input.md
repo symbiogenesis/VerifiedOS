@@ -52,10 +52,15 @@ separately reported costs, and service stall cycles. `other` is the total per-sl
 remainder, including the total context restoration cost and any reservations or
 idle periods that consume the declared budget. `trap_per_switch` retains its
 schema name but means R-07-040's complete residency bound H per boundary visit,
-including residual unbuffered operations and consequent faults, multiplied by
-`switches`. Every boundary visit must be included in that count. Residency
-excludes the separately charged fence/drain, clear and relock costs; the
-categories must not overlap.
+over every reachable prefix: idle delivery, a residual unbuffered or device
+operation, that residual followed by its consequent fault path, or the remainder
+of a live kernel path, multiplied by `switches`. Every boundary visit must be
+included in that count. Residency excludes the separately charged fence/drain,
+clear and relock costs; the categories must not overlap. Instruction service
+elapsed before the table instant stays in `execution`; only service remaining
+after it belongs to residency. Do not subtract an assumed residual from the
+full-instruction WCET to make the two sum exactly; independently maximized WCET
+and boundary reservations may conservatively reserve unused capacity.
 
 The baseline boundary is `fence_t + vmclear + opp_relock`; the candidate boundary
 is `d_pipe_completion + vmclear + opp_relock`. `d_pipe_completion` must bound

@@ -35,13 +35,13 @@ Deletion requires all of the following clauses.
 
 | Clause | Existing decision procedure | Remaining input or evidence |
 | --- | --- | --- |
-| Preserve the architectural ordering contract | n/a | Refinement from the proposed ordered path to the current ordering, fence, exception and device rules |
+| Preserve the architectural ordering contract | n/a | Refinement from the proposed ordered path to the current ordering, fence, exception and device rules, plus the register and absence-contract amendments the alternatives entry's disposition lists: the memory-model and fence requirements, the buffer and flush dependencies, the ISA-profile rows and an explicit §11 service obligation |
 | Represent every permitted joint arrival | `phase-schedule` resolves named banks, harts and operations into finite joint alternatives from digest-bound schedule and resource inputs | A sound extraction from the actual schedule, routes and instruction streams, including the RoT's independently serviced traffic |
 | Accept each joint arrival in one legal transition, or charge its wait | The phase-service checker rejects unavailable injection, conflicting bank use and occupied destinations | Qualified per-slot injection and issue limits and all applicable arbitration resources; lockstep partners are not extra requesters |
 | Carry resource state through frame wrap and close the reachable transition set | The checker explores phase, busy-bank and in-flight states from empty startup until closure | A justification that real startup and every permitted mode or schedule transition are covered by those initial states and transitions |
 | Respect ordered arrival along the path | The checker detects within-hart order inversion and path contention | A correspondence between the finite paths and the actual fabric; queues, backpressure and shared resources absent from the model require an extended model |
 | Bound quiescent drain and switch saving | The optional completion analysis carries operations through bank occupancy and checks same-hart completion order; the cost evaluator distinguishes switch saving from net saving | The physical pipeline drain and bank completion bounds and their correspondence to modeled completion |
-| Meet every deadline with the candidate's extra stalls | `phase-cost` checks supplied per-slot and frame cost intervals, including stalls, trap residency and once-only boundaries | Whole-image WCET soundness and schedule analysis using qualified costs, including the padded boundary in admission duty |
+| Meet every deadline with the candidate's extra stalls | `phase-cost` checks supplied per-slot and frame cost intervals, including stalls, with the platform boundary and residency charged once per declared switch and the context term a caller-declared part of `other` that the reader cannot count | Whole-image WCET soundness and schedule analysis using qualified costs, including the padded boundary in admission duty |
 | Establish a favorable implementation cost | `phase-cost` compares time, area and power intervals and budgets without substituting zero for missing operands | Measured or qualified area, service stalls, maintenance and switch operands, with stated uncertainty and workload coverage |
 
 The synthetic checker is executable evidence about its finite contract. It is
@@ -92,8 +92,8 @@ and acceptance of three host instruments:
   a per-hart issue restriction is checked rather than assumed.
 - [Completion analysis](../phase-service/completion-model.md), selected with
   `phase-service --completion`, checks same-hart completion order and drain through
-  bank completion. The original `drain` continues to mean in-flight time to bank
-  acceptance; the completion result reports its own bound and status.
+  bank completion. `drain` measures in-flight time to bank acceptance; the
+  completion result reports its own bound and status.
 - [Cost arithmetic](../phase-service/cost-input.md) binds a named workload to exact
   schedule bytes and compares baseline and candidate intervals. Favorable
   arithmetic requires conservative budget compliance and no regression in time,
@@ -137,8 +137,8 @@ switch term alone cannot waive a deadline. R-11-009's admission duty includes
 trap residency and the padded boundary; it is not merely the switch term.
 
 The missing operands have explicit owners: actual slot positions in R-11-017;
-`w_inj`, `w_issue` and `m_pipe` in R-15-108; bank mapping and roster in
-R-15-228; qualified occupancies in R-15-247m; the concrete schedule's switch
+`w_inj`, `w_issue` and `m_pipe` in R-15-108; bank mapping in R-15-228 and the
+core roster in R-15-052b; qualified occupancies in R-15-247m; the concrete schedule's switch
 count; and R-17-041's frozen timing evidence. The composition receipt reports
 unqualified first-class memory, unqualified second-class memory, unqualified
 timing, an absent schedule and unfrozen C/V/M/S/RoT inputs. Its synthetic cases
