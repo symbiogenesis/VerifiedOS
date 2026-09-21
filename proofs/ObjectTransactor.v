@@ -364,7 +364,7 @@ Lemma ltb_gives_leb : forall a b : nat, Nat.ltb a b = true -> Nat.leb a b = true
 Proof.
   intros a. induction a as [ | x IH ]; intros b H.
   - reflexivity.
-  - destruct b as [ | y ]; [ discriminate H | ]. simpl in H. simpl. exact (IH y H).
+  - destruct b as [ | y ]; [ discriminate H | ]. exact (IH y H).
 Qed.
 
 Lemma ltb_false_gives_leb :
@@ -372,7 +372,7 @@ Lemma ltb_false_gives_leb :
 Proof.
   intros a. induction a as [ | x IH ]; intros b H.
   - destruct b as [ | y ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | y ]; [ reflexivity | ]. simpl. simpl in H. exact (IH y H).
+  - destruct b as [ | y ]; [ reflexivity | ]. exact (IH y H).
 Qed.
 
 (* The generic member-by-index reading of a conjunction over a list. The
@@ -438,9 +438,7 @@ Definition sr_eqb (a b : SignedRoot) : bool :=
 
 Lemma sr_eqb_refl : forall a : SignedRoot, sr_eqb a a = true.
 Proof.
-  intros a. unfold sr_eqb.
-  rewrite nat_eqb_refl. rewrite nat_eqb_refl. rewrite nat_eqb_refl.
-  rewrite nat_eqb_refl. rewrite nat_eqb_refl. rewrite nat_eqb_refl. reflexivity.
+  intros a. unfold sr_eqb. repeat rewrite nat_eqb_refl. reflexivity.
 Qed.
 
 (* =========================================================================
@@ -588,7 +586,7 @@ Theorem the_specification_authenticates_the_image_before_returning_bytes :
   ReadsOnlyAnIntactImage spec_read.
 Proof.
   intros t st root n b H. unfold spec_read in H.
-  destruct (dag_intact t st root) eqn:E; [reflexivity | discriminate H].
+  destruct (dag_intact t st root); [reflexivity | discriminate H].
 Qed.
 
 (* The arm that believes the store: the bytes are returned without asking
@@ -638,8 +636,8 @@ Proof.
   destruct (dag_intact t st root); [ | discriminate H ].
   destruct (mem_of n (reach_list t st root)); [ | discriminate H ].
   rewrite Hs in H.
-  destruct (Nat.eqb (address t o) n) eqn:E; [ | discriminate H ].
-  injection H as H. simpl. rewrite H. exact (nat_eqb_refl b).
+  destruct (Nat.eqb (address t o) n); [ | discriminate H ].
+  injection H as H. rewrite H. exact (nat_eqb_refl b).
 Qed.
 
 (* T2 (R-10-001). *)
@@ -649,7 +647,7 @@ Theorem the_specification_read_reads_nothing_the_root_does_not_reach :
 Proof.
   intros t st root n b H. unfold spec_read in H.
   destruct (dag_intact t st root); [ | discriminate H ].
-  destruct (mem_of n (reach_list t st root)) eqn:E; [ reflexivity | discriminate H ].
+  destruct (mem_of n (reach_list t st root)); [ reflexivity | discriminate H ].
 Qed.
 
 (* T3 (R-06-005): an intact image answers every name its root reaches, which
@@ -661,11 +659,10 @@ Theorem an_intact_image_answers_every_reachable_name :
     dag_intact t st root = true -> mem_of n (reach_list t st root) = true ->
     answers spec_read t st root n = true.
 Proof.
-  intros t st root n Hd Hm. pose proof Hd as Hwhole. unfold dag_intact in Hd.
-  apply andb_split in Hd. destruct Hd as [_ Hd].
-  assert (Hp : present_and_named t st n = true)
-    by exact (all_of_elim (present_and_named t st) (reach_list t st root) n Hd Hm).
-  unfold answers. unfold spec_read. rewrite Hwhole. rewrite Hm.
+  intros t st root n Hd Hm. unfold answers, spec_read. rewrite Hd, Hm.
+  unfold dag_intact in Hd. apply andb_split in Hd as [ _ Hall ].
+  pose proof (all_of_elim (present_and_named t st) (reach_list t st root) n Hall Hm)
+    as Hp.
   unfold present_and_named in Hp.
   destruct (st n) as [ o | ]; [ | discriminate Hp ].
   rewrite Hp. reflexivity.
@@ -675,15 +672,15 @@ Theorem the_trusting_read_still_reads_nothing_the_root_does_not_reach :
   ReadsNothingTheRootDoesNotReach trusting_read.
 Proof.
   intros t st root n b H. unfold trusting_read in H.
-  destruct (mem_of n (reach_list t st root)) eqn:E; [ reflexivity | discriminate H ].
+  destruct (mem_of n (reach_list t st root)); [ reflexivity | discriminate H ].
 Qed.
 
 Theorem the_ambient_read_still_returns_only_the_named_object :
   ReturnsOnlyTheNamedObject ambient_read.
 Proof.
   intros t st root n b o H Hs. unfold ambient_read in H. rewrite Hs in H.
-  destruct (Nat.eqb (address t o) n) eqn:E; [ | discriminate H ].
-  injection H as H. simpl. rewrite H. exact (nat_eqb_refl b).
+  destruct (Nat.eqb (address t o) n); [ | discriminate H ].
+  injection H as H. rewrite H. exact (nat_eqb_refl b).
 Qed.
 
 (* =========================================================================
@@ -914,14 +911,12 @@ Definition toggle (ab : Ab) : Ab :=
 
 Lemma live_of_toggle : forall ab : Ab, live (toggle ab) = spare ab.
 Proof.
-  intros ab. unfold live. unfold spare. unfold toggle. simpl.
-  destruct (ab_b_live ab); reflexivity.
+  intros ab. unfold live, spare, toggle. destruct (ab_b_live ab); reflexivity.
 Qed.
 
 Lemma spare_of_toggle : forall ab : Ab, spare (toggle ab) = live ab.
 Proof.
-  intros ab. unfold live. unfold spare. unfold toggle. simpl.
-  destruct (ab_b_live ab); reflexivity.
+  intros ab. unfold live, spare, toggle. destruct (ab_b_live ab); reflexivity.
 Qed.
 
 Lemma floor_of_toggle : forall ab : Ab, ab_floor (toggle ab) = ab_floor ab.
@@ -953,21 +948,18 @@ Definition inplace_stage (sr : SignedRoot) (ab : Ab) : Ab :=
 
 Lemma live_of_stage : forall (sr : SignedRoot) (ab : Ab), live (stage sr ab) = live ab.
 Proof.
-  intros sr ab. unfold live. unfold stage. simpl.
-  destruct (ab_b_live ab); reflexivity.
+  intros sr ab. unfold live, stage. destruct (ab_b_live ab); reflexivity.
 Qed.
 
 Lemma spare_of_stage : forall (sr : SignedRoot) (ab : Ab), spare (stage sr ab) = sr.
 Proof.
-  intros sr ab. unfold spare. unfold stage. simpl.
-  destruct (ab_b_live ab); reflexivity.
+  intros sr ab. unfold spare, stage. destruct (ab_b_live ab); reflexivity.
 Qed.
 
 Lemma live_of_inplace_stage :
   forall (sr : SignedRoot) (ab : Ab), live (inplace_stage sr ab) = sr.
 Proof.
-  intros sr ab. unfold live. unfold inplace_stage. simpl.
-  destruct (ab_b_live ab); reflexivity.
+  intros sr ab. unfold live, inplace_stage. destruct (ab_b_live ab); reflexivity.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -1004,20 +996,16 @@ Definition verify (t : Transactor) (st : Objects) (ab : Ab) : Ab :=
 Definition verdict_backed (t : Transactor) (st : Objects) (ab : Ab) : bool :=
   only_if (ab_admitted ab) (stage_admissible t st ab).
 
+(* The verify step copies every slot field and the floor from the machine it
+   was given, so the two lemmas below hold by conversion alone. *)
 Lemma live_of_verify :
   forall (t : Transactor) (st : Objects) (ab : Ab), live (verify t st ab) = live ab.
-Proof.
-  intros t st ab. unfold live. unfold verify. simpl.
-  destruct (ab_b_live ab); reflexivity.
-Qed.
+Proof. intros t st ab. reflexivity. Qed.
 
 Lemma stage_admissible_of_verify :
   forall (t : Transactor) (st : Objects) (ab : Ab),
     stage_admissible t st (verify t st ab) = stage_admissible t st ab.
-Proof.
-  intros t st ab. unfold stage_admissible. unfold spare. unfold verify. simpl.
-  destruct (ab_b_live ab); reflexivity.
-Qed.
+Proof. intros t st ab. reflexivity. Qed.
 
 Lemma admitted_of_verify :
   forall (t : Transactor) (st : Objects) (ab : Ab),
@@ -1094,13 +1082,13 @@ Proof.
   unfold stage_admissible in H. apply andb_split in H as [Hv H].
   apply andb_split in H as [_ H]. apply andb_split in H as [_ H].
   apply andb_split in H as [Hd Ha].
-  destruct (ab_staged ab); simpl in Hs; try discriminate.
+  destruct (ab_staged ab); [ discriminate Hs | ].
   repeat split; assumption || reflexivity.
 Qed.
 
 Theorem restaging_cannot_be_used_as_a_predecessor : forall t st sr ab,
   fall_back t st (stage sr ab) = stage sr ab.
-Proof. intros. unfold fall_back, fallback_admissible. reflexivity. Qed.
+Proof. intros. reflexivity. Qed.
 
 (* The construction R-09-030 excludes: a return that pins the predecessor
    whatever its security version. *)
@@ -1116,10 +1104,10 @@ Definition settle (ab : Ab) : Ab :=
      ab_staged := false;
      ab_admitted := false; ab_retained := ab_retained ab |}.
 
+(* Settling copies both slots and the live bit unchanged, so this one holds
+   by conversion too. *)
 Lemma live_of_settle : forall ab : Ab, live (settle ab) = live ab.
-Proof.
-  intros ab. unfold live. unfold settle. simpl. destruct (ab_b_live ab); reflexivity.
-Qed.
+Proof. intros ab. reflexivity. Qed.
 
 (* =========================================================================
    The obligations on an operation, and what each construction breaks.
@@ -1189,15 +1177,14 @@ Theorem the_specification_transitions_write_no_floor :
     WritesNoFloor (stage sr) /\ WritesNoFloor (verify t st)
     /\ WritesNoFloor flip /\ WritesNoFloor (fall_back t st) /\ WritesNoFloor settle.
 Proof.
-  intros t st sr. split; [ | split; [ | split; [ | split ] ] ].
-  - intros ab. exact (nat_eqb_refl (ab_floor ab)).
-  - intros ab. exact (nat_eqb_refl (ab_floor ab)).
-  - intros ab. unfold flip. destruct (andb (ab_staged ab) (ab_admitted ab));
+  intros t st sr. split; [ | split; [ | split; [ | split ] ] ]; intros ab.
+  - exact (nat_eqb_refl (ab_floor ab)).
+  - exact (nat_eqb_refl (ab_floor ab)).
+  - unfold flip. destruct (andb (ab_staged ab) (ab_admitted ab));
       exact (nat_eqb_refl (ab_floor ab)).
-  - intros ab. unfold fall_back.
-    destruct (fallback_admissible t st ab);
+  - unfold fall_back. destruct (fallback_admissible t st ab);
       exact (nat_eqb_refl (ab_floor ab)).
-  - intros ab. exact (nat_eqb_refl (ab_floor ab)).
+  - exact (nat_eqb_refl (ab_floor ab)).
 Qed.
 
 (* T10 (R-09-028): and none of them lowers it, which is the weaker of the
@@ -1281,8 +1268,8 @@ Theorem the_specification_verify_backs_its_own_verdict :
   forall (t : Transactor) (st : Objects) (ab : Ab),
     verdict_backed t st (verify t st ab) = true.
 Proof.
-  intros t st ab. unfold verdict_backed. unfold only_if.
-  rewrite admitted_of_verify. rewrite stage_admissible_of_verify.
+  intros t st ab. unfold verdict_backed.
+  rewrite admitted_of_verify, stage_admissible_of_verify.
   destruct (ab_staged ab); destruct (stage_admissible t st ab); reflexivity.
 Qed.
 
@@ -1297,15 +1284,13 @@ Theorem the_specification_transitions_preserve_backing :
     /\ PreservesBacking t st settle.
 Proof.
   intros t st sr. split; [ | split; [ | split; [ | split ] ] ].
-  - intros ab H. unfold verdict_backed. unfold only_if. reflexivity.
-  - intros ab H. exact (the_specification_verify_backs_its_own_verdict t st ab).
+  - intros ab _. reflexivity.
+  - intros ab _. exact (the_specification_verify_backs_its_own_verdict t st ab).
   - intros ab H. unfold flip.
-    destruct (andb (ab_staged ab) (ab_admitted ab)); [ | exact H ].
-    unfold verdict_backed. unfold only_if. reflexivity.
+    destruct (andb (ab_staged ab) (ab_admitted ab)); [ reflexivity | exact H ].
   - intros ab H. unfold fall_back.
-    destruct (fallback_admissible t st ab); [ | exact H ].
-    unfold verdict_backed. unfold only_if. reflexivity.
-  - intros ab H. unfold verdict_backed. unfold only_if. reflexivity.
+    destruct (fallback_admissible t st ab); [ reflexivity | exact H ].
+  - intros ab _. reflexivity.
 Qed.
 (* =========================================================================
    Runs. Gap c is that no entry enumerates the transactor's transitions, so
@@ -1330,7 +1315,7 @@ Fixpoint every_op (P : Op -> Prop) (ops : list Op) : Prop :=
 Theorem a_run_of_floor_free_operations_writes_no_floor :
   forall ops : list Op, every_op WritesNoFloor ops -> WritesNoFloor (run_of ops).
 Proof.
-  intros ops. induction ops as [ | f r IH ]; intros H; unfold WritesNoFloor; intros ab.
+  intros ops. induction ops as [ | f r IH ]; intros H ab.
   - exact (nat_eqb_refl (ab_floor ab)).
   - destruct H as [ Hf Hr ]. simpl.
     assert (Hx : ab_floor (run_of r (f ab)) = ab_floor (f ab))
@@ -1591,8 +1576,8 @@ Theorem the_landed_view_names_every_staged_object_it_answers :
     landed_view t cut j base os prior n = Some o ->
     Nat.eqb (address t o) n = true.
 Proof.
-  intros t cut j base os prior n o Hf Hv.
-  clear Hv. revert Hf. induction os as [ | x r IH ]; intros Hf.
+  intros t cut j base os prior n o Hf _.
+  revert Hf. induction os as [ | x r IH ]; intros Hf.
   - discriminate Hf.
   - simpl in Hf. destruct (Nat.eqb (address t x) n) eqn:E.
     + injection Hf as Hf. rewrite <- Hf. exact E.
@@ -1707,7 +1692,7 @@ Proof.
   change (only_if (andb (ab_admitted (verify t st ab))
     (commitment_ok t pinned offered (cons (sr_root (spare ab)) packages)))
     (stage_admissible t st ab) = true).
-  unfold only_if. rewrite admitted_of_verify.
+  rewrite admitted_of_verify.
   destruct (ab_staged ab); destruct (stage_admissible t st ab);
     destruct (commitment_ok t pinned offered (cons (sr_root (spare ab)) packages)); reflexivity.
 Qed.
