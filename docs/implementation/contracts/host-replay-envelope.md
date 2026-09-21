@@ -68,7 +68,7 @@ The focused host suite must establish:
   must not invoke the body decoder, and no refusal returns payload bytes.
 
 Use `python tools/run.py test --only replay_envelope` for focused evidence and the
-integrator's host wave for tool acceptance. This is an executable host artifact
+integrator's Host CI verdict for tool acceptance. This is an executable host artifact
 predicate. Passing it supplies no operational producer, CT scope proof, signed-root
 trust, machine recording or replay verdict. Its remaining runtime consumers retain
 the [replay contract's operational acceptance](replay-record.md#acceptance-fixed-before-implementation).

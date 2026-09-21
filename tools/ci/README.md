@@ -138,8 +138,9 @@ clean toolchain run and a GitHub-hosted run are recorded as distinct evidence.
 
 Focused tests must cover installation planning and failure propagation, including
 unavailable dependencies and corrupt downloads where the installer owns download
-verification. Workflow syntax is checked with actionlint. The integrator runs
-`python tools/run.py --check --tests` over the stable combined changes.
+verification. Workflow syntax is checked with actionlint. After publishing the stable
+combined changes, the integrator requires green Host CI, which runs
+`python tools/run.py --check --tests` on Windows and Ubuntu.
 
 Failure reporting and artifact upload run after failed checks without turning a
 failed or skipped required command into success. Preserve textual logs, structured

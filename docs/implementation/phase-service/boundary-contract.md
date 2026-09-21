@@ -75,6 +75,6 @@ include a nonempty witness and empty-case admission refusal.
 Use the existing proof gate for compilation, claim and assumption audit and
 rocqchk. Use generated validation where its existing domains cover the changed
 arithmetic; expand the domain if needed. The integrator owns generated headers,
-shared documentation, co-reads, arithmetic repair and the final host wave.
+shared documentation, co-reads, arithmetic repair and the final Host CI verdict.
 Source-level theorems establish this admission arithmetic only. They do not
 certify the completeness of the prefix list, a target WCET or an RTL timer.

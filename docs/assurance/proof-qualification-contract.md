@@ -1,6 +1,6 @@
 # Proof qualification acceptance contract
 
-This contract precedes the Q19a/Q19b experiments and M6.2b-i bounded checker qualification. The locked proof environment is `verifiedos-rocq-9.2.0-ocaml-5.4.1`; compatibility experiments must use their own native lane and disposable or separate switches. The integrator owns the final full repository proof/host gates. Local trials compile and audit only their exact sources and dependencies, recording this narrower scope.
+This contract precedes the Q19a/Q19b experiments and M6.2b-i bounded checker qualification. The locked proof environment is `verifiedos-rocq-9.2.0-ocaml-5.4.1`; compatibility experiments must use their own native lane and disposable or separate switches. The integrator owns the final local proof gate and requests Host CI for the final full-repository host verdict. Local trials compile and audit only their exact sources and dependencies, recording this narrower scope.
 
 ## Q19a and Q19b
 

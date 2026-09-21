@@ -170,4 +170,4 @@ environment before checking its proofs: definition failures are stillborn,
 not killed, and survivors need individual investigation. The completion evidence
 identifies the actual prover and replay helper; the separate `seed coq` vector
 harness is not interchangeable evidence. The integrator owns requirement-header
-generation, the portable receipt and the final host wave after integration.
+generation, the portable receipt and the final Host CI verdict after integration.

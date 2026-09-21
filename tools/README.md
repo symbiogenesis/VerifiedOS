@@ -32,11 +32,11 @@ Two more the floor makes available go unused, because a version floor is a licen
 There is one executable here, [run.py](run.py), and a command is a name rather than a
 path. It was seventeen executables, and using them meant knowing which file answered
 which question and which of the two lanes it ran in; both of those are now the tool's
-to know. `python tools/run.py` with no command runs the host gate wave, which is what
-has to be green before anything lands, and `run.py <command> --help` is that command's
-own help. Host CI uses one read-only invocation, `run.py --check --tests`, in
+to know. `python tools/run.py` with no command runs the local host gate wave for diagnosis, and
+`run.py <command> --help` is that command's own help. The required landing verdict is
+Host CI's read-only invocation, `run.py --check --tests`, in
 [.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
-runners at every push and pull request to `main`, over a clone with no submodule
+runners at every push and pull request to `main`, or through manual dispatch, over a clone with no submodule
 checked out. [Guest CI](../.github/workflows/guest-gates.yml) runs the model evidence
 sweep, proof gate, bundle comparison and standalone RTL checks on Linux, on manual
 dispatch and a weekly schedule. Its [bootstrap and acceptance contract](ci/README.md)
@@ -294,9 +294,9 @@ guest then reads across the OS boundary and what it never writes back across.
 
 ```console
 $ python tools/run.py help                       # every command, and the lane it runs in
-$ python tools/run.py --check                    # integrator: the three host gates, read-only
-$ python tools/run.py --fix                      # integrator: repair, then all three gates afresh
-$ python tools/run.py --check --tests            # final wave including the tools' behavioral tests
+$ python tools/run.py --check                    # local diagnosis: the three host gates, read-only
+$ python tools/run.py --fix                      # repair derived facts before publishing a CI candidate
+$ python tools/run.py --check --tests            # local reproduction of Host CI when needed
 $ python tools/check.py                          # checker feedback after a coherent document batch
 $ python tools/run.py check --fix                # integrator: arithmetic repair alone
 $ python tools/run.py selftest                   # every rule against its own mutant
@@ -640,13 +640,14 @@ Use the existing verdict for unchanged inputs. If a checker run already reports
 arithmetic drift, invalid instructions or owed co-reads, resolve those findings
 before running a selftest: its baseline runs the whole checker even under `--rule`,
 and a failed baseline supplies no mutation verdict. Workers report deferred repair
-and checks explicitly. They do not run `--fix` or bare `run.py`. A separately
-justified full lane gate uses `--check` and a slot agreed with the integrator.
+and checks explicitly. They do not run `--fix` or bare `run.py`. A full local host
+gate is reserved for diagnosing a Host CI failure or an unavailable hosted service.
 
 **Budget workers across the machine.** The full runner already parallelizes its
-gates; selftest, behavioral tests and typecheck also run internal workers. Keep one
-full host wave active across the fan-out by default, including across worktrees.
-Schedule costly guest work against the same CPU and memory budget. Focused checks
+gates; selftest, behavioral tests and typecheck also run internal workers. Reserve
+complete host waves for GitHub Actions, which is the final host verdict. Schedule
+costly guest work against the same CPU and memory budget, and run changed guest
+gates locally while that remains faster. Focused checks
 may overlap on independent stable inputs when capacity permits; `selftest --jobs N`
 and `test --jobs N` bound their command's workers, not the whole gate. Default selftest
 sandboxes are private; never share an explicit `--sandbox` directory between live runs. Builds,
@@ -664,18 +665,18 @@ The integrator closes the batch in this order:
    after the batch's authored inputs settle; repeat only if new input changes or
    findings require it. An intermediate merge needs a targeted check only when its
    answer affects the next integration decision.
-3. Run one complete host wave: `python tools/run.py --check` on the settled tree,
-   or `python tools/run.py --fix` when only repair remains. Append `--tests` for tool
-   changes or CI-equivalent host validation. `--fix --tests` already includes a
-   fresh checker, selftest, typecheck and default behavioral suite after repair;
-   do not follow success with a duplicate `--check --tests` on unchanged inputs.
-   The default suite does not replace required slow tests or guest evidence.
-4. Record the command, tested revision and any uncommitted input scope, verdict,
-   and deferred checks. A lane handoff is provisional until the integrated batch
-   passes every required gate and review; a selected-rule selftest cannot establish
-   that every mutant was killed. If later edits change a gate's inputs, refresh the
-   affected evidence before acceptance. Repeat a complete wave for a new integration
-   batch or when the affected scope cannot be established, not as a reassurance run.
+3. Commit the settled tree and let Host CI run `python tools/run.py --check --tests`
+   on the pull request or published branch. Require a green Windows and Ubuntu result.
+   Use `python tools/run.py check --fix` locally only to repair derived artifacts
+   before committing; run a full local host wave only to diagnose a hosted failure or
+   an unavailable hosted service. The default suite does not replace required slow
+   tests or guest evidence, which should be run locally for changed guest inputs.
+4. Record the hosted run URL or identifier, tested revision, verdict and deferred
+   checks. A lane handoff is provisional until the integrated batch passes every
+   required gate and review; a selected-rule selftest cannot establish that every
+   mutant was killed. If later edits change a gate's inputs, refresh the affected
+   evidence before acceptance. Re-run hosted validation for a new integration batch
+   or when the affected scope cannot be established, not as a reassurance run.
 
 These are scheduling rules; the [landing tiers](../docs/implementation/implementation-checklist.md#checklist-conventions)
 and item acceptance predicates keep their full gates. `seed properties` still owns
@@ -993,6 +994,6 @@ A rule that reads an enumeration owes the floors group a member count too, so th
 A **quarantined** rule keeps all three edits and keeps them together, in [quarantine/](quarantine/): the check under [quarantine/checks/](quarantine/checks/), the row in [quarantine/check-rules.md](quarantine/check-rules.md), and the mutant in [quarantine/gate.py](quarantine/gate.py), which holds the three against each other exactly as the meta group and the selftest hold the landing loop's. What decides which of the two places a rule belongs in is not the rule but its subject: an instrument whose decision is deferred is not worth a second of every landing, and [that directory's README](quarantine/README.md) states the condition that brings each one back.
 
 Before the integrated batch lands, typecheck and the checker must both be green.
-The integrator's complete host wave supplies those verdicts; document-only lanes do
-not need separate typecheck runs. Use [the check schedule](#check-scheduling-during-fan-out)
-for feedback during authoring and for the remaining landing gates.
+Host CI supplies those verdicts; document-only lanes do not need separate typecheck
+runs. Use [the check schedule](#check-scheduling-during-fan-out) for feedback during
+authoring and for the remaining landing gates.
