@@ -443,7 +443,7 @@ Proof.
   - unfold mem_of in Hm. simpl in Hm. simpl.
     destruct (Nat.eqb y x) eqn:E.
     + rewrite (nat_eqb_true y x E). rewrite Hp. reflexivity.
-    + simpl in Hm. rewrite (IH x Hm Hp). destruct (p y); reflexivity.
+    + rewrite (IH x Hm Hp). destruct (p y); reflexivity.
 Qed.
 
 Lemma any_of_false :
@@ -603,7 +603,7 @@ Lemma lex_leb_cons_elim :
     \/ (Nat.eqb x y = true /\ lex_leb r s = true).
 Proof.
   intros x y r s H. simpl in H.
-  destruct (andb (Nat.leb x y) (negb (Nat.eqb x y))) eqn:E.
+  destruct (andb (Nat.leb x y) (negb (Nat.eqb x y))).
   - left. reflexivity.
   - simpl in H. right. destruct (andb_split _ _ H) as [ A B ]. split; assumption.
 Qed.
@@ -628,11 +628,9 @@ Proof.
   intros a. induction a as [ | x r IH ]; intros b.
   - reflexivity.
   - destruct b as [ | y s ]; [ reflexivity | ].
-    simpl. destruct (Nat.eqb x y) eqn:E.
-    + rewrite (nat_eqb_sym y x). rewrite E.
-      destruct (Nat.leb x y); destruct (Nat.leb y x); simpl; exact (IH s).
-    + rewrite (nat_eqb_sym y x). rewrite E.
-      destruct (Nat.leb x y) eqn:E1; destruct (Nat.leb y x) eqn:E2;
+    simpl. rewrite (nat_eqb_sym y x). destruct (Nat.eqb x y).
+    + destruct (Nat.leb x y); destruct (Nat.leb y x); simpl; exact (IH s).
+    + destruct (Nat.leb x y) eqn:E1; destruct (Nat.leb y x) eqn:E2;
         simpl; try reflexivity.
       assert (Ht := nat_leb_total x y). rewrite E1 in Ht. rewrite E2 in Ht.
       discriminate Ht.
@@ -784,9 +782,7 @@ Proof.
   assert (Hs : ksig a = ksig b) by exact (lex_eqb_true _ _ H).
   destruct a as [ ad asp ak ao aa av ]. destruct b as [ bd bsp bk bo ba bv ].
   unfold ksig in Hs. simpl in Hs.
-  injection Hs as H1 H2 H3 H4 H5 H6.
-  rewrite H1. rewrite H2. rewrite H3. rewrite H4. rewrite H5. rewrite H6.
-  reflexivity.
+  injection Hs as H1 H2 H3 H4 H5 H6. subst. reflexivity.
 Qed.
 
 (* R-10-003's record, discharged at this key type. This instance is the
@@ -1197,8 +1193,8 @@ Theorem the_specification_mints_nothing : MintsNothing spec_resolve.
 Proof.
   intros n q ks. unfold spec_resolve. destruct (admits n q); [ | reflexivity ].
   rewrite (all_of_map _ _ (derivable n) (grant n) (filter_of (selects q) ks)).
-  apply all_of_const. intros e. unfold derivable. unfold grant. simpl.
-  rewrite nat_eqb_refl. rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
+  apply all_of_const. intros e. unfold derivable, grant. simpl.
+  repeat rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
 Qed.
 
 (*| discharges: R-10-005b |*)
@@ -1302,8 +1298,8 @@ Proof.
   - intros n q ks. unfold ambient_resolve.
     rewrite (all_of_map _ _ (derivable n) (grant n)
                (filter_of (selects q) (filter_of (in_domain (nc_domain n)) ks))).
-    apply all_of_const. intros e. unfold derivable. unfold grant. simpl.
-    rewrite nat_eqb_refl. rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
+    apply all_of_const. intros e. unfold derivable, grant. simpl.
+    repeat rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
   - intros n q ks1 ks2 H. unfold ambient_resolve. rewrite H. reflexivity.
 Qed.
 
@@ -1323,8 +1319,8 @@ Proof.
   - intros n q ks. unfold spanning_resolve. destruct (admits n q); [ | reflexivity ].
     rewrite (all_of_map _ _ (derivable n) (grant n)
                (filter_of (spanning_selects q) ks)).
-    apply all_of_const. intros e. unfold derivable. unfold grant. simpl.
-    rewrite nat_eqb_refl. rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
+    apply all_of_const. intros e. unfold derivable, grant. simpl.
+    repeat rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
   - intros n q ks H. unfold spanning_resolve. rewrite H. reflexivity.
 Qed.
 
@@ -1607,10 +1603,7 @@ Lemma the_specification_writer_is_intact :
     all_of intact (spec_writer c ba) = true.
 Proof.
   intros c ba. unfold spec_writer. simpl.
-  rewrite (rec3_is_intact c (batch_txn c) (object_block c) (ba_object ba) false).
-  rewrite (rec3_is_intact c (batch_txn c) (meta_block c) (ba_meta ba) false).
-  rewrite (rec3_is_intact c (batch_txn c) (index_block c) (ba_index ba) true).
-  reflexivity.
+  repeat rewrite rec3_is_intact. reflexivity.
 Qed.
 
 (* A prefix carrying no closing record commits nothing, which is what makes
@@ -2054,11 +2047,8 @@ Lemma obs_eqb_intro :
     obs_eqb o p = true.
 Proof.
   intros o p H1 H2 H3 H4 H5 H6. unfold obs_eqb.
-  rewrite H1. rewrite H2. rewrite H3. rewrite H4. rewrite H5. rewrite H6.
-  rewrite (bool_eqb_refl (ob_present p)). rewrite (nat_eqb_refl (ob_domain p)).
-  rewrite (nat_eqb_refl (ob_stored p)). rewrite (nat_eqb_refl (ob_nonce p)).
-  rewrite (opt_eqb_refl (ob_plain p)). rewrite (opt_eqb_refl (ob_digest p)).
-  reflexivity.
+  rewrite H1, H2, H3, H4, H5, H6, bool_eqb_refl.
+  repeat rewrite nat_eqb_refl. repeat rewrite opt_eqb_refl. reflexivity.
 Qed.
 
 (* What an observer holds is a key and not a label (reading 5): whether it
@@ -2218,12 +2208,10 @@ Proof.
   - exact Hd.
   - rewrite Hln. exact (Hl (ex_plain (v i)) (ex_plain (w i)) (ex_len (w i))).
   - exact (Hn i (ex_plain (v i)) (ex_plain (w i))).
-  - rewrite Hkv. rewrite Hkw. destruct (a (ex_domain (v i))) eqn:Ea.
-    + rewrite (ext_agrees_content a (v i) (w i) He Ea). reflexivity.
-    + reflexivity.
-  - rewrite Hkv. rewrite Hkw. destruct (a (ex_domain (v i))) eqn:Ea.
-    + rewrite (ext_agrees_content a (v i) (w i) He Ea). rewrite Hd. reflexivity.
-    + reflexivity.
+  - rewrite Hkv, Hkw. destruct (a (ex_domain (v i))) eqn:Ea; [ | reflexivity ].
+    rewrite (ext_agrees_content a (v i) (w i) He Ea). reflexivity.
+  - rewrite Hkv, Hkw. destruct (a (ex_domain (v i))) eqn:Ea; [ | reflexivity ].
+    rewrite (ext_agrees_content a (v i) (w i) He Ea). rewrite Hd. reflexivity.
 Qed.
 
 (*| discharges: R-10-002 |*)
@@ -2288,7 +2276,7 @@ Proof.
   assert (H2 := all_of_elim _ _ e H1 He).
   assert (H3 := all_of_elim _ _ p H2 Hp).
   assert (H4 := all_of_elim _ _ p H3 Hp).
-  rewrite Hde in H4. simpl in H4.
+  rewrite Hde in H4.
   exact (negb_true_elim _ (only_if_elim _ _ H4 eq_refl)).
 Qed.
 
@@ -2435,9 +2423,7 @@ Example which_eraser_leaves_which_state_recoverable :
 Theorem every_keyring_state_is_erased :
   forall kr : Keyring, all_of (fun d => negb (recoverable (spec_erase kr) d))
                               (upto 8) = true.
-Proof.
-  intros kr. apply all_of_intro. intros d _. reflexivity.
-Qed.
+Proof. intros kr. reflexivity. Qed.
 
 (* =========================================================================
    R-10-013b's third asset class: durable component state, declared `Fresh`
@@ -2506,7 +2492,7 @@ Lemma declared_versions_agree :
     only_if b (Nat.eqb a c) = true ->
     Nat.eqb (if b then a else 0) (if b then c else 0) = true.
 Proof.
-  intros b a c H. destruct b; [ simpl in H; exact H | exact (nat_eqb_refl 0) ].
+  intros b a c H. destruct b; [ exact H | exact (nat_eqb_refl 0) ].
 Qed.
 
 (*| discharges: R-10-013c |*)
@@ -2988,10 +2974,7 @@ Theorem the_compressing_sealing_keeps_every_other_obligation :
   /\ nonce_per_extent_at l2_demo ratio_sealing = true
   /\ dedup_separated l2_demo ratio_sealing = true
   /\ NonceIsPerExtent ratio_sealing.
-Proof.
-  split; [ reflexivity | ]. split; [ reflexivity | ]. split; [ reflexivity | ].
-  intros i p q. reflexivity.
-Qed.
+Proof. repeat split; intros; reflexivity. Qed.
 
 Theorem the_convergent_sealing_is_refuted :
   ~ Noninterferent l2_demo convergent_sealing spec_obs.
@@ -3005,10 +2988,7 @@ Theorem the_convergent_sealing_keeps_every_other_obligation :
   /\ length_hides_at l2_demo convergent_sealing = true
   /\ dedup_separated l2_demo convergent_sealing = true
   /\ LengthHidesTheContent convergent_sealing.
-Proof.
-  split; [ reflexivity | ]. split; [ reflexivity | ]. split; [ reflexivity | ].
-  intros p q l. reflexivity.
-Qed.
+Proof. repeat split; intros; reflexivity. Qed.
 
 Theorem the_shared_key_sealing_is_refuted :
   ~ Noninterferent l2_demo shared_sealing spec_obs.
@@ -3022,12 +3002,7 @@ Theorem the_shared_key_sealing_keeps_every_other_obligation :
   /\ nonce_per_extent_at l2_demo shared_sealing = true
   /\ dedup_separated l2_demo shared_sealing = true
   /\ LengthHidesTheContent shared_sealing /\ NonceIsPerExtent shared_sealing.
-Proof.
-  split; [ reflexivity | ]. split; [ reflexivity | ]. split; [ reflexivity | ].
-  split.
-  - intros p q l. reflexivity.
-  - intros i p q. reflexivity.
-Qed.
+Proof. repeat split; intros; reflexivity. Qed.
 
 (* And the one that is not a refutation of *this* obligation, which is the
    twin the whole L3 section rests on: a digest computed without the domain
@@ -3050,7 +3025,7 @@ Theorem the_bare_digest_is_still_a_confirmation_oracle :
              (se_digest bare_sealing (se_dedup_key bare_sealing 1) 3) = true
   /\ Nat.eqb (se_digest demo_sealing (se_dedup_key demo_sealing 0) 3)
              (se_digest demo_sealing (se_dedup_key demo_sealing 1) 3) = false.
-Proof. split; [ reflexivity | ]. split; reflexivity. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    And two observers rather than two sealings: the leak in the reader rather
