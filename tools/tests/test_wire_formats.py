@@ -90,6 +90,12 @@ def _unknown_owner() -> None:
     _mutated(change, "is not a landed work item")
 
 
+def _ordinary_prose_is_not_an_owner() -> None:
+    def change(source: dict[str, Any]) -> None:
+        source["entries"][0]["owner"] = "the"
+    _mutated(change, "is not a landed work item")
+
+
 def _forged_descriptor() -> None:
     def change(source: dict[str, Any]) -> None:
         source["entries"][0]["descriptor"] = "proved"
@@ -149,6 +155,18 @@ def _missing_grammar_table() -> None:
         _refused(root, "member-table heading changed")
 
 
+def _unquoted_grammar_member_cannot_disappear() -> None:
+    with _fixture() as (root, _):
+        path = root / "docs/hardware/immutable-module-contract.md"
+        text = path.read_text(encoding="utf-8")
+        needle = "| `ID-RECORD` |"
+        ensure(needle in text, "test cannot find the owning grammar table")
+        path.write_text(text.replace(needle,
+                        "| NEW-RECORD | module to host | reserved | bounded |\n" + needle, 1),
+                        encoding="utf-8", newline="")
+        _refused(root, "unsupported grammar member row")
+
+
 def _nas_exception_cannot_disappear() -> None:
     def change(source: dict[str, Any]) -> None:
         next(entry for entry in source["entries"] if entry["id"] == "fiveg-nas")[
@@ -179,6 +197,7 @@ def cases() -> list[Case]:
             Case("row 10 class cannot disappear", _missing_class),
             Case("blank owner refuses", _blank_owner),
             Case("unknown owner refuses", _unknown_owner),
+            Case("ordinary prose is not an owner", _ordinary_prose_is_not_an_owner),
             Case("reference cannot become a descriptor", _forged_descriptor),
             Case("missing theorem refuses", _missing_symbol),
             Case("unlisted library use refuses", _unlisted_library_use),
@@ -186,6 +205,7 @@ def cases() -> list[Case]:
             Case("changed crown membership needs review", _changed_crown_membership),
             Case("new owning grammar form reaches the view", _new_grammar_form_is_rendered),
             Case("lost grammar heading refuses", _missing_grammar_table),
+            Case("unquoted grammar member cannot disappear", _unquoted_grammar_member_cannot_disappear),
             Case("NAS flag remains explicit", _nas_exception_cannot_disappear),
             Case("duplicate entry refuses", _duplicate_entry),
             Case("unsafe reference refuses", _unsafe_reference),
