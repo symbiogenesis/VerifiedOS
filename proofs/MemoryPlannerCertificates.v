@@ -71,15 +71,14 @@ Theorem legal_selection_has_encoded_witness : forall rows domains forbidden sele
   encoded_sat rows domains forbidden (encode_selection selected).
 Proof.
   intros rows domains forbidden selected [HD HP].
-  unfold encoded_sat, encode_selection. split.
-  - intros row HR. exists (selected row). split; auto. apply Nat.eqb_refl.
-  - split.
-    + intros row a b HR HA HB HNE.
-      destruct (selected row =? a) eqn:EA; auto.
-      right. apply Nat.eqb_neq. apply Nat.eqb_eq in EA. congruence.
-    + intros a b HAB. specialize (HP a b HAB).
-      destruct (selected (fst a) =? snd a) eqn:EA; auto.
-      right. apply Nat.eqb_neq. apply Nat.eqb_eq in EA. tauto.
+  unfold encoded_sat, encode_selection. split; [| split].
+  - intros row HR. exists (selected row). split; [now apply HD | apply Nat.eqb_refl].
+  - intros row a b _ _ _ HNE.
+    destruct (selected row =? a) eqn:EA; [right | now left].
+    apply Nat.eqb_neq. apply Nat.eqb_eq in EA. congruence.
+  - intros a b HAB. specialize (HP a b HAB).
+    destruct (selected (fst a) =? snd a) eqn:EA; [right | now left].
+    apply Nat.eqb_neq. apply Nat.eqb_eq in EA. tauto.
 Qed.
 
 Definition decode_row (domain : list nat) (assignment : nat -> bool) : nat :=
@@ -92,8 +91,8 @@ Lemma decode_row_present : forall domain assignment,
 Proof.
   intros domain assignment [value [HD HA]]. unfold decode_row.
   destruct (find assignment domain) as [chosen |] eqn:HF.
-  - apply find_some in HF. exact HF.
-  - apply find_none with (x := value) in HF; auto. congruence.
+  - now apply find_some.
+  - rewrite (find_none _ _ HF value HD) in HA. discriminate.
 Qed.
 
 Definition decode_assignment (domains : Domains) (assignment : Assignment) : Selection :=
@@ -103,7 +102,7 @@ Theorem encoded_witness_decodes_safely : forall rows domains forbidden assignmen
   well_formed_pairs rows forbidden -> encoded_sat rows domains forbidden assignment ->
   legal_selection rows domains forbidden (decode_assignment domains assignment).
 Proof.
-  intros rows domains forbidden assignment HW [HE [HU HP]].
+  intros rows domains forbidden assignment HW [HE [_ HP]].
   assert (HD : forall row, row < rows ->
     In (decode_assignment domains assignment row) (domains row) /\
     assignment row (decode_assignment domains assignment row) = true).
@@ -112,7 +111,7 @@ Proof.
   - intros row HR. apply (HD row HR).
   - intros a b HAB [EA EB]. destruct (HW a b HAB) as [HA HB].
     destruct (HD (fst a) HA) as [_ TA]. destruct (HD (fst b) HB) as [_ TB].
-    rewrite EA in TA. rewrite EB in TB. destruct (HP a b HAB); congruence.
+    destruct (HP a b HAB); congruence.
 Qed.
 
 Theorem finite_encoding_equivalent : forall rows domains forbidden,
@@ -147,9 +146,8 @@ Theorem optimum_requires_encoding_completeness :
   valid candidate /\ forall layout, valid layout -> cost candidate <= cost layout.
 Proof.
   intros Layout valid cost rows domains forbidden candidate HC HCOV HU.
-  split; auto. intros layout HL.
-  destruct (Nat.lt_ge_cases (cost layout) (cost candidate)) as [HLT | HGE]; auto.
-  exfalso. apply (unsat_excludes_every_legal_selection rows domains forbidden HU).
+  split; [exact HC | intros layout HL]. apply Nat.nlt_ge. intros HLT.
+  apply (unsat_excludes_every_legal_selection rows domains forbidden HU).
   exact (HCOV layout HL HLT).
 Qed.
 
@@ -161,11 +159,9 @@ Definition demo_selection : Selection := fun row => if row =? 0 then 0 else 1.
 Example demo_selection_legal : legal_selection 2 demo_domains demo_forbidden demo_selection.
 Proof.
   split.
-  - intros row HR. unfold demo_domains, demo_selection.
-    destruct (row =? 0); simpl; auto.
-  - intros a b HAB. simpl in HAB.
-    destruct HAB as [H | [H | H]]; try contradiction;
-    inversion H; subst; unfold demo_selection; simpl; intuition discriminate.
+  - intros row _. unfold demo_domains, demo_selection.
+    destruct (row =? 0); [left | right; left]; reflexivity.
+  - intros a b [H | [H | []]]; injection H as <- <-; intros [E0 E1]; discriminate.
 Qed.
 
 Example demo_assignment_satisfies :
@@ -175,9 +171,8 @@ Proof. apply legal_selection_has_encoded_witness. exact demo_selection_legal. Qe
 Example conflicting_assignment_rejected :
   ~ encoded_sat 2 demo_domains demo_forbidden (fun _ value => value =? 0).
 Proof.
-  intros [_ [_ HP]]. specialize (HP (0, 0) (1, 0)).
-  assert (H : In ((0, 0), (1, 0)) demo_forbidden) by (simpl; auto).
-  specialize (HP H). simpl in HP. intuition discriminate.
+  intros [_ [_ HP]].
+  destruct (HP (0, 0) (1, 0) (in_eq _ _)) as [H | H]; discriminate H.
 Qed.
 
 Print Assumptions legal_selection_has_encoded_witness.
