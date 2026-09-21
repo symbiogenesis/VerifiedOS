@@ -47,6 +47,8 @@ function test_encode_decode_round_trips() -> unit = {
   assert(capBitsToCapability(false, capToBits(null_cap)) == null_cap);
   assert(capBitsToCapability(true, capToBits(default_cap)) == default_cap);
   assert(capBitsToCapability(true, capToBits(root_data_cap)) == root_data_cap);
+  assert(capBitsToCapability(true, capToBits(root_seal_cap)) == root_seal_cap);
+  assert(capBitsToCapability(true, capToBits(root_unseal_cap)) == root_unseal_cap);
   foreach (i from 0 to 63) {
     let pattern : CapBits = 0x9e3779b97f4a7c15 ^ (ones() >> i);
     assert(capToBits(capBitsToCapability(false, pattern)) == pattern);
@@ -108,7 +110,7 @@ function test_permission_narrowing_is_monotone() -> unit = {
   }
 }
 
-// The reset roots are a **pair**, because the lattice makes one almighty root
+// The memory roots are a pair, because the lattice makes one almighty root
 // inexpressible: the execute side carries no store permission and the store
 // side no execute permission (R-15-007l, R-15-007p).
 $[test]
@@ -123,6 +125,33 @@ function test_the_root_set_is_split() -> unit = {
   assert(cap_store_local_cap(root_data_cap));
   assert(cap_global(default_cap) & cap_global(root_data_cap));
   assert(not(cap_global(null_cap)));
+}
+
+$[test]
+function test_reset_object_type_roots_and_register_inventory() -> unit = {
+  ext_reset();
+  foreach (i from 0 to 31) {
+    let expected : Capability = match i {
+      1 => root_data_cap,
+      2 => root_seal_cap,
+      3 => root_unseal_cap,
+      _ => null_cap,
+    };
+    assert(C(encdec_reg(to_bits(5, i))) == expected);
+  };
+  assert(PCC == default_cap & nextPCC == default_cap);
+  assert(MTCC == default_cap & MEPCC == default_cap & MTDC == null_cap);
+  let (seal_base, seal_top) = getCapBounds(root_seal_cap);
+  let (unseal_base, unseal_top) = getCapBounds(root_unseal_cap);
+  assert(seal_base == 0 & seal_top == 13);
+  assert(unseal_base == 0 & unseal_top == 13);
+  assert(getCapCursor(root_seal_cap) == 0 & getCapCursor(root_unseal_cap) == 0);
+  assert(getCapPerms(root_seal_cap) == 0x201);
+  assert(getCapPerms(root_unseal_cap) == 0x401);
+  assert(capToMemBits(root_seal_cap) == 0xf07c00d000000000);
+  assert(capToMemBits(root_unseal_cap) == 0xf87c00d000000000);
+  assert(memBitsToCapability(true, capToMemBits(root_seal_cap)) == root_seal_cap);
+  assert(memBitsToCapability(true, capToMemBits(root_unseal_cap)) == root_unseal_cap);
 }
 
 // *****************************************************************
