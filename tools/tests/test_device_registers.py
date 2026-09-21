@@ -40,6 +40,8 @@ def _current_layout_and_shift_mutant() -> None:
         layout = regs.read(root)
         ensure(any(name == "trng_health_complete" and field.lsb == 32
                    for name, field in layout.fields), "health complete bit must be bound")
+        ensure(any(name == "htif_tohost_exit_code" and field.lsb == 1 and field.width == 47
+                   for name, field in layout.fields), "shifted exit status must have an explicit view")
         artifacts = regs.generated(root)
         for relative, text in artifacts.items():
             path = root / relative
@@ -64,7 +66,7 @@ def _omitted_field_loses_review() -> None:
 
 
 def _invalid_layouts_refuse() -> None:
-    for defect in ("overlap", "outside", "duplicate", "view", "shift", "bit_width", "offset"):
+    for defect in ("overlap", "outside", "duplicate", "view", "shift", "bit_width", "offset", "unbound", "empty"):
         tree = dict(_fixture())
         declaration = json.loads(tree[regs.DECLARATION])
         register = declaration["harness"]["htif"]["registers"][0]
@@ -87,11 +89,17 @@ def _invalid_layouts_refuse() -> None:
             declaration["platform"]["trng"]["registers"][1]["fields"][0]["lsb"] = 1
             expected = "unshifted source field must start at bit zero"
         elif defect == "bit_width":
-            register["views"][-1]["width"] = 2
+            next(view for view in register["views"] if view["name"] == "exit_flag")["width"] = 2
             expected = "single-bit source binding must have width one"
-        else:
+        elif defect == "offset":
             register["offset"] = 8
             expected = "base-relative source binding must have offset zero"
+        elif defect == "unbound":
+            register["bindings"] = []
+            expected = "no register model correspondence"
+        else:
+            register["bindings"][0]["contains"] = "// only a comment"
+            expected = "model binding contains no source tokens"
         tree[regs.DECLARATION] = _review_layout(declaration)
         _refused(tree, expected)
 

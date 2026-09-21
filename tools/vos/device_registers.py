@@ -65,7 +65,7 @@ def _array(value: Json, where: str) -> list[Json]:
 
 
 def _text(value: Json, where: str) -> str:
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         raise RegisterError(f"{where}: expected nonempty text")
     return value
 
@@ -167,6 +167,8 @@ def _binding(node: Json, bundle: sailbundle.Bundle, substitutions: dict[str, str
     if "${" in template:
         raise RegisterError(f"{where}: unresolved layout substitution")
     needle = normalized(template)
+    if not needle:
+        raise RegisterError(f"{where}: model binding contains no source tokens")
     pattern = (r"(?<![A-Za-z0-9_])" if needle[0].isalnum() or needle[0] == "_" else "")
     pattern += re.escape(needle)
     pattern += r"(?![A-Za-z0-9_])" if needle[-1].isalnum() or needle[-1] == "_" else ""
