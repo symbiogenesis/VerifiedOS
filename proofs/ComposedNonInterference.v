@@ -431,11 +431,7 @@ Lemma quantifier_domains_inhabited :
   /\ inhabited leaky_ensemble.(Member) /\ inhabited leaky_ensemble.(Link)
   /\ inhabited leaky_ensemble.(EnsInput).
 Proof.
-  exact (conj (inhabits true)
-          (conj (inhabits tt)
-            (conj (inhabits tt)
-              (conj (inhabits true)
-                (conj (inhabits tt) (inhabits true)))))).
+  repeat constructor.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -457,7 +453,7 @@ Proof.
   - intros m. exact statement_inhabitation_witness.
   - intros l. split; exact I.
   - split.
-    + intros m. split; [exact I | intros c _ contra; exact contra].
+    + intros m. exact (proj1 premises_inhabited).
     + intros l. split; exact I.
   - intros m. exact I.
 Qed.
@@ -493,7 +489,7 @@ Lemma leaky_wire_is_permitted :
   ensemble_admissible leaky_ensemble leaky_adversary.
 Proof.
   split.
-  - intros m. split; [exact I | intros c _ contra; exact contra].
+  - intros m. split; [exact I | intros c _ []].
   - intros l. split; reflexivity.
 Qed.
 
@@ -503,12 +499,11 @@ Lemma composed_noninterference_distinguishing_instance :
 Proof.
   intros H.
   assert (Hind : ensemble_indist leaky_ensemble leaky_adversary true false).
-  { intros m; destruct m; cbn; (split; [reflexivity | intro Hc; discriminate Hc]). }
+  { intros m; destruct m; (split; [reflexivity | discriminate]). }
   specialize (H (fun _ => conj I (conj I (conj I (conj I I)))) leaky_members_hold
                 (fun _ => conj I I) leaky_adversary leaky_wire_is_permitted
                 true false Hind).
   destruct (H true) as [Hvalue _].
-  cbv in Hvalue.
   discriminate Hvalue.
 Qed.
 
@@ -569,10 +564,9 @@ Lemma link_premise_carries_vacuity_and_not_contribution :
          vacuous_ensemble vacuous_adversary true false.
 Proof.
   split; [| split].
-  - intros _ _ Hlink. destruct (Hlink tt) as [_ Hbad]. destruct Hbad.
-  - intros m; destruct m; cbn; (split; [reflexivity | intro Hc; discriminate Hc]).
-  - intros H. destruct (H true) as [Hvalue _]. cbv in Hvalue.
-    discriminate Hvalue.
+  - intros _ _ Hlink. destruct (Hlink tt) as [_ []].
+  - intros m; destruct m; (split; [reflexivity | discriminate]).
+  - intros H. destruct (H true) as [Hvalue _]. discriminate Hvalue.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -588,9 +582,7 @@ Lemma endpoint_labels_decide_something :
   endpoints_share_a_label trivial_ensemble tt
   /\ ~ endpoints_share_a_label leaky_ensemble tt.
 Proof.
-  split.
-  - reflexivity.
-  - intros Hc. cbv in Hc. discriminate Hc.
+  split; [reflexivity | intros Hc; discriminate Hc].
 Qed.
 
 (* -------------------------------------------------------------------------
