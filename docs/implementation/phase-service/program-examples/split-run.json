@@ -1,0 +1,39 @@
+{
+  "schema": "phase-program-v1",
+  "name": "synthetic-split-run",
+  "resources_sha256": "b992eef9a9134b041e059aa164cee23af5061790e6a34b069d856e54776136e1",
+  "phases": [
+    {
+      "grant": 1,
+      "refresh": []
+    },
+    {
+      "grant": 1,
+      "refresh": []
+    }
+  ],
+  "harts": {
+    "X": [
+      {
+        "id": "sx",
+        "start": 0,
+        "length": 2,
+        "alternatives": [
+          [
+            {
+              "bank": "b0",
+              "operation": "rd",
+              "gap": 0
+            },
+            {
+              "bank": "b1",
+              "operation": "rd",
+              "gap": 0
+            }
+          ]
+        ]
+      }
+    ],
+    "Y": []
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "phase-program-v1",
+  "name": "synthetic-refresh-stall",
+  "resources_sha256": "b992eef9a9134b041e059aa164cee23af5061790e6a34b069d856e54776136e1",
+  "phases": [
+    {
+      "grant": 1,
+      "refresh": [
+        "b0"
+      ]
+    },
+    {
+      "grant": 1,
+      "refresh": []
+    },
+    {
+      "grant": 1,
+      "refresh": []
+    }
+  ],
+  "harts": {
+    "X": [
+      {
+        "id": "sx",
+        "start": 0,
+        "length": 3,
+        "alternatives": [
+          [
+            {
+              "bank": "b0",
+              "operation": "rd",
+              "gap": 0
+            }
+          ]
+        ]
+      }
+    ],
+    "Y": []
+  }
+}
