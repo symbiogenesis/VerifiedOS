@@ -183,10 +183,8 @@ Theorem successful_release_is_prefix_independent : forall m b t p q,
   padded_release m b t (prefix_cost q + full_switch_cost m b).
 Proof.
   intros m b t p q Hp Hq.
-  rewrite (padding_fixes_successful_release m b t _
-    (boundary_bounds_declared_prefix m b p Hp)).
-  rewrite (padding_fixes_successful_release m b t _
-    (boundary_bounds_declared_prefix m b q Hq)). reflexivity.
+  now rewrite 2!padding_fixes_successful_release
+    by (apply boundary_bounds_declared_prefix; assumption).
 Qed.
 
 (* Pointwise domination also permits adding cases: each old declared case
@@ -219,9 +217,8 @@ Theorem boundary_components_monotone : forall m n b c,
 Proof.
   intros m n b c Hf Hv Ho Hctx Hcases.
   unfold boundary_cost, full_switch_cost, switch_cost.
-  apply bc_add_mono; [apply residency_max_monotone; exact Hcases |].
-  apply bc_add_mono; [|exact Hctx].
-  apply bc_add_mono; [apply bc_add_mono; assumption |exact Ho].
+  repeat apply bc_add_mono;
+    [apply residency_max_monotone; exact Hcases | exact Hf | exact Hv | exact Ho | exact Hctx].
 Qed.
 
 (* Arbitrary inhabited demonstrations: idle, live kernel, unbuffered
