@@ -428,8 +428,7 @@ Fixpoint two_pow (n : nat) : nat :=
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
+  intros a b H. destruct a, b; try discriminate H. split; reflexivity.
 Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
@@ -438,25 +437,25 @@ Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
 Proof.
-  intros a b H Ha. unfold only_if in H. rewrite Ha in H. simpl in H. exact H.
+  intros a b H Ha. rewrite Ha in H. exact H.
 Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma nat_eqb_true : forall a b : nat, Nat.eqb a b = true -> a = b.
 Proof.
   intros a. induction a as [ | x IH ]; intros b H; destruct b as [ | y ];
     try discriminate H.
   - reflexivity.
-  - simpl in H. rewrite (IH y H). reflexivity.
+  - rewrite (IH y H). reflexivity.
 Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma nat_leb_succ : forall n : nat, Nat.leb n (S n) = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
@@ -701,8 +700,7 @@ Proof. intros i. destruct i; reflexivity. Qed.
 
 Lemma inv_eqb_true : forall i j : Invocation, inv_eqb i j = true -> i = j.
 Proof.
-  intros i j. destruct i; destruct j; simpl; intros H;
-    try discriminate H; reflexivity.
+  intros i j H. destruct i, j; try discriminate H; reflexivity.
 Qed.
 
 Definition group_eqb (a b : AbiGroup) : bool :=
@@ -862,11 +860,7 @@ Proof. intros i. destruct i; reflexivity. Qed.
 (*| discharges: R-07-031a, R-07-031b |*)
 Theorem the_specification_grouping_makes_the_entrys_assignment :
   AssignsTheGroupsTheEntryAssigns group_of.
-Proof.
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | split; reflexivity ].
-Qed.
+Proof. exact (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))). Qed.
 
 (* S9c: and the emptiness is a consequence of that assignment rather than a
    clause beside it, which is R-07-031b's *the notification group is empty,
@@ -997,23 +991,17 @@ Definition traps_with_the_schedule_transitions (a : Act) : bool :=
 Theorem the_files_own_trap_surface_is_admissible :
   AdmissibleTrapSurface traps_act.
 Proof.
-  split; [ intros i; destruct i; reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  intros a H. destruct a; first [ discriminate H | reflexivity ].
+  refine (conj _ (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl _))))).
+  - intros i. destruct i; reflexivity.
+  - intros a H. destruct a; first [ discriminate H | reflexivity ].
 Qed.
 
 Theorem the_syscall_carried_trap_surface_is_admissible :
   AdmissibleTrapSurface traps_with_the_schedule_transitions.
 Proof.
-  split; [ intros i; destruct i; reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  intros a H. destruct a; first [ discriminate H | reflexivity ].
+  refine (conj _ (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl _))))).
+  - intros i. destruct i; reflexivity.
+  - intros a H. destruct a; first [ discriminate H | reflexivity ].
 Qed.
 
 (* And the criterion does exclude something, which is what makes admitting
@@ -1038,12 +1026,9 @@ Theorem the_polled_yield_surface_is_inadmissible :
   /\ (forall a : Act, deleted_act a = true ->
         the_polled_yield_surface a = false).
 Proof.
-  split; [ intros [ H _ ]; specialize (H PollSiteYield); discriminate H | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  split; [ reflexivity | ].
-  intros a H. unfold the_polled_yield_surface.
-  destruct a; first [ discriminate H | reflexivity ].
+  refine (conj _ (conj eq_refl (conj eq_refl (conj eq_refl _)))).
+  - intros [ H _ ]. discriminate (H PollSiteYield).
+  - intros a H. destruct a; first [ discriminate H | reflexivity ].
 Qed.
 
 (* R-08-032's clause: the signal is a store to an interrupt file, so a
@@ -1079,12 +1064,10 @@ Theorem the_trapping_opcode_surface_is_inadmissible :
   /\ the_trapping_opcode_surface ANotifyReceive = false
   /\ the_trapping_opcode_surface AGrantMint = false.
 Proof.
-  split.
+  refine (conj _ (conj _ (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))))).
   - intros [ _ [ _ [ _ [ _ [ _ H ] ] ] ] ].
-    specialize (H ASubmissionQueueOpcode eq_refl). discriminate H.
-  - split; [ intros i; destruct i; reflexivity | ].
-    split; [ reflexivity | ].
-    split; [ reflexivity | split; reflexivity ].
+    discriminate (H ASubmissionQueueOpcode eq_refl).
+  - intros i. destruct i; reflexivity.
 Qed.
 
 (* The three refused surfaces beside the two admitted ones, act by act, so
@@ -1262,8 +1245,7 @@ Definition InventoryIsClosedAtThree (l : list Nameable) : Prop :=
 Lemma inventory_ok_sound :
   forall l : list Nameable, inventory_ok l = true -> InventoryIsClosedAtThree l.
 Proof.
-  intros l H. unfold inventory_ok in H.
-  destruct (andb_split _ _ H) as [ H1 H2 ]. exact (conj H1 H2).
+  intros l H. unfold inventory_ok in H. exact (andb_split _ _ H).
 Qed.
 
 Lemma inventory_ok_complete :
@@ -1333,8 +1315,7 @@ Definition DistinguishesTheClassesFromTheTables (f : Lifecycles) : Prop :=
 Theorem the_specification_gives_no_table_a_lifecycle :
   NoTableHasALifecycle spec_lifecycles.
 Proof.
-  intros c op H. unfold spec_lifecycles. destruct c; simpl in H;
-    try discriminate H; reflexivity.
+  intros c op H. destruct c; try discriminate H; reflexivity.
 Qed.
 
 (*| discharges: R-07-027a |*)
@@ -1352,8 +1333,7 @@ Theorem the_revoke_only_lifecycle_discharges_both :
   /\ DistinguishesTheClassesFromTheTables revoke_only_lifecycle.
 Proof.
   split.
-  - intros c op H. unfold revoke_only_lifecycle. destruct c; simpl in H;
-      try discriminate H; reflexivity.
+  - intros c op H. destruct c; try discriminate H; reflexivity.
   - exists NEndpoint. exists LRevoke. exact (conj eq_refl eq_refl).
 Qed.
 
@@ -1407,9 +1387,7 @@ Theorem the_badge_return_path_discharges_all_four :
   /\ SpendsNoObjectType badge_return
   /\ MintsNothingAtRuntime badge_return
   /\ RepliesByAnAdmittedInvocation badge_return.
-Proof.
-  split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ].
-Qed.
+Proof. exact (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))). Qed.
 
 (* =========================================================================
    The frozen surface: where a member stands in the numbered sequence, and
@@ -1451,8 +1429,7 @@ Definition IsTheFrozenSurface (l : list Invocation) : Prop :=
 Lemma frozen_surface_sound :
   forall l : list Invocation, frozen_surface l = true -> IsTheFrozenSurface l.
 Proof.
-  intros l H i. unfold frozen_surface in H. unfold all_invocations in H.
-  simpl in H.
+  intros l H i. unfold frozen_surface, all_invocations in H. simpl in H.
   destruct (andb_split _ _ H) as [ H1 R1 ].
   destruct (andb_split _ _ R1) as [ H2 R2 ].
   destruct (andb_split _ _ R2) as [ H3 R3 ].
@@ -1467,9 +1444,9 @@ Qed.
 Lemma frozen_surface_complete :
   forall l : list Invocation, IsTheFrozenSurface l -> frozen_surface l = true.
 Proof.
-  intros l H. unfold frozen_surface. unfold all_invocations. simpl.
-  rewrite (H Send). rewrite (H Receive). rewrite (H PollSiteYield).
-  rewrite (H GrantRedeem). rewrite (H Revoke). reflexivity.
+  intros l H. unfold frozen_surface, all_invocations. simpl.
+  rewrite (H Send), (H Receive), (H PollSiteYield), (H GrantRedeem), (H Revoke).
+  reflexivity.
 Qed.
 
 (* The contrapositive, which is the shape every refusal below is stated in:
@@ -1526,10 +1503,9 @@ Proof.
   intros l. induction l as [ | x r IH ]; intros i k H.
   - discriminate H.
   - simpl in H. destruct (inv_eqb i x) eqn:E.
-    + injection H as Hk. rewrite <- Hk. simpl.
-      rewrite (inv_eqb_true i x E). reflexivity.
+    + injection H as Hk. rewrite <- Hk, (inv_eqb_true i x E). reflexivity.
     + destruct (pos_inv i r) as [ j | ] eqn:F; [ | discriminate H ].
-      injection H as Hk. rewrite <- Hk. simpl. exact (IH i j F).
+      injection H as Hk. rewrite <- Hk. exact (IH i j F).
 Qed.
 
 (* S10 (R-07-031b): two members with the same number are the same member. *)
@@ -1539,9 +1515,8 @@ Theorem the_number_determines_the_invocation :
     pos_inv i l = Some k -> pos_inv j l = Some k -> i = j.
 Proof.
   intros l i j k Hi Hj.
-  assert (Ai : nth_inv l k = Some i) by exact (pos_inv_nth l i k Hi).
-  assert (Aj : nth_inv l k = Some j) by exact (pos_inv_nth l j k Hj).
-  rewrite Ai in Aj. injection Aj as Aj. rewrite Aj. reflexivity.
+  pose proof (pos_inv_nth l j k Hj) as Aj.
+  rewrite (pos_inv_nth l i k Hi) in Aj. injection Aj as Aj. exact Aj.
 Qed.
 
 (* S10a: and the other half, without which *dispatched by that number* would
@@ -1679,9 +1654,7 @@ Proof.
     + apply nat_leb_succ.
     + apply nat_leb_refl.
   - destruct l as [ | a r ]; [ reflexivity | ].
-    simpl. destruct (inv_eqb i a).
-    + simpl. exact (IH i r).
-    + exact (IH i r).
+    simpl. destruct (inv_eqb i a); exact (IH i r).
 Qed.
 
 Lemma occurrences_of_swap :
@@ -1703,8 +1676,7 @@ Theorem no_transposition_leaves_the_frozen_surface :
   forall (n : nat) (l : list Invocation),
     frozen_surface l = true -> frozen_surface (swap_at_inv n l) = true.
 Proof.
-  intros n l H. unfold frozen_surface in H |- *.
-  unfold all_invocations in H |- *. simpl in H |- *.
+  intros n l H. unfold frozen_surface, all_invocations. simpl.
   repeat rewrite (occurrences_of_swap n). exact H.
 Qed.
 
@@ -1737,8 +1709,8 @@ Theorem no_insertion_of_a_present_member_meets_the_obligation :
     IsTheFrozenSurface l -> ~ IsTheFrozenSurface (insert_at_inv n i l).
 Proof.
   intros n i l H C.
-  assert (Hb : Nat.eqb (occurrences_inv i (insert_at_inv n i l)) 1 = false) by
-    exact (no_insertion_of_a_present_member_is_the_frozen_surface n i l (H i)).
+  pose proof (no_insertion_of_a_present_member_is_the_frozen_surface n i l (H i))
+    as Hb.
   rewrite (C i) in Hb. discriminate Hb.
 Qed.
 
@@ -1973,9 +1945,7 @@ Theorem every_generated_badge_has_the_declared_width :
 Proof.
   intros w. induction w as [ | k IH ].
   - reflexivity.
-  - simpl. apply all_of_app_intro.
-    + apply all_of_map. exact IH.
-    + apply all_of_map. exact IH.
+  - simpl. apply all_of_app_intro; apply all_of_map; exact IH.
 Qed.
 
 (* S13a: and the badge space is two to the declared width, which is the
@@ -1986,11 +1956,7 @@ Theorem the_badge_space_is_two_to_the_declared_width :
 Proof.
   intros w. induction w as [ | k IH ].
   - reflexivity.
-  - change (count_of (app (map_over (cons true) (badges k))
-                          (map_over (cons false) (badges k)))
-            = Nat.add (two_pow k) (two_pow k)).
-    rewrite count_of_app. rewrite count_of_map. rewrite count_of_map.
-    rewrite IH. reflexivity.
+  - simpl. rewrite count_of_app, count_of_map, count_of_map, IH. reflexivity.
 Qed.
 
 (* =========================================================================
@@ -2090,21 +2056,21 @@ Definition ResumesNoPartition (t : Transfer) : Prop :=
 (*| discharges: R-07-029, R-07-029a |*)
 Theorem the_specification_refuses_with_no_ready_peer :
   RefusesWithNoReadyPeer spec_transfer.
-Proof. intros k st o H. unfold said, spec_transfer. simpl. rewrite H. reflexivity. Qed.
+Proof. intros k st o H. unfold said, spec_transfer. rewrite H. reflexivity. Qed.
 
 (*| discharges: R-07-029, R-07-029a |*)
 Theorem the_specification_rendezvous_with_a_ready_peer :
   RendezvousWithAReadyPeer spec_transfer.
-Proof. intros k st o H. unfold said, spec_transfer. simpl. rewrite H. reflexivity. Qed.
+Proof. intros k st o H. unfold said, spec_transfer. rewrite H. reflexivity. Qed.
 
 (*| discharges: R-07-029a |*)
 Theorem the_specification_parks_nothing : ParksNothing spec_transfer.
-Proof. intros k st o H. unfold after, spec_transfer. simpl. exact H. Qed.
+Proof. intros k st o H. unfold after, spec_transfer. exact H. Qed.
 
 (*| discharges: R-07-029a, R-07-037a |*)
 Theorem the_specification_leaves_no_partition_waiting :
   LeavesNoPartitionWaiting spec_transfer.
-Proof. intros k st o p H. unfold after, spec_transfer. simpl. exact H. Qed.
+Proof. intros k st o p H. unfold after, spec_transfer. exact H. Qed.
 
 (*| discharges: R-07-029a |*)
 Theorem the_specification_resumes_no_partition :
@@ -2120,7 +2086,7 @@ Theorem the_outcome_is_the_readiness_bit :
   forall (k : Kernel) (st : Readiness) (o : Offer),
     is_refused (said spec_transfer k st o) = negb (st o.(offer_at)).
 Proof.
-  intros k st o. unfold said, spec_transfer. simpl.
+  intros k st o. unfold said, spec_transfer.
   destruct (st o.(offer_at)); reflexivity.
 Qed.
 
@@ -2142,8 +2108,7 @@ Definition spec_run (st : Readiness) (o : Offer) : Outcome :=
 Theorem the_specification_carries_nothing_where_nothing_crossed :
   CarriesNothingWhereNothingCrossed Outcome delivered spec_run.
 Proof.
-  intros st o H. unfold spec_run, said, spec_transfer. simpl.
-  rewrite H. reflexivity.
+  intros st o H. unfold spec_run, said, spec_transfer. rewrite H. reflexivity.
 Qed.
 
 (* R-07-029a's Fail-closed clause: a refusal costs the caller its own
@@ -2229,7 +2194,7 @@ Proof.
   intros t Hr st Hst k l. generalize dependent k.
   induction l as [ | o s IH ]; intros k.
   - reflexivity.
-  - simpl. rewrite (Hr k st o (Hst o.(offer_at))). simpl. exact (IH (after t k st o)).
+  - simpl. rewrite (Hr k st o (Hst o.(offer_at))). exact (IH (after t k st o)).
 Qed.
 
 (* =========================================================================
@@ -2549,9 +2514,8 @@ Proof.
   intros st Hs l. induction l as [ | x r IH ]; intros u Hu f pred b.
   - reflexivity.
   - simpl in Hu. destruct (Nat.eqb u x) eqn:E.
-    + simpl in Hu. discriminate Hu.
-    + simpl in Hu. simpl.
-      rewrite (IH u Hu (st pred x f) x b). exact (Hs pred x u b f E).
+    + discriminate Hu.
+    + simpl. rewrite (IH u Hu (st pred x f) x b). exact (Hs pred x u b f E).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -2576,7 +2540,7 @@ Proof.
   - simpl in Ha. destruct (andb_split _ _ Ha) as [ Hx Hr ].
     simpl in Ho. destruct (Nat.eqb x u) eqn:E.
     + rewrite <- (nat_eqb_true x u E). exact Hx.
-    + simpl in Ho. exact (IH u Hr Ho).
+    + exact (IH u Hr Ho).
 Qed.
 
 (* S33 (R-07-037d): in an admissible group every observation of a sibling's
@@ -2591,13 +2555,10 @@ Theorem an_admissible_group_keeps_the_residue_in_domain :
     m.(label) u = m.(label) v.
 Proof.
   intros m g u v Hg Hu Hv.
-  assert (Au : Nat.eqb (m.(label) u) (m.(label) (head_or g u)) = true) by
-    exact (all_of_member _ g u Hg Hu).
-  assert (Av : Nat.eqb (m.(label) v) (m.(label) (head_or g v)) = true) by
-    exact (all_of_member _ g v Hg Hv).
+  pose proof (all_of_member _ g u Hg Hu) as Au.
+  pose proof (all_of_member _ g v Hg Hv) as Av.
   destruct g as [ | x r ]; [ discriminate Hu | ].
-  simpl in Au. simpl in Av.
-  rewrite (nat_eqb_true _ _ Au). rewrite (nat_eqb_true _ _ Av). reflexivity.
+  rewrite (nat_eqb_true _ _ Au), (nat_eqb_true _ _ Av). reflexivity.
 Qed.
 
 (* R-07-037d's third accept clause, which is the permissive reading's own
@@ -3090,8 +3051,8 @@ Theorem the_schedule_numbering_is_refuted :
   /\ ~ NumbersNothingElse schedule_numbering.
 Proof.
   split.
-  - intros i. unfold schedule_numbering. destruct i; reflexivity.
-  - intros H. specialize (H AFocusRebind eq_refl). discriminate H.
+  - intros i. destruct i; reflexivity.
+  - intros H. discriminate (H AFocusRebind eq_refl).
 Qed.
 
 (* And a numbering that gives a notification half a number, which is reading
@@ -3109,8 +3070,8 @@ Theorem the_notification_numbering_is_refuted :
   /\ ~ NumbersNothingElse notification_numbering.
 Proof.
   split.
-  - intros i. unfold notification_numbering. destruct i; reflexivity.
-  - intros H. specialize (H ANotifySignal eq_refl). discriminate H.
+  - intros i. destruct i; reflexivity.
+  - intros H. discriminate (H ANotifySignal eq_refl).
 Qed.
 
 Example the_two_added_numberings_agree_with_the_specification_elsewhere :
@@ -3132,8 +3093,8 @@ Theorem the_iouring_numbering_is_refuted :
   NumbersEveryInvocation iouring_numbering /\ ~ NumbersNothingElse iouring_numbering.
 Proof.
   split.
-  - intros i. unfold iouring_numbering. destruct i; reflexivity.
-  - intros H. specialize (H ASubmissionQueueOpcode eq_refl). discriminate H.
+  - intros i. destruct i; reflexivity.
+  - intros H. discriminate (H ASubmissionQueueOpcode eq_refl).
 Qed.
 
 (* R-07-027a's first arm not taken: a fifth ABI group carrying a reply act.
@@ -3147,8 +3108,8 @@ Theorem the_fifth_group_numbering_is_refuted :
   /\ ~ NumbersNothingElse fifth_group_numbering.
 Proof.
   split.
-  - intros i. unfold fifth_group_numbering. destruct i; reflexivity.
-  - intros H. specialize (H AReplyInvocation eq_refl). discriminate H.
+  - intros i. destruct i; reflexivity.
+  - intros H. discriminate (H AReplyInvocation eq_refl).
 Qed.
 
 (* And the other side of the separation: a surface that numbers nothing but
@@ -3161,9 +3122,8 @@ Theorem the_short_numbering_drops_a_member :
   ~ NumbersEveryInvocation short_numbering /\ NumbersNothingElse short_numbering.
 Proof.
   split.
-  - intros H. specialize (H Revoke). discriminate H.
-  - intros a H. unfold short_numbering.
-    destruct a; first [ discriminate H | reflexivity ].
+  - intros H. discriminate (H Revoke).
+  - intros a H. destruct a; first [ discriminate H | reflexivity ].
 Qed.
 
 (* Reading 4's own refutation, which the census could not be: a grouping that
@@ -3179,7 +3139,7 @@ Theorem the_notifying_grouping_fills_the_notification_group :
   /\ ~ AssignsTheGroupsTheEntryAssigns notifying_grouping.
 Proof.
   split.
-  - intros H. specialize (H PollSiteYield). discriminate H.
+  - intros H. discriminate (H PollSiteYield).
   - intros [ _ [ _ [ H _ ] ] ]. discriminate H.
 Qed.
 
@@ -3191,10 +3151,7 @@ Theorem the_notifying_grouping_keeps_the_four_clauses_it_does_not_break :
   /\ notifying_grouping Receive = EndpointGroup
   /\ notifying_grouping GrantRedeem = RevocationGroup
   /\ notifying_grouping Revoke = RevocationGroup.
-Proof.
-  split; [ reflexivity | ].
-  split; [ reflexivity | split; reflexivity ].
-Qed.
+Proof. exact (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))). Qed.
 
 (* The grouping the coverage clause could not refuse, kept as the witness of
    why it could not: it files every one of the five under the group
@@ -3207,7 +3164,7 @@ Theorem the_all_notification_grouping_is_refuted :
   /\ ~ AssignsTheGroupsTheEntryAssigns all_notification_grouping.
 Proof.
   split.
-  - intros H. specialize (H Send). discriminate H.
+  - intros H. discriminate (H Send).
   - intros [ H _ ]. discriminate H.
 Qed.
 
@@ -3246,7 +3203,7 @@ Definition loaded_memory : Observation := fun _ => 4.
 Theorem the_submission_queue_dispatch_is_refuted :
   ~ DispatchesByTheNumberAlone submission_queue_dispatch.
 Proof.
-  intros H. specialize (H quiet_memory loaded_memory 0). discriminate H.
+  intros H. discriminate (H quiet_memory loaded_memory 0).
 Qed.
 
 (* And it agrees with the specification wherever the memory happens to hold
@@ -3267,7 +3224,7 @@ Definition table_designation : Designation := fun c =>
 
 Theorem the_table_designation_is_refuted :
   ~ DesignatesOnlyObjects table_designation.
-Proof. intros H. specialize (H 3). discriminate H. Qed.
+Proof. intros H. discriminate (H 3). Qed.
 
 (* And it names an object at every other index, so what refutes it is the
    one edge R-08-004d places outside the object classes. *)
@@ -3285,7 +3242,7 @@ Theorem the_table_lifecycle_is_refuted :
   /\ DistinguishesTheClassesFromTheTables table_lifecycle.
 Proof.
   split.
-  - intros H. specialize (H NScheduleTable LRevoke eq_refl). discriminate H.
+  - intros H. discriminate (H NScheduleTable LRevoke eq_refl).
   - exists NEndpoint. exists LRevoke. exact (conj eq_refl eq_refl).
 Qed.
 
@@ -3442,8 +3399,7 @@ Proof.
   split; [ intros k st o H; unfold said, queueing_transfer; rewrite H;
            reflexivity | ].
   split.
-  - intros H. specialize (H empty_kernel (fun _ => false) (offer_into 0) eq_refl).
-    discriminate H.
+  - intros H. discriminate (H empty_kernel (fun _ => false) (offer_into 0) eq_refl).
   - split.
     + intros k st o p H. unfold after, queueing_transfer.
       destruct (st o.(offer_at)); exact H.
@@ -3481,8 +3437,7 @@ Proof.
     destruct (st o.(offer_at)); exact H.
   - split.
     + intros H.
-      specialize (H empty_kernel (fun _ => false) (offer_into 0) 0 eq_refl).
-      discriminate H.
+      discriminate (H empty_kernel (fun _ => false) (offer_into 0) 0 eq_refl).
     + intros k st o p. unfold after, blocking_transfer.
       destruct (st o.(offer_at)); reflexivity.
 Qed.
@@ -3501,13 +3456,12 @@ Theorem the_waking_transfer_moves_another_partition :
   /\ LeavesNoPartitionWaiting waking_transfer
   /\ ~ ResumesNoPartition waking_transfer.
 Proof.
-  split; [ intros k st o H; unfold said, waking_transfer; simpl; rewrite H;
+  split; [ intros k st o H; unfold said, waking_transfer; rewrite H;
            reflexivity | ].
-  split; [ intros k st o H; unfold after, waking_transfer; simpl; exact H | ].
+  split; [ intros k st o H; unfold after, waking_transfer; exact H | ].
   split.
-  - intros k st o p H. unfold after, waking_transfer. simpl. exact H.
-  - intros H. specialize (H empty_kernel (fun _ => false) (offer_into 0) 0).
-    discriminate H.
+  - intros k st o p H. unfold after, waking_transfer. exact H.
+  - intros H. discriminate (H empty_kernel (fun _ => false) (offer_into 0) 0).
 Qed.
 
 (* An endpoint that never rendezvouses at all: it satisfies every other
@@ -3524,8 +3478,7 @@ Theorem the_deaf_transfer_never_rendezvouses :
 Proof.
   split; [ intros k st o H; reflexivity | ].
   split.
-  - intros H. specialize (H empty_kernel (fun _ => true) (offer_into 0) eq_refl).
-    discriminate H.
+  - intros H. discriminate (H empty_kernel (fun _ => true) (offer_into 0) eq_refl).
   - split; [ intros k st o H; exact H | ].
     split; [ intros k st o p H; exact H | intros k st o p; reflexivity ].
 Qed.
@@ -3540,10 +3493,9 @@ Theorem the_optimistic_transfer_crosses_to_an_unready_peer :
   /\ ResumesNoPartition (optimistic_at 1).
 Proof.
   split.
-  - intros H. specialize (H empty_kernel (fun _ => false) (offer_into 0) eq_refl).
-    discriminate H.
+  - intros H. discriminate (H empty_kernel (fun _ => false) (offer_into 0) eq_refl).
   - split.
-    + intros k st o H. unfold said, optimistic_at. simpl. rewrite H. reflexivity.
+    + intros k st o H. unfold said, optimistic_at. rewrite H. reflexivity.
     + split; [ intros k st o H; exact H | intros k st o p; reflexivity ].
 Qed.
 
@@ -3566,8 +3518,7 @@ Definition status_run (st : Readiness) (o : Offer) : StatusResult :=
 Theorem the_status_word_carries_what_did_not_cross :
   ~ CarriesNothingWhereNothingCrossed StatusResult status_delivered status_run.
 Proof.
-  intros H. specialize (H (fun _ => false) (offer_into 0) eq_refl).
-  discriminate H.
+  intros H. discriminate (H (fun _ => false) (offer_into 0) eq_refl).
 Qed.
 
 Example the_status_word_reports_the_refusal_correctly :
@@ -3598,7 +3549,7 @@ Definition retrying_refusal (i : Invocation) : nat :=
 
 Theorem the_retrying_refusal_is_refuted :
   ~ RefusalCostsItsOwnInvocation demo retrying_refusal.
-Proof. intros H. specialize (H Send). discriminate H. Qed.
+Proof. intros H. discriminate (H Send). Qed.
 
 Example the_retrying_refusal_is_still_bounded_for_the_yield :
   Nat.leb (retrying_refusal PollSiteYield) (demo.(invocation_cost) PollSiteYield)
@@ -3629,8 +3580,7 @@ Theorem the_ambient_grant_mints :
 Proof.
   split.
   - intros H.
-    specialize (H {| msg_regs := nil; msg_caps := nil |} (fun _ => false) 0 eq_refl).
-    discriminate H.
+    discriminate (H {| msg_regs := nil; msg_caps := nil |} (fun _ => false) 0 eq_refl).
   - intros msg h c H. unfold ambient_grant. rewrite H.
     destruct (h c); reflexivity.
 Qed.
@@ -3649,9 +3599,8 @@ Proof.
   - intros msg h c H. unfold stingy_grant in H. rewrite H. reflexivity.
   - split.
     + intros H.
-      specialize (H {| msg_regs := nil; msg_caps := cons 7 nil |}
-                    (fun _ => false) 7 eq_refl).
-      discriminate H.
+      discriminate (H {| msg_regs := nil; msg_caps := cons 7 nil |}
+                      (fun _ => false) 7 eq_refl).
     + intros msg h c H. reflexivity.
 Qed.
 
@@ -3672,9 +3621,8 @@ Proof.
   - split.
     + intros msg h c H. exact H.
     + intros H.
-      specialize (H {| msg_regs := nil; msg_caps := nil |} (fun _ => true) 7
-                    eq_refl).
-      discriminate H.
+      discriminate (H {| msg_regs := nil; msg_caps := nil |} (fun _ => true) 7
+                      eq_refl).
 Qed.
 
 (* =========================================================================
@@ -3751,7 +3699,7 @@ Theorem the_counting_signal_does_not_coalesce :
   /\ ResetIsDefined nat counting_armed counting_reset.
 Proof.
   split.
-  - intros H. specialize (H 0). discriminate H.
+  - intros H. discriminate (H 0).
   - intros w. reflexivity.
 Qed.
 
@@ -3778,7 +3726,7 @@ Theorem the_identity_reset_is_undefined :
 Proof.
   split.
   - intros w. reflexivity.
-  - intros H. specialize (H true). discriminate H.
+  - intros H. discriminate (H true).
 Qed.
 
 (* The lost wakeup: a consumer that decides on its pre-arming read alone
@@ -3793,9 +3741,8 @@ Theorem the_naive_decider_loses_a_wakeup :
 Proof.
   split.
   - intros H.
-    specialize (H {| produced := 2; consumed := 2 |}
-                  {| produced := 3; consumed := 2 |} eq_refl).
-    discriminate H.
+    discriminate (H {| produced := 2; consumed := 2 |}
+                    {| produced := 3; consumed := 2 |} eq_refl).
   - intros b n H. unfold naive_decide. rewrite H. reflexivity.
 Qed.
 
@@ -3810,9 +3757,8 @@ Proof.
   split.
   - intros b n H. unfold post_only_decide. rewrite H. reflexivity.
   - intros H.
-    specialize (H {| produced := 3; consumed := 2 |}
-                  {| produced := 2; consumed := 2 |} eq_refl).
-    discriminate H.
+    discriminate (H {| produced := 3; consumed := 2 |}
+                    {| produced := 2; consumed := 2 |} eq_refl).
 Qed.
 
 Example the_decider_truth_table :
@@ -3858,9 +3804,9 @@ Theorem the_unswapped_delivery_is_refuted_on_the_swap_arm :
   /\ ~ SwapsWhereASwapExists demo (unswapped_delivery demo)
   /\ ~ DoesNotVaryWithThePredecessor (unswapped_delivery demo).
 Proof.
-  split; [ intros H; specialize (H 0 1 1); discriminate H | ].
-  split; [ intros H; specialize (H eq_refl 0 1 1); discriminate H | ].
-  intros H. specialize (H 0 1 1 1). discriminate H.
+  split; [ intros H; discriminate (H 0 1 1) | ].
+  split; [ intros H; discriminate (H eq_refl 0 1 1) | ].
+  intros H. discriminate (H 0 1 1 1).
 Qed.
 
 (* And admitted on the other arm, by the observable rather than by an empty
@@ -3950,7 +3896,7 @@ Theorem the_head_member_delivery_separates_the_two_clauses :
   /\ DoesNotVaryWithThePredecessor (head_member_delivery demo).
 Proof.
   split.
-  - intros H. specialize (H 0 1 1). discriminate H.
+  - intros H. discriminate (H 0 1 1).
   - intros p q s b. reflexivity.
 Qed.
 
@@ -3964,7 +3910,7 @@ Definition sharing_step (react : nat -> nat -> bool) : Step :=
 Theorem the_sharing_step_overwrites_a_sibling :
   ~ LeavesEveryOtherMembersBitsAlone (sharing_step (fun _ _ => false)).
 Proof.
-  intros H. specialize (H 0 1 2 0 (fun _ _ => true) eq_refl). discriminate H.
+  intros H. discriminate (H 0 1 2 0 (fun _ _ => true) eq_refl).
 Qed.
 
 Example the_sharing_step_agrees_on_the_member_it_dispatches :
@@ -3983,7 +3929,7 @@ Definition clearing_step (react : nat -> nat -> bool) : Step :=
 Theorem the_clearing_step_loses_what_a_member_left :
   ~ LeavesEveryOtherMembersBitsAlone (clearing_step (fun _ _ => false)).
 Proof.
-  intros H. specialize (H 0 1 0 0 (fun _ _ => true) eq_refl). discriminate H.
+  intros H. discriminate (H 0 1 0 0 (fun _ _ => true) eq_refl).
 Qed.
 
 Example the_round_trip_restores_under_one_step_and_not_the_other :
@@ -4005,7 +3951,7 @@ Definition work_stealing_advance (m : Machine) : Advancer := fun obs u =>
 Theorem the_work_stealing_rotation_is_refuted :
   ~ IsCompositionFixedRotation (work_stealing_advance demo).
 Proof.
-  intros H. specialize (H (fun _ => 0) (fun _ => 1) 0). discriminate H.
+  intros H. discriminate (H (fun _ => 0) (fun _ => 1) 0).
 Qed.
 
 Example the_work_stealing_rotation_agrees_where_nothing_is_observed :
@@ -4045,7 +3991,7 @@ Definition predecessor_inference : Inference := fun s => Some s.
 
 Theorem the_predecessor_inference_is_refuted :
   ~ ClaimsNoParticularSibling predecessor_inference.
-Proof. intros H. specialize (H 0). discriminate H. Qed.
+Proof. intros H. discriminate (H 0). Qed.
 
 Definition base_residue : Residue := fun _ => 0.
 
