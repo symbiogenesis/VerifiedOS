@@ -232,11 +232,10 @@ Theorem accepted_slot_has_full_boundary : forall c mf s,
   Nat.leb (slot_bound s + boundary_cost c.(machine) c.(boundary_inputs)) (slot_width s) = true.
 Proof.
   intros c mf s H. unfold slot_fits in H.
-  destruct (boundary_nonempty (boundary_inputs c)) eqn:Hcases; [|discriminate H].
-  split; [reflexivity |].
+  destruct (boundary_nonempty (boundary_inputs c)); [|discriminate H].
   destruct (Nat.leb (slot_offset s + slot_width s) mf); [|discriminate H].
-  destruct (Nat.leb (slot_bound s + boundary_cost (machine c) (boundary_inputs c)) (slot_width s))
-    eqn:Hfit; [reflexivity |discriminate H].
+  destruct (Nat.leb (slot_bound s + boundary_cost (machine c) (boundary_inputs c)) (slot_width s));
+    [split; reflexivity | discriminate H].
 Qed.
 
 Theorem empty_cases_refuse_every_slot : forall c mf s,
@@ -281,7 +280,7 @@ Theorem empty_cases_refuse_every_frame : forall c f,
   residency_cases c.(boundary_inputs) = nil -> admits c f = false.
 Proof.
   intros c [mf ph res [focus background]] H.
-  unfold admits, frame_slots, band_slots. simpl.
+  unfold admits, frame_slots, band_slots.
   destruct res as [|s rest]; simpl;
     rewrite (empty_cases_refuse_every_slot c mf _ H); reflexivity.
 Qed.
@@ -320,10 +319,10 @@ Lemma same_geometry_app :
     SameGeometry a1 a2 -> SameGeometry b1 b2 ->
     SameGeometry (app a1 b1) (app a2 b2).
 Proof.
-  intros T a1 a2 b1 b2 Ha.
-  induction Ha as [ | s t l1 l2 Hw Ho Hb Hp Hrest IH ]; intros Hb2.
+  intros T a1 a2 b1 b2 Ha Hb2.
+  induction Ha as [ | s t l1 l2 Hw Ho Hb Hp Hrest IH ].
   - exact Hb2.
-  - simpl. apply SG_cons; try assumption. apply IH. exact Hb2.
+  - simpl. apply SG_cons; assumption.
 Qed.
 
 (* R-11-023's own act: the kernel permutes the slot-to-tenant map, the
@@ -378,12 +377,7 @@ Lemma frame_slots_reassign_same_geometry :
   forall (T : Type) (rts dts : list T) (f : Frame T),
     SameGeometry (frame_slots (reassign_frame rts dts f)) (frame_slots f).
 Proof.
-  intros T rts dts f.
-  change (SameGeometry
-            (app (reassign rts (reserved_band f))
-                 (band_slots (reassign_band dts (discretionary_band f))))
-            (app (reserved_band f) (band_slots (discretionary_band f)))).
-  apply same_geometry_app.
+  intros T rts dts f. apply same_geometry_app.
   - apply reassign_same_geometry.
   - apply band_slots_reassign_same_geometry.
 Qed.
@@ -407,7 +401,7 @@ Lemma slot_fits_same_geometry :
     slot_fits c mf s = slot_fits c mf t.
 Proof.
   intros c mf s t Hw Ho Hb Hp. unfold slot_fits.
-  rewrite Hw. rewrite Ho. rewrite Hb. rewrite Hp. reflexivity.
+  rewrite Hw, Ho, Hb, Hp. reflexivity.
 Qed.
 
 Lemma all_of_fits_same_geometry :
@@ -418,8 +412,7 @@ Proof.
   intros c mf l1 l2 H.
   induction H as [ | s t r1 r2 Hw Ho Hb Hp Hrest IH ].
   - reflexivity.
-  - simpl. rewrite (slot_fits_same_geometry c mf s t Hw Ho Hb Hp).
-    rewrite IH. reflexivity.
+  - simpl. rewrite (slot_fits_same_geometry c mf s t Hw Ho Hb Hp), IH. reflexivity.
 Qed.
 
 Lemma disjoint_from_same_geometry :
@@ -430,8 +423,7 @@ Proof.
   intros T s t l1 l2 Hw Ho H.
   induction H as [ | u v r1 r2 Hw2 Ho2 Hb2 Hp2 Hrest IH ].
   - reflexivity.
-  - simpl. unfold disjoint.
-    rewrite Hw. rewrite Ho. rewrite Hw2. rewrite Ho2. rewrite IH. reflexivity.
+  - simpl. unfold disjoint. rewrite Hw, Ho, Hw2, Ho2, IH. reflexivity.
 Qed.
 
 Lemma pairwise_disjoint_same_geometry :
@@ -441,8 +433,7 @@ Proof.
   intros T l1 l2 H.
   induction H as [ | s t r1 r2 Hw Ho Hb Hp Hrest IH ].
   - reflexivity.
-  - simpl. rewrite (disjoint_from_same_geometry T s t r1 r2 Hw Ho Hrest).
-    rewrite IH. reflexivity.
+  - simpl. rewrite (disjoint_from_same_geometry T s t r1 r2 Hw Ho Hrest), IH. reflexivity.
 Qed.
 
 (* S1 (R-11-023 and its criterion). Two frames of one geometry receive one
@@ -451,9 +442,9 @@ Qed.
 Theorem admission_is_occupancy_blind :
   forall c : Composition, OccupancyBlind c (admits c).
 Proof.
-  intros c f g Hmf Hgeo. unfold admits. rewrite Hmf.
-  rewrite (all_of_fits_same_geometry c (major_frame g) _ _ Hgeo).
-  rewrite (pairwise_disjoint_same_geometry (Tenant c) _ _ Hgeo).
+  intros c f g Hmf Hgeo. unfold admits.
+  rewrite Hmf, (all_of_fits_same_geometry c (major_frame g) _ _ Hgeo),
+    (pairwise_disjoint_same_geometry (Tenant c) _ _ Hgeo).
   reflexivity.
 Qed.
 
@@ -505,12 +496,12 @@ Lemma all_share_member :
     AllShare mf ph res rungs -> InFrame f rungs ->
     major_frame f = mf /\ phase_offset f = ph /\ reserved_band f = res.
 Proof.
-  intros T mf ph res rungs. induction rungs as [ | g r IH ]; intros f Hall Hin.
+  intros T mf ph res rungs f Hall Hin. induction rungs as [ | g r IH ].
   - destruct Hin.
   - destruct Hall as [ H1 [ H2 [ H3 Hrest ] ] ].
     destruct Hin as [ Heq | Hin ].
-    + rewrite <- Heq. split; [ exact H1 | split; [ exact H2 | exact H3 ] ].
-    + exact (IH f Hrest Hin).
+    + rewrite <- Heq. exact (conj H1 (conj H2 H3)).
+    + exact (IH Hrest Hin).
 Qed.
 
 (* S3 (R-11-020 and its criterion): the hard-deadline half of the verdict
@@ -525,8 +516,7 @@ Proof.
   intros c mf ph res rungs f g Hall Hf Hg.
   destruct (all_share_member _ _ _ _ _ _ Hall Hf) as [ Hmf1 [ _ Hres1 ] ].
   destruct (all_share_member _ _ _ _ _ _ Hall Hg) as [ Hmf2 [ _ Hres2 ] ].
-  unfold reserved_half.
-  rewrite Hmf1. rewrite Hmf2. rewrite Hres1. rewrite Hres2. reflexivity.
+  unfold reserved_half. rewrite Hmf1, Hmf2, Hres1, Hres2. reflexivity.
 Qed.
 
 (* S4 (R-11-014d, R-11-014a): no rung swap lengthens the frame or shifts a
@@ -541,9 +531,7 @@ Proof.
   intros T mf ph res rungs f g Hall Hf Hg.
   destruct (all_share_member _ _ _ _ _ _ Hall Hf) as [ Hmf1 [ Hph1 _ ] ].
   destruct (all_share_member _ _ _ _ _ _ Hall Hg) as [ Hmf2 [ Hph2 _ ] ].
-  split.
-  - rewrite Hmf1. rewrite Hmf2. reflexivity.
-  - rewrite Hph1. rewrite Hph2. reflexivity.
+  rewrite Hmf1, Hmf2, Hph1, Hph2. split; reflexivity.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -625,7 +613,7 @@ Theorem focus_shape_is_occupancy_blind :
   forall c : Composition, BandOccupancyBlind c (FocusShaped c).
 Proof.
   intros c ts b. unfold FocusShaped.
-  rewrite band_slots_reassign. rewrite total_width_reassign.
+  rewrite band_slots_reassign, total_width_reassign.
   destruct ts; reflexivity.
 Qed.
 
@@ -735,7 +723,7 @@ Theorem refusal_arm_grants_no_slot :
     outcome_slot (snd (arrive c choose_victim template t p)) = None.
 Proof.
   intros c choose_victim template t p Hfull Hnone.
-  unfold arrive. rewrite Hfull. rewrite Hnone. reflexivity.
+  unfold arrive. rewrite Hfull, Hnone. reflexivity.
 Qed.
 
 (* S8c (R-11-026): "no slot rather than a thinner one". No arm narrows a
@@ -747,10 +735,10 @@ Theorem no_arm_narrows_a_slot :
 Proof.
   intros c choose_victim template t p s H. unfold arrive in H.
   destruct (Nat.ltb (live_count p) c.(top_rung_capacity)).
-  - simpl in H. injection H as H. rewrite <- H. reflexivity.
+  - injection H as H. rewrite <- H. reflexivity.
   - destruct (choose_victim p).
-    + simpl in H. injection H as H. rewrite <- H. reflexivity.
-    + simpl in H. discriminate H.
+    + injection H as H. rewrite <- H. reflexivity.
+    + discriminate H.
 Qed.
 
 (* S8d (R-11-026): "suspension keeps state and removes a slot; it is not
@@ -768,7 +756,7 @@ Theorem suspension_is_not_termination :
        = Suspended (Tenant c) v (retenant_slot template t).
 Proof.
   intros c choose_victim template t p v Hfull Hvictim.
-  unfold arrive. rewrite Hfull. rewrite Hvictim. split; reflexivity.
+  unfold arrive. rewrite Hfull, Hvictim. split; reflexivity.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -801,7 +789,7 @@ Proof.
   intros T l1 l2 i t H. revert i.
   induction H as [ | s u r1 r2 Hw Ho Hb Hp Hrest IH ]; intros i.
   - reflexivity.
-  - simpl. rewrite Hw. rewrite Ho. rewrite IH. reflexivity.
+  - simpl. rewrite Hw, Ho, IH. reflexivity.
 Qed.
 
 (* =========================================================================
@@ -944,16 +932,14 @@ Proof. simpl. repeat split. Qed.
 
 Theorem demo_ladder_is_well_formed : WellFormedLadder demo_ladder.
 Proof.
-  exists 200. exists 0. exists demo_reserved. exact demo_ladder_all_share.
+  exists 200, 0, demo_reserved. exact demo_ladder_all_share.
 Qed.
 
 Theorem demo_ladder_admits : LadderAdmits demo_composition demo_ladder.
 Proof.
-  intros f Hin. simpl in Hin.
-  destruct Hin as [ Heq | [ Heq | Hempty ] ].
-  - rewrite <- Heq. exact rung_a_admits.
-  - rewrite <- Heq. exact rung_b_admits.
-  - destruct Hempty.
+  intros f [ <- | [ <- | [] ] ].
+  - exact rung_a_admits.
+  - exact rung_b_admits.
 Qed.
 
 (* S5's premises are satisfied by that ladder, so the table swap is proved
@@ -968,8 +954,8 @@ Proof.
   apply (rung_change_is_a_table_swap demo_composition demo_ladder
            200 0 demo_reserved rung_a rung_b
            demo_ladder_all_share demo_ladder_admits).
-  - simpl. left. reflexivity.
-  - simpl. right. left. reflexivity.
+  - left. reflexivity.
+  - right. left. reflexivity.
 Qed.
 
 (* =========================================================================
