@@ -30,6 +30,12 @@
    The computed checks are decided inside the kernel by conversion and print
    nothing.
 
+   The sealing-aware ABI distribution is refined in MModeFirmwareSealing.v.
+   That module preserves this Handoff and its root/residency obligations while
+   comparing installed tag, seal, locality and exact entry-site fields. This
+   file's original ASR checker remains the stricter seal-erased predicate; it
+   cannot qualify exported switcher sentries on its own.
+
    No Require. Nothing beyond the Coq prelude is reachable, so Classical
    and FunctionalExtensionality are unavailable and every state equality
    below is stated pointwise for that reason. A Require naming a sibling
