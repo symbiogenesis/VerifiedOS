@@ -191,7 +191,7 @@ def serve(e: env.Environment) -> int:
     executable = home(e) / "prefix/bin/sail_lsp"
     log = e.log("sail-lsp-server")
     log.parent.mkdir(parents=True, exist_ok=True)
-    return subprocess.run([str(executable), "--stdio", "--log-file", str(log)], cwd=e.root,
+    return subprocess.run([str(executable), "--stdio", "--log-file", str(log)], cwd=home(e),
                           env=server_environment(e), check=False).returncode
 
 
