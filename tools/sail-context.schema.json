@@ -66,7 +66,7 @@
           "score": {"$ref": "#/$defs/count"},
           "matched_terms": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
         },
-        "description": "One declaration/clause or incoming compiler link. Lines and Unicode code-point columns are one-based; byte offsets are zero-based and ends exclusive. A link excerpt contains its source line, while a declaration excerpt starts at its span. Excerpt offsets identify the returned, possibly shortened text. Link target names may differ from source spelling for compiler aliases."
+        "description": "One declaration/clause or incoming compiler link. Lines and Unicode code-point columns are one-based; byte offsets are zero-based and ends exclusive. A link excerpt uses its source line, windowed to keep a late occurrence visible when bounded, while a declaration excerpt starts at its span. Excerpt offsets identify the returned text; an omitted line prefix or suffix marks truncation. Link target names may differ from source spelling for compiler aliases."
       }
     }
   },

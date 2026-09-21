@@ -10,7 +10,7 @@ from vos.corpus import find_root
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=sailcontext.NOTICE)
+    parser = argparse.ArgumentParser(prog="run.py sail-context", description=sailcontext.NOTICE)
     commands = parser.add_subparsers(dest="operation", required=True)
     for operation, help_text in (("search", "rank local declaration examples by words"),
                                  ("symbol", "find an exact symbol across kinds and clauses"),

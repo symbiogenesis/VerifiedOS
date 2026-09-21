@@ -21,7 +21,7 @@ KINDS = tuple(kind for _, kind in sailbundle.DECLARATION_KINDS)
 NOTICE = ("Advisory context only. Freshness covers recorded local owners, not project "
           "selection, unrecorded files, compiler options or installed libraries. "
           "References are compiler-recorded links, not a complete call graph. "
-          "Unlocated and unrecorded declarations are omitted; no result establishes "
+          "Unlocated and unrecorded declarations and links are omitted; no result establishes "
           "compilation or behavioral correctness.")
 _TOKEN = re.compile(r"[\w']+")
 _WORD = re.compile(r"[^\W_]+")
@@ -186,7 +186,7 @@ def _declaration_valid(declaration: sailbundle.Declaration, owner: _Owner) -> No
 
 def _words(text: str) -> set[str]:
     lowered = text.casefold()
-    return set(_TOKEN.findall(lowered)) | set(_WORD.findall(lowered))
+    return {match.group(0) for pattern in (_TOKEN, _WORD) for match in pattern.finditer(lowered)}
 
 
 def validate(operation: str, query: str, kinds: tuple[str, ...], exclude: tuple[str, ...],
@@ -286,11 +286,22 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
                 continue
             owner = owners[rel]
             _, _, begin = _position(owner, reference.start)
+            line_start = begin
+            prefix = owner.raw[begin:reference.start].decode("utf-8")
+            target_chars = len(owner.raw[reference.start:reference.end].decode("utf-8"))
+            if len(prefix) + target_chars > max_chars:
+                # Keep the queried occurrence visible on long lines. The source
+                # offsets still identify the exact returned window.
+                before = min(80, max(0, max_chars - target_chars))
+                kept = prefix[-before:] if before else ""
+                begin = reference.start - len(kept.encode("utf-8"))
             newline = owner.raw.find(b"\n", reference.end)
             finish = len(owner.raw) if newline < 0 else newline
-            matches.append(_match(reference.kind, reference.name, None, reference.target,
-                                  reference.target_kind, rel, owner, reference.start,
-                                  reference.end, begin, finish, max_chars, 0, []))
+            hit = _match(reference.kind, reference.name, None, reference.target,
+                         reference.target_kind, rel, owner, reference.start,
+                         reference.end, begin, finish, max_chars, 0, [])
+            hit["excerpt_truncated"] |= begin != line_start
+            matches.append(hit)
     else:
         for declaration in declarations:
             if kinds and declaration.kind not in kinds:

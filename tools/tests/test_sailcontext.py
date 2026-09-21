@@ -11,10 +11,10 @@ from typing import Any
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
-from vos import sailbundle, sailcontext
-from vos.cli import sail_context
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from vos import sailbundle, sailcontext
+from vos.cli import sail_context
 
 FIRST = ("// café\r\n"
          "val shared : int -> int\r\n"
@@ -88,20 +88,20 @@ def _shapes_and_exact_symbols() -> None:
            "all six emitted declaration kinds must remain available")
     with sandbox_tree(files) as root:
         report = sailcontext.context(root, "symbol", "shared")
-        ensure(report["known_symbol"] and len(report["matches"]) == 3,
+        ensure(report["known_symbol"] is True and len(report["matches"]) == 3,
                "exact lookup must preserve the val and both scattered clauses")
         ensure([(hit["kind"], hit["clause"], hit["path"]) for hit in report["matches"]] ==
                [("val", 0, "model/model/a.sail"), ("function", 0, "model/model/a.sail"),
                 ("function", 1, "model/model/b.sail")], "source locations determine stable ordering")
         generated = sailcontext.context(root, "symbol", "generated")
-        ensure(generated["known_symbol"] and not generated["matches"] and
+        ensure(generated["known_symbol"] is True and not generated["matches"] and
                generated["omitted_matches"]["unlocated"] == 1,
                "generated names must be distinguished from local source results")
         unknown = sailcontext.context(root, "symbol", "Shared")
         ensure(unknown["known_symbol"] is False and not unknown["matches"],
                "exact lookup must be case-sensitive and distinguish unknown names")
         link = sailcontext.context(root, "references", "generated_link")
-        ensure(link["known_symbol"] and link["omitted_matches"]["unlocated"] == 1 and
+        ensure(link["known_symbol"] is True and link["omitted_matches"]["unlocated"] == 1 and
                link["coverage"]["unlocated_references"] == 1 and not link["matches"],
                "compiler links with empty filenames must remain explicitly unlocated")
 
@@ -123,7 +123,7 @@ def _ranking_filters_and_omissions() -> None:
                report["omitted_matches"]["unrecorded"] == 1,
                "unrecorded located examples must be counted but never returned as fresh")
         exact = sailcontext.context(root, "symbol", "target")
-        ensure(exact["known_symbol"] and not exact["matches"] and
+        ensure(exact["known_symbol"] is True and not exact["matches"] and
                exact["omitted_matches"]["unrecorded"] == 1,
                "an exact unrecorded match must not resemble an unknown name")
         refs = sailcontext.context(root, "references", "target")
@@ -150,6 +150,30 @@ def _byte_locations_and_aliases() -> None:
                "source identity must use the exact raw bytes")
         ensure(report["bundle_sha256"] == hashlib.sha256((root / sailbundle.BUNDLE).read_bytes()).hexdigest(),
                "the bundle hash must identify the same read that supplied the result")
+
+
+def _late_reference_window() -> None:
+    files, raw = _fixture()
+    source = 'function caller() = { let ignored = "' + "café " * 90 + '"; target(0) }'
+    data = source.encode("utf-8")
+    files["model/model/late.sail"] = source
+    raw["hashes"]["late.sail"] = {"md5": hashlib.md5(data, usedforsecurity=False).hexdigest()}
+    raw["functions"]["caller"] = {
+        "function": {"source": _slot("late.sail", source, source)},
+        "links": [_link("late.sail", source, "target")]}
+    files[sailbundle.BUNDLE] = json.dumps(raw)
+    with sandbox_tree(files) as root:
+        report = sailcontext.context(root, "references", "target", max_chars=256)
+        hit = next(hit for hit in report["matches"] if hit["symbol"] == "caller")
+        ensure("target(0)" in hit["excerpt"] and len(hit["excerpt"]) <= 256,
+               "a bounded reference window must include a late occurrence on a long Unicode line")
+        ensure(hit["excerpt_start_byte"] <= hit["start_byte"] < hit["end_byte"] <=
+               hit["excerpt_end_byte"] and hit["column"] == source.index("target") + 1,
+               "the window and reference must retain exact byte offsets and Unicode columns")
+        ensure(hit["excerpt_truncated"] and hit["excerpt_start_byte"] > 0,
+               "an omitted line prefix must be explicit even when the remaining suffix fits")
+        ensure(data[hit["excerpt_start_byte"]:hit["excerpt_end_byte"]].decode("utf-8") == hit["excerpt"],
+               "returned excerpt offsets must identify its exact source bytes through EOF")
 
 
 def _freshness_all_owners() -> None:
@@ -220,7 +244,7 @@ def _malformed_bundle_and_locations() -> None:
         for raw in bad_bundles:
             _write_bundle(root, raw)
             status, stdout, stderr = _call(root, ["symbol", "shared", "--json"])
-            ensure(status == 1 and not stdout and stderr, f"malformed bundle must fail: {raw}")
+            ensure(status == 1 and not stdout and bool(stderr), f"malformed bundle must fail: {raw}")
         for text in ('{"version":1,"version":1}', '{"value":NaN}', '{broken'):
             (root / sailbundle.BUNDLE).write_text(text, encoding="utf-8", newline="")
             status, stdout, stderr = _call(root, ["symbol", "shared", "--json"])
@@ -257,7 +281,7 @@ def _input_errors_and_unreadable_sources() -> None:
                      ["search", "x", "--max-chars", "16001"], ["search", "x", "--kind", "bad"],
                      ["references", "x", "--exclude", "model/model/a.sail"]):
             status, stdout, stderr = _call(root, args)
-            ensure(status == 2 and not stdout and stderr, f"invalid selector must be a usage error: {args}")
+            ensure(status == 2 and not stdout and bool(stderr), f"invalid selector must be a usage error: {args}")
         status, stdout, stderr = _call(root, ["search", "shared", "--exclude", "model/model/missing.sail", "--json"])
         ensure(status == 1 and not stdout and "not a recorded local owner" in stderr,
                "exclusions must name exact recorded owners")
@@ -265,13 +289,15 @@ def _input_errors_and_unreadable_sources() -> None:
         status, stdout, stderr = _call(root, ["symbol", "shared", "--json"])
         ensure(status == 1 and not stdout and "UTF-8" in stderr, "undecodable owners must refuse")
         status, stdout, stderr = _call(root, ["--help"])
-        ensure(status == 0 and "references" in stdout and not stderr, "help needs no source reads")
+        ensure(status == 0 and "run.py sail-context" in stdout and "references" in stdout and not stderr,
+               "help needs no source reads and must name the complete runnable command")
 
 
 def cases() -> list[Case]:
     return [Case("declaration-shapes-and-exact-symbols", _shapes_and_exact_symbols),
             Case("ranking-filters-and-omissions", _ranking_filters_and_omissions),
             Case("byte-locations-and-compiler-aliases", _byte_locations_and_aliases),
+            Case("late-reference-window", _late_reference_window),
             Case("freshness-all-recorded-owners", _freshness_all_owners),
             Case("bounds-json-schema-and-human-output", _bounds_schema_and_human_output),
             Case("malformed-bundle-and-locations", _malformed_bundle_and_locations),
