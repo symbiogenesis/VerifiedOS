@@ -407,8 +407,7 @@ Proof.
     rewrite <- Hv. rewrite <- Hr. reflexivity.
   - destruct bs as [ | b t ]; [ discriminate | ].
     unfold bytes_ok in Hok. cbn [forallb] in Hok.
-    pose proof Hok as Hok2. apply andb_prop in Hok2.
-    destruct Hok2 as [ Hb Htok ].
+    apply andb_prop in Hok. destruct Hok as [ Hb Htok ].
     unfold byte_ok in Hb. apply Nat.ltb_lt in Hb.
     rewrite field_decode_succ in Hdec.
     destruct (field_decode w' t) as [ [ u r' ] | ] eqn:E; [ | discriminate ].
@@ -471,8 +470,7 @@ Proof.
     destruct (field_decode w bs) as [ [ v0 r0 ] | ] eqn:E1; [ | discriminate ].
     destruct (fields_decode ws r0) as [ [ vs0 r1 ] | ] eqn:E2; [ | discriminate ].
     destruct (some_pair_eq _ _ _ _ _ _ Hdec) as [ Hv Hr ].
-    assert (Hr0 : bytes_ok r0 = true)
-      by exact (field_decode_rest_ok w bs v0 r0 Hok E1).
+    pose proof (field_decode_rest_ok w bs v0 r0 Hok E1) as Hr0.
     rewrite <- Hv. rewrite <- Hr. rewrite fields_encode_cons.
     rewrite app_assoc_byte. rewrite (IH r0 vs0 r1 Hr0 E2).
     exact (field_encode_decode w bs v0 r0 Hok E1).
@@ -833,7 +831,8 @@ Proof.
     destruct Hall as [ He Ht ]. apply Nat.ltb_lt in He.
     change (routed_work cost (e :: t)) with (cost e + routed_work cost t).
     change (length (e :: t)) with (S (length t)).
-    rewrite (Hk e He). rewrite (IH Ht). rewrite Nat.mul_succ_l. lia.
+    rewrite (Hk e He). rewrite (IH Ht).
+    rewrite Nat.mul_succ_l. apply Nat.add_comm.
 Qed.
 
 (*| discharges: R-15-171 |*)
@@ -1584,7 +1583,7 @@ Proof.
                = work_per_token demo_costs
                  (resident_cost demo_costs one_expert_missing) demo_routing_b).
   { apply H; reflexivity. }
-  cbv in Hb. lia.
+  cbv in Hb. discriminate Hb.
 Qed.
 
 (* A mixture whose experts differ in width, every one of them resident.
@@ -1602,7 +1601,7 @@ Proof.
     assert (Hb : work_per_token demo_costs sized_cost demo_routing_a
                  = work_per_token demo_costs sized_cost demo_routing_b).
     { apply H; reflexivity. }
-    cbv in Hb. lia.
+    cbv in Hb. discriminate Hb.
 Qed.
 
 (* -- The storage boundary -- *)
@@ -1645,7 +1644,7 @@ Proof.
                                                demo_request))
                = server_pool_bytes demo_server).
   { rewrite (H demo_server demo_idle demo_request). reflexivity. }
-  cbv in Hp. lia.
+  cbv in Hp. discriminate Hp.
 Qed.
 
 Theorem an_elastic_server_admits_a_model_above_the_ceiling :
@@ -1729,7 +1728,7 @@ Proof.
   assert (Hb : elastic_rate weights_and_cache demo_ceiling demo_shape quiet_load
                = elastic_rate weights_and_cache demo_ceiling demo_shape
                    prefill_load) by apply H.
-  cbv in Hb. lia.
+  cbv in Hb. discriminate Hb.
 Qed.
 
 (* -- The session pool -- *)
@@ -1901,29 +1900,29 @@ Definition composition_opening (c : Composition) : Opening :=
 Theorem full_admission_preserves_server_resources : forall c,
   FixedAtComposition (composition_opening c).
 Proof.
-  intros c srv st q; unfold composition_opening.
-  destruct (decode_shape (comp_widths c) (req_descriptor q)) as [s|]; simpl; try reflexivity.
-  destruct (all_experts_resident s (comp_residency c)); simpl; try reflexivity.
-  destruct (shape_top_k s <=? shape_expert_count s); simpl; try reflexivity.
+  intros c srv st q. unfold composition_opening.
+  destruct (decode_shape (comp_widths c) (req_descriptor q)) as [s|]; [ | reflexivity ].
+  destruct (all_experts_resident s (comp_residency c)); [ | reflexivity ].
+  destruct (shape_top_k s <=? shape_expert_count s); [ | reflexivity ].
   apply the_server_is_fixed_at_composition.
 Qed.
 Theorem admitted_composition_uses_the_ceiling_and_resource_core : forall c srv st q rate,
   step_verdict (composition_opening c srv st q) = Admitted rate ->
   composition_opening c srv st q = opening c srv st q.
 Proof.
-  intros c srv st q rate H; unfold composition_opening in *.
-  destruct (decode_shape (comp_widths c) (req_descriptor q)) as [s|]; try discriminate.
-  destruct (all_experts_resident s (comp_residency c)); try discriminate.
-  destruct (shape_top_k s <=? shape_expert_count s); try discriminate; reflexivity.
+  intros c srv st q rate H. unfold composition_opening in H |- *.
+  destruct (decode_shape (comp_widths c) (req_descriptor q)) as [s|]; [ | discriminate H ].
+  destruct (all_experts_resident s (comp_residency c)); [ | discriminate H ].
+  destruct (shape_top_k s <=? shape_expert_count s); [ reflexivity | discriminate H ].
 Qed.
 Theorem admitted_composition_has_every_expert_resident : forall c srv st q rate s,
   decode_shape (comp_widths c) (req_descriptor q) = Some s ->
   step_verdict (composition_opening c srv st q) = Admitted rate ->
   AllExpertsResident s (comp_residency c).
 Proof.
-  intros c srv st q rate s Hd Ha; unfold composition_opening in Ha; rewrite Hd in Ha.
-  destruct (all_experts_resident s (comp_residency c)) eqn:Hres; try discriminate.
-  apply finite_residency_is_complete; exact Hres.
+  intros c srv st q rate s Hd Ha. unfold composition_opening in Ha. rewrite Hd in Ha.
+  destruct (all_experts_resident s (comp_residency c)) eqn:Hres; [ | discriminate Ha ].
+  apply finite_residency_is_complete. exact Hres.
 Qed.
 Definition checked_routed_work (s : Shape) (co : Costs) (res : Residency)
                               (route : Routing) : option nat :=
