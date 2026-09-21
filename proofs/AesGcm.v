@@ -943,7 +943,7 @@ Theorem the_seal_reads_four_fields_and_the_invocation_bound_is_not_one_of_them :
     forall (key : list byte) (m : list bool), seal_under p key m = seal_under q key m.
 Proof.
   intros p q Hk Ht Hn Ha key m. unfold seal_under.
-  rewrite Hk. rewrite Ht. rewrite Hn. rewrite Ha. reflexivity.
+  rewrite Hk, Ht, Hn, Ha. reflexivity.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -1181,23 +1181,20 @@ Proof. intros. vm_compute. reflexivity. Qed.
 
 (* AddRoundKey is an involution in the round key, over arbitrary bits. *)
 Lemma xorb_cancels : forall x y : bool, xorb (xorb x y) y = x.
-Proof. intros x y. destruct x; destruct y; reflexivity. Qed.
+Proof. destruct x, y; reflexivity. Qed.
 
 Lemma bxor_cancels : forall a k : list bool, length_of a = length_of k -> bxor (bxor a k) k = a.
 Proof.
-  induction a as [|x a IH]; intros k H.
+  induction a as [|x a IH]; intros [|y k] H; try discriminate H.
   - reflexivity.
-  - destruct k as [|y k].
-    + discriminate H.
-    + simpl in H. injection H as H. simpl.
-      rewrite xorb_cancels. rewrite (IH k H). reflexivity.
+  - simpl in H. injection H as H. simpl. rewrite xorb_cancels, (IH k H). reflexivity.
 Qed.
 
 Lemma eqb_nat_eq : forall m n : nat, Nat.eqb m n = true -> m = n.
 Proof.
-  induction m as [|m IH]; intros n H.
-  - destruct n as [|n]. + reflexivity. + discriminate H.
-  - destruct n as [|n]. + discriminate H. + simpl in H. rewrite (IH n H). reflexivity.
+  induction m as [|m IH]; intros [|n] H; try discriminate H.
+  - reflexivity.
+  - simpl in H. rewrite (IH n H). reflexivity.
 Qed.
 
 (* Two states of the same shape: the same number of bytes, each of the same
@@ -1216,15 +1213,10 @@ Fixpoint same_shape (a b : state) : bool :=
 Theorem add_round_key_is_an_involution_in_the_round_key :
   forall s k : state, same_shape s k = true -> add_round_key k (add_round_key k s) = s.
 Proof.
-  unfold add_round_key. intros s. induction s as [|x s IH]; intros k H.
+  unfold add_round_key. induction s as [|x s IH]; intros [|y k] H; try discriminate H.
   - reflexivity.
-  - destruct k as [|y k].
-    + discriminate H.
-    + simpl in H. simpl.
-      destruct (Nat.eqb (length_of x) (length_of y)) eqn:E.
-      * simpl in H. rewrite (bxor_cancels x y (eqb_nat_eq _ _ E)).
-        rewrite (IH k H). reflexivity.
-      * discriminate H.
+  - simpl in H. apply andb_prop in H as [E Hs]. simpl.
+    rewrite (bxor_cancels x y (eqb_nat_eq _ _ E)), (IH k Hs). reflexivity.
 Qed.
 
 Example the_round_key_and_the_state_have_the_same_shape :
