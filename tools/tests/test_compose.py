@@ -59,9 +59,17 @@ _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 # assembling every other member reproduced the prior 26-image, 56,008-byte hash
 # a287542f3c5385b6f5b2074a42ac068897738a4cc42fdce88e3fb49d2116689f exactly.
 # Thus the extension changes only the new member, not any old encoded image.
+#
+# The boundary-delivery change in 5eea5c94 updates zicond-csr's CSR expectations.
+# With its pre-change source from e2eab098 and the current encoder, all 27 images
+# reproduce the prior 110,424-byte total and
+# 821d0753a511378632d7b0cb760daf45d2be11b7e366dcf14f7f295a1b599e57 hash.
+# The current source changes only zicond-csr and adds sixteen image bytes. Both
+# source variants also produce identical images under the pre-10df928b encoder:
+# the executable-alignment change moves no image in this corpus.
 _CORPUS_IMAGES: Final[str] = \
-    "821d0753a511378632d7b0cb760daf45d2be11b7e366dcf14f7f295a1b599e57"
-_CORPUS_BYTES: Final[int] = 110_424
+    "bf86519f60c11af4ec3703b921fb1fb2237f93c85822f7b11e200d72cd3f8130"
+_CORPUS_BYTES: Final[int] = 110_440
 _CORPUS_MEMBERS: Final[int] = 27
 
 
