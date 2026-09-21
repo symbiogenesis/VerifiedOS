@@ -100,8 +100,18 @@ def _table_members(root: Path, raw: object) -> tuple[str, ...]:
     if until not in tail:
         raise InventoryError(f"{path}: member-table end changed")
     section = tail.split(until, 1)[0]
-    members = tuple(_text(match.group(1), "grammar member") for line in section.splitlines()
-                    if (match := re.match(r"\| `([^`]+)` \|", line)))
+    rows = [line.strip() for line in section.splitlines() if line.lstrip().startswith("|")]
+    if len(rows) < 3 or rows[0].split("|")[1].strip() not in {"Operation", "Id"}:
+        raise InventoryError(f"{path}: missing or unsupported member-table header")
+    if not all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in rows[1].split("|")[1:-1]):
+        raise InventoryError(f"{path}: unsupported member-table separator")
+    collected: list[str] = []
+    for row in rows[2:]:
+        match = re.match(r"\|\s+`([^`]+)`\s+\|", row)
+        if match is None:
+            raise InventoryError(f"{path}: unsupported grammar member row: {row}")
+        collected.append(_text(match.group(1), "grammar member"))
+    members = tuple(collected)
     if not members or len(set(members)) != len(members):
         raise InventoryError(f"{path}: empty or duplicated member table")
     return members
@@ -159,8 +169,8 @@ def load(root: Path) -> tuple[Entry, ...]:
             if not _REQUIREMENT.fullmatch(requirement) or f"**{requirement}**" not in register:
                 raise InventoryError(f"{key}: unknown requirement {requirement}")
         owner = _text(entry["owner"], key)
-        if owner != "none" and re.search(r"(?<![\w-])" + re.escape(owner)
-                                         + r"(?![\w-])", owner_text) is None:
+        if owner != "none" and (not re.fullmatch(r"(?:U-\d+[a-z]*|[A-Z]\d+(?:\.\d+)*[a-z]*)", owner)
+                                or f"**{owner} ·" not in owner_text):
             raise InventoryError(f"{key}: owner {owner} is not a landed work item")
         references = _strings(entry["references"], key, empty=True)
         for reference in references:
