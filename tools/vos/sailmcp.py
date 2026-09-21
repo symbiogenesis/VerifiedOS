@@ -22,7 +22,10 @@ LEGACY = "2025-11-25"
 INFO = {"name": "verifiedos-sail", "version": "1"}
 PREFIX = "io.modelcontextprotocol/"
 MAX_MESSAGE = 1_048_576
+MAX_JSON_DEPTH = 64
 MAX_PENDING = 8
+_JSON_QUOTE = ord('"')
+_JSON_ESCAPE = ord("\\")
 
 
 def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -45,8 +48,32 @@ def _float(value: str) -> float:
     return parsed
 
 
+def _check_depth(raw: bytes) -> None:
+    """Bound JSON containers without depending on decoder recursion limits."""
+    depth = 0
+    quoted = False
+    escaped = False
+    for byte in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif byte == _JSON_ESCAPE:
+                escaped = True
+            elif byte == _JSON_QUOTE:
+                quoted = False
+        elif byte == _JSON_QUOTE:
+            quoted = True
+        elif byte in b"[{":
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                raise ValueError(f"JSON exceeds {MAX_JSON_DEPTH} container levels")
+        elif byte in b"]}":
+            depth -= 1
+
+
 def decode(raw: bytes) -> object:
-    """RFC 8259 JSON; duplicate members and nonfinite numbers are refused."""
+    """Bounded RFC 8259 JSON; duplicate members and nonfinite numbers refuse."""
+    _check_depth(raw)
     return json.loads(raw.decode("utf-8"), object_pairs_hook=_object, parse_constant=_constant, parse_float=_float)
 
 

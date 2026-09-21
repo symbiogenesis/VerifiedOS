@@ -195,9 +195,10 @@ with per-request protocol/capability metadata and `server/discover`, plus the
 2025-11-25 initialization flow for existing clients. Transport is newline-framed
 UTF-8 JSON-RPC over stdin/stdout. Protocol versions are explicit; unsupported
 methods and versions refuse. Stderr is available for launcher errors. Input is
-bounded at 1 MiB per message and eight pending calls. Cancellation suppresses the
-cancelled call's response; it does not claim to interrupt an already running file
-read. Context failures return a tool error without partial structured content.
+bounded at 1 MiB and 64 JSON container levels per message and eight pending calls.
+Cancellation suppresses the cancelled call's response; it does not claim to interrupt
+an already running file read. Context failures return a tool error without partial
+structured content.
 
 ## Extended delivery contract
 

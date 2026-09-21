@@ -73,10 +73,15 @@ def _wire_refusals() -> None:
            f"protocol errors must be precise: {results}")
     ensure(results[0]["error"]["data"]["requested"] == "9999-01-01", "version refusal retains request")
     for raw in (b'{"jsonrpc":"2.0","jsonrpc":"2.0"}\n', b'{"x":NaN}\n', b'\xff\n',
-                b'{"x":1e999}\n', b'{"x":' + b'[' * 100_000 + b']' * 100_000 + b'}\n'):
+                b'{"x":1e999}\n',
+                b'{"x":' + b'[' * sailmcp.MAX_JSON_DEPTH + b'0'
+                + b']' * sailmcp.MAX_JSON_DEPTH + b'}\n'):
         out = io.BytesIO()
         sailmcp.serve(TOOLS.parent, io.BytesIO(raw), out)
-        ensure(json.loads(out.getvalue())["error"]["code"] == -32700, "invalid JSON must refuse")
+        ensure(json.loads(out.getvalue())["error"]["code"] == -32700,
+               "invalid or over-nested JSON must refuse")
+    accepted = _exchange(TOOLS.parent, [_request(7, "ping", value="[" * 100 + "]" * 100)])
+    ensure(accepted[0]["id"] == 7, "brackets inside JSON strings do not consume the nesting bound")
     out = io.BytesIO()
     ensure(sailmcp.serve(TOOLS.parent, io.BytesIO(b"x" * (sailmcp.MAX_MESSAGE + 1)), out) == 1,
            "oversized input must stop after one bounded read")
