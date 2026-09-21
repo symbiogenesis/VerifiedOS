@@ -596,6 +596,30 @@
         ]
       }
     },
+    "MModeFirmwareSealing.v": {
+      "constants": 96,
+      "inventory_sha256": "dcd8e88e1d067ba336a96ef11d55c7d71d4018d1f494c2198f14f035caca013a",
+      "requires": [
+        "MModeFirmware"
+      ],
+      "witnesses": {
+        "Edge": [
+          "witness_Edge"
+        ],
+        "Installed": [
+          "witness_Installed"
+        ],
+        "Machine": [
+          "witness_Machine"
+        ],
+        "SealedEdge": [
+          "witness_SealedEdge"
+        ],
+        "SealingPolicy": [
+          "witness_SealingPolicy"
+        ]
+      }
+    },
     "MemoryPlan.v": {
       "constants": 655,
       "inventory_sha256": "edc5413b6ae9c18d9c3483c5680e96f54690d315af5c714ca70746f40e3d9d93",
@@ -1327,7 +1351,8 @@
     "proofs/Keccak.v": "0429f322a53d71de56d703b772728590e661d98263c1d992189aec1c158bfd75",
     "proofs/KernelInstance.v": "6e2487e9b8c7515e1f3b8bf0094e5fadf2d3e55ff36a2dc01400b91e9a03d9db",
     "proofs/KeyspaceDomains.v": "0a16ced5622cdf01d7976de5e13bcc2f1941c68b0fe68fdb0aaa32d61182d8e3",
-    "proofs/MModeFirmware.v": "30140d463b98f52d4989b9639aae74e45479f53a9957f4eee654b816077f66d2",
+    "proofs/MModeFirmware.v": "e7f00e8a607a8937fcee2b11a185a483fe9aed7774f0f8787aad0e94655a5d15",
+    "proofs/MModeFirmwareSealing.v": "1af54245e6db311b93d349240c58ad0c1ccf497b434a713335c6d2db4de43f11",
     "proofs/MemoryPlan.v": "53b45221a190dae6963289042ff81622d2331d52d59c29ee1cb5fc69efd02e30",
     "proofs/MemoryPlannerCertificates.v": "52d7ffec1d9b6489ede419d815f5e4d260161d68c1bfce01bf69c022e2d40f1a",
     "proofs/MemoryPlannerContracts.v": "f6f0bb3037ce0ae91b973b525703503bff47284d029cf1d0307aff26749d8f0c",
@@ -1372,8 +1397,12 @@
     "tools/vos/toolenv.py": "1a54d85eb5b00b74d4fe4e4ceb3fce78a929d41afaec230a96d37def0ce3f44a"
   },
   "kernel_evidence": {
-    "basis_sha256": null,
+    "basis_sha256": "144044f980f7244ec78692a767e0a46c4e7fb43424e60e45dbb6d828c9a0c7f3",
     "checked": [
+      "MModeFirmwareSealing"
+    ],
+    "mode": "incremental",
+    "reused": [
       "AdmissionPath",
       "AesGcm",
       "ApexTheorem",
@@ -1425,12 +1454,10 @@
       "TwoSourceExtractor",
       "WitnessContinuity",
       "WorkflowProfiles"
-    ],
-    "mode": "full",
-    "reused": []
+    ]
   },
   "kernel_recheck": "passed",
-  "native_receipt_sha256": "cdad56d80c56a90031765bf1e8c7eb3890111b29497a0324054b8c509472f384",
+  "native_receipt_sha256": "0b15d694b3d262872dbe3cbbe719eefb03d33a002a1b6013daac6cdbb5dd003b",
   "outputs": {
     "proofs/AdmissionPath.vo": "d127e0c4ffe39c46f3e85e96b16dad1ca08e2d9461b93b2348b3806839cc89d6",
     "proofs/AesGcm.vo": "ec11f824491d0590b05eb7ef106adb74af5ddaa02b023f573d00c112c399dcd1",
@@ -1454,7 +1481,8 @@
     "proofs/Keccak.vo": "788adc353b255c2c4c14b30d9b0341cbae08a3f70121a36af26a4c5ae4aac0e8",
     "proofs/KernelInstance.vo": "7460389797e43265c9c328e8a2bdaea2d9d38ba5aaa40f4a154a990039fef845",
     "proofs/KeyspaceDomains.vo": "ba3efbd6d8ef8f940f4c3fa6163bc9d4ca4480c89337905ad05ff52cffa78ee3",
-    "proofs/MModeFirmware.vo": "8ac33b30efe81a40ec96879344d24164a1b3e272ead44286bafa155bb9c6c446",
+    "proofs/MModeFirmware.vo": "cc665a41a30042be046ce4f534b2c570ec4f5d7aebca3558b78b41b3d0ea1185",
+    "proofs/MModeFirmwareSealing.vo": "87340d4057053ef7db630ee658b754399c5e4ab4f87ca04e94a1780e463399e4",
     "proofs/MemoryPlan.vo": "b588c185097c5b57170b7585c005227f1c5475d2c34c436aa4d5ee556e8cd2d8",
     "proofs/MemoryPlannerCertificates.vo": "c17438d82eb6281ad7e5c411268ad0248ad6a3f1c086baebb980a17b1beaa4de",
     "proofs/MemoryPlannerContracts.vo": "1b13b3a9d961e567fc923219d3cd07634878e689e6d47e5d928aadd58a659135",
@@ -1484,14 +1512,14 @@
     "proofs/WitnessContinuity.vo": "0cf3109e1eec93b59b13dbf0df04415eb4796ddc7293c323af5c7517b7681625",
     "proofs/WorkflowProfiles.vo": "627b321eb0fefd02bbf7e3c9a21fa4991b41381f7418422b2bfd49fc5392a40d"
   },
-  "reused_audits": 0,
-  "reused_compilations": 0,
+  "reused_audits": 51,
+  "reused_compilations": 51,
   "schema": 2,
   "status": "passed",
   "timings": {
-    "compile_audit_seconds": 158.01272505500128,
-    "kernel_recheck_seconds": 1259.9839244449995,
-    "total_seconds": 1422.7257373739994
+    "compile_audit_seconds": 0.663378773999284,
+    "kernel_recheck_seconds": 3.1260931310007436,
+    "total_seconds": 6.572847706000175
   },
   "toolchain": {
     "checker_sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",

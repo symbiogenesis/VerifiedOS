@@ -511,6 +511,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-028 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-028 | proofs/MModeFirmware.v | the_handoff_installs_exactly | claimed |
 | R-07-028 | proofs/MModeFirmware.v | the_build_time_check_becomes_an_installed_property | claimed |
+| R-07-028 | proofs/MModeFirmwareSealing.v | n/a | cited |
 | R-07-028 | proofs/RotFirmware.v | n/a | cited |
 | R-07-028 | proofs/SupervisionTree.v | n/a | cited |
 | R-07-029 | proofs/CopyRingService.v | n/a | cited |

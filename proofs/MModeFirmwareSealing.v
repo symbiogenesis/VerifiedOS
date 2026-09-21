@@ -1,5 +1,8 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Sealing-aware refinement of MModeFirmware's installed graph.
+(* =========================================================================
+   MModeFirmwareSealing.v
+
+   Sealing-aware refinement of MModeFirmware's installed graph for R-07-028.
    Purecap ABI sections 4 and 7 admit invocation-only kernel sentries.
    The legacy holder/region/permission graph cannot distinguish their sealed
    bits from an unsealed authority. Its original predicates and theorems remain
@@ -12,7 +15,13 @@
    and proving that a listed backward sentry is hardware-minted and belongs to
    the live protected activation, remain producer obligations. No freshness
    property follows from the seal constructor alone. This is a distribution
-   refinement; it is not an implementation or an instruction-level Sail proof. *)
+   refinement; it is not an implementation or an instruction-level Sail proof.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-07-028
+   SHA256: a93666b91149166c77c0f9c9d0224b1fdfc98da0d6b81252784d4ccf058ee780
+   (*| END derived |*)
+   ========================================================================= *)
 Require Import MModeFirmware.
 
 Inductive SealForm : Type := Unsealed | ForwardSentry | BackwardSentry | OtherSeal.
