@@ -714,11 +714,8 @@ Lemma progress_upto_agrees :
     visible_progress_upto m i1 c n = visible_progress_upto m i2 c n.
 Proof.
   intros m i1 i2 c n H.
-  induction n as [|k IH]; cbn.
-  - reflexivity.
-  - rewrite IH. destruct (may_read m c k) eqn:E.
-    + rewrite (H k E). reflexivity.
-    + reflexivity.
+  induction n as [|k IH]; cbn; [reflexivity |].
+  rewrite IH. destruct (may_read m c k) eqn:E; [rewrite (H k E) |]; reflexivity.
 Qed.
 
 (*| discharges: R-08-021, R-08-027a, R-08-027b, R-08-027c |*)
@@ -726,18 +723,16 @@ Theorem the_confining_execution_is_noninterferent :
   forall m : PolicyModel, explicit_flow_target m (confining m).
 Proof.
   intros m. split; [| split].
-  - intros C i1 i2 c s Hc [Hread Htime]. split; cbn.
+  - intros C i1 i2 c s Hc [Hread Htime]. cbn. split.
     + destruct (may_read m c s) eqn:E; [|reflexivity].
       apply Hread. exists c. split; assumption.
     + destruct (may_time m c s) eqn:E; [|reflexivity].
       apply Htime. exists c. split; assumption.
-  - intros C i1 i2 c Hc [Hread Htime]. split; cbn.
-    + reflexivity.
-    + split.
-      * unfold visible_progress. apply progress_upto_agrees.
-        intros s E. apply Hread. exists c. split; assumption.
-      * split; reflexivity.
-  - intros C i1 i2 c Hc Hind. split; reflexivity.
+  - intros C i1 i2 c Hc [Hread _]. cbn.
+    split; [reflexivity |]. split; [| split; reflexivity].
+    unfold visible_progress. apply progress_upto_agrees.
+    intros s E. apply Hread. exists c. split; assumption.
+  - intros C i1 i2 c _ _. split; reflexivity.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -830,11 +825,10 @@ Proof.
   - intros c Hc. unfold victim in Hc. subst c. reflexivity.
   - intros c Hc. unfold victim in Hc. subst c. reflexivity.
   - exact quiet_and_secret_content_are_indistinguishable.
-  - intros c s Hc Hmay. unfold victim in Hc. subst c.
+  - intros c s Hc _. unfold victim in Hc. subst c.
     destruct (the_confining_execution_is_noninterferent reference) as [Hflow _].
-    destruct (Hflow victim quiet secret_content O s eq_refl
-                quiet_and_secret_content_are_indistinguishable) as [Hv _].
-    exact Hv.
+    exact (proj1 (Hflow victim quiet secret_content O s eq_refl
+                    quiet_and_secret_content_are_indistinguishable)).
 Qed.
 
 (* The second proviso: the relation is stated over what the set may observe
@@ -851,14 +845,11 @@ Theorem observation_and_control_are_incomparable :
 Proof.
   split; split.
   - exact quiet_and_port_content_are_indistinguishable.
-  - intros H. destruct (H 3 (ex_intro _ O (conj eq_refl eq_refl))) as [Hd _].
-    discriminate Hd.
+  - intros H. discriminate (proj1 (H 3 (ex_intro _ O (conj eq_refl eq_refl)))).
   - intros s [c [Hc Hd]]. unfold victim in Hc. subst c.
     destruct s as [|[|[|[|s']]]]; cbn in Hd; try discriminate Hd.
     split; reflexivity.
-  - intros [Hread _].
-    assert (Hbad := Hread O (ex_intro _ O (conj eq_refl eq_refl))).
-    discriminate Hbad.
+  - intros [Hread _]. discriminate (Hread O (ex_intro _ O (conj eq_refl eq_refl))).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -877,11 +868,9 @@ Theorem a_quantified_out_arrival_is_equated :
 Proof.
   intros m C c s i1 i2 Hc Hbound Hall [_ Htime].
   apply Htime. exists c. split; [exact Hc |].
-  unfold arrival_quantified_out in Hall.
-  rewrite forallb_forall in Hall.
-  apply Hall. unfold indices. apply in_seq. split.
-  - apply Nat.le_0_l.
-  - cbn. apply Nat.ltb_lt. exact Hbound.
+  unfold arrival_quantified_out in Hall. rewrite forallb_forall in Hall.
+  apply Hall. unfold indices. apply in_seq.
+  split; [apply Nat.le_0_l | cbn; apply Nat.ltb_lt; exact Hbound].
 Qed.
 
 (* And the reference composition is read for which of its device timings sit
@@ -924,9 +913,7 @@ Theorem a_compose_time_channel_is_inside_the_policy :
   /\ ~ indistinguishable channelled victim quiet secret_content.
 Proof.
   split; [reflexivity | split; [reflexivity |]].
-  intros [Hread _].
-  assert (Hbad := Hread 1 (ex_intro _ O (conj eq_refl eq_refl))).
-  discriminate Hbad.
+  intros [Hread _]. discriminate (Hread 1 (ex_intro _ O (conj eq_refl eq_refl))).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -950,27 +937,25 @@ Definition outside_scope : Release :=
 Definition witness_Grant : Grant := consented_grant.
 Definition witness_Release : Release := inside_scope.
 
-(*| discharges: R-08-026, R-17-012 |*)
-Theorem the_shipped_rule_is_delimited : delimited licensed.
-Proof.
-  intros rel c s H. unfold licensed in H.
-  rewrite existsb_exists in H. destruct H as [g [Hin Hg]].
-  exists g. split; [exact Hin |].
-  apply andb_prop in Hg. destruct Hg as [Hnames _].
-  apply andb_prop in Hnames. destruct Hnames as [Hc Hs].
-  split; [exact (proj1 (Nat.eqb_eq _ _) Hc) | exact (proj1 (Nat.eqb_eq _ _) Hs)].
-Qed.
-
 (*| discharges: R-08-037 |*)
 Theorem the_shipped_rule_is_scoped : scoped licensed.
 Proof.
   intros rel c s H. unfold licensed in H.
   rewrite existsb_exists in H. destruct H as [g [Hin Hg]].
-  exists g. split; [exact Hin |].
-  apply andb_prop in Hg. destruct Hg as [Hnames Hlive].
-  apply andb_prop in Hnames. destruct Hnames as [Hc Hs].
-  split; [exact (proj1 (Nat.eqb_eq _ _) Hc) |].
-  split; [exact (proj1 (Nat.eqb_eq _ _) Hs) | exact Hlive].
+  apply andb_prop in Hg as [Hnames Hlive].
+  apply andb_prop in Hnames as [Hc Hs].
+  apply Nat.eqb_eq in Hc. apply Nat.eqb_eq in Hs.
+  exists g. split; [exact Hin | split; [exact Hc | split; assumption]].
+Qed.
+
+(* Delimitation is the weaker half of the same reading, so it is read off the
+   scoped statement's grant rather than recovered from the rule again. *)
+(*| discharges: R-08-026, R-17-012 |*)
+Theorem the_shipped_rule_is_delimited : delimited licensed.
+Proof.
+  intros rel c s H.
+  destruct (the_shipped_rule_is_scoped rel c s H) as [g [Hin [Hc [Hs _]]]].
+  exists g. split; [exact Hin | split; assumption].
 Qed.
 
 (* The grant's own window decides, and the quotient reads it: inside the
@@ -1015,10 +1000,9 @@ Theorem a_release_wider_than_the_named_object_is_refused :
   release_by_level reference inside_scope O 3 = true
   /\ ~ delimited (release_by_level reference).
 Proof.
-  split; [reflexivity |].
-  intros H. destruct (H inside_scope O 3 eq_refl) as [g [Hin [_ Hs]]].
-  destruct Hin as [Heq | Hfalse]; [| destruct Hfalse].
-  subst g. discriminate Hs.
+  split; [reflexivity |]. intros H.
+  destruct (H inside_scope O 3 eq_refl) as [g [[<- | []] [_ Hs]]].
+  discriminate Hs.
 Qed.
 
 (*| discharges: R-05-166, R-08-037 |*)
@@ -1026,10 +1010,9 @@ Theorem an_edge_outliving_its_act_is_refused :
   release_without_scope outside_scope O 1 = true
   /\ ~ scoped release_without_scope.
 Proof.
-  split; [reflexivity |].
-  intros H. destruct (H outside_scope O 1 eq_refl) as [g [Hin [_ [_ Hlive]]]].
-  destruct Hin as [Heq | Hfalse]; [| destruct Hfalse].
-  subst g. discriminate Hlive.
+  split; [reflexivity |]. intros H.
+  destruct (H outside_scope O 1 eq_refl) as [g [[<- | []] [_ [_ Hlive]]]].
+  discriminate Hlive.
 Qed.
 
 (* R-06-017's first clause, and the mint the model refuses: a grant whose
@@ -1198,9 +1181,8 @@ Theorem an_attacker_driven_powerbox_is_refused :
   /\ ~ robust reference powerbox_to_whom.
 Proof.
   split; [| split]; intros H;
-    assert (Hbad := H quiet secret_content O
-                      quiet_and_secret_content_agree_on_consent);
-    discriminate Hbad.
+    discriminate (H quiet secret_content O
+                    quiet_and_secret_content_agree_on_consent).
 Qed.
 
 (*| discharges: R-05-165, R-06-017, R-08-025, R-08-026, R-08-037 |*)
@@ -1268,9 +1250,9 @@ Theorem a_leaked_fault_class_is_refused :
   ~ fault_noninterference reference (leaks_fault reference).
 Proof.
   intros H.
-  assert (Hbad := H victim quiet secret_content O eq_refl
-                    quiet_and_secret_content_are_indistinguishable).
-  destruct Hbad as [Hfault _]. discriminate Hfault.
+  destruct (H victim quiet secret_content O eq_refl
+              quiet_and_secret_content_are_indistinguishable) as [Hfault _].
+  discriminate Hfault.
 Qed.
 
 Definition leaks_termination : Execution :=
@@ -1331,8 +1313,7 @@ Proof.
         reflexivity.
     + destruct s as [|s']; [reflexivity | discriminate Hmay].
   - intros [_ Htime].
-    assert (Hbad := Htime 1 (ex_intro _ O (conj eq_refl eq_refl))).
-    discriminate Hbad.
+    discriminate (Htime 1 (ex_intro _ O (conj eq_refl eq_refl))).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -1509,9 +1490,9 @@ Lemma confining_received_agrees :
     C c -> indistinguishable m C i1 i2 ->
     (confining m i1).(received) c s = (confining m i2).(received) c s.
 Proof.
-  intros m C i1 i2 c s Hc [Hread _]. cbn.
-  destruct (may_read m c s) eqn:E; [| reflexivity].
-  apply Hread. exists c. split; assumption.
+  intros m C i1 i2 c s Hc Hind.
+  exact (proj1 (proj1 (the_confining_execution_is_noninterferent m)
+                  C i1 i2 c s Hc Hind)).
 Qed.
 
 Lemma confining_timing_agrees :
@@ -1519,13 +1500,10 @@ Lemma confining_timing_agrees :
     C c -> indistinguishable m C i1 i2 ->
     timing_view (confining m i1) c k = timing_view (confining m i2) c k.
 Proof.
-  intros m C i1 i2 c k Hc Hind. destruct Hind as [Hread Htime].
-  destruct k as [|[|[|[|s]]]]; cbn.
-  - reflexivity.
+  intros m C i1 i2 c k Hc [Hread Htime].
+  destruct k as [|[|[|[|s]]]]; cbn; try reflexivity.
   - unfold visible_progress. apply progress_upto_agrees.
     intros s E. apply Hread. exists c. split; assumption.
-  - reflexivity.
-  - reflexivity.
   - destruct (may_time m c s) eqn:E; [| reflexivity].
     apply Htime. exists c. split; assumption.
 Qed.
@@ -1538,15 +1516,12 @@ Theorem the_reference_composition_reaches_T :
          licensed rel).
 Proof.
   intros rel fe2 fe pe.
-  apply apex_from_pointwise.
-  - exact fe2.
-  - exact fe.
-  - exact pe.
+  apply apex_from_pointwise; try assumption.
   - intros C i1 i2 c s Hc [Hind _].
     exact (confining_received_agrees reference C i1 i2 c s Hc Hind).
   - intros C i1 i2 c k Hc Hind.
     exact (confining_timing_agrees reference C i1 i2 c k Hc Hind).
-  - intros C i1 i2 c Hc Hind. reflexivity.
+  - intros; reflexivity.
 Qed.
 
 (* A runtime release actually widens the admitted behaviours: the recipient
@@ -1622,8 +1597,7 @@ Proof.
     quiet port_content other_object_variation_stays_inside_the_release_relation) as [Hv _].
   pose proof (f_equal (fun k : nat -> nat -> nat -> Prop => k O 1 O) Hv) as E.
   cbn in E. assert (A : victim O /\ O = O) by (split; reflexivity).
-  change ((O = O /\ O = O) = (O = O /\ 1 = O)) in E.
-  unfold victim in A. rewrite E in A. destruct A as [_ B]. discriminate B.
+  rewrite E in A. destruct A as [_ B]. discriminate B.
 Qed.
 
 Example actual_named_content_is_released_but_not_an_arbitrary_slot :
@@ -1632,7 +1606,7 @@ Example actual_named_content_is_released_but_not_an_arbitrary_slot :
   ~ release_indistinguishable reference inside_scope victim quiet secret_content.
 Proof.
   split; [reflexivity|]. split; [reflexivity|].
-  intros [_ H]. specialize (H O 1 eq_refl eq_refl). discriminate H.
+  intros [_ H]. discriminate (H O 1 eq_refl eq_refl).
 Qed.
 
 (*| discharges: R-05-166, R-08-025, R-08-026 |*)
@@ -1642,15 +1616,10 @@ Theorem a_named_release_is_inside_T :
        licensed inside_scope).
 Proof.
   intros fe2 fe pe. apply apex_from_pointwise; try assumption.
-  - intros C i1 i2 c s Hc [Hind Hreleased]. cbn -[confining].
-    destruct (andb (Nat.eqb c O) (Nat.eqb s 1)) eqn:E.
-    + apply andb_prop in E. destruct E as [Ec Es].
-      apply Nat.eqb_eq in Ec. apply Nat.eqb_eq in Es. subst c s.
-      apply (Hreleased O 1 Hc). reflexivity.
-    + exact (confining_received_agrees reference C i1 i2 c s Hc Hind).
+  - exact the_named_release_satisfies_its_flow_target.
   - intros C i1 i2 c k Hc Hind.
     exact (confining_timing_agrees reference C i1 i2 c k Hc Hind).
-  - intros C i1 i2 c Hc Hind. reflexivity.
+  - intros; reflexivity.
 Qed.
 
 (*| discharges: R-05-166, R-08-037 |*)
@@ -1668,10 +1637,8 @@ Proof.
       licensed outside_scope) quiet secret_content
     Hi) as [Hv _].
   pose proof (f_equal (fun k : nat -> nat -> nat -> Prop => k O 1 O) Hv) as E.
-  cbn in E.
-  assert (A : victim O /\ O = O) by (split; reflexivity).
-  change ((O = O /\ O = O) = (O = O /\ 1 = O)) in E.
-  unfold victim in A. rewrite E in A. destruct A as [_ B]. discriminate B.
+  cbn in E. assert (A : victim O /\ O = O) by (split; reflexivity).
+  rewrite E in A. destruct A as [_ B]. discriminate B.
 Qed.
 
 (* The distinguishing instance R-05-166 asks for, at the apex statement
@@ -1690,12 +1657,10 @@ Proof.
               quiet secret_content
               (conj quiet_and_secret_content_are_indistinguishable
                 (fun c s _ H => False_rect _ (Bool.diff_false_true H)))) as [Hvalue _].
-  assert (Hpoint := f_equal (fun k : nat -> nat -> nat -> Prop => k O O O) Hvalue).
-  cbn in Hpoint.
-  assert (Hholds : victim O /\ (leaks_content reference quiet).(received) O O = O).
-  { split; reflexivity. }
-  cbn in Hholds. rewrite Hpoint in Hholds.
-  destruct Hholds as [_ Hbad]. discriminate Hbad.
+  pose proof (f_equal (fun k : nat -> nat -> nat -> Prop => k O O O) Hvalue)
+    as Hpoint.
+  cbn in Hpoint. assert (Hholds : victim O /\ O = O) by (split; reflexivity).
+  rewrite Hpoint in Hholds. destruct Hholds as [_ Hbad]. discriminate Hbad.
 Qed.
 
 (* -------------------------------------------------------------------------
