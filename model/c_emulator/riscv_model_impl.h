@@ -76,6 +76,7 @@ public:
 
   void tick_clock();
   bool try_step(int64_t step_no, bool exit_wait);
+  bool core_fail_stopped() const;
 
   // The RoT watchdog and the die reset its bite asserts. The external slow
   // clock that drives it is the host's (rot_slow_clock.h) and joins here

@@ -541,6 +541,12 @@ private function watchdog_bite() -> unit = {
   watchdog_nonce = zeros();
 }
 
+// R-15-073c's private core signal reaches the existing RoT bite latch.
+// It is not a software pet or a second saved-context bank. A core reset
+// clears its trap-path state but cannot clear this RoT failure record.
+function report_core_trap_failure() -> unit =
+  if trap_fail_stop then watchdog_bite() else ()
+
 // External slow-clock progress, independent of retirement and of firmware
 // petting (R-15-240). The harness supplies ticks; no instruction tick or
 // firmware schedule advances this clock. Crossing the inclusive late bound

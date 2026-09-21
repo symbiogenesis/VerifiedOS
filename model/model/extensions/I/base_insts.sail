@@ -527,6 +527,7 @@ function clause execute MRET() = {
     long_csr_write_callback("mstatus", mstatus.bits);
 
     set_next_pc(prepare_xret_target());
+    trap_path_live = false;
 
     xret_callback(true);
     RETIRE_SUCCESS

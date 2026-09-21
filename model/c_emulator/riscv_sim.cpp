@@ -466,6 +466,21 @@ void run_sail(
     { /* run a Sail step */
       is_waiting = model.try_step(step_no, wait_steps_remaining == 0);
 
+      // A core fail-stop signals the RoT directly. Servicing its already
+      // latched bite needs no optional external-clock source or elapsed time.
+      if (model.core_fail_stopped()) {
+        model.call_post_step_callbacks(true);
+        fprintf(stdout, "Fail-stop: synchronous fault on a live trap path\n");
+        auto &device = model.rot_watchdog();
+        if (!device.watchdog_bitten()) {
+          fprintf(stdout, "FAILURE: core fail-stop did not reach the RoT bite\n");
+          exit(EXIT_FAILURE);
+        }
+        device.reset_die();
+        fprintf(stdout, "RoT watchdog bite asserted the die reset\n");
+        exit(EXIT_FAILURE);
+      }
+
       std::optional<std::string> opt_str = model.string_of_current_exception();
       if (opt_str.has_value()) {
         fprintf(stdout, "%s\n", opt_str.value().c_str());

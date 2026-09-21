@@ -121,17 +121,17 @@ _start:
         csrr    t0, mhartid
         bnez    t0, fail
 
-        # `mie` keeps the machine-timer bit alone, so a write of all ones
-        # legalizes to `MTIE`: what was deleted here is fields, not registers
-        # (R-15-066a). `mip` is read-only outright, its one writer being the
-        # timer comparator, so the check is that a write does not move it and
-        # not that it reads zero: `MTIP` is set at reset, where `mtimecmp` is
-        # zero and nothing has armed it.
+        # `mie` keeps MTIE hardwired one: neither an all-one nor a zero write
+        # can mask the boundary timer (R-15-066a, R-07-040). `mip` is read-only;
+        # its timer event starts unarmed, so a write cannot change pending state.
         li      gp, 9
         li      t0, -1
         csrrw   t1, mie, t0
         csrr    t2, mie
         li      t3, 0x80
+        bne     t2, t3, fail
+        csrw    mie, zero
+        csrr    t2, mie
         bne     t2, t3, fail
         csrr    t3, mip
         csrrw   t1, mip, t0

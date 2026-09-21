@@ -4166,7 +4166,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no wired level interrupt exists on the die.
 · Trace: CJ-SAIL
 
-**R-15-066a** MUST: `mie` and `mip` are present narrowed to the machine-timer bits, which deletes fields rather than registers: `MTIE` and `MTIP` arm and report the slot-boundary timer, the core's only asynchronous trap (R-07-038, R-07-043, R-15-063).
+**R-15-066a** MUST: `mie` and `mip` are present narrowed to the machine-timer bits, which deletes fields rather than registers: `MTIP` reports the pending slot-boundary timer, the core's only asynchronous trap, and `MTIE` is hardwired one with writes ignored. Programming `mtimecmp` arms one boundary event; neither `mie` nor `mstatus.MIE` can inhibit delivery (R-07-038, R-07-040, R-07-043, R-15-063).
 · Accept: the external-interrupt, software-interrupt, and supervisor-mode fields are hardwired zero and unwritable, so no partition can arm a delivery path that does not exist; the software-interrupt fields in particular have no sender, the one cross-core signal R-07-007 admits being an interrupt-file store into the destination core's file rather than a machine software interrupt; MSI arrival remains latched pending state read with an ordinary load (R-15-065, R-15-066), and a set bit in either register therefore has exactly one meaning.
 · Trace: CJ-SAIL, CJ-KERNEL
 

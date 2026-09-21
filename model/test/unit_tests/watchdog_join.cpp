@@ -151,6 +151,15 @@ public:
     // and what this harness needs is the die in its reset state.
     m_model.zblkdev_initializze(UNIT);
     m_model.zreset(UNIT);
+    // Running-clock controls execute real NOPs. An uninitialized word would
+    // now enter the independently specified second-trap fail-stop path and
+    // intentionally bite without waiting for a slow-clock timeout.
+    for (uint64_t address : {RESET_VECTOR, ELSEWHERE}) {
+      constexpr uint32_t nop = 0x00000013;
+      for (unsigned byte = 0; byte < 4; ++byte) {
+        write_mem(address + byte, static_cast<uint8_t>(nop >> (8 * byte)));
+      }
+    }
     require(m_model.zPC == RESET_VECTOR, "the die did not come up at its reset vector");
     require(m_model.zrot_run_startup_tests(UNIT), "the entropy root must pass its start-up tests");
     m_model.zwatchdog_arm(UNIT);

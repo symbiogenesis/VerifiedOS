@@ -14,9 +14,9 @@
 // them: `mip` and `mie` have exactly one reader.
 //
 // Both registers are narrowed to the machine-timer bits (R-15-066a).
-// What that deletes is fields, not registers: `MTIE` and `MTIP` arm
-// and report the slot-boundary timer, the core's only asynchronous
-// trap, and the external- and software-interrupt fields are hardwired
+// What that deletes is fields, not registers. `MTIP` reports the
+// slot-boundary timer, which is unmaskable (R-07-040): the retained
+// `MTIE` bit is hardwired one. The external- and software-interrupt fields are hardwired
 // zero and unwritable, an MSI being latched pending state read with an
 // ordinary load and no wired level interrupt existing on the die
 // (R-15-065, R-15-066). The unnamed bits of the underlying `xlenbits`
@@ -27,13 +27,12 @@ bitfield Minterrupts : xlenbits = {
   MTI  : 7,  // Timer interrupt
 }
 
-private function legalize_mie(o : Minterrupts, v : xlenbits) -> Minterrupts = {
-  let v = Mk_Minterrupts(v);
-  [o with MTI = v[MTI]]
-}
-
-register mie     : Minterrupts // Enabled
+let mie : Minterrupts = Mk_Minterrupts(0x0000000000000080)
 register mip     : Minterrupts // Pending
+
+// Comparator events latch MTIP once per mtimecmp programming. Neither this
+// arm nor the pending bit is a software-writable interrupt enable.
+register boundary_timer_armed : bool = false
 
 mapping clause csr_name_map = 0x304  <-> "mie"
 mapping clause csr_name_map = 0x344  <-> "mip"
@@ -50,5 +49,5 @@ function clause is_CSR_accessible(0x344, _) = true // mip
 function clause read_CSR(0x304) = mie.bits
 function clause read_CSR(0x344) = mip.bits
 
-function clause write_CSR(0x304, value) = { mie = legalize_mie(mie, value); Ok(mie.bits) }
+function clause write_CSR(0x304, _) = Ok(mie.bits)
 function clause write_CSR(0x344, _) = Ok(mip.bits)
