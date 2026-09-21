@@ -254,17 +254,14 @@ Fixpoint pairwise {A : Type} (p : A -> A -> bool) (l : list A) : bool :=
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
+  intros a b H. destruct a; destruct b; try discriminate H; split; reflexivity.
 Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
 
 Lemma only_if_elim : forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof.
-  intros a b H Ha. unfold only_if in H. rewrite Ha in H. simpl in H. exact H.
-Qed.
+Proof. intros a b H Ha. rewrite Ha in H. exact H. Qed.
 
 Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
 Proof. intros a b H. destruct a; destruct b; try discriminate H; reflexivity. Qed.
@@ -276,12 +273,11 @@ Lemma nat_eqb_sound : forall a b : nat, Nat.eqb a b = true -> a = b.
 Proof.
   intros a. induction a as [ | x IH ]; intros b H.
   - destruct b as [ | y ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | y ]; [ discriminate H | ].
-    simpl in H. rewrite (IH y H). reflexivity.
+  - destruct b as [ | y ]; [ discriminate H | rewrite (IH y H); reflexivity ].
 Qed.
 
 Lemma nat_eqb_holds : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | simpl; exact IH ]. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma leb_cases :
   forall g k : nat, Nat.leb g k = true -> g = k \/ Nat.leb (S g) k = true.
@@ -289,9 +285,7 @@ Proof.
   intros g. induction g as [ | g IH ]; intros k H.
   - destruct k as [ | k ]; [ left; reflexivity | right; reflexivity ].
   - destruct k as [ | k ]; [ discriminate H | ].
-    simpl in H. destruct (IH k H) as [ Heq | Hlt ].
-    + left. rewrite Heq. reflexivity.
-    + right. simpl. exact Hlt.
+    destruct (IH k H) as [ Heq | Hlt ]; [ left; f_equal; exact Heq | right; exact Hlt ].
 Qed.
 
 Lemma all_of_app :
@@ -309,9 +303,7 @@ Lemma filter_of_app :
 Proof.
   intros A q l. induction l as [ | x s IH ]; intros r.
   - reflexivity.
-  - simpl. destruct (q x).
-    + simpl. rewrite IH. reflexivity.
-    + rewrite IH. reflexivity.
+  - simpl. destruct (q x); rewrite IH; reflexivity.
 Qed.
 
 Lemma all_of_ext :
@@ -343,7 +335,7 @@ Proof.
   - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hx Hr ].
     simpl in Hany. destruct (eqb c x) eqn:E.
     + rewrite (sound c x E). exact Hx.
-    + simpl in Hany. exact (IH c Hr Hany).
+    + exact (IH c Hr Hany).
 Qed.
 
 Lemma all_of_filter_upto :
@@ -352,16 +344,14 @@ Lemma all_of_filter_upto :
     Nat.ltb g n = true -> q g = true -> p g = true.
 Proof.
   intros p q n. induction n as [ | n IH ]; intros g Hall Hlt Hq.
-  - unfold Nat.ltb in Hlt. simpl in Hlt. discriminate Hlt.
+  - discriminate Hlt.
   - change (upto (S n)) with (app (upto n) (cons n nil)) in Hall.
-    rewrite filter_of_app in Hall. rewrite all_of_app in Hall.
+    rewrite filter_of_app, all_of_app in Hall.
     destruct (andb_split _ _ Hall) as [ Hpre Hlast ].
-    unfold Nat.ltb in Hlt. simpl in Hlt.
     destruct (leb_cases g n Hlt) as [ Heq | Hlt2 ].
-    + rewrite Heq. rewrite Heq in Hq.
-      simpl in Hlast. rewrite Hq in Hlast. simpl in Hlast.
+    + subst g. simpl in Hlast. rewrite Hq in Hlast. simpl in Hlast.
       destruct (p n); [ reflexivity | discriminate Hlast ].
-    + apply (IH g Hpre); [ unfold Nat.ltb; exact Hlt2 | exact Hq ].
+    + exact (IH g Hpre Hlt2 Hq).
 Qed.
 
 (* =========================================================================
@@ -588,8 +578,7 @@ Proof.
   intros W Cs Sr z reg l. induction l as [ | r rest IH ].
   - reflexivity.
   - destruct r as [ o p i | g t v | s t v | c v | a w t v | a w t v | i c ];
-      simpl; try reflexivity; try exact IH.
-    destruct (Nat.eqb g reg); simpl; [reflexivity | exact IH].
+      simpl; try rewrite IH; reflexivity.
 Qed.
 
 Lemma refused_at_blank :
@@ -600,9 +589,7 @@ Proof.
   - reflexivity.
   - destruct r as [ o p i | g t v | s t v | c v | a w t v | a w t v | i c ];
       simpl; try exact IH.
-    destruct (Nat.eqb p pc).
-    + apply next_result_untagged_blank.
-    + exact IH.
+    rewrite next_result_untagged_blank, IH. reflexivity.
 Qed.
 
 (* C1 (R-07-006, R-15-007h): the confinement question is decided on tags, so
@@ -611,12 +598,8 @@ Qed.
 Theorem confinement_reads_the_tag_and_not_the_value :
   forall (k : Kernel) (l : list Attempt), ValueBlind k (RootIsThePartitions k l).
 Proof.
-  intros k l tr. unfold RootIsThePartitions. unfold blanked.
-  assert (H : forall a : Attempt,
-    refused_at (att_pc a) (att_result_register a) (map_over (blank (kmachine k).(zero_word)) tr)
-      = refused_at (att_pc a) (att_result_register a) tr).
-  { intros a. apply refused_at_blank. }
-  f_equal. apply all_of_ext. exact H.
+  intros k l tr. unfold RootIsThePartitions, blanked.
+  f_equal. apply all_of_ext. intros a. apply refused_at_blank.
 Qed.
 
 (* =========================================================================
@@ -642,9 +625,7 @@ Lemma observed_register_reached :
     all_of p observed_registers = true ->
     Nat.ltb g register_count = true -> nonzero g = true -> p g = true.
 Proof.
-  intros p g H Hlt Hnz.
-  unfold observed_registers, reg_domain in H.
-  exact (all_of_filter_upto p nonzero register_count g H Hlt Hnz).
+  intros p g H. exact (all_of_filter_upto p nonzero register_count g H).
 Qed.
 
 Fixpoint last_reg_write {W Cs Sr : Type} (g : nat)
@@ -754,12 +735,11 @@ Theorem the_burst_restores_every_witnessed_register :
     RestoresWitnessedRegisters (kmachine k) (BurstStep k b).
 Proof.
   intros k b succ pre post Hstep r Hr Hnz.
-  destruct Hstep as [ Htotal [ Hreg [ Hcsr Hpend ] ] ].
+  destruct Hstep as [ Htotal [ Hreg _ ] ].
   rewrite (Hreg r).
   destruct (andb_split _ _ Htotal) as [ Hregs _ ].
   assert (Hp := observed_register_reached _ r Hregs Hr Hnz).
-  unfold replay. simpl.
-  simpl in Hp.
+  unfold replay. simpl in Hp |- *.
   destruct (last_reg_write r b) as [ [ t v ] | ].
   - destruct (andb_split _ _ Hp) as [ Ht Hv ].
     rewrite (bool_eqb_sound _ _ Ht). rewrite (k.(word_eqb_sound) _ _ Hv).
@@ -775,7 +755,7 @@ Theorem the_burst_restores_every_nameable_csr :
     RestoresNameableCsrs (kmachine k) (BurstStep k b).
 Proof.
   intros k b succ pre post Hstep c Hc.
-  destruct Hstep as [ Htotal [ Hreg [ Hcsr Hpend ] ] ].
+  destruct Hstep as [ Htotal [ _ [ Hcsr _ ] ] ].
   rewrite (Hcsr c).
   destruct (andb_split _ _ Htotal) as [ _ Hrest ].
   destruct (andb_split _ _ Hrest) as [ Hcsrs _ ].
@@ -1167,9 +1147,8 @@ Lemma kernel_roster_covers :
   forall c : nat, kernel_machine.(csr_nameable) c = true ->
     any_of (fun d => Nat.eqb c d) (cons 0 (cons 1 (cons 2 nil))) = true.
 Proof.
-  intros c H. destruct c as [ | c1 ]; [ reflexivity | ].
-  destruct c1 as [ | c2 ]; [ reflexivity | ].
-  simpl in H. discriminate H.
+  intros c H. destruct c as [ | [ | c2 ] ];
+    [ reflexivity | reflexivity | discriminate H ].
 Qed.
 
 Definition partition_text (t : nat) : Extent :=
@@ -1376,17 +1355,11 @@ Definition post_high : Context (kmachine demo_kernel) :=
 
 Lemma burst_step_low :
   BurstStep demo_kernel restore_burst succ_image pre_low post_low.
-Proof.
-  split; [ reflexivity | ]. split; [ intros g; reflexivity | ].
-  split; [ intros c; reflexivity | reflexivity ].
-Qed.
+Proof. repeat split; intros; reflexivity. Qed.
 
 Lemma burst_step_high :
   BurstStep demo_kernel restore_burst succ_image pre_high post_high.
-Proof.
-  split; [ reflexivity | ]. split; [ intros g; reflexivity | ].
-  split; [ intros c; reflexivity | reflexivity ].
-Qed.
+Proof. repeat split; intros; reflexivity. Qed.
 
 (*| discharges: R-07-044 |*)
 Theorem clause_two_admits_a_burst_that_fails_no_residue :
@@ -1608,10 +1581,7 @@ Theorem completion_does_not_turn_on_the_epoch_mark :
   SemanticCompletion complete_with_epoch = true
   /\ SemanticCompletion complete_without_epoch = true
   /\ epoch_advanced complete_with_epoch <> epoch_advanced complete_without_epoch.
-Proof.
-  split; [ reflexivity | ]. split; [ reflexivity | ].
-  intros H. discriminate H.
-Qed.
+Proof. split; [ reflexivity | split; [ reflexivity | discriminate ] ]. Qed.
 
 (* =========================================================================
    The whole predicate, and the run that answers it.
