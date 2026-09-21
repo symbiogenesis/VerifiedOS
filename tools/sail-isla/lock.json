@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "isla": {
+    "url": "https://github.com/rems-project/isla.git",
+    "revision": "bf1a42f8a6097089fba4810fccc73dcc640267ab"
+  },
+  "testgen": {
+    "url": "https://github.com/rems-project/isla-testgen.git",
+    "revision": "ee2d7efcec993fdb364bd74788b4fd39e857d151",
+    "isla_revision": "bcc7ee8463a8fed5911ccf7167da5a82f7b5e4db"
+  },
+  "sail": {
+    "revision": "ce60ba570b4402a42431bc5033145d9aeb327f20",
+    "url": "https://codeload.github.com/rems-project/sail/tar.gz/ce60ba570b4402a42431bc5033145d9aeb327f20",
+    "sha256": "a561fd10fb4c95562b043f93fd751a2bc41644b2f37393eae0e7b13bbb88173a"
+  },
+  "rust": {
+    "version": "1.90.0",
+    "components": {
+      "aarch64-unknown-linux-gnu": {
+        "rustc": "4e1a9987a11d7d91f0d5afbf5333feb62f44172e4a31f33ce7246549003217f2",
+        "cargo": "bd8d1da6fe88ea7e29338f24277c22156267447adbfc47d690467ad32d02c2a7",
+        "rust-std": "4952abb7d9d3ed7cea4f7ea44dcb23dc67631fae4ac44a5f059b90a4b5e9223f"
+      },
+      "x86_64-unknown-linux-gnu": {
+        "rustc": "48c2a42de9e92fcae8c24568f5fe40d5734696a6f80e83cc6d46eef1a78f13c9",
+        "cargo": "9853db03d68578a30972e2755c89c66aec035fec641cf8f3a7117c81eec2578d",
+        "rust-std": "663f4ab7945b392d5e5294dec1b050a66820a20e86f084ec37eeb0f2f7ff5569"
+      }
+    }
+  }
+}

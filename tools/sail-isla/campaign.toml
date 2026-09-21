@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Required ISA configuration fields. This pure-function campaign never fetches
+# instructions, accesses memory, or invokes an assembler/linker.
+pc = "vos_pc"
+assembler = "/bin/false"
+objdump = "/bin/false"
+nm = "/bin/false"
+linker = "/bin/false"
+
+[mmu]
+page_table_base = "0x0"
+page_size = "4096"
+s2_page_table_base = "0x0"
+s2_page_size = "4096"
+
+[threads]
+base = "0x0"
+top = "0x1"
+stride = "0x1"
+
+[symbolic_addrs]
+base = "0x0"
+top = "0x1"
+stride = "0x1"

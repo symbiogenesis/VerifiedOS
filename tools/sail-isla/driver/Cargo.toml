@@ -1,0 +1,14 @@
+[package]
+name = "vos-isla-testgen"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+isla-testgen = { path = "../../../sources/isla-testgen" }
+isla = { path = "../../../sources/isla-testgen/isla" }
+isla-lib = { path = "../../../sources/isla-testgen/isla/isla-lib" }
+sha2 = "=0.8.2"
+# The upstream library's generated ACL2 parser requires this optional feature.
+lalrpop-util = { version = "=0.19.12", features = ["lexer"] }
