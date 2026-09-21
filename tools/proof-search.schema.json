@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS advisory proof source search, version 1",
+  "description": "Lexical navigation, never proof acceptance. Hashes identify individual source reads, not a checked dependency environment. Requirements are authored file-level citations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "advisory_only", "notice", "query", "tactics", "requirements", "excluded", "limit", "max_chars", "sources_read", "total_matches", "truncated", "matches"],
+  "properties": {
+    "version": {"const": 1},
+    "advisory_only": {"const": true},
+    "notice": {"type": "string", "minLength": 1},
+    "query": {"type": "string"},
+    "tactics": {"$ref": "#/$defs/strings"},
+    "requirements": {"$ref": "#/$defs/requirements"},
+    "excluded": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/path"}},
+    "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+    "max_chars": {"type": "integer", "minimum": 256, "maximum": 16000},
+    "sources_read": {"type": "integer", "minimum": 0},
+    "total_matches": {"type": "integer", "minimum": 0},
+    "truncated": {"type": "boolean"},
+    "matches": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "line", "end_line", "name", "kind", "status", "source_sha256", "requirements", "excerpt", "excerpt_truncated", "score", "matched_terms"],
+        "properties": {
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"type": "integer", "minimum": 1},
+          "end_line": {"type": "integer", "minimum": 1},
+          "name": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "status": {
+            "enum": ["complete", "admitted", "aborted", "incomplete", "definition"],
+            "description": "Lexical only: Qed/Defined, Admitted, Abort, no recognized ending, or a direct := body respectively. No status asserts kernel checking."
+          },
+          "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "requirements": {"$ref": "#/$defs/requirements"},
+          "excerpt": {"type": "string", "maxLength": 16000},
+          "excerpt_truncated": {"type": "boolean"},
+          "score": {"type": "integer", "minimum": 1},
+          "matched_terms": {"$ref": "#/$defs/strings"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "path": {"type": "string", "pattern": "^proofs/[^/\\\\\u0000]+\\.v$"},
+    "strings": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "requirements": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^R-[0-9]{2}-[0-9]{3}[a-z]?$"}}
+  }
+}
