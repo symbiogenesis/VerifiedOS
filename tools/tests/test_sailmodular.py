@@ -154,7 +154,9 @@ def _suite_membership() -> None:
         ensure(subject._suite(path, root) == {"one": ("run", "result 42")},
                "CTest output or status was discarded")
         for bad in ('<testsuite><testcase name="one"/><testcase name="one"/></testsuite>',
-                    '<testsuite/>', '<!DOCTYPE testsuite><testsuite/>'):
+                    '<testsuite/>', '<!DOCTYPE testsuite><testsuite/>',
+                    '<testsuite><testcase name="one"><system-out>[This part of the test output was removed '
+                    'since it exceeds the threshold of 1024 bytes.]</system-out></testcase></testsuite>'):
             path.write_text(bad, encoding="utf-8")
             try:
                 subject._suite(path, root)
