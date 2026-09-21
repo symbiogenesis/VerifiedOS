@@ -3,7 +3,7 @@
 This is M1.2d-i's diagnostic and prerequisite handoff under the
 [qualification contract](compiler-prerequisites.md#2-pointer-kind-diagnostic-and-lowering-prerequisites).
 It identifies the source information the functional backend must retain and
-the decisions its owners must review before implementing that path. It does
+links the selected source, kind and call interfaces for implementing that path. It does
 not implement or accept purecap code. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f
 retain their [implementation and target joins](../implementation-checklist.md).
 The [scalar ABI](purecap-abi.md) retains its existing authority.
@@ -61,39 +61,29 @@ printer path. No target execution is claimed by these observations.
 
 ## 2. Source and intermediate-value decisions
 
-M1.2g-ii and M1.2d-ii must review a value-kind interface that reaches every
-relevant intermediate operation, memory access and frame slot. Distinct IR
-kinds or a checked sidecar are implementation options; either needs a total
-coverage rule and rejection of missing or inconsistent information. Equal
-storage width is insufficient to choose authority-preserving operations.
-The allocator must retain kind through moves, live-range splits, spill slots,
-argument slots and results, including reuse of one physical register by
-values of different kinds at different times.
+The [source-value contract](compiler-source-values.md) owns the selected
+abstract values, source operations, authority witnesses and the point where
+symbolic lowering meets concrete composition. Its explicit profile and
+unsupported-lowering refusals preserve the distinction between a missing
+implementation and source undefined behavior. The platform's existing ban on
+integer-to-capability provenance governs the cast policy; a pointer-width
+integer alias cannot bypass it.
 
-The value relation must also identify the point where abstract block pointers
-become concrete capabilities. The existing `Vcap` constructor alone supplies
-no execution path: `Memory.loadv` and `storev`, `Values.offset_ptr` and `addl`,
-and the pointer-cast case do not currently operate on it. A design may retain
-abstract `Vptr` until a defined lowering boundary and relate its blocks to
-composition-supplied authority, or carry `Vcap` earlier and define the missing
-operations. This handoff selects neither option and treats neither as an
-already proved source-to-target relation.
+The [kind interface](compiler-kind-interface.md) selects explicit typed IRs
+through the whole scalar pipeline. It owns payload versus address typing,
+transformation and allocator obligations, typed frame locations, and total
+coverage through the decoded final image. Kind checking and authority
+correspondence are separate obligations. No runtime tag dispatch or
+integer-to-capability printer substitution supplies either one.
 
-The source contract must distinguish pointer-preserving casts, extraction of
-an integer address and any supported rederivation of capability authority.
-It must define null conversion and the target's `intptr_t` and `uintptr_t`
-behavior. A promised pointer round trip may require a capability-preserving
-integer kind distinct from ordinary integer arithmetic. Arbitrary integer
-bits cannot silently become authority. The current pointer/intptr-sized cast
-case cannot be extended indiscriminately without first settling that policy.
-
-Pointer cursor arithmetic, pointer comparison and difference need explicit
-source and target relations; integer arithmetic retains its own behavior.
-Likewise, capability loads, stores and copies must be distinguished from
-scalar accesses, even when each occupies eight bytes. The interface must
-state how overlapping scalar writes, byte copies and aliasing affect tagged
-objects. M1.2g-i's inhabited block-memory evidence is an input to that work;
-it is not a physical Sail tag-clear refinement.
+These contracts resolve the diagnostic's design alternatives under
+[the reviewed-agreement predicate](compiler-prerequisites.md#4-reviewed-source-kind-and-switcher-agreement).
+They supply no new source execution, pass simulation or target result. The
+existing `Vcap` constructor and M1.2g-i's inhabited memory evidence remain
+inputs to M1.2g-ii's implementation; they do not establish the source relation
+or physical tag-clear refinement. Shared compiler type definitions land under
+one owner before dependent pass changes, and the compiler integrator alone
+registers shared extraction and build inputs.
 
 ## 3. Frame, authority and emission joins
 
@@ -127,11 +117,12 @@ registry. Immediate fields require validation, and barriers retain their
 ordering across optimization. Positive emitted encodings and unknown-name,
 wrong-kind and wrong-form refusals belong to the compiler acceptance.
 
-The selected scalar convention leaves the [switcher protocol](purecap-abi.md#8-what-the-register-leaves-open)
-open: edge-identity transport, scrub masks in each direction, bounded saved
-caller state and nesting depth, and switcher authority still need a reviewed
-producer/consumer agreement. The one-time firmware handoff is not that
-agreement. M1.2d-ii must resolve it before claiming cross-compartment lowering.
+The [selected switcher protocol](purecap-abi.md#4-calls-and-returns) owns
+edge identity, protected saved state, bounded nesting, scrubbing and authority
+transfer. It also identifies the sealing-aware firmware refinement and
+crash-only timer-cut cleanup the real producer must establish. The one-time
+firmware handoff is not that producer. M1.2d-ii consumes the reviewed agreement;
+its cross-compartment implementation and proof joins remain open.
 
 ## 4. Implementation ownership and decisive evidence
 
