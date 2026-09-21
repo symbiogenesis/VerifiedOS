@@ -33,7 +33,7 @@
         "name": {"type": "string", "minLength": 1},
         "elf_sha256": {"$ref": "#/$defs/digest"},
         "output_sha256": {"$ref": "#/$defs/digest"},
-        "trace_digest": {"$ref": "#/$defs/digest"},
+        "trace_digest": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
         "records": {"type": "integer", "minimum": 1}
       }
     },

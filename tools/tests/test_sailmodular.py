@@ -3,6 +3,7 @@
 
 import hashlib
 import json
+from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
@@ -128,6 +129,28 @@ def _compile_database() -> None:
             raise AssertionError("duplicate compile database entry accepted")
 
 
+def _dependency_closure() -> None:
+    found = subject.compiler_dependencies("thing.cpp.o: #deps 2, deps mtime 1 (VALID)\n"
+                "    thing.cpp\n    header with spaces.h\n\nprogram: #deps 2, deps mtime 1 (VALID)\n"
+                "    thing.cpp.o\n    library.a\n")
+    ensure(found == {Path("thing.cpp"), Path("header with spaces.h")},
+           "link products were treated as source/header dependencies")
+    with sandbox_tree({"baseline/header.h": "header", "partitioned/header.h": "header"}) as root:
+        baseline, build = root / "baseline", root / "partitioned"
+        before = {str(baseline / "header.h"): "same"}
+        subject.verify_dependency_closure({str(build / "header.h"): "same"}, before, build, baseline)
+        for after in ({str(build / "header.h"): "changed"},
+                      {str(build / "new-header.h"): "new"},
+                      {str(root / "external-header.h"): "new"}):
+            try:
+                subject.verify_dependency_closure(after, before, build, baseline)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("changed or uncaptured compiled dependency accepted")
+        ensure(all(Path(name).is_absolute() for name in before), "test must use absolute dependency paths")
+
+
 def _schema() -> None:
     schema = json.loads((TOOLS / "sail-modular/report.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
@@ -140,7 +163,7 @@ def _schema() -> None:
               "partitions": 4, "methods": 4, "declarations": 6, "identity": {}, "manifest": {"input": digest},
               "build_jobs": 4, "compiler_cache": "disabled for both measured builds",
               "baseline_receipt": {}, "suite_cases": 1, "corpus": [{"name": "one", "records": 1,
-              "trace_digest": digest, "elf_sha256": digest, "output_sha256": digest}],
+              "trace_digest": digest[:16], "elf_sha256": digest, "output_sha256": digest}],
               "stages": [stage] * 7, "artifacts": {"simulator": digest}}
     ensure(not list(validator.iter_errors(report)), "valid report rejected")
     report["partitions"] = 1
@@ -173,5 +196,6 @@ def cases() -> list[Case]:
             Case("sailmodular: deterministic balanced partitions", _deterministic),
             Case("sailmodular: byte-based dependency freshness", _freshness),
             Case("sailmodular: compile database boundaries", _compile_database),
+            Case("sailmodular: validate actual compiled dependency closure", _dependency_closure),
             Case("sailmodular: exact CTest membership and output", _suite_membership),
             Case("sailmodular: qualification JSON schema", _schema)]

@@ -19,6 +19,8 @@ images must supply the same LLVM 21.1.8 library explicitly; the command refuses
 other versions and never runs a package manager. CMake
 3.24 or later with the Linux RESCAN link-group feature is required. Stage resource
 measurements use the operating system's `wait4`, with no timing-tool dependency.
+Its peak RSS is the maximum child/descendant value, not the sum of concurrent
+compiler processes; it does not establish aggregate build-memory savings.
 The qualification report records the exact library, tool and header hashes.
 
 Libclang supplies complete declaration and body byte ranges. The partitioner
@@ -39,6 +41,9 @@ resident memory. Both measured builds use clean objects with the compiler cache
 disabled and the same bounded job count. The baseline is rebuilt after capturing
 header hashes. Source/tool identities are checked again before publication.
 Header or generated-input changes refuse reuse even if timestamps are preserved.
+The post-build Ninja dependency closure must match the captured inputs; an
+uncaptured header refuses qualification and requires a refreshed baseline. The
+partitioned build's corresponding dependency files must also have baseline bytes.
 CTest captures up to 100 MiB per test and refuses any truncated output. Outputs
 must agree after replacing only their build-directory paths, and
 every corpus member must match both the frozen trace and the other emulator's

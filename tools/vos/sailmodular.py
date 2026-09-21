@@ -317,7 +317,7 @@ def build_dependencies(directory: Path, compiler: str) -> dict[str, str]:
                           capture_output=True, text=True, check=False, timeout=120)
     if done.returncode:
         raise ValueError("cannot read the baseline Ninja dependency database")
-    paths = {Path(line[4:]) for line in done.stdout.splitlines() if line.startswith("    ")}
+    paths = compiler_dependencies(done.stdout)
     if not paths:
         raise ValueError("baseline Ninja dependency database is empty")
     paths = {path if path.is_absolute() else directory / path for path in paths}
@@ -334,6 +334,33 @@ def build_dependencies(directory: Path, compiler: str) -> dict[str, str]:
     # Retain the selected path so retargeting a symlink cannot hide behind the
     # still-present old target at the final freshness check.
     return {str(path.absolute()): receipts.digest(path) for path in sorted(paths)}
+
+
+def compiler_dependencies(output: str) -> set[Path]:
+    """Read compiler records, excluding the linker's generated objects/archives."""
+    paths: set[Path] = set()
+    compiler_record = False
+    for line in output.splitlines():
+        if line.startswith("    "):
+            if compiler_record:
+                paths.add(Path(line[4:]))
+        else:
+            target, separator, _metadata = line.partition(": #deps ")
+            compiler_record = bool(separator) and target.endswith((".o", ".obj"))
+    return paths
+
+
+def verify_dependency_closure(dependencies: dict[str, str], manifest: dict[str, str],
+                              build: Path, baseline: Path) -> None:
+    """Every actual compiled input must match a captured or baseline-mapped file."""
+    for name, digest in dependencies.items():
+        reference = name
+        if reference not in manifest and Path(name).is_relative_to(build):
+            reference = str(baseline / Path(name).relative_to(build))
+        if reference not in manifest:
+            raise ValueError(f"uncaptured build dependency: {name}; rebuild the baseline and retry")
+        if manifest[reference] != digest:
+            raise ValueError(f"build dependency differs from captured baseline: {name}")
 
 
 def _measure(name: str, argv: list[str], directory: Path, logs: Path,
@@ -439,14 +466,26 @@ def _qualify_locked(e: env.Environment, count: int, root: Path,
                            "--clean-first", "-j", str(min(e.jobs, 4))], e.root, logs,
                            {**env.git_env(e.root), "CCACHE_DISABLE": "1"}))
     verify_manifest(manifest)
+    verify_dependency_closure(build_dependencies(e.build_dir, compiler), manifest,
+                              e.build_dir, e.build_dir)
     stages.append(_measure("configure", ["cmake", "-S", str(e.model), "-B", str(build), "-GNinja",
                   "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DDOWNLOAD_GMP=FALSE",
                   "-DENABLE_RISCV_TESTS=TRUE", *e.compilers, *e.ccache,
                   f"-DTEST_DOWNLOAD_VERSION={model.test_corpus_version(e.model)}",
                   f"-DCMAKE_PROJECT_INCLUDE={recipe}", f"-DVOS_MODULAR_DIR={generated}",
                   f"-DVOS_MODULAR_COUNT={count}"], e.root, logs, env.git_env(e.root)))
+    # The one new support input has prescribed bytes. Bind configuration and
+    # actual optional compile flags before compilation as well as the recipe.
+    anchor = build / "sail_modular_anchor.cpp"
+    if anchor.read_bytes() != b"// Empty facade preserves the upstream riscv_model target.\n":
+        raise ValueError("unexpected generated CMake facade")
+    for path in (anchor, build / "compile_commands.json", build / "CMakeCache.txt"):
+        manifest[str(path)] = receipts.digest(path)
     stages.append(_measure("build", ["cmake", "--build", str(build), "-j", str(min(e.jobs, 4))],
                            e.root, logs, {**env.git_env(e.root), "CCACHE_DISABLE": "1"}))
+    actual_dependencies = build_dependencies(build, compiler)
+    verify_dependency_closure(actual_dependencies, manifest, build, e.build_dir)
+    manifest.update(actual_dependencies)
     for suffix in (".cpp", ".h"):
         if receipts.digest(build / f"sail_riscv_model{suffix}") != receipts.digest(
                 e.build_dir / f"sail_riscv_model{suffix}"):
