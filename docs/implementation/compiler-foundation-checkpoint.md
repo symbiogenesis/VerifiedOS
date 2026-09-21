@@ -85,8 +85,10 @@ combined receipt and reproduction instructions under
 own tested revision in `kind-cases.json`; they do not depend on SourceValues.
 The source-value and narrowing receipts remain with their owning test
 directories. Each receipt retains its input identities and direct command
-verdicts. The local integration branch is
-`work/easy-20260921-compiler-integration`; its code and evidence remain contained.
+verdicts. The code and evidence are integrated on the local contained
+repository's `master` branch. Recorded receipts identify the original test
+worktrees; replay uses a newly assigned worktree and guest lane. Cited native
+builds and logs remain available after temporary worktrees are retired.
 
 These components create no independently completed checklist item. Completing
 the existing items still requires the typed executable pipeline, actual
