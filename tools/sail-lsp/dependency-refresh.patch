@@ -1,0 +1,96 @@
+--- a/src/sail_lsp/handler.ml
++++ b/src/sail_lsp/handler.ml
+@@ -75,6 +75,7 @@
+   search (Filename.dirname file)
+ 
+ let state : Server_state.state option ref = ref None
++let dependency_failure : Reporting.error option ref = ref None
+ 
+ type scan_id = Scan_id of Ast.id | Scan_app of Ast.id
+ 
+@@ -153,7 +154,7 @@
+             []
+         | Error err -> [error_diagnostic err]
+       )
+-    | None -> []
++    | None -> (match !dependency_failure with None -> [] | Some err -> [error_diagnostic err])
+   in
+   let params =
+     Lsp.Types.PublishDiagnosticsParams.create ~uri:(Lsp.Types.DocumentUri.of_path file) ~diagnostics:diags ()
+@@ -285,6 +286,40 @@
+   | Some project_file ->
+       state := Some (Server_state.load_project ~default_sail_dir:config.default_sail_dir [project_file])
+   | None -> state := None
++
++(* VerifiedOS: file-cache refresh for standard dependency notifications. *)
++let open_documents () =
++  Hashtbl.to_seq file_to_handle |> List.of_seq |> List.sort (fun (a, _) (b, _) -> String.compare a b)
++
++let dependency_error err =
++  state := None;
++  dependency_failure := Some err;
++  List.map
++    (fun (file, _) ->
++      let params =
++        Lsp.Types.PublishDiagnosticsParams.create ~uri:(Lsp.Types.DocumentUri.of_path file)
++          ~diagnostics:[error_diagnostic err] ()
++      in
++      Lsp.Server_notification.PublishDiagnostics params)
++    (open_documents ())
++
++let refresh_open_documents ~config () =
++  dependency_failure := None;
++  List.map
++    (fun (file, handle) ->
++      refresh_project ~config file;
++      diagnostics_for_handle file handle)
++    (open_documents ())
++
++let dependency_update ~config update =
++  try
++    update ();
++    refresh_open_documents ~config ()
++  with
++  | Sys_error msg -> dependency_error (Reporting.Err_general (Parse_ast.Unknown, msg))
++  | Unix.Unix_error (err, call, path) ->
++      dependency_error (Reporting.Err_general (Parse_ast.Unknown, call ^ ": " ^ path ^ ": " ^ Unix.error_message err))
++  | Reporting.Fatal_error err -> dependency_error err
+ 
+ let on_notification ~config notif =
+   let open Lsp.Types in
+@@ -334,20 +369,27 @@
+           );
+           [diagnostics_for_handle file handle]
+     )
++  | Lsp.Client_notification.DidChangeWatchedFiles params ->
++      dependency_update ~config (fun () ->
++        List.iter
++          (fun (change : FileEvent.t) ->
++            let file = DocumentUri.to_path change.uri in
++            (* Editor-owned contents outrank disk, including an unsaved buffer. *)
++            if not (Hashtbl.mem file_to_handle file) then (
++              let handle = Sail_file.open_file (Sail_file.Path.actual file) in
++              if not (Hashtbl.mem handle_to_file handle) then (
++                let contents = Stdlib.In_channel.with_open_bin file Stdlib.In_channel.input_all in
++                Sail_file.write_file ~contents handle
++              )
++            ))
++          params.changes)
+   | Lsp.Client_notification.DidSaveTextDocument params -> (
+       let file = DocumentUri.to_path params.textDocument.uri in
+       log "didSave: %s" file;
+       match Hashtbl.find_opt file_to_handle file with
+       | None -> []
+       | Some handle ->
+-          Sail_file.apply_edits handle;
+-          ( match !state with
+-          | Some s -> (
+-              match Server_state.invalidate s handle with Some s' -> state := Some s' | None -> ()
+-            )
+-          | None -> ()
+-          );
+-          [diagnostics_for_handle file handle]
++          dependency_update ~config (fun () -> Sail_file.apply_edits handle)
+     )
+   | Lsp.Client_notification.TextDocumentDidClose params ->
+       let file = DocumentUri.to_path params.textDocument.uri in
