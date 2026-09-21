@@ -144,6 +144,72 @@ Use ignored lane output for scratch; native build products and guest logs stay i
 the [assigned filesystem locations](../../tools/README.md#where-a-file-lives-and-which-lane-touches-it).
 The checkpoint is a handoff journal, not acceptance evidence.
 
+## Extended delivery contract
+
+The extended delivery implements the workflow and qualifies the optional native
+integrations below, including static libraries for generated C++. The existing
+compiler and model remain the acceptance baseline. Optional experiments have
+explicit provisioning commands and immutable source identities; ordinary context
+retrieval and host validation do not install their dependencies.
+
+Implementation of this extension starts after this contract is committed. Its
+acceptance predicates are:
+
+1. `sail-assist` creates, reads and updates a schema-validated JSON checkpoint with
+   the target, base revision, requirement IDs, frozen constraints, affected paths,
+   validation plan and finite repair budget. It records attempts and replans
+   atomically under an exclusive session lock. Three consecutive failures require
+   a recorded replan; exhausting either budget prevents another candidate check.
+   An interrupted attempt remains visible and cannot silently regain its budget.
+   The journal is portable data and does not certify acceptance or choose edits.
+2. Candidate typechecking runs the existing strict compiler command and records
+   its actual command, exit status, elapsed time, input identities before and after
+   the run, and unmodified stdout/stderr bytes with hashes. Timeout, cancellation,
+   missing tools and changed inputs are distinct from a compiler success. A JSON
+   process envelope preserves those distinctions on Windows through WSL and on
+   native Linux. It does not invent source positions from terminal diagnostics.
+   Frozen requirement/profile inputs changing require a new reviewed session.
+3. A local stdio MCP adapter exposes the existing bounded context operations using
+   JSON-RPC, explicit protocol versions and the existing JSON Schema contracts.
+   It reuses the context reader, preserves its errors and identities, advertises
+   only implemented capabilities, and executes neither retrieved text nor arbitrary
+   commands. Protocol traffic is the only content written to stdout.
+4. A separately pinned native Sail LSP has an explicit, isolated build/launch path.
+   Its protocol qualification covers initialize/shutdown, hover/definition,
+   diagnostics, unsaved changes, a changed dependency, cancellation and restart.
+   A finite task comparison records batch and live results, completion, time,
+   resource use and observed limitations. Unsupported or stale results fail their
+   applicable checks rather than becoming passing evidence. The existing batch
+   compiler remains authoritative even when the experimental server disagrees.
+5. Isla and generated tests have explicit optional provisioning and execution paths
+   with pinned source/build inputs and isolated outputs. A finite curated-model
+   campaign exercises actual symbolic execution, generates concrete cases and
+   checks them against the existing model oracle. Positive and negative controls
+   distinguish a rejected build, a detected semantic defect and an undetected
+   defect. Integration scope and unsupported constructs remain explicit; generated
+   tests and solver results are not universal proofs.
+6. `sail-modular` derives multiple translation units and static libraries from the
+   pinned compiler's full generated C++ model, using compiler-derived declaration
+   ranges rather than a second C++ grammar. Original method bodies are preserved
+   byte-for-byte and shared state/helpers retain one owner. Unsupported declaration
+   shapes, overlapping ranges or incomplete membership refuse generation. Source,
+   generated files, compilation flags, tool binaries and header dependencies bind
+   freshness. The default partition count is four. A clean baseline and partitioned
+   build run the same model suite and differential corpus, recording return codes,
+   outputs, time and resources. Changed dependencies invalidate reuse. This is
+   empirical equivalence evidence, not a compositional correctness theorem; no
+   performance improvement is assumed and the ordinary build stays available.
+7. All commands, schemas, recipes, finite qualification cases and agent instructions
+   are tracked in this repository. No model account, agent SDK, editor configuration
+   or global skill is needed. Selected upstream licenses are read before source is
+   incorporated, and intended use/distribution is recorded in THIRD-PARTY.md.
+   Focused behavioral tests, real native qualification, the affected proof gate and
+   green Windows/Ubuntu Host CI validate the settled integration revision.
+
+These predicates supersede the deferrals in the source-review table below for
+this extended delivery. Qualification reports retain failed capabilities and
+measured costs; neither a build nor a protocol response alone satisfies them.
+
 ## Upstream choices and next steps
 
 The 2026-09-21 source review distinguishes Sail the ISA language from unrelated
