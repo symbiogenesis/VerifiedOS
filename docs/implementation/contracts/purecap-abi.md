@@ -298,51 +298,284 @@ enters a return sentry traps, which
 [cap-trap.s](../../../corpus/cap-trap.s) check 5 exhibits as a seal violation with
 the raising register in `mtval`.
 
-**The cross-compartment sequence.** The only path between two compartments is a
-sealed entry point through the switcher, which saves and restores the caller and
-bounds a delegated buffer to the call through the local/global discipline
-(R-04-004); the switcher is a specialization of `cjalr`, its entry point being
-itself a sentry entered by that instruction (R-15-069); the switch and seal
-authority is the kernel's (R-07-020); and the scrub on each direction is
-`cclear`, two of which clear the merged file, so that the callee sees no
-register the caller did not pass and the caller no register the callee did not
-return (R-15-069a). The start-from's compartment layer is the layer this
-realizes, and the correspondence is stated so a reader of `Asm.v` can find each
-piece: a call and a return are `Pjal_*` and `Pj_r` with their flag set and a
-signature attached (`sig_call`, `is_return`, lines 1324 to 1336); a cross-
-compartment call pushes a shadow frame holding the caller's stack pointer and
-return address and hands the callee dummy blocks for both (`update_stack_call`,
-lines 1253 to 1293); every register that is not an argument of the signature is
-invalidated on the call and every register that is not the result on the return
-(`invalidate_call`, `invalidate_return`); no pointer crosses in either direction
-(`NO_CROSS_PTR`, lines 1525 to 1527 and 1566 to 1567); a stack argument is read
-across the boundary from the caller's frame by `Pld_arg`
-(`exec_step_load_arg_cross`, lines 1455 to 1481); and the return restores the
-caller's program counter and stack pointer from the shadow frame
-(`invalidate_cross_return`, lines 1400 to 1405). On this machine:
+**Selected scalar cross-compartment protocol.** The switcher is kernel-owned
+text, entered through a forward sentry by `cjalr` under R-15-069. Its executing
+PCC carries access-system-registers. The synchronous sentry entry and return
+are the narrowly enumerated kernel path of R-07-020 and R-07-021; they add no
+number to R-07-031b's five trap invocations. A sentry changes PCC and writes a
+link, not the data registers. The first authority bootstrap is therefore
+`cspecialrw c31, mtdc, cnull`, a read under the switcher's PCC. Firmware's
+section 7 handoff makes MTDC a transitive capability-table authority containing
+the kernel's private stack and composed switcher-state authorities. It is not
+an integer address, and a read without that PCC permission faults. The
+switcher leaves MTCC, MTDC and MEPCC unchanged on its ordinary sentry path.
 
-1. The caller places its arguments in `a0` to `a7`, every capability among them
-   a local capability bounded to the call (R-15-074) or a sealed grant handle
-   (R-08-004a), the edge's extent and rights being the IDL message type and the
-   manifest's import and export tables fixed at composition (R-05-117,
-   R-05-124), so no containment test runs on the path (R-15-007m); it enters the
-   switcher's forward-edge sentry with `cjalr cra, cswitch, 0`.
-2. The switcher saves the caller's `csp` and return sentry where R-07-027a lets
-   the kernel hold state no principal names, narrows the stack for the callee
-   by the address-then-narrow pair at compartment entry (R-15-031b), exact
-   under R-15-007k against the stack region's granule, clears every register
-   the callee is not passed with `cclear` (R-15-069a), and enters the callee's
-   forward-edge sentry with `cjalr cra, ctarget, 0`.
-3. The callee returns with `ret` into the switcher's backward-edge sentry.
-4. The switcher clears every register but the result with `cclear`, restores the
-   caller's `csp` and return sentry, and returns with `ret`.
+The selected signatures are scalar and fixed-arity. Ordinary function pointers
+remain same-compartment code capabilities under the typed callee set. An
+exported boundary pointer is an import-table sentry naming the switcher edge,
+not an unsealed callee address or a directly callable raw export. The
+start-from's `NO_CROSS_PTR` is replaced only for IDL-declared local data buffers
+and sealed grant handles. This contract selects producer and consumer
+obligations; it supplies neither an executable switcher nor a proof of it.
 
-What that shape leaves unfixed is gap g: the register that carries the edge's
-identity into the switcher, the two `cclear` masks per direction, where and how
-deep the saved caller state is kept, and whether the switcher's text runs under a
-PCC carrying access-system-registers or holds the seal and unseal authorities
-without it. The start-from's `NO_CROSS_PTR` is replaced and not inherited: a
-capability crosses here exactly as the manifest's edge admits it.
+[MModeFirmware.v](../../../proofs/MModeFirmware.v)'s existing
+`OnlyTheKernelHoldsSystemRegisters` predicate and
+`system_register_edges_are_the_kernels` checker inspect an authority's ASR
+permission without distinguishing a sealed switcher sentry from an unsealed
+executable authority. They therefore do not qualify these exported sentries.
+M3.5 must refine that distribution relation and its proof so a principal may
+hold only the admitted sealed kernel entry/continuation forms, with unsealed
+ASR code and kernel data still exclusive to the kernel. The current theorem
+cannot be cited as evidence that this concrete producer already meets the
+selected protocol.
+
+**Edge authority and composition provenance.** Each admitted directed edge has
+one immutable descriptor and one specialized entry stub. The descriptor binds
+the generation/composition identity, source and destination compartment, hart
+and scheduled partition identity, IDL signature and initializedness, export
+sentry, exact stack slices, permitted buffer objects and rights, argument
+layouts, depth bound and failure route. The composed import/export join owns these facts
+(R-05-117, R-05-124); the measured image binds the actual descriptor bytes,
+stub text and capability distribution. A digest supplied by the caller or a
+read-only table capability alone does not authenticate this relation.
+
+The caller puts the edge's tagged forward sentry in `c5` and enters with
+`cjalr cra, c5, 0`. The sealed capability authenticates the entry address; an
+integer edge number is not an authority. On entry the specialized trusted stub
+writes its composition-fixed edge index into `x6`, then uses that index and
+the protected active-compartment record to select its descriptor. Incoming
+`x6` and the surviving `c5` are never trusted as selectors. Exact sentry bounds
+and the absence of an exported unsealed capability to switcher text prevent
+entry after that assignment. Its only other reachable entry is a
+hardware-minted backward continuation at the corresponding return label.
+The importer is checked against the protected active compartment and context;
+possessing a copied sentry for another source does not make its edge usable.
+
+The final-image gate checks the exact stub/descriptor relation, all exported
+entry addresses and the call instruction's link destination. A caller must
+spill its live values, supply a tagged stack and enter through a linked call;
+a `cjr` bypass, an arbitrary computed entry, or a raw export in an import table
+is an admission failure. The callee's stack and export target come from the
+protected descriptor, never from a caller-provided stack or target argument.
+Buffer extent and rights remain the composition/IDL obligation of R-15-007m;
+this path adds no runtime capability-containment test.
+
+**Bounded private state.** Each partition context has a fixed depth limit
+`D > 0` and `D` protected activation frames in the kernel's planned stack
+storage. `D`, every offset and every callee stack slice are composition inputs;
+there is no allocation or unbounded recursion. A frame is 256 bytes, aligned
+to 16 bytes, with the following eight-byte slots. Capability slots use `sc` and
+`lc` through private stack authority with store-local and load transitivity.
+
+| Offset | Field |
+| --- | --- |
+| 0, 8 | Saved caller `csp` and backward `cra` |
+| 16, 24, 32 | Edge index, caller identity, callee identity |
+| 40, 48 | Depth and phase |
+| 56, 64 | Callee stack authority and callee export sentry |
+| 72 | Typed result staging slot |
+| 80 through 136 | Eight typed argument staging slots |
+| 144 through 248 | Reserved zero slots; no hidden continuation or authority |
+
+The source/destination identities refer to the bound composed context, not to
+caller-controlled integer claims. The per-context protected header holds the
+current depth and active compartment. At depth `d`, only frame `d` can be
+pushed, and a return label specialized to that edge and depth may pop only that
+active frame in `running` phase. Phases are `preparing`, `running`, `returning`
+and `empty`; the selected code points and frame state together determine which
+writes are complete. The callee's `csp` never reaches these frames. These are
+kernel-internal stack records, not a reply object, an independently nameable
+kernel object or an additional capability-space operation (R-07-027a).
+
+The plan assigns disjoint activation stack slices for all simultaneously live
+calls, even if a permitted nested edge reaches a previously active compartment.
+It proves each maximum call path fits both `D` and the stack slices, and charges
+the complete call, cleanup and return to the invoking context's admitted
+reaction. A call is not a scheduler transition, passive-server budget donation,
+or a way to run a separately scheduled peer outside its slot. An edge lacking
+that scheduling justification is refused at composition; this scalar convention
+does not decide a new mapping from compartments to scheduled partitions.
+
+**Call preparation and argument transfer.** The entry stub first reads MTDC
+into `c31`; it can then acquire the protected frame pointer without using or
+trusting the caller's stack for kernel storage. It verifies the active
+edge/depth/phase and admitted caller continuation/stack form before addressing
+the next frame, so exhaustion cannot write past the frame array. It then records
+the incoming `csp` and `cra` before replacing either, stages the declared
+arguments and reserves the next frame. It derives the callee slice by the planned
+address-then-exact-narrow sequence and removes globality, yielding local
+`perms_stack` authority in `csp`. It initializes the entire selected callee
+stack slice with a fixed-length zeroing pass before placing any arguments.
+The saved caller stack remains private to this suspended caller;
+it is not the callee's parent-frame capability.
+
+For signature arity `n`, arguments 0 through 7 occupy `a0` through `a7`.
+Argument 8 and later use successive eight-byte slots in the caller's outgoing
+area, with offsets fixed by that edge's signature. The switcher copies them, using their declared value
+kinds, into a distinct incoming-argument area at the high end of the callee's
+stack slice. Its length is `16 * ceil(8 * max(n - 8, 0) / 16)` bytes. The
+callee's initial `csp` points to the start of that area, and stack argument `i`
+is at offset `8 * (i - 8)` from it. The ordinary prologue saves that incoming
+`csp` as its tagged back link, so the backend's parameter load reads the callee
+copy. No `c30` or other register exposes the caller's stack across the boundary.
+The plan checks representability, total stack demand and each slot's alignment
+before emission; an unbounded or variadic signature is outside this subset.
+
+Before calling the callee the switcher makes its executing PCC local. It
+materializes the address of a label in the same switcher extent with `auipcc`
+and capability cursor arithmetic, intersects its permission bitmap with
+`0xffe` using `candperm` (bit 0 is global), and takes `cjr` to that unsealed
+local code capability. This preserves execute and access-system-registers and
+removes globality without adding authority. The emitter must resolve the label
+and prove the cursor representable; integer arithmetic cannot copy this PCC.
+The derived code capability and its mask temporary are scratch and are cleared
+before the callee transfer. Every return label that can be passed to a callee
+is reached only from this localized PCC, so `link_capability` creates a local
+backward sentry. A public import sentry may remain global in an immutable table;
+its entry code performs this attenuation before creating the borrowed return.
+
+With the protected frame published as `running`, the switcher puts the callee
+stack in `c2`, the callee's forward sentry in `c1`, and the first eight arguments
+in their declared locations. It emits the two signature-specific clears below,
+then `cjalr cra, cra, 0`. `CJALR` reads its source before writing its destination:
+the callee target is atomically replaced by the backward return sentry, so no
+extra target register survives. At the callee's first instruction its only
+nonnull merged registers are its `csp`, that local backward sentry and its
+declared arguments. Its PCC is the descriptor's callee PCC without
+access-system-registers. The sealed backward sentry is the sole intentional
+kernel continuation it receives; it cannot be read as a data capability,
+modified while sealed or used as a linked-call target.
+
+**Return and lifetime.** The callee uses ordinary `ret` with the local backward
+sentry in `cra`. The exact trusted return label re-enters kernel text, reads
+MTDC anew into `c31`, and checks the protected edge, depth, active callee and
+`running` phase before using a saved caller field. It never trusts the callee's
+`csp` as a cleanup bound. It records `returning`, stages the declared result,
+and zeroes the entire outgoing activation stack slice, data and tags, at its
+composition-fixed length. All nested calls must already have returned. It
+restores the caller's `csp` and `cra`, loads the result, clears the popped private
+frame including its capability/result slots, and publishes the caller and new
+depth. The final two clears leave only those restored registers and the declared
+result; `ret` then resumes the saved caller continuation. The empty callee-saved
+set means every other caller value is reloaded by the caller from its own frame.
+
+A delegated data buffer has local authority with the exact IDL extent and rights;
+it carries no execute, store-local, load-capability or store-capability permission.
+Capability-bearing messages use separately declared handle slots, not a borrowed
+byte buffer containing authority. Thus a borrower can retain a local pointer or
+return sentry only in its activation stack or in the bounded protected records
+that save a caller during a synchronous nested call. Descendant delegations
+retain those restrictions;
+no endpoint, ring, grant or result signature admits a local executable return
+capability. Every descendant stack is scrubbed before its parent's pop. This
+scalar boundary permits a word result or a manifest-admitted sealed grant handle;
+an unsealed pointer result is refused until a separately reviewed transfer
+contract gives it a lifetime independent of the outgoing stack. Ordinary
+same-compartment capability results retain section 1's convention.
+
+The local tag alone is not one-shot return enforcement: Sail permits another
+no-link jump through a still-tagged backward sentry. The protected top/phase
+check refuses a wrong-depth or already-popped return, while whole-stack cleanup,
+register clearing and destruction of obsolete context snapshots must remove
+all borrower-accessible copies before a depth slice is reused. An old copy at
+the same edge and depth is indistinguishable to `CJALR`; proving it cannot
+survive is an explicit implementation acceptance obligation, not an assumed
+hardware epoch. No claim of dynamic sentry freshness follows from its otype.
+
+**Scrub masks and boundary state.** Let `k = min(n, 8)`, and define the call keep
+set `K = {1, 2} union {10, ..., 9 + k}`, with the argument part empty at `k = 0`.
+For half `h`, the immediate mask is the sixteen-bit complement of the bits for
+registers of `K` in that half. On return the keep set is `{1, 2, 10}` for a result
+or `{1, 2}` for void. The emitter derives these constants from the signature;
+it does not accept caller-supplied masks. Bit 0 may be set because `c0` ignores
+writes. The literals below are review examples of this definition.
+
+| Transfer | `cclear 0` mask | `cclear 1` mask | Following instruction |
+| --- | --- | --- | --- |
+| Call with no arguments | `0xfff9` | `0xffff` | `cjalr cra, cra, 0` |
+| Call with eight or more arguments | `0x03f9` | `0xfffc` | `cjalr cra, cra, 0` |
+| Return with one result | `0xfbf9` | `0xffff` | `ret` |
+| Void return | `0xfff9` | `0xffff` | `ret` |
+
+These are the last two register-mutating instructions before the control
+transfer. In particular they destroy `c5`, `x6`, `c30`, `c31`, the private frame
+pointer, MTDC's general-register copy and every localized unsealed switcher
+PCC. `csp` is already the recipient's stack, never the kernel scratch stack;
+`cra` is already the callee target on call or the saved caller continuation on
+return. No separate scratch exception weakens the predicate. The scalar subset
+has no live vector or matrix argument/state across this boundary; admitting
+such signatures requires gap d and the class's whole-state clear obligation.
+
+**Boundary overrun, exhaustion and failure.** Sentry entry does not set the
+model's trap-path-live bit. The slot timer may cut any instruction, including
+between the two clears or after publishing a phase. Under R-07-014a that cut
+is a broken WCET bound: neither the switcher nor its callee resumes. M4.4
+invalidates the old continuation and follows the crash-only restart route.
+Protected phase/depth state identifies every potentially live frame and stack
+slice, including a partially prepared one, for bounded cleanup or quarantine;
+it is not a resumable execution record. No principal observes kernel register
+intermediates or inherits a saved PCC from the abandoned activation. The timer
+handler uses its own disjoint private stack and never retries a completed
+store by starting the cut stub again.
+
+Cleanup covers the complete aborted call chain, suspended callers, partially
+copied arguments, saved capability slots and obsolete context snapshots. No
+affected stack or frame is reused, and no new reaction starts at its declared
+entry, until its destruction/reuse predicate holds. If immediate cleanup is
+required, its worst-case work is charged within the existing qualified
+R-07-040 boundary constant. Quarantine instead requires statically reserved
+capacity, a bounded scheduled cleanup service and refusal before reuse; it
+cannot delay the successor's fixed release or supply an unbounded deferred
+obligation. An uncovered cleanup path, missing bound or insufficient reserved
+capacity refuses composition. A pending timer follows the existing trap rules;
+sentry entry creates neither an interrupt-disabled region nor a resumable
+preemption path. `PartitionContext.v`'s total restore alone proves none of this
+abort/cleanup protocol.
+
+Depth exhaustion, an unauthorized edge, a malformed continuation, a signature
+mismatch or an invalid phase admits no callee transfer and no partially restored
+caller. Static bounds and typing refuse these where decidable before admission;
+the switcher's runtime integrity-failure branch has the bounded kernel-failure
+disposition, never an arbitrary normal result. A synchronous fault under its
+ASR PCC is the kernel fault of R-15-073b; a fault while handling that fault is
+R-15-073c's fail-stop. Producer receipts must name the actual failure route and
+its bound. This convention adds no status register, trap bank or syscall.
+
+**Required target acceptance.** M1.2d owns emitted stubs, typed argument copies,
+PCC attenuation and masks; M3.5 owns the authenticated table/capability producer;
+M4.4 owns the protected frames, timer/restart handling and kernel failure route.
+M1.2f must run their actual joined output on Sail and compare source results,
+register values/tags and declared memory effects. The acceptance includes:
+
+- A call with at least ten mixed word/local-buffer/handle arguments, a nested
+  call and a returning result, exercising both register and copied stack slots;
+  each first callee instruction and resumed caller satisfies the full boundary
+  state, and MTCC/MTDC remain the installed kernel authorities.
+- Distinct live activation slices at maximum admitted depth, exact restoration
+  of caller stack/return authority, complete data/tag zeroization on every pop,
+  and refusal before dispatch for one deeper or unauthorized edge.
+- A stale or caller-chosen edge index, wrong-source import, raw export, no-link
+  entry, malformed/backward call target and wrong-depth return, with admission
+  rejection or the declared kernel-failure route distinguished from Sail faults.
+- Adversarial retention attempts through globals, borrowed buffers, nested calls,
+  endpoints and return results; a forged mask or omitted scratch clear; and
+  removal of PCC localization. No unsealed kernel authority, full caller-stack
+  authority or return copy from a completed activation may reach an ordinary
+  compartment.
+- Timer cuts at every switcher instruction class, including each clear, phase
+  publication and cleanup boundary, plus restart during a nested activation.
+  Every cut aborts the old chain; cleanup/quarantine and fresh-entry restart
+  must preserve authority lifetime and the successor's fixed release.
+
+The source reading for this contract is `CJALR`, `link_capability`, `CAndPerm`,
+`CSpecialRW` and the capability memory path, `CClear`, the trap/PCC clauses in
+[sys_exceptions.sail](../../../model/model/exceptions/sys_exceptions.sail),
+R-04-004, R-07-020/021/027a/031b, R-15-069/069a/069c/071/073/074 and their paired
+specification prose. [KernelInstance.v](../../../proofs/KernelInstance.v)
+expressly leaves the C implementation and concrete composition inputs open.
+R-15-069's Griotte qualification and actual local primitive/proof connection
+remain prerequisites of analogous proof authoring. No handwritten assembly
+fixture, mask calculation or successful parser check closes these target joins.
 
 ## 5. The float-typed value's route
 
@@ -684,10 +917,12 @@ consumer evidence remain M1.2d's join.
   callee-set check remains required by R-15-072. R-15-068's exported entries
   remain sentries reached through the switcher; this choice closes no
   cross-compartment sequence.
-- **(g) Switcher protocol: open.** The edge-identity register, scrub masks,
-  bounded saved-caller-state layout and nesting limit, and the switcher's
-  authority need a reviewed producer/consumer protocol under R-15-069 and
-  R-04-004. The one-time firmware scrub in section 7 is not that protocol.
+- **(g) Switcher protocol: selected for scalar bring-up.** Section 4 fixes the
+  authenticated edge transport, kernel-owned ASR bootstrap, local backward
+  continuations, bounded private frames, stack-argument copying, cleanup and
+  exact scrubs. Its actual compiler, firmware and kernel producer/consumer
+  evidence, lifetime argument and timer/failure joins remain M1.2d/M1.2f,
+  M3.5 and M4.4 obligations; the one-time section 7 scrub supplies none of them.
 - **(h) Primitive profile membership: present.** The explicit operand-form
   rows for `cspecialrw` and `csealentry` are in the profile's CHERI table.
   R-05-023b now has a profile row to name for each required primitive; emission
