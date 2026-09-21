@@ -256,14 +256,6 @@ Proof.
     + simpl. rewrite eqb_refl_nat. reflexivity.
 Qed.
 
-Lemma count_of_map_over :
-  forall {A B : Type} (f : A -> B) (l : list A),
-    count_of (map_over f l) = count_of l.
-Proof.
-  intros A B f l. induction l as [ | x r IH ]; simpl;
-    [ reflexivity | rewrite IH; reflexivity ].
-Qed.
-
 Lemma filter_of_ext :
   forall {A : Type} (p q : A -> bool) (l : list A),
     (forall a : A, p a = q a) -> filter_of p l = filter_of q l.
@@ -368,11 +360,8 @@ Proof.
   induction H as [ | x l l' H IH | x y l | l l' l'' H1 IH1 H2 IH2 ].
   - simpl. apply perm_nil.
   - simpl. destruct (p x); [ apply perm_skip; exact IH | exact IH ].
-  - simpl. destruct (p y); destruct (p x).
-    + apply perm_swap.
-    + apply perm_refl.
-    + apply perm_refl.
-    + apply perm_refl.
+  - simpl. destruct (p y); destruct (p x);
+      [ apply perm_swap | apply perm_refl | apply perm_refl | apply perm_refl ].
   - exact (perm_trans _ _ _ IH1 IH2).
 Qed.
 
@@ -803,11 +792,10 @@ Proof.
     + reflexivity.
     + reflexivity.
     + f_equal. apply map_over_ext_nat. intros a Ha.
-      assert (Hargs : all_of (fun b => Nat.ltb b w) args
-                      = true)
-        by exact (well_formed_gate_reads_earlier_wires c w o args Hwf Hc Eg).
-      assert (Haw : Nat.ltb a w = true)
-        by exact (all_of_mem_nat (fun b => Nat.ltb b w) args a Hargs Ha).
+      pose proof (well_formed_gate_reads_earlier_wires c w o args Hwf Hc Eg)
+        as Hargs.
+      pose proof (all_of_mem_nat (fun b => Nat.ltb b w) args a Hargs Ha)
+        as Haw.
       apply (IH m ops c regs ins a g1 g2 Hwf).
       * unfold Nat.ltb in *.
         exact (leb_trans_nat _ _ _ Haw (leb_drop_left _ _ Hc)).
@@ -855,21 +843,6 @@ Fixpoint mem_obs (o : Obs) (l : list Obs) : bool :=
   | nil => false
   | cons x r => orb (obs_eqb o x) (mem_obs o r)
   end.
-
-Lemma obs_eqb_refl : forall o : Obs, obs_eqb o o = true.
-Proof.
-  intros o. destruct o as [ w t | w t ]; simpl;
-    rewrite eqb_refl_nat; rewrite eqb_refl_nat; reflexivity.
-Qed.
-
-Lemma mem_obs_app :
-  forall (o : Obs) (l1 l2 : list Obs),
-    mem_obs o (app l1 l2) = orb (mem_obs o l1) (mem_obs o l2).
-Proof.
-  intros o l1 l2. induction l1 as [ | x r IH ]; simpl.
-  - reflexivity.
-  - rewrite IH. destruct (obs_eqb o x); reflexivity.
-Qed.
 
 Definition obs_value (m : Sharing) (ops : nat -> list (Val m) -> Val m)
     (c : Circuit) (init : nat -> Val m) (ins : nat -> nat -> Val m)
@@ -992,18 +965,17 @@ Proof.
     intros m ops c regs regs' ins ins' w H.
   - reflexivity.
   - simpl. destruct (gate_at c w) as [ i | s | o args ] eqn:Eg.
-    + assert (Hw : stable_value m c regs ins w
-                   = stable_value m c regs' ins' w).
-      { apply H. simpl. rewrite Eg. simpl. rewrite eqb_refl_nat. reflexivity. }
-      unfold stable_value in Hw. rewrite Eg in Hw. exact Hw.
-    + assert (Hw : stable_value m c regs ins w
-                   = stable_value m c regs' ins' w).
-      { apply H. simpl. rewrite Eg. simpl. rewrite eqb_refl_nat. reflexivity. }
-      unfold stable_value in Hw. rewrite Eg in Hw. exact Hw.
-    + f_equal. apply map_over_ext_nat. intros a Ha.
-      apply (IH m ops c regs regs' ins ins' a).
-      intros s Hs. apply H. simpl. rewrite Eg.
-      exact (mem_flat_map_over (stable_sources c f) args a s Ha Hs).
+    (* A primary input and a register output are each their own only stable
+       source, so one script closes both: the hypothesis at w is the goal. *)
+    1-2: assert (Hw : stable_value m c regs ins w
+                      = stable_value m c regs' ins' w)
+           by (apply H; simpl; rewrite Eg; simpl; rewrite eqb_refl_nat;
+               reflexivity);
+         unfold stable_value in Hw; rewrite Eg in Hw; exact Hw.
+    f_equal. apply map_over_ext_nat. intros a Ha.
+    apply (IH m ops c regs regs' ins ins' a).
+    intros s Hs. apply H. simpl. rewrite Eg.
+    exact (mem_flat_map_over (stable_sources c f) args a s Ha Hs).
 Qed.
 
 (* =========================================================================
@@ -1256,7 +1228,7 @@ Theorem dependence_yields_a_simulator :
         (list_eqb (v_eqb (gd_share g))) (f a) (f (restrict_to g I a)).
 Proof.
   intros g I f Hsim a. apply Hsim.
-  intros j k Hj Hk HI. unfold restrict_to. rewrite HI. reflexivity.
+  intros j k _ _ HI. unfold restrict_to. rewrite HI. reflexivity.
 Qed.
 
 Definition union_shares (I : ShareSet) (B : nat -> bool) : ShareSet :=
@@ -1787,11 +1759,9 @@ Definition empty_shares : ShareSet := fun _ _ => false.
 Lemma empty_shares_are_bounded :
   forall (g : Gadget) (n : nat), BoundedBy g empty_shares n.
 Proof.
-  intros g n j Hj. unfold card_in. unfold empty_shares.
-  assert (Hf : filter_of (fun _ : nat => false) (upto (gd_shares g)) = nil).
-  { generalize (upto (gd_shares g)). intros l.
-    induction l as [ | x r IH ]; simpl; [ reflexivity | exact IH ]. }
-  rewrite Hf. reflexivity.
+  intros g n j _. unfold card_in. unfold empty_shares.
+  generalize (upto (gd_shares g)). intros l.
+  induction l as [ | x r IH ]; simpl; [ reflexivity | exact IH ].
 Qed.
 
 (*| discharges: R-05-165 |*)
@@ -1800,19 +1770,13 @@ Theorem the_constant_gadget_satisfies_all_three_notions :
     NI constant_gadget E d /\ SNI constant_gadget E d
     /\ PINI constant_gadget E d.
 Proof.
-  intros E d. split; [ | split ].
-  - intros ps B Hw Hs. exists empty_shares. split.
-    + apply empty_shares_are_bounded.
-    + intros a b _. apply identical_views_are_identically_distributed.
-      intros tape. apply constant_gadget_view_ignores_its_inputs.
-  - intros ps B Hw Hs. exists empty_shares. split.
-    + apply empty_shares_are_bounded.
-    + intros a b _. apply identical_views_are_identically_distributed.
-      intros tape. apply constant_gadget_view_ignores_its_inputs.
-  - intros ps B Hw Hs. exists empty_shares. split.
-    + apply empty_shares_are_bounded.
-    + intros a b _. apply identical_views_are_identically_distributed.
-      intros tape. apply constant_gadget_view_ignores_its_inputs.
+  (* The three notions differ only in the bound they demand on the share set,
+     and the empty set meets all three, so one script serves each. *)
+  intros E d. split; [ | split ];
+    (intros ps B _ _; exists empty_shares; split;
+       [ apply empty_shares_are_bounded
+       | intros a b _; apply identical_views_are_identically_distributed;
+         intros tape; apply constant_gadget_view_ignores_its_inputs ]).
 Qed.
 
 (* The copy gadget: two shares of one input, carried to two output wires
@@ -1870,11 +1834,9 @@ Proof.
   - apply empty_shares_are_bounded.
   - intros a b Hagree.
     apply identical_views_are_identically_distributed. intros tape.
-    assert (H00 : a 0 0 = b 0 0).
-    { apply Hagree; reflexivity. }
     unfold split_view. unfold internal_view. unfold output_view. simpl.
     change (cons (a 0 0) nil = cons (b 0 0) nil).
-    rewrite H00. reflexivity.
+    rewrite (Hagree 0 0 eq_refl eq_refl eq_refl). reflexivity.
 Qed.
 
 (* =========================================================================
@@ -2182,8 +2144,6 @@ Proof.
   destruct (a_short_probe_list_misses_a_share (S n) idxs) as [i [Hi Hmiss]]; [lia|].
   destruct (Nat.lt_ge_cases i n) as [Hin|Hin].
   - set (sigma := shift_mask m i (v_sub m s2 s1)).
-    change (Perm (map (fun xs => share_view m idxs (encode m s1 xs)) (mask_tuples m n))
-                 (map (fun xs => share_view m idxs (encode m s2 xs)) (mask_tuples m n))).
     replace (map (fun xs => share_view m idxs (encode m s1 xs)) (mask_tuples m n))
       with (map (fun xs => share_view m idxs (encode m s2 (sigma xs))) (mask_tuples m n)).
     + rewrite <- (map_map sigma (fun xs => share_view m idxs (encode m s2 xs)) (mask_tuples m n)).
@@ -2346,7 +2306,7 @@ Theorem the_shared_wire_has_qualified_stable_security :
 Proof.
   split; [reflexivity|]. split.
   - exists (qualify_counting (list bool) (bitvectors 1) (ltac:(discriminate))). exact I.
-  - intros ps H s1 s2. apply one_share_of_a_secret_is_not_a_leak.
+  - intros ps _ s1 s2. apply one_share_of_a_secret_is_not_a_leak.
 Qed.
 
 Example four_shares_and_three_probes_have_a_positive_normalizer :
