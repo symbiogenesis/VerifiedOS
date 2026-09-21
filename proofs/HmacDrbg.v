@@ -220,13 +220,13 @@ Open Scope list_scope.
    ------------------------------------------------------------------------- *)
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. induction n as [| n IH]. reflexivity. simpl. exact IH. Qed.
+Proof. induction n as [| n IH]; [reflexivity | exact IH]. Qed.
 
 Lemma andb_left : forall a b : bool, andb a b = true -> a = true.
-Proof. intros a b H. destruct a. reflexivity. simpl in H. discriminate H. Qed.
+Proof. intros a b H. destruct a; [reflexivity | discriminate H]. Qed.
 
 Lemma andb_right : forall a b : bool, andb a b = true -> b = true.
-Proof. intros a b H. destruct a. exact H. simpl in H. discriminate H. Qed.
+Proof. intros a b H. destruct a; [exact H | discriminate H]. Qed.
 
 Fixpoint fresh_pool (p : list (list bool)) : bool :=
   match p with
@@ -653,7 +653,7 @@ Theorem a_draw_emits_before_it_updates :
        = fst (hmac_drbg_update additional (fst kv0) (snd drawn))
     /\ value (snd (generate_core s bits additional))
        = snd (hmac_drbg_update additional (fst kv0) (snd drawn)).
-Proof. intros. split. reflexivity. split. reflexivity. reflexivity. Qed.
+Proof. intros. repeat split; reflexivity. Qed.
 
 (*| discharges: R-15-241d |*)
 Theorem a_draw_past_the_interval_is_refused_by_the_algorithm :
@@ -671,9 +671,7 @@ Proof. intros d r bits additional H. unfold step. rewrite H. reflexivity. Qed.
 Theorem every_transition_reseeds_under_a_disciplined_discipline :
   forall d : SeedingDiscipline, Disciplined d -> all_of (reseed_on d) all_transitions = true.
 Proof.
-  intros d H. unfold Disciplined, disciplined_b in H.
-  apply andb_right in H. apply andb_right in H. apply andb_right in H. apply andb_right in H.
-  exact H.
+  intros d H. unfold Disciplined, disciplined_b in H. do 4 apply andb_right in H. exact H.
 Qed.
 
 (*| discharges: R-15-241d |*)
@@ -681,10 +679,7 @@ Theorem the_lock_edge_reseeds_under_a_disciplined_discipline :
   forall d : SeedingDiscipline, Disciplined d -> reseed_on d the_lock_edge = true.
 Proof.
   intros d H. apply every_transition_reseeds_under_a_disciplined_discipline in H.
-  simpl in H.
-  apply andb_right in H. apply andb_right in H. apply andb_right in H.
-  apply andb_right in H. apply andb_right in H. apply andb_right in H.
-  apply andb_left in H. exact H.
+  simpl in H. do 6 apply andb_right in H. apply andb_left in H. exact H.
 Qed.
 
 (* A lock transition under a disciplined discipline takes the next string of
@@ -698,9 +693,8 @@ Theorem a_lock_transition_takes_fresh_entropy :
     step d r (Cross the_lock_edge)
     = Some {| state := reseed (state r) e nil; pool := rest; outputs := outputs r |}.
 Proof.
-  intros d r e rest HD HL HP. unfold step.
-  rewrite (the_lock_edge_reseeds_under_a_disciplined_discipline d HD).
-  unfold take_entropy. rewrite HP. rewrite HL. reflexivity.
+  intros d r e rest HD HL HP. unfold step, take_entropy.
+  rewrite (the_lock_edge_reseeds_under_a_disciplined_discipline d HD), HP, HL. reflexivity.
 Qed.
 
 (* A draw past the interval under a disciplined discipline takes fresh
@@ -719,9 +713,9 @@ Theorem a_draw_past_the_interval_reseeds_first :
       /\ pool r' = rest
       /\ reseed_counter (state r') = 2.
 Proof.
-  intros d r bits additional e rest HB HI HL HP. unfold step. rewrite HB. rewrite HI.
-  destruct (prediction_resistance d); simpl; unfold take_entropy; rewrite HP; rewrite HL;
-  (eexists; split; [reflexivity | split; [reflexivity | reflexivity]]).
+  intros d r bits additional e rest HB HI HL HP. unfold step, take_entropy.
+  rewrite HB, HI, HP, HL. destruct (prediction_resistance d);
+  (eexists; split; [reflexivity | split; reflexivity]).
 Qed.
 
 (* A pool with nothing left halts a reseed rather than reseeding with
@@ -730,7 +724,7 @@ Qed.
 Theorem an_empty_pool_halts_a_reseed :
   forall (d : SeedingDiscipline) (r : Run) (additional : list bool),
     pool r = nil -> step d r (Reseed additional) = None.
-Proof. intros d r additional H. unfold step. unfold take_entropy. rewrite H. reflexivity. Qed.
+Proof. intros d r additional H. unfold step, take_entropy. rewrite H. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The corpus's inputs. Each is a definition because it is an input; the
