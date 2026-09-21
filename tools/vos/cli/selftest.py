@@ -1801,14 +1801,14 @@ CASES: list[Case] = [
 
     # The defect this rule exists for, in the shape it actually arrived in twice: an item
     # lands, the summary's derived figures move with it under `--fix`, and the roster
-    # beside them keeps the set it had. `S28` is dropped rather than misspelled because a
+    # beside them keeps the set it had. `S30` is dropped rather than misspelled because a
     # misspelling would leave a token the reading could still resolve, where an omission
     # is what a landing commits. It is the id no other line reads: the two series' lists
     # and the calibration record carry it, and K-96 rewrites both from the cells rather
     # than from this sentence, so a roster missing it is exactly one rule's finding.
     ("K-102", "a completed item the summary's roster stops naming",
-     _literal("docs/implementation/implementation-checklist.md",
-              "S25, S26, S27, S28, S29, S30, Q1", "S25, S26, S27, S28, S29, Q1")),
+     _first_match(PLAN, r"^(\* Completed: [^\n]*), S30(?=,)",
+                  lambda m: m.group(1))),
 
     # A transposition rather than an invented id, because that is the shape the defect
     # actually takes: a header sentence is written from memory about an entry that turns
