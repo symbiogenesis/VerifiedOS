@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
                   f"stall_single_max={slot.stall_single_max}, "
                   f"boundary_outstanding={slot.boundary_outstanding}, "
                   f"boundary_residency_max={slot.boundary_residency_max}, "
-                  f"drain_max={slot.drain_max}")
+                  f"drain_max={slot.drain_max}, cut_max={slot.cut_max}")
         if joined is not None:
             print(f"join: {joined['join_verdict']}; {joined['reasons']}")
         print("declared programs only; target comparison open")

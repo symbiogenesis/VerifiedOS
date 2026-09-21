@@ -15,10 +15,11 @@ an occupancy or close Q22e.
 Two assumptions bound every result below relative to the machine rather than to
 the declared inputs. A hart is silent outside its declared slots, so every
 partition scheduled on a declared hart must be declared as a slot or its
-contention is missing. A program cut at a held request never issues its tail in
-the model, so the correspondence certificate the closing section names covers
-every resumption point, the next occurrence's alternatives including the tail
-the binary resumes with.
+contention is missing. A program cut at its slot end, at a held request or at a
+request whose shifted issue falls after the end, never issues its tail in the
+model; the report counts that tail as `cut_max`, and the correspondence
+certificate the closing section names covers every resumption point, the next
+occurrence's alternatives including the tail the binary resumes with.
 
 ## Program input
 
@@ -37,8 +38,9 @@ frame, both carrying the schedule format's meanings unchanged: `grant` is the
 maximum requests accepted at issue in that phase and `refresh` names the banks
 whose reservation starts there. A phase withheld from every requester at every
 bank is a zero grant, as the shared-island fixture declares it. `harts` maps
-each declared hart name to an array of slots with exactly `id`, `start`,
-`length` and `alternatives`: `start` is a phase index, `length` a positive
+exactly the declared hart names, a silent hart to an empty array, each to an
+array of slots with exactly `id`, `start`, `length` and `alternatives`:
+`start` is a phase index, `length` a positive
 integer with `start + length` at most the phase count, one hart's slots do not
 overlap, and `id` is unique in the document and is what a cost input's slot
 names. `alternatives` is a nonempty array of programs, each an array of
@@ -116,8 +118,10 @@ orders acceptance and not completion: as
 [the completion conventions](completion-model.md) show, a later request to a
 shorter-occupancy bank may still complete first. The program analysis therefore
 also runs the completion-order predicate over the same exploration and reports
-`ordered` beside the stall bounds; a completion inversion refutes the program
-contract with its trace, as `path-blocked` and `refresh-overlap` do.
+`ordered` beside the stall bounds; a completion inversion sets `ordered` false,
+refutes the program contract with its trace at exit 1 and leaves the
+exploration running to closure, so the stall bounds stay complete, whereas
+`path-blocked` and `refresh-overlap` stop it at the step.
 
 Every structure this presupposes is one the candidate carries: the held-request
 register, holding the run suffix, and its re-presentation; the same-cycle
@@ -175,8 +179,9 @@ alternative chosen afresh, so every counter is bounded and the state space is
 finite. The exploration starts empty at phase zero, carries occupancy and
 transit across every frame wrap and slot boundary, takes every alternative and
 arbiter choice and merges identical states, exactly as the existing checkers
-do; a `path-blocked`, `refresh-overlap` or completion-inversion step refutes
-the program contract with its trace. A request still held at its slot's end is
+do; a `path-blocked` or `refresh-overlap` step stops the exploration and
+refutes the program contract with its trace, and a completion inversion refutes
+it without stopping it. A request still held at its slot's end is
 a boundary-outstanding fact for that (hart, slot), neither dropped nor counted
 twice. This contract models a request presented and refused at issue at the
 slot end as an irrevocable operation, the conservative choice for the
@@ -219,13 +224,19 @@ continuing and the other harts still running; when nothing is outstanding it is
 zero. Because `ordered` requires every earlier operation of a hart to complete
 no later than a later one, a boundary-outstanding occurrence that closes has
 `drain_max` zero, its earlier operations completing inside residency; the term
-is defined for every occurrence because its origin is. Beside these the report
-carries `ordered`, the completion-order verdict; `zero_wait`, the existing
-acceptance predicate's verdict on the expanded contract; `expansion`, reading
-`closed`, `refuted` or `unrealizable`; and `program_zero_wait`, the stalled
-exploration's own verdict on the declared program language, closed exactly when
-every stall bound is zero, no slot is boundary-outstanding and no refutation
-occurred. Every trace lists each cycle's presented requests in hart order and
+is defined for every occurrence because its origin is. `cut_max` counts the
+requests of the chosen alternative that an occurrence neither accepted nor
+holds at its slot end, whether shifted past the end by accumulated stall or
+refused beside a held head; it is zero whenever `stall_total_max` is, and a
+nonzero count names an occurrence whose tail the assumption above cuts. Beside
+these the report carries `ordered`, the completion-order verdict; `zero_wait`,
+the existing acceptance predicate's verdict on the expanded contract;
+`expansion`, reading `closed`, `refuted` or `unrealizable`; and
+`program_zero_wait`, the stalled exploration's own verdict on the declared
+program language, closed exactly when every stall bound is zero, no slot is
+boundary-outstanding and no `path-blocked`, `refresh-overlap` or
+`residency-overrun` step occurred; it does not read `ordered`, which stands
+beside it as `ordered` stands beside `zero_wait`. Every trace lists each cycle's presented requests in hart order and
 then declared order, the order the expansion uses. The tests hold consistency
 both ways: a closed expansion requires `program_zero_wait`, and
 `program_zero_wait` requires that the expansion is not refuted by a realizable
@@ -287,8 +298,12 @@ input measured at other boundaries. The single document-level
 `boundary.d_pipe_completion` must cover the maximum `drain_max` over the named
 slots by the same rule; it is a per-switch boundary operand, not a per-slot
 term, so drain cycles are assigned to the boundary charge and never to a slot
-field. Unknown operands stay open, favorable arithmetic never outweighs a
-refutation, and `phase-evaluate` keeps its zero-wait scope and verdicts.
+field. The join verdict is `refuted` when any compared term or the arithmetic
+is refuted, else `open` when any compared operand is unknown or the arithmetic
+is open, else `inconclusive` when any term overlaps or the arithmetic is
+inconclusive, and otherwise the arithmetic verdict; only `refuted` exits 1,
+favorable arithmetic never outweighs a refutation, and `phase-evaluate` keeps
+its zero-wait scope and verdicts.
 
 ## Acceptance cases
 
@@ -319,6 +334,8 @@ shorter one to another bank refuted as a completion inversion with its trace
 and `ordered` false; a `residency-overrun` reporting hart, slot, residency
 reached and trace; an alternative whose expanded refutation is unrealizable,
 reported inconclusive while `program_zero_wait` decides the program language;
+a cut tail reported as `cut_max` one, both for a later request shifted past the
+slot end and for a zero-gap successor refused beside a held head;
 a per-hart issue-limit violation, a program leaving its slot, a stale resource
 digest, an unknown field, a cost input naming an unknown slot id and a cost
 input whose schedule object does not name the program, each refused; a

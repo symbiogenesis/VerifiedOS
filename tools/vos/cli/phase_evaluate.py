@@ -45,7 +45,8 @@ type Read = phase_schedule.Extraction | phase_modes.ModeExtraction
 def _join(acceptance: Acceptance, completion: Completion,
           costs: phase_cost.Comparison, arithmetic: dict[str, Json]) -> tuple[str, str]:
     if not acceptance.zero_wait:
-        return "refuted", "the declared zero-wait service branch is refuted; stalled execution is unmodeled"
+        return "refuted", ("the declared zero-wait service branch is refuted; a candidate that "
+                           "stalls at issue is bounded by phase-stall over declared programs")
     if completion.ordered is False or completion.drain_status == "blocked":
         return "refuted", "declared completion order or quiescent drain is refuted"
     if arithmetic["arithmetic_verdict"] == "refuted":

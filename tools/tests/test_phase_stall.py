@@ -73,6 +73,8 @@ def _consistent(name: str, analysis: Analysis) -> None:
                slot.stall_total_max == 0 and slot.stall_single_max == 0
                and not slot.boundary_outstanding for slot in analysis.stalled.slots)),
            f"{name}: program_zero_wait is not the stalled exploration's own verdict")
+    ensure(all(slot.cut_max == 0 or slot.stall_total_max > 0 for slot in analysis.stalled.slots),
+           f"{name}: a cut tail needs a stall that shifted or held it")
 
 
 def _analyze(name: str, program: Json, resources: bytes | None = None) -> Analysis:
@@ -97,12 +99,12 @@ def _slot_report(analysis: Analysis, name: str) -> SlotReport:
 
 
 def _expect(analysis: Analysis, name: str, total: int, single: int, outstanding: bool,
-            residency: int, drain: int) -> None:
+            residency: int, drain: int, cut: int = 0) -> None:
     report = _slot_report(analysis, name)
     ensure((report.stall_total_max, report.stall_single_max, report.boundary_outstanding,
-            report.boundary_residency_max, report.drain_max)
-           == (total, single, outstanding, residency, drain),
-           f"{name}: reported {report}, expected {(total, single, outstanding, residency, drain)}")
+            report.boundary_residency_max, report.drain_max, report.cut_max)
+           == (total, single, outstanding, residency, drain, cut),
+           f"{name}: reported {report}, expected {(total, single, outstanding, residency, drain, cut)}")
     ensure((report.boundary_witness is not None) is outstanding,
            f"{name}: a boundary-outstanding slot carries its witness and no other does")
 
@@ -184,6 +186,25 @@ def _frame_wrap() -> None:
     _expect(analysis, "sy", 0, 0, False, 0, 2)
     ensure(not analysis.zero_wait and analysis.expansion == "refuted"
            and len(analysis.acceptance.trace) == 5, "occupancy must survive frame wrap")
+
+
+def _cut_tail() -> None:
+    # The reservation holds b0 through cycle 1. In the first program the read is
+    # accepted at the slot end and the request due two cycles later is never
+    # presented; in the second the zero-gap successor is refused beside the held head.
+    shifted = _analyze("cut-shifted", _program(
+        _phases([1, 1, 1], {0: ["b0"]}),
+        [_slot("sx", 0, 3, [_req("b0", "rd", 0), _req("b1", "rd", 2)])]))
+    ensure(shifted.stalled.closed, "a cut tail still closes")
+    _expect(shifted, "sx", 2, 2, False, 0, 0, cut=1)
+    held = _analyze("cut-held", _program(
+        _phases([1, 1, 1], {0: ["b0"]}),
+        [_slot("sx", 0, 2, [_req("b0", "rd", 0), _req("b1", "rd", 0)])]))
+    ensure(held.stalled.closed, "a held head with a cut successor still closes")
+    _expect(held, "sx", 2, 2, True, 1, 0, cut=1)
+    ensure(all(report.cut_max == 0 for _, analysis in ANALYSES
+               if analysis.name != "synthetic-relation" for report in analysis.stalled.slots),
+           "no fixture cuts a tail")
 
 
 def _zero_wait_paths() -> None:
@@ -432,6 +453,7 @@ def cases() -> list[Case]:
             Case("split-run", _split_run), Case("path-wait", _path_wait),
             Case("boundary-outstanding", _boundary_outstanding), Case("worked-tail", _worked_tail),
             Case("grant-gap", _grant_gap), Case("frame-wrap", _frame_wrap),
+            Case("cut-tail", _cut_tail),
             Case("zero-wait-paths", _zero_wait_paths), Case("path-blocked", _path_blocked),
             Case("refresh-overlap", _refresh_overlap),
             Case("completion-inversion", _completion_inversion),

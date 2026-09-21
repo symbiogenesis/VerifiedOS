@@ -106,6 +106,10 @@ class SlotReport:
     boundary_witness: tuple[Cycle, ...] | None
     boundary_residency_max: int
     drain_max: int
+    # Requests of the chosen alternative an occurrence neither accepted nor holds at
+    # its slot end: the tail the contract cuts, shifted past the end by accumulated
+    # stall or refused beside a held head. Zero whenever nothing stalled.
+    cut_max: int
 
 
 @dataclass(frozen=True)
@@ -302,6 +306,7 @@ class _Record:
     witness: tuple[Cycle, ...] | None = None
     residency: int = 0
     drain: int = 0
+    cut: int = 0
 
 
 def _run(program: tuple[Request, ...], position: int) -> tuple[Request, ...]:
@@ -472,6 +477,9 @@ def explore(program: Program) -> Stalled:
                     record = records[(hart, slot)]
                     record.total = max(record.total, next_stall)
                     record.single = max(record.single, next_wait)
+                    if phase == declared.end:
+                        held = 1 if next_wait > 0 else 0
+                        record.cut = max(record.cut, len(program_requests) - next_position - held)
                     if phase != declared.end:
                         successors.append((slot, alternative, next_position, next_wait, next_delay,
                                            next_stall, 0))
@@ -510,7 +518,7 @@ def explore(program: Program) -> Stalled:
     reports = tuple(SlotReport(program.hart_names[hart], slot.name, records[(hart, index)].total,
                                records[(hart, index)].single, records[(hart, index)].outstanding,
                                records[(hart, index)].witness, records[(hart, index)].residency,
-                               records[(hart, index)].drain)
+                               records[(hart, index)].drain, records[(hart, index)].cut)
                     for hart, slots in enumerate(harts) for index, slot in enumerate(slots))
     zero = all(report.stall_total_max == 0 and not report.boundary_outstanding for report in reports)
     return Stalled(True, inversion is None, len(history), inversion=inversion, slots=reports,

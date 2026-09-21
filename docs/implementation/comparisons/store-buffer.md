@@ -134,8 +134,10 @@ The command returns 1 for a refuted branch, 2 for invalid or mismatched inputs,
 and 0 for a completed analysis whose verdict may be favorable, inconclusive or
 open; read `branch_verdict`, not the exit code alone. It always reports
 `target_comparison: open`. Refuting zero wait does not refute every deleting
-candidate: a candidate that waits needs a stalled transition model and a fresh
-arrival/WCET analysis. No successful cost comparison repairs that missing model.
+candidate: a candidate that waits at issue is bounded by the
+[stalled-transition contract](../phase-service/stall-contract.md) over declared
+per-hart programs, and the arrival correspondence and WCET halves of that
+analysis stay open. No successful cost comparison supplies either half.
 
 ## Cost operands and present verdict
 
