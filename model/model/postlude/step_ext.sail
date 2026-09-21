@@ -16,11 +16,12 @@ function ext_post_step_hook() -> unit = ()
 // On a machine whose registers hold authority, reset is not free to leave the
 // register file undefined the way the base ISA leaves the integer file: an
 // undefined capability would be authority nothing granted. Every register
-// resets to the null capability, which is also the all-zeroes granule
-// (R-15-007i, cap_common.sail).
+// has a defined reset value. Except for the three explicit bootstrap grants,
+// it is the null capability, also the all-zeroes granule
+// (R-15-007i, R-15-007p, cap_common.sail).
 function ext_reset() -> unit = {
-  // The machine comes out of reset holding the root authority, and the root is
-  // a **pair** rather than one capability: no admitted permission set holds
+  // The machine comes out of reset holding split memory root authority:
+  // no admitted permission set holds
   // both store and execute, so a single almighty root is inexpressible and the
   // execute side and the store side are separate authorities (R-15-007l,
   // R-15-007p). The execute side spans the address space so that the first
@@ -39,8 +40,11 @@ function ext_reset() -> unit = {
   // `store-local` because `candperm` can only remove: a stack capability is
   // derivable only from a root that already holds the permission.
   x1  = root_data_cap;
-  x2  = null_cap;
-  x3  = null_cap;
+  // Existing GPRs carry the separate memory-inert object-type roots. These
+  // grants originate only at reset; trap entry and mret do not recreate them.
+  // Firmware consumes c2 before installing the runtime stack pointer there.
+  x2  = root_seal_cap;
+  x3  = root_unseal_cap;
   x4  = null_cap;
   x5  = null_cap;
   x6  = null_cap;
