@@ -446,8 +446,7 @@ Definition only_if (a b : bool) : bool := orb (negb a) b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
+  intros a b H. destruct a; destruct b; try discriminate H; split; reflexivity.
 Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
@@ -456,7 +455,7 @@ Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
 Proof.
-  intros a b H Ha. unfold only_if in H. rewrite Ha in H. simpl in H. exact H.
+  intros a b H Ha. rewrite Ha in H. exact H.
 Qed.
 
 (* And the other direction, which is what a completeness proof needs: a
@@ -903,8 +902,7 @@ Proof. intros c. destruct c; reflexivity. Qed.
 
 Lemma class_eqb_true : forall c d : MemClass, class_eqb c d = true -> c = d.
 Proof.
-  intros c d. destruct c; destruct d; simpl; intros H;
-    try discriminate H; reflexivity.
+  intros c d. destruct c; destruct d; intros H; try discriminate H; reflexivity.
 Qed.
 
 Definition kind_eqb (k j : RegionKind) : bool :=
@@ -939,8 +937,7 @@ Proof. intros k. destruct k; reflexivity. Qed.
 
 Lemma kind_eqb_true : forall k j : RegionKind, kind_eqb k j = true -> k = j.
 Proof.
-  intros k j. destruct k; destruct j; simpl; intros H;
-    try discriminate H; reflexivity.
+  intros k j. destruct k; destruct j; intros H; try discriminate H; reflexivity.
 Qed.
 
 (* The counts, checked by conversion rather than claimed, each one a count
@@ -1585,7 +1582,7 @@ Lemma charge_band_past_the_end :
   forall (T : Type) (i d : nat) (b : Band T),
     Nat.leb (count_of (band_slots b)) i = true -> charge_band_at i d b = b.
 Proof.
-  intros T i d b H. destruct b as [ fo bg ]. simpl in H.
+  intros T i d b H. destruct b as [ fo bg ].
   destruct i as [ | k ]; simpl in H.
   - discriminate H.
   - simpl. rewrite (charge_nth_past_the_end T k d bg H). reflexivity.
@@ -1833,7 +1830,7 @@ Lemma slot_fits_charge_mono :
     slot_fits c mf (charge_slot e s) = true ->
     slot_fits c mf (charge_slot d s) = true.
 Proof.
-  intros c mf d e s Hde H. unfold slot_fits in H. unfold slot_fits. simpl in H. simpl.
+  intros c mf d e s Hde H. unfold slot_fits in H |- *. simpl in H |- *.
   destruct (andb_split _ _ H) as [ Hcases Hbody ].
   destruct (andb_split _ _ Hbody) as [ H1 H2 ].
   destruct (andb_split _ _ H2) as [ H3 H4 ].
@@ -1866,7 +1863,7 @@ Theorem a_smaller_delta_is_admitted_wherever_a_larger_one_is :
     admits c (charge_frame_at i e f) = true ->
     admits c (charge_frame_at i d f) = true.
 Proof.
-  intros c i d e f Hde H. unfold admits in H. unfold admits.
+  intros c i d e f Hde H. unfold admits in H |- *.
   rewrite (major_frame_charge_at (Tenant c) i e f) in H.
   rewrite (frame_slots_charge_at (Tenant c) i e f) in H.
   rewrite (major_frame_charge_at (Tenant c) i d f).
@@ -1889,7 +1886,7 @@ Definition MonotoneInTheDelta (adm : Admission) : Prop :=
 Theorem the_specification_admission_is_monotone_in_the_delta :
   MonotoneInTheDelta spec_admission.
 Proof.
-  intros c p a b r f Hle H. unfold spec_admission in H. unfold spec_admission.
+  intros c p a b r f Hle H.
   exact (a_smaller_delta_is_admitted_wherever_a_larger_one_is c (p.(slot_of) r)
            (placement_delta p a r) (placement_delta p b r) f Hle H).
 Qed.
@@ -1906,7 +1903,6 @@ Theorem the_focus_charging_admission_is_monotone :
   MonotoneInTheDelta focus_charging_admission.
 Proof.
   intros c p a b r f Hle H.
-  unfold focus_charging_admission in H. unfold focus_charging_admission.
   exact (a_smaller_delta_is_admitted_wherever_a_larger_one_is c
            (count_of (reserved_band f))
            (placement_delta p a r) (placement_delta p b r) f Hle H).
@@ -2151,10 +2147,7 @@ Theorem no_plan_wide_granule_quantizes_as_the_encoding_does :
 Proof.
   intros g H1 H2.
   assert (Hlo : g = 1) by exact (H1 1 eq_refl).
-  rewrite Hlo in H2.
-  assert (Hhi : Nat.ltb 129 (64 * (2 * flat_quantum 1 129)) = true)
-    by exact (H2 129 eq_refl).
-  cbv in Hhi. discriminate Hhi.
+  rewrite Hlo in H2. specialize (H2 129 eq_refl). cbv in H2. discriminate H2.
 Qed.
 
 (* And the same at one magnitude, with its twins: the byte-exact plan-wide
@@ -2587,15 +2580,9 @@ Lemma colouring_ok_sound :
     colouring_ok p place = true -> NoInterference p place.
 Proof.
   intros p place H r s Hr Hs Hne Hov. unfold colouring_ok in H.
-  assert (Hr' : all_of (fun t =>
-                   only_if (andb (negb (Nat.eqb r t)) (live_overlap p r t))
-                           (slots_disjoint p place r t))
-                 (upto p.(region_count)) = true) by
-    exact (all_of_upto _ p.(region_count) r H Hr).
-  assert (Hs' : only_if (andb (negb (Nat.eqb r s)) (live_overlap p r s))
-                        (slots_disjoint p place r s) = true) by
-    exact (all_of_upto _ p.(region_count) s Hr' Hs).
-  apply (only_if_elim _ _ Hs').
+  assert (Hrow := all_of_upto _ p.(region_count) r H Hr). cbv beta in Hrow.
+  assert (Hcell := all_of_upto _ p.(region_count) s Hrow Hs). cbv beta in Hcell.
+  apply (only_if_elim _ _ Hcell).
   apply andb_join; [ rewrite Hne; reflexivity | exact Hov ].
 Qed.
 
@@ -2745,7 +2732,7 @@ Definition MonotoneInTheMemberCost (bnd : PopulationBound) : Prop :=
 Theorem the_specification_bound_is_monotone_in_the_member_cost :
   MonotoneInTheMemberCost pool_fits.
 Proof.
-  intros p a b n Hle H. unfold pool_fits in H. unfold pool_fits.
+  intros p a b n Hle H. unfold pool_fits in H |- *.
   apply (leb_trans (p.(fixed_first_class) + n * member_first_class_cost p b)
                    (p.(fixed_first_class) + n * member_first_class_cost p a)
                    p.(first_budget)); [ | exact H ].
@@ -3762,7 +3749,7 @@ Theorem the_stranger_placement_breaks_the_second_conjunct_alone :
   each_region_once demo_plan stranger_placement = true
   /\ no_stranger demo_plan stranger_placement = false
   /\ plan_ok demo_plan stranger_placement = false.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_stranger_placement_is_refuted :
   ~ ChargedExactlyOnce demo_plan stranger_placement.
@@ -3907,11 +3894,8 @@ Theorem the_demoted_hard_task_code_keeps_the_other_two_placements :
   ArenasAreSecondClass demo_plan hard_task_demoted
   /\ TheInterpreterBodyIsFirstClass demo_plan hard_task_demoted.
 Proof.
-  split.
-  - exact (demote_keeps_other_placements demo_plan HardTaskAndHotCode
-             InterpreterObjectArenas SecondClass eq_refl eq_refl).
-  - exact (demote_keeps_other_placements demo_plan HardTaskAndHotCode
-             InterpreterBody FirstClass eq_refl eq_refl).
+  unfold hard_task_demoted.
+  repeat split; apply demote_keeps_other_placements; reflexivity.
 Qed.
 
 (* R-14-015's first half broken: the arenas on the first class. *)
@@ -3925,11 +3909,8 @@ Theorem the_promoted_arenas_keep_the_other_two_placements :
   HardTaskCodeIsFirstClass demo_plan arenas_promoted
   /\ TheInterpreterBodyIsFirstClass demo_plan arenas_promoted.
 Proof.
-  split.
-  - exact (promote_keeps_other_placements demo_plan InterpreterObjectArenas
-             HardTaskAndHotCode FirstClass eq_refl eq_refl).
-  - exact (promote_keeps_other_placements demo_plan InterpreterObjectArenas
-             InterpreterBody FirstClass eq_refl eq_refl).
+  unfold arenas_promoted.
+  repeat split; apply promote_keeps_other_placements; reflexivity.
 Qed.
 
 (* R-14-015's second half broken: the interpreter body on the second class,
@@ -3945,11 +3926,8 @@ Theorem the_demoted_interpreter_body_keeps_the_other_two_placements :
   HardTaskCodeIsFirstClass demo_plan body_demoted
   /\ ArenasAreSecondClass demo_plan body_demoted.
 Proof.
-  split.
-  - exact (demote_keeps_other_placements demo_plan InterpreterBody
-             HardTaskAndHotCode FirstClass eq_refl eq_refl).
-  - exact (demote_keeps_other_placements demo_plan InterpreterBody
-             InterpreterObjectArenas SecondClass eq_refl eq_refl).
+  unfold body_demoted.
+  repeat split; apply demote_keeps_other_placements; reflexivity.
 Qed.
 
 (* And the construction that separates the whole placement discipline from
@@ -3962,13 +3940,8 @@ Theorem the_demoted_scalar_working_set_keeps_all_three_named_placements :
   /\ ArenasAreSecondClass demo_plan scalar_demoted
   /\ TheInterpreterBodyIsFirstClass demo_plan scalar_demoted.
 Proof.
-  split; [ | split ].
-  - exact (demote_keeps_other_placements demo_plan ScalarWorkingSet
-             HardTaskAndHotCode FirstClass eq_refl eq_refl).
-  - exact (demote_keeps_other_placements demo_plan ScalarWorkingSet
-             InterpreterObjectArenas SecondClass eq_refl eq_refl).
-  - exact (demote_keeps_other_placements demo_plan ScalarWorkingSet
-             InterpreterBody FirstClass eq_refl eq_refl).
+  unfold scalar_demoted.
+  repeat split; apply demote_keeps_other_placements; reflexivity.
 Qed.
 
 Theorem the_demoted_scalar_working_set_is_refuted :
@@ -4011,21 +3984,9 @@ Theorem the_by_name_payload_placements_keep_the_three_named_placements :
   /\ ArenasAreSecondClass demo_plan payloads_named_first
   /\ TheInterpreterBodyIsFirstClass demo_plan payloads_named_first.
 Proof.
-  split; [ | split; [ | split; [ | split; [ | split ] ] ] ];
-    unfold payloads_named_second, payloads_named_first;
-    first
-      [ exact (the_by_name_payload_placement_keeps_every_named_placement
-                 SecondClass demo_plan HardTaskAndHotCode FirstClass eq_refl)
-      | exact (the_by_name_payload_placement_keeps_every_named_placement
-                 SecondClass demo_plan InterpreterObjectArenas SecondClass eq_refl)
-      | exact (the_by_name_payload_placement_keeps_every_named_placement
-                 SecondClass demo_plan InterpreterBody FirstClass eq_refl)
-      | exact (the_by_name_payload_placement_keeps_every_named_placement
-                 FirstClass demo_plan HardTaskAndHotCode FirstClass eq_refl)
-      | exact (the_by_name_payload_placement_keeps_every_named_placement
-                 FirstClass demo_plan InterpreterObjectArenas SecondClass eq_refl)
-      | exact (the_by_name_payload_placement_keeps_every_named_placement
-                 FirstClass demo_plan InterpreterBody FirstClass eq_refl) ].
+  unfold payloads_named_second, payloads_named_first.
+  repeat split; apply the_by_name_payload_placement_keeps_every_named_placement;
+    reflexivity.
 Qed.
 
 Example the_by_name_payload_placement_differs_at_one_payload :
@@ -4152,8 +4113,7 @@ Theorem the_faster_second_class_plan_keeps_everything_else :
   /\ slot_lengths_quantized fast_second_plan = true
   /\ plan_ok fast_second_plan fast_second_plan.(placed) = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 (* And a delta that reads a quantity R-11-015's derivation does not carry:
@@ -4180,8 +4140,7 @@ Theorem the_shorter_region_plan_keeps_everything_else :
   /\ containment_ok shorter_region_plan (spec_placement shorter_region_plan) = true
   /\ places_ok shorter_region_plan shorter_region_plan.(class_of) = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; reflexivity ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 Example the_two_plans_the_length_scaled_delta_separates :
@@ -4297,8 +4256,7 @@ Theorem the_slot_escaping_plan_keeps_everything_else :
   /\ slot_bases_quantized slot_escaping_plan = true
   /\ slot_lengths_quantized slot_escaping_plan = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 Example the_one_region_the_escaping_plan_charges_nowhere :
@@ -4418,8 +4376,7 @@ Theorem the_unquantized_length_plan_keeps_everything_else :
      = true
   /\ places_ok unquantized_length_plan unquantized_length_plan.(class_of) = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; reflexivity ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 Example the_granule_the_unquantized_length_would_need :
@@ -4494,8 +4451,7 @@ Theorem the_odd_base_plan_keeps_everything_else :
   /\ places_ok odd_base_plan odd_base_plan.(class_of) = true
   /\ plan_ok odd_base_plan odd_base_plan.(placed) = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 Example the_odd_base_is_no_whole_number_of_its_own_granule :
@@ -4527,8 +4483,7 @@ Theorem the_island_escaping_plan_is_refuted :
   /\ slot_bases_quantized island_escaping_plan = true
   /\ places_ok island_escaping_plan island_escaping_plan.(class_of) = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 (* And the obligation itself refused, which is what the containment check
@@ -4559,8 +4514,7 @@ Theorem the_island_underflow_plan_is_refuted :
   /\ slot_bases_quantized island_underflow_plan = true
   /\ places_ok island_underflow_plan island_underflow_plan.(class_of) = true.
 Proof.
-  split; [ reflexivity | split; [ reflexivity | split; [ reflexivity
-    | split; [ reflexivity | split; reflexivity ] ] ] ].
+  repeat split; reflexivity.
 Qed.
 
 Theorem the_island_underflow_plan_leaves_its_island :
@@ -4589,7 +4543,7 @@ Theorem the_clamped_placement_contains_what_the_plan_does_not :
      = true
   /\ containment_ok island_escaping_plan (spec_placement island_escaping_plan)
      = false.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_clamped_placement_agrees_on_the_demo_plan :
   forall r : nat,
@@ -4609,7 +4563,7 @@ Theorem the_overlapping_live_plan_is_refuted :
      = true
   /\ slot_bases_quantized overlapping_live_plan = true
   /\ places_ok overlapping_live_plan overlapping_live_plan.(class_of) = true.
-Proof. split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_overlapping_live_plan_interferes :
   ~ NoInterference overlapping_live_plan (spec_placement overlapping_live_plan).
@@ -4629,7 +4583,7 @@ Theorem the_unquantized_plan_is_refuted :
   /\ colouring_ok unquantized_plan (spec_placement unquantized_plan) = true
   /\ containment_ok unquantized_plan (spec_placement unquantized_plan) = true
   /\ places_ok unquantized_plan unquantized_plan.(class_of) = true.
-Proof. split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_unquantized_plan_lays_a_base_off_its_own_granule :
   ~ BasesAreRepresentablyAligned unquantized_plan.
@@ -4648,7 +4602,7 @@ Theorem the_shared_slot_plan_is_admitted :
   /\ slots_disjoint shared_slot_plan (spec_placement shared_slot_plan) 2 4 = false
   /\ containment_ok shared_slot_plan (spec_placement shared_slot_plan) = true
   /\ slot_bases_quantized shared_slot_plan = true.
-Proof. split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_shared_slot_plan_has_no_interference :
   NoInterference shared_slot_plan (spec_placement shared_slot_plan).
@@ -4666,14 +4620,14 @@ Theorem the_strict_colouring_refuses_the_mechanism :
   /\ colouring_ok shared_slot_plan (spec_placement shared_slot_plan) = true
   /\ strict_colouring_ok shared_slot_plan (spec_placement shared_slot_plan)
      = false.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_literal_reading_of_the_side_condition_refuses_the_mechanism :
   literal_colouring_ok demo_plan (spec_placement demo_plan) = true
   /\ literal_colouring_ok shared_slot_plan (spec_placement shared_slot_plan)
      = false
   /\ colouring_ok shared_slot_plan (spec_placement shared_slot_plan) = true.
-Proof. split; [ reflexivity | split; reflexivity ]. Qed.
+Proof. repeat split; reflexivity. Qed.
 
 (* And it admits exactly what the reading taken refuses, which is the other
    half of why the entry's literal words cannot be meant: two regions live at
