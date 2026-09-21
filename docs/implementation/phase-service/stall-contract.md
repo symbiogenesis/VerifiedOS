@@ -149,8 +149,10 @@ each cycle branches over every maximal set of presented requests that respects
 one acceptance per bank, the phase grant and per-hart issue order. A reported
 bound is therefore an upper bound for every arbiter that refuses a contender
 only for a busy zero-path bank, an exhausted phase grant or a same-cycle
-conflict with another contender, and accepts every contender it can. That
-class is refresh-blind: an arbiter that withholds acceptance ahead of a
+conflict with another contender for a zero-path bank, and accepts every
+contender it can; a same-cycle pair of nonzero-path requests to one bank is
+refuted as `path-blocked` rather than bounded, so an arbiter that serialises
+such a pair at issue is outside the bounded class. That class is refresh-blind: an arbiter that withholds acceptance ahead of a
 scheduled reservation is an unmodeled refinement, and an overlap reached by
 accepting a held request whose occupancy runs into a reservation is a
 `refresh-overlap` refutation. R-15-222a's rotation is a per-bank, per-core
@@ -173,9 +175,10 @@ presentation limit and fold the two parameters the entry keeps apart.
 
 A state is the boundary before a cycle's refresh: the phase, each bank's
 remaining occupancy including maintenance, the requests in transit, and per
-hart its slot occurrence, chosen alternative, program position, held run suffix
-with the cycles its head has waited, and the stall accumulated in this
-occurrence. Programs restart at their slot's start phase every frame with the
+hart its slot occurrence, chosen alternative, program position with the cycles
+remaining before its next request may present, held run suffix with the cycles
+its head has waited, the stall accumulated in this occurrence and, after the
+slot end, the refused cycles of boundary residency. Programs restart at their slot's start phase every frame with the
 alternative chosen afresh, so every counter is bounded and the state space is
 finite. The exploration starts empty at phase zero, carries occupancy and
 transit across every frame wrap and slot boundary, takes every alternative and
@@ -199,13 +202,17 @@ held request keeps being presented until accepted, and its cycles after the
 slot end through its completion are boundary residency, not slot stall. A
 request still held when the same hart's next slot occurrence begins is a
 `residency-overrun` refutation, reported with the hart, the slot, the residency
-reached and the trace. Requests accepted but incomplete at the end of residency
-are drain.
+reached and the trace; an accepted boundary operation still occupying its bank
+when that occurrence begins is not an overrun, its remaining occupancy being
+contention the next occurrence's stall bounds absorb while H has charged the
+residency once. Requests accepted but incomplete at the end of residency are
+drain.
 
 ## Outputs and receipts
 
-On closure the report carries, per (hart, slot), three disjoint terms whose
-serial sum is the modeled tail of an occurrence. `stalls` counts the cycles up
+On closure the report carries, per (hart, slot), three disjoint terms, each a
+maximum over reachable histories, whose serial sum bounds the modeled tail of
+every occurrence. `stalls` counts the cycles up
 to and including the slot's last cycle in which the hart's presented request is
 refused; `stall_total_max` is its maximum over all reachable histories and
 arbiter choices, and `stall_single_max` the longest one request was held,
@@ -213,19 +220,21 @@ counted from its earliest issue to its acceptance at issue and truncated at the
 slot end. `boundary_outstanding` is true when a request is held at the slot
 end, with the shortest witnessing trace. Boundary residency runs from the first
 cycle after the slot end through the held request's completion: its refused
-cycles after the slot end plus its occupancy, occupancy including the
-acceptance cycle, which is where R-07-040's prefix and the cost input's H end,
-at entry of the boundary handler; `boundary_residency_max` is that length, and
+cycles after the slot end, its path cycles in transit after acceptance at
+issue, and its occupancy, occupancy including the bank-acceptance cycle, which
+is where R-07-040's prefix and the cost input's H end, at entry of the boundary
+handler; `boundary_residency_max` is that length, and
 `d_pipe_completion` covers only what is still outstanding at that completion.
 `drain_max` has a single origin, the first cycle after the end of residency,
 the slot end when no request was held there, and counts the cycles from that
-origin inclusive until the last operation the hart issued in that occurrence
-completes under [the completion conventions](completion-model.md), refresh
-continuing and the other harts still running; when nothing is outstanding it is
-zero. Because `ordered` requires every earlier operation of a hart to complete
-no later than a later one, a boundary-outstanding occurrence that closes has
-`drain_max` zero, its earlier operations completing inside residency; the term
-is defined for every occurrence because its origin is. `cut_max` counts the
+origin inclusive until every operation the hart has outstanding at that origin
+completes under [the completion conventions](completion-model.md), whichever
+occurrence issued it, refresh continuing and the other harts still running;
+when the hart has nothing outstanding it is zero. Because `ordered` requires
+every earlier operation of a hart to complete no later than a later one, a
+boundary-outstanding occurrence that closes has `drain_max` zero, its earlier
+operations completing inside residency; the term is defined for every
+occurrence because its origin is. `cut_max` counts the
 requests of the chosen alternative that an occurrence neither accepted nor
 holds at its slot end, whether shifted past the end by accumulated stall or
 refused beside a held head; it is zero whenever `stall_total_max` is, and a
@@ -348,7 +357,9 @@ and `ordered` false; a `residency-overrun` reporting hart, slot, residency
 reached and trace; an alternative whose expanded refutation is unrealizable,
 reported inconclusive while `program_zero_wait` decides the program language;
 a cut tail reported as `cut_max` one, both for a later request shifted past the
-slot end and for a zero-gap successor refused beside a held head; a cost input
+slot end and for a zero-gap successor refused beside a held head; a nonzero-path
+held head whose residency counts its transit, reporting 1, 1, outstanding,
+residency 3 and drain 0; a cost input
 naming overlapping slots on two harts refused, a named slot declaring
 `switches` zero refuting the join, and a named slot with a cut tail keeping it
 open;
