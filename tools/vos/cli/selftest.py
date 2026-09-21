@@ -1542,6 +1542,9 @@ CASES: list[Case] = [
     # passes on K-81's own report with no collateral.
     ("K-81", "an upstream pin restated as a commit the record does not record",
      _literal(DELTA, "| `36a1dc5c` | 2026-08-23 |", "| `36a1dc5d` | 2026-08-23 |")),
+    ("K-81", "a scoped libclang license reading changed without its recorded edition",
+     _literal("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28",
+              "0000000000000000000000000000000000000000")),
 
     # One holder citation moved onto the id the numbering is missing, which is the
     # defect in the shape it actually arrives in rather than an invented one: the plan

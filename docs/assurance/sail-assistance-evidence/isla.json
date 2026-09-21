@@ -1,0 +1,374 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "notice": "Finite advisory differential campaign, not a proof. Scope: perms_expand over 32 codes and perms_narrow over their expanded masks. No instruction, memory, concurrency or full 4096-mask narrowing campaign.",
+  "passed": true,
+  "source_sha256": {
+    "model/model/prelude/prelude.sail": "c39050fd03269bb48b8e23dc629c4a67e45f5a70a9262679d4f57ca3c08a327b",
+    "model/model/prelude/errors.sail": "2d848d05bd6b20ccfeb054d639aef4c2e03692aa1dfb5d356544e99ecae97d3a",
+    "model/model/core/xlen.sail": "8c164c3c26d2cd5983a50bf6eeefa38f3a2abda58b79354ec0fb42f60958126a",
+    "model/model/core/cap_format.sail": "15bdd637318720551243d0f7a94d60e57870abe4bca6d5c5b099c3e24d92766a",
+    "model/model/core/cap_common.sail": "36405700c6d464141c91efc319217d42e22a4862843803aceedd3a0c39e652cd"
+  },
+  "tool_sha256": {
+    "/root/build/lane-sail-isla-complete-20260921/sail-isla/sail-prefix/bin/sail": "38efd8f2ebc6dcdeec2c19d9b49a26b955a4fddceabbc80a077441e32fe21197",
+    "/root/build/lane-sail-isla-complete-20260921/sources/isla/isla-sail/_build/default/sail_plugin_isla.cmxs": "f4d7aa408f43252d317bafabb3782421709e325e02ac9ffddc9c867d3ad944ab",
+    "/root/build/lane-sail-isla-complete-20260921/sail-isla/target-isla/release/isla-execute-function": "33fe1357e73a231b6fba915f9f3ccc7bb7fb4725e6d38ed4b64e80f69b7cd58f",
+    "/root/build/lane-sail-isla-complete-20260921/sail-isla/target-testgen/release/vos-isla-testgen": "31f29e90f822f19257897b587539555df0ca641f9d6645335b5d15094f4b175b",
+    "/root/build/lane-sail-isla-complete-20260921/sail-isla/rust/bin/rustc": "cb5d96f4c51e916fbc4fee5bbd3c3bd5030734f170ef50ec1d0dad0e9e9b9943",
+    "/root/build/lane-sail-isla-complete-20260921/sail-isla/rust/bin/cargo": "2f50d54779378980084feb68e77b8ed4d40be9f592a2ce096d797f5421cf9c62",
+    "/root/z3-5.1.0/z3/lib/libz3.so": "c49d9917528743e374012b31f85ad02d5fc96e0d2aed141d9d0680462da751f9",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/bin/sail": "c3040b2464bccf4167ca21f9d74211bd087537c296ce27a302d941b9bc9b44b8",
+    "/usr/bin/cc": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+    "/root/z3-5.1.0/bin/z3": "f12647df960955e4484afcba8cd0ffa02a9fd5d73dd2429a07578600ab299969",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail.c": "883e6ee43bc4bdb016b3a16a02c27f2bca0f9a184e92731e6178c787507c8b23",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/rts.c": "8ccb5e2a178694adc5d92c826eef29dd648b3241ced30e4cd8822d2fc6b912c3",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/elf.c": "5a33f360b52d9ba6719e3ffd182b7ef6500310dabbf1d8f626aa448a581f9af0",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail_failure.c": "65550d3c8037a09cdfe06a813159465076512582605627c69b269fdcb57e86cf",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/cJSON.c": "b70b6565aa85d1fcb3e6470f42e5e9b664ec057a2b166dbb1cc6ba2db40c4f85",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail_config.c": "50351bd6ab3e6ad819883dc8b63e92a88474c3278d204f46a2f72a57e5142e1c",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/cJSON.h": "fda63720ffad1d007802f62204831018d167084c26e2ce08ad36f11529a90682",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/elf.h": "ad104828bbc1d7c3a8e3c618de6fe84dbe4757f1bdd7e56867ef7a0601d71410",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/rts.h": "7532dccd612313798c96663055a649f2f28f4f8c5493ccb144c2e6b1ea4caa57",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail.h": "b50bcfd40ec643255429bfcb1f2a73bf53c1676adbc124629ee848db5cea6f87",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail_config.h": "4cc37bfa4b36a87a901a3efefb2491227fc01d1c4f5a1ccb58eda154b0b72a2c",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail_coverage.h": "4af052d022f11246e64b7a988b8bf4298e8a3a27ba418cb2cd13f9f29c3ca52c",
+    "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/share/sail/lib/sail_failure.h": "6efe77b0649475421578068a22b40807af896281233e12a0a02c9061b3bdaaf4"
+  },
+  "assets_sha256": "e6de6db5fae19197ecb2304da88d3bbdd77dfd7f47236c64cc38546074625ca7",
+  "ir_sha256": "a79adeed58cba45770d21dcdf8303078eb8f62a58d21fa65a25f214a603f9c3b",
+  "cases": [
+    {
+      "code": 0,
+      "expanded": 0,
+      "narrowed": 0
+    },
+    {
+      "code": 1,
+      "expanded": 2,
+      "narrowed": 1
+    },
+    {
+      "code": 2,
+      "expanded": 6,
+      "narrowed": 2
+    },
+    {
+      "code": 3,
+      "expanded": 10,
+      "narrowed": 3
+    },
+    {
+      "code": 4,
+      "expanded": 74,
+      "narrowed": 4
+    },
+    {
+      "code": 5,
+      "expanded": 202,
+      "narrowed": 5
+    },
+    {
+      "code": 6,
+      "expanded": 30,
+      "narrowed": 6
+    },
+    {
+      "code": 7,
+      "expanded": 94,
+      "narrowed": 7
+    },
+    {
+      "code": 8,
+      "expanded": 222,
+      "narrowed": 8
+    },
+    {
+      "code": 9,
+      "expanded": 254,
+      "narrowed": 9
+    },
+    {
+      "code": 10,
+      "expanded": 258,
+      "narrowed": 10
+    },
+    {
+      "code": 11,
+      "expanded": 330,
+      "narrowed": 11
+    },
+    {
+      "code": 12,
+      "expanded": 458,
+      "narrowed": 12
+    },
+    {
+      "code": 13,
+      "expanded": 2506,
+      "narrowed": 13
+    },
+    {
+      "code": 14,
+      "expanded": 512,
+      "narrowed": 14
+    },
+    {
+      "code": 15,
+      "expanded": 1024,
+      "narrowed": 15
+    },
+    {
+      "code": 16,
+      "expanded": 1,
+      "narrowed": 16
+    },
+    {
+      "code": 17,
+      "expanded": 3,
+      "narrowed": 17
+    },
+    {
+      "code": 18,
+      "expanded": 7,
+      "narrowed": 18
+    },
+    {
+      "code": 19,
+      "expanded": 11,
+      "narrowed": 19
+    },
+    {
+      "code": 20,
+      "expanded": 75,
+      "narrowed": 20
+    },
+    {
+      "code": 21,
+      "expanded": 203,
+      "narrowed": 21
+    },
+    {
+      "code": 22,
+      "expanded": 31,
+      "narrowed": 22
+    },
+    {
+      "code": 23,
+      "expanded": 95,
+      "narrowed": 23
+    },
+    {
+      "code": 24,
+      "expanded": 223,
+      "narrowed": 24
+    },
+    {
+      "code": 25,
+      "expanded": 255,
+      "narrowed": 25
+    },
+    {
+      "code": 26,
+      "expanded": 259,
+      "narrowed": 26
+    },
+    {
+      "code": 27,
+      "expanded": 331,
+      "narrowed": 27
+    },
+    {
+      "code": 28,
+      "expanded": 459,
+      "narrowed": 28
+    },
+    {
+      "code": 29,
+      "expanded": 2507,
+      "narrowed": 29
+    },
+    {
+      "code": 30,
+      "expanded": 513,
+      "narrowed": 30
+    },
+    {
+      "code": 31,
+      "expanded": 1025,
+      "narrowed": 31
+    }
+  ],
+  "symbolic_paths": [
+    16,
+    16
+  ],
+  "baseline_matches": 32,
+  "testgen_matches": 32,
+  "controls": [
+    {
+      "name": "semantic-defect",
+      "status": "killed",
+      "mismatches": [
+        1,
+        2,
+        17,
+        18
+      ],
+      "log": "/root/logs/sail-isla-semantic-defect-sail-isla-complete-20260921.log"
+    },
+    {
+      "name": "outside-scope",
+      "status": "survived",
+      "mismatches": [],
+      "log": "/root/logs/sail-isla-outside-scope-sail-isla-complete-20260921.log"
+    },
+    {
+      "name": "rejected-build",
+      "status": "build_rejected",
+      "mismatches": [],
+      "log": "/root/logs/sail-isla-rejected-build-sail-isla-complete-20260921.log"
+    }
+  ],
+  "invocations": [
+    {
+      "argv": [
+        "opam",
+        "list",
+        "--switch=verifiedos-sail-0.20.2-ocaml-5.4.1",
+        "--installed",
+        "--short",
+        "--columns=name,version",
+        "--color=never"
+      ],
+      "cwd": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-isla-complete-20260921",
+      "returncode": 0,
+      "seconds": 0.588,
+      "log": "/root/logs/sail-isla-qualify-00-sail-isla-complete-20260921.log"
+    },
+    {
+      "argv": [
+        "/root/z3-5.1.0/bin/z3",
+        "--version"
+      ],
+      "cwd": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-isla-complete-20260921",
+      "returncode": 0,
+      "seconds": 0.003,
+      "log": "/root/logs/sail-isla-qualify-01-sail-isla-complete-20260921.log"
+    },
+    {
+      "argv": [
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/sail-prefix/bin/sail",
+        "--plugin",
+        "/root/build/lane-sail-isla-complete-20260921/sources/isla/isla-sail/_build/default/sail_plugin_isla.cmxs",
+        "--isla",
+        "--isla-preserve",
+        "vos_expand_local",
+        "--isla-preserve",
+        "vos_expand_global",
+        "--isla-preserve",
+        "perms_narrow",
+        "--isla-preserve",
+        "vos_pc",
+        "-o",
+        "campaign",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/source/model/model/prelude/prelude.sail",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/source/model/model/prelude/errors.sail",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/source/model/model/core/xlen.sail",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/source/model/model/core/cap_format.sail",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/source/model/model/core/cap_common.sail",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-isla-complete-20260921/tools/sail-isla/campaign.sail"
+      ],
+      "cwd": "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign",
+      "returncode": 0,
+      "seconds": 0.711,
+      "log": "/root/logs/sail-isla-qualify-02-sail-isla-complete-20260921.log"
+    },
+    {
+      "argv": [
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/target-isla/release/isla-execute-function",
+        "-A",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/campaign.ir",
+        "-C",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-isla-complete-20260921/tools/sail-isla/campaign.toml",
+        "-T",
+        "1",
+        "--model",
+        "--timeout",
+        "60",
+        "vos_expand_local",
+        "_"
+      ],
+      "cwd": "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign",
+      "returncode": 0,
+      "seconds": 0.175,
+      "log": "/root/logs/sail-isla-qualify-03-sail-isla-complete-20260921.log"
+    },
+    {
+      "argv": [
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/target-isla/release/isla-execute-function",
+        "-A",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/campaign.ir",
+        "-C",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-isla-complete-20260921/tools/sail-isla/campaign.toml",
+        "-T",
+        "1",
+        "--model",
+        "--timeout",
+        "60",
+        "vos_expand_global",
+        "_"
+      ],
+      "cwd": "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign",
+      "returncode": 0,
+      "seconds": 0.247,
+      "log": "/root/logs/sail-isla-qualify-04-sail-isla-complete-20260921.log"
+    },
+    {
+      "argv": [
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/target-testgen/release/vos-isla-testgen",
+        "-A",
+        "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign/campaign.ir",
+        "-C",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-isla-complete-20260921/tools/sail-isla/campaign.toml",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31"
+      ],
+      "cwd": "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign",
+      "returncode": 0,
+      "seconds": 0.936,
+      "log": "/root/logs/sail-isla-qualify-05-sail-isla-complete-20260921.log"
+    }
+  ],
+  "directory": "/root/build/lane-sail-isla-complete-20260921/sail-isla/campaign"
+}

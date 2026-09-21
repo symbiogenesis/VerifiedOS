@@ -216,6 +216,8 @@ RESIDUE: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    ("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28"):
+        "the optional libclang 21.1.8 license reading, independent of the compiler-development gitlink",
     ("THIRD-PARTY.md", "8890da780108672e05cf87b6d119bf6a76113fbf"):
         "the current upstream model read for Sail assistance, not the local comparison gitlink",
     ("docs/assurance/sail-assistance.md", "8890da780108672e05cf87b6d119bf6a76113fbf"):

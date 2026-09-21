@@ -1,0 +1,837 @@
+{
+  "schema_version": 1,
+  "operation": "qualify",
+  "notice": "Experimental live feedback; the locked batch compiler and existing model gates remain authoritative.",
+  "installation": {
+    "schema_version": 1,
+    "operation": "status",
+    "notice": "Experimental live feedback; the locked batch compiler and existing model gates remain authoritative.",
+    "installed": true,
+    "home": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp",
+    "lock_sha256": "0d1dad5677679844b165a1303f53b33f06b2ba9150e2b673fb8bb269be8e0379",
+    "server_sha256": "43556f8b2d2fa420cdefa7e0c0554512207040745d89eab19845833172b94254",
+    "artifact_count": 1255,
+    "receipt": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/installation.json",
+    "install_seconds": 8.444973,
+    "log": "/root/logs/sail-lsp-install-sail-lsp-complete-20260921.log"
+  },
+  "cases": [
+    {
+      "name": "initialize",
+      "passed": true,
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "capabilities": {
+            "definitionProvider": true,
+            "documentFormattingProvider": true,
+            "documentRangeFormattingProvider": true,
+            "foldingRangeProvider": false,
+            "hoverProvider": true,
+            "textDocumentSync": {
+              "change": 2,
+              "openClose": true,
+              "save": true
+            }
+          },
+          "serverInfo": {
+            "name": "sail_lsp"
+          }
+        }
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.007981
+    },
+    {
+      "name": "baseline-diagnostics",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [],
+          "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": {
+        "command": [
+          "sail",
+          "--strict-var",
+          "--strict-bitvector",
+          "--strict-exponentials",
+          "--just-check",
+          "--all-modules",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 0.064764,
+        "peak_rss_kib": 34740,
+        "log": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/baseline.batch.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_sha256": {
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/dependency.sail": "3daf3b0257c383ee6595cff99f37a0c4da0449f22146799f5893abc34aeac048",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail": "76f0575ba91c1deaa9ae958559d87c026611a27bc7df7e91be3e8bbec97b6bb1",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project": "aa644073f87eee64a3432bd8169e5fb761f533d5f9290dc701b95ad2af666e46"
+        }
+      },
+      "required": true,
+      "live_seconds": 0.06026630999986082,
+      "elapsed_seconds": 0.125364
+    },
+    {
+      "name": "hover",
+      "passed": true,
+      "response": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "result": {
+          "contents": "int"
+        }
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.000635
+    },
+    {
+      "name": "definition",
+      "passed": true,
+      "response": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "result": [
+          {
+            "range": {
+              "end": {
+                "character": 10,
+                "line": 2
+              },
+              "start": {
+                "character": 4,
+                "line": 2
+              }
+            },
+            "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/dependency.sail"
+          }
+        ]
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.00029
+    },
+    {
+      "name": "unsaved-buffer",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [
+            {
+              "message": "Type mismatch between int('ex1#) and bool(true)\n\nchecking function argument has type int('ex1#)",
+              "range": {
+                "end": {
+                  "character": 35,
+                  "line": 2
+                },
+                "start": {
+                  "character": 31,
+                  "line": 2
+                }
+              },
+              "severity": 1,
+              "source": "sail"
+            }
+          ],
+          "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": {
+        "command": [
+          "sail",
+          "--strict-var",
+          "--strict-bitvector",
+          "--strict-exponentials",
+          "--just-check",
+          "--all-modules",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project"
+        ],
+        "exit_code": 1,
+        "timed_out": false,
+        "elapsed_seconds": 0.064479,
+        "peak_rss_kib": 35316,
+        "log": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/unsaved-overlay.batch.log",
+        "log_sha256": "89a77fc2a6619e1333ff54a2788f71e6ba83c30fe807147d33c8db6c9469f931",
+        "source_sha256": {
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/dependency.sail": "3daf3b0257c383ee6595cff99f37a0c4da0449f22146799f5893abc34aeac048",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail": "76ba8576fde12b28451a6d68a4f86f238d34538b54bb05433fcfb279a9a6d60c",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project": "aa644073f87eee64a3432bd8169e5fb761f533d5f9290dc701b95ad2af666e46"
+        }
+      },
+      "required": true,
+      "live_seconds": 0.000921599999855971,
+      "elapsed_seconds": 0.066103
+    },
+    {
+      "name": "saved-dependency-change",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [
+            {
+              "message": "Type mismatch between int('ex9#) and bool('ex10#)\n",
+              "range": {
+                "end": {
+                  "character": 33,
+                  "line": 2
+                },
+                "start": {
+                  "character": 24,
+                  "line": 2
+                }
+              },
+              "severity": 1,
+              "source": "sail"
+            }
+          ],
+          "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": {
+        "command": [
+          "sail",
+          "--strict-var",
+          "--strict-bitvector",
+          "--strict-exponentials",
+          "--just-check",
+          "--all-modules",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project"
+        ],
+        "exit_code": 1,
+        "timed_out": false,
+        "elapsed_seconds": 0.064742,
+        "peak_rss_kib": 34676,
+        "log": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/changed-dependency.batch.log",
+        "log_sha256": "1c854f30c5272190f6062381c82c8b4df9362b431f14c8edcdf44b8f8d01f092",
+        "source_sha256": {
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/dependency.sail": "a39f055e7522c0dcc314e9650403ff18ad64058dcca86cd444688e9a83350718",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail": "76f0575ba91c1deaa9ae958559d87c026611a27bc7df7e91be3e8bbec97b6bb1",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project": "aa644073f87eee64a3432bd8169e5fb761f533d5f9290dc701b95ad2af666e46"
+        }
+      },
+      "required": true,
+      "live_seconds": 0.0028919010001118295,
+      "elapsed_seconds": 0.06825
+    },
+    {
+      "name": "dependency-refresh-preserves-unsaved-buffer",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [
+            {
+              "message": "Identifier unknown_live is unbound\n\nchecking function argument has type int('ex12#)",
+              "range": {
+                "end": {
+                  "character": 43,
+                  "line": 2
+                },
+                "start": {
+                  "character": 31,
+                  "line": 2
+                }
+              },
+              "severity": 1,
+              "source": "sail"
+            }
+          ],
+          "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.004784
+    },
+    {
+      "name": "repaired-dependency-clears-diagnostics",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [],
+          "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 3e-06
+    },
+    {
+      "name": "deleted-dependency-refuses-stale-types",
+      "passed": true,
+      "response": {
+        "diagnostics": {
+          "params": {
+            "diagnostics": [
+              {
+                "message": "realpath: /root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/dependency.sail: No such file or directory",
+                "range": {
+                  "end": {
+                    "character": 0,
+                    "line": 0
+                  },
+                  "start": {
+                    "character": 0,
+                    "line": 0
+                  }
+                },
+                "severity": 1,
+                "source": "sail"
+              }
+            ],
+            "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+          },
+          "method": "textDocument/publishDiagnostics",
+          "jsonrpc": "2.0"
+        },
+        "hover": {
+          "id": 4,
+          "jsonrpc": "2.0",
+          "result": null
+        }
+      },
+      "batch": {
+        "command": [
+          "sail",
+          "--strict-var",
+          "--strict-bitvector",
+          "--strict-exponentials",
+          "--just-check",
+          "--all-modules",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project"
+        ],
+        "exit_code": 1,
+        "timed_out": false,
+        "elapsed_seconds": 0.064605,
+        "peak_rss_kib": 33528,
+        "log": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/missing-dependency.batch.log",
+        "log_sha256": "5d72626218e13767db1838df9b29d4136a647b406d58a0d3abaadc20d1e39a8c",
+        "source_sha256": {
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail": "76f0575ba91c1deaa9ae958559d87c026611a27bc7df7e91be3e8bbec97b6bb1",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project": "aa644073f87eee64a3432bd8169e5fb761f533d5f9290dc701b95ad2af666e46"
+        }
+      },
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.065638
+    },
+    {
+      "name": "cancellation-protocol-response",
+      "passed": true,
+      "response": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "result": null
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.000304
+    },
+    {
+      "name": "request-work-interruption",
+      "passed": false,
+      "response": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "result": null
+      },
+      "batch": null,
+      "required": false,
+      "live_seconds": null,
+      "elapsed_seconds": 0.000314
+    },
+    {
+      "name": "session-process-cancellation",
+      "passed": true,
+      "response": {
+        "exit_code": -15,
+        "shutdown": null,
+        "elapsed_seconds": 0.553117,
+        "peak_rss_kib": 28732,
+        "transcript": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/fixture.json"
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 2e-06
+    },
+    {
+      "name": "restart-sees-dependency",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [
+            {
+              "message": "Type mismatch between int('ex4#) and bool('ex5#)\n",
+              "range": {
+                "end": {
+                  "character": 33,
+                  "line": 2
+                },
+                "start": {
+                  "character": 24,
+                  "line": 2
+                }
+              },
+              "severity": 1,
+              "source": "sail"
+            }
+          ],
+          "uri": "file:///root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": {
+        "command": [
+          "sail",
+          "--strict-var",
+          "--strict-bitvector",
+          "--strict-exponentials",
+          "--just-check",
+          "--all-modules",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project"
+        ],
+        "exit_code": 1,
+        "timed_out": false,
+        "elapsed_seconds": 0.065058,
+        "peak_rss_kib": 33524,
+        "log": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/restart.batch.log",
+        "log_sha256": "1c854f30c5272190f6062381c82c8b4df9362b431f14c8edcdf44b8f8d01f092",
+        "source_sha256": {
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/dependency.sail": "a39f055e7522c0dcc314e9650403ff18ad64058dcca86cd444688e9a83350718",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/main.sail": "76f0575ba91c1deaa9ae958559d87c026611a27bc7df7e91be3e8bbec97b6bb1",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/qualification.sail_project": "aa644073f87eee64a3432bd8169e5fb761f533d5f9290dc701b95ad2af666e46"
+        }
+      },
+      "required": true,
+      "live_seconds": 0.03208130599887227,
+      "elapsed_seconds": 0.097531
+    },
+    {
+      "name": "shutdown-exit",
+      "passed": true,
+      "response": {
+        "exit_code": 0,
+        "shutdown": {
+          "id": 2,
+          "jsonrpc": "2.0",
+          "result": null
+        },
+        "elapsed_seconds": 0.300805,
+        "peak_rss_kib": 27872,
+        "transcript": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/restart.json"
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 2e-06
+    },
+    {
+      "name": "curated-project-diagnostics",
+      "passed": true,
+      "response": {
+        "params": {
+          "diagnostics": [],
+          "uri": "file:///mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/CHERI/cheri_insts.sail"
+        },
+        "method": "textDocument/publishDiagnostics",
+        "jsonrpc": "2.0"
+      },
+      "batch": {
+        "command": [
+          "sail",
+          "--memo-z3",
+          "--memo-z3-path",
+          "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/curated.smt-cache",
+          "--strict-var",
+          "--strict-bitvector",
+          "--strict-exponentials",
+          "--just-check",
+          "--all-modules",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/riscv.sail_project"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 62.935904,
+        "peak_rss_kib": 674048,
+        "log": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/curated.batch.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_sha256": {
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/addr_checks.sail": "95719808062e1e1cf168dabd46c1fa1fb548705bbcfdb1d65f00e19f71f91c44",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/addr_checks_common.sail": "7089db8f9641d448872104951d9b6249ca4467bf5b4c280d51240b851f9685a5",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/arithmetic.sail": "e96d68eadd62816e02e5bed6ff428aa2098df37294675f066284370eb21dfcde",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/callbacks.sail": "90be37c5f02591ab8558f0b6e1403bbc4b29a7778e63fa1177c331b6f8c19ca2",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/cap_causes.sail": "791d73010321f02beba10b65966305a3a26eb872ca1961a603271e2cf38a737b",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/cap_common.sail": "36405700c6d464141c91efc319217d42e22a4862843803aceedd3a0c39e652cd",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/cap_format.sail": "15bdd637318720551243d0f7a94d60e57870abe4bca6d5c5b099c3e24d92766a",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/cap_regs.sail": "3af82feb06cdf7fd2cd85a44a3818f6e853e32844cb94a8cdccdb9873043cb0c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/core_class.sail": "9a89f005993ef85055e9ec7217dab020630bf809847fa51461f3e000cf66be54",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/csr_begin.sail": "aab1a31d9aff69cd668f657ed49bca05f6c8a9c91d8acbf00f85fd92d527ca21",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/ext_regs.sail": "469b04f1d355f8e7876a70c85a89d7291d37f94f2466ab07b4dc07ab666d27db",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/extensions.sail": "121f0477990c8b5466caf1479f073252d57d8b4a672806274e3113749676d2f3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/float_classify.sail": "4856c4e92f735b8cb71be2f170e162a3dfb0c0ea2fa03edaee8e079b603bd4cf",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/interrupt_regs.sail": "59a69665da1c5dc474e257740cb21986de4d9d6c6eea75f0f42ec039a75d0666",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/isa_version.sail": "4e34b21b46dc97ac836edfef40a5dba0c507bc79dd5d60e98659e35e18aef875",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/mem_access_types.sail": "3f8e1eef9bd467fdb2d7cc7a3eea22ebe22ac03ecd0a7649da20a68115d70405",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/mem_addrtype.sail": "a919c38d9e71cf400fac088935b58c107ab412d16713be5edd8e107276fef49e",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/mem_metadata.sail": "6f6ec6b80e8ed63c0330c21926197671738a478f811dcf0ce87d33f06bfe2718",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/mem_type_utils.sail": "43de9b08fd062335d0abf416fa8b38e94a25ca6be09531e33b4b9340fda00860",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/memory_class.sail": "53522e98770c4d737addb79a2a9e21e0f66aa0b19992001e3a5f3106401f2fef",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/pc_access.sail": "9c33e2910ac8be84005128f06dc25e2336eb33080fbd98553d13270ba5989282",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/phys_mem_interface.sail": "6479d9ee2946a0302a83e34df8db8eebf9710ff518fb0c2aa97f034619317cc9",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/platform_config.sail": "ad076f65a3959984063d38b3ff4e7671916f672594003b0f6ecca69f6b6dba5a",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/range_util.sail": "cc2433a7c2a05d29fe89bf64d3f9c6bdaefb2a7029334a04e87d6f496e1843f9",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/reg_type.sail": "9be30136005fe8096f1671ea29e7b31b6152c7294c3c601902668c6fd082e934",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/regs.sail": "a9c6a379b0cb09cb1d9bcbb7213b4008609a6172fce2a13dd7c3608678c260cb",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/revocation.sail": "82d72945b1e8ede73fdcc533ecc7c8cbdea31efcac93c5a9fe01a065d0712bd7",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/rvfi_dii.sail": "2dc9160e0a7be15539d1f330e618db74c00d91952d19f2235a48055c13e91175",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/rvfi_dii_v1.sail": "cc2c197cac975a6f7e0d3b056607985467ba0de2b74989896a17ec6d39d5acad",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/rvfi_dii_v2.sail": "5c6bacf921756654e0b36881aaa570522e892fa00c950f763df0235688e3d34d",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/softfloat_interface.sail": "9f7c9ec1734baf3cdd0b1154642e606c555f3489d1e8a6dbe0c5378a0f9dbee3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/sys_regs.sail": "32cd20ff04462c9bdeb1705b103d7fb9605f2d226f88050c408077b8c3dabfd8",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/timing.sail": "fedde857c4c103c5fcfc0cd6bbc9843c264bb6acfb95a2d95172220c291f296a",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/types.sail": "7f551abecd9a619feb19100f5bfb58f76f0a9c0e2d1d1d3300a842454e4c56bc",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/types_common.sail": "8aecb1cfa1646ef8babedcf1a1785475c36f16dd00637c61992538f2c5fdfeeb",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/types_ext.sail": "5a90d253a2877acecba2d4d26a16e5fa261cd9f3c4851f81b300d8d4fa5f1631",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/vlen.sail": "32fc53b900207ccd7892678c7dd2731a93ecca6a43fdaf9f0276193ef94bcf88",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/xlen.sail": "8c164c3c26d2cd5983a50bf6eeefa38f3a2abda58b79354ec0fb42f60958126a",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/exceptions/sync_exception.sail": "a8bb7041e8dd4a196c9763326dc041ca279443dd11cde0a20f14e7590c11f7d2",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/exceptions/sys_exceptions.sail": "2915ee628ea1c1d9ce447f5e42957cd488f12b08d7874df7c6d090473062bb38",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/A/aext_types.sail": "a0d63e77318767e9ed60ac89da8f52c01603df97216ccd84ee0d316e830db584",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/A/zaamo_insts.sail": "6fc34845451dacfba0ff0622902cf5ead6fbb33836c0382c81a6c80e0cc5bd60",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/B/bext_types.sail": "e7bcd96423cabd745d3f185d43a648aebcf49b903363c35337c18d209efa7982",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/B/zba_insts.sail": "e768166c7b5a86bdf9781fadbfda535fe9981c80d2b8c85915af1706485bbd29",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/B/zbb_insts.sail": "60c931d353fcbe3f3de54f1c13873df49c1a5a8f3cf04cea7e8161f01c09f9ae",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/B/zbc_insts.sail": "4bf2d6f5bd4b399a9169fcb0163a589c430216d152552eb4169bb4ce3e545957",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/B/zbs_insts.sail": "5588f7af349c68f274b025bddbb8baf06fed6bc296ecd62413d7ec333c3bd8f1",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/CHERI/cheri_custom.sail": "e3feb405f424392724930ddf2bafad70ff41b754486c7c6093d1a0c8ef2b51ab",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/CHERI/cheri_insts.sail": "5b59737ca360db6cc699d9602c5252ff3e5f694cbdcb5a7c9ad2381079e3eca0",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/CHERI/cheri_mem.sail": "6b9329d9766573ac0e84d6a0e502bfce7e565f4e21acd42a5d3a99699b0e25f5",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/I/base_insts.sail": "84418c1a688d7f4feb2bfae28703ad3fc13a0ebe6a902b85bc99aebc1cfa3320",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/I/base_types.sail": "dc2a3b901c8efeb34d1f84941156a56eb34f2493649c398a386618737b871f0e",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/K/types_kext.sail": "51281682c4f8ebf7a1077f8d0e1c833bdbdbac3a2c9933dc91eaec00c72f955c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/K/zbkb_insts.sail": "a99b38cbf1aca7d9e1084556dd20b70095dde817d4223f2face83e2b1f96a01e",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/K/zbkx_insts.sail": "18c576c27692d70ee1df2cd3773dfd9f6ccc7d3d34bb0e8396785588af4a4025",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/M/mext_insts.sail": "0969d0d38ff7f9e6010dbba8b9e0806205bcdea653a7f6570cca2895661976fb",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/M/mext_types.sail": "f85cefe5cdfd593d4479000a1c32a7345f2febd151dab57a229c6391de6636df",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_arith_insts.sail": "d195367a7bd43470315a7846c5415b21f3e6961677a47ed99d6870a95acb55d0",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_control.sail": "8f3865e36e7e84acb5251379e58a240c9bb865d8fc7ceb143d3bd60913986524",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_fp_insts.sail": "3b64f7311cb3d255ab65f62bbe566dc9b8294342a72b6f0740c381e6c8e5f275",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_fp_red_insts.sail": "93268c4a6ec882d39b176e544c69b133d0410bcb14c114c893c327b12e3801aa",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_fp_utils_insts.sail": "5de766662e856548a9a4119ae791951c312bd874bd69f1ca184e56a48abf7b80",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_fp_vm_insts.sail": "47c859542cad5809763696a787a54d9c7cefd89df8a78eb041dcdbcaa921c3df",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_mask_insts.sail": "4dac6e99cb8c39210aa387324bf1ee86252fa70f7f139946f20c75b0aa5e0038",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_mem_checks.sail": "3d1381b181ff427e45de6c4f6ae8f77e6de8516072048163f2c933d70896db00",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_mem_insts.sail": "70d435da068964f7d9b1202c8499b273c1964a789960cabe0f5baa7e63847af0",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_red_insts.sail": "18cbf04e55f9a69b0195304c7fa5790aca757ffa1b59c90113cf569eadc49668",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_regs.sail": "009a5b02dd978c08f8710b238b03874fdbe3067f3e738c3d283beececab7c28e",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_types.sail": "eeaab9ad850708059ac794bbb24ceba4605a153d8d70bbabead092cb879ef1e6",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_utils_insts.sail": "186431189788a8378dcb052cf3b901ee730c32d853a60e526211dac78ad52156",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_vm_insts.sail": "5cf6f3c5454f24dc3a08b212f950458f29654639e358aaaa1174de2162385dd8",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vext_vset_insts.sail": "2153f7f1feda72afb7829f12bf431b05d3a0f7f98091d3f71f87f646a0aefcaf",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/V/vreg_type.sail": "02cbb5f4f5b053875c91b137f8e86481db4f7249b467021321e9efc350815c1f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/Zicboz/zicboz_insts.sail": "f5735cb332ab8be45fba33d9e733193f306e729361bb6fd8f75f479c3e5b4756",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/Zicond/zicond_insts.sail": "86ea235572d08792921a264756e195c0e8d4cc728199a26476f87586297193ce",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/Zicond/zicond_types.sail": "55fac731ccaf118dbe48191a479ce474ede4c64ee8fa30beef0f8f5816ee79d4",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/Zicsr/zicsr_insts.sail": "dfb61f504271f1b958ee0bdc2d1325c240aa2d53be7bb54c30becdca49825c81",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/Zicsr/zicsr_types.sail": "3408aeeb94f158564c7a070d395bcc490641ad7c76cf627f75cc9c2eacad36a9",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/bfloat16/zfbfmin_utils.sail": "f0cc83f40449bfed6e1bbc5f9572a950f0fc8aa30ee08b08651b32eecfb6c439",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/bfloat16/zvfbfmin_insts.sail": "2276078649fa334ad07a1d139836b48a911219aefa266d88e1b0969ffea25bb4",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/bfloat16/zvfbfwma_insts.sail": "4d025c03ba8bcecd6d99b6d0f3ab007b6bcfd7cd42c0f64acaa75d1dd5c88396",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/fec/fec_codes.sail": "73d7439ad79c15edbc440b061b5c9e0b57129dd6c47f34867982b366f4f76b5f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/fec/fec_insts.sail": "7c0839fd92a1ec9c9407392d5782f567a9f9ba4116a29b88576da75dae678d3f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/keccak/keccak_insts.sail": "0b01f53cb5c3f1d00572b256033e206bd9b639a49a8b6559ba21fffe5b462697",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/keccak/keccak_p1600.sail": "06d1bbc5b743b8aaee02600a7918afe69dce2793168a7a08f7c03eaf8ca06456",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/platform/cbo_scrub.sail": "80f531a06828fdb530499fbad4c03a59dc8db2e1ee3c22be8aea06da6885aca1",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/platform/fence_t.sail": "f769afcd6017ceddf4c3841242b8784fb6643fa2db9c3cf16af13ae2e2656d4f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/platform/vmclear.sail": "0a7b0b2f4ff0dbe00496ebba4d8d6614c22844d700274be4258395ac00a094de",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/vector_crypto/zvbb_insts.sail": "337a4db3708320bf05609312dc81eaba2a482f4d4a79f45098705bd2c5433f9c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/vector_crypto/zvbc_insts.sail": "67ec2c6f3947dbbaf7fdc2b192099f7b9e77dd069f83c58dfc419a74a0d15dab",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/vector_crypto/zvk_utils.sail": "4d55bfe3fd2921d69f03daf2eafb1f6609ff79c2aa924c34e64827463328a7fc",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/vector_crypto/zvkg_insts.sail": "f706fc9c3e92966840bb898e32ad8b0eb57a0677c29d794aa45c433ba5278cf6",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/vector_crypto/zvkned_insts.sail": "c2982074961babe58b8f4ae2430e5d720b87f19c3a2f7ce3a3980aac387d0003",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/extensions/vector_crypto/zvknhab_insts.sail": "65dd051e8c6ac3a0ea67e4dbbb0c4d30fcb144d34ad66c68020f00c8353ed7d2",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/main/main.sail": "98ff133f1ab17a1ba4367c0c73ac02a25d9bb5f2c1f43fac5df3d50d59188698",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/cap_traps.sail": "b5fba48ca9ef29aa61ad51f72589200b3d1467ad09464660a127bd5c3637ec99",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/csr_end.sail": "529b5b345654a23d081d21d259edca876745920d0d63f7dc4026430d63fd4c47",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/decode_ext.sail": "f189b14dcdb590830da38d0f0a09cfcb2899d4deb50919525ce3eabe03cadd9b",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/device_tree.sail": "b0423ab8d334d1bcdb7b77c9f367f2ba2d4e0c5b64597ca931e4fc25b6316780",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/fetch.sail": "7e72f2618ff64dbcad9074f3440ffaf0224faed65f370bcde9a4cee85e6bc19d",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/fetch_rvfi.sail": "b091da17f4c8c0336e3b7150fd318a53e38ceb4ae3c7893e41dd707c438c7b15",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/insts_end.sail": "81e6ff368953cdbcab1efb0ac9281cb94b0ea450471494ccdcae7740c2369f7f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/model.sail": "7156bc7b2295025dea3a05d23a5013efbf06735401d90eb42d2954c3add02f6c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/step.sail": "f8c48783a52f59fb2b5ab56183c230b14484f0bd61b9beeb99db5392c05edc97",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/step_common.sail": "3ef928dfbbaa5bd4a80d9efc153e64dcfaa0e805782c761b815781440541d58d",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/step_ext.sail": "146fc9baf6eaa07a2ff94cf9604411c65b7fee0a4824eef22d51ba03135444bb",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/postlude/validate_config.sail": "736fa351368ed2f11794ab55595ce5c2ce3ea8ad6974c842549db5fe9cd1c0f8",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/prelude/errors.sail": "2d848d05bd6b20ccfeb054d639aef4c2e03692aa1dfb5d356544e99ecae97d3a",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/prelude/prelude.sail": "c39050fd03269bb48b8e23dc629c4a67e45f5a70a9262679d4f57ca3c08a327b",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/riscv.sail_project": "2b3b4a35761bb387d3ac42347d85766642ab15c7ec5b3b860fceda3ebd29c1b7",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/block_device.sail": "2114c3be06bd6df4b41d41a069907c95dc7b7fce9868a6e826fb52641369b0b9",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/callbacks.sail": "fa31b6d0ebee8ad922e5c468682b88911a2f4af126ac9c22f11c53e5a794e1d2",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/insts_begin.sail": "b320608d1eedde95ca55d48ceb04d6e4651182e310d4e688ce2f28fd2461f4b1",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/mem.sail": "f1ccc7dbf960a87535cac008939ba08175d89b5723c1dff2d7446f84d6932b4b",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/mem_access.sail": "cb25ed7cf047fd754e39ad19795ab58919cef57613e8dc6372a12497e014dadd",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/mem_utils.sail": "9c0ccdc07a1e5c76afd5ae982e937c283ebc808d8d639830764ccb840701925c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/memory_sequencer.sail": "27ee4d5f92baded40babf5653a7833354bb30bc55a2d3ec12b40eb093ffc84c3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/platform.sail": "9b0ad50743c337c8176e394a1ad2c26a9d4416edf50a63b6e754113ff602047f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/pma.sail": "2903eb67a3080852789fdec49ec3662707debb1d086b67a111adb3e0f1c02aef",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/rot.sail": "8bdb5aecd3ba6b577e11334229b8a33c1a0fe0d07c3a07e0318531209ca20a8e",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/split_access_utils.sail": "f7567821827ce329ebebf25b19c8e4d8ade7602d879f975573c382b5848b745c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/sys/sys_control.sail": "5c7287b45e14b295b3dc6b922c59df785113cecc40811a087b5865665f59d677",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/cap_properties.sail": "25cffa1761af82c932f9c6b7ca4b71d822eec80de9f40cadadcba1a1775a318d",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_block_device.sail": "791f2124bd6299bf7e7ce500ca1a9ad384ca668cd6d53034732a1e56b2b8b992",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_capability.sail": "325d1d1027727c625a743266a0e8aac263ce1e91f41d36404af584c9452c48f9",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_cheri_insts.sail": "47eaa4af6ab4f504cc286111d3186612a253eedd09960a90dc505debc1ec4985",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_fec.sail": "cc65140b3e9ec1a5231763bb531dd307d63e81780a0fd1135d8c8cb9eb0fe1f3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_keccak.sail": "6d48759f9cb29bdd575537f53c89ab59813628d0e966d393945077654bec2ea3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_matrix_scratchpad.sail": "0a168a89b62e43ef0db6a8285aeb140c61ac7d8e059f4d18bce3905d3586896f",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_memory_model.sail": "2a9ab03369d401a51d8250a0dfb2aacc50cb107e406bd8d9f1796868a30be4a2",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_platform.sail": "ae213ee556bf9b772836f0c77ec3c1e462a2da019756edf7e2f0d721840b313a",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_privilege.sail": "e3ca60d38b3cca5690257cb48324dbc89831f22469b461a18255e090f219a16e",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_rot.sail": "73766ea7b0b7978ee9b8ff42547e952ddbf30af648379720b44e67e8b8884944",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/unit_tests/test_vector_cap.sail": "cb0987a7eb84a7d55fd4b5ed4ec91f1a80cfe8987ff102871c5e8e5dd441cdfa"
+        }
+      },
+      "required": true,
+      "live_seconds": 6.565476280000439,
+      "elapsed_seconds": 70.593973
+    },
+    {
+      "name": "curated-hover",
+      "passed": true,
+      "response": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "result": {
+          "contents": "(bool, Capability)"
+        }
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.000593
+    },
+    {
+      "name": "curated-definition",
+      "passed": true,
+      "response": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "result": [
+          {
+            "range": {
+              "end": {
+                "character": 19,
+                "line": 503
+              },
+              "start": {
+                "character": 9,
+                "line": 503
+              }
+            },
+            "uri": "file:///mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/sail-lsp-complete-20260921/model/model/core/cap_common.sail"
+          }
+        ]
+      },
+      "batch": null,
+      "required": true,
+      "live_seconds": null,
+      "elapsed_seconds": 0.000272
+    }
+  ],
+  "sessions": [
+    {
+      "exit_code": -15,
+      "shutdown": null,
+      "elapsed_seconds": 0.553117,
+      "peak_rss_kib": 28732,
+      "transcript": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/fixture.json"
+    },
+    {
+      "exit_code": 0,
+      "shutdown": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "result": null
+      },
+      "elapsed_seconds": 0.300805,
+      "peak_rss_kib": 27872,
+      "transcript": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/restart.json"
+    },
+    {
+      "exit_code": 0,
+      "shutdown": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "result": null
+      },
+      "elapsed_seconds": 70.816146,
+      "peak_rss_kib": 150288,
+      "transcript": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/curated.json"
+    }
+  ],
+  "all_capabilities_passed": false,
+  "all_required_checks_passed": true,
+  "model_source_sha256": {
+    "model/model/core/addr_checks.sail": "95719808062e1e1cf168dabd46c1fa1fb548705bbcfdb1d65f00e19f71f91c44",
+    "model/model/core/addr_checks_common.sail": "7089db8f9641d448872104951d9b6249ca4467bf5b4c280d51240b851f9685a5",
+    "model/model/core/arithmetic.sail": "e96d68eadd62816e02e5bed6ff428aa2098df37294675f066284370eb21dfcde",
+    "model/model/core/callbacks.sail": "90be37c5f02591ab8558f0b6e1403bbc4b29a7778e63fa1177c331b6f8c19ca2",
+    "model/model/core/cap_causes.sail": "791d73010321f02beba10b65966305a3a26eb872ca1961a603271e2cf38a737b",
+    "model/model/core/cap_common.sail": "36405700c6d464141c91efc319217d42e22a4862843803aceedd3a0c39e652cd",
+    "model/model/core/cap_format.sail": "15bdd637318720551243d0f7a94d60e57870abe4bca6d5c5b099c3e24d92766a",
+    "model/model/core/cap_regs.sail": "3af82feb06cdf7fd2cd85a44a3818f6e853e32844cb94a8cdccdb9873043cb0c",
+    "model/model/core/core_class.sail": "9a89f005993ef85055e9ec7217dab020630bf809847fa51461f3e000cf66be54",
+    "model/model/core/csr_begin.sail": "aab1a31d9aff69cd668f657ed49bca05f6c8a9c91d8acbf00f85fd92d527ca21",
+    "model/model/core/ext_regs.sail": "469b04f1d355f8e7876a70c85a89d7291d37f94f2466ab07b4dc07ab666d27db",
+    "model/model/core/extensions.sail": "121f0477990c8b5466caf1479f073252d57d8b4a672806274e3113749676d2f3",
+    "model/model/core/float_classify.sail": "4856c4e92f735b8cb71be2f170e162a3dfb0c0ea2fa03edaee8e079b603bd4cf",
+    "model/model/core/interrupt_regs.sail": "59a69665da1c5dc474e257740cb21986de4d9d6c6eea75f0f42ec039a75d0666",
+    "model/model/core/isa_version.sail": "4e34b21b46dc97ac836edfef40a5dba0c507bc79dd5d60e98659e35e18aef875",
+    "model/model/core/mem_access_types.sail": "3f8e1eef9bd467fdb2d7cc7a3eea22ebe22ac03ecd0a7649da20a68115d70405",
+    "model/model/core/mem_addrtype.sail": "a919c38d9e71cf400fac088935b58c107ab412d16713be5edd8e107276fef49e",
+    "model/model/core/mem_metadata.sail": "6f6ec6b80e8ed63c0330c21926197671738a478f811dcf0ce87d33f06bfe2718",
+    "model/model/core/mem_type_utils.sail": "43de9b08fd062335d0abf416fa8b38e94a25ca6be09531e33b4b9340fda00860",
+    "model/model/core/memory_class.sail": "53522e98770c4d737addb79a2a9e21e0f66aa0b19992001e3a5f3106401f2fef",
+    "model/model/core/pc_access.sail": "9c33e2910ac8be84005128f06dc25e2336eb33080fbd98553d13270ba5989282",
+    "model/model/core/phys_mem_interface.sail": "6479d9ee2946a0302a83e34df8db8eebf9710ff518fb0c2aa97f034619317cc9",
+    "model/model/core/platform_config.sail": "ad076f65a3959984063d38b3ff4e7671916f672594003b0f6ecca69f6b6dba5a",
+    "model/model/core/range_util.sail": "cc2433a7c2a05d29fe89bf64d3f9c6bdaefb2a7029334a04e87d6f496e1843f9",
+    "model/model/core/reg_type.sail": "9be30136005fe8096f1671ea29e7b31b6152c7294c3c601902668c6fd082e934",
+    "model/model/core/regs.sail": "a9c6a379b0cb09cb1d9bcbb7213b4008609a6172fce2a13dd7c3608678c260cb",
+    "model/model/core/revocation.sail": "82d72945b1e8ede73fdcc533ecc7c8cbdea31efcac93c5a9fe01a065d0712bd7",
+    "model/model/core/rvfi_dii.sail": "2dc9160e0a7be15539d1f330e618db74c00d91952d19f2235a48055c13e91175",
+    "model/model/core/rvfi_dii_v1.sail": "cc2c197cac975a6f7e0d3b056607985467ba0de2b74989896a17ec6d39d5acad",
+    "model/model/core/rvfi_dii_v2.sail": "5c6bacf921756654e0b36881aaa570522e892fa00c950f763df0235688e3d34d",
+    "model/model/core/softfloat_interface.sail": "9f7c9ec1734baf3cdd0b1154642e606c555f3489d1e8a6dbe0c5378a0f9dbee3",
+    "model/model/core/sys_regs.sail": "32cd20ff04462c9bdeb1705b103d7fb9605f2d226f88050c408077b8c3dabfd8",
+    "model/model/core/timing.sail": "fedde857c4c103c5fcfc0cd6bbc9843c264bb6acfb95a2d95172220c291f296a",
+    "model/model/core/types.sail": "7f551abecd9a619feb19100f5bfb58f76f0a9c0e2d1d1d3300a842454e4c56bc",
+    "model/model/core/types_common.sail": "8aecb1cfa1646ef8babedcf1a1785475c36f16dd00637c61992538f2c5fdfeeb",
+    "model/model/core/types_ext.sail": "5a90d253a2877acecba2d4d26a16e5fa261cd9f3c4851f81b300d8d4fa5f1631",
+    "model/model/core/vlen.sail": "32fc53b900207ccd7892678c7dd2731a93ecca6a43fdaf9f0276193ef94bcf88",
+    "model/model/core/xlen.sail": "8c164c3c26d2cd5983a50bf6eeefa38f3a2abda58b79354ec0fb42f60958126a",
+    "model/model/exceptions/sync_exception.sail": "a8bb7041e8dd4a196c9763326dc041ca279443dd11cde0a20f14e7590c11f7d2",
+    "model/model/exceptions/sys_exceptions.sail": "2915ee628ea1c1d9ce447f5e42957cd488f12b08d7874df7c6d090473062bb38",
+    "model/model/extensions/A/aext_types.sail": "a0d63e77318767e9ed60ac89da8f52c01603df97216ccd84ee0d316e830db584",
+    "model/model/extensions/A/zaamo_insts.sail": "6fc34845451dacfba0ff0622902cf5ead6fbb33836c0382c81a6c80e0cc5bd60",
+    "model/model/extensions/B/bext_types.sail": "e7bcd96423cabd745d3f185d43a648aebcf49b903363c35337c18d209efa7982",
+    "model/model/extensions/B/zba_insts.sail": "e768166c7b5a86bdf9781fadbfda535fe9981c80d2b8c85915af1706485bbd29",
+    "model/model/extensions/B/zbb_insts.sail": "60c931d353fcbe3f3de54f1c13873df49c1a5a8f3cf04cea7e8161f01c09f9ae",
+    "model/model/extensions/B/zbc_insts.sail": "4bf2d6f5bd4b399a9169fcb0163a589c430216d152552eb4169bb4ce3e545957",
+    "model/model/extensions/B/zbs_insts.sail": "5588f7af349c68f274b025bddbb8baf06fed6bc296ecd62413d7ec333c3bd8f1",
+    "model/model/extensions/CHERI/cheri_custom.sail": "e3feb405f424392724930ddf2bafad70ff41b754486c7c6093d1a0c8ef2b51ab",
+    "model/model/extensions/CHERI/cheri_insts.sail": "5b59737ca360db6cc699d9602c5252ff3e5f694cbdcb5a7c9ad2381079e3eca0",
+    "model/model/extensions/CHERI/cheri_mem.sail": "6b9329d9766573ac0e84d6a0e502bfce7e565f4e21acd42a5d3a99699b0e25f5",
+    "model/model/extensions/I/base_insts.sail": "84418c1a688d7f4feb2bfae28703ad3fc13a0ebe6a902b85bc99aebc1cfa3320",
+    "model/model/extensions/I/base_types.sail": "dc2a3b901c8efeb34d1f84941156a56eb34f2493649c398a386618737b871f0e",
+    "model/model/extensions/K/types_kext.sail": "51281682c4f8ebf7a1077f8d0e1c833bdbdbac3a2c9933dc91eaec00c72f955c",
+    "model/model/extensions/K/zbkb_insts.sail": "a99b38cbf1aca7d9e1084556dd20b70095dde817d4223f2face83e2b1f96a01e",
+    "model/model/extensions/K/zbkx_insts.sail": "18c576c27692d70ee1df2cd3773dfd9f6ccc7d3d34bb0e8396785588af4a4025",
+    "model/model/extensions/M/mext_insts.sail": "0969d0d38ff7f9e6010dbba8b9e0806205bcdea653a7f6570cca2895661976fb",
+    "model/model/extensions/M/mext_types.sail": "f85cefe5cdfd593d4479000a1c32a7345f2febd151dab57a229c6391de6636df",
+    "model/model/extensions/V/vext_arith_insts.sail": "d195367a7bd43470315a7846c5415b21f3e6961677a47ed99d6870a95acb55d0",
+    "model/model/extensions/V/vext_control.sail": "8f3865e36e7e84acb5251379e58a240c9bb865d8fc7ceb143d3bd60913986524",
+    "model/model/extensions/V/vext_fp_insts.sail": "3b64f7311cb3d255ab65f62bbe566dc9b8294342a72b6f0740c381e6c8e5f275",
+    "model/model/extensions/V/vext_fp_red_insts.sail": "93268c4a6ec882d39b176e544c69b133d0410bcb14c114c893c327b12e3801aa",
+    "model/model/extensions/V/vext_fp_utils_insts.sail": "5de766662e856548a9a4119ae791951c312bd874bd69f1ca184e56a48abf7b80",
+    "model/model/extensions/V/vext_fp_vm_insts.sail": "47c859542cad5809763696a787a54d9c7cefd89df8a78eb041dcdbcaa921c3df",
+    "model/model/extensions/V/vext_mask_insts.sail": "4dac6e99cb8c39210aa387324bf1ee86252fa70f7f139946f20c75b0aa5e0038",
+    "model/model/extensions/V/vext_mem_checks.sail": "3d1381b181ff427e45de6c4f6ae8f77e6de8516072048163f2c933d70896db00",
+    "model/model/extensions/V/vext_mem_insts.sail": "70d435da068964f7d9b1202c8499b273c1964a789960cabe0f5baa7e63847af0",
+    "model/model/extensions/V/vext_red_insts.sail": "18cbf04e55f9a69b0195304c7fa5790aca757ffa1b59c90113cf569eadc49668",
+    "model/model/extensions/V/vext_regs.sail": "009a5b02dd978c08f8710b238b03874fdbe3067f3e738c3d283beececab7c28e",
+    "model/model/extensions/V/vext_types.sail": "eeaab9ad850708059ac794bbb24ceba4605a153d8d70bbabead092cb879ef1e6",
+    "model/model/extensions/V/vext_utils_insts.sail": "186431189788a8378dcb052cf3b901ee730c32d853a60e526211dac78ad52156",
+    "model/model/extensions/V/vext_vm_insts.sail": "5cf6f3c5454f24dc3a08b212f950458f29654639e358aaaa1174de2162385dd8",
+    "model/model/extensions/V/vext_vset_insts.sail": "2153f7f1feda72afb7829f12bf431b05d3a0f7f98091d3f71f87f646a0aefcaf",
+    "model/model/extensions/V/vreg_type.sail": "02cbb5f4f5b053875c91b137f8e86481db4f7249b467021321e9efc350815c1f",
+    "model/model/extensions/Zicboz/zicboz_insts.sail": "f5735cb332ab8be45fba33d9e733193f306e729361bb6fd8f75f479c3e5b4756",
+    "model/model/extensions/Zicond/zicond_insts.sail": "86ea235572d08792921a264756e195c0e8d4cc728199a26476f87586297193ce",
+    "model/model/extensions/Zicond/zicond_types.sail": "55fac731ccaf118dbe48191a479ce474ede4c64ee8fa30beef0f8f5816ee79d4",
+    "model/model/extensions/Zicsr/zicsr_insts.sail": "dfb61f504271f1b958ee0bdc2d1325c240aa2d53be7bb54c30becdca49825c81",
+    "model/model/extensions/Zicsr/zicsr_types.sail": "3408aeeb94f158564c7a070d395bcc490641ad7c76cf627f75cc9c2eacad36a9",
+    "model/model/extensions/bfloat16/zfbfmin_utils.sail": "f0cc83f40449bfed6e1bbc5f9572a950f0fc8aa30ee08b08651b32eecfb6c439",
+    "model/model/extensions/bfloat16/zvfbfmin_insts.sail": "2276078649fa334ad07a1d139836b48a911219aefa266d88e1b0969ffea25bb4",
+    "model/model/extensions/bfloat16/zvfbfwma_insts.sail": "4d025c03ba8bcecd6d99b6d0f3ab007b6bcfd7cd42c0f64acaa75d1dd5c88396",
+    "model/model/extensions/fec/fec_codes.sail": "73d7439ad79c15edbc440b061b5c9e0b57129dd6c47f34867982b366f4f76b5f",
+    "model/model/extensions/fec/fec_insts.sail": "7c0839fd92a1ec9c9407392d5782f567a9f9ba4116a29b88576da75dae678d3f",
+    "model/model/extensions/keccak/keccak_insts.sail": "0b01f53cb5c3f1d00572b256033e206bd9b639a49a8b6559ba21fffe5b462697",
+    "model/model/extensions/keccak/keccak_p1600.sail": "06d1bbc5b743b8aaee02600a7918afe69dce2793168a7a08f7c03eaf8ca06456",
+    "model/model/extensions/platform/cbo_scrub.sail": "80f531a06828fdb530499fbad4c03a59dc8db2e1ee3c22be8aea06da6885aca1",
+    "model/model/extensions/platform/fence_t.sail": "f769afcd6017ceddf4c3841242b8784fb6643fa2db9c3cf16af13ae2e2656d4f",
+    "model/model/extensions/platform/vmclear.sail": "0a7b0b2f4ff0dbe00496ebba4d8d6614c22844d700274be4258395ac00a094de",
+    "model/model/extensions/vector_crypto/zvbb_insts.sail": "337a4db3708320bf05609312dc81eaba2a482f4d4a79f45098705bd2c5433f9c",
+    "model/model/extensions/vector_crypto/zvbc_insts.sail": "67ec2c6f3947dbbaf7fdc2b192099f7b9e77dd069f83c58dfc419a74a0d15dab",
+    "model/model/extensions/vector_crypto/zvk_utils.sail": "4d55bfe3fd2921d69f03daf2eafb1f6609ff79c2aa924c34e64827463328a7fc",
+    "model/model/extensions/vector_crypto/zvkg_insts.sail": "f706fc9c3e92966840bb898e32ad8b0eb57a0677c29d794aa45c433ba5278cf6",
+    "model/model/extensions/vector_crypto/zvkned_insts.sail": "c2982074961babe58b8f4ae2430e5d720b87f19c3a2f7ce3a3980aac387d0003",
+    "model/model/extensions/vector_crypto/zvknhab_insts.sail": "65dd051e8c6ac3a0ea67e4dbbb0c4d30fcb144d34ad66c68020f00c8353ed7d2",
+    "model/model/main/main.sail": "98ff133f1ab17a1ba4367c0c73ac02a25d9bb5f2c1f43fac5df3d50d59188698",
+    "model/model/postlude/cap_traps.sail": "b5fba48ca9ef29aa61ad51f72589200b3d1467ad09464660a127bd5c3637ec99",
+    "model/model/postlude/csr_end.sail": "529b5b345654a23d081d21d259edca876745920d0d63f7dc4026430d63fd4c47",
+    "model/model/postlude/decode_ext.sail": "f189b14dcdb590830da38d0f0a09cfcb2899d4deb50919525ce3eabe03cadd9b",
+    "model/model/postlude/device_tree.sail": "b0423ab8d334d1bcdb7b77c9f367f2ba2d4e0c5b64597ca931e4fc25b6316780",
+    "model/model/postlude/fetch.sail": "7e72f2618ff64dbcad9074f3440ffaf0224faed65f370bcde9a4cee85e6bc19d",
+    "model/model/postlude/fetch_rvfi.sail": "b091da17f4c8c0336e3b7150fd318a53e38ceb4ae3c7893e41dd707c438c7b15",
+    "model/model/postlude/insts_end.sail": "81e6ff368953cdbcab1efb0ac9281cb94b0ea450471494ccdcae7740c2369f7f",
+    "model/model/postlude/model.sail": "7156bc7b2295025dea3a05d23a5013efbf06735401d90eb42d2954c3add02f6c",
+    "model/model/postlude/step.sail": "f8c48783a52f59fb2b5ab56183c230b14484f0bd61b9beeb99db5392c05edc97",
+    "model/model/postlude/step_common.sail": "3ef928dfbbaa5bd4a80d9efc153e64dcfaa0e805782c761b815781440541d58d",
+    "model/model/postlude/step_ext.sail": "146fc9baf6eaa07a2ff94cf9604411c65b7fee0a4824eef22d51ba03135444bb",
+    "model/model/postlude/validate_config.sail": "736fa351368ed2f11794ab55595ce5c2ce3ea8ad6974c842549db5fe9cd1c0f8",
+    "model/model/prelude/errors.sail": "2d848d05bd6b20ccfeb054d639aef4c2e03692aa1dfb5d356544e99ecae97d3a",
+    "model/model/prelude/prelude.sail": "c39050fd03269bb48b8e23dc629c4a67e45f5a70a9262679d4f57ca3c08a327b",
+    "model/model/riscv.sail_project": "2b3b4a35761bb387d3ac42347d85766642ab15c7ec5b3b860fceda3ebd29c1b7",
+    "model/model/sys/block_device.sail": "2114c3be06bd6df4b41d41a069907c95dc7b7fce9868a6e826fb52641369b0b9",
+    "model/model/sys/callbacks.sail": "fa31b6d0ebee8ad922e5c468682b88911a2f4af126ac9c22f11c53e5a794e1d2",
+    "model/model/sys/insts_begin.sail": "b320608d1eedde95ca55d48ceb04d6e4651182e310d4e688ce2f28fd2461f4b1",
+    "model/model/sys/mem.sail": "f1ccc7dbf960a87535cac008939ba08175d89b5723c1dff2d7446f84d6932b4b",
+    "model/model/sys/mem_access.sail": "cb25ed7cf047fd754e39ad19795ab58919cef57613e8dc6372a12497e014dadd",
+    "model/model/sys/mem_utils.sail": "9c0ccdc07a1e5c76afd5ae982e937c283ebc808d8d639830764ccb840701925c",
+    "model/model/sys/memory_sequencer.sail": "27ee4d5f92baded40babf5653a7833354bb30bc55a2d3ec12b40eb093ffc84c3",
+    "model/model/sys/platform.sail": "9b0ad50743c337c8176e394a1ad2c26a9d4416edf50a63b6e754113ff602047f",
+    "model/model/sys/pma.sail": "2903eb67a3080852789fdec49ec3662707debb1d086b67a111adb3e0f1c02aef",
+    "model/model/sys/rot.sail": "8bdb5aecd3ba6b577e11334229b8a33c1a0fe0d07c3a07e0318531209ca20a8e",
+    "model/model/sys/split_access_utils.sail": "f7567821827ce329ebebf25b19c8e4d8ade7602d879f975573c382b5848b745c",
+    "model/model/sys/sys_control.sail": "5c7287b45e14b295b3dc6b922c59df785113cecc40811a087b5865665f59d677",
+    "model/model/unit_tests/cap_properties.sail": "25cffa1761af82c932f9c6b7ca4b71d822eec80de9f40cadadcba1a1775a318d",
+    "model/model/unit_tests/test_block_device.sail": "791f2124bd6299bf7e7ce500ca1a9ad384ca668cd6d53034732a1e56b2b8b992",
+    "model/model/unit_tests/test_capability.sail": "325d1d1027727c625a743266a0e8aac263ce1e91f41d36404af584c9452c48f9",
+    "model/model/unit_tests/test_cheri_insts.sail": "47eaa4af6ab4f504cc286111d3186612a253eedd09960a90dc505debc1ec4985",
+    "model/model/unit_tests/test_fec.sail": "cc65140b3e9ec1a5231763bb531dd307d63e81780a0fd1135d8c8cb9eb0fe1f3",
+    "model/model/unit_tests/test_keccak.sail": "6d48759f9cb29bdd575537f53c89ab59813628d0e966d393945077654bec2ea3",
+    "model/model/unit_tests/test_matrix_scratchpad.sail": "0a168a89b62e43ef0db6a8285aeb140c61ac7d8e059f4d18bce3905d3586896f",
+    "model/model/unit_tests/test_memory_model.sail": "2a9ab03369d401a51d8250a0dfb2aacc50cb107e406bd8d9f1796868a30be4a2",
+    "model/model/unit_tests/test_platform.sail": "ae213ee556bf9b772836f0c77ec3c1e462a2da019756edf7e2f0d721840b313a",
+    "model/model/unit_tests/test_privilege.sail": "e3ca60d38b3cca5690257cb48324dbc89831f22469b461a18255e090f219a16e",
+    "model/model/unit_tests/test_rot.sail": "73766ea7b0b7978ee9b8ff42547e952ddbf30af648379720b44e67e8b8884944",
+    "model/model/unit_tests/test_vector_cap.sail": "cb0987a7eb84a7d55fd4b5ed4ec91f1a80cfe8987ff102871c5e8e5dd441cdfa"
+  },
+  "report": "/root/build/lane-sail-lsp-complete-20260921/sail-lsp/qualification-20260921T140858/report.json"
+}

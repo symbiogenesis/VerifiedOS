@@ -109,7 +109,7 @@ the behavior the requirements specify.
    paths, frozen profile constraints and planned validation in a lane checkpoint
    using `sail-assist init` and the tracked plan schema.
    Set a finite repair budget before trying candidates; the default is twelve
-   candidate edits or thirty minutes of active repair, whichever comes first.
+   candidate checks or thirty minutes of active repair, whichever comes first.
 2. Retrieve a small set of declarations and examples, then inspect their complete
    source context. Read scattered `execute`, encoding and assembly clauses together
    when changing an instruction. Compiler references help navigation but do not
@@ -354,3 +354,27 @@ dependencies and partition outputs bind reuse; dependency-change controls must
 invalidate it. The report is empirical agreement for that corpus and host, not a
 compositional correctness theorem. Measurements determine whether to use the
 optional path; the implementation makes no presumed build-speed improvement.
+
+## Recorded qualification
+
+The 2026-09-21 [journal](sail-assistance-evidence/assist.json),
+[compiler controls](sail-assistance-evidence/assist-controls.json),
+[LSP](sail-assistance-evidence/lsp.json), [Isla](sail-assistance-evidence/isla.json)
+and [static-library](sail-assistance-evidence/modular.json) reports are verbatim
+exports from the commands' native output files. Their schemas are exercised by
+`python tools/run.py test --only sail_assistance_evidence`. These are historical
+observations for their recorded bytes, not current reusable build receipts.
+Absolute native paths identify retained logs and artifacts on the qualification
+host; they are not prerequisites for reading the reports or running the recipes
+in another lane. Do not overwrite these observations when qualifying a new task.
+
+The compiler controls append one ill-typed declaration in an exclusively owned
+integration checkout, record its failure, restore the exact original bytes and
+record success. The final journal also binds installed plugin bytes. LSP records
+required checks separately from unobserved request-level work interruption. Isla
+retains a survivor to demonstrate its finite permission coverage. The generated
+library report retains both clean builds, complete suite output identities and
+each differential comparison; its peak RSS is a child-process metric, not total
+parallel memory. No observation establishes a productivity improvement or proof
+of universal equivalence. Fresh proof evidence remains in its existing
+`proofs/proof-evidence.json` owner, and Host CI supplies the final host verdict.
