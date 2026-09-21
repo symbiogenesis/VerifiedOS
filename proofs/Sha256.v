@@ -845,11 +845,8 @@ Proof. intros x y c. destruct x; destruct y; destruct c; reflexivity. Qed.
 Theorem the_adder_is_commutative :
   forall (a b : list bool) (c : bool), add_le a b c = add_le b a c.
 Proof.
-  induction a as [| x xs IH]; intros b c; destruct b as [| y ys]; simpl.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - rewrite (xorb_comm_local x y). rewrite (majb_comm_local x y c). rewrite IH. reflexivity.
+  induction a as [| x xs IH]; intros b c; destruct b as [| y ys]; simpl; try reflexivity.
+  rewrite (xorb_comm_local x y), (majb_comm_local x y c), IH. reflexivity.
 Qed.
 
 Theorem word_addition_is_commutative :
