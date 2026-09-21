@@ -9,8 +9,8 @@ obligations. The existing reset model does not yet implement this contract.
 
 ## 1. Authority classes and existing state
 
-[R-15-007p](../../requirements-register.md#r-15-007p) and
-[R-07-006](../../requirements-register.md#r-07-006) govern memory authority.
+[R-15-007p](../../spec.md#r-15-007p) and
+[R-07-006](../../spec.md#r-07-006) govern memory authority.
 The execute-side and store-side roots authorize their composed text and physical
 partition extents. A sealing authority instead authorizes object-type names:
 its bounds and cursor select members of the frozen, nonreserved otype space.
@@ -34,12 +34,12 @@ execution; `c2` becomes the ABI stack pointer after the bootstrap authority is
 consumed. No new CSR, instruction, permission code, configurable permission
 bitmap, runtime root selector or tag-setting software operation is introduced.
 This is an explicit change to the initial contents of two existing GPRs under
-[R-15-007i](../../requirements-register.md#r-15-007i), not a new register bank.
+[R-15-007i](../../spec.md#r-15-007i), not a new register bank.
 The same architectural reset action reinstalls these values on every reset;
 ordinary traps and `mret` do not recreate them.
 
 `Permit_Seal` and `Permit_Unseal` remain in separate lattice elements, preserving
-[R-15-007o](../../requirements-register.md#r-15-007o). Neither root carries Load,
+[R-15-007o](../../spec.md#r-15-007o). Neither root carries Load,
 Store, LoadCapability, StoreCapability, StoreLocal, Execute or ASR. Neither can
 be derived from the existing data or execute roots: their absence from those
 roots is preserved, and integer bits or image bytes cannot supply the missing
