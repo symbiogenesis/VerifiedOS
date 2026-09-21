@@ -205,7 +205,7 @@ Qed.
 Lemma sumZ_app : forall {A} (l1 l2 : list A) (g : A -> Z),
   sumZ (l1 ++ l2) g = sumZ l1 g + sumZ l2 g.
 Proof.
-  intros A l1 l2 g. induction l1 as [| a r IH]; cbn [sumZ app]; [lia | lia].
+  intros A l1 l2 g. induction l1 as [| a r IH]; cbn [sumZ app]; lia.
 Qed.
 
 Lemma sumZ_map : forall {A B} (f : A -> B) (l : list A) (g : B -> Z),
@@ -290,10 +290,7 @@ Lemma two_pow_mono : forall a b, (a <= b)%nat -> two_pow a <= two_pow b.
 Proof.
   intros a b H. replace b with (a + (b - a))%nat by lia.
   rewrite two_pow_add. pose proof (two_pow_pos a) as Hp.
-  pose proof (two_pow_ge_one (b - a)) as Hq.
-  assert (H2 : two_pow a * 1 <= two_pow a * two_pow (b - a))
-    by (apply Z.mul_le_mono_nonneg_l; lia).
-  lia.
+  pose proof (two_pow_ge_one (b - a)) as Hq. nia.
 Qed.
 
 (* ---- n-bit strings, the sign character and the inner product ---- *)
@@ -469,7 +466,7 @@ Proof.
 Qed.
 
 Lemma sq_nonneg : forall z : Z, 0 <= z * z.
-Proof. intro z. destruct (Z.le_gt_cases 0 z) as [Hz | Hz]; nia. Qed.
+Proof. intro z. nia. Qed.
 
 Lemma weighted_shift_nonneg : forall {A} (l : list A) (wf f : A -> Z) (c : Z),
   (forall a, In a l -> 0 <= wf a) ->
@@ -500,7 +497,7 @@ Proof.
   assert (Hmul : wf a * (2 * f a * sumZ r (fun b => wf b * f b))
                  <= wf a * (sumZ r (fun b => wf b * f b * f b)
                             + f a * f a * sumZ r wf)).
-  { apply Z.mul_le_mono_nonneg_l; [exact Hw | nia]. }
+  { apply Z.mul_le_mono_nonneg_l; [exact Hw | exact Haux]. }
   nia.
 Qed.
 
@@ -539,10 +536,7 @@ Proof.
   intros n v.
   transitivity (sumZ (strings n) (fun y => sumZ (strings n) (fun y' =>
       sumZ (strings n) (fun x => (v y * v y') * (chi (ip x y) * chi (ip x y')))))).
-  { rewrite (sumZ_ext (strings n) (fun x => walsh n v x * walsh n v x)
-      (fun x => sumZ (strings n) (fun y => sumZ (strings n) (fun y' =>
-         (v y * v y') * (chi (ip x y) * chi (ip x y'))))))
-      by (intros x _; apply walsh_square).
+  { erewrite sumZ_ext by (intros x _; apply walsh_square).
     rewrite sumZ_swap. apply sumZ_ext. intros y _. apply sumZ_swap. }
   transitivity (sumZ (strings n) (fun y => sumZ (strings n) (fun y' =>
       (v y * two_pow n) * (v y' * (if eqbits y y' then 1 else 0))))).
@@ -618,13 +612,6 @@ Proof.
     - rewrite sumZ_mul_r. cbv beta. apply sumZ_le. intros y Hy.
       pose proof (HkY y Hy). pose proof (Hv y Hy). nia.
     - rewrite <- sumZ_mul_r. lia. }
-  assert (HP0 : 0 <= sumZ (strings n) (fun x => walsh n v x * walsh n v x))
-    by (apply sumZ_nonneg; intros x _; apply sq_nonneg).
-  assert (HQ0 : 0 <= sumZ (strings n) (fun x => w x * walsh n v x * walsh n v x)).
-  { apply sumZ_nonneg. intros x Hx. pose proof (Hw x Hx).
-    pose proof (sq_nonneg (walsh n v x)). nia. }
-  assert (HQv0 : 0 <= sumZ (strings n) (fun y => v y * v y))
-    by (apply sumZ_nonneg; intros y _; apply sq_nonneg).
   rewrite two_pow_add.
   set (W := sumZ (strings n) w) in *.
   set (V := sumZ (strings n) v) in *.
@@ -736,9 +723,8 @@ Corollary total_variation_squared : forall s : TwoSource,
   * two_pow (ts_kX s + ts_kY s)
   <= (totX s * totX s) * (totY s * totY s) * two_pow (ts_n s).
 Proof.
-  intro s. pose proof (ip_mass_split s) as Hs. pose proof (ip_mass_difference s) as Hd.
-  replace (2 * ip_mass s false - totX s * totY s) with (cg_bias s) by lia.
-  apply chor_goldreich_squared.
+  intro s. destruct (total_variation_scaling s) as [_ [_ Hb]].
+  rewrite Hb. apply chor_goldreich_squared.
 Qed.
 
 (* ---- the parameter record the source contract fills ---- *)
@@ -756,13 +742,10 @@ Definition admissible (p : Params) : bool :=
 
 Lemma admissible_premise : forall p : Params,
   admissible p = true -> (p_n p + 2 * p_s p <= p_kX p + p_kY p)%nat.
-Proof. intros p H. unfold admissible in H. apply Nat.leb_le. exact H. Qed.
+Proof. intros p H. apply Nat.leb_le. exact H. Qed.
 
 Lemma mul_cancel_le_pos : forall a b c : Z, 0 < c -> a * c <= b * c -> a <= b.
-Proof.
-  intros a b c Hc H. destruct (Z.le_gt_cases a b) as [Hle | Hgt]; [exact Hle |].
-  exfalso. nia.
-Qed.
+Proof. intros a b c Hc H. nia. Qed.
 
 (* kX + kY >= n + 2s gives squared error at most 2^(-2s) in the bias scaling,
    which is Delta^2 <= 2^(-2s-2) in the total-variation reading below. *)
@@ -794,11 +777,9 @@ Corollary per_bit_total_variation_squared : forall (s : TwoSource) (sec : nat),
   * two_pow (2 * sec + 2)
   <= 4 * ((totX s * totX s) * (totY s * totY s)).
 Proof.
-  intros s sec Hp.
-  pose proof (ip_mass_split s) as Hs. pose proof (ip_mass_difference s) as Hd.
-  replace (2 * ip_mass s false - totX s * totY s) with (cg_bias s) by lia.
+  intros s sec Hp. destruct (total_variation_scaling s) as [_ [_ Hb]].
+  rewrite Hb.
   pose proof (per_bit_squared_error s sec Hp) as Hmain.
-  replace (2 * sec + 2)%nat with (2 * sec + 2)%nat by lia.
   rewrite two_pow_add.
   replace (cg_bias s * cg_bias s * (two_pow (2 * sec) * two_pow 2))
     with ((cg_bias s * cg_bias s * two_pow (2 * sec)) * two_pow 2) by ring.
@@ -819,9 +800,7 @@ Qed.
 Lemma sq_le_nonneg : forall a b : Z, 0 <= a -> 0 <= b -> a * a <= b * b -> a <= b.
 Proof.
   intros a b Ha Hb H.
-  destruct (Z.le_gt_cases a b) as [Hle | Hgt]; [exact Hle | exfalso].
-  assert (Hlt : b * b < a * a) by (apply Z.mul_lt_mono_nonneg; lia).
-  lia.
+  destruct (Z.le_gt_cases a b) as [Hle | Hgt]; [exact Hle | exfalso]. nia.
 Qed.
 
 (* Both sides of the squared bound are squares of non-negative integers, so the
@@ -910,7 +889,7 @@ Proof. intros A l f g. apply sumZ_nonneg. intros a _. apply Z.abs_nonneg. Qed.
 Lemma statdist_refl : forall {A} (l : list A) (f : A -> Z), statdist l f f = 0.
 Proof.
   intros A l f. unfold statdist. apply sumZ_zero. intros a _.
-  replace (f a - f a) with 0 by ring. reflexivity.
+  rewrite Z.sub_diag. reflexivity.
 Qed.
 
 Lemma statdist_triangle : forall {A} (l : list A) (f g h : A -> Z),
@@ -975,7 +954,7 @@ Proof.
                   <= Z.of_nat m * bound).
   { rewrite sumZ_mul_r. cbv beta.
     apply Z.le_trans with (sumZ (natupto m) (fun _ : nat => bound)).
-    - apply sumZ_le. intros i Hi. exact (H i Hi).
+    - apply sumZ_le. exact H.
     - rewrite sumZ_const, natupto_length. lia. }
   assert (Hmul : statdist l (hyb O) (hyb m) * two_pow sec
                  <= sumZ (natupto m) (fun i => statdist l (hyb i) (hyb (S i)))
@@ -1014,15 +993,12 @@ Proof.
   apply Z.le_trans with (sumZ enumB (fun b =>
       sumZ enumA (fun a => Z.abs (f a - g a) * (if eqB (C a) b then 1 else 0)))).
   - apply sumZ_le. intros b _. cbv beta.
-    replace (sumZ enumA (fun a => f a * (if eqB (C a) b then 1 else 0))
-             - sumZ enumA (fun a => g a * (if eqB (C a) b then 1 else 0)))
-      with (sumZ enumA (fun a => (f a - g a) * (if eqB (C a) b then 1 else 0))).
-    2: { rewrite (sumZ_ext enumA
-           (fun a => (f a - g a) * (if eqB (C a) b then 1 else 0))
-           (fun a => f a * (if eqB (C a) b then 1 else 0)
-                     - g a * (if eqB (C a) b then 1 else 0)))
-           by (intros a _; ring).
-         rewrite sumZ_sub. reflexivity. }
+    rewrite <- sumZ_sub. cbv beta.
+    rewrite (sumZ_ext enumA
+      (fun a => f a * (if eqB (C a) b then 1 else 0)
+                - g a * (if eqB (C a) b then 1 else 0))
+      (fun a => (f a - g a) * (if eqB (C a) b then 1 else 0)))
+      by (intros a _; ring).
     apply Z.le_trans with (sumZ enumA
       (fun a => Z.abs ((f a - g a) * (if eqB (C a) b then 1 else 0)))).
     + apply sumZ_abs.
@@ -1038,7 +1014,7 @@ Proof.
   intros n a Ha.
   transitivity (sumZ (strings n) (fun b => (fun _ : list bool => 1) b
                                            * (if eqbits a b then 1 else 0))).
-  - apply sumZ_ext. intros b _. cbv beta. destruct (eqbits a b); reflexivity.
+  - apply sumZ_ext. intros b _. ring.
   - exact (sumZ_delta n a Ha (fun _ => 1)).
 Qed.
 
@@ -1360,8 +1336,7 @@ Theorem accepted_parameters_are_realized :
      <= (totX accepted_pair * totX accepted_pair)
         * (totY accepted_pair * totY accepted_pair).
 Proof.
-  split; [reflexivity |]. split; [reflexivity |]. split; [reflexivity |].
-  split; [reflexivity |]. split; [reflexivity |].
+  repeat (split; [reflexivity |]).
   apply parameters_bound_a_matching_pair; reflexivity.
 Qed.
 
