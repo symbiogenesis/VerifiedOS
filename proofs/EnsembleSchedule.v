@@ -213,13 +213,12 @@ Require Import CyclicExecutive.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
+  intros a b H. destruct a, b; try discriminate H; split; reflexivity.
 Qed.
 
 Lemma andb_pair_swap :
   forall a b c d : bool, andb (andb a b) (andb c d) = andb (andb a c) (andb b d).
-Proof. intros a b c d. destruct a; destruct b; destruct c; destruct d; reflexivity. Qed.
+Proof. intros a b c d. destruct a, b, c, d; reflexivity. Qed.
 
 Lemma leb_refl : forall a : nat, Nat.leb a a = true.
 Proof. induction a as [ | a IH ]; simpl; [ reflexivity | exact IH ]. Qed.
@@ -229,9 +228,9 @@ Lemma leb_trans :
 Proof.
   induction a as [ | a IH ]; intros b c Hab Hbc.
   - reflexivity.
-  - destruct b as [ | b ]; [ simpl in Hab; discriminate Hab | ].
-    destruct c as [ | c ]; [ simpl in Hbc; discriminate Hbc | ].
-    simpl. simpl in Hab. simpl in Hbc. exact (IH b c Hab Hbc).
+  - destruct b as [ | b ]; [ discriminate Hab | ].
+    destruct c as [ | c ]; [ discriminate Hbc | ].
+    exact (IH b c Hab Hbc).
 Qed.
 
 Lemma leb_add_r : forall a b : nat, Nat.leb a (a + b) = true.
@@ -241,26 +240,21 @@ Lemma max_left : forall a b : nat, Nat.leb a (Nat.max a b) = true.
 Proof.
   induction a as [ | a IH ]; intros b.
   - reflexivity.
-  - destruct b as [ | b ]; simpl.
-    + apply leb_refl.
-    + apply IH.
+  - destruct b as [ | b ]; simpl; [ apply leb_refl | apply IH ].
 Qed.
 
 Lemma max_right : forall a b : nat, Nat.leb b (Nat.max a b) = true.
 Proof.
   induction a as [ | a IH ]; intros b.
   - simpl. apply leb_refl.
-  - destruct b as [ | b ]; simpl.
-    + reflexivity.
-    + apply IH.
+  - destruct b as [ | b ]; simpl; [ reflexivity | apply IH ].
 Qed.
 
 Lemma eqb_eq : forall a b : nat, Nat.eqb a b = true -> a = b.
 Proof.
-  induction a as [ | a IH ]; intros b H.
-  - destruct b as [ | b ]; [ reflexivity | simpl in H; discriminate H ].
-  - destruct b as [ | b ]; [ simpl in H; discriminate H | ].
-    simpl in H. rewrite (IH b H). reflexivity.
+  induction a as [ | a IH ]; intros [ | b ] H; try discriminate H.
+  - reflexivity.
+  - rewrite (IH b H). reflexivity.
 Qed.
 
 Lemma plus_zero_r : forall a : nat, a + 0 = a.
@@ -292,7 +286,7 @@ Fixpoint nth_of {A : Type} (l : list A) (n : nat) : option A :=
 Lemma all_of_cons :
   forall (A : Type) (p : A -> bool) (x : A) (l : list A),
     all_of p (cons x l) = andb (p x) (all_of p l).
-Proof. intros A p x l. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Lemma all_of_member :
   forall (A : Type) (p : A -> bool) (l : list A) (x : A),
@@ -314,7 +308,7 @@ Proof.
   intros A p q l Himp. induction l as [ | y r IH ]; intros Hall.
   - reflexivity.
   - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hy Hr ].
-    simpl. rewrite (Himp y Hy). simpl. exact (IH Hr).
+    simpl. rewrite (Himp y Hy). exact (IH Hr).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -463,11 +457,9 @@ Lemma drift_below_skew_over :
 Proof.
   intros T e ls. induction ls as [ | u r IH ]; intros t Hin.
   - destruct Hin.
-  - destruct Hin as [ Heq | Hin ].
-    + simpl. rewrite <- Heq. apply max_left.
-    + simpl. apply (leb_trans _ (skew_over e r)).
-      * apply IH. exact Hin.
-      * apply max_right.
+  - simpl. destruct Hin as [ Heq | Hin ].
+    + rewrite <- Heq. apply max_left.
+    + apply (leb_trans _ (skew_over e r)); [ exact (IH t Hin) | apply max_right ].
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -492,7 +484,7 @@ Definition link_guard_ok (scope : GuardScope) (skew : nat) (t : LinkTable) : boo
 Lemma every_slot_guard :
   forall (floor : nat) (s : LinkSlot),
     slot_guard_ok every_slot floor s = Nat.leb floor (ls_guard s).
-Proof. intros floor s. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 (* R-11-017a's second refusal: the cadence times both members' declared
    tolerance lies inside the guard band. *)
@@ -640,7 +632,7 @@ Lemma members_ok_cons :
   forall (c : Composition) (e : Emission (Tenant c)) (i : nat)
          (m : MemberSchedule (Tenant c)) (r : list (MemberSchedule (Tenant c))),
     members_ok c e i (cons m r) = andb (member_ok c e i m) (members_ok c e (S i) r).
-Proof. intros c e i m r. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Fixpoint roots_of {T : Type} (ms : list (MemberSchedule T)) : nat :=
   match ms with
@@ -760,22 +752,22 @@ Lemma retenant_cores_cons :
   forall (T : Type) (rts dts : list T) (f : Frame T) (r : list (Frame T)),
     retenant_cores rts dts (cons f r)
     = cons (reassign_frame rts dts f) (retenant_cores rts dts r).
-Proof. intros T rts dts f r. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Lemma ms_cores_retenant :
   forall (T : Type) (rts dts : list T) (m : MemberSchedule T),
     ms_cores (retenant_member rts dts m) = retenant_cores rts dts (ms_cores m).
-Proof. intros T rts dts m. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Lemma ms_crypto_core_retenant :
   forall (T : Type) (rts dts : list T) (m : MemberSchedule T),
     ms_crypto_core (retenant_member rts dts m) = ms_crypto_core m.
-Proof. intros T rts dts m. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Lemma ms_verify_slot_retenant :
   forall (T : Type) (rts dts : list T) (m : MemberSchedule T),
     ms_verify_slot (retenant_member rts dts m) = ms_verify_slot m.
-Proof. intros T rts dts m. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Lemma same_geometry_sym :
   forall (T : Type) (l1 l2 : list (Slot T)), SameGeometry l1 l2 -> SameGeometry l2 l1.
@@ -807,14 +799,11 @@ Lemma same_geometry_nth_some :
                          /\ slot_width u = slot_width s.
 Proof.
   intros T l1 l2 H. induction H as [ | x y r1 r2 Hw Ho Hb Hp Hrest IH ]; intros k s Hk.
-  - simpl in Hk. discriminate Hk.
+  - discriminate Hk.
   - destruct k as [ | k ].
-    + simpl in Hk. injection Hk as Hk. exists y. split.
-      * reflexivity.
-      * rewrite <- Hk. split.
-        { symmetry. exact Ho. }
-        { symmetry. exact Hw. }
-    + simpl in Hk. exact (IH k s Hk).
+    + simpl in Hk. injection Hk as Hk. rewrite <- Hk.
+      exists y. split; [ reflexivity | split; symmetry; assumption ].
+    + exact (IH k s Hk).
 Qed.
 
 Lemma same_geometry_nth_none :
@@ -824,9 +813,7 @@ Lemma same_geometry_nth_none :
 Proof.
   intros T l1 l2 H. induction H as [ | x y r1 r2 Hw Ho Hb Hp Hrest IH ]; intros k Hk.
   - reflexivity.
-  - destruct k as [ | k ].
-    + simpl in Hk. discriminate Hk.
-    + simpl in Hk. simpl. exact (IH k Hk).
+  - destruct k as [ | k ]; [ discriminate Hk | exact (IH k Hk) ].
 Qed.
 
 Lemma nth_of_retenant_cores :
@@ -988,7 +975,7 @@ Lemma members_ok_member :
     member_ok c e (i + base) m = true.
 Proof.
   intros c e ms. induction ms as [ | x r IH ]; intros base i m Hall Hi.
-  - simpl in Hi. discriminate Hi.
+  - discriminate Hi.
   - rewrite members_ok_cons in Hall.
     destruct (andb_split _ _ Hall) as [ Hx Hr ].
     destruct i as [ | i ].
@@ -1074,7 +1061,7 @@ Proof.
   intros c scope rule dg e m p l Hadm Hi Hrole.
   assert (Hlt : Nat.ltb p 0 = true)
     by (exact (the_leader_tree_is_acyclic c scope rule dg e 0 m p l Hadm Hi Hrole)).
-  simpl in Hlt. discriminate Hlt.
+  discriminate Hlt.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -1090,10 +1077,9 @@ Lemma pair_scopes_agree :
     = andb (slot_guard_ok every_slot floor x) (slot_guard_ok every_slot floor y).
 Proof.
   intros floor x y Hg Hd.
-  destruct x as [ ix dx gx ]. destruct y as [ iy dy gy ].
-  simpl in Hg. simpl in Hd.
+  destruct x as [ ix dx gx ], y as [ iy dy gy ].
   assert (Hg2 : gx = gy) by (exact (eqb_eq gx gy Hg)).
-  destruct dx; destruct dy; simpl in Hd; try discriminate Hd;
+  destruct dx, dy; simpl in Hd; try discriminate Hd;
     unfold slot_guard_ok, receive_only, every_slot; simpl; rewrite Hg2;
     destruct (Nat.leb floor gy); reflexivity.
 Qed.
@@ -1107,8 +1093,8 @@ Lemma scopes_agree_on_agreeing_views :
            (all_of (slot_guard_ok every_slot floor) b).
 Proof.
   intros floor a. induction a as [ | x xs IH ]; intros b Hag.
-  - destruct b as [ | y ys ]; [ reflexivity | simpl in Hag; discriminate Hag ].
-  - destruct b as [ | y ys ]; [ simpl in Hag; discriminate Hag | ].
+  - destruct b as [ | y ys ]; [ reflexivity | discriminate Hag ].
+  - destruct b as [ | y ys ]; [ discriminate Hag | ].
     simpl in Hag.
     destruct (andb_split _ _ Hag) as [ Hi Hrest1 ].
     destruct (andb_split _ _ Hrest1) as [ Hg Hrest2 ].
@@ -2020,7 +2006,7 @@ Theorem a_leap_magnitude_never_exceeds_its_bound : forall bound reading amount,
 Proof.
   intros bound reading amount H; unfold leap_magnitude in H.
   destruct (Nat.leb reading bound) eqn:E; try discriminate.
-  inversion H; subst; split; [reflexivity | exact E].
+  injection H as H; subst; split; [reflexivity | exact E].
 Qed.
 Example verified_unverified_and_excessive_magnitudes_are_distinguished :
   leap_magnitude 32 20 true = Some 20 /\
