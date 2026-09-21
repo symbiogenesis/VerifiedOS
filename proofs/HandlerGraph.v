@@ -535,10 +535,10 @@ Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
 
 Lemma leb_trans :
   forall a b c : nat,
@@ -548,7 +548,7 @@ Proof.
   - reflexivity.
   - destruct b as [ | y ]; [ discriminate Hab | ].
     destruct c as [ | z ]; [ discriminate Hbc | ].
-    simpl in Hab. simpl in Hbc. simpl. exact (IH y z Hab Hbc).
+    exact (IH y z Hab Hbc).
 Qed.
 
 (* A conjunction over a list read back at a stronger predicate, and the two
@@ -612,9 +612,8 @@ Proof.
   intros l. induction l as [ | x r IH ].
   - reflexivity.
   - simpl. rewrite nat_eqb_refl. simpl.
-    apply (all_of_mono nat (fun n => mem_nat n r)
-                       (fun n => orb (Nat.eqb n x) (mem_nat n r)) r).
-    + intros n Hn. rewrite Hn. destruct (Nat.eqb n x); reflexivity.
+    apply (all_of_mono nat (fun n => mem_nat n r)).
+    + intros n Hn. exact (mem_nat_cons n x r Hn).
     + exact IH.
 Qed.
 
@@ -626,7 +625,7 @@ Proof.
   - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
   - destruct k as [ | b ].
     + discriminate H.
-    + simpl in H. destruct (IH b H) as [ Hlt | Heq ].
+    + destruct (IH b H) as [ Hlt | Heq ].
       * left. exact Hlt.
       * right. rewrite Heq. reflexivity.
 Qed.
@@ -637,9 +636,9 @@ Lemma all_of_upto :
 Proof.
   intros p n. induction n as [ | k IH ]; intros v H Hv.
   - discriminate Hv.
-  - simpl in H. destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
+  - destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
     simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
-    simpl in Hv. destruct (leb_split v k Hv) as [ Hlt | Heq ].
+    destruct (leb_split v k Hv) as [ Hlt | Heq ].
     + exact (IH v Hk Hlt).
     + rewrite Heq. exact Hpk.
 Qed.
@@ -1504,8 +1503,7 @@ Theorem the_specification_emits_a_finite_closed_graph :
 Proof.
   intros m a r. split.
   - unfold endpoints_inside. simpl.
-    apply (all_of_mono Edge (admissible_edge m r)
-             (fun e => andb (mem_nat e.(edge_owner) r) (mem_nat e.(edge_target) r))).
+    apply (all_of_mono Edge (admissible_edge m r)).
     + intros e He. apply andb_join.
       * exact (admissible_owner_on_roster m r e He).
       * exact (admissible_target_on_roster m r e He).
@@ -1711,8 +1709,7 @@ Theorem every_exempting_composer_still_emits_a_closed_graph :
 Proof.
   intros k m a r. split.
   - unfold endpoints_inside. simpl.
-    apply (all_of_mono Edge (admits_class_exempt m r k)
-             (fun e => andb (mem_nat e.(edge_owner) r) (mem_nat e.(edge_target) r))).
+    apply (all_of_mono Edge (admits_class_exempt m r k)).
     + intros e He. apply andb_join.
       * exact (class_exempt_owner_on_roster m r k e He).
       * exact (class_exempt_target_on_roster m r k e He).
@@ -2053,8 +2050,7 @@ Theorem the_specification_respects_the_requested_bound :
   RespectsTheRequestedBound spec_select.
 Proof.
   intros g q e H.
-  assert (Hm : matches q e = true) by
-    exact (find_of_holds Edge (matches q) g.(graph_edges) e H).
+  pose proof (find_of_holds Edge (matches q) g.(graph_edges) e H) as Hm.
   unfold matches in Hm. destruct (andb_split _ _ Hm) as [ _ Hb ]. exact Hb.
 Qed.
 
@@ -2071,8 +2067,7 @@ Theorem the_specification_answers_the_requested_intent :
   AnswersTheRequestedIntent spec_select.
 Proof.
   intros g q e H.
-  assert (Hm : matches q e = true) by
-    exact (find_of_holds Edge (matches q) g.(graph_edges) e H).
+  pose proof (find_of_holds Edge (matches q) g.(graph_edges) e H) as Hm.
   unfold matches in Hm. destruct (andb_split _ _ Hm) as [ Hi _ ]. exact Hi.
 Qed.
 
@@ -2313,13 +2308,11 @@ Proof.
   split; [ intros g q n1 n2; reflexivity | ].
   split.
   - intros g q e H.
-    assert (Hm : matches q e = true) by
-      exact (find_last_of_holds Edge (matches q) g.(graph_edges) e H).
+    pose proof (find_last_of_holds Edge (matches q) g.(graph_edges) e H) as Hm.
     unfold matches in Hm. destruct (andb_split _ _ Hm) as [ _ Hb ]. exact Hb.
   - split.
     + intros g q e H.
-      assert (Hm : matches q e = true) by
-        exact (find_last_of_holds Edge (matches q) g.(graph_edges) e H).
+      pose proof (find_last_of_holds Edge (matches q) g.(graph_edges) e H) as Hm.
       unfold matches in Hm. destruct (andb_split _ _ Hm) as [ Hi _ ]. exact Hi.
     + intros g q H.
       exact (find_last_of_none Edge (matches q) g.(graph_edges) H).
@@ -2392,8 +2385,7 @@ Proof.
   intros g q e H. unfold widening_select in H.
   destruct (find_of (matches q) g.(graph_edges)) as [ f | ] eqn:Hf.
   - injection H as H. rewrite <- H.
-    assert (Hm : matches q f = true) by
-      exact (find_of_holds Edge (matches q) g.(graph_edges) f Hf).
+    pose proof (find_of_holds Edge (matches q) g.(graph_edges) f Hf) as Hm.
     unfold matches in Hm. destruct (andb_split _ _ Hm) as [ _ Hb ]. exact Hb.
   - injection H as H. rewrite <- H. simpl. exact (nat_leb_refl q.(req_bound)).
 Qed.
@@ -2524,7 +2516,7 @@ Theorem the_release_time_schedule_agrees_on_every_base_image_node :
   forall (m : Machine) (n : nat),
     (m.(descriptor) n).(desc_origin) = BaseImage ->
     release_time_schedule m n = spec_schedule m n.
-Proof. intros m n H. unfold release_time_schedule, spec_schedule. rewrite H. reflexivity. Qed.
+Proof. intros m n H. unfold spec_schedule. rewrite H. reflexivity. Qed.
 
 (* =========================================================================
    O13: what a runtime binding may not create (R-12-024c's acceptance
@@ -3504,9 +3496,7 @@ Theorem the_uninstall_extent_is_observable :
   /\ edges_into (amending_uninstall demo demo_roster 3) 3 = 1
   /\ count_of (spec_uninstall demo demo_roster 3).(graph_edges) = 2
   /\ count_of (amending_uninstall demo demo_roster 3).(graph_edges) = 3.
-Proof.
-  split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ].
-Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Theorem the_amending_uninstall_is_not_a_recomposition :
   ~ IsRecomposition amending_uninstall after_uninstall.
@@ -3559,9 +3549,7 @@ Theorem the_ambiguity_is_observable :
   /\ selected_owner (last_match_select ambiguous_graph q_decode) = 2
   /\ selected_owner (spec_select demo_graph q_decode) = 0
   /\ selected_owner (last_match_select demo_graph q_decode) = 0.
-Proof.
-  split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ].
-Qed.
+Proof. repeat split; reflexivity. Qed.
 
 Example the_ambiguous_graph_carries_one_more_edge :
   count_of ambiguous_graph.(graph_edges) = 5
