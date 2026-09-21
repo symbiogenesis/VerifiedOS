@@ -1324,11 +1324,11 @@
       }
     }
   },
-  "cache_context_sha256": "7908d891dc3c7a3d1ddcd487a71ab295f12f5800896838f18654d67710f1344f",
+  "cache_context_sha256": "c25cfffaa3fedc64b2000da607d7f9ed1aa4d0ea52506b02529a39eb9176a7ff",
   "declared_assumptions": [],
   "format": "verifiedos-portable-proof-receipt",
   "inputs": {
-    "docs/requirements-register.md": "e976790c6989b58a2706711036ea3a9c0b17297136690961c9d18960ea7aba7f",
+    "docs/requirements-register.md": "2c41f573acdf9e16a8a94106de69eae963b1ad3683eaf6d51c52efd4308d0c6c",
     "proofs/AdmissionPath.v": "75c9842796dad5652787edb32dae9ed17c075c3117d62c977018150f9e981e57",
     "proofs/AesGcm.v": "95c4d44ec30a25daee0f8dc8f88c25ac349d53b96bfa3753862d56c0ef4ffa1e",
     "proofs/ApexTheorem.v": "a1fc5d1dff460cbf26f9f2378805ec667eabca640f6f69932a0b7da5d595249b",
@@ -1349,9 +1349,9 @@
     "proofs/InferenceAdmission.v": "8dc0ef1064ec761009c0e29bfc92edd7a67b3004497874a43095c43b64d97b55",
     "proofs/JournalIndex.v": "cdb662fe3166745a456a77522845cb810d677b6f52881f7c67146302b34f35d8",
     "proofs/Keccak.v": "0429f322a53d71de56d703b772728590e661d98263c1d992189aec1c158bfd75",
-    "proofs/KernelInstance.v": "6e2487e9b8c7515e1f3b8bf0094e5fadf2d3e55ff36a2dc01400b91e9a03d9db",
+    "proofs/KernelInstance.v": "2a4ce216e55b60c2236e455046701932193735f8e42ea2901e379d0009a674ba",
     "proofs/KeyspaceDomains.v": "0a16ced5622cdf01d7976de5e13bcc2f1941c68b0fe68fdb0aaa32d61182d8e3",
-    "proofs/MModeFirmware.v": "e7f00e8a607a8937fcee2b11a185a483fe9aed7774f0f8787aad0e94655a5d15",
+    "proofs/MModeFirmware.v": "d02d90af68458e852405ff9e7e2a448e32d1fec1b103e5b9c0e5ee813186cd55",
     "proofs/MModeFirmwareSealing.v": "1af54245e6db311b93d349240c58ad0c1ccf497b434a713335c6d2db4de43f11",
     "proofs/MemoryPlan.v": "53b45221a190dae6963289042ff81622d2331d52d59c29ee1cb5fc69efd02e30",
     "proofs/MemoryPlannerCertificates.v": "52d7ffec1d9b6489ede419d815f5e4d260161d68c1bfce01bf69c022e2d40f1a",
@@ -1397,10 +1397,8 @@
     "tools/vos/toolenv.py": "1a54d85eb5b00b74d4fe4e4ceb3fce78a929d41afaec230a96d37def0ce3f44a"
   },
   "kernel_evidence": {
-    "basis_sha256": "493400636e68cf6e7a84be4f656d759eebae0fd0701c4066c546c12ab6dd3724",
-    "checked": [],
-    "mode": "incremental",
-    "reused": [
+    "basis_sha256": null,
+    "checked": [
       "AdmissionPath",
       "AesGcm",
       "ApexTheorem",
@@ -1453,10 +1451,12 @@
       "TwoSourceExtractor",
       "WitnessContinuity",
       "WorkflowProfiles"
-    ]
+    ],
+    "mode": "full",
+    "reused": []
   },
   "kernel_recheck": "passed",
-  "native_receipt_sha256": "5958fae69ca220ac4179c7e1f805d6f03f9d62ba1c9568b6cc4bd9336012545f",
+  "native_receipt_sha256": "a3c7b566f549533c9f35a3952b621441cf74708a496abbf5ac5dda6003c49eb0",
   "outputs": {
     "proofs/AdmissionPath.vo": "d127e0c4ffe39c46f3e85e96b16dad1ca08e2d9461b93b2348b3806839cc89d6",
     "proofs/AesGcm.vo": "ec11f824491d0590b05eb7ef106adb74af5ddaa02b023f573d00c112c399dcd1",
@@ -1482,7 +1482,7 @@
     "proofs/KeyspaceDomains.vo": "ba3efbd6d8ef8f940f4c3fa6163bc9d4ca4480c89337905ad05ff52cffa78ee3",
     "proofs/MModeFirmware.vo": "cc665a41a30042be046ce4f534b2c570ec4f5d7aebca3558b78b41b3d0ea1185",
     "proofs/MModeFirmwareSealing.vo": "87340d4057053ef7db630ee658b754399c5e4ab4f87ca04e94a1780e463399e4",
-    "proofs/MemoryPlan.vo": "5d059d8e4bc914517a4ee5694de6dab339bb9ca7cbfb9b941a34de7005cb6ded",
+    "proofs/MemoryPlan.vo": "b588c185097c5b57170b7585c005227f1c5475d2c34c436aa4d5ee556e8cd2d8",
     "proofs/MemoryPlannerCertificates.vo": "c17438d82eb6281ad7e5c411268ad0248ad6a3f1c086baebb980a17b1beaa4de",
     "proofs/MemoryPlannerContracts.vo": "1b13b3a9d961e567fc923219d3cd07634878e689e6d47e5d928aadd58a659135",
     "proofs/MemoryPlannerResources.vo": "8e4fc8078db4b6759fa103abfc51c5c8199c3f85b7f9fd1062fca999d60a47e4",
@@ -1507,18 +1507,18 @@
     "proofs/StaticMemoryService.vo": "19b6300ea912884011081ee38d141b09243b2e7eee173d40d0fced78dff49f89",
     "proofs/StorageRecovery.vo": "008823f4da273e6f57ec687b7d86e130786ad8930e994bb1767ac72635694afe",
     "proofs/SupervisionTree.vo": "e5987115f5337367ba3b4f3ecaeafe63b4713e93e18ceac4be90cef2b348931c",
-    "proofs/TwoSourceExtractor.vo": "05ea5f8f7fd4162d39fc8103e901f16f30578cf91201bdefad347d3297b81c67",
+    "proofs/TwoSourceExtractor.vo": "652cbaed89920e96729f3718b63fa1ae125d5740f0c84cab995323f6f38af220",
     "proofs/WitnessContinuity.vo": "0cf3109e1eec93b59b13dbf0df04415eb4796ddc7293c323af5c7517b7681625",
     "proofs/WorkflowProfiles.vo": "627b321eb0fefd02bbf7e3c9a21fa4991b41381f7418422b2bfd49fc5392a40d"
   },
-  "reused_audits": 52,
-  "reused_compilations": 52,
+  "reused_audits": 0,
+  "reused_compilations": 0,
   "schema": 2,
   "status": "passed",
   "timings": {
-    "compile_audit_seconds": 0.10305288299969106,
-    "kernel_recheck_seconds": 2.9598919179989025,
-    "total_seconds": 6.055408612999599
+    "compile_audit_seconds": 181.37485359900165,
+    "kernel_recheck_seconds": 2305.5559328199997,
+    "total_seconds": 2498.286354402
   },
   "toolchain": {
     "checker_sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",
