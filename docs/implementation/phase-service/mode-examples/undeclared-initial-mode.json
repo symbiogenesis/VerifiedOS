@@ -1,0 +1,22 @@
+{
+  "schema": "phase-schedule-v2",
+  "name": "synthetic-mode-undeclared-initial-mode",
+  "resources_sha256": "4b7b3618534b2c4c558b5b414aafe104898442231ff845eb9d376c4ccfed7fd8",
+  "modes": {
+    "A": {
+      "phases": [
+        {
+          "grant": 1,
+          "alternatives": [
+            []
+          ],
+          "refresh": []
+        }
+      ]
+    }
+  },
+  "initial": [
+    "Z"
+  ],
+  "transitions": []
+}

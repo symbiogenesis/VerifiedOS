@@ -77,6 +77,13 @@ are unsupported and refused. No input boolean can promote the declaration into
 qualification. Per-hart limits constrain only the declared requests; they do not
 prove an instruction stream or issue-width model emits no other traffic.
 
+The command reads `schema` before any field-set check and dispatches on it: a
+`phase-schedule-v1` declaration goes through the reader this page states, and a
+`phase-schedule-v2` declaration through the [mode-transition extension](mode-contract.md),
+whose `modes`, `initial` and `transitions` fields this schema still refuses. An
+absent or unsupported `schema` is malformed input at exit 2. `--completion` adds
+the [completion analysis](completion-model.md) to either schema's receipt.
+
 ## Synthetic examples and output
 
 The [resource fixture](schedule-examples/resources.json) supplies synthetic
