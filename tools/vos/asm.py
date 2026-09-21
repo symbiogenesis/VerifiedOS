@@ -187,6 +187,8 @@ class Assembler:
         elif name in (".align", ".p2align", ".balign"):
             if not args:
                 raise self._error(lineno, f"{name} takes a boundary")
+            if len(args) != 1:
+                raise self._error(lineno, f"{name} takes only a boundary; explicit fill is unsupported")
             self.items.append(Item("align", lineno, self.section, text=name,
                                    args=args))
         else:
@@ -268,6 +270,15 @@ class Assembler:
     def _bytes(self, item: Item) -> bytes | None:
         if item.kind in ("label", "equ"):
             return None
+        if item.kind == "align" and item.section == ".text" and item.size:
+            if item.address % 4 or item.size % 4:
+                raise self._error(item.line, "executable alignment needs whole 32-bit instructions")
+            word = dialect.encode("addi", [0, 0, 0], item.address).to_bytes(4, "little")
+            for address in range(item.address, item.address + item.size, 4):
+                self.sites.append(Site(
+                    site_id=f"{Path(self.name).stem}#{len(self.sites):05d}",
+                    address=address, opcode="addi", source=item.line, section=item.section))
+            return word * (item.size // 4)
         if item.kind in ("space", "align"):
             return b"\0" * item.size
         if item.kind == "data":
