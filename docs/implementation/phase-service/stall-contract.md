@@ -185,7 +185,12 @@ transit across every frame wrap and slot boundary, takes every alternative and
 arbiter choice and merges identical states, exactly as the existing checkers
 do; a `path-blocked` or `refresh-overlap` step stops the exploration and
 refutes the program contract with its trace, and a completion inversion refutes
-it without stopping it. A request still held at its slot's end is
+it without stopping it. Within one cycle the exploration checks a residency
+overrun at slot starts, then refresh reservations, then transit acceptances,
+and records a completion inversion at the cycle's end, so the reported stop is
+one reachable at the earliest stop cycle and an inversion at that same cycle
+goes unreported, `ordered` reading `null` unless an earlier cycle inverted. A
+request still held at its slot's end is
 a boundary-outstanding fact for that (hart, slot), neither dropped nor counted
 twice. This contract models a request presented and refused at issue at the
 slot end as an irrevocable operation, the conservative choice for the
@@ -201,8 +206,8 @@ contract's reading the hart presents no further request of that program, the
 held request keeps being presented until accepted, and its cycles after the
 slot end through its completion are boundary residency, not slot stall. A
 request still held when the same hart's next slot occurrence begins is a
-`residency-overrun` refutation, reported with the hart, the slot, the residency
-reached and the trace; an accepted boundary operation still occupying its bank
+`residency-overrun` refutation, reported with the hart, the slot whose head is
+held, the residency reached and the trace; an accepted boundary operation still occupying its bank
 when that occurrence begins is not an overrun, its remaining occupancy being
 contention the next occurrence's stall bounds absorb while H has charged the
 residency once. Requests accepted but incomplete at the end of residency are
@@ -330,7 +335,17 @@ zero-wait scope and verdicts.
 ## Acceptance cases
 
 Acceptance requires behavioral tests through
-`python tools/run.py test --only phase_stall`. The quantitative cases are
+`python tools/run.py test --only phase_stall`. That selector also runs the
+independent bounded-horizon reference in
+`tools/tests/test_phase_stall_reference.py`, written from this document's text
+without reading the exploration: it walks every history through each frame as
+a tree, compares every reported bound and verdict, and every trace by its
+length, with the exploration over the fixtures below, the relation cases and a
+seeded campaign of ten thousand generated programs held to coverage floors,
+shows by perturbation that a one-convention
+error in the reference is reported, and pins the hart-wide drain span on the
+three minimal programs where the occurrence-only reading parts. The
+quantitative cases are
 the synthetic fixtures under `program-examples/`, each binding the resource
 declaration of the worked occurrence above; the numbers below are computed by
 hand from the semantics of this document, and the fixtures remain visibly

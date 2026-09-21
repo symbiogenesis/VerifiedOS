@@ -71,7 +71,13 @@ conventions rather than from the checkers; it decides every tracked fixture and
 named scenario on its own before comparing both checkers against it on a seeded
 campaign of random contracts, and a deliberate one-convention perturbation of
 the reference is asserted to surface as a disagreement:
-`python tools/run.py test --only phase_reference`.
+`python tools/run.py test --only phase_reference`. The stalled exploration has
+its own such reference,
+[test_phase_stall_reference.py](../../../tools/tests/test_phase_stall_reference.py),
+written from the stalled-transition contract's text: it compares every reported
+bound with `phase-stall` over the program fixtures, the relation cases and a
+seeded campaign of generated programs, and runs under
+`python tools/run.py test --only phase_stall`.
 
 | Refuted contract | Verdict | Closed companion contract |
 | --- | --- | --- |
