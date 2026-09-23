@@ -830,10 +830,11 @@ Definition boundary_report : list string :=
    that an empty leaf root is well formed and published, and that a step
    from such an input keeps it and is refused only for spent capacity, which
    is a spent arena or, for the gate, a returned height past the declared
-   depth. So the prediction is exact: an ungated `refused` line
-   under the ordinary geometry refutes that proof, and a gated member is
-   refused precisely where its ungated twin's height passes the declared
-   depth of eight and otherwise prints its twin's line column for column.
+   depth. So the prediction is exact: an ungated `refused` line under the
+   ordinary geometry, at a step whose arena still had room for the walk's
+   worst case, would refute that proof, and a gated member is refused
+   precisely where its ungated twin's height passes the declared depth of
+   eight and otherwise prints its twin's line column for column.
    The ascending run of twelve keys and the doubled run of twenty-four reach
    height ten, because a fanout of two splits three children into one and
    two and so leaves a one-child node on every split, which R-10-003's
