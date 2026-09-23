@@ -14,6 +14,7 @@ and the oracle's switch are exercised by hand and quoted in the completion note.
 """
 
 import json
+import re
 import sys
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
@@ -118,16 +119,41 @@ RECORDS: Final = ("I 1 0000000080000000 0002E403", "X 8 1 0000000080000000",
                   "I 3 0000000080000008 00000013", "R 0000000080008010 8 1 000000008000C000")
 
 FAKE_CCOMP: Final = f"""\
-import pathlib, sys
+import hashlib, json, pathlib, re, sys
 args = sys.argv[1:]
-source = pathlib.Path(next(a for a in args if a.endswith(".c")))
-out = pathlib.Path(args[args.index("-o") + 1])
+source = pathlib.Path(next(a for a in args if a.endswith((".c", ".i"))))
 text = source.read_text(encoding="utf-8")
+if "-fverifiedos-narrowing-plan" in args:
+    plan = json.loads(pathlib.Path(args[args.index("-fverifiedos-narrowing-plan") + 1]).read_text())
+    if plan["context"]["source_sha256"] != hashlib.sha256(source.read_bytes()).hexdigest():
+        sys.stderr.write("fake ccomp: stale source_sha256\\n")
+        sys.exit(2)
+if "-interp" in args:
+    said = re.search(r"FAKE-CCOMP: interp (\\d+)", text)
+    print(f"Time 7: program terminated (exit code = {{said.group(1) if said else 0}})")
+    sys.exit(0)
+out = pathlib.Path(args[args.index("-o") + 1])
 if "FAKE-CCOMP: refuse" in text:
     sys.stderr.write("fake ccomp: refused on purpose\\n")
     sys.exit(2)
+def exclusive(path, data):
+    # the typed route creates its partial assembly and its narrowing sidecars this way
+    try:
+        with open(path, "x", encoding="utf-8", newline="") as handle:
+            handle.write(data)
+    except FileExistsError:
+        sys.stderr.write(f"ccomp: error: {{path.name}}: File exists\\n")
+        sys.exit(2)
 stream = {DIALECT!r} if "FAKE-CCOMP: dialect" in text else {LP64D!r}
-out.write_text(stream, encoding="utf-8", newline="")
+partial = out.with_name(out.name + ".partial")
+exclusive(partial, stream)
+if "-fverifiedos-narrowing-output" in args:
+    prefix = args[args.index("-fverifiedos-narrowing-output") + 1]
+    for suffix in (".plan.json", ".operations.json", ".sites.json"):
+        exclusive(pathlib.Path(prefix + suffix),
+                  json.dumps({{"sidecar": suffix, "source": hashlib.sha256(
+                      source.read_bytes()).hexdigest()}}) + "\\n")
+partial.replace(out)
 """
 
 FAKE_SIM: Final = f"""\
@@ -185,18 +211,70 @@ def _lines_of(stream: str, needle: str) -> list[int]:
     return [n for n, raw in enumerate(stream.splitlines(), 1) if needle in raw]
 
 
+PATTERN_NAMES: Final = ["memory", "struct", "call", "stack", "nullable", "spill", "narrow"]
+
+# A variable declared at file scope: the selected scalar source profile binds a global's
+# authority only through a composition, so no generated program may carry one.
+FILE_SCOPE_OBJECT: Final = re.compile(r"^(?:static\s+)?(?:volatile\s+)?"
+                                      r"(?:long|int|short|char)\b[^(]*;$", re.MULTILINE)
+
+
 def _generator_is_deterministic() -> None:
-    first, second = cd.programs(7, 6), cd.programs(7, 6)
+    first, second = cd.programs(7, 14), cd.programs(7, 14)
     ensure(first == second, "one seed and count must name one campaign")
-    ensure(len({p.name for p in first}) == 6, "every program needs a name of its own")
-    ensure([p.pattern for p in first] == ["pointer", "struct", "call"] * 2,
+    ensure(len({p.name for p in first}) == 14, "every program needs a name of its own")
+    ensure([p.pattern for p in first] == PATTERN_NAMES * 2,
            f"the patterns cycle, got {[p.pattern for p in first]}")
     for program in first:
-        ensure("int main(void)" in program.source and program.checks > 0,
-               f"{program.name} must define main and carry checks")
+        ensure("int main(void)" in program.source and program.checks > 0
+               and program.checks == cd.CHECKS[program.pattern] and program.expect == 0,
+               f"{program.name} must define main and carry its pattern's checks")
+        ensure(all(f"return {k};" in program.source for k in range(1, program.checks + 1)),
+               f"{program.name} must name each of its checks through main's return")
         ensure("double" not in program.source and "float" not in program.source,
                f"{program.name} must be FP-free (R-15-039)")
-    ensure(cd.programs(8, 6) != first, "a different seed draws different constants")
+        ensure("volatile" not in program.source
+               and FILE_SCOPE_OBJECT.search(program.source) is None,
+               f"{program.name} must declare no global object (selected source profile)")
+        ensure((program.narrowing > 0) == (program.pattern == "narrow")
+               and program.narrowing % 256 == 0
+               and (not program.narrowing
+                    or f"csetbounds(values, {program.narrowing}UL)" in program.source),
+               f"{program.name}: only the narrowing pattern narrows, by whole 256-byte granules")
+    ensure(cd.programs(8, 14) != first, "a different seed draws different constants")
+    chosen = cd.programs(7, 4, patterns=["call", "narrow"])
+    ensure([p.pattern for p in chosen] == ["call", "narrow"] * 2,
+           f"a pattern selection cycles over the selection alone: {chosen}")
+    try:
+        cd.programs(7, 1, patterns=["nonesuch"])
+    except ValueError as err:
+        ensure("nonesuch" in str(err), f"an unknown pattern is named: {err}")
+    else:
+        raise AssertionError("an unknown pattern must be refused")
+
+
+def _perturbed_twins_move_one_check() -> None:
+    ordinary, twins = cd.programs(3, 28), cd.programs(3, 28, perturb=True)
+    ensure([p.pattern for p in twins] == [p.pattern for p in ordinary],
+           "a perturbed campaign keeps the ordinary campaign's membership")
+    moved: set[tuple[str, int]] = set()
+    for plain, twin in zip(ordinary, twins, strict=True):
+        ensure(1 <= twin.expect <= twin.checks and twin.name == f"{plain.name}-p{twin.expect}",
+               f"{twin.name} must name the check it moves")
+        before = plain.source.replace(plain.name, "NAME").splitlines()
+        after = twin.source.replace(twin.name, "NAME").splitlines()
+        changed = [(a, b) for a, b in zip(before, after, strict=True) if a != b]
+        ensure(len(changed) == 1, f"{twin.name}: exactly one line moves, got {changed}")
+        old, new = changed[0]
+        value = int(old.rsplit("!= ", 1)[1].rstrip(")"))
+        ensure(new == old.replace(f"!= {value})", f"!= {value + 1})"),
+               f"{twin.name}: the moved line is the check's constant plus one: {changed}")
+        ensure(after[before.index(old) + 1].strip() == f"return {twin.expect};",
+               f"{twin.name}: the moved constant guards check {twin.expect}")
+        moved.add((twin.pattern, twin.expect))
+    ensure(moved == {(name, check) for name in PATTERN_NAMES
+                     for check in range(1, cd.CHECKS[name] + 1)},
+           f"28 twins move every check of every pattern at least once, got {sorted(moved)}")
 
 
 def _scan_names_what_the_dialect_refuses() -> None:
@@ -421,6 +499,161 @@ def _loop_over_fake_ccomp_lp64d() -> None:
                              scratch / "p.json", "")
         ensure(run.verdict == "ccomp-refused" and "could not run" in run.detail,
                f"an absent compiler is a refusal naming the cause: {run.detail}")
+
+
+def _source_interpreter_reading() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        ccomp = [sys.executable, str(_script(scratch, "ccomp", FAKE_CCOMP))]
+        sim = [sys.executable, str(_script(scratch, "sim", FAKE_SIM))]
+        work = scratch / "work"
+        work.mkdir()
+        profile = scratch / "profile.json"
+        agree = cd.run_program(cd.Program("i-pass", "given", DIALECT_C, 1), ccomp, work,
+                               sim, profile, "", interp=True)
+        read = agree.interpreted
+        ensure(agree.verdict == "pass" and read is not None and read.code == 0
+               and read.argv[-2:] == ("-interp", "i-pass.c") and cd.as_expected(agree),
+               f"an interpreter that agrees leaves the pass standing: {agree}")
+        ensure(sorted(p.name for p in (work / "i-pass").iterdir()) == ["i-pass.c", "i-pass.s"]
+               and (work / "i-pass.interp" / "i-pass.c").is_file(),
+               "the interpreter runs in a directory of its own, beside the compilation")
+        three = DIALECT_C + "/* FAKE-CCOMP: interp 3 */\n"
+        differ = cd.run_program(cd.Program("i-differ", "given", three, 1), ccomp, work,
+                                sim, profile, "", interp=True)
+        ensure(differ.verdict == "source-disagrees" and "interpreter reports 3" in differ.detail
+               and not cd.as_expected(differ),
+               f"an image that disagrees with the interpreter is not a pass: {differ}")
+        two = DIALECT_C + "/* FAKE-CCOMP: interp 2 */\n"
+        twin = cd.run_program(cd.Program("i-fail2", "given", two, 2, expect=2), ccomp, work,
+                              sim, profile, "", interp=True)
+        ensure(twin.verdict == "fail" and cd.target_code(twin.ran) == 2 and cd.as_expected(twin),
+               f"a perturbed twin failing at its moved check is as expected: {twin}")
+        early = cd.run_program(cd.Program("i-pass2", "given", DIALECT_C, 2, expect=2), ccomp,
+                               work, sim, profile, "")
+        ensure(early.verdict == "pass" and not cd.as_expected(early),
+               "a perturbed twin that passes has not failed where its source says")
+        twice = _script(scratch, "twice", "print('Time 1: program terminated (exit code = 0)')\n"
+                                          "print('Time 2: program terminated (exit code = 0)')\n")
+        read = cd.interpret_c([sys.executable, str(twice)], work / "i-pass.c", work / "twice")
+        ensure(read.code is None, "two termination lines give no reading")
+
+
+def _narrowing_program_inputs() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        ccomp = [sys.executable, str(_script(scratch, "ccomp", FAKE_CCOMP))]
+        sim = [sys.executable, str(_script(scratch, "sim", FAKE_SIM))]
+        work = scratch / "work"
+        work.mkdir()
+        profile = scratch / "profile.json"
+        profile.write_text("{}\n", encoding="utf-8")
+        narrow = cd.Program("n-pass", "narrow", DIALECT_C, 1, 0, 512)
+        run = cd.run_program(narrow, ccomp, work, sim, profile, "", interp=True)
+        ensure(run.verdict == "pass" and run.interpreted is None and run.narrowing == 512,
+               f"a narrowing program compiles against its plan and has no C reading: {run}")
+        base, top = cd.harness_stack()
+        ensure(top - base == cd.STACK_BYTES, "the plan's region is the harness stack")
+        fresh = work / "n-pass"
+        plan = json.loads((fresh / "plan.json").read_text(encoding="utf-8"))
+        request = plan["requests"][0]
+        ensure(plan["context"]["source_sha256"] == cd._sha256((work / "n-pass.i").read_bytes())
+               and plan["context"]["profile_sha256"] == cd._sha256(profile.read_bytes())
+               and request["offset"] == top - 512 - base and request["length"] == 512
+               and plan["regions"][0]["base"] == base,
+               f"the plan binds the bytes read and requests the top of the stack: {plan}")
+        composition = json.loads((fresh / "composition.json").read_text(encoding="utf-8"))
+        ensure(composition["requested_local_base"] == top - 512
+               and composition["initial_csp"] == top and composition["stack_base"] == base,
+               f"the composition places the one local at the stack's top: {composition}")
+        argv = run.compiled.argv if run.compiled else ()
+        ensure("-fverifiedos-narrowing-plan" in argv and argv[-4:-2] == ("-S", "n-pass.i"),
+               f"the plan inputs reach the compiler beside the source it reads: {argv}")
+        plain = cd.run_program(cd.Program("n-plain", "given", DIALECT_C, 1), ccomp, work, sim,
+                               profile, "")
+        ensure(plain.compiled is not None
+               and "-fverifiedos-narrowing-plan" not in plain.compiled.argv
+               and not (work / "n-plain" / "plan.json").exists(),
+               "a program that narrows nothing is compiled without plan inputs")
+
+
+def _narrowing_rerun_in_a_kept_directory() -> None:
+    """The compiler creates its partial assembly and its narrowing sidecars exclusively,
+    so a rerun in a kept directory must find none of them left by the earlier run, and
+    the report binds every file the narrowing compilation read or wrote by digest."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        ccomp = [sys.executable, str(_script(scratch, "ccomp", FAKE_CCOMP))]
+        sim = [sys.executable, str(_script(scratch, "sim", FAKE_SIM))]
+        work = scratch / "work"
+        work.mkdir()
+        profile = scratch / "profile.json"
+        profile.write_text("{}\n", encoding="utf-8")
+        narrow = cd.Program("n-again", "narrow", DIALECT_C, 1, 0, 256)
+        first = cd.run_program(narrow, ccomp, work, sim, profile, "")
+        fresh = work / "n-again"
+        files = dict(first.narrowing_files)
+        wanted = {*cd.NARROWING_INPUTS,
+                  *(f"{cd.NARROWING_OUTPUT}{suffix}" for suffix in cd.NARROWING_SIDECARS)}
+        ensure(first.verdict == "pass" and set(files) == wanted
+               and all(files[name] == cd._sha256((fresh / name).read_bytes())
+                       for name in wanted),
+               f"a narrowing run binds its plan inputs and sidecars by digest: {first}")
+        # what a compiler killed at its timeout leaves beside the sidecars of its last run
+        (fresh / "n-again.s.partial").write_text("stale\n", encoding="utf-8")
+        second = cd.run_program(narrow, ccomp, work, sim, profile, "")
+        ensure(second.verdict == "pass" and second.narrowing_files == first.narrowing_files,
+               f"a rerun in the kept directory is not refused for an earlier run's "
+               f"files: {second.verdict}: {second.detail}")
+        recorded = json.loads(json.dumps(cd.report_json(second)))
+        ensure(recorded["narrowing_files"] == files,
+               f"the report carries the digests: {recorded['narrowing_files']}")
+        plain = cd.run_program(cd.Program("n-plain", "given", DIALECT_C, 1), ccomp, work, sim,
+                               profile, "")
+        ensure(plain.narrowing_files == ()
+               and json.loads(json.dumps(cd.report_json(plain)))["narrowing_files"] is None,
+               "a program that narrows nothing binds no narrowing files")
+
+
+def _component_harness_assembles() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        elf = scratch / "c.elf"
+        found, size = cd.assemble(DIALECT, "component", elf, cd.COMPONENT_PROLOGUE)
+        ensure(found == [] and size > cd.STACK_BYTES and elf.is_file(),
+               f"a dialect stream assembles under the component harness: {found}")
+        composite = cd.compose(DIALECT, cd.COMPONENT_PROLOGUE)
+        for word in ("true\n", "false\n"):
+            ensure(all(f"{cd.HTIF_PUTCHAR | ord(ch):#x}" in composite for ch in word),
+                   f"the component harness spells {word!r} on the HTIF console")
+        ensure(composite.splitlines()[cd.COMPONENT_PROLOGUE.count("\n")]
+               == DIALECT.splitlines()[0], "the stream follows the component prologue")
+        found, _ = cd.assemble("main:\n\tsd\tra, 8(sp), 1\n\tret\n", "bad", scratch / "d.elf",
+                               cd.COMPONENT_PROLOGUE)
+        ensure(found == [cd.Refusal("operand", "sd", 2, "sd takes 2 operands, given 3")],
+               f"a layout refusal names the stream's own line under either harness: {found}")
+
+
+def _component_harness_on_sail() -> None:
+    """The component harness's two answers and its trap on the lane's real emulator."""
+    environment = env.load()
+    verified_build(environment)
+    directory = environment.lane_root / "compiler-harness-controls"
+    directory.mkdir(parents=True, exist_ok=True)
+    controls = (("component-true", "li a0, 0", "pass", 0, b"true\n"),
+                ("component-false", "li a0, 5", "fail", 1, b"false\n"),
+                ("component-trap", "lc c6, 0(cnull)", "trap", 284, b""))
+    for name, instruction, verdict, code, said in controls:
+        body = f"        .text\nmain:\n        {instruction}\n        ret\n"
+        assembly, elf = directory / f"{name}.s", directory / f"{name}.elf"
+        assembly.write_text(cd.compose(body, cd.COMPONENT_PROLOGUE), encoding="utf-8",
+                            newline="\n")
+        asm.assemble_file(assembly, elf)
+        result = cd.run_image([str(environment.simulator)], environment.profile, elf,
+                              directory, inst_limit=2000)
+        ensure((result.verdict, result.code, result.emitted) == (verdict, code, said)
+               and result.records > 0,
+               f"{name}: expected {verdict}/{code}/{said!r}, got {result}")
 
 
 def _recorded_run_disagreements() -> None:
@@ -674,6 +907,34 @@ def _cli_component_and_generate() -> None:
         ensure(_run_cli(["component", "--purecap-record", str(purecap)])[0] == 2,
                "a record of the wrong encoding is 2")
 
+        ccomp = _wrapper(scratch, "ccomp", _script(scratch, "fake_ccomp", FAKE_CCOMP))
+        sim = _wrapper(scratch, "sim", _script(scratch, "fake_sim", FAKE_SIM))
+        given = scratch / "comp.c"
+        given.write_text(DIALECT_C, encoding="utf-8")
+        lowered = ["component", "--wasm", str(scratch / "x.wasm"), "--runner", sys.executable,
+                   "--runner", str(node), "--c", str(given), "--ccomp", str(ccomp),
+                   "--simulator", str(sim), "--profile", str(scratch / "p.json"),
+                   "--interp", "--json"]
+        code, out, _ = _run_cli(lowered)
+        payload = json.loads(out)
+        bound = payload["bindings"]
+        ensure(code == 0 and payload["disagreement"] is None and not payload["source_disagrees"]
+               and bound["elf_sha256"] and bound["stream_sha256"]
+               and bound["c_source"]["sha256"] == cd._sha256(given.read_bytes())
+               and bound["interp"]["code"] == 0 and bound["wasm_module"]["sha256"] is None,
+               f"a component lowered from C agrees and binds each stage by digest: {out}")
+        given.write_text(DIALECT_C + "/* FAKE-CCOMP: interp 4 */\n", encoding="utf-8")
+        code, out, _ = _run_cli(lowered)
+        ensure(code == 1 and json.loads(out)["source_disagrees"],
+               f"an image the interpreter disagrees with is not agreement: {out}")
+        given.write_text(REFUSING_C, encoding="utf-8")
+        code, out, _ = _run_cli(lowered)
+        ensure(code == 1 and json.loads(out)["purecap"]["verdict"] is None
+               and "lowering stopped" in json.loads(out)["purecap"]["produced_by"],
+               f"a refused lowering gives the purecap side no verdict: {out}")
+        ensure(_run_cli(["component", "--c", str(given)])[0] == 2,
+               "a C component with no compiler is 2")
+
         out_dir = scratch / "campaign"
         code, out, _ = _run_cli(["generate", "--out", str(out_dir), "--count", "3", "--seed", "2"])
         manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
@@ -688,10 +949,17 @@ def _cli_component_and_generate() -> None:
 def cases() -> list[Case]:
     return [
         Case("generator-is-deterministic", _generator_is_deterministic),
+        Case("perturbed-twins-move-one-check", _perturbed_twins_move_one_check),
         Case("scan-names-what-the-dialect-refuses", _scan_names_what_the_dialect_refuses),
         Case("harness-assembles-a-dialect-stream", _harness_assembles_a_dialect_stream),
+        Case("component-harness-assembles", _component_harness_assembles),
         Case("harness-authority-on-sail", _harness_authority_on_sail,
              slow=True, lane="toolchain"),
+        Case("component-harness-on-sail", _component_harness_on_sail,
+             slow=True, lane="toolchain"),
+        Case("source-interpreter-reading", _source_interpreter_reading),
+        Case("narrowing-program-inputs", _narrowing_program_inputs),
+        Case("narrowing-rerun-in-a-kept-directory", _narrowing_rerun_in_a_kept_directory),
         Case("capability-roundtrip-tracks-the-stored-value",
              _capability_roundtrip_tracks_the_stored_value),
         Case("loop-over-fake-ccomp-dialect", _loop_over_fake_ccomp_dialect),

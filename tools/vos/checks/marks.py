@@ -91,8 +91,9 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # The portable planner's original TFLite Micro adapter and API demonstration.
     ".cpp": ("// ", ""),
     ".h": ("// ", ""),
-    # M4.4's kernel C under kernel/, in the scalar source profile's C, and the boot
-    # chain's firmware and its host harness driver under firmware/.
+    # M4.4's kernel C under kernel/, in the scalar source profile's C, the boot chain's
+    # firmware and its host harness driver under firmware/, and the component oracle's
+    # purecap counterpart under tools/wasm-oracle/.
     ".c": ("// ", ""),
     # The authored bridge to the pinned, untrusted idealloc candidate generator.
     ".rs": ("// ", ""),

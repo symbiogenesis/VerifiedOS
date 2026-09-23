@@ -48,7 +48,7 @@ Run the native setup from the repository root. If an import fails after its swit
 `ipc_oracle.v` is the first repository Gallina source put through this loop rather than a smoke program: a battery of checks over [proofs/EndpointIPC.v](../../proofs/EndpointIPC.v)'s decision procedures, folded into one boolean the same way `demo.v` folds one. It needs that file beside it under its own name, because `Require Import EndpointIPC` resolves off the working directory, and the proof gate's `.vo` is built in a different switch and is not reusable here.
 
 ```console
-$ mkdir -p /root/wasm-stage && cd /root/wasm-stage
+$ mkdir -p /root/build/lane-<name>/wasm && cd /root/build/lane-<name>/wasm
 $ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
      <repo>/tools/wasm-oracle/run_demo.mjs <repo>/tools/wasm-oracle/node.sh .
 $ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 --set-switch)
@@ -62,6 +62,21 @@ true
 ```
 
 The two `Compute` lines are the check count and the answer *inside* the kernel, so a run reports the same verdict twice, once by conversion and once through the compiled pipeline, and a disagreement between them is the finding this staging exists to produce. **A green line is only worth having if a red one is reachable**, so the run is repeated over a source seeded to answer `false`: `sed 's/(upto 31)./(upto 32)./' ipc_oracle.v` widens one mask family past the one mask that is the frozen surface, and the emitted module prints `false` and exits non-zero. No `run.py` command reaches any of this, which is what the [checklist's conventions](../../docs/implementation/implementation-checklist.md) mean by the label naming a validator the entry point does not carry.
+
+## The purecap counterpart: `ipc_oracle.c` (M1.2f)
+
+[ipc_oracle.c](ipc_oracle.c) is the same 84-check battery written GC-free in the [selected scalar C profile](../../docs/implementation/contracts/compiler-source-values.md), check for check in `ipc_oracle.v`'s order, for M1.2f's component-level differential. It is a hand-written refinement and not an extraction: the inductives are integer codes, lists are caller-owned arrays, every function-valued argument is defunctionalized into a code, and structural recursion is a loop. `main` returns 0 when every check holds and otherwise the first failing check's number. `run.py compiler-diff component` lowers it through the contained backend, runs it on the golden emulator under a harness that prints `true` or `false` as `run_demo.mjs` does, and compares the two sides under one declared encoding:
+
+```console
+$ python3 tools/run.py compiler-diff component \
+    --wasm /root/build/lane-<name>/wasm/ipc_oracle.ipc_oracle.wasm \
+    --c tools/wasm-oracle/ipc_oracle.c \
+    --ccomp /native/contained/ccomp --ccomp-arg=-conf --ccomp-arg=/native/compcert.ini \
+    --ccomp-arg=-fverifiedos-typed --lane --interp
+AGREE     both sides under vos-component-output/1: verdict 0 and 5 byte(s)
+```
+
+The seeded red line has a C twin: `upto(31, masks)` widened to `upto(32, masks)` in `mask_checks` answers `false` on both sides. The component harness reads only whether `main` returned 0, so the image's own first failing check is not observed; the reference interpreter names check 40 as the first to fail. Nothing but this comparison keeps the two files in step, and it reports a change the other file does not mirror only where the change moves an answer. No gate reruns it: a change to `ipc_oracle.v`, [EndpointIPC.v](../../proofs/EndpointIPC.v) or `ipc_oracle.c` needs the staging above and this comparison rerun by hand. Agreement over the battery is differential evidence rather than a refinement proof.
 
 ## Keeping the VM under a long build
 

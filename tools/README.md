@@ -123,7 +123,7 @@ caught by nothing, which is a residue the findings register carries.
 | `memory-certificates` | wsl; encode on either lane | Encodes bounded allocation objectives and checks standard LRAT evidence using a pinned native checker. The [certificate contract](../docs/implementation/static-memory/certificates.md) states the encoding, proof endpoint, build identity and replay commands. |
 | `memory-candidates` | wsl | Runs a pinned idealloc implementation as an untrusted generator, preserving the independently checked baseline on unsupported input, failure or regression. The [candidate contract](../docs/implementation/static-memory/candidates.md) states the supported model and actual comparison corpus. |
 | `matrix-margin` | host | Checks `PLAN REPORT --json` under the [M-class measurement contract](../docs/implementation/contracts/matrix-margin.md). Binds the case and RVV extension sets, checks output identities, and reports exact sustained throughput and per-watt ratios. Supplied measurements do not establish producer truth or admit instructions. |
-| `compiler-diff` | host | M1.2f's two acceptance loops, ahead of the backend they accept. `program --ccomp PATH` feeds C, given or `--generate`d, through a contained `ccomp -S` in a fresh directory, then the in-tree assembler, the image composer and the golden emulator under the corpus's two questions, reporting each mnemonic, directive and section the dialect refuses by name and line as the expected pre-backend verdict; `component` holds a Gallina component's Wasm-oracle run against its purecap run under one declared output encoding and names the first disagreement; `generate` writes the deterministic FP-free campaign. Neither loop closes before M1.2's backend is integrated, and every report says so. |
+| `compiler-diff` | host | M1.2f's two acceptance loops over the contained purecap backend. `program --ccomp PATH` feeds C, given or `--generate`d, through a contained `ccomp -S` in a fresh directory, then the in-tree assembler, the image composer and the golden emulator under the corpus's two questions, reporting each mnemonic, directive and section the dialect refuses by name and line; `--interp` adds the compiler's reference interpreter as the source-side reading and `--perturb` the campaign's negative control. `component` holds a Gallina component's Wasm-oracle run against its purecap run under one declared output encoding, lowering the component's C itself with `--c`, and names the first disagreement; `generate` writes the deterministic FP-free campaign. Every report says a run decides no milestone alone. |
 | `block-authority` | host | `emit` generates the block-device capability-refusal corpus from composition and profile owners; `check` rejects drift. `test --only block_authority` checks regeneration, while the guest slow case runs HTIF negative controls against the built model. |
 | `boot-handoff` | wsl; layout on either lane | M3.5's measured release under the [boot-handoff contract](../docs/implementation/contracts/boot-handoff.md). `run` compiles the RoT stage in [firmware/](../firmware/README.md) for the host with both sanitizers, compares its SHAKE256 with `hashlib`, reads the RoT's inputs from the golden emulator under the RoT composition, submits every contract case to the stage and starts the golden emulator from each release's placed bytes; `layout` holds the contract's tables and the assembled image against `vos_boot.h`. The stage runs host-compiled and its signature verifier is a fixture, so every report carries `milestone_acceptance: open`. |
 | `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. Its layout rows probe where a lane's outputs land, so a build root or a log root on the Windows mount or on tmpfs fails the lane. |
@@ -189,17 +189,31 @@ mode change, physical completion and architectural visibility require separate
 evidence. The [preparation contract](../docs/implementation/phase-service/prerequisite-contract.md)
 connects this analysis to schedule extraction and workload cost arithmetic.
 
-`compiler-diff` is M1.2f's driver, and what it does not yet decide is stated with
-what it does. At the program level it runs the `ccomp` its command line names, which
+`compiler-diff` is M1.2f's driver, and what it does not decide is stated with what it
+does. At the program level it runs the `ccomp` its command line names, which
 stays outside every checkout under M1.1a's containment, with `-S` in a fresh directory.
-Repeated `--ccomp-arg=ARG` options pass compiler flags unchanged and retain them in
-each invocation's receipt. The driver
+Repeated `--ccomp-arg=ARG` options pass compiler flags unchanged, `-fverifiedos-typed`
+selecting the backend's typed purecap route, and retain them in each invocation's
+receipt. `--generate N` adds the campaign its seed names, generated inside the
+[selected scalar source profile](../docs/implementation/contracts/compiler-source-values.md)
+with every expected constant computed by the generator: pointers through stack memory,
+struct fields and whole-struct copies, calls in both directions, arguments past the
+argument registers, a pointer or null chosen on a branch, more live pointers across
+calls than registers, and a local array narrowed through the plan-bound `csetbounds`
+primitive against an independent plan and composition the driver writes for that
+program, whose source is handed over as `.i` so the plan binds the bytes the compiler
+reads. `--pattern NAME` selects a subset. `--perturb` is its negative control, each
+program moving one check's constant off by one and required to fail at exactly that
+check. `--interp` also
+runs each source through the same compiler's reference interpreter, and an image whose
+`main` returned something else is `source-disagrees`; a narrowing program has no such
+reading, its primitive having target semantics and no C interpreter meaning. The driver
 scans the emitted stream against [vos/dialect.py](vos/dialect.py)'s table and
 [vos/asm.py](vos/asm.py)'s directives before assembling it, and reports every refused
 mnemonic, directive and section by name and by line of the stream: stock `ccomp -S`
 writes lp64d RV64 carrying no capability mnemonic, which R-18-002 forbids as a target,
-so ahead of the backend the refusal is the expected verdict and `--expect-refusal` makes
-it the green one. A refused mnemonic is the backend's to close and a refused directive
+and `--expect-refusal` makes that refusal the green verdict. A refused mnemonic is the
+backend's to close and a refused directive
 is the seam between CompCert's printer (`.short`, `.long`, `.quad`, `.comm`, `.local`,
 `.option`, `.section .rodata`, numeric local labels, and the `%pcrel_hi`/`%pcrel_lo`
 relocation operators its PIC output addresses through) and the assembler's vocabulary
@@ -218,22 +232,30 @@ and the commit trace's digest are the two questions. A successful emulator exit 
 carry both the HTIF success line and a nonempty commit trace. `--against FILE` holds
 the results to a recorded run with the same unique program names and source digests;
 missing members and comparison disagreements fail even under `--expect-refusal`.
-A reused `--keep` directory cannot supply stale compiler output. The trace is also
-read for one tagged write read back tagged, which is
-M1.7's own test that a capability went through memory. At the component level the
-declared output encoding is a side's exit verdict, the Wasm host's process status or the
-image's HTIF code, plus the SHA-256 and length of the bytes it emitted, the runner's
-standard output on one side and the emulator's terminal log on the other; either side
-is written as a record and the comparator names the first field that disagrees, or the
-first byte where both sides' bytes are in hand. Records must name their actual side,
-and a missing exit verdict is a failed run even when both sides lack one. Capturing
-one completed side alone remains available while the other side waits.
-What waits on the backend: no purecap
-component exists to run, so the purecap side is a record whose producer is owed; the
-harness supplies the [selected scalar ABI](../docs/implementation/contracts/purecap-abi.md)
-for a test composition, while the actual firmware handoff remains owed; and a green
-run says this machine and this program agree,
-never that a lowering is correct, so every report carries `milestone_acceptance: open`.
+A reused `--keep` directory cannot supply stale compiler output, and the partial
+assembly and narrowing sidecars the typed route creates exclusively are removed before
+the compiler runs, so a rerun there is not refused for a file an earlier run left. A
+narrowing program's report binds its plan inputs and those sidecars by digest. The
+trace is also read for one tagged write read back tagged, which is
+M1.7's own test that a capability went through memory; a frame's saved return
+capability satisfies it as readily as a program's own pointer store. At the component
+level the declared output encoding is a side's exit verdict, the Wasm host's process
+status or the image's HTIF code, plus the SHA-256 and length of the bytes it emitted, the
+runner's standard output on one side and the emulator's terminal log on the other.
+`--c SOURCE` lowers the component's C through `--ccomp` and runs it under a component
+harness that reads `main`'s result as the one boolean
+[run_demo.mjs](wasm-oracle/run_demo.mjs) reads from the Wasm module, printing `true` or
+`false` on the HTIF console and exiting 0 or 1; `--interp` requires the compiler's
+reference interpreter to give the same answer. Either side is written as a record, the
+report binds the module, source, compiler, stream, image, emulator and profile by
+digest, and the comparator names the first field that disagrees, or the first byte
+where both sides' bytes are in hand. Records must name their actual side, and a missing
+exit verdict is a failed run even when both sides lack one. Capturing one completed
+side alone remains available while the other side waits. The harness supplies the
+[selected scalar ABI](../docs/implementation/contracts/purecap-abi.md) for a test
+composition, while the actual firmware handoff remains a separate input. A green run
+says this machine, this compiler and these programs agree, never that a lowering is
+correct, so every report carries `milestone_acceptance: open`.
 
 Six directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. The [Fiat inclusion headers and manifest](generated/fiat-crypto/) are additional guest-generated inputs. K-88 checks their indexed source pin, exact recipes, emitter owner and raw/wrapped hashes without running Fiat. Native reproduction and independent integer-vector commands are documented in the [emission record](../docs/implementation/fiat-crypto-emission.md); these commands consume an explicitly identified external generator and do not install it. [oracle-specs/](oracle-specs/) is
 one JSON file per oracle: the sources to compile, and per line kind the parameters,
