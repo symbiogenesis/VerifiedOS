@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "boot-harness-fixture",
+  "members": [
+    {
+      "id": "fixture-firmware",
+      "kind": "image",
+      "rank": 1,
+      "status": "fixture",
+      "owner": "M7.1 harness fixture; the real member is mmode-firmware"
+    },
+    {
+      "id": "fixture-kernel",
+      "kind": "image",
+      "rank": 2,
+      "status": "fixture",
+      "owner": "M7.1 harness fixture; the real member is kernel"
+    },
+    {
+      "id": "fixture-service",
+      "kind": "image",
+      "rank": 3,
+      "status": "fixture",
+      "owner": "M7.1 harness fixture; the real members are the started services"
+    }
+  ]
+}
