@@ -5,8 +5,8 @@ an R1c-ii simulation wrapper. The integrator accepts the bounded PIO abstraction
 write-through durable success, complete-access refusals and reset ordering after
 independent review of commits `7c35a98` and `4396c77`. These are composition choices
 for implementation under the [M5.3 acceptance predicate](../docs/implementation/implementation-checklist.md),
-not new architectural requirements. The Sail implementation below is partial
-progress against them; it supplies no host-image durability or target acceptance. Recovery policy
+not new architectural requirements. The Sail implementation and host image
+adapter below are partial progress against them; they supply no target acceptance. Recovery policy
 receives a separate review. Neither M5.3 nor R1c-ii lands with this document.
 
 ## Boundary and authority of the choices
@@ -317,15 +317,56 @@ subset through HTIF, with separate observations of staging and medium state.
 Their [scoped predicates](../docs/implementation/contracts/block-device-prerequisites.md)
 retain the limits of finite fixture evidence.
 
-The host backing-image adapter and its persistence/reopen boundary, image and
-event receipts, and the remaining architectural HTIF acceptance cases stay open.
-In particular, a Sail
-persistent register models durability across an explicit reset, but cannot
-establish persistence across a host process exit; starting the current emulator
-again loads its supplied configuration fixture. A restart harness must supply
-the resulting image and must not silently reload the original fixture. The
-storage bytes-to-record decoder, authentication and crypto path, recovery-policy
-decision, kernel join and full M5.3 target predicate remain their owners' work.
+The Sail persistent register models durability within one process. The
+[host image adapter](../model/c_emulator/blkdev_image.h) carries it across
+process exit by binding that register to one host file. `--blkdev-image` opens
+an existing image and `--blkdev-image-create` makes one from the configured
+fixture where no file exists, writing it beside the path and linking it into
+place. The image's header records `B` and `N`, followed by exactly `N * B`
+medium bytes. A missing, short, long, wrong-geometry, malformed or locked image,
+or creation over an existing file, is a startup refusal before any ELF loads;
+neither the file nor the register changes. A bound run replaces the fixture copy
+with the image's bytes before the first instruction and begins with reset
+volatile state, so a restart never recreates the fixture over the image.
+
+The model calls `blkdev_host_persist` at each persistent change, being a
+completed `WRITE`, a `WRITE` error's tear, a reset tear and a media fault, and
+at each fault-free `READ` and `FLUSH` completion. The adapter writes the changed
+bytes through to the image and completes a data sync before answering; a
+`FLUSH` completion issues a data sync of its own. A false
+answer completes the command with `IO`. The adapter retains that failure, so
+every later command also completes with `IO`, and no `READ` returns bytes a
+restart would not reopen. With no bound image the platform layer answers true
+and the register is the whole medium. The adapter chooses no tear: the model
+applies the recorded mask before asking. `--blkdev-receipt` writes one JSON
+object per line for the open, each persistence answer and the close, naming
+the image file by SHA-256 at open and, when the run reaches its normal end, at
+close; a run that exits early leaves no close record. It records persistence answers,
+not the complete input-event trace of progress events, resets and bus accesses
+that the composition input above asks for. A host process that exits
+between two answers leaves the image as the last answer left it; one killed
+inside an answer can leave a mixture of the old and new bytes of the block
+being persisted. That mixture lies within the declared tear class but has no
+recorded mask, and killing a process remains no evidence of the model's crash
+transition.
+
+The [image harness](../model/test/unit_tests/block_image.cpp) runs the actual
+generated model with this adapter, one forked process per phase, ending phases
+that model an abrupt exit with `_exit`. It checks the image file and a fresh
+reopen through the register and PIO `READ`s after creation, a `WRITE` and an
+out-of-range `FLUSH`, a completion before status observation or `ACK`, staging
+alone and a pending write at every nonfinal boundary, reset tears with zero,
+full and non-prefix masks at each block, a media fault before a tear, a `WRITE`
+error's tear, a media fault alone and a host write that the image cannot hold.
+It also checks each startup refusal and the emulator's own options. Its
+inverted expectations fail at the reopened-medium comparison, including a
+reopen that keeps the fixture copy instead of loading the image.
+
+The remaining architectural HTIF acceptance cases stay open, including C-durable
+and P-flush as guest programs spanning two emulator runs. The storage
+bytes-to-record decoder's review, the authentication and crypto path, the
+recovery-policy implementation, the kernel join and the full M5.3 target
+predicate remain their owners' work.
 
 The integrator records partial M5.3 progress and remaining findings in the shared
 checklist; this document grants no completed-item status, proof tier or

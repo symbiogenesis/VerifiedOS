@@ -51,3 +51,19 @@ add_test(NAME "block_reset" COMMAND $<TARGET_FILE:block_reset>)
 add_test(NAME "block_reset_wrong_byte" COMMAND $<TARGET_FILE:block_reset> --negative-byte)
 add_test(NAME "block_reset_residual_volatile" COMMAND $<TARGET_FILE:block_reset> --negative-volatile)
 set_tests_properties(block_reset_wrong_byte block_reset_residual_volatile PROPERTIES WILL_FAIL TRUE)
+
+# M5.3d: the host backing image across process exit, and the emulator's own
+# image options. The inverted expectations are registered by the comparison
+# each must reach, as watchdog_join's are, so a crash or a usage error cannot
+# pass as the expected failure.
+add_executable(block_image "block_image.cpp")
+target_link_libraries(block_image PRIVATE riscv_model default_config)
+add_test(NAME "block_image" COMMAND $<TARGET_FILE:block_image> --emulator $<TARGET_FILE:sail_riscv_sim>)
+add_test(NAME "block_image_wrong_byte" COMMAND $<TARGET_FILE:block_image> --negative-byte)
+add_test(NAME "block_image_reloaded_fixture" COMMAND $<TARGET_FILE:block_image> --negative-reload-fixture)
+set_tests_properties(block_image_wrong_byte PROPERTIES
+    PASS_REGULAR_EXPRESSION "block image child: FAIL reopened medium byte 0 expected"
+    FAIL_REGULAR_EXPRESSION "block image: B=")
+set_tests_properties(block_image_reloaded_fixture PROPERTIES
+    PASS_REGULAR_EXPRESSION "block image child: FAIL reopened medium byte [0-9]+ expected"
+    FAIL_REGULAR_EXPRESSION "block image: B=")

@@ -54,6 +54,13 @@ public:
 
   virtual unit plat_term_write(mach_bits);
 
+  // The block device's host persistence boundary (sys/block_device.sail's
+  // `blkdev_host_persist`). The default answers that every change is durable:
+  // with no bound host image the model's persistent register is the whole
+  // medium. The emulator's override writes through to its image
+  // (blkdev_image.h).
+  virtual bool blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length);
+
   virtual bool sys_enable_experimental_extensions(unit);
 
   virtual unit print_string(const_sail_string prefix, const_sail_string msg);

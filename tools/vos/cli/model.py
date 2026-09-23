@@ -100,6 +100,7 @@ BUILD_INPUTS = ("model", "tools/run.py", "tools/vos", "tools/generated", "interf
                 "upstream", ".gitmodules")
 BUILD_ARTIFACTS = ("c_emulator/sail_riscv_sim", "test/unit_tests/unit_tests",
                    "test/unit_tests/block_payload", "test/unit_tests/block_reset",
+                   "test/unit_tests/block_image",
                    "CMakeCache.txt", "build.ninja")
 
 
