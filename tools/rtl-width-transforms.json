@@ -6,11 +6,26 @@
     {
       "path": "core/include/ariane_pkg.sv",
       "source_sha256": "f29a6b4d91f59a228b691c7509e937445d37f3829516fcb7586049e430e42a8c",
-      "output_sha256": "211ee63552ea8043e39c1dba8641bf1643e05e8de6856e2539e9e8299d950b97",
+      "output_sha256": "d132de6c6f05c88235229b5aaeafb681a9b67616e33e687d8bd97fd71b5c61dd",
       "edits": [
         {
           "old": "localparam CLEN = CheriPresent ? 2 * XLEN : XLEN;",
           "new": "localparam CLEN = cva6_cheri_pkg::CLEN;",
+          "count": 1
+        },
+        {
+          "old": "  localparam logic [REGLEN-1:0] REG_ROOT = CheriPresent ? cva6_cheri_pkg::REG_ROOT_CAP : '0;\n",
+          "new": "  // One almighty root is inexpressible (R-15-007l, R-15-007p). Reset hands the\n  // execute-side root to PCC and the code-side trap registers, as the model's\n  // ext_reset does (step_ext.sail).\n  localparam logic [REGLEN-1:0] REG_ROOT_CODE =\n      CheriPresent ? cva6_cheri_pkg::REG_ROOT_CODE_CAP : '0;\n  // The rest of the reset authority is the register file's, per register as\n  // ext_reset grants it: the store-side root in c1, the seal and unseal\n  // bootstrap authorities in c2 and c3, and the null capability everywhere\n  // else (R-15-007p). No CSR takes a data root, DDC being absent (R-15-001c).\n  localparam logic [31:0][REGLEN-1:0] REG_RESET_FILE =\n      CheriPresent ? {{28{REG_NULL}}, cva6_cheri_pkg::REG_ROOT_UNSEAL_CAP,\n                      cva6_cheri_pkg::REG_ROOT_SEAL_CAP,\n                      cva6_cheri_pkg::REG_ROOT_DATA_CAP, REG_NULL} : '0;\n",
+          "count": 1
+        },
+        {
+          "old": "      return cva6_cheri_pkg::set_cap_reg_addr(REG_NULL, x_val);\n",
+          "new": "      // The merged file's integer view is the register's memory form, so an\n      // integer write decodes the integer's bits rather than setting an\n      // address (regval_into_reg, reg_type.sail).\n      return vos_scalar_width_pkg::int_to_reg(x_val);\n",
+          "count": 1
+        },
+        {
+          "old": "      return reg_val[XLEN-1:0];\n",
+          "new": "      // regval_from_reg, reg_type.sail: the memory form, whose low 36 bits are\n      // the address and whose upper bits are the metadata.\n      return vos_scalar_width_pkg::reg_to_int(cva6_cheri_pkg::cap_reg_t'(reg_val));\n",
           "count": 1
         }
       ]
@@ -122,7 +137,7 @@
     {
       "path": "core/issue_read_operands.sv",
       "source_sha256": "92971a15045fd619b27710a31a13bdd1e0838e43f3f5012469990326183c6861",
-      "output_sha256": "17932ecb66ac4d4eabac31bbf66a13fc273a5420ddc6b3c420876e59479ffb1e",
+      "output_sha256": "0b370b00fd94706327b5a25c5e68f8fd916c794a59ca500078592fa26a35cfa3",
       "edits": [
         {
           "old": "  cva6_cheri_pkg::cap_meta_data_t pcc_meta;",
@@ -198,13 +213,28 @@
           "old": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_TAG_VIOLATION;\n          issue_pcc_ex_o[i].tval2 = cheri_tval2;\n",
           "new": "          issue_pcc_ex_o[i].cause = cva6_cheri_pkg::CAP_EXCEPTION;\n          cheri_tval = cva6_cheri_pkg::capex_tval(cva6_cheri_pkg::CapEx_TagViolation,\n                                                  cva6_cheri_pkg::PCC_IDX);\n          issue_pcc_ex_o[i].tval = cheri_tval;\n",
           "count": 1
+        },
+        {
+          "old": "        pcc_q <= REG_ROOT;\n",
+          "new": "        pcc_q <= REG_ROOT_CODE;\n",
+          "count": 1
+        },
+        {
+          "old": "        .INIT_VAL     (CVA6Cfg.RVFI_DII ? ariane_pkg::REG_ROOT : ariane_pkg::REG_NULL)\n",
+          "new": "        .INIT_VAL     (ariane_pkg::REG_NULL),\n        .INIT_FILE    (ariane_pkg::REG_RESET_FILE)\n",
+          "count": 1
+        },
+        {
+          "old": "        if((cva6_cheri_pkg::addrw_t'(signed'(issue_instr_i[i].pc)) < pcc_base) || ({1'b0,cva6_cheri_pkg::addrw_t'(signed'(next_pc_addr))} > pcc_top) || (next_pc_carry && !pcc_bounds_root)) begin\n",
+          "new": "        // The fetch bounds test is inCapBounds over the whole instruction at\n        // the effective PC (ext_fetch_check_pc, addr_checks.sail): the collapsed\n        // address type is 36 bits, so the imported cast aliased a PC above\n        // 2^36 into range.\n        if (!vos_cheri_pkg::in_cap_bounds(pcc_q, issue_instr_i[i].pc, next_pc_off)) begin\n",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/load_store_unit.sv",
       "source_sha256": "3f49206ef5e4ecd3534639ee7df8d3ca6f8c0c3e61905fbaa66d29bf304036f3",
-      "output_sha256": "5ef199dbe8fe150f6b70cd5910bee25d1ec5fe76ea4cd05b5a706986196bb148",
+      "output_sha256": "0b8ecc4ebca229c5af462b74a66f94565c802542760ac5caa02f963f93713385",
       "edits": [
         {
           "old": "  cva6_cheri_pkg::cap_meta_data_t check_cap_meta_data;",
@@ -270,13 +300,43 @@
           "old": "        cheri_exception.tval2 = {{CVA6Cfg.GPLEN - 22{1'b0}}, cheri_tval2};\n",
           "new": "        cheri_exception.tval = cheri_tval;\n",
           "count": 1
+        },
+        {
+          "old": "  logic ld_clr_elevate;\n  logic ld_clr_cap_level;\n  logic ld_clr_load_mutable;\n",
+          "new": "  logic ld_clr_load_global;\n  logic ld_clr_load_mutable;\n",
+          "count": 1
+        },
+        {
+          "old": "    assign ld_clr_tag = !(fu_data_check_cap.hperms.permit_load && fu_data_check_cap.hperms.permit_cap) && ld_cap;\n    assign ld_clr_elevate = !fu_data_check_cap.hperms.permit_elevate_level && ld_cap && !ld_clr_tag;\n    assign ld_clr_cap_level = ld_clr_elevate && !fu_data_check_cap.hperms.cap_level;\n    assign ld_clr_load_mutable = !fu_data_check_cap.hperms.permit_load_mutable && ld_cap;\n    assign st_data[CVA6Cfg.REGLEN-2:0] = st_data_cap[CVA6Cfg.REGLEN-2:0];\n    assign st_data[CVA6Cfg.REGLEN-1] = st_data_cap.tag & fu_data_check_cap.hperms.permit_store & fu_data_check_cap.hperms.permit_cap & (fu_data_check_cap.hperms.permit_store_level | st_data_cap.hperms.cap_level);\n",
+          "new": "    // A capability load without load-capability permission delivers its value\n    // untagged (cap_load, cheri_mem.sail). The levels pair has no field here:\n    // the lattice's load-global and load-mutable bits take its place in the\n    // load's transitivity (load_transitivity, cheri_mem.sail; R-15-074).\n    assign ld_clr_tag = !(vos_cheri_pkg::cap_permit_load(fu_data_check_cap) &&\n                          vos_cheri_pkg::cap_load_cap(fu_data_check_cap)) && ld_cap;\n    assign ld_clr_load_global = !vos_cheri_pkg::cap_load_global(fu_data_check_cap) && ld_cap;\n    assign ld_clr_load_mutable = !vos_cheri_pkg::cap_load_mutable(fu_data_check_cap) && ld_cap;\n    assign st_data[CVA6Cfg.REGLEN-2:0] = st_data_cap[CVA6Cfg.REGLEN-2:0];\n    // A stored capability keeps its tag or the store faults: store-capability\n    // and store-local are traps in the data check, never tag clears\n    // (cap_access_checks, cheri_mem.sail).\n    assign st_data[CVA6Cfg.REGLEN-1] = st_data_cap.tag;\n",
+          "count": 1
+        },
+        {
+          "old": "    assign ld_clr_elevate = 1'b0;\n    assign ld_clr_cap_level = 1'b0;\n",
+          "new": "    assign ld_clr_load_global = 1'b0;\n",
+          "count": 1
+        },
+        {
+          "old": "    ld_clr_elevate,\n    ld_clr_cap_level,\n    ld_clr_load_mutable\n",
+          "new": "    ld_clr_load_global,\n    ld_clr_load_mutable\n",
+          "count": 1
+        },
+        {
+          "old": "        if(((check_cap_address < check_cap_base) || ((lsu_ctrl.vaddr +  size) > check_cap_top)) && !check_cap_bounds_root) begin\n",
+          "new": "        // The bounds test is the format package's inCapBounds over the\n        // effective address at XLEN + 1 bits (cap_access_checks and\n        // cap_data_checks): the collapsed top is 37 bits wide, so the imported\n        // sum wrapped at 64 bits, and its root bypass admitted an access above\n        // the 2^36 bytes a root covers.\n        if (!vos_cheri_pkg::in_cap_bounds(check_cap, lsu_ctrl.vaddr, size)) begin\n",
+          "count": 1
+        },
+        {
+          "old": "        if (!vos_cheri_pkg::cap_permit_load(check_cap) && does_load) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitLoadViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n          cheri_exception.valid   = 1'b1;\n        end\n\n",
+          "new": "        // Storing a tagged capability needs store-capability and storing a\n        // local one needs store-local beside it (cap_access_checks,\n        // cheri_mem.sail). Each outranks a length violation and is outranked by\n        // the permission, seal and tag checks after it, the later write winning.\n        // SC is the one capability store that decodes, the capability-width\n        // atomics being excluded (R-15-024, R-15-025).\n        if (does_store && (lsu_ctrl.operation == SC) && operand_b.tag &&\n            !vos_cheri_pkg::cap_global(operand_b) &&\n            !vos_cheri_pkg::cap_store_local_cap(check_cap)) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitStoreLocalCapViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n          cheri_exception.valid   = 1'b1;\n        end\n\n        if (does_store && (lsu_ctrl.operation == SC) && operand_b.tag &&\n            !vos_cheri_pkg::cap_store_cap(check_cap)) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitStoreCapViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n          cheri_exception.valid   = 1'b1;\n        end\n\n        if (!vos_cheri_pkg::cap_permit_load(check_cap) && does_load) begin\n          cheri_tval = cva6_cheri_pkg::capex_tval(\n              cva6_cheri_pkg::CapEx_PermitLoadViolation,\n              cva6_cheri_pkg::capreg_idx_of_regidx(lsu_ctrl.rs1));\n          cheri_exception.valid   = 1'b1;\n        end\n\n",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/csr_regfile.sv",
       "source_sha256": "5f0a8cfca5f393bfb58e824d740221911d9eaa8b4d8c743d4115bbefb7e1bd2f",
-      "output_sha256": "0c707a29454252cf8ae2a5c80c4c11b16c8bf7fa3a7d058fadaba341657d1da6",
+      "output_sha256": "bdbcf5d86a437303b8a1b5b19e83961861eafbedda0822cf60760243f8932532",
       "edits": [
         {
           "old": "      automatic\n      cap_meta_data_t\n      csr_update_cap_meta = get_cap_reg_meta_data(\n          csr_update_cap_prelegal\n      );",
@@ -307,13 +367,38 @@
           "old": "      cheri_tval2.fault_type = cva6_cheri_pkg::CAP_INSTR_FETCH_FAULT;\n      cheri_tval2.fault_cause = cva6_cheri_pkg::CAP_PERM_VIOLATION;\n      csr_exception_o.cause = cva6_cheri_pkg::CAP_EXCEPTION;\n      csr_exception_o.tval = '0;\n      csr_exception_o.tval2 = {'0, cheri_tval2};\n",
           "new": "      cheri_tval = cva6_cheri_pkg::capex_tval(\n          cva6_cheri_pkg::CapEx_AccessSystemRegsViolation, cva6_cheri_pkg::PCC_IDX);\n      csr_exception_o.cause = cva6_cheri_pkg::CAP_EXCEPTION;\n      csr_exception_o.tval = cheri_tval;\n      csr_exception_o.tval2 = '0;\n",
           "count": 1
+        },
+        {
+          "old": "        ddc_q  <= REG_ROOT;\n",
+          "new": "        ddc_q  <= REG_NULL;\n",
+          "count": 1
+        },
+        {
+          "old": "<= REG_ROOT;\n",
+          "new": "<= REG_ROOT_CODE;\n",
+          "count": 7
+        },
+        {
+          "old": "        mtvec_d = REG_ROOT;\n",
+          "new": "        mtvec_d = REG_ROOT_CODE;\n",
+          "count": 1
+        },
+        {
+          "old": "            csr_update_cap_prelegal = REG_ROOT;\n",
+          "new": "            csr_update_cap_prelegal = REG_ROOT_CODE;\n",
+          "count": 1
+        },
+        {
+          "old": "          REG_ROOT,\n          CVA6Cfg.DmBaseAddress",
+          "new": "          REG_ROOT_CODE,\n          CVA6Cfg.DmBaseAddress",
+          "count": 1
         }
       ]
     },
     {
       "path": "core/cheri_unit.sv",
       "source_sha256": "189a7dc04eb17680a440b405cc10aa00ee9186278fc1bfb4d9feb77787825897",
-      "output_sha256": "af85538b4e8e5a08ef5b3414fdac803e4a0ebf5b1629454e9871cea641a87157",
+      "output_sha256": "5ac98abd7b6384b5b9bec0959a32b806a91fbb84442d99377756b511da2261ad",
       "edits": [
         {
           "old": "  cap_meta_data_t op_a_meta_info;",
@@ -409,6 +494,46 @@
           "old": "    operand_b_hperms_malformed = (operand_b.hperms != legalize_arch_perms(operand_b.hperms)) |\n        (!operand_b.hperms.permit_execute & operand_b.flags.int_mode);\n",
           "new": "    operand_b_hperms_malformed = 1'b0;\n",
           "count": 1
+        },
+        {
+          "old": "        clu_result.otype = SENTRY_CAP;\n",
+          "new": "        // csealentry mints the forward edge, a call target; the backward edge\n        // is minted only by a call (CSealEntry, cheri_insts.sail; R-15-071).\n        clu_result.otype = SENTRY_FWD_CAP;\n",
+          "count": 1
+        },
+        {
+          "old": "      // CGetFlags\n      ariane_pkg::GCMODE: begin\n        clu_result = ariane_pkg::x_to_reg({{CVA6Cfg.XLEN - 1{1'b0}}, get_cap_reg_flags(operand_a)});\n      end\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "      // CSetFlags\n      ariane_pkg::SCMODE: begin\n        check_operand_a_violations.seal = 1'b1;\n        clu_result = (operand_a_hperms_malformed) ? operand_a :\n            set_cap_reg_flags(operand_a, operand_b.addr[0]);\n      end\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "      // CTestSubset\n      ariane_pkg::CBLD, ariane_pkg::SCSS: begin\n        tmp_cap = operand_b;\n        tmp_cap.tag = 1'b1;\n        if (fu_data_i.operation == ariane_pkg::SCSS) begin\n          if (operand_a.tag != operand_b.tag) begin\n            tmp_cap.tag = 1'b0;\n          end\n        end else begin  // CBLD\n          if (!operand_a.tag) begin\n            tmp_cap.tag = 1'b0;\n          end\n          if (operand_a_is_sealed) begin\n            tmp_cap.tag = 1'b0;\n          end\n        end\n        if (operand_b_base < operand_a_base) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if (operand_b_top > operand_a_top) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if ((operand_a.uperms & operand_b.uperms) != operand_b.uperms) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if ((operand_a.hperms & operand_b.hperms) != operand_b.hperms) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if (operand_a_bounds_malformed | operand_b_bounds_malformed) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if (operand_a_hperms_malformed | operand_b_hperms_malformed) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if(operand_a.res_lo != 0 | operand_a.res_hi != 0 | operand_b.res_lo != 0 | operand_b.res_hi != 0) begin\n          tmp_cap.tag = 1'b0;\n        end\n        if (fu_data_i.operation == ariane_pkg::CBLD) clu_result = tmp_cap;\n        // fu_data_i.operation == ariane_pkg::SCSS\n        else\n          clu_result = ariane_pkg::x_to_reg({{CVA6Cfg.XLEN - 1{1'b0}}, tmp_cap.tag});\n      end\n",
+          "new": "      // CBuildCap and CTestSubset are not instructions of this profile, the\n      // first excluded at the root and the second on both of its consumers\n      // (R-05-136, R-15-002, R-15-006, R-15-007m).\n",
+          "count": 1
+        },
+        {
+          "old": "      // CRepresentableAlignmentMask\n      ariane_pkg::SCBNDSR, ariane_pkg::SCBNDS, ariane_pkg::CRAM: begin\n",
+          "new": "      // (CRAM is excluded with its runtime allocator, R-15-007k.)\n      ariane_pkg::SCBNDSR, ariane_pkg::SCBNDS: begin\n",
+          "count": 1
+        },
+        {
+          "old": "        if (fu_data_i.operation == ariane_pkg::CRAM) begin\n          clu_result = ariane_pkg::x_to_reg(res_set_bounds.mask);\n        end else begin\n          clu_result = res_set_bounds.cap;\n        end\n",
+          "new": "        clu_result = res_set_bounds.cap;\n",
+          "count": 1
+        },
+        {
+          "old": "      // CGetHigh\n      ariane_pkg::GCHI: begin\n        cap_mem = cap_reg_to_cap_mem(operand_a);\n        clu_result = ariane_pkg::x_to_reg(cap_mem[((CVA6Cfg.XLEN*2)-1):CVA6Cfg.XLEN]);\n      end\n",
+          "new": "      // CGetHigh and CSetHigh are not instructions of this profile: csethigh\n      // rebuilds a capability from a register's bits and cgethigh goes with\n      // it, the pair being a property of a capability wider than a register\n      // (R-05-136, R-15-002, R-15-006; cheri_insts.sail).\n",
+          "count": 1
+        },
+        {
+          "old": "      // CSetHigh\n      ariane_pkg::SCHI: begin\n        cap_mem = cap_reg_to_cap_mem(operand_a);\n        cap_mem[((CVA6Cfg.XLEN*2)-1):CVA6Cfg.XLEN] = operand_b[XLEN-1:0];\n        clu_result = cap_mem_to_cap_reg(cap_mem);\n        clu_result.tag = 1'b0;\n      end\n",
+          "new": "",
+          "count": 1
         }
       ]
     },
@@ -439,11 +564,139 @@
     {
       "path": "core/cva6.sv",
       "source_sha256": "9146b6f6009005ba56105c28fc7cdeef169056860dbbfb06ab9e208607116314",
-      "output_sha256": "c9323f8de4d89aa0801e4d66f6266641382c117cfd3ffe3150c6ff9990f02071",
+      "output_sha256": "26dbe306a5b822b01160546bc185a235c761c85305a662ed31e8dc298184af55",
       "edits": [
         {
           "old": "      .int_mode_resolved_branch_i(cva6_cheri_pkg::get_cap_reg_flags(\n          resolved_branch.target_address\n      )),\n",
           "new": "      .int_mode_resolved_branch_i(1'b0),\n",
+          "count": 1
+        },
+        {
+          "old": "      logic                             clr_elevate;\n      logic                             clr_cap_level;\n",
+          "new": "      logic                             clr_load_global;\n",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/ariane_regfile_ff.sv",
+      "source_sha256": "33cae31cf370eaf0487eb4e6656bdd204ffa0b8e718eae7cf2225b72b65ade52",
+      "output_sha256": "c7fa0748ce67a06f746a6f52deb27f2fd3a0f3f03926c2316beaac1d6a96c787",
+      "edits": [
+        {
+          "old": "    parameter logic                  [DATA_WIDTH-1:0] ZERO_VAL      = '0\n) (",
+          "new": "    parameter logic                  [DATA_WIDTH-1:0] ZERO_VAL      = '0,\n    // Per-register reset values, INIT_VAL everywhere by default; the capability\n    // register file passes the model's reset grants (ext_reset, step_ext.sail).\n    parameter logic                  [31:0][DATA_WIDTH-1:0] INIT_FILE = {32{INIT_VAL}}\n) (",
+          "count": 1
+        },
+        {
+          "old": "        mem[i] <= INIT_VAL;\n",
+          "new": "        mem[i] <= INIT_FILE[i];\n",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/id_stage.sv",
+      "source_sha256": "72ec810e32ca16c771f018a2a8d1101b5d55d54ae0e43b5d28a406bb042797cf",
+      "output_sha256": "d67358f6c9943176f205f9918db289e7b1471bf20468272587d642c3792d5a9f",
+      "edits": [
+        {
+          "old": "  assign int_mode_prev[0] = int_mode_q;\n",
+          "new": "  // One encoding mode, the capability one (R-15-001c, R-15-242): the decoders'\n  // mode input is constant and no instruction switches it.\n  assign int_mode_prev[0] = 1'b0;\n",
+          "count": 1
+        },
+        {
+          "old": "      int_mode_q <= '1;\n",
+          "new": "      int_mode_q <= '0;\n",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/decoder.sv",
+      "source_sha256": "1e6065d48ba93e5a011a3442ab3c3bd821c14f5aa7e3e4a55273423502a698a3",
+      "output_sha256": "a1e4f5038bc0c0544bb5a97e144ca0f6f09e92aa942fa13669b3e3e89006997a",
+      "edits": [
+        {
+          "old": "                {7'b000_0110, 3'b101} : instruction_o.op = ariane_pkg::CBLD;\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                    5'b00011: instruction_o.op = ariane_pkg::GCMODE;\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                    5'b00111: begin\n                      instruction_o.op = ariane_pkg::CRAM;\n                      instruction_o.rs1[4:0] = 5'b0; // Use C0 as the capability operand for SetBounds function.\n                      instruction_o.rs2[4:0] = instr.rtype.rs1;\n                    end\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                {7'b000_0110, 3'b110} : instruction_o.op = ariane_pkg::SCSS;\n                {7'b000_0110, 3'b111} : instruction_o.op = ariane_pkg::SCMODE;\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                //MODESW.CAP MSW.CAP=0001001 MSW=00000 MSW=00000 MSW=001 MSW=00000\n                //MODESW.INT MSW.INT=0001010 MSW=00000 MSW=00000 MSW=001 MSW=00000\n                {\n                  7'b000_1001, 3'b001\n                } : begin\n                  if (instr.rtype.rs1 == 0 && instr.rtype.rs2 == 0 && instr.rtype.rd == 0) begin\n                    instruction_o.op = ariane_pkg::MODESW_CAP;\n                    int_mode_o = 1'b0;\n                  end else illegal_instr_cheri = 1'b1;\n                end\n                {\n                  7'b000_1010, 3'b001\n                } : begin\n                  if (instr.rtype.rs1 == 0 && instr.rtype.rs2 == 0 && instr.rtype.rd == 0) begin\n                    instruction_o.op = ariane_pkg::MODESW_INT;\n                    int_mode_o = 1'b1;\n                  end else illegal_instr_cheri = 1'b1;\n                end\n",
+          "new": "                // The mode-switch pair, the mode read and write, capability\n                // reconstruction and its upper-half pair, the subset test and the\n                // representable-alignment mask are not instructions of this\n                // profile (cheri_insts.sail), so their encodings reach the default\n                // arms and decode as illegal.\n",
+          "count": 1
+        },
+        {
+          "old": "                //SCHI       SCHI=0000110    SCHI=011\n                //CBLD       CBLD=0000110    CBLD=101\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                {7'b000_0110, 3'b011} : instruction_o.op = ariane_pkg::SCHI;\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                //GCMODE GCMODE=0001000 GCMODE=00011 GCMODE=000\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                //GCHI     GCHI=0001000   GCHI=00100   GCHI=000\n                //CRAM     CRAM=0001000   CRAM=00111   CRAM=000\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                    5'b00100: instruction_o.op = ariane_pkg::GCHI;\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "                //  SCSS=0000110   SCSS=110\n                //SCMODE=0000110 SCMODE=111\n",
+          "new": "",
+          "count": 1
+        },
+        {
+          "old": "          end else if (CVA6Cfg.CheriPresent && CVA6Cfg.RVA && instr.stype.funct3 == 3'h4) begin\n            unique case (instr.instr[31:27])\n              5'h1: instruction_o.op = ariane_pkg::AMO_SWAPC;\n              5'h2: instruction_o.op = ariane_pkg::AMO_LRC;\n              5'h3: instruction_o.op = ariane_pkg::AMO_SCC;\n              default: illegal_instr = 1'b1;\n            endcase\n          end else begin\n            illegal_instr = 1'b1;\n",
+          "new": "          end else begin\n            // The capability-width atomics are not instructions of this\n            // profile: the retained atomics stop at doubleword and the\n            // reservation pair is excluded (R-15-024, R-15-025;\n            // cheri_insts.sail), so their encodings decode as illegal.\n            illegal_instr = 1'b1;\n",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "core/load_unit.sv",
+      "source_sha256": "466dcf8f2cbb3eb5e86c0483fe40524f29415b3cfb86097549a59bf8839ecd4c",
+      "output_sha256": "321578fe5cf647a0fc91d86b6dab1c78b4a08e7d1a40567fd1378a0fcb383a94",
+      "edits": [
+        {
+          "old": "    logic                                clr_elevate;\n    logic                                clr_cap_level;\n",
+          "new": "    logic                                clr_load_global;\n",
+          "count": 1
+        },
+        {
+          "old": "    lsu_ctrl_i.clr_elevate,\n    lsu_ctrl_i.clr_cap_level,\n",
+          "new": "    lsu_ctrl_i.clr_load_global,\n",
+          "count": 1
+        },
+        {
+          "old": "    if (result_o[CVA6Cfg.REGLEN-1]) begin\n      automatic cva6_cheri_pkg::cap_reg_t result_cap = result_o;\n      if (ldbuf_rdata.clr_elevate && result_cap.otype != cva6_cheri_pkg::UNSEALED_CAP) begin\n        result_cap.hperms.permit_elevate_level = 1'b0;\n      end\n      if (ldbuf_rdata.clr_cap_level) begin\n        result_cap.hperms.cap_level = 1'b0;\n      end\n      if (ldbuf_rdata.clr_load_mutable && result_cap.otype != cva6_cheri_pkg::UNSEALED_CAP) begin\n        result_cap.hperms.permit_load_mutable = 1'b0;\n        result_cap.hperms.permit_store = 1'b0;\n      end\n      result_o = result_cap;\n    end\n",
+          "new": "    // The load's transitivity runs over a tagged result alone, with the tag it\n    // keeps: without load-global the result is local, and without\n    // load-mutable it loses its three store permissions (load_transitivity,\n    // cheri_mem.sail; R-15-074). An untagged value is data and is delivered\n    // unchanged. The revocation filter the same clause applies first is\n    // behaviour this datapath does not have (delta section 2.5, item 5).\n    if (CVA6Cfg.CheriPresent && result_o[CVA6Cfg.REGLEN-1] && !strip_tag_o &&\n        (ldbuf_rdata.clr_load_global || ldbuf_rdata.clr_load_mutable)) begin\n      automatic cva6_cheri_pkg::cap_reg_t result_cap = result_o;\n      automatic vos_cheri_pkg::cap_perms_t keep = '1;\n      if (ldbuf_rdata.clr_load_global) keep[vos_cheri_pkg::PermGlobal] = 1'b0;\n      if (ldbuf_rdata.clr_load_mutable) begin\n        keep[vos_cheri_pkg::PermStore] = 1'b0;\n        keep[vos_cheri_pkg::PermStoreCap] = 1'b0;\n        keep[vos_cheri_pkg::PermStoreLocal] = 1'b0;\n      end\n      result_o = vos_cheri_pkg::set_cap_perms(\n          result_cap, vos_cheri_pkg::get_cap_perms(result_cap) & keep);\n    end\n",
           "count": 1
         }
       ]

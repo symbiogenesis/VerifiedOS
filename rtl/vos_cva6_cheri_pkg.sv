@@ -147,6 +147,11 @@ package cva6_cheri_pkg;
 
   localparam cap_reg_t REG_ROOT_CODE_CAP = RootCodeCap;
   localparam cap_reg_t REG_ROOT_DATA_CAP = RootDataCap;
+  // The object-type bootstrap pair reset grants beside them (R-15-007p). Which
+  // register takes each root is the imported package's reset file to state and
+  // not this one's.
+  localparam cap_reg_t REG_ROOT_SEAL_CAP = RootSealCap;
+  localparam cap_reg_t REG_ROOT_UNSEAL_CAP = RootUnsealCap;
   localparam cap_reg_t REG_NULL_CAP = NullCap;
   localparam cap_mem_t MEM_NULL_CAP = '{tag: 1'b0, bits: capability_to_mem_bits(NullCap)};
   localparam bool_t MemNullCapIsZero = (MEM_NULL_CAP == '0);

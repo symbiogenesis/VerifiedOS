@@ -108,7 +108,15 @@ _RETIRED = ("cap_meta_data_t", "get_cap_reg_meta_data", "cap_tval2_t", "cap_repo
             "CAP_TAG_VIOLATION", "CAP_SEAL_VIOLATION", "CAP_PERM_VIOLATION",
             "CAP_BOUNDS_VIOLATION", "CAP_INVALID_ADDRESS_VIOLATION",
             "CAP_INSTR_FETCH_FAULT", "CAP_DATA_ACCESS_FAULT", "CAP_JUMP_BRANCH_FAULT",
-            "REG_ROOT_CAP", "cap_flags_t")
+            "REG_ROOT_CAP", "cap_flags_t", "REG_ROOT", "clr_elevate", "clr_cap_level")
+
+# The operations the profile's instruction surface does not carry and the
+# imported decoder did: the two mode instructions, the mode-switch pair,
+# capability reconstruction and the upper-half pair that goes with it, the
+# subset test, the representable-alignment mask and the capability-width
+# atomics (model/model/extensions/CHERI/cheri_insts.sail; R-15-024, R-15-025).
+_EXCLUDED_OPS = ("GCMODE", "SCMODE", "MODESW_CAP", "MODESW_INT", "CBLD", "SCSS", "CRAM",
+                 "GCHI", "SCHI", "AMO_SWAPC", "AMO_LRC", "AMO_SCC")
 
 # Where a qualified name an edit writes has to be declared. The adapter exports
 # the format package, so a name it reaches through that export counts as its own.
@@ -186,10 +194,41 @@ def _every_frozen_name_an_edit_uses_is_declared() -> None:
     ensure(used > 0, "the registry reaches the authored packages by name")
 
 
+def _excluded_operations_decode_as_illegal() -> None:
+    """Each excluded operation loses its decode row, and no edit names it again."""
+    _, _, sources = width.load(find_root())
+    rows = {source.path: source for source in sources}
+    decoder = rows.get("core/decoder.sv")
+    if decoder is None:
+        raise AssertionError("the decoder is staged")
+    for op in _EXCLUDED_OPS:
+        named = f"ariane_pkg::{op}"
+        ensure(any(f"instruction_o.op = {named};" in edit.old for edit in decoder.edits),
+               f"core/decoder.sv: no edit removes the decode row of {op}")
+        for source in sources:
+            ensure(all(named not in edit.new for edit in source.edits),
+                   f"{source.path}: a staged output names the excluded {op}")
+
+
+def _reset_grants_follow_the_model() -> None:
+    """c1, c2 and c3 take the data, seal and unseal roots, every other register null."""
+    _, _, sources = width.load(find_root())
+    text = "".join(edit.new for source in sources
+                   if source.path == "core/include/ariane_pkg.sv" for edit in source.edits)
+    grants = re.search(r"REG_RESET_FILE\s*=\s*CheriPresent\s*\?\s*\{\{28\{REG_NULL\}\},\s*"
+                       r"cva6_cheri_pkg::REG_ROOT_UNSEAL_CAP,\s*cva6_cheri_pkg::REG_ROOT_SEAL_CAP,"
+                       r"\s*cva6_cheri_pkg::REG_ROOT_DATA_CAP,\s*REG_NULL\}", text)
+    ensure(grants is not None, "the reset file grants c3, c2 and c1 in ext_reset's order")
+    iro = "".join(edit.new for source in sources
+                  if source.path == "core/issue_read_operands.sv" for edit in source.edits)
+    ensure("ariane_pkg::REG_RESET_FILE" in iro, "the register file takes the reset grants")
+
+
 def cases() -> list[Case]:
     return [Case(fn.__name__.lstrip("_"), fn) for fn in (
         _exact_edits_retain_notices, _identity_and_match_guards,
         _staging_requires_one_member_and_exact_pin, _registry_rejects_unsafe_and_duplicate_sources,
         _checked_in_registry_loads_with_exact_identities, _no_edit_reintroduces_a_retired_name,
         _no_edit_reads_an_absent_member, _every_frozen_name_an_edit_uses_is_declared,
+        _excluded_operations_decode_as_illegal, _reset_grants_follow_the_model,
     )]
