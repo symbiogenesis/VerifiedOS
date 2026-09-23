@@ -111,6 +111,7 @@ Hardware qualification preparation includes the
 [macro protocol](hardware/macro-qualification-protocol.md),
 [sensitive-state lifetime protocol](hardware/sensitive-state-lifetime-protocol.md),
 [scalar staging contract](hardware/scalar-width-transform-contract.md),
+[scalar core port contract](hardware/core-port-contract.md),
 [platform device contracts](hardware/platform-device-contracts.md), and
 [module admission candidate](hardware/immutable-module-admission.md).
 The [post-quantum reference contract](assurance/pq-reference-contract.md) fixes
