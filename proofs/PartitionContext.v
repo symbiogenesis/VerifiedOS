@@ -357,7 +357,7 @@ Definition Rotation (m : Machine) : Step m := fun succ pre post =>
 Theorem restore_total_over_registers :
   forall m : Machine, RestoresRegisters m (Switch m).
 Proof.
-  intros m succ pre post [Hreg _] r Hr. exact (Hreg r Hr).
+  intros m succ pre post [Hreg _]. exact Hreg.
 Qed.
 
 (* T2 (R-07-015, R-15-001b, isa-profile.md section 5.1, R-07-014a,
@@ -366,7 +366,7 @@ Qed.
 Theorem restore_total_over_nameable_csrs :
   forall m : Machine, RestoresNameableCsrs m (Switch m).
 Proof.
-  intros m succ pre post [_ [Hcsr _]] c Hc. exact (Hcsr c Hc).
+  intros m succ pre post [_ [Hcsr _]]. exact Hcsr.
 Qed.
 
 (* T3 (R-07-015's criterion). The file's load-bearing theorem: over the
@@ -377,9 +377,9 @@ Theorem no_residue : forall m : Machine, NoResidue m (Switch m).
 Proof.
   intros m succ pre1 post1 pre2 post2 [Hr1 [Hc1 Hp1]] [Hr2 [Hc2 Hp2]].
   split; [ | split ].
-  - intros r Hr. rewrite (Hr1 r Hr). rewrite (Hr2 r Hr). reflexivity.
-  - intros c Hc. rewrite (Hc1 c Hc). rewrite (Hc2 c Hc). reflexivity.
-  - rewrite Hp1. rewrite Hp2. reflexivity.
+  - intros r Hr. rewrite (Hr1 r Hr), (Hr2 r Hr). reflexivity.
+  - intros c Hc. rewrite (Hc1 c Hc), (Hc2 c Hc). reflexivity.
+  - rewrite Hp1, Hp2. reflexivity.
 Qed.
 
 (* T4 (R-07-044), a corollary of T3 read at its third component: the
@@ -424,9 +424,9 @@ Proof. intros m. reflexivity. Qed.
    axioms is the point of the gate. *)
 Lemma lt_add_pos : forall n k : nat, 0 < k -> n < n + k.
 Proof.
-  intros n. induction n as [ | n IH ]; intros k H.
+  intros n k H. induction n as [ | n IH ].
   - exact H.
-  - simpl. apply le_n_S. apply IH. exact H.
+  - simpl. apply le_n_S. exact IH.
 Qed.
 
 (* T5a (R-15-220's criterion): listing the fence and the drain separately
@@ -488,7 +488,7 @@ Theorem rotation_is_a_strict_subset :
   PerformsStrictlyFewer rotation_performs switch_performs.
 Proof.
   split.
-  - intros a H. destruct a; reflexivity.
+  - intros a _. destruct a; reflexivity.
   - exists FenceT. split; reflexivity.
 Qed.
 
@@ -522,8 +522,8 @@ Theorem rotation_restore_is_total :
     /\ RestoresRestorableCsrs m (Rotation m).
 Proof.
   intros m. split.
-  - intros succ pre post [Hreg _] r Hr. exact (Hreg r Hr).
-  - intros succ pre post [_ [Hcsr _]] c Hn Hz. exact (Hcsr c Hn Hz).
+  - intros succ pre post [Hreg _]. exact Hreg.
+  - intros succ pre post [_ [Hcsr _]]. exact Hcsr.
 Qed.
 
 (* The one bridge between the cost model and the state model (reading 9):
@@ -539,7 +539,7 @@ Theorem switch_discharges_every_rotation_obligation :
 Proof.
   intros m succ pre post [Hreg [Hcsr Hp]]. split; [ | split ].
   - exact Hreg.
-  - intros c Hn Hz. rewrite (Hcsr c Hn). rewrite Hz. reflexivity.
+  - intros c Hn Hz. rewrite (Hcsr c Hn), Hz. reflexivity.
   - destruct m.(rotation_swaps_pending); [ exact Hp | exact I ].
 Qed.
 
@@ -828,16 +828,11 @@ Proof.
 Qed.
 
 (* The carried value is what refutes it, not the shape of the construction:
-   the same relation with nothing leaked is residue-free. *)
+   with nothing leaked the leak test reduces away and what is left is the
+   switch itself, so T3 proves this relation residue-free unchanged. *)
 Theorem residue_needs_the_leak :
   forall m : Machine, NoResidue m (residue_switch m (fun _ => false)).
-Proof.
-  intros m succ pre1 post1 pre2 post2 [Hr1 [Hc1 Hp1]] [Hr2 [Hc2 Hp2]].
-  split; [ | split ].
-  - intros r Hr. rewrite (Hr1 r Hr). rewrite (Hr2 r Hr). reflexivity.
-  - intros c Hc. rewrite (Hc1 c Hc). rewrite (Hc2 c Hc). reflexivity.
-  - rewrite Hp1. rewrite Hp2. reflexivity.
-Qed.
+Proof. exact no_residue. Qed.
 
 (* A rotation that performs fence.t. R-07-037b omits all three constants,
    so a step that pays one of them is not that rotation. *)
@@ -927,8 +922,8 @@ Theorem rotation_pending_carries_nothing_on_the_swapping_arm :
     ctx_pending post1 = ctx_pending post2.
 Proof.
   intros m succ pre1 post1 pre2 post2 Harm [_ [_ Hp1]] [_ [_ Hp2]].
-  rewrite Harm in Hp1. rewrite Harm in Hp2.
-  simpl in Hp1. simpl in Hp2. rewrite Hp1. rewrite Hp2. reflexivity.
+  rewrite Harm in Hp1, Hp2. simpl in Hp1, Hp2.
+  rewrite Hp1, Hp2. reflexivity.
 Qed.
 
 Definition rot_succ : Context demo_rotation_keeps :=
