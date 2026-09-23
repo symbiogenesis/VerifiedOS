@@ -198,10 +198,10 @@ Proof.
   intros p d Hp H2 Hlt.
   unfold primeb in Hp. apply andb_prop in Hp. destruct Hp as [_ Hall].
   assert (Hin : In d (trial_divisors p)).
-  { unfold trial_divisors. apply (proj2 (filter_In _ d (seq 0 p))). split.
-    - apply (proj2 (in_seq p 0 d)). lia.
+  { unfold trial_divisors. apply filter_In. split.
+    - apply in_seq. lia.
     - apply Nat.ltb_lt. lia. }
-  pose proof (proj1 (forallb_forall _ (trial_divisors p)) Hall d Hin) as Hd.
+  pose proof (proj1 (forallb_forall _ _) Hall d Hin) as Hd.
   cbv beta in Hd. intros E. rewrite E in Hd. simpl in Hd. discriminate Hd.
 Qed.
 
@@ -327,7 +327,7 @@ Lemma fp_of_injective_below :
     x < pm_mod P -> y < pm_mod P -> fp_of P x = fp_of P y -> x = y.
 Proof.
   intros P x y Hx Hy H.
-  assert (Hr : fp_rep (fp_of P x) = fp_rep (fp_of P y)) by (rewrite H; reflexivity).
+  pose proof (f_equal (@fp_rep P) H) as Hr.
   rewrite fp_rep_of, fp_rep_of in Hr.
   rewrite (Nat.mod_small x _ Hx), (Nat.mod_small y _ Hy) in Hr. exact Hr.
 Qed.
@@ -336,7 +336,7 @@ Lemma fp_in_enum : forall (P : Modulus) (a : Fp P), In a (fp_enum P).
 Proof.
   intros P a. pose proof (fp_rep_lt P a) as Hlt.
   unfold fp_enum. rewrite <- (fp_of_rep P a) at 1.
-  apply in_map. apply (proj2 (in_seq (pm_mod P) 0 (fp_rep a))). lia.
+  apply in_map. apply in_seq. lia.
 Qed.
 
 Lemma nodup_map_injective :
@@ -347,11 +347,9 @@ Proof.
   intros A B f l. induction l as [ | x r IH ]; simpl; intros Hinj Hnd.
   - constructor.
   - inversion Hnd as [ | x' r' Hx Hr ]; subst. constructor.
-    + intros Hin. apply (proj1 (in_map_iff f r (f x))) in Hin.
-      destruct Hin as [ y [ Heq Hy ] ]. apply Hx.
-      assert (Hxy : x = y).
-      { apply Hinj; [ left; reflexivity | right; exact Hy | symmetry; exact Heq ]. }
-      rewrite Hxy. exact Hy.
+    + intros Hin. apply in_map_iff in Hin. destruct Hin as [ y [ Heq Hy ] ].
+      apply Hx.
+      rewrite (Hinj x y (or_introl eq_refl) (or_intror Hy) (eq_sym Heq)). exact Hy.
     + apply IH; [ | exact Hr ]. intros u v Hu Hv He.
       apply Hinj; [ right; exact Hu | right; exact Hv | exact He ].
 Qed.
@@ -360,8 +358,7 @@ Lemma fp_enum_nodup : forall P : Modulus, NoDup (fp_enum P).
 Proof.
   intros P. unfold fp_enum. apply nodup_map_injective; [ | apply seq_NoDup ].
   intros x y Hx Hy H.
-  apply (proj1 (in_seq (pm_mod P) 0 x)) in Hx.
-  apply (proj1 (in_seq (pm_mod P) 0 y)) in Hy.
+  apply in_seq in Hx. apply in_seq in Hy.
   apply (fp_of_injective_below P); [ lia | lia | exact H ].
 Qed.
 
@@ -421,7 +418,7 @@ Proof.
   - apply fp_enum_nodup.
   - intros x. split; intros _.
     + apply fp_in_enum.
-    + apply (proj2 (in_map_iff (fp_add P k) (fp_enum P) x)).
+    + apply in_map_iff.
       exists (fp_sub P x k). split; [ apply fp_add_translate | apply fp_in_enum ].
 Qed.
 
@@ -699,12 +696,13 @@ Lemma stage_mask_other_wire :
     = stage_mask m tape n stage i.
 Proof.
   intros m tape n stage c i0 i delta Hi0 Hi Hne.
-  induction stage as [ | k IH ].
-  - cbn [stage_mask]. unfold fresh_mask. apply shift_mask_other. intros E.
-    destruct (coordinate_unique n c i0 0 i Hi0 Hi E) as [ _ Heq ]. exact (Hne Heq).
-  - cbn [stage_mask]. rewrite IH. f_equal.
-    unfold fresh_mask. apply shift_mask_other. intros E.
-    destruct (coordinate_unique n c i0 (S k) i Hi0 Hi E) as [ _ Heq ]. exact (Hne Heq).
+  assert (Hfresh : forall l : nat,
+            fresh_mask m (shift_mask m (c * n + i0) delta tape) n l i
+            = fresh_mask m tape n l i).
+  { intros l. unfold fresh_mask. apply shift_mask_other. intros E.
+    destruct (coordinate_unique n c i0 l i Hi0 Hi E) as [ _ Heq ]. exact (Hne Heq). }
+  induction stage as [ | k IH ]; cbn [stage_mask]; [ apply Hfresh | ].
+  rewrite IH, Hfresh. reflexivity.
 Qed.
 
 Lemma stage_mask_bumped :
@@ -759,7 +757,7 @@ Proof.
   - rewrite <- (v_add_assoc m delta (stage_mask m tape n stage 0)
                  (sum_of m (map (fun i => stage_mask m tape n stage i) (seq 1 (n - 1))))).
     reflexivity.
-  - intros i Hi. apply (proj1 (in_seq (n - 1) 1 i)) in Hi.
+  - intros i Hi. apply in_seq in Hi.
     apply (stage_mask_other_wire m tape n stage stage 0 i delta); lia.
 Qed.
 
@@ -831,22 +829,17 @@ Proof.
   - simpl. f_equal. rewrite (no_match_outside m x r); [ reflexivity | ].
     rewrite (v_eqb_sound m x y E). exact Hy.
   - apply IH. destruct Hin as [ Heq | Hin ]; [ | exact Hin ].
-    exfalso. assert (Hxy : x = y) by (symmetry; exact Heq).
-    rewrite Hxy in E. rewrite (v_eqb_refl m y) in E. discriminate E.
+    rewrite <- Heq, (v_eqb_refl m y) in E. discriminate E.
 Qed.
 
 Lemma value_in_enumeration : forall (m : Sharing) (a : Val m), In a (v_enum m).
 Proof.
-  intros m a.
-  assert (H : exists x : Val m, In x (v_enum m) /\ v_eqb m a x = true).
-  { pose proof (v_enum_total m a) as Ht.
-    generalize dependent Ht. generalize (v_enum m). intros l.
-    induction l as [ | y r IH ]; simpl; intros Ht; [ discriminate Ht | ].
-    destruct (v_eqb m a y) eqn:E.
-    - exists y. split; [ left; reflexivity | exact E ].
-    - simpl in Ht. destruct (IH Ht) as [ x [ Hx He ] ].
-      exists x. split; [ right; exact Hx | exact He ]. }
-  destruct H as [ x [ Hx He ] ]. rewrite (v_eqb_sound m a x He). exact Hx.
+  intros m a. pose proof (v_enum_total m a) as Ht.
+  generalize dependent Ht. generalize (v_enum m). intros l.
+  induction l as [ | y r IH ]; simpl; intros Ht; [ discriminate Ht | ].
+  destruct (v_eqb m a y) eqn:E.
+  - left. symmetry. exact (v_eqb_sound m a y E).
+  - simpl in Ht. right. exact (IH Ht).
 Qed.
 
 Lemma fiber_partition :
