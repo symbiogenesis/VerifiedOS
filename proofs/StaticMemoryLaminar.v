@@ -201,15 +201,8 @@ Qed.
 Lemma pair_ok_b_iff :
   forall i j, pair_ok_b i j = true <-> Disjoint i j \/ Contains i j \/ Contains j i.
 Proof.
-  intros i j. unfold pair_ok_b. split.
-  - intro H. apply Bool.orb_true_iff in H. destruct H as [H | H].
-    + left. apply disjoint_b_iff. exact H.
-    + apply Bool.orb_true_iff in H. destruct H as [H | H]; right;
-        [left | right]; apply contains_b_iff; exact H.
-  - intro H. apply Bool.orb_true_iff. destruct H as [H | [H | H]].
-    + left. apply disjoint_b_iff. exact H.
-    + right. apply Bool.orb_true_iff. left. apply contains_b_iff. exact H.
-    + right. apply Bool.orb_true_iff. right. apply contains_b_iff. exact H.
+  intros i j. unfold pair_ok_b.
+  rewrite !Bool.orb_true_iff, disjoint_b_iff, !contains_b_iff. reflexivity.
 Qed.
 
 Lemma laminar_b_iff : forall f, laminar_b f = true <-> Laminar f.
@@ -302,11 +295,9 @@ Proof.
   intros f a H i j Hi Hj Hne Hov. unfold feasible_b in H.
   rewrite forallb_forall in H. specialize (H i Hi). cbv beta in H.
   rewrite forallb_forall in H. specialize (H j Hj). cbv beta in H.
-  apply Bool.orb_true_iff in H. destruct H as [H | H].
-  - apply Nat.eqb_eq in H. contradiction.
-  - apply Bool.orb_true_iff in H. destruct H as [H | H].
-    + apply overlap_b_iff in Hov. rewrite Hov in H. discriminate.
-    + apply ext_disjoint_b_iff. exact H.
+  apply Nat.eqb_neq in Hne. apply overlap_b_iff in Hov.
+  rewrite Hne, Hov in H. simpl in H.
+  apply ext_disjoint_b_iff. exact H.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -336,11 +327,8 @@ Definition below_b (j i : Obj) : bool := andb (contains_b j i) (lex_lt_b j i).
 
 Lemma below_b_iff : forall j i, below_b j i = true <-> Contains j i /\ LexLt j i.
 Proof.
-  intros j i. unfold below_b. split.
-  - intro H. apply Bool.andb_true_iff in H. destruct H as [H1 H2].
-    split; [apply contains_b_iff | apply lex_lt_b_iff]; assumption.
-  - intros [H1 H2]. apply Bool.andb_true_iff.
-    split; [apply contains_b_iff | apply lex_lt_b_iff]; assumption.
+  intros j i. unfold below_b.
+  rewrite Bool.andb_true_iff, contains_b_iff, lex_lt_b_iff. reflexivity.
 Qed.
 
 Definition base (f : list Obj) (i : Obj) : nat :=
@@ -1003,9 +991,7 @@ Proof.
   induction bounds as [| b rest IH]; intros t Hlen Hb.
   - destruct t; [left; reflexivity | discriminate Hlen].
   - destruct t as [| x t']; [discriminate Hlen |].
-    change (tuples (b :: rest))
-      with (flat_map (fun x => map (fun t => x :: t) (tuples rest)) (seq 0 (S b))).
-    apply in_flat_map. exists x. split.
+    cbn [tuples]. apply in_flat_map. exists x. split.
     + apply in_seq. pose proof (Hb 0 ltac:(simpl; lia)) as H0. simpl in H0. lia.
     + apply (in_map (fun t => x :: t) (tuples rest) t'). apply IH.
       * simpl in Hlen. lia.
@@ -1055,16 +1041,13 @@ Proof.
   assert (Hb : forall i, In i gap_family -> a (oid i) + weight i <= 5).
   { intros i Hi. apply Nat.le_trans with (span gap_family a); [| exact Hspan].
     unfold span. apply max_list_ge. apply in_map_iff. exists i. split; [reflexivity | exact Hi]. }
-  pose proof (Hb g0 (or_introl eq_refl)) as H0.
-  pose proof (Hb g1 (or_intror (or_introl eq_refl))) as H1.
-  pose proof (Hb g2 (or_intror (or_intror (or_introl eq_refl)))) as H2.
-  pose proof (Hb g3 (or_intror (or_intror (or_intror (or_introl eq_refl))))) as H3.
-  pose proof (Hb g4 (or_intror (or_intror (or_intror (or_intror (or_introl eq_refl)))))) as H4.
-  pose proof (Hb g5 (or_intror (or_intror (or_intror (or_intror (or_intror
-                        (or_introl eq_refl))))))) as H5.
-  pose proof (Hb g6 (or_intror (or_intror (or_intror (or_intror (or_intror (or_intror
-                        (or_introl eq_refl)))))))) as H6.
-  cbv [oid weight g0 g1 g2 g3 g4 g5 g6] in H0, H1, H2, H3, H4, H5, H6.
+  assert (H0 : a 0 + 1 <= 5) by (apply (Hb g0); simpl; auto 10 with datatypes).
+  assert (H1 : a 1 + 2 <= 5) by (apply (Hb g1); simpl; auto 10 with datatypes).
+  assert (H2 : a 2 + 2 <= 5) by (apply (Hb g2); simpl; auto 10 with datatypes).
+  assert (H3 : a 3 + 1 <= 5) by (apply (Hb g3); simpl; auto 10 with datatypes).
+  assert (H4 : a 4 + 3 <= 5) by (apply (Hb g4); simpl; auto 10 with datatypes).
+  assert (H5 : a 5 + 3 <= 5) by (apply (Hb g5); simpl; auto 10 with datatypes).
+  assert (H6 : a 6 + 2 <= 5) by (apply (Hb g6); simpl; auto 10 with datatypes).
   split; [reflexivity |].
   intros k Hk. simpl in Hk.
   destruct k as [| [| [| [| [| [| [| k]]]]]]]; simpl; lia.
@@ -1106,7 +1089,7 @@ Proof.
   rewrite gap_family_load_computed. split; [| split].
   - apply feasible_b_sound. exact gap_placement_is_feasible.
   - exact gap_placement_span_computed.
-  - intros a Ha. exact (gap_family_needs_more_than_its_load a Ha).
+  - exact gap_family_needs_more_than_its_load.
 Qed.
 
 (* -------------------------------------------------------------------------
