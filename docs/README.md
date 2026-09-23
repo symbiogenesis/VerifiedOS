@@ -108,6 +108,9 @@ the accepted composed roster supplies the eventual target measurements.
 The [roster and boot-recipe contract](implementation/contracts/boot-roster.md)
 names that roster's members, owners and handoffs, and fixes the image recipe and the
 console and event digests M7.1's boot harness computes.
+The [boot-handoff contract](implementation/contracts/boot-handoff.md) fixes the measured
+release, the boot image header, and the kernel-entry state and handoff record the
+[kernel instance](../kernel/README.md) consumes.
 
 Hardware qualification preparation includes the
 [memory topology comparison](hardware/memory-topology-comparison.md),

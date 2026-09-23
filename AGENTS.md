@@ -18,6 +18,8 @@ AGENTS.md owns shared agent instructions. Edit shared rules here. The linked art
 | [model/](model/) | Curated Sail model |
 | [rtl/](rtl/) | Authored RTL and synthesis provenance |
 | [proofs/](proofs/) | Gallina sources and proof metadata |
+| [kernel/](kernel/README.md) | The kernel instance's C and its host harness |
+| [firmware/](firmware/README.md) | Boot-chain firmware and its boot-handoff harness |
 | [tools/README.md](tools/README.md) | Commands, toolchain, validation, and tool-development rules |
 | [THIRD-PARTY.md](THIRD-PARTY.md) | Upstream licenses and incorporation status |
 

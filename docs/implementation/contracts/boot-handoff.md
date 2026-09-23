@@ -38,7 +38,7 @@ handoff layout, the initialization descriptor's included (section 6). It does
 not own the kernel body, which is M4.4's; the compiler, the
 backend and `compiler-diff`, which are M1.2f's; the target path, which is M1.7's;
 the reset table's release points (R-15-198a), which are Q33's; or the executable
-SLH-DSA verifier, which section 5 assigns to M3.4. The real kernel joins at M7.1.
+SLH-DSA verifier, which section 5 assigns to M7.1f. The real kernel joins at M7.1.
 
 ## 2. The acceptance predicate
 
@@ -276,10 +276,10 @@ and where each one's executable form is:
 | Operation | Caller and use | Executable form | Owner of what is missing |
 | --- | --- | --- | --- |
 | SHAKE256 | the release: the payload digest, each extension, the chain digest | [keccak.c](../../../firmware/crypto/keccak.c), functional layer only | the target build (M1.7) and the constant-time layer (R-05-062, R-05-067) |
-| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | none: the harness binds a fixture | M3.4, as an executable verifier under FIPS 205 with the parameter set RomVerifier.v states |
+| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | none: the harness binds a fixture | M7.1f, as an executable verifier under FIPS 205 with the parameter set RomVerifier.v states |
 | Counter read | the release: the floor, counter 0 of R-10-013's enumeration | the RoT composition's counter window | n/a |
 | Entropy draw | none: the release reads the start-up verdict and draws nothing | n/a | n/a |
-| ML-DSA verification | the M-mode stage: the core-kernel stage's signature, before any core kernel runs; none at the ROM (R-05-058c, R-09-002) | none | an executable ML-DSA verifier over M3.4b's Gallina reference, whose target lowering M3.4 leaves as separate work that no item yet owns |
+| ML-DSA verification | the M-mode stage: the core-kernel stage's signature, before any core kernel runs; none at the ROM (R-05-058c, R-09-002) | none | M7.1f, as an executable ML-DSA verifier over M3.4b's Gallina reference, whose target lowering M3.4 leaves as separate work |
 | Item-6 extension request | the M-mode stage: asking the RoT to extend the generation register with the core-kernel stage's measurement before that stage runs (R-09-002, R-09-025a) | none: no main-die interface to the RoT's registers exists | M3.5 |
 
 The bring-up M-mode image carries the kernel-entry fixture inside itself, so the
@@ -470,7 +470,7 @@ through the fixture's checks.
   until the purecap backend (M1.2f) and M1.7's target path build it for the RoT
   composition.
 - **No executable SLH-DSA-SHAKE-256s verifier exists.** Section 5 assigns it to
-  M3.4; until it lands the success case is conditional on the fixture.
+  M7.1f; until it lands the success case is conditional on the fixture.
 - **The model has no boot-core release door and no boot-target latch door.**
   The emulator composes one hart per run, so release is realized as starting the
   main-die run, and the latch (R-09-029) is a harness constant. Where the reset
@@ -494,7 +494,7 @@ through the fixture's checks.
   of the RoT runtime, which falls between items 3 and 5, is left out, so a
   released record's generation register is not the one a full chain produces for
   the same image. The M-mode stage's item-6 request and its ML-DSA verification
-  of the core-kernel stage have no executable form, and no item yet owns an
+  of the core-kernel stage have no executable form, and M7.1f owns the
   executable ML-DSA verifier (section 5).
 - **M4.4's consumer record differs from the initialization descriptor.** Its
   `struct vos_init_desc` carries no magic or version, a `has_context` flag

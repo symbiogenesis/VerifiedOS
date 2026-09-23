@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 740 of them across 129 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 750 of them across 130 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1960,6 +1960,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-227l** measurement: three seeded weakenings survived across two forty-mutant samples, each at a site nothing above it decided, a key-expansion guard only a key length the standard does not carry can part, a length list no computation visited, and a word rotation whose result the truncating exclusive-or that consumes it silently cuts back to four bytes
 · Raised: M3.4d
 · Disposition: closed, one statement added for each, the guard made a parameter with its raised alternative beside it, both length lists held to the standard's own shape and to its own count, the count being what the shape alone leaves free, and the rotation stated over four arbitrary bytes, each mutant then refused
+
+**F-434** owed-act: RomVerifier.v's header carries no field for the version its floor comparison reads and requires the offset field at 0, so its fixed-layout predicate does not hold of the boot-handoff contract's layout
+· Raised: M3.5, in prose
+· Disposition: open, RomVerifier.v's gaps b and c at R-09-005
+
+**F-435** owed-act: the model has no boot-core release door and no boot-target latch door, so the harness realizes release as starting the main-die run and supplies the latch as constant 0
+· Raised: M3.5, in prose
+· Disposition: open, the release points Q33's (R-15-198a) and the latch door the RoT model's (R-09-029)
+
+**F-436** owed-act: no entry fixes the measurement extension function, the item encoding or the chain digest, RotFirmware.v taking them as machine fields and the contract selecting SHAKE256 forms for bring-up
+· Raised: M3.5, in prose
+· Disposition: open, a register act at R-09-025a or R-09-002
+
+**F-437** owed-act: R-09-005 names the header's hash without its function or width and fixes neither the field set nor the security version's width and storage
+· Raised: M3.5, in prose
+· Disposition: open, a register act at R-09-005, the contract selecting SHAKE256 at 256 bits
+
+**F-438** measurement: the golden emulator keeps no OTP or monotonic-counter state between runs, so the anti-rollback floor is established by advancing counter 0 in the same power-on
+· Raised: M3.5, in prose
+· Disposition: open, emulator or platform persistence with no owner assigned, every report stating the floor as probe-established
+
+**F-439** owed-act: the ABI names `c11` as the measured boot descriptor or devicetree, and the bring-up handoff supplies the RoT's record only
+· Raised: M3.5, in prose
+· Disposition: open, the devicetree producer and the attestation join (the ABI's gap j)
+
+**F-440** owed-act: the per-unit calibration (R-09-025a, R-15-126) and the enrolled root set (R-09-036a) are device-register inputs with no item code in RotFirmware.v's inventory
+· Raised: M3.5, in prose
+· Disposition: open, RotFirmware.v's item set
+
+**F-441** owed-act: the ABI's section 7 has firmware leave ordinary interrupt delivery disabled, where `mie` is a constant and R-15-066a makes the one asynchronous trap unmaskable, so the state it can mean is that no boundary event is armed
+· Raised: M3.5, in prose
+· Disposition: open, the ABI's wording, the contract and fixture reading it as no boundary event armed
+
+**F-442** owed-act: M4.4's consumer record of the initialization descriptor carries no magic or version and differs from the `c12` layout the boot-handoff contract fixes
+· Raised: M3.5, in prose
+· Disposition: open, M4.4's kernel reading the contract's layout
+
+**F-443** method: that the release reads every header field other than the verified message once rests on code inspection, a floor read from the input rather than the copy surviving because no case of a single-threaded harness can race
+· Raised: M3.5, in prose
+· Disposition: standing, the race control holding the verified message and the surviving mutant named at the cell
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
