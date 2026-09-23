@@ -116,6 +116,40 @@ def _solver_available_before_sail() -> None:
            "toolchain probes were deferred until after unrelated builds")
 
 
+def _selected_toolchains_only() -> None:
+    root = Path.home() / "guest-bootstrap-toolchain-fixture"
+    expected = {
+        ("rocq",): ["rocq-install", "rocq-probe"],
+        ("sail", "rtl"): ["solver-install", "solver-probe", "sail-install", "sail-probe",
+                          "rtl-install"],
+    }
+    for selected, wanted in expected.items():
+        observed: list[str] = []
+
+        def run(argv: tuple[str, ...], log: IO[str], observed: list[str] = observed) -> None:
+            if argv[0] == "uv":
+                observed.append("solver-install")
+            elif argv[0] == str(root / "z3" / "bin" / "z3"):
+                observed.append("solver-probe")
+            elif "sail" in argv:
+                observed.append("sail-probe")
+            elif argv[0] == str(root / "opam" / bootstrap.env.ROCQ_SWITCH / "bin" / "rocq"):
+                observed.append("rocq-probe")
+            elif "rtl" in argv:
+                observed.append("rtl-install")
+
+        def install(steps: tuple[tuple[str, ...], ...], log: IO[str],
+                    observed: list[str] = observed) -> None:
+            observed.append("sail-install" if steps == bootstrap.env.SAIL_INSTALL
+                            else "rocq-install")
+
+        with (patch.dict(os.environ),
+              patch.object(bootstrap, "run", side_effect=run),
+              patch.object(bootstrap, "install_switch", side_effect=install)):
+            bootstrap.install_toolchains(root, 2, io.StringIO(), selected)
+        ensure(observed == wanted, f"selection {selected} installed {observed}")
+
+
 def _sail_probe_failure_stops_remaining_builds() -> None:
     root = Path.home() / "guest-bootstrap-toolchain-fixture"
 
@@ -228,7 +262,8 @@ def _failed_retention_preserves_verdict() -> None:
         for path in stale:
             path.write_text("old success", encoding="utf-8")
         (logs / "bootstrap.json").write_text('{"exit_code": 0}', encoding="utf-8")
-        args = argparse.Namespace(jobs=None, install_system=False, github_env=None, github_path=None)
+        args = argparse.Namespace(jobs=None, toolchains=["rtl", "rocq"], install_system=False,
+                                  github_env=None, github_path=None)
         with (patch.object(bootstrap, "system_packages",
                            side_effect=subprocess.CalledProcessError(7, ("apt-get", "update"))),
               patch.object(bootstrap, "retain_logs", side_effect=OSError("copy failed")),
@@ -239,6 +274,8 @@ def _failed_retention_preserves_verdict() -> None:
             code = bootstrap.install(args, root, "fixture")
         record = json.loads((logs / "bootstrap.json").read_text(encoding="utf-8"))
         ensure(record["jobs"] == 4, "automatic worker selection was not recorded")
+        ensure(record["toolchains"] == ["rocq", "rtl"],
+               "the toolchain selection was not recorded in installation order")
         ensure(all(os.environ[key] == "4" for key in ("OPAMJOBS", "VOS_JOBS", "VOS_TEST_JOBS")),
                "automatic workers did not reach the private environment")
         ensure(code == record["exit_code"] == 1, "diagnostic failure lost the bootstrap verdict")
@@ -295,15 +332,35 @@ def _job_arguments() -> None:
             ensure(not install.called, "invalid jobs reached installation")
 
 
+def _toolchain_arguments() -> None:
+    for extra, expected in (([], None), (["--toolchain", "rocq"], ["rocq"]),
+                            (["--toolchain", "sail", "--toolchain", "rtl"], ["sail", "rtl"])):
+        with patch.object(bootstrap, "bootstrap", return_value=0) as install:
+            ensure(bootstrap.main(["--root", str(Path.home() / "guest"), *extra]) == 0,
+                   "valid toolchain selection was refused")
+            ensure(install.call_args.args[0].toolchains == expected,
+                   "toolchain selection was lost")
+    with patch.object(bootstrap, "bootstrap") as install, redirect_stderr(io.StringIO()):
+        try:
+            bootstrap.main(["--root", str(Path.home() / "guest"), "--toolchain", "z3"])
+        except SystemExit as error:
+            ensure(error.code == 2, "an unknown toolchain must be an argument error")
+        else:
+            raise AssertionError("an unknown toolchain was accepted")
+        ensure(not install.called, "an unknown toolchain reached installation")
+
+
 def cases() -> list[Case]:
     return [
         Case("automatic and explicit worker arguments", _job_arguments),
+        Case("toolchain selection arguments", _toolchain_arguments),
         Case("missing dependency refusal", _missing_dependency_refuses),
         Case("batched package query preserves missing and fatal outcomes", _package_query_is_batched),
         Case("unattended non-root package installation", _nonroot_system_install),
         Case("retry imports existing switch", _existing_switch_resumes_import),
         Case("failed process remains failure", _failed_child_remains_failure),
         Case("private solver precedes Sail startup", _solver_available_before_sail),
+        Case("selected toolchains alone are installed", _selected_toolchains_only),
         Case("failed Sail probe stops subsequent builds", _sail_probe_failure_stops_remaining_builds),
         Case("foreign directory not adopted", _foreign_directory_is_not_adopted),
         Case("owned directory resumed", _owned_directory_reused),

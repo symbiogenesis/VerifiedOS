@@ -10,14 +10,20 @@ pull-request check needs a measured hosted run time and reliability record.
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
 every Monday at 04:23 UTC or through GitHub's **Run workflow** control. A scheduled
 run first reads the latest completed run on the same branch. If that run succeeded
-at the current revision, it skips the guest job before allocating its runner or
+at the current revision, it skips the guest lanes before allocating their runners or
 installing tools. New revisions, failed or canceled runs, absent history and failed
 history lookups run all gates. Manual dispatch and explicit reruns always execute
-them. The history job alone has `actions: read`; the gate job keeps `contents: read`.
-It needs no repository secrets or initialized submodules. The public repository's standard
+them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
+They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 has 16 GB of RAM; the proof kernel recheck has historically exceeded 8 GiB,
 so a smaller runner needs a separate resource measurement.
+
+The gate job is a two-lane matrix, and each lane has its own runner. The `model` lane
+installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
+RTL lint and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
+Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
+longer lane. One lane's failure does not cancel the other.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
 when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
@@ -28,7 +34,9 @@ opam executable, imports the [package snapshots](../opam/README.md), and calls t
 existing pinned Verilator installer. It installs and probes Z3 first, prepending its
 private binary directory to `PATH` before Sail starts: Sail initializes its solver
 even for `--version`. Each tool is probed immediately after installation, so a failed
-Sail probe stops before building Rocq or Verilator. Bootstrap failures print the last
+Sail probe stops before building Rocq or Verilator. A repeatable `--toolchain` option
+selects `sail` (with its solver), `rocq` or `rtl`. The default installs all three in
+that order, and `bootstrap.json` records the selection. Bootstrap failures print the last
 40 log lines in the Actions console as well as retaining the complete log.
 Bootstrap and the Verilator installer share verified-download and atomic-publication
 helpers in [vos/receipts.py](../vos/receipts.py); the reporter and JSON writers use
@@ -49,6 +57,9 @@ python3 tools/run.py model bundle --check
 python3 tools/run.py rtl lint
 python3 tools/run.py rtl crosscheck
 ```
+
+This runs both lanes' commands on one machine; the complete `evidence` sweep includes
+the proof gate.
 
 Bootstrap and standalone `rtl install` select workers through [vos/env.py](../vos/env.py).
 `os.process_cpu_count()` supplies usable logical CPUs, including Linux affinity limits;
@@ -73,25 +84,28 @@ failure record before installation. JSON records are replaced atomically, and a 
 retention error is recorded separately without hiding the original installation error.
 
 The workflow bounds each command and keeps independent checks running after a gate
-failure. [report_guest.py](report_guest.py) retains their outcomes in `results.json`,
-renders the job summary, and copies the proof receipt only when the evidence record
-reports a successful proof member. It validates all member names, exit codes and
-durations before rendering the evidence table. Skipped evidence and malformed records
-cannot authorize retaining an old proof receipt. Diagnostic copies are atomic;
+failure. [report_guest.py](report_guest.py) reads its lane from `GUEST_LANE`, retains
+that lane's command outcomes in `results.json` and renders the job summary. It copies
+the checkout's proof receipt only when the proofs lane's proof gate step succeeded; the
+tracked receipt otherwise predates the run. In the model lane it validates all member
+names, exit codes and durations before rendering the evidence table. Skipped, failed or
+canceled proof gates and evidence records cannot authorize retaining an old proof
+receipt. Diagnostic copies are atomic;
 copy failures appear in the summary without discarding command outcomes or other
 diagnostics. The reporter uses `VOS_LOG_DIR`, with the workflow's default log directory
-as its fallback when bootstrap did not export an environment. The `guest-evidence`
-artifact retains logs and receipts for 14 days. A canceled run may end before it
-uploads diagnostics.
+as its fallback when bootstrap did not export an environment. Each lane's
+`guest-<lane>` artifact retains its logs and receipts for 14 days. A canceled run may
+end before it uploads diagnostics.
 
 uv downloads, opam's source download cache and verified Verilator source archives
 are restored between runs; installed toolchains and evidence are rebuilt. The source
 cache includes bootstrap's ownership marker so the restored private root can resume.
-Its key includes the runner OS and architecture, Sail and Rocq snapshots, bootstrap,
-the Verilator installer and shared download helper. A prefix fallback reuses older
-source downloads, with the installers' checksum verification still required. Cache
-eviction simply means a cold installation. The evidence command owns concurrency between proofs and model
-consumers; the remaining commands stay sequential within the runner's memory budget.
+Each lane has its own source cache. Its key includes the lane, runner OS and architecture,
+Sail and Rocq snapshots, bootstrap, the Verilator installer and shared download helper.
+A prefix fallback reuses the lane's older source downloads, with the installers' checksum
+verification still required. Cache eviction simply means a cold installation. Only the
+model lane saves the uv cache; both lanes restore it. Each lane's commands stay
+sequential within its runner's memory budget.
 
 ## Inputs and execution
 
@@ -107,14 +121,20 @@ checkout. Local Windows runs keep them in their assigned guest lane. Bootstrap m
 support a normal Linux user, state its distribution prerequisites, verify downloaded
 tool archives and preserve the package versions requested by the snapshots.
 
-The pipeline runs the existing commands:
+The pipeline runs the existing commands. In the model lane:
 
-- `python3 tools/run.py evidence` builds and tests the model, runs the reference,
-  profile, differential-corpus and device-tree checks, and checks the proofs.
+- `python3 tools/run.py evidence --no-proofs` builds and tests the model, runs the
+  reference, profile, differential-corpus and device-tree checks, and records the
+  proof gate as excluded.
 - `python3 tools/run.py model bundle --check` compares the emitted model bundle.
 - `python3 tools/run.py rtl lint` checks the standalone authored and generated RTL.
 - `python3 tools/run.py rtl crosscheck` regenerates model vectors and compares RTL
   answers. Reusing old vectors is not part of this gate.
+
+In the proofs lane:
+
+- `python3 tools/run.py proofs --fresh` compiles and audits every proof and runs the
+  full kernel recheck.
 
 Each required command has a bounded execution time and retains its exit status.
 Independent checks may still run after another fails when their bootstrap succeeded.

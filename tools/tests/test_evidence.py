@@ -37,7 +37,7 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
               changed_build: bool = False,
               proof_error: Exception | None = None,
               lock_failed: str = "", changed_tools: bool = False,
-              proof_output: str | None = None,
+              proof_output: str | None = None, proofs: bool = True,
               ctest_summary: str = "100% tests passed, 0 tests failed out of 3"
               ) -> tuple[Reporter, str, list[str]]:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
@@ -82,7 +82,7 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
             if member.name == "proofs":
                 proof_started.set()
                 ensure(reference_finished.wait(5), "proofs and model consumers must overlap")
-            elif member.name == "reference":
+            elif member.name == "reference" and proofs:
                 ensure(proof_started.wait(5), "the proof subprocess should already be running")
                 reference_finished.set()
             stdout = proof_output if member.name == "proofs" and proof_output is not None else (
@@ -98,7 +98,9 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
               patch.object(evidence, "model_cli", fake_model),
               patch.object(evidence, "_proof_record", verify_proofs),
               patch.object(evidence, "_launch", launch)):
-            result = evidence.run(build=build, out=out)
+            result = evidence.run(build=build, out=out, proofs=proofs)
+        ensure(proofs or not verify_proofs.called,
+               "a sweep that excluded the proof gate must not read a proof receipt")
         if lock_failed != "evidence":
             ensure(held.closed, "the evidence lock must close on every outcome")
         if not lock_failed and not (build and failed == "build"):
@@ -120,6 +122,22 @@ def _successful_sweep_records_each_process() -> None:
     ensure("=== exit evidence ===" in report.out, "successful measurements should be displayed")
     ensure(record["proofs"]["receipt"]["outputs"] == {"proof.vo": "bytes"},
            "the final proof receipt must bind its compiled outputs into the sweep")
+
+
+def _excluded_proofs_are_recorded() -> None:
+    report, text, launched = _scenario(build=True, proofs=False)
+    record = json.loads(text)
+    ensure(report.findings == 0 and record["exit_code"] == 0,
+           "a model sweep without the proof gate succeeds")
+    ensure(set(launched) == set(_OUTPUT) - {"proofs"} and len(launched) == len(_OUTPUT) - 1,
+           "every model member runs once and the proof gate never starts")
+    ensure(record["excluded"] == ["proofs"] and record["proofs"] == {}
+           and "proof gate" not in record["measurements"],
+           "the record must name the excluded gate and claim no proof measurement")
+    ensure(any("proofs excluded" in line for line in report.out),
+           "the verdict line must say the proof gate was excluded")
+    report, text, _ = _scenario(build=True)
+    ensure(json.loads(text)["excluded"] == [], "a complete sweep excludes no member")
 
 
 def _member_failure_suppresses_measurements() -> None:
@@ -338,6 +356,7 @@ def _timeout_kills_the_process_group() -> None:
 def cases() -> list[Case]:
     return [
         Case("successful-sweep-records-processes", _successful_sweep_records_each_process),
+        Case("excluded-proofs-recorded", _excluded_proofs_are_recorded),
         Case("member-failure-suppresses-measurements", _member_failure_suppresses_measurements),
         Case("build-failure-stops-consumers", _build_failure_stops_consumers),
         Case("missing-stale-receipts-stop-consumers", _missing_or_stale_receipt_stops_consumers),

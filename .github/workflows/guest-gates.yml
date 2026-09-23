@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
 # defines the scope. Download caches accelerate fresh toolchains and evidence.
+# The model and proof lanes share no toolchain or output, so each installs only
+# its own toolchains and runs on its own runner.
 
 name: guest-gates
 
@@ -60,6 +62,15 @@ jobs:
     if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 360
+    strategy:
+      # One lane's failure must not cancel the other lane's verdict.
+      fail-fast: false
+      matrix:
+        include:
+          - lane: model
+            toolchains: --toolchain sail --toolchain rtl
+          - lane: proofs
+            toolchains: --toolchain rocq
     steps:
       - uses: actions/checkout@v7
         with:
@@ -75,7 +86,8 @@ jobs:
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
-          save-cache: ${{ github.ref == 'refs/heads/main' }}
+          # Both lanes resolve the same lockfile; one saver avoids a racing upload.
+          save-cache: ${{ github.ref == 'refs/heads/main' && matrix.lane == 'model' }}
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
@@ -89,30 +101,40 @@ jobs:
             ~/verifiedos-guest/.verifiedos-guest-root
             ~/verifiedos-guest/opam/download-cache
             ~/verifiedos-guest/build/verilator-*-source/*.tar.gz
-          key: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
-          restore-keys: guest-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+          key: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
+          restore-keys: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Bootstrap guest toolchains
         id: bootstrap
         timeout-minutes: 120
         run: |
           /usr/bin/time -p python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system \
+            --root "$HOME/verifiedos-guest" --install-system ${{ matrix.toolchains }} \
             --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
 
-      - name: Model and proof evidence
+      - name: Model evidence
         id: evidence
-        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 180
-        # evidence already overlaps proofs with the model consumers.
+        # The proofs lane runs the proof gate on its own runner.
         run: |
-          /usr/bin/time -p python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json" \
+          /usr/bin/time -p python3 tools/run.py evidence --no-proofs \
+            --out "$VOS_LOG_DIR/evidence.json" \
             2>&1 | tee "$VOS_LOG_DIR/evidence-console.log"
+
+      - name: Proof gate
+        id: proofs
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 120
+        # A new runner has no reusable objects; --fresh makes the full recheck explicit.
+        run: |
+          /usr/bin/time -p python3 tools/run.py proofs --fresh \
+            2>&1 | tee "$VOS_LOG_DIR/proofs.log"
 
       - name: Check generated model bundle
         id: bundle
-        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 15
         run: |
           /usr/bin/time -p python3 tools/run.py model bundle --check \
@@ -120,7 +142,7 @@ jobs:
 
       - name: Lint standalone RTL
         id: lint
-        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 5
         run: |
           /usr/bin/time -p python3 tools/run.py rtl lint \
@@ -128,7 +150,7 @@ jobs:
 
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
-        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 30
         run: |
           /usr/bin/time -p python3 tools/run.py rtl crosscheck \
@@ -137,6 +159,7 @@ jobs:
       - name: Report guest results
         if: ${{ !cancelled() }}
         env:
+          GUEST_LANE: ${{ matrix.lane }}
           STEP_RESULTS: ${{ toJSON(steps) }}
         run: python3 tools/ci/report_guest.py
 
@@ -144,7 +167,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: guest-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          name: guest-${{ matrix.lane }}-${{ github.sha }}-${{ github.run_attempt }}
           path: ~/verifiedos-guest/logs/
           if-no-files-found: error
           retention-days: 14

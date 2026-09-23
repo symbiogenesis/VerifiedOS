@@ -15,7 +15,11 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from vos import receipts  # noqa: E402  (standalone reporting needs no locked environment)
 
-COMMANDS: tuple[str, ...] = ("bootstrap", "evidence", "bundle", "lint", "crosscheck")
+# Each lane's workflow step ids, in execution order.
+LANES: dict[str, tuple[str, ...]] = {
+    "model": ("bootstrap", "evidence", "bundle", "lint", "crosscheck"),
+    "proofs": ("bootstrap", "proofs"),
+}
 
 
 @dataclass(frozen=True)
@@ -65,38 +69,48 @@ def cell(value: str) -> str:
     return html.escape(value).replace("|", "&#124;").replace("\r", " ").replace("\n", " ")
 
 
-def report(logs: Path, console: Path, proof: Path, steps: dict[str, dict[str, str]],
-           revision: str) -> str:
+def evidence_rows(logs: Path, outcome: str) -> list[str]:
+    """Render only a record that the current evidence step finished writing."""
+    if outcome not in {"success", "failure"}:
+        return ["", "No evidence record for this run: the evidence step did not finish."]
+    try:
+        members = read_members(logs / "evidence.json")
+    except FileNotFoundError:
+        return ["", "No evidence record was written; see the bootstrap and gate logs."]
+    except (OSError, ValueError, TypeError, OverflowError) as error:
+        print(f"Could not read guest evidence: {error}", file=sys.stderr)
+        return ["", f"Evidence report could not be read: {type(error).__name__}. See logs."]
+    return ["", "| Evidence member | Exit | Seconds |", "| --- | --- | --- |",
+            *(f"| {cell(m.name)} | {m.exit_code} | {m.seconds:.1f} |" for m in members)]
+
+
+def report(lane: str, logs: Path, console: Path, proof: Path,
+           steps: dict[str, dict[str, str]], revision: str) -> str:
     """Keep command outcomes even when evidence is absent or unreadable."""
     logs.mkdir(parents=True, exist_ok=True)
-    outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in COMMANDS}
-    receipts.write(logs / "results.json", {"revision": revision, "commands": outcomes})
-    rows = ["### Guest gates", "", "| Command | Outcome |", "| --- | --- |"]
+    outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in LANES[lane]}
+    receipts.write(logs / "results.json",
+                   {"revision": revision, "lane": lane, "commands": outcomes})
+    rows = [f"### Guest gates: {lane}", "", "| Command | Outcome |", "| --- | --- |"]
     rows.extend(f"| {name} | {outcome} |" for name, outcome in outcomes.items())
     retained_proof = logs / "proof-evidence.json"
     retained_proof.unlink(missing_ok=True)
     if console.is_file():
         retain(console, logs / "bootstrap-console.log", rows)
-    if outcomes["evidence"] not in {"success", "failure"}:
-        rows.extend(("", "No evidence record for this run: the evidence step did not finish."))
-        return "\n".join(rows) + "\n"
-    try:
-        members = read_members(logs / "evidence.json")
-    except FileNotFoundError:
-        rows.extend(("", "No evidence record was written; see the bootstrap and gate logs."))
-    except (OSError, ValueError, TypeError, OverflowError) as error:
-        print(f"Could not read guest evidence: {error}", file=sys.stderr)
-        rows.extend(("", f"Evidence report could not be read: {type(error).__name__}. See logs."))
-    else:
-        rows.extend(("", "| Evidence member | Exit | Seconds |", "| --- | --- | --- |"))
-        rows.extend(f"| {cell(m.name)} | {m.exit_code} | {m.seconds:.1f} |" for m in members)
-        if any(m.name == "proofs" and m.exit_code == 0 for m in members):
-            retain(proof, retained_proof, rows)
+    # The checkout's tracked receipt predates this run unless this lane's gate passed.
+    if outcomes.get("proofs") == "success":
+        retain(proof, retained_proof, rows)
+    if "evidence" in outcomes:
+        rows.extend(evidence_rows(logs, outcomes["evidence"]))
     return "\n".join(rows) + "\n"
 
 
 def main() -> None:
+    lane = os.environ["GUEST_LANE"]
+    if lane not in LANES:
+        raise SystemExit(f"unknown guest lane {lane!r}; expected one of {', '.join(LANES)}")
     summary = report(
+        lane,
         Path(os.environ.get("VOS_LOG_DIR", Path.home() / "verifiedos-guest" / "logs")),
         Path(os.environ["RUNNER_TEMP"]) / "guest-bootstrap-console.log",
         ROOT / "proofs" / "proof-evidence.json",

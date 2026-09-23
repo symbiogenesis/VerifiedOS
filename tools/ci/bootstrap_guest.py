@@ -41,6 +41,8 @@ PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
     "device-tree-compiler", "git", "time", *rtl.VERILATOR_PACKAGES,
 )))
 MARKER = ".verifiedos-guest-root"
+# Installation order; the Sail entry includes its solver.
+TOOLCHAINS: tuple[str, ...] = ("sail", "rocq", "rtl")
 
 
 def prepare_root(root: Path) -> Path:
@@ -148,21 +150,25 @@ def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
         run(argv, log)
 
 
-def install_toolchains(root: Path, jobs: int, log: IO[str]) -> None:
+def install_toolchains(root: Path, jobs: int, log: IO[str],
+                       selected: tuple[str, ...] = TOOLCHAINS) -> None:
     """Provide Sail's solver at startup and probe each tool before building the next."""
-    run(("uv", "pip", "install", "--python", sys.executable, "--target",
-         str(root / "z3"), f"z3-solver=={env.Z3_VERSION}.0"), log)
-    # Sail initializes its solver even for --version. VOS_Z3_BIN is consumed by
-    # run.py's environment setup, which does not run in this bootstrap process.
-    solver_bin = root / "z3" / "bin"
-    os.environ["PATH"] = str(solver_bin) + os.pathsep + os.environ.get("PATH", "")
-    run((str(solver_bin / "z3"), "--version"), log)
-    install_switch(env.SAIL_INSTALL, log)
-    run((str(root / "bin" / "opam"), "exec", f"--switch={env.SAIL_SWITCH}",
-         "--", "sail", "--version"), log)
-    install_switch(env.ROCQ_INSTALL, log)
-    run((str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)
-    run(tuple(cli.entry("rtl", "install", "--jobs", str(jobs))), log)
+    if "sail" in selected:
+        run(("uv", "pip", "install", "--python", sys.executable, "--target",
+             str(root / "z3"), f"z3-solver=={env.Z3_VERSION}.0"), log)
+        # Sail initializes its solver even for --version. VOS_Z3_BIN is consumed by
+        # run.py's environment setup, which does not run in this bootstrap process.
+        solver_bin = root / "z3" / "bin"
+        os.environ["PATH"] = str(solver_bin) + os.pathsep + os.environ.get("PATH", "")
+        run((str(solver_bin / "z3"), "--version"), log)
+        install_switch(env.SAIL_INSTALL, log)
+        run((str(root / "bin" / "opam"), "exec", f"--switch={env.SAIL_SWITCH}",
+             "--", "sail", "--version"), log)
+    if "rocq" in selected:
+        install_switch(env.ROCQ_INSTALL, log)
+        run((str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)
+    if "rtl" in selected:
+        run(tuple(cli.entry("rtl", "install", "--jobs", str(jobs))), log)
 
 
 def export_environment(values: dict[str, str], paths: tuple[Path, ...],
@@ -222,6 +228,7 @@ def bootstrap(args: argparse.Namespace) -> int:
 def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     """Mutate an owned root only while the caller holds its bootstrap lock."""
     jobs = args.jobs if args.jobs is not None else env.worker_jobs(2048, label="toolchain")
+    selected = tuple(name for name in TOOLCHAINS if name in (args.toolchains or TOOLCHAINS))
     values = environment(root, jobs)
     paths = (root / "z3" / "bin", root / "bin")
     validate_environment(values, paths)
@@ -241,7 +248,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     record: dict[str, object] = {
         "schema": 1, "started_utc": datetime.now(UTC).isoformat(),
         "platform": platform.platform(), "python": sys.version, "jobs": jobs,
-        "bootstrap_sha256": receipts.digest(Path(__file__)),
+        "toolchains": list(selected), "bootstrap_sha256": receipts.digest(Path(__file__)),
         "uv": uv_version, "opam": OPAM_VERSION, "sail": env.SAIL_VERSION,
         "rocq": env.ROCQ_VERSION, "z3": env.Z3_VERSION, "verilator": rtl.VERILATOR_PIN,
         "snapshots": {name: receipts.digest(TOOLS / "opam" / f"{name}.lock")
@@ -267,7 +274,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
                  "default", "https://opam.ocaml.org"), log)
             run(("opam", "repository", "add", "rocq-released",
                  "https://rocq-prover.org/opam/released", "--dont-select", "-y"), log)
-            install_toolchains(root, jobs, log)
+            install_toolchains(root, jobs, log, selected)
             (root / "environment.sh").write_text(activation(values, paths),
                                                   encoding="utf-8", newline="")
             export_environment(values, paths, args.github_env, args.github_path)
@@ -298,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="private persistent native directory outside the source checkout")
     parser.add_argument("--jobs", type=cli.positive_int,
                         help="worker override (default: available CPUs limited by memory)")
+    parser.add_argument("--toolchain", action="append", choices=TOOLCHAINS, dest="toolchains",
+                        help="install only this toolchain; repeat to select several (default: all)")
     parser.add_argument("--install-system", action="store_true",
                         help="install absent Ubuntu packages using root or passwordless sudo")
     parser.add_argument("--github-env", type=Path)

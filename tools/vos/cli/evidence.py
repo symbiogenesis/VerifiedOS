@@ -4,6 +4,7 @@
 --no-build requires matching sources, tools, artifacts and test log. Model consumers
 hold the build lock. Proofs run in a separate process alongside those consumers;
 each member preserves its output and exit status in a unique JSON execution record.
+--no-proofs leaves the proof gate to a separate run and records that exclusion.
 """
 
 import argparse
@@ -95,7 +96,8 @@ def _ctest(log: Path) -> str:
     return f"{total} of {total}"
 
 
-def _figures(results: list[Result], log: Path, proof: dict[str, object]) -> dict[str, str]:
+def _figures(results: list[Result], log: Path,
+             proof: dict[str, object] | None) -> dict[str, str]:
     """Display measurements only after every producing process succeeded."""
     said = {result.name: result.stdout for result in results}
     fields: tuple[tuple[str, str, str], ...] = (
@@ -106,7 +108,9 @@ def _figures(results: list[Result], log: Path, proof: dict[str, object]) -> dict
         ("corpus size", "reference", r"corpus\s+v\d+, \d+ members, \d+ checks, \d+ records"),
         ("devicetree", "devicetree", r"at (\d+) bytes"),
     )
-    figures: dict[str, str] = {"ctest": _ctest(log), "proof gate": str(proof["constants"])}
+    figures: dict[str, str] = {"ctest": _ctest(log)}
+    if proof is not None:
+        figures["proof gate"] = str(proof["constants"])
     for label, member, pattern in fields:
         found = re.search(pattern, said.get(member, ""))
         if found is None:
@@ -137,7 +141,7 @@ def _inputs(root: Path) -> dict[str, str]:
                            f":(exclude){proofs_cli.RECEIPT}")
 
 
-def run(build: bool = True, out: Path | None = None) -> Reporter:
+def run(build: bool = True, out: Path | None = None, proofs: bool = True) -> Reporter:
     e = env.load()
     rep = Reporter()
     rep.line(HEADING)
@@ -165,16 +169,18 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
             try:
                 build_record = model_cli.verified_build(e)
                 with ThreadPoolExecutor(max_workers=1) as pool:
-                    proof = pool.submit(_launch, MEMBERS[-1])
+                    proof = pool.submit(_launch, MEMBERS[-1]) if proofs else None
                     results.extend(_launch(member) for member in MEMBERS[1:-1])
-                    results.append(proof.result())
+                    if proof is not None:
+                        results.append(proof.result())
                 faults.extend(f"{result.name}: exited {result.exit_code}"
                               for result in results if result.exit_code)
                 if model_cli.verified_build(e) != build_record:
                     faults.append("the build identity changed during the sweep")
                 if not faults:
-                    proof_record = _proof_record(e.root)
-                    figures = _figures(results, e.log("model-build"), proof_record)
+                    checked = _proof_record(e.root) if proofs else None
+                    proof_record = checked or {}
+                    figures = _figures(results, e.log("model-build"), checked)
             finally:
                 if lock is not None:
                     lock.close()
@@ -194,12 +200,14 @@ def run(build: bool = True, out: Path | None = None) -> Reporter:
     if not faults:
         rep.line("=== exit evidence ===")
         rep.out.extend(f"  {label}: {value}" for label, value in figures.items())
+    excluded = [] if proofs else [MEMBERS[-1].name]
     rep.report("evidence", "incomplete or stale evidence:", faults,
-               f"all {len(results)} executed member(s) green")
+               f"all {len(results)} executed member(s) green"
+               + "".join(f"; {name} excluded" for name in excluded))
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": 1 if faults else 0,
         "inputs": sources, "build": build_record, "proofs": proof_record,
-        "consumer_tools": consumer_tools,
+        "excluded": excluded, "consumer_tools": consumer_tools,
         "members": [asdict(result) for result in results],
         "measurements": figures if not faults else {}, "failures": faults,
     })
@@ -211,8 +219,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-build", action="store_true",
                         help="require current build evidence without rebuilding")
+    parser.add_argument("--no-proofs", action="store_true",
+                        help="leave the proof gate to a separate run; the record names it excluded")
     parser.add_argument("--out", type=Path, help="where to write the JSON execution record")
     args = parser.parse_args(argv)
-    report = run(build=not args.no_build, out=args.out)
+    report = run(build=not args.no_build, out=args.out, proofs=not args.no_proofs)
     print("\n".join(report.out))
     return 1 if report.findings else 0
