@@ -359,6 +359,15 @@ def mask_access(mask: int) -> tuple[int, bool] | None:
 # writes, and then writes its destination.
 EFFECT_ORDER: Final = ("R", "W", "X")
 
+# The one record kind an executor may carry beyond the packet's. The RTL's own RVFI
+# record has a cause where the packet has a boolean (rtltrace.py), so a comparison
+# against it keeps the `T` record rather than eliding it; the `S` and `C` records
+# stay out of every view, neither port having a field for them. A carried kind sits
+# after the three above under its instruction, on both sides of the comparison: the
+# placement is a convention the view and the projection share, not a claim about
+# the order the model fires its callbacks in.
+CARRIABLE: Final = ("T",)
+
 
 def records(packet: Execution, *, addr_digits: int = PHYSADDR_DIGITS) -> list[str]:
     """One packet, in the commit trace's record grammar.
@@ -407,7 +416,8 @@ class Elided:
                 f"records the packet has no field for")
 
 
-def packet_view(commit: list[str]) -> tuple[list[str], Elided]:
+def packet_view(commit: list[str], *,
+                carried: frozenset[str] = frozenset()) -> tuple[list[str], Elided]:
     """A normalized commit stream cut down to what an RVFI packet could have said.
 
     Every record the packet cannot carry is removed and counted, so that a
@@ -415,13 +425,22 @@ def packet_view(commit: list[str]) -> tuple[list[str], Elided]:
     the fields both formats have rather than a divergence at the first `S`. What
     survives is re-ordered into `EFFECT_ORDER` under its instruction, for the
     reason stated there.
+
+    `carried` names the kinds of `CARRIABLE` the executor being compared reports
+    as well, which are then kept, placed after `EFFECT_ORDER`, and not counted as
+    elided. The default is the standard packet's view and is the one K-85 holds.
     """
+    unknown = carried - frozenset(CARRIABLE)
+    if unknown:
+        raise ValueError(f"no executor view carries {sorted(unknown)}; the kinds a view "
+                         f"may keep beyond the packet's are {CARRIABLE}")
+    order = EFFECT_ORDER + tuple(kind for kind in CARRIABLE if kind in carried)
     view: list[str] = []
     counts = dict.fromkeys("SCTRW", 0)
-    group: dict[str, list[str]] = {kind: [] for kind in EFFECT_ORDER}
+    group: dict[str, list[str]] = {kind: [] for kind in order}
 
     def flush() -> None:
-        for kind in EFFECT_ORDER:
+        for kind in order:
             view.extend(group[kind])
             group[kind].clear()
 
@@ -430,6 +449,8 @@ def packet_view(commit: list[str]) -> tuple[list[str], Elided]:
         if kind == "I":
             flush()
             view.append(record)
+        elif kind in carried:
+            group[kind].append(record)
         elif kind in ("S", "C", "T"):
             counts[kind] += 1
         elif kind == "X":
@@ -443,3 +464,18 @@ def packet_view(commit: list[str]) -> tuple[list[str], Elided]:
     flush()
     return view, Elided(counts["S"], counts["C"], counts["T"],
                         counts["R"], counts["W"])
+
+
+def address_digits(view: list[str]) -> int:
+    """How wide a memory record writes its address, measured off the records.
+
+    The commit trace prints the model's own physical-address width and a packet
+    zero-extends to 64 bits, so a projection has to be rendered at whatever the
+    run actually wrote. Measuring beats restating: the width is a property of the
+    configuration, and a copy of it at a caller would be a second place for it to
+    be wrong. A view with no memory record answers the default.
+    """
+    for record in view:
+        if record[0] in "RW":
+            return len(record.split()[1])
+    return PHYSADDR_DIGITS

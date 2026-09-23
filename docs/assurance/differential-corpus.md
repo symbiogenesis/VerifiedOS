@@ -150,7 +150,7 @@ Two halves of that reuse are worth stating, because they went in opposite direct
 * **The program's own.** It reports through HTIF, so the verdict is the exit code it wrote, and a failure names the check that failed because `gp` carries it.
 * **The rig's.** The same run emits the commit trace; the runner normalizes it, digests it, and holds the digest against the manifest's.
 
-Against a second executor the same records are compared instruction by instruction, and [tools/vos/trace.py](../../tools/vos/trace.py) is where the alignment and the adjudication live. That executor does not exist yet: the M0.4 oracle is not one, because it implements ISAv9's 128-bit encoding with a hybrid mode and a default data capability where this model carries the 64+1-bit purecap dialect, so the two are different machines and the agreeing prefix over `riscv-tests` is read as a fact about how far they happen to agree. The standing second executor is **the RTL under Verilator co-simulation (R2)**, adjudicated over one RVFI-DII trace format by the rig S11 stands up. M2's CHERI-QEMU fork was carried for that job and is struck with the rest of M2, so what the plan's §12 leaves is one second executor rather than two, arriving as the artifact that ships rather than as a second model.
+Against a second executor the same records are compared instruction by instruction, and [tools/vos/trace.py](../../tools/vos/trace.py) is where the alignment and the adjudication live. That executor does not exist yet: the M0.4 oracle is not one, because it implements ISAv9's 128-bit encoding with a hybrid mode and a default data capability where this model carries the 64+1-bit purecap dialect, so the two are different machines and the agreeing prefix over `riscv-tests` is read as a fact about how far they happen to agree. The standing second executor is **the RTL under Verilator co-simulation (R2)**, adjudicated through that same function: over the RVFI-DII rig S11 stands up for generated streams, and over a retirement frame for the corpus's own programs, which [the co-simulation harness contract](rtl-cosimulation-harness.md) states. M2's CHERI-QEMU fork was carried for that job and is struck with the rest of M2, so what the plan's §12 leaves is one second executor rather than two, arriving as the artifact that ships rather than as a second model.
 
 ## 7. What the corpus cannot exercise yet, and why
 
@@ -183,6 +183,7 @@ Two instruments, and they run in different places for a reason: one needs a buil
 | the emulator negotiates RVFI-DII v2 and retires an injected instruction | `tools/run.py testrig handshake` (WSL) |
 | a generated stream's packets and its commit records agree, one run, both dialects | `tools/run.py testrig bridge` (WSL) |
 | every seeded defect is reported, and no unseeded run diverges | `tools/run.py testrig run` (WSL) |
+| an RTL retirement frame is refused, projected and adjudicated as its contract states | `tools/run.py test` (host) |
 
 ## 9. The RVFI-DII rig
 

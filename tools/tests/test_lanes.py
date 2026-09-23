@@ -34,7 +34,7 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import memory_planner
+from vos import memory_planner, rtltrace, rvfi
 from vos.cli import COMMANDS
 
 _ROOT = TOOLS.parent
@@ -101,6 +101,18 @@ def _portable_plan(action: str, scratch: Path) -> list[str]:
     return [*common, "--work-budget", "8"]
 
 
+def _rtl_frame(scratch: Path) -> list[str]:
+    """One retirement, as the golden trace and as an RTL frame that agree on it."""
+    reference = scratch / "golden.trace"
+    frame = scratch / "rtl.frame"
+    reference.write_text("I 0 0000000080000000 00100293\nX 5 0 0000000000000001\n",
+                         encoding="utf-8", newline="")
+    frame.write_text(rtltrace.encode([rtltrace.Retire(rvfi.Execution(
+        wire=rtltrace.WIRE, pc_rdata=0x80000000, pc_wdata=0x80000004, insn=0x00100293,
+        rd_addr=5, rd_wdata=1))]), encoding="utf-8", newline="")
+    return [str(frame), str(reference)]
+
+
 def _memory_encoding(scratch: Path) -> list[str]:
     instance = scratch / "encoding-instance.json"
     instance.write_text(json.dumps({
@@ -129,6 +141,8 @@ _RUNS: dict[tuple[str, str], Argv] = {
     # is repository-relative by the subcommand's own contract.
     ("seed", "list"): lambda _: ["--file", "model/model/core/cap_common.sail"],
     ("testrig", "protocol"): lambda _: [],
+    ("testrig", "adapt"): _rtl_frame,
+    ("testrig", "bmc"): lambda _: [],
     ("placement", "export"): _placement_export,
     ("placement", "check"): lambda _: [],
     ("placement", "admit"): lambda _: [],
