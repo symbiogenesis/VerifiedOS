@@ -48,7 +48,7 @@ Run the native setup from the repository root. If an import fails after its swit
 `ipc_oracle.v` is the first repository Gallina source put through this loop rather than a smoke program: a battery of checks over [proofs/EndpointIPC.v](../../proofs/EndpointIPC.v)'s decision procedures, folded into one boolean the same way `demo.v` folds one. It needs that file beside it under its own name, because `Require Import EndpointIPC` resolves off the working directory, and the proof gate's `.vo` is built in a different switch and is not reusable here.
 
 ```console
-$ mkdir -p /root/wasm-stage && cd /root/wasm-stage
+$ mkdir -p /root/build/lane-<name>/wasm && cd /root/build/lane-<name>/wasm
 $ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
      <repo>/tools/wasm-oracle/run_demo.mjs <repo>/tools/wasm-oracle/node.sh .
 $ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 --set-switch)
@@ -69,13 +69,14 @@ The two `Compute` lines are the check count and the answer *inside* the kernel, 
 
 ```console
 $ python3 tools/run.py compiler-diff component \
-    --wasm /root/wasm-stage/ipc_oracle.ipc_oracle.wasm --c tools/wasm-oracle/ipc_oracle.c \
+    --wasm /root/build/lane-<name>/wasm/ipc_oracle.ipc_oracle.wasm \
+    --c tools/wasm-oracle/ipc_oracle.c \
     --ccomp /native/contained/ccomp --ccomp-arg=-conf --ccomp-arg=/native/compcert.ini \
     --ccomp-arg=-fverifiedos-typed --lane --interp
 AGREE     both sides under vos-component-output/1: verdict 0 and 5 byte(s)
 ```
 
-The seeded red line has a C twin: `upto(31, masks)` widened to `upto(32, masks)` in `mask_checks` answers `false` on both sides, and the reference interpreter names check 40 as the first to fail. A change to either file that the other does not mirror is a disagreement this comparison reports; nothing else keeps the two in step, and agreement over the battery is differential evidence rather than a refinement proof.
+The seeded red line has a C twin: `upto(31, masks)` widened to `upto(32, masks)` in `mask_checks` answers `false` on both sides. The component harness reads only whether `main` returned 0, so the image's own first failing check is not observed; the reference interpreter names check 40 as the first to fail. Nothing but this comparison keeps the two files in step, and it reports a change the other file does not mirror only where the change moves an answer. No gate reruns it: a change to `ipc_oracle.v`, [EndpointIPC.v](../../proofs/EndpointIPC.v) or `ipc_oracle.c` needs the staging above and this comparison rerun by hand. Agreement over the battery is differential evidence rather than a refinement proof.
 
 ## Keeping the VM under a long build
 

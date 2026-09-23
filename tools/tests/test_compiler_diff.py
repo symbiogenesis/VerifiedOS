@@ -136,8 +136,24 @@ out = pathlib.Path(args[args.index("-o") + 1])
 if "FAKE-CCOMP: refuse" in text:
     sys.stderr.write("fake ccomp: refused on purpose\\n")
     sys.exit(2)
+def exclusive(path, data):
+    # the typed route creates its partial assembly and its narrowing sidecars this way
+    try:
+        with open(path, "x", encoding="utf-8", newline="") as handle:
+            handle.write(data)
+    except FileExistsError:
+        sys.stderr.write(f"ccomp: error: {{path.name}}: File exists\\n")
+        sys.exit(2)
 stream = {DIALECT!r} if "FAKE-CCOMP: dialect" in text else {LP64D!r}
-out.write_text(stream, encoding="utf-8", newline="")
+partial = out.with_name(out.name + ".partial")
+exclusive(partial, stream)
+if "-fverifiedos-narrowing-output" in args:
+    prefix = args[args.index("-fverifiedos-narrowing-output") + 1]
+    for suffix in (".plan.json", ".operations.json", ".sites.json"):
+        exclusive(pathlib.Path(prefix + suffix),
+                  json.dumps({{"sidecar": suffix, "source": hashlib.sha256(
+                      source.read_bytes()).hexdigest()}}) + "\\n")
+partial.replace(out)
 """
 
 FAKE_SIM: Final = f"""\
@@ -561,6 +577,44 @@ def _narrowing_program_inputs() -> None:
                "a program that narrows nothing is compiled without plan inputs")
 
 
+def _narrowing_rerun_in_a_kept_directory() -> None:
+    """The compiler creates its partial assembly and its narrowing sidecars exclusively,
+    so a rerun in a kept directory must find none of them left by the earlier run, and
+    the report binds every file the narrowing compilation read or wrote by digest."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        ccomp = [sys.executable, str(_script(scratch, "ccomp", FAKE_CCOMP))]
+        sim = [sys.executable, str(_script(scratch, "sim", FAKE_SIM))]
+        work = scratch / "work"
+        work.mkdir()
+        profile = scratch / "profile.json"
+        profile.write_text("{}\n", encoding="utf-8")
+        narrow = cd.Program("n-again", "narrow", DIALECT_C, 1, 0, 256)
+        first = cd.run_program(narrow, ccomp, work, sim, profile, "")
+        fresh = work / "n-again"
+        files = dict(first.narrowing_files)
+        wanted = {*cd.NARROWING_INPUTS,
+                  *(f"{cd.NARROWING_OUTPUT}{suffix}" for suffix in cd.NARROWING_SIDECARS)}
+        ensure(first.verdict == "pass" and set(files) == wanted
+               and all(files[name] == cd._sha256((fresh / name).read_bytes())
+                       for name in wanted),
+               f"a narrowing run binds its plan inputs and sidecars by digest: {first}")
+        # what a compiler killed at its timeout leaves beside the sidecars of its last run
+        (fresh / "n-again.s.partial").write_text("stale\n", encoding="utf-8")
+        second = cd.run_program(narrow, ccomp, work, sim, profile, "")
+        ensure(second.verdict == "pass" and second.narrowing_files == first.narrowing_files,
+               f"a rerun in the kept directory is not refused for an earlier run's "
+               f"files: {second.verdict}: {second.detail}")
+        recorded = json.loads(json.dumps(cd.report_json(second)))
+        ensure(recorded["narrowing_files"] == files,
+               f"the report carries the digests: {recorded['narrowing_files']}")
+        plain = cd.run_program(cd.Program("n-plain", "given", DIALECT_C, 1), ccomp, work, sim,
+                               profile, "")
+        ensure(plain.narrowing_files == ()
+               and json.loads(json.dumps(cd.report_json(plain)))["narrowing_files"] is None,
+               "a program that narrows nothing binds no narrowing files")
+
+
 def _component_harness_assembles() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         scratch = Path(td)
@@ -905,6 +959,7 @@ def cases() -> list[Case]:
              slow=True, lane="toolchain"),
         Case("source-interpreter-reading", _source_interpreter_reading),
         Case("narrowing-program-inputs", _narrowing_program_inputs),
+        Case("narrowing-rerun-in-a-kept-directory", _narrowing_rerun_in_a_kept_directory),
         Case("capability-roundtrip-tracks-the-stored-value",
              _capability_roundtrip_tracks_the_stored_value),
         Case("loop-over-fake-ccomp-dialect", _loop_over_fake_ccomp_dialect),

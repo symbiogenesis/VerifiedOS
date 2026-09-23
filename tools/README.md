@@ -227,8 +227,11 @@ and the commit trace's digest are the two questions. A successful emulator exit 
 carry both the HTIF success line and a nonempty commit trace. `--against FILE` holds
 the results to a recorded run with the same unique program names and source digests;
 missing members and comparison disagreements fail even under `--expect-refusal`.
-A reused `--keep` directory cannot supply stale compiler output. The trace is also
-read for one tagged write read back tagged, which is
+A reused `--keep` directory cannot supply stale compiler output, and the partial
+assembly and narrowing sidecars the typed route creates exclusively are removed before
+the compiler runs, so a rerun there is not refused for a file an earlier run left. A
+narrowing program's report binds its plan inputs and those sidecars by digest. The
+trace is also read for one tagged write read back tagged, which is
 M1.7's own test that a capability went through memory; a frame's saved return
 capability satisfies it as readily as a program's own pointer store. At the component
 level the declared output encoding is a side's exit verdict, the Wasm host's process

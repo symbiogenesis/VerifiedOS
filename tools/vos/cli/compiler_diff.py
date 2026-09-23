@@ -453,14 +453,17 @@ def compile_c(ccomp: list[str], source: Path, fresh: Path,
 
     The source is copied in and the compiler is run there. This working directory is
     not an OS sandbox. Remove any previous assembly first, so a reused --keep directory
-    cannot supply a successful invocation that wrote nothing with stale output. The
-    argv records the compiler's path and two names relative to this directory.
+    cannot supply a successful invocation that wrote nothing with stale output, and any
+    partial assembly an interrupted run left, because the typed route creates that file
+    exclusively and would refuse a rerun over it. The argv records the compiler's path
+    and two names relative to this directory.
     """
     fresh.mkdir(parents=True, exist_ok=True)
     copied = fresh / source.name
     shutil.copyfile(source, copied)
     out = fresh / f"{source.stem}.s"
     out.unlink(missing_ok=True)
+    out.with_name(f"{out.name}.partial").unlink(missing_ok=True)
     argv = [*ccomp, "-S", copied.name, "-o", out.name]
     said = ""
     exit_code = -1
@@ -1017,6 +1020,23 @@ def programs(seed: int, count: int, perturb: bool = False,
 # =====================================================================================
 
 
+# What a narrowing compilation reads beside its source, and the prefix and suffixes of the
+# sidecars the compiler writes there: the exported plan, the sealed operation roster and
+# the emitted sites a final-byte census joins. The compiler creates each sidecar
+# exclusively, so a stale one in a reused --keep directory is removed before it runs.
+NARROWING_INPUTS: Final[tuple[str, ...]] = ("plan.json", "profile.json", "composition.json")
+NARROWING_OUTPUT: Final = "narrowing"
+NARROWING_SIDECARS: Final[tuple[str, ...]] = (".plan.json", ".operations.json", ".sites.json")
+
+
+def narrowing_files(fresh: Path) -> tuple[tuple[str, str | None], ...]:
+    """The digest of every file a narrowing compilation reads or writes beside its source,
+    `None` for one that is absent, so a later census can join a recorded run by digest."""
+    names = (*NARROWING_INPUTS, *(f"{NARROWING_OUTPUT}{suffix}" for suffix in NARROWING_SIDECARS))
+    return tuple((name, _sha256((fresh / name).read_bytes()) if (fresh / name).is_file()
+                  else None) for name in names)
+
+
 @functools.cache
 def harness_stack() -> tuple[int, int]:
     """The program harness's stack, `[base, top)`, as the assembler lays it out."""
@@ -1032,8 +1052,11 @@ def narrowing_inputs(fresh: Path, source: bytes, profile: Path, length: int) -> 
     the plan's single region is that stack and its single request that local, bound to
     `main`'s first narrowing. The context binds the exact source bytes the compiler
     reads, the executed profile and the composition, so a changed input is refused.
+    Sidecars an earlier run left here are removed first.
     """
     fresh.mkdir(parents=True, exist_ok=True)
+    for suffix in NARROWING_SIDECARS:
+        (fresh / f"{NARROWING_OUTPUT}{suffix}").unlink(missing_ok=True)
     (fresh / "profile.json").write_bytes(profile.read_bytes())
     base, top = harness_stack()
     composition = {"target_hart": 0, "stack_base": base, "stack_size": top - base,
@@ -1056,7 +1079,7 @@ def narrowing_inputs(fresh: Path, source: bytes, profile: Path, length: int) -> 
     (fresh / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
     return ["-fverifiedos-narrowing-plan", "plan.json", "-fverifiedos-profile", "profile.json",
             "-fverifiedos-composition", "composition.json",
-            "-fverifiedos-narrowing-output", "narrowing"]
+            "-fverifiedos-narrowing-output", NARROWING_OUTPUT]
 
 
 @dataclass(frozen=True)
@@ -1116,6 +1139,7 @@ class Report:
     expect: int = 0
     interpreted: Interpreted | None = None
     narrowing: int = 0
+    narrowing_files: tuple[tuple[str, str | None], ...] = ()
 
 
 def target_code(ran: Ran | None) -> int | None:
@@ -1160,14 +1184,15 @@ def run_program(program: Program, ccomp: list[str], workdir: Path,
                                compile_timeout) if interp and not program.narrowing else None)
     extra = (narrowing_inputs(workdir / program.name, source.read_bytes(), profile,
                               program.narrowing) if program.narrowing else [])
+    compiled = compile_c([*ccomp, *extra], source, workdir / program.name, compile_timeout)
+    bound = narrowing_files(workdir / program.name) if program.narrowing else ()
 
     def report(compiled: Compiled | None, found: tuple[Refusal, ...], size: int,
                ran: Ran | None, verdict: str, detail: str) -> Report:
         return Report(program.name, program.pattern, digest, program.checks, compiled,
                       found, size, ran, verdict, detail, program.expect, interpreted,
-                      program.narrowing)
+                      program.narrowing, bound)
 
-    compiled = compile_c([*ccomp, *extra], source, workdir / program.name, compile_timeout)
     if compiled.stream is None:
         return report(compiled, (), 0, None, "ccomp-refused",
                       f"ccomp exited {compiled.exit_code}: {compiled.said}")
@@ -1208,6 +1233,7 @@ def _ran_json(ran: Ran) -> Json:
 
 
 def report_json(report: Report) -> Json:
+    files: dict[str, Json] = dict(report.narrowing_files)
     return {
         "name": report.name, "pattern": report.pattern,
         "source_sha256": report.source_sha256, "checks": report.checks,
@@ -1217,6 +1243,7 @@ def report_json(report: Report) -> Json:
         "image_bytes": report.image_bytes,
         "run": None if report.ran is None else _ran_json(report.ran),
         "expect": report.expect, "narrowing": report.narrowing,
+        "narrowing_files": files if report.narrowing else None,
         "interp": None if report.interpreted is None else {
             "argv": list(report.interpreted.argv), "exit": report.interpreted.exit_code,
             "code": report.interpreted.code},
