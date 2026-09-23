@@ -544,7 +544,10 @@ def family(insn: int, rows: list[tuple[int, int, str]]) -> str:
     `V` names the vector family and so on; a word no row decodes is `unmatched`,
     which a trapping illegal word is. This is how the corpus-green scope is measured
     rather than read off the corpus's prose: a member that retires a word of a
-    family the curated scalar core does not implement cannot pass on it.
+    family the curated scalar core does not implement cannot pass on it. The match
+    is on each row's fixed bits and not on its guard, so a word two rows share,
+    as `cbo.zero` shares `lc`'s encoding under `lc`'s `cd != zreg`, names both
+    families joined by `+`, which over-reports and never hides one.
     """
     found = sorted({name for mask, word, name in rows if insn & mask == word})
     return "+".join(found) if found else "unmatched"
