@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 700 of them across 126 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 705 of them across 127 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2474,6 +2474,28 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-230n** method: a header's roster of the refutations a statement artifact carries is prose no gate reads, so it drifts from the file under it, this one naming three constructions the file did not carry and omitting three it did
 · Raised: M6.5a
 · Disposition: closed at the item by checking the roster against the file name by name and by giving the one obligation whose named refuter did not exist a refuting construction and a keeper
+
+## M7 · Full emulated system
+
+**F-394** owed-act: the boot verifier's executable SLH-DSA and ML-DSA have no priced producer, M3.5 consuming them as a join and no cell realizing them
+· Raised: M7.1, in prose
+· Disposition: open, price a producer for the ROM stage's SLH-DSA over SHAKE256 and the upper stages' ML-DSA verification, under M3.5 or M7.1
+
+**F-395** owed-act: M5.3d's cell owns storage's crypto without saying it lands as the separate crypto-core compartment R-10-022 requires, which the boot roster ranks before storage
+· Raised: M7.1, in prose
+· Disposition: open, M5.3d's cell states the compartment boundary
+
+**F-396** owed-act: the composed boot's event log is reproducible on RTL only under the roster contract's trap convention, the golden model setting `rvfi_trap` for interrupts where standard RVFI sets `rvfi_intr`
+· Raised: M7.1, in prose
+· Disposition: open, R2's adapter adopts a convention, and R3's comparison is claimed for synchronous traps until an interrupt runs on both executors
+
+**F-397** owed-act: the M8a supervisor's manifest has no source while the plan's configuration generation waits on M5.4's deferred object system
+· Raised: M7.1, in prose
+· Disposition: open, owed by the supervisor's executable package
+
+**F-398** owed-act: the differential corpus calls an `I` record a retired instruction and `order` a count of retires, where the emulator writes one record per traced step, a trapping step and the interrupt-taking step included
+· Raised: M7.1, in prose
+· Disposition: open, the corpus contract's trace-record wording is repaired; the boot harness already counts `I` records rather than retirements
 
 ## RTL track
 
