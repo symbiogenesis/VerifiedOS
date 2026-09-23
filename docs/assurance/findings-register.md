@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 750 of them across 130 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 759 of them across 131 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1747,6 +1747,42 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-323** method: the lane's own build script emitted the header "`.v` of `FILES` with no `.vo`" and then ran a loop over a command substitution whose stdout was discarded, so it captured nothing and the loop body was `:`; the log showed the header followed by no lines at all, which a later reader takes as "every member built". That is the fourth shape of a check that decides nothing, a count with no predicate, and it is how the figure "203 of the 204 `.v` of `FILES`" stood in the note, the checklist cell and the gate block, wrong in both numerator and denominator: `$(FILES)` has 203 members at this branch and 202 at the pin, 202 of them build in each tree, and the 203 `.vo` the script did count is a `find` over the whole tree that includes `security/Tactics.vo`, which the Makefile comments out of `SECURITY` and builds only as a dependency
 · Raised: M1.2b
 · Disposition: closed; the stub is replaced by a census that expands `$(FILES)` with `make --eval` and tests each member against the `.vo` basenames present, `FILES` naming bare basenames resolved through the Makefile's VPATH, and every restatement of the figure is corrected to 202 of 203.
+
+**F-449** measurement: the typed backend refuses a narrowing program whose allocation places the length register on the capability's register, "typed narrowing: length register aliases capability", 2 of the default campaign's 70 members and 4 of 30 narrowing draws
+· Raised: M1.2f, in prose
+· Disposition: open, the contained backend's narrowing lowering
+
+**F-450** measurement: the typed frontend refuses assignment to any function parameter as an assignment to an undeclared temporary, the temporaries excluding the parameters
+· Raised: M1.2f, in prose
+· Disposition: open, the M1.2g-ii frontend and M1.2d-ii boundary owners, the refusal's message naming a parameter assignment at least
+
+**F-451** owed-act: every typed-backend frame saves and reloads `c30` and `c1`, so M1.7's capability round-trip trace reading holds of a program with no pointer and cannot show that a data pointer went through memory
+· Raised: M1.2f, in prose
+· Disposition: open, M1.7's acceptance predicate requiring a store and reload outside the frame's save slots
+
+**F-452** method: the component evidence's Wasm side was compiled in the undeclared, unlocked legacy switch `certirocq-0.9.1` under OCaml 4.14.2 rather than the declared oracle switch, and the component report binds the module digest but not its producing environment
+· Raised: M1.2f, in prose
+· Disposition: open, the component built in the declared switch or its environment bound in the report
+
+**F-453** measurement: the simulator binary's digest is revision-bound, changing with the embedded `git describe` while `model/` is byte-identical
+· Raised: M1.2f, in prose
+· Disposition: standing, each figure citing the model-source identity beside the digest
+
+**F-454** owed-act: the generated campaign produces no composition-bound construct, no indirect or sealed call, other primitive, handle or global
+· Raised: M1.2f, in prose
+· Disposition: open, the campaign broadened against reviewed compositions
+
+**F-455** measurement: the contained compiler accepts a narrowing plan whose request is moved 256 bytes below its actual local with identical assembly, so only the final-byte census places a request on its local, and it is not run over campaign images
+· Raised: M1.2f, in prose
+· Disposition: open, M1.2e-ii's narrowing contract and M1.2f's census clause
+
+**F-456** owed-act: whether a hand-written CompCert-C counterpart of a Gallina component satisfies the criterion's *lowered purecap* is unruled, the comparison reading one boolean, the image's own first failing check unobserved, and no gate rerunning it when `ipc_oracle.v` or its imports change
+· Raised: M1.2f, in prose
+· Disposition: open, a ruling on the component route
+
+**F-457** owed-act: the program driver's result binds only the top translation unit's SHA-256 and not the sources it includes
+· Raised: M1.2f, in prose
+· Disposition: open, the driver recording the included sources' identities or the preprocessed unit's
 
 ## M2 · Fast emulator
 
