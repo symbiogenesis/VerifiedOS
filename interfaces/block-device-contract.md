@@ -363,9 +363,12 @@ inverted expectations fail at the reopened-medium comparison, including a
 reopen that keeps the fixture copy instead of loading the image.
 
 The remaining architectural HTIF acceptance cases stay open, including C-durable
-and P-flush as guest programs spanning two emulator runs. The storage
-bytes-to-record decoder's review, the authentication and crypto path, the
-recovery-policy implementation, the kernel join and the full M5.3 target
+and P-flush as guest programs spanning two emulator runs.
+[StorageBridge.v](../proofs/StorageBridge.v) specifies a bytes-to-record decoder
+for the selected recovery policy, authenticated through AesGcm.v's functional
+reference, with its layout, commit-representation and nonce decisions left
+explicit. Its separate review, the executable authentication and crypto path,
+the recovery-policy implementation, the kernel join and the full M5.3 target
 predicate remain their owners' work.
 
 The integrator records partial M5.3 progress and remaining findings in the shared
