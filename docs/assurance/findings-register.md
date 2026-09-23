@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 705 of them across 127 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 712 of them across 128 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2724,6 +2724,34 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-293** owed-act: every file the two enumerated layers name is a Solderpad file the datapath curation must replace, the Apache-2.0 election THIRD-PARTY.md records at the CHERI-CVA6 pin permits copying one, and `rtl/README.md` §1 admits a file to `rtl/` where this repository wrote it or a generator here writes it from an artifact it owns, which is a rule over provenance rather than over permission
 · Raised: R1b
 · Disposition: closed, the later seams authoring their substitutes on the seam-1 row's shape and a copy-and-edit of the imported tree taking a repository of its own on the compiler milestone's precedent, so neither THIRD-PARTY.md nor `rtl/README.md` moves and the cell is not re-priced
+
+**F-399** owed-act: the corpus reaches the adjudicator through a retirement frame rather than the rig's RVFI-DII socket, where the cell says R2 connects the RTL to the existing rig and one protocol runs across both executors, DII replacing fetch and the v2 packet having no cause field
+· Raised: R2, in prose
+· Disposition: open, a plan act either names two routes adjudicated by one `trace.adjudicate` or rejects the frame
+
+**F-400** owed-act: the corpus-green predicate has no declared member scope, 7 of 27 members holding retirements no RVFI-shaped frame line carries and further members retiring V-family words or depending on R1c-ii's top
+· Raised: R2, in prose
+· Disposition: open, a declared scope list with each exclusion's class, or the frame's v2 extension
+
+**F-401** measurement: a v1 comparison sees neither trap CSR and capability-register writes nor any access after an instruction's first, the corpus view eliding 160 capability-register, 496 CSR, 365 further-read and 476 further-write records
+· Raised: R2, in prose
+· Disposition: open, frame v2 with continuation lines and C/S records priced at the harness contract
+
+**F-402** measurement: the BMC smoke's inputs are absent, riscv-formal unpinned and no yosys, sby or SMT solver but z3 in a guest whose toolchains are arm64 builds
+· Raised: R2, in prose
+· Disposition: open, the pin with its licence read, arm64 formal-toolchain provisioning and the first run's depths
+
+**F-403** owed-act: the revocation join's instrumentation is estimated at 16 to 23 h and R2's remaining work at 14 to 21 h, both above the 12 h cell
+· Raised: R2, in prose
+· Disposition: open, re-priced at entry to the remaining work
+
+**F-404** measurement: `testrig bridge --template random` fail-stops on consecutive trapping injected words, the model reporting a synchronous fault on a live trap path, where S11's evidence predates that behaviour
+· Raised: R2, in prose
+· Disposition: open, a base-revision control run and the S11 rig or model trap-path owner
+
+**F-405** owed-act: the pinned CVA6-CHERI RVFI port cannot feed the frame as it stands, never assigning `order`, raising `valid` on few synchronous exceptions, truncating the destination's tag in its probes and reporting destination and masks on a trapping instruction
+· Raised: R2, in prose
+· Disposition: open, stated as obligations at the harness contract and owed by R1b's core-port contract
 
 ## Build-loop instruments
 
