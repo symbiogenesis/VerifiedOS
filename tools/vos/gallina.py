@@ -62,6 +62,7 @@ HARNESS_DIR = "tools/quickchick"
 ENUMERATIVE = "Vectors.v"
 RANDOMIZED = "Properties.v"
 FREEZE = "FreezeModel.v"
+KERNEL = "KernelVectors.v"
 WORK = "gallina"
 VECTORS = "vectors.txt"
 FREEZE_VECTORS = "freeze-vectors.txt"
@@ -72,7 +73,7 @@ FREEZE_MODEL = "freeze-model.txt"
 # library this switch may not hold or are a second subject entirely. A set rather than
 # a tuple spelled at the one site that reads it, so that adding a harness is one edit
 # here and the exclusion cannot be the half somebody forgets.
-ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, FREEZE})
+ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, FREEZE, KERNEL})
 
 # The one line a harness's output is read back through. `Compute` on a `list string`
 # prints `= ["a"; "b"] : list string`, and the entries carry no quote and no backslash
