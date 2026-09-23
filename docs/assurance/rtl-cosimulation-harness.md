@@ -51,7 +51,7 @@ Retirement order across commit ports is port order within a cycle. The curated c
 
 Each refusal names its line and its kind, and none is ever reported as a divergence: a frame that is empty or opens with anything but the header; another version; a last line with no newline (the writer stopped mid-record); a carriage return; a line that is neither `P` nor `E`; a `P` line with the wrong number of fields or a field of the wrong width or alphabet; a flag other than 0 or 1; an `order` other than the retirement's index (a packet lost, repeated or reordered between the order's source and the writer); a register outside the 32; data or a tag on a write to x0; a cause on a retirement that did not trap; a mask that is not a low run of one, two, four or eight ones; a tag on an empty or sub-granule access; a trailer whose count differs from the lines written; anything after the trailer; and a frame with no trailer at all.
 
-**The writer's own count makes the `order` check a check on the writer.** The imported port assigns no `order` (section 3), so the writer counts; a retirement lost between the port and the writer then keeps its successor's order in sequence and surfaces as a divergence at adjudication rather than as a refusal. A port that states its own retirement count moves the check to the right side of that seam.
+**The writer's own count makes the `order` check a check on the writer.** The imported port assigns no `order` (section 3), so the writer counts; a retirement lost between the port and the writer leaves no gap in the orders the writer assigns, and surfaces as a divergence at adjudication rather than as a refusal. A port that states its own retirement count moves the check to the right side of that seam.
 
 ## 3. What the imported port states, and what the harness must supply
 
@@ -77,7 +77,7 @@ The golden trace is cut to what a frame can say by `rvfi.packet_view`, told that
 
 **Two consequences follow, and both narrow what a green comparison says.** The CSR and special-register writes a trap makes (`mepc`, `mcause`, `mtval`, `MEPCC`) are not compared; the cause is. And an instruction whose golden records hold more than one access compares the first access the golden trace records and no other, so the harness must report that same access for it; the port states nothing about which access it reports for such an instruction.
 
-**Some retirements have no frame line at all**, and `rtltrace.carry` names each by retirement and reason: an access wider than the eight bytes a curated mask covers, two register writes under one instruction, a read and a write at different addresses, and two traps. `python tools/run.py testrig carry` runs every corpus member on the golden emulator, holds its trace to the manifest's digest, re-encodes it as the frame an RTL would have to write, and reports which members hold such retirements and which instruction words they are; a member with none must come back whole, and every seeded single-field change must then be reported. **Its producer is the golden model**, so what it measures is the adapter over real record shapes and the frame's carrying capacity, never the core. The block operations and `cclear` are the shapes it reports refused at this revision.
+**Some retirements have no frame line at all**, and `rtltrace.carry` names each by retirement and reason: an access wider than the eight bytes a curated mask covers, two register writes under one instruction, a read and a write at different addresses, and two traps. `python tools/run.py testrig carry` runs every corpus member on the golden emulator, holds its trace to the manifest's digest, re-encodes it as the frame an RTL would have to write, and reports which members hold such retirements and which instruction words they are; a member with none must come back whole, and every seeded single-field change must then be reported. **Its producer is the golden model**, so what it measures is the adapter over real record shapes and the frame's carrying capacity, never the core.
 
 A retirement the frame cannot hold is still written, carrying the part that fits, so a comparison over it diverges at that retirement rather than agreeing over a stream that skipped it.
 
@@ -133,7 +133,7 @@ R-15-094 places riscv-formal/rvfi as bounded-depth evidence and the cheapest bri
 | --- | --- | --- |
 | Frame version 2: a hart field in the header; continuation lines for the further accesses and register writes version 1 refuses or elides; `C` and `S` records from the port's CSR record and the capability special-register probes | per-hart frames, `creclaim` and the block operations whole, and the trap CSR writes version 1 does not compare | 5 h for the decoder, writer and fixtures, plus the core-side probes, 3 to 6 h depending on R1b's port |
 | A device-completion monitor on the tag-carrying fabric | R-15-208a's boundary events per window | 4 to 6 h once R1c-ii binds the fabric |
-| The join checker over `revocation.py` | the replay and the three decisions above, and R-08-006's six cases driven as images | 4 to 6 h, with the images M4.4's |
+| The join checker over `revocation.py` | the replay and the three decisions above, and R-08-006's cases driven as images | 4 to 6 h, with the images M4.4's |
 
 That is 16 to 23 h in total, outside R2's cell as priced, and it waits on M4.4's kernel, R1c-ii's fabric and a reviewed multi-hart composition in any case.
 
@@ -145,7 +145,7 @@ That is 16 to 23 h in total, outside R2's cell as priced, and it waits on M4.4's
 | `python tools/run.py testrig carry` | guest | the frame's carrying capacity over the corpus's golden traces, and that every seeded single-field change is reported |
 | `python tools/run.py testrig framesim --corpus` | guest | that the SystemVerilog writer's frames decode field for field as its stimulus stated, and that every member `carry` holds whole comes back whole through it |
 | `python tools/run.py testrig bmc` | either | the smoke's plan and its instruction scope; it runs nothing |
-| `python tools/run.py test --only rtltrace` | either | the protocol refusals, the projection, the seeds and the stimulus layout against its bench |
+| `python tools/run.py test --only rtltrace` | either | the protocol refusals, the projection, the seeds, the stimulus layout against its bench and this document's field table against the decoder |
 
 **Every producer above is a fixture or the golden model.** `framesim`'s driver is a bench fed from stimulus files and `carry`'s producer is the golden trace re-encoded; they establish the adapter's handling of the protocol and of real record shapes, and the round trip of the authored format package's register form over the values they drive. The co-simulation gate's evidence is a frame the core wrote.
 
