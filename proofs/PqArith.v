@@ -471,9 +471,7 @@ Lemma the_butterfly_sum_recovers_twice_the_low_half :
     = (2 * a0) mod q.
 Proof.
   intros q nu a0 a1. unfold addmod, submod, mulmod.
-  rewrite <- Zplus_mod.
-  replace (a0 + (nu * a1) mod q + (a0 - (nu * a1) mod q)) with (2 * a0) by ring.
-  reflexivity.
+  rewrite <- Zplus_mod. f_equal. ring.
 Qed.
 
 Lemma the_butterfly_difference_recovers_twice_the_scaled_high_half :
