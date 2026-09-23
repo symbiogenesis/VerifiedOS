@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Final
 
 from tests.harness import TOOLS, Case, ensure
-from vos import rtltrace, rvfi, trace
+from vos import dialect, rtltrace, rvfi, trace
 from vos.cli import testrig
 
 # A golden run as the emulator writes it: orders in, one line of noise the
@@ -382,6 +382,17 @@ def _stimulus_places_each_field() -> None:
            "a stale cause is driven where the port would present one")
 
 
+def _family_is_the_decoding_directory() -> None:
+    rows = testrig.family_rows()
+    for mnemonic, operands, want in (("add", [5, 6, 7], "I"), ("mul", [5, 6, 7], "M"),
+                                     ("lc", [5, 0, 25], "CHERI"),
+                                     ("csrrw", [0, 0x300, 5], "Zicsr")):
+        got = testrig.family(dialect.encode(mnemonic, operands, 0), rows)
+        ensure(got == want, f"`{mnemonic}` decodes under {want}, got {got}")
+    ensure(testrig.family(0xFFFFFFFF, rows) == "unmatched",
+           "a word no row decodes is named as such rather than assigned a family")
+
+
 def cases() -> list[Case]:
     return [
         Case("round-trip", _round_trip),
@@ -401,4 +412,5 @@ def cases() -> list[Case]:
         Case("adapt-command", _adapt_command),
         Case("stimulus-matches-its-bench", _stimulus_matches_its_bench),
         Case("stimulus-places-each-field", _stimulus_places_each_field),
+        Case("family-is-the-decoding-directory", _family_is_the_decoding_directory),
     ]

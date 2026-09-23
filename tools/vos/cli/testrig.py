@@ -50,7 +50,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import IO, cast
 
-from vos import bmc, differential, env, rtltrace, rvfi, trace, vengine
+from vos import bmc, dialect, differential, env, rtltrace, rvfi, trace, vengine
 from vos.cli import rtl
 
 type Command = Callable[[argparse.Namespace], int]
@@ -471,6 +471,7 @@ class _Carry:
     records: int = 0
     elided: rvfi.Elided = field(default_factory=rvfi.Elided)
     words: dict[str, set[int]] = field(default_factory=dict)
+    families: dict[str, list[str]] = field(default_factory=dict)
     whole: list[str] = field(default_factory=list)
     refused: dict[str, dict[str, int]] = field(default_factory=dict)
     broken: list[str] = field(default_factory=list)
@@ -525,6 +526,28 @@ def _recorded_golden(e: env.Environment, corpus: differential.Corpus,
         return None, (f"digest {digest} over {len(normalized)} records against the "
                       f"manifest's {member.digest}")
     return lines, ""
+
+
+def family_rows() -> list[tuple[int, int, str]]:
+    rows = []
+    for row in dialect.TABLE.values():
+        site = row.site.split(":")[0]
+        name = (site.split("/extensions/")[1].split("/")[0] if "/extensions/" in site
+                else site.rsplit("/", 1)[-1])
+        rows.append((row.mask, row.word, name))
+    return rows
+
+
+def family(insn: int, rows: list[tuple[int, int, str]]) -> str:
+    """The model directory whose `encdec` decodes `insn`, read off the dialect table.
+
+    `V` names the vector family and so on; a word no row decodes is `unmatched`,
+    which a trapping illegal word is. This is how the corpus-green scope is measured
+    rather than read off the corpus's prose: a member that retires a word of a
+    family the curated scalar core does not implement cannot pass on it.
+    """
+    found = sorted({name for mask, word, name in rows if insn & mask == word})
+    return "+".join(found) if found else "unmatched"
 
 
 def _spread(positions: list[int], count: int) -> list[int]:
@@ -589,6 +612,8 @@ def cmd_carry(args: argparse.Namespace) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     lock = env.hold_lock(out_dir / "carry.log", "a frame-carrying run")
     tally = _Carry()
+    rows = family_rows()
+    seen: dict[int, str] = {}
     try:
         for member in members:
             tally.members += 1
@@ -601,6 +626,11 @@ def cmd_carry(args: argparse.Namespace) -> int:
             retires, refusals = rtltrace.carry(golden)
             decoded = rtltrace.decode(rtltrace.encode(retires))
             result = rtltrace.compare_decoded(golden, decoded, elided)
+            for insn in {r.packet.insn for r in retires}:
+                if insn not in seen:
+                    seen[insn] = family(insn, rows)
+            for name in sorted({seen[r.packet.insn] for r in retires}):
+                tally.families.setdefault(name, []).append(member.name)
             tally.retirements += len(retires)
             tally.records += len(golden)
             tally.elided = rvfi.Elided(
@@ -644,6 +674,12 @@ def cmd_carry(args: argparse.Namespace) -> int:
         if count:
             words = ", ".join(f"{w:08X}" for w in sorted(tally.words.get(reason, set())))
             print(f"refused          {reason}: {count} ({what}); words {words}")
+    # Which model family each member retires words of, so the scope a scalar core can
+    # pass is measured: a family every member retires is named with its count alone.
+    ran = tally.members - len(tally.golden)
+    for name, holders in sorted(tally.families.items()):
+        who = "" if len(holders) == ran else f": {', '.join(holders)}"
+        print(f"family {name:<11} retired by {len(holders)} member(s){who}")
     for seed in rtltrace.SEEDS:
         killed = tally.killed.get(seed.name, 0)
         stillborn = tally.stillborn.get(seed.name, 0)
