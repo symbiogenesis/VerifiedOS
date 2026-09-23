@@ -63,6 +63,20 @@ true
 
 The two `Compute` lines are the check count and the answer *inside* the kernel, so a run reports the same verdict twice, once by conversion and once through the compiled pipeline, and a disagreement between them is the finding this staging exists to produce. **A green line is only worth having if a red one is reachable**, so the run is repeated over a source seeded to answer `false`: `sed 's/(upto 31)./(upto 32)./' ipc_oracle.v` widens one mask family past the one mask that is the frozen surface, and the emitted module prints `false` and exits non-zero. No `run.py` command reaches any of this, which is what the [checklist's conventions](../../docs/implementation/implementation-checklist.md) mean by the label naming a validator the entry point does not carry.
 
+## The purecap counterpart: `ipc_oracle.c` (M1.2f)
+
+[ipc_oracle.c](ipc_oracle.c) is the same 84-check battery written GC-free in the [selected scalar C profile](../../docs/implementation/contracts/compiler-source-values.md), check for check in `ipc_oracle.v`'s order, for M1.2f's component-level differential. It is a hand-written refinement and not an extraction: the inductives are integer codes, lists are caller-owned arrays, every function-valued argument is defunctionalized into a code, and structural recursion is a loop. `main` returns 0 when every check holds and otherwise the first failing check's number. `run.py compiler-diff component` lowers it through the contained backend, runs it on the golden emulator under a harness that prints `true` or `false` as `run_demo.mjs` does, and compares the two sides under one declared encoding:
+
+```console
+$ python3 tools/run.py compiler-diff component \
+    --wasm /root/wasm-stage/ipc_oracle.ipc_oracle.wasm --c tools/wasm-oracle/ipc_oracle.c \
+    --ccomp /native/contained/ccomp --ccomp-arg=-conf --ccomp-arg=/native/compcert.ini \
+    --ccomp-arg=-fverifiedos-typed --lane --interp
+AGREE     both sides under vos-component-output/1: verdict 0 and 5 byte(s)
+```
+
+The seeded red line has a C twin: `upto(31, masks)` widened to `upto(32, masks)` in `mask_checks` answers `false` on both sides, and the reference interpreter names check 40 as the first to fail. A change to either file that the other does not mirror is a disagreement this comparison reports; nothing else keeps the two in step, and agreement over the battery is differential evidence rather than a refinement proof.
+
 ## Keeping the VM under a long build
 
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it, and the opam install above is long enough to be that build whichever environment runs it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:

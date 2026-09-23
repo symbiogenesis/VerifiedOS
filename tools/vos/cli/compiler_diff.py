@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""M1.2f's two acceptance loops, prepared ahead of the backend they accept.
+"""M1.2f's two acceptance loops over the contained purecap backend.
 
-    tools/run.py compiler-diff program --ccomp PATH (SOURCE.c ... | --generate N) [--simulator PATH]
+    tools/run.py compiler-diff program --ccomp PATH (SOURCE.c ... | --generate N [--perturb])
+                                       [--interp] [--simulator PATH | --lane]
     tools/run.py compiler-diff component (--wasm MODULE | --host-record FILE)
-                                         (--elf FILE --simulator PATH | --purecap-record FILE)
-    tools/run.py compiler-diff generate --out DIR [--count N] [--seed S]
+                                         (--c SOURCE --ccomp PATH | --elf FILE
+                                          | --purecap-record FILE) [--simulator PATH | --lane]
+    tools/run.py compiler-diff generate --out DIR [--count N] [--seed S] [--perturb]
 
 **The program level** feeds C through `ccomp -S` in a fresh directory, hands the emitted
 stream to the in-tree assembler ([vos/asm.py](../asm.py)) and the image composer
@@ -15,19 +17,25 @@ golden emulator with the invocation `run.py model corpus` makes, asking the two 
 member: the program's own, its HTIF verdict, and the rig's, the digest of its normalized
 commit trace. The compiler is never in the tree: `--ccomp` names an executable outside every
 checkout, which is M1.1a's containment, and the driver records the path and the digest of
-what it found there rather than carrying either.
+what it found there rather than carrying either. `--ccomp-arg` passes the backend's own
+flags, `-fverifiedos-typed` selecting its typed purecap route. `--interp` also runs the
+source through the same compiler's reference interpreter, and an image whose `main`
+returned something else is `source-disagrees`.
 
-**What the pre-backend verdict is.** Stock `ccomp -S` writes lp64d RV64 carrying no
-capability mnemonic (M1.2's measurement), which R-18-002 forbids as a compilation target
-and which the dialect table does not spell. So the stream is scanned before it is
+**The generated campaign** is deterministic in its seed and stays inside the selected
+scalar source profile: pointers through stack memory, struct fields and whole-struct
+copies, calls in both directions, arguments past the eight argument registers, a pointer
+or null chosen on a branch, and more live pointers across calls than registers. Every
+expected constant is computed by the generator. `--perturb` is its negative control: each
+program moves one check's constant off by one and must fail at exactly that check.
+
+**The refusal verdict.** A stream the dialect does not spell is scanned before it is
 assembled, and every mnemonic, directive and section the assembler refuses is reported by
-name and by line of the emitted stream, as the expected verdict ahead of the backend and
-never as an opaque failure. `--expect-refusal` makes that verdict the green one, so the run
-that records the pre-backend state exits 0 and the day a stream assembles is the day the
-expectation moves. Two classes are kept apart because two owners close them: a refused
-*mnemonic* is the backend's to close, and a refused *directive* is the seam between
-CompCert's printer and the assembler's vocabulary, which the driver reports and does not
-translate.
+name and by line of the emitted stream, never as an opaque failure. Stock `ccomp -S`
+writes lp64d RV64, which R-18-002 forbids as a target; `--expect-refusal` makes that
+verdict the green one. A refused *mnemonic* is the backend's to close, and a refused
+*directive* is the seam between CompCert's printer and the assembler's vocabulary, which
+the driver reports and does not translate.
 
 **The harness.** A stream that assembles is wrapped before it is composed: `_start` moves
 the store-side root out of `c1` into the reserved `c4` and derives the stack and the
@@ -44,25 +52,28 @@ It is a test composition; the firmware handoff remains a separate acceptance inp
 **The third reading of the trace** is M1.7's own test that a capability went through
 memory rather than only through the register file: one aligned eight-byte `W` whose tag
 is set, read back by an `R` at the same address with the same value and tag before any
-overlapping write. It is reported beside the digest; an authored assembly stream can
-satisfy this observation without establishing that a purecap backend emitted it.
+overlapping write. It is reported beside the digest; a frame's saved return capability
+satisfies it as well as a program's own pointer store does.
 
 **The component level** holds one Gallina component's host run on the CertiCoq-to-Wasm
 oracle against its purecap run under one declared output encoding: the side's exit
 verdict, which is the Wasm host's process status on one side and the image's HTIF exit
 code on the other, plus the SHA-256 and the length of the bytes the component emitted,
 the runner's standard output on one side and the emulator's terminal log, the HTIF console,
-on the other. Either side is written as a record that the other side's run is later held
-against, and the comparator names the first field that disagrees, or the first byte where
-both sides' bytes are in hand.
+on the other. `--c` lowers the component's C through the backend and runs it under the
+component harness, which reads `main`'s result as the one boolean `run_demo.mjs` reads
+from the Wasm module: it prints `true` or `false` on the HTIF console and exits 0 or 1.
+Either side is written as a record that the other side's run is later held against, the
+report binds the module, source, compiler, stream, image, emulator and profile by digest,
+and the comparator names the first field that disagrees, or the first byte where both
+sides' bytes are in hand.
 
-**What this does not decide, stated rather than implied.** No purecap component exists to
-run before M1.2's backend is integrated, so the component loop's purecap side is a record
-whose producer is still owed; the program loop's harness supplies the selected scalar
-test convention; a green run says this machine and this program agree and never that a
-lowering is correct, R-05-023a's instrument being deferred hardening; and every report
-carries `milestone_acceptance: open` because the cell closes on the integrated backend and
-not on this driver.
+**What this does not decide, stated rather than implied.** A green run says this machine,
+this compiler and these programs agree; it never says a lowering is correct, R-05-023a's
+instrument being deferred hardening. A component's C is a hand-written refinement of its
+Gallina, so agreement is differential evidence over its battery and not a refinement
+proof. Every report carries `milestone_acceptance: open`, because a report is evidence for
+one run and the milestone closes on a reviewed reading of recorded runs.
 """
 
 import argparse
@@ -116,7 +127,8 @@ SOURCES: Final[tuple[str, ...]] = (
 
 # The verdict a program can end in. Listed once, in the order the summary counts them.
 VERDICTS: Final[tuple[str, ...]] = (
-    "ccomp-refused", "dialect-refused", "assembled", "pass", "fail", "trap", "no-verdict")
+    "ccomp-refused", "dialect-refused", "assembled", "pass", "fail", "trap",
+    "source-disagrees", "no-verdict")
 
 MASK64: Final = (1 << 64) - 1
 
@@ -251,11 +263,7 @@ def _defines_main(stream: str) -> bool:
 # The harness, and assembling a stream under it
 # =====================================================================================
 
-PROLOGUE: Final = f"""\
-# The M1.2f driver's harness around an emitted stream. Every authority is derived off the
-# store-side root (R-15-001c). c4 is reserved by the selected scalar ABI; c8, like every
-# allocatable register, can be overwritten by main. Clearing expanded permission bit 0
-# removes globality while retaining root_data_cap's store-local stack shape.
+_SETUP: Final = f"""\
         .text
         .globl _start
 _start:
@@ -272,6 +280,14 @@ __vos_stack_bounds:
         li      t0, __vos_stack_top
         csetaddr csp, csp, t0
         call    main
+"""
+
+PROLOGUE: Final = f"""\
+# The M1.2f driver's harness around an emitted stream. Every authority is derived off the
+# store-side root (R-15-001c). c4 is reserved by the selected scalar ABI; c8, like every
+# allocatable register, can be overwritten by main. Clearing expanded permission bit 0
+# removes globality while retaining root_data_cap's store-local stack shape.
+{_SETUP}\
         beqz    a0, __vos_pass
         andi    gp, a0, 0xFF
         bnez    gp, __vos_fail
@@ -296,6 +312,48 @@ __vos_handler:
 # --- the emitted stream follows ---
 """
 
+# HTIF's terminal device: device 1, command 1, the byte in the payload (the `htif_store`
+# clause of model/model/sys/platform.sail), which the emulator writes to its terminal log.
+HTIF_PUTCHAR: Final = (1 << 56) | (1 << 48)
+
+
+def _put(text: str) -> str:
+    return "".join(f"        li      t0, {HTIF_PUTCHAR | ord(ch):#x}\n"
+                   f"        sd      t0, 0(c31)\n" for ch in text)
+
+
+COMPONENT_PROLOGUE: Final = f"""\
+# The M1.2f driver's component harness: the same setup, then main's result read as one
+# boolean the way tools/wasm-oracle/run_demo.mjs reads the Wasm module's. main returns 0
+# for true; the harness prints true or false on the HTIF console and exits 0 or 1, the
+# host runner's process status for the same answer. A trap exits with 0x100 | mcause
+# and prints nothing.
+{_SETUP}\
+        li      t1, tohost
+        csetaddr c31, c4, t1
+        beqz    a0, __vos_true
+{_put("false" + chr(10))}\
+        li      t0, 3
+        j       __vos_exit
+__vos_true:
+{_put("true" + chr(10))}\
+        li      t0, 1
+__vos_exit:
+        sd      t0, 0(c31)
+__vos_halt:
+        j       __vos_halt
+__vos_handler:
+        csrr    t0, mcause
+        andi    t0, t0, 0xFF
+        ori     t0, t0, 0x100
+        slli    t0, t0, 1
+        ori     t0, t0, 1
+        li      t1, tohost
+        csetaddr c31, c4, t1
+        j       __vos_exit
+# --- the emitted stream follows ---
+"""
+
 EPILOGUE: Final = f"""\
 # --- the emitted stream ends ---
         .data
@@ -308,20 +366,21 @@ __vos_stack:
 __vos_stack_top:
 """
 
-# Where the stream's first line sits in the composite, so a layout-time refusal can be
-# named by the stream's own line.
+# Where the stream's first line sits in the program harness's composite, so a layout-time
+# refusal can be named by the stream's own line.
 STREAM_OFFSET: Final = PROLOGUE.count("\n")
 
 
-def compose(stream: str) -> str:
+def compose(stream: str, prologue: str = PROLOGUE) -> str:
     """The composite the assembler is handed: the harness around the normalized stream."""
     body = normalize(stream)
     if body and not body.endswith("\n"):
         body += "\n"
-    return PROLOGUE + body + EPILOGUE
+    return prologue + body + EPILOGUE
 
 
-def assemble(stream: str, name: str, elf: Path) -> tuple[list[Refusal], int]:
+def assemble(stream: str, name: str, elf: Path,
+             prologue: str = PROLOGUE) -> tuple[list[Refusal], int]:
     """Assemble `stream` under the harness into `elf`.
 
     Returns the refusals found and the image's byte count; the image is written only where
@@ -334,11 +393,11 @@ def assemble(stream: str, name: str, elf: Path) -> tuple[list[Refusal], int]:
         return found, 0
     if not _defines_main(stream):
         return [Refusal("symbol", "main", 0, "the stream defines no `main`")], 0
-    assembler = asm.Assembler(compose(stream), name)
+    assembler = asm.Assembler(compose(stream, prologue), name)
     try:
         sections, symbols, entry = assembler.assemble()
     except AsmError as exc:
-        return [_layout_refusal(exc, stream)], 0
+        return [_layout_refusal(exc, stream, prologue.count("\n"))], 0
     text = sum(len(s.data) for s in sections if s.name == ".text")
     if text > asm.DATA_BASE - asm.TEXT_BASE:
         return [Refusal("layout", ".text", 0,
@@ -348,13 +407,14 @@ def assemble(stream: str, name: str, elf: Path) -> tuple[list[Refusal], int]:
     return [], sum(len(s.data) for s in sections)
 
 
-def _layout_refusal(exc: AsmError, stream: str) -> Refusal:
-    """An assembler diagnostic over the composite, named by the stream's own line."""
+def _layout_refusal(exc: AsmError, stream: str, offset: int) -> Refusal:
+    """An assembler diagnostic over the composite, named by the stream's own line;
+    `offset` is the line count of the harness prologue ahead of the stream."""
     said = str(exc)
     matched = _ASM_ERROR_RE.match(said)
     if matched is None:
         return Refusal("operand", "?", 0, said)
-    number = int(matched.group(2)) - STREAM_OFFSET
+    number = int(matched.group(2)) - offset
     message = matched.group(3)
     lines = normalize(stream).splitlines()
     if 1 <= number <= len(lines):
@@ -516,20 +576,25 @@ def run_image(simulator: list[str], profile: Path, elf: Path, workdir: Path,
 
 
 # =====================================================================================
-# The generator: small FP-free C programs over the capability-through-memory patterns
+# The generator: small FP-free C programs in the selected scalar source profile
 # =====================================================================================
 
 
 @dataclass(frozen=True)
 class Program:
-    """One generated input: its name, the pattern it exercises, its text, and how many
-    checks it carries, each returning its own number from `main` on the corpus's
-    convention that a failure names the check."""
+    """One input: its name, the pattern it exercises, its text, how many checks it
+    carries, and what `main` is expected to return.
+
+    Each check returns its own number from `main` on the corpus's convention that a
+    failure names the check. `expect` is 0 for an ordinary program and, for a perturbed
+    one, the number of the check whose expected constant was moved off by one, so the
+    campaign's negative control names the check it must fail at."""
 
     name: str
     pattern: str
     source: str
     checks: int
+    expect: int = 0
 
 
 class _Draw:
@@ -544,146 +609,394 @@ class _Draw:
         return low + (self.state >> 33) % (high - low + 1)
 
 
-def _pointer(name: str, draw: _Draw) -> Program:
-    """A pointer stored to memory and reloaded through a slot a volatile index selects, so
-    the compiler cannot keep it in a register across the store."""
-    cells = draw.between(3, 6)
-    i = draw.between(0, cells - 1)
-    j = (i + draw.between(1, cells - 1)) % cells
-    a, b, d = draw.between(11, 90), draw.between(1, 9), draw.between(1, 7)
-    source = f"""\
-/* {name}: a pointer stored to memory and reloaded before it is used. */
-static int cells[{cells}];
-static int *slots[2];
-static volatile int pick = 1;
+class _Expect:
+    """The expected constant of each numbered check, one of them moved off by one when
+    the program is the perturbed twin. The draws never depend on the perturbation, so a
+    perturbed campaign differs from its seed's ordinary one in exactly one constant per
+    program."""
 
+    def __init__(self, perturb: int) -> None:
+        self.perturb = perturb
+
+    def __call__(self, check: int, value: int) -> int:
+        return value + (1 if check == self.perturb else 0)
+
+
+# The generated programs stay inside the selected scalar source profile
+# (docs/implementation/contracts/compiler-source-values.md): no global object, whose
+# authority the profile binds only through a composition; no pointer/integer cast; no
+# pointer equality or ordering beyond comparison with null; no recursion; no switch.
+# Every constant a check compares against is computed here, independently of the
+# compiler and of the emulator.
+
+
+def _memory(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+    """Pointers stored to a stack array of pointers, reloaded through an index the
+    program computes, written through, and copied pointer by pointer."""
+    n = draw.between(4, 7)
+    m, c = draw.between(3, 19), draw.between(1, 50)
+    r = draw.between(1, n - 1)
+    t = draw.between(0, n - 1)
+    d = draw.between(1, 9)
+    cells = [i * m + c for i in range(n)]
+    hit = (t + r) % n
+    after = list(cells)
+    after[hit] += d
+    via_copy = after[((t + 1) % n + r) % n]
+    return f"""\
+/* {name}: pointers stored to a stack array, reloaded through a computed index. */
 int main(void)
 {{
-    int *p;
-    cells[{i}] = {a};
-    cells[{j}] = {b};
-    slots[0] = &cells[{j}];
-    slots[1] = &cells[{i}];
-    p = slots[pick];
-    if (*p != {a})
+    long cells[{n}];
+    long *slots[{n}];
+    long *copies[{n}];
+    long *p;
+    long i, k, sum;
+    for (i = 0; i < {n}; i++) {{
+        cells[i] = i * {m} + {c};
+        slots[i] = &cells[(i + {r}) % {n}];
+    }}
+    k = 0;
+    for (i = 0; i < {n}; i++)
+        if (cells[i] == {cells[t]})
+            k = i;
+    p = slots[k];
+    if (*p != {e(1, cells[hit])})
         return 1;
     *p = *p + {d};
-    if (cells[{i}] != {a + d})
+    if (cells[{hit}] != {e(2, after[hit])})
         return 2;
-    if (slots[1 - pick] != &cells[{j}])
+    for (i = 0; i < {n}; i++)
+        copies[i] = slots[i];
+    if (*copies[(k + 1) % {n}] != {e(3, via_copy)})
         return 3;
-    if (*slots[0] != {b})
+    sum = 0;
+    for (i = 0; i < {n}; i++)
+        sum = sum + *copies[i];
+    if (sum != {e(4, sum(after))})
         return 4;
     return 0;
 }}
-"""
-    return Program(name, "pointer", source, 4)
+""", 4
 
 
-def _struct(name: str, draw: _Draw) -> Program:
-    """A pointer held in a struct field and reached through the struct in memory."""
-    t, g, v, d = (draw.between(1, 40), draw.between(1, 9), draw.between(100, 900),
-                  draw.between(1, 9))
-    source = f"""\
-/* {name}: a pointer held in a struct field, reached through the struct in memory. */
-struct node {{
+def _struct(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+    """Two pointers held in struct fields beside mixed-width scalars, the struct copied
+    whole and reached through a pointer to the copy."""
+    a, b = draw.between(2, 90), draw.between(1, 60)
+    g, s = draw.between(1, 40), draw.between(1, 300)
+    v, k, d = draw.between(100, 900), draw.between(2, 9), draw.between(1, 9)
+    return f"""\
+/* {name}: pointers in struct fields, the struct copied and reached through memory. */
+struct rec {{
     int tag;
-    int *ref;
+    long *first;
+    short small;
     long value;
+    long *second;
 }};
 
-static int target = {t};
-static struct node box;
-static volatile int which = 0;
+static long reach(struct rec *q, long k)
+{{
+    return *q->first * k + *q->second + q->value + q->small;
+}}
 
 int main(void)
 {{
-    struct node *n = &box;
-    int *r;
-    box.tag = {g};
-    box.ref = &target;
-    box.value = {v};
-    r = n->ref;
-    if (which != 0)
+    long a = {a};
+    long b = {b};
+    struct rec src;
+    struct rec dst;
+    src.tag = {g};
+    src.first = &a;
+    src.small = {s};
+    src.value = {v};
+    src.second = &b;
+    dst = src;
+    if (reach(&dst, {k}) != {e(1, a * k + b + v + s)})
         return 1;
-    if (*r != {t})
+    *dst.second = *dst.second + {d};
+    if (b != {e(2, b + d)})
         return 2;
-    *r += {d};
-    if (target != {t + d})
+    src.first = &b;
+    if (*dst.first + *src.first != {e(3, a + b + d)})
         return 3;
-    if (n->value + n->tag != {v + g})
+    if (dst.tag + dst.small != {e(4, g + s)})
         return 4;
     return 0;
 }}
-"""
-    return Program(name, "struct", source, 4)
+""", 4
 
 
-def _call(name: str, draw: _Draw) -> Program:
-    """A pointer crossing a call in both directions: passed in, and returned."""
-    n, k, s, d, d2 = (draw.between(4, 8), draw.between(2, 5), draw.between(10, 50),
-                      draw.between(1, 9), draw.between(1, 9))
-    ix = draw.between(1, n - 1)
-    source = f"""\
-/* {name}: a pointer crossing a call in both directions. */
-static int store;
-
-static int *pick_slot(int *base, int index)
+def _call(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+    """A pointer crossing calls in both directions, and live across a nested call."""
+    n = draw.between(5, 9)
+    k, c = draw.between(2, 11), draw.between(0, 40)
+    ix = draw.between(1, n - 2)
+    j = draw.between(1, n - 1 - ix)
+    d = draw.between(1, 9)
+    arena = [i * k + c for i in range(n)]
+    v = arena[ix]
+    return f"""\
+/* {name}: a pointer passed in, returned, and live across a nested call. */
+static long *at(long *base, long index)
 {{
     return base + index;
 }}
 
-static int bump(int *p, int by)
+static long bump(long *p, long by)
 {{
-    *p += by;
+    *p = *p + by;
+    return *p;
+}}
+
+static long twice(long *p, long by)
+{{
+    long first = bump(p, by);
+    return first + bump(p, by);
+}}
+
+int main(void)
+{{
+    long arena[{n}];
+    long *q;
+    long i;
+    for (i = 0; i < {n}; i++)
+        arena[i] = i * {k} + {c};
+    q = at(arena, {ix});
+    if (*q != {e(1, v)})
+        return 1;
+    if (twice(q, {d}) != {e(2, 2 * v + 3 * d)})
+        return 2;
+    if (arena[{ix}] != {e(3, v + 2 * d)})
+        return 3;
+    if (*at(q, {j}) != {e(4, arena[ix + j])})
+        return 4;
+    return 0;
+}}
+""", 4
+
+
+def _stack(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+    """Pointer arguments past the eight argument registers, in the caller's outgoing
+    area, beside one in a register."""
+    total = draw.between(10, 12)
+    in_reg = draw.between(0, 7)
+    first_stack = draw.between(8, total - 2)
+    second_stack = draw.between(first_stack + 1, total - 1)
+    x, y = draw.between(1, 70), draw.between(1, 70)
+    words = {i: draw.between(1, 99) for i in range(total)
+             if i not in (in_reg, first_stack, second_stack)}
+    low, high = min(words), max(words)
+    minus = sorted(words)[1]
+    params, args = [], []
+    for i in range(total):
+        if i in (in_reg, first_stack, second_stack):
+            params.append(f"long *p{i}")
+            args.append({in_reg: "&x", first_stack: "&y", second_stack: "&z"}[i])
+        else:
+            params.append(f"long a{i}")
+            args.append(str(words[i]))
+    z = y + x + words[low] + words[high]
+    return f"""\
+/* {name}: pointer arguments beyond the argument registers. */
+static long gather({", ".join(params)})
+{{
+    *p{second_stack} = *p{first_stack} + *p{in_reg} + a{low} + a{high};
+    return *p{second_stack} - a{minus};
+}}
+
+int main(void)
+{{
+    long x = {x};
+    long y = {y};
+    long z = 0;
+    if (gather({", ".join(args)}) != {e(1, z - words[minus])})
+        return 1;
+    if (z != {e(2, z)})
+        return 2;
+    if (x + y != {e(3, x + y)})
+        return 3;
+    return 0;
+}}
+""", 3
+
+
+def _nullable(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+    """A pointer or null chosen on a branch and returned, stored, tested against null
+    and dereferenced where it is not null."""
+    x, d = draw.between(1, 90), draw.between(1, 9)
+    p = draw.between(2, 3)
+    m = draw.between(1, p - 1)
+    o = draw.between(0, p - 1)
+    n = draw.between(p + 1, 8)
+    flags = [(i * m + o) % p for i in range(n)]
+    live = sum(1 for f in flags if f)
+    first_live = next(i for i, f in enumerate(flags) if f)
+    choose = ("""\
+static long *choose(long *p, long flag)
+{
+    if (flag)
+        return p;
+    return 0;
+}
+""" if draw.between(0, 1) else """\
+static long *choose(long *p, long flag)
+{
+    long *r = 0;
+    if (flag)
+        r = p;
+    return r;
+}
+""")
+    return f"""\
+/* {name}: a pointer or null by branch, stored, and tested against null. */
+{choose}
+int main(void)
+{{
+    long x = {x};
+    long *hold[{n}];
+    long i, live, sum;
+    for (i = 0; i < {n}; i++)
+        hold[i] = choose(&x, (i * {m} + {o}) % {p});
+    live = 0;
+    sum = 0;
+    for (i = 0; i < {n}; i++)
+        if (hold[i] != 0) {{
+            live = live + 1;
+            sum = sum + *hold[i];
+        }}
+    if (live != {e(1, live)})
+        return 1;
+    if (sum != {e(2, live * x)})
+        return 2;
+    x = x + {d};
+    if (*hold[{first_live}] != {e(3, x + d)})
+        return 3;
+    return 0;
+}}
+""", 3
+
+
+def _spill(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+    """More pointers live across calls than there are registers to keep them in."""
+    k = draw.between(10, 14)
+    m, c = draw.between(1, 13), draw.between(0, 30)
+    r = draw.between(1, k - 1)
+    u = draw.between(0, k - 1)
+    w = (u + draw.between(1, k - 1)) % k
+    v, x = draw.between(1, 50), draw.between(1, 50)
+    a = [i * m + c for i in range(k)]
+    target = [(i + r) % k for i in range(k)]
+    after = list(a)
+    after[target[u]] += v
+    first = after[target[u]]
+    after[target[w]] += x
+    second = after[target[w]]
+    names = [f"p{i}" for i in range(k)]
+    pointers = ", ".join("*" + p for p in names)
+    loads = " + ".join("*" + p for p in names)
+    bind = "".join(f"    {p} = &a[{target[i]}];\n" for i, p in enumerate(names))
+    return f"""\
+/* {name}: pointers live across calls beyond the register file's reach. */
+static long touch(long *p, long v)
+{{
+    *p = *p + v;
     return *p;
 }}
 
 int main(void)
 {{
-    int arena[{n}];
-    int *q;
-    int i;
-    for (i = 0; i < {n}; i++)
-        arena[i] = i * {k};
-    store = {s};
-    if (bump(&store, {d}) != {s + d})
+    long a[{k}];
+    long {pointers};
+    long i, s;
+    for (i = 0; i < {k}; i++)
+        a[i] = i * {m} + {c};
+{bind}    s = touch(p{u}, {v});
+    s = s + touch(p{w}, {x});
+    s = s + {loads};
+    if (s != {e(1, first + second + sum(after))})
         return 1;
-    if (store != {s + d})
+    if (a[{target[u]}] + a[{target[w]}] != {e(2, after[target[u]] + after[target[w]])})
         return 2;
-    q = pick_slot(arena, {ix});
-    if (*q != {ix * k})
-        return 3;
-    if (bump(q, {d2}) != {ix * k + d2})
-        return 4;
-    if (arena[{ix}] != {ix * k + d2})
-        return 5;
     return 0;
 }}
-"""
-    return Program(name, "call", source, 5)
+""", 2
 
 
-PATTERNS: Final = (_pointer, _struct, _call)
+PATTERNS: Final = (_memory, _struct, _call, _stack, _nullable, _spill)
+
+# Each pattern's check count, fixed so that a perturbed twin can name its check before
+# the pattern draws anything.
+CHECKS: Final[dict[str, int]] = {"memory": 4, "struct": 4, "call": 4, "stack": 3,
+                                 "nullable": 3, "spill": 2}
 
 
-def programs(seed: int, count: int) -> list[Program]:
-    """`count` programs cycling over the three patterns, every constant drawn from `seed`.
+def programs(seed: int, count: int, perturb: bool = False) -> list[Program]:
+    """`count` programs cycling over the patterns, every constant drawn from `seed`.
 
     Deterministic by construction: the same seed and count name the same texts, so a
     campaign a completion note quotes can be regenerated and a digest held against it.
+    With `perturb`, program `k` moves check `k // len(PATTERNS) % checks + 1` off by one
+    and expects `main` to return that number; the draws are the ordinary campaign's.
     """
     draw = _Draw(seed)
     out: list[Program] = []
     for k in range(count):
         make = PATTERNS[k % len(PATTERNS)]
-        out.append(make(f"g{seed}-{k:02d}-{make.__name__.lstrip('_')}", draw))
+        pattern = make.__name__.lstrip("_")
+        chosen = k // len(PATTERNS) % CHECKS[pattern] + 1 if perturb else 0
+        name = f"g{seed}-{k:02d}-{pattern}" + (f"-p{chosen}" if chosen else "")
+        source, checks = make(name, draw, _Expect(chosen))
+        if checks != CHECKS[pattern]:
+            raise AssertionError(f"{pattern} carries {checks} checks, not {CHECKS[pattern]}")
+        out.append(Program(name, pattern, source, checks, chosen))
     return out
 
 
 # =====================================================================================
 # The program-level loop over one input
 # =====================================================================================
+
+
+@dataclass(frozen=True)
+class Interpreted:
+    """One `ccomp -interp` run: CompCert's reference interpreter for the source, which is
+    the program-level loop's source-side reading of what `main` returns."""
+
+    argv: tuple[str, ...]
+    exit_code: int
+    code: int | None
+    said: str
+
+
+_TERMINATED_RE = re.compile(
+    r"^Time \d+: program terminated \(exit code = (-?\d+)\)\s*$", re.MULTILINE)
+
+
+def interpret_c(ccomp: list[str], source: Path, fresh: Path,
+                timeout: int = COMPILE_TIMEOUT) -> Interpreted:
+    """Run the same compiler's `-interp` over one source in `fresh`.
+
+    The reading is the exit code the interpreter reports for `main`, and only where it
+    reports exactly one termination; a stuck state, an undefined behaviour the
+    interpreter detects, a timeout or a second termination line leave it `None`.
+    """
+    fresh.mkdir(parents=True, exist_ok=True)
+    copied = fresh / source.name
+    shutil.copyfile(source, copied)
+    argv = [*ccomp, "-interp", copied.name]
+    try:
+        done = subprocess.run(argv, cwd=fresh, capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        return Interpreted(tuple(argv), -1, None, f"no exit within {timeout}s")
+    except OSError as err:
+        return Interpreted(tuple(argv), -1, None, f"could not run: {err}")
+    said = done.stdout + done.stderr
+    ended = _TERMINATED_RE.findall(done.stdout)
+    code = int(ended[0]) if len(ended) == 1 else None
+    return Interpreted(tuple(argv), done.returncode, code, said.strip()[-600:])
 
 
 @dataclass(frozen=True)
@@ -700,36 +1013,73 @@ class Report:
     ran: Ran | None
     verdict: str
     detail: str
+    expect: int = 0
+    interpreted: Interpreted | None = None
+
+
+def target_code(ran: Ran | None) -> int | None:
+    """What the image says `main` returned: 0 on success, the code below `TRAP_BASE`
+    on a failed check, and nothing for a trap or a run with no verdict."""
+    if ran is None:
+        return None
+    if ran.verdict == "pass":
+        return 0
+    if ran.verdict == "fail" and ran.code is not None and ran.code < TRAP_BASE:
+        return ran.code
+    return None
+
+
+def as_expected(report: Report) -> bool:
+    """Whether the program ended where its source says it ends: every check held for an
+    ordinary program, and the one moved check failed for a perturbed twin."""
+    if report.expect == 0:
+        return report.verdict == "pass"
+    return report.verdict == "fail" and target_code(report.ran) == report.expect
 
 
 def run_program(program: Program, ccomp: list[str], workdir: Path,
                 simulator: list[str] | None, profile: Path, waits: str, *,
                 compile_timeout: int = COMPILE_TIMEOUT, run_timeout: int = RUN_TIMEOUT,
-                inst_limit: int = INST_LIMIT) -> Report:
+                inst_limit: int = INST_LIMIT, interp: bool = False) -> Report:
     """Compile, scan, assemble, and run one program, stopping at the first thing that
-    does not go through and saying which it was."""
+    does not go through and saying which it was.
+
+    With `interp`, the same compiler's reference interpreter also runs the source, and
+    an image whose `main` returned something other than what the interpreter reports is
+    `source-disagrees` rather than a pass or a failure.
+    """
     source = workdir / f"{program.name}.c"
     source.write_text(program.source, encoding="utf-8", newline="\n")
     digest = _sha256(source.read_bytes())
+    interpreted = (interpret_c(ccomp, source, workdir / f"{program.name}.interp",
+                               compile_timeout) if interp else None)
+
+    def report(compiled: Compiled | None, found: tuple[Refusal, ...], size: int,
+               ran: Ran | None, verdict: str, detail: str) -> Report:
+        return Report(program.name, program.pattern, digest, program.checks, compiled,
+                      found, size, ran, verdict, detail, program.expect, interpreted)
+
     compiled = compile_c(ccomp, source, workdir / program.name, compile_timeout)
     if compiled.stream is None:
-        return Report(program.name, program.pattern, digest, program.checks, compiled, (),
-                      0, None, "ccomp-refused",
+        return report(compiled, (), 0, None, "ccomp-refused",
                       f"ccomp exited {compiled.exit_code}: {compiled.said}")
     elf = workdir / f"{program.name}.elf"
     found, size = assemble(compiled.stream, program.name, elf)
     if found:
         mnemonics = sum(1 for r in found if r.kind == "mnemonic")
-        return Report(program.name, program.pattern, digest, program.checks, compiled,
-                      tuple(found), 0, None, "dialect-refused",
+        return report(compiled, tuple(found), 0, None, "dialect-refused",
                       f"{len(found)} refusal(s) the dialect does not assemble, "
                       f"{mnemonics} of them mnemonics")
     if simulator is None:
-        return Report(program.name, program.pattern, digest, program.checks, compiled, (),
-                      size, None, "assembled", f"{size} bytes of image; {waits}")
+        return report(compiled, (), size, None, "assembled",
+                      f"{size} bytes of image; {waits}")
     ran = run_image(simulator, profile, elf, workdir, run_timeout, inst_limit)
-    return Report(program.name, program.pattern, digest, program.checks, compiled, (),
-                  size, ran, ran.verdict, ran.detail)
+    target = target_code(ran)
+    if interpreted is not None and target is not None and interpreted.code != target:
+        return report(compiled, (), size, ran, "source-disagrees",
+                      f"the image's main returned {target}; the interpreter reports "
+                      f"{interpreted.code}")
+    return report(compiled, (), size, ran, ran.verdict, ran.detail)
 
 
 def _refusal_json(refusal: Refusal) -> Json:
@@ -758,6 +1108,10 @@ def report_json(report: Report) -> Json:
         "refusals": [_refusal_json(r) for r in report.refusals],
         "image_bytes": report.image_bytes,
         "run": None if report.ran is None else _ran_json(report.ran),
+        "expect": report.expect,
+        "interp": None if report.interpreted is None else {
+            "argv": list(report.interpreted.argv), "exit": report.interpreted.exit_code,
+            "code": report.interpreted.code},
     }
 
 
@@ -942,6 +1296,30 @@ def purecap_output(elf: Path, simulator: list[str], profile: Path, workdir: Path
     return output_of("purecap", ran.code, ran.emitted, produced), ran.emitted
 
 
+@dataclass(frozen=True)
+class Lowered:
+    """A component's C through the backend and the assembler, stage by stage."""
+
+    compiled: Compiled
+    refusals: tuple[Refusal, ...]
+    elf_sha256: str | None
+
+
+def lower_component(source: Path, ccomp: list[str], workdir: Path,
+                    timeout: int = COMPILE_TIMEOUT) -> tuple[Lowered, Path | None]:
+    """Compile one component with `ccomp -S` in a fresh directory and assemble it under
+    the component harness; the image is returned only where every stage went through."""
+    compiled = compile_c(ccomp, source, workdir / source.stem, timeout)
+    if compiled.stream is None:
+        return Lowered(compiled, (), None), None
+    elf = workdir / f"{source.stem}.elf"
+    elf.unlink(missing_ok=True)
+    found, _ = assemble(compiled.stream, source.stem, elf, COMPONENT_PROLOGUE)
+    if found:
+        return Lowered(compiled, tuple(found), None), None
+    return Lowered(compiled, (), _sha256(elf.read_bytes())), elf
+
+
 # =====================================================================================
 # The command
 # =====================================================================================
@@ -977,6 +1355,11 @@ def _simulator(args: argparse.Namespace) -> tuple[list[str] | None, str]:
     return None, "the emulator half waits: pass --simulator PATH or --lane"
 
 
+def _file_identity(path: Path) -> dict[str, Json]:
+    return {"path": str(path),
+            "sha256": _sha256(path.read_bytes()) if path.is_file() else None}
+
+
 def _inputs(args: argparse.Namespace) -> list[Program]:
     """The programs to run: the sources named, then the generated campaign."""
     out: list[Program] = []
@@ -985,7 +1368,7 @@ def _inputs(args: argparse.Namespace) -> list[Program]:
         text = path.read_text(encoding="utf-8")
         out.append(Program(path.stem, "given", text, 0))
     if args.generate:
-        out += programs(args.seed, args.generate)
+        out += programs(args.seed, args.generate, args.perturb)
     if len({program.name for program in out}) != len(out):
         raise ValueError("program names must be unique, including generated programs")
     return out
@@ -993,19 +1376,22 @@ def _inputs(args: argparse.Namespace) -> list[Program]:
 
 def _print_report(report: Report) -> None:
     label = report.verdict.upper()
-    print(f"{label:<15} {report.name}: {report.detail}")
+    print(f"{label:<16} {report.name}: {report.detail}")
     if report.compiled is not None and report.verdict != "ccomp-refused":
-        print(f"{'':<15}   ccomp exited 0 with {report.compiled.lines} line(s), "
+        print(f"{'':<16}   ccomp exited 0 with {report.compiled.lines} line(s), "
               f"sha256 {report.compiled.stream_sha256[:16]}")
     for kind, name, lines in grouped(report.refusals):
         where = ", ".join(str(n) for n in lines if n) or "(the stream)"
         note = next((r.detail for r in report.refusals
                      if r.kind == kind and r.name == name and r.detail), "")
-        print(f"{'':<15}   {kind:<9} {name:<16} line(s) {where}"
+        print(f"{'':<16}   {kind:<9} {name:<16} line(s) {where}"
               + (f": {note}" if note else ""))
     if report.ran is not None:
-        print(f"{'':<15}   {report.ran.records} records, digest {report.ran.digest}, "
+        print(f"{'':<16}   {report.ran.records} records, digest {report.ran.digest}, "
               f"capability round trip: {'yes' if report.ran.cap_roundtrip else 'no'}")
+    if report.interpreted is not None:
+        print(f"{'':<16}   interpreter: main returned {report.interpreted.code}"
+              + (f", expected {report.expect}" if report.expect else ""))
 
 
 def _program(args: argparse.Namespace) -> int:
@@ -1037,12 +1423,12 @@ def _program(args: argparse.Namespace) -> int:
         workdir.mkdir(parents=True, exist_ok=True)
         reports = [run_program(program, ccomp, workdir, simulator, profile, waits,
                                compile_timeout=args.timeout, run_timeout=args.run_timeout,
-                               inst_limit=args.inst_limit)
+                               inst_limit=args.inst_limit, interp=args.interp)
                    for program in inputs]
 
     differs = disagreements(reports, against) if against is not None else []
     tally = {verdict: sum(1 for r in reports if r.verdict == verdict) for verdict in VERDICTS}
-    closed = all(r.verdict == "pass" for r in reports) and not differs
+    closed = all(as_expected(r) for r in reports) and not differs
     expected = (all(r.verdict == "dialect-refused" for r in reports) and not differs
                 if args.expect_refusal else closed)
 
@@ -1056,7 +1442,13 @@ def _program(args: argparse.Namespace) -> int:
             "sources_sha256": _sources(root),
             "ccomp": _executable_identity(args.ccomp),
             "simulator": None if simulator is None else _executable_identity(simulator[0]),
-            "expect": "refusal" if args.expect_refusal else "pass",
+            "profile": _file_identity(profile),
+            "campaign": {"seed": args.seed, "generated": args.generate,
+                         "perturb": args.perturb,
+                         "given": [p.name for p in inputs if p.pattern == "given"]},
+            "interp": args.interp,
+            "expect": ("refusal" if args.expect_refusal
+                       else "perturbed" if args.perturb else "pass"),
             "programs": [report_json(r) for r in reports],
             "summary": summary,
             "against": recorded,
@@ -1068,20 +1460,22 @@ def _program(args: argparse.Namespace) -> int:
     for report in reports:
         _print_report(report)
     for line in differs:
-        print(f"{'DISAGREE':<15} {line}")
+        print(f"{'DISAGREE':<16} {line}")
     counts = " ".join(f"{verdict}={tally[verdict]}" for verdict in VERDICTS)
     print(f"TOTAL {counts} of {len(reports)}"
           + (f"; {len(differs)} disagreement(s) with the recorded run" if against else "")
           + (f"; {waits}" if simulator is None else ""))
     if closed:
-        print("every program answered both questions; compiler campaign acceptance stays "
-              "open until the integrated backend runs this loop")
+        print(("every perturbed program failed at its moved check"
+               if args.perturb else "every program answered both questions")
+              + ("; the source interpreter agreed with every image" if args.interp else "")
+              + "; a run is evidence for this campaign and decides no milestone alone")
     elif args.expect_refusal:
         print("the refusal is the expected verdict ahead of the backend (R-18-002): "
               + ("every stream was refused" if expected
                  else "the refusals or the recorded comparison did not meet the expectation"))
     else:
-        print("the acceptance loop is open: not every program answered both questions")
+        print("the acceptance loop is open: not every program ended where its source says")
     return 0 if expected else 1
 
 
@@ -1091,14 +1485,55 @@ def _component(args: argparse.Namespace) -> int:
     purecap: Output | None = None
     host_bytes: bytes | None = None
     purecap_bytes: bytes | None = None
+    bindings: dict[str, Json] = {}
+    interpreted: Interpreted | None = None
+    simulator: list[str] | None = None
+    if args.c and not args.purecap_record:
+        simulator, waits = _simulator(args)
+        refused = ("--c needs --ccomp, the contained compiler" if not args.ccomp
+                   else waits if simulator is None else "")
+        if refused:
+            print(f"FAIL compiler-diff component: {refused}", file=sys.stderr)
+            return 2
     try:
         if args.host_record:
             host = read_output(Path(args.host_record), "wasm-host")
         elif args.wasm:
             runner = list(args.runner) if args.runner else list(NODE_RUNNER)
+            bindings["wasm_module"] = _file_identity(Path(args.wasm))
             host, host_bytes = wasm_output(Path(args.wasm), runner, root, args.timeout)
         if args.purecap_record:
             purecap = read_output(Path(args.purecap_record), "purecap")
+        elif args.c and simulator is not None:
+            source, profile = Path(args.c), _profile(args, root)
+            ccomp = [str(args.ccomp), *args.ccomp_arg]
+            with tempfile.TemporaryDirectory(prefix="vos-compiler-diff-") as scratch:
+                workdir = Path(args.keep) if args.keep else Path(scratch)
+                workdir.mkdir(parents=True, exist_ok=True)
+                lowered, elf = lower_component(source, ccomp, workdir, args.compile_timeout)
+                if elf is None:
+                    stage = (f"ccomp exited {lowered.compiled.exit_code}: "
+                             f"{lowered.compiled.said}" if lowered.compiled.stream is None
+                             else "the assembler refused " + "; ".join(
+                                 f"{r.kind} {r.name} line {r.line}" for r in lowered.refusals))
+                    purecap = output_of("purecap", None, b"", f"lowering stopped: {stage}")
+                else:
+                    purecap, purecap_bytes = purecap_output(
+                        elf, simulator, profile, workdir, args.timeout, args.inst_limit)
+                if args.interp:
+                    interpreted = interpret_c(ccomp, source,
+                                              workdir / f"{source.stem}.interp",
+                                              args.compile_timeout)
+            bindings.update({
+                "c_source": _file_identity(source),
+                "ccomp": _executable_identity(args.ccomp),
+                "ccomp_args": list(args.ccomp_arg),
+                "stream_sha256": lowered.compiled.stream_sha256 or None,
+                "refusals": [_refusal_json(r) for r in lowered.refusals],
+                "elf_sha256": lowered.elf_sha256,
+                "simulator": _executable_identity(simulator[0]),
+                "profile": _file_identity(profile),
+            })
         elif args.elf and args.simulator:
             with tempfile.TemporaryDirectory(prefix="vos-compiler-diff-") as scratch:
                 purecap, purecap_bytes = purecap_output(
@@ -1110,8 +1545,8 @@ def _component(args: argparse.Namespace) -> int:
         print(f"FAIL compiler-diff component: {err}", file=sys.stderr)
         return 2
     if host is None and purecap is None:
-        print("nothing to compare: name a Wasm module or a host record, and an image with "
-              "a simulator or a purecap record", file=sys.stderr)
+        print("nothing to compare: name a Wasm module or a host record, and a C source or "
+              "an image with a simulator, or a purecap record", file=sys.stderr)
         return 2
 
     for spelled, side in ((args.write_host, host), (args.write_purecap, purecap)):
@@ -1121,37 +1556,58 @@ def _component(args: argparse.Namespace) -> int:
     verdict = (compare_outputs(host, purecap, host_bytes, purecap_bytes)
                if host is not None and purecap is not None else None)
     incomplete = any(side is not None and side.verdict is None for side in (host, purecap))
+    # The interpreter's reading of the same C, as the harness would print it: 0 is true.
+    source_verdict = (None if interpreted is None or interpreted.code is None
+                      else 0 if interpreted.code == 0 else 1)
+    source_differs = interpreted is not None and (
+        purecap is None or source_verdict is None or source_verdict != purecap.verdict)
+    if interpreted is not None:
+        bindings["interp"] = {"argv": list(interpreted.argv), "exit": interpreted.exit_code,
+                              "code": interpreted.code, "verdict": source_verdict}
+    failed = verdict is not None or incomplete or source_differs
 
     if args.json:
         payload: dict[str, Json] = {
             "scope": "component-level", "milestone_acceptance": "open",
             "encoding": ENCODING, "sources_sha256": _sources(root),
+            "bindings": bindings,
             "host": None if host is None else host.to_json(),
             "purecap": None if purecap is None else purecap.to_json(),
             "compared": host is not None and purecap is not None,
             "disagreement": None if verdict is None else verdict.line(),
+            "source_disagrees": source_differs,
         }
         print(json.dumps(payload, indent=2))
-        return 1 if verdict is not None or incomplete else 0
+        return 1 if failed else 0
 
     for side in (host, purecap):
         if side is not None:
             print(f"{side.side.upper():<9} verdict {side.verdict}, {side.output_length} "
                   f"byte(s), sha256 {side.output_sha256[:16]}, head {side.output_head!r}")
             print(f"{'':<9} produced by: {side.produced_by}")
+    for key in ("wasm_module", "c_source", "ccomp", "simulator", "profile"):
+        if isinstance(bindings.get(key), dict):
+            bound = cast("dict[str, Json]", bindings[key])
+            print(f"{'BOUND':<9} {key} {bound.get('path')} sha256 {bound.get('sha256')}")
+    for key in ("stream_sha256", "elf_sha256"):
+        if key in bindings:
+            print(f"{'BOUND':<9} {key} {bindings[key]}")
+    if interpreted is not None:
+        print(f"{'SOURCE':<9} the interpreter reports main returned {interpreted.code}"
+              + (": it disagrees with the image" if source_differs else ""))
     if host is None or purecap is None:
         if incomplete:
             print("FAIL      the requested side did not produce an exit verdict")
             return 1
         missing = "purecap" if purecap is None else "host"
-        print(f"WAITS     the {missing} side: no record and no run was named for it; the "
-              f"purecap side's producer is M1.2's integrated backend")
-        return 0
-    if verdict is None:
+        print(f"WAITS     the {missing} side: no record and no run was named for it")
+        return 1 if source_differs else 0
+    if verdict is None and not source_differs:
         print(f"AGREE     both sides under {ENCODING}: verdict {host.verdict} and "
               f"{host.output_length} byte(s)")
         return 0
-    print(f"DISAGREE  {verdict.line()}")
+    if verdict is not None:
+        print(f"DISAGREE  {verdict.line()}")
     return 1
 
 
@@ -1159,13 +1615,15 @@ def _generate(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     rows: list[Json] = []
-    for program in programs(args.seed, args.count):
+    for program in programs(args.seed, args.count, args.perturb):
         path = out / f"{program.name}.c"
         path.write_text(program.source, encoding="utf-8", newline="\n")
         rows.append({"name": program.name, "pattern": program.pattern,
-                     "checks": program.checks, "sha256": _sha256(path.read_bytes())})
+                     "checks": program.checks, "expect": program.expect,
+                     "sha256": _sha256(path.read_bytes())})
         print(f"WROTE   {path} ({program.pattern}, {program.checks} checks)")
-    manifest: dict[str, Json] = {"seed": args.seed, "count": args.count, "programs": rows}
+    manifest: dict[str, Json] = {"seed": args.seed, "count": args.count,
+                                 "perturb": args.perturb, "programs": rows}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n",
                                        encoding="utf-8", newline="\n")
     print(f"TOTAL   {len(rows)} program(s) from seed {args.seed}, FP-free, over "
@@ -1178,18 +1636,16 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("source", nargs="*", help="C sources to feed through the loop")
         sub.add_argument("--ccomp", required=True, metavar="PATH",
                          help="the contained ccomp executable, outside every checkout")
-        sub.add_argument("--ccomp-arg", action="append", default=[], metavar="ARG",
-                         help="pass one compiler argument unchanged (repeatable; use "
-                              "--ccomp-arg=-flag for an option)")
         sub.add_argument("--generate", type=int, default=0, metavar="N",
                          help="also run N generated programs (see `generate`)")
         sub.add_argument("--seed", type=int, default=1, help="the generator's seed")
+        sub.add_argument("--perturb", action="store_true",
+                         help="the negative control: each generated program moves one "
+                              "check's constant and must fail at that check")
         sub.add_argument("--against", metavar="FILE",
                          help="a --json report of an earlier run to hold this one against")
         sub.add_argument("--expect-refusal", action="store_true",
-                         help="ahead of the backend: green iff every stream is refused")
-        sub.add_argument("--keep", metavar="DIR",
-                         help="keep the streams and images here rather than in scratch")
+                         help="green iff every stream is refused by the dialect")
         sub.add_argument("--timeout", type=int, default=COMPILE_TIMEOUT,
                          help="seconds the compiler gets per program")
         sub.add_argument("--run-timeout", type=int, default=RUN_TIMEOUT,
@@ -1200,6 +1656,11 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                          help="the Wasm host's argv, one argument per flag (default: "
                               "the pinned Node through tools/wasm-oracle)")
         sub.add_argument("--host-record", metavar="FILE", help="the host side, recorded")
+        sub.add_argument("--c", metavar="SOURCE",
+                         help="the component's C, lowered through --ccomp and run under "
+                              "the component harness")
+        sub.add_argument("--ccomp", metavar="PATH",
+                         help="the contained ccomp executable, outside every checkout")
         sub.add_argument("--elf", metavar="FILE", help="the component's lowered image")
         sub.add_argument("--purecap-record", metavar="FILE",
                          help="the purecap side, recorded")
@@ -1208,22 +1669,33 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                          help="record the purecap side here")
         sub.add_argument("--timeout", type=int, default=RUN_TIMEOUT,
                          help="seconds either side gets to run")
+        sub.add_argument("--compile-timeout", type=int, default=COMPILE_TIMEOUT,
+                         help="seconds the compiler and its interpreter get")
     if name in ("program", "component"):
+        sub.add_argument("--ccomp-arg", action="append", default=[], metavar="ARG",
+                         help="pass one compiler argument unchanged (repeatable; use "
+                              "--ccomp-arg=-flag for an option)")
+        sub.add_argument("--interp", action="store_true",
+                         help="also run the source through the same compiler's -interp "
+                              "and require the image to agree with it")
+        sub.add_argument("--keep", metavar="DIR",
+                         help="keep the streams and images here rather than in scratch")
         sub.add_argument("--simulator", metavar="PATH",
                          help="the golden emulator, a lane's c_emulator/sail_riscv_sim")
+        sub.add_argument("--lane", action="store_true",
+                         help="use this checkout's own lane's simulator (guest only)")
         sub.add_argument("--profile", metavar="FILE",
                          help=f"the configuration (default: model/{env.PROFILE_CONFIG})")
         sub.add_argument("--inst-limit", type=int, default=INST_LIMIT,
                          help="the emulator's instruction bound per run")
         sub.add_argument("--json", action="store_true",
                          help="emit the report as one JSON object")
-    if name == "program":
-        sub.add_argument("--lane", action="store_true",
-                         help="use this checkout's own lane's simulator (guest only)")
     if name == "generate":
         sub.add_argument("--out", required=True, metavar="DIR", help="where to write them")
         sub.add_argument("--count", type=int, default=6, help="how many programs")
         sub.add_argument("--seed", type=int, default=1, help="the generator's seed")
+        sub.add_argument("--perturb", action="store_true",
+                         help="write the negative-control twins instead")
 
 
 TABLE: Table = {

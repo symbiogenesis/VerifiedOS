@@ -91,6 +91,8 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # The portable planner's original TFLite Micro adapter and API demonstration.
     ".cpp": ("// ", ""),
     ".h": ("// ", ""),
+    # Authored C for the contained purecap backend, in C's block comment.
+    ".c": ("/* ", " */"),
     # The authored bridge to the pinned, untrusted idealloc candidate generator.
     ".rs": ("// ", ""),
     ".toml": ("# ", ""),
