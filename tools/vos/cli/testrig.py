@@ -7,7 +7,7 @@ format across three executors* has been describing and has had nothing behind.
 [vos/rvfi.py](vos/rvfi.py) is the wire format, [vos/vengine.py](vos/vengine.py)
 is the engine, and this is the command line over them.
 
-Four commands, and only the first needs no toolchain:
+Eight commands, and three of them need no toolchain:
 
     protocol   the wire this rig speaks, where it meets the commit trace, and
                where it cannot: readable on the host, and reads nothing but
@@ -16,12 +16,24 @@ Four commands, and only the first needs no toolchain:
     run        generate, drive, adjudicate against a seeded defect, and shrink
     bridge     drive with the commit trace on as well, and hold the packets
                against the records the same run wrote
+    adapt      hold an RTL harness's frame (vos/rtltrace.py) against the golden
+               commit trace of the same program, from two files
+    carry      run the corpus on the golden model, re-encode each trace as the
+               frame an RTL would have to write, and hold the adapter to it and
+               to seeded field changes
+    framesim   build the SystemVerilog frame writer (tools/rvfi-harness/) behind
+               its bench and hold the frame it writes to the decoder
+    bmc        print the bounded model-checking smoke this harness owes, with its
+               instruction scope read out of the dialect table; it runs nothing
 
-The last three need a built emulator, so they run where it is:
+`protocol`, `adapt` and `bmc` answer on either lane. The other five run in the
+guest, where the emulator and the pinned Verilator are:
 
     python tools/run.py testrig handshake
     python tools/run.py testrig run --count 400 --shrink
     python tools/run.py testrig bridge --template mixed
+    python tools/run.py testrig carry
+    python tools/run.py testrig framesim --corpus
 
 **`run` is a mutation gate and not a fuzzer.** A defect is seeded into the
 second executor and the rig has to report it: a run that finds nothing is a
@@ -34,10 +46,12 @@ import argparse
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import IO, cast
 
-from vos import env, rvfi, trace, vengine
+from vos import bmc, differential, env, rtltrace, rvfi, trace, vengine
+from vos.cli import rtl
 
 type Command = Callable[[argparse.Namespace], int]
 
@@ -370,7 +384,7 @@ def cmd_bridge(args: argparse.Namespace) -> int:
 
     commit = trace.normalize_commit(run.commit())
     view, elided = rvfi.packet_view(commit)
-    digits = _address_digits(view)
+    digits = rvfi.address_digits(view)
     projected = vengine.project(packets, addr_digits=digits)
     verdict = trace.adjudicate(view, projected, args.context)
 
@@ -395,19 +409,509 @@ def cmd_bridge(args: argparse.Namespace) -> int:
     return 0
 
 
-def _address_digits(view: list[str]) -> int:
-    """How wide a memory record writes its address, measured off the records.
+def cmd_adapt(args: argparse.Namespace) -> int:
+    """Hold an RTL frame against the golden commit trace of the same program.
 
-    The commit trace prints the model's own physical-address width and the
-    packet zero-extends to 64 bits, so the projection has to be rendered at
-    whatever the run actually wrote. Measuring beats restating: the width is a
-    property of the configuration, and a copy of it here would be a second place
-    for it to be wrong.
+    File-only, so it answers on either lane: the frame is what a Verilator
+    harness wrote and the reference is what the emulator's `--trace-commit`
+    wrote. A protocol failure is reported as one and never as a divergence, and
+    agreement over a prefix is reported as incomplete.
     """
-    for record in view:
-        if record[0] in "RW":
-            return len(record.split()[1])
-    return rvfi.PHYSADDR_DIGITS
+    try:
+        frame = args.frame.read_text(encoding="utf-8", newline="")
+        reference = args.reference.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"cannot read an input: {exc}", file=sys.stderr)
+        return 1
+    try:
+        result = rtltrace.compare(reference, frame, context=args.context)
+    except rtltrace.FrameError as exc:
+        print(f"FAIL protocol: {args.frame}: {exc}")
+        print("  a frame that breaks its protocol is not adjudicated, so this is no "
+              "statement about either executor's behaviour")
+        return 1
+
+    print(f"frame            {args.frame} ({rtltrace.HEADER})")
+    print(f"retirements      {result.retired}")
+    print(f"reference        {result.reference} comparable records after removing "
+          f"{result.elided.total}")
+    print(f"elided           {result.elided.line()}")
+    print(f"candidate        {result.candidate} records")
+    print(f"verdict          {result.line()}")
+
+    if not result.verdict.ok:
+        _report_divergence(result.verdict)
+        if result.verdict.divergence is not None:
+            print("FAIL the RTL and the golden model disagree about the same program")
+        else:
+            print(f"FAIL {result.verdict.line()}")
+        return 1
+    if not result.complete:
+        print("FAIL the two streams agree over a prefix and one of them does not end "
+              "there, so the run is not a corpus-green comparison")
+        return 1
+    print(f"TOTAL the RTL frame and the golden commit trace agree over "
+          f"{result.verdict.compared} records, both streams whole")
+    return 0
+
+
+@dataclass
+class _Carry:
+    """What `carry` measured over the corpus, accumulated.
+
+    `refused` is the frame's structural gap, a property of the port; `broken` is a
+    carriable member whose own re-encoding did not come back whole, which is a defect
+    in the adapter. The seed tallies use the mutation vocabulary: a stillborn seed
+    broke the frame's protocol and decided nothing about the comparison, a killed one
+    was reported, and a survivor is the finding.
+    """
+
+    members: int = 0
+    retirements: int = 0
+    records: int = 0
+    elided: rvfi.Elided = field(default_factory=rvfi.Elided)
+    words: dict[str, set[int]] = field(default_factory=dict)
+    whole: list[str] = field(default_factory=list)
+    refused: dict[str, dict[str, int]] = field(default_factory=dict)
+    broken: list[str] = field(default_factory=list)
+    golden: list[str] = field(default_factory=list)
+    killed: dict[str, int] = field(default_factory=dict)
+    stillborn: dict[str, int] = field(default_factory=dict)
+    survived: dict[str, list[str]] = field(default_factory=dict)
+    silent: dict[str, int] = field(default_factory=dict)
+
+
+def _golden_trace(e: env.Environment, elf: Path, trace_path: Path,
+                  timeout: int) -> tuple[list[str] | None, str]:
+    """One corpus member on the golden emulator, with its commit trace in a file.
+
+    The trace goes to a file of its own for the reason `vengine.spawn` gives: a
+    record torn by a diagnostic on a shared descriptor reads as a divergence.
+    """
+    try:
+        done = subprocess.run([str(e.simulator), "--config", str(e.profile),
+                               "--trace-commit", "--trace-output", str(trace_path),
+                               "--inst-limit", "1000000", str(elf)],
+                              capture_output=True, text=True, errors="replace",
+                              timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        return None, "no HTIF write within the timeout"
+    try:
+        lines = trace_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:
+        return None, f"no commit trace: {exc}"
+    said = done.stdout + done.stderr + "\n".join(lines)
+    if "SUCCESS" not in said:
+        return None, f"rc={done.returncode}, no HTIF success"
+    return lines, ""
+
+
+def _recorded_golden(e: env.Environment, corpus: differential.Corpus,
+                     member: differential.Member, work: Path,
+                     timeout: int) -> tuple[list[str] | None, str]:
+    """A member's golden trace, held to the digest the manifest records for it.
+
+    So what a caller re-encodes is the recorded golden run and not whatever this
+    lane's emulator happens to write: a model that moved under the corpus is
+    reported here rather than carried into a comparison as the reference.
+    """
+    elf = differential.assemble(corpus, member, work)
+    lines, why = _golden_trace(e, elf, work / f"{member.name}.trace", timeout)
+    if lines is None:
+        return None, why
+    normalized = trace.normalize_commit(lines)
+    digest = trace.digest(normalized)
+    if digest != member.digest:
+        return None, (f"digest {digest} over {len(normalized)} records against the "
+                      f"manifest's {member.digest}")
+    return lines, ""
+
+
+def _spread(positions: list[int], count: int) -> list[int]:
+    """Up to `count` positions from `positions`, evenly spaced and always the ends."""
+    if len(positions) <= count:
+        return positions
+    if count == 1:
+        return positions[:1]
+    step = (len(positions) - 1) / (count - 1)
+    return sorted({positions[round(i * step)] for i in range(count)})
+
+
+def _seed_member(name: str, golden: list[str], retires: list[rtltrace.Retire],
+                 elided: rvfi.Elided, sites: int, tally: _Carry) -> None:
+    for seed in rtltrace.SEEDS:
+        witnesses = [at for at in range(len(retires))
+                     if rtltrace.seed(retires, at, seed.name) is not None]
+        if not witnesses:
+            tally.silent[seed.name] = tally.silent.get(seed.name, 0) + 1
+            continue
+        for at in _spread(witnesses, sites):
+            seeded = rtltrace.seed(retires, at, seed.name)
+            if seeded is None:
+                continue
+            try:
+                decoded = rtltrace.decode(rtltrace.encode(seeded))
+            except rtltrace.FrameError:
+                tally.stillborn[seed.name] = tally.stillborn.get(seed.name, 0) + 1
+                continue
+            if rtltrace.compare_decoded(golden, decoded, elided).complete:
+                tally.survived.setdefault(seed.name, []).append(f"{name}@{at}")
+            else:
+                tally.killed[seed.name] = tally.killed.get(seed.name, 0) + 1
+
+
+def cmd_carry(args: argparse.Namespace) -> int:
+    """Re-encode the corpus's golden traces as frames, and hold the adapter to them.
+
+    Each member runs once on the golden emulator with its commit trace in a file;
+    the trace is held against the manifest's digest, so what is re-encoded is the
+    recorded golden run. `rtltrace.carry` then writes the frame an RTL harness would
+    have to produce to say the same thing, naming each retirement no frame line can
+    hold; a member with none must come back whole through encode, decode and the
+    one adjudicator, and every seeded field change must then be reported.
+
+    **The producer here is the golden model and never the RTL.** What this decides
+    is how much of the corpus a frame can carry and that the adapter reports what
+    it is seeded with over real record shapes. It is no statement about the core.
+    """
+    e = env.load()
+    if (missing := _requirements(e)) is not None:
+        print(missing, file=sys.stderr)
+        return 1
+    corpus = differential.load(e.root)
+    wanted = set(args.member)
+    members = [m for m in corpus.members if not wanted or m.name in wanted]
+    if unknown := wanted - {m.name for m in members}:
+        print(f"no such member: {', '.join(sorted(unknown))}", file=sys.stderr)
+        return 1
+
+    out_dir = e.lane_root / "testrig-carry"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    lock = env.hold_lock(out_dir / "carry.log", "a frame-carrying run")
+    tally = _Carry()
+    try:
+        for member in members:
+            tally.members += 1
+            lines, why = _recorded_golden(e, corpus, member, out_dir, args.timeout)
+            if lines is None:
+                tally.golden.append(f"{member.name} ({why})")
+                print(f"GOLDEN  {member.name}: {why}")
+                continue
+            golden, elided = rtltrace.view(lines)
+            retires, refusals = rtltrace.carry(golden)
+            decoded = rtltrace.decode(rtltrace.encode(retires))
+            result = rtltrace.compare_decoded(golden, decoded, elided)
+            tally.retirements += len(retires)
+            tally.records += len(golden)
+            tally.elided = rvfi.Elided(
+                tally.elided.scr + elided.scr, tally.elided.csr + elided.csr,
+                tally.elided.traps + elided.traps,
+                tally.elided.extra_reads + elided.extra_reads,
+                tally.elided.extra_writes + elided.extra_writes)
+            reasons: dict[str, int] = {}
+            for refusal in refusals:
+                reasons[refusal.reason] = reasons.get(refusal.reason, 0) + 1
+                tally.words.setdefault(refusal.reason, set()).add(refusal.insn)
+            head = (f"{member.name}: {len(retires)} retirements, {len(golden)} records "
+                    f"after eliding {elided.total}")
+            if refusals:
+                tally.refused[member.name] = reasons
+                first = refusals[0]
+                print(f"REFUSED {head}; {len(refusals)} retirement(s) no frame line holds "
+                      f"({', '.join(f'{k} {v}' for k, v in sorted(reasons.items()))}), "
+                      f"first at retirement {first.at}, pc {first.pc:#x}, insn "
+                      f"{first.insn:08X}; verdict {result.line()}")
+                continue
+            if not result.complete:
+                tally.broken.append(member.name)
+                print(f"BROKEN  {head}; verdict {result.line()}")
+                _report_divergence(result.verdict)
+                continue
+            tally.whole.append(member.name)
+            print(f"WHOLE   {head}; {result.line()}")
+            _seed_member(member.name, golden, decoded, elided, args.sites, tally)
+    finally:
+        lock.close()
+
+    print(f"members          {tally.members}, {len(tally.whole)} carried whole, "
+          f"{len(tally.refused)} refused, {len(tally.broken)} broken, "
+          f"{len(tally.golden)} without a recorded golden run")
+    print(f"records          {tally.records} in the frame's view over {tally.retirements} "
+          f"retirements")
+    print(f"elided           {tally.elided.line()}")
+    for reason, what in rtltrace.REASONS.items():
+        count = sum(r.get(reason, 0) for r in tally.refused.values())
+        if count:
+            words = ", ".join(f"{w:08X}" for w in sorted(tally.words.get(reason, set())))
+            print(f"refused          {reason}: {count} ({what}); words {words}")
+    for seed in rtltrace.SEEDS:
+        killed = tally.killed.get(seed.name, 0)
+        stillborn = tally.stillborn.get(seed.name, 0)
+        survived = tally.survived.get(seed.name, [])
+        print(f"seed {seed.name:<12} killed {killed}, stillborn {stillborn}, survived "
+              f"{len(survived)}, no witness in {tally.silent.get(seed.name, 0)} member(s)"
+              f"{': ' + ', '.join(survived[:5]) if survived else ''}")
+
+    total_killed = sum(tally.killed.values())
+    total_survived = sum(len(v) for v in tally.survived.values())
+    total_stillborn = sum(tally.stillborn.values())
+    if tally.golden or tally.broken or total_survived or total_stillborn or not tally.whole:
+        print(f"FAIL {len(tally.golden)} golden run(s) missing, {len(tally.broken)} "
+              f"carriable member(s) not whole, {total_survived} seed(s) survived, "
+              f"{total_stillborn} stillborn, {len(tally.whole)} member(s) carried whole")
+        return 1
+    print(f"TOTAL {len(tally.whole)} of {tally.members} member(s) carried whole and "
+          f"{total_killed} seeded field change(s) reported; {len(tally.refused)} member(s) "
+          f"hold retirements no frame line can carry, which is the port's gap and not "
+          f"the core's behaviour")
+    return 0
+
+
+def cmd_bmc(args: argparse.Namespace) -> int:
+    """Print the bounded model-checking smoke this harness owes, and run nothing.
+
+    File-only, like `protocol`: the plan is [vos/bmc.py](vos/bmc.py)'s and its
+    instruction scope is read out of the dialect table here and now, so what prints
+    is the plan the gate would run today. It exits nonzero only where the scope's
+    classification and the dialect table disagree, which is a finding about the plan;
+    that the smoke has not run is stated on every line that could be misread.
+    """
+    del args
+    _rule("the predicate (R-15-094: bounded-depth evidence, the ground of no refinement)")
+    print("  for the curated scalar core under a riscv-formal wrapper, with instruction")
+    print("  and data memory responses unconstrained and reset held for the first cycle,")
+    print("  no check below finds a counterexample within its depth, and the cover check")
+    print("  reaches a retirement of the in-scope forms within the instruction depth")
+
+    _rule("the checks, at their declared depths")
+    for check in bmc.CHECKS:
+        print(f"  {check.name:<9} {check.depth:>3}  {check.decides}")
+
+    covered = bmc.scope()
+    _rule(f"the instruction scope, read out of the dialect table ({len(covered)} forms)")
+    print(f"  constructors {', '.join(sorted(bmc.SCOPE))}")
+    for at in range(0, len(covered), 10):
+        print(f"  {' '.join(covered[at:at + 10])}")
+
+    _rule("excluded, and why riscv-formal's model cannot judge it here")
+    for ctor, why in sorted(bmc.EXCLUDED.items()):
+        print(f"  {ctor:<10} {why}")
+    print("  and every constructor outside the base and M files: the capability, bit-")
+    print("  manipulation, conditional, CSR, atomic, vector and FEC forms, which the")
+    print("  RV64IM model the insn checks are scoped to does not judge")
+
+    _rule("what it waits on")
+    for name, what in bmc.INPUTS:
+        print(f"  {name:<13} {what}")
+
+    wrong = bmc.findings()
+    for finding in wrong:
+        print(f"FAIL {finding}")
+    if wrong:
+        return 1
+    print("\nNOT RUN: this is the plan the smoke runs once the inputs above exist; no "
+          "check has been run against any core.")
+    return 0
+
+
+# The testbench's stimulus word, field by field and most significant first, which is
+# `stim_t` in tools/rvfi-harness/vos_rvfi_frame_tb.sv. The bench is the layout's
+# owner; a copy that drifted from it would send every field to the wrong place, and
+# `framesim` would report that as a frame that does not come back.
+HARNESS_DIR = "tools/rvfi-harness"
+HARNESS_SOURCES = (f"{HARNESS_DIR}/vos_rvfi_frame.sv", f"{HARNESS_DIR}/vos_rvfi_frame_tb.sv")
+STIMULUS: tuple[tuple[str, int], ...] = (
+    ("pad", 6), ("valid", 1), ("trap", 1), ("cause", 64), ("pc_rdata", 64),
+    ("pc_wdata", 64), ("insn", 32), ("rd_addr", 5), ("rd_tag", 1), ("rd_bits", 64),
+    ("mem_addr", 64), ("mem_rmask", 8), ("mem_wmask", 8), ("mem_rtag", 1),
+    ("mem_wtag", 1), ("mem_rdata", 64), ("mem_wdata", 64))
+STIMULUS_BITS = 512
+
+
+@dataclass(frozen=True)
+class Drive:
+    """One stimulus line: a retirement, a stale cause the port presents, or an idle cycle."""
+
+    retire: rtltrace.Retire | None
+    stale_cause: int = 0
+
+
+def stimulus_line(drive: Drive) -> str:
+    """One `stim_t` word as the 128 hexadecimal digits `$readmemh` reads."""
+    values = dict.fromkeys((name for name, _ in STIMULUS), 0)
+    if drive.retire is not None:
+        packet = drive.retire.packet
+        read = rvfi.mask_access(packet.mem_rmask)
+        write = rvfi.mask_access(packet.mem_wmask)
+        values.update(
+            valid=int(not packet.trap), trap=packet.trap,
+            cause=drive.retire.cause if packet.trap else drive.stale_cause,
+            pc_rdata=packet.pc_rdata, pc_wdata=packet.pc_wdata, insn=packet.insn,
+            rd_addr=packet.rd_addr, rd_tag=int(packet.rd_tag), rd_bits=packet.rd_wdata,
+            mem_addr=packet.mem_addr,
+            mem_rmask=0 if read is None else (1 << read[0]) - 1,
+            mem_wmask=0 if write is None else (1 << write[0]) - 1,
+            mem_rtag=0 if read is None else int(read[1]),
+            mem_wtag=0 if write is None else int(write[1]),
+            mem_rdata=packet.mem_rdata, mem_wdata=packet.mem_wdata)
+    word = 0
+    for name, width in STIMULUS:
+        if values[name] >> width:
+            raise ValueError(f"stimulus field {name} {values[name]:#x} is wider than "
+                             f"{width} bits")
+        word = (word << width) | values[name]
+    return f"{word:0{STIMULUS_BITS // 4}X}"
+
+
+def _synthetic_drives() -> list[Drive]:
+    """The bench's own fixture: every rule the writer applies, each with a witness.
+
+    The two tagged encodings are values the golden model wrote into the corpus's
+    commit traces, so the round trip is taken over capabilities the format produces
+    rather than over bits chosen here.
+    """
+    base = rvfi.Execution(wire=rtltrace.WIRE, integer_present=True, memory_present=True)
+
+    def at(order: int, pc: int, insn: int, **fields: int | bool) -> rtltrace.Retire:
+        cause = int(fields.pop("cause", 0))
+        return rtltrace.Retire(replace(base, order=order, pc_rdata=pc, pc_wdata=pc + 4,
+                                       insn=insn, **fields), cause)
+
+    return [
+        Drive(at(0, 0x80000000, 0x00100293, rd_addr=5, rd_wdata=1)),
+        Drive(None),
+        Drive(at(1, 0x80000004, 0xFE12825B, rd_addr=9, rd_tag=True,
+                  rd_wdata=0xC879000080008040)),
+        Drive(at(2, 0x80000008, 0x0094B023, mem_addr=0x80008040, mem_wmask=0x1FF,
+                  mem_wdata=0xC800000000000000)),
+        Drive(at(3, 0x8000000C, 0x00042303, mem_addr=0x80008040, mem_rmask=0xF,
+                  mem_rdata=0xFFFFFFFFFFFF0400, rd_addr=6, rd_wdata=0xFFFFFFFFFFFF0400)),
+        Drive(at(4, 0x80000010, 0x00000013), stale_cause=5),
+        Drive(at(5, 0x80000014, 0x00A4A3AF, mem_addr=0x80008048, mem_rmask=0x1FF,
+                  mem_wmask=0xFF, mem_rdata=0xC879000080008040, mem_wdata=7, rd_addr=31,
+                  rd_tag=True, rd_wdata=0xC879000080008040)),
+        Drive(at(6, 0x80000018, 0x00050003, trap=1, cause=28)),
+    ]
+
+
+def _framesim_one(binary: Path, work: Path, name: str,
+                  drives: list[Drive]) -> tuple[list[rtltrace.Retire] | None, str]:
+    """One stimulus file through the built bench, and the frame it wrote, decoded."""
+    stim = work / f"{name}.stim"
+    frame = work / f"{name}.frame"
+    stim.write_text("".join(stimulus_line(d) + "\n" for d in drives), encoding="ascii",
+                    newline="\n")
+    frame.unlink(missing_ok=True)
+    done = subprocess.run([str(binary), f"+stimulus={stim}", f"+count={len(drives)}",
+                           f"+frame={frame}"], capture_output=True, text=True,
+                          errors="replace", check=False, cwd=work)
+    if done.returncode:
+        return None, f"the bench exited {done.returncode}: {(done.stdout + done.stderr)[-300:]}"
+    try:
+        return rtltrace.decode(frame.read_text(encoding="utf-8", newline="")), ""
+    except (OSError, rtltrace.FrameError) as exc:
+        return None, f"the frame the writer wrote is refused: {exc}"
+
+
+def cmd_framesim(args: argparse.Namespace) -> int:
+    """Build the SystemVerilog frame writer behind its bench and decode what it writes.
+
+    The bench is driven from Python-written stimulus, so the expected retirements
+    are stated once and the frame has to come back as exactly those: the writer's
+    field widths, its order count, its trailer, the x0 and stale-cause rules, and
+    the register-form round trip through the authored format package. With
+    `--corpus` every member `carry` can hold whole is driven as well, from its
+    golden trace, and the frame the writer returns must then agree with that trace
+    through the one adjudicator. The producer is a fixture driver, so this is a
+    statement about the writer and the package, not about the core.
+    """
+    e = env.load()
+    root = e.root
+    work = e.lane_root / "rvfi-harness"
+    work.mkdir(parents=True, exist_ok=True)
+    out: list[str] = []
+    verilator = rtl._require_verilator(out)
+    if verilator is None:
+        print("\n".join(out))
+        return 1
+    lock = env.hold_lock(work / "framesim.log", "a frame-writer simulation")
+    try:
+        sources = (rtl.FORMAT_PACKAGE, rtl.ADAPTER_PACKAGE, *HARNESS_SOURCES)
+        built = subprocess.run(
+            [verilator, "--binary", "--timescale", "1ns/1ps", "-Wall", "-Wno-UNUSEDPARAM",
+             "-Wno-UNUSEDSIGNAL", "--Mdir", str(work / "obj_dir"), "-o", "framesim",
+             "--top-module", "vos_rvfi_frame_tb", *(str(root / s) for s in sources)],
+            capture_output=True, text=True, errors="replace", check=False, cwd=work)
+        (work / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
+        if built.returncode:
+            print(built.stdout + built.stderr)
+            print(f"FAIL the frame writer does not build under Verilator; log "
+                  f"{work / 'build.log'}")
+            return 1
+        warnings = sum(1 for line in (built.stdout + built.stderr).splitlines()
+                       if line.startswith("%Warning"))
+        binary = work / "obj_dir" / "framesim"
+
+        drives = _synthetic_drives()
+        want = [d.retire for d in drives if d.retire is not None]
+        got, why = _framesim_one(binary, work, "synthetic", drives)
+        if got is None or got != want:
+            print(f"FAIL synthetic: {why or 'the frame came back different'}")
+            for line in (f"  want {w}\n  got  {g}" for w, g in zip(want, got or [], strict=False)
+                         if w != g):
+                print(line)
+            return 1
+        print(f"ok synthetic: {len(got)} retirement(s) from {len(drives)} stimulus "
+              f"line(s) came back field for field")
+
+        failures = 0
+        members = 0
+        retired = 0
+        if args.corpus:
+            corpus = differential.load(root)
+            for member in corpus.members:
+                lines, why = _recorded_golden(e, corpus, member, work, args.timeout)
+                if lines is None:
+                    print(f"FAIL {member.name}: {why}")
+                    failures += 1
+                    continue
+                golden, elided = rtltrace.view(lines)
+                retires, refusals = rtltrace.carry(golden)
+                if refusals:
+                    print(f"skip {member.name}: {len(refusals)} retirement(s) no frame "
+                          f"line holds")
+                    continue
+                got, why = _framesim_one(binary, work, member.name,
+                                         [Drive(r) for r in retires])
+                if got is None or got != retires:
+                    first = next((i for i, (w, g) in enumerate(
+                        zip(retires, got or [], strict=False)) if w != g), None)
+                    print(f"FAIL {member.name}: {why or f'retirement {first} came back different'}")
+                    if first is not None and got is not None:
+                        print(f"  want {retires[first]}\n  got  {got[first]}")
+                    failures += 1
+                    continue
+                result = rtltrace.compare_decoded(golden, got, elided)
+                if not result.complete:
+                    print(f"FAIL {member.name}: {result.line()}")
+                    failures += 1
+                    continue
+                members += 1
+                retired += len(retires)
+                print(f"ok {member.name}: {len(retires)} retirement(s) through the writer, "
+                      f"{result.line()}")
+    finally:
+        lock.close()
+
+    print(f"verilator        {rtl.VERILATOR_PIN}, {warnings} warning line(s) under -Wall")
+    if failures:
+        print(f"FAIL {failures} member(s) did not come back whole through the writer")
+        return 1
+    corpus_part = (f" and {members} corpus member(s) over {retired} retirements agree "
+                   f"whole" if args.corpus else "")
+    print(f"TOTAL the writer's frames decode as stated{corpus_part}; the driver is a "
+          f"fixture, so nothing here is about the core")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -445,6 +949,36 @@ def main(argv: list[str] | None = None) -> int:
                             help="hold the packets against the commit records of one run")
     stream_args(bridge)
     bridge.set_defaults(run=cmd_bridge)
+
+    adapt = sub.add_parser("adapt", help="hold an RTL frame against the golden commit "
+                           "trace of the same program")
+    adapt.add_argument("frame", type=Path, help=f"the RTL harness's `{rtltrace.FORMAT}` frame")
+    adapt.add_argument("reference", type=Path,
+                       help="the emulator's commit trace of the same program")
+    adapt.add_argument("--context", type=int, default=4,
+                       help="records of agreement to print before a divergence")
+    adapt.set_defaults(run=cmd_adapt)
+
+    carry = sub.add_parser("carry", help="re-encode the corpus's golden traces as frames "
+                           "and hold the adapter to them and to seeded changes")
+    carry.add_argument("member", nargs="*", help="corpus members to run (default: all)")
+    carry.add_argument("--sites", type=int, default=4,
+                       help="retirements per seed per member to seed at")
+    carry.add_argument("--timeout", type=int, default=120,
+                       help="seconds one member may run on the emulator")
+    carry.set_defaults(run=cmd_carry)
+
+    framesim = sub.add_parser("framesim", help="build the SystemVerilog frame writer and "
+                              "hold what it writes to the decoder")
+    framesim.add_argument("--corpus", action="store_true",
+                          help="also drive every member carry holds whole, from its "
+                               "golden trace")
+    framesim.add_argument("--timeout", type=int, default=120,
+                          help="seconds one member may run on the emulator")
+    framesim.set_defaults(run=cmd_framesim)
+
+    sub.add_parser("bmc", help="the bounded model-checking smoke this harness owes, as a "
+                   "plan; runs nothing").set_defaults(run=cmd_bmc)
 
     args = parser.parse_args(argv)
     # `set_defaults(run=...)` puts the handler on the namespace, where its type is
