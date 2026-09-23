@@ -98,7 +98,7 @@ as its fallback when bootstrap did not export an environment. Each lane's
 end before it uploads diagnostics.
 
 uv downloads, opam's source download cache and verified Verilator source archives
-are restored between runs; installed toolchains and evidence are rebuilt. The source
+are restored between runs; evidence is always rebuilt. The source
 cache includes bootstrap's ownership marker so the restored private root can resume.
 Each lane has its own source cache. Its key includes the lane, runner OS and architecture,
 Sail and Rocq snapshots, bootstrap, the Verilator installer and shared download helper.
@@ -106,6 +106,18 @@ A prefix fallback reuses the lane's older source downloads, with the installers'
 verification still required. Cache eviction simply means a cold installation. Only the
 model lane saves the uv cache; both lanes restore it. Each lane's commands stay
 sequential within its runner's memory budget.
+
+Scheduled runs install every toolchain cold. Manual runs restore a lane's installed
+toolchains: its opam root without downloads or logs, the Verilator prefix and the
+ownership marker. Bootstrap then runs unchanged: it imports each lock into its restored
+switch, installs the uncached solver, skips a Verilator prefix whose receipt matches
+and probes every tool. The key includes the lane, runner OS, architecture and image
+version, the Sail and Rocq snapshots and bootstrap. Switch names and the Verilator
+prefix carry their versions, so other tool edits need no key input. Only exact keys
+restore. A main-branch run that missed the key saves the lane's toolchains after its
+probes pass; a scheduled run checks the key without restoring it. The reporter records
+`cold` or `restored` in `results.json` and the job summary. Only a cold run is
+evidence that the toolchains install.
 
 ## Inputs and execution
 
@@ -144,9 +156,9 @@ working model bytes remain bound by the build manifest. Bundle comparison reloca
 only the selected switch's absolute library hash keys to the canonical locations
 used by the tracked artifact. A private opam root therefore does not change the
 comparison, while changed library digests and model contents still fail it.
-Download caches may accelerate installation, but a cache hit never establishes a
-validation verdict. A cold run must work without any cache. Avoid caching built
-model/proof outputs until their reuse is separately justified and measured.
+Download and installed-toolchain caches may accelerate installation, but a cache hit
+never establishes a validation verdict. A cold run must work without any cache. Avoid
+caching built model/proof outputs until their reuse is separately justified and measured.
 
 ## Acceptance and handoff
 

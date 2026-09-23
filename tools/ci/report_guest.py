@@ -20,6 +20,11 @@ LANES: dict[str, tuple[str, ...]] = {
     "model": ("bootstrap", "evidence", "bundle", "lint", "crosscheck"),
     "proofs": ("bootstrap", "proofs"),
 }
+# How bootstrap found the lane's toolchains; only a cold run shows that they install.
+TOOLCHAINS: dict[str, str] = {
+    "cold": "installed cold.",
+    "restored": "restored from the installed-toolchain cache; not cold-installation evidence.",
+}
 
 
 @dataclass(frozen=True)
@@ -85,13 +90,14 @@ def evidence_rows(logs: Path, outcome: str) -> list[str]:
 
 
 def report(lane: str, logs: Path, console: Path, proof: Path,
-           steps: dict[str, dict[str, str]], revision: str) -> str:
+           steps: dict[str, dict[str, str]], revision: str, *, toolchains: str) -> str:
     """Keep command outcomes even when evidence is absent or unreadable."""
     logs.mkdir(parents=True, exist_ok=True)
     outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in LANES[lane]}
-    receipts.write(logs / "results.json",
-                   {"revision": revision, "lane": lane, "commands": outcomes})
-    rows = [f"### Guest gates: {lane}", "", "| Command | Outcome |", "| --- | --- |"]
+    receipts.write(logs / "results.json", {"revision": revision, "lane": lane,
+                                           "toolchains": toolchains, "commands": outcomes})
+    rows = [f"### Guest gates: {lane}", "", f"Toolchains: {TOOLCHAINS[toolchains]}",
+            "", "| Command | Outcome |", "| --- | --- |"]
     rows.extend(f"| {name} | {outcome} |" for name, outcome in outcomes.items())
     retained_proof = logs / "proof-evidence.json"
     retained_proof.unlink(missing_ok=True)
@@ -109,12 +115,17 @@ def main() -> None:
     lane = os.environ["GUEST_LANE"]
     if lane not in LANES:
         raise SystemExit(f"unknown guest lane {lane!r}; expected one of {', '.join(LANES)}")
+    toolchains = os.environ["GUEST_TOOLCHAINS"]
+    if toolchains not in TOOLCHAINS:
+        raise SystemExit(f"unknown toolchain state {toolchains!r}; "
+                         f"expected one of {', '.join(TOOLCHAINS)}")
     summary = report(
         lane,
         Path(os.environ.get("VOS_LOG_DIR", Path.home() / "verifiedos-guest" / "logs")),
         Path(os.environ["RUNNER_TEMP"]) / "guest-bootstrap-console.log",
         ROOT / "proofs" / "proof-evidence.json",
         json.loads(os.environ["STEP_RESULTS"]), os.environ["GITHUB_SHA"],
+        toolchains=toolchains,
     )
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8", newline="") as stream:
         stream.write(summary)

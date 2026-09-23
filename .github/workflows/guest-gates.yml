@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
 # defines the scope. Download caches accelerate fresh toolchains and evidence.
+# Scheduled runs install toolchains cold; manual runs may restore installed ones.
 # The model and proof lanes share no toolchain or output, so each installs only
 # its own toolchains and runs on its own runner.
 
@@ -71,6 +72,15 @@ jobs:
             toolchains: --toolchain sail --toolchain rtl
           - lane: proofs
             toolchains: --toolchain rocq
+    env:
+      # Installed toolchains and the ownership marker that lets bootstrap resume
+      # them; never download caches, build trees, logs or evidence.
+      GUEST_TOOLCHAIN_PATHS: |
+        ~/verifiedos-guest/.verifiedos-guest-root
+        ~/verifiedos-guest/opam
+        !~/verifiedos-guest/opam/download-cache
+        !~/verifiedos-guest/opam/log
+        ~/verifiedos-guest/build/toolchains
     steps:
       - uses: actions/checkout@v7
         with:
@@ -104,6 +114,23 @@ jobs:
           key: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
           restore-keys: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Identify the runner image
+        id: image
+        # Installed toolchains link the image's system libraries.
+        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore installed toolchains
+        id: toolchains
+        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
+          # Switch names and the Verilator prefix carry their versions, and bootstrap
+          # imports each lock into a restored switch, so env.py and rtl.py stay out.
+          # Exact keys only: another snapshot's switch is never restored.
+          key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}
+          # A scheduled run stays a cold installation and only learns whether to save.
+          lookup-only: ${{ github.event_name == 'schedule' }}
+
       - name: Bootstrap guest toolchains
         id: bootstrap
         timeout-minutes: 120
@@ -112,6 +139,14 @@ jobs:
             --root "$HOME/verifiedos-guest" --install-system ${{ matrix.toolchains }} \
             --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
+
+      - name: Save installed toolchains
+        # Saved from main once the probes pass, so a later gate failure keeps them.
+        if: ${{ github.ref == 'refs/heads/main' && steps.bootstrap.outcome == 'success' && steps.toolchains.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
+          key: ${{ steps.toolchains.outputs.cache-primary-key }}
 
       - name: Model evidence
         id: evidence
@@ -160,6 +195,8 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           GUEST_LANE: ${{ matrix.lane }}
+          # A restored run is not evidence that the toolchains install cold.
+          GUEST_TOOLCHAINS: ${{ github.event_name != 'schedule' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
           STEP_RESULTS: ${{ toJSON(steps) }}
         run: python3 tools/ci/report_guest.py
 

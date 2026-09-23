@@ -2,11 +2,12 @@
 """Guest diagnostics retain failures and never present an unexecuted proof as fresh."""
 
 import json
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from ci.report_guest import LANES, report
+from ci.report_guest import LANES, TOOLCHAINS, main, report
 from tests.harness import Case, ensure
 
 
@@ -20,7 +21,7 @@ def _bootstrap_failure() -> None:
         for lane in LANES:
             logs = root / lane
             summary = report(lane, logs, console, proof,
-                             {"bootstrap": {"outcome": "failure"}}, "abc")
+                             {"bootstrap": {"outcome": "failure"}}, "abc", toolchains="cold")
             result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
             ensure(result["revision"] == "abc" and result["lane"] == lane,
                    "source revision or lane was lost")
@@ -34,6 +35,26 @@ def _bootstrap_failure() -> None:
             ensure(not (logs / "proof-evidence.json").exists(), "old proof was published as fresh")
 
 
+def _toolchain_state_recorded() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for state in TOOLCHAINS:
+            logs = root / state
+            summary = report("proofs", logs, root / "absent-console", root / "absent-proof",
+                             {"proofs": {"outcome": "success"}}, "abc", toolchains=state)
+            result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
+            ensure(result["toolchains"] == state, "the toolchain state was not retained")
+            ensure(("not cold-installation evidence" in summary) == (state == "restored"),
+                   "a restored run was presented as a cold installation")
+    with patch.dict(os.environ, {"GUEST_LANE": "proofs", "GUEST_TOOLCHAINS": "warm"}):
+        try:
+            main()
+        except SystemExit as err:
+            ensure("unknown toolchain state" in str(err), f"the refusal said {err}")
+            return
+    ensure(False, "an unknown toolchain state was reported")
+
+
 def _proof_outcomes() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -45,7 +66,7 @@ def _proof_outcomes() -> None:
             (logs / "proof-evidence.json").write_text("stale", encoding="utf-8")
             summary = report("proofs", logs, root / "absent-console", proof,
                              {"bootstrap": {"outcome": "success"},
-                              "proofs": {"outcome": outcome}}, "abc")
+                              "proofs": {"outcome": outcome}}, "abc", toolchains="cold")
             ensure(f"| proofs | {outcome} |" in summary, "the proof gate outcome was lost")
             retained = logs / "proof-evidence.json"
             ensure(retained.exists() == (outcome == "success"),
@@ -63,7 +84,7 @@ def _model_lane_publishes_no_proof() -> None:
         (root / "evidence.json").write_text(json.dumps(evidence), encoding="utf-8")
         summary = report("model", root, root / "absent-console", proof,
                          {"evidence": {"outcome": "success"},
-                          "proofs": {"outcome": "success"}}, "abc")
+                          "proofs": {"outcome": "success"}}, "abc", toolchains="cold")
         ensure("| proofs | 0 | 12.2 |" in summary, "evidence member outcome or timing was lost")
         ensure("| proofs | success |" not in summary, "another lane's step entered the table")
         ensure(not (root / "proof-evidence.json").exists(),
@@ -89,7 +110,7 @@ def _unreadable_evidence() -> None:
             (logs / "evidence.json").write_text(payload, encoding="utf-8")
             (logs / "proof-evidence.json").write_text("stale", encoding="utf-8")
             summary = report("model", logs, root / "absent-console", root / "absent-proof",
-                             {"evidence": {"outcome": "failure"}}, "abc")
+                             {"evidence": {"outcome": "failure"}}, "abc", toolchains="cold")
             ensure("Evidence report could not be read" in summary, "bad evidence aborted reporting")
             ensure("| Evidence member |" not in summary, "a partial evidence table was published")
             ensure((logs / "results.json").is_file(), "command outcomes were not retained")
@@ -105,7 +126,7 @@ def _skipped_evidence_ignores_old_record() -> None:
         (root / "proof-evidence.json").write_text("old retained receipt", encoding="utf-8")
         proof = root / "proof.json"
         proof.write_text("old tracked receipt", encoding="utf-8")
-        summary = report("model", root, root / "absent-console", proof, {}, "abc")
+        summary = report("model", root, root / "absent-console", proof, {}, "abc", toolchains="cold")
         ensure("| proofs |" not in summary, "skipped evidence reused a previous member verdict")
         ensure(not (root / "proof-evidence.json").exists(), "old proof receipt survived reporting")
 
@@ -121,7 +142,7 @@ def _diagnostic_copy_failure_keeps_summary() -> None:
         console.write_text("bootstrap output", encoding="utf-8")
         with patch("ci.report_guest.shutil.copyfile", side_effect=fail_copy):
             summary = report("proofs", root, console, root / "proof.json",
-                             {"proofs": {"outcome": "success"}}, "abc")
+                             {"proofs": {"outcome": "success"}}, "abc", toolchains="cold")
         ensure("| proofs | success |" in summary, "copy failure suppressed the gate outcome")
         for filename in ("bootstrap-console.log", "proof-evidence.json"):
             ensure(f"Could not retain {filename}" in summary, "copy failure was not reported")
@@ -138,7 +159,7 @@ def _member_names_cannot_break_table() -> None:
             {"name": "a|b\n<script>", "exit_code": 1, "seconds": 1},
         ]}), encoding="utf-8")
         summary = report("model", root, root / "absent-console", root / "absent-proof",
-                         {"evidence": {"outcome": "failure"}}, "abc")
+                         {"evidence": {"outcome": "failure"}}, "abc", toolchains="cold")
         ensure("| a&#124;b &lt;script&gt; | 1 | 1.0 |" in summary,
                "member name was interpreted as table or HTML syntax")
 
@@ -146,6 +167,7 @@ def _member_names_cannot_break_table() -> None:
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
+        Case("toolchain installation state is recorded and validated", _toolchain_state_recorded),
         Case("proof receipt follows its gate verdict", _proof_outcomes),
         Case("model lane publishes no proof receipt", _model_lane_publishes_no_proof),
         Case("unreadable evidence preserves command outcomes", _unreadable_evidence),
