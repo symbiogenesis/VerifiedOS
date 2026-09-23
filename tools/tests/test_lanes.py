@@ -185,6 +185,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
     ("kernel", "reader"): _kernel_vectors,
+    ("boot-handoff", "layout"): lambda _: [],
 }
 
 
