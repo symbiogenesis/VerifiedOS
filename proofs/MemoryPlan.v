@@ -33,9 +33,15 @@
    available to image-derived domains alone. The composition check that
    reads the label is stated here with the admitted case computed and two
    seeded cases refused, on the pass R-15-247t's own acceptance clause
-   names, the one that checks R-15-189g's containment. What the label lets
-   a re-entry keep is R-15-190b's and is stated in DischargeSequence.v,
-   not here.
+   names, the one that checks R-15-189g's containment. The label is also
+   derived here from what each domain holds, the regions of the roster its
+   extent meets with each region's kind and provenance, and a vector whose
+   declared label differs from the derivation is refused, so a composition
+   cannot declare a domain holding what running compartments write
+   image-derived and retain it. What the label lets a re-entry keep is
+   R-15-190b's and is stated in DischargeSequence.v, and the reset table's
+   release points, which read the same vector's island binding, are
+   R-15-198a's and are stated in ResetTable.v, not here.
 
    What this file is. A statement artifact in ApexTheorem.v's idiom, not a
    proof development and not an implementation. It is a Gallina statement
@@ -379,10 +385,11 @@
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
-      R-08-045 R-09-019 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
-      R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247k R-15-247m R-15-247r R-15-247s
-      R-15-247t R-15-189f R-15-189g R-15-190a R-15-190b R-15-228a R-18-004b
-   SHA256: 1eddbd481da1775de1890c75c2e5bfba8e4240f7dda7fc95d1c507fd208ee9c5
+      R-08-045 R-09-019 R-10-001 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010
+      R-14-015 R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247k R-15-247m R-15-247r
+      R-15-247s R-15-247t R-15-189e R-15-189f R-15-189g R-15-190a R-15-190b R-15-198a R-15-228
+      R-15-228a R-18-004b
+   SHA256: b759b757f28a68f8fe5448b9a51ef5d73a8bb415c731cdd6142b566b7faedcaa
    (*| END derived |*)
    ========================================================================= *)
 
@@ -4868,13 +4875,11 @@ Example a_nonexistent_slot_cannot_evade_timing_admission :
 
    What is stated here is the label in the declared schema and the
    composition checks that read it, with the admitted case computed and
-   two seeded cases refused. What is not stated here is the label's
-   derivation from the region roster: no field of `Plan` names a domain,
-   R-15-228a making the island map an input the plan reads only as
-   `island_of`, `island_base` and `island_span`, so the label is a
-   declared field a composition may get wrong exactly as `class_of` is,
-   and these checks are what it is held against. Nothing here computes a
-   retention decision either; which domains a re-entry keeps is
+   two seeded cases refused. The label is a declared field a composition
+   may get wrong exactly as `class_of` is, and the next section derives it
+   from what each domain holds and holds the declared field against the
+   derivation, as `class_of` is held against `register_place`. Nothing
+   here computes a retention decision; which domains a re-entry keeps is
    R-15-190b's, stated in [DischargeSequence.v](DischargeSequence.v).
 
    Readings this section takes, each a reviewable judgment:
@@ -5207,9 +5212,527 @@ Example the_image_derived_domain_may_be_retained_outside_residency :
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl eq_refl))))).
 
+(* =========================================================================
+   R-15-247t's label derived from what each domain holds.
+
+   The section above carries the label as a declared field of the vector
+   and holds the vector against it, so a composition declaring a domain
+   image-derived while that domain holds the KV cache passes both of its
+   checks. R-15-247t says what the label is a function of: the static
+   memory plan beside the vector, an image-derived domain holding extents
+   of the content-addressed image alone (R-10-001), each delegated without
+   the capability-store permission, and a session-derived domain holding
+   what running compartments write. This section computes the label from
+   the regions each domain holds and refuses a vector whose declared label
+   differs, so the checks above read a label the plan decides rather than
+   one the composition asserts.
+
+   Readings this section takes, each a reviewable judgment:
+
+   h1. A domain holds a region when their extents meet. R-15-189e makes
+       the gating domain a macro or tier and R-15-228's map places it, so
+       `domain_lo` and `domain_len` read each domain's extent off that map,
+       and a region of the plan's roster is held by every domain its slot
+       overlaps: a region straddling two domains is held by both rather
+       than by neither. The map is read here and never constrained, on
+       reading v2's ground. The vector's `domain_island` is a second
+       reading of the same map and is not held against the regions'
+       `island_of` here, because R-15-189e lets a macro shared at bank
+       granularity be bound to several islands, which one island per
+       domain cannot state; that agreement is the map's own statement.
+   h2. The kind decides where the register names the content, and the
+       region's provenance decides where it does not. R-15-247t names
+       framebuffers, decoded media and interpreter arenas as what running
+       compartments write, and `named_session_kind` is those three kinds of
+       the roster, media buffers standing for decoded media; a region of one
+       of them holds session content whatever else is declared of it. The
+       KV cache and base-image blocks, which the same entry also names, are
+       no kind of the roster: both are bulk by volume, and the KV cache is
+       equally a vector or matrix extent or an application payload, so for
+       every other kind the region's own provenance decides. `from_image`
+       says the region holds an extent of the content-addressed image and
+       nothing a running compartment computed, whoever writes that extent
+       back after an OFF (R-15-190a returns data extents through their
+       owners' capabilities, and R-15-190b has the loader fill them on a
+       chain execution), and `cap_store_granted` says a capability delegated
+       to it carries the capability-store permission. A region holds image
+       content alone when it is of no named session kind, is from the image,
+       and is delegated without that permission; every other region holds
+       session content.
+       The two provenance facts are declared per region, which is where the
+       plan fixes each object, and not per domain, which is the declaration
+       this section replaces.
+   h3. One region of session content makes its domain session-derived.
+       R-15-247t's image-derived domain holds image extents *alone*, so a
+       domain holding both kinds of content is session-derived, and a domain
+       holding no region of the roster holds nothing a compartment wrote and
+       derives image-derived.
+   h4. The derivation is total and reads no runtime state, which is
+       R-15-247t's first acceptance clause: `derived_label` is a function of
+       the plan, the holdings and the domain index alone.
+
+   What the refutations are. Three alternative derivations, each dropping
+   one input of `holds_session_content`, and each shown to admit a vector
+   the specification refuses on a holdings record that differs from the
+   demo's in exactly one field of one region: the kind alone misses the KV
+   cache, provenance alone misses arenas declared as image extents, and a
+   derivation blind to the delegation misses model weights delegated with
+   the capability-store permission. Each keeps what it does not drop, which
+   is shown beside it. These are this section's constructions and are not
+   among the header's count, which is the plan's.
+   ========================================================================= *)
+
+Record DomainHoldings : Type := {
+
+  (* --- each gating domain's extent, read off R-15-228's map (reading
+         h1) ------------------------------------------------------------- *)
+
+  domain_lo : nat -> nat;
+  domain_len : nat -> nat;
+
+  (* --- per region, the provenance R-15-247t decides the label by where
+         the region's kind does not (reading h2) ------------------------- *)
+
+  from_image : nat -> bool;
+  cap_store_granted : nat -> bool
+}.
+
+Definition held_by (p : Plan) (h : DomainHoldings) (d r : nat) : bool :=
+  andb (Nat.ltb (p.(base_of) r) (h.(domain_lo) d + h.(domain_len) d))
+       (Nat.ltb (h.(domain_lo) d) (p.(base_of) r + p.(length_of) r)).
+
+(* R-15-247t's own examples of what running compartments write, as kinds of
+   the roster (reading h2). *)
+Definition named_session_kind (k : RegionKind) : bool :=
+  match k with
+  | Framebuffers => true
+  | MediaBuffers => true
+  | InterpreterObjectArenas => true
+  | _ => false
+  end.
+
+Definition holds_session_content (p : Plan) (h : DomainHoldings) (r : nat) : bool :=
+  orb (named_session_kind (p.(kind_of) r))
+      (orb (negb (h.(from_image) r)) (h.(cap_store_granted) r)).
+
+Definition taints (p : Plan) (h : DomainHoldings) (d r : nat) : bool :=
+  andb (held_by p h d r) (holds_session_content p h r).
+
+(* Reading h3: one held region of session content decides the domain. *)
+Definition derived_label (p : Plan) (h : DomainHoldings) (d : nat) : DomainLabel :=
+  if any_of (taints p h d) (upto p.(region_count))
+  then SessionDerived else ImageDerived.
+
+Definition label_eqb (a b : DomainLabel) : bool :=
+  match a, b with
+  | ImageDerived, ImageDerived => true
+  | SessionDerived, SessionDerived => true
+  | _, _ => false
+  end.
+
+Lemma label_eqb_refl : forall a : DomainLabel, label_eqb a a = true.
+Proof. intros a. destruct a; reflexivity. Qed.
+
+Lemma label_eqb_true : forall a b : DomainLabel, label_eqb a b = true -> a = b.
+Proof.
+  intros a b. destruct a; destruct b; intros H; try discriminate H; reflexivity.
+Qed.
+
+(* The composition check: every domain's declared label is the one its
+   holdings derive. *)
+Definition label_derived_ok (p : Plan) (h : DomainHoldings) (v : PowerVector) : bool :=
+  all_of (fun d => label_eqb (v.(label_of) d) (derived_label p h d))
+         (upto v.(domain_count)).
+
+Definition LabelIsDerived (p : Plan) (h : DomainHoldings) (v : PowerVector) : Prop :=
+  forall d : nat,
+    Nat.ltb d v.(domain_count) = true -> v.(label_of) d = derived_label p h d.
+
+(* The obligation R-15-247t states of what a domain holds rather than of
+   what it is declared: no domain holding a region of session content is
+   RETAINED in a mode its island is not resident in. *)
+Definition RetainsNoSessionContentOutsideResidency
+           (p : Plan) (h : DomainHoldings) (v : PowerVector) : Prop :=
+  forall mode d r : nat,
+    Nat.ltb mode v.(mode_count) = true ->
+    Nat.ltb d v.(domain_count) = true ->
+    Nat.ltb r p.(region_count) = true ->
+    held_by p h d r = true ->
+    holds_session_content p h r = true ->
+    resident_here v mode d = false ->
+    retained_here v mode d = false.
+
+(* D1 (R-15-247t): the check decides its obligation in both directions. *)
+(*| discharges: R-15-247t |*)
+Lemma label_derived_ok_sound :
+  forall (p : Plan) (h : DomainHoldings) (v : PowerVector),
+    label_derived_ok p h v = true -> LabelIsDerived p h v.
+Proof.
+  intros p h v H d Hd. unfold label_derived_ok in H.
+  assert (Hc := all_of_upto _ v.(domain_count) d H Hd). cbv beta in Hc.
+  exact (label_eqb_true _ _ Hc).
+Qed.
+
+(*| discharges: R-15-247t |*)
+Lemma label_derived_ok_complete :
+  forall (p : Plan) (h : DomainHoldings) (v : PowerVector),
+    LabelIsDerived p h v -> label_derived_ok p h v = true.
+Proof.
+  intros p h v H. unfold label_derived_ok.
+  apply all_of_upto_intro. intros d Hd. cbv beta.
+  rewrite (H d Hd). apply label_eqb_refl.
+Qed.
+
+Lemma a_tainted_domain_derives_session :
+  forall (p : Plan) (h : DomainHoldings) (d r : nat),
+    Nat.ltb r p.(region_count) = true -> taints p h d r = true ->
+    derived_label p h d = SessionDerived.
+Proof.
+  intros p h d r Hr Ht. unfold derived_label.
+  rewrite (any_of_upto_intro (taints p h d) p.(region_count) r Hr Ht).
+  reflexivity.
+Qed.
+
+(* D2 (R-15-247t): the load-bearing one. A vector whose labels the
+   holdings derive and which passes the narrow retention check retains no
+   domain holding session content outside its island's residency, whatever
+   the composition would have declared. *)
+(*| discharges: R-15-247t |*)
+Theorem the_derived_label_keeps_session_content_out_of_retention :
+  forall (p : Plan) (h : DomainHoldings) (v : PowerVector),
+    label_derived_ok p h v = true ->
+    session_retention_ok v = true ->
+    RetainsNoSessionContentOutsideResidency p h v.
+Proof.
+  intros p h v Hl Hs mode d r Hm Hd Hr Hheld Hsess Hres.
+  assert (Ht : taints p h d r = true).
+  { unfold taints. rewrite Hheld. exact Hsess. }
+  assert (HS : session_derived v d = true).
+  { unfold session_derived. rewrite (label_derived_ok_sound p h v Hl d Hd).
+    rewrite (a_tainted_domain_derives_session p h d r Hr Ht). reflexivity. }
+  exact (session_retention_ok_sound v Hs mode d Hm Hd HS Hres).
+Qed.
+
+(* -------------------------------------------------------------------------
+   The demo plan's eight regions held by four domains: island 0's macro
+   holding the four first-class regions, and island 1's three domains
+   holding the arenas alone, the cold code with the model weights, and the
+   bulk application payload. The code kinds, the model weights and the bulk
+   payload are extents of the image; the arenas, the scalar working set and
+   the cycle-critical payload are written by running compartments. The
+   extents and the provenance are witness values and carry no composition
+   claim.
+   ------------------------------------------------------------------------- *)
+
+Definition demo_domain_lo (d : nat) : nat :=
+  match d with 0 => 0 | 1 => 2048 | 2 => 2304 | _ => 2912 end.
+
+Definition demo_domain_len (d : nat) : nat :=
+  match d with 0 => 1024 | 1 => 256 | 2 => 608 | _ => 1040 end.
+
+Definition demo_from_image (r : nat) : bool :=
+  match r with
+  | 0 => true | 1 => false | 2 => false | 3 => true
+  | 4 => true | 5 => true | 6 => false | _ => true
+  end.
+
+Definition demo_holdings : DomainHoldings := {|
+  domain_lo := demo_domain_lo;
+  domain_len := demo_domain_len;
+  from_image := demo_from_image;
+  cap_store_granted := fun _ => false
+|}.
+
+(* The holdings the refutations read, each differing from the demo's in
+   one field of one region. The bulk payload written at run time is the KV
+   cache; the arenas declared as image extents are a provenance the kind
+   contradicts; and the model weights delegated with the capability-store
+   permission are image content a tag may be set in. *)
+Definition kv_cache_holdings : DomainHoldings := {|
+  domain_lo := demo_domain_lo;
+  domain_len := demo_domain_len;
+  from_image := fun r => match r with 7 => false | _ => demo_from_image r end;
+  cap_store_granted := fun _ => false
+|}.
+
+Definition arenas_as_image_holdings : DomainHoldings := {|
+  domain_lo := demo_domain_lo;
+  domain_len := demo_domain_len;
+  from_image := fun r => match r with 1 => true | _ => demo_from_image r end;
+  cap_store_granted := fun _ => false
+|}.
+
+Definition cap_store_weights_holdings : DomainHoldings := {|
+  domain_lo := demo_domain_lo;
+  domain_len := demo_domain_len;
+  from_image := demo_from_image;
+  cap_store_granted := fun r => match r with 5 => true | _ => false end
+|}.
+
+Definition derived_demo_labels (d : nat) : DomainLabel :=
+  match d with 0 => SessionDerived | 1 => SessionDerived | _ => ImageDerived end.
+
+(* The vector the holdings admit: island 0's domain ON in both modes, the
+   arenas' domain OFF where island 1 is not resident, and the two
+   image-derived domains RETAINED there (R-15-190a's default). *)
+Definition held_vector_power (mode d : nat) : PowerState :=
+  match mode with
+  | 0 => DomainOn
+  | _ => match d with 0 => DomainOn | 1 => DomainOff | _ => DomainRetained end
+  end.
+
+(* The arenas' domain declared image-derived and RETAINED where its island
+   is not resident: the declaration a composition may get wrong. *)
+Definition mislabelled_labels (d : nat) : DomainLabel :=
+  match d with 0 => SessionDerived | _ => ImageDerived end.
+
+Definition all_retained_power (mode d : nat) : PowerState :=
+  match mode with
+  | 0 => DomainOn
+  | _ => match d with 0 => DomainOn | _ => DomainRetained end
+  end.
+
+Definition held_vector : PowerVector := {|
+  domain_count := 4;
+  mode_count := 2;
+  label_of := derived_demo_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := held_vector_power
+|}.
+
+Definition mislabelled_vector : PowerVector := {|
+  domain_count := 4;
+  mode_count := 2;
+  label_of := mislabelled_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := all_retained_power
+|}.
+
+(* The labels right and the arenas RETAINED anyway. *)
+Definition retaining_held_vector : PowerVector := {|
+  domain_count := 4;
+  mode_count := 2;
+  label_of := derived_demo_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := all_retained_power
+|}.
+
+(* D3 (R-15-247t): which regions each domain holds, computed, so the
+   derivation reads a geometry and not a constant. Island 0's macro holds
+   two image regions and two session regions, which is reading h3's mixed
+   domain. *)
+(*| discharges: R-15-247t |*)
+Example the_demo_domains_hold_the_regions_their_extents_meet :
+  map_over (held_by demo_plan demo_holdings 0) (upto 8)
+  = cons true (cons false (cons true (cons false
+    (cons true (cons false (cons true (cons false nil)))))))
+  /\ map_over (held_by demo_plan demo_holdings 1) (upto 8)
+  = cons false (cons true (cons false (cons false
+    (cons false (cons false (cons false (cons false nil)))))))
+  /\ map_over (held_by demo_plan demo_holdings 2) (upto 8)
+  = cons false (cons false (cons false (cons true
+    (cons false (cons true (cons false (cons false nil)))))))
+  /\ map_over (held_by demo_plan demo_holdings 3) (upto 8)
+  = cons false (cons false (cons false (cons false
+    (cons false (cons false (cons false (cons true nil))))))) :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
+(*| discharges: R-15-247t |*)
+Example the_demo_domains_derive_their_labels :
+  derived_label demo_plan demo_holdings 0 = SessionDerived
+  /\ derived_label demo_plan demo_holdings 1 = SessionDerived
+  /\ derived_label demo_plan demo_holdings 2 = ImageDerived
+  /\ derived_label demo_plan demo_holdings 3 = ImageDerived
+  /\ holds_session_content demo_plan demo_holdings 0 = false
+  /\ holds_session_content demo_plan demo_holdings 2 = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl eq_refl)))).
+
+(* D4 (R-15-247t, R-15-189f): the admitted vector, by the derivation and by
+   both checks of the section above. *)
+(*| discharges: R-15-247t, R-15-189f |*)
+Example the_held_vector_is_admitted :
+  label_derived_ok demo_plan demo_holdings held_vector = true
+  /\ session_retention_ok held_vector = true
+  /\ label_vector_ok held_vector = true := conj eq_refl (conj eq_refl eq_refl).
+
+(*| discharges: R-15-247t |*)
+Theorem the_held_vector_meets_the_content_obligation :
+  RetainsNoSessionContentOutsideResidency demo_plan demo_holdings held_vector.
+Proof.
+  exact (the_derived_label_keeps_session_content_out_of_retention
+           demo_plan demo_holdings held_vector eq_refl eq_refl).
+Qed.
+
+(* D5 (R-15-247t): the declaration a composition may get wrong. Both checks
+   that read the declared label admit the mislabelled vector, and the
+   derivation refuses it; the vector breaks the content obligation, so the
+   declared-label checks alone do not carry it. *)
+(*| discharges: R-15-247t |*)
+Example a_mislabelled_domain_passes_the_declared_checks_and_is_refused :
+  session_retention_ok mislabelled_vector = true
+  /\ label_vector_ok mislabelled_vector = true
+  /\ label_derived_ok demo_plan demo_holdings mislabelled_vector = false :=
+  conj eq_refl (conj eq_refl eq_refl).
+
+(*| discharges: R-15-247t |*)
+Theorem the_mislabelled_vector_breaks_the_content_obligation :
+  ~ RetainsNoSessionContentOutsideResidency demo_plan demo_holdings mislabelled_vector.
+Proof.
+  intros H. specialize (H 1 1 1 eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+  discriminate H.
+Qed.
+
+(* D6 (R-15-247t): and a vector whose labels are right and which retains
+   the arenas' domain outside its island's residency is refused by the
+   narrow check, the derivation admitting its labels. *)
+(*| discharges: R-15-247t |*)
+Example a_retained_session_content_domain_is_refused :
+  label_derived_ok demo_plan demo_holdings retaining_held_vector = true
+  /\ session_retention_ok retaining_held_vector = false := conj eq_refl eq_refl.
+
+(*| discharges: R-15-247t |*)
+Theorem the_retaining_held_vector_breaks_the_content_obligation :
+  ~ RetainsNoSessionContentOutsideResidency demo_plan demo_holdings retaining_held_vector.
+Proof.
+  intros H. specialize (H 1 1 1 eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+  discriminate H.
+Qed.
+
+(* -------------------------------------------------------------------------
+   The three alternative derivations, each dropping one input of
+   `holds_session_content`.
+   ------------------------------------------------------------------------- *)
+
+Definition label_from (session : bool) : DomainLabel :=
+  if session then SessionDerived else ImageDerived.
+
+(* The kind alone: session-derived exactly where a held region is of a kind
+   R-15-247t names. *)
+Definition kind_only_label (p : Plan) (h : DomainHoldings) (d : nat) : DomainLabel :=
+  label_from (any_of (fun r => andb (held_by p h d r) (named_session_kind (p.(kind_of) r)))
+                     (upto p.(region_count))).
+
+(* The provenance alone: the kind's veto dropped. *)
+Definition provenance_only_label (p : Plan) (h : DomainHoldings) (d : nat) : DomainLabel :=
+  label_from (any_of (fun r => andb (held_by p h d r)
+                                    (orb (negb (h.(from_image) r)) (h.(cap_store_granted) r)))
+                     (upto p.(region_count))).
+
+(* Blind to the delegation: the capability-store permission dropped. *)
+Definition delegation_blind_label (p : Plan) (h : DomainHoldings) (d : nat) : DomainLabel :=
+  label_from (any_of (fun r => andb (held_by p h d r)
+                                    (orb (named_session_kind (p.(kind_of) r))
+                                         (negb (h.(from_image) r))))
+                     (upto p.(region_count))).
+
+Definition labels_agree (derive : nat -> DomainLabel) (v : PowerVector) : bool :=
+  all_of (fun d => label_eqb (v.(label_of) d) (derive d)) (upto v.(domain_count)).
+
+(* The specification's check is this comparison at its own derivation. *)
+Example the_specification_check_is_the_comparison_at_its_derivation :
+  label_derived_ok demo_plan demo_holdings held_vector
+  = labels_agree (derived_label demo_plan demo_holdings) held_vector := eq_refl.
+
+(* The labels the kind alone reads off the demo plan: every domain but the
+   arenas' image-derived, with the power of the held vector. *)
+Definition kind_read_vector : PowerVector := {|
+  domain_count := 4;
+  mode_count := 2;
+  label_of := bound_labels;
+  domain_island := bound_island_of_domain;
+  island_resident := resident_islands;
+  power_of := held_vector_power
+|}.
+
+(* D7 (R-15-247t): the kind alone misses the KV cache. The bulk payload
+   written at run time makes its domain session-derived, the kind-only
+   derivation reads it image-derived and admits a vector retaining it where
+   island 1 is not resident, and that vector breaks the obligation. *)
+(*| discharges: R-15-247t |*)
+Example the_kind_only_derivation_misses_the_kv_cache :
+  derived_label demo_plan kv_cache_holdings 3 = SessionDerived
+  /\ kind_only_label demo_plan kv_cache_holdings 3 = ImageDerived
+  /\ labels_agree (kind_only_label demo_plan kv_cache_holdings) kind_read_vector = true
+  /\ session_retention_ok kind_read_vector = true
+  /\ label_derived_ok demo_plan kv_cache_holdings kind_read_vector = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
+
+(*| discharges: R-15-247t |*)
+Theorem the_kv_cache_retained_breaks_the_content_obligation :
+  ~ RetainsNoSessionContentOutsideResidency demo_plan kv_cache_holdings kind_read_vector.
+Proof.
+  intros H. specialize (H 1 3 7 eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+  discriminate H.
+Qed.
+
+(* Its twin: the kind alone keeps the named kinds' veto, refusing the
+   mislabelled arenas on the demo's own holdings. *)
+Example the_kind_only_derivation_keeps_the_named_kinds :
+  kind_only_label demo_plan demo_holdings 1 = SessionDerived
+  /\ labels_agree (kind_only_label demo_plan demo_holdings) mislabelled_vector = false :=
+  conj eq_refl eq_refl.
+
+(* D8 (R-15-247t): provenance alone misses arenas declared as image
+   extents, admitting the mislabelled vector the specification refuses. *)
+(*| discharges: R-15-247t |*)
+Example the_provenance_only_derivation_misses_the_named_arenas :
+  derived_label demo_plan arenas_as_image_holdings 1 = SessionDerived
+  /\ provenance_only_label demo_plan arenas_as_image_holdings 1 = ImageDerived
+  /\ labels_agree (provenance_only_label demo_plan arenas_as_image_holdings)
+                  mislabelled_vector = true
+  /\ session_retention_ok mislabelled_vector = true
+  /\ label_derived_ok demo_plan arenas_as_image_holdings mislabelled_vector = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
+
+(*| discharges: R-15-247t |*)
+Theorem the_arenas_as_image_break_the_content_obligation :
+  ~ RetainsNoSessionContentOutsideResidency demo_plan arenas_as_image_holdings
+      mislabelled_vector.
+Proof.
+  intros H. specialize (H 1 1 1 eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+  discriminate H.
+Qed.
+
+(* Its twin: provenance alone keeps the provenance, catching the KV cache. *)
+Example the_provenance_only_derivation_keeps_the_provenance :
+  provenance_only_label demo_plan kv_cache_holdings 3 = SessionDerived := eq_refl.
+
+(* D9 (R-15-247t): a derivation blind to the delegation misses model
+   weights delegated with the capability-store permission, admitting the
+   held vector that retains them. *)
+(*| discharges: R-15-247t |*)
+Example the_delegation_blind_derivation_misses_the_store_permission :
+  derived_label demo_plan cap_store_weights_holdings 2 = SessionDerived
+  /\ delegation_blind_label demo_plan cap_store_weights_holdings 2 = ImageDerived
+  /\ labels_agree (delegation_blind_label demo_plan cap_store_weights_holdings)
+                  held_vector = true
+  /\ label_derived_ok demo_plan cap_store_weights_holdings held_vector = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
+(*| discharges: R-15-247t |*)
+Theorem the_store_permitted_weights_break_the_content_obligation :
+  ~ RetainsNoSessionContentOutsideResidency demo_plan cap_store_weights_holdings
+      held_vector.
+Proof.
+  intros H. specialize (H 1 2 5 eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+  discriminate H.
+Qed.
+
+(* Its twin: blind to the delegation, it keeps both the kind and the
+   provenance. *)
+Example the_delegation_blind_derivation_keeps_the_kind_and_the_provenance :
+  delegation_blind_label demo_plan kv_cache_holdings 3 = SessionDerived
+  /\ delegation_blind_label demo_plan arenas_as_image_holdings 1 = SessionDerived :=
+  conj eq_refl eq_refl.
+
 Definition witness_Narrowing : Narrowing := inner_narrowing.
 Definition witness_Plan : Plan := demo_plan.
 Definition witness_PowerVector : PowerVector := composed_vector.
+Definition witness_DomainHoldings : DomainHoldings := demo_holdings.
 
 (* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
@@ -5777,3 +6300,57 @@ Print Assumptions the_whole_rule_refuses_what_the_narrow_check_admits.
 Print Assumptions the_composed_vector_meets_the_obligation.
 Print Assumptions the_retaining_vector_breaks_the_obligation.
 Print Assumptions the_image_derived_domain_may_be_retained_outside_residency.
+Print Assumptions DomainHoldings.
+Print Assumptions held_by.
+Print Assumptions named_session_kind.
+Print Assumptions holds_session_content.
+Print Assumptions taints.
+Print Assumptions derived_label.
+Print Assumptions label_eqb.
+Print Assumptions label_eqb_refl.
+Print Assumptions label_eqb_true.
+Print Assumptions label_derived_ok.
+Print Assumptions LabelIsDerived.
+Print Assumptions RetainsNoSessionContentOutsideResidency.
+Print Assumptions label_derived_ok_sound.
+Print Assumptions label_derived_ok_complete.
+Print Assumptions a_tainted_domain_derives_session.
+Print Assumptions the_derived_label_keeps_session_content_out_of_retention.
+Print Assumptions demo_domain_lo.
+Print Assumptions demo_domain_len.
+Print Assumptions demo_from_image.
+Print Assumptions demo_holdings.
+Print Assumptions kv_cache_holdings.
+Print Assumptions arenas_as_image_holdings.
+Print Assumptions cap_store_weights_holdings.
+Print Assumptions derived_demo_labels.
+Print Assumptions held_vector_power.
+Print Assumptions mislabelled_labels.
+Print Assumptions all_retained_power.
+Print Assumptions held_vector.
+Print Assumptions mislabelled_vector.
+Print Assumptions retaining_held_vector.
+Print Assumptions the_demo_domains_hold_the_regions_their_extents_meet.
+Print Assumptions the_demo_domains_derive_their_labels.
+Print Assumptions the_held_vector_is_admitted.
+Print Assumptions the_held_vector_meets_the_content_obligation.
+Print Assumptions a_mislabelled_domain_passes_the_declared_checks_and_is_refused.
+Print Assumptions the_mislabelled_vector_breaks_the_content_obligation.
+Print Assumptions a_retained_session_content_domain_is_refused.
+Print Assumptions the_retaining_held_vector_breaks_the_content_obligation.
+Print Assumptions label_from.
+Print Assumptions kind_only_label.
+Print Assumptions provenance_only_label.
+Print Assumptions delegation_blind_label.
+Print Assumptions labels_agree.
+Print Assumptions the_specification_check_is_the_comparison_at_its_derivation.
+Print Assumptions kind_read_vector.
+Print Assumptions the_kind_only_derivation_misses_the_kv_cache.
+Print Assumptions the_kv_cache_retained_breaks_the_content_obligation.
+Print Assumptions the_kind_only_derivation_keeps_the_named_kinds.
+Print Assumptions the_provenance_only_derivation_misses_the_named_arenas.
+Print Assumptions the_arenas_as_image_break_the_content_obligation.
+Print Assumptions the_provenance_only_derivation_keeps_the_provenance.
+Print Assumptions the_delegation_blind_derivation_misses_the_store_permission.
+Print Assumptions the_store_permitted_weights_break_the_content_obligation.
+Print Assumptions the_delegation_blind_derivation_keeps_the_kind_and_the_provenance.
