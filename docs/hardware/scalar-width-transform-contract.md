@@ -294,9 +294,9 @@ identity.
 Neither of those runs elaborates the core and neither is asked to: both sets are
 facts about names and not about members.
 
-**The member layer, with the three classes resolved**: **42 diagnostics** over
-three files and thirteen source lines, every one a member the frozen record does
-not declare. `load_store_unit.sv` 23 at five lines, the levels, load-mutable,
+**The member layer, with the three classes resolved**, at a registry of ten
+sources and 86 replacements: **42 diagnostics** over three files and thirteen
+source lines, every one a member the frozen record does not declare. `load_store_unit.sv` 23 at five lines, the levels, load-mutable,
 load-capability and store-level reads of `hperms`; `cheri_unit.sv` 11 at four
 lines, `uperms` and `hperms` in the subset test, `res_lo` and `res_hi` in the
 reserved-field test, and the representable-alignment `mask`; and `load_unit.sv`
@@ -325,8 +325,9 @@ commit and realignment paths at one issue port, 2 read 64 bits of the
 instruction cache's 4-bit user field, and 2 are the CHERI unit's upper-half
 reads, `GCHI` and `SCHI` selecting `[127:64]` of the 65-bit memory form. The next
 layer's integer-view class has three elaborator predicates, each a floor of
-candidates: **21** selects of bits `[63:0]` or `[63:2]` of a 68-bit variable, at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4,
-`ex_stage.sv` 2, `cheri_unit.sv` 1 and `issue_read_operands.sv` 1; **25**
+candidates: **21** selects of bits `[63:0]` or `[63:2]` of a 68-bit variable,
+at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4, `ex_stage.sv` 2,
+`cheri_unit.sv` 1 and `issue_read_operands.sv` 1; **25**
 `WIDTHTRUNC` lines whose right side is 68 bits, and **33** `WIDTHEXPAND` lines
 whose target is 68 bits. The elaborator folds a select of a 68-bit member of a
 wider packed structure into a select of the structure, so reads such as the
