@@ -32,7 +32,8 @@ Its desktop applications run in an elastic domain: a composition-fixed envelope
 inside which apps launch at runtime, share time by a verified proportional-share
 dispatch and grow their heaps from a revocation-gated pool, while the fixed tier
 keeps the static discipline ([§7](spec.md#r-07-037e), [§8](spec.md#r-08-047a)).
-The elastic-domain contract is crown-jewel row 31 and Q34 in the
+The [elastic-domain contract](implementation/contracts/elastic-domain.md) is crown-jewel
+row 31 and Q34 in the
 [implementation checklist](implementation/implementation-checklist.md) owns it; the
 [architectural alternatives](background/architectural-alternatives.md#a-general-purpose-desktop-on-a-static-machine-an-elastic-domain-inside-a-fixed-envelope-adopted-for-the-laptop)
 record what the variant trades and what it declines.

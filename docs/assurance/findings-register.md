@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 736 of them across 128 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 740 of them across 129 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -872,6 +872,22 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-393** owed-act: no entry bounded the latency of any re-execution of the measured chain, the TRNG contract reporting the start-up sample budget as a term with nothing pushing the other way
 · Raised: Q33, in prose
 · Disposition: closed at the register, taken at R-09-006b, which makes every re-execution's worst case a composition constant; the ceilings it is read against are DP-6 and DP-7 of the product-gate contract, proposed and binding nothing until ratified, and the development vehicle's own ceiling stays F-000l's
+
+**F-430** owed-act: R-07-037g's lag bound of one request plus one call bound omits the sink, a conforming two-member trace ending at served-time lags of 22/5 against a bound of 4 and the heavy member reaching 67/5 over slot time
+· Raised: Q34a
+· Disposition: open, a register question, the trace staying inside one request plus a call bound plus a yield bound, which is named and not adopted; Q34b's share-bound theorem waits on it
+
+**F-431** owed-act: the share bound's time base is unstated, and over slot time the intra-slot steps and idle tails accrue shortfall, a single member ending two slots of 12 served 6 of 24 units at lag 18 against a bound of 4
+· Raised: Q34a
+· Disposition: open, a register question, R-11-006c charging the idle tail to the domain without saying whether a member's share is measured over it
+
+**F-432** owed-act: which lag the share bound quantifies is unstated, and with it whether dispatch applies EEVDF's published leave rule: without the adjustment a member with work pending starves inside the bound, and with it its accounting lag is 0 while its service lag is -13/2
+· Raised: Q34a
+· Disposition: open, a register question, the statement's `charge` and `rebalance` following its answer
+
+**F-433** owed-act: which members are live for the share bound is unstated
+· Raised: Q34a
+· Disposition: open, a register question, the reading taken being every enumerated member accruing entitlement only while it competes
 
 ## M0 · Hardware reference
 

@@ -2004,6 +2004,53 @@ this worker-clock bound.
 Landed: Tier A. This accepts the finite formalization and its explicit refinement
 interfaces, not the open operational pilot or measured reclamation economics.
 
+#### Q34a · Author the elastic-domain contract
+
+  * **The contract is a statement artifact that extends the tree's vocabularies rather than copying them.** [ElasticDomain.v](../../proofs/ElasticDomain.v) requires [PartitionContext.v](../../proofs/PartitionContext.v), [CyclicExecutive.v](../../proofs/CyclicExecutive.v) and [MemoryPlan.v](../../proofs/MemoryPlan.v):
+    * PartitionContext.v's `Rotation`, `Action` and `constants_paid` are the intra-slot step and its price.
+    * CyclicExecutive.v's `Slot`, `Frame` and `slot_index_at` are the envelope's geometry.
+    * MemoryPlan.v's `MemClass` and `representable_granule` index the pool extents and decide whether a size class is exact.
+
+    [The contract](contracts/elastic-domain.md) records what is stated and what is proved, the readings, the findings, and what Q34b, Q34c, Q34d and Q34e consume.
+  * **What is proved at the contract level:**
+    * `select` chooses exactly the earliest eligible virtual deadline and idles only when nothing is eligible;
+    * the boundary rule never lets the timer cut a conforming dispatch;
+    * a step between declared members of different applications clears the zeroize class for one `vmclear`, and that step is satisfiable;
+    * the instant half of the share bound, read at every stint boundary, implies its interval half;
+    * the counter protocol keeps every gap between invocations within the call bound;
+    * no sequence of transfers puts a pool-derived capability outside the domain while no edge leaving it carries one.
+  * **Every refutation the Check names is exhibited and rejected:**
+    * a dispatch reading another label's state;
+    * a member cut by a call-bound-only test, by no test, and by the backstop standing in for the checked sink;
+    * two live chunks sharing a byte;
+    * a chunk wider than its allocation;
+    * a chunk handed out unzeroed;
+    * a chunk reused ahead of the sweep, and a sweep begun before the barrier;
+    * a pool capability reaching a fixed-tier partition through a capability-slot endpoint or a store-permitted window.
+
+    Each pool refutation breaks exactly one guarantee and is proved to keep the other three. R-07-037h's own refusals are exhibited as well: an unpolled back-edge, a reaction above the bound, a costly exit block, and a sink that loops back to a tentative poll site without yielding, which passes every other conjunct.
+  * **Independent review found two blocking defects, and both were repaired before landing:**
+    * **The yield-bound statement counted no exit block**, so a graph with a poll-free path costing 101 was admitted at a yield bound of 1. A reaction that ends at an exit now counts the exit block.
+    * **The third finding attributed a starvation to the register that follows from the statement's own leave accounting**, which applies no virtual-time adjustment at a leave. The accounting is now recorded as a departure from EEVDF's published leave rule, and the finding asks which lag the share bound quantifies.
+
+    The same repair made capability confinement directional, as R-08-047c is; stated the sink's reach to a real yield; counted intra-slot steps in slot time; tied the inter-application clear to declared members and their manifests; and deferred the minimum-share admission to Q34e with the focus dispatch bound.
+  * Net change: 3,011 lines added and 4 removed across four files, two of them new. Crown-jewel row 31 moves to `partial`, with the derived counts in the inventory and the critique following it.
+  * Exit evidence, at `625596ea` in the lane's native guest stage:
+    * compile: the pinned prover compiled the module with exit 0, 77 `Closed under the global context` lines and no other output, source sha256 `979d236d8ba05d841a5dc9ea6042a2e8cd1e003da16499002629779130d50e33`. The `.vo` hash differs between lanes and is not cited;
+    * audit: the proof gate's own per-source audit reported 481 native constants, all with empty assumption sets, and 15 discharge claims bound. The quantified records `Decl`, `Domain` and `Machine` are all witnessed, and each of the fifteen records the file declares carries a named witness;
+    * kernel recheck: `rocqchk` accepted the module and its dependency closure with exit 0;
+    * checker: `tools/run.py check` was green except K-106, the proof ledger that `--fix` regenerates;
+    * the integrator's full native gate supplies the portable integrated receipt.
+  * Four findings.
+    * **R-07-037g's lag bound omits the sink.** A conforming two-member trace ends with served-time lags of magnitude 22/5 against the register's bound of 4 (`the_register_s_lag_bound_is_refuted`), and over slot time the heavy member reaches 67/5. The trace stays inside a bound of one request plus a call bound plus a yield bound, which is named and not adopted. Standing: a register question, and Q34b's share-bound theorem waits on it.
+    * **The share bound's time base is unstated.** Over slot time, intra-slot steps and idle tails accrue shortfall. A single member ends two slots of 12, served 6 of the 24 units, at lag 18 against a bound of 4 (`the_slot_time_reading_is_refuted`). R-11-006c charges the idle tail to the domain without saying whether a member's share is measured over it. Standing: a register question.
+    * **Which lag the share bound quantifies, and with it whether the dispatch applies EEVDF's published leave rule, is unstated.** Without the adjustment, a member with work pending is starved slot after slot while its served-time lag stays inside the bound (`a_leave_without_the_published_adjustment_is_not_work_conserving`). With it, the same member is selected at once, but its accounting lag is 0 while its service lag is -13/2 (`the_published_leave_separates_accounting_from_service_lag`). Standing: a register question, and `charge` and `rebalance` follow its answer.
+    * **Which members are live for the share bound is unstated.** The bound is taken over every enumerated member, each accruing entitlement only while it competes. Standing: a register question, recorded as the reading taken.
+
+The original estimate was 12 h, range 8–16. The summed agent-session wall-clock of the authoring, review and repair passes is 2026-09-23 04:12:52–05:36:50, 05:36:54–06:08:22 and 06:08:24–06:39:27 UTC, 2.44 h, recorded as 2.4 h on the agent-parallel clock; integration and the integrated gate are outside it.
+
+Landed: Tier A. No checker rule was added, and none holds what this item created. The proof gate's compile, exact assumption audit, witness scan and kernel recheck hold the artifact's decisions, and R-05-150's review holds its agreement with the register. The fourth Tier-B condition is therefore unmet.
+
 ## M0 · Hardware reference
 
 ### M0.1 · Pin upstream models

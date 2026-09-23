@@ -148,6 +148,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-097 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-098 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-102 | proofs/ApexTheorem.v | n/a | cited |
+| R-05-102 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-104 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-105 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-124 | proofs/CopyRingService.v | the_copy_once_service_stays_inside_the_validated_extent | claimed |
@@ -197,6 +198,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/CredentialHandles.v | n/a | cited |
 | R-05-163 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-163 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-163 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-163 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-163 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-05-163 | proofs/ExecutableIndex.v | n/a | cited |
@@ -276,6 +278,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/CopyRingService.v | n/a | cited |
 | R-05-165 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-165 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-165 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-165 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-165 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-05-165 | proofs/ExecutableIndex.v | n/a | cited |
@@ -357,6 +360,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/CredentialHandles.v | n/a | cited |
 | R-05-166 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-166 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-166 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-166 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-166 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-05-166 | proofs/ExecutableIndex.v | n/a | cited |
@@ -471,7 +475,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-007 | proofs/CyclicExecutive.v | n/a | cited |
 | R-07-007 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-07-007 | proofs/PartitionContext.v | n/a | cited |
+| R-07-014a | proofs/ElasticDomain.v | n/a | cited |
 | R-07-014a | proofs/PartitionContext.v | n/a | cited |
+| R-07-014c | proofs/ElasticDomain.v | n/a | cited |
 | R-07-014c | proofs/PartitionContext.v | n/a | cited |
 | R-07-015 | proofs/KernelInstance.v | the_burst_restores_every_witnessed_register | claimed |
 | R-07-015 | proofs/KernelInstance.v | the_burst_restores_every_nameable_csr | claimed |
@@ -499,6 +505,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-027 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-027 | proofs/PartitionContext.v | n/a | cited |
 | R-07-027 | proofs/SupervisionTree.v | n/a | cited |
+| R-07-027a | proofs/ElasticDomain.v | n/a | cited |
 | R-07-027a | proofs/EndpointIPC.v | the_specification_inventory_is_closed | claimed |
 | R-07-027a | proofs/EndpointIPC.v | the_specification_designation_names_only_objects | claimed |
 | R-07-027a | proofs/EndpointIPC.v | the_specification_gives_no_table_a_lifecycle | claimed |
@@ -543,6 +550,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-031a | proofs/EndpointIPC.v | the_specification_surface_is_the_frozen_one | claimed |
 | R-07-031a | proofs/MModeFirmware.v | n/a | cited |
 | R-07-031a | proofs/PartitionContext.v | n/a | cited |
+| R-07-031b | proofs/ElasticDomain.v | n/a | cited |
 | R-07-031b | proofs/EndpointIPC.v | the_specification_grouping_leaves_the_notification_group_empty | claimed |
 | R-07-031b | proofs/EndpointIPC.v | the_specification_grouping_makes_the_entrys_assignment | claimed |
 | R-07-031b | proofs/EndpointIPC.v | the_entrys_assignment_empties_the_notification_group | claimed |
@@ -556,6 +564,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-031b | proofs/MModeFirmware.v | n/a | cited |
 | R-07-031b | proofs/PartitionContext.v | n/a | cited |
 | R-07-032 | proofs/CyclicExecutive.v | geometry_ignores_behaviour | claimed |
+| R-07-032 | proofs/ElasticDomain.v | n/a | cited |
 | R-07-032 | proofs/KernelInstance.v | the_frame_check_decides_order_and_not_duration | claimed |
 | R-07-032 | proofs/KernelInstance.v | the_frame_check_ignores_the_order_numeral | claimed |
 | R-07-033 | proofs/CyclicExecutive.v | geometry_ignores_behaviour | claimed |
@@ -563,11 +572,13 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-035 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-036 | proofs/CopyRingService.v | n/a | cited |
 | R-07-036 | proofs/CyclicExecutive.v | geometry_ignores_behaviour | claimed |
+| R-07-036 | proofs/ElasticDomain.v | n/a | cited |
 | R-07-036 | proofs/KernelInstance.v | n/a | cited |
 | R-07-037a | proofs/EndpointIPC.v | the_specification_leaves_no_partition_waiting | claimed |
 | R-07-037a | proofs/PartitionContext.v | n/a | cited |
 | R-07-037b | proofs/CopyRingService.v | n/a | cited |
 | R-07-037b | proofs/CyclicExecutive.v | n/a | cited |
+| R-07-037b | proofs/ElasticDomain.v | n/a | cited |
 | R-07-037b | proofs/EndpointIPC.v | the_specification_rotation_is_composition_fixed | claimed |
 | R-07-037b | proofs/PartitionContext.v | rotation_is_a_strict_subset | claimed |
 | R-07-037b | proofs/PartitionContext.v | rotation_omits_the_three_constants | claimed |
@@ -575,14 +586,27 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-037b | proofs/PartitionContext.v | rotation_pays_none_of_the_three | claimed |
 | R-07-037b | proofs/PartitionContext.v | rotation_restore_is_total | claimed |
 | R-07-037b | proofs/PartitionContext.v | switch_discharges_every_rotation_obligation | claimed |
+| R-07-037c | proofs/ElasticDomain.v | n/a | cited |
 | R-07-037c | proofs/EndpointIPC.v | the_specification_delivery_swaps_where_a_swap_exists | claimed |
 | R-07-037c | proofs/EndpointIPC.v | the_specification_delivery_does_not_vary_with_the_predecessor | claimed |
 | R-07-037c | proofs/EndpointIPC.v | the_specification_step_leaves_every_other_members_bits_alone | claimed |
 | R-07-037c | proofs/EndpointIPC.v | the_bits_a_member_leaves_are_restored_at_its_next_dispatch | claimed |
 | R-07-037c | proofs/PartitionContext.v | rotation_pending_carries_nothing_on_the_swapping_arm | claimed |
+| R-07-037d | proofs/ElasticDomain.v | n/a | cited |
 | R-07-037d | proofs/EndpointIPC.v | an_admissible_group_keeps_the_residue_in_domain | claimed |
 | R-07-037d | proofs/EndpointIPC.v | the_specification_claims_no_particular_sibling | claimed |
 | R-07-037d | proofs/PartitionContext.v | n/a | cited |
+| R-07-037e | proofs/ElasticDomain.v | an_admitted_envelope_has_one_label_and_no_fixed_tier_member | claimed |
+| R-07-037f | proofs/ElasticDomain.v | an_admitted_envelope_has_one_label_and_no_fixed_tier_member | claimed |
+| R-07-037g | proofs/ElasticDomain.v | select_is_the_eevdf_choice | claimed |
+| R-07-037g | proofs/ElasticDomain.v | select_idles_only_when_nothing_is_eligible | claimed |
+| R-07-037g | proofs/ElasticDomain.v | the_dispatch_reads_only_its_label | claimed |
+| R-07-037g | proofs/ElasticDomain.v | the_boundary_rule_leaves_no_member_cut | claimed |
+| R-07-037g | proofs/ElasticDomain.v | a_step_between_applications_clears_the_zeroize_class | claimed |
+| R-07-037g | proofs/ElasticDomain.v | a_step_between_applications_leaves_no_residue | claimed |
+| R-07-037g | proofs/ElasticDomain.v | a_step_between_applications_costs_one_vmclear | claimed |
+| R-07-037h | proofs/ElasticDomain.v | the_counter_bounds_every_path_between_invocations | claimed |
+| R-07-037i | proofs/ElasticDomain.v | launch_activates_only_placed_contexts | claimed |
 | R-07-039 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-039 | proofs/PartitionContext.v | n/a | cited |
 | R-07-040 | proofs/BoundaryCost.v | n/a | cited |
@@ -601,6 +625,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-005a | proofs/KernelInstance.v | n/a | cited |
 | R-08-005b | proofs/KernelInstance.v | a_filtered_restore_carries_no_marked_authority | claimed |
 | R-08-005b | proofs/KernelInstance.v | a_filtered_restore_of_an_unsanitized_image_is_not_total | claimed |
+| R-08-006 | proofs/ElasticDomain.v | n/a | cited |
 | R-08-006 | proofs/KernelInstance.v | the_filter_is_the_identity_on_a_sanitized_image | claimed |
 | R-08-006 | proofs/KernelInstance.v | completion_refuses_a_resident_root | claimed |
 | R-08-006 | proofs/KernelInstance.v | completion_refuses_an_unfiltered_saved_context | claimed |
@@ -612,6 +637,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-006 | proofs/KernelInstance.v | an_epoch_reading_predicate_admits_a_resident_root | claimed |
 | R-08-006 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-006 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-08-007a | proofs/ElasticDomain.v | a_passed_gate_is_a_barrier_then_a_whole_sweep_begun_after_it | claimed |
 | R-08-007a | proofs/JournalIndex.v | n/a | cited |
 | R-08-007a | proofs/KernelInstance.v | marking_one_base_alone_leaves_a_derived_base_live | claimed |
 | R-08-007a | proofs/KernelInstance.v | completion_does_not_turn_on_the_epoch_mark | claimed |
@@ -651,6 +677,14 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-047 | proofs/InferenceAdmission.v | a_boolean_verdict_loses_the_refusal_cause | claimed |
 | R-08-047 | proofs/InferenceAdmission.v | the_session_pool_never_exceeds_its_declared_capacity | claimed |
 | R-08-047 | proofs/InferenceAdmission.v | a_full_session_pool_declines_the_binding | claimed |
+| R-08-047a | proofs/ElasticDomain.v | n/a | cited |
+| R-08-047b | proofs/ElasticDomain.v | live_chunks_share_no_byte | claimed |
+| R-08-047b | proofs/ElasticDomain.v | an_exact_grant_needs_no_rounding | claimed |
+| R-08-047b | proofs/ElasticDomain.v | every_byte_is_zero_at_handoff | claimed |
+| R-08-047b | proofs/ElasticDomain.v | a_passed_gate_is_a_barrier_then_a_whole_sweep_begun_after_it | claimed |
+| R-08-047c | proofs/ElasticDomain.v | confinement_survives_every_transfer | claimed |
+| R-08-047d | proofs/ElasticDomain.v | n/a | cited |
+| R-08-047e | proofs/ElasticDomain.v | n/a | cited |
 | R-08-021 | proofs/HandlerGraph.v | a_well_formed_template_crosses_no_undeclared_label | claimed |
 | R-08-021 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-08-021 | proofs/SecurityPolicyModel.v | the_confining_execution_is_noninterferent | claimed |
@@ -1014,6 +1048,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-006 | proofs/SupervisionTree.v | n/a | cited |
 | R-11-006b | proofs/CyclicExecutive.v | n/a | cited |
 | R-11-006b | proofs/PartitionContext.v | n/a | cited |
+| R-11-006c | proofs/ElasticDomain.v | n/a | cited |
 | R-11-008 | proofs/HandlerGraph.v | n/a | cited |
 | R-11-009 | proofs/BoundaryCost.v | n/a | cited |
 | R-11-009 | proofs/CyclicExecutive.v | n/a | cited |
@@ -1081,6 +1116,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-12-005 | proofs/HandlerGraph.v | every_composed_ring_is_inside_the_ceiling | claimed |
 | R-12-005 | proofs/HandlerGraph.v | a_well_formed_template_declares_bounded_rings | claimed |
 | R-12-005 | proofs/ObjectRouter.v | n/a | cited |
+| R-12-007 | proofs/ElasticDomain.v | n/a | cited |
 | R-12-007a | proofs/ComposedNonInterference.v | n/a | cited |
 | R-12-008 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-12-008a | proofs/CopyRingService.v | the_publisher_writes_only_the_producer_index | claimed |
@@ -1329,6 +1365,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-007a | proofs/MModeFirmware.v | n/a | cited |
 | R-15-007b | proofs/MModeFirmware.v | n/a | cited |
 | R-15-007n | proofs/EndpointIPC.v | n/a | cited |
+| R-15-007c | proofs/ElasticDomain.v | n/a | cited |
 | R-15-007c | proofs/MemoryPlan.v | the_specification_quantum_is_byte_exact_below_the_threshold | claimed |
 | R-15-007c | proofs/MemoryPlan.v | the_specification_quantum_is_no_coarser_than_the_bound | claimed |
 | R-15-007c | proofs/MemoryPlan.v | the_specification_quantum_is_the_coarsest_within_that_bound | claimed |
@@ -1338,6 +1375,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-007i | proofs/KernelInstance.v | the_burst_step_alone_is_not_partition_contexts_totality | claimed |
 | R-15-007i | proofs/KernelInstance.v | the_fixed_zero_register_is_a_premise_and_not_a_theorem | claimed |
 | R-15-007i | proofs/PartitionContext.v | restore_total_over_registers | claimed |
+| R-15-007k | proofs/ElasticDomain.v | an_exact_grant_needs_no_rounding | claimed |
 | R-15-007k | proofs/MemoryPlan.v | the_specification_quantum_is_the_coarsest_within_that_bound | claimed |
 | R-15-007k | proofs/MemoryPlan.v | a_quantized_slot_base_narrows_exactly | claimed |
 | R-15-007k | proofs/MemoryPlan.v | the_specification_narrowing_check_admits_only_exact_narrowings | claimed |
@@ -1607,6 +1645,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-16-027 | proofs/SupervisionTree.v | the_specification_escalates_past_the_rate_limit | claimed |
 | R-17-003 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-003d | proofs/ComposedNonInterference.v | n/a | cited |
+| R-17-007b | proofs/ElasticDomain.v | n/a | cited |
 | R-17-012 | proofs/SecurityPolicyModel.v | the_shipped_rule_is_delimited | claimed |
 | R-17-012 | proofs/SecurityPolicyModel.v | a_release_wider_than_the_named_object_is_refused | claimed |
 | R-17-013 | proofs/ApexTheorem.v | n/a | cited |
