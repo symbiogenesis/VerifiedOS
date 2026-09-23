@@ -91,6 +91,8 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # The portable planner's original TFLite Micro adapter and API demonstration.
     ".cpp": ("// ", ""),
     ".h": ("// ", ""),
+    # The boot chain's firmware and its host harness driver (firmware/).
+    ".c": ("// ", ""),
     # The authored bridge to the pinned, untrusted idealloc candidate generator.
     ".rs": ("// ", ""),
     ".toml": ("# ", ""),
