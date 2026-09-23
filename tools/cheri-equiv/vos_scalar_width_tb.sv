@@ -83,6 +83,12 @@ module vos_scalar_width_tb;
     end
     if (!cap_permit_seal(RootSealCap) || !cap_permit_unseal(RootUnsealCap))
       $fatal(1, "the seal root seals and the unseal root unseals");
+    // The model's own unit test pins the two object-type roots' memory forms
+    // (model/model/unit_tests/test_capability.sail), so a defect that kept the
+    // properties above while moving a bit is refused here.
+    if (capability_to_mem_bits(RootSealCap) !== 64'hf07c00d000000000
+        || capability_to_mem_bits(RootUnsealCap) !== 64'hf87c00d000000000)
+      $fatal(1, "the object-type roots' memory forms are the model's pinned ones");
 
     $display("scalar width: memory=%0d register=%0d PCC=%0d; all store bits/lanes PASS",
              MemoryBits, RegisterBits, PccBits);

@@ -112,9 +112,11 @@ _RETIRED = ("cap_meta_data_t", "get_cap_reg_meta_data", "cap_tval2_t", "cap_repo
 
 # The operations the profile's instruction surface does not carry and the
 # imported decoder did: the two mode instructions, the mode-switch pair,
-# capability reconstruction, the subset test and the representable-alignment
-# mask (model/model/extensions/CHERI/cheri_insts.sail).
-_EXCLUDED_OPS = ("GCMODE", "SCMODE", "MODESW_CAP", "MODESW_INT", "CBLD", "SCSS", "CRAM")
+# capability reconstruction and the upper-half pair that goes with it, the
+# subset test, the representable-alignment mask and the capability-width
+# atomics (model/model/extensions/CHERI/cheri_insts.sail; R-15-024, R-15-025).
+_EXCLUDED_OPS = ("GCMODE", "SCMODE", "MODESW_CAP", "MODESW_INT", "CBLD", "SCSS", "CRAM",
+                 "GCHI", "SCHI", "AMO_SWAPC", "AMO_LRC", "AMO_SCC")
 
 # Where a qualified name an edit writes has to be declared. The adapter exports
 # the format package, so a name it reaches through that export counts as its own.
