@@ -2479,7 +2479,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-394** owed-act: the boot verifier's executable SLH-DSA and ML-DSA have no priced producer, M3.5 consuming them as a join and no cell realizing them
 · Raised: M7.1, in prose
-· Disposition: open, price a producer for the ROM stage's SLH-DSA over SHAKE256 and the upper stages' ML-DSA verification, under M3.5 or M7.1
+· Disposition: closed at the item by pricing M7.1f for the ROM stage's SLH-DSA over SHAKE256 and the upper stages' ML-DSA verification
 
 **F-395** owed-act: M5.3d's cell owns storage's crypto without saying it lands as the separate crypto-core compartment R-10-022 requires, which the boot roster ranks before storage
 · Raised: M7.1, in prose
