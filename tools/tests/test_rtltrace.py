@@ -382,6 +382,31 @@ def _stimulus_places_each_field() -> None:
            "a stale cause is driven where the port would present one")
 
 
+_CONTRACT: Final = TOOLS.parent / "docs" / "assurance" / "rtl-cosimulation-harness.md"
+_ROW_RE: Final = re.compile(r"^\| ((?:`\w+`(?:, )?)+) \| ([\d, ]+) \|", re.MULTILINE)
+
+
+def _contract_states_the_fields() -> None:
+    """The contract's field table against `FIELDS`, names, order and widths.
+
+    The document states the frame for the harness writer and the decoder implements
+    it, so the two are one fact written twice; this is what holds them together.
+    """
+    text = _CONTRACT.read_text(encoding="utf-8")
+    start = text.index("### 2.2 Fields")
+    section = text[start:text.index("\n### ", start + 1)]
+    stated: list[tuple[str, int]] = []
+    for names, digits in _ROW_RE.findall(section):
+        fields = re.findall(r"`(\w+)`", names)
+        widths = [int(d) for d in digits.split(",")]
+        ensure(len(fields) == len(widths),
+               f"a contract row names {fields} and states {widths} digit widths")
+        stated.extend(zip(fields, widths, strict=True))
+    ensure(tuple(stated) == rtltrace.FIELDS,
+           f"the contract's field table differs from rtltrace.FIELDS: {stated} against "
+           f"{list(rtltrace.FIELDS)}")
+
+
 def _family_is_the_decoding_directory() -> None:
     rows = testrig.family_rows()
     for mnemonic, operands, want in (("add", [5, 6, 7], "I"), ("mul", [5, 6, 7], "M"),
@@ -413,4 +438,5 @@ def cases() -> list[Case]:
         Case("stimulus-matches-its-bench", _stimulus_matches_its_bench),
         Case("stimulus-places-each-field", _stimulus_places_each_field),
         Case("family-is-the-decoding-directory", _family_is_the_decoding_directory),
+        Case("contract-states-the-fields", _contract_states_the_fields),
     ]

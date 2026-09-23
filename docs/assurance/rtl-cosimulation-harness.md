@@ -25,7 +25,7 @@ Text, one record per line, every line ending in a newline and carrying no carria
 | Line | Occurs | Content |
 | --- | --- | --- |
 | `vos-rtl-rvfi 1` | first, once | the format and its version; another version is refused rather than read as this one |
-| `P` and sixteen fields | once per retirement, in retirement order | the fields of section 2.2, space-separated, fixed-width hexadecimal in either case |
+| `P` and its fields | once per retirement, in retirement order | the fields of section 2.2 in that order, space-separated, fixed-width hexadecimal in either case |
 | `E` and a decimal count | last, once | how many `P` lines the writer wrote |
 
 Retirement order across commit ports is port order within a cycle. The curated configuration has one commit port, and the writer takes a port count so that a second changes nothing on the decoder's side.
