@@ -37,7 +37,9 @@
        compartment, its cores, its placed dormant contexts and one extent
        per memory class; envelope_admits checks the one label, the
        fixed-tier floor and a placed context per member, and launch_ok
-       activates only a placed context.
+       activates only a placed context. The envelope is stated for one
+       island: R-08-047a's pool per class on each island a domain occupies
+       is Q34c's (item b below).
    S2  Confinement of the runtime choices (R-07-037e, R-07-037g, R-07-032).
        ReadsOnlyItsLabel over a Global state whose frame and other labels
        are separate from the domain's own state, and MovesNothingOutside
@@ -52,16 +54,21 @@
    S4  The intra-slot step (R-07-037g, R-07-037d, R-07-014c). ElasticStep
        is PartitionContext.v's Rotation, plus the zeroize of the
        zeroize-class state whenever the two members belong to different
-       applications, priced at one vmclear.
-   S5  The share bound (R-07-037g, R-11-006c). Stints of served and idle
-       time, the lag each member accrues against its weight's share of the
-       competing set, LagBounded and ShortfallBounded, ShareBound at the
+       applications, priced at one vmclear; step_between reads the two
+       members' applications from the declaration, and decl_enumerates ties
+       those to the envelope's manifests.
+   S5  The share bound (R-07-037g, R-11-006c). Stints of served, step and
+       idle time, the lag each member accrues against its weight's share of
+       the competing set, LagBounded and ShortfallBounded, ShareBound at the
        register's bound, and the proof that the instant half carries the
        interval half, so Q34b owes the instant half alone.
    S6  The yield-bound obligation (R-07-037h). Poll sites on back-edges
        and recursive entries over a control-flow graph, reactions as
-       poll-free paths, YieldBoundAdmits, and the counter protocol whose
-       gaps between invocations are proved within the call bound.
+       poll-free paths ending at the next poll site or through an exit
+       block, YieldBoundAdmits, the sink's obligation that every path from
+       a switch-requested return reaches a real yield within one reaction,
+       and the counter protocol whose gaps between invocations are proved
+       within the call bound.
    S7  The pool service (R-08-047b, R-15-007k). An allocation history over
        an arena, and the four guarantees stated over it: live chunks
        disjoint, bounds exact at a size class of the table, zeroed at
@@ -72,15 +79,16 @@
        returned capability narrowed exactly to its allocation, live
        allocations disjoint, and in-chunk reuse behind the same gate.
    S9  Capability confinement (R-08-047c). Declared edges, what each kind
-       can carry, edges_confine, and the proof that no sequence of
-       transfers along the declared edges puts a pool-derived capability
-       outside the domain.
+       can carry, edges_confine over the edges leaving the domain, and the
+       proof that no sequence of transfers along the declared edges puts a
+       pool-derived capability outside the domain.
 
    Q34b consumes S2, S3, S4 and S5: its kernel statement refines select,
-   reply, charge and ElasticStep over PartitionContext.v's contexts and
-   proves LagBounded at the register's bound, which finding F1 below shows
-   it cannot do as the register now states it. Q34c
-   consumes S7, S8 and S9: the chunk service and heap library refine
+   reply, step_between and, once the register answers F3, charge and
+   rebalance over PartitionContext.v's contexts, and proves LagBounded at
+   the register's bound, which finding F1 below shows it cannot do as the
+   register now states it. Q34c consumes S7, S8 and S9: the chunk service
+   and heap library refine
    PoolGuarantees and HeapNarrows, and the composition's size-class table
    discharges class_exact. Q34d consumes S6. Q34e consumes S1 and S3's
    admission side (decl_admits) for the demonstration composition.
@@ -97,28 +105,48 @@
       is an enumeration order, so no generality is lost.
    3. The request lasts while the service since this dispatch is below the
       effective request, and the kernel answers a tentative call at the
-      virtual time that service has advanced.
+      virtual time that service has advanced. "An earlier virtual
+      deadline" is strictly earlier: an eligible member whose deadline ties
+      the running member's does not end the run, although select would
+      break the same tie by the fixed order.
    4. A run is one dispatch: invocations of (iii) at most one call bound
       apart, every one but the last answered continue, and the last either
       the member's own real yield or a tentative call answered
       switch-requested followed by the sink, whose next invocation is
       enacted as the real yield whatever its flag (R-07-037g's backstop).
-   5. Lag is service lag: the member's weight share of served time while it
-      competes (live with work pending), less the service it received. A
-      member outside the competing set accrues nothing, which is the lag
-      preservation R-07-037g asks of a leave, and a rebalance places a
-      joining or reweighted member at the eligible time its preserved lag
-      fixes. A real yield with nothing pending leaves the eligible set and
-      moves no other member's accounting. Both are the literal rule; F3
-      reports what the literal rule does.
+   5. Lag is service lag: the member's weight share of the time base while
+      it competes (live with work pending), less the service it received.
+      Entitlement accrues only while a member competes, and the bound is
+      taken over every enumerated member (F4). A member outside the
+      competing set accrues nothing, which carries its own lag across a
+      leave, and a rebalance places every member at the eligible time its
+      service lag fixes. A real yield with nothing pending leaves the
+      eligible set and moves no other member's accounting: charge applies
+      no virtual-time adjustment at a leave, and rebalance none at a join
+      or reweight. That departs from EEVDF's published leave rule, which
+      R-07-037g names and which advances virtual time by the leaving
+      member's lag over the remaining weight. It is taken so that a
+      competing member's accounting lag, weight times virtual time less
+      eligible time, stays its service lag and the share bound has one lag
+      to quantify; F3 exhibits what each choice costs, and charge and
+      rebalance follow the register's answer.
    6. The time base of the share bound is a parameter, ServedTime or
-      SlotTime, because R-07-037g's "the domain's time on its core" does not
-      say whether the idle tail the boundary rule leaves is in it; F2.
+      SlotTime. ServedTime is the stretches a member is served. SlotTime
+      is all of the domain's slot time on the core: the served stretches,
+      each intra-slot step and each idle tail the boundary rule leaves.
+      R-07-037g's "the domain's time on its core" does not say which; F2.
    7. The intra-slot step's zeroize-class state is PartitionContext.v's
       zeroized CSR class, R-07-014a having deleted the save area, so the
       inter-application vmclear is a write of zero_word to that class.
    8. Poll sites sit at block entries, and "a poll site on every loop
-      back-edge" is a poll site at the target of every back-edge.
+      back-edge" is a poll site at the target of every back-edge. A
+      reaction that ends at a poll site stops at that block's entry, the
+      block belonging to the next reaction; one that ends at an exit
+      includes the exit block. A real yield is invocation (iii) with its
+      tentative flag clear, at a poll site the graph marks; a
+      switch-requested return enters the sink's first block, a block the
+      graph marks, along an ordinary edge from the invoking poll site, so
+      the sink runs inside the reaction that poll site begins.
    9. A chunk's bytes, its capability and the memory it is handed out
       over are an observable history of events, and the four guarantees
       are stated over that history; Q34c relates the history to the
@@ -126,7 +154,12 @@
   10. An edge carries a capability exactly when R-08-047c's rule says it
       can: a register endpoint with a capability slot or tagged registers,
       a shared window with capability-store permission, a sentry, or a
-      device window. A ring never does.
+      device window. A ring never does. An edge is listed in the direction
+      a capability can travel along it, so a window a member can store
+      into is an edge from that member whichever side granted it, and
+      R-08-047c constrains the edges leaving the domain: authority flowing
+      into it is its second acceptance's, revoked by the mechanism that
+      already governs it.
 
    Findings. None is closed here; each is a register question for its
    owner. F1 to F3 are exhibited by the constructions named, as computed
@@ -138,28 +171,39 @@
        to one yield bound for its sink, which the boundary rule itself
        budgets. the_register_s_lag_bound_is_refuted exhibits a two-member
        trace every step of which the rule forces or permits, ending with
-       both lags of magnitude 22/5 against a bound of 4; the same trace sits
-       inside the request plus a call bound plus a yield bound, which
-       sink_inclusive_lag_bound names without adopting.
+       both served-time lags of magnitude 22/5 against a bound of 4; the
+       same trace sits inside the request plus a call bound plus a yield
+       bound, which sink_inclusive_lag_bound names without adopting. Over
+       slot time the same trace ends with the heavy member's lag at 67/5.
    F2. The share bound's time base is unstated. Read over the domain's slot
-       time, the boundary rule's own idle tails accrue shortfall slot after
-       slot: the_slot_time_reading_is_refuted exhibits one member alone at
-       lag 8 against a bound of 4 after two slots. Read over served time,
-       the bound holds of that trace and says nothing about idling (F3).
-   F3. "Joins, leaves and reweights preserve lag under EEVDF's published
-       rules" does not say whose lag. Taken literally, a member leaving
-       with positive lag moves no other accounting, and
-       the_literal_leave_rule_is_not_work_conserving exhibits a member with
-       work pending that is never eligible again, the core idling slot
-       after slot, while its served-time lag stays inside the register's
-       bound. The published remedy adjusts virtual time at the leave, which
-       shifts every other member's accounting lag away from its service
-       lag, so the choice decides what the share bound quantifies. charge
-       and rebalance implement the literal reading and change with the
-       register's answer.
-   F4. "Each live member's lag" is read over the competing set. A live
-       member with nothing pending accrues entitlement it never uses under
-       the launched-set reading, which no dispatch can bound.
+       time, the intra-slot steps and the idle tails the boundary rule
+       leaves accrue shortfall slot after slot:
+       the_slot_time_reading_is_refuted exhibits one member alone at lag 18
+       against a bound of 4 after two slots of 12, of which it was served
+       6. Read over served time, the bound holds of that trace and cannot
+       see idling (F3).
+       R-11-006c's third acceptance charges the idle tail to the domain and
+       books it at R-17-007b, which places the tail in the domain's time
+       without saying whether a member's share is measured over it.
+   F3. Which lag the share bound quantifies, and with it whether the
+       dispatch applies EEVDF's published leave rule, is unstated. Without
+       the published adjustment (reading 5), a leave keeps every
+       competing member's accounting lag equal to its service lag, and
+       a_leave_without_the_published_adjustment_is_not_work_conserving
+       exhibits the cost: a member with work pending that is never eligible
+       again, the core idling slot after slot, while its served-time lag
+       stays inside the register's bound. With the adjustment the same
+       member is eligible at once, and its accounting lag is then 0 while
+       its service lag is -13/2
+       (the_published_leave_separates_accounting_from_service_lag). So the
+       register must say whether the share bound quantifies the accounting
+       lag the published rules preserve, or the service shortfall its
+       interval half is worded in, and charge and rebalance follow.
+   F4. Which members are "live" for the share bound is unstated. The bound
+       here is taken over every enumerated member, each accruing
+       entitlement only while it competes, live with work pending. Read
+       over launched members, a live member with nothing pending would
+       accrue entitlement it never uses, which no dispatch can bound.
 
    What this file deliberately does not author, with the owner of each:
 
@@ -169,12 +213,15 @@
    b. The chunk service, the heap library, their refinement of S7 and S8,
       per-island pools and the quarantine's shape and sizing (R-08-047e):
       Q34c.
-   c. The yield-point pass, the static counter and the per-function cost
-      triple a reaction crossing a call carries (R-05-102): Q34d. S6
-      states the obligation over a graph the pass would produce.
-   d. R-08-047d's exhaustion ladder and R-11-006c's focus dispatch bound:
-      the ladder is not among row 31's statements, and the bound's
-      derivation is admission arithmetic over constants Q34e composes.
+   c. The yield-point pass, the static counter, the sink-before-yield
+      lowering on switch-requested and the per-function cost triple a
+      reaction crossing a call carries (R-05-102): Q34d. S6 states the
+      obligations over a graph the pass would produce.
+   d. R-08-047d's exhaustion ladder, R-11-006c's focus dispatch bound, and
+      the minimum-share admission R-07-037g's second acceptance and
+      R-11-006c both state: the ladder is not among row 31's statements,
+      and the bound and the minimum share are admission arithmetic over
+      R-11-006c's admissible load and constants Q34e composes.
    e. Every composition magnitude. The demonstration declarations below
       carry arbitrary witness values and no composition claim.
 
@@ -190,14 +237,22 @@
    the barrier), and a pool capability held outside the domain (a
    capability-carrying endpoint and a store-permitted window). Each pool
    refutation breaks exactly one guarantee and is shown to keep the other
-   three. Every record carries a named witness.
+   three. R-07-037h's own refusals are exhibited too: an unpolled
+   back-edge, a reaction above the bound, a costly exit block, and a sink
+   that returns to a tentative poll site without yielding, the last
+   passing every other conjunct. Positive instances: an admitted envelope
+   and a placed launch, a step between two members of different
+   applications, conforming traces, a polled loop with its sink, a
+   counter at a declaration, pool and heap histories, and a sealed
+   distribution with an inbound capability edge. Every record carries a
+   named witness.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-102 R-05-163 R-05-165 R-05-166 R-07-014a R-07-014c R-07-027a R-07-031b
       R-07-032 R-07-036 R-07-037b R-07-037c R-07-037d R-07-037e R-07-037f R-07-037g R-07-037h
       R-07-037i R-08-006 R-08-007a R-08-047a R-08-047b R-08-047c R-08-047d R-08-047e R-11-006c
-      R-12-007 R-15-007c R-15-007k
-   SHA256: f3d86d7923ec5aecdaaf1746648524bbd09d521a56e783288cecac7696cae3f0
+      R-12-007 R-15-007c R-15-007k R-17-007b
+   SHA256: 98d43bf51d82459c51c9da44a40c0a121c10d00c6261339602c31ce98b6c8268
    (*| END derived |*)
    ========================================================================= *)
 
@@ -774,7 +829,8 @@ Definition set_member (s : DState) (i : nat) (f : PcFields) : DState :=
 (* The published per-request rule at a real yield: virtual time advances
    by the service over the competing weight, the member's eligible time by
    its service over its weight, and its next deadline is one request past
-   that. A yield with nothing pending leaves the competing set. *)
+   that. A yield with nothing pending leaves the competing set, with no
+   virtual-time adjustment for the lag it leaves with (reading 5, F3). *)
 Definition charge (d : Decl) (s : DState) (i u : nat) (pending : bool) : DState :=
   let w := qn (eff_weight d s i) in
   let ve := Qplus (pc_eligible (ds_member s i)) (Qdiv (qn u) w) in
@@ -925,7 +981,6 @@ Definition ElasticStep (m : Machine) (same_app : bool) : Step m := fun succ pre 
       else forall c, csr_nameable m c = true -> csr_zeroized m c = true ->
                      ctx_csr post c = zero_word m).
 
-(*| discharges: R-07-037g |*)
 Theorem a_cross_application_step_clears_the_zeroize_class :
   forall m : Machine, RestoresNameableCsrs m (ElasticStep m false).
 Proof.
@@ -935,7 +990,6 @@ Proof.
   - exact (Hr c Hn E).
 Qed.
 
-(*| discharges: R-07-037g |*)
 Theorem a_cross_application_step_leaves_no_residue :
   forall m : Machine, rotation_swaps_pending m = true -> NoResidue m (ElasticStep m false).
 Proof.
@@ -959,12 +1013,80 @@ Proof.
   - intros H. split; [ exact H | exact I ].
 Qed.
 
-(*| discharges: R-07-037g |*)
 Theorem the_clear_costs_one_vmclear_and_nothing_else :
   forall m : Machine,
     constants_paid m (elastic_performs false) = vmclear_cost m
     /\ constants_paid m (elastic_performs true) = 0.
 Proof. intros m. unfold constants_paid. simpl. split; lia. Qed.
+
+(* The cross-application step is satisfiable at every machine: the
+   partition switch's canonical post-state meets it. *)
+Theorem a_cross_application_step_is_satisfiable :
+  forall (m : Machine) succ pre, ElasticStep m false succ pre (canonical_post m succ).
+Proof.
+  intros m succ pre. split.
+  - apply switch_discharges_every_rotation_obligation. apply switch_is_satisfiable.
+  - intros c _ Hz. cbn. rewrite Hz. reflexivity.
+Qed.
+
+(* R-07-037g's "whenever the outgoing and incoming members belong to
+   different applications' manifests", read off the declaration: the step
+   from member i to member j is the clearing one exactly when their
+   applications differ. *)
+Definition same_application (d : Decl) (i j : nat) : bool := Nat.eqb (dc_app d i) (dc_app d j).
+
+Definition step_between (d : Decl) (i j : nat) : Step (dc_machine d) :=
+  ElasticStep (dc_machine d) (same_application d i j).
+
+Definition performs_between (d : Decl) (i j : nat) : Action -> bool :=
+  elastic_performs (same_application d i j).
+
+(*| discharges: R-07-037g |*)
+Theorem a_step_between_applications_clears_the_zeroize_class :
+  forall d i j, dc_app d i <> dc_app d j ->
+    RestoresNameableCsrs (dc_machine d) (step_between d i j).
+Proof.
+  intros d i j H. unfold step_between, same_application.
+  rewrite (proj2 (Nat.eqb_neq _ _) H).
+  apply a_cross_application_step_clears_the_zeroize_class.
+Qed.
+
+(*| discharges: R-07-037g |*)
+Theorem a_step_between_applications_leaves_no_residue :
+  forall d i j, dc_app d i <> dc_app d j -> rotation_swaps_pending (dc_machine d) = true ->
+    NoResidue (dc_machine d) (step_between d i j).
+Proof.
+  intros d i j H Hswap. unfold step_between, same_application.
+  rewrite (proj2 (Nat.eqb_neq _ _) H).
+  exact (a_cross_application_step_leaves_no_residue _ Hswap).
+Qed.
+
+(*| discharges: R-07-037g |*)
+Theorem a_step_between_applications_costs_one_vmclear :
+  forall d i j,
+    constants_paid (dc_machine d) (performs_between d i j)
+    = if same_application d i j then 0 else vmclear_cost (dc_machine d).
+Proof.
+  intros d i j. unfold performs_between.
+  destruct (same_application d i j);
+    [ exact (proj2 (the_clear_costs_one_vmclear_and_nothing_else _))
+    | exact (proj1 (the_clear_costs_one_vmclear_and_nothing_else _)) ].
+Qed.
+
+Theorem a_step_inside_one_application_is_the_rotation :
+  forall d i j succ pre post, dc_app d i = dc_app d j ->
+    (step_between d i j succ pre post <-> Rotation (dc_machine d) succ pre post).
+Proof.
+  intros d i j succ pre post H. unfold step_between, same_application.
+  rewrite H, Nat.eqb_refl. apply a_same_application_step_is_the_rotation.
+Qed.
+
+(* The declaration's member i is the envelope's i-th enumerated member,
+   of the application its manifest names. *)
+Definition decl_enumerates (dom : Domain) (d : Decl) : bool :=
+  Nat.eqb (dc_count d) (length (dom_members dom))
+  && all_of (fun i => Nat.eqb (dc_app d i) (mf_app (dom_manifest dom (nth i (dom_members dom) 0))))
+            (upto (dc_count d)).
 
 (* A kernel that saves the zeroize class across the switch and restores it
    for the incoming member, which R-07-037g's third acceptance excludes. *)
@@ -1002,8 +1124,8 @@ Qed.
    ========================================================================= *)
 
 (* A stretch of the domain's time on its core: the member served, or none
-   for an idle stretch, its length, and each member's weight share of the
-   competing set during it. *)
+   for an intra-slot step or an idle stretch, its length, and each
+   member's weight share of the competing set during it. *)
 Record Stint : Type := {
   st_served : option nat;
   st_len : nat;
@@ -1016,10 +1138,14 @@ Definition share_of (d : Decl) (s : DState) (i : nat) : Q :=
 Definition stint_of_run (d : Decl) (s : DState) (r : Run) : Stint :=
   {| st_served := Some (run_member r); st_len := run_service r; st_share := share_of d s |}.
 
+Definition step_stint (d : Decl) (s : DState) : Stint :=
+  {| st_served := None; st_len := dc_step d; st_share := share_of d s |}.
+
 Definition idle_stint (d : Decl) (s : DState) (rem : nat) : Stint :=
   {| st_served := None; st_len := rem; st_share := share_of d s |}.
 
-(* Reading 6: whether an idle stretch is part of "the domain's time on its
+(* Reading 6: whether the stretches no member is served in, the intra-slot
+   steps and the idle tails, are part of "the domain's time on its
    core". *)
 Inductive TimeBase : Type := ServedTime | SlotTime.
 
@@ -1091,7 +1217,8 @@ Definition exec (d : Decl) (c : Config) (st : DStep) : Config :=
   | DRun r =>
       {| cf_state := charge d (cf_state c) (run_member r) (run_service r) (run_pending r);
          cf_rem := cf_rem c - (run_service r + dc_step d);
-         cf_past := cf_past c ++ cons (stint_of_run d (cf_state c) r) nil |}
+         cf_past := cf_past c ++ cons (stint_of_run d (cf_state c) r)
+                                      (cons (step_stint d (cf_state c)) nil) |}
   | DIdle =>
       {| cf_state := cf_state c; cf_rem := 0;
          cf_past := cf_past c ++ cons (idle_stint d (cf_state c) (cf_rem c)) nil |}
@@ -1131,22 +1258,24 @@ Definition fresh (d : Decl) (s : DState) : bool :=
                               (Qdiv (qn (eff_request d s i)) (qn (eff_weight d s i)))))
             (upto (dc_count d)).
 
-(* Every stint boundary of every conforming trace; between two boundaries
-   a lag is linear in time, so the endpoints bound every instant. *)
+(* Every stint boundary of every conforming trace, the first n stints
+   being the history up to the n-th boundary; between two boundaries a lag
+   is linear in time, so the boundaries bound every instant. *)
 Definition LagBounded (tb : TimeBase) (d : Decl) (B : Q) : Prop :=
   forall (s0 : DState) (steps : list DStep),
     fresh d s0 = true -> Conforming d (start s0) steps ->
     forall i, Nat.ltb i (dc_count d) = true ->
-      (Qabs (lag tb i (cf_past (exec_all d (start s0) steps))) <= B)%Q.
+      forall n, (Qabs (lag tb i (firstn n (cf_past (exec_all d (start s0) steps)))) <= B)%Q.
 
 (* The interval half: a member's shortfall against its weight's share
-   over the stretch mid covers. *)
+   over the stretch between two stint boundaries. *)
 Definition ShortfallBounded (tb : TimeBase) (d : Decl) (B : Q) : Prop :=
-  forall (s0 : DState) (pre mid : list DStep),
-    fresh d s0 = true -> Conforming d (start s0) (pre ++ mid) ->
+  forall (s0 : DState) (steps : list DStep),
+    fresh d s0 = true -> Conforming d (start s0) steps ->
     forall i, Nat.ltb i (dc_count d) = true ->
-      (lag tb i (cf_past (exec_all d (start s0) (pre ++ mid)))
-       - lag tb i (cf_past (exec_all d (start s0) pre)) <= 2 * B)%Q.
+      forall n1 n2, n1 <= n2 ->
+        (lag tb i (firstn n2 (cf_past (exec_all d (start s0) steps)))
+         - lag tb i (firstn n1 (cf_past (exec_all d (start s0) steps))) <= 2 * B)%Q.
 
 Definition max_request (d : Decl) : nat :=
   Nat.max (dc_focus_request d) (max_over (dc_request d) (upto (dc_count d))).
@@ -1173,9 +1302,9 @@ Qed.
 Theorem an_instant_bound_bounds_every_interval :
   forall tb d B, LagBounded tb d B -> ShortfallBounded tb d B.
 Proof.
-  intros tb d B H s0 pre mid Hf Hc i Hi.
-  pose proof (H s0 (pre ++ mid) Hf Hc i Hi) as Hend.
-  pose proof (H s0 pre Hf (conforming_app d (start s0) pre mid Hc) i Hi) as Hstart.
+  intros tb d B H s0 steps Hf Hc i Hi n1 n2 _.
+  pose proof (H s0 steps Hf Hc i Hi n2) as Hend.
+  pose proof (H s0 steps Hf Hc i Hi n1) as Hstart.
   apply Qabs_Qle_condition in Hend. apply Qabs_Qle_condition in Hstart.
   destruct Hend, Hstart. lra.
 Qed.
@@ -1246,31 +1375,37 @@ Qed.
 Example cx_lags :
   Qeq_bool (lag ServedTime 0 (cf_past (exec_all cx_decl (start cx_start) cx_steps))) (-22 # 5) = true
   /\ Qeq_bool (lag ServedTime 1 (cf_past (exec_all cx_decl (start cx_start) cx_steps))) (22 # 5) = true
+  /\ Qeq_bool (lag SlotTime 1 (cf_past (exec_all cx_decl (start cx_start) cx_steps))) (67 # 5) = true
   /\ Qeq_bool (register_lag_bound cx_decl) 4 = true
   /\ Qle_bool (Qabs (lag ServedTime 0 (cf_past (exec_all cx_decl (start cx_start) cx_steps))))
+       (sink_inclusive_lag_bound cx_decl) = true
+  /\ Qle_bool (Qabs (lag ServedTime 1 (cf_past (exec_all cx_decl (start cx_start) cx_steps))))
        (sink_inclusive_lag_bound cx_decl) = true :=
-  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
 
+(* The whole history is the first 100 stints of a trace this short. *)
 Theorem the_register_s_lag_bound_is_refuted :
   ~ LagBounded ServedTime cx_decl (register_lag_bound cx_decl).
 Proof.
   intros H.
-  pose proof (H cx_start cx_steps eq_refl cx_trace_conforms 0 eq_refl) as Hb.
+  pose proof (H cx_start cx_steps eq_refl cx_trace_conforms 0 eq_refl 100) as Hb.
   apply Qle_bool_iff in Hb.
-  assert (E : Qle_bool (Qabs (lag ServedTime 0 (cf_past (exec_all cx_decl (start cx_start) cx_steps))))
+  assert (E : Qle_bool (Qabs (lag ServedTime 0
+                         (firstn 100 (cf_past (exec_all cx_decl (start cx_start) cx_steps)))))
                        (register_lag_bound cx_decl) = false) by reflexivity.
   rewrite E in Hb. discriminate Hb.
 Qed.
 
-(* The trace has no idle stretch, so the slot-time reading gives the same
-   lags and refutes the bound too. *)
+(* Over slot time the two steps accrue entitlement as well, and the heavy
+   member's lag leaves the bound further. *)
 Theorem the_register_s_lag_bound_is_refuted_over_slot_time :
   ~ LagBounded SlotTime cx_decl (register_lag_bound cx_decl).
 Proof.
   intros H.
-  pose proof (H cx_start cx_steps eq_refl cx_trace_conforms 0 eq_refl) as Hb.
+  pose proof (H cx_start cx_steps eq_refl cx_trace_conforms 1 eq_refl 100) as Hb.
   apply Qle_bool_iff in Hb.
-  assert (E : Qle_bool (Qabs (lag SlotTime 0 (cf_past (exec_all cx_decl (start cx_start) cx_steps))))
+  assert (E : Qle_bool (Qabs (lag SlotTime 1
+                         (firstn 100 (cf_past (exec_all cx_decl (start cx_start) cx_steps)))))
                        (register_lag_bound cx_decl) = false) by reflexivity.
   rewrite E in Hb. discriminate Hb.
 Qed.
@@ -1287,9 +1422,10 @@ Qed.
 
 (* -------------------------------------------------------------------------
    F2's construction. One member alone, request 1, a call bound of 3, a
-   step of 5 and a slot of 12: each slot runs one dispatch of 3 and then
-   the boundary rule idles the remaining 4. Over slot time the member's
-   shortfall grows by 4 a slot; over served time it is zero.
+   step of 5 and a slot of 12: each slot runs one dispatch of 3, its step
+   of 5, and then the boundary rule idles the remaining 4. Over slot time
+   the member's shortfall grows by 9 a slot, the step and the idle tail;
+   over served time it is zero.
    ------------------------------------------------------------------------- *)
 
 Definition tail_decl : Decl := {|
@@ -1333,19 +1469,23 @@ Proof.
     + split; [ reflexivity | exact I ].
 Qed.
 
+(* The stints are the two slots' served 3, step 5 and idle 4: 24 units of
+   slot time, 6 of them served. *)
 Example tail_lags :
-  Qeq_bool (lag SlotTime 0 (cf_past (exec_all tail_decl (start solo_start) tail_steps))) 8 = true
+  map st_len (cf_past (exec_all tail_decl (start solo_start) tail_steps)) = 3 :: 5 :: 4 :: 3 :: 5 :: 4 :: nil
+  /\ Qeq_bool (lag SlotTime 0 (cf_past (exec_all tail_decl (start solo_start) tail_steps))) 18 = true
   /\ Qeq_bool (lag ServedTime 0 (cf_past (exec_all tail_decl (start solo_start) tail_steps))) 0 = true
   /\ Qeq_bool (register_lag_bound tail_decl) 4 = true :=
-  conj eq_refl (conj eq_refl eq_refl).
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 Theorem the_slot_time_reading_is_refuted :
   ~ LagBounded SlotTime tail_decl (register_lag_bound tail_decl).
 Proof.
   intros H.
-  pose proof (H solo_start tail_steps eq_refl tail_trace_conforms 0 eq_refl) as Hb.
+  pose proof (H solo_start tail_steps eq_refl tail_trace_conforms 0 eq_refl 100) as Hb.
   apply Qle_bool_iff in Hb.
-  assert (E : Qle_bool (Qabs (lag SlotTime 0 (cf_past (exec_all tail_decl (start solo_start) tail_steps))))
+  assert (E : Qle_bool (Qabs (lag SlotTime 0
+                         (firstn 100 (cf_past (exec_all tail_decl (start solo_start) tail_steps)))))
                        (register_lag_bound tail_decl) = false) by reflexivity.
   rewrite E in Hb. discriminate Hb.
 Qed.
@@ -1354,9 +1494,12 @@ Qed.
    F3's construction. Two members of weight 1 and request 10. Member 0
    wins the tie, runs four call bounds and its sink, and is ahead of
    virtual time; member 1 runs one unit and yields with nothing pending,
-   leaving owed service behind. Member 0 then competes alone, never
-   eligible again, and the core idles slot after slot with its work
-   pending, while its served-time lag stays inside the register's bound.
+   leaving owed service behind. Without the published leave adjustment
+   (reading 5), member 0 then competes alone, never eligible again, and
+   the core idles slot after slot with its work pending, while its
+   served-time lag stays inside the register's bound. With the adjustment
+   member 0 is eligible at once, and its accounting lag and its service
+   lag part.
    ------------------------------------------------------------------------- *)
 
 Definition wc_decl : Decl := {|
@@ -1435,12 +1578,40 @@ Example wc_starves_member_0 :
        (register_lag_bound wc_decl) = true :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
 
-Theorem the_literal_leave_rule_is_not_work_conserving : ~ IdlesOnlyWithoutWork wc_decl.
+Theorem a_leave_without_the_published_adjustment_is_not_work_conserving :
+  ~ IdlesOnlyWithoutWork wc_decl.
 Proof.
   intros H.
   destruct wc_starves_member_0 as [ Hc [ Hb [ Hs _ ] ] ].
   exact (H wc_start wc_prefix eq_refl wc_prefix_conforms 0 Hc Hb Hs).
 Qed.
+
+(* The published rule's accounting lag, and its leave: virtual time
+   advanced by the leaving member's accounting lag over the weight that
+   still competes. Named to exhibit F3 and not adopted: charge applies no
+   such adjustment (reading 5). *)
+Definition accounting_lag (d : Decl) (s : DState) (i : nat) : Q :=
+  Qmult (qn (eff_weight d s i)) (Qminus (ds_vtime s) (pc_eligible (ds_member s i))).
+
+Definition published_leave (d : Decl) (s : DState) (j : nat) : DState :=
+  {| ds_vtime := Qplus (ds_vtime s) (Qdiv (accounting_lag d s j) (qn (total_weight d s)));
+     ds_focus := ds_focus s; ds_member := ds_member s |}.
+
+(* At the leave, both lags agree for every member; after the published
+   adjustment member 0 is selected at once, its accounting lag is 0, and
+   its service lag is still -13/2. *)
+Example the_published_leave_separates_accounting_from_service_lag :
+  let c := exec_all wc_decl (start wc_start) wc_prefix in
+  let s' := published_leave wc_decl (cf_state c) 1 in
+  Qeq_bool (accounting_lag wc_decl (cf_state c) 0) (lag ServedTime 0 (cf_past c)) = true
+  /\ Qeq_bool (accounting_lag wc_decl (cf_state c) 1) (lag ServedTime 1 (cf_past c)) = true
+  /\ Qeq_bool (accounting_lag wc_decl (cf_state c) 1) (13 # 2) = true
+  /\ select wc_decl (cf_state c) = None
+  /\ select wc_decl s' = Some 0
+  /\ Qeq_bool (accounting_lag wc_decl s' 0) 0 = true
+  /\ Qeq_bool (lag ServedTime 0 (cf_past c)) (-13 # 2) = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl eq_refl))))).
 
 (* -------------------------------------------------------------------------
    The boundary rule's refutations: a kernel whose test is one call bound,
@@ -1557,6 +1728,8 @@ Record Cfg : Type := {
   cfg_back : nat -> nat -> bool;
   cfg_recursive_entry : nat -> bool;
   cfg_poll : nat -> bool;
+  cfg_yield : nat -> bool;       (* poll sites whose invocation is a real yield *)
+  cfg_sink : nat -> bool;        (* blocks a switch-requested return enters     *)
   cfg_entry : nat;
   cfg_exit : nat -> bool;
   cfg_cost : nat -> nat
@@ -1565,13 +1738,21 @@ Record Cfg : Type := {
 Fixpoint chain (g : Cfg) (x : nat) (l : list nat) : bool :=
   match l with nil => true | cons y r => cfg_edge g x y && chain g y r end.
 
-(* A reaction runs from the entry or a poll site to the next poll site or
-   an exit through blocks that carry none (reading 8). *)
+(* A reaction runs from the entry or a poll site through blocks that carry
+   none, and ends either at the entry of the next poll site, whose block
+   the next reaction counts, or at the end of an exit block, which it
+   counts (reading 8). *)
 Definition Reaction (g : Cfg) (from : nat) (inner : list nat) (to : nat) : Prop :=
   (Nat.eqb from (cfg_entry g) || cfg_poll g from) = true
-  /\ (cfg_exit g to || cfg_poll g to) = true
   /\ all_of (fun v => negb (cfg_poll g v)) inner = true
-  /\ chain g from (inner ++ cons to nil) = true.
+  /\ chain g from (inner ++ cons to nil) = true
+  /\ cfg_poll g to = true.
+
+Definition ExitReaction (g : Cfg) (from : nat) (inner : list nat) : Prop :=
+  (Nat.eqb from (cfg_entry g) || cfg_poll g from) = true
+  /\ all_of (fun v => negb (cfg_poll g v)) inner = true
+  /\ chain g from inner = true
+  /\ cfg_exit g (last inner from) = true.
 
 Definition reaction_cost (g : Cfg) (from : nat) (inner : list nat) : nat :=
   cfg_cost g from + sum_list (map (cfg_cost g) inner).
@@ -1583,63 +1764,239 @@ Definition PollsEveryRecursiveEntry (g : Cfg) : Prop :=
   forall v, cfg_recursive_entry g v = true -> cfg_poll g v = true.
 
 Definition ReactionsWithin (g : Cfg) (Y : nat) : Prop :=
-  forall from inner to, Reaction g from inner to -> reaction_cost g from inner <= Y.
+  (forall from inner to, Reaction g from inner to -> reaction_cost g from inner <= Y)
+  /\ (forall from inner, ExitReaction g from inner -> reaction_cost g from inner <= Y).
+
+(* R-07-037h's second acceptance, its second half: a path from a
+   switch-requested return, through blocks that carry no poll site, never
+   leaves through an exit and reaches no poll site but a real yield. The
+   reaction the switch-requested reply falls in therefore ends at a real
+   yield, and ReactionsWithin bounds its sink by the yield bound. *)
+Definition SinkPath (g : Cfg) (v : nat) (inner : list nat) : Prop :=
+  cfg_sink g v = true /\ cfg_poll g v = false /\ chain g v inner = true
+  /\ all_of (fun u => negb (cfg_poll g u)) inner = true.
+
+Definition SinksYieldWithinOneReaction (g : Cfg) : Prop :=
+  (forall v, cfg_sink g v = true -> cfg_poll g v = true -> cfg_yield g v = true)
+  /\ (forall v inner, SinkPath g v inner ->
+        cfg_exit g (last inner v) = false
+        /\ forall w, cfg_edge g (last inner v) w = true -> cfg_poll g w = true ->
+                     cfg_yield g w = true).
 
 Definition YieldBoundAdmits (g : Cfg) (Y : nat) : Prop :=
-  PollsEveryBackEdge g /\ PollsEveryRecursiveEntry g /\ ReactionsWithin g Y.
+  PollsEveryBackEdge g /\ PollsEveryRecursiveEntry g /\ ReactionsWithin g Y
+  /\ SinksYieldWithinOneReaction g.
 
-(* A loop: entry 0, header 1 carrying the poll site, body 2, exit 3. *)
+Lemma sum_list_app : forall l r, sum_list (l ++ r) = sum_list l + sum_list r.
+Proof.
+  intros l r. induction l as [ | x l IH ]; [ reflexivity | ].
+  simpl. rewrite IH. lia.
+Qed.
+
+Lemma chain_app : forall g x l r, chain g x (l ++ r) = true -> chain g x l = true.
+Proof.
+  intros g x l. revert x. induction l as [ | y l IH ]; intros x r H.
+  - reflexivity.
+  - simpl in H. apply andb_prop in H. destruct H as [ Hxy H ].
+    simpl. apply andb_true_intro. split; [ exact Hxy | exact (IH y r H) ].
+Qed.
+
+(* Every poll-free path from any block within Y, whatever its ends: a
+   sufficient condition the small graphs below are checked by. *)
+Definition PathsWithin (g : Cfg) (Y : nat) : Prop :=
+  forall from inner, chain g from inner = true ->
+    all_of (fun v => negb (cfg_poll g v)) inner = true -> reaction_cost g from inner <= Y.
+
+Lemma paths_within_reactions : forall g Y, PathsWithin g Y -> ReactionsWithin g Y.
+Proof.
+  intros g Y H. split.
+  - intros from inner to [ _ [ Hi [ Hc _ ] ] ].
+    exact (H from inner (chain_app g from inner _ Hc) Hi).
+  - intros from inner [ _ [ Hi [ Hc _ ] ] ]. exact (H from inner Hc Hi).
+Qed.
+
+Lemma path_head : forall g from x rest,
+  chain g from (cons x rest) = true ->
+  all_of (fun v => negb (cfg_poll g v)) (cons x rest) = true ->
+  cfg_edge g from x = true /\ cfg_poll g x = false.
+Proof.
+  intros g from x rest Hc Hi. simpl in Hc, Hi.
+  apply andb_prop in Hc. destruct Hc as [ Hfx _ ].
+  apply andb_prop in Hi. destruct Hi as [ Hx _ ].
+  split; [ exact Hfx | apply negb_true_iff; exact Hx ].
+Qed.
+
+Lemma path_pair : forall g from x y rest,
+  chain g from (cons x (cons y rest)) = true ->
+  all_of (fun v => negb (cfg_poll g v)) (cons x (cons y rest)) = true ->
+  cfg_edge g x y = true /\ cfg_poll g x = false /\ cfg_poll g y = false.
+Proof.
+  intros g from x y rest Hc Hi. simpl in Hc, Hi.
+  apply andb_prop in Hc. destruct Hc as [ _ Hc ].
+  apply andb_prop in Hc. destruct Hc as [ Hxy _ ].
+  apply andb_prop in Hi. destruct Hi as [ Hx Hi ].
+  apply andb_prop in Hi. destruct Hi as [ Hy _ ].
+  split; [ exact Hxy | split; apply negb_true_iff; assumption ].
+Qed.
+
+(* A loop: entry 0, header 1 carrying a tentative poll site, body 2 and
+   exit 3, and the header's switch-requested branch: sink 4, then a real
+   yield at the poll site 5, resuming at the header. *)
 Definition loop_edge (u v : nat) : bool :=
   match u, v with
   | 0, 1 => true | 1, 2 => true | 2, 1 => true | 1, 3 => true
+  | 1, 4 => true | 4, 5 => true | 5, 1 => true
   | _, _ => false
   end.
 
 Definition loop_back (u v : nat) : bool :=
-  match u, v with 2, 1 => true | _, _ => false end.
+  match u, v with 2, 1 => true | 5, 1 => true | _, _ => false end.
 
 Definition loop_cost (v : nat) : nat :=
-  match v with 0 => 2 | 1 => 1 | 2 => 5 | _ => 1 end.
+  match v with 0 => 2 | 1 => 1 | 2 => 5 | 4 => 2 | _ => 1 end.
 
 Definition loop_cfg : Cfg := {|
   cfg_edge := loop_edge; cfg_back := loop_back; cfg_recursive_entry := fun _ => false;
-  cfg_poll := fun v => Nat.eqb v 1; cfg_entry := 0; cfg_exit := fun v => Nat.eqb v 3;
+  cfg_poll := fun v => Nat.eqb v 1 || Nat.eqb v 5; cfg_yield := fun v => Nat.eqb v 5;
+  cfg_sink := fun v => Nat.eqb v 4; cfg_entry := 0; cfg_exit := fun v => Nat.eqb v 3;
   cfg_cost := loop_cost
 |}.
 
-(* The same loop with its poll site removed. *)
+(* The same loop with its poll sites removed. *)
 Definition unpolled_cfg : Cfg := {|
   cfg_edge := loop_edge; cfg_back := loop_back; cfg_recursive_entry := fun _ => false;
-  cfg_poll := fun _ => false; cfg_entry := 0; cfg_exit := fun v => Nat.eqb v 3;
-  cfg_cost := loop_cost
+  cfg_poll := fun _ => false; cfg_yield := fun _ => false; cfg_sink := fun _ => false;
+  cfg_entry := 0; cfg_exit := fun v => Nat.eqb v 3; cfg_cost := loop_cost
 |}.
+
+Lemma loop_paths_within : PathsWithin loop_cfg 6.
+Proof.
+  intros from inner Hc Hi. unfold reaction_cost.
+  destruct inner as [ | x [ | y rest ] ].
+  - destruct from as [ | [ | [ | [ | [ | from ] ] ] ] ]; cbn; lia.
+  - destruct (path_head _ _ _ _ Hc Hi) as [ Hfx Hx ].
+    destruct from as [ | [ | [ | [ | [ | [ | from ] ] ] ] ] ];
+      destruct x as [ | [ | [ | [ | [ | [ | x ] ] ] ] ] ];
+      cbn in Hfx, Hx |- *; try discriminate Hfx; try discriminate Hx; lia.
+  - destruct (path_pair _ _ _ _ _ Hc Hi) as [ Hxy [ Hx Hy ] ].
+    destruct x as [ | [ | [ | [ | [ | [ | x ] ] ] ] ] ];
+      destruct y as [ | [ | [ | [ | [ | [ | y ] ] ] ] ] ];
+      cbn in Hxy, Hx, Hy; try discriminate Hxy; try discriminate Hx; discriminate Hy.
+Qed.
+
+Lemma loop_sinks_yield : SinksYieldWithinOneReaction loop_cfg.
+Proof.
+  split.
+  - intros v Hs Hp. cbn in Hs. apply Nat.eqb_eq in Hs. subst v. cbn in Hp. discriminate Hp.
+  - intros v inner [ Hs [ _ [ Hc Hi ] ] ]. cbn in Hs. apply Nat.eqb_eq in Hs. subst v.
+    destruct inner as [ | x rest ].
+    + split; [ reflexivity | ]. intros w Hw Hp.
+      destruct w as [ | [ | [ | [ | [ | [ | w ] ] ] ] ] ];
+        cbn in Hw, Hp |- *; try discriminate Hw; try discriminate Hp; reflexivity.
+    + exfalso. destruct (path_head _ _ _ _ Hc Hi) as [ Hx4 Hx ].
+      destruct x as [ | [ | [ | [ | [ | [ | x ] ] ] ] ] ];
+        cbn in Hx4, Hx; try discriminate Hx4; discriminate Hx.
+Qed.
 
 Theorem the_polled_loop_is_admitted_at_its_longest_reaction :
   YieldBoundAdmits loop_cfg 6.
 Proof.
-  split; [ | split ].
-  - intros u v H. destruct u as [ | [ | [ | u ] ] ]; destruct v as [ | [ | v ] ];
-      simpl in H; try discriminate H; reflexivity.
+  split; [ | split; [ | split ] ].
+  - intros u v H.
+    destruct u as [ | [ | [ | [ | [ | [ | u ] ] ] ] ] ]; destruct v as [ | [ | v ] ];
+      cbn in H; try discriminate H; reflexivity.
   - intros v H. cbn in H. discriminate H.
-  - intros from inner to [ Hs [ Ht [ Hi Hc ] ] ]. unfold reaction_cost.
-    destruct inner as [ | x [ | y rest ] ].
-    + destruct from as [ | [ | from ] ]; cbn; [ lia | lia | ].
-      cbn in Hs. discriminate Hs.
-    + destruct from as [ | [ | from ] ]; [ | | cbn in Hs; discriminate Hs ];
-        destruct x as [ | [ | [ | [ | x ] ] ] ]; cbn in Hi, Hc |- *;
-        try discriminate Hi; try discriminate Hc; lia.
-    + destruct from as [ | [ | from ] ]; [ | | cbn in Hs; discriminate Hs ];
-        destruct x as [ | [ | [ | [ | x ] ] ] ]; destruct y as [ | [ | [ | [ | y ] ] ] ];
-        cbn in Hi, Hc; try discriminate Hi; try discriminate Hc.
+  - apply paths_within_reactions. exact loop_paths_within.
+  - exact loop_sinks_yield.
 Qed.
 
 (* A reaction above the declared bound is refused. *)
 Theorem a_reaction_above_the_bound_is_refused : ~ YieldBoundAdmits loop_cfg 5.
 Proof.
-  intros [ _ [ _ H ] ].
+  intros [ _ [ _ [ [ H _ ] _ ] ] ].
   assert (Hr : Reaction loop_cfg 1 (cons 2 nil) 1).
   { split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ]. }
   specialize (H 1 (cons 2 nil) 1 Hr). unfold reaction_cost in H. cbn in H. lia.
+Qed.
+
+(* An exit block's cost is in the reaction that reaches it: entry 0 falls
+   through to exit block 1, of cost 100, with no poll site, so that one
+   reaction costs 101 and no smaller yield bound admits the graph. *)
+Definition costly_exit_cfg : Cfg := {|
+  cfg_edge := fun u v => Nat.eqb u 0 && Nat.eqb v 1;
+  cfg_back := fun _ _ => false; cfg_recursive_entry := fun _ => false;
+  cfg_poll := fun _ => false; cfg_yield := fun _ => false; cfg_sink := fun _ => false;
+  cfg_entry := 0; cfg_exit := fun v => Nat.eqb v 1;
+  cfg_cost := fun v => if Nat.eqb v 1 then 100 else 1
+|}.
+
+Theorem an_exit_block_s_cost_is_counted :
+  ExitReaction costly_exit_cfg 0 (cons 1 nil)
+  /\ reaction_cost costly_exit_cfg 0 (cons 1 nil) = 101
+  /\ forall Y, Y < 101 -> ~ YieldBoundAdmits costly_exit_cfg Y.
+Proof.
+  assert (Hr : ExitReaction costly_exit_cfg 0 (cons 1 nil)).
+  { split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ]. }
+  split; [ exact Hr | split; [ reflexivity | ] ].
+  intros Y HY [ _ [ _ [ [ _ H ] _ ] ] ].
+  specialize (H 0 (cons 1 nil) Hr). cbn in H. lia.
+Qed.
+
+(* The switch-requested branch looping back to the tentative poll site
+   without yielding: every back-edge is polled and every reaction is
+   within the loop's bound, so only the sink's obligation refuses it. *)
+Definition unyielding_edge (u v : nat) : bool :=
+  match u, v with
+  | 0, 1 => true | 1, 2 => true | 2, 1 => true | 1, 3 => true
+  | 1, 4 => true | 4, 1 => true
+  | _, _ => false
+  end.
+
+Definition unyielding_back (u v : nat) : bool :=
+  match u, v with 2, 1 => true | 4, 1 => true | _, _ => false end.
+
+Definition unyielding_cfg : Cfg := {|
+  cfg_edge := unyielding_edge; cfg_back := unyielding_back; cfg_recursive_entry := fun _ => false;
+  cfg_poll := fun v => Nat.eqb v 1; cfg_yield := fun _ => false;
+  cfg_sink := fun v => Nat.eqb v 4; cfg_entry := 0; cfg_exit := fun v => Nat.eqb v 3;
+  cfg_cost := loop_cost
+|}.
+
+Lemma unyielding_paths_within : PathsWithin unyielding_cfg 6.
+Proof.
+  intros from inner Hc Hi. unfold reaction_cost.
+  destruct inner as [ | x [ | y rest ] ].
+  - destruct from as [ | [ | [ | [ | [ | from ] ] ] ] ]; cbn; lia.
+  - destruct (path_head _ _ _ _ Hc Hi) as [ Hfx Hx ].
+    destruct from as [ | [ | [ | [ | [ | [ | from ] ] ] ] ] ];
+      destruct x as [ | [ | [ | [ | [ | [ | x ] ] ] ] ] ];
+      cbn in Hfx, Hx |- *; try discriminate Hfx; try discriminate Hx; lia.
+  - destruct (path_pair _ _ _ _ _ Hc Hi) as [ Hxy [ Hx Hy ] ].
+    destruct x as [ | [ | [ | [ | [ | [ | x ] ] ] ] ] ];
+      destruct y as [ | [ | [ | [ | [ | [ | y ] ] ] ] ] ];
+      cbn in Hxy, Hx, Hy; try discriminate Hxy; try discriminate Hx; discriminate Hy.
+Qed.
+
+Theorem a_sink_that_does_not_yield_is_refused :
+  PollsEveryBackEdge unyielding_cfg /\ PollsEveryRecursiveEntry unyielding_cfg
+  /\ ReactionsWithin unyielding_cfg 6
+  /\ ~ SinksYieldWithinOneReaction unyielding_cfg
+  /\ ~ YieldBoundAdmits unyielding_cfg 6.
+Proof.
+  assert (Hn : ~ SinksYieldWithinOneReaction unyielding_cfg).
+  { intros [ _ H ].
+    assert (Hp : SinkPath unyielding_cfg 4 nil).
+    { split; [ reflexivity | split; [ reflexivity | split; reflexivity ] ]. }
+    destruct (H 4 nil Hp) as [ _ Hw ].
+    specialize (Hw 1 eq_refl eq_refl). cbn in Hw. discriminate Hw. }
+  split; [ | split; [ | split; [ | split ] ] ].
+  - intros u v H.
+    destruct u as [ | [ | [ | [ | [ | u ] ] ] ] ]; destruct v as [ | [ | v ] ];
+      cbn in H; try discriminate H; reflexivity.
+  - intros v H. cbn in H. discriminate H.
+  - apply paths_within_reactions. exact unyielding_paths_within.
+  - exact Hn.
+  - intros [ _ [ _ [ _ H ] ] ]. exact (Hn H).
 Qed.
 
 Fixpoint pump (k : nat) : list nat :=
@@ -1657,21 +2014,23 @@ Proof.
 Qed.
 
 (* A back-edge without a poll site is refused, and at every bound: the loop
-   pumps a reaction past any yield bound whatever. *)
+   pumps a reaction to the exit past any yield bound whatever. *)
 Theorem an_unpolled_back_edge_admits_no_yield_bound :
   ~ PollsEveryBackEdge unpolled_cfg /\ forall Y, ~ ReactionsWithin unpolled_cfg Y.
 Proof.
   split.
   - intros H. specialize (H 2 1 eq_refl). discriminate H.
-  - intros Y H.
-    assert (Hr : Reaction unpolled_cfg 0 (cons 1 (pump Y)) 3).
-    { split; [ reflexivity | split; [ reflexivity | split ] ].
+  - intros Y [ _ H ].
+    assert (Hr : ExitReaction unpolled_cfg 0 (cons 1 (pump Y ++ cons 3 nil))).
+    { split; [ reflexivity | split; [ | split ] ].
       - apply all_of_const. intros v. reflexivity.
-      - simpl. exact (pump_chain Y). }
-    specialize (H 0 (cons 1 (pump Y)) 3 Hr).
+      - simpl. exact (pump_chain Y).
+      - change (cons 1 (pump Y ++ cons 3 nil)) with (cons 1 (pump Y) ++ cons 3 nil).
+        rewrite last_last. reflexivity. }
+    specialize (H 0 _ Hr).
     unfold reaction_cost in H.
-    change (2 + (1 + sum_list (map (cfg_cost unpolled_cfg) (pump Y))) <= Y) in H.
-    rewrite pump_cost in H. lia.
+    change (2 + (1 + sum_list (map (cfg_cost unpolled_cfg) (pump Y ++ cons 3 nil))) <= Y) in H.
+    rewrite map_app, sum_list_app, pump_cost in H. lia.
 Qed.
 
 (* R-07-037h's counter: a poll site invokes (iii) once the cost since the
@@ -1717,6 +2076,30 @@ Qed.
 Example a_miscompiled_counter_exceeds_the_call_bound :
   mem_nat 5 (invocation_gaps 4 0 (cons 2 (cons 1 (cons 2 nil)))) = true
   /\ Nat.ltb (2 + 2) 5 = true := conj eq_refl eq_refl.
+
+(* The counter at a declaration: a call interval of 4 and a yield bound of
+   2, so a call bound of 6. Reactions of 2, 1 and 2 accumulate to an
+   invocation after 5, inside the bound the theorem gives. *)
+Definition counter_decl : Decl := {|
+  dc_count := 1;
+  dc_weight := fun _ => 1;
+  dc_request := fun _ => 10;
+  dc_focus_weight := 1;
+  dc_focus_request := 10;
+  dc_call_interval := 4;
+  dc_yield_bound := 2;
+  dc_step := 5;
+  dc_widths := cons 20 nil;
+  dc_app := fun i => i;
+  dc_machine := demo_rotation_swaps
+|}.
+
+Example the_counter_at_a_declaration :
+  all_of (fun r => Nat.leb r (dc_yield_bound counter_decl)) (2 :: 1 :: 2 :: 2 :: 1 :: 2 :: nil) = true
+  /\ invocation_gaps (dc_call_interval counter_decl) 0 (2 :: 1 :: 2 :: 2 :: 1 :: 2 :: nil) = 5 :: 5 :: nil
+  /\ call_bound counter_decl = 6
+  /\ decl_admits counter_decl = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 (* =========================================================================
    S7. The pool service's four guarantees (R-08-047b, R-08-006, R-08-007a,
@@ -2162,8 +2545,8 @@ Definition carries (k : EdgeKind) : bool :=
 Record Edge : Type := { e_from : nat; e_to : nat; e_kind : EdgeKind }.
 
 (* The composed distribution around one domain: which partitions are its
-   members, the declared edges (a shared window listed in each direction
-   it can be written), and the pool extent. *)
+   members, the declared edges, each listed in the direction a capability
+   can travel along it (reading 10), and the pool extent. *)
 Record Distribution : Type := {
   cd_in_domain : nat -> bool;
   cd_edges : list Edge;
@@ -2174,13 +2557,15 @@ Record Distribution : Type := {
 Definition pool_derived (cd : Distribution) (k : Cap) : bool :=
   Nat.leb (cd_pool_base cd) (cap_base k) && Nat.ltb (cap_base k) (cd_pool_base cd + cd_pool_span cd).
 
-Definition crosses (cd : Distribution) (e : Edge) : bool :=
-  xorb (cd_in_domain cd (e_from e)) (cd_in_domain cd (e_to e)).
+Definition leaves (cd : Distribution) (e : Edge) : bool :=
+  cd_in_domain cd (e_from e) && negb (cd_in_domain cd (e_to e)).
 
-(* R-08-047c, decided against the composition: no edge crossing the
-   domain's boundary can carry a capability. *)
+(* R-08-047c, decided against the composition: no edge leaving the domain
+   can carry a capability. Edges into it are unconstrained here: the
+   authority they bring in is not pool-derived, and its revocation is
+   R-08-047c's second acceptance's. *)
 Definition edges_confine (cd : Distribution) : bool :=
-  all_of (fun e => negb (crosses cd e && carries (e_kind e))) (cd_edges cd).
+  all_of (fun e => negb (leaves cd e && carries (e_kind e))) (cd_edges cd).
 
 Definition Holdings : Type := list (nat * Cap).
 
@@ -2210,7 +2595,7 @@ Proof.
       pose proof (Hc (e_from e) k Hin Hpool) as Hfrom.
       pose proof (all_of_in _ _ _ _ Hok He) as Hedge. simpl in Hedge.
       rewrite Hcarry in Hedge. rewrite andb_true_r in Hedge.
-      apply negb_true_iff in Hedge. unfold crosses in Hedge. rewrite Hfrom in Hedge.
+      apply negb_true_iff in Hedge. unfold leaves in Hedge. rewrite Hfrom in Hedge.
       destruct (cd_in_domain cd (e_to e)); [ reflexivity | discriminate Hedge ].
     + exact (Hc h k' Hin' Hpool).
 Qed.
@@ -2225,7 +2610,9 @@ Proof.
 Qed.
 
 (* Partitions 0 (the pool service), 1 and 2 are the domain; 9 is a
-   fixed-tier server. The pool service holds the root; member 1 a chunk. *)
+   fixed-tier server. The pool service holds the root; member 1 a chunk.
+   The sealed distribution's edges out of the domain carry nothing; its
+   last edge brings capabilities in, which R-08-047c permits. *)
 Definition pool_root : Cap := chunk_cap 1024 1024.
 Definition member_chunk : Cap := chunk_cap 1024 64.
 
@@ -2237,7 +2624,8 @@ Definition sealed_distribution : Distribution := {|
               :: {| e_from := 1; e_to := 9; e_kind := RegisterEndpoint false false |}
               :: {| e_from := 9; e_to := 1; e_kind := SharedWindow false |}
               :: {| e_from := 1; e_to := 9; e_kind := SharedWindow false |}
-              :: {| e_from := 1; e_to := 2; e_kind := RegisterEndpoint true true |} :: nil;
+              :: {| e_from := 1; e_to := 2; e_kind := RegisterEndpoint true true |}
+              :: {| e_from := 9; e_to := 1; e_kind := RegisterEndpoint true true |} :: nil;
   cd_pool_base := 1024; cd_pool_span := 1024
 |}.
 
@@ -2263,7 +2651,8 @@ Qed.
 
 (* (g) A pool capability held outside the domain: an endpoint with a
    capability slot to the fixed-tier server, and, separately, an inbound
-   surface carrying capability-store permission. *)
+   surface carrying capability-store permission, listed from the member
+   that can store into it (reading 10). *)
 Definition slotted_distribution : Distribution := {|
   cd_in_domain := fun p => Nat.ltb p 3;
   cd_edges := {| e_from := 1; e_to := 9; e_kind := RegisterEndpoint true false |} :: nil;
@@ -2389,6 +2778,32 @@ Proof.
   destruct Hin as [ Hin | [ Hin | [] ] ]; discriminate Hin.
 Qed.
 
+(* The specification's launch at the demonstration envelope: a placed
+   member launches on the domain's core, and an unenumerated identity or a
+   core outside the envelope does not. *)
+Example a_placed_member_launches :
+  launch_ok demo_domain 0 0 = true /\ launch_ok demo_domain 1 0 = true
+  /\ launch_ok demo_domain 5 0 = false /\ launch_ok demo_domain 0 1 = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
+(* F1's declaration enumerates the demonstration envelope, whose two
+   members belong to different applications, so the step between them is
+   the clearing one, and it is inhabited. *)
+Theorem the_demo_members_step_across_applications :
+  decl_enumerates demo_domain cx_decl = true
+  /\ mf_app (dom_manifest demo_domain 0) <> mf_app (dom_manifest demo_domain 1)
+  /\ dc_app cx_decl 0 <> dc_app cx_decl 1
+  /\ step_between cx_decl 0 1 demo_succ demo_succ (canonical_post demo_rotation_swaps demo_succ)
+  /\ RestoresNameableCsrs (dc_machine cx_decl) (step_between cx_decl 0 1)
+  /\ constants_paid (dc_machine cx_decl) (performs_between cx_decl 0 1) = 5.
+Proof.
+  assert (Hd : dc_app cx_decl 0 <> dc_app cx_decl 1) by (cbn; discriminate).
+  split; [ reflexivity | split; [ cbn; discriminate | split; [ exact Hd | split ] ] ].
+  - exact (a_cross_application_step_is_satisfiable demo_rotation_swaps demo_succ demo_succ).
+  - split; [ exact (a_step_between_applications_clears_the_zeroize_class cx_decl 0 1 Hd) | ].
+    reflexivity.
+Qed.
+
 (* =========================================================================
    R-05-166's inhabitation witnesses: one closed definition per record this
    file declares, named for that record and ascribed at it. Records reached
@@ -2435,6 +2850,11 @@ Print Assumptions a_cross_application_step_clears_the_zeroize_class.
 Print Assumptions a_cross_application_step_leaves_no_residue.
 Print Assumptions a_same_application_step_is_the_rotation.
 Print Assumptions the_clear_costs_one_vmclear_and_nothing_else.
+Print Assumptions a_cross_application_step_is_satisfiable.
+Print Assumptions a_step_between_applications_clears_the_zeroize_class.
+Print Assumptions a_step_between_applications_leaves_no_residue.
+Print Assumptions a_step_between_applications_costs_one_vmclear.
+Print Assumptions a_step_inside_one_application_is_the_rotation.
 Print Assumptions a_rotation_across_applications_leaves_vector_state_standing.
 Print Assumptions a_kernel_saving_vector_state_is_refuted.
 Print Assumptions an_instant_bound_bounds_every_interval.
@@ -2449,17 +2869,22 @@ Print Assumptions tail_lags.
 Print Assumptions the_slot_time_reading_is_refuted.
 Print Assumptions wc_trace_conforms.
 Print Assumptions wc_starves_member_0.
-Print Assumptions the_literal_leave_rule_is_not_work_conserving.
+Print Assumptions a_leave_without_the_published_adjustment_is_not_work_conserving.
+Print Assumptions the_published_leave_separates_accounting_from_service_lag.
 Print Assumptions a_call_bound_test_cuts_a_member_mid_sink.
 Print Assumptions dropping_the_boundary_rule_cuts_a_member.
 Print Assumptions the_backstop_alone_cuts_a_member.
 Print Assumptions a_dispatch_reading_another_label_is_refuted.
 Print Assumptions admission_refuses_a_narrow_slot_and_an_uncharged_clear.
+Print Assumptions paths_within_reactions.
 Print Assumptions the_polled_loop_is_admitted_at_its_longest_reaction.
 Print Assumptions a_reaction_above_the_bound_is_refused.
+Print Assumptions an_exit_block_s_cost_is_counted.
+Print Assumptions a_sink_that_does_not_yield_is_refused.
 Print Assumptions an_unpolled_back_edge_admits_no_yield_bound.
 Print Assumptions the_counter_bounds_every_path_between_invocations.
 Print Assumptions a_miscompiled_counter_exceeds_the_call_bound.
+Print Assumptions the_counter_at_a_declaration.
 Print Assumptions live_chunks_share_no_byte.
 Print Assumptions an_exact_grant_needs_no_rounding.
 Print Assumptions every_byte_is_zero_at_handoff.
@@ -2480,3 +2905,5 @@ Print Assumptions a_pool_capability_held_outside_the_domain_is_refuted.
 Print Assumptions the_demo_envelope_is_admitted.
 Print Assumptions the_envelope_refuses_what_r_07_037e_names.
 Print Assumptions a_launch_that_creates_is_refuted.
+Print Assumptions a_placed_member_launches.
+Print Assumptions the_demo_members_step_across_applications.
