@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 712 of them across 128 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 724 of them across 128 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2724,6 +2724,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-293** owed-act: every file the two enumerated layers name is a Solderpad file the datapath curation must replace, the Apache-2.0 election THIRD-PARTY.md records at the CHERI-CVA6 pin permits copying one, and `rtl/README.md` §1 admits a file to `rtl/` where this repository wrote it or a generator here writes it from an artifact it owns, which is a rule over provenance rather than over permission
 · Raised: R1b
 · Disposition: closed, the later seams authoring their substitutes on the seam-1 row's shape and a copy-and-edit of the imported tree taking a repository of its own on the compiler milestone's precedent, so neither THIRD-PARTY.md nor `rtl/README.md` moves and the cell is not re-priced
+
+**F-406** measurement: the register form is the decoded 68-bit record, and the imported datapath still reads integers and addresses by low slices, truncation and zero extension at 20 selects, 25 truncations and 33 extensions, with address-sense helper calls and struct-member selects the predicates cannot see
+· Raised: R1b, in prose
+· Disposition: open, each site read as integer or address and repointed at the contract's next layer
+
+**F-407** owed-act: the imported decoder places the capability instructions on the RISC-V CHERI standard line's encodings rather than the model's ISAv9 map, its `SCBNDS` arm is the exact form the model excludes and `SCBNDSI` takes a scaled five-bit immediate, and neither the re-encoding nor the capability-width atomic branch is on a delta row
+· Raised: R1b, in prose
+· Disposition: open, the decoder re-encoding and its delta rows, the atomic branch deleted at seam 4
+
+**F-408** owed-act: the delta's §2.2 load-unit row deletes load-mutable with the levels bits, where the model's load transitivity keeps it and adds load-global (R-15-074)
+· Raised: R1b, in prose
+· Disposition: open, the row corrected by the delta's owner, seam 4 implementing both transitivities
+
+**F-409** owed-act: the delta's §2.3 books `GCHI` and `SCHI` as width rows with a new slice, where the model excludes the upper-half pair as reconstruction (R-05-136)
+· Raised: R1b, in prose
+· Disposition: open, the rows corrected by the delta's owner, seam 4 deleting both arms and decode rows
+
+**F-410** measurement: the width collapse made the data and fetch bounds tests modular, so an 8-byte access at 2^64-8 passed through any capability and a fetch at 2^36+0x100 passed under bounds [0,0x1000), on no delta row
+· Raised: R1b, in prose
+· Disposition: closed at seam 4, both tests calling `in_cap_bounds`, the delta rows for the consumers owed and no simulation exercising either case
+
+**F-411** owed-act: the register file's reset grants of the data, seal and unseal roots to `c1` to `c3` were on no delta row, the imported file resetting all 32 registers to one value
+· Raised: R1b, in prose
+· Disposition: closed at seam 4 by a per-register reset file, the delta row owed, and the RVFI-DII arm taking the model's grants
+
+**F-412** method: seam 3's member-residue search read the staged sources only and missed four member lines in `load_unit.sv`, which the elaboration found
+· Raised: R1b, in prose
+· Disposition: closed, the contract recording the measured layer
+
+**F-413** owed-act: the imported CSR file reloads `mtvec` at reset to the boot address plus `0x40` through an integer-view read, where the model resets `MTCC` at address zero
+· Raised: R1b, in prose
+· Disposition: open, R1b's CSR seam
+
+**F-414** method: `rtl devicescheck` reads `upstream/mocha`, which the lane-setup brief did not list
+· Raised: R1b, in prose
+· Disposition: closed, populated as a shared clone under a cone sparse checkout, and a lane brief owing `devicescheck` names it
+
+**F-415** owed-act: `rtl elaborate` prints the elaborator's output only on failure, so the curated arm's warnings that carry the next layer's width evidence are visible only by re-running the invocation by hand
+· Raised: R1b, in prose
+· Disposition: open, the tool retaining each arm's log in the lane
+
+**F-416** owed-act: the integer LR/SC rows remain decodable when `RVA` is set, where R-15-024 and R-15-025 exclude `Zalrsc`
+· Raised: R1b, in prose
+· Disposition: open, R1b's decoder curation
+
+**F-417** owed-act: three root-minting paths stay behind disabled parameters, the debug DPC write and trap vector and the RVFI-DII `mtvec` reload taking the full code root, inert only at `DebugEn = 0` and `RVFI_DII = 0`
+· Raised: R1b, in prose
+· Disposition: open, the debug and RVFI-DII curation, R2's harness expecting the model's reset grants
 
 **F-399** owed-act: the corpus reaches the adjudicator through a retirement frame rather than the rig's RVFI-DII socket, where the cell says R2 connects the RTL to the existing rig and one protocol runs across both executors, DII replacing fetch and the v2 packet having no cause field
 · Raised: R2, in prose
