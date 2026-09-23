@@ -109,8 +109,17 @@ class Item:
 
 
 class Assembler:
-    def __init__(self, source: str, name: str = "<source>") -> None:
+    def __init__(self, source: str, name: str = "<source>", *,
+                 text_base: int = TEXT_BASE, data_base: int = DATA_BASE,
+                 externals: dict[str, int] | None = None) -> None:
+        """`text_base`, `data_base` and `externals` are a composer's placement of one
+        unit among several: where its two sections land and the absolute addresses of
+        the names it imports from its neighbours. A lone program takes the defaults and
+        imports nothing, which is every caller before the boot harness."""
         self.name = name
+        self.text_base = text_base
+        self.data_base = data_base
+        self.externals = dict(externals or {})
         self.items: list[Item] = []
         # One record per emitted instruction, filled by `assemble` and read by the
         # composer. Empty until then, and rebuilt from scratch by each `assemble`, so a
@@ -220,8 +229,8 @@ class Assembler:
 
         self.strict = True
         self.sites = []
-        text = image.Section(".text", TEXT_BASE, executable=True)
-        data = image.Section(".data", DATA_BASE, writable=True)
+        text = image.Section(".text", self.text_base, executable=True)
+        data = image.Section(".data", self.data_base, writable=True)
         sections = {".text": text, ".data": data}
 
         for item in self.items:
@@ -241,15 +250,21 @@ class Assembler:
 
         symbols = {name: (self.symbol_section[name], value)
                    for name, value in self.symbols.items()}
-        entry = self.symbols.get("_start", TEXT_BASE)
+        entry = self.symbols.get("_start", self.text_base)
         return [text, data], symbols, entry
 
     def _layout(self) -> None:
-        cursor = {".text": TEXT_BASE, ".data": DATA_BASE}
-        self.constants = {}
+        cursor = {".text": self.text_base, ".data": self.data_base}
+        # An import is a constant the unit did not define, so it sits beside the
+        # `.equ`s rather than among the labels: it names an address in another unit
+        # and no section of this one, and a unit defining the same name refuses below.
+        self.constants = {name: (value, "") for name, value in self.externals.items()}
         for item in self.items:
             here = cursor[item.section]
             item.address = here
+            if item.kind in ("label", "equ") and item.text in self.externals:
+                raise self._error(item.line, f"{item.text} is imported from another "
+                                             f"unit and cannot be defined here")
             if item.kind == "label":
                 self.symbols[item.text] = here
                 self.symbol_section[item.text] = item.section

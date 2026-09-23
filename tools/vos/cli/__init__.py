@@ -142,6 +142,8 @@ COMMANDS: tuple[Command, ...] = (
             "captured teardown rates, swept footprints and reservation comparisons"),
     Command("ring-measurement", "vos.cli.ring_measurement",
             "captured ring parameters against the declared per-operation budgets"),
+    Command("boot", "vos.cli.boot",
+            "compose a roster image, boot it on the golden emulator and digest the run"),
     Command("witness", "vos.cli.witness",
             "bounded witness quorum, recovery and policy-transition cases"),
     Command("session-binding", "vos.cli.session_binding",

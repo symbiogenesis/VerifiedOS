@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "name": "boot-harness-fixture",
+  "roster": "tools/boot/fixture-roster.json",
+  "configuration": "model/config/verifiedos.json",
+  "inst_limit": 100000,
+  "tohost": "0x8000f000",
+  "members": [
+    {
+      "id": "fixture-firmware",
+      "producer": "asm",
+      "source": "tools/boot/fixture-firmware.s",
+      "text_base": "0x80000000",
+      "data_base": "0x80008000",
+      "imports": {
+        "kernel_entry": "fixture-kernel"
+      }
+    },
+    {
+      "id": "fixture-kernel",
+      "producer": "asm",
+      "source": "tools/boot/fixture-kernel.s",
+      "text_base": "0x80001000",
+      "data_base": "0x80009000",
+      "imports": {
+        "service_entry": "fixture-service"
+      }
+    },
+    {
+      "id": "fixture-service",
+      "producer": "asm",
+      "source": "tools/boot/fixture-service.s",
+      "text_base": "0x80002000",
+      "data_base": "0x8000a000",
+      "imports": {}
+    }
+  ],
+  "admission": null,
+  "expected": {
+    "image_sha256": "3e4c5ec8220aaba79d056b54488aeeda788cbacf05dbe0c87ac45ae5d54f2ec9",
+    "console_sha256": "b683cf01f942a2eb9b70175d306b5f8930e3746970a5a1697f9cbdb138fbe8a6",
+    "event_sha256": "a1bcdc933d071c94f6a1609d45c124e83aa8fffef6c38c98fc040f863ba4174d",
+    "events": 10,
+    "trace_digest": "7e4edd0e7693af2f",
+    "retired": 51
+  }
+}
