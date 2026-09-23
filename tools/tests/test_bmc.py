@@ -49,6 +49,17 @@ def _depths_admit_a_cover() -> None:
     ensure(len(depths) == len(bmc.CHECKS), "each check kind is declared once")
 
 
+def _only_liveness_assumes_fairness() -> None:
+    assumes = {check.name: check.assumes for check in bmc.CHECKS}
+    ensure("fairness" in assumes.get("liveness", ""),
+           "liveness states the fairness assumption it needs, since an unconstrained "
+           "memory that never answers keeps any instruction from retiring")
+    others = sorted(name for name, what in assumes.items() if what and name != "liveness")
+    ensure(not others,
+           f"the safety checks hold under unconstrained responses and assume nothing, "
+           f"got assumptions on {others}")
+
+
 def cases() -> list[Case]:
     return [
         Case("scope-is-the-integer-computational-forms",
@@ -56,4 +67,5 @@ def cases() -> list[Case]:
         Case("classification-is-closed", _classification_is_closed),
         Case("a-new-constructor-is-a-finding", _a_new_constructor_is_a_finding),
         Case("depths-admit-a-cover", _depths_admit_a_cover),
+        Case("only-liveness-assumes-fairness", _only_liveness_assumes_fairness),
     ]

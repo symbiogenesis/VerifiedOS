@@ -184,6 +184,8 @@ def _seeds_need_a_witness() -> None:
            "a tag seed has no witness at a four-byte access")
     ensure(rtltrace.seed(retires, 0, "cause") is None,
            "a cause seed has no witness where nothing trapped")
+    ensure(rtltrace.seed(retires, 0, "trap-flag") is None,
+           "nor has a trap-flag seed")
     try:
         rtltrace.seed(retires, 0, "no-such-seed")
     except ValueError:
@@ -319,6 +321,43 @@ def _carry_names_what_no_line_holds() -> None:
            "rather than agreeing over a stream that skipped it")
 
 
+def _carry_totals_name_their_members() -> None:
+    """`carry`'s corpus totals count every member, and its whole totals only those
+    carried whole, so a refused member moves the first and never the second."""
+    refused = ["I 0 0000000080000000 0001200F",       # a block write of 64 bytes
+               "W 0000000080000400 64 0 " + "0" * 128,
+               "I 1 0000000080000004 00000013",
+               "X 5 0 0000000000000001"]
+    tally = testrig._Carry()
+    rows = testrig.family_rows()
+    seen: dict[int, str] = {}
+    with redirect_stdout(io.StringIO()):
+        testrig._carry_member("whole", _GOLDEN, tally, rows, seen, 1)
+        testrig._carry_member("refused", refused, tally, rows, seen, 1)
+    ensure(tally.whole == ["whole"] and list(tally.refused) == ["refused"],
+           f"one member whole and one refused, got {tally.whole} and {tally.refused}")
+    ensure((tally.retirements, tally.records) == (9, 21),
+           f"the corpus totals count both members, got {tally.retirements} retirements "
+           f"and {tally.records} records")
+    ensure((tally.whole_retirements, tally.whole_records) == (7, 17),
+           f"the whole totals count the whole member alone, got "
+           f"{tally.whole_retirements} retirements and {tally.whole_records} records")
+    _, elided = rtltrace.view(_GOLDEN)
+    ensure(tally.whole_elided == elided == tally.elided,
+           f"the elided counts are scoped the same way, got {tally.whole_elided} and "
+           f"{tally.elided} against {elided}")
+
+
+def _writer_mutants_are_seeded() -> None:
+    """Each writer mutant `framesim --controls` builds has one place in the writer."""
+    writer = (TOOLS / "rvfi-harness" / "vos_rvfi_frame.sv").read_text(encoding="utf-8")
+    for name, (old, new) in testrig.WRITER_MUTANTS.items():
+        ensure(writer.count(old) == 1,
+               f"the anchor of writer mutant `{name}` occurs once in the writer, got "
+               f"{writer.count(old)}")
+        ensure(old != new, f"writer mutant `{name}` changes its anchor")
+
+
 def _adapt_command() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         scratch = Path(td)
@@ -434,6 +473,8 @@ def cases() -> list[Case]:
         Case("address-width-is-measured", _address_width_is_measured),
         Case("carry-round-trips", _carry_round_trips),
         Case("carry-names-what-no-line-holds", _carry_names_what_no_line_holds),
+        Case("carry-totals-name-their-members", _carry_totals_name_their_members),
+        Case("writer-mutants-are-seeded", _writer_mutants_are_seeded),
         Case("adapt-command", _adapt_command),
         Case("stimulus-matches-its-bench", _stimulus_matches_its_bench),
         Case("stimulus-places-each-field", _stimulus_places_each_field),

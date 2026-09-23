@@ -22,7 +22,8 @@ Eight commands, and three of them need no toolchain:
                frame an RTL would have to write, and hold the adapter to it and
                to seeded field changes
     framesim   build the SystemVerilog frame writer (tools/rvfi-harness/) behind
-               its bench and hold the frame it writes to the decoder
+               its bench and hold the frame it writes to the decoder, and with
+               --controls require each seeded writer mutant to be reported
     bmc        print the bounded model-checking smoke this harness owes, with its
                instruction scope read out of the dialect table; it runs nothing
 
@@ -33,7 +34,7 @@ guest, where the emulator and the pinned Verilator are:
     python tools/run.py testrig run --count 400 --shrink
     python tools/run.py testrig bridge --template mixed
     python tools/run.py testrig carry
-    python tools/run.py testrig framesim --corpus
+    python tools/run.py testrig framesim --controls --corpus
 
 **`run` is a mutation gate and not a fuzzer.** A defect is seeded into the
 second executor and the rig has to report it: a run that finds nothing is a
@@ -464,12 +465,21 @@ class _Carry:
     in the adapter. The seed tallies use the mutation vocabulary: a stillborn seed
     broke the frame's protocol and decided nothing about the comparison, a killed one
     was reported, and a survivor is the finding.
+
+    `retirements`, `records` and `elided` count every member whose golden run was
+    recorded, refused ones included, since they measure the frame's view of the
+    corpus; the `whole_` three count only the members carried whole, which are the
+    ones the seeds and `framesim --corpus` run over. They are kept and printed apart
+    so that neither total is read as the other.
     """
 
     members: int = 0
     retirements: int = 0
     records: int = 0
     elided: rvfi.Elided = field(default_factory=rvfi.Elided)
+    whole_retirements: int = 0
+    whole_records: int = 0
+    whole_elided: rvfi.Elided = field(default_factory=rvfi.Elided)
     words: dict[str, set[int]] = field(default_factory=dict)
     families: dict[str, list[str]] = field(default_factory=dict)
     whole: list[str] = field(default_factory=list)
@@ -586,6 +596,59 @@ def _seed_member(name: str, golden: list[str], retires: list[rtltrace.Retire],
                 tally.killed[seed.name] = tally.killed.get(seed.name, 0) + 1
 
 
+def _plus(a: rvfi.Elided, b: rvfi.Elided) -> rvfi.Elided:
+    return rvfi.Elided(a.scr + b.scr, a.csr + b.csr, a.traps + b.traps,
+                       a.extra_reads + b.extra_reads, a.extra_writes + b.extra_writes)
+
+
+def _carry_member(name: str, lines: list[str], tally: _Carry,
+                  rows: list[tuple[int, int, str]], seen: dict[int, str],
+                  sites: int) -> None:
+    """One member's recorded golden trace through the frame and back, tallied.
+
+    `lines` is the trace `_recorded_golden` already held to the manifest's digest.
+    The member counts toward the corpus totals whatever happens to it, and toward
+    the `whole_` totals and the seeds only where it came back whole.
+    """
+    golden, elided = rtltrace.view(lines)
+    retires, refusals = rtltrace.carry(golden)
+    decoded = rtltrace.decode(rtltrace.encode(retires))
+    result = rtltrace.compare_decoded(golden, decoded, elided)
+    for insn in {r.packet.insn for r in retires}:
+        if insn not in seen:
+            seen[insn] = family(insn, rows)
+    for fam in sorted({seen[r.packet.insn] for r in retires}):
+        tally.families.setdefault(fam, []).append(name)
+    tally.retirements += len(retires)
+    tally.records += len(golden)
+    tally.elided = _plus(tally.elided, elided)
+    reasons: dict[str, int] = {}
+    for refusal in refusals:
+        reasons[refusal.reason] = reasons.get(refusal.reason, 0) + 1
+        tally.words.setdefault(refusal.reason, set()).add(refusal.insn)
+    head = (f"{name}: {len(retires)} retirements, {len(golden)} records "
+            f"after eliding {elided.total}")
+    if refusals:
+        tally.refused[name] = reasons
+        first = refusals[0]
+        print(f"REFUSED {head}; {len(refusals)} retirement(s) no frame line holds "
+              f"({', '.join(f'{k} {v}' for k, v in sorted(reasons.items()))}), "
+              f"first at retirement {first.at}, pc {first.pc:#x}, insn "
+              f"{first.insn:08X}; verdict {result.line()}")
+        return
+    if not result.complete:
+        tally.broken.append(name)
+        print(f"BROKEN  {head}; verdict {result.line()}")
+        _report_divergence(result.verdict)
+        return
+    tally.whole.append(name)
+    tally.whole_retirements += len(retires)
+    tally.whole_records += len(golden)
+    tally.whole_elided = _plus(tally.whole_elided, elided)
+    print(f"WHOLE   {head}; {result.line()}")
+    _seed_member(name, golden, decoded, elided, sites, tally)
+
+
 def cmd_carry(args: argparse.Namespace) -> int:
     """Re-encode the corpus's golden traces as frames, and hold the adapter to them.
 
@@ -625,53 +688,20 @@ def cmd_carry(args: argparse.Namespace) -> int:
                 tally.golden.append(f"{member.name} ({why})")
                 print(f"GOLDEN  {member.name}: {why}")
                 continue
-            golden, elided = rtltrace.view(lines)
-            retires, refusals = rtltrace.carry(golden)
-            decoded = rtltrace.decode(rtltrace.encode(retires))
-            result = rtltrace.compare_decoded(golden, decoded, elided)
-            for insn in {r.packet.insn for r in retires}:
-                if insn not in seen:
-                    seen[insn] = family(insn, rows)
-            for name in sorted({seen[r.packet.insn] for r in retires}):
-                tally.families.setdefault(name, []).append(member.name)
-            tally.retirements += len(retires)
-            tally.records += len(golden)
-            tally.elided = rvfi.Elided(
-                tally.elided.scr + elided.scr, tally.elided.csr + elided.csr,
-                tally.elided.traps + elided.traps,
-                tally.elided.extra_reads + elided.extra_reads,
-                tally.elided.extra_writes + elided.extra_writes)
-            reasons: dict[str, int] = {}
-            for refusal in refusals:
-                reasons[refusal.reason] = reasons.get(refusal.reason, 0) + 1
-                tally.words.setdefault(refusal.reason, set()).add(refusal.insn)
-            head = (f"{member.name}: {len(retires)} retirements, {len(golden)} records "
-                    f"after eliding {elided.total}")
-            if refusals:
-                tally.refused[member.name] = reasons
-                first = refusals[0]
-                print(f"REFUSED {head}; {len(refusals)} retirement(s) no frame line holds "
-                      f"({', '.join(f'{k} {v}' for k, v in sorted(reasons.items()))}), "
-                      f"first at retirement {first.at}, pc {first.pc:#x}, insn "
-                      f"{first.insn:08X}; verdict {result.line()}")
-                continue
-            if not result.complete:
-                tally.broken.append(member.name)
-                print(f"BROKEN  {head}; verdict {result.line()}")
-                _report_divergence(result.verdict)
-                continue
-            tally.whole.append(member.name)
-            print(f"WHOLE   {head}; {result.line()}")
-            _seed_member(member.name, golden, decoded, elided, args.sites, tally)
+            _carry_member(member.name, lines, tally, rows, seen, args.sites)
     finally:
         lock.close()
 
+    ran = tally.members - len(tally.golden)
     print(f"members          {tally.members}, {len(tally.whole)} carried whole, "
           f"{len(tally.refused)} refused, {len(tally.broken)} broken, "
           f"{len(tally.golden)} without a recorded golden run")
     print(f"records          {tally.records} in the frame's view over {tally.retirements} "
-          f"retirements")
-    print(f"elided           {tally.elided.line()}")
+          f"retirements of all {ran} member(s) with a recorded golden run")
+    print(f"elided           over those {ran}: {tally.elided.line()}")
+    print(f"whole            {tally.whole_records} records over {tally.whole_retirements} "
+          f"retirements in the {len(tally.whole)} member(s) carried whole")
+    print(f"elided whole     over those {len(tally.whole)}: {tally.whole_elided.line()}")
     for reason, what in rtltrace.REASONS.items():
         count = sum(r.get(reason, 0) for r in tally.refused.values())
         if count:
@@ -679,7 +709,6 @@ def cmd_carry(args: argparse.Namespace) -> int:
             print(f"refused          {reason}: {count} ({what}); words {words}")
     # Which model family each member retires words of, so the scope a scalar core can
     # pass is measured: a family every member retires is named with its count alone.
-    ran = tally.members - len(tally.golden)
     for name, holders in sorted(tally.families.items()):
         who = "" if len(holders) == ran else f": {', '.join(holders)}"
         print(f"family {name:<11} retired by {len(holders)} member(s){who}")
@@ -719,12 +748,15 @@ def cmd_bmc(args: argparse.Namespace) -> int:
     _rule("the predicate (R-15-094: bounded-depth evidence, the ground of no refinement)")
     print("  for the curated scalar core under a riscv-formal wrapper, with instruction")
     print("  and data memory responses unconstrained and reset held for the first cycle,")
-    print("  no check below finds a counterexample within its depth, and the cover check")
+    print("  no check below finds a counterexample within its depth, a check that states")
+    print("  an assumption being run under that assumption as well, and the cover check")
     print("  reaches a retirement of the in-scope forms within the instruction depth")
 
-    _rule("the checks, at their declared depths")
+    _rule("the checks, at provisional depths the first run sets and records")
     for check in bmc.CHECKS:
         print(f"  {check.name:<9} {check.depth:>3}  {check.decides}")
+        if check.assumes:
+            print(f"  {'':<9} {'':>3}  assuming {check.assumes}")
 
     covered = bmc.scope()
     _rule(f"the instruction scope, read out of the dialect table ({len(covered)} forms)")
@@ -852,6 +884,78 @@ def _framesim_one(binary: Path, work: Path, name: str,
         return None, f"the frame the writer wrote is refused: {exc}"
 
 
+# The lint classes the writer's build waives under `-Wall`, named once so the line
+# that reports the build's warnings names them too.
+VERILATOR_WAIVERS: tuple[str, ...] = ("UNUSEDPARAM", "UNUSEDSIGNAL")
+
+# Seeded defects in the writer, one rule removed each, which `framesim --controls`
+# builds and drives with the synthetic stimulus; every one must be killed. Each
+# anchor must occur exactly once in the writer, so an edit that moves a rule is
+# reported as an unseeded control rather than counted as a kill or a survivor.
+WRITER_MUTANTS: dict[str, tuple[str, str]] = {
+    "no-x0-rule": ("automatic logic [63:0] rd    = x0 ? 64'd0 : mem[63:0];",
+                   "automatic logic [63:0] rd    = mem[63:0];"),
+    "valid-only": ("if (valid_i[i] || trap_i[i]) begin", "if (valid_i[i]) begin"),
+    "stale-cause": ("automatic logic [63:0] cause = trap_i[i] ? cause_i[i] : 64'd0;",
+                    "automatic logic [63:0] cause = cause_i[i];"),
+    "tag-dropped": ("automatic logic        rdtag = x0 ? 1'b0 : mem[CTLEN-1];",
+                    "automatic logic        rdtag = 1'b0;"),
+    "order-from-one": ("order  <= '0;", "order  <= 64'd1;"),
+}
+
+
+def _verilate(verilator: str, root: Path, here: Path,
+              writer: Path) -> subprocess.CompletedProcess[str]:
+    """The bench and `writer` built under Verilator in `here`, its log beside it."""
+    sources = (root / rtl.FORMAT_PACKAGE, root / rtl.ADAPTER_PACKAGE, writer,
+               root / HARNESS_SOURCES[1])
+    built = subprocess.run(
+        [verilator, "--binary", "--timescale", "1ns/1ps", "-Wall",
+         *(f"-Wno-{waiver}" for waiver in VERILATOR_WAIVERS), "--Mdir", str(here / "obj_dir"),
+         "-o", "framesim", "--top-module", "vos_rvfi_frame_tb", *(str(s) for s in sources)],
+        capture_output=True, text=True, errors="replace", check=False, cwd=here)
+    (here / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
+    return built
+
+
+def _writer_controls(verilator: str, root: Path, work: Path, drives: list[Drive],
+                     want: list[rtltrace.Retire]) -> int:
+    """Each writer mutant built and driven with the synthetic stimulus; the failures.
+
+    A mutant whose frame is refused or comes back different is killed, one that does
+    not build is stillborn and decides nothing, and one whose frame comes back field
+    for field is a survivor, which is the finding.
+    """
+    source = (root / HARNESS_SOURCES[0]).read_text(encoding="utf-8")
+    killed = survived = stillborn = unseeded = 0
+    for name, (old, new) in WRITER_MUTANTS.items():
+        if source.count(old) != 1:
+            unseeded += 1
+            print(f"UNSEEDED  {name}: its anchor occurs {source.count(old)} time(s) in "
+                  f"the writer")
+            continue
+        here = work / "controls" / name
+        here.mkdir(parents=True, exist_ok=True)
+        mutant = here / Path(HARNESS_SOURCES[0]).name
+        mutant.write_text(source.replace(old, new), encoding="utf-8", newline="\n")
+        built = _verilate(verilator, root, here, mutant)
+        if built.returncode:
+            stillborn += 1
+            last = (built.stdout + built.stderr).strip().splitlines()[-1:] or ["no output"]
+            print(f"STILLBORN {name}: {last[0]}")
+            continue
+        got, why = _framesim_one(here / "obj_dir" / "framesim", here, "synthetic", drives)
+        if got is None or got != want:
+            killed += 1
+            print(f"killed    {name}: {why or 'the frame came back different'}")
+        else:
+            survived += 1
+            print(f"SURVIVED  {name}: the frame came back field for field")
+    print(f"controls         {killed} killed, {survived} survived, {stillborn} stillborn, "
+          f"{unseeded} unseeded of {len(WRITER_MUTANTS)} writer mutant(s)")
+    return survived + stillborn + unseeded
+
+
 def cmd_framesim(args: argparse.Namespace) -> int:
     """Build the SystemVerilog frame writer behind its bench and decode what it writes.
 
@@ -859,10 +963,12 @@ def cmd_framesim(args: argparse.Namespace) -> int:
     are stated once and the frame has to come back as exactly those: the writer's
     field widths, its order count, its trailer, the x0 and stale-cause rules, and
     the register-form round trip through the authored format package. With
-    `--corpus` every member `carry` can hold whole is driven as well, from its
-    golden trace, and the frame the writer returns must then agree with that trace
-    through the one adjudicator. The producer is a fixture driver, so this is a
-    statement about the writer and the package, not about the core.
+    `--controls` each of `WRITER_MUTANTS` is built and driven with the same stimulus
+    and must be reported. With `--corpus` every member `carry` can hold whole is
+    driven as well, from its golden trace, and the frame the writer returns must
+    then agree with that trace through the one adjudicator. The producer is a
+    fixture driver, so this is a statement about the writer and the package, not
+    about the core.
     """
     e = env.load()
     root = e.root
@@ -875,13 +981,7 @@ def cmd_framesim(args: argparse.Namespace) -> int:
         return 1
     lock = env.hold_lock(work / "framesim.log", "a frame-writer simulation")
     try:
-        sources = (rtl.FORMAT_PACKAGE, rtl.ADAPTER_PACKAGE, *HARNESS_SOURCES)
-        built = subprocess.run(
-            [verilator, "--binary", "--timescale", "1ns/1ps", "-Wall", "-Wno-UNUSEDPARAM",
-             "-Wno-UNUSEDSIGNAL", "--Mdir", str(work / "obj_dir"), "-o", "framesim",
-             "--top-module", "vos_rvfi_frame_tb", *(str(root / s) for s in sources)],
-            capture_output=True, text=True, errors="replace", check=False, cwd=work)
-        (work / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
+        built = _verilate(verilator, root, work, root / HARNESS_SOURCES[0])
         if built.returncode:
             print(built.stdout + built.stderr)
             print(f"FAIL the frame writer does not build under Verilator; log "
@@ -903,6 +1003,8 @@ def cmd_framesim(args: argparse.Namespace) -> int:
         print(f"ok synthetic: {len(got)} retirement(s) from {len(drives)} stimulus "
               f"line(s) came back field for field")
 
+        uncontrolled = (_writer_controls(verilator, root, work, drives, want)
+                        if args.controls else 0)
         failures = 0
         members = 0
         retired = 0
@@ -942,14 +1044,21 @@ def cmd_framesim(args: argparse.Namespace) -> int:
     finally:
         lock.close()
 
-    print(f"verilator        {rtl.VERILATOR_PIN}, {warnings} warning line(s) under -Wall")
-    if failures:
-        print(f"FAIL {failures} member(s) did not come back whole through the writer")
+    print(f"verilator        {rtl.VERILATOR_PIN}, {warnings} warning line(s) under -Wall "
+          f"with {' and '.join(VERILATOR_WAIVERS)} waived")
+    if failures or uncontrolled:
+        if failures:
+            print(f"FAIL {failures} member(s) did not come back whole through the writer")
+        if uncontrolled:
+            print(f"FAIL {uncontrolled} writer mutant(s) survived, were stillborn or "
+                  f"found no anchor, so the synthetic check is not shown to see them")
         return 1
+    controls_part = (f", every one of {len(WRITER_MUTANTS)} writer mutants is reported"
+                     if args.controls else "")
     corpus_part = (f" and {members} corpus member(s) over {retired} retirements agree "
                    f"whole" if args.corpus else "")
-    print(f"TOTAL the writer's frames decode as stated{corpus_part}; the driver is a "
-          f"fixture, so nothing here is about the core")
+    print(f"TOTAL the writer's frames decode as stated{controls_part}{corpus_part}; the "
+          f"driver is a fixture, so nothing here is about the core")
     return 0
 
 
@@ -1009,6 +1118,9 @@ def main(argv: list[str] | None = None) -> int:
 
     framesim = sub.add_parser("framesim", help="build the SystemVerilog frame writer and "
                               "hold what it writes to the decoder")
+    framesim.add_argument("--controls", action="store_true",
+                          help="also build each seeded writer mutant and require the "
+                               "synthetic stimulus to report it")
     framesim.add_argument("--corpus", action="store_true",
                           help="also drive every member carry holds whole, from its "
                                "golden trace")

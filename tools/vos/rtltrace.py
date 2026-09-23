@@ -502,6 +502,7 @@ SEEDS: Final = (
     Seed("write-value", "the lowest bit of the stored bytes is wrong"),
     Seed("access-tag", "an eight-byte access reports the other tag"),
     Seed("cause", "a trap reports the next cause code"),
+    Seed("trap-flag", "a trap is reported as an ordinary retirement, with no cause"),
     Seed("lost", "the retirement is missing from the frame"),
 )
 
@@ -509,7 +510,8 @@ SEEDS: Final = (
 def seed(retires: list[Retire], at: int, name: str) -> list[Retire] | None:
     """`retires` with seed `name` applied at retirement `at`, or `None` where it has
     no witness there: a register seed at an instruction that writes none, a tag seed
-    at an access narrower than a granule, a cause seed where nothing trapped.
+    at an access narrower than a granule, a cause or trap-flag seed where nothing
+    trapped.
 
     The orders are rewritten after a loss, so a lost retirement arrives as a
     well-formed frame one line shorter and is the comparison's to report rather
@@ -544,6 +546,8 @@ def seed(retires: list[Retire], at: int, name: str) -> list[Retire] | None:
     elif name == "cause" and packet.trap:
         changed = replace(retire, cause=(retire.cause & ~_CODE_MASK)
                           | ((retire.cause + 1) & _CODE_MASK))
+    elif name == "trap-flag" and packet.trap:
+        changed = replace(retire, packet=replace(packet, trap=0), cause=0)
     elif name == "lost":
         rest = retires[:at] + retires[at + 1:]
         return [replace(r, packet=replace(r.packet, order=i)) for i, r in enumerate(rest)]

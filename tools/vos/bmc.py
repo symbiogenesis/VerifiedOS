@@ -23,6 +23,13 @@ depth retires no instruction inside it, and every instruction check then holds
 vacuously; the plan therefore requires riscv-formal's cover check to reach a
 retirement of the in-scope forms within the instruction depth before an instruction
 verdict counts.
+
+**Liveness is the one check that needs the memory to answer.** Every other check is
+a safety property and holds or fails under any memory responses, so the predicate
+leaves them unconstrained; under unconstrained responses a memory that never answers
+keeps any instruction from retiring, and liveness would then fail for a reason that
+is not about the core. The liveness check alone therefore carries a fairness
+assumption, stated on it below as a wrapper obligation.
 """
 
 from dataclasses import dataclass
@@ -37,19 +44,21 @@ class Check:
 
     The names and their meanings are riscv-formal's as its documentation states them;
     nothing of it is pinned yet, so both are re-read at the pin before a run relies on
-    either.
+    either. `assumes` is an assumption the wrapper adds for this check alone, beyond
+    the predicate's unconstrained memory responses; empty where the check needs none.
     """
 
     name: str
     depth: int
     decides: str
+    assumes: str = ""
 
 
-# Declared bounds, not derived ones. The curated core retires through a scoreboard
-# behind a multi-stage front end, so the instruction depth is set above the deepest
-# pipeline riscv-formal's shipped configurations use; the first run measures whether
-# each is reachable within its time budget, and the cover check decides whether it
-# admitted a retirement at all.
+# Provisional bounds, placeholders the first run replaces. No source states a depth
+# for this core: R-15-094 sets none, and riscv-formal, whose own configurations would
+# be the precedent, is not pinned or read. The first run sets each depth, records it
+# with the time the check took, and the cover check decides whether the instruction
+# depth admitted a retirement at all.
 CHECKS: Final = (
     Check("insn", 30, "each in-scope instruction's RVFI record against riscv-formal's "
                       "RV64 model for that instruction"),
@@ -60,7 +69,10 @@ CHECKS: Final = (
     Check("causal", 30, "an instruction that reads a register retires after the one whose "
                         "write it reads"),
     Check("unique", 30, "no two retirements share an order"),
-    Check("liveness", 40, "an instruction that entered the pipeline retires"),
+    Check("liveness", 40, "an instruction that entered the pipeline retires",
+          assumes="every instruction and data memory request is answered within a "
+                  "bounded number of cycles (fairness); without it a memory that never "
+                  "answers fails this check for no reason about the core"),
     Check("cover", 30, "a retirement of the in-scope forms is reachable within the bound, "
                        "which is what makes every check above non-vacuous"),
 )
@@ -77,7 +89,8 @@ SCOPE: Final = frozenset({
 EXCLUDED: Final = {
     "LOAD": "authorized by a capability: the address is the capability's and a tag, "
             "seal, permission or bounds fault traps with a cause riscv-formal's model "
-            "does not have (R-15-001c)",
+            "does not have (R-15-001's purecap-only ISA, with no DDC to relocate an "
+            "integer address under R-15-001c)",
     "STORE": "authorized by a capability as a load is, and it also writes a tag the "
              "model does not track",
     "BTYPE": "the target is checked against PCC's bounds and a violation traps with a "
