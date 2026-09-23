@@ -47,7 +47,7 @@ The five obstacles below still bind on whatever code these do reuse, but *which 
   These are the net-new co-design booked in §17, not re-targets: the firmware-free part does not exist to port from.
 - **Radio L2/L3 servers** (§12, §15): the software half of the dissolved-radio thesis, the 802.11 MLME element grammars and the cellular RRC/NAS ASN.1 UPER path, which §5 names as the most-attacked remote parse surfaces in consumer computing and holds to the Narcissus discipline, with the protocol state machines beside them as Lustre/Vélus control planes (§5, §12).
   Authored by necessity, since the firmware-free implementation is precisely what does not exist, which is the thesis: srsRAN/srsUE, OpenAirInterface, and openwifi are the feasibility existence proofs §18 names rather than lifts, and asn1scc and the Wireshark dissectors are differential oracles that enter no trust base (§5).
-  This is required userland for the first release in both halves: §18 ships the radio roster whole, so the 802.11 and the cellular RRC/NAS paths are alike on the critical path.
+  The first release is a laptop whose radio roster is 802.11 alone (§18), so the 802.11 half is required userland on the critical path and the cellular RRC/NAS half moves with the handset instantiation §2 scopes, specified and deferred rather than dropped.
 - **Time service** (§12, §9): one wall clock disciplined from three graded authenticated sources (Roughtime, then NTS, then secure PTP over the hardware timestamp unit), with precision itself a capability (§8).
   `roughenough` appears below as a start-from for one source; the service that cross-checks all three, and holds the monotonic floor across a cold boot on a machine with no real-time clock, is authored.
 - **Telemetry monitor and emergency-call compartment** (§12): the former permanently resident on the S-class sentinel core, the latter a zero-authority compartment reachable at Before First Unlock.
@@ -61,6 +61,8 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 ## Roster: the elective applications
 
 These applications can be staged after the required userland, in the order given under **Sequencing** below. Section 18 explicitly defers the browser beyond the first release. Its product floor requires capabilities rather than particular applications, so this roster remains non-normative: progress on a named port satisfies the floor only if the resulting release supplies the required capability.
+
+**On the laptop these applications land in the desktop's elastic domain, which changes what a port costs.** An elastic member (§7, §8) keeps an ordinary heap behind the Rust global-allocator interface, served from its domain's pool by the platform's verified heap library, and carries a checked yield bound in place of loop-bound proofs: the toolchain places a poll site on every loop back-edge. So a port like COSMIC's shell applets or Zed no longer has to restructure its allocation into composition-sized pools or prove its event loop bounded; what it still owes is safe Rust or a memory-safety certificate, capability-scoped I/O in place of POSIX, software rendering, and every obligation of admission other than the slot-fitting WCET. The compositor (`cosmic-comp` promoted below) is not a member: it serves every label and owes a frame deadline, so it stays in the fixed tier (R-07-037f).
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
 - **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, it carries no language-support commitment, and it is the reference client of the editor-agent protocol the next entry uses.
@@ -566,7 +568,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
    Service manager, filesystem, block and storage servers, drivers, the radio L2/L3 servers, the network stack, sealing and attestation, the time service, the telemetry monitor.
    This is the minimum for a machine that boots, keeps state, knows the time, reaches a network, and can take a signed generation.
    The update path comes first among equals: a system that cannot be updated cannot safely be iterated on, so every later stage presupposes it.
-   The radio servers arrive here in both halves, the cellular one gated by the hardware order alone: the RRC/NAS compartments, the HARQ hard-real-time task class (§11), and the eUICC wait on FEC-unit bring-up and carrier certification, both of which §18 places inside the first release rather than after it.
+   The radio servers arrive here for 802.11, gated on FEC-unit bring-up. The cellular half, the RRC/NAS compartments, the HARQ hard-real-time task class (§11) and the eUICC, waits for the handset instantiation and its carrier certification, which §18 now places after the laptop's first release rather than inside it.
 2. **Consent and recovery.**
    The render substrate, and then its first two clients: the trusted-path agent and the rollback-manager UI, with the credential and unlock service beside them.
    The renderer's first client is the consent path, not the desktop.
@@ -581,7 +583,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
 5. **Deferred by the specification itself.**
    §18 defers the **browser and its web application host**, the largest porting program here and the one gated on a pure-interpreter JavaScript engine that does not yet exist. Hosted, packaged and embedded web frontends follow the [shared-engine sequence](#web-applications-one-engine-and-a-capability-scoped-host); a native backend alone cannot bring their web UI into the first release.
    The **inference server** is optional in §12 and waits on M-class bring-up (M10); its *sequencing* is stageable here while its *presence* in the first release is fixed by §18's product floor, so what this stage defers is when it arrives and never whether.
-   These two are the whole of this stage: the radio roster is not in it, sitting in stage 1 with its delivery gated on FEC-unit bring-up.
+   These two are the whole of this stage: the laptop's radio roster is not in it, sitting in stage 1 with its delivery gated on FEC-unit bring-up, and the cellular half belongs to the handset rather than to any stage of the first release.
 
 **What would reorder this.**
 The order is a consequence of exactly two things, the prerequisite with no fallback and the class order §18 fixes, so it moves only when one of those moves.

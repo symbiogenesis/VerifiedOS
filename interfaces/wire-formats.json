@@ -162,13 +162,31 @@
       "classes": [],
       "requirements": [
         "R-12-041",
-        "R-18-004a"
+        "R-02-003b"
       ],
       "owner": "none",
       "descriptor": "absent",
       "transcription": "none authored",
       "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
-      "evidence": "Ordinary and emergency voice require these grammars. Session signalling, media transport and codec subsets remain to be fixed; no IMS parser is credited.",
+      "evidence": "The handset instantiation's ordinary and emergency voice require these grammars; the laptop first release carries none of them. Session signalling, media transport and codec subsets remain to be fixed; no IMS parser is credited.",
+      "references": [
+        "docs/requirements-register.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "ip-call",
+      "name": "IP call session-signalling and media-transport grammars",
+      "classes": [],
+      "requirements": [
+        "R-18-004a",
+        "R-05-042"
+      ],
+      "owner": "none",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.",
+      "evidence": "The laptop floor's call and camera members require a session-signalling and media-transport profile carried inside a secure session. The protocol, packetization and codec subsets remain unselected; no parser is credited.",
       "references": [
         "docs/requirements-register.md"
       ],

@@ -6,6 +6,8 @@ Static allocation makes memory use explicit and bounds interference. It does not
 
 The most promising first work is offline: improve physical placement, change object lifetimes and representations, and jointly schedule computation and reclamation. More flexible sharing and movement deserve separate experiments with their changed assumptions visible. Neither a new allocator nor a new MMU is a prerequisite for studying the first group.
 
+One such experiment has since been taken as a design decision for one scope. The laptop's desktop runs in an elastic domain whose one pool is a fixed extent the plan places, filled at runtime by a verified, revocation-gated allocator ([§8](../spec.md#r-08-047a)), and its costs are charged the way this page asks: fragmentation and quarantine allowances inside the extent, sweep time in the domain's own slots, and in-label residuals booked rather than hidden. It changes no fixed-tier assumption below, and the agenda here continues to govern the fixed tier and every composition without an elastic domain.
+
 ## What remains valuable
 
 The [static memory plan](../spec.md#r-08-010) gives every object a bounded home before execution. The [capacity contract](../spec.md#r-08-045) refuses an image whose physical reservations do not fit; runtime occupancy remains variable, and a [full pool](../spec.md#r-08-047) can decline service. This is a useful separation of admission from operation, even when utilization is poor.

@@ -1,7 +1,7 @@
 # Wire-format inventory
 
 <!-- Generated from interfaces/wire-formats.json by vos.wire_formats.emit; do not edit. -->
-<!-- Source SHA256: 7de3c88b94b2ea0d18d63c785b7276a0d235b729ab4dbc4e7115fd8a6e532d5c -->
+<!-- Source SHA256: d99008dbcff148cf841e60c7580c2545894f03a124631be5fb010a98f16e2c55 -->
 
 This is U-12's inventory of the attacker-facing format families the current design names, including crown-jewel row 10's member classes and row 3's IDL mapping. The authored source is [wire-formats.json](../../interfaces/wire-formats.json). A composition must specialize each open family into exact versions, subsets, byte/field/depth limits and descriptor identities before admitting it. The release's still-image, audio, container, font and document selections remain open; a family row does not choose a format or admit an implementation.
 
@@ -105,8 +105,17 @@ Canonicity means decode injectivity on the entire admissible byte language and r
 - Descriptor: **absent**. Owner: **none**.
 - Hand transcription: **none authored**.
 - Canonicity: Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.
-- Current evidence: Ordinary and emergency voice require these grammars. Session signalling, media transport and codec subsets remain to be fixed; no IMS parser is credited.
-- Requirements: R-12-041, R-18-004a.
+- Current evidence: The handset instantiation's ordinary and emergency voice require these grammars; the laptop first release carries none of them. Session signalling, media transport and codec subsets remain to be fixed; no IMS parser is credited.
+- Requirements: R-12-041, R-02-003b.
+- Sources: [requirements-register.md](../../docs/requirements-register.md).
+
+### IP call session-signalling and media-transport grammars <a id="ip-call"></a>
+
+- Descriptor: **absent**. Owner: **none**.
+- Hand transcription: **none authored**.
+- Canonicity: Role-gated: a theorem is owed before any identity-consuming use; the profile must enumerate those sites and refuse the role without the theorem.
+- Current evidence: The laptop floor's call and camera members require a session-signalling and media-transport profile carried inside a secure session. The protocol, packetization and codec subsets remain unselected; no parser is credited.
+- Requirements: R-18-004a, R-05-042.
 - Sources: [requirements-register.md](../../docs/requirements-register.md).
 
 ### eUICC APDU and TPDU records <a id="euicc"></a>

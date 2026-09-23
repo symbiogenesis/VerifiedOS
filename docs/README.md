@@ -27,6 +27,16 @@ The [finite workflow formal contract](implementation/contracts/workflow-formal.m
 states the lifecycle model's machine, storage and timing premises and the
 interfaces its runtime consumers must discharge.
 
+The first release is a general-purpose laptop ([R-18-004a](spec.md#r-18-004a)).
+Its desktop applications run in an elastic domain: a composition-fixed envelope
+inside which apps launch at runtime, share time by a verified proportional-share
+dispatch and grow their heaps from a revocation-gated pool, while the fixed tier
+keeps the static discipline ([§7](spec.md#r-07-037e), [§8](spec.md#r-08-047a)).
+The elastic-domain contract is crown-jewel row 31 and Q34 in the
+[implementation checklist](implementation/implementation-checklist.md) owns it; the
+[architectural alternatives](background/architectural-alternatives.md#a-general-purpose-desktop-on-a-static-machine-an-elastic-domain-inside-a-fixed-envelope-adopted-for-the-laptop)
+record what the variant trades and what it declines.
+
 The [compute compatibility contract](implementation/compute-compatibility.md) records
 the OpenCL/SPIR-V and HIP source/API path, the Vulkan SC-shaped graphics
 surface that path can carry with its start-froms, standards and prior-art
@@ -150,7 +160,7 @@ The [typed assembly language](languages/typed-assembly-language.md), the typed m
 
 ## The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1478 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1494 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
@@ -161,7 +171,7 @@ Nine **derived views** collect what the register states across many entries but 
 
 - **The [frozen instruction-set profile](hardware/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. It carries a third disposition beside adopted and excluded: a **standing adoption** is an extension the profile has already decided it would take, still waiting on the standards body to ratify it, so the decision is on the page while the machine carries none of it. The schedule root and first day-one deliverable of the spec's [realization plan](spec.md#18-realization) consume it.
 - **The [microarchitectural absence contract](hardware/absence-contract.md)**: twenty-three enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
-- **The [crown-jewel inventory](assurance/crown-jewels.md)**: the thirty specifications the review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the ten theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
+- **The [crown-jewel inventory](assurance/crown-jewels.md)**: the thirty-one specifications the review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the ten theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
 - **The [coverage matrix](assurance/coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the [root README inventory](../README.md#bug-classes-removed-by-construction) names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 - **The [profile-freeze measurement contract](implementation/contracts/freeze-measurement.md)**: the corpus, recipe, provenance schema, region classes, thresholds, report columns, and CI predicates for the freeze's second act, the one place the profile defers its own decisions to a measurement against generated output. It is written before the backend that produces that output exists, which is the point: a threshold chosen after the measurement is not a threshold.
 
