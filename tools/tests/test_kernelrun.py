@@ -5,7 +5,8 @@ The reader's agreement with KernelInstance.v over generated traces is `run.py ke
 check`'s, in the guest. These cases hold what the host can decide without a prover:
 the three refuting constructions PartitionContext.v names are refused by the switch
 clause, the other clauses refuse their own constructions, the vector reading reports a
-flipped verdict rather than absorbing it, and the authored mutant tables still seed.
+flipped verdict rather than absorbing it, the authored mutant tables still seed, and a
+C mutant's kill is credited to the kind of expectation that decided it.
 """
 
 import shutil
@@ -131,6 +132,37 @@ def the_frame_clause_refuses_its_constructions() -> None:
            "dwell inside a slot changed the verdict")
 
 
+def the_readability_clause_refuses_meeting_extents() -> None:
+    ensure(k.extents_are_readable(SWITCH, FRAME), "separated extents were unreadable")
+    repeated = k.Frame((T0, T1, T0), reserved=1)
+    ensure(k.extents_are_readable(SWITCH, repeated), "one tenant's two slots were unreadable")
+    for name, extents in (("a tenant text meeting the switch text", (T0, k.Extent(5, 15), T2)),
+                          ("partially overlapping tenant texts", (T0, k.Extent(35, 45), T2))):
+        frame = k.Frame(extents, reserved=1)
+        ensure(not k.extents_are_readable(SWITCH, frame), f"{name} was readable")
+        ensure(not k.frame_is_the_tables(SWITCH, frame, records(frame_trace(extents))),
+               f"{name} passed the frame clause")
+    touching = k.Frame((k.Extent(20, 30), k.Extent(30, 40), k.Extent(40, 50)), reserved=1)
+    ensure(k.extents_are_readable(SWITCH, touching), "touching extents were unreadable")
+
+
+def kills_are_credited_to_the_expectation_that_decided_them() -> None:
+    said = ("FAIL 3 disagreement(s) between the kernel C and the Gallina definitions\n"
+            "FAIL 2 release expectation(s) stated by this harness\n"
+            "FAIL 1 consumer check(s)\n")
+    moved = cli_kernel.movement(said)
+    ensure(moved == {cli_kernel.GALLINA: 3, cli_kernel.CONTROL: 1,
+                     cli_kernel.EXPECTATION: 2}, f"{moved}")
+    ensure(cli_kernel.deciding_kind(moved) == cli_kernel.GALLINA, "a Gallina kill was not first")
+    only_release = cli_kernel.movement("FAIL 44 release expectation(s) stated by this harness\n")
+    ensure(cli_kernel.deciding_kind(only_release) == cli_kernel.EXPECTATION,
+           "a release-expectation kill was credited elsewhere")
+    only_control = cli_kernel.movement("FAIL 1 consumer check(s)\n")
+    ensure(cli_kernel.deciding_kind(only_control) == cli_kernel.CONTROL,
+           "a consumer-control kill was credited elsewhere")
+    ensure(cli_kernel.deciding_kind(cli_kernel.movement("")) is None, "nothing moved")
+
+
 def restore_bursts_are_cut_by_the_declared_extent() -> None:
     trace = [i(0x40), x(3, True, 1), i(RESTORE.base), x(1, False, 2), i(RESTORE.base + 4),
              c(0, 5), i(0x40), x(2, False, 3), i(RESTORE.base), x(4, False, 4)]
@@ -206,6 +238,8 @@ def cases() -> list[Case]:
         the_switch_clause_refuses_extra_and_repeated_writes,
         the_confinement_clause_refuses_its_constructions,
         the_frame_clause_refuses_its_constructions,
+        the_readability_clause_refuses_meeting_extents,
+        kills_are_credited_to_the_expectation_that_decided_them,
         restore_bursts_are_cut_by_the_declared_extent,
         records_are_read_in_the_normalized_grammar,
         a_flipped_vector_verdict_is_reported,

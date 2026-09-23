@@ -11,10 +11,16 @@
  * Fail-closed: an unparsable line, an unknown family, a family with no lines
  * and any disagreement each make the exit status nonzero.
  *
- * The consumer checks of partition.c have no Gallina counterpart (they are
- * purecap-abi.md section 7's producer/consumer refusals), so they run after
- * the vectors as a short fixed campaign, printed as such rather than counted
- * among the generated lines.
+ * Three kinds of expectation are counted apart, because only the first is
+ * the Gallina definitions' answer:
+ *   - a Gallina disagreement: a column the vector line carries;
+ *   - a release expectation: the instant the cursor releases an accepted
+ *     table's entry at, which CyclicExecutive.v does not define and this
+ *     harness states from R-11-014a and R-11-014d;
+ *   - a consumer control: partition.c's refusals of purecap-abi.md section
+ *     7, which have no Gallina counterpart and run after the vectors as a
+ *     short fixed campaign.
+ * Each kind prints its own FAIL total, so a caller can say which one moved.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +37,8 @@ static char *tok[TOKENS_MAX];
 static int ntok;
 static long line_no;
 static long mismatches;
+static long expectations;
+static long expectation_misses;
 static long shown;
 static long malformed;
 
@@ -44,6 +52,7 @@ static struct family fam_kx = {"kx", 0, 0};
 static struct family fam_kc = {"kc", 0, 0};
 static struct family fam_kr = {"kr", 0, 0};
 static struct family fam_kq = {"kq", 0, 0};
+static struct family fam_ke = {"ke", 0, 0};
 static long kt_skipped;
 
 /* Tables the executive accepted, and each refusal it gave, over kx. */
@@ -91,6 +100,22 @@ static void differ_u(struct family *f, const char *column, unsigned long long wa
   snprintf(a, sizeof a, "%llu", want);
   snprintf(b, sizeof b, "%llu", got);
   differ(f, column, a, b);
+}
+
+/* A release expectation this harness states, counted apart from the Gallina
+ * columns (see the head of this file). */
+static void expect_u(const char *column, unsigned long long want, unsigned long long got)
+{
+  expectations++;
+  if (want == got) {
+    return;
+  }
+  expectation_misses++;
+  if (shown < SHOW_MAX) {
+    printf("EXPECT kx line %ld column %s: harness %llu, kernel %llu\n", line_no, column, want,
+           got);
+    shown++;
+  }
 }
 
 static int bad_line(const char *why)
@@ -250,20 +275,22 @@ static int check_kx(void)
     differ(f, "validate", "in frame", "outside frame");
   }
   /* For an accepted table, the entry the executive releases at each slot's
-   * table instant is the slot Gallina's time-to-slot map names there. */
+   * table instant is the slot Gallina's time-to-slot map names there (a
+   * Gallina column), and the instants themselves are this harness's reading
+   * of R-11-014a and R-11-014d (release expectations). */
   if (st == VOS_OK) {
     struct vos_exec e;
     vos_exec_start(&e);
     for (i = 0; i < 3; i++) {
       uint64_t at = vos_exec_release(&fr, &e);
-      differ_u(f, "release", fr.slots[i].offset, at);
+      expect_u("release", fr.slots[i].offset, at);
       if (answer_at_offset[i] != (long)vos_exec_slot(&e)) {
         differ(f, "sequence", "the time map's slot", "a different table entry");
       }
       vos_exec_advance(&fr, &e);
     }
-    differ_u(f, "wrap", 1u, e.frame_index);
-    differ_u(f, "wrap_release", fr.major_frame + fr.slots[0].offset, vos_exec_release(&fr, &e));
+    expect_u("wrap", 1u, e.frame_index);
+    expect_u("wrap_release", fr.major_frame + fr.slots[0].offset, vos_exec_release(&fr, &e));
   }
   return 1;
 }
@@ -498,6 +525,114 @@ static int check_kq(void)
   return 1;
 }
 
+/* "x:y", two decimals: an extent's base and top, or a probe and its answer. */
+static int parse_pair(const char *s, unsigned long long *x, unsigned long long *y)
+{
+  char copy[64];
+  char *colon;
+  if (strlen(s) >= sizeof copy) {
+    return 0;
+  }
+  strcpy(copy, s);
+  colon = strchr(copy, ':');
+  if (colon == 0) {
+    return 0;
+  }
+  *colon = '\0';
+  return parse_u64(copy, x) && parse_u64(colon + 1, y);
+}
+
+static int parse_extent(const char *s, struct vos_extent *out)
+{
+  unsigned long long b;
+  unsigned long long t;
+  if (!parse_pair(s, &b, &t)) {
+    return 0;
+  }
+  out->base = (uint64_t)b;
+  out->top = (uint64_t)t;
+  return 1;
+}
+
+/* ------------------------------------------------------------------------
+ * ke p A B -> eqb separated compatible | p:w p:w p:w p:w
+ * ------------------------------------------------------------------------ */
+static int check_ke_pair(void)
+{
+  struct family *f = &fam_ke;
+  struct vos_extent a;
+  struct vos_extent b;
+  unsigned long long eq;
+  unsigned long long sep;
+  unsigned long long comp;
+  unsigned long long p;
+  unsigned long long w;
+  int k;
+  if (ntok != 13 || !expect(4, "->") || !expect(8, "|")) {
+    return bad_line("ke p shape");
+  }
+  if (!parse_extent(tok[2], &a) || !parse_extent(tok[3], &b)) {
+    return bad_line("ke p extent");
+  }
+  if (!parse_u64(tok[5], &eq) || !parse_u64(tok[6], &sep) || !parse_u64(tok[7], &comp)) {
+    return bad_line("ke p verdicts");
+  }
+  differ_u(f, "extent_eqb", eq, (unsigned long long)vos_extent_equal(&a, &b));
+  differ_u(f, "separated", sep, (unsigned long long)vos_extent_separated(&a, &b));
+  differ_u(f, "compatible", comp, (unsigned long long)vos_extent_compatible(&a, &b));
+  for (k = 9; k < ntok; k++) {
+    if (!parse_pair(tok[k], &p, &w)) {
+      return bad_line("ke p probe");
+    }
+    differ_u(f, "within", w, (unsigned long long)vos_extent_within(&a, (uint64_t)p));
+  }
+  return 1;
+}
+
+/* ------------------------------------------------------------------------
+ * ke r SW E0 E1 E2 t T0 T1 T2 -> readable
+ *
+ * Tenant i declares extent Ei; the frame's three slots, reserved first, name
+ * tenants T0 to T2. The kernel answers through the descriptor it validates.
+ * ------------------------------------------------------------------------ */
+static int check_ke_readable(void)
+{
+  struct family *f = &fam_ke;
+  struct vos_init_desc d;
+  unsigned long long want;
+  unsigned long long t;
+  int i;
+  if (ntok != 12 || !expect(6, "t") || !expect(10, "->")) {
+    return bad_line("ke r shape");
+  }
+  memset(&d, 0, sizeof d);
+  if (!parse_extent(tok[2], &d.switch_text)) {
+    return bad_line("ke r switch text");
+  }
+  d.partition_count = 3;
+  for (i = 0; i < 3; i++) {
+    d.partitions[i].tenant = (uint32_t)i;
+    d.partitions[i].has_context = 1;
+    if (!parse_extent(tok[3 + i], &d.partitions[i].text)) {
+      return bad_line("ke r extent");
+    }
+  }
+  d.frame.major_frame = 200;
+  d.frame.reserved_count = 1;
+  d.frame.slot_count = 3;
+  for (i = 0; i < 3; i++) {
+    if (!parse_u64(tok[7 + i], &t) || t > 2u) {
+      return bad_line("ke r tenant");
+    }
+    d.frame.slots[i].tenant = (uint32_t)t;
+  }
+  if (!parse_u64(tok[11], &want)) {
+    return bad_line("ke r verdict");
+  }
+  differ_u(f, "readable", want, (unsigned long long)vos_extents_readable(&d));
+  return 1;
+}
+
 /* ------------------------------------------------------------------------
  * The consumer checks: fixed refusal controls with no Gallina counterpart.
  * ------------------------------------------------------------------------ */
@@ -598,6 +733,11 @@ static void run_consumer_checks(void)
   base_descriptor(&d);
   d.machine.csr_count = VOS_MAX_CSRS + 1u;
   consumer("roster past capacity", VOS_ROSTER_TOO_LARGE, vos_init_validate(&d, 7, 0));
+  base_descriptor(&d);
+  d.partitions[1].tenant = 0;
+  d.frame.slots[1].tenant = 0;
+  consumer("two partitions carrying one tenant", VOS_INIT_TENANT_SHARED,
+           vos_init_validate(&d, 7, 0));
 }
 
 static void report_family(const struct family *f, int *failed)
@@ -642,6 +782,15 @@ int main(void)
     } else if (strcmp(tok[0], "kq") == 0) {
       fam_kq.lines++;
       check_kq();
+    } else if (strcmp(tok[0], "ke") == 0) {
+      fam_ke.lines++;
+      if (expect(1, "p")) {
+        check_ke_pair();
+      } else if (expect(1, "r")) {
+        check_ke_readable();
+      } else {
+        bad_line("unknown ke kind");
+      }
     } else if (strcmp(tok[0], "kt") == 0) {
       kt_skipped++;
     } else {
@@ -654,6 +803,7 @@ int main(void)
   report_family(&fam_kc, &failed);
   report_family(&fam_kr, &failed);
   report_family(&fam_kq, &failed);
+  report_family(&fam_ke, &failed);
   printf("   kt  %6ld line(s) left to the trace reader\n", kt_skipped);
   printf("   executive verdicts over kx:");
   for (i = 0; i <= (int)VOS_DISPATCH_STALE_IMAGE; i++) {
@@ -662,8 +812,15 @@ int main(void)
     }
   }
   printf("\n");
+  printf("   release expectations over accepted kx tables: %ld checked, %ld missed "
+         "(stated by this harness, not by Gallina)\n",
+         expectations, expectation_misses);
   printf("   consumer checks: %ld run, %ld failed (fixed controls, not generated)\n",
          consumer_checks, consumer_failures);
+  if (expectations == 0) {
+    printf("FAIL no release expectation was checked; an empty comparison decides nothing\n");
+    failed = 1;
+  }
   if (malformed != 0) {
     printf("FAIL %ld malformed line(s)\n", malformed);
     failed = 1;
@@ -673,13 +830,20 @@ int main(void)
            mismatches);
     failed = 1;
   }
+  if (expectation_misses != 0) {
+    printf("FAIL %ld release expectation(s) stated by this harness\n", expectation_misses);
+    failed = 1;
+  }
   if (consumer_failures != 0) {
     printf("FAIL %ld consumer check(s)\n", consumer_failures);
     failed = 1;
   }
   if (!failed) {
-    printf("ok the kernel C agrees with the Gallina front on %ld generated line(s)\n",
-           fam_kx.lines + fam_kc.lines + fam_kr.lines + fam_kq.lines);
+    printf("ok the kernel C agrees with the Gallina front on %ld generated line(s), and "
+           "meets %ld release expectation(s) and %ld fixed consumer control(s) this "
+           "harness states\n",
+           fam_kx.lines + fam_kc.lines + fam_kr.lines + fam_kq.lines + fam_ke.lines,
+           expectations, consumer_checks);
   }
   return failed ? 1 : 0;
 }

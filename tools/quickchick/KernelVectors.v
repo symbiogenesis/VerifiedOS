@@ -25,6 +25,10 @@
          images and every bitmap over five bases.
      kq  completion: `SemanticCompletion` and the epoch reading it refuses,
          over all sixty-four completion records.
+     ke  the extents: `extent_eqb`, `separated`, `compatible` and `within`
+         over every ordered pair of a pool of extents, and
+         `ExtentsAreReadable` over every assignment of that pool to the
+         tenants of two frame shapes.
      kt  the trace reader: `WellFormedAttempts`, `AttemptsCover`,
          `RootIsThePartitions`, the three halves of `SwitchIsTotal`,
          `BurstWritesExactlyOnce`, the four clauses of `FrameIsTheTables` and
@@ -286,15 +290,20 @@ Qed.
 
 Definition kt_switch : Extent := {| ext_base := 10; ext_top := 20 |}.
 
+(* Tenants 0 to 3 declare separated texts. Tenant 4's text meets the switch
+   text and tenant 5's partially overlaps tenant 0's, so a frame naming
+   either is one `ExtentsAreReadable` refuses. *)
 Definition kt_text (t : nat) : Extent :=
   match t with
   | 0 => {| ext_base := 30; ext_top := 40 |}
   | 1 => {| ext_base := 50; ext_top := 60 |}
   | 2 => {| ext_base := 70; ext_top := 80 |}
-  | _ => {| ext_base := 90; ext_top := 100 |}
+  | 3 => {| ext_base := 90; ext_top := 100 |}
+  | 4 => {| ext_base := 5; ext_top := 15 |}
+  | _ => {| ext_base := 35; ext_top := 45 |}
   end.
 
-Definition kt_kernel (w : nat) : Kernel := {|
+Definition kt_kernel_at (w : nat) (sw : Extent) (tx : nat -> Extent) : Kernel := {|
   composition := kt_composition;
   word_eqb := Nat.eqb;
   word_eqb_sound := nat_eqb_sound;
@@ -306,10 +315,12 @@ Definition kt_kernel (w : nat) : Kernel := {|
   Scr := nat;
   Base := nat;
   base_of := fun v => v;
-  switch_text := kt_switch;
-  text_of := kt_text;
+  switch_text := sw;
+  text_of := tx;
   window_count := w
 |}.
+
+Definition kt_kernel (w : nat) : Kernel := kt_kernel_at w kt_switch kt_text.
 
 Definition kt_astray : nat := 200.
 
@@ -399,16 +410,23 @@ Definition kq_report : list string := map kq_line (seq 0 64).
 
 Definition kt_slot (w o t : nat) : Slot nat := Build_Slot nat w o 0 100 t.
 
-(* Three frames: the probe shape; one whose tenant holds a reserved slot and
-   a background slot, so a reserved extent recurs in the table; and one with
-   two reserved slots, so the reserved band has an order of its own. *)
+(* Five frames: the probe shape; one whose tenant holds a reserved slot and
+   a background slot, so a reserved extent recurs in the table; one with two
+   reserved slots, so the reserved band has an order of its own; and two
+   whose declared extents are unreadable, one tenant's text meeting the
+   switch text and one partially overlapping another tenant's, so the
+   readability column is decided both ways. *)
 Definition kt_frames : list (Frame nat) :=
   [ Build_Frame nat 200 0 [kt_slot 60 0 0]
       (Build_Band nat (kt_slot 90 60 1) [kt_slot 50 150 2])
   ; Build_Frame nat 200 0 [kt_slot 60 0 0]
       (Build_Band nat (kt_slot 90 60 1) [kt_slot 50 150 0])
   ; Build_Frame nat 200 0 [kt_slot 40 0 0; kt_slot 20 40 3]
-      (Build_Band nat (kt_slot 90 60 1) [kt_slot 50 150 2]) ].
+      (Build_Band nat (kt_slot 90 60 1) [kt_slot 50 150 2])
+  ; Build_Frame nat 200 0 [kt_slot 60 0 0]
+      (Build_Band nat (kt_slot 90 60 4) [kt_slot 50 150 2])
+  ; Build_Frame nat 200 0 [kt_slot 60 0 0]
+      (Build_Band nat (kt_slot 90 60 5) [kt_slot 50 150 2]) ].
 
 Definition ext_str (e : Extent) : string := ns (ext_base e) ++ ":" ++ ns (ext_top e).
 
@@ -616,6 +634,56 @@ Definition kt_f_report : list string :=
   flat_map (fun fi => map (kt_f_line (fst fi) (snd fi)) (kt_frame_variants (snd fi)))
            (combine (seq 0 (length kt_frames)) kt_frames).
 
+(* =========================================================================
+   ke: the extent predicates partition.c restates, and the readability side
+   condition over a declared frame, for the kernel C rather than the reader.
+   The pool holds an extent equal to the switch text, one meeting it, one
+   touching it, two touching each other and two partially overlapping, so
+   every predicate is decided both ways.
+   ========================================================================= *)
+
+Definition ke_ext (b t : nat) : Extent := {| ext_base := b; ext_top := t |}.
+
+Definition ke_pool : list Extent :=
+  [ ke_ext 30 40; ke_ext 35 45; ke_ext 40 50; ke_ext 5 15; ke_ext 20 30; ke_ext 10 20 ].
+
+(* An extent's two ends and one address below each. *)
+Definition ke_probes (e : Extent) : list nat :=
+  [ext_base e - 1; ext_base e; ext_top e - 1; ext_top e].
+
+Definition ke_p_line (a b : Extent) : string :=
+  "ke p " ++ ext_str a ++ " " ++ ext_str b ++ " ->"
+    ++ " " ++ bs (extent_eqb a b)
+    ++ " " ++ bs (separated a b)
+    ++ " " ++ bs (compatible a b)
+    ++ " | " ++ words (map (fun p => ns p ++ ":" ++ bs (within a p)) (ke_probes a)).
+
+Definition ke_text (e0 e1 e2 : Extent) (t : nat) : Extent :=
+  match t with 0 => e0 | 1 => e1 | _ => e2 end.
+
+(* Two frame shapes over tenants 0 to 2: three tenants, and tenant 0 holding
+   both the reserved slot and a background slot, so one extent recurs and
+   is compatible with itself only by being equal. *)
+Definition ke_shapes : list (list nat) := [[0; 1; 2]; [0; 1; 0]].
+
+Definition ke_frame (ts : list nat) : Frame nat :=
+  Build_Frame nat 200 0 [kt_slot 60 0 (nth 0 ts 0)]
+    (Build_Band nat (kt_slot 90 60 (nth 1 ts 0)) [kt_slot 50 150 (nth 2 ts 0)]).
+
+Definition ke_r_line (e0 e1 e2 : Extent) (ts : list nat) : string :=
+  let k := kt_kernel_at 2 kt_switch (ke_text e0 e1 e2) in
+  "ke r " ++ ext_str kt_switch ++ " " ++ ext_str e0 ++ " " ++ ext_str e1 ++ " "
+    ++ ext_str e2 ++ " t " ++ words (map ns ts) ++ " -> "
+    ++ bs (ExtentsAreReadable k (ke_frame ts)).
+
+Definition ke_report : list string :=
+  List.app (flat_map (fun a => map (ke_p_line a) ke_pool) ke_pool)
+    (flat_map (fun ts =>
+       flat_map (fun e0 =>
+         flat_map (fun e1 => map (fun e2 => ke_r_line e0 e1 e2 ts) ke_pool) ke_pool)
+         ke_pool)
+       ke_shapes).
+
 (* --- the joined verdict --------------------------------------------------- *)
 
 Definition kt_frame0 : Frame nat := nth 0 kt_frames (Build_Frame nat 0 0 nil
@@ -658,6 +726,7 @@ Definition kernel_report : list string :=
   List.app kx_report
   (List.app kc_report
   (List.app kr_report
-  (List.app kq_report kt_report))).
+  (List.app kq_report
+  (List.app ke_report kt_report)))).
 
 Compute kernel_report.

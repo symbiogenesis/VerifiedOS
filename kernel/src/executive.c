@@ -10,6 +10,10 @@
  * is R-11-006's Coq artifact and is decided at composition; the checks here
  * are the consumer's structural checks on the table it is handed before its
  * first dispatch (purecap-abi.md section 7, gap k).
+ *
+ * One table, one tenant per slot. R-11-023's slot-to-tenant permutation,
+ * R-11-024's table swap, R-07-037b's group rotation and R-07-037g's elastic
+ * dispatch are executive duties this file does not implement.
  */
 #include "vos_kernel.h"
 
@@ -31,13 +35,15 @@ int vos_slot_in_frame(const struct vos_slot *s, uint64_t major_frame)
   return s->offset + s->width <= major_frame;
 }
 
-/* CyclicExecutive.v `pairwise_disjoint` over `frame_slots`. */
+/* CyclicExecutive.v `pairwise_disjoint` over `frame_slots`. Each loop here
+ * also stops at the record's capacity, so an unvalidated count cannot read
+ * past `slots`. */
 int vos_frame_pairwise_disjoint(const struct vos_frame *f)
 {
   uint32_t i;
   uint32_t j;
-  for (i = 0; i < f->slot_count; i++) {
-    for (j = i + 1u; j < f->slot_count; j++) {
+  for (i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
+    for (j = i + 1u; j < f->slot_count && j < VOS_MAX_SLOTS; j++) {
       if (!vos_slot_disjoint(&f->slots[i], &f->slots[j])) {
         return 0;
       }
@@ -51,7 +57,7 @@ uint64_t vos_frame_total_width(const struct vos_frame *f)
 {
   uint64_t total = 0;
   uint32_t i;
-  for (i = 0; i < f->slot_count; i++) {
+  for (i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
     total += f->slots[i].width;
   }
   return total;
@@ -65,7 +71,7 @@ uint64_t vos_frame_total_width(const struct vos_frame *f)
 int32_t vos_slot_index_at(const struct vos_frame *f, uint64_t instant)
 {
   uint32_t i;
-  for (i = 0; i < f->slot_count; i++) {
+  for (i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
     const struct vos_slot *s = &f->slots[i];
     if (s->offset <= instant && instant < s->offset + s->width) {
       return (int32_t)i;
@@ -120,6 +126,8 @@ enum vos_status vos_frame_validate(const struct vos_frame *f)
   return VOS_OK;
 }
 
+/* The cursor below reads `slots[cursor]` and wraps at `slot_count`: its
+ * frame must have passed vos_frame_validate (vos_kernel.h). */
 void vos_exec_start(struct vos_exec *e)
 {
   e->frame_index = 0;

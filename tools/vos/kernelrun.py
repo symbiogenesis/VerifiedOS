@@ -17,7 +17,10 @@ verdict here against every verdict there. Each function below names the Gallina
 definition it restates, and restates it clause for clause, including the ones a
 reader would be tempted to improve: the last write to a register is the one compared,
 a derivation's result is the first write to its declared register before the next
-retire, and slot visits are identified by their tenant's declared text extent.
+retire, and slot visits are identified by their tenant's declared text extent. Two
+functions restate no Gallina definition and no vector holds them: `restore_bursts`
+and `read_emulator_trace` are held only by the host cases in
+[test_kernelrun.py](../tests/test_kernelrun.py).
 
 **What the predicates do not say, and this reader therefore has to.** A corpus run is
 one trace, and `RunAnswersM44` takes three: the confinement trace, one restore burst

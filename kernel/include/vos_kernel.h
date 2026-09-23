@@ -12,9 +12,12 @@
  * no pointer/integer conversion, no union, no floating point, no varargs.
  *
  * Every magnitude the register leaves to composition is a record field here,
- * as it is in the Gallina statements. The VOS_MAX_* capacities bound the
- * records; they are not composition choices and a descriptor that needs more
- * is refused.
+ * as it is in the Gallina statements. The VOS_MAX_* capacities size the
+ * records and are composition constants too: a build supplies each one for
+ * its composition (for example as a -D definition emitted with the
+ * descriptor), and a descriptor that needs more than its build supplies is
+ * refused. No register entry bounds any of the four, so the defaults below
+ * serve the host model and the target smoke and are no composition's figure.
  */
 #ifndef VOS_KERNEL_H
 #define VOS_KERNEL_H 1
@@ -26,10 +29,32 @@
 /* R-15-007i: one merged file of 32 registers of 64+1 bits. */
 #define VOS_REGISTER_COUNT 32u
 
-#define VOS_MAX_SLOTS 16u
+/*
+ * The table's slots. R-11-021's reference ladder tops out at 32 tenants per
+ * C-class core, which R-11-022 makes 32 discretionary slots and R-11-022a's
+ * second focus slot 33; R-11-020's reserved band has no stated size. The
+ * default covers that rung with a reserved band of up to 31 slots.
+ */
+#ifndef VOS_MAX_SLOTS
+#define VOS_MAX_SLOTS 64u
+#endif
+
+/* The CSR roster: R-15-001b enumerates no bank yet (KernelInstance.v gap b). */
+#ifndef VOS_MAX_CSRS
 #define VOS_MAX_CSRS 16u
-#define VOS_MAX_PARTITIONS 8u
+#endif
+
+/* The partitions one instance hosts, one per tenant here; no entry bounds
+ * them, and the default matches the default table's slot count. */
+#ifndef VOS_MAX_PARTITIONS
+#define VOS_MAX_PARTITIONS 64u
+#endif
+
+/* The shared windows: a composition magnitude no entry bounds
+ * (KernelInstance.v gap f). */
+#ifndef VOS_MAX_WINDOWS
 #define VOS_MAX_WINDOWS 4u
+#endif
 
 /* slot_index_at's `None`: no slot owns the instant (R-07-036). */
 #define VOS_NO_SLOT (-1)
@@ -56,7 +81,8 @@ enum vos_status {
   VOS_INIT_EXTENTS_UNREADABLE = 17,
   VOS_INIT_TOO_MANY_WINDOWS = 18,
   VOS_ROSTER_TOO_LARGE = 19,
-  VOS_DISPATCH_STALE_IMAGE = 20
+  VOS_DISPATCH_STALE_IMAGE = 20,
+  VOS_INIT_TENANT_SHARED = 21
 };
 
 /* ------------------------------------------------------------------------
@@ -92,11 +118,14 @@ struct vos_exec {
 
 int vos_slot_disjoint(const struct vos_slot *s, const struct vos_slot *t);
 int vos_slot_in_frame(const struct vos_slot *s, uint64_t major_frame);
+/* These three read at most VOS_MAX_SLOTS slots whatever `slot_count` says. */
 int vos_frame_pairwise_disjoint(const struct vos_frame *f);
 uint64_t vos_frame_total_width(const struct vos_frame *f);
 int32_t vos_slot_index_at(const struct vos_frame *f, uint64_t instant);
 enum vos_status vos_frame_validate(const struct vos_frame *f);
 
+/* The cursor's precondition: `f` has passed vos_frame_validate, so every
+ * entry the cursor reaches is inside `slots`. */
 void vos_exec_start(struct vos_exec *e);
 uint32_t vos_exec_slot(const struct vos_exec *e);
 uint32_t vos_exec_tenant(const struct vos_frame *f, const struct vos_exec *e);
@@ -158,7 +187,10 @@ int vos_semantic_completion(const struct vos_completion *c);
 #if defined(VOS_HOST_MODEL)
 /* The observation half needs a register's tag and base, which on the target
  * are the model's decode reached through primitives this profile has not
- * yet bound (kernel/README.md). The host model supplies both. */
+ * yet bound (kernel/README.md). The host model supplies both. The dispatch
+ * check takes the arm of KernelInstance.v gap a in which the barrier
+ * sanitizes the saved image; the register has not chosen that arm, and what
+ * a refused dispatch does next is unspecified. */
 int vos_filtered_tag(const struct vos_bitmap *bm, vos_cap_t c);
 int vos_image_sanitized(const struct vos_bitmap *bm, const struct vos_context *succ);
 enum vos_status vos_dispatch_check(const struct vos_bitmap *bm,
@@ -166,8 +198,14 @@ enum vos_status vos_dispatch_check(const struct vos_bitmap *bm,
 #endif
 
 /* ------------------------------------------------------------------------
- * The composed initialization descriptor (purecap-abi.md section 7, `c12`)
- * and the partition root handling it carries.
+ * The composed initialization inputs (purecap-abi.md section 7, `c12`) and
+ * the partition root handling they carry.
+ *
+ * `vos_init_desc` is this consumer's record of what section 7's refusals and
+ * the partition checks read. It is not the byte layout of the `c12`
+ * descriptor, which M3.5's handoff owns: the target's reads of that layout,
+ * including any header fields it fixes, fill this record and are not
+ * written (kernel/README.md).
  * ------------------------------------------------------------------------ */
 
 struct vos_extent {
@@ -175,6 +213,10 @@ struct vos_extent {
   uint64_t top;
 };
 
+/* One partition per tenant, with one text extent. R-07-037b lets a tenant be
+ * an ordered same-label group of partitions and R-07-037e an elastic domain;
+ * neither is implemented, so a descriptor giving two partitions one tenant is
+ * refused (VOS_INIT_TENANT_SHARED) rather than half-validated. */
 struct vos_partition_desc {
   uint32_t tenant;
   uint32_t has_context; /* a planned save area and initial image exist */

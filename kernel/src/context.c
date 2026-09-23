@@ -7,14 +7,19 @@
  * every one of the 32 merged registers, value and tag together; every CSR
  * the partition can name, restored or written to zero by the profile's own
  * disposition; and R-07-044's pending component on either arm. It is the
- * restore plan the switch text executes, not the instruction sequence: the
- * sequence of `lc` loads, CSR writes, `vmclear`, `fence.t` and the `mret`
- * that dispatches has no admitted source surface yet (kernel/README.md), and
- * nothing here claims one.
+ * restore plan the switch text executes, not the instruction sequence: C
+ * cannot place values into x1 to x31 or order a total restore, and no
+ * emitter yet owns the sequence of `lc` loads, CSR writes, `vmclear`,
+ * `fence.t` and the dispatching `mret` (kernel/README.md), so nothing here
+ * claims one.
  *
- * `vos_rotation_image` is R-07-037b's intra-slot step: the same register
- * swap and restorable-CSR restore, the zeroized class left where the omitted
- * pass leaves it, and the pending component swapped only on R-07-037c's arm.
+ * `vos_rotation_image` is R-07-037b's intra-slot step between members of one
+ * same-label group: the same register swap and restorable-CSR restore, the
+ * zeroized class left where the omitted pass leaves it (R-07-037d), and the
+ * pending component swapped only on R-07-037c's arm. R-07-037g's elastic
+ * step, which runs `vmclear` whenever the two members belong to different
+ * applications, is not this function and is not implemented; nor does
+ * PartitionContext.v's `Rotation` state that cross-application clear.
  */
 #include "vos_kernel.h"
 
@@ -144,6 +149,11 @@ int vos_image_sanitized(const struct vos_bitmap *bm, const struct vos_context *s
  * through the filtered load it stops satisfying R-07-015's total restore,
  * and restored faithfully it is stale authority (KernelInstance.v R4, R5).
  * Only on a sanitized image are the two arms one restore (R6).
+ *
+ * This takes KernelInstance.v gap a's barrier-sanitizes arm, which the
+ * register leaves open (owed at R-08-006 or R-07-015). What follows a
+ * refusal, whether the slot idles, the partition restarts or the kernel
+ * fails, is not specified, and the check exists in the host model only.
  */
 enum vos_status vos_dispatch_check(const struct vos_bitmap *bm,
                                    const struct vos_context *succ)

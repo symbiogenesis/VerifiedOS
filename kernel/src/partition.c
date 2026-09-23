@@ -7,7 +7,14 @@
  * descriptor in `c12`. The consumer obligations it states are the ones below:
  * a missing descriptor, a wrong-composition or wrong-hart descriptor, and an
  * initialization lacking a planned successor are refused before any dispatch,
- * as producer/consumer checks and not as capability faults.
+ * as producer/consumer checks and not as capability faults. The record read
+ * here is the consumer's, not the `c12` byte layout M3.5's handoff owns, and
+ * no code yet parses that layout into it.
+ *
+ * A tenant is one partition here. R-07-037b's same-label groups and
+ * R-07-037e's elastic domains give one tenant several partitions; neither is
+ * implemented, so such a descriptor is refused rather than validated through
+ * its first member alone.
  *
  * What is deliberately not here. R-07-005 makes composition-time disjointness
  * a build-time artifact, so these checks re-read declared extents for the
@@ -107,6 +114,7 @@ enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t compos
                                   uint64_t hart_id)
 {
   uint32_t i;
+  uint32_t j;
   enum vos_status table;
   if (d == 0) {
     return VOS_INIT_MISSING;
@@ -145,6 +153,15 @@ enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t compos
     }
     if (!vos_extent_contains(&d->root, &p->text) || !vos_extent_contains(&d->root, &p->data)) {
       return VOS_INIT_EXTENT_OUTSIDE_ROOT;
+    }
+  }
+  /* One partition per tenant, so that the checks below, which find a slot's
+   * partition by its tenant, see every partition a slot can dispatch. */
+  for (i = 0; i < d->partition_count; i++) {
+    for (j = i + 1u; j < d->partition_count; j++) {
+      if (d->partitions[i].tenant == d->partitions[j].tenant) {
+        return VOS_INIT_TENANT_SHARED;
+      }
     }
   }
   /* Every table entry must name a partition with a planned save area and

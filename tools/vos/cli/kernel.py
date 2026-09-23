@@ -16,16 +16,24 @@ statements' definitions and prints each point's inputs beside the definitions' a
 
 `vectors` compiles that harness in the CertiRocq oracle's switch against its `Require`
 closure only, not the whole proof tree. `check` compiles the kernel C in its host model
-with the lane's C compiler and holds every `kx`, `kc`, `kr` and `kq` line against it,
-then holds every `kt` line against [vos/kernelrun.py](../kernelrun.py), the reader
+with the lane's C compiler and holds every `kx`, `kc`, `kr`, `kq` and `ke` line against
+it, then holds every `kt` line against [vos/kernelrun.py](../kernelrun.py), the reader
 that asks KernelInstance.v's three questions of an emulator's commit trace.
 `mutants` runs authored seeded defects through both differentials and reports them in
 [vos/seeded.py](../seeded.py)'s vocabulary, which is the positive control: a
 differential that no seeded defect can move is not evidence that the two sides agree.
 `reader` runs only the reader half over a vector file already on disk, on either lane.
 
+**Three kinds of expectation, reported apart.** The host harness holds the C to the
+Gallina columns, to release instants it states itself from R-11-014a and R-11-014d
+(CyclicExecutive.v defines none), and to fixed refusal controls for the ABI's section 7
+consumer checks, which have no Gallina counterpart. It prints one total per kind, and
+`mutants` credits each kill to the kind that decided it, so a kill by a hand-stated
+expectation is never reported as a Gallina-vector kill.
+
 **What a green run means.** That the kernel C's host model and the reader compute what
-the Gallina definitions compute at every generated point. It is not target evidence:
+the Gallina definitions compute at every generated point, and that the C meets the
+harness's own release expectations and consumer controls. It is not target evidence:
 the C here was compiled by the lane's host compiler, not by the accepted purecap
 backend, and no image ran on the emulator. The kernel's target build, its
 initial-capability handoff and its corpus member remain M4.4's joins, and every
@@ -53,7 +61,7 @@ SOURCES: Final[tuple[str, ...]] = ("src/executive.c", "src/context.c", "src/part
 HOST_HARNESS: Final = "test/host_vectors.c"
 CFLAGS: Final[tuple[str, ...]] = (
     "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic", "-DVOS_HOST_MODEL")
-C_FAMILIES: Final[tuple[str, ...]] = ("kx", "kc", "kr", "kq")
+C_FAMILIES: Final[tuple[str, ...]] = ("kx", "kc", "kr", "kq", "ke")
 READER_FAMILIES: Final[tuple[str, ...]] = ("c", "b", "f", "run")
 WAITS: Final = ("target evidence waits on M1.2f's accepted backend, M1.7's target path "
                 "and M3.5's handoff; milestone_acceptance: open")
@@ -146,13 +154,32 @@ def run_host(binary: Path, vectors: Path) -> subprocess.CompletedProcess[str]:
                               errors="replace")
 
 
-_TOTAL_RE = re.compile(r"^FAIL (\d+) (?:disagreement|consumer check)", re.MULTILINE)
+# The kinds of expectation the host harness counts apart (host_vectors.c's head), in
+# the order a kill is credited: a Gallina column where one moved, else a fixed
+# consumer control, else the harness's own release expectation.
+GALLINA: Final = "Gallina-vector"
+CONTROL: Final = "fixed consumer control"
+EXPECTATION: Final = "harness release expectation"
+_TOTALS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (GALLINA, re.compile(r"^FAIL (\d+) disagreement\(s\) between the kernel C",
+                         re.MULTILINE)),
+    (CONTROL, re.compile(r"^FAIL (\d+) consumer check\(s\)", re.MULTILINE)),
+    (EXPECTATION, re.compile(r"^FAIL (\d+) release expectation\(s\)", re.MULTILINE)),
+)
 
 
-def disagreements_in(said: str) -> int:
-    """The harness's own totals, which count every disagreement rather than the
-    first few it prints."""
-    return sum(int(n) for n in _TOTAL_RE.findall(said))
+def movement(said: str) -> dict[str, int]:
+    """The harness's own totals by kind, which count every disagreement rather than
+    the first few it prints."""
+    return {kind: sum(int(n) for n in pattern.findall(said)) for kind, pattern in _TOTALS}
+
+
+def deciding_kind(moved: dict[str, int]) -> str | None:
+    """The kind a kill is credited to, or None where no total moved."""
+    for kind, _ in _TOTALS:
+        if moved.get(kind, 0):
+            return kind
+    return None
 
 
 # =====================================================================================
@@ -331,15 +358,35 @@ C_MUTANTS: Final[tuple[CMutant, ...]] = (
     CMutant("switch text allowed inside a partition", "src/partition.c",
             "if (!vos_extent_separated(&d->switch_text, &d->partitions[a].text)) {",
             "if (0) {"),
+    CMutant("readability skipping the pairwise check", "src/partition.c",
+            "if (!vos_extent_compatible(&d->partitions[a].text, &d->partitions[b].text)) {",
+            "if (0) {"),
+    CMutant("extent compatibility ignoring equal extents", "src/partition.c",
+            "return vos_extent_equal(a, b) || vos_extent_separated(a, b);",
+            "return vos_extent_separated(a, b);"),
+    CMutant("extent separation strict at the boundary", "src/partition.c",
+            "return a->top <= b->base || b->top <= a->base;",
+            "return a->top < b->base || b->top < a->base;"),
+    CMutant("within closed at the extent's top", "src/partition.c",
+            "return e->base <= address && address < e->top;",
+            "return e->base <= address && address <= e->top;"),
+    CMutant("a tenant's second partition not refused", "src/partition.c",
+            "if (d->partitions[i].tenant == d->partitions[j].tenant) {", "if (0) {"),
 )
+
+# A kill the harness reported without any of its totals moving: it crashed or stopped.
+HARNESS_EXIT: Final = "harness exit"
 
 
 def run_c_mutant(mutant: CMutant, kernel: Path, scratch: Path, vectors: Path,
-                 cc: str) -> seeded.Verdict:
+                 cc: str) -> tuple[seeded.Verdict, str | None]:
+    """One C mutant through the host harness, with the kind of expectation that
+    decided it where it was killed."""
     source = (kernel / mutant.path).read_text(encoding="utf-8")
     if source.count(mutant.old) != 1:
         return seeded.Verdict(mutant, seeded.UNSEEDED,
-                              f"the seed occurs {source.count(mutant.old)} times, not once")
+                              f"the seed occurs {source.count(mutant.old)} times, "
+                              "not once"), None
     tree = scratch / "kernel"
     if tree.exists():
         shutil.rmtree(tree)
@@ -349,17 +396,20 @@ def run_c_mutant(mutant: CMutant, kernel: Path, scratch: Path, vectors: Path,
     binary = scratch / "mutant"
     built = build_host(tree, binary, cc)
     if built.returncode != 0:
-        return seeded.Verdict(mutant, seeded.STILLBORN, "did not compile")
+        return seeded.Verdict(mutant, seeded.STILLBORN, "did not compile"), None
     ran = run_host(binary, vectors)
-    moved = disagreements_in(ran.stdout)
+    moved = movement(ran.stdout)
+    total = sum(moved.values())
     if ran.returncode == 0:
-        return seeded.Verdict(mutant, seeded.SURVIVED, "every line still agreed")
-    if ran.returncode == 1 and moved:
-        return seeded.Verdict(mutant, seeded.KILLED, f"{moved} disagreement(s) reported",
-                              moved)
+        return seeded.Verdict(mutant, seeded.SURVIVED, "every line still agreed"), None
+    kind = deciding_kind(moved)
+    if ran.returncode == 1 and kind is not None:
+        spread = ", ".join(f"{moved[k]} {k}" for k, _ in _TOTALS if moved[k])
+        return seeded.Verdict(mutant, seeded.KILLED,
+                              f"decided by the {kind}: {spread}", total), kind
     return seeded.Verdict(mutant, seeded.KILLED,
-                          f"harness exit {ran.returncode} with {moved} reported line(s)",
-                          moved)
+                          f"harness exit {ran.returncode} with {total} reported line(s)",
+                          total), HARNESS_EXIT
 
 
 @dataclass(frozen=True)
@@ -450,6 +500,15 @@ def _any_csr(roster: Sequence[kernelrun.CsrRow],
     return all(0 < f[0] < kernelrun.REGISTER_COUNT for kind, f in burst if kind == "X")
 
 
+def _readable_ignoring_switch(switch_text: kernelrun.Extent, frame: kernelrun.Frame) -> bool:
+    extents = frame.extents
+    return all(a.compatible(b) for i, a in enumerate(extents) for b in extents[i + 1:])
+
+
+def _readable_ignoring_pairs(switch_text: kernelrun.Extent, frame: kernelrun.Frame) -> bool:
+    return all(switch_text.separated(e) for e in frame.extents)
+
+
 READER_MUTANTS: Final[tuple[ReaderMutant, ...]] = (
     ReaderMutant("restore truncated to the low registers accepted",
                  "register_burst_total", _truncated),
@@ -468,6 +527,11 @@ READER_MUTANTS: Final[tuple[ReaderMutant, ...]] = (
     ReaderMutant("CSR names not read", "burst_carries_nothing_else", _any_csr),
     ReaderMutant("duplicate attempt sites admitted", "well_formed_attempts",
                  lambda a: all(0 < x.register < kernelrun.REGISTER_COUNT for x in a)),
+    ReaderMutant("readability not checked", "extents_are_readable", lambda s, f: True),
+    ReaderMutant("switch text meeting a tenant's text accepted", "extents_are_readable",
+                 _readable_ignoring_switch),
+    ReaderMutant("overlapping tenant texts accepted", "extents_are_readable",
+                 _readable_ignoring_pairs),
 )
 
 
@@ -503,15 +567,32 @@ def cmd_mutants(args: argparse.Namespace) -> int:
             print("\n".join(out))
             return 1
         lines = vectors.read_text(encoding="utf-8").splitlines()
+        decided: list[tuple[seeded.Verdict, str | None]] = []
         with tempfile.TemporaryDirectory(prefix="kernel-mutant-", dir=work) as scratch:
-            verdicts = [run_c_mutant(c_mutant, root / KERNEL, Path(scratch), vectors, cc)
-                        for c_mutant in C_MUTANTS]
-        verdicts.extend(run_reader_mutant(r_mutant, lines) for r_mutant in READER_MUTANTS)
+            decided.extend(run_c_mutant(c_mutant, root / KERNEL, Path(scratch), vectors, cc)
+                           for c_mutant in C_MUTANTS)
+        for r_mutant in READER_MUTANTS:
+            verdict = run_reader_mutant(r_mutant, lines)
+            decided.append((verdict, GALLINA if verdict.outcome == seeded.KILLED else None))
+    verdicts = [verdict for verdict, _ in decided]
     scope = seeded.Scope(whole=len(verdicts), ran=len(verdicts))
     code = seeded.summarize(out, verdicts, "the kernel instance's authored defects",
-                            "Gallina-vector", scope)
+                            oracle_named(decided), scope)
     print("\n".join(out))
     return code
+
+
+def oracle_named(decided: Sequence[tuple[seeded.Verdict, str | None]]) -> str:
+    """The oracle as the report's closing line names it: every kill credited to the
+    kind of expectation that decided it, so that the line a completion note copies
+    cannot read a hand-stated expectation as a Gallina vector."""
+    credited = {kind: 0 for kind, _ in _TOTALS}
+    credited[HARNESS_EXIT] = 0
+    for verdict, kind in decided:
+        if verdict.outcome == seeded.KILLED and kind is not None:
+            credited[kind] += 1
+    spread = ", ".join(f"{n} by {kind}" for kind, n in credited.items() if n)
+    return f"kernel differential ({spread or 'no kill'})"
 
 
 COMMANDS: cli.Table = {
