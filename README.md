@@ -169,7 +169,7 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Buffer overflows and out-of-bounds access, down to sub-object fields | Every usable pointer is a tagged capability with hardware-enforced bounds. In the fixed tier the offline memory plan lays each object out so every narrowing is exact, the install check refusing one that would round; in the desktop's elastic pool the heap library narrows every allocation's capability to that allocation, padding what cannot be represented | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected** |
+| Buffer overflows and out-of-bounds access, down to sub-object fields | Every usable pointer is a tagged capability with hardware-enforced bounds. In the fixed tier the offline memory plan lays each object out so every narrowing is exact, the install check refusing one that would round; in the desktop's elastic pool every allocation comes from a size-class table fixed at composition, so the heap library's narrowing to each allocation is exact as well | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected** |
 | Pointer and device-address forgery | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️&nbsp;Enforced** |
 | Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️&nbsp;Enforced**<br>**🕳️&nbsp;Absent** |
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️&nbsp;Enforced** |
