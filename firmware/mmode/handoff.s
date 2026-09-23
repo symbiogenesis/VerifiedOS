@@ -15,9 +15,10 @@
 # defines (for the harness, firmware/harness/kernel_entry_fixture.s). The boot
 # descriptor is the record the RoT wrote before release, at the constant below.
 #
-# The bring-up composition declares no sealing grant type, so neither
-# object-type root at reset (c2, c3; implementation/contracts/sealing-bootstrap.md)
-# has an admitted derivation: the stack takes c2 and the final clear takes c3.
+# The bring-up composition, by boot-handoff.md section 6's selection, declares
+# no sealing grant type, so neither object-type root at reset (c2, c3) has an
+# admitted derivation; sealing-bootstrap.md section 2 requires the broad roots
+# cleared before the kernel runs: the stack takes c2 and the final clear takes c3.
 
         .equ    BOOT_DESCRIPTOR, 0x80010000
         .equ    BOOT_DESCRIPTOR_BYTES, 256
@@ -30,6 +31,12 @@
         .text
         .globl _start
 _start:
+        # Interrupt delivery stays off until the kernel has installed its
+        # dispatch state (purecap-abi.md section 7). The profile's one
+        # asynchronous trap is the slot-boundary timer, which no enable bit
+        # masks (R-15-066a), so this stage keeps it off by never writing
+        # mtimecmp: no boundary event is armed when the kernel starts.
+
         # The store-side root arrives in c1 (cra); nothing here calls, but the
         # root is moved out first as every corpus program does.
         cmove   c8, c1

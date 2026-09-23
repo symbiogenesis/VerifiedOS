@@ -64,6 +64,8 @@
 #define VOS_ITEM_STAGE_CORE_KERNELS 6u
 #define VOS_ITEM_STAGE_STATIC_IMAGE 7u
 #define VOS_MEASURE_LOG_CAPACITY 8u
+// The extensions one call of vos_rot_boot_mmode makes: items 1, 2, 3 and 5.
+#define VOS_MEASURE_RELEASE_EXTENSIONS 4u
 
 // ---------------------------------------------------------------------------
 // The handoff record the RoT writes before release: the boot descriptor the
@@ -86,6 +88,46 @@
 #define VOS_HANDOFF_CHAIN_AT 168u
 #define VOS_HANDOFF_USED_BYTES 200u
 #define VOS_HANDOFF_BYTES 256u
+
+// ---------------------------------------------------------------------------
+// The kernel initialization descriptor the M-mode stage hands the kernel in
+// c12 (purecap-abi.md section 7). It is composed at build time and is part of
+// the measured image; nothing in this directory writes it. Every integer is
+// one little-endian doubleword and every extent is two, its base and its top.
+// A fixed header is followed by the partition records, the shared windows, the
+// schedule table's slots and the CSR roster's rows, each array as long as the
+// header's count says, so the descriptor's length is
+// INIT_HEADER_BYTES + P * INIT_PARTITION_BYTES + W * INIT_WINDOW_BYTES
+//   + S * INIT_SLOT_BYTES + C * INIT_CSR_BYTES.
+
+#define VOS_INIT_MAGIC 0x3154494E49534F56u  // the bytes "VOSINIT1"
+#define VOS_INIT_VERSION 1u
+#define VOS_INIT_MAGIC_AT 0u
+#define VOS_INIT_VERSION_AT 8u
+#define VOS_INIT_COMPOSITION_AT 16u
+#define VOS_INIT_HART_AT 24u
+#define VOS_INIT_ROOT_AT 32u
+#define VOS_INIT_SWITCH_TEXT_AT 48u
+#define VOS_INIT_PARTITION_COUNT_AT 64u
+#define VOS_INIT_WINDOW_COUNT_AT 72u
+#define VOS_INIT_SLOT_COUNT_AT 80u
+#define VOS_INIT_CSR_COUNT_AT 88u
+#define VOS_INIT_MAJOR_FRAME_AT 96u
+#define VOS_INIT_PHASE_OFFSET_AT 104u
+#define VOS_INIT_RESERVED_COUNT_AT 112u
+#define VOS_INIT_PENDING_ARM_AT 120u
+#define VOS_INIT_ROTATION_SWAPS_AT 128u
+#define VOS_INIT_PENDING_STATIC_MASK_AT 136u
+#define VOS_INIT_HEADER_BYTES 144u
+#define VOS_INIT_EXTENT_BYTES 16u
+// A partition: its tenant, then the planned save area's, the text's and the
+// data's extents. An empty save-area extent plans no context for it.
+#define VOS_INIT_PARTITION_BYTES 56u
+#define VOS_INIT_WINDOW_BYTES 16u
+// A slot: width, offset, bound, period and tenant.
+#define VOS_INIT_SLOT_BYTES 40u
+// A CSR roster row: the CSR's address, nameable and zeroized.
+#define VOS_INIT_CSR_BYTES 24u
 
 // ---------------------------------------------------------------------------
 // The bring-up composition this harness runs. Composition constants rather
@@ -113,6 +155,7 @@ typedef enum {
   VOS_BOOT_REFUSE_SIGNATURE = 10,
   VOS_BOOT_REFUSE_PLACEMENT = 11,
   VOS_BOOT_REFUSE_DIGEST = 12,
+  VOS_BOOT_REFUSE_MEASUREMENT = 13,
 } vos_boot_verdict;
 
 const char *vos_boot_verdict_name(vos_boot_verdict verdict);
@@ -168,7 +211,9 @@ typedef struct {
 typedef void (*vos_release_fn)(void *context);
 
 // The main SRAM window the stage is placed in and the handoff record window,
-// as the RoT's authority over main memory reaches them.
+// as the RoT's authority over main memory reaches them. The release refuses
+// windows too small for the payload or the record rather than writing past
+// them.
 typedef struct {
   uint8_t *image;
   uint64_t image_bytes;
@@ -188,6 +233,13 @@ void vos_measure_chain(const vos_measurements *m, uint8_t out[VOS_MEASURE_BYTES]
 // bytes; compare; extend the generation register; write the handoff record;
 // release. On any refusal the image window is zeroed, the handoff window is
 // untouched and `release` is not called.
+//
+// The signed prefix is copied once into the function's own storage, and every
+// header field it decides on and the message it verifies are read from that
+// copy, so a field cannot change between its check and the signature check.
+// The signature and the payload are read from `image` in place; `image` and
+// both windows must be memory no requester other than the RoT can write for the
+// duration of the call.
 vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
                                     const vos_rot_inputs *inputs,
                                     const vos_rot_policy *policy,

@@ -5,7 +5,9 @@
 # instruction, the register state docs/implementation/contracts/purecap-abi.md
 # section 7 and docs/implementation/contracts/boot-handoff.md section 6 require,
 # then reports through HTIF: exit 0 when every check holds, and otherwise the
-# number of the first failing check (a trap during check n reports n + 32).
+# number of the first failing check (a trap during check n reports n + 32, and
+# one delivered before check 1, such as a boundary event the firmware armed,
+# reports 32 plus the low five bits of what the firmware left in gp).
 # The .data half is the bring-up composition's kernel layout: the kernel data
 # extent (holding tohost), the stack region, the root-set table's storage and
 # the kernel initialization descriptor.
@@ -15,7 +17,10 @@
 
         .equ    FIXTURE_HANDOFF_MAGIC, 0x31444e4148534f56
         .equ    FIXTURE_INIT_MAGIC, 0x3154494e49534f56
+        .equ    FIXTURE_INIT_VERSION, 1
+        .equ    FIXTURE_COMPOSITION, 1
         .equ    FIXTURE_LOAD_BASE, 0x80000000
+        .equ    FIXTURE_REGION_BYTES, 0x10000
         .equ    PERMS_CODE_ROOT_ASR_GLOBAL, 0x9cb
 
         .text
@@ -213,7 +218,8 @@ kernel_entry:
         li      t2, FIXTURE_LOAD_BASE
         bne     t1, t2, fail
 
-        # Check 7: c12 is the initialization descriptor for this hart.
+        # Check 7: c12 is this composition's initialization descriptor for
+        # this hart: its magic, version, composition identity and hart.
         li      gp, 7
         cgettag t1, c12
         li      t2, 1
@@ -230,7 +236,13 @@ kernel_entry:
         ld      t1, 0(c12)
         li      t2, FIXTURE_INIT_MAGIC
         bne     t1, t2, fail
+        ld      t1, 8(c12)
+        li      t2, FIXTURE_INIT_VERSION
+        bne     t1, t2, fail
         ld      t1, 16(c12)
+        li      t2, FIXTURE_COMPOSITION
+        bne     t1, t2, fail
+        ld      t1, 24(c12)
         csrr    t2, mhartid
         bne     t1, t2, fail
 
@@ -277,6 +289,15 @@ kernel_entry:
         cgettag t1, c14
         bnez    t1, fail
 
+        # Check 11: no boundary event is pending. The slot-boundary timer is
+        # the one asynchronous trap and no enable bit masks it (R-15-066a),
+        # so an event the firmware armed and that fired is delivered to
+        # kernel_trap before this check and reports n + 32; this check reads
+        # one that a live trap path holds pending.
+        li      gp, 11
+        csrr    t1, mip
+        bnez    t1, fail
+
         # Every check held: report through the table's data root.
         li      t0, 1
         li      t1, tohost
@@ -300,7 +321,10 @@ fail_halt:
         j       fail_halt
 
 kernel_trap:
-        addi    t0, gp, 32
+        # gp is n during check n; a trap before check 1 finds whatever the
+        # firmware left there, so only its low five bits are reported.
+        andi    t0, gp, 31
+        addi    t0, t0, 32
         slli    t0, t0, 1
         ori     t0, t0, 1
         cspecialrw c13, mtdc, cnull
@@ -326,14 +350,32 @@ kstack_end:
 root_table:
         .dword  0
 root_table_end:
+        # The initialization descriptor in boot-handoff.md section 6's layout.
+        # The bring-up composition declares no partition, window, slot or CSR
+        # row, so the descriptor is its header alone and plans no successor,
+        # which M4.4's kernel must refuse; this fixture is not that kernel.
         .align  6
 init_desc:
         .dword  FIXTURE_INIT_MAGIC
-        .dword  1
-        # hart identity, composition identity, planned contexts, first successor
+        .dword  FIXTURE_INIT_VERSION
+        .dword  FIXTURE_COMPOSITION
+        .dword  0                       # hart identity
+        # the partition-bounded root: the M-mode image region
+        .dword  FIXTURE_LOAD_BASE
+        .dword  FIXTURE_LOAD_BASE + FIXTURE_REGION_BYTES
+        # the switch text: the kernel text
+        .dword  kernel_text_base
+        .dword  kernel_text_end
+        # partitions, windows, slots, CSR rows
         .dword  0
-        .dword  1
-        .dword  1
+        .dword  0
+        .dword  0
+        .dword  0
+        # major frame, phase offset, reserved slots
+        .dword  0
+        .dword  0
+        .dword  0
+        # pending arm, rotation swaps, static pending mask
         .dword  0
         .dword  0
         .dword  0

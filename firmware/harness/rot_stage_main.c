@@ -13,6 +13,12 @@
 // compute. It exists so the harness can exercise the verdict path a real
 // verifier's accept and reject would take; the production binding is the
 // SLH-DSA-SHAKE-256s verifier the contract assigns to M3.4.
+//
+// The racing arm of the same verifier stands for another requester writing the
+// caller's input while the release runs: when called, it first writes a given
+// security version into the caller's image buffer, then checks the message it
+// was handed. A release that verified the buffer rather than its own copy of
+// the signed prefix would verify the rewritten bytes.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,10 +30,20 @@
 
 static uint8_t fixture_expected[VOS_BOOT_SIGNATURE_BYTES];
 
+typedef struct {
+  uint8_t *image;
+  uint64_t version;
+} race_context;
+
 static vos_sig_result fixture_verify(void *context, const uint8_t *message,
                                      size_t message_len, const uint8_t *signature,
                                      const uint8_t *public_key) {
-  (void)context;
+  if (context != NULL) {
+    race_context *race = context;
+    for (unsigned i = 0; i < 8; i++) {
+      race->image[VOS_BOOT_HDR_SECURITY_VERSION + i] = (uint8_t)(race->version >> (8u * i));
+    }
+  }
   vos_shake256_ctx ctx;
   vos_shake256_init(&ctx);
   (void)vos_shake256_absorb(&ctx, (const uint8_t *)FIXTURE_DOMAIN, 16);
@@ -187,10 +203,13 @@ static int boot_command(int argc, char **argv) {
   const char *verifier = argument(argc, argv, "verifier");
   const char *sram_path = argument(argc, argv, "sram");
   const char *handoff_path = argument(argc, argv, "handoff");
+  const char *window_text = argument(argc, argv, "window");
+  const char *race_text = argument(argc, argv, "race_version");
   if (!image_path || !lifecycle || !entropy || !target || !floor_text || !verifier
       || !sram_path || !handoff_path) {
     fprintf(stderr, "usage: rot-stage boot image= lifecycle= entropy= target= floor= "
-                    "verifier=fixture|absent sram= handoff= [root.STATE=HEX ...]\n");
+                    "verifier=fixture|fixture-racing|absent sram= handoff= [window=BYTES] "
+                    "[race_version=N] [root.STATE=HEX ...]\n");
     return 2;
   }
   static uint8_t roots[VOS_LIFECYCLE_COUNT][VOS_BOOT_PUBLIC_KEY_BYTES];
@@ -206,10 +225,16 @@ static int boot_command(int argc, char **argv) {
       policy.root[s] = roots[s];
     }
   }
-  if (strcmp(verifier, "fixture") == 0) {
+  race_context race = {NULL, 0};
+  int racing = strcmp(verifier, "fixture-racing") == 0;
+  if (strcmp(verifier, "fixture") == 0 || racing) {
     policy.verify = fixture_verify;
   } else if (strcmp(verifier, "absent") != 0) {
-    fprintf(stderr, "verifier must be fixture or absent\n");
+    fprintf(stderr, "verifier must be fixture, fixture-racing or absent\n");
+    return 2;
+  }
+  if (racing != (race_text != NULL)) {
+    fprintf(stderr, "race_version= goes with verifier=fixture-racing and only with it\n");
     return 2;
   }
   policy.load_base = VOS_BRINGUP_MMODE_LOAD_BASE;
@@ -227,22 +252,45 @@ static int boot_command(int argc, char **argv) {
     fprintf(stderr, "cannot read %s\n", image_path);
     return 2;
   }
+  if (racing) {
+    if (image_len < VOS_BOOT_SIGNED_BYTES) {
+      fprintf(stderr, "a racing run needs the header's signed prefix\n");
+      free(image);
+      return 2;
+    }
+    race.image = image;
+    race.version = strtoull(race_text, NULL, 10);
+    policy.verify_context = &race;
+  }
   // Main SRAM as the RoT's windows reach it, poisoned so a window the verifier
-  // failed to scrub on refusal is visible below.
+  // failed to scrub on refusal is visible below. `window=` hands the release a
+  // shorter image window than the region, as a composition with too little
+  // SRAM would.
   static uint8_t sram_image[VOS_BRINGUP_MMODE_REGION_BYTES];
   static uint8_t sram_handoff[VOS_HANDOFF_BYTES];
+  uint64_t window = sizeof sram_image;
+  if (window_text != NULL) {
+    window = strtoull(window_text, NULL, 10);
+    if (window > sizeof sram_image) {
+      fprintf(stderr, "window= exceeds the region\n");
+      free(image);
+      return 2;
+    }
+  }
   memset(sram_image, 0xA5, sizeof sram_image);
   memset(sram_handoff, 0x5A, sizeof sram_handoff);
-  vos_sram_windows sram = {sram_image, sizeof sram_image, sram_handoff, sizeof sram_handoff};
+  vos_sram_windows sram = {sram_image, window, sram_handoff, sizeof sram_handoff};
 
   vos_boot_result result;
   vos_boot_verdict verdict = vos_rot_boot_mmode(image, image_len, &inputs, &policy, &sram,
                                                 on_release, NULL, &result);
   free(image);
 
+  // The window the release was handed is all zero; bytes past a short window
+  // are not the release's to touch and must keep their poison.
   int image_zero = 1;
   for (size_t i = 0; i < sizeof sram_image; i++) {
-    image_zero &= sram_image[i] == 0;
+    image_zero &= i < window ? sram_image[i] == 0 : sram_image[i] == 0xA5;
   }
   int handoff_untouched = 1;
   for (size_t i = 0; i < sizeof sram_handoff; i++) {

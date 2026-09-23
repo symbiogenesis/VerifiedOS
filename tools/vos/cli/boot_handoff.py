@@ -7,8 +7,11 @@ golden emulator under the RoT composition, submits every case of the
 table to the stage, and starts the golden emulator on the main-die composition from
 the placed bytes of each release. It writes `report.json` beside the per-case files
 and exits 0 only when every row matches the contract. `layout` checks the contract's
-tables and the assembled image against `firmware/include/vos_boot.h` and prints the
-payload's measurement; it needs no toolchain and answers on either lane.
+header, record, composition and initialization-descriptor tables and its case table
+against `firmware/include/vos_boot.h` and the harness's cases, the kernel-entry
+table's permission column against the assembled image's constants, and the
+fixture's initialization descriptor against its layout, and prints the payload's
+measurement; it needs no toolchain and answers on either lane.
 
 A green run says the host-compiled stage, the fixture signature and this emulator
 agree with the contract over the listed cases. It does not say the RoT hart executes
@@ -31,7 +34,8 @@ def cmd_layout(args: argparse.Namespace) -> int:
     lay = boot_handoff.layout(root)
     built = boot_handoff.assemble_mmode(root)
     findings = (boot_handoff.contract_findings(root)
-                + boot_handoff.composition_findings(lay, built))
+                + boot_handoff.composition_findings(lay, built)
+                + boot_handoff.entry_table_findings(root, built))
     print(f"header {lay['BOOT_HEADER_BYTES']} bytes, signed prefix "
           f"{lay['BOOT_SIGNED_BYTES']}, record {lay['HANDOFF_BYTES']} bytes")
     print(f"payload {len(built.payload)} bytes from {lay['BRINGUP_MMODE_LOAD_BASE']:#x}, "

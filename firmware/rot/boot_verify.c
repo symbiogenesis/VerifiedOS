@@ -3,13 +3,21 @@
 // (R-09-002, R-09-005, R-09-006, R-09-006a, R-09-025a, R-09-036, R-09-037), in
 // the order docs/implementation/contracts/boot-handoff.md section 3 fixes.
 //
-// Integer-only C with no allocation, no library call and no loop whose bound is
-// read from the image other than the declared payload length, which is checked
-// against the composition's region before anything reads that far. The target
-// build of this file waits on the purecap backend and M1.7's target path; the
-// harness compiles it for the host and says so in every report.
+// Integer-only C with no allocation, no library call in the source and no loop
+// whose bound is read from the image other than the declared payload length,
+// which is checked against the composition's region before anything reads that
+// far. An optimizing compiler may still turn the byte loops into memcpy or
+// memset calls, so the target build must add -ffreestanding -fno-builtin. The
+// target build of this file waits on the purecap backend and M1.7's target
+// path; the harness compiles it for the host and says so in every report.
 #include "vos_boot.h"
 #include "vos_keccak.h"
+
+// Every extension one release makes fits the log, so the measurement refusal
+// below is unreachable in this composition; it stays so that a log that cannot
+// record an extension refuses rather than releases unmeasured.
+_Static_assert(VOS_MEASURE_LOG_CAPACITY >= VOS_MEASURE_RELEASE_EXTENSIONS,
+               "the measurement log cannot hold one release's extensions");
 
 const char *vos_boot_verdict_name(vos_boot_verdict verdict) {
   switch (verdict) {
@@ -26,6 +34,7 @@ const char *vos_boot_verdict_name(vos_boot_verdict verdict) {
   case VOS_BOOT_REFUSE_SIGNATURE: return "refuse-signature";
   case VOS_BOOT_REFUSE_PLACEMENT: return "refuse-placement";
   case VOS_BOOT_REFUSE_DIGEST: return "refuse-digest";
+  case VOS_BOOT_REFUSE_MEASUREMENT: return "refuse-measurement";
   }
   return "refuse-unknown";
 }
@@ -112,14 +121,17 @@ static vos_boot_verdict refuse(const vos_sram_windows *sram, vos_boot_result *re
   return verdict;
 }
 
+// The record carries the values the release measured: the entropy verdict as
+// 0 or 1 and the boot-target latch as its one bit.
 static void write_handoff(uint8_t *record, const vos_rot_inputs *inputs,
-                          const vos_rot_policy *policy, const vos_boot_result *result) {
+                          const vos_rot_policy *policy, const vos_boot_result *result,
+                          uint8_t entropy, uint8_t target) {
   zero_bytes(record, VOS_HANDOFF_BYTES);
   write_u64(record + VOS_HANDOFF_MAGIC_AT, VOS_HANDOFF_MAGIC);
   write_u64(record + VOS_HANDOFF_VERSION_AT, VOS_HANDOFF_VERSION);
   write_u64(record + VOS_HANDOFF_LIFECYCLE_AT, inputs->lifecycle);
-  write_u64(record + VOS_HANDOFF_ENTROPY_AT, inputs->entropy_ok);
-  write_u64(record + VOS_HANDOFF_BOOT_TARGET_AT, inputs->boot_target);
+  write_u64(record + VOS_HANDOFF_ENTROPY_AT, entropy);
+  write_u64(record + VOS_HANDOFF_BOOT_TARGET_AT, target);
   write_u64(record + VOS_HANDOFF_SECURITY_VERSION_AT, result->security_version);
   write_u64(record + VOS_HANDOFF_FLOOR_AT, inputs->floor);
   write_u64(record + VOS_HANDOFF_LOAD_BASE_AT, policy->load_base);
@@ -146,13 +158,16 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
 
   // The device register's inputs, lifecycle first (R-09-037), before any byte
   // of the image is read. The entropy verdict is measured before it decides
-  // anything (R-09-006a), and the boot-target latch like every other input.
+  // anything (R-09-006a), and the boot-target latch, one bit (R-09-029), like
+  // every other input. An extension the log cannot record refuses.
   uint8_t lifecycle = inputs->lifecycle;
   uint8_t entropy = inputs->entropy_ok ? 1u : 0u;
-  uint8_t target = inputs->boot_target;
-  (void)vos_measure_extend(&result->measured, 0, VOS_ITEM_LIFECYCLE, &lifecycle, 1);
-  (void)vos_measure_extend(&result->measured, 0, VOS_ITEM_ENTROPY_VERDICT, &entropy, 1);
-  (void)vos_measure_extend(&result->measured, 0, VOS_ITEM_BOOT_TARGET, &target, 1);
+  uint8_t target = (uint8_t)(inputs->boot_target & 1u);
+  if (!vos_measure_extend(&result->measured, 0, VOS_ITEM_LIFECYCLE, &lifecycle, 1)
+      || !vos_measure_extend(&result->measured, 0, VOS_ITEM_ENTROPY_VERDICT, &entropy, 1)
+      || !vos_measure_extend(&result->measured, 0, VOS_ITEM_BOOT_TARGET, &target, 1)) {
+    return refuse(sram, result, VOS_BOOT_REFUSE_MEASUREMENT);
+  }
 
   if (!entropy) {
     return refuse(sram, result, VOS_BOOT_REFUSE_ENTROPY);
@@ -161,21 +176,25 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
     return refuse(sram, result, VOS_BOOT_REFUSE_NO_ROOT);
   }
 
-  // ReadHeader: constant offsets, each field checked against a constant or a
-  // composition bound and none followed.
+  // ReadHeader: the signed prefix is copied once, and every field below and
+  // the verified message are read from the copy, so no field can differ
+  // between its check and the signature check. Constant offsets, each field
+  // checked against a constant or a composition bound and none followed.
   if (image_len < VOS_BOOT_HEADER_BYTES) {
     return refuse(sram, result, VOS_BOOT_REFUSE_TRUNCATED);
   }
-  if (read_u64(image + VOS_BOOT_HDR_MAGIC) != VOS_BOOT_MAGIC) {
+  uint8_t header[VOS_BOOT_SIGNED_BYTES];
+  copy_bytes(header, image, VOS_BOOT_SIGNED_BYTES);
+  if (read_u64(header + VOS_BOOT_HDR_MAGIC) != VOS_BOOT_MAGIC) {
     return refuse(sram, result, VOS_BOOT_REFUSE_MAGIC);
   }
-  if (read_u64(image + VOS_BOOT_HDR_STAGE) != VOS_BOOT_STAGE_MMODE_IMAGE) {
+  if (read_u64(header + VOS_BOOT_HDR_STAGE) != VOS_BOOT_STAGE_MMODE_IMAGE) {
     return refuse(sram, result, VOS_BOOT_REFUSE_STAGE);
   }
-  if (read_u64(image + VOS_BOOT_HDR_PAYLOAD_OFFSET) != VOS_BOOT_HEADER_BYTES) {
+  if (read_u64(header + VOS_BOOT_HDR_PAYLOAD_OFFSET) != VOS_BOOT_HEADER_BYTES) {
     return refuse(sram, result, VOS_BOOT_REFUSE_OFFSET);
   }
-  uint64_t length = read_u64(image + VOS_BOOT_HDR_PAYLOAD_LENGTH);
+  uint64_t length = read_u64(header + VOS_BOOT_HDR_PAYLOAD_LENGTH);
   if (length == 0 || length > policy->region_bytes) {
     return refuse(sram, result, VOS_BOOT_REFUSE_LENGTH);
   }
@@ -185,25 +204,26 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
   result->payload_length = length;
 
   // CheckFloor (R-09-005, R-09-030).
-  uint64_t version = read_u64(image + VOS_BOOT_HDR_SECURITY_VERSION);
+  uint64_t version = read_u64(header + VOS_BOOT_HDR_SECURITY_VERSION);
   result->security_version = version;
   if (version < inputs->floor) {
     return refuse(sram, result, VOS_BOOT_REFUSE_FLOOR);
   }
 
-  // VerifySignature over the signed header bytes under the one root this
+  // VerifySignature over the copied signed bytes under the one root this
   // lifecycle state accepts (R-09-036). No bound verifier is a refusal.
   if (policy->verify == NULL) {
     return refuse(sram, result, VOS_BOOT_REFUSE_NO_VERIFIER);
   }
-  if (policy->verify(policy->verify_context, image, VOS_BOOT_SIGNED_BYTES,
+  if (policy->verify(policy->verify_context, header, VOS_BOOT_SIGNED_BYTES,
                      image + VOS_BOOT_HDR_SIGNATURE, policy->root[lifecycle])
       != VOS_SIG_ACCEPT) {
     return refuse(sram, result, VOS_BOOT_REFUSE_SIGNATURE);
   }
 
   // Place, then Measure the placed bytes: what is hashed is what the boot core
-  // will fetch, and the core is held until the comparison below.
+  // will fetch, and the core is held until the comparison below. A window too
+  // small for the payload or the record refuses rather than writing past it.
   if (sram->image_bytes < length || sram->handoff_bytes < VOS_HANDOFF_BYTES) {
     return refuse(sram, result, VOS_BOOT_REFUSE_PLACEMENT);
   }
@@ -211,17 +231,19 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
   zero_bytes(sram->image + length, sram->image_bytes - length);
   vos_shake256(result->image_digest, VOS_BOOT_DIGEST_BYTES, sram->image, (size_t)length);
   result->digest_computed = 1;
-  if (!equal_bytes(result->image_digest, image + VOS_BOOT_HDR_PAYLOAD_DIGEST,
+  if (!equal_bytes(result->image_digest, header + VOS_BOOT_HDR_PAYLOAD_DIGEST,
                    VOS_BOOT_DIGEST_BYTES)) {
     return refuse(sram, result, VOS_BOOT_REFUSE_DIGEST);
   }
-  (void)vos_measure_extend(&result->measured, 1, VOS_ITEM_STAGE_MMODE_IMAGE,
-                           result->image_digest, VOS_BOOT_DIGEST_BYTES);
+  if (!vos_measure_extend(&result->measured, 1, VOS_ITEM_STAGE_MMODE_IMAGE,
+                          result->image_digest, VOS_BOOT_DIGEST_BYTES)) {
+    return refuse(sram, result, VOS_BOOT_REFUSE_MEASUREMENT);
+  }
   vos_measure_chain(&result->measured, result->chain);
 
   // Execute: the record first, then the release, and nothing after it.
   result->verdict = VOS_BOOT_RELEASE;
-  write_handoff(sram->handoff, inputs, policy, result);
+  write_handoff(sram->handoff, inputs, policy, result, entropy, target);
   release(release_context);
   return VOS_BOOT_RELEASE;
 }

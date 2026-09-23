@@ -142,7 +142,7 @@ def expected_registers(root: Path, lay: Layout, inputs: RotInputs,
     device = bytes(width)
     for code, value in ((lay["ITEM_LIFECYCLE"], inputs.lifecycle),
                         (lay["ITEM_ENTROPY_VERDICT"], 1 if inputs.entropy_ok else 0),
-                        (lay["ITEM_BOOT_TARGET"], inputs.boot_target)):
+                        (lay["ITEM_BOOT_TARGET"], inputs.boot_target & 1)):
         device = extend(device, code, bytes([value]))
     generation = bytes(width)
     if image_digest is not None:
@@ -197,17 +197,58 @@ def composition_findings(lay: Layout, built: Assembled) -> list[str]:
     if lay["BRINGUP_MMODE_LOAD_BASE"] != asm.TEXT_BASE:
         findings.append(f"the assembler's text base {asm.TEXT_BASE:#x} is not the load base "
                         f"{lay['BRINGUP_MMODE_LOAD_BASE']:#x}")
-    if built.constants.get("BOOT_DESCRIPTOR") != lay["BRINGUP_HANDOFF_BASE"]:
-        findings.append(f"{MMODE}'s BOOT_DESCRIPTOR is not VOS_BRINGUP_HANDOFF_BASE")
-    if built.constants.get("BOOT_DESCRIPTOR_BYTES") != lay["HANDOFF_BYTES"]:
-        findings.append(f"{MMODE}'s BOOT_DESCRIPTOR_BYTES is not VOS_HANDOFF_BYTES")
-    if built.constants.get("FIXTURE_HANDOFF_MAGIC") != lay["HANDOFF_MAGIC"]:
-        findings.append(f"{FIXTURE}'s handoff magic is not VOS_HANDOFF_MAGIC")
+    for constant, macro, owner in (("BOOT_DESCRIPTOR", "BRINGUP_HANDOFF_BASE", MMODE),
+                                   ("BOOT_DESCRIPTOR_BYTES", "HANDOFF_BYTES", MMODE),
+                                   ("FIXTURE_HANDOFF_MAGIC", "HANDOFF_MAGIC", FIXTURE),
+                                   ("FIXTURE_INIT_MAGIC", "INIT_MAGIC", FIXTURE),
+                                   ("FIXTURE_INIT_VERSION", "INIT_VERSION", FIXTURE),
+                                   ("FIXTURE_LOAD_BASE", "BRINGUP_MMODE_LOAD_BASE", FIXTURE),
+                                   ("FIXTURE_REGION_BYTES", "BRINGUP_MMODE_REGION_BYTES",
+                                    FIXTURE)):
+        if built.constants.get(constant) != lay[macro]:
+            findings.append(f"{owner}'s {constant} is not VOS_{macro}")
     if len(built.payload) > lay["BRINGUP_MMODE_REGION_BYTES"]:
         findings.append(f"the payload's {len(built.payload)} bytes exceed the region")
     if lay["BRINGUP_HANDOFF_BASE"] < lay["BRINGUP_MMODE_LOAD_BASE"] + lay[
             "BRINGUP_MMODE_REGION_BYTES"]:
         findings.append("the handoff record overlaps the M-mode image region")
+    return findings + descriptor_findings(lay, built)
+
+
+def descriptor_findings(lay: Layout, built: Assembled) -> list[str]:
+    """The fixture's initialization descriptor against section 6's layout.
+
+    Its magic and version are the macros', and its extent is exactly the header plus
+    the arrays its four counts declare, so a descriptor that is too short for its
+    counts or carries trailing bytes is reported.
+    """
+    base = built.symbols.get("init_desc")
+    end = built.symbols.get("init_desc_end")
+    if base is None or end is None:
+        return [f"{FIXTURE} has no init_desc or init_desc_end label"]
+    at = base - lay["BRINGUP_MMODE_LOAD_BASE"]
+    blob = built.payload[at:at + (end - base)]
+
+    def word(macro: str) -> int:
+        offset = lay[macro]
+        return int.from_bytes(blob[offset:offset + 8], "little")
+
+    if len(blob) < lay["INIT_HEADER_BYTES"]:
+        return [f"the initialization descriptor's {len(blob)} bytes are shorter than "
+                f"its {lay['INIT_HEADER_BYTES']}-byte header"]
+    findings = []
+    if word("INIT_MAGIC_AT") != lay["INIT_MAGIC"]:
+        findings.append("the initialization descriptor's magic is not VOS_INIT_MAGIC")
+    if word("INIT_VERSION_AT") != lay["INIT_VERSION"]:
+        findings.append("the initialization descriptor's version is not VOS_INIT_VERSION")
+    implied = (lay["INIT_HEADER_BYTES"]
+               + word("INIT_PARTITION_COUNT_AT") * lay["INIT_PARTITION_BYTES"]
+               + word("INIT_WINDOW_COUNT_AT") * lay["INIT_WINDOW_BYTES"]
+               + word("INIT_SLOT_COUNT_AT") * lay["INIT_SLOT_BYTES"]
+               + word("INIT_CSR_COUNT_AT") * lay["INIT_CSR_BYTES"])
+    if implied != len(blob):
+        findings.append(f"the initialization descriptor is {len(blob)} bytes; its counts "
+                        f"imply {implied}")
     return findings
 
 
@@ -238,6 +279,13 @@ def build_image(lay: Layout, payload: bytes, *, security_version: int, signer: b
 def flip(data: bytes, at: int) -> bytes:
     out = bytearray(data)
     out[at] ^= 0x01
+    return bytes(out)
+
+
+def put_word(data: bytes, at: int, value: int) -> bytes:
+    """`data` with one little-endian doubleword replaced, as a change after signing."""
+    out = bytearray(data)
+    out[at:at + 8] = value.to_bytes(8, "little")
     return bytes(out)
 
 
@@ -325,13 +373,13 @@ class RotInputs:
 
 
 def rot_stage(binary: Path, image_path: Path, inputs: RotInputs, verifier: str,
-              out: Path) -> dict[str, str]:
+              out: Path, extra: tuple[str, ...] = ()) -> dict[str, str]:
     roots = [f"root.{state}={root_key(state).hex()}" for state in ROOT_STATES]
     done = subprocess.run(
         [str(binary), "boot", f"image={image_path}", f"lifecycle={inputs.lifecycle}",
          f"entropy={inputs.entropy_ok}", f"target={inputs.boot_target}",
          f"floor={inputs.floor}", f"verifier={verifier}", f"sram={out / 'sram.bin'}",
-         f"handoff={out / 'handoff.bin'}", *roots],
+         f"handoff={out / 'handoff.bin'}", *extra, *roots],
         capture_output=True, text=True, check=False)
     if done.returncode != 0:
         raise RuntimeError(f"rot-stage exited {done.returncode}: {done.stderr.strip()}")
@@ -364,6 +412,7 @@ class Case:
     verifier: str = "fixture"
     stage_text: Callable[[str], str] | None = None
     force_run: str | None = None                  # expected verdict of a run bypassing the RoT
+    driver: Callable[[Scenario], tuple[str, ...]] = lambda scenario: ()  # extra driver args
 
 
 @dataclass
@@ -419,6 +468,13 @@ def cases() -> list[Case]:
                                    signer=root_key("development")), "refuse-signature"),
         Case("below-floor", "a security version under the anti-rollback floor",
              lambda s: s.valid(security_version=s.floor - 1), "refuse-floor"),
+        Case("header-rewritten-during-verify",
+             "a header signed at F - 1 and shown as F: the input is rewritten to the signed "
+             "F - 1 while the release runs, and the floor and the signature decide one copy",
+             lambda s: put_word(s.valid(security_version=s.floor - 1),
+                                s.lay["BOOT_HDR_SECURITY_VERSION"], s.floor),
+             "refuse-signature", verifier="fixture-racing",
+             driver=lambda s: (f"race_version={s.floor - 1}",)),
         Case("length-beyond-region", "a declared length beyond the image region",
              lambda s: s.valid(length=s.lay["BRINGUP_MMODE_REGION_BYTES"] + 1),
              "refuse-length"),
@@ -429,6 +485,9 @@ def cases() -> list[Case]:
                  s.lay["BRINGUP_MMODE_REGION_BYTES"] - len(s.built.payload)),
                  security_version=s.floor, signer=root_key("production")),
              "release", emulator="success"),
+        Case("image-window-short", "an image window one byte short of the payload refuses "
+             "before anything is placed", lambda s: s.valid(), "refuse-placement",
+             driver=lambda s: (f"window={len(s.built.payload) - 1}",)),
         Case("truncated-payload", "an input shorter than its declared payload",
              lambda s: s.valid()[:-1], "refuse-truncated"),
         Case("truncated-header", "an input shorter than the header",
@@ -469,7 +528,21 @@ def cases() -> list[Case]:
              "firmware return sentry in cra", lambda s: s.valid(), "release",
              emulator="failure:1",
              stage_text=lambda t: _same(t, "cjr     c5", "cjalr   cra, c5, 0")),
+        Case("mutant-timer-armed", "a released handoff that arms the boundary timer is "
+             "caught when the event arrives at the kernel's trap entry", lambda s: s.valid(),
+             "release", emulator="failure:32",
+             stage_text=lambda t: _same(t, _SENTRY_ANCHOR, _ARM_TIMER + _SENTRY_ANCHOR)),
     ]
+
+
+# The timer mutant arms an immediate boundary event just before the entry sentry is
+# minted, after MTCC and MTDC are installed and through scratch that the final clear
+# scrubs. mtimecmp is the main composition's CLINT (model/config/verifiedos.json) plus
+# the model's MTIMECMP_BASE (model/model/sys/platform.sail).
+_SENTRY_ANCHOR = "        # The transient entry sentry, minted last"
+_ARM_TIMER = ("        li      a3, 0x2004000\n"
+              "        csetaddr c13, c8, a3\n"
+              "        sd      zero, 0(c13)\n")
 
 
 def digests(root: Path, names: tuple[str, ...]) -> dict[str, str]:
@@ -502,6 +575,22 @@ _FIELDS: dict[str, tuple[str, str | int]] = {
     "record.generation": ("HANDOFF_GENERATION_AT", "MEASURE_BYTES"),
     "record.device": ("HANDOFF_DEVICE_AT", "MEASURE_BYTES"),
     "record.chain": ("HANDOFF_CHAIN_AT", "MEASURE_BYTES"),
+    "init.magic": ("INIT_MAGIC_AT", 8),
+    "init.version": ("INIT_VERSION_AT", 8),
+    "init.composition": ("INIT_COMPOSITION_AT", 8),
+    "init.hart": ("INIT_HART_AT", 8),
+    "init.root": ("INIT_ROOT_AT", "INIT_EXTENT_BYTES"),
+    "init.switch_text": ("INIT_SWITCH_TEXT_AT", "INIT_EXTENT_BYTES"),
+    "init.partition_count": ("INIT_PARTITION_COUNT_AT", 8),
+    "init.window_count": ("INIT_WINDOW_COUNT_AT", 8),
+    "init.slot_count": ("INIT_SLOT_COUNT_AT", 8),
+    "init.csr_count": ("INIT_CSR_COUNT_AT", 8),
+    "init.major_frame": ("INIT_MAJOR_FRAME_AT", 8),
+    "init.phase_offset": ("INIT_PHASE_OFFSET_AT", 8),
+    "init.reserved_count": ("INIT_RESERVED_COUNT_AT", 8),
+    "init.pending_arm": ("INIT_PENDING_ARM_AT", 8),
+    "init.rotation_swaps": ("INIT_ROTATION_SWAPS_AT", 8),
+    "init.pending_static_mask": ("INIT_PENDING_STATIC_MASK_AT", 8),
 }
 _VALUES: dict[str, str] = {
     "header.bytes": "BOOT_HEADER_BYTES",
@@ -510,6 +599,11 @@ _VALUES: dict[str, str] = {
     "composition.load_base": "BRINGUP_MMODE_LOAD_BASE",
     "composition.region_bytes": "BRINGUP_MMODE_REGION_BYTES",
     "composition.handoff_base": "BRINGUP_HANDOFF_BASE",
+    "init.header_bytes": "INIT_HEADER_BYTES",
+    "init.partition_bytes": "INIT_PARTITION_BYTES",
+    "init.window_bytes": "INIT_WINDOW_BYTES",
+    "init.slot_bytes": "INIT_SLOT_BYTES",
+    "init.csr_bytes": "INIT_CSR_BYTES",
 }
 _ROW = re.compile(r"^\|\s*`([a-z_]+\.[a-z_]+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|")
 
@@ -547,6 +641,44 @@ def contract_findings(root: Path) -> list[str]:
     missing = sorted((set(_FIELDS) | set(_VALUES)) - seen)
     findings += [f"{CONTRACT} has no row for {name}" for name in missing]
     return findings + case_table_findings(root)
+
+
+# Section 6's kernel-entry rows whose expanded permissions an assembled constant
+# states: the stage's `.equ` for what it narrows, and the fixture's for the execute
+# root, which the stage bounds without changing its permissions.
+_PERMISSIONS: dict[str, str] = {
+    "PCC": "PERMS_CODE_ROOT_ASR_GLOBAL",
+    "`csp` / `c2`": "PERMS_STACK_LOCAL",
+    "`c10`": "PERMS_R_CAP_LM_LG_GLOBAL",
+    "`c11`": "PERMS_R_GLOBAL",
+    "`c12`": "PERMS_R_CAP_LM_LG_GLOBAL",
+    "MTCC": "PERMS_CODE_ROOT_ASR_GLOBAL",
+    "MTDC": "PERMS_DATA_ROOT_GLOBAL",
+}
+_PERMISSION_ROW = re.compile(r"^\|\s*([^|]+?)\s*\|[^|]*\|\s*`(0x[0-9a-fA-F]+)`")
+
+
+def entry_table_findings(root: Path, built: Assembled) -> list[str]:
+    """Where section 6's permission column and the assembled constants disagree.
+
+    Only the rows `_PERMISSIONS` names are held; the remaining cells of that table,
+    and the operations table of section 5, are prose no command reads.
+    """
+    seen: set[str] = set()
+    findings: list[str] = []
+    for line in (root / CONTRACT).read_text(encoding="utf-8").splitlines():
+        match = _PERMISSION_ROW.match(line)
+        if not match or match.group(1) not in _PERMISSIONS:
+            continue
+        location, stated = match.group(1), int(match.group(2), 16)
+        seen.add(location)
+        constant = _PERMISSIONS[location]
+        if built.constants.get(constant) != stated:
+            findings.append(f"{CONTRACT}: {location} carries {stated:#x}; the image's "
+                            f"{constant} is {built.constants.get(constant)}")
+    findings += [f"{CONTRACT}'s kernel-entry table has no permission row for {location}"
+                 for location in sorted(set(_PERMISSIONS) - seen)]
+    return findings
 
 
 _CASE_ROW = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|[^|]*\|\s*`([a-z-]+)`\s*\|\s*([^|]+?)\s*\|\s*$")
@@ -601,8 +733,9 @@ def _record_findings(lay: Layout, record: bytes, said: dict[str, str], payload: 
 
     expected = {
         "HANDOFF_MAGIC_AT": lay["HANDOFF_MAGIC"], "HANDOFF_VERSION_AT": lay["HANDOFF_VERSION"],
-        "HANDOFF_LIFECYCLE_AT": inputs.lifecycle, "HANDOFF_ENTROPY_AT": inputs.entropy_ok,
-        "HANDOFF_BOOT_TARGET_AT": inputs.boot_target, "HANDOFF_FLOOR_AT": inputs.floor,
+        "HANDOFF_LIFECYCLE_AT": inputs.lifecycle,
+        "HANDOFF_ENTROPY_AT": 1 if inputs.entropy_ok else 0,
+        "HANDOFF_BOOT_TARGET_AT": inputs.boot_target & 1, "HANDOFF_FLOOR_AT": inputs.floor,
         "HANDOFF_SECURITY_VERSION_AT": int(said["security_version"]),
         "HANDOFF_LOAD_BASE_AT": lay["BRINGUP_MMODE_LOAD_BASE"],
         "HANDOFF_PAYLOAD_LENGTH_AT": len(payload),
@@ -700,7 +833,7 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
 
     stage_source = (root / MMODE).read_text(encoding="utf-8")
     built = assemble_mmode(root)
-    findings += composition_findings(lay, built)
+    findings += composition_findings(lay, built) + entry_table_findings(root, built)
     report["payload"] = {"bytes": len(built.payload),
                          "shake256": hashlib.shake_256(built.payload).hexdigest(32),
                          "kernel_entry": hex(built.symbols["kernel_entry"])}
@@ -723,14 +856,15 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
         problems: list[str] = []
         said: dict[str, str] = {}
         try:
-            said = rot_stage(binary, directory / "image.bin", inputs, case.verifier, directory)
+            said = rot_stage(binary, directory / "image.bin", inputs, case.verifier, directory,
+                             case.driver(scenario))
         except RuntimeError as exc:
             problems.append(f"the RoT stage failed: {str(exc)[:300]}")
         row: dict[str, object] = {
             "case": case.name, "decides": case.decides, "expected": case.expect,
             "inputs": {"lifecycle": inputs.lifecycle, "entropy_ok": inputs.entropy_ok,
                        "boot_target": inputs.boot_target, "floor": inputs.floor,
-                       "verifier": case.verifier},
+                       "verifier": case.verifier, "driver": list(case.driver(scenario))},
             "rot_verdict": said.get("verdict"), "released": said.get("released"),
             "measured_items": said.get("log"), "generation": said.get("generation"),
             "device": said.get("device"), "chain": said.get("chain"),
