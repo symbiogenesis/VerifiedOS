@@ -629,7 +629,7 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "",
         "Lemma permission_eqb_reflexive : forall p : permission,"
         " permission_eqb p p = true.",
-        "Proof. intro p; destruct p; reflexivity. Qed.",
+        "Proof. intro p; apply eqb_reflexive. Qed.",
         "",
         f"(* The permission {DMA_ENTRY} makes the session-table capability carry, per",
         "   direction the descriptor declares. *)",
@@ -668,7 +668,7 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "forall (index offset : nat) (c : content_type) (d : direction),"
         " ref_authorized (direction_permission d)"
         " (mk_buffer_ref index offset ring_segment_max_bytes d c) = true.",
-        "intros index offset c d; destruct d; vm_compute; reflexivity.")
+        "intros index offset c d; apply permission_eqb_reflexive.")
 
     lines += [
         "(* One checked session-table entry per segment. Bounds are relative to the",
@@ -726,26 +726,26 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "forall (d : direction) (c : content_type),"
         " dma_segments_admitted (repeat_segment (maximum_segment d c) ring_max_segments)"
         " = true.",
-        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+        "intros d c; destruct d; vm_compute; reflexivity.")
     lines += _theorem(
         "one_segment_past_the_maximum_is_refused",
         "forall (d : direction) (c : content_type),"
         " dma_segments_admitted (repeat_segment (maximum_segment d c) (S ring_max_segments))"
         " = false.",
-        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+        "intros d c; vm_compute; reflexivity.")
     lines += _theorem(
         "a_segment_extending_past_its_capability_is_refused",
         "forall (d : direction) (c : content_type),"
         " segment_valid (mk_dma_segment (direction_permission d) ring_segment_max_bytes"
         " (mk_buffer_ref 0 1 ring_segment_max_bytes d c)) = false.",
-        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+        "intros d c; destruct d; vm_compute; reflexivity.")
     lines += _theorem(
         "a_segment_larger_than_the_declared_ceiling_is_refused",
         "forall (d : direction) (c : content_type),"
         " segment_valid (mk_dma_segment (direction_permission d)"
         " (S ring_segment_max_bytes)"
         " (mk_buffer_ref 0 0 (S ring_segment_max_bytes) d c)) = false.",
-        "intros d c; destruct d; destruct c; vm_compute; reflexivity.")
+        "intros d c; destruct d; vm_compute; reflexivity.")
     lines += _theorem(
         "a_bad_segment_at_any_position_refuses_the_list",
         "forall (prefix suffix : list dma_segment) (bad : dma_segment),"
@@ -831,12 +831,12 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "forall (o : op) (s : slot_state),"
         f" Nat.ltb (lifecycle_rank s) (lifecycle_rank state_{live}) = true ->"
         " holds_until_terminal o s = 0.",
-        "intros o s H; destruct o; destruct s; vm_compute in H |- *;"
+        "intros o s H; destruct s; vm_compute in H |- *;"
         " try reflexivity; discriminate H.")
     lines += _theorem(
         "no_capability_is_retained_past_terminal_completion",
         "dead_past_terminal_completion holds_until_terminal.",
-        "intros o s H; destruct o; destruct s; vm_compute in H |- *;"
+        "intros o s H; destruct s; vm_compute in H |- *;"
         " try reflexivity; discriminate H.")
     lines += _theorem(
         "a_hold_released_only_at_reclamation_outlives_terminal_completion",
@@ -851,7 +851,7 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "forall (o : op) (s : slot_state),"
         f" Nat.ltb (lifecycle_rank s) (lifecycle_rank state_{terminal}) = true ->"
         " holds_until_terminal o s = holds_until_reclaimed o s.",
-        "intros o s H; destruct o; destruct s; vm_compute in H |- *;"
+        "intros o s H; destruct s; vm_compute in H |- *;"
         " try reflexivity; discriminate H.")
 
     return lines, [
@@ -1411,18 +1411,18 @@ def _world_block(own: Owned, world: World) -> list[str]:
         "reset_in_every_lifecycle_state_clears_the_indices_and_notification",
         "forall s : slot_state, reset_session s ring_session_generation true ="
         " Some (S ring_session_generation, 0, 0, false).",
-        "intro s; destruct s; vm_compute; reflexivity.")
+        "intro s; vm_compute; reflexivity.")
     lines += _theorem(
         "reset_without_quiescence_never_publishes_a_generation",
         "forall s : slot_state, reset_session s ring_session_generation false = None.",
-        "intro s; destruct s; vm_compute; reflexivity.")
+        "intro s; vm_compute; reflexivity.")
     lines += _theorem(
         "reset_in_every_lifecycle_state_refuses_the_old_generation",
         "forall (s : slot_state) (generation produced consumed : nat) (armed : bool),"
         " reset_session s ring_session_generation true ="
         " Some (generation, produced, consumed, armed) ->"
         " accept generation ring_session_generation false = false.",
-        "intros s generation produced consumed armed H; destruct s;"
+        "intros s generation produced consumed armed H;"
         " vm_compute in H; inversion H; vm_compute; reflexivity.")
     lines += _theorem(
         "a_target_past_its_commit_point_is_too_late",

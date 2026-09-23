@@ -675,15 +675,15 @@ Proof. intros o s position Hu Hl; unfold cancel; destruct (op_cancellable o); [ 
 
 Theorem reset_in_every_lifecycle_state_clears_the_indices_and_notification :
   forall s : slot_state, reset_session s ring_session_generation true = Some (S ring_session_generation, 0, 0, false).
-Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+Proof. intro s; vm_compute; reflexivity. Qed.
 
 Theorem reset_without_quiescence_never_publishes_a_generation :
   forall s : slot_state, reset_session s ring_session_generation false = None.
-Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+Proof. intro s; vm_compute; reflexivity. Qed.
 
 Theorem reset_in_every_lifecycle_state_refuses_the_old_generation :
   forall (s : slot_state) (generation produced consumed : nat) (armed : bool), reset_session s ring_session_generation true = Some (generation, produced, consumed, armed) -> accept generation ring_session_generation false = false.
-Proof. intros s generation produced consumed armed H; destruct s; vm_compute in H; inversion H; vm_compute; reflexivity. Qed.
+Proof. intros s generation produced consumed armed H; vm_compute in H; inversion H; vm_compute; reflexivity. Qed.
 
 Theorem a_target_past_its_commit_point_is_too_late :
   forall (o : op) (position : nat), op_cancellable o = true -> Nat.ltb position (op_commit_index o) = false -> cancel o state_Accepted position = cancel_too_late.
@@ -1368,15 +1368,15 @@ Proof. intros o s position Hu Hl; unfold cancel; destruct (op_cancellable o); [ 
 
 Theorem reset_in_every_lifecycle_state_clears_the_indices_and_notification :
   forall s : slot_state, reset_session s ring_session_generation true = Some (S ring_session_generation, 0, 0, false).
-Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+Proof. intro s; vm_compute; reflexivity. Qed.
 
 Theorem reset_without_quiescence_never_publishes_a_generation :
   forall s : slot_state, reset_session s ring_session_generation false = None.
-Proof. intro s; destruct s; vm_compute; reflexivity. Qed.
+Proof. intro s; vm_compute; reflexivity. Qed.
 
 Theorem reset_in_every_lifecycle_state_refuses_the_old_generation :
   forall (s : slot_state) (generation produced consumed : nat) (armed : bool), reset_session s ring_session_generation true = Some (generation, produced, consumed, armed) -> accept generation ring_session_generation false = false.
-Proof. intros s generation produced consumed armed H; destruct s; vm_compute in H; inversion H; vm_compute; reflexivity. Qed.
+Proof. intros s generation produced consumed armed H; vm_compute in H; inversion H; vm_compute; reflexivity. Qed.
 
 Theorem a_target_past_its_commit_point_is_too_late :
   forall (o : op) (position : nat), op_cancellable o = true -> Nat.ltb position (op_commit_index o) = false -> cancel o state_Accepted position = cancel_too_late.
@@ -1405,7 +1405,7 @@ Definition permission_eqb (a b : permission) : bool :=
   Nat.eqb (permission_rank a) (permission_rank b).
 
 Lemma permission_eqb_reflexive : forall p : permission, permission_eqb p p = true.
-Proof. intro p; destruct p; reflexivity. Qed.
+Proof. intro p; apply eqb_reflexive. Qed.
 
 (* The permission R-12-100 makes the session-table capability carry, per
    direction the descriptor declares. *)
@@ -1433,7 +1433,7 @@ Proof. vm_compute; reflexivity. Qed.
 
 Theorem a_reference_is_authorized_by_the_direction_it_declares :
   forall (index offset : nat) (c : content_type) (d : direction), ref_authorized (direction_permission d) (mk_buffer_ref index offset ring_segment_max_bytes d c) = true.
-Proof. intros index offset c d; destruct d; vm_compute; reflexivity. Qed.
+Proof. intros index offset c d; apply permission_eqb_reflexive. Qed.
 
 (* One checked session-table entry per segment. Bounds are relative to the
    delegated capability; no raw address is carried in the descriptor. *)
@@ -1485,19 +1485,19 @@ Definition witness_dma_segment : dma_segment :=
 
 Theorem the_maximum_segment_list_is_admitted :
   forall (d : direction) (c : content_type), dma_segments_admitted (repeat_segment (maximum_segment d c) ring_max_segments) = true.
-Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+Proof. intros d c; destruct d; vm_compute; reflexivity. Qed.
 
 Theorem one_segment_past_the_maximum_is_refused :
   forall (d : direction) (c : content_type), dma_segments_admitted (repeat_segment (maximum_segment d c) (S ring_max_segments)) = false.
-Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+Proof. intros d c; vm_compute; reflexivity. Qed.
 
 Theorem a_segment_extending_past_its_capability_is_refused :
   forall (d : direction) (c : content_type), segment_valid (mk_dma_segment (direction_permission d) ring_segment_max_bytes (mk_buffer_ref 0 1 ring_segment_max_bytes d c)) = false.
-Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+Proof. intros d c; destruct d; vm_compute; reflexivity. Qed.
 
 Theorem a_segment_larger_than_the_declared_ceiling_is_refused :
   forall (d : direction) (c : content_type), segment_valid (mk_dma_segment (direction_permission d) (S ring_segment_max_bytes) (mk_buffer_ref 0 0 (S ring_segment_max_bytes) d c)) = false.
-Proof. intros d c; destruct d; destruct c; vm_compute; reflexivity. Qed.
+Proof. intros d c; destruct d; vm_compute; reflexivity. Qed.
 
 Theorem a_bad_segment_at_any_position_refuses_the_list :
   forall (prefix suffix : list dma_segment) (bad : dma_segment), segment_valid bad = false -> all_segments_valid (append_segments prefix (cons bad suffix)) = false.
@@ -1599,11 +1599,11 @@ Definition dead_past_terminal_completion (hold : op -> slot_state -> nat) : Prop
 
 Theorem no_capability_is_acquired_before_acceptance :
   forall (o : op) (s : slot_state), Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Accepted) = true -> holds_until_terminal o s = 0.
-Proof. intros o s H; destruct o; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
+Proof. intros o s H; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
 
 Theorem no_capability_is_retained_past_terminal_completion :
   dead_past_terminal_completion holds_until_terminal.
-Proof. intros o s H; destruct o; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
+Proof. intros o s H; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
 
 Theorem a_hold_released_only_at_reclamation_outlives_terminal_completion :
   ~ dead_past_terminal_completion holds_until_reclaimed.
@@ -1611,7 +1611,7 @@ Proof. intro H; unfold dead_past_terminal_completion in H; specialize (H op_stre
 
 Theorem the_two_holds_agree_before_terminal_completion :
   forall (o : op) (s : slot_state), Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Terminal) = true -> holds_until_terminal o s = holds_until_reclaimed o s.
-Proof. intros o s H; destruct o; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
+Proof. intros o s H; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
 
 (* -------------------------------------------------------------------------
    The R-05-163 gate: every constant closed under the global context.
