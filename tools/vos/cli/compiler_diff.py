@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """M1.2f's two acceptance loops over the contained purecap backend.
 
-    tools/run.py compiler-diff program --ccomp PATH (SOURCE.c ... | --generate N [--perturb])
-                                       [--interp] [--simulator PATH | --lane]
+    tools/run.py compiler-diff program --ccomp PATH (SOURCE.c ... | --generate N [--perturb]
+                                       [--pattern NAME]) [--interp] [--simulator PATH | --lane]
     tools/run.py compiler-diff component (--wasm MODULE | --host-record FILE)
                                          (--c SOURCE --ccomp PATH | --elf FILE
                                           | --purecap-record FILE) [--simulator PATH | --lane]
@@ -20,14 +20,16 @@ checkout, which is M1.1a's containment, and the driver records the path and the 
 what it found there rather than carrying either. `--ccomp-arg` passes the backend's own
 flags, `-fverifiedos-typed` selecting its typed purecap route. `--interp` also runs the
 source through the same compiler's reference interpreter, and an image whose `main`
-returned something else is `source-disagrees`.
+returned something else is `source-disagrees`; a narrowing program has no such reading.
 
 **The generated campaign** is deterministic in its seed and stays inside the selected
 scalar source profile: pointers through stack memory, struct fields and whole-struct
 copies, calls in both directions, arguments past the eight argument registers, a pointer
-or null chosen on a branch, and more live pointers across calls than registers. Every
-expected constant is computed by the generator. `--perturb` is its negative control: each
-program moves one check's constant off by one and must fail at exactly that check.
+or null chosen on a branch, more live pointers across calls than registers, and a local
+array narrowed through the plan-bound `csetbounds` primitive against an independent plan
+the driver writes for that program. Every expected constant is computed by the generator;
+`--pattern` selects a subset. `--perturb` is its negative control: each program moves
+one check's constant off by one and must fail at exactly that check.
 
 **The refusal verdict.** A stream the dialect does not spell is scanned before it is
 assembled, and every mnemonic, directive and section the assembler refuses is reported by
@@ -77,6 +79,7 @@ one run and the milestone closes on a reviewed reading of recorded runs.
 """
 
 import argparse
+import functools
 import hashlib
 import json
 import re
@@ -588,13 +591,16 @@ class Program:
     Each check returns its own number from `main` on the corpus's convention that a
     failure names the check. `expect` is 0 for an ordinary program and, for a perturbed
     one, the number of the check whose expected constant was moved off by one, so the
-    campaign's negative control names the check it must fail at."""
+    campaign's negative control names the check it must fail at. `narrowing` is the byte
+    length of the one local the program narrows through the plan-bound `csetbounds`
+    primitive, or 0 where it narrows nothing."""
 
     name: str
     pattern: str
     source: str
     checks: int
     expect: int = 0
+    narrowing: int = 0
 
 
 class _Draw:
@@ -630,7 +636,7 @@ class _Expect:
 # compiler and of the emulator.
 
 
-def _memory(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+def _memory(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
     """Pointers stored to a stack array of pointers, reloaded through an index the
     program computes, written through, and copied pointer by pointer."""
     n = draw.between(4, 7)
@@ -677,10 +683,10 @@ int main(void)
         return 4;
     return 0;
 }}
-""", 4
+""", 4, 0
 
 
-def _struct(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+def _struct(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
     """Two pointers held in struct fields beside mixed-width scalars, the struct copied
     whole and reached through a pointer to the copy."""
     a, b = draw.between(2, 90), draw.between(1, 60)
@@ -725,10 +731,10 @@ int main(void)
         return 4;
     return 0;
 }}
-""", 4
+""", 4, 0
 
 
-def _call(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+def _call(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
     """A pointer crossing calls in both directions, and live across a nested call."""
     n = draw.between(5, 9)
     k, c = draw.between(2, 11), draw.between(0, 40)
@@ -774,10 +780,10 @@ int main(void)
         return 4;
     return 0;
 }}
-""", 4
+""", 4, 0
 
 
-def _stack(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+def _stack(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
     """Pointer arguments past the eight argument registers, in the caller's outgoing
     area, beside one in a register."""
     total = draw.between(10, 12)
@@ -819,10 +825,10 @@ int main(void)
         return 3;
     return 0;
 }}
-""", 3
+""", 3, 0
 
 
-def _nullable(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+def _nullable(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
     """A pointer or null chosen on a branch and returned, stored, tested against null
     and dereferenced where it is not null."""
     x, d = draw.between(1, 90), draw.between(1, 9)
@@ -875,10 +881,10 @@ int main(void)
         return 3;
     return 0;
 }}
-""", 3
+""", 3, 0
 
 
-def _spill(name: str, draw: _Draw, e: _Expect) -> tuple[str, int]:
+def _spill(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
     """More pointers live across calls than there are registers to keep them in."""
     k = draw.between(10, 14)
     m, c = draw.between(1, 13), draw.between(0, 30)
@@ -921,42 +927,136 @@ int main(void)
         return 2;
     return 0;
 }}
-""", 2
+""", 2, 0
 
 
-PATTERNS: Final = (_memory, _struct, _call, _stack, _nullable, _spill)
+def _narrow(name: str, draw: _Draw, e: _Expect) -> tuple[str, int, int]:
+    """A local array narrowed to exactly its own bytes by the plan-bound `csetbounds`
+    primitive, written through the narrowed capability and read back through both.
+
+    The length is a multiple of 256 bytes, the stack region's granule under the plan's
+    representability decision, and the array is the frame's only object, so it sits at
+    the top of the harness stack where the independent plan request places it."""
+    n = 32 * draw.between(1, 3)
+    m, c = draw.between(1, 17), draw.between(0, 60)
+    j, k = draw.between(0, n - 1), draw.between(0, n - 1)
+    d = draw.between(1, 9)
+    values = [i * m + c for i in range(n)]
+    after = list(values)
+    after[k] += d
+    return f"""\
+/* {name}: a local array narrowed to its own bytes by a plan-bound csetbounds. */
+extern long *csetbounds(long *, unsigned long);
+
+int main(void)
+{{
+    long values[{n}];
+    long *p = csetbounds(values, {8 * n}UL);
+    long i, sum;
+    for (i = 0; i < {n}; i++)
+        p[i] = i * {m} + {c};
+    if (p[{j}] != {e(1, values[j])})
+        return 1;
+    p[{k}] = p[{k}] + {d};
+    sum = 0;
+    for (i = 0; i < {n}; i++)
+        sum = sum + values[i];
+    if (sum != {e(2, sum(after))})
+        return 2;
+    if (values[{k}] != {e(3, after[k])})
+        return 3;
+    return 0;
+}}
+""", 3, 8 * n
+
+
+PATTERNS: Final = (_memory, _struct, _call, _stack, _nullable, _spill, _narrow)
 
 # Each pattern's check count, fixed so that a perturbed twin can name its check before
 # the pattern draws anything.
 CHECKS: Final[dict[str, int]] = {"memory": 4, "struct": 4, "call": 4, "stack": 3,
-                                 "nullable": 3, "spill": 2}
+                                 "nullable": 3, "spill": 2, "narrow": 3}
 
 
-def programs(seed: int, count: int, perturb: bool = False) -> list[Program]:
+def pattern_names() -> list[str]:
+    return [make.__name__.lstrip("_") for make in PATTERNS]
+
+
+def programs(seed: int, count: int, perturb: bool = False,
+             patterns: list[str] | None = None) -> list[Program]:
     """`count` programs cycling over the patterns, every constant drawn from `seed`.
 
-    Deterministic by construction: the same seed and count name the same texts, so a
-    campaign a completion note quotes can be regenerated and a digest held against it.
-    With `perturb`, program `k` moves check `k // len(PATTERNS) % checks + 1` off by one
-    and expects `main` to return that number; the draws are the ordinary campaign's.
+    Deterministic by construction: the same seed, count and pattern selection name the
+    same texts, so a campaign a completion note quotes can be regenerated and a digest
+    held against it. `patterns` selects a subset in the table's order, every pattern by
+    default. With `perturb`, program `k` moves check `k // len(selected) % checks + 1`
+    off by one and expects `main` to return that number; the draws are the ordinary
+    campaign's.
     """
+    unknown = sorted(set(patterns or []) - set(pattern_names()))
+    if unknown:
+        raise ValueError(f"no generator pattern named {', '.join(unknown)}")
+    selected = [make for make in PATTERNS
+                if patterns is None or make.__name__.lstrip("_") in patterns]
     draw = _Draw(seed)
     out: list[Program] = []
     for k in range(count):
-        make = PATTERNS[k % len(PATTERNS)]
+        make = selected[k % len(selected)]
         pattern = make.__name__.lstrip("_")
-        chosen = k // len(PATTERNS) % CHECKS[pattern] + 1 if perturb else 0
+        chosen = k // len(selected) % CHECKS[pattern] + 1 if perturb else 0
         name = f"g{seed}-{k:02d}-{pattern}" + (f"-p{chosen}" if chosen else "")
-        source, checks = make(name, draw, _Expect(chosen))
+        source, checks, narrowed = make(name, draw, _Expect(chosen))
         if checks != CHECKS[pattern]:
             raise AssertionError(f"{pattern} carries {checks} checks, not {CHECKS[pattern]}")
-        out.append(Program(name, pattern, source, checks, chosen))
+        out.append(Program(name, pattern, source, checks, chosen, narrowed))
     return out
 
 
 # =====================================================================================
 # The program-level loop over one input
 # =====================================================================================
+
+
+@functools.cache
+def harness_stack() -> tuple[int, int]:
+    """The program harness's stack, `[base, top)`, as the assembler lays it out."""
+    _, symbols, _ = asm.Assembler(compose("main:\n        ret\n"), "layout").assemble()
+    return symbols["__vos_stack"][1], symbols["__vos_stack_top"][1]
+
+
+def narrowing_inputs(fresh: Path, source: bytes, profile: Path, length: int) -> list[str]:
+    """Write the independent plan inputs one narrowing program compiles against, and
+    return the compiler arguments that name them.
+
+    The composition places the harness stack and the one requested local at its top;
+    the plan's single region is that stack and its single request that local, bound to
+    `main`'s first narrowing. The context binds the exact source bytes the compiler
+    reads, the executed profile and the composition, so a changed input is refused.
+    """
+    fresh.mkdir(parents=True, exist_ok=True)
+    (fresh / "profile.json").write_bytes(profile.read_bytes())
+    base, top = harness_stack()
+    composition = {"target_hart": 0, "stack_base": base, "stack_size": top - base,
+                   "initial_csp": top, "requested_local_base": top - length,
+                   "requested_local_size": length}
+    (fresh / "composition.json").write_text(json.dumps(composition), encoding="utf-8")
+    plan = {
+        "schema": "verifiedos-typed-narrowing-input-v1",
+        "context": {"source_sha256": _sha256(source),
+                    "profile_sha256": _sha256(profile.read_bytes()),
+                    "composition_sha256": _sha256((fresh / "composition.json").read_bytes())},
+        "regions": [{"region_id": 1, "authority_id": 1, "base": base, "size": top - base}],
+        "requests": [{"request_id": 1, "parent_base": base, "parent_size": top - base,
+                      "offset": top - length - base, "stride": 0, "last": 0,
+                      "length": length}],
+        "bindings": [{"function_name": "main", "operation_ordinal": 0, "function_id": 1,
+                      "operation_id": 1, "region_id": 1, "authority_id": 1,
+                      "request_id": 1}],
+    }
+    (fresh / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    return ["-fverifiedos-narrowing-plan", "plan.json", "-fverifiedos-profile", "profile.json",
+            "-fverifiedos-composition", "composition.json",
+            "-fverifiedos-narrowing-output", "narrowing"]
 
 
 @dataclass(frozen=True)
@@ -1015,6 +1115,7 @@ class Report:
     detail: str
     expect: int = 0
     interpreted: Interpreted | None = None
+    narrowing: int = 0
 
 
 def target_code(ran: Ran | None) -> int | None:
@@ -1048,18 +1149,25 @@ def run_program(program: Program, ccomp: list[str], workdir: Path,
     an image whose `main` returned something other than what the interpreter reports is
     `source-disagrees` rather than a pass or a failure.
     """
-    source = workdir / f"{program.name}.c"
+    # A narrowing program is handed over as `.i`, so the bytes the plan binds are the
+    # bytes the compiler reads rather than a preprocessor's rewriting of them.
+    source = workdir / f"{program.name}{'.i' if program.narrowing else '.c'}"
     source.write_text(program.source, encoding="utf-8", newline="\n")
     digest = _sha256(source.read_bytes())
+    # The primitive has target semantics and no C interpreter meaning, so a narrowing
+    # program has no source-side reading.
     interpreted = (interpret_c(ccomp, source, workdir / f"{program.name}.interp",
-                               compile_timeout) if interp else None)
+                               compile_timeout) if interp and not program.narrowing else None)
+    extra = (narrowing_inputs(workdir / program.name, source.read_bytes(), profile,
+                              program.narrowing) if program.narrowing else [])
 
     def report(compiled: Compiled | None, found: tuple[Refusal, ...], size: int,
                ran: Ran | None, verdict: str, detail: str) -> Report:
         return Report(program.name, program.pattern, digest, program.checks, compiled,
-                      found, size, ran, verdict, detail, program.expect, interpreted)
+                      found, size, ran, verdict, detail, program.expect, interpreted,
+                      program.narrowing)
 
-    compiled = compile_c(ccomp, source, workdir / program.name, compile_timeout)
+    compiled = compile_c([*ccomp, *extra], source, workdir / program.name, compile_timeout)
     if compiled.stream is None:
         return report(compiled, (), 0, None, "ccomp-refused",
                       f"ccomp exited {compiled.exit_code}: {compiled.said}")
@@ -1108,7 +1216,7 @@ def report_json(report: Report) -> Json:
         "refusals": [_refusal_json(r) for r in report.refusals],
         "image_bytes": report.image_bytes,
         "run": None if report.ran is None else _ran_json(report.ran),
-        "expect": report.expect,
+        "expect": report.expect, "narrowing": report.narrowing,
         "interp": None if report.interpreted is None else {
             "argv": list(report.interpreted.argv), "exit": report.interpreted.exit_code,
             "code": report.interpreted.code},
@@ -1368,7 +1476,7 @@ def _inputs(args: argparse.Namespace) -> list[Program]:
         text = path.read_text(encoding="utf-8")
         out.append(Program(path.stem, "given", text, 0))
     if args.generate:
-        out += programs(args.seed, args.generate, args.perturb)
+        out += programs(args.seed, args.generate, args.perturb, args.pattern or None)
     if len({program.name for program in out}) != len(out):
         raise ValueError("program names must be unique, including generated programs")
     return out
@@ -1445,6 +1553,7 @@ def _program(args: argparse.Namespace) -> int:
             "profile": _file_identity(profile),
             "campaign": {"seed": args.seed, "generated": args.generate,
                          "perturb": args.perturb,
+                         "patterns": cast("list[Json]", args.pattern or pattern_names()),
                          "given": [p.name for p in inputs if p.pattern == "given"]},
             "interp": args.interp,
             "expect": ("refusal" if args.expect_refusal
@@ -1615,7 +1724,12 @@ def _generate(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     rows: list[Json] = []
-    for program in programs(args.seed, args.count, args.perturb):
+    try:
+        generated = programs(args.seed, args.count, args.perturb, args.pattern or None)
+    except ValueError as err:
+        print(f"FAIL compiler-diff generate: {err}", file=sys.stderr)
+        return 2
+    for program in generated:
         path = out / f"{program.name}.c"
         path.write_text(program.source, encoding="utf-8", newline="\n")
         rows.append({"name": program.name, "pattern": program.pattern,
@@ -1623,7 +1737,9 @@ def _generate(args: argparse.Namespace) -> int:
                      "sha256": _sha256(path.read_bytes())})
         print(f"WROTE   {path} ({program.pattern}, {program.checks} checks)")
     manifest: dict[str, Json] = {"seed": args.seed, "count": args.count,
-                                 "perturb": args.perturb, "programs": rows}
+                                 "perturb": args.perturb,
+                                 "patterns": cast("list[Json]", args.pattern or pattern_names()),
+                                 "programs": rows}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n",
                                        encoding="utf-8", newline="\n")
     print(f"TOTAL   {len(rows)} program(s) from seed {args.seed}, FP-free, over "
@@ -1642,6 +1758,8 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--perturb", action="store_true",
                          help="the negative control: each generated program moves one "
                               "check's constant and must fail at that check")
+        sub.add_argument("--pattern", action="append", default=[], metavar="NAME",
+                         help="generate only this pattern (repeatable; default: all)")
         sub.add_argument("--against", metavar="FILE",
                          help="a --json report of an earlier run to hold this one against")
         sub.add_argument("--expect-refusal", action="store_true",
@@ -1696,6 +1814,8 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--seed", type=int, default=1, help="the generator's seed")
         sub.add_argument("--perturb", action="store_true",
                          help="write the negative-control twins instead")
+        sub.add_argument("--pattern", action="append", default=[], metavar="NAME",
+                         help="generate only this pattern (repeatable; default: all)")
 
 
 TABLE: Table = {

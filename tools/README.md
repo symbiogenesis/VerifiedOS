@@ -193,11 +193,16 @@ receipt. `--generate N` adds the campaign its seed names, generated inside the
 [selected scalar source profile](../docs/implementation/contracts/compiler-source-values.md)
 with every expected constant computed by the generator: pointers through stack memory,
 struct fields and whole-struct copies, calls in both directions, arguments past the
-argument registers, a pointer or null chosen on a branch, and more live pointers across
-calls than registers. `--perturb` is its negative control, each program moving one
-check's constant off by one and required to fail at exactly that check. `--interp` also
+argument registers, a pointer or null chosen on a branch, more live pointers across
+calls than registers, and a local array narrowed through the plan-bound `csetbounds`
+primitive against an independent plan and composition the driver writes for that
+program, whose source is handed over as `.i` so the plan binds the bytes the compiler
+reads. `--pattern NAME` selects a subset. `--perturb` is its negative control, each
+program moving one check's constant off by one and required to fail at exactly that
+check. `--interp` also
 runs each source through the same compiler's reference interpreter, and an image whose
-`main` returned something else is `source-disagrees`. The driver
+`main` returned something else is `source-disagrees`; a narrowing program has no such
+reading, its primitive having target semantics and no C interpreter meaning. The driver
 scans the emitted stream against [vos/dialect.py](vos/dialect.py)'s table and
 [vos/asm.py](vos/asm.py)'s directives before assembling it, and reports every refused
 mnemonic, directive and section by name and by line of the stream: stock `ccomp -S`

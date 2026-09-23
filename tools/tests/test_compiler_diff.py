@@ -119,10 +119,15 @@ RECORDS: Final = ("I 1 0000000080000000 0002E403", "X 8 1 0000000080000000",
                   "I 3 0000000080000008 00000013", "R 0000000080008010 8 1 000000008000C000")
 
 FAKE_CCOMP: Final = f"""\
-import pathlib, re, sys
+import hashlib, json, pathlib, re, sys
 args = sys.argv[1:]
-source = pathlib.Path(next(a for a in args if a.endswith(".c")))
+source = pathlib.Path(next(a for a in args if a.endswith((".c", ".i"))))
 text = source.read_text(encoding="utf-8")
+if "-fverifiedos-narrowing-plan" in args:
+    plan = json.loads(pathlib.Path(args[args.index("-fverifiedos-narrowing-plan") + 1]).read_text())
+    if plan["context"]["source_sha256"] != hashlib.sha256(source.read_bytes()).hexdigest():
+        sys.stderr.write("fake ccomp: stale source_sha256\\n")
+        sys.exit(2)
 if "-interp" in args:
     said = re.search(r"FAKE-CCOMP: interp (\\d+)", text)
     print(f"Time 7: program terminated (exit code = {{said.group(1) if said else 0}})")
@@ -190,7 +195,7 @@ def _lines_of(stream: str, needle: str) -> list[int]:
     return [n for n, raw in enumerate(stream.splitlines(), 1) if needle in raw]
 
 
-PATTERN_NAMES: Final = ["memory", "struct", "call", "stack", "nullable", "spill"]
+PATTERN_NAMES: Final = ["memory", "struct", "call", "stack", "nullable", "spill", "narrow"]
 
 # A variable declared at file scope: the selected scalar source profile binds a global's
 # authority only through a composition, so no generated program may carry one.
@@ -199,9 +204,9 @@ FILE_SCOPE_OBJECT: Final = re.compile(r"^(?:static\s+)?(?:volatile\s+)?"
 
 
 def _generator_is_deterministic() -> None:
-    first, second = cd.programs(7, 12), cd.programs(7, 12)
+    first, second = cd.programs(7, 14), cd.programs(7, 14)
     ensure(first == second, "one seed and count must name one campaign")
-    ensure(len({p.name for p in first}) == 12, "every program needs a name of its own")
+    ensure(len({p.name for p in first}) == 14, "every program needs a name of its own")
     ensure([p.pattern for p in first] == PATTERN_NAMES * 2,
            f"the patterns cycle, got {[p.pattern for p in first]}")
     for program in first:
@@ -215,11 +220,25 @@ def _generator_is_deterministic() -> None:
         ensure("volatile" not in program.source
                and FILE_SCOPE_OBJECT.search(program.source) is None,
                f"{program.name} must declare no global object (selected source profile)")
-    ensure(cd.programs(8, 12) != first, "a different seed draws different constants")
+        ensure((program.narrowing > 0) == (program.pattern == "narrow")
+               and program.narrowing % 256 == 0
+               and (not program.narrowing
+                    or f"csetbounds(values, {program.narrowing}UL)" in program.source),
+               f"{program.name}: only the narrowing pattern narrows, by whole 256-byte granules")
+    ensure(cd.programs(8, 14) != first, "a different seed draws different constants")
+    chosen = cd.programs(7, 4, patterns=["call", "narrow"])
+    ensure([p.pattern for p in chosen] == ["call", "narrow"] * 2,
+           f"a pattern selection cycles over the selection alone: {chosen}")
+    try:
+        cd.programs(7, 1, patterns=["nonesuch"])
+    except ValueError as err:
+        ensure("nonesuch" in str(err), f"an unknown pattern is named: {err}")
+    else:
+        raise AssertionError("an unknown pattern must be refused")
 
 
 def _perturbed_twins_move_one_check() -> None:
-    ordinary, twins = cd.programs(3, 24), cd.programs(3, 24, perturb=True)
+    ordinary, twins = cd.programs(3, 28), cd.programs(3, 28, perturb=True)
     ensure([p.pattern for p in twins] == [p.pattern for p in ordinary],
            "a perturbed campaign keeps the ordinary campaign's membership")
     moved: set[tuple[str, int]] = set()
@@ -239,7 +258,7 @@ def _perturbed_twins_move_one_check() -> None:
         moved.add((twin.pattern, twin.expect))
     ensure(moved == {(name, check) for name in PATTERN_NAMES
                      for check in range(1, cd.CHECKS[name] + 1)},
-           f"24 twins move every check of every pattern at least once, got {sorted(moved)}")
+           f"28 twins move every check of every pattern at least once, got {sorted(moved)}")
 
 
 def _scan_names_what_the_dialect_refuses() -> None:
@@ -502,6 +521,44 @@ def _source_interpreter_reading() -> None:
                                           "print('Time 2: program terminated (exit code = 0)')\n")
         read = cd.interpret_c([sys.executable, str(twice)], work / "i-pass.c", work / "twice")
         ensure(read.code is None, "two termination lines give no reading")
+
+
+def _narrowing_program_inputs() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        ccomp = [sys.executable, str(_script(scratch, "ccomp", FAKE_CCOMP))]
+        sim = [sys.executable, str(_script(scratch, "sim", FAKE_SIM))]
+        work = scratch / "work"
+        work.mkdir()
+        profile = scratch / "profile.json"
+        profile.write_text("{}\n", encoding="utf-8")
+        narrow = cd.Program("n-pass", "narrow", DIALECT_C, 1, 0, 512)
+        run = cd.run_program(narrow, ccomp, work, sim, profile, "", interp=True)
+        ensure(run.verdict == "pass" and run.interpreted is None and run.narrowing == 512,
+               f"a narrowing program compiles against its plan and has no C reading: {run}")
+        base, top = cd.harness_stack()
+        ensure(top - base == cd.STACK_BYTES, "the plan's region is the harness stack")
+        fresh = work / "n-pass"
+        plan = json.loads((fresh / "plan.json").read_text(encoding="utf-8"))
+        request = plan["requests"][0]
+        ensure(plan["context"]["source_sha256"] == cd._sha256((work / "n-pass.i").read_bytes())
+               and plan["context"]["profile_sha256"] == cd._sha256(profile.read_bytes())
+               and request["offset"] == top - 512 - base and request["length"] == 512
+               and plan["regions"][0]["base"] == base,
+               f"the plan binds the bytes read and requests the top of the stack: {plan}")
+        composition = json.loads((fresh / "composition.json").read_text(encoding="utf-8"))
+        ensure(composition["requested_local_base"] == top - 512
+               and composition["initial_csp"] == top and composition["stack_base"] == base,
+               f"the composition places the one local at the stack's top: {composition}")
+        argv = run.compiled.argv if run.compiled else ()
+        ensure("-fverifiedos-narrowing-plan" in argv and argv[-4:-2] == ("-S", "n-pass.i"),
+               f"the plan inputs reach the compiler beside the source it reads: {argv}")
+        plain = cd.run_program(cd.Program("n-plain", "given", DIALECT_C, 1), ccomp, work, sim,
+                               profile, "")
+        ensure(plain.compiled is not None
+               and "-fverifiedos-narrowing-plan" not in plain.compiled.argv
+               and not (work / "n-plain" / "plan.json").exists(),
+               "a program that narrows nothing is compiled without plan inputs")
 
 
 def _component_harness_assembles() -> None:
@@ -847,6 +904,7 @@ def cases() -> list[Case]:
         Case("component-harness-on-sail", _component_harness_on_sail,
              slow=True, lane="toolchain"),
         Case("source-interpreter-reading", _source_interpreter_reading),
+        Case("narrowing-program-inputs", _narrowing_program_inputs),
         Case("capability-roundtrip-tracks-the-stored-value",
              _capability_roundtrip_tracks_the_stored_value),
         Case("loop-over-fake-ccomp-dialect", _loop_over_fake_ccomp_dialect),
