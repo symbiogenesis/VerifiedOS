@@ -470,6 +470,33 @@ package vos_cheri_pkg;
       address:    '0
   };
 
+  // The two object-type bootstrap authorities, `root_seal_cap` and
+  // `root_unseal_cap` in `cap_common.sail`. They authorize object-type names
+  // and not memory: global, in the denormal case at exponent zero, bounded to
+  // the nonreserved types [0, CapMaxOType + 1) with the cursor at zero
+  // (R-15-007p). Reset grants them in `c2` and `c3`.
+  localparam capability_t RootSealCap = '{
+      tag:        1'b1,
+      perms:      PermsSeal | PermsGlobalBit,
+      normalized: 1'b0,
+      e:          '0,
+      b:          '0,
+      t:          cap_mant_t'(CapMaxOType + 1),
+      otype:      OTypeUnsealed,
+      address:    '0
+  };
+
+  localparam capability_t RootUnsealCap = '{
+      tag:        1'b1,
+      perms:      PermsUnseal | PermsGlobalBit,
+      normalized: 1'b0,
+      e:          '0,
+      b:          '0,
+      t:          cap_mant_t'(CapMaxOType + 1),
+      otype:      OTypeUnsealed,
+      address:    '0
+  };
+
   // ---------------------------------------------------------------------------
   // 7. The memory interface.
   //

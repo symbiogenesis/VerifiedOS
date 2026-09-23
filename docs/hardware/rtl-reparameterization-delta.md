@@ -132,15 +132,16 @@ implemented width/metadata slice. [The transform registry](../../tools/rtl-width
 is the owner of its exact selected-source identities and replacements; native
 staging emits source-to-output diffs and refuses drift. Its branch, issue, LSU,
 CSR and CHERI-unit edits include the metadata declarations, assignments and
-helper arguments omitted from the original width rows, and its second layer
-carries this section's cause consumers, §2.1's permission rewrite rows and the
-mode deletion at the commit stage and the top level. The ariane package's
-single-root reader, the CHERI unit's seal-entry arm and its two mode
-instructions remain outside that implemented slice, as do the member reads the
-deletion rows of this section and of §2.1 and §2.3 own, which
-[the contract's seam 3 decisions](scalar-width-transform-contract.md#seam-3-decisions)
-enumerate. The full site register remains an open curation inventory; a passing
-width probe does not qualify those functional changes.
+helper arguments omitted from the original width rows, and its later layers
+carry this section's cause consumers, §2.1's permission rewrite rows, the root
+split with the register file's reset grants, the mode pipeline's tie-off at the
+decoder, the excluded instructions' arms and decode rows, and the levels
+signals' replacement by the load's transitivity, which
+[the contract's seam 4 decisions](scalar-width-transform-contract.md#seam-4-decisions)
+record. With them the curated arm elaborates. The full site register remains an
+open curation inventory: the contract's next layer lists the register-width
+readings the elaborator does not refuse, and neither an elaboration nor a width
+probe qualifies a functional change.
 
 ### 2.3 Permissions, object type and mode, in the functional units
 
