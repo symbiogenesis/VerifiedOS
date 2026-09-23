@@ -28,13 +28,14 @@ from collections.abc import Callable
 from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from functools import partial
 from importlib import import_module
+from itertools import product
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import cast
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import memory_planner, rtltrace, rvfi
+from vos import kernelrun, memory_planner, rtltrace, rvfi
 from vos.cli import COMMANDS
 
 _ROOT = TOOLS.parent
@@ -113,6 +114,31 @@ def _rtl_frame(scratch: Path) -> list[str]:
     return [str(frame), str(reference)]
 
 
+def _kernel_vectors(scratch: Path) -> list[str]:
+    """One line of each `kt` family the reader decides, over one declared frame and image.
+
+    The verdict bits are the reader's own, found by trying each assignment, because
+    this run asks whether `kernel reader` answers on this lane; whether the reader
+    agrees with KernelInstance.v is `kernel check`'s question, over generated vectors.
+    """
+    regs = " ".join("0/0" for _ in range(kernelrun.REGISTER_COUNT))
+    head = ["kt d 0 1 10:20 0:30:40 1:50:60 2:70:80", "kt r 0:1:0 1:1:1 2:0:0",
+            f"kt s 1 {regs} | 11 12 13"]
+    lines = list(head)
+    for family, body, width in (("c", "1 - -", 3), ("b", "1 -", 5), ("f", "0 -", 5),
+                                ("run", "0 1 1 - - | - | -", 1)):
+        for bits in product("01", repeat=width):
+            line = f"kt {family} {body} -> {' '.join(bits)}"
+            if not kernelrun.check_vectors([*head, line])[1]:
+                lines.append(line)
+                break
+        else:
+            raise AssertionError(f"no verdict assignment agrees with the reader on kt {family}")
+    vectors = scratch / "kernel-vectors.txt"
+    vectors.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="")
+    return ["--vectors", str(vectors)]
+
+
 def _memory_encoding(scratch: Path) -> list[str]:
     instance = scratch / "encoding-instance.json"
     instance.write_text(json.dumps({
@@ -158,6 +184,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-planner", "resource-proof"): lambda _: [],
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
+    ("kernel", "reader"): _kernel_vectors,
 }
 
 

@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 724 of them across 128 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 736 of them across 128 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2042,6 +2042,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-165** owed-act: the emulator runs one hart and every shipped configuration composes one, so the multikernel's defining property is first exercisable on the RTL track
 · Raised: M4.4, in prose
 · Disposition: closed, taken at M4.4: single-instance bring-up, the multikernel's defining property being first exercisable on the RTL track where a second implementation stands
+
+**F-418** owed-act: KernelInstance.v's `ReservedEnteredOnce` counts visits by tenant extent against the reserved band alone, so a run following an admitted table whose reserved tenant also holds a discretionary slot fails the frame clause
+· Raised: M4.4, in prose
+· Disposition: open, admission refusing a reserved tenant elsewhere in the frame or the clause counting per slot (R-07-032, R-11-020)
+
+**F-419** owed-act: CyclicExecutive.v admits slots in any list order while `SwitchesInTableOrder` reads list order, so an admitted table whose reserved band lies later in time fails the frame clause, and the kernel C refuses 13 of 35 generated tables for that alone
+· Raised: M4.4, in prose
+· Disposition: open, the register deciding whether the table's own sequence is list order or time order
+
+**F-420** owed-act: PartitionContext.v's reading 4 gives every zeroized CSR one zero word, where the model's `vmclear` writes `vtype` to its reset value with `vill` set and reports that write, so `CsrBurstTotal` refuses a real run's `vtype` record
+· Raised: M4.4, in prose
+· Disposition: open, PartitionContext.v's reading taking the reset value (R-07-015, R-07-014c)
+
+**F-421** owed-act: where a restore burst begins is undefined, and over a whole boundary window trap entry writes a general register and the dispatching `mret` writes `mstatus`, so `BurstWritesExactlyOnce` cannot hold there
+· Raised: M4.4, in prose
+· Disposition: open, a declared restore extent at KernelInstance.v and the service-authoring contract
+
+**F-422** owed-act: every Zicsr access needs access-system-registers on PCC, which a partition lacks, so the CSRs a partition can name reduce to state its other instructions write implicitly
+· Raised: M4.4, in prose
+· Disposition: open, a sharpening of KernelInstance.v's gap b at R-15-001b
+
+**F-423** owed-act: no emitter owns the partition switch's context-restore sequence, C placing no value into `x1` to `x31` and ordering no total restore with the CSR writes, `vmclear`, `fence.t`, the MEPCC install and the dispatching `mret`
+· Raised: M4.4, in prose
+· Disposition: open, an emitter assigned at the ABI's sections 6 and 7, the gap being no missing admission rule under R-05-023b
+
+**F-424** measurement: the contained compiler in typed mode refuses a pointer result that is null on one path and an address on another, at the allocated-CFG check and again at a comparison with a live address
+· Raised: M4.4, in prose
+· Disposition: open, M1.2f's contained compiler, the kernel returning a single origin meanwhile
+
+**F-425** measurement: the contained compiler refuses a `void *` slot holding a stack object's capability once it is converted back or compared, where the source-values contract admits an object pointer through `void *`
+· Raised: M4.4, in prose
+· Disposition: open, M1.2f's contained compiler, the target smoke using `long *` slots meanwhile
+
+**F-426** owed-act: no register entry bounds the reserved band's size, the partitions per instance, the CSR roster's length or the shared-window count, and fixed literals refused the reference ladder's top rung
+· Raised: M4.4, in prose
+· Disposition: open, the four being build-time composition constants whose defaults cover R-11-021's top rung
+
+**F-427** owed-act: KernelInstance.v's frame clause and the kernel C take a tenant as one partition with one text extent, where R-07-037b's same-label group and R-07-037g's elastic domain make a correct run fail `FrameIsTheTables`
+· Raised: M4.4, in prose
+· Disposition: open, stated with Q34a's elastic-domain contract, the C refusing a tenant carried by two partitions meanwhile
+
+**F-428** owed-act: PartitionContext.v's `Rotation` leaves the zeroized class unconstrained and does not state R-07-037g's cross-application `vmclear`
+· Raised: M4.4, in prose
+· Disposition: open, the kernel's rotation being R-07-037b's same-label step and the elastic step Q34a's
+
+**F-429** owed-act: the host model's dispatch check takes KernelInstance.v gap a's barrier-sanitizes arm, which the register leaves open, and what a refused dispatch does is unspecified
+· Raised: M4.4, in prose
+· Disposition: open, owed at R-08-006 or R-07-015, the target build carrying no dispatch check
 
 ## M5 · Storage and objects
 

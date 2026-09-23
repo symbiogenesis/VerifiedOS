@@ -74,8 +74,9 @@ drive the toolchain or inspect its native outputs need the hop. `model config-ke
 `placement admit`, `placement search`,
 `proofs headers`, `memory-planner plan`, `memory-planner check`,
 `memory-planner solve`, `memory-planner verify`, `memory-planner demo` and
-`memory-planner contracts`, `memory-planner resources`, `memory-planner resource-proof`
-and `memory-certificates encode` use this checkout and answer on either lane. `proofs status` takes
+`memory-planner contracts`, `memory-planner resources`, `memory-planner resource-proof`,
+`memory-certificates encode`, `boot roster` and `kernel reader` use this checkout or a
+file already on disk and answer on either lane. `proofs status` takes
 the hop because its compiled outputs live in the guest's native build directory.
 That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
