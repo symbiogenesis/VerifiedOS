@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 750 of them across 130 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 755 of them across 130 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -872,6 +872,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-393** owed-act: no entry bounded the latency of any re-execution of the measured chain, the TRNG contract reporting the start-up sample budget as a term with nothing pushing the other way
 · Raised: Q33, in prose
 · Disposition: closed at the register, taken at R-09-006b, which makes every re-execution's worst case a composition constant; the ceilings it is read against are DP-6 and DP-7 of the product-gate contract, proposed and binding nothing until ratified, and the development vehicle's own ceiling stays F-000l's
+
+**F-444** owed-act: R-15-247t names the content of some region kinds and not others, so which plan fact decides the label of bulk regions, vector and matrix extents and application payloads, where the KV cache and base-image blocks fall, is unstated
+· Raised: Q33, in prose
+· Disposition: open, a register act at R-15-247t and R-15-247s, the derivation reading a declared provenance meanwhile
+
+**F-445** owed-act: which island owns a session-derived domain in a macro shared at bank granularity is unstated, and with it how the conjunction rule meets ON exactly when resident
+· Raised: Q33, in prose
+· Disposition: open, a register act at R-15-189e and R-15-247t
+
+**F-446** owed-act: whether an RoT-sequenced re-entry re-runs the start-up entropy tests is unstated, and so whether verdict-before-draw binds within each re-entry suffix
+· Raised: Q33, in prose
+· Disposition: open, a register act at R-09-006b and R-15-198a, the entropy clauses applying to the cold path only meanwhile
+
+**F-447** owed-act: whether the reset table is a walk or a dependency graph is unstated, which decides how "and of no other island's" is stated
+· Raised: Q33, in prose
+· Disposition: open, R-15-198 with crown-jewel row 12's schema
+
+**F-448** owed-act: R-15-198a runs the entropy tests concurrently with every image-derived fill and re-verification, which cannot be read positionally with R-09-006a's verdict before the first draw, R-15-190b's re-verification before an island's kernels are released and R-15-198a's own staging order
+· Raised: Q33, in prose
+· Disposition: open, the register's owner with RotFirmware.v's reading of the verdict, every admitted table being proved to put the inference island's fills after the verdict
 
 **F-430** owed-act: R-07-037g's lag bound of one request plus one call bound omits the sink, a conforming two-member trace ending at served-time lags of 22/5 against a bound of 4 and the heavy member reaching 67/5 over slot time
 · Raised: Q34a
