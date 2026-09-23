@@ -133,7 +133,12 @@ no decoder output differs from its input, so the mode is constant from reset.
 Every `use_ddc` assignment and every mode-selected `JALR`/`CJALR` and `JAL`/`CJAL`
 choice therefore reads the capability arm. The fields stay in the imported
 scoreboard entry, and the two `csr_regfile.sv` readers of its `int_mode` read the
-constant.
+constant. This is a behavioural tie-off and not the delta's structural deletion:
+`id_stage.sv`'s mode register still resets and updates as state no decoder reads,
+every `use_ddc` assignment stays, and so does the `DDC` register, so the
+deletions the delta's §2.2 and §2.3 rows describe for the mode pipeline and
+`use_ddc` are owed with the decoder's curation and the `DDC` register's with the
+CSR seam.
 
 **Reset hands out the model's split root set, and nothing else.** The model's
 `ext_reset` puts the execute-side root in `PCC`, `MTCC` and `MEPCC`, the
@@ -154,14 +159,32 @@ default keeps the single `INIT_VAL` everywhere. The format package carries the
 two object-type roots beside the two memory roots, bounded to the nonreserved
 types with the cursor at zero as `cap_common.sail` states them. The
 test-injection arm's all-root register file has no split reading and takes the
-same grants.
+same grants. **One reset value still diverges and is recorded rather than
+repaired.** The imported CSR file reloads `mtvec` at reset with the address
+`reg_to_x(boot_addr_i) + 'h40` (the staged `csr_regfile.sv:1264`), where the
+model resets `MTCC` to `default_cap`, whose address is zero (`cap_common.sail`):
+the authority is the model's and the address is not. The reload is the CSR
+seam's, and it reads the port through the integer view the next layer below
+enumerates.
 
 **The excluded instructions' arms go whole with their decode rows.** Capability
-reconstruction and the subset test (R-15-002, R-15-006, R-15-007m) carry the
-reserved-field test beside them, and the representable-alignment mask carries
-the bounds-return record's `mask` (R-15-007k, R-08-011). The CHERI unit loses
-the reconstruction and subset-test arm and the mask's branch of the bounds arm,
-and the decoder loses the three rows, so the three encodings decode as illegal.
+reconstruction and the subset test (R-05-136, R-15-002, R-15-006, R-15-007m)
+carry the reserved-field test beside them, and the representable-alignment mask
+carries the bounds-return record's `mask` (R-15-007k, R-08-011). The upper-half
+read and write go with reconstruction: `csethigh` rebuilds a capability from a
+register's bits and `cgethigh` goes with it, the pair being a property of a
+capability wider than a register (`cheri_insts.sail`, R-05-136), and at the
+frozen width their arms selected bits 127 to 64 of the 65-bit memory form. The
+capability-width atomics go because the retained atomics stop at doubleword and
+the reservation pair is excluded (R-15-024, R-15-025). The CHERI unit loses the
+reconstruction and subset-test arm, the two upper-half arms and the mask's branch
+of the bounds arm. The decoder loses the five rows of reconstruction, the subset
+test, the mask and the upper-half pair, and the capability-width branch of the
+atomic opcode with its three rows, so those eight encodings decode as illegal,
+and the comment rows naming the deleted encodings go with them. The curated
+configuration leaves the atomic extension off, so that branch was unreachable
+there already; the deletion holds once the retained word and doubleword atomics
+turn it on.
 
 **The levels signals become the load's transitivity.** The imported load/store
 unit derived three clears from the levels bits and the load-mutable bit. The
@@ -183,7 +206,10 @@ authority lacked store or capability permission or failed the levels test. The
 stored tag is now the value's own, and the data check
 raises `CapEx_PermitStoreCapViolation` and `CapEx_PermitStoreLocalCapViolation`
 on the capability store, below the permission, seal and tag checks and above the
-length check in the model's priority.
+length check in the model's priority. The imported clear covered every store and
+the two traps test `SC` alone, which is sound because `SC` is the one capability
+store that decodes: the capability-width atomics that would otherwise store a
+tagged value past both traps are excluded above.
 
 **Every bounds test the width collapse made modular is the format package's.**
 The collapsed top is 37 bits, so the imported load/store test summed the 64-bit
@@ -239,6 +265,21 @@ RISC-V CHERI standard line's function codes, and the model places them on opcode
 `0b1011011` with ISAv9's. The delta's decoder row books only the hybrid decode,
 so the re-encoding is on no row.
 
+**Which model instruction each set-bounds encoding becomes is part of that
+re-encoding, and the arm's exactness clear stays as imported until it is
+decided.** The staged
+`SCBNDS` clears the result's tag where the new bounds are inexact, which is
+`CSetBoundsExact`, and the immediate form `SCBNDSI` decodes to the same operation
+with the standard line's five-bit immediate, optionally scaled by sixteen. The
+model has no exact form: `CSetBounds` and `CSetBoundsImmediate` share
+`narrow_bounds`, which clears the tag only where the requested bounds leave the
+source's, and the immediate is an unscaled twelve-bit length
+(`cheri_insts.sail`, R-15-007k). `SCBNDSR`, the standard line's rounding
+form, carries no exactness clear. So
+the register form is either `CSetBounds` without the exactness clear or an
+excluded encoding, the immediate form is `CSetBoundsImmediate` with the model's
+immediate and no exactness clear, and neither is what the staged core does.
+
 ## Acceptance predicate
 
 The exact-source and exact-output guards pass at the selected pin, and tests
@@ -288,15 +329,21 @@ any member read, and the third is the member layer behind them.
 `get_cap_reg_flags` 1 and `set_cap_reg_flags` 1 at `cheri_unit.sv` and
 `REG_ROOT_CAP` 1 at `include/ariane_pkg.sv`, the three classes the seam 4
 decisions resolve, and no other imported identifier. The registry staged ten
-sources at 75 replacements, each source guarded by its exact input and output
-identity.
+sources at 75 edits, each matching once, each source guarded by its exact input
+and output identity.
 
 Neither of those runs elaborates the core and neither is asked to: both sets are
 facts about names and not about members.
 
-**The member layer, with the three classes resolved**, at a registry of ten
-sources and 86 replacements: **42 diagnostics** over three files and thirteen
-source lines, every one a member the frozen record does not declare. `load_store_unit.sv` 23 at five lines, the levels, load-mutable,
+**The member layer, with the three classes resolved**, over a registry state
+that was never committed: base `b52c0029`'s ten sources at 86 edits and 92
+guarded replacements, the registry file's SHA-256
+`1f2dfe46c61f75a834f55b5b674bb5decf5ac57845240e80040c64b97b9c1e62`, taken before
+`REG_RESET_FILE` was written and passed as the register file's `INIT_FILE` and
+before any edit below resolved a member. The diagnostics' line numbers are those
+of that registry's staged outputs. **42 diagnostics** over three files and
+thirteen source lines, every one a member the frozen record does not declare.
+`load_store_unit.sv` 23 at five lines, the levels, load-mutable,
 load-capability and store-level reads of `hperms`; `cheri_unit.sv` 11 at four
 lines, `uperms` and `hperms` in the subset test, `res_lo` and `res_hi` in the
 reserved-field test, and the representable-alignment `mask`; and `load_unit.sv`
@@ -306,8 +353,10 @@ delta deletion row and is resolved by the seam 4 decisions; the load/store
 unit's store-level read is the one whose model reading is a trap rather than a
 deletion.
 
-**After seam 4**: **0 diagnostics**. The registry stages fourteen sources at 111
-replacements. `rtl elaborate` completes both arms and reports the curated arm at
+**After seam 4**: **0 diagnostics**. The registry stages fourteen sources at 120
+edits and 126 guarded replacements, the edits' match counts summing to more than
+the edits because one root rename matches seven reset sites. `rtl elaborate`
+completes both arms and reports the curated arm at
 52 module kinds, 275 cells and 4,584 declared variables against the baseline's
 63, 416 and 5,325, eleven structures the disabling parameters remove
 (`amo_buffer`, `bht`, `btb`, `compressed_decoder`, `cva6_mmu`, `cva6_ptw`,
@@ -318,16 +367,16 @@ inventory under 5.052 and are not comparable with the XML figures R1 took under
 
 The curated arm is not warning-free. Re-running the tool's own curated
 invocation over its own composed file list and staged sources keeps the output
-the tool discards on success: **279 lines beginning `%Warning`**, `WIDTHEXPAND`
-110, `SELRANGE` 81, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and `ASCRANGE` 1.
+the tool discards on success: **277 lines beginning `%Warning`**, `WIDTHEXPAND`
+110, `SELRANGE` 79, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and `ASCRANGE` 1.
 Of the `SELRANGE` lines, 77 select index 1 of a one-entry dimension in the issue,
-commit and realignment paths at one issue port, 2 read 64 bits of the
-instruction cache's 4-bit user field, and 2 are the CHERI unit's upper-half
-reads, `GCHI` and `SCHI` selecting `[127:64]` of the 65-bit memory form. The next
+commit and realignment paths at one issue port, and 2 read 64 bits of the
+instruction cache's 4-bit user field; none reads `[127:64]` of the 65-bit
+memory form, the upper-half arms being deleted. The next
 layer's integer-view class has three elaborator predicates, each a floor of
-candidates: **21** selects of bits `[63:0]` or `[63:2]` of a 68-bit variable,
-at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4, `ex_stage.sv` 2,
-`cheri_unit.sv` 1 and `issue_read_operands.sv` 1; **25**
+candidates: **20** selects of bits `[63:0]` or `[63:2]` of a 68-bit variable,
+at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4, `ex_stage.sv` 2 and
+`issue_read_operands.sv` 1; **25**
 `WIDTHTRUNC` lines whose right side is 68 bits, and **33** `WIDTHEXPAND` lines
 whose target is 68 bits. The elaborator folds a select of a 68-bit member of a
 wider packed structure into a select of the structure, so reads such as the
