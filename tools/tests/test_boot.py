@@ -83,6 +83,12 @@ def _contract_roster_reads() -> None:
         ensure(by_id[member].owner == "M7.1",
                f"{member} is statement-only and M7.1 is its executable owner")
     ensure({m.kind for m in roster.members} <= set(boot.KINDS), "kinds are the closed set")
+    # R-10-022: storage invokes seal/open and never holds the keys, so the crypto core is a
+    # compartment of the image, started before the member that calls it.
+    crypto, storage = by_id["crypto-core"], by_id["storage"]
+    ensure(crypto.kind == "image" and crypto.rank is not None and storage.rank is not None
+           and crypto.rank < storage.rank,
+           f"the crypto core is an image member entered before storage: {crypto}")
     ensure(bool(roster.blocking()),
            "no roster member has an executable product at this revision, so the roster blocks")
 
@@ -94,7 +100,8 @@ def _roster_refusals() -> None:
     for edited, needle in (
             (text.replace("| Member | Kind |", "| Member | Class |"), "header"),
             (text.replace(row, "| `kernel` | `daemon` | 2 |"), "kind"),
-            (text.replace(row, "| `kernel` | `linked` | 2 |"), "carries a rank"),
+            (text.replace(row, "| `kernel` | `offline` | 2 |"), "carries a rank"),
+            (text.replace(row, "| `kernel` | `linked` | 2 |"), "kind 'linked'"),
             (text.replace(row, "| `kernel` | `image` | 1 |"), "rank 1"),
             (text.replace("| `storage` |", "| `kernel` |"), "declared twice"),
             (text.replace(row, "| `kernel` | `image` | two |"), "neither"),
@@ -111,6 +118,9 @@ def _roster_refusals() -> None:
     _refused(boot.RecipeError,
              lambda: boot.parse_json_roster(b'{"schema_version": 1, "name": "a", "name": "b",'
                                             b' "members": []}', "doubled"), "duplicate")
+    with _scratch() as root:
+        (root / "roster.md").write_bytes(b"## 2. The roster\n\xff\n")
+        _refused(boot.RecipeError, lambda: boot.load_roster(root, "roster.md"), "utf-8")
 
 
 # --- the recipe ---------------------------------------------------------------------
@@ -258,6 +268,19 @@ def _placement_refusals() -> None:
                          (late_start, "first byte of its text")):
         refused(edit, needle)
 
+    # A source the harness cannot read is exit 2's class, not a refusal of the member.
+    for damage in ("missing", "undecodable"):
+        with _scratch() as root:
+            service = root / "tools/boot/fixture-service.s"
+            if damage == "missing":
+                service.unlink()
+            else:
+                service.write_bytes(service.read_bytes() + b"\xff\n")
+            _refused(boot.RecipeError, lambda root=root: _compose(root, FIXTURE),
+                     "fixture-service: its source tools/boot/fixture-service.s is unreadable")
+            ensure(not (root / "out" / "record.json").exists(),
+                   f"a {damage} source leaves no record")
+
 
 def _staleness() -> None:
     with _scratch() as root:
@@ -293,6 +316,41 @@ def _staleness() -> None:
         ensure(any("stale roster" in f for f in found) and any("stale image" in f for f in found),
                f"roster and image changes are both named: {found}")
         _refused(boot.RecipeError, lambda: boot.load_record(root / "nowhere"), "compose")
+        # A record some other hand truncated is refused whole, by the field it lacks.
+        for key, needle in (("recipe", "recipe"), ("members", "members"),
+                            ("inputs_differ_from_revision", "inputs_differ_from_revision"),
+                            ("image", "image")):
+            damaged = {k: v for k, v in record.items() if k != key}
+            (out / "record.json").write_text(json.dumps(damaged), encoding="utf-8")
+            _refused(boot.RecipeError, lambda: boot.load_record(out),
+                     f"unreadable boot record: {out / 'record.json'}: {needle}")
+
+
+def _roster_identity() -> None:
+    record: dict[str, object] = {"revision": "a" * 40, "inputs_differ_from_revision": False,
+                                 "image": {"path": "image.elf", "sha256": "b" * 64},
+                                 "composition_sha256": "c" * 64}
+    identity, withheld = boot.roster_identity(record)
+    ensure(withheld is None and identity == {"roster_revision": "a" * 40,
+                                             "image_sha256": "b" * 64,
+                                             "composition_sha256": "c" * 64},
+           f"a clean record at a full revision names its image: {identity}, {withheld}")
+    for edit, needle in ((("revision", ""), "not a full Git object ID"),
+                         (("revision", "a" * 12), "not a full Git object ID"),
+                         (("inputs_differ_from_revision", True), "differs from revision")):
+        identity, withheld = boot.roster_identity({**record, edit[0]: edit[1]})
+        ensure(identity is None and withheld is not None and needle in withheld,
+               f"{edit}: the identity is withheld with its reason: {withheld}")
+    produced = boot.producing_inputs(ROOT)
+    ensure(produced == ["tools/vos/asm.py", "tools/vos/image.py", "tools/vos/boot.py"],
+           f"the producing modules are bound as revision inputs: {produced}")
+    with _scratch() as root:
+        outside = boot.producing_inputs(root)
+        ensure(all(Path(p).is_absolute() for p in outside),
+               f"a module outside the root is named by its absolute path: {outside}")
+        record = _compose(root, FIXTURE)
+        ensure(record["inputs_differ_from_revision"] is True,
+               "a scratch root holds no revision, so its inputs differ from any")
 
 
 # --- the run ------------------------------------------------------------------------
@@ -345,6 +403,27 @@ def _projection() -> None:
     silent = boot.project(iter(_trace_lines()[:4]), ENTRIES, TOHOST)
     ensure(silent.events[-1] == "EXIT none" and silent.htif_exit is None,
            "no exit write is EXIT none")
+    # The step that takes an interrupt is traced as a zero word at the saved PC with its
+    # CSR writes and a `T 1` under it. Nothing is issued there, so an interrupt taken at
+    # b's entry enters nothing until b's first instruction does.
+    interrupted = ["I 0 0000000080000000 00000013",
+                   "I 1 0000000080001000 00000000", "C 342 8000000000000007",
+                   "S 31 1 0000000080001000", "T 1 7",
+                   "I 2 0000000080000100 00000013",
+                   "I 3 0000000080001000 00000013"]
+    taken = boot.project(iter(interrupted), ENTRIES, TOHOST)
+    ensure(taken.events == ["ENTER a", "TRAP", "ENTER b", "EXIT none"],
+           f"an interrupt step enters no member: {taken.events}")
+    ensure(taken.retired == 4, f"retired counts I records, the interrupt step's too: "
+           f"{taken.retired}")
+    # A zero word that was fetched and trapped synchronously was issued at its PC, so its
+    # entry stays, ahead of the trap its own step took, and so does one the run ends on.
+    illegal = boot.project(iter(["I 0 0000000080001000 00000000", "T 0 2",
+                                 "I 1 0000000080000100 00000013"]), ENTRIES, TOHOST)
+    ensure(illegal.events == ["ENTER b", "TRAP", "EXIT none"],
+           f"a synchronous trap at an entry keeps its ENTER first: {illegal.events}")
+    last = boot.project(iter(["I 0 0000000080001000 00000000"]), ENTRIES, TOHOST)
+    ensure(last.events == ["ENTER b", "EXIT none"], f"a held entry is not lost: {last.events}")
 
 
 def _observation(lines: list[str], console: bytes, *, returncode: int = 0,
@@ -367,9 +446,15 @@ def _run_findings() -> None:
             (_observation(_trace_lines(exit_value=7, verdict="FAILURE: 3 (0x3)"), b"AB"),
              "HTIF exit 3"),
             (_observation(_trace_lines()[:4], b"A"), "no HTIF exit"),
-            (_observation(_trace_lines(), b"AB", timed_out=True), "timeout")):
+            (_observation(_trace_lines(), b"AB", timed_out=True), "timeout"),
+            (_observation(_trace_lines(), b"AB", returncode=1), "process exited 1"),
+            (_observation(_trace_lines(), b"AB", returncode=-11), "killed by signal 11")):
         found = boot.run_findings(observation, RECORD)
         ensure(any(needle in f for f in found), f"{needle!r} not among {found}")
+    stopped = boot.run_findings(_observation(_trace_lines(), b"AB", returncode=-9,
+                                             timed_out=True), RECORD)
+    ensure(not any("process" in f for f in stopped),
+           f"the timeout's own kill is the timeout finding and not a second one: {stopped}")
     order: dict[str, object] = {"members": [{"id": "b", "entry": "0x80001000"},
                                             {"id": "a", "entry": "0x80000000"}]}
     ensure(boot.boot_order(clean.projection.events, order)
@@ -418,6 +503,7 @@ with open(args[args.index("--terminal-log") + 1], "wb") as console:
 time.sleep(plan.get("sleep", 0))
 for line in plan["lines"]:
     print(line, flush=True)
+sys.exit(plan.get("exit", 0))
 '''
 
 
@@ -441,6 +527,15 @@ def _fake_emulator() -> None:
         ensure(observation.console == b"AB", "the console file is read after the run")
         kept = (here / "trace.log").read_text(encoding="utf-8").splitlines()
         ensure(kept == _trace_lines(), "the kept trace is the stream, whole")
+        # SUCCESS and an HTIF exit 0 on the stream, then a nonzero exit of the process.
+        plan.write_text(json.dumps({"console": "AB", "lines": _trace_lines(), "exit": 3}),
+                        encoding="utf-8")
+        crashed = boot.boot_image(argv, console, ENTRIES, TOHOST, 60)
+        ensure(crashed.returncode == 3 and crashed.projection.verdict == "SUCCESS"
+               and crashed.projection.htif_exit == 0, "the fake exited 3 after SUCCESS")
+        ensure(boot.run_findings(crashed, RECORD)
+               == ["the emulator process exited 3, whatever its output said"],
+               f"the process's own exit is held: {boot.run_findings(crashed, RECORD)}")
         plan.write_text(json.dumps({"console": "", "lines": [], "sleep": 30}), encoding="utf-8")
         slow = boot.boot_image(argv, console, ENTRIES, TOHOST, 0.5)
         ensure(slow.timed_out and slow.wall_seconds < 20,
@@ -516,6 +611,10 @@ def _command() -> None:
         code, said = _cli(["run", FIXTURE, "--out", str(Path(temporary) / "empty")])
         ensure(code == 2 and "compose the recipe first" in said,
                f"no record is exit 2: {said}")
+        (out / "record.json").write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+        code, said = _cli(["run", FIXTURE, "--out", str(out), "--simulator", missing])
+        ensure(code == 2 and "unreadable boot record" in said and "Traceback" not in said,
+               f"a record without its fields is exit 2: {said}")
     code, said = _cli(["compose", "tools/boot/no-such-recipe.json", "--out", "unused"])
     ensure(code == 2, f"an unreadable recipe is exit 2: {said}")
 
@@ -547,6 +646,7 @@ def cases() -> list[Case]:
             Case("membership-refusals", _membership_refusals),
             Case("placement-refusals", _placement_refusals),
             Case("staleness", _staleness),
+            Case("roster-identity-and-producing-inputs", _roster_identity),
             Case("projection-and-digests", _projection),
             Case("run-findings", _run_findings),
             Case("against-expected", _against_expected),

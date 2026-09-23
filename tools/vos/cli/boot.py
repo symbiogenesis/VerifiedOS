@@ -5,15 +5,18 @@
     python tools/run.py boot compose RECIPE [--out DIR]      the image and its boot record
     python tools/run.py boot run RECIPE [--out DIR]          boot a composed image, digest it
 
-`roster` and `compose` read this checkout and answer on either lane. `run` boots the
-image a previous `compose` wrote, after re-reading every input the record binds, so it
-runs where an emulator is: `python3 tools/run.py boot run ...` inside the guest takes this
-lane's emulator, and `--simulator PATH` names another. Exit 0 is a composition or boot
-that met every check, 1 a refusal the contract names (a missing, statement-only or
-misplaced member, a stale component, a digest or boot-order mismatch, no HTIF exit), and
-2 an input the harness cannot read or an emulator it cannot find. Every report says what
-it does not establish: a fixture member is not the real producer, and no record here is
-M7.1's acceptance while the joins it lists are open. The rules are
+`roster` reads this checkout and answers on either lane. `compose` and `run` are the
+guest's: `run.py` re-launches them in WSL from the host, so the record `compose` writes
+under the lane's guest output and the emulator `run` boots it on are in one place.
+`run` boots the image a previous `compose` wrote, after re-reading every input the
+record binds; it takes this lane's emulator, and `--simulator PATH` names another.
+Exit 0 is a composition or boot that met every check, 1 a refusal the contract names (a
+missing, statement-only or misplaced member, a stale component, a digest or boot-order
+mismatch, no HTIF exit, an emulator that did not exit 0), and 2 an input the harness
+cannot read, an output it cannot write, a missing or malformed boot record, or an
+emulator it cannot find or start. Every report says what it does not establish: a
+fixture member is not the real producer, and no record here is M7.1's acceptance while
+the joins it lists are open. The rules are
 [the roster and boot-recipe contract](../../../docs/implementation/contracts/boot-roster.md)'s.
 """
 
@@ -69,7 +72,7 @@ def cmd_compose(args: argparse.Namespace) -> int:
         recipe = boot.load_recipe(root, args.recipe)
         out = _out(recipe.name, args.out)
         record = boot.compose(root, recipe, out)
-    except boot.RecipeError as exc:
+    except (boot.RecipeError, OSError) as exc:
         print(f"FAIL boot compose: {exc}")
         return 2
     except boot.RefusalError as exc:
@@ -105,7 +108,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                   f"not {recipe.path}")
             return 1
         findings = boot.stale(root, record, out)
-    except boot.RecipeError as exc:
+    except (boot.RecipeError, OSError) as exc:
         print(f"FAIL boot run: {exc}")
         return 2
     if findings:
@@ -120,7 +123,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"FAIL boot run: no golden emulator {where}; run it in the guest after "
               f"`python tools/run.py model build`, or pass --simulator PATH")
         return 2
+    try:
+        return _boot(args, root, recipe, record, out, simulator)
+    except OSError as exc:
+        print(f"FAIL boot run: {exc}")
+        return 2
 
+
+def _boot(args: argparse.Namespace, root: Path, recipe: boot.Recipe, record: dict[str, object],
+          out: Path, simulator: Path) -> int:
     console_path = out / "console.log"
     image_sha = cast("dict[str, str]", record["image"])["sha256"]
     argv = [str(simulator), "--config", str(root / recipe.configuration), "--trace-commit",
@@ -146,6 +157,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         findings += boot.against_expected(observation, image_sha, recipe.expected)
 
+    identity, withheld = boot.roster_identity(record)
     result: dict[str, object] = {
         "schema_version": boot.SCHEMA_VERSION,
         "record_sha256": boot.digest_file(out / "record.json"),
@@ -158,9 +170,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         "htif_exit": projection.htif_exit,
         **boot.expected_block(observation, image_sha),
         "records": projection.records,
-        "roster_identity": {"roster_revision": record["revision"],
-                            "image_sha256": image_sha,
-                            "composition_sha256": record["composition_sha256"]},
+        "roster_identity": identity,
+        "roster_identity_withheld": withheld,
         "findings": findings,
         "scope": SCOPE,
     }
@@ -169,10 +180,12 @@ def cmd_run(args: argparse.Namespace) -> int:
     print(f"{'FAIL' if findings else 'ok'} boot run: {recipe.name}, HTIF exit "
           f"{'none' if projection.htif_exit is None else projection.htif_exit}, "
           f"{len(projection.events)} events {projection.event_sha256}, console "
-          f"{observation.console_sha256}, {projection.retired} retired instructions, commit "
+          f"{observation.console_sha256}, {projection.retired} I records, commit "
           f"trace {projection.trace_digest}, {observation.wall_seconds:.2f} s")
     for finding in findings:
         print(f"  {finding}")
+    if withheld is not None:
+        print(f"  roster identity withheld: {withheld}")
     if refreshed is not None:
         print(f"REFRESH {recipe.path} expected digests {'rewritten' if refreshed else 'unchanged'}")
     print(f"  wrote {out / 'run.json'}; {SCOPE}")

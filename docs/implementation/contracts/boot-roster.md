@@ -18,44 +18,52 @@ the main die is M3.5's harness, not this one.
 
 ## 1. Order and scope
 
-The chain is RoT, then verified M-mode firmware, then the kernel, then the static image
-(R-09-002). The ROM's one sequence places the verified M-mode image and releases the boot
-core into the measured chain (R-09-006). The kernel's first partition is the supervision
-tree, which brings up the remaining members in its manifest's start order, as the plan's
-init-system section states. The roster below follows that order: `rot` runs on the RoT's
-own composition, and the `image` members are ranked in the order they are first entered on
-the main die.
+The chain is RoT, then verified M-mode firmware, then the per-core kernels, then the static
+image (R-09-002). M4.4's ruling in the checklist makes M8a single-instance bring-up on the
+emulator's one hart, so this roster carries one `kernel`. The ROM's one sequence places the
+verified M-mode image and releases the boot core into the measured chain (R-09-006). The
+kernel's first partition is the supervision tree, which brings up the remaining members in
+its manifest's start order, as the plan's init-system section states. The roster below
+follows that order: `rot` runs on the RoT's own composition, and the `image` members are
+ranked in the order they are first entered on the main die.
 
 The M8a roster is narrower than the component list [AdmissionPath.v](../../../proofs/AdmissionPath.v)
 names as `golden_roster`. That list carries the object system and its update transactor,
 which M5.4 defers past the M8a gate; the boot path keeps only its runtime read-verify half,
 which is M5.3's system-integrity instance (R-10-001). It does not carry the copy-based
-service, which M6.5 puts on the boot path. Executable admission is taken over this roster.
+service, which M6.5 puts on the boot path. Its `crypto_core` is a package of its own, and
+this roster keeps it as an image member (section 2). Executable admission is taken over
+this roster.
+
+The plan's init-system section has the supervisor read its configuration generation from
+the object system, which M5.4 defers past the M8a gate. Where the M8a supervisor's manifest
+comes from is therefore open, and the executable supervisor's package owes it.
 
 ## 2. The roster
 
 | Member | Kind | Rank | Status | Executable owner | Reference | Entry and handoff |
 | --- | --- | --- | --- | --- | --- | --- |
-| `rot-firmware` | `rot` | n/a | `statement-only` | M3.5 | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); measures `mmode-firmware` and releases the main die through M3.5's harness |
+| `rot-firmware` | `rot` | n/a | `statement-only` | M3.5 for the firmware; its boot verifier's executable crypto has no priced producer (below) | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v), [Keccak.v](../../../proofs/Keccak.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); its ROM stage verifies `mmode-firmware` with SLH-DSA over SHAKE256 as the RoT's own integer code (R-09-005a, R-15-059), measures it and releases the main die through M3.5's harness |
 | `mmode-firmware` | `image` | 1 | `statement-only` | M3.5 | [MModeFirmware.v](../../../proofs/MModeFirmware.v) | the image entry, reached with the reset root pair; enters `kernel` through [the selected scalar handoff](purecap-abi.md#7-the-kernel-entry-interface) |
-| `crypto-core` | `linked` | n/a | `statement-only` | M3.5 for the boot verifier's operations; M5.3d for storage authentication | [Keccak.v](../../../proofs/Keccak.v), [Sha256.v](../../../proofs/Sha256.v), [AesGcm.v](../../../proofs/AesGcm.v), [MlDsa.v](../../../proofs/MlDsa.v) | no entry of its own; linked into the members that call it |
 | `kernel` | `image` | 2 | `statement-only` | M4.4 | [KernelInstance.v](../../../proofs/KernelInstance.v), [PartitionContext.v](../../../proofs/PartitionContext.v), [CyclicExecutive.v](../../../proofs/CyclicExecutive.v) | entered from `mmode-firmware` by the handoff's no-link sentry jump; dispatches `supervisor` as its first partition by `mret` |
-| `supervisor` | `image` | 3 | `statement-only` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `storage` and `copy-service` in its manifest's start order |
-| `storage` | `image` | 4 | `statement-only` | M5.3d | [ExecutableIndex.v](../../../proofs/ExecutableIndex.v), [JournalIndex.v](../../../proofs/JournalIndex.v), [StorageRecovery.v](../../../proofs/StorageRecovery.v) | started by `supervisor`; one index body at the system-integrity and user-data instantiations over the modeled block device |
-| `copy-service` | `image` | 5 | `statement-only` | M7.1 | [CopyRingService.v](../../../proofs/CopyRingService.v), [RingContract.v](../../../proofs/RingContract.v) | started by `supervisor`; serves one ring of the reference world in [the ring declaration](../../../interfaces/ring-reference.json) |
+| `supervisor` | `image` | 3 | `statement-only` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `crypto-core`, `storage` and `copy-service` in its manifest's start order |
+| `crypto-core` | `image` | 4 | `statement-only` | M5.3d for the seal/open and keyed-digest operations storage invokes | [Keccak.v](../../../proofs/Keccak.v), [Sha256.v](../../../proofs/Sha256.v), [AesGcm.v](../../../proofs/AesGcm.v), [MlDsa.v](../../../proofs/MlDsa.v) | started by `supervisor` before `storage`; holds the volume keys and serves storage's seal/open and keyed-digest calls through its entry, no key material crossing to the caller (R-10-022, R-10-012, R-10-023) |
+| `storage` | `image` | 5 | `statement-only` | M5.3d | [ExecutableIndex.v](../../../proofs/ExecutableIndex.v), [JournalIndex.v](../../../proofs/JournalIndex.v), [StorageRecovery.v](../../../proofs/StorageRecovery.v) | started by `supervisor`; one index body at the system-integrity and user-data instantiations over the modeled block device, calling `crypto-core` for seal/open over ciphertext extents and tags |
+| `copy-service` | `image` | 6 | `statement-only` | M7.1 | [CopyRingService.v](../../../proofs/CopyRingService.v), [RingContract.v](../../../proofs/RingContract.v) | started by `supervisor`; serves one ring of the reference world in [the ring declaration](../../../interfaces/ring-reference.json) |
 | `composer` | `offline` | n/a | `statement-only` | M7.1 | [HandlerGraph.v](../../../proofs/HandlerGraph.v) | runs at composition over the roster; emits the typed handler graph the image carries |
 | `admission` | `offline` | n/a | `statement-only` | M7.1 | [AdmissionPath.v](../../../proofs/AdmissionPath.v) | runs at composition over the composed roster; emits the admission record bound to the image digest |
 
 **The columns are closed vocabularies**, and the harness refuses a row it cannot read
 whole. *Kind* is `rot` for a member running on the RoT's own composition, `image` for a
-member composed into the main-die image and entered, `linked` for code with no entry of
-its own, and `offline` for an act at composition that emits a record rather than code.
-*Rank* is the order of first entry and is carried by `image` members only. *Status* is
-`executable` where an executable product exists that a recipe can compose, `partial`
-where part of one exists, `statement-only` where the member exists only as a Gallina
-statement, and `fixture` in a fixture roster alone. A
-`partial` or `statement-only` member blocks acceptance, and a recipe that names one is
-refused with its owner.
+member composed into the main-die image and entered, and `offline` for an act at
+composition that emits a record rather than code. No kind exists for code linked into the
+members that call it: a service its consumers call is one shared compartment rather than a
+library linked into each (R-13-010b). *Rank* is the order of first entry and is carried by
+`image` members only. *Status* is `executable` where an executable product exists that a
+recipe can compose, `partial` where part of one exists, `statement-only` where the member
+exists only as a Gallina statement, and `fixture` in a fixture roster alone. A `partial` or
+`statement-only` member blocks acceptance, and a recipe that names one is refused with its
+owner.
 
 **Every member is `statement-only` at this contract's revision.** The Gallina references
 are compiled statements, and none is a target executable. The tracked Fiat-Crypto
@@ -64,10 +72,30 @@ and the RoT peripherals are executable Sail devices, which the members use and w
 not roster members. A status moves to `executable` in the same edit that adds the
 member's product to a recipe, on the owner's landed evidence.
 
+**The crypto core is a compartment of the image, never code linked into its callers.**
+R-10-022's acceptance has the filesystem compartment invoke seal/open over ciphertext
+extents and tags and never hold raw key material; R-10-012 and R-12-014 keep keys resident
+only in the crypto core; R-10-023 names the interface to it; and AdmissionPath.v admits
+`crypto_core` as a package of its own. Linking it into `storage` would put the volume keys
+in the storage compartment. At M8a it serves storage alone, and M5.3d, which owns storage's
+executable crypto, owns its product; the sealing and attestation service of R-12-014 is not
+on this roster. Whether a later composition gives it hardware of its own, which the
+specification's prose beside R-15-013 names as a disjoint failure domain, is not decided
+here.
+
+**The boot verifier's executable crypto has no priced producer.** The ROM stage verifies
+with SLH-DSA over SHAKE256 as the RoT's own scalar integer code (R-09-005a, R-15-059), and
+[RomVerifier.v](../../../proofs/RomVerifier.v) states what that verifier needs without
+authoring a scheme. ML-DSA verifies the replaceable stages above the ROM (R-09-002). M3.5
+identifies those calls and consumes them as a join rather than owning their
+implementation, and M3.4's closing note has M3.5 assign them; no checklist item owns them
+yet. The `rot-firmware` row therefore names that gap in its owner cell rather than an owner.
+
 **The executable owner of each statement-only userland member is M7.1**: M6.1a's
 supervisor, M6.2a's composition-time admission, M6.3a's package composer and M6.5a's
-copy-based service. M6.2b's on-device CIC checker is not a roster member, R-06-014 making
-the checkers the admitters no admission certificate covers.
+copy-based service. M6.2b's on-device CIC checker is not a roster member: M7.1's own
+acceptance keeps that deferred checker outside this roster, and R-06-014 makes the checkers
+the admitters no admission certificate covers.
 
 ## 3. Entry and handoff
 
@@ -89,9 +117,13 @@ none is realized by a fixture:
   contexts and schedule the initialization descriptor names ([the single-instance
   contract](service-authoring.md#2-single-kernel-instance)). M4.4 owns it.
 - `supervisor` to the services is the start order the composition's manifest fixes, stated
-  as a precedence over the manifest's edges in SupervisionTree.v. The ranks of `storage`
-  and `copy-service` in section 2 are that start order for this roster; a composition whose
-  manifest starts them otherwise changes the ranks in the same edit.
+  as a precedence over the manifest's edges in SupervisionTree.v. The ranks of
+  `crypto-core`, `storage` and `copy-service` in section 2 are that start order for this
+  roster, the crypto core first because storage calls it; a composition whose manifest
+  starts them otherwise changes the ranks in the same edit.
+- `storage` to `crypto-core` is a call through the crypto core's entry for seal/open and the
+  keyed digest, over ciphertext extents and tags, with no key material crossing it
+  (R-10-022, R-10-023). M5.3d owns both sides.
 
 ## 4. The image recipe
 
@@ -140,14 +172,17 @@ member extents and entries, and `record.json` last. The record carries the recip
 declaration digest, the SHA-256 of the roster, the configuration, every member's source
 and the image, the canonical digest of the composition (configuration digest, tohost and
 the placed members), the revision, and whether any input differs from that revision's
-bytes. It lists the joins that keep the composition unaccepted.
+bytes. The inputs that comparison reads include the modules that produce the image's bytes,
+[asm.py](../../../tools/vos/asm.py), [image.py](../../../tools/vos/image.py) and the harness
+itself, because a locally modified producer composes a different image from the same
+recipe. The record lists the joins that keep the composition unaccepted.
 
 The declaration digest is taken over the recipe with its `expected` block removed, in
 canonical JSON, because refreshing a measurement changes nothing the composition reads.
 
-`boot run` re-reads every binding before anything runs. A source, recipe declaration,
-roster, configuration or image whose bytes no longer match is refused as a stale input,
-by name.
+`boot run` reads the whole record first and refuses one lacking a field it reads. It then
+re-reads every binding before anything runs. A source, recipe declaration, roster,
+configuration or image whose bytes no longer match is refused as a stale input, by name.
 
 ## 6. The run, the event log and the digests
 
@@ -163,7 +198,7 @@ SHA-256 of the log's bytes.** It is a projection of [the commit trace](../../ass
 
 | Event | Taken from |
 | --- | --- |
-| `ENTER <member>` | an `I` record whose `pc` is a member's entry |
+| `ENTER <member>` | an `I` record whose `pc` is a member's entry, except the zero-word record of a step that takes an interrupt |
 | `TRAP` | every `T` record, without its cause |
 | `HTIF <offset> <width> <value>` | every `W` record inside the tohost doubleword, with the value as the trace prints it and the tag omitted |
 | `EXIT <code>` or `EXIT none` | always the last line: the payload shifted right by one of the last eight-byte tohost write with device 0 and payload bit 0 set |
@@ -171,16 +206,32 @@ SHA-256 of the log's bytes.** It is a projection of [the commit trace](../../ass
 Every field the log reads is one the RVFI packet also carries: the retired `pc`, a trap
 taken, and a memory write's address, width and data. The cause is left out because the
 packet carries a trap as a boolean ([where the two do not
-meet](../../assurance/differential-corpus.md#93-where-they-do-not)), so R3's RTL run
-computes the same log from its own trace. A four-byte write to tohost is logged and not
-decoded; members write the doubleword whole.
+meet](../../assurance/differential-corpus.md#93-where-they-do-not)). A four-byte write to
+tohost is logged and not decoded; members write the doubleword whole.
+
+**An RTL run computes the same log only under a stated trap convention.** The step that
+takes an interrupt is traced as an `I` record with a zero word at the saved PC, followed by
+its trap's records with `T 1` among them; nothing is issued there, so that record enters no
+member. This model's RVFI emitter sets `rvfi_trap` for an interrupt as for an exception
+([the RVFI callbacks](../../../model/c_emulator/riscv_callbacks_rvfi.cpp)) and no model path
+sets `rvfi_intr`. The standard packet sets `rvfi_trap` for a synchronous trap only and
+marks the first instruction of every trap handler with `rvfi_intr`
+([rvfi_dii.sail](../../../model/model/core/rvfi_dii.sail)), so counting `rvfi_trap` drops
+every interrupt. Under that convention `TRAP` is one event per packet carrying `rvfi_intr`,
+logged before that packet's own `ENTER`, which gives this log wherever every trap enters a
+handler that issues an instruction. R2's adapter owns which convention the RTL's port
+follows and the reading that goes with it. The fixture takes no interrupt, so no run yet
+shows the two logs equal across one, and R3's comparison is claimed for synchronous traps
+until one does.
 
 **The commit-trace fingerprint is the corpus's**: [trace.py](../../../tools/vos/trace.py)'s
-digest over the normalized records, with the retired-instruction count beside it. It
-checks that the golden emulator reproduces its own run; it is not a cross-executor
-comparison.
+digest over the normalized records, with the number of `I` records beside it as `retired`.
+That count is one per traced step, including a step that traps and the step that takes an
+interrupt, so it is not the architectural retire count. The fingerprint checks that the
+golden emulator reproduces its own run; it is not a cross-executor comparison.
 
-A run is refused for a timeout, a missing or nonzero HTIF exit, an emulator verdict line
+A run is refused for a timeout, an emulator process that exits nonzero or is killed by a
+signal whatever its output said, a missing or nonzero HTIF exit, an emulator verdict line
 disagreeing with the HTIF exit the trace carries, console channels that disagree, an image
 member never entered, and first entries out of rank order.
 
@@ -189,23 +240,33 @@ member never entered, and first entries out of rank order.
 `trace_digest` and `retired`. `boot run --refresh` writes it from a clean run only, and a
 refresh is a reviewed act: the reference executor's output becomes the value the rerun and
 R3 reproduce. The block names the image it was measured on, so a changed image is reported
-as an expectation to refresh and not as a digest mismatch.
+as an expectation to refresh and not as a digest mismatch. It does not name the emulator,
+so a changed emulator is reported as a mismatch.
 
-**Boot duration is reported and not decided here.** Each run records its retired
-instructions and wall time. M7.1 reads the composed boot's figures against
+**Boot duration is reported and not decided here.** Each run records its `I` record count
+and wall time. M7.1 reads the composed boot's figures against
 [S4's projected budget](../completion-log.md#s4-measure-sail-emulator-throughput-against-the-m2-gate),
 which is the measurement that could reopen M2.
 
 `run.json` carries the run's figures and `roster_identity`, whose `roster_revision`,
 `image_sha256` and `composition_sha256` are the identity [the roster measurement
-contract](roster-measurement.md#shared-capture-boundary) requires of a capture.
+contract](roster-measurement.md#shared-capture-boundary) requires of a capture. The identity
+is carried only where the record's revision is a full Git object ID and no input or
+producing module differs from that revision's bytes. Otherwise `roster_identity` is null
+and `roster_identity_withheld` says why; withholding it refuses no boot, because the
+digests are the bound bytes' either way.
 
 ## 7. Exit codes
 
 `0` is a composition or run that met every check. `1` is a refusal this contract names.
-`2` is an input the harness cannot read, a missing boot record or an emulator it cannot
-find. `boot roster` answers `0` whenever the roster reads and states the members that block
-acceptance on its verdict line.
+`2` is an input the harness cannot read (a roster, recipe, member source or boot record
+that is missing, not UTF-8 or malformed), an output it cannot write, or an emulator it
+cannot find or start. `boot roster` answers `0` whenever the roster reads and states the
+members that block acceptance on its verdict line.
+
+`boot roster` answers on either lane. `compose` and `run` run in the guest, and `run.py`
+re-launches them there from the host, so the record `compose` writes under the lane's guest
+output and the emulator `run` boots it on are in one place.
 
 ## 8. The fixture recipe
 
@@ -220,8 +281,10 @@ any real member's behaviour.
 
 ## 9. What stays open
 
-Every roster member lacks an executable product, so no recipe composes the roster. No
-admission record exists to bind. The RoT stage is not driven. The expected digests of the
+Every roster member lacks an executable product, so no recipe composes the roster. The boot
+verifier's executable crypto has no priced producer. No admission record exists to bind.
+The RoT stage is not driven. The M8a supervisor's manifest has no named source. The RVFI
+trap convention R3's comparison depends on is R2's to fix. The expected digests of the
 composed image, its boot measurement against S4's projection, and the rerun that
 reproduces them wait for the executable members. M7.2 and M7.3 read captures from a
 producer this harness does not yet supply. R3 consumes the accepted image and its console

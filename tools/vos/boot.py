@@ -19,11 +19,11 @@ The harness has three acts, and each refuses rather than guesses.
   component and nothing runs. The golden emulator then runs the image with the commit
   trace on its standard output and the HTIF console in a file of its own.
 * **Digest.** The console digest is the SHA-256 of the console bytes. The event log is a
-  projection of the commit trace onto the records the RVFI packet also carries, so an
-  RTL run can compute the same log: `ENTER` at a member's entry, `TRAP` at every trap,
-  `HTIF` at every write to the tohost doubleword, and one closing `EXIT`. Its digest is
-  the SHA-256 of that log. A run is held against the recipe's expected digests and
-  against the roster's boot order.
+  projection of the commit trace onto fields the RVFI packet also carries: `ENTER` at a
+  member's entry, `TRAP` at every trap, `HTIF` at every write to the tohost doubleword,
+  and one closing `EXIT`. Its digest is the SHA-256 of that log. The contract states the
+  condition under which an RTL run computes the same log. A run is held against the
+  recipe's expected digests and against the roster's boot order.
 
 What none of this establishes is stated with it: a fixture member is not the real
 producer, the image composer here is not M6.3a's package composer, an absent admission
@@ -55,9 +55,10 @@ ROSTER_HEADER: Final[tuple[str, ...]] = (
     "Member", "Kind", "Rank", "Status", "Executable owner", "Reference", "Entry and handoff")
 
 # The contract's closed vocabularies. `image` members are composed into the main-die
-# image and entered; `rot` runs on the RoT's own instance; `linked` has no entry of its
-# own; `offline` runs at composition and emits a record rather than code.
-KINDS: Final[tuple[str, ...]] = ("rot", "image", "linked", "offline")
+# image and entered; `rot` runs on the RoT's own instance; `offline` runs at composition
+# and emits a record rather than code. There is no kind for code linked into its callers:
+# a service its consumers call is a compartment of its own (R-13-010b).
+KINDS: Final[tuple[str, ...]] = ("rot", "image", "offline")
 STATUSES: Final[tuple[str, ...]] = ("executable", "partial", "statement-only", "fixture")
 # The statuses that leave a member without a product this harness can compose or run.
 NOT_EXECUTABLE: Final[frozenset[str]] = frozenset({"partial", "statement-only"})
@@ -261,7 +262,11 @@ def load_roster(root: Path, relative: str) -> Roster:
     except OSError as exc:
         raise RecipeError(f"{relative}: {exc}") from None
     if relative.endswith(".md"):
-        return parse_contract_roster(data.decode("utf-8"), relative)
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise RecipeError(f"{relative}: {exc}") from None
+        return parse_contract_roster(text, relative)
     return parse_json_roster(data, relative)
 
 
@@ -524,12 +529,16 @@ def _place(root: Path, recipe: Recipe, roster: Roster) -> list[Placed]:
             if target == member.id:
                 raise RefusalError(f"{member.id} imports {name} from itself")
             resolved[name] = entries[target]
+        # An unreadable or undecodable source is an input the harness cannot read (exit 2),
+        # not a refusal of a well-formed member.
         source = root / member.source
         try:
             data = source.read_bytes()
-        except OSError as exc:
-            raise RefusalError(f"{member.id}: its source {member.source} is unreadable ({exc})") from None
-        unit = asm.Assembler(data.decode("utf-8"), member.source, text_base=member.text_base,
+            text = data.decode("utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise RecipeError(f"{member.id}: its source {member.source} is unreadable "
+                              f"({exc})") from None
+        unit = asm.Assembler(text, member.source, text_base=member.text_base,
                              data_base=member.data_base, externals=resolved)
         try:
             sections, symbols, entry = unit.assemble()
@@ -586,6 +595,23 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
     except OSError:
         return 1, ""
     return done.returncode, done.stdout.strip()
+
+
+def producing_inputs(root: Path) -> list[str]:
+    """The modules that turn a recipe's inputs into the image's bytes, as input paths.
+
+    A locally modified assembler, image writer or placement composes a different image
+    from the same recipe, so the revision names an image only where these are that
+    revision's bytes too. A module outside `root` is named by its absolute path, which
+    `_differs_from_revision` reads as an input the revision does not hold.
+    """
+    resolved = root.resolve()
+    out: list[str] = []
+    for module_file in (asm.__file__, image.__file__, __file__):
+        path = Path(module_file).resolve()
+        out.append(path.relative_to(resolved).as_posix() if path.is_relative_to(resolved)
+                   else str(path))
+    return out
 
 
 def _differs_from_revision(root: Path, inputs: list[str]) -> bool:
@@ -655,7 +681,8 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
         open_joins.append(f"fixture members stand in for real producers: {', '.join(fixture)}")
     open_joins.append("the RoT's release of the main die is driven by M3.5's harness, "
                       "not by this one")
-    inputs = [recipe.path, recipe.roster, recipe.configuration] + [m.source for m in recipe.members]
+    inputs = ([recipe.path, recipe.roster, recipe.configuration]
+              + [m.source for m in recipe.members] + producing_inputs(root))
     _, revision = _git(root, "rev-parse", "HEAD")
     record: dict[str, object] = {
         "schema_version": SCHEMA_VERSION,
@@ -690,7 +717,52 @@ def load_record(out: Path) -> dict[str, object]:
     record = cast("dict[str, object]", raw)
     if record.get("schema_version") != SCHEMA_VERSION:
         raise RecipeError(f"{path}: schema_version must be {SCHEMA_VERSION}")
+    _record_shape(record, str(path))
     return record
+
+
+def _bound_file(value: object, where: str, digest_key: str = "sha256") -> None:
+    if not isinstance(value, dict):
+        raise RecipeError(f"{where}: expected an object")
+    block = cast("dict[str, object]", value)
+    _text(block.get("path"), f"{where}/path")
+    _hex_digest(block.get(digest_key), f"{where}/{digest_key}", _SHA256_RE)
+
+
+def _record_shape(record: dict[str, object], where: str) -> None:
+    """Every field `stale`, `boot run` and the roster identity read, before any is read.
+
+    A record is written by `compose` and read back here; a record some other hand wrote
+    or truncated is an input the harness cannot read, and is refused whole rather than
+    failing on the first field a later step happens to reach.
+    """
+    try:
+        _record_fields(record, where)
+    except RecipeError as exc:
+        raise RecipeError(f"unreadable boot record: {exc}") from None
+
+
+def _record_fields(record: dict[str, object], where: str) -> None:
+    _bound_file(record.get("recipe"), f"{where}: recipe", "declaration_sha256")
+    for key in ("roster", "configuration", "image"):
+        _bound_file(record.get(key), f"{where}: {key}")
+    if not isinstance(record.get("revision"), str):
+        raise RecipeError(f"{where}: revision: expected a string")
+    if not isinstance(record.get("inputs_differ_from_revision"), bool):
+        raise RecipeError(f"{where}: inputs_differ_from_revision: expected a boolean")
+    _address(record.get("tohost"), f"{where}: tohost")
+    _hex_digest(record.get("composition_sha256"), f"{where}: composition_sha256", _SHA256_RE)
+    members = record.get("members")
+    if not isinstance(members, list) or not members:
+        raise RecipeError(f"{where}: members: expected a nonempty list")
+    for index, member in enumerate(cast("list[object]", members)):
+        here = f"{where}: members[{index}]"
+        if not isinstance(member, dict):
+            raise RecipeError(f"{here}: expected an object")
+        row = cast("dict[str, object]", member)
+        _text(row.get("id"), f"{here}/id")
+        _address(row.get("entry"), f"{here}/entry")
+        _bound_file(row.get("source"), f"{here}/source")
 
 
 # --- staleness --------------------------------------------------------------------
@@ -762,6 +834,13 @@ def project(lines: Iterable[str], entries: dict[int, str], tohost: int) -> Proje
     module's `digest` over the same records, so a boot and a corpus member are
     fingerprinted by one definition. Of the other lines only the emulator's own verdict
     is kept, as the second channel the HTIF reading is held against.
+
+    `retired` counts `I` records, one per traced step, which includes a step that traps
+    and the step that takes an interrupt. That step is traced as an `I` record with a zero
+    word at the saved PC and a `T 1` record under it (the reading
+    [test_trap_boundary.py](../tests/test_trap_boundary.py) already makes); nothing is
+    issued at that PC, so it enters no member, and its `ENTER` is held until the step's
+    own records say whether it was one.
     """
     events: list[str] = []
     running = hashlib.sha256()
@@ -769,6 +848,7 @@ def project(lines: Iterable[str], entries: dict[int, str], tohost: int) -> Proje
     verdict: str | None = None
     htif_exit: int | None = None
     console = bytearray()
+    held: tuple[int, str] | None = None
     for raw in lines:
         line = raw.rstrip("\n").rstrip()
         if not trace.COMMIT_RE.match(line):
@@ -779,12 +859,22 @@ def project(lines: Iterable[str], entries: dict[int, str], tohost: int) -> Proje
         running.update((("\n" if records else "") + record).encode())
         records += 1
         kind = record[0]
+        if kind == "I" and held is not None:
+            # The previous step issued at its PC after all: its entry goes where it was
+            # held, ahead of the events its own records added.
+            events.insert(held[0], held[1])
+            held = None
         if kind == "I":
             retired += 1
             pc = int(record[2:18], 16)
             if pc in entries:
-                events.append(f"ENTER {entries[pc]}")
+                if record.endswith(" 00000000"):
+                    held = (len(events), f"ENTER {entries[pc]}")
+                else:
+                    events.append(f"ENTER {entries[pc]}")
         elif kind == "T":
+            if record.startswith("T 1 "):
+                held = None
             events.append("TRAP")
         elif kind == "W":
             _, address_hex, width_text, _, value_hex = record.split()
@@ -798,6 +888,8 @@ def project(lines: Iterable[str], entries: dict[int, str], tohost: int) -> Proje
                         console.append(payload & 0xFF)
                     elif device == 0 and payload & 1:
                         htif_exit = payload >> 1
+    if held is not None:
+        events.insert(held[0], held[1])
     events.append(f"EXIT {'none' if htif_exit is None else htif_exit}")
     return Projection(events, records, retired, running.hexdigest()[:16], verdict, htif_exit,
                       bytes(console))
@@ -897,6 +989,13 @@ def run_findings(observation: Observation, record: dict[str, object]) -> list[st
     findings: list[str] = []
     if observation.timed_out:
         findings.append("the run was stopped at the timeout before it reported")
+    elif observation.returncode != 0:
+        # A clean boot ends with the emulator's own exit 0 (riscv_sim.cpp exits 0 only
+        # after SUCCESS and without a model exception); a crash in teardown or a kill
+        # after a SUCCESS line and an HTIF exit 0 is still not a clean boot.
+        how = (f"was killed by signal {-observation.returncode}" if observation.returncode < 0
+               else f"exited {observation.returncode}")
+        findings.append(f"the emulator process {how}, whatever its output said")
     if projection.htif_exit is None:
         findings.append(f"no HTIF exit was written (emulator exit {observation.returncode})")
     elif projection.htif_exit != 0:
@@ -910,6 +1009,28 @@ def run_findings(observation: Observation, record: dict[str, object]) -> list[st
                         f"trace's HTIF writes carry {len(projection.console)} different ones")
     findings += boot_order(projection.events, record)
     return findings
+
+
+_REVISION_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
+
+
+def roster_identity(record: dict[str, object]) -> tuple[dict[str, object] | None, str | None]:
+    """The identity roster-measurement.md's capture boundary requires, or why not.
+
+    That contract's revision is a full Git object ID, and it names the image only where
+    every input and producing module is the revision's own bytes; otherwise the identity
+    is withheld with its reason rather than carried with a revision that does not name
+    this image. Withholding it refuses no boot: the digests are the bound bytes' either way.
+    """
+    revision = record["revision"]
+    if not isinstance(revision, str) or not _REVISION_RE.fullmatch(revision):
+        return None, f"the record's revision {revision!r} is not a full Git object ID"
+    if record["inputs_differ_from_revision"] is not False:
+        return None, (f"an input or producing module differs from revision {revision}'s "
+                      f"bytes, so the revision does not name this image")
+    return {"roster_revision": revision,
+            "image_sha256": cast("dict[str, str]", record["image"])["sha256"],
+            "composition_sha256": record["composition_sha256"]}, None
 
 
 def against_expected(observation: Observation, image_sha256: str,

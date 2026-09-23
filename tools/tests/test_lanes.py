@@ -143,6 +143,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-planner", "resources"): lambda _: [],
     ("memory-planner", "resource-proof"): lambda _: [],
     ("memory-certificates", "encode"): _memory_encoding,
+    ("boot", "roster"): lambda _: [],
 }
 
 
