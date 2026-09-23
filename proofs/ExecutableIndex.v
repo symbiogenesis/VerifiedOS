@@ -182,9 +182,11 @@
    refusals, which are an arena whose declared capacity is spent, an address
    outside the arena, a reference past the walk bound, and a cycle among
    whole addressable nodes. The last is the case block completeness alone
-   cannot decide, which is what the bounded walk is for. Beside them: an
-   admitted input with two equal separators on which the write answers and
-   the check refuses, which is why completeness is stated over `well_formed`;
+   cannot decide, which is what the bounded walk is for. Beside them: the
+   occupancy walk refusing the address outside the arena and the reference
+   past the walk bound as the structural walk does; an admitted input with
+   two equal separators on which the write answers and the check refuses,
+   which is why completeness is stated over `well_formed`;
    the three demo inserts published by the gate unchanged; the gate's three
    refusals, of the skewed tree's insert, of a root split past a one-level
    ceiling and of a walk bound past the declared depth, with a gated write
@@ -4245,6 +4247,15 @@ Example the_refusals_compute :
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))).
 
+(* The occupancy walk refuses what the structural walk refuses: an address
+   outside the arena and a branch the walk bound does not reach both decide
+   false, so `node_fits_everywhere` holding of a tree is never a walk that
+   stopped short. *)
+Example the_occupancy_walk_refuses_what_the_structural_walk_refuses :
+  node_fits_everywhere nat_keys demo_geometry demo_arena 1 9 = false
+  /\ node_fits_everywhere nat_keys demo_geometry demo_arena 0 2 = false :=
+  conj eq_refl eq_refl.
+
 (* Whether an operation answered at all, so that a witness can state that a
    write was published without spelling out the arena it published. *)
 Definition answers {A : Type} (o : option A) : bool :=
@@ -4284,10 +4295,12 @@ Example an_admitted_input_the_check_refuses :
   /\ answers (insert nat_keys dup_geometry dup_arena 1 3 9 90) = true
   /\ insert_checked nat_keys dup_geometry dup_arena 1 None None 3 9 90 = None
   /\ insert_root nat_keys dup_geometry dup_arena 1 None None 3 9 90 = None
+  /\ answers (insert_root nat_keys dup_geometry dup_arena 1 None None 3 9 90)
+     = false
   /\ answers (insert_root nat_keys dup_geometry dup_arena 1 None None 3 3 30)
      = true :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
-    (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))))))).
+    (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))).
 
 (* The demo tree is well formed and published, and the three inserts the
    probes above make are published by the gate exactly as `insert_root`
@@ -4435,6 +4448,7 @@ Print Assumptions the_inserts_keep_the_leaves_at_one_depth.
 Print Assumptions a_skewed_tree_is_admitted_and_fits_yet_shares_no_leaf_depth.
 Print Assumptions an_insert_does_not_repair_a_skewed_tree.
 Print Assumptions the_refusals_compute.
+Print Assumptions the_occupancy_walk_refuses_what_the_structural_walk_refuses.
 Print Assumptions above_strict.
 Print Assumptions strictly_within.
 Print Assumptions rising_strict.
