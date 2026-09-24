@@ -7,8 +7,8 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import toolenv
 from vos import supervisor as s
+from vos import toolenv
 
 
 def generated_domains_are_nonempty() -> None:
