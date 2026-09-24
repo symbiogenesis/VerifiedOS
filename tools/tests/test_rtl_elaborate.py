@@ -129,6 +129,14 @@ def _empty_table_composes_the_manifest_alone() -> None:
            f"against {len(with_sub.lines)}")
 
 
+def _assertion_macros_precede_both_arms() -> None:
+    with sandbox_tree(_TREE) as root:
+        for files in (_compose(root), _compose(root, _SRAM)):
+            header = str(root / "upstream/opentitan/hw/ip/prim/rtl/prim_assert.sv")
+            ensure(files.lines[0] == header and files.lines.count(header) == 1,
+                   "both arms need the upstream assertion definitions before any source")
+
+
 def _unmatched_declaration_is_a_refusal() -> None:
     absent = rtl.Substitution(imported=("core/nowhere.sv",),
                               authored="rtl/vos_sram.sv")
@@ -554,6 +562,8 @@ def cases() -> list[Case]:
              _configuration_and_unreached_still_apply),
         Case("empty-table-composes-the-manifest-alone",
              _empty_table_composes_the_manifest_alone),
+        Case("assertion-macros-precede-both-arms",
+             _assertion_macros_precede_both_arms),
         Case("unmatched-declaration-is-a-refusal",
              _unmatched_declaration_is_a_refusal),
         Case("partly-matched-declaration-is-a-refusal",

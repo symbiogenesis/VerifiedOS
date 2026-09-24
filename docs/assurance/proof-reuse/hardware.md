@@ -247,8 +247,8 @@ Correctness for the CHERIoT-Ibex Processor*](https://arxiv.org/abs/2502.04738),
 2025. The paper describes unbounded SVA proof using Jasper, memory-trace
 equivalence, a compressed-capability data-type invariant and bounded-response
 premises for liveness. At the project's pin
-`930feb298af5bf7d9aa0baeaa21732ff84a2f066`,
-[dv/formal/README.md](https://github.com/microsoft/cheriot-ibex/blob/930feb298af5bf7d9aa0baeaa21732ff84a2f066/dv/formal/README.md)
+`531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241`,
+[dv/formal/README.md](https://github.com/microsoft/cheriot-ibex/blob/531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241/dv/formal/README.md)
 instead says there is currently no liveness and exposes `prove_no_liveness`.
 It excludes stack zeroing and reservation/revocation. This discrepancy needs
 resolution before claiming the pinned artifact replays the paper's whole result.
@@ -256,7 +256,7 @@ resolution before claiming the pinned artifact replays the paper's whole result.
 **Reuse:** the closest concrete CHERI RTL-to-Sail methodology for R1/R2 and
 CJ-RTL-SAIL. It needs the lowRISC Sail fork, `psgen`, Nix and JasperGold, with
 reset and clock-gating configuration changes. The
-[Apache-2.0 LICENSE](https://github.com/microsoft/cheriot-ibex/blob/930feb298af5bf7d9aa0baeaa21732ff84a2f066/LICENSE)
+[Apache-2.0 LICENSE](https://github.com/microsoft/cheriot-ibex/blob/531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241/LICENSE)
 permits source reuse with its notices. RV32 CHERIoT, its modified specification,
 microarchitecture-specific invariants and unchecked Sail-to-SV translation
 do not discharge the frozen RV64 CVA6 theorem or its Rocq proof endpoint.
@@ -333,14 +333,14 @@ and possible separately contained library use need an explicit future choice.
 **Standing: established hardware project proof suite.** The lowRISC
 contributors' [SECDED generator documentation](https://opentitan.org/book/util/design/index.html)
 describes generated RTL, assertions and formal targets. At local upstream pin
-`629146ef`,
-[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/629146ef/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
+`fbedb68e`,
+[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/fbedb68e/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
 contains `SingleErrorCorrect_A`, single/double detection and syndrome properties,
 under `MaxTwoErrors_M`, which assumes at most two injected errors.
-[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/629146ef/util/design/secded_gen.py)
+[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/fbedb68e/util/design/secded_gen.py)
 generates the assertion family. Both file headers name Apache-2.0 and lowRISC
 contributors, under the root
-[LICENSE](https://github.com/lowRISC/opentitan/blob/629146ef/LICENSE).
+[LICENSE](https://github.com/lowRISC/opentitan/blob/fbedb68e/LICENSE).
 
 **Reuse:** nearest permissible verification-IP template for the data-code half
 of R-15-175/R-15-179/R-15-181a. The inspected instance is 39/32, not the local

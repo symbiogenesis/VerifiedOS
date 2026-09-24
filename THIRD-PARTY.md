@@ -88,6 +88,26 @@ The Git index contains a gitlink for each component below, with no source files 
 
 Dependency updates resolve the development branches in [.gitmodules](.gitmodules) to fixed commits and review the licenses at changed pins. Nested submodules retain the revisions selected by their parent upstream. Historical measurements identify the editions actually built.
 
+The development-branch review on 2026-09-24 re-read the changed pins' own license
+instruments: Sail's `LICENCE`, LLVM's `LICENSE.TXT`, Rupicola and Katamaran's
+`LICENSE`, the hardware roots' `LICENSE` files, and Mocha's two `REUSE.toml`
+manifests and `LICENSES/Apache-2.0.txt`. Their grants and the uses in the table
+remain as recorded. Reference updates do not change the locked Sail/Rocq
+toolchains or released lowering packages. The imported core retains its nested
+dependency revisions; baseline and curated elaboration check its structural
+integration. The upstream assertion header selects dummy macros under Verilator,
+so this elaboration supplies no assertion proof. OpenTitan's consumed assertion
+headers and three primitive packages
+and Mocha's UART register and status owners are byte-identical to the preceding
+readings.
+
+Fiat-Crypto retains the edition used to generate the incorporated field headers.
+The reviewed development tip requires Rocq 9.2 and changes proofs and nested
+dependencies; no fix to the consumed field outputs was identified. Advancing it
+requires a separate isolated generator build, repeated emissions, vector checks
+and independent replay with regenerated provenance. The current generated
+headers and their historical source identities remain the accepted inputs.
+
 The **Use** column records repository activity:
 
 - **consumed:** a command under [tools/run.py](tools/run.py) opens the submodule's files.
@@ -99,20 +119,20 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 
 | Submodule | Upstream | Pin | License | Standing | Use |
 | --- | --- | --- | --- | --- | --- |
-| `upstream/sail-riscv` | `riscv/sail-riscv` | `3243f939` | `BSD-2-Clause` | Comparison reference for the curated model. The completion log identifies the last semantic reconciliation; this pin does not replace the curated ISA. | read |
+| `upstream/sail-riscv` | `riscv/sail-riscv` | `5e2ebde0` | `BSD-2-Clause` | Comparison reference for the curated model. The completion log identifies the last semantic reconciliation; this pin does not replace the curated ISA. | read |
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
-| `upstream/llvm-project` | `llvm/llvm-project` | `90cebef1`, on `main` | `Apache-2.0 WITH LLVM-exception` | LLVM MC and `lld`, the untrusted assembler and linker to be adapted to the frozen dialect. | pinned to read later |
-| `upstream/mocha` | `lowRISC/mocha` | `b5973217`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). | read |
-| `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `36a1dc5c` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
-| `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `24c6e2d8` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
-| `upstream/opentitan` | `lowRISC/opentitan` | `629146ef` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
-| `upstream/ibex` | `lowRISC/ibex` | `405c6d1d` | `Apache-2.0` | RoT functional reference. | pinned to read later |
-| `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `930feb29` | `Apache-2.0` | Conformance-methodology reference. The profile does not adopt its RV32 capability encoding. | pinned to read later |
+| `upstream/llvm-project` | `llvm/llvm-project` | `3ab91ef2`, on `main` | `Apache-2.0 WITH LLVM-exception` | LLVM MC and `lld`, the untrusted assembler and linker to be adapted to the frozen dialect. | pinned to read later |
+| `upstream/mocha` | `lowRISC/mocha` | `2c11b745`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. | consumed |
+| `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
+| `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c8245850` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
+| `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages and the assertion header under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
+| `upstream/ibex` | `lowRISC/ibex` | `e1a6be2c` | `Apache-2.0` | RoT functional reference. | pinned to read later |
+| `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference. The profile does not adopt its RV32 capability encoding. | pinned to read later |
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `78a34ba5` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository. No build or check here uses it. | pinned for a struck milestone |
 | `upstream/qemu` | `CTSRD-CHERI/qemu` | `d0bb921c`, on `qemu-cheri` | `GPL-2.0`, with the [file-specific terms](#development-tools-contained-by-use) below | Base of the unpublished fast-emulator fork; its `VERSION` is 7.0.0. Nothing here runs or vendors the fork. | pinned for a struck milestone |
-| `upstream/rupicola` | `mit-plv/rupicola` | `5d37f856` | `MIT` | Relational-compilation toolkit for the GC-free lowering review, with Bedrock2 as a nested submodule. The lowering switch uses released opam packages. | pinned to read later |
-| `upstream/katamaran` | `katamaran-project/katamaran` | `e8bfad6a` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail. | pinned to read later |
+| `upstream/rupicola` | `mit-plv/rupicola` | `d33f7024` | `MIT` | Relational-compilation toolkit for the GC-free lowering review, with Bedrock2 as a nested submodule. The lowering switch uses released opam packages. | pinned to read later |
+| `upstream/katamaran` | `katamaran-project/katamaran` | `fd327e8c` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail. | pinned to read later |
 | `upstream/sail-katamaran-backend` | `katamaran-project/sail-backend` | `c9b1cd02` | `BSD-2-Clause`, stated in packaging; see below | Translation backend for the Katamaran route. | pinned to read later |
 | `upstream/cerise` | `logsem/cerise` | `9eb72e67` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Capability-machine contract and sentry-reasoning reference for the kernel milestone. | pinned to read later |
 | `upstream/cerisier` | `logsem/cerisier` | `57ed584a` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Extension of that contract to local attestation. | pinned to read later |
@@ -318,15 +338,15 @@ Solderpad v0.51 permits use, modification, sublicensing, and distribution, subje
 
 The reviewed RTL licenses contain no reciprocal, field-of-use, or source-disclosure requirement. No CERN Open Hardware license variant is part of this plan.
 
-The R1b scalar-width build staging consumes the selected `36a1dc5c` sources under
+The R1b scalar-width build staging consumes the selected `0c7b3adf` sources under
 the same Apache-2.0 election. The guarded transform registry retains each original
 notice and adds a modification notice to the native staged derivative. Source
 identity, match counts, output identity and staged diffs are recorded; no imported
 module body is copied into tracked `rtl/`.
 
-For R1c-ii's authored UART character wrapper, the `b5973217` Mocha pin's
+For R1c-ii's authored UART character wrapper, the `2c11b745` Mocha pin's
 `hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv` and `data/uart.hjson` were read
-with `LICENSES/Apache-2.0.txt` on 2026-09-14. Those interface sources identify
+with `LICENSES/Apache-2.0.txt` on 2026-09-24. Those interface sources identify
 Apache-2.0. The wrapper's generated constants use that declared register layout;
 no UART implementation body is imported. This interface use neither qualifies
 the complete OpenTitan UART nor changes the existing primitive dependency route.

@@ -11,15 +11,15 @@ Every site below is read from the tree at a pin, not from a description of it.
 | Side | Artifact | Revision | Read |
 | --- | --- | --- | --- |
 | Definition | `model/model/core/cap_format.sail`, `cap_common.sail`, `cap_causes.sail` | this repository's curated model | 2026-08-23 |
-| Implementation | `upstream/cva6-cheri`, `core/` | `36a1dc5c` | 2026-08-23 |
+| Implementation | `upstream/cva6-cheri`, `core/` | `0c7b3adf` | 2026-09-24 |
 | Interconnect | The `axi-cheri-tagcontroller` edition selected by CVA6-CHERI's `vendor/zero-day/axi_tagcontroller` gitlink | `173646d5` | 2026-08-23 |
-| Integration | `upstream/mocha`, `hw/top_chip/` | `b5973217`, on `main` | 2026-09-09 |
+| Integration | `upstream/mocha`, `hw/top_chip/` | `2c11b745`, on `main` | 2026-09-24 |
 
 The standalone tag-controller gitlink follows current upstream work. The interconnect reading here concerns the nested edition the imported datapath actually selects, which retains the flat store and wrapper described below. Mocha's current pin retains those vendor locks; its platform and testbench changes do not change this capability-format delta.
 
 The two capability formats, stated as their own sources state them:
 
-| | Frozen dialect | CHERI-CVA6 at `36a1dc5c` |
+| | Frozen dialect | CHERI-CVA6 at `0c7b3adf` |
 | --- | --- | --- |
 | Width, excluding the tag | 64 | 128 (`CLEN = 2 * XLEN`) |
 | Address field | 36, stored uncompressed | 64, the whole `XLEN` |
@@ -100,7 +100,7 @@ All of `core/include/cva6_cheri_pkg.sv`, which is where the format is fixed.
 | 831 to 857 | `decode_bounds` | rewrite | with the two-format union gone, decode is the top-two-bit derivation alone. The three hard-coded slices `[11:0]`, `[13:12]` and the two `3'b000` steals are the M=14 positions and become `[5:0]` and `[7:6]` with no steal |
 | 865 to 889 | `encode_bounds` | rewrite | the frozen packing is field-adjacent, and the exponent-half extraction has no counterpart |
 
-Read at `36a1dc5c` on 2026-08-23, 94 lines of that one file mention a format parameter by name. The package is not a place where a curator changes seven numbers.
+Read at `0c7b3adf` on 2026-09-24, 94 lines of that one file mention a format parameter by name. The package is not a place where a curator changes seven numbers.
 
 ### 2.2 The width identity, outside the package
 
@@ -167,8 +167,8 @@ The imported tag path carries one tag per 128-bit region on the AXI user bits, w
 
 | File | Lines | Kind | What the frozen format requires |
 | --- | --- | --- | --- |
-| `mocha/hw/top_chip/rtl/top_pkg.sv` | 114, 115 | literal | `CapSizeBits = 128` becomes 64, and the tag store's length, `DRAMPhysicalLength >> $clog2(CapSizeBits)`, doubles with it |
-| `mocha/hw/top_chip/rtl/axi_sram.sv` | 21, 88 | literal | the tag-bit address width, stated as `AddrWidth - $clog2(CapSizeBits/8)`, gains a bit |
+| `mocha/hw/top_chip/rtl/top_pkg.sv` | 122, 123 | literal | `CapSizeBits = 128` becomes 64, and the tag store's length, `DRAMPhysicalLength >> $clog2(CapSizeBits)`, doubles with it |
+| `mocha/hw/top_chip/rtl/axi_sram.sv` | 21 to 23, 88 to 89 | literal | the tag-bit address width, stated as `AddrWidth - $clog2(CapSizeBits/AxiDataWidth)` for an AXI-word address width, gains a bit at `AxiDataWidth = 64`; byte-address slicing still shifts by `$clog2(CapSizeBits/8)` |
 | `axi-cheri-tagcontroller/src/axi_tagctrl_top.sv`, `axi_tagctrl_reg_wrap.sv` | 16, 128 | width | `CapSize` is a real parameter with a 128 default, so the granule change is a parameter here and not a rewrite |
 | `axi-cheri-tagcontroller/src/axi_tagctrl_w.sv`, `axi_tagctrl_r.sv` | 119, 200; 79, 122 | width | the tag-bit index, `a_x_addr[$clog2(CapSize/8) +: $clog2(AxiDataWidth)]`, shifts down one bit, and the number of tags a beat carries doubles |
 | `axi-cheri-tagcontroller/src/axi_tagctrl_ax.sv` | 92, 97, 105 | width | the block-size arithmetic follows |

@@ -3,7 +3,7 @@
 This contract fixes the interfaces the curated scalar core presents to the SoC
 top R1c-ii authors: the shared widths, the exception record, the top-level core
 ports and the memory-request boundary the flat-SRAM replacement stands at. It is
-a review of the imported CHERI-CVA6 top at `36a1dc5c` under the curated
+a review of the imported CHERI-CVA6 top at `0c7b3adf` under the curated
 configuration and the [scalar staging contract](scalar-width-transform-contract.md),
 and it binds the parts of that boundary this repository has decided. It claims
 no functional correctness of the core behind the ports: the staging contract's

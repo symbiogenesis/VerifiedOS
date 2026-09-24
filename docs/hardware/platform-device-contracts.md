@@ -42,7 +42,7 @@ state. Harness backend inputs are not guest-accessible registers.
 ## UART character wrapper
 
 The register-layout owner is Mocha revision
-`b5973217f704923917e7761f73df7dfcb8d0c345`,
+`2c11b745c4bcdb24a3cad03f3333e4a922985b22`,
 `hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv`, with status bit meaning from
 the adjacent `data/uart.hjson`. Its own SPDX declaration and
 `LICENSES/Apache-2.0.txt` were read at that revision. The selected offsets are

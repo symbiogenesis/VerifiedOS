@@ -251,6 +251,7 @@ CORE = "upstream/cva6-cheri"
 CORE_FLIST = "core/Flist.cva6"
 CORE_VAR = "${CVA6_REPO_DIR}"
 PRIM = "upstream/opentitan/hw/ip"
+PRIM_ASSERTIONS = "prim/rtl/prim_assert.sv"
 
 # The imported SRAM wrapper uses the earlier OpenTitan response-port spelling.
 # Both elaboration arms stage this source with only those two connections renamed;
@@ -835,7 +836,10 @@ def _file_list(root: Path, config: Path,
     gone = {sub: {rel for rel in hit.get(sub, set())
                   if not (root / CORE / rel).is_file()} for sub in subs}
     return FileList(
-        lines=tuple([str(prim / p) for p in PRIM_PACKAGES] + lines),
+        # The imported top uses the bring-up SoC's assertion macros without an
+        # include. Supply their upstream definitions before either arm's sources.
+        lines=tuple([str(prim / PRIM_ASSERTIONS)]
+                    + [str(prim / p) for p in PRIM_PACKAGES] + lines),
         taken=tuple(sub for sub in subs
                     if hit.get(sub, set()).issuperset(sub.imported) and not gone[sub]),
         unmatched=tuple((sub.authored, rel) for sub in subs for rel in sub.imported

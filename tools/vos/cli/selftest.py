@@ -1567,7 +1567,11 @@ CASES: list[Case] = [
     # slip and not a pin that has moved, and no other rule opens that cell: the case
     # passes on K-81's own report with no collateral.
     ("K-81", "an upstream pin restated as a commit the record does not record",
-     _literal(DELTA, "| `36a1dc5c` | 2026-08-23 |", "| `36a1dc5d` | 2026-08-23 |")),
+     _literal(DELTA, "| `0c7b3adf` | 2026-09-24 |", "| `0c7b3ade` | 2026-09-24 |")),
+    ("K-81", "a historical modular receipt gitlink changed outside its exact scoped edition",
+     _literal("docs/assurance/sail-assistance-evidence/modular.json",
+              "gitlink:24c6e2d8531e6a6d0a9e29bde2a109484099aec9",
+              "gitlink:0000000000000000000000000000000000000000")),
     ("K-81", "a scoped libclang license reading changed without its recorded edition",
      _literal("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28",
               "0000000000000000000000000000000000000000")),

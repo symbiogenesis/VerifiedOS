@@ -420,14 +420,14 @@ bool ModelImpl::had_exception() const {
 
 uint64_t ModelImpl::xreg(int64_t reg) {
   // For the E base ISA, this assert should use 16.
-  assert(reg < 32);
+  assert(0 <= reg && reg < 32);
   return zrX(reg);
 }
 
 
 void ModelImpl::set_xreg(int64_t reg, uint64_t val) {
   // For the E base ISA, this assert should use 16.
-  assert(reg < 32);
+  assert(0 <= reg && reg < 32);
   (void)zwX(reg, val);
 }
 
