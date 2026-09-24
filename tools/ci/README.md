@@ -8,12 +8,15 @@ pull-request check needs a measured hosted run time and reliability record.
 ## Running it
 
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
-every Monday at 04:23 UTC or through GitHub's **Run workflow** control. A scheduled
+every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
+GitHub's **Run workflow** control. Ordinary runs reuse installed toolchains and
+content-validated native proof results. The monthly run and the manual `cold` input
+force cold toolchain installation and a fresh full proof check. A weekly scheduled
 run first reads the latest completed run on the same branch. If that run succeeded
 at the current revision, it skips the guest lanes before allocating their runners or
 installing tools. New revisions, failed or canceled runs, absent history and failed
-history lookups run all gates. Manual dispatch and explicit reruns always execute
-them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
+history lookups run all gates. Manual dispatch, monthly cold runs and explicit
+reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 has 16 GB of RAM; the proof kernel recheck has historically exceeded 8 GiB,
@@ -98,7 +101,7 @@ as its fallback when bootstrap did not export an environment. Each lane's
 end before it uploads diagnostics.
 
 uv downloads, opam's source download cache and verified Verilator source archives
-are restored between runs; evidence is always rebuilt. The source
+are restored between runs; model evidence is always rebuilt. The source
 cache includes bootstrap's ownership marker so the restored private root can resume.
 Each lane has its own source cache. Its key includes the lane, runner OS and architecture,
 Sail and Rocq snapshots, bootstrap, the Verilator installer and shared download helper.
@@ -107,7 +110,7 @@ verification still required. Cache eviction simply means a cold installation. On
 model lane saves the uv cache; both lanes restore it. Each lane's commands stay
 sequential within its runner's memory budget.
 
-Scheduled runs install every toolchain cold. Manual runs restore a lane's installed
+Ordinary weekly and manual runs restore a lane's installed
 toolchains: its opam root without downloads or logs, the Verilator prefix and the
 ownership marker. Bootstrap then runs unchanged: it imports each lock into its restored
 switch, installs the uncached solver, skips a Verilator prefix whose receipt matches
@@ -115,9 +118,36 @@ and probes every tool. The key includes the lane, runner OS, architecture and im
 version, the Sail and Rocq snapshots and bootstrap. Switch names and the Verilator
 prefix carry their versions, so other tool edits need no key input. Only exact keys
 restore. A main-branch run that missed the key saves the lane's toolchains after its
-probes pass; a scheduled run checks the key without restoring it. The reporter records
+probes pass; a cold run checks the key without restoring it. The reporter records
 `cold` or `restored` in `results.json` and the job summary. Only a cold run is
 evidence that the toolchains install.
+
+The proof lane also restores the native proof receipt, staged `.v` sources and
+compiled `.vo` objects from a successful proof gate. Its cache is separate from
+the installed toolchains. Keys bind the runner image, architecture, Rocq snapshot,
+bootstrap, proof sources, tools, requirements register and workflow. A fallback
+within the same image and toolchain supplies older candidates for incremental
+checking. Only main saves candidates, and only after the proof gate succeeds.
+The monthly and manual cold modes do not restore them and pass `--fresh`.
+Cold results seed the proof cache only when the installed-toolchain key is also
+new: a rebuild need not match the bytes of an existing immutable toolchain cache.
+
+Restoring candidates never skips the proof command. The existing
+[native cache validator](../README.md#current-evidence-and-generated-documentation)
+checks source and object bytes, dependency closures, gate inputs, audited symbols,
+assumptions, tool executables, installed libraries and the actual process
+environment. Stale or unsupported candidates require compilation, auditing and
+kernel checking under that contract. The workflow starts both cold and ordinary
+proof commands with the same explicit environment: tool paths, native storage,
+home, locale and Python settings. GitHub's per-run IDs, temporary file-command
+paths and credentials never enter the proof process. This preserves the gate's
+complete environment comparison without teaching it to ignore CI variables.
+
+The proof log states actual reuse; the summary states the selected proof policy.
+On an unchanged cache hit the retained receipt identifies the earlier checked
+bytes and their original timings, not a new kernel execution. Cold runs retain
+periodic installation and full recheck evidence. Model build trees and compiler
+caches are not restored, and every run regenerates its RTL vectors.
 
 ## Inputs and execution
 
@@ -145,8 +175,9 @@ The pipeline runs the existing commands. In the model lane:
 
 In the proofs lane:
 
-- `python3 tools/run.py proofs --fresh` compiles and audits every proof and runs the
-  full kernel recheck.
+- `python3 tools/run.py proofs` validates native cache candidates and compiles,
+  audits and kernel-checks proofs whose evidence cannot be reused. With no valid
+  candidates it checks every proof. Cold runs add `--fresh` to force all work.
 
 Each required command has a bounded execution time and retains its exit status.
 Independent checks may still run after another fails when their bootstrap succeeded.
@@ -156,9 +187,9 @@ working model bytes remain bound by the build manifest. Bundle comparison reloca
 only the selected switch's absolute library hash keys to the canonical locations
 used by the tracked artifact. A private opam root therefore does not change the
 comparison, while changed library digests and model contents still fail it.
-Download and installed-toolchain caches may accelerate installation, but a cache hit
-never establishes a validation verdict. A cold run must work without any cache. Avoid
-caching built model/proof outputs until their reuse is separately justified and measured.
+Download and installed-toolchain caches accelerate installation; native proof
+reuse requires the proof gate's validation, never a cache-action verdict. A cold
+run must work without any cache. Built model outputs remain uncached.
 
 ## Acceptance and handoff
 
@@ -167,6 +198,11 @@ by the real commands above, with the tested source revision, platform, tool vers
 durations and results retained. A fixture-only test does not establish that the
 upstream packages install or that a hosted runner has sufficient resources. A local
 clean toolchain run and a GitHub-hosted run are recorded as distinct evidence.
+Proof-cache acceptance additionally needs a successful hosted cold run and an
+ordinary run on the same revision that reports actual native reuse. Retain both
+run identifiers and timings; installation-cache hits alone do not establish that
+proof caching works. Existing proof-cache regressions cover changed sources,
+objects, dependencies, toolchain context and failed runs.
 
 Focused tests must cover installation planning and failure propagation, including
 unavailable dependencies and corrupt downloads where the installer owns download

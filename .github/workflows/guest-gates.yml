@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
-# defines the scope. Download caches accelerate fresh toolchains and evidence.
-# Scheduled runs install toolchains cold; manual runs may restore installed ones.
+# defines the scope. Ordinary runs restore toolchains and validated proof inputs.
+# Monthly and explicitly cold runs install and check everything from scratch.
 # The model and proof lanes share no toolchain or output, so each installs only
 # its own toolchains and runs on its own runner.
 
@@ -9,8 +9,14 @@ name: guest-gates
 
 on:
   workflow_dispatch:
+    inputs:
+      cold:
+        description: Install toolchains cold and recompile/recheck every proof
+        type: boolean
+        default: false
   schedule:
     - cron: "23 4 * * 1"
+    - cron: "23 4 1 * *"
 
 permissions:
   contents: read
@@ -22,6 +28,7 @@ concurrency:
 env:
   PYTHONUTF8: "1"
   PYTHONUNBUFFERED: "1"
+  GUEST_COLD: ${{ inputs.cold == true || github.event.schedule == '23 4 1 * *' }}
 
 defaults:
   run:
@@ -30,8 +37,8 @@ defaults:
 
 jobs:
   changes:
-    # Manual dispatch and explicit reruns always execute the gates.
-    if: ${{ github.event_name == 'schedule' && github.run_attempt == 1 }}
+    # Manual dispatch, monthly cold runs and explicit reruns always execute.
+    if: ${{ github.event.schedule == '23 4 * * 1' && github.run_attempt == 1 }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
@@ -81,6 +88,12 @@ jobs:
         !~/verifiedos-guest/opam/download-cache
         !~/verifiedos-guest/opam/log
         ~/verifiedos-guest/build/toolchains
+      # Only the native receipt, staged sources and compiled objects are reusable.
+      # The proof gate validates their bytes and context; a cache hit is no verdict.
+      GUEST_PROOF_PATHS: |
+        ~/verifiedos-guest/build/proof-gate/proofs/*.v
+        ~/verifiedos-guest/build/proof-gate/proofs/*.vo
+        ~/verifiedos-guest/build/proof-gate/proofs/proof-evidence.json
     steps:
       - uses: actions/checkout@v7
         with:
@@ -128,8 +141,8 @@ jobs:
           # imports each lock into a restored switch, so env.py and rtl.py stay out.
           # Exact keys only: another snapshot's switch is never restored.
           key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}
-          # A scheduled run stays a cold installation and only learns whether to save.
-          lookup-only: ${{ github.event_name == 'schedule' }}
+          # A cold run only learns whether the installation needs saving.
+          lookup-only: ${{ env.GUEST_COLD == 'true' }}
 
       - name: Bootstrap guest toolchains
         id: bootstrap
@@ -158,14 +171,49 @@ jobs:
             --out "$VOS_LOG_DIR/evidence.json" \
             2>&1 | tee "$VOS_LOG_DIR/evidence-console.log"
 
+      - name: Restore proof cache candidates
+        id: proof-cache
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ${{ env.GUEST_PROOF_PATHS }}
+          key: guest-proofs-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}-${{ hashFiles('proofs/*.v', 'tools/**/*.py', 'tools/pyproject.toml', 'tools/uv.lock', 'docs/requirements-register.md', '.github/workflows/guest-gates.yml') }}
+          # Older sources are candidates for the gate's dependency-aware validation.
+          restore-keys: guest-proofs-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}-
+          lookup-only: ${{ env.GUEST_COLD == 'true' }}
+
       - name: Proof gate
         id: proofs
         if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 120
-        # A new runner has no reusable objects; --fresh makes the full recheck explicit.
+        # Give cold and warm proofs the SAME explicit environment. Actions' per-run
+        # IDs and file-command paths must not force an otherwise valid cache miss.
+        # The gate still hashes its entire actual environment, tools and libraries.
         run: |
-          /usr/bin/time -p python3 tools/run.py proofs --fresh \
+          fresh=()
+          if [[ "$GUEST_COLD" == true ]]; then
+            fresh=(--fresh)
+            echo "Proof policy: fresh compilation, audits and full kernel recheck." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Proof policy: validate native cache candidates; rebuild and recheck anything stale. See proofs.log for actual reuse." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          /usr/bin/time -p env -i \
+            HOME="$HOME" PATH="$PATH" LANG=C.UTF-8 \
+            PYTHONUTF8=1 PYTHONUNBUFFERED=1 TMPDIR="$TMPDIR" \
+            VOS_BUILD_ROOT="$VOS_BUILD_ROOT" VOS_LANE= \
+            VOS_ROCQ="$VOS_ROCQ" VOS_ROCQCHK="$VOS_ROCQCHK" \
+            OPAMROOT="$OPAMROOT" UV_CACHE_DIR="$UV_CACHE_DIR" \
+            python3 tools/run.py proofs "${fresh[@]}" \
             2>&1 | tee "$VOS_LOG_DIR/proofs.log"
+
+      - name: Save validated proof cache
+        # A rebuilt toolchain may differ byte-for-byte from an existing immutable
+        # installation cache. Seed cold proof results only with a new toolchain key.
+        if: ${{ github.ref == 'refs/heads/main' && !cancelled() && steps.proofs.outcome == 'success' && steps.proof-cache.outputs.cache-hit != 'true' && (env.GUEST_COLD != 'true' || steps.toolchains.outputs.cache-hit != 'true') }}
+        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ${{ env.GUEST_PROOF_PATHS }}
+          key: ${{ steps.proof-cache.outputs.cache-primary-key }}
 
       - name: Check generated model bundle
         id: bundle
@@ -196,7 +244,7 @@ jobs:
         env:
           GUEST_LANE: ${{ matrix.lane }}
           # A restored run is not evidence that the toolchains install cold.
-          GUEST_TOOLCHAINS: ${{ github.event_name != 'schedule' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
+          GUEST_TOOLCHAINS: ${{ env.GUEST_COLD != 'true' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
           STEP_RESULTS: ${{ toJSON(steps) }}
         run: python3 tools/ci/report_guest.py
 
