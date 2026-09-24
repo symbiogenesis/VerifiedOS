@@ -1,6 +1,6 @@
 {
   "schema": "vos.rtl-width-transforms/1",
-  "pin": "36a1dc5cb8c2b17d519bdb9ebf7fa37e591f6e43",
+  "pin": "0c7b3adf3458012210a0612efba72058c1dbd84b",
   "notice": "// Modified by VerifiedOS scalar-width staging; see docs/hardware/scalar-width-transform-contract.md.\n",
   "sources": [
     {
@@ -563,8 +563,8 @@
     },
     {
       "path": "core/cva6.sv",
-      "source_sha256": "9146b6f6009005ba56105c28fc7cdeef169056860dbbfb06ab9e208607116314",
-      "output_sha256": "26dbe306a5b822b01160546bc185a235c761c85305a662ed31e8dc298184af55",
+      "source_sha256": "ef0401dbbd06fc459445b6093dd8b900036bd79863d54c1175bed03dc3dfe14e",
+      "output_sha256": "d909fbca1c56eb2e78765a316c4e8d2f2c74e521dcff4a52e7679eea52d9e25f",
       "edits": [
         {
           "old": "      .int_mode_resolved_branch_i(cva6_cheri_pkg::get_cap_reg_flags(\n          resolved_branch.target_address\n      )),\n",

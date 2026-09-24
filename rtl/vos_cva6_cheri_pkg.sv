@@ -12,7 +12,7 @@
 //
 // **What is the imported tree's and what is not.** The package name and the API
 // identifiers below (`cap_reg_t`, `set_cap_reg_bounds`, `cap_reg_to_cap_mem` and
-// the rest) are those of `core/include/cva6_cheri_pkg.sv` at `36a1dc5c`, a file
+// the rest) are those of `core/include/cva6_cheri_pkg.sv` at `0c7b3adf`, a file
 // governed by Solderpad v0.51 at its tree's root, which permits the licensee to
 // elect Apache-2.0 and is the election THIRD-PARTY.md records for the whole
 // datapath. Every *body* here is written against `vos_cheri_pkg` and the Sail
