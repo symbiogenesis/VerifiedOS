@@ -127,7 +127,7 @@ none is realized by a fixture:
 
 ## 4. The image recipe
 
-A recipe is a JSON object with exactly these fields, and schema version 1 is the only one:
+A version 1 recipe is a JSON object with exactly these fields:
 
 | Field | Meaning |
 | --- | --- |
@@ -164,6 +164,30 @@ body at two instantiations (R-10-003), has the image's own symbols to read.
 **Admission joins as a schema change.** The executable admission package defines the record
 it emits; the schema that binds it holds the record's image digest equal to the composed
 image's. Until then every record carries `accepted: false`.
+
+### Reference composition attachments (version 2)
+
+Version 2 retains the version 1 fields and adds `composer`, an object with exactly
+`source` (the package descriptor document) and `address` (a hexadecimal placement).
+Its `admission` field names the offline reference checker's request document. Both
+attachments are required together. This version exercises the executable composition
+boundary; its discharge metadata does not supply real member derivations, so the boot
+record still carries `accepted: false` and names the outstanding production admission.
+
+The composer reads the descriptor document against the recipe's exact roster, emits
+canonical typed graph bytes and places them in a read-only, non-executable `.handler_graph`
+ELF section. The section must fit wholly inside a declared `MainMemory` region and overlap
+neither a member extent nor the HTIF doubleword. Its digest and placement enter the
+composition digest and boot record. The reference admission checker consumes that graph
+and the final image bytes; a refused runtime member refuses the whole composition.
+
+Before a run, the harness rechecks the descriptor and request bindings, regenerates the
+graph, and revalidates the admission record against the actual image and roster. A changed
+image digest, substituted graph, stale reference input or altered decision is a refusal.
+The acceptance checks include those substitutions, graph extent violations, a refused
+member and a successful fixture composition. Fixture success establishes binding and
+reference-decision behavior only. Real descriptors, checked derivations and the accepted
+target roster remain M7.1's joins; neither offline program certifies itself.
 
 ## 5. The boot record and staleness
 
