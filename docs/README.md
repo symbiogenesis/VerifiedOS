@@ -91,6 +91,8 @@ The implementation interfaces are recorded in the
 [compatibility workflow](implementation/contracts/compatibility.md),
 [application-host contract](implementation/contracts/application-host.md) for
 Wasm bundle validation, binding, replacement and performance qualification,
+[Wasm execution contract](implementation/contracts/wasm-execution.md) for
+the researched execution profile, proof obligations and optimization comparisons,
 [entropy observer](implementation/contracts/entropy-observer.md), and
 [store-buffer comparison](implementation/comparisons/store-buffer.md).
 Its [executable prerequisite contract](implementation/phase-service/prerequisite-contract.md)

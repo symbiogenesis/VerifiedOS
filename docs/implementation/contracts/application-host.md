@@ -119,6 +119,12 @@ Report both user elapsed time and time excluding explicit consent wait.
 The [product gate](product-gate.md) owns limits and evidence tiers; host seconds
 cannot become a device latency claim. No timing result exists in this contract.
 
+The [Wasm execution contract](wasm-execution.md) selects the compact indexed
+representation and sets its aliasing, trap, cache invalidation, reclamation and
+poll obligations. Q34g owns those within the single interpreter's existing
+proofs; Q34f owns the ablation and end-to-end comparisons, including regressions.
+Published interpreter speedups are research inputs, not target measurements.
+
 Acceptance exercises malformed closure/descriptor/module, incompatible ABI,
 cache tampering or stale identity, forged/cross-instance/old handles, pending
 consent during replacement, late service replies, nonterminating start functions,
