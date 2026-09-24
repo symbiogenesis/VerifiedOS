@@ -8,6 +8,14 @@ inside the generation that built it. R-02-008 excludes that step. The supported
 replacement is edit, build, prove, admit, consent to signing, boot the successor
 generation, then run its already admitted test compartment.
 
+For an application targeting the platform Wasm subset, R-14-013e provides a
+same-session loop: edit, build a hash-identified bundle, validate its module,
+imports and memory ceiling, launch it in a precomposed elastic host, then
+retire that binding and launch a changed bundle. This is the first release's
+ordinary app-development route. The native test cycle selected here still
+crosses the generation boundary; neither loop executes bytes the editor wrote
+as native instructions.
+
 This is a named consumer of the resident toolchain required by R-13-027 and
 R-18-004e, adjacent to the first release's shell and content capabilities. It
 does not make Zed a required application in R-18-004a's capability floor and
@@ -32,7 +40,7 @@ and parser proofs remain admission prerequisites.
 | Request generation consent | The admitted candidate's exact root and roster, forwarded to the trusted path | The holder may authorize the existing signing/install path; the editor receives neither the signing key nor mint, sealing, wiring or boot-selection authority |
 | Read successor test result | A separately granted result object from the next generation's admitted test compartment | Bounded diagnostics bound to candidate root, test identity and boot epoch; an old result cannot certify the candidate |
 
-There is no operation to execute a staged object, rewrite the running roster,
+There is no operation to execute a staged native object, rewrite the running roster,
 install a runtime plugin, load an external helper by path, or bypass checking
 because the producer is local. A test program that generates another native
 program has the same next-generation boundary. Browser content remains on
