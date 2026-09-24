@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 #include "vos_supervisor.h"
 
 /* M8a source: an immutable typed C object in the admitted supervisor image.

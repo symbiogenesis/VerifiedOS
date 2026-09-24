@@ -35,7 +35,8 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import kernelrun, memory_planner, rtltrace, rvfi
+from tests.test_boot_attachments import _attached_recipe
+from vos import admission, composer, kernelrun, memory_planner, rtltrace, rvfi
 from vos.cli import COMMANDS
 
 _ROOT = TOOLS.parent
@@ -148,6 +149,22 @@ def _memory_encoding(scratch: Path) -> list[str]:
     return ["--instance", str(instance), "--bound", "0", "--json"]
 
 
+def _composition_fixture(scratch: Path) -> list[str]:
+    composition = composer.reference_fixture(_ROOT)
+    (scratch / "descriptors.json").write_bytes(composer.canonical_bytes(composer.document(composition)))
+    return ["descriptors.json", "--output", "out/graph.json"]
+
+
+def _admission_fixture(scratch: Path) -> list[str]:
+    shutil.copytree(_ROOT / "tools" / "boot", scratch / "tools" / "boot", dirs_exist_ok=True)
+    _attached_recipe(scratch)
+    (scratch / "image.bin").write_bytes(b"fixture image")
+    (scratch / "graph.json").write_bytes(b"fixture graph")
+    return ["tools/boot/admission-request.json", "--roster", "tools/boot/fixture-roster.json",
+            "--image", str(scratch / "image.bin"), "--graph", str(scratch / "graph.json"),
+            "--out", str(scratch / "admission-record.json")]
+
+
 _RUNS: dict[tuple[str, str], Argv] = {
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
@@ -184,6 +201,11 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-planner", "resource-proof"): lambda _: [],
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
+    ("composer", "compose"): _composition_fixture,
+    ("composer", "fixture"): lambda _: ["--output", "out/descriptor-fixture.json"],
+    ("composer", "compare"): lambda _: [],
+    ("admission", "record"): _admission_fixture,
+    ("admission", "emit-reference"): lambda scratch: ["--out", str(scratch / "AdmissionComparison.v")],
     ("kernel", "reader"): _kernel_vectors,
     ("boot-handoff", "layout"): lambda _: [],
 }
@@ -221,9 +243,17 @@ def _declared_subcommands_answer_on_this_lane() -> None:
             out, err = io.StringIO(), io.StringIO()
             # Export is the only newly declared command that writes a fixed path.
             # Redirect its module's root provider, without changing the shared parser.
-            isolated = (patch.object(_MODULES[name], "corpus_mod",
-                                    SimpleNamespace(find_root=lambda: scratch))
-                        if (name, sub) == ("placement", "export") else nullcontext())
+            if (name, sub) == ("placement", "export"):
+                isolated = patch.object(_MODULES[name], "corpus_mod",
+                                        SimpleNamespace(find_root=lambda: scratch))
+            elif name in {"composer", "admission"}:
+                (scratch / "proofs").mkdir(exist_ok=True)
+                for relative in (composer.REFERENCE, admission.SOURCE):
+                    shutil.copyfile(_ROOT / relative, scratch / relative)
+                isolated = patch.object(_MODULES[name], "corpus",
+                                        SimpleNamespace(find_root=lambda: scratch))
+            else:
+                isolated = nullcontext()
             try:
                 with isolated, redirect_stdout(out), redirect_stderr(err):
                     # cast because `main` crosses a dynamic import and answers `Any`;

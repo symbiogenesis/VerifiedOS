@@ -42,7 +42,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final, TextIO, cast
 
-from . import asm, image, jsonc, trace
+from . import admission, asm, composer, image, jsonc, trace
 
 CONTRACT: Final[str] = "docs/implementation/contracts/boot-roster.md"
 SCHEMA_VERSION: Final[int] = 1
@@ -296,6 +296,12 @@ class Expected:
 
 
 @dataclass(frozen=True)
+class ComposerAttachment:
+    source: str
+    address: int
+
+
+@dataclass(frozen=True)
 class Recipe:
     path: str
     name: str
@@ -305,6 +311,12 @@ class Recipe:
     tohost: int
     members: tuple[RecipeMember, ...]
     expected: Expected | None
+    composer: ComposerAttachment | None = None
+    admission: str | None = None
+
+    @property
+    def schema_version(self) -> int:
+        return 2 if self.composer is not None else 1
 
 
 _RECIPE_KEYS: Final[frozenset[str]] = frozenset({
@@ -339,9 +351,13 @@ def _hex_digest(value: object, where: str, pattern: re.Pattern[str]) -> str:
 
 
 def parse_recipe(data: bytes, path: str) -> Recipe:
-    raw = _exact(_json(data, path), _RECIPE_KEYS, path)
-    if raw["schema_version"] != SCHEMA_VERSION:
-        raise RecipeError(f"{path}: schema_version must be {SCHEMA_VERSION}")
+    parsed = _json(data, path)
+    if not isinstance(parsed, dict):
+        raise RecipeError(f"{path}: expected an object")
+    version = parsed.get("schema_version")
+    if type(version) is not int or version not in (1, 2):
+        raise RecipeError(f"{path}: schema_version must be 1 or 2")
+    raw = _exact(parsed, _RECIPE_KEYS | ({"composer"} if version == 2 else set()), path)
     members: list[RecipeMember] = []
     listed = raw["members"]
     if not isinstance(listed, list) or not listed:
@@ -362,13 +378,18 @@ def parse_recipe(data: bytes, path: str) -> Recipe:
             _text(row["id"], f"{where}/id"), producer, _text(row["source"], f"{where}/source"),
             _address(row["text_base"], f"{where}/text_base"),
             _address(row["data_base"], f"{where}/data_base"), named))
-    # Schema 1 fixes no admission record, because the producer that would write one is
-    # M7.1's admission package and it does not exist; a harness that accepted a path here
-    # would be reading a format nobody has defined. So the field is carried, and null.
-    if raw["admission"] is not None:
+    attached_composer = None
+    attached_admission = None
+    if version == 1 and raw["admission"] is not None:
         raise RecipeError(f"{path}/admission: schema {SCHEMA_VERSION} defines no admission "
                           f"record, so the field must be null; the executable admission "
                           f"package defines the record it binds")
+    if version == 2:
+        block = _exact(raw["composer"], frozenset({"source", "address"}), f"{path}/composer")
+        attached_composer = ComposerAttachment(
+            _text(block["source"], f"{path}/composer/source"),
+            _address(block["address"], f"{path}/composer/address"))
+        attached_admission = _text(raw["admission"], f"{path}/admission")
     expected_raw = raw["expected"]
     expected = None
     if expected_raw is not None:
@@ -384,7 +405,8 @@ def parse_recipe(data: bytes, path: str) -> Recipe:
     return Recipe(path, _text(raw["name"], f"{path}/name"), _text(raw["roster"], f"{path}/roster"),
                   _text(raw["configuration"], f"{path}/configuration"),
                   _count(raw["inst_limit"], f"{path}/inst_limit", positive=True),
-                  _address(raw["tohost"], f"{path}/tohost"), tuple(members), expected)
+                  _address(raw["tohost"], f"{path}/tohost"), tuple(members), expected,
+                  attached_composer, attached_admission)
 
 
 def load_recipe(root: Path, relative: str) -> Recipe:
@@ -614,6 +636,42 @@ def producing_inputs(root: Path) -> list[str]:
     return out
 
 
+def _graph_attachment(root: Path, recipe: Recipe, roster: Roster,
+                      placed: list[Placed], memory: list[Region]) -> bytes | None:
+    if recipe.composer is None:
+        return None
+    try:
+        descriptors = composer.load_document(root, recipe.composer.source)
+        graph = composer.graph_bytes(descriptors)
+        composer.validate_graph(descriptors, graph, tuple(m.id for m in roster.members))
+    except composer.ComposerError as exc:
+        raise RecipeError(f"composer: {exc}") from exc
+    extent = (recipe.composer.address, len(graph))
+    if not any(region.holds(*extent) for region in memory):
+        raise RefusalError("handler graph lies in no MainMemory region of the composition")
+    occupied = [("tohost", (recipe.tohost, HTIF_BYTES))]
+    for member in placed:
+        occupied += [(f"{member.member.id} text", member.text),
+                     (f"{member.member.id} data", member.data)]
+    for name, other in occupied:
+        if other[1] and _overlaps(extent, other):
+            raise RefusalError(f"handler graph and {name} overlap")
+    return graph
+
+
+def _admission_attachment(root: Path, recipe: Recipe, roster: Roster,
+                          image_bytes: bytes, graph: bytes) -> dict[str, object]:
+    if recipe.admission is None:
+        raise RecipeError("a composed graph requires a reference admission request")
+    try:
+        record = admission.make_record(root, recipe.admission, image_bytes, graph, roster)
+    except (admission.AdmissionError, OSError) as exc:
+        raise RecipeError(f"admission: {exc}") from exc
+    if record["decision"] != "accepted":
+        raise RefusalError("admission refused a member; the whole generation is refused")
+    return record
+
+
 def _differs_from_revision(root: Path, inputs: list[str]) -> bool:
     """Whether any input is not the revision's own bytes: changed, untracked or outside."""
     resolved = root.resolve()
@@ -644,6 +702,7 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
     memory = regions(configuration)
     placed = _place(root, recipe, roster)
     _check_extents(placed, memory, recipe.tohost)
+    graph = _graph_attachment(root, recipe, roster, placed, memory)
 
     sections: list[image.Section] = []
     symbols: dict[str, tuple[str, int]] = {}
@@ -652,10 +711,15 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
         symbols.update(p.symbols)
     sections.append(image.Section(".htif", recipe.tohost, bytearray(HTIF_BYTES), writable=True))
     symbols["tohost"] = (".htif", recipe.tohost)
+    if graph is not None and recipe.composer is not None:
+        sections.append(image.Section(".handler_graph", recipe.composer.address, bytearray(graph)))
+        symbols["handler_graph"] = (".handler_graph", recipe.composer.address)
 
     out.mkdir(parents=True, exist_ok=True)
     elf = out / "image.elf"
     image.write_elf(elf, sections, symbols, placed[0].entry)
+    admission_record = (_admission_attachment(root, recipe, roster, elf.read_bytes(), graph)
+                        if graph is not None else None)
 
     members = [{
         "id": p.member.id, "kind": p.roster.kind, "rank": p.roster.rank,
@@ -666,8 +730,21 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
         "imports": {name: f"{value:#x}" for name, value in sorted(p.resolved.items())},
     } for p in placed]
     configuration_sha = digest_file(configuration)
-    composition = {"configuration": configuration_sha, "tohost": f"{recipe.tohost:#x}",
-                   "members": members}
+    composition: dict[str, object] = {
+        "configuration": configuration_sha, "tohost": f"{recipe.tohost:#x}", "members": members}
+    graph_record = None
+    if graph is not None and recipe.composer is not None:
+        (out / "handler-graph.json").write_bytes(graph)
+        graph_record = {
+            "source": {"path": recipe.composer.source,
+                       "sha256": digest_file(root / recipe.composer.source)},
+            "path": "handler-graph.json", "sha256": digest_bytes(graph),
+            "address": f"{recipe.composer.address:#x}", "bytes": len(graph)}
+        composition["composer"] = graph_record
+    admission_binding = None
+    if admission_record is not None:
+        (out / "admission.json").write_bytes(_canonical(admission_record) + b"\n")
+        admission_binding = {"path": "admission.json", "sha256": digest_file(out / "admission.json")}
     link_map = "".join(f"{p.member.id}\t{p.entry:#x}\t{p.text[0]:#x}\t{p.text[1]}\t"
                        f"{p.data[0]:#x}\t{p.data[1]}\n" for p in placed)
     (out / "link-map.tsv").write_text("id\tentry\ttext\ttext_bytes\tdata\tdata_bytes\n"
@@ -676,16 +753,24 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
     fixture = [p.member.id for p in placed if p.roster.status == "fixture"]
     open_joins = [f"{m.id} ({m.kind}, {m.status}): executable owner {m.owner}"
                   for m in roster.blocking()]
-    open_joins.append("no composition-time admission record binds this image")
+    open_joins.append("reference discharge metadata is not production admission evidence"
+                      if admission_record is not None else
+                      "no composition-time admission record binds this image")
     if fixture:
         open_joins.append(f"fixture members stand in for real producers: {', '.join(fixture)}")
     open_joins.append("the RoT's release of the main die is driven by M3.5's harness, "
                       "not by this one")
     inputs = ([recipe.path, recipe.roster, recipe.configuration]
               + [m.source for m in recipe.members] + producing_inputs(root))
+    if recipe.composer is not None and recipe.admission is not None:
+        inputs += [recipe.composer.source, recipe.admission, "tools/vos/composer.py",
+                   "tools/vos/admission.py", "proofs/AdmissionPath.v"]
+        if admission_record is not None:
+            inputs += [cast("str", member["artifact"])
+                       for member in cast("list[dict[str, object]]", admission_record["members"])]
     _, revision = _git(root, "rev-parse", "HEAD")
     record: dict[str, object] = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": recipe.schema_version,
         "recipe": {"path": recipe.path,
                    "declaration_sha256": declaration_sha256(root / recipe.path),
                    "name": recipe.name},
@@ -702,6 +787,9 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
         "accepted": False,
         "open": open_joins,
     }
+    if graph_record is not None:
+        record["composer"] = graph_record
+        record["admission"] = admission_binding
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="\n")
     return record
 
@@ -715,8 +803,8 @@ def load_record(out: Path) -> dict[str, object]:
     if not isinstance(raw, dict):
         raise RecipeError(f"{path}: expected an object")
     record = cast("dict[str, object]", raw)
-    if record.get("schema_version") != SCHEMA_VERSION:
-        raise RecipeError(f"{path}: schema_version must be {SCHEMA_VERSION}")
+    if type(record.get("schema_version")) is not int or record.get("schema_version") not in (1, 2):
+        raise RecipeError(f"{path}: schema_version must be 1 or 2")
     _record_shape(record, str(path))
     return record
 
@@ -746,6 +834,15 @@ def _record_fields(record: dict[str, object], where: str) -> None:
     _bound_file(record.get("recipe"), f"{where}: recipe", "declaration_sha256")
     for key in ("roster", "configuration", "image"):
         _bound_file(record.get(key), f"{where}: {key}")
+    if record.get("schema_version") == 2:
+        if record.get("accepted") is not False:
+            raise RecipeError(f"{where}: reference attachments cannot authorize production acceptance")
+        _bound_file(record.get("composer"), f"{where}: composer")
+        attached = cast("dict[str, object]", record["composer"])
+        _bound_file(attached.get("source"), f"{where}: composer source")
+        _address(attached.get("address"), f"{where}: composer address")
+        _count(attached.get("bytes"), f"{where}: composer bytes", positive=True)
+        _bound_file(record.get("admission"), f"{where}: admission")
     if not isinstance(record.get("revision"), str):
         raise RecipeError(f"{where}: revision: expected a string")
     if not isinstance(record.get("inputs_differ_from_revision"), bool):
@@ -766,6 +863,42 @@ def _record_fields(record: dict[str, object], where: str) -> None:
 
 
 # --- staleness --------------------------------------------------------------------
+
+
+def _attachment_findings(root: Path, record: dict[str, object], out: Path,
+                         recipe: Recipe) -> list[str]:
+    if record.get("schema_version") != recipe.schema_version:
+        return ["boot record schema differs from the recipe"]
+    if record.get("accepted") is not False:
+        return ["reference attachments cannot authorize production acceptance"]
+    if recipe.composer is None:
+        return []
+    try:
+        roster = load_roster(root, recipe.roster)
+        descriptors = composer.load_document(root, recipe.composer.source)
+        graph = (out / "handler-graph.json").read_bytes()
+        composer.validate_graph(descriptors, graph, tuple(m.id for m in roster.members))
+        expected_graph = {
+            "source": {"path": recipe.composer.source,
+                       "sha256": digest_file(root / recipe.composer.source)},
+            "path": "handler-graph.json", "sha256": digest_bytes(graph),
+            "address": f"{recipe.composer.address:#x}", "bytes": len(graph)}
+        if record.get("composer") != expected_graph:
+            return ["composer binding differs from the recipe or graph inputs"]
+        admission_bytes = (out / "admission.json").read_bytes()
+        if record.get("admission") != {
+                "path": "admission.json", "sha256": digest_bytes(admission_bytes)}:
+            return ["admission attachment differs from the boot record"]
+        attached = _json(admission_bytes, "admission.json")
+        if not isinstance(attached, dict):
+            return ["admission attachment is not an object"]
+        request = attached.get("request")
+        if not isinstance(request, dict) or request.get("path") != recipe.admission:
+            return ["admission request differs from the recipe"]
+        return admission.validate_record(root, attached, (out / "image.elf").read_bytes(),
+                                         graph, roster)
+    except (RecipeError, composer.ComposerError, admission.AdmissionError, OSError) as exc:
+        return [f"composition attachments: {exc}"]
 
 
 def stale(root: Path, record: dict[str, object], out: Path) -> list[str]:
@@ -797,6 +930,9 @@ def stale(root: Path, record: dict[str, object], out: Path) -> list[str]:
             against(root / block["path"], block["sha256"], f"stale {key}")
         picture = cast("dict[str, str]", record["image"])
         against(out / picture["path"], picture["sha256"], "stale image")
+        current_recipe = load_recipe(root, recipe["path"])
+        if current_recipe.schema_version == 2 or record.get("schema_version") == 2:
+            findings += _attachment_findings(root, record, out, current_recipe)
     except (KeyError, TypeError) as exc:
         raise RecipeError(f"{out / 'record.json'}: unreadable boot record ({exc})") from None
     return findings

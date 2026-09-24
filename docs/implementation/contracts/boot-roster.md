@@ -36,8 +36,9 @@ this roster keeps it as an image member (section 2). Executable admission is tak
 this roster.
 
 The plan's init-system section has the supervisor read its configuration generation from
-the object system, which M5.4 defers past the M8a gate. Where the M8a supervisor's manifest
-comes from is therefore open, and the executable supervisor's package owes it.
+the object system, which M5.4 defers past the M8a gate. The supervisor's
+[static typed C manifest](../../../supervisor/src/manifest.c) supplies its proposed M8a
+source. Binding that manifest to the admitted image and target handoff remains open.
 
 ## 2. The roster
 
@@ -46,12 +47,12 @@ comes from is therefore open, and the executable supervisor's package owes it.
 | `rot-firmware` | `rot` | n/a | `statement-only` | M3.5 for the firmware; its boot verifier's executable crypto has no priced producer (below) | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v), [Keccak.v](../../../proofs/Keccak.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); its ROM stage verifies `mmode-firmware` with SLH-DSA over SHAKE256 as the RoT's own integer code (R-09-005a, R-15-059), measures it and releases the main die through M3.5's harness |
 | `mmode-firmware` | `image` | 1 | `statement-only` | M3.5 | [MModeFirmware.v](../../../proofs/MModeFirmware.v) | the image entry, reached with the reset root pair; enters `kernel` through [the selected scalar handoff](purecap-abi.md#7-the-kernel-entry-interface) |
 | `kernel` | `image` | 2 | `statement-only` | M4.4 | [KernelInstance.v](../../../proofs/KernelInstance.v), [PartitionContext.v](../../../proofs/PartitionContext.v), [CyclicExecutive.v](../../../proofs/CyclicExecutive.v) | entered from `mmode-firmware` by the handoff's no-link sentry jump; dispatches `supervisor` as its first partition by `mret` |
-| `supervisor` | `image` | 3 | `statement-only` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `crypto-core`, `storage` and `copy-service` in its manifest's start order |
+| `supervisor` | `image` | 3 | `partial` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `crypto-core`, `storage` and `copy-service` in its manifest's start order |
 | `crypto-core` | `image` | 4 | `statement-only` | M5.3d for the seal/open and keyed-digest operations storage invokes | [Keccak.v](../../../proofs/Keccak.v), [Sha256.v](../../../proofs/Sha256.v), [AesGcm.v](../../../proofs/AesGcm.v), [MlDsa.v](../../../proofs/MlDsa.v) | started by `supervisor` before `storage`; holds the volume keys and serves storage's seal/open and keyed-digest calls through its entry, no key material crossing to the caller (R-10-022, R-10-012, R-10-023) |
 | `storage` | `image` | 5 | `statement-only` | M5.3d | [ExecutableIndex.v](../../../proofs/ExecutableIndex.v), [JournalIndex.v](../../../proofs/JournalIndex.v), [StorageRecovery.v](../../../proofs/StorageRecovery.v) | started by `supervisor`; one index body at the system-integrity and user-data instantiations over the modeled block device, calling `crypto-core` for seal/open over ciphertext extents and tags |
 | `copy-service` | `image` | 6 | `statement-only` | M7.1 | [CopyRingService.v](../../../proofs/CopyRingService.v), [RingContract.v](../../../proofs/RingContract.v) | started by `supervisor`; serves one ring of the reference world in [the ring declaration](../../../interfaces/ring-reference.json) |
-| `composer` | `offline` | n/a | `statement-only` | M7.1 | [HandlerGraph.v](../../../proofs/HandlerGraph.v) | runs at composition over the roster; emits the typed handler graph the image carries |
-| `admission` | `offline` | n/a | `statement-only` | M7.1 | [AdmissionPath.v](../../../proofs/AdmissionPath.v) | runs at composition over the composed roster; emits the admission record bound to the image digest |
+| `composer` | `offline` | n/a | `partial` | M7.1 | [HandlerGraph.v](../../../proofs/HandlerGraph.v) | runs at composition over the roster; emits the typed handler graph the image carries |
+| `admission` | `offline` | n/a | `partial` | M7.1 | [AdmissionPath.v](../../../proofs/AdmissionPath.v) | runs at composition over the composed roster; emits the admission record bound to the image digest |
 
 **The columns are closed vocabularies**, and the harness refuses a row it cannot read
 whole. *Kind* is `rot` for a member running on the RoT's own composition, `image` for a
@@ -65,8 +66,10 @@ exists only as a Gallina statement, and `fixture` in a fixture roster alone. A `
 `statement-only` member blocks acceptance, and a recipe that names one is refused with its
 owner.
 
-**Every member is `statement-only` at this contract's revision.** The Gallina references
-are compiled statements, and none is a target executable. The tracked Fiat-Crypto
+**No member has an accepted target product at this contract's revision.** The supervisor
+has a bounded host C implementation, and the offline composer and admission checker have
+reference implementations; their remaining target, descriptor and derivation joins keep
+those rows `partial`. The other rows remain `statement-only`. The tracked Fiat-Crypto
 emissions are C field arithmetic that no target build compiles. The modeled block device
 and the RoT peripherals are executable Sail devices, which the members use and which are
 not roster members. A status moves to `executable` in the same edit that adds the
@@ -305,10 +308,12 @@ any real member's behaviour.
 
 ## 9. What stays open
 
-Every roster member lacks an executable product, so no recipe composes the roster. The boot
-verifier's executable crypto has no priced producer. No admission record exists to bind.
-The RoT stage is not driven. The M8a supervisor's manifest has no named source. The RVFI
-trap convention R3's comparison depends on is R2's to fix. The expected digests of the
+No recipe composes accepted products for the whole roster. The supervisor and offline
+reference programs are partial implementations, with their open joins recorded above.
+A version 2 recipe binds reference admission metadata; production derivations remain open.
+The RoT stage is not driven. The supervisor's static C manifest is a proposed source
+pending target qualification. The RVFI trap convention R3's comparison depends on is
+R2's to fix. The expected digests of the
 composed image, its boot measurement against S4's projection, and the rerun that
 reproduces them wait for the executable members. M7.2 and M7.3 read captures from a
 producer this harness does not yet supply. R3 consumes the accepted image and its console

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 #include "vos_supervisor.h"
 
 static uint32_t members(uint32_t count)

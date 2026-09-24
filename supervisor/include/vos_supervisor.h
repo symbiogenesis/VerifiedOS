@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 #ifndef VOS_SUPERVISOR_H
 #define VOS_SUPERVISOR_H
 
