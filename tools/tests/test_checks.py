@@ -603,11 +603,11 @@ def _wasm_model_repair_and_comparator() -> None:
         ensure("**−25% to −60%**" in fixed, "archetype must cover both scenarios")
         ensure("| Broad coverage | 0.95 | 5 / 10 | 0.03 / 0.05 |" in fixed,
                "repair must not alter engineering assumptions")
-        (root / compounds.PERF).write_text(fixed, encoding="utf-8")
+        (root / compounds.PERF).write_text(fixed, encoding="utf-8", newline="")
         again = _context(root, fix=True)
         compounds._wasm(again)
         ensure(not again.fixed and not _findings_under(again, "K-111"),
-               "Wasm repair must reach a fixpoint")
+               f"Wasm repair must reach a fixpoint: {again.rep.out!r}")
 
 
 def _wasm_model_bad_inputs_refuse_repair() -> None:
