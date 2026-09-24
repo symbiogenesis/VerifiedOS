@@ -180,9 +180,12 @@ record still carries `accepted: false` and names the outstanding production admi
 The composer reads the descriptor document against the recipe's exact roster, emits
 canonical typed graph bytes and places them in a read-only, non-executable `.handler_graph`
 ELF section. The section must fit wholly inside a declared `MainMemory` region and overlap
-neither a member extent nor the HTIF doubleword. Its digest and placement enter the
+neither a member extent nor the HTIF doubleword. Its digest, placement and composer
+implementation hash enter the
 composition digest and boot record. The reference admission checker consumes that graph
-and the final image bytes; a refused runtime member refuses the whole composition.
+and the final image bytes; each image member's certified artifact must be that member's
+recipe source, bound by both path and digest. A refused runtime member refuses the whole
+composition.
 
 Before a run, the harness rechecks the descriptor and request bindings, regenerates the
 graph, and revalidates the admission record against the actual image and roster. A changed

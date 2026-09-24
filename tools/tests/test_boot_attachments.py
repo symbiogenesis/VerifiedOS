@@ -23,7 +23,7 @@ def _attached_recipe(root: Path) -> str:
     raw["composer"] = {"source": source, "address": "0x80003000"}
     (root / "proofs").mkdir(exist_ok=True)
     (root / "tools" / "vos").mkdir(exist_ok=True)
-    for relative in (admission.SOURCE, admission.CHECKER):
+    for relative in (admission.SOURCE, admission.CHECKER, "tools/vos/composer.py"):
         shutil.copyfile(ROOT / relative, root / relative)
     reference = admission.read_reference(root)
     members = cast("list[dict[str, object]]", raw["members"])
@@ -131,7 +131,37 @@ def _attachment_substitutions() -> None:
         ensure(bool(boot.stale(root, record, out)), "downgrading the record cannot discard attachments")
 
 
+def _producer_and_member_bindings() -> None:
+    with _scratch() as root:
+        recipe_path = _attached_recipe(root)
+        out = root / "out"
+        record = _compose(root, recipe_path)
+        producer = root / "tools/vos/composer.py"
+        original = producer.read_bytes()
+        producer.write_bytes(original + b"\n# changed producer\n")
+        ensure(bool(boot.stale(root, record, out)), "composer implementation bytes are bound")
+        producer.write_bytes(original)
+        recipe = boot.load_recipe(root, recipe_path)
+        request_path = root / cast("str", recipe.admission)
+        raw = json.loads(request_path.read_text(encoding="utf-8"))
+        first, second = raw["members"][:2]
+        first["artifact"] = second["artifact"]
+        first["certificate"]["binds_sha256"] = second["certificate"]["binds_sha256"]
+        request_path.write_text(json.dumps(raw), encoding="utf-8")
+        _refused(boot.RefusalError, lambda: _compose(root, recipe_path), "recipe source")
+        # Even a rewritten outer sidecar binding must replay the source join.
+        attached = admission.make_record(root, cast("str", recipe.admission),
+                                         (out / "image.elf").read_bytes(),
+                                         (out / "handler-graph.json").read_bytes(),
+                                         boot.load_roster(root, recipe.roster))
+        (out / "admission.json").write_bytes(admission.canonical(attached))
+        cast("dict[str, object]", record["admission"])["sha256"] = boot.digest_file(out / "admission.json")
+        ensure(any("recipe source" in f for f in boot.stale(root, record, out)),
+               "replaying a rebound wrong-member fixture still refuses the source join")
+
+
 def cases() -> list[Case]:
     return [Case("reference-graph-in-elf", _reference_composition),
             Case("whole-generation-and-extent-refusals", _attachment_refusals),
-            Case("substitution-and-promotion-refusals", _attachment_substitutions)]
+            Case("substitution-and-promotion-refusals", _attachment_substitutions),
+            Case("producer-and-member-bindings", _producer_and_member_bindings)]

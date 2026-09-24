@@ -669,7 +669,21 @@ def _admission_attachment(root: Path, recipe: Recipe, roster: Roster,
         raise RecipeError(f"admission: {exc}") from exc
     if record["decision"] != "accepted":
         raise RefusalError("admission refused a member; the whole generation is refused")
+    _admitted_sources(root, recipe, record)
     return record
+
+
+def _admitted_sources(root: Path, recipe: Recipe, record: dict[str, object]) -> None:
+    """Join each image member's reference evidence to the source actually assembled."""
+    records = {cast("str", member["member"]): member
+               for member in cast("list[dict[str, object]]", record["members"])}
+    for member in recipe.members:
+        certified = records.get(member.id)
+        source = (root / member.source).resolve()
+        if (certified is None
+                or (root / cast("str", certified["artifact"])).resolve() != source
+                or certified["artifact_sha256"] != digest_file(source)):
+            raise RefusalError(f"admission artifact for {member.id} differs from its recipe source")
 
 
 def _differs_from_revision(root: Path, inputs: list[str]) -> bool:
@@ -739,6 +753,7 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
             "source": {"path": recipe.composer.source,
                        "sha256": digest_file(root / recipe.composer.source)},
             "path": "handler-graph.json", "sha256": digest_bytes(graph),
+            "producer_sha256": digest_file(root / "tools/vos/composer.py"),
             "address": f"{recipe.composer.address:#x}", "bytes": len(graph)}
         composition["composer"] = graph_record
     admission_binding = None
@@ -841,6 +856,7 @@ def _record_fields(record: dict[str, object], where: str) -> None:
         attached = cast("dict[str, object]", record["composer"])
         _bound_file(attached.get("source"), f"{where}: composer source")
         _address(attached.get("address"), f"{where}: composer address")
+        _hex_digest(attached.get("producer_sha256"), f"{where}: composer producer", _SHA256_RE)
         _count(attached.get("bytes"), f"{where}: composer bytes", positive=True)
         _bound_file(record.get("admission"), f"{where}: admission")
     if not isinstance(record.get("revision"), str):
@@ -882,6 +898,7 @@ def _attachment_findings(root: Path, record: dict[str, object], out: Path,
             "source": {"path": recipe.composer.source,
                        "sha256": digest_file(root / recipe.composer.source)},
             "path": "handler-graph.json", "sha256": digest_bytes(graph),
+            "producer_sha256": digest_file(root / "tools/vos/composer.py"),
             "address": f"{recipe.composer.address:#x}", "bytes": len(graph)}
         if record.get("composer") != expected_graph:
             return ["composer binding differs from the recipe or graph inputs"]
@@ -895,10 +912,14 @@ def _attachment_findings(root: Path, record: dict[str, object], out: Path,
         request = attached.get("request")
         if not isinstance(request, dict) or request.get("path") != recipe.admission:
             return ["admission request differs from the recipe"]
-        return admission.validate_record(root, attached, (out / "image.elf").read_bytes(),
-                                         graph, roster)
-    except (RecipeError, composer.ComposerError, admission.AdmissionError, OSError) as exc:
+        findings = admission.validate_record(root, attached, (out / "image.elf").read_bytes(),
+                                              graph, roster)
+        if not findings:
+            _admitted_sources(root, recipe, cast("dict[str, object]", attached))
+    except (RecipeError, RefusalError, composer.ComposerError, admission.AdmissionError, OSError) as exc:
         return [f"composition attachments: {exc}"]
+    else:
+        return findings
 
 
 def stale(root: Path, record: dict[str, object], out: Path) -> list[str]:
