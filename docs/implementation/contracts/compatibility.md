@@ -8,7 +8,7 @@ inside the generation that built it. R-02-008 excludes that step. The supported
 replacement is edit, build, prove, admit, consent to signing, boot the successor
 generation, then run its already admitted test compartment.
 
-For an application targeting the platform Wasm subset, R-14-013e provides a
+For an application using standard Core 3.0 and available host imports, R-14-013e provides a
 same-session loop: edit, build a hash-identified bundle, validate its module,
 imports and memory ceiling, launch it in a precomposed elastic host, then
 retire that binding and launch a changed bundle. This is the first release's

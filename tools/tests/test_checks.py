@@ -654,8 +654,77 @@ def _wasm_model_native_limit() -> None:
                "zero coverage must preserve interpreter cost and compound hardware cost")
 
 
+def _wasm_scalar_fixture() -> str:
+    return (
+        "# Performance\n\n"
+        "| General scalar | **−45% to −70%** | fixture |\n"
+        "| Core µarch | Prepared Wasm scalar execution (§14) | Substituted | "
+        "**−1% to −2%** | fixture | notes |\n"
+        "| Wasm scalar execution, unchanged Core 3.0 modules (conditional target) | "
+        "**−1% to −2%** | fixture |\n\n"
+        "<!-- wasm-scalar-inputs -->\n" + compounds.WASM_SCALAR_HEADER + "\n"
+        "| 60 / 90 | 2 / 1.5 |\n<!-- /wasm-scalar-inputs -->\n")
+
+
+def _wasm_scalar_comparator_and_repair() -> None:
+    # Hand-computed independent cases: cap at native, no improvement, and a
+    # changed native comparator. The reference already contains hardware cost.
+    for raw, expected in (
+        (_wasm_scalar_fixture(), "**−45% to −85%**"),
+        (_wasm_scalar_fixture().replace("2 / 1.5", "1 / 1"), "**−60% to −90%**"),
+        (_wasm_scalar_fixture().replace("−45% to −70%", "−20% to −40%"), "**−20% to −85%**"),
+    ):
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           compounds.PERF: raw}) as root:
+            ctx = _context(root, fix=True)
+            compounds._wasm_scalar(ctx)
+            fixed = ctx.fixed[compounds.PERF]
+            # Count only the two Wasm rows; the native band can match the result.
+            rows = [line for line in fixed.splitlines() if "Wasm scalar" in line]
+            ensure(len(rows) == 2 and all(expected in row for row in rows),
+                   "both headlines must use the same comparator without a second hardware cost")
+            ensure(raw.split("<!-- wasm-scalar-inputs -->")[1]
+                   == fixed.split("<!-- wasm-scalar-inputs -->")[1],
+                   "repair must preserve authored assumptions")
+            (root / compounds.PERF).write_text(fixed, encoding="utf-8", newline="")
+            again = _context(root, fix=True)
+            compounds._wasm_scalar(again)
+            ensure(not again.fixed and not _findings_under(again, "K-112"),
+                   "scalar target repair must reach a fixpoint")
+
+
+def _wasm_scalar_bad_inputs() -> None:
+    raw = _wasm_scalar_fixture()
+    row = "| 60 / 90 | 2 / 1.5 |"
+    mutations = [raw.replace(row, value) for value in (
+        "", row + "\n" + row, "| 90 / 60 | 2 / 1.5 |",
+        "| 60 / 100 | 2 / 1.5 |", "| -1 / 90 | 2 / 1.5 |",
+        "| 60 / 90 | 1.5 / 2 |", "| 60 / 90 | 2 / 0.9 |",
+        "| nan / 90 | 2 / 1.5 |", "| 60 / 90 | inf / 1.5 |",
+        "| 20 / 90 | 2 / 1.5 |", "| broken |",
+    )]
+    mutations += [
+        raw.replace("<!-- /wasm-scalar-inputs -->", ""),
+        raw + "<!-- wasm-scalar-inputs -->\n",
+        raw.replace("| General scalar |", "| Lost comparator |"),
+        raw.replace("−45% to −70%", "−70% to −45%"),
+        raw.replace("Prepared Wasm scalar execution", "Lost headline"),
+        raw.replace("(conditional target)", "(lost target)"),
+        raw + raw,
+    ]
+    for bad in mutations:
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           compounds.PERF: bad}) as root:
+            ctx = _context(root, fix=True)
+            compounds._wasm_scalar(ctx)
+            ensure(bool(_findings_under(ctx, "K-112")) and not ctx.fixed,
+                   "malformed scalar inputs or missing/duplicate sites must refuse repair")
+
+
 def cases() -> list[Case]:
     return [
+        Case("wasm-scalar-comparator-and-repair", _wasm_scalar_comparator_and_repair),
+        Case("wasm-scalar-bad-inputs", _wasm_scalar_bad_inputs),
         Case("wasm-model-repair-and-comparator", _wasm_model_repair_and_comparator),
         Case("wasm-model-bad-inputs-refuse-repair", _wasm_model_bad_inputs_refuse_repair),
         Case("wasm-model-native-limit", _wasm_model_native_limit),

@@ -1067,6 +1067,10 @@ CASES: list[Case] = [
      _literal(PERF, "| Broad coverage | −80% to −90% |",
               "| Broad coverage | −1% to −90% |")),
 
+    ("K-112", "a scalar Wasm headline not derived from its incremental target",
+     _literal(PERF, "| Wasm scalar execution, unchanged Core 3.0 modules (conditional target) | **−45%",
+              "| Wasm scalar execution, unchanged Core 3.0 modules (conditional target) | **−1%")),
+
     ("K-34", "a checklist item whose estimate cell the document cannot read",
      _first_match(PLAN,
                   rf"(?m)^\* \[x\] \*\*[^*]+\*\* {MID} [\d.,]+ h actual {MID} [\d.]+%",

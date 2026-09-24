@@ -28,12 +28,20 @@ for the exact artifact and property under R-14-005. Platform secrets remain
 outside the ordinary guest interface.
 
 The interpreter's implementation must also distinguish a language failure from
-a host failure. The curated subset of the [Wasm 3.0 memory instruction semantics](https://webassembly.github.io/spec/core/exec/instructions.html#memory-instructions)
-governs guest growth failure and trapping accesses. R-14-013b pins its exact
-revision, enabled features and numeric profile. Host resource limits do not
+a host failure. The complete [Wasm 3.0 memory instruction semantics](https://webassembly.github.io/spec/core/exec/instructions.html#memory-instructions)
+govern guest growth failure and trapping accesses. R-14-013b pins its exact
+revision, full Core language and numeric choices. Host resource limits do not
 license a different successful language result. The implementation can suspend
 a long internal operation between bounded native steps only when its refinement
 preserves the guest-visible semantics and no import observes partial state.
+
+The compatibility gate requires the full Core 3.0 binary language under
+R-14-013b. The host can construct a descriptor around an unchanged downloaded
+`.wasm`, using validated declarations, quantitative resource policy and explicit
+import grants. This adds no custom compilation requirement. Absent WASI/DOM or
+other embedding APIs are import failures, not missing core features. Qualification
+includes independent unmodified modules exercising every core feature and
+cross-feature interactions; a partially implemented engine cannot close the gate.
 
 ## Operations
 

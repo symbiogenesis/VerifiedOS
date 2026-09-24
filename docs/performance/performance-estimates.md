@@ -33,7 +33,8 @@
 | Core µarch | Static-only branch prediction, no BHT/BTB/RAS (§15) | Removed | **−10% to −25%** | branchy control code | The loss is vs a TAGE-class *dynamic* predictor and is **pipeline-depth-driven, not memory-driven**: a branch costs its fetch-to-resolve distance, which SRAM main memory does not shorten. The retained *static* predictor (backward-taken / forward-not-taken) still resolves loop back-edges (~90%+ on loop-dominated code) at **zero silicon and zero predictor state**, converting the hottest branches from a taken-branch bubble into a correct early redirect. The residual concentrates on **data-dependent** branches, where nothing static helps, but the short non-speculative pipe keeps each mispredict cheap (a few front-end bubbles, not an OoO flush) and `Zicond` (gain row) removes many outright. Deterministic by construction, so it adds **no WCET variance** (§11). Compounds with in-order. **The worse end is scored with the R-18-014e link-step transforms in place; without them the row would run to −30%:** on measured hot paths selective inlining deletes call/return pairs whose returns nothing predicts, and superblock formation straightens the hot trace so the static fall-through guess is right where the baseline's predictor had to learn it; the data-dependent residual is untouched, nothing static helping it, which is what keeps the row open at all. **The absent RAS is also what prices the one code-size lever that adds calls**: outlining's helper return is an indirect branch with nothing predicting it (R-15-036o), which is why that lever is measured on cycles as well as bytes (R-15-036p) rather than taken as free, and why the inlining that deletes such returns and the outlining that adds them are one selectivity decision (R-18-014e), not two. |
 | Core µarch | No SMT (§15) | Removed | **0% single-thread; −13% to −23% multithreaded** | multithreaded throughput only | No single-thread effect. The loss is the *inverse* of the throughput SMT adds: 2-way SMT typically gains 15–30%, so removing it costs `1 − 1/1.15` to `1 − 1/1.30`. |
 | Core µarch | Fixed modest clocks, no turbo/DVFS (§15 power) | Substituted | **−15% to −40% burst; −0% to −15% sustained** | burst/interactive latency | Frequency effect, not IPC; turbo never helps thermally-bound sustained load. |
-| Core µarch | No JIT, interpret-only dynamic languages (§2, §14) | Removed | **−60% to −90%** | JS / scalar Wasm / dynamic-language code only | Coarse residual estimate against the conventional compiled/JIT baseline, not a target measurement. The band already allows R-14-008a's threaded dispatch, budgeted AOT superinstructions and data caches, and R-14-013h's compact interpreter representation; their separate same-machine recovery estimates are not additional multipliers on this row. No general native-parity claim follows, although an interpreter can win particular comparisons. Native browser chrome and admitted app backends are outside the interpreted portion. Numeric Wasm with proved SIMD and apps dominated by bounded native-service imports need their own workload accounting in [Wasm recovery](#wasm-recovery-evidence-and-estimates); neither a vector opcode nor a service call is assumed to cost one native instruction. No feature bypasses the frozen semantics, host refinement, yield bounds or W^X. |
+| Core µarch | No JIT, interpreted JS and other dynamic languages (§2, §14) | Removed | **−60% to −90%** | JS / dynamic-language code | Coarse residual versus the conventional compiled/JIT baseline, including threaded dispatch, AOT short superinstructions and data caches. Wasm's stronger automatic execution path has its own conditional row below; these Wasm changes supply no JS speedup. Native browser chrome and admitted backends remain separately accounted. |
+| Core µarch | Prepared Wasm scalar execution (§14) | Substituted | **−45% to −85%** | unchanged Core 3.0 scalar modules | Conditional engineering target from the automatic-scalar model below, including hardware cost against the same conventional native comparator. Register-resident operand/local state and larger fixed handler forms are applied by Prepare, without special compilation or native-service imports. Assumed incremental gain must be established against the already optimized reference; fallback-heavy, GC-heavy and short-lived cases can miss it. Full Core 3.0 compatibility is required regardless of optimization coverage. |
 | ISA substituted | No C / compressed extension; code encoded in the fixed-rate **dictionary format** instead (§15, R-15-036a) | Substituted | **≈0% to +3%** | fetch-bound | **This row is a small gain where excluding `C` alone would be the design's largest code-size loss, and it is a substitution rather than a recovery.** `C` is excluded on its own ground (no overlapping 16-bit-aligned decodings, no decode ambiguity for the binary-level proofs), but the density it was wanted for is supplied by a fixed-width-slot dictionary encoding that *deletes* variable-length fetch, mid-instruction reinterpretation, and the alignment-fragment machinery rather than mitigating them. Sizing: the encoding lands at **60% to 70% of the canonical 32-bit stream** at dictionary hit rates of 0.95 down to 0.80, counting both the slot term (R-15-036h) and the escape-packing term (R-15-036j), against the central ~72% an RVC baseline gets, so this machine's image is **2% to 16% smaller than that central RVC comparator's**, against the 33–43% larger it would be with `C` excluded and nothing supplied in its place. **That is a claim about *p* with two baseline-sensitive sign boundaries:** *p* = 0.773 is break-even against the central 72% comparator, while the conservative claim against an optimistic 70% RVC result fails below *p* = 0.804 (R-15-036j, R-15-036k), which is why *p* is measured stratified by operand class rather than quoted as an aggregate and why the emitted call and global-address forms are a freeze-time decision (R-15-036l). `Zcmt`'s JVT mechanism is **not** an unbooked extra gain: it is excluded at R-15-036q, and no separate debit is scored because the stated RVA23/RVC baseline supplies no JVT call path. The retained direct absolute-target candidate performs no table read; its density effect enters only through the measured *p*, and no cycle gain is credited before that freeze measurement. **One residual is named here rather than netted in:** the encoding cannot collect the *sequence* class, a dictionary entry being one instruction, so prologue and epilogue idioms survive it. The saves that make them up are stereotyped and already hit, though, so a compound multi-save is worth (*k* − 1) slots and not (*k* − 1) instructions, half what the same instrument is worth upstream; `Zcmp`'s own restartable form is refused on structure (R-15-036m), and the all-or-nothing single-check form, the only admissible shape, is struck ahead of the freeze rather than carried to it (R-15-036n). Neither is scored above. **The general form of that residual is taken in software rather than left open, and it is the one code-size lever on this page that spends cycles to buy bytes.** A recurring *region* is out of reach of a dictionary index and of a named idiom alike, so it is collected by outlining and tail merging in the backend, intra-compartment and only where the region needs no frame of its own (R-15-036o). Both directions are worth more here than on the baseline that ships the same `-Oz` pass, and they point opposite ways: the byte win is worth more because the image is a hard on-die capacity quantity with no I-cache, and the cycle cost is worse because the helper's return is an indirect branch this machine predicts with nothing (the no-RAS row above) and because a partition's capacity is its slot width, so worst-case inflation widens a slot or does not fit. Its size is also not a property of the pass alone: for a region of *n* instructions at *m* sites the inline cost is *nm* slots against *n* + *m* + 1 outlined under a composition-time absolute call and *n* + 2*m* + 1 under a PC-relative one, so break-even moves with R-15-036l's decision and a two-instruction region never pays under the PC-relative form. **Nothing here is scored either**: R-15-036p makes it a two-axis measurement, bytes removed and worst-case cycles added, taken *before* the candidates above so their corpus comes from a backend that already outlines. Expect it to carry where the general-scalar rows below do not notice it, low single digits of image on ordinary code and more on a repetitive composed roster, since the axis it is refused on is the one it is measured against. Fetch bandwidth moves with it: fewer bits per instruction than the baseline, at a fixed per-bundle latency with no I-cache, no predictor, and no decompression table. The two code-size *additions* the profile makes (capability indexed load/store, bitfield extract/insert) are scored in the gain rows below and are **not** netted here. Booked on the other side of the ledger: constant-time balancing is restated over encoded bundle count (R-15-036f), and the dictionary is a permanent freeze-time commitment (R-15-036i). |
 | ISA removed | Fixed-latency integer DIV and vector FPU, no early-out, subnormal-safe (§15) | Substituted | **−1% to −6%** | divide / sqrt / FP-heavy | Price of the constant-time mandate. |
 | ISA removed | No scalar `F`/`D`, scalar float folded onto the vector FPU (§15) | Substituted | **−2% to −20%** | scalar-float-bound code | VL=1 vector ops + soft-float-register ABI setup; dependent scalar-FP chains (recurrences, running sums) set the worse end, the vector FPU's longer fixed latency being unhideable inside them; well-vectorized FP is unaffected (runs on RVV). **The setup half of that is a lowering duty rather than a standing cost** (R-18-014i): a dependent chain keeps its intermediates resident in vector registers and pays the integer-register move at the chain's boundaries instead of per operation, and independent scalar-float work is batched to VL greater than one by the SLP the backend already owes. **The worse end does not move**, being set by the fixed latency inside the recurrence, which no lowering shortens. **This row is the one exception to the table's own gating note, and it is stated rather than left to be found:** the note above says a vector gain and an in-order loss rarely touch the same cycle, which is true of gains against losses and is *not* true of these two losses. A dependent floating-point recurrence inside a data-dependent control loop is simultaneously scalar-float-bound and branchy-in-order-bound, so this row and the in-order and static-prediction rows compound on that shape rather than reaching their worse ends on disjoint sub-workloads. **Where that lands is not the general-scalar archetype**, whose work is overwhelmingly integer, which is why the compounding check below states the exception rather than adding a term: it lands on the running-accumulator loops the composed roster actually carries, the 1000BASE-T canceller and the PHY control loops (split-MAC row) and the encoder's rate control and mode decision (encode row), and it is carried in those rows rather than multiplied onto the band. **The lever on it is representational and belongs to the composition, not to the backend**: a recurrence expressed in fixed point pays none of this row, the deleted datapath being the floating-point one, so where a control loop's accuracy admits an integer formulation the compounding is deleted rather than bounded. |
@@ -95,7 +96,8 @@ Figures are the compounded synthesis of the applicable rows above.
 |---|---|---|
 | General scalar / interactive / branchy (compilers, OS logic, business logic) | **−45% to −70%** | Runs at ~**30–55%** of a conventional core. In-order + static prediction + lower clocks dominate; single-address-space and bit-manip only partly offset; the flat cacheless SRAM hierarchy adds a pointer-chasing / latency-bound cost at the worse end, bounded by SRAM's low base latency (which partly offsets it) and by the mandatory static layout of §10 and §8 (R-08-012a), without which the worse end would sit at −75%: this archetype is where the no-cache row's own tightening compounds with the branchy in-order terms it cannot touch. The CHERI row contributes little here, the 64+1-bit format retiring the pointer-width footprint term (big table): it lands inside the range rather than setting its ends, which belong to in-order issue, static prediction, and the flat hierarchy. |
 | Memory-bound streaming | **−10% to −25%** | Bank partitioning and TDM-NoC arbitration set the ceiling, softened by no-MMU, SRAM's lower base latency, and R-08-012a's bank spreading (which uses more of an island's assigned banks in parallel without adding any); the memory path itself adds only ECC, carrying no cryptographic stage between the core and the array. The absence of a data cache is a non-factor here (streaming defeats caches anyway), and so is **no-prefetch**: with no cache to warm and bandwidth as the binding constraint, a prefetcher adds nothing (≈0%, big table). |
-| JS / scalar Wasm / dynamic-language execution | **−60% to −90%** | Coarse residual for the interpreted work, including the admitted interpreter levers. Applies to fetched and packaged code, including unmatched scalar work in same-session app hosts; browser implementation code is native. The browser remains deferred. This band is not a measured worst-case bound and does not price every numeric workload. |
+| JS / dynamic-language execution | **−60% to −90%** | Coarse interpreted-work estimate including its admitted levers; no credit from Wasm-only changes. Native browser code is separate and the browser remains deferred. |
+| Wasm scalar execution, unchanged Core 3.0 modules (conditional target) | **−45% to −85%** | Automatic register-resident prepared execution; same conventional-native comparator as the big table. The authored incremental-gain assumption and conservative native ceiling are explicit below. No custom producer, high whole-loop coverage or service imports are assumed. This is a qualification target, not a measured forecast or guaranteed bound for arbitrary modules. |
 | Wasm applications covered by whole-loop handlers or native-service batches | **−48% to −80%** | Conditional model spanning the two coverage cases below, using general-scalar native backends and the same conventional comparator. This is a planning estimate, not measured performance or a bound on arbitrary Wasm. The exact assumptions and separate same-machine interpreter penalties are in [Wasm recovery](#wasm-recovery-evidence-and-estimates). SIMD/vector backends require their own native ratio and are not assigned this scalar figure. |
 | Vectorizable data-parallel (render, DSP, codecs, ML pre/post) | **+200% to +1400% (3–15×) vs scalar; ≈−20% to +100% vs a vector-equipped baseline** | RVV VLEN=4096 dominates; this is the class the design optimizes. **The second band is the one with a moving comparator, and that is a debit rather than a foregone gain.** The baseline is a part of the same generation, so a fast-track vector extension the comparator carries and this profile declines makes that band's worse end worse without anything here changing: dot product, zip and unzip, and vector absolute difference are the current instance, and §15 records each as a **standing adoption** (R-15-067k) rather than declining it, which is what keeps the drift booked rather than silent. Nothing is scored for them, a standing adoption carrying no encoding and no timing-model row until it ratifies; what the disposition buys is that this band's erosion has an owner. |
 | Symmetric crypto over **non-secret** operands (AES / SHA-2 / GHASH / SHA-3) | **+400% to +1900% (5–20×) vs software crypto; ≈0% to +100% vs a crypto-equipped baseline** | Table-free crypto extensions, constant-time; the dual scoring follows the big table's vector-crypto row. SHA-3 carries the C-class geometry caveat of the big table (R-15-059a), and the vectorless S-class and RoT run scalar and take none of this figure. **The archetype is narrower than its name and the narrowing is normative rather than a caveat**: R-15-055 adopts the vector crypto units over no secret-labeled operand and R-05-070 refuses one at type level, so a keyed workload leaves this archetype for R-05-004a's masked datapath, whose figure is that datapath's width and sharing order and is not measured. A blended reading that puts a device's whole symmetric-crypto load in this row is reading it wrong. |
@@ -104,13 +106,13 @@ Figures are the compounded synthesis of the applicable rows above.
 
 ### Wasm recovery: evidence and estimates
 
-Research reading: **2026-09-23**. The execution profile and its acceptance cases
+Research reading: **2026-09-24**. The execution profile and its acceptance cases
 are wired into R-14-013h, the [Wasm execution contract](../implementation/contracts/wasm-execution.md)
 and Q34f/Q34g/Q34h. The runtime and its proofs are still open implementation
 work. These estimates purchase no relaxation of admission, confinement,
 numeric semantics, validation, resource bounds or native-code loading rules.
 
-The strongest recent directly relevant measured result is
+A recent directly relevant measured result is
 [Wasmi 2.0's reported approximately 2.2× execution geometric mean over Wasmi 1.0
 on an Apple M2 Pro](https://wasmi-labs.github.io/blog/posts/wasmi-v2.0/).
 It establishes that substantial interpreter improvements are possible. It
@@ -127,12 +129,12 @@ in each row, overriding this document's conventional-SoC default. Speedup means
 equal completed work per unit time, `T_reference / T_candidate`, not a reduction
 of that percentage in latency. A candidate can regress; Q34f records it rather
 than discarding the case. The modeled application bands below credit the selected
-whole-loop/service architecture conditionally; they are not target evidence.
+automatic scalar and whole-loop/service architectures conditionally; they are not target evidence.
 
 | Candidate | Conditional execution speedup | Comparator and conditions |
 | --- | --- | --- |
 | Compact slot IR, numeric accumulators, indexed metadata and bounded fusion, taken together | **1.5–3×** | Minimal decoded, unfused configuration of the same proved engine on the same target and frozen scalar workload. Planning range motivated by reduced dispatch/load work and external interpreter evidence, not a forecast obtained by scaling the M2 result. Includes these mechanisms jointly; no further Wasmi release multiplier. Does not describe first launch or the gain over an already optimized configuration. |
-| Proved fixed-width SIMD on suitable numeric loops | **2–8×** | Equivalent scalar guest loop on the same target, both using the selected interpreter. Engineering range for sufficiently parallel work with enough arithmetic per load; unavailable until the curated subset and complete lowering are proved. Irregular lanes, float corner cases, shuffles, short loops and memory limits can erase it. A `v128` opcode may need multiple native operations; lane count is not speedup. |
+| Proved fixed-width SIMD on suitable numeric loops | **2–8×** | Equivalent scalar guest loop on the same target, both using the selected interpreter. Engineering range for sufficiently parallel work with enough arithmetic per load; requiring the complete curated semantics and lowering proof before full-engine release. Irregular lanes, float corner cases, shuffles, short loops and memory limits can erase it. A `v128` opcode may need multiple native operations; lane count is not speedup. |
 | Coarse batches to existing admitted native services | **2–10×** | Selected kernel-dominated application versus its optimized guest-only implementation on the same machine. Conditional on the removed guest work dominating and the complete bridge/service cost satisfying the equation below. Includes the remaining frontend, copies, validation, waits and result delivery. No generic application speedup or extra fixed-tier capacity is assumed. |
 | Fixed whole-loop handlers | **See modeled penalties below** | Recognized integer maps/reductions and scans avoid per-element dispatch inside the original proved engine. The model requires native-equivalent useful work with all checking, polling and recognition overhead charged separately. Coverage and cost must be measured; naming a loop does not establish either. |
 | Wasm-to-Wasm specialization of an inner language interpreter | **n/a** | A weval-style producer removes nested interpretation while leaving output untrusted Wasm. [weval reports 3–5× for its SpiderMonkey deployment](https://github.com/bytecodealliance/weval); its outer execution engine differs from this pure interpreter. No transfer factor is established. Build cost, code expansion and dynamic fallback remain charged. |
@@ -142,6 +144,62 @@ These are alternative or overlapping workload cases, **not a product**. SIMD
 and native services cannot both take credit for the same numeric work; dispatch
 fusion and accumulator gains are already combined in the scalar row. The
 browser's JS cost receives no credit from Wasm-only changes.
+
+#### Automatic scalar execution target
+
+The scalar headline selects a stronger interpreter design for **unchanged
+standard modules**, independent of special source compilation, whole-loop
+coverage or native imports. It adds a fixed physical register window, hot-local
+residence and register-state handler variants with larger arithmetic/address/
+compare-branch forms. Preparation automatically chooses these forms, with
+proved general fallback for the complete Core 3.0 language. A memory-slot IR
+and one accumulator alone do not establish this optimization. The
+[execution contract](../implementation/contracts/wasm-execution.md#automatic-execution-of-unchanged-modules)
+owns the exact native-state and proof obligations.
+
+The authored reference is the short-fusion/single-accumulator configuration of
+the same engine, already using compact slots and indexed metadata. Its coarse
+conventional-native penalty and the **incremental qualification target** below
+are engineering assumptions, not measurements. The selected target is joint:
+register residence, larger fusion and cheaper state transitions do not earn
+separate multipliers. It is ambitious on this predictor-free target and may be
+missed; no current benchmark establishes this platform's gain. The unchanged
+frozen corpus includes branch/call-heavy programs, feature interactions and
+fallback cases, not only register-friendly kernels. Startup, preparation and GC
+must be charged on the separately reported complete-workflow axis.
+
+<!-- wasm-scalar-inputs -->
+| Reference penalty better / worse (%) | Incremental gain better / worse |
+| --- | --- |
+| 60 / 90 | 2 / 1.5 |
+<!-- /wasm-scalar-inputs -->
+
+K-112 generates/checks both scalar headline cells. For each corresponding end,
+let `q = 1 - reference_penalty/100`, `g` be the incremental gain, and `c` the
+native throughput from the general-scalar archetype. The selected ratio is
+`min(c, q*g)`, and its penalty is `100*(ratio - 1)`. The `c` ceiling is an explicit
+conservative model assumption: no claim to outperform the equally optimized
+native implementation of the same scalar work. The reference already includes
+hardware cost, so multiplying it by `c` again would double-count that cost.
+The worse end is retained even if a benchmark average meets the target; report
+per-program results, regressions and tails before revising these assumptions.
+
+The external evidence warrants investigating this mechanism, not asserting the
+target achieved. [Silverfir's current benchmark report](https://github.com/mbbill/Silverfir-nano/blob/f3f5c20f49dc85fdbb5866d4abb895c2734c64a1/benchmarks/wasi/README.md)
+separates interpreter from JIT, reports a roughly 1.39× median interpreter lead
+against the faster comparison interpreter per case, and still describes a large
+gap to optimized compilation. Its [recorded register/fusion design](https://github.com/mbbill/Silverfir-nano/blob/f3f5c20f49dc85fdbb5866d4abb895c2734c64a1/mcts_mem/silverfir/compiler.alt/fast-interpreter/dispatch.md)
+informs the mechanism, not a portable performance factor. [Deegen's 2026 paper](https://fredrikbk.com/publications/deegen.pdf)
+supports offline handler generation and register pinning; its other language,
+backend and GC coverage preclude transferring the number. The older 1.5–3×
+minimal-to-optimized estimate above and Wasmi's release gain are **not**
+multiplied into this incremental target.
+
+Neither adopting Core 3.0 nor enabling GC makes arbitrary code native-speed.
+Runtime copy-and-patch/JIT would violate R-02-008, R-05-085 and R-14-008a;
+a Wasm hardware execution unit would violate the selected ISA and processor
+scope. Those are not concealed implementation options for meeting this target.
+A result missing it changes the performance estimate, never those guarantees.
 
 #### Modeled reduction in the interpreter penalty
 
@@ -191,8 +249,9 @@ The unaccelerated column uses `100 * (1/w - 1)` on the same machine and is
 
 These cases sharply reduce the modeled **Wasm execution tax**, while the
 in-order hardware's own scalar penalty remains. Lower coverage, larger bridge
-cost or longer GC pauses can erase the reduction. They do not narrow the
-unmatched branch-heavy/dynamic-language row. A vector-native backend needs its
+cost or longer GC pauses can erase the reduction. They are separate from the
+automatic scalar target and supply no dynamic-language credit. A vector-native
+backend needs its
 own work decomposition; neither these scalar hardware ratios nor the SIMD
 speedup table can be multiplied into an already accelerated loop.
 
@@ -222,8 +281,9 @@ interval. Q34g supplies the exact optimized artifact's refinement and confinemen
 Q34h supplies the resident producer. Host seconds, emulator wall time and
 target-model cycles remain different evidence tiers. No target performance
 verdict is available yet. The reduced application bands are explicit modeled
-targets; the general no-JIT estimate remains applicable to residual interpreted
-work and unmatched programs, not to every application merely packaged as Wasm.
+targets; the automatic scalar target remains unmeasured. Programs missing its
+assumed gain keep their reported residual cost; no compatibility case is excluded to
+improve an average. The dynamic-language estimate receives no Wasm credit.
 
 ### The compounding check behind the general-scalar band
 

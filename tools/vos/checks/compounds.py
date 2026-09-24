@@ -483,9 +483,80 @@ def _wasm(ctx: Context) -> None:
                    "Wasm modeled penalties follow their assumptions and comparator")
 
 
+WASM_SCALAR_HEADER = (
+    "| Reference penalty better / worse (%) | Incremental gain better / worse |\n"
+    "| --- | --- |")
+WASM_SCALAR_SITES = (
+    re.compile(r"(?m)^(\| Core µarch \| Prepared Wasm scalar execution \(§14\) \| "
+               r"Substituted \| )\*\*[^|\n]+\*\*( \| [^\n]+)$"),
+    re.compile(r"(?m)^(\| Wasm scalar execution, unchanged Core 3\.0 modules "
+               r"\(conditional target\) \| )\*\*[^|\n]+\*\*( \| [^\n]+)$"),
+)
+
+
+def _wasm_scalar(ctx: Context) -> None:
+    """K-112: incremental scalar target, with no second hardware multiplication.
+
+    The input block, native comparator and both output sites are mandatory and
+    unique. Missing/malformed sites refuse repair; no enumeration floor is needed.
+    Arithmetic does not qualify the authored performance assumptions.
+    """
+    raw = ctx.text(PERF)
+    start, end = "<!-- wasm-scalar-inputs -->", "<!-- /wasm-scalar-inputs -->"
+    blocks = list(re.finditer(re.escape(start) + r"\n(.*?)\n" + re.escape(end),
+                              raw, re.DOTALL))
+    native = list(BAND_RE.finditer(raw))
+    sites = [list(pattern.finditer(raw)) for pattern in WASM_SCALAR_SITES]
+    problems: list[str] = []
+    if raw.count(start) != 1 or raw.count(end) != 1 or len(blocks) != 1:
+        problems.append("scalar Wasm target requires one complete input block")
+    if len(native) != 1 or any(len(matches) != 1 for matches in sites):
+        problems.append("scalar Wasm target requires one native band and both headline sites")
+    if problems:
+        ctx.rep.report("K-112", "unreadable scalar Wasm target:", problems)
+        return
+    lines = blocks[0].group(1).splitlines()
+    if len(lines) != 3 or "\n".join(lines[:2]) != WASM_SCALAR_HEADER:
+        ctx.rep.report("K-112", "unreadable scalar Wasm target:",
+                       ["scalar Wasm input header or single assumption row is malformed"])
+        return
+    cells = [cell.strip() for cell in lines[2].split("|")]
+    try:
+        if len(cells) != 4 or cells[0] or cells[-1]:
+            raise ValueError("expected two cells")
+        pb, pw = (float(cell) for cell in cells[1].split(" / "))
+        gb, gw = (float(cell) for cell in cells[2].split(" / "))
+        nb, nw = (int(value) for value in native[0].groups())
+        if (not all(math.isfinite(value) for value in (pb, pw, gb, gw))
+                or not 0 <= nb <= nw < 100 or not 0 <= pb <= pw < 100
+                or not 1 <= gw <= gb or pb < nb or pw < nw):
+            raise ValueError("invalid domain, endpoint order or reference/native relation")
+    except ValueError as exc:
+        ctx.rep.report("K-112", "unreadable scalar Wasm target:", [str(exc)])
+        return
+    penalties = [round(100 * (1 - min(1 - n / 100, (1 - p / 100) * g)))
+                 for n, p, g in ((nb, pb, gb), (nw, pw, gw))]
+    wanted = f"**−{penalties[0]}% to −{penalties[1]}%**"
+    repaired = raw
+    stale: list[str] = []
+    for pattern, matches in zip(WASM_SCALAR_SITES, sites, strict=True):
+        match = matches[0]
+        replacement = match.group(1) + wanted + match.group(2)
+        if match.group() != replacement:
+            stale.append("scalar Wasm headline disagrees with incremental target/native ceiling")
+            repaired = pattern.sub(lambda _: replacement, repaired)
+    if stale and ctx.fix:
+        ctx.fixed[PERF] = repaired
+        ctx.rep.line("fixed: scalar Wasm headline targets from authored inputs and native ceiling")
+        stale = []
+    ctx.rep.report("K-112", "stale scalar Wasm targets:", stale,
+                   "scalar Wasm headlines follow their inputs without double-counting hardware")
+
+
 def run(ctx: Context) -> None:
     ctx.rep.line(HEADING)
     _band(ctx)
     _placement(ctx)
     _wasm(ctx)
+    _wasm_scalar(ctx)
     ctx.rep.line()

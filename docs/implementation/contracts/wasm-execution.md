@@ -10,7 +10,7 @@ existing implementation owners, not completed work or additional engines.
 
 ## Research selection
 
-Primary sources reviewed on 2026-09-23 are below. A source is a design or
+Primary sources reviewed on 2026-09-24 are below. A source is a design or
 experimental reference, never admission evidence. No source code, dependency
 or runtime from this survey is incorporated. At incorporation, read the selected
 revision's own licence closure and record it in THIRD-PARTY.md.
@@ -22,27 +22,46 @@ revision's own licence closure and record it in THIRD-PARTY.md.
 | [Pulley accepted RFC](https://github.com/bytecodealliance/rfcs/blob/main/accepted/pulley.md) | Register bytecode, compact operands and superinstructions trade preparation cost for execution cost | Adopt the data-format principles. Do not import Cranelift as a trusted translator, deserialize an unchecked executable artifact or claim its proposed startup time. Preparation and reused launch remain separate measurements. |
 | [Titzer, A Fast In-Place Interpreter for WebAssembly, OOPSLA 2022](https://arxiv.org/abs/2205.01183) | Direct execution with side metadata can reduce preparation and representation space | Keep as a startup/space comparison. A second shipping interpreter would conflict with the single-engine scope and add proof work; no automatic tier or extra production engine is selected. |
 | [Lowther, Jacob and Singer, CHERI Performance Enhancement for a Bytecode Interpreter, 2023](https://arxiv.org/abs/2308.05076) | Pointer-size assumptions can create large interpreter overhead on Morello | Audit numeric cells, metadata and capability traffic on the actual purecap lowering. Morello's measurements are not this ISA's forecast. Never compress authority into an integer to recover space. |
-| [Silverfir-nano source and feature matrix](https://github.com/mbbill/Silverfir-nano) | A current project offers separate interpreter and native-code engines with different feature coverage | Its native-code results cannot price pure interpretation; its current interpreter excludes SIMD. No replacement for the single proved engine or the pinned subset is selected. |
+| [Silverfir-nano source and feature matrix](https://github.com/mbbill/Silverfir-nano) | A current project offers separate interpreter and native-code engines with different feature coverage | Its native-code results cannot price pure interpretation; its interpreter excludes SIMD and GC. Use its fixed register-window/local-cache and fusion ideas as references, with no upstream runtime substitution or transferred JIT score. |
 | [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) and [producer interface](https://github.com/bytecodealliance/weval) | Specialization removes an inner interpreter by producing Wasm from Wasm | Select an untrusted guest-producer path under Q34h: specialize guest-language interpreters into ordinary validated Wasm, still executed by the one pure platform engine. Its reported SpiderMonkey gains use a different outer engine and are not this target's forecast. No guest-to-native output or new verified specialization tool is admitted. |
-| [Wasm 3.0 release](https://webassembly.org/news/2025-09-17-wasm-3.0/), [standard profiles](https://webassembly.github.io/spec/core/appendix/profiles.html) and [implementation limits](https://webassembly.github.io/spec/core/appendix/implementation.html) | Typed references, tail calls and managed guest objects can avoid emulated language machinery; the standard permits implementation resource limits | Select 3.0 as the reference with a generation-fixed proved subset. Guest GC is eligible under the existing bounded-arena contract; upstream support is not evidence that this engine implements or proves it. |
+| [Wasm 3.0 release](https://webassembly.org/news/2025-09-17-wasm-3.0/), [standard profiles](https://webassembly.github.io/spec/core/appendix/profiles.html) and [implementation limits](https://webassembly.github.io/spec/core/appendix/implementation.html) | Typed references, tail calls and managed guest objects can avoid emulated language machinery; the standard permits implementation resource limits | Require the full Core 3.0 binary language. Standard quantitative limits and explicit imports preserve the host boundary; missing proofs block release, not features in the advertised language. |
 | [Denis, Performance of WebAssembly runtimes in 2026](https://00f.net/2026/06/23/webassembly-runtimes-2026/) | Reproducible workload comparisons distinguish runtime modes and enabled language features | The WAMR result uses AOT and some variants use features outside the freeze. Neither is a pure-interpreter target estimate; use the comparison discipline, not its numbers. |
 
 This design spends engineering on the already required interpreter's
 representation, host binding and proof. It does not add a trusted optimizer,
 new equivalence checker, prover or admission path to obtain speed. If a candidate
 needs such an artifact solely for performance, R-05-065 excludes it. R-14-013b
-selects the Wasm 3.0 reference and a generation-fixed allowlist; no threads and
-R-14-013d's SIMD curation condition remain. The existing [proof-reuse assessment](../../assurance/proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries)
-still owns the unverified binary-parser, concrete numeric/SIMD and host-proof gaps.
+requires the complete Core 3.0 binary language. The [proof-reuse assessment](../../assurance/proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries)
+still owns the parser, numeric/SIMD, GC and host-proof gaps; they block completion.
 
 ## Wasm 3.0 inside the existing boundary
 
-Q34g publishes a feature matrix naming the exact upstream definitions, concrete
-executable cases, both theorem cases, resource limits and negative tests for
-each enabled construct. Missing curation leaves a construct disabled. The
-initial proved subset may be smaller than 3.0; the version name never enables
-an upstream engine's defaults. All module and prepared-data identities include
-the feature and numeric profile. A changed engine/profile enters at successor boot.
+Full Core 3.0 is the release target, including all prior features, fixed/relaxed
+SIMD, recursive GC types, subtyping, typed references, tail calls, exceptions,
+extended constant expressions, multiple memories and memory64/table64. Q34g's
+inventory maps every standard case and feature interaction to its upstream
+definition, executable path, both theorem cases and positive/negative tests.
+An unimplemented or unproved case keeps the engine incomplete. Development
+subsets may assist construction but cannot satisfy the release gate. SIMD may
+use exact scalar fallbacks; it cannot disappear to accommodate a backend.
+
+The upstream [implementation-limit rules](https://webassembly.github.io/spec/core/appendix/implementation.html)
+permit finite resources but explicitly forbid dropping individual features.
+Publish quantitative limits, qualify them on unchanged independently produced
+modules and prohibit zero/unusable limits that hide an omitted feature. Guest
+struct and array layouts are derived from validated types within these limits,
+not selected from a composition-time list of permitted guest types. The host
+can wrap raw `.wasm` bytes locally without modifying them or requiring a source
+compiler, custom section or vendor signature. Its descriptor supplies resource
+policy and explicit import grants. Full Core support is distinct from WASI,
+the Component Model, JavaScript/DOM and thread/shared-memory proposals. A valid
+module needing an absent host API gets an import diagnosis; Core conformance
+cannot manufacture that API or authorize it.
+
+The numeric implementation uses the standard DET choices while accepting every
+Core 3.0 instruction. These are results permitted by the full language and need
+no producer changes. The exact semantics, numeric choices and engine identity
+remain generation-fixed; changed engines enter through successor admission.
 
 Typed references may remove redundant type checks when validation and the
 runtime reference invariant prove them unnecessary; null checks and current
@@ -66,8 +85,8 @@ failure has a declared bounded outcome. No emergency unbounded collection,
 cross-binding tracing or resurrection of a retired import is permitted. This
 implements R-14-015 rather than adding a managed native base.
 
-The standard deterministic profile is a curation target, not an already proved
-artifact. When admitted, it fixes generated NaNs and relaxed-vector choices;
+The complete deterministic numeric implementation remains open proof work.
+It fixes generated NaNs and relaxed-vector choices;
 growth failures still depend on resources. Strict instructions keep their own
 results. Neither GC nor a numeric profile establishes source correctness,
 linear-memory object safety or constant-time execution of secrets.
@@ -117,6 +136,70 @@ linear-memory object safety or constant-time execution of secrets.
    quarantined storage beside the replacement; it assumes no moving live
    native capabilities and no unbounded reference count or epoch wrap.
 
+## Automatic execution of unchanged modules
+
+The selected stronger execution path keeps several live values in actual native
+registers across handler dispatch, rather than merely calling memory slots
+"registers". Its initial design budget is four numeric operand cells and two
+frequently used numeric locals, with paired cells for `v128` and separate typed
+reference/root state. Q34g may choose a smaller window after backend/size
+qualification; reducing it earns no assumed gain. Handler variants name these
+fixed locations, so fused expressions need no dynamic slot loads for internal
+values. Local-use counts weighted by bounded loop depth choose candidates at
+Prepare; no runtime hardware predictor or per-app native code is added.
+
+Bounded preparation folds providers into consumers, propagates constants and
+copies only across proved effect-free regions, and chooses arithmetic/address/
+compare-branch templates plus their register-state variants. All templates and
+transitions are native image code compiled before admission. A template miss,
+large index, deep operand stack or exhausted optimization budget emits the
+same engine's general record forms. Those forms support the entire language;
+optimization success is never a compatibility condition. This needs neither
+source nor a special producer flag. Whole-loop recognition is another automatic
+case, while explicit service imports and weval remain optional producer paths.
+
+Spill/fill, join permutations and call/exception transitions re-establish one
+exact guest state. References are published to complete root maps before any
+GC/helper/yield that can inspect them; numeric bits never substitute for roots
+or native capabilities. Cache aliases cannot outlive overwritten locals.
+Exceptions preserve payloads and frames, and fallback never repeats an effect.
+GC, imports, growth and suspension remain barriers for invalidatable facts.
+Every fused body preserves original trap order and strict floating results.
+Instruction-pointer updates may be combined within a fixed fused body, with
+explicit source positions for traps and resumes. No speculative load,
+runtime handler copying, executable patching or code emission is selected.
+
+The existing certifying backend must prove a constant-stack intra-engine
+calling convention that keeps the window live, under the native TAL and context
+clear rules. This is backend work, not a request to trust LLVM `musttail` or
+`preserve_none`. If generated native code spills the window at every dispatch,
+the purported gain disappears and Q34f records the failure. Each precompiled
+variant consumes image capacity; the handler selector has a finite work budget.
+The preparation relation and every variant belong to the original engine's two
+theorems, without a separate trusted performance optimizer or checker.
+
+Sources and limits of the inference:
+
+- [Silverfir's recorded interpreter design](https://github.com/mbbill/Silverfir-nano/blob/f3f5c20f49dc85fdbb5866d4abb895c2734c64a1/mcts_mem/silverfir/compiler.alt/fast-interpreter/dispatch.md)
+  and [local-cache notes](https://github.com/mbbill/Silverfir-nano/blob/f3f5c20f49dc85fdbb5866d4abb895c2734c64a1/mcts_mem/silverfir/compiler.alt/fast-interpreter/hot-local-cache.md)
+  distinguish physical register residence from slot IR and show why fusion and
+  caching must be evaluated jointly. These are historical design notes, not a
+  claim that its current engine or our backend implements this exact path.
+- [Deegen, OOPSLA 2026](https://fredrikbk.com/publications/deegen.pdf)
+  demonstrates offline generation and register pinning in fast interpreters.
+  Its Lua interpreter reports 1.31 times LuaJIT's interpreter on its corpus;
+  its JIT results and missing GC implementation supply no evidence here.
+- [Ertl and Paysan, ECOOP 2024](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ECOOP.2024.14)
+  isolates instruction-pointer dependencies. Its OoO-dependent gains and
+  runtime code-copying context are not transferred; only fixed-body update
+  coalescing is a candidate here.
+
+Q34f measures this path jointly against the short-fusion/single-accumulator
+configuration, as well as ablating its pieces. The scalar planning target in
+[performance estimates](../../performance/performance-estimates.md#automatic-scalar-execution-target)
+is incremental over that already optimized reference. No target measurement
+currently establishes it, and no unmatched module is dropped from the corpus.
+
 ## Semantic and scheduling obligations
 
 The preparation-to-execution relation is part of R-14-013a's existing
@@ -131,8 +214,8 @@ earlier trapping instruction or expose unfinished bulk state. Integer division
 and conversion traps, NaNs, signed zero, lane order and overlapping memory/table
 copies retain the pinned semantics. A handler may use several native
 instructions for one vector opcode; no fast-math or relaxed-SIMD substitution
-is allowed. A vector path remains unavailable until its curated semantics and
-concrete execution are both covered.
+is allowed. Every vector path needs curated semantics and concrete execution proofs;
+missing coverage blocks the full-engine gate.
 
 Each load/store checks the guest's current byte length with non-wrapping
 effective-address arithmetic before accessing backing. A fast same-segment
@@ -205,10 +288,10 @@ is a successor-generation change; a runtime operation cannot supply machine
 code, choose an arbitrary native target or grow the fixed-tier reservation.
 Keep secrets out of ordinary guest imports under R-14-013f.
 
-For numeric guest work, Q34h may produce fixed-width SIMD only inside the
-actually admitted subset. Q34g compiles its fixed interpreter handler bodies
+For numeric guest work, Q34h may produce standard fixed-width SIMD for the full
+Core 3.0 target. Q34g compiles its fixed interpreter handler bodies
 through the ordinary native toolchain; guest modules remain interpreted data.
-It does not expand the guest dialect to match an upstream default.
+Its private execution records are not a guest dialect or an input requirement.
 Do not count SIMD and native offload on the same removed guest work twice.
 
 Keep interpreter bodies in the first memory class and bulk backing in the
@@ -228,13 +311,15 @@ selected native-service case includes small and large batches. Include
 concurrent unrelated guests and repeated instances of one module.
 
 Measure a minimal configuration of the same proved engine and isolate each
-selected representation, fusion, whole-loop, specialization, cache, SIMD,
+selected representation, fusion, register-resident execution, whole-loop,
+specialization, cache, SIMD,
 batching and placement change. Freeze the unspecialized and specialized guest
 programs together; check their observable outputs and dynamic fallback cases.
 Report whole-loop coverage and all residual interpreter work, not just a
 matched microkernel. Include GC-heavy cyclic graphs, retained host roots,
 maximum type graphs, tail-call cycles, exception unwinding, memory64 overflow
-and multi-memory aliasing whenever their feature is enabled.
+and multi-memory aliasing as required full-language cases, including feature
+combinations.
 These are qualification builds; a composed image still ships one engine artifact.
 Keep workload, guest language, authority and results fixed; report unsupported
 cases rather than silently removing them. A service comparison includes the
