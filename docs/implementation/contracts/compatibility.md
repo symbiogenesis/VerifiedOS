@@ -14,7 +14,9 @@ imports and memory ceiling, launch it in a precomposed elastic host, then
 retire that binding and launch a changed bundle. This is the first release's
 ordinary app-development route. The native test cycle selected here still
 crosses the generation boundary; neither loop executes bytes the editor wrote
-as native instructions.
+as native instructions. The [application-host contract](application-host.md) owns the
+Wasm loop's typed operations, identity and grant checks, resumable execution,
+transactional replacement and performance qualification.
 
 This is a named consumer of the resident toolchain required by R-13-027 and
 R-18-004e, adjacent to the first release's shell and content capabilities. It
@@ -41,7 +43,7 @@ and parser proofs remain admission prerequisites.
 | Read successor test result | A separately granted result object from the next generation's admitted test compartment | Bounded diagnostics bound to candidate root, test identity and boot epoch; an old result cannot certify the candidate |
 
 There is no operation to execute a staged native object, rewrite the running roster,
-install a runtime plugin, load an external helper by path, or bypass checking
+install a runtime native plugin, load an external helper by path, or bypass checking
 because the producer is local. A test program that generates another native
 program has the same next-generation boundary. Browser content remains on
 R-14-008's contained interpreter path and supplies no alternative native route.

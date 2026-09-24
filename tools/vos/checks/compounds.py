@@ -137,7 +137,8 @@ PLACEMENT: list[tuple[str, str, str, str]] = [
     ("framebuffers", r"framebuffers", "second", "R-15-247s"),
     ("images", r"\bimages\b", "second", "R-15-247s"),
     ("vector and matrix extents", r"vector and matrix extents", "second", "R-15-247s"),
-    ("interpreter object arenas", r"interpreter object arenas", "second", "R-14-015"),
+    ("bulk interpreter object arenas", r"bulk interpreter object arenas", "second", "R-14-015"),
+    ("bounded hot guest data", r"bounded hot guest data", "first", "R-14-015"),
     ("media buffers", r"media buffers", "second", "R-15-247s"),
     ("cold statically-placed code", r"cold statically-placed code", "second", "R-15-247s"),
     ("model weights", r"model weights", "second", "R-15-247s"),
@@ -163,8 +164,11 @@ BY_CRITERION_RE = re.compile(
 GOVERNS: list[tuple[str, str]] = [
     ("R-15-247", "the scalar working set and every cycle-critical array"),
     ("R-15-247j", "all §11 hard-task code and all hot code on the first class"),
-    ("R-14-015", "The arenas are **second-class regions** and the interpreter body is "
-                 "**first-class**"),
+    ("R-14-015", "Bulk arena backing uses the **second class** by default and the "
+                 "interpreter body is **first-class**"),
+    ("R-14-015", "every extent and pool draw keeps its composition-fixed memory "
+                 "class, bank grants and timing charge, with no runtime relocation "
+                 "or automatic tiering"),
 ]
 
 
