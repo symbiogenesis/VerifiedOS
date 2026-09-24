@@ -2,11 +2,12 @@
 """Supervisor differential syntax, coverage and the native consumer controls."""
 
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import env
+from vos import toolenv
 from vos import supervisor as s
 
 
@@ -55,7 +56,7 @@ def native_consumer_controls() -> None:
     ensure(compiler is not None, "guest native C compiler is missing")
     if compiler is None:
         return
-    work = env.load().lane_root / "supervisor-tests"
+    work = toolenv.environment(TOOLS.parent, sys.platform).parent / "supervisor-tests"
     work.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="native-", dir=work) as directory:
         binary = Path(directory) / "host"
