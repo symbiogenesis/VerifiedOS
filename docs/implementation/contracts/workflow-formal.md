@@ -161,8 +161,9 @@ work, failed commits/restores, every crash boundary, grant revocation and repeat
 switches through endurance exhaustion. The generated corpus size is a computed
 run result, not a maintained document count.
 
-Replay uses `python tools/run.py proofs --jobs 3` in an isolated worktree,
-including native symbol/assumption audit and kernel recheck. Bounded mutation
+Replay uses Guest CI's proof gate on GitHub Actions, including native
+symbol/assumption audit and kernel recheck. Local reproduction for focused
+debugging or a CI outage uses an isolated worktree. Bounded mutation
 qualification uses `vos.seeded.chosen` to select 24 mutants over `edge_ok`,
 `propose`, `reusable`, `cp_ok`, `ram` and `store`, plus targeted memory-inventory
 omissions. Compile each mutant's definitions independently in the native proof
@@ -170,4 +171,5 @@ environment before checking its proofs: definition failures are stillborn,
 not killed, and survivors need individual investigation. The completion evidence
 identifies the actual prover and replay helper; the separate `seed coq` vector
 harness is not interchangeable evidence. The integrator owns requirement-header
-generation, the portable receipt and the final Host CI verdict after integration.
+generation, the portable receipt and the final Host CI and Guest CI verdicts
+after integration.

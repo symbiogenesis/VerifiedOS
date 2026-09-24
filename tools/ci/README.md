@@ -1,9 +1,12 @@
 # Guest CI contract
 
 The guest pipeline validates the current curated model, proof sources and authored
-RTL on Linux. It complements [host validation](../../.github/workflows/host-gates.yml).
-Its initial triggers are manual dispatch and a weekly schedule; making it a required
-pull-request check needs a measured hosted run time and reliability record.
+RTL on Linux. Run it together with [host validation](../../.github/workflows/host-gates.yml)
+on GitHub Actions for each settled integration batch. Both workflows supply required
+acceptance evidence; routine local execution of either complete suite is unnecessary.
+Guest CI currently triggers through manual dispatch and scheduled runs. Dispatch
+it for the published revision before acceptance; this procedure does not configure
+an automatic pull-request trigger or a branch-protection requirement.
 
 ## Running it
 
@@ -26,7 +29,9 @@ The gate job is a two-lane matrix, and each lane has its own runner. The `model`
 installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
 RTL lint and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
 Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
-longer lane. One lane's failure does not cancel the other.
+longer lane. One lane's failure does not cancel the other. Require both lanes to pass,
+and retain the run URL, tested revision, results and proof receipt. A green Host CI
+run alone supplies no model, RTL or proof-gate verdict.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
 when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
@@ -50,7 +55,9 @@ Package repositories provide the archive
 checksums for the snapshot imports; distribution package versions follow the runner
 image. This records a package resolution, not a bit-for-bit toolchain image.
 
-On native Linux, from the repository root:
+For local reproduction during focused debugging or a hosted-service outage, run
+the affected commands on native Linux from the repository root. To reproduce the
+complete guest suite when needed:
 
 ```sh
 python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --install-system
@@ -207,8 +214,14 @@ objects, dependencies, toolchain context and failed runs.
 Focused tests must cover installation planning and failure propagation, including
 unavailable dependencies and corrupt downloads where the installer owns download
 verification. Workflow syntax is checked with actionlint. After publishing the stable
-combined changes, the integrator requires green Host CI, which runs
-`python tools/run.py --check --tests` on Windows and Ubuntu.
+combined changes, the integrator requires green Host CI on Windows and Ubuntu and
+both Guest CI lanes on GitHub Actions. Host CI runs the sharded
+`python tools/run.py --check --tests` suite; Guest CI runs the commands above,
+including `python3 tools/run.py proofs`. Select `cold: true` when the applicable
+acceptance contract requires `proofs --fresh` or cold installation evidence.
+Record each workflow's run URL,
+tested revision and verdict, and verify that both cover the settled inputs.
+Use manual dispatch when no automatic event starts the required workflow.
 
 Failure reporting and artifact upload run after failed checks without turning a
 failed or skipped required command into success. Preserve textual logs, structured

@@ -38,8 +38,9 @@ Its acceptance predicates are:
   locations, ordering and bounds, stale sources with unchanged timestamps,
   malformed inputs and path escape, no partial JSON, and the output schema.
   Real-bundle smoke tests, Python type checks and Windows/Ubuntu Host CI validate
-  the integrated tool. The integrator runs the local guest bundle comparison and
-  proof gate affected by shared dispatcher registration before final acceptance.
+  the integrated tool. The integrator also dispatches Guest CI for the settled
+  revision with `cold: true`, including the bundle comparison and fresh proof gate
+  affected by shared dispatcher registration, before final acceptance.
 
 This delivery makes no measured productivity or model-success claim. It changes
 no Sail semantics, compiler pin, device behavior or proof-acceptance policy.
@@ -127,14 +128,18 @@ the behavior the requirements specify.
    waits; the final acceptance run is recorded separately. These are operating
    defaults enforced by the journal, not measured optimal limits.
 5. Regenerate the bundle when sources settle. Inspect the source diff and generated
-   diff, then run the artifact's existing required gates. A behavior change needs
+   diff, then publish the settled inputs and dispatch Guest CI for its required
+   model, bundle, proof and standalone RTL gates. A behavior change needs
    the model build and applicable unit, property, oracle, differential, profile and
    negative-control checks under [the model tool guide](../../tools/README.md).
-   Use `model build --background` and `model wait` for long builds, preserving the
-   command's final verdict. `model smt` results have their existing scope; they
-   do not become Rocq proof terms by passing through an agent.
+   Checks outside the [Guest CI contract](../../tools/ci/README.md) remain separate.
+   Local gate runs are for focused debugging or a hosted-service outage; use
+   `model build --background` and `model wait` for a needed local long build,
+   preserving the command's final verdict. `model smt` results have their existing
+   scope; they do not become Rocq proof terms by passing through an agent.
 6. Retain decisions and durable evidence in their repository owners, commit the
-   settled change and obtain Windows/Ubuntu Host CI before integration. A planned
+   settled change and obtain green Windows/Ubuntu Host CI and both Guest CI lanes
+   on GitHub Actions before acceptance. A planned
    specification change returns to its owning requirement and acceptance contract;
    it is not a repair to make the old contract pass.
 
@@ -258,8 +263,10 @@ The committed extension contract has these acceptance predicates:
    are tracked in this repository. No model account, agent SDK, editor configuration
    or global skill is needed. Selected upstream licenses are read before source is
    incorporated, and intended use/distribution is recorded in THIRD-PARTY.md.
-   Focused behavioral tests, real native qualification, the affected proof gate and
-   green Windows/Ubuntu Host CI validate the settled integration revision.
+   Focused behavioral tests, real native qualification and green Host CI and Guest CI
+   on GitHub Actions validate the settled integration revision. Guest CI includes
+   the proof gate; select `cold: true` for the required fresh proof check.
+   Optional native qualification remains a separate check.
 
 Qualification reports retain failed capabilities and
 measured costs; neither a build nor a protocol response alone satisfies them.
@@ -378,4 +385,5 @@ library report retains both clean builds, complete suite output identities and
 each differential comparison; its peak RSS is a child-process metric, not total
 parallel memory. No observation establishes a productivity improvement or proof
 of universal equivalence. Fresh proof evidence remains in its existing
-`proofs/proof-evidence.json` owner, and Host CI supplies the final host verdict.
+`proofs/proof-evidence.json` owner and Guest CI's retained proof artifact. Host CI
+and Guest CI supply the final host and guest verdicts on GitHub Actions.

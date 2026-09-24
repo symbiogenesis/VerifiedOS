@@ -33,15 +33,22 @@ There is one executable here, [run.py](run.py), and a command is a name rather t
 path. It was seventeen executables, and using them meant knowing which file answered
 which question and which of the two lanes it ran in; both of those are now the tool's
 to know. `python tools/run.py` with no command runs the local host gate wave for diagnosis, and
-`run.py <command> --help` is that command's own help. The required landing verdict is
-Host CI's complete set of read-only `run.py --check --tests --shard INDEX/4` jobs in
+`run.py <command> --help` is that command's own help. Landing requires both Host CI
+and Guest CI on GitHub Actions. Host CI's complete set of read-only
+`run.py --check --tests --shard INDEX/4` jobs runs in
 [.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
 runners at every push and pull request to `main`, or through manual dispatch, over a clone with no submodule
 checked out. [Guest CI](../.github/workflows/guest-gates.yml) runs the model evidence
 sweep, proof gate, bundle comparison and standalone RTL checks on Linux, on manual
-dispatch and a weekly schedule. Its [bootstrap and acceptance contract](ci/README.md)
-states the toolchain setup and the remaining experimental loops. Host and guest
-verdicts establish only the checks each workflow actually runs.
+dispatch and scheduled runs. Dispatch Guest CI for the published settled revision;
+do not wait for a scheduled run or run its gates locally as routine acceptance.
+Require both guest lanes, including proof compilation, assumption audit and kernel
+checking under the proof gate's reuse contract. Select `cold: true` when acceptance
+requires `proofs --fresh` or cold installation evidence.
+Its [bootstrap and acceptance contract](ci/README.md) states the
+toolchain setup and the remaining experimental loops. Host and guest verdicts
+establish only the checks each workflow actually runs. Local gate execution is
+reserved for focused debugging or a hosted-service outage.
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and
@@ -694,20 +701,21 @@ reserves a quiet tree for their readers.
 | A checker rule | `python tools/run.py selftest --rule K-110`, substituting the changed rule, once the whole checker baseline is clean. This supplies only the selected rule's mutation evidence. |
 | Tool behavior | `python tools/run.py test --only gate`, substituting a module-name substring for the affected tests. |
 | Python sources or checker configuration | `python tools/run.py typecheck` after a coherent batch when feedback is needed before integration. It checks all tools; there is no path filter. |
-| Model, RTL or proofs | The changed artifact's required guest checks, against its real inputs and isolated outputs. Coordinate shared builds and proof runs; use `evidence` when its complete sweep is the acceptance check. |
+| Model, RTL or proofs | Use focused candidate checks when needed for debugging. Publish settled inputs and dispatch Guest CI for the model, proof and standalone RTL acceptance gates; retain separate checks for requirements outside its contract. |
 
 Use the existing verdict for unchanged inputs. If a checker run already reports
 arithmetic drift, invalid instructions or owed co-reads, resolve those findings
 before running a selftest: its baseline runs the whole checker even under `--rule`,
 and a failed baseline supplies no mutation verdict. Workers report deferred repair
-and checks explicitly. They do not run `--fix` or bare `run.py`. A full local host
-gate is reserved for diagnosing a Host CI failure or an unavailable hosted service.
+and checks explicitly. They do not run `--fix` or bare `run.py`. Local host and guest
+gate runs are reserved for focused debugging or an unavailable hosted service;
+record the reason, scope and verdict for such a run.
 
 **Budget workers across the machine.** The full runner already parallelizes its
 gates; selftest, behavioral tests and typecheck also run internal workers. Reserve
-complete host waves for GitHub Actions, which is the final host verdict. Schedule
-costly guest work against the same CPU and memory budget, and run changed guest
-gates locally while that remains faster. Focused checks
+complete host and guest/proof suites for GitHub Actions, which supplies both final
+verdicts. Budget any necessary local debugging or checks outside the workflows
+against the same CPU and memory limits. Focused checks
 may overlap on independent stable inputs when capacity permits; `selftest --jobs N`
 and `test --jobs N` bound their command's workers, not the whole gate. Default selftest
 sandboxes are private; never share an explicit `--sandbox` directory between live runs. Builds,
@@ -725,14 +733,17 @@ The integrator closes the batch in this order:
    after the batch's authored inputs settle; repeat only if new input changes or
    findings require it. An intermediate merge needs a targeted check only when its
    answer affects the next integration decision.
-3. Commit the settled tree and let Host CI run every `--check --tests --shard INDEX/4`
-   partition on the pull request or published branch. Require a green Windows and Ubuntu result.
+3. Commit and publish the settled tree. Let Host CI run every
+   `--check --tests --shard INDEX/4` partition on the pull request or dispatch it
+   for the published branch. Dispatch Guest CI for the same settled inputs; its
+   current triggers are manual dispatch and scheduled runs. Require green
+   Windows and Ubuntu host results and both guest lanes, including proofs.
    Use `python tools/run.py check --fix` locally only to repair derived artifacts
-   before committing; run a full local host wave only to diagnose a hosted failure or
-   an unavailable hosted service. The default suite does not replace required slow
-   tests or guest evidence, which should be run locally for changed guest inputs.
-4. Record the hosted run URL or identifier, tested revision, verdict and deferred
-   checks. A lane handoff is provisional until the integrated batch passes every
+   before committing. Run local gates only for focused debugging or an unavailable
+   hosted service. Required slow tests, experiments and measurements outside the
+   [Guest CI contract](ci/README.md) retain their separate acceptance checks.
+4. Record both hosted run URLs or identifiers, their tested revisions, verdicts and
+   deferred checks. A lane handoff is provisional until the integrated batch passes every
    required gate and review; a selected-rule selftest cannot establish that every
    mutant was killed. If later edits change a gate's inputs, refresh the affected
    evidence before acceptance. Re-run hosted validation for a new integration batch

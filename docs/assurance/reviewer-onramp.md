@@ -66,7 +66,7 @@ Read [critique.md](../background/critique.md) before starting. It is the project
 ## 6. The commands, in the order a first reading needs them
 
 ```console
-$ python tools/run.py --check                     # every host gate, read-only, one exit code
+$ python tools/run.py --check                     # local host-gate reproduction when debugging
 $ python tools/check.py                           # the checker alone
 $ python tools/run.py coread --show <id>          # a pair K-61 says is owed a reading
 $ python tools/run.py view                        # the register, rendered as the derived views read it
@@ -74,7 +74,7 @@ $ python tools/run.py rtl provenance              # each claimed absence, and th
 $ python tools/run.py oracle list                 # the differential oracles, and how large each is
 ```
 
-Only the host gate wave runs unattended: [host-gates.yml](../../.github/workflows/host-gates.yml) runs `python tools/run.py --check --tests`, with a `--summary` path that names the member that went red and adds no gate, on Windows and Ubuntu runners at every push and pull request to `main`. Required guest evidence is run explicitly before the affected item lands. During fan-out, workers return focused evidence and one integrator runs the complete gate over each stable integration batch; [the check schedule](../../tools/README.md#check-scheduling-during-fan-out) states when to run each command and when a later edit invalidates its verdict. [tools/README.md](../../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
+Run both host and guest/proof gates on GitHub Actions for each settled integration batch. [host-gates.yml](../../.github/workflows/host-gates.yml) runs the sharded `python tools/run.py --check --tests` suite, with a `--summary` path that names the member that went red and adds no gate, on Windows and Ubuntu runners at every push and pull request to `main`, or through manual dispatch. [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs the model, bundle, standalone RTL and proof gates through manual dispatch or scheduled runs; dispatch it for the published revision before acceptance and require both lanes. Local gate execution is for focused debugging or a hosted-service outage. During fan-out, workers return focused evidence and one integrator requests both hosted workflows over the settled inputs; [the check schedule](../../tools/README.md#check-scheduling-during-fan-out) states when a later edit invalidates a verdict. Checks outside the [Guest CI contract](../../tools/ci/README.md) retain their separate acceptance requirements. [tools/README.md](../../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
 
 ## 7. Where a finding goes
 

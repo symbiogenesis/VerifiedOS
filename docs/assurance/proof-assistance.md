@@ -33,7 +33,8 @@ Implementation begins after this contract is committed. Its acceptance predicate
   JSON contract. Windows and Ubuntu Host CI validate the settled implementation.
   No Gallina, theorem statement, accepted assumption or acceptance policy is
   changed. Command registration changes a dispatcher input recorded by the proof
-  gate, so the integrated delivery also needs a fresh local guest proof run.
+  gate, so the integrated delivery also needs the fresh proof run in Guest CI
+  with `cold: true`.
 
 This delivery makes no proof-success-rate or time-saving claim. It does not reopen
 or complete Q19a, Q19b, Q19c or Q20b. A live protocol adapter, learned retrieval or
@@ -115,11 +116,12 @@ secondary names in mutual declarations. Read the original context before reuse.
    failed diagnostic, attempted strategies and next hypothesis for handoff. A tool
    installation or a larger search is a new scoped decision, not an automatic retry.
 6. When a candidate closes, inspect the complete diff against the frozen statement,
-   definitions and assumptions. Run `python tools/run.py proofs --fresh` through
-   the dispatcher. The command compiles, audits native assumptions and kernel-checks
-   in the worktree's guest lane. Review the resulting receipt against the exact
-   inputs and complete the applicable requirement/non-vacuity review. Follow the
-   normal Host CI and commit rules for the settled change.
+   definitions and assumptions. Publish the settled revision and dispatch Guest CI
+   with `cold: true`. Its proofs lane runs `python3 tools/run.py proofs --fresh` to compile, audit
+   native assumptions and kernel-check. Review its retained receipt against the
+   exact inputs and complete the applicable requirement/non-vacuity review. Require
+   both Host CI and Guest CI under the repository's commit and check schedule.
+   Local proof runs are reserved for focused debugging or a hosted-service outage.
 
 The retry numbers are operating limits, not measurements of the best search policy.
 Active repair time includes candidate editing and candidate-check waits; record the
