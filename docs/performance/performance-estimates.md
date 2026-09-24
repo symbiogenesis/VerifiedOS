@@ -10,7 +10,7 @@
 - **Baseline.**
   Unless noted, the reference is a **conventional 2026 application-class RISC-V SoC**: out-of-order (OoO) superscalar, TAGE-class dynamic branch prediction, MMU + multi-level TLB, multi-level caches with hardware coherence, aggressive DVFS + turbo, fixed-function GPU and video codecs, RVA23-class ISA *including* the C extension, conventional (non-CHERI) 64-bit pointers, plain DRAM.
   This is "what you would otherwise buy" for the laptop the first release targets and the phone and desktop instantiations the spec also addresses.
-  **Every figure is scored against that baseline only.** This document does not compare the design to earlier drafts of itself: a mechanism the spec does not contain has no row, and the reasons a mechanism is absent belong to [architectural-alternatives.md](../background/architectural-alternatives.md), not here.
+  **Every figure uses that baseline unless its table explicitly names another.** The Wasm model below separates the interpreter tax on this machine from the hardware comparison. This document does not compare the design to earlier drafts of itself: a mechanism the spec does not contain has no row, and the reasons a mechanism is absent belong to [architectural-alternatives.md](../background/architectural-alternatives.md), not here.
   A **secondary baseline**, a plain *in-order* RV64GC core, is treated in the totals, because against it several of the largest losses vanish.
   **The baseline moves, and a figure scored against a moving comparator erodes without anything here changing.** An extension the comparator's generation ratifies and this profile declines makes the band it touches worse by itself, which is a debit rather than a foregone gain. §15's **standing adoptions** (R-15-067k) are where that is booked: an extension admitted on its grounds and not yet ratified is recorded rather than declined silently, carries no encoding and no timing-model row, and is therefore scored nowhere on this page. Where such an extension is the owner of a band's erosion, the row says so.
 - **The percentages are per-workload multipliers, NOT additive.**
@@ -95,8 +95,8 @@ Figures are the compounded synthesis of the applicable rows above.
 |---|---|---|
 | General scalar / interactive / branchy (compilers, OS logic, business logic) | **−45% to −70%** | Runs at ~**30–55%** of a conventional core. In-order + static prediction + lower clocks dominate; single-address-space and bit-manip only partly offset; the flat cacheless SRAM hierarchy adds a pointer-chasing / latency-bound cost at the worse end, bounded by SRAM's low base latency (which partly offsets it) and by the mandatory static layout of §10 and §8 (R-08-012a), without which the worse end would sit at −75%: this archetype is where the no-cache row's own tightening compounds with the branchy in-order terms it cannot touch. The CHERI row contributes little here, the 64+1-bit format retiring the pointer-width footprint term (big table): it lands inside the range rather than setting its ends, which belong to in-order issue, static prediction, and the flat hierarchy. |
 | Memory-bound streaming | **−10% to −25%** | Bank partitioning and TDM-NoC arbitration set the ceiling, softened by no-MMU, SRAM's lower base latency, and R-08-012a's bank spreading (which uses more of an island's assigned banks in parallel without adding any); the memory path itself adds only ECC, carrying no cryptographic stage between the core and the array. The absence of a data cache is a non-factor here (streaming defeats caches anyway), and so is **no-prefetch**: with no cache to warm and bandwidth as the binding constraint, a prefetcher adds nothing (≈0%, big table). |
-| JS / scalar Wasm / dynamic-language execution | **−60% to −90%** | Coarse residual for the interpreted work, including the admitted interpreter levers. Applies to fetched and packaged code, including scalar work in same-session app hosts; browser implementation code is native. The browser remains deferred. This band is not a measured worst-case bound and does not price every numeric workload. |
-| Wasm applications with proved SIMD or bounded native-service batches | **n/a** | No whole-application ratio to the conventional OoO machine is established. The conditional [recovery estimates](#wasm-recovery-evidence-and-estimates) compare configurations of this machine and include frontend and bridge work; they cannot replace a cross-machine measurement. |
+| JS / scalar Wasm / dynamic-language execution | **−60% to −90%** | Coarse residual for the interpreted work, including the admitted interpreter levers. Applies to fetched and packaged code, including unmatched scalar work in same-session app hosts; browser implementation code is native. The browser remains deferred. This band is not a measured worst-case bound and does not price every numeric workload. |
+| Wasm applications covered by whole-loop handlers or native-service batches | **−48% to −80%** | Conditional model spanning the two coverage cases below, using general-scalar native backends and the same conventional comparator. This is a planning estimate, not measured performance or a bound on arbitrary Wasm. The exact assumptions and separate same-machine interpreter penalties are in [Wasm recovery](#wasm-recovery-evidence-and-estimates). SIMD/vector backends require their own native ratio and are not assigned this scalar figure. |
 | Vectorizable data-parallel (render, DSP, codecs, ML pre/post) | **+200% to +1400% (3–15×) vs scalar; ≈−20% to +100% vs a vector-equipped baseline** | RVV VLEN=4096 dominates; this is the class the design optimizes. **The second band is the one with a moving comparator, and that is a debit rather than a foregone gain.** The baseline is a part of the same generation, so a fast-track vector extension the comparator carries and this profile declines makes that band's worse end worse without anything here changing: dot product, zip and unzip, and vector absolute difference are the current instance, and §15 records each as a **standing adoption** (R-15-067k) rather than declining it, which is what keeps the drift booked rather than silent. Nothing is scored for them, a standing adoption carrying no encoding and no timing-model row until it ratifies; what the disposition buys is that this band's erosion has an owner. |
 | Symmetric crypto over **non-secret** operands (AES / SHA-2 / GHASH / SHA-3) | **+400% to +1900% (5–20×) vs software crypto; ≈0% to +100% vs a crypto-equipped baseline** | Table-free crypto extensions, constant-time; the dual scoring follows the big table's vector-crypto row. SHA-3 carries the C-class geometry caveat of the big table (R-15-059a), and the vectorless S-class and RoT run scalar and take none of this figure. **The archetype is narrower than its name and the narrowing is normative rather than a caveat**: R-15-055 adopts the vector crypto units over no secret-labeled operand and R-05-070 refuses one at type level, so a keyed workload leaves this archetype for R-05-004a's masked datapath, whose figure is that datapath's width and sharing order and is not measured. A blended reading that puts a device's whole symmetric-crypto load in this row is reading it wrong. |
 | Classical public-key / handshake (ECDH, ECDSA, RSA) | **−40% to −70%** | The one archetype inside the accelerated set where the machine is *slower*, and the reason "crypto" is not one number here. Field arithmetic runs at verified-C codegen speed, the superoptimized-assembly route being deleted rather than deferred (R-05-064), and the representational recovery that stays inside the verified compiler (R-05-064a) lands inside the range rather than at its ends. It is a handshake and key-agreement cost; bulk traffic is symmetric and takes the row above. **The post-quantum default (R-05-058) is not scored here**, ML-KEM and ML-DSA carrying no carry chain and spending their hot loops in the NTT and in Keccak, both of which take the vector rows; the platform's default handshake is therefore not this archetype, and no figure is asserted for it because none is measured. **That absence is the largest gap on this page and it now has an instrument aimed at it**: the NTT butterfly's staging is interleave and deinterleave, so `Zvzip` is the one standards-track lever that reaches the default handshake without minting a bespoke unit, and §15 carries it as a standing adoption for that reason (R-15-067m). It produces no figure by itself and none is claimed for it; what it does is make an unmeasured band measurable at zero architectural state, which on the archetype that carries the platform's *default* handshake is worth more than a percentage elsewhere on this table. |
@@ -126,20 +126,75 @@ no measured target speedup or guaranteed lower bound. The comparator is stated
 in each row, overriding this document's conventional-SoC default. Speedup means
 equal completed work per unit time, `T_reference / T_candidate`, not a reduction
 of that percentage in latency. A candidate can regress; Q34f records it rather
-than discarding the case. No positive recovery is credited to the whole-machine
-headline before target evidence exists.
+than discarding the case. The modeled application bands below credit the selected
+whole-loop/service architecture conditionally; they are not target evidence.
 
 | Candidate | Conditional execution speedup | Comparator and conditions |
 | --- | --- | --- |
 | Compact slot IR, numeric accumulators, indexed metadata and bounded fusion, taken together | **1.5–3×** | Minimal decoded, unfused configuration of the same proved engine on the same target and frozen scalar workload. Planning range motivated by reduced dispatch/load work and external interpreter evidence, not a forecast obtained by scaling the M2 result. Includes these mechanisms jointly; no further Wasmi release multiplier. Does not describe first launch or the gain over an already optimized configuration. |
 | Proved fixed-width SIMD on suitable numeric loops | **2–8×** | Equivalent scalar guest loop on the same target, both using the selected interpreter. Engineering range for sufficiently parallel work with enough arithmetic per load; unavailable until the curated subset and complete lowering are proved. Irregular lanes, float corner cases, shuffles, short loops and memory limits can erase it. A `v128` opcode may need multiple native operations; lane count is not speedup. |
 | Coarse batches to existing admitted native services | **2–10×** | Selected kernel-dominated application versus its optimized guest-only implementation on the same machine. Conditional on the removed guest work dominating and the complete bridge/service cost satisfying the equation below. Includes the remaining frontend, copies, validation, waits and result delivery. No generic application speedup or extra fixed-tier capacity is assumed. |
+| Fixed whole-loop handlers | **See modeled penalties below** | Recognized integer maps/reductions and scans avoid per-element dispatch inside the original proved engine. The model requires native-equivalent useful work with all checking, polling and recognition overhead charged separately. Coverage and cost must be measured; naming a loop does not establish either. |
+| Wasm-to-Wasm specialization of an inner language interpreter | **n/a** | A weval-style producer removes nested interpretation while leaving output untrusted Wasm. [weval reports 3–5× for its SpiderMonkey deployment](https://github.com/bytecodealliance/weval); its outer execution engine differs from this pure interpreter. No transfer factor is established. Build cost, code expansion and dynamic fallback remain charged. |
 | Reused validation/IR and first-class working-set placement | **n/a** | Potential preparation savings and execution/capacity tradeoffs need module size, reuse frequency and placed bank grants. Identity checks, initialization and fresh grants remain; neither instant launch nor a universal placement multiplier is claimed. |
 
 These are alternative or overlapping workload cases, **not a product**. SIMD
 and native services cannot both take credit for the same numeric work; dispatch
 fusion and accumulator gains are already combined in the scalar row. The
 browser's JS cost receives no credit from Wasm-only changes.
+
+#### Modeled reduction in the interpreter penalty
+
+The stronger design executes recognized whole loops in fixed proved handlers,
+or sends equivalent batches to existing native services. It targets removal of
+most instruction dispatch, rather than just a cheaper dispatch. This supplies
+a reason for eligible applications to have a lower penalty than general scalar
+interpretation. Wasm 3.0 adds routes to avoid emulated references, stacks and
+collection, but its version number receives no independent speed multiplier.
+
+Normalize the time of the equivalent **native program on this machine** to one.
+Let `f` be the fraction of that native work covered at native-equivalent speed
+by fixed handlers/services, `w` the residual interpreter's time multiplier,
+and `h` all extra time divided by the native total. Then candidate time is
+`F = f + (1 - f) * w + h`; the same-machine throughput penalty is
+`100 * (1/F - 1)`. Charge any handler slowdown, checks, polls, collection,
+preparation amortization, copying, queue delays and recognition to `h` or the
+residual term, exactly once. The full workflow must count build and launch;
+a steady-state result may amortize preparation only over its declared reuse.
+
+The following **authored engineering assumptions** define scenarios, not
+observations or guaranteed minima. `f` is a native-time fraction, not a fraction
+of already slowed interpreted time or a percentage of opcodes matched. Native
+work and grants stay identical. A program failing these coverage/overhead
+conditions falls outside this modeled class; it remains in qualification and
+is reported with its actual result.
+
+<!-- wasm-model-inputs -->
+| Case | f | w better / worse | h better / worse |
+| --- | --- | --- | --- |
+| Broad coverage | 0.95 | 5 / 10 | 0.03 / 0.05 |
+| Very high coverage | 0.99 | 5 / 10 | 0.02 / 0.05 |
+<!-- /wasm-model-inputs -->
+
+K-111 generates/checks the following table and the Wasm application archetype
+band. It reads the general-scalar native band above for the conventional ratio
+`c`, giving `100 * (c/F - 1)`. Percentages round to the nearest whole point.
+The unaccelerated column uses `100 * (1/w - 1)` on the same machine and is
+**not** the differently scoped conventional no-JIT row.
+
+<!-- wasm-model-results -->
+| Case | Unaccelerated interpreter vs same-machine native | Selected path vs same-machine native | Selected path vs conventional scalar native |
+| --- | --- | --- | --- |
+| Broad coverage | −80% to −90% | −19% to −33% | −55% to −80% |
+| Very high coverage | −80% to −90% | −6% to −12% | −48% to −74% |
+<!-- /wasm-model-results -->
+
+These cases sharply reduce the modeled **Wasm execution tax**, while the
+in-order hardware's own scalar penalty remains. Lower coverage, larger bridge
+cost or longer GC pauses can erase the reduction. They do not narrow the
+unmatched branch-heavy/dynamic-language row. A vector-native backend needs its
+own work decomposition; neither these scalar hardware ratios nor the SIMD
+speedup table can be multiplied into an already accelerated loop.
 
 For a service comparison, let `f` be the fraction of optimized guest-only
 elapsed time spent on the exact work moved to a service, `r` that work's speedup
@@ -166,8 +221,9 @@ counts, memory traffic, image/IR/private/transition bytes and maximum poll
 interval. Q34g supplies the exact optimized artifact's refinement and confinement;
 Q34h supplies the resident producer. Host seconds, emulator wall time and
 target-model cycles remain different evidence tiers. No target performance
-verdict is available yet, and no blanket narrowing of the scalar no-JIT band
-is justified by this research alone.
+verdict is available yet. The reduced application bands are explicit modeled
+targets; the general no-JIT estimate remains applicable to residual interpreted
+work and unmatched programs, not to every application merely packaged as Wasm.
 
 ### The compounding check behind the general-scalar band
 

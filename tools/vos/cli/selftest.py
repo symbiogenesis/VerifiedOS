@@ -1062,6 +1062,10 @@ CASES: list[Case] = [
     ("K-33", "a credit the band and the product do not support",
      _literal(PERF, "| 3 points conservative |", "| 9 points conservative |")),
 
+    ("K-111", "a Wasm penalty not derived from its workload assumptions",
+     _literal(PERF, "| Broad coverage | −80% to −90% |",
+              "| Broad coverage | −1% to −90% |")),
+
     ("K-34", "a checklist item whose estimate cell the document cannot read",
      _first_match(PLAN,
                   rf"(?m)^\* \[x\] \*\*[^*]+\*\* {MID} [\d.,]+ h actual {MID} [\d.]+%",

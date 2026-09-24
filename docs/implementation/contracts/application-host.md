@@ -28,8 +28,9 @@ for the exact artifact and property under R-14-005. Platform secrets remain
 outside the ordinary guest interface.
 
 The interpreter's implementation must also distinguish a language failure from
-a host failure. The pinned [Wasm 2.0 memory instruction semantics](https://webassembly.github.io/spec/versions/core/WebAssembly-2.0.pdf#page=106)
-governs guest growth failure and trapping accesses. Host resource limits do not
+a host failure. The curated subset of the [Wasm 3.0 memory instruction semantics](https://webassembly.github.io/spec/core/exec/instructions.html#memory-instructions)
+governs guest growth failure and trapping accesses. R-14-013b pins its exact
+revision, enabled features and numeric profile. Host resource limits do not
 license a different successful language result. The implementation can suspend
 a long internal operation between bounded native steps only when its refinement
 preserves the guest-visible semantics and no import observes partial state.

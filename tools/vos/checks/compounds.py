@@ -65,6 +65,7 @@ first-class and its bulk is second-class and neither list names it. Both reading
 the register's; what is here is the totality over them.
 """
 
+import math
 import re
 from typing import TYPE_CHECKING
 
@@ -371,8 +372,120 @@ def _band(ctx: Context) -> None:
                "every credit is the gap between the band and its product")
 
 
+WASM_CASES = ("Broad coverage", "Very high coverage")
+WASM_INPUT_HEADER = (
+    "| Case | f | w better / worse | h better / worse |\n"
+    "| --- | --- | --- | --- |")
+WASM_RESULT_HEADER = (
+    "| Case | Unaccelerated interpreter vs same-machine native | "
+    "Selected path vs same-machine native | Selected path vs conventional scalar native |\n"
+    "| --- | --- | --- | --- |")
+WASM_ARCHETYPE_RE = re.compile(
+    r"(?m)^(\| Wasm applications covered by whole-loop handlers or native-service batches \| )"
+    r"\*\*[^|\n]+\*\*( \| [^\n]+)$")
+
+
+def _wasm(ctx: Context) -> None:
+    """K-111: authored assumptions, generated arithmetic; fixed sites fail closed.
+
+    Both case names, both marked blocks and the two archetype sites are required.
+    Missing/duplicate/malformed inputs refuse repair, so this enumeration needs
+    no separate floor. This checks a model, never its empirical plausibility.
+    """
+    raw = ctx.text(PERF)
+    problems: list[str] = []
+    blocks: dict[str, re.Match[str]] = {}
+    for kind in ("inputs", "results"):
+        start, end = f"<!-- wasm-model-{kind} -->", f"<!-- /wasm-model-{kind} -->"
+        matches = list(re.finditer(re.escape(start) + r"\n(.*?)\n" + re.escape(end),
+                                   raw, re.DOTALL))
+        if raw.count(start) != 1 or raw.count(end) != 1 or len(matches) != 1:
+            problems.append(f"Wasm model requires one complete {kind} block")
+        else:
+            blocks[kind] = matches[0]
+    bands = list(BAND_RE.finditer(raw))
+    archetypes = list(WASM_ARCHETYPE_RE.finditer(raw))
+    if len(bands) != 1 or len(archetypes) != 1:
+        problems.append("Wasm model requires one native scalar band and one Wasm archetype")
+    cases: dict[str, tuple[float, float, float, float, float]] = {}
+    if "inputs" in blocks:
+        lines = blocks["inputs"].group(1).splitlines()
+        if "\n".join(lines[:2]) != WASM_INPUT_HEADER:
+            problems.append("Wasm model input header is missing or malformed")
+        for line in lines[2:]:
+            cells = [cell.strip() for cell in line.split("|")]
+            if len(cells) != 6 or cells[0] or cells[-1]:
+                problems.append("Wasm model input row must have four cells")
+                continue
+            name = cells[1]
+            if name not in WASM_CASES or name in cases:
+                problems.append(f"unknown or duplicate Wasm model case: {name}")
+                continue
+            try:
+                f = float(cells[2])
+                wb, ww = (float(cell) for cell in cells[3].split(" / "))
+                hb, hw = (float(cell) for cell in cells[4].split(" / "))
+            except ValueError:
+                problems.append(f"{name}: nonnumeric Wasm model assumption")
+                continue
+            if (not all(math.isfinite(v) for v in (f, wb, ww, hb, hw))
+                    or not 0 <= f <= 1 or not 1 <= wb <= ww or not 0 <= hb <= hw
+                    or not math.isfinite(f + (1 - f) * ww + hw)):
+                problems.append(f"{name}: invalid Wasm model domain or endpoint ordering")
+                continue
+            cases[name] = (f, wb, ww, hb, hw)
+        if set(cases) != set(WASM_CASES):
+            problems.append("Wasm model must contain each declared coverage case exactly once")
+    if len(bands) == 1:
+        native_better, native_worse = (int(v) for v in bands[0].groups())
+        if not 0 <= native_better <= native_worse < 100:
+            problems.append("Wasm model native scalar penalties must be ordered in [0, 100)")
+    if problems:
+        ctx.rep.report("K-111", "unreadable Wasm performance model:", problems)
+        return
+
+    native = tuple(1 - int(v) / 100 for v in bands[0].groups())
+    rows = [WASM_RESULT_HEADER]
+    conventional: list[int] = []
+
+    def penalty(ratio: float) -> int:
+        return round(100 * (1 - ratio))
+
+    def band(values: tuple[int, int]) -> str:
+        return f"−{values[0]}% to −{values[1]}%"
+
+    for name in WASM_CASES:
+        f, wb, ww, hb, hw = cases[name]
+        fb, fw = f + (1 - f) * wb + hb, f + (1 - f) * ww + hw
+        base = (penalty(1 / wb), penalty(1 / ww))
+        selected = (penalty(1 / fb), penalty(1 / fw))
+        cross = (penalty(native[0] / fb), penalty(native[1] / fw))
+        conventional.extend(cross)
+        rows.append(f"| {name} | {band(base)} | {band(selected)} | {band(cross)} |")
+    wanted = "\n".join(rows)
+    summary = (archetypes[0].group(1)
+               + f"**{band((min(conventional), max(conventional)))}**"
+               + archetypes[0].group(2))
+    stale: list[str] = []
+    repaired = raw
+    if blocks["results"].group(1) != wanted:
+        stale.append("Wasm result table disagrees with authored assumptions/native band")
+        m = blocks["results"]
+        repaired = repaired[:m.start(1)] + wanted + repaired[m.end(1):]
+    if archetypes[0].group() != summary:
+        stale.append("Wasm archetype band disagrees with modeled coverage cases")
+        repaired = WASM_ARCHETYPE_RE.sub(lambda _: summary, repaired)
+    if stale and ctx.fix:
+        ctx.fixed[PERF] = repaired
+        ctx.rep.line("fixed: Wasm modeled penalties from authored assumptions and native band")
+        stale = []
+    ctx.rep.report("K-111", "stale Wasm modeled penalties:", stale,
+                   "Wasm modeled penalties follow their assumptions and comparator")
+
+
 def run(ctx: Context) -> None:
     ctx.rep.line(HEADING)
     _band(ctx)
     _placement(ctx)
+    _wasm(ctx)
     ctx.rep.line()

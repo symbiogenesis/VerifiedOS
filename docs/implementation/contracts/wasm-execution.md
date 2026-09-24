@@ -23,16 +23,54 @@ revision's own licence closure and record it in THIRD-PARTY.md.
 | [Titzer, A Fast In-Place Interpreter for WebAssembly, OOPSLA 2022](https://arxiv.org/abs/2205.01183) | Direct execution with side metadata can reduce preparation and representation space | Keep as a startup/space comparison. A second shipping interpreter would conflict with the single-engine scope and add proof work; no automatic tier or extra production engine is selected. |
 | [Lowther, Jacob and Singer, CHERI Performance Enhancement for a Bytecode Interpreter, 2023](https://arxiv.org/abs/2308.05076) | Pointer-size assumptions can create large interpreter overhead on Morello | Audit numeric cells, metadata and capability traffic on the actual purecap lowering. Morello's measurements are not this ISA's forecast. Never compress authority into an integer to recover space. |
 | [Silverfir-nano source and feature matrix](https://github.com/mbbill/Silverfir-nano) | A current project offers separate interpreter and native-code engines with different feature coverage | Its native-code results cannot price pure interpretation; its current interpreter excludes SIMD. No replacement for the single proved engine or the pinned subset is selected. |
-| [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) | Specialization can remove an interpreter layer for known programs | Guest-specific compilation does not supply the authorized same-session execution route. No guest-to-native path, runtime patching or additional verified specialization tool is selected under R-05-065 and R-05-085. |
+| [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) and [producer interface](https://github.com/bytecodealliance/weval) | Specialization removes an inner interpreter by producing Wasm from Wasm | Select an untrusted guest-producer path under Q34h: specialize guest-language interpreters into ordinary validated Wasm, still executed by the one pure platform engine. Its reported SpiderMonkey gains use a different outer engine and are not this target's forecast. No guest-to-native output or new verified specialization tool is admitted. |
+| [Wasm 3.0 release](https://webassembly.org/news/2025-09-17-wasm-3.0/), [standard profiles](https://webassembly.github.io/spec/core/appendix/profiles.html) and [implementation limits](https://webassembly.github.io/spec/core/appendix/implementation.html) | Typed references, tail calls and managed guest objects can avoid emulated language machinery; the standard permits implementation resource limits | Select 3.0 as the reference with a generation-fixed proved subset. Guest GC is eligible under the existing bounded-arena contract; upstream support is not evidence that this engine implements or proves it. |
 | [Denis, Performance of WebAssembly runtimes in 2026](https://00f.net/2026/06/23/webassembly-runtimes-2026/) | Reproducible workload comparisons distinguish runtime modes and enabled language features | The WAMR result uses AOT and some variants use features outside the freeze. Neither is a pure-interpreter target estimate; use the comparison discipline, not its numbers. |
 
 This design spends engineering on the already required interpreter's
 representation, host binding and proof. It does not add a trusted optimizer,
 new equivalence checker, prover or admission path to obtain speed. If a candidate
-needs such an artifact solely for performance, R-05-065 excludes it. The frozen
-Wasm 2.0 subset, no threads, numeric semantics and R-14-013d's SIMD curation
-condition remain unchanged. The existing [proof-reuse assessment](../../assurance/proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries)
+needs such an artifact solely for performance, R-05-065 excludes it. R-14-013b
+selects the Wasm 3.0 reference and a generation-fixed allowlist; no threads and
+R-14-013d's SIMD curation condition remain. The existing [proof-reuse assessment](../../assurance/proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries)
 still owns the unverified binary-parser, concrete numeric/SIMD and host-proof gaps.
+
+## Wasm 3.0 inside the existing boundary
+
+Q34g publishes a feature matrix naming the exact upstream definitions, concrete
+executable cases, both theorem cases, resource limits and negative tests for
+each enabled construct. Missing curation leaves a construct disabled. The
+initial proved subset may be smaller than 3.0; the version name never enables
+an upstream engine's defaults. All module and prepared-data identities include
+the feature and numeric profile. A changed engine/profile enters at successor boot.
+
+Typed references may remove redundant type checks when validation and the
+runtime reference invariant prove them unnecessary; null checks and current
+import authority still apply. Tail calls reuse bounded guest frames but still
+poll on cycles. Recursive-type validation and exception unwinding use bounded
+worklists. Memory64/table64 use logical indices over declared resident limits;
+they add neither physical address bits nor overcommit. Multiple memories remain
+separately bounded, including copies between them. Reference casts, exceptions
+and externrefs cannot disclose native capabilities or bypass binding lifetimes.
+
+For guest GC, select a nonmoving, binding-local mark/sweep arena with bounded
+size classes (or proved bounded array representation), object counts, total
+bytes, roots, mark bits and traversal storage. Cycles are traced within that
+arena. Collection pauses the guest mutator, advances through bounded resumable
+steps and yields to the host scheduler; it does not promise a short guest pause.
+Host-held guest references are registered roots, frozen or updated under the
+same proved protocol while collection is suspended. The proof covers reachable
+object preservation, identity, complete root enumeration, sweep/reuse and every
+root publication/removal, including outstanding callbacks. An allocation
+failure has a declared bounded outcome. No emergency unbounded collection,
+cross-binding tracing or resurrection of a retired import is permitted. This
+implements R-14-015 rather than adding a managed native base.
+
+The standard deterministic profile is a curation target, not an already proved
+artifact. When admitted, it fixes generated NaNs and relaxed-vector choices;
+growth failures still depend on resources. Strict instructions keep their own
+results. Neither GC nor a numeric profile establishes source correctness,
+linear-memory object safety or constant-time execution of secrets.
 
 ## Selected execution representation
 
@@ -115,6 +153,49 @@ partly performed.
 
 ## Coarse native services and placement
 
+### Whole-loop handlers in the interpreter
+
+Select a finite set of typed integer map/reduction and byte-scan loop forms
+against Q34f's frozen corpus. This extends the existing AOT superinstruction
+mechanism from a few opcodes to a complete recognized loop. A fixed handler
+uses data operands, a count and checked memory descriptors; it performs a
+bounded chunk of work per poll without dispatching each original instruction.
+Recognition is a translation case of the original interpreter refinement, not
+a new trusted optimizer. Unmatched loops remain ordinary guest instructions.
+
+The theorem must establish the exact source loop behavior, including induction
+overflow, zero trips, overlapping operands, early exits, aliasing, traps and
+effects before a trap. A guard selects the slow path before any effect; it
+cannot partially execute then restart. A check that would trap on a later
+iteration cannot be hoisted ahead of earlier stores. Resumption re-establishes
+mutable facts; private progress state records exactly the guest steps already
+performed. Floating reductions receive no reassociation. Fixed code, pattern
+count and expanded IR are budgeted; no guest-specific native code or handler
+registration exists. Q34g proves recognition and execution together.
+
+### Remove a nested language interpreter at Build
+
+Q34h selects a weval-style Wasm-to-Wasm specialization route for closed guest
+programs where an inner language interpreter otherwise runs inside the outer
+Wasm interpreter. Known program bytes drive partial evaluation; unresolved
+dynamic code keeps the original inner-interpreter behavior inside the guest.
+Specialized functions and guest table entries remain Wasm data, never host PCs.
+The producer is untrusted for guest semantics and confinement: the existing
+validator and proved interpreter supply the latter, while source correspondence
+needs separate R-14-005 evidence. Keep both outputs in the qualification corpus.
+
+On-device specialization may itself run as a guest tool under the same engine,
+avoiding a new verified speed-only tool. Closed-program initialization happens
+during Build with declared immutable inputs, no live application grants and
+bounded work/output, using the pure interpreter. An upstream Wizer path that
+uses native compilation is not the on-device implementation. Serialize only
+guest data; reject captured capabilities, handles or host snapshots. Prepare
+still runs no guest start function. A fetched result gets the same full
+validation and fresh grants as any other untrusted bundle. Charge compilation,
+initialization, output growth and fallback execution separately.
+
+### Explicit service batches
+
 The largest workload-specific gains can come from making an existing native
 service do a bounded batch instead of interpreting a per-element guest loop.
 Q34f uses explicit typed imports with the same results, operation scope and
@@ -147,7 +228,13 @@ selected native-service case includes small and large batches. Include
 concurrent unrelated guests and repeated instances of one module.
 
 Measure a minimal configuration of the same proved engine and isolate each
-selected representation, fusion, cache, SIMD, batching and placement change.
+selected representation, fusion, whole-loop, specialization, cache, SIMD,
+batching and placement change. Freeze the unspecialized and specialized guest
+programs together; check their observable outputs and dynamic fallback cases.
+Report whole-loop coverage and all residual interpreter work, not just a
+matched microkernel. Include GC-heavy cyclic graphs, retained host roots,
+maximum type graphs, tail-call cycles, exception unwinding, memory64 overflow
+and multi-memory aliasing whenever their feature is enabled.
 These are qualification builds; a composed image still ships one engine artifact.
 Keep workload, guest language, authority and results fixed; report unsupported
 cases rather than silently removing them. A service comparison includes the

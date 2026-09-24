@@ -19,7 +19,7 @@ from unittest.mock import patch
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos import sailbundle
-from vos.checks import Context, bindings, counts, estimates, generated, meta, pins
+from vos.checks import Context, bindings, compounds, counts, estimates, generated, meta, pins
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
 
@@ -577,8 +577,88 @@ def _count_form_numeric_groups() -> None:
            f"numeric groups are not independent count forms: {found}")
 
 
+def _wasm_fixture() -> str:
+    return (
+        "# Performance\n\n"
+        "| General scalar | **−20% to −40%** | fixture |\n"
+        "| Wasm applications covered by whole-loop handlers or native-service batches | "
+        "**−1% to −2%** | fixture |\n\n"
+        "<!-- wasm-model-inputs -->\n" + compounds.WASM_INPUT_HEADER + "\n"
+        "| Broad coverage | 0.95 | 5 / 10 | 0.03 / 0.05 |\n"
+        "| Very high coverage | 0.99 | 5 / 10 | 0.02 / 0.05 |\n"
+        "<!-- /wasm-model-inputs -->\n\n"
+        "<!-- wasm-model-results -->\nstale\n<!-- /wasm-model-results -->\n")
+
+
+def _wasm_model_repair_and_comparator() -> None:
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       compounds.PERF: _wasm_fixture()}) as root:
+        ctx = _context(root, fix=True)
+        compounds._wasm(ctx)
+        fixed = ctx.fixed[compounds.PERF]
+        ensure("| Broad coverage | −80% to −90% | −19% to −33% | −35% to −60% |" in fixed,
+               "native-work coverage must use the fixture's conventional comparator")
+        ensure("| Very high coverage | −80% to −90% | −6% to −12% | −25% to −47% |" in fixed,
+               "high coverage must retain residual interpreter and overhead costs")
+        ensure("**−25% to −60%**" in fixed, "archetype must cover both scenarios")
+        ensure("| Broad coverage | 0.95 | 5 / 10 | 0.03 / 0.05 |" in fixed,
+               "repair must not alter engineering assumptions")
+        (root / compounds.PERF).write_text(fixed, encoding="utf-8")
+        again = _context(root, fix=True)
+        compounds._wasm(again)
+        ensure(not again.fixed and not _findings_under(again, "K-111"),
+               "Wasm repair must reach a fixpoint")
+
+
+def _wasm_model_bad_inputs_refuse_repair() -> None:
+    good = _wasm_fixture()
+    row = "| Broad coverage | 0.95 | 5 / 10 | 0.03 / 0.05 |"
+    mutations = [
+        good.replace(row, ""),
+        good.replace(row, row + "\n" + row),
+        good.replace("wasm-model-inputs", "wasm-model-lost"),
+        good.replace("<!-- /wasm-model-results -->", ""),
+        good.replace("| General scalar |", "| Removed native comparator |"),
+        good.replace("| Wasm applications covered", "| Lost Wasm applications covered"),
+        good.replace("0.95", "nan"),
+        good.replace("0.95", "inf"),
+        good.replace("0.95", "1.01"),
+        good.replace("0.95", "-0.1"),
+        good.replace("| 5 / 10 |", "| 10 / 5 |"),
+        good.replace("| 0.03 / 0.05 |", "| 0.05 / 0.03 |"),
+        good.replace("| 0.03 / 0.05 |", "| -0.03 / 0.05 |"),
+        good.replace(row, "| Broad coverage | broken |"),
+        good.replace("−20% to −40%", "−40% to −20%"),
+    ]
+    for bad in mutations:
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           compounds.PERF: bad}) as root:
+            ctx = _context(root, fix=True)
+            compounds._wasm(ctx)
+            ensure(bool(_findings_under(ctx, "K-111")), "bad model input must fail closed")
+            ensure(not ctx.fixed, "bad model input must never rewrite derived results")
+
+
+def _wasm_model_native_limit() -> None:
+    raw = (_wasm_fixture()
+           .replace("0.95 | 5 / 10 | 0.03 / 0.05", "1 | 5 / 10 | 0 / 0")
+           .replace("0.99 | 5 / 10 | 0.02 / 0.05", "0 | 5 / 10 | 0 / 0"))
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       compounds.PERF: raw}) as root:
+        ctx = _context(root, fix=True)
+        compounds._wasm(ctx)
+        fixed = ctx.fixed[compounds.PERF]
+        ensure("| Broad coverage | −80% to −90% | −0% to −0% | −20% to −40% |" in fixed,
+               "full coverage without overhead must equal native, not erase hardware cost")
+        ensure("| Very high coverage | −80% to −90% | −80% to −90% | −84% to −94% |" in fixed,
+               "zero coverage must preserve interpreter cost and compound hardware cost")
+
+
 def cases() -> list[Case]:
     return [
+        Case("wasm-model-repair-and-comparator", _wasm_model_repair_and_comparator),
+        Case("wasm-model-bad-inputs-refuse-repair", _wasm_model_bad_inputs_refuse_repair),
+        Case("wasm-model-native-limit", _wasm_model_native_limit),
         Case("counted-clause-scope", _counted_clause_scope),
         Case("count-form-numeric-groups", _count_form_numeric_groups),
         Case("estimates-refused-edit-writes-nothing",
