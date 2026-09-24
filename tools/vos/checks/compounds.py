@@ -521,18 +521,21 @@ def _wasm_scalar(ctx: Context) -> None:
                        ["scalar Wasm input header or single assumption row is malformed"])
         return
     cells = [cell.strip() for cell in lines[2].split("|")]
+    if len(cells) != 4 or cells[0] or cells[-1]:
+        ctx.rep.report("K-112", "unreadable scalar Wasm target:", ["expected two cells"])
+        return
     try:
-        if len(cells) != 4 or cells[0] or cells[-1]:
-            raise ValueError("expected two cells")
         pb, pw = (float(cell) for cell in cells[1].split(" / "))
         gb, gw = (float(cell) for cell in cells[2].split(" / "))
         nb, nw = (int(value) for value in native[0].groups())
-        if (not all(math.isfinite(value) for value in (pb, pw, gb, gw))
-                or not 0 <= nb <= nw < 100 or not 0 <= pb <= pw < 100
-                or not 1 <= gw <= gb or pb < nb or pw < nw):
-            raise ValueError("invalid domain, endpoint order or reference/native relation")
     except ValueError as exc:
         ctx.rep.report("K-112", "unreadable scalar Wasm target:", [str(exc)])
+        return
+    if (not all(math.isfinite(value) for value in (pb, pw, gb, gw))
+            or not 0 <= nb <= nw < 100 or not 0 <= pb <= pw < 100
+            or not 1 <= gw <= gb or pb < nb or pw < nw):
+        ctx.rep.report("K-112", "unreadable scalar Wasm target:",
+                       ["invalid domain, endpoint order or reference/native relation"])
         return
     penalties = [round(100 * (1 - min(1 - n / 100, (1 - p / 100) * g)))
                  for n, p, g in ((nb, pb, gb), (nw, pw, gw))]
@@ -544,7 +547,7 @@ def _wasm_scalar(ctx: Context) -> None:
         replacement = match.group(1) + wanted + match.group(2)
         if match.group() != replacement:
             stale.append("scalar Wasm headline disagrees with incremental target/native ceiling")
-            repaired = pattern.sub(lambda _: replacement, repaired)
+            repaired = pattern.sub(lambda _, value=replacement: value, repaired)
     if stale and ctx.fix:
         ctx.fixed[PERF] = repaired
         ctx.rep.line("fixed: scalar Wasm headline targets from authored inputs and native ceiling")
