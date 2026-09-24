@@ -89,6 +89,8 @@ The implementation interfaces are recorded in the
 [recovery policy input](implementation/storage-recovery-policy.md),
 [attested TLS protocol](implementation/attested-tls-protocol.md),
 [compatibility workflow](implementation/contracts/compatibility.md),
+[application-host contract](implementation/contracts/application-host.md) for
+Wasm bundle validation, binding, replacement and performance qualification,
 [entropy observer](implementation/contracts/entropy-observer.md), and
 [store-buffer comparison](implementation/comparisons/store-buffer.md).
 Its [executable prerequisite contract](implementation/phase-service/prerequisite-contract.md)
@@ -168,7 +170,7 @@ The [typed assembly language](languages/typed-assembly-language.md), the typed m
 
 ## The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1495 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact that the specification's [independent-review release gate](spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1499 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 

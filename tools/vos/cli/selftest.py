@@ -1245,6 +1245,23 @@ CASES: list[Case] = [
      _literal(REGISTER, "quarantine entries, interpreter object arenas",
               "quarantine entries, telemetry rings, interpreter object arenas")),
 
+    ("K-56", "hot guest data moved into the bulk class",
+     _first_match(REGISTER, r"(?m)^· Accept: the first class carries[^\r\n]*",
+                  lambda m: m.group().replace("bounded hot guest data, ", "").replace(
+                      "the second carries bulk by volume,",
+                      "the second carries bulk by volume, bounded hot guest data,"))),
+
+    ("K-56", "guest placement loses its fixed class and grant constraint",
+     _literal(REGISTER,
+              "every extent and pool draw keeps its composition-fixed memory class, "
+              "bank grants and timing charge, with no runtime relocation or automatic tiering",
+              "guest data may move freely between classes")),
+
+    ("K-56", "bulk guest backing loses its governing placement",
+     _literal(REGISTER,
+              "Bulk arena backing uses the **second class** by default",
+              "Bulk arena backing uses an unspecified class")),
+
     # One of the transcriptions is moved and the rest are left, which is the shape a
     # real drift takes: an exponent edited in the composition that the model's own
     # assertion would catch only once something executed.
