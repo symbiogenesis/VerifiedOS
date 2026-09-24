@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos.cli import test as runner
+from vos.sharding import Shard
 
 
 def _selection_and_failures() -> None:
@@ -94,6 +95,25 @@ def _empty_and_invalid() -> None:
                 raise AssertionError("invalid --jobs must be refused")
 
 
+def _shards_execute_the_selected_modules() -> None:
+    names = ["test_harness", "test_report"]
+    for index, expected in enumerate(names, 1):
+        with patch.object(runner, "_module_names", return_value=names):
+            report = runner.run(jobs=1, shard=Shard(index, 2))
+        ensure(report.findings == 0, f"a real sharded worker failed: {report.out}")
+        verdicts = [line.split(":", 1)[0] for line in report.out if line.startswith("ok test_")]
+        ensure(verdicts == [f"ok {expected}"], "a shard executed the wrong modules")
+    with patch.object(runner, "_module_names", return_value=names):
+        ensure(runner.run(shard=Shard(1, 3)).findings == 1,
+               "an empty shard population must not pass")
+    try:
+        runner.run(only="harness", shard=Shard(1, 2))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a filter must not silently narrow CI shards")
+
+
 def cases() -> list[Case]:
     return [
         Case("selection-and-failures", _selection_and_failures),
@@ -101,4 +121,5 @@ def cases() -> list[Case]:
         Case("captured-output", _captured_output),
         Case("spawn-isolation", _spawn_isolation),
         Case("empty-and-invalid", _empty_and_invalid),
+        Case("shards-execute-the-selected-modules", _shards_execute_the_selected_modules),
     ]

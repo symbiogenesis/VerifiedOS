@@ -20,6 +20,7 @@ from unittest.mock import patch
 from tests.harness import TOOLS, Case, ensure
 from vos.cli import BY_NAME, gate
 from vos.report import Reporter
+from vos.sharding import Shard
 
 _ROOT = TOOLS.parent
 
@@ -59,6 +60,36 @@ def _tests_join_the_wave_only_when_asked() -> None:
     repair = gate._plan(fix=True, tests=True)
     ensure(repair[-1][-1] == gate.TESTS and gate.TESTS not in repair[0],
            "tests must only join the final read-only wave after repair")
+
+
+def _sharded_plan_and_failures() -> None:
+    for index in range(1, 5):
+        shard = Shard(index, 4)
+        wave = gate._plan(False, True, shard)[0]
+        ensure([m.tool for m in wave] == (["check", "selftest", "typecheck", "test"]
+                                         if index == 1 else ["selftest", "test"]),
+               "only shard 1 owns the unpartitioned checks")
+        ensure(all(m.args == ("--shard", str(shard)) for m in wave
+                   if m.tool in ("selftest", "test")), "both suites need the same shard")
+
+        def launch(root: Path, member: gate.Launch) -> gate.Result:
+            return gate.Result(member, 1 if member.tool == "test" else 0, [])
+
+        with tempfile.TemporaryDirectory(prefix="vos-shard-") as td:
+            path = Path(td) / "verdict.json"
+            with patch.object(gate, "_launch", launch):
+                report = gate.run(_ROOT, tests=True, shard=shard, summary=path)
+            data = json.loads(path.read_text(encoding="utf-8"))
+        ensure(report.findings == 1 and data["green"] is False,
+               "a failed partition must fail the gate")
+        ensure(data["shard"] == {"index": index, "total": 4},
+               "partial verdicts must identify their shard")
+    try:
+        gate._plan(True, True, Shard(1, 4))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("repairing a checkout must not overlap sharded readers")
 
 
 def _members_run_in_parallel() -> None:
@@ -327,6 +358,7 @@ def cases() -> list[Case]:
              _members_name_commands_the_table_carries),
         Case("tests-join-the-wave-only-when-asked",
              _tests_join_the_wave_only_when_asked),
+        Case("sharded-plan-and-failures", _sharded_plan_and_failures),
         Case("members-run-in-parallel", _members_run_in_parallel),
         Case("repair-verdict-comes-from-the-fresh-wave", _repair_verdict_comes_from_the_fresh_wave),
         Case("crashed-repair-stops-before-readers", _crashed_repair_stops_before_readers),

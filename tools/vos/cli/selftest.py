@@ -68,7 +68,7 @@ from queue import Queue
 from typing import cast
 
 from vos import corpus as corpus_mod
-from vos import memplan, proofcites, proofheaders, proofs
+from vos import memplan, proofcites, proofheaders, proofs, sharding
 from vos.checks import Context, generated, headers
 from vos.checks.ledger import ARTIFACT as PROOF_LEDGER
 from vos.coread import LEDGER
@@ -81,6 +81,7 @@ from vos.register import REQ_ID_PATTERN, REQ_TOKEN_RE, read_artifacts, read_regi
 from vos.report import Reporter
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
+from vos.sharding import Shard
 from vos.socmap import ARTIFACT as SOC_MAP
 
 CHECKER = "tools/check.py"
@@ -1962,10 +1963,32 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
 # =====================================================================================
 
 
+def _select_cases(rule: str | None, shard: Shard | None) -> list[Case]:
+    if shard is not None:
+        if rule is not None:
+            raise ValueError("--rule cannot be combined with --shard")
+        return shard.select(CASES)
+    selected = [c for c in CASES if rule is None or c[0] == rule]
+    if not selected:
+        raise ValueError(f"no case for rule '{rule}'")
+    return selected
+
+
+def _needs_repair(selected: list[Case], shard: Shard | None) -> bool:
+    # The repair exercises all repairable rules together and belongs to shard 1,
+    # regardless of which individual mutation cases landed in that partition.
+    if shard is not None:
+        return shard.index == 1
+    return any(rule in REPAIRABLE for rule, _, _ in selected)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Seed each checker rule a defect it must report.")
-    parser.add_argument("--rule", help="run one rule's case only")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--rule", help="run one rule's case only")
+    selection.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
+                           help="run a disjoint partition of cases; shard 1 owns the repair path")
     # Eight, measured rather than assumed: a worker is a whole checker subprocess with
     # a git child under it, so extra workers past eight pay more in contention than
     # their extra sandboxes save even below the core count. Over full passes on a
@@ -1979,6 +2002,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--keep", action="store_true",
                         help="leave the sandboxes on disk for inspection")
     args = parser.parse_args(argv)
+    try:
+        selected = _select_cases(args.rule, args.shard)
+    except ValueError as err:
+        parser.error(str(err))
+    if args.shard is not None:
+        print(f"shard {args.shard}: {len(selected)} of {len(CASES)} cases; every shard must pass")
 
     # A private directory per run rather than one path every run reuses. What survives
     # between runs is the template cache, carried file by file under its own rules, so
@@ -1992,9 +2021,6 @@ def main(argv: list[str] | None = None) -> int:
     sandbox = args.sandbox or Path(tempfile.mkdtemp(prefix="verifiedos-selftest-"))
 
     repo = corpus_mod.find_root()
-    selected = [c for c in CASES if not args.rule or c[0] == args.rule]
-    if args.rule and not selected:
-        raise SystemExit(f"no case for rule '{args.rule}'")
     jobs = max(1, min(args.jobs, len(selected)))
 
     # One sandbox per worker, and one more the repair path keeps to itself so that its
@@ -2002,7 +2028,7 @@ def main(argv: list[str] | None = None) -> int:
     # carries a --fix branch the lane never runs, so the extra sandbox is stood up
     # cheap, as links, and joins the case queue instead of holding real copies for
     # nothing.
-    repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
+    repairable = _needs_repair(selected, args.shard)
     made: list[Sandbox] = []
     print(f"building {jobs + 1} sandbox(es) at {sandbox}")
     template = sandbox / "template"
@@ -2026,7 +2052,7 @@ def main(argv: list[str] | None = None) -> int:
                 return box
 
             standing = [setup.submit(later, i) for i in range(1, jobs + 1)]
-            code = _run(selected, made[0], boxes, standing[-1], jobs)
+            code = _run(selected, made[0], boxes, standing[-1], jobs, repairable)
             for future in standing:
                 future.result()   # a sandbox that failed to stand up is loud, not lost
         return code
@@ -2042,7 +2068,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
-         repair_ready: Future[Sandbox], jobs: int) -> int:
+         repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None) -> int:
     # Nothing below means anything against a sandbox that was already failing: a mutant
     # would be reported killed by whatever was broken before it was introduced.
     code, out, _ = first.check()
@@ -2097,13 +2123,14 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     # where it has always reported: after the cases. Under --rule it runs only when a
     # selected rule carries a --fix branch, because for any other rule it is most of
     # the iteration path's cost and proves nothing about the rule being iterated on.
-    repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
+    if repairable is None:
+        repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
         repairing = pool.submit(_repair_path, repair_ready) if repairable else None
         verdicts = list(pool.map(one, selected))
         repair: list[str] = []
         repair_out = ["--- the repair path ---",
-                      "  skipped: no selected rule carries a --fix branch"]
+                      "  skipped: this selection does not own the repair path"]
         if repairing is not None:
             repair, repair_out = repairing.result()
 
@@ -2137,7 +2164,7 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
         # registry covered however few cases ran, and a green exit under --rule is a
         # green exit about those cases alone.
         print(f"{len(CASES) - len(verdicts)} case(s) were not selected and decided "
-              "nothing, so this run is about the selected rule(s) alone.")
+              "nothing, so this run is about the selected case(s) alone.")
     return 0
 
 

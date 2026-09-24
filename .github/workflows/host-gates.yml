@@ -2,8 +2,9 @@
 # Read-only host validation on Windows and Ubuntu. Sail, Rocq and Verilator
 # evidence runs in guest-gates.yml; see tools/README.md for the gate contracts.
 #
-# run.py runs the checker, mutation selftest, typecheck and behavioral tests
-# concurrently. uv installs locked dependencies into a checkout-local environment;
+# Four shards per OS partition mutation cases and behavioral test modules. Shard 1
+# also runs the checker, typecheck and mutation repair path. All shards must pass.
+# uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
 # Per-member JSON in runner.temp supplies failure annotations and the job summary.
@@ -31,13 +32,15 @@ env:
   VERDICT_FILE: host-gates-verdict.json
 
 jobs:
-  host-gates:
+  host-gates-shard:
+    name: host-gates (${{ matrix.os }}, shard ${{ matrix.shard }}/4)
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -54,14 +57,13 @@ jobs:
           version-file: tools/pyproject.toml
           enable-cache: true
           # PRs reuse main's downloads without uploading a cache for each merge ref.
-          save-cache: ${{ github.event_name == 'push' }}
+          save-cache: ${{ github.event_name == 'push' && matrix.shard == 1 }}
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
 
       - name: Host gates and behavioral tests
-        # run.py already runs all four members concurrently with locked dependencies.
-        run: python tools/run.py --check --tests --summary "${{ runner.temp }}/${{ env.VERDICT_FILE }}"
+        run: python tools/run.py --check --tests --shard ${{ matrix.shard }}/4 --summary "${{ runner.temp }}/${{ env.VERDICT_FILE }}"
 
       - name: Report gate results
         if: ${{ !cancelled() }}
@@ -94,7 +96,30 @@ jobs:
                       annotate("error", f"{member['name']}: {state} (exit {member['code']}); "
                                f"it decides {member['decides']}. See the gate log.")
               with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
-                  summary.write("### Host gates\n\n" + "\n".join(rows) + "\n")
+                  if report["members"]:
+                      annotate("notice", "Timings: " + "; ".join(
+                          f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
+                  shard = report.get("shard", {})
+                  label = f"shard {shard.get('index', '?')}/{shard.get('total', '?')}"
+                  summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
+                                + "\n".join(rows) + "\n")
           except Exception as err:
               # Reporting is diagnostic; the gate step owns the job's verdict.
               annotate("warning", f"Could not render gate results: {err!r}")
+
+  # Keep the existing required-check names. A failed, skipped or cancelled shard
+  # cannot leave a successful aggregate, even if its peers completed successfully.
+  host-gates:
+    name: host-gates (${{ matrix.os }})
+    needs: host-gates-shard
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Require every shard on both operating systems
+        env:
+          SHARDS_RESULT: ${{ needs.host-gates-shard.result }}
+        run: test "$SHARDS_RESULT" = success

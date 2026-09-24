@@ -31,9 +31,10 @@ from io import StringIO
 from pathlib import Path
 
 from tests.harness import Case, Lane
-from vos import env
+from vos import env, sharding
 from vos.cli.provision import switches
 from vos.report import Reporter
+from vos.sharding import Shard
 
 # The lane this process is, spelled the way Case.lane spells it.
 LANE: Lane = "host" if sys.platform == "win32" else "guest"
@@ -118,15 +119,26 @@ def _run_module(name: str, slow: bool, lanes: frozenset[Lane]) -> Reporter:
     return report
 
 
-def run(only: str | None = None, slow: bool = False, jobs: int | None = None) -> Reporter:
+def run(only: str | None = None, slow: bool = False, jobs: int | None = None,
+        shard: Shard | None = None) -> Reporter:
     """One whole run, as data, on the convention `check.py` set: the caller decides
     what to do with the verdict rather than parsing what was printed."""
     if jobs is not None and jobs < 1:
         raise ValueError("jobs must be positive")
+    if only is not None and shard is not None:
+        raise ValueError("--only cannot be combined with --shard")
     rep = Reporter()
     rep.line("=== tests ===")
 
     names = _module_names(only)
+    if shard is not None:
+        total = len(names)
+        try:
+            names = shard.select(names)
+        except ValueError as err:
+            rep.report("tests", "invalid partition:", [str(err)])
+            return rep
+        rep.line(f"shard {shard}: {len(names)} of {total} modules; every shard must pass")
     if not names:
         rep.report("tests", "empty suite:",
                    ["nothing under tools/tests/ matches test_*.py"
@@ -153,8 +165,11 @@ def run(only: str | None = None, slow: bool = False, jobs: int | None = None) ->
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the tools' own behavioral tests.")
-    parser.add_argument("--only", metavar="SUBSTRING",
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--only", metavar="SUBSTRING",
                         help="run only the modules whose name carries this")
+    selection.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
+                           help="run a disjoint partition of the discovered modules")
     parser.add_argument("--slow", action="store_true",
                         help="include the cases marked slow")
     parser.add_argument("--jobs", type=int,
@@ -163,6 +178,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.jobs is not None and args.jobs < 1:
         parser.error("--jobs must be positive")
 
-    report = run(only=args.only, slow=args.slow, jobs=args.jobs)
+    report = run(only=args.only, slow=args.slow, jobs=args.jobs, shard=args.shard)
     print("\n".join(report.out))
     return 1 if report.findings else 0

@@ -10,6 +10,26 @@ from unittest.mock import patch
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
 from vos.cli import selftest
+from vos.sharding import Shard
+
+
+def _shards_cover_cases_and_repair_once() -> None:
+    shards = [Shard(i, 4) for i in range(1, 5)]
+    parts = [selftest._select_cases(None, shard) for shard in shards]
+    ensure(sorted(id(case) for part in parts for case in part)
+           == sorted(id(case) for case in selftest.CASES),
+           "each authored mutant must run exactly once across shards")
+    ensure([selftest._needs_repair(part, shard)
+            for part, shard in zip(parts, shards, strict=True)] == [True, False, False, False],
+           "the complete repair path must run on shard 1 alone")
+    ensure(selftest._select_cases(None, Shard(1, 1)) == selftest.CASES,
+           "one shard must select the full suite")
+    try:
+        selftest._select_cases("K-01", Shard(1, 4))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a rule filter must not silently narrow CI shards")
 
 
 def _git(root: Path, *args: str) -> bytes:
@@ -184,6 +204,7 @@ def _sandbox_writes_remain_private() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
         Case("failed-carry-rebuilds-index", _failed_carry_rebuilds_index),
         Case("attribute-change-matches-cold-index", _attribute_change_matches_cold_index),

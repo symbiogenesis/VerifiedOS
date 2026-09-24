@@ -30,7 +30,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from vos import corpus as corpus_mod
+from vos import sharding
 from vos.report import Reporter
+from vos.sharding import Shard
 
 HEADING = "=== gate: every host gate over this tree, in one run ==="
 
@@ -84,9 +86,15 @@ TESTS = Launch("test", (), "the tools' own behavior, against the cases that hold
 REPAIRS = "check"
 
 
-def _plan(fix: bool, tests: bool) -> list[list[Launch]]:
+def _plan(fix: bool, tests: bool, shard: Shard | None = None) -> list[list[Launch]]:
     """An optional isolated repair, then every read-only gate, including a fresh check."""
     members = [*MEMBERS, *([TESTS] if tests else [])]
+    if shard is not None:
+        if fix:
+            raise ValueError("--shard cannot be combined with --fix")
+        members = [Launch(m.tool, (*m.args, "--shard", str(shard)), m.decides)
+                   if m.tool in ("selftest", "test") else m
+                   for m in members if shard.index == 1 or m.tool in ("selftest", "test")]
     if not fix:
         return [members]
     repair = [Launch(m.tool, (*m.args, "--fix"), m.decides)
@@ -194,14 +202,14 @@ def _write_summary(rep: Reporter, path: Path, data: dict[str, object]) -> None:
 
 
 def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
-        summary: Path | None = None) -> Reporter:
+        summary: Path | None = None, shard: Shard | None = None) -> Reporter:
     """Run the repair wave, if asked, then decide only the final validation wave."""
     if fix and check:
         raise ValueError("--fix and --check are mutually exclusive")
     rep = Reporter()
-    rep.line(HEADING)
+    rep.line(HEADING if shard is None else f"=== gate: shard {shard}; every shard must pass ===")
 
-    plan = _plan(fix, tests)
+    plan = _plan(fix, tests, shard)
     if fix:
         repair = _launch(root, plan[0][0])
         _show(rep, repair)
@@ -219,7 +227,10 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
     with ThreadPoolExecutor(max_workers=len(wave)) as pool:
         results = list(pool.map(lambda member: _launch(root, member), wave))
     if summary is not None:
-        _write_summary(rep, summary, _verdict_data(results))
+        data = _verdict_data(results)
+        if shard is not None:
+            data["shard"] = {"index": shard.index, "total": shard.total}
+        _write_summary(rep, summary, data)
     _verdict(rep, results)
     return rep
 
@@ -238,9 +249,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--summary", metavar="PATH", type=Path,
                         help="also write the per-member verdict there as JSON, for a "
                              "caller that has only this run's exit code")
+    parser.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
+                        help="partition selftest and tests; shard 1 also checks and typechecks; "
+                             "all shards are required for a complete verdict")
     args = parser.parse_args(argv)
+    if args.fix and args.shard is not None:
+        parser.error("--shard cannot be combined with --fix")
 
-    plan = _plan(args.fix, args.tests)
+    plan = _plan(args.fix, args.tests, args.shard)
     # The member reports remain accumulated in declaration order; this preflight
     # states what is running while the wave has not yet returned.
     preflight = "repairing derived facts; " if args.fix else ""
@@ -248,6 +264,6 @@ def main(argv: list[str] | None = None) -> int:
           + ", ".join(m.name for m in plan[-1]), flush=True)
 
     report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests, check=args.check,
-                 summary=args.summary)
+                 summary=args.summary, shard=args.shard)
     print("\n".join(report.out))
     return 1 if report.findings else 0

@@ -34,7 +34,7 @@ path. It was seventeen executables, and using them meant knowing which file answ
 which question and which of the two lanes it ran in; both of those are now the tool's
 to know. `python tools/run.py` with no command runs the local host gate wave for diagnosis, and
 `run.py <command> --help` is that command's own help. The required landing verdict is
-Host CI's read-only invocation, `run.py --check --tests`, in
+Host CI's complete set of read-only `run.py --check --tests --shard INDEX/4` jobs in
 [.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
 runners at every push and pull request to `main`, or through manual dispatch, over a clone with no submodule
 checked out. [Guest CI](../.github/workflows/guest-gates.yml) runs the model evidence
@@ -59,10 +59,20 @@ section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrentl
 so these durations overlap and must not be added to obtain the wave's duration.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
-keeps its own run. The two OS jobs run independently, and `run.py` runs their gate
-members concurrently. Both jobs cache uv downloads keyed by the manifest and lockfile,
-with only pushes to `main` saving caches; PRs restore them. Environments and gate
-results are rebuilt on every run.
+keeps its own run. Each OS runs four independent shards. Mutation cases and sorted
+behavioral test modules are partitioned by position, with every item assigned once.
+Every mutation still runs the whole checker in a fresh process and private sandbox.
+Each shard checks its pristine baseline and registry coverage; shard 1 also runs
+the complete repair path, the ordinary checker and typecheck. Members within a
+shard run concurrently. Both existing `host-gates (OS)` checks require every shard
+on both platforms to succeed, including refusal after a skipped or cancelled shard.
+One shard alone supplies only a partial verdict. The unsharded local command retains
+the complete suite.
+
+Shards cache uv downloads keyed by the manifest and lockfile, with only shard 1
+of each OS on pushes to `main` saving caches; other jobs restore them. Environments
+and gate results are rebuilt on every run. Per-member timing notices are also
+available through the public check-run annotations API.
 
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
@@ -88,7 +98,7 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
+| `gate` | host | Runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--shard INDEX/TOTAL` partitions the suites, with the ordinary checker and typecheck on shard 1; every shard must pass, and `--fix` cannot be sharded. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
@@ -715,8 +725,8 @@ The integrator closes the batch in this order:
    after the batch's authored inputs settle; repeat only if new input changes or
    findings require it. An intermediate merge needs a targeted check only when its
    answer affects the next integration decision.
-3. Commit the settled tree and let Host CI run `python tools/run.py --check --tests`
-   on the pull request or published branch. Require a green Windows and Ubuntu result.
+3. Commit the settled tree and let Host CI run every `--check --tests --shard INDEX/4`
+   partition on the pull request or published branch. Require a green Windows and Ubuntu result.
    Use `python tools/run.py check --fix` locally only to repair derived artifacts
    before committing; run a full local host wave only to diagnose a hosted failure or
    an unavailable hosted service. The default suite does not replace required slow
@@ -749,7 +759,9 @@ checkers because one cannot do the whole job; what a type cannot decide, the beh
 A bare `run.py` first validates the shared instructions and restores a missing
 import, then runs `check`, `selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
-is the same complete validation without tracked writes and is the CI invocation.
+is the same complete validation without tracked writes. CI partitions that work
+with `--shard INDEX/4` and requires all four shards on each OS. `--rule` and `--only`
+cannot narrow a shard, and a partition count larger than its population is refused.
 
 `--fix` validates instructions, restores a missing import and repairs derived
 artifacts before starting the readers. The checker runs again afterward, so a
