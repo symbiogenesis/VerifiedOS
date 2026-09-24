@@ -75,7 +75,9 @@ include a nonempty witness and empty-case admission refusal.
 Use Guest CI's proof gate for compilation, claim and assumption audit and
 rocqchk. Use generated validation where its existing domains cover the changed
 arithmetic; expand the domain if needed. The integrator owns generated headers,
-shared documentation, co-reads, arithmetic repair and the final Host CI and
-Guest CI verdicts on GitHub Actions.
+shared documentation, co-reads, arithmetic repair, the final Host CI verdict and
+Guest CI dispatch on GitHub Actions. Record the guest run and pending status and
+finish without waiting for its verdict; the user will report any issues. Pending
+Guest CI supplies no passing proof evidence.
 Source-level theorems establish this admission arithmetic only. They do not
 certify the completeness of the prefix list, a target WCET or an RTL timer.

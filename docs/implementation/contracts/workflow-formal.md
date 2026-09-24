@@ -171,5 +171,7 @@ environment before checking its proofs: definition failures are stillborn,
 not killed, and survivors need individual investigation. The completion evidence
 identifies the actual prover and replay helper; the separate `seed coq` vector
 harness is not interchangeable evidence. The integrator owns requirement-header
-generation, the portable receipt and the final Host CI and Guest CI verdicts
-after integration.
+generation, the portable receipt, the final Host CI verdict and Guest CI dispatch
+after integration. Record the guest run and pending status and finish without
+waiting for its verdict; the user will report any issues. A pending run supplies
+no passing proof evidence.

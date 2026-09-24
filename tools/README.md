@@ -33,16 +33,19 @@ There is one executable here, [run.py](run.py), and a command is a name rather t
 path. It was seventeen executables, and using them meant knowing which file answered
 which question and which of the two lanes it ran in; both of those are now the tool's
 to know. `python tools/run.py` with no command runs the local host gate wave for diagnosis, and
-`run.py <command> --help` is that command's own help. Landing requires both Host CI
-and Guest CI on GitHub Actions. Host CI's complete set of read-only
+`run.py <command> --help` is that command's own help. Run Host CI and dispatch Guest CI
+on GitHub Actions for settled inputs. Agents require Host CI to pass and finish
+without waiting for Guest CI; the user monitors it and will report any issues.
+Host CI's complete set of read-only
 `run.py --check --tests --shard INDEX/4` jobs runs in
 [.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
 runners at every push and pull request to `main`, or through manual dispatch, over a clone with no submodule
 checked out. [Guest CI](../.github/workflows/guest-gates.yml) runs the model evidence
 sweep, proof gate, bundle comparison and standalone RTL checks on Linux, on manual
 dispatch and scheduled runs. Dispatch Guest CI for the published settled revision;
-do not wait for a scheduled run or run its gates locally as routine acceptance.
-Require both guest lanes, including proof compilation, assumption audit and kernel
+record its run URL or identifier, revision and current status, then finish without
+polling, watching or waiting for its verdict. Do not wait for a scheduled run or run
+its gates locally as routine acceptance. Dispatch both guest lanes, including proof compilation, assumption audit and kernel
 checking under the proof gate's reuse contract. Select `cold: true` when acceptance
 requires `proofs --fresh` or cold installation evidence.
 Its [bootstrap and acceptance contract](ci/README.md) states the
@@ -737,20 +740,26 @@ The integrator closes the batch in this order:
    `--check --tests --shard INDEX/4` partition on the pull request or dispatch it
    for the published branch. Dispatch Guest CI for the same settled inputs; its
    current triggers are manual dispatch and scheduled runs. Require green
-   Windows and Ubuntu host results and both guest lanes, including proofs.
+   Windows and Ubuntu host results. Include both guest lanes, including proofs,
+   and finish without polling, watching or waiting for their verdicts. The user
+   monitors Guest CI and will alert the agent to any issues.
    Use `python tools/run.py check --fix` locally only to repair derived artifacts
    before committing. Run local gates only for focused debugging or an unavailable
    hosted service. Required slow tests, experiments and measurements outside the
    [Guest CI contract](ci/README.md) retain their separate acceptance checks.
-4. Record both hosted run URLs or identifiers, their tested revisions, verdicts and
-   deferred checks. A lane handoff is provisional until the integrated batch passes every
-   required gate and review; a selected-rule selftest cannot establish that every
-   mutant was killed. If later edits change a gate's inputs, refresh the affected
-   evidence before acceptance. Re-run hosted validation for a new integration batch
+4. Record both hosted run URLs or identifiers, their tested revisions, available
+   verdicts or pending status, and deferred checks. A pending Guest CI verdict does
+   not block task completion; record it honestly without claiming passing evidence.
+   Complete the other required gates and reviews. A selected-rule selftest cannot
+   establish that every mutant was killed. If later edits change a gate's inputs,
+   refresh the affected evidence or dispatch a new Guest CI run for the settled
+   inputs without waiting for it. Re-run hosted validation for a new integration batch
    or when the affected scope cannot be established, not as a reassurance run.
 
 These are scheduling rules; the [landing tiers](../docs/implementation/implementation-checklist.md#checklist-conventions)
-and item acceptance predicates keep their full gates. `seed properties` still owns
+and item acceptance predicates keep their evidence requirements. Pending Guest CI
+evidence is explicitly deferred to the user and does not hold the agent's task open.
+`seed properties` still owns
 its checkout exclusively against every other reader and writer for the whole run.
 
 ## Checking the tools themselves

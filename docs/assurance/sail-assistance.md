@@ -40,7 +40,8 @@ Its acceptance predicates are:
   Real-bundle smoke tests, Python type checks and Windows/Ubuntu Host CI validate
   the integrated tool. The integrator also dispatches Guest CI for the settled
   revision with `cold: true`, including the bundle comparison and fresh proof gate
-  affected by shared dispatcher registration, before final acceptance.
+  affected by shared dispatcher registration. Record the run and finish without
+  waiting for its verdict; the user will report any issues.
 
 This delivery makes no measured productivity or model-success claim. It changes
 no Sail semantics, compiler pin, device behavior or proof-acceptance policy.
@@ -138,8 +139,10 @@ the behavior the requirements specify.
    preserving the command's final verdict. `model smt` results have their existing
    scope; they do not become Rocq proof terms by passing through an agent.
 6. Retain decisions and durable evidence in their repository owners, commit the
-   settled change and obtain green Windows/Ubuntu Host CI and both Guest CI lanes
-   on GitHub Actions before acceptance. A planned
+   settled change and obtain green Windows/Ubuntu Host CI. Dispatch both Guest CI
+   lanes on GitHub Actions, record the run URL or identifier, revision and pending
+   status, and finish without polling or waiting for its verdict. The user monitors
+   Guest CI and will report any issues; pending is not passing evidence. A planned
    specification change returns to its owning requirement and acceptance contract;
    it is not a repair to make the old contract pass.
 
@@ -266,6 +269,8 @@ The committed extension contract has these acceptance predicates:
    Focused behavioral tests, real native qualification and green Host CI and Guest CI
    on GitHub Actions validate the settled integration revision. Guest CI includes
    the proof gate; select `cold: true` for the required fresh proof check.
+   Agents record the Guest CI run and finish without waiting for its verdict;
+   the user will report any issues, and pending results remain unverified.
    Optional native qualification remains a separate check.
 
 Qualification reports retain failed capabilities and
@@ -386,4 +391,5 @@ each differential comparison; its peak RSS is a child-process metric, not total
 parallel memory. No observation establishes a productivity improvement or proof
 of universal equivalence. Fresh proof evidence remains in its existing
 `proofs/proof-evidence.json` owner and Guest CI's retained proof artifact. Host CI
-and Guest CI supply the final host and guest verdicts on GitHub Actions.
+and Guest CI supply the final host and guest verdicts on GitHub Actions. Agents
+finish with Guest CI pending under the handoff above; the user monitors its verdict.

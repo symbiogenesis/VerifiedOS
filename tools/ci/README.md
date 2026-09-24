@@ -2,10 +2,15 @@
 
 The guest pipeline validates the current curated model, proof sources and authored
 RTL on Linux. Run it together with [host validation](../../.github/workflows/host-gates.yml)
-on GitHub Actions for each settled integration batch. Both workflows supply required
-acceptance evidence; routine local execution of either complete suite is unnecessary.
+on GitHub Actions for each settled integration batch. Both workflows supply
+validation evidence; routine local execution of either complete suite is unnecessary.
 Guest CI currently triggers through manual dispatch and scheduled runs. Dispatch
-it for the published revision before acceptance; this procedure does not configure
+it for the published revision, record the run URL or identifier, revision and current
+status, then finish the task without polling, watching or waiting for its verdict.
+The user monitors Guest CI and will alert the agent to any issues. A pending guest
+verdict does not block task completion and must not be reported as a pass. Host CI
+and checks outside this workflow keep their existing requirements.
+This procedure does not configure
 an automatic pull-request trigger or a branch-protection requirement.
 
 ## Running it
@@ -29,8 +34,10 @@ The gate job is a two-lane matrix, and each lane has its own runner. The `model`
 installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
 RTL lint and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
 Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
-longer lane. One lane's failure does not cancel the other. Require both lanes to pass,
-and retain the run URL, tested revision, results and proof receipt. A green Host CI
+longer lane. One lane's failure does not cancel the other. Dispatch both lanes and
+retain the run URL and tested revision at handoff, with the current status. The
+workflow retains results and proof receipts when available; agents do not wait for
+them. Both lanes must pass to establish complete guest evidence. A green Host CI
 run alone supplies no model, RTL or proof-gate verdict.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
@@ -215,12 +222,16 @@ Focused tests must cover installation planning and failure propagation, includin
 unavailable dependencies and corrupt downloads where the installer owns download
 verification. Workflow syntax is checked with actionlint. After publishing the stable
 combined changes, the integrator requires green Host CI on Windows and Ubuntu and
-both Guest CI lanes on GitHub Actions. Host CI runs the sharded
+dispatches both Guest CI lanes on GitHub Actions without waiting for their verdicts.
+Host CI runs the sharded
 `python tools/run.py --check --tests` suite; Guest CI runs the commands above,
 including `python3 tools/run.py proofs`. Select `cold: true` when the applicable
 acceptance contract requires `proofs --fresh` or cold installation evidence.
-Record each workflow's run URL,
-tested revision and verdict, and verify that both cover the settled inputs.
+Record each workflow's run URL, tested revision and available verdict or pending
+status, and verify that both target the settled inputs. Finish the task with Guest CI
+pending; the user monitors its completion and will report any issues. Evidence
+requirements for proof correctness, cold installation and cache qualification remain
+in force; dispatch alone does not establish those results.
 Use manual dispatch when no automatic event starts the required workflow.
 
 Failure reporting and artifact upload run after failed checks without turning a

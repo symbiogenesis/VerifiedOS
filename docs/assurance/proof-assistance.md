@@ -118,16 +118,20 @@ secondary names in mutual declarations. Read the original context before reuse.
 6. When a candidate closes, inspect the complete diff against the frozen statement,
    definitions and assumptions. Publish the settled revision and dispatch Guest CI
    with `cold: true`. Its proofs lane runs `python3 tools/run.py proofs --fresh` to compile, audit
-   native assumptions and kernel-check. Review its retained receipt against the
-   exact inputs and complete the applicable requirement/non-vacuity review. Require
-   both Host CI and Guest CI under the repository's commit and check schedule.
+   native assumptions and kernel-check. Complete the applicable requirement/non-vacuity
+   review and require Host CI under the repository's commit and check schedule.
+   Record the Guest CI run URL or identifier, revision and pending status, then
+   finish without polling or waiting for its verdict. The user monitors the run
+   and will report any issues. Its retained receipt must match the exact inputs
+   before it can establish proof acceptance; pending is not passing evidence.
    Local proof runs are reserved for focused debugging or a hosted-service outage.
 
 The retry numbers are operating limits, not measurements of the best search policy.
 Active repair time includes candidate editing and candidate-check waits; record the
 final full acceptance pass separately. Once the budget expires, finish the running
-check and start no further candidate. A long legitimate kernel pass keeps its
-ordinary completion wait; this budget does not authorize terminating unrelated jobs.
+check and start no further candidate. A local kernel pass keeps its ordinary
+completion wait; hosted Guest CI follows the no-wait handoff above. This budget
+does not authorize terminating unrelated jobs.
 No tool enforces this manual planning journal. The proof gate enforces acceptance.
 
 A minimal checkpoint is ordinary UTF-8 JSON with these fields; replace the example

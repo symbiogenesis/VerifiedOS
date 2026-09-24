@@ -13,8 +13,11 @@ The starting compiler revision is
 permission helper and representability helper are inputs, not new completion
 credit. Initial scouting may inspect them and prepare diagnostics. Acceptance
 of the three outputs below requires the focused evidence and separate review
-stated here, followed by the integrator's Host CI and Guest CI verdicts on
-GitHub Actions. Contained compiler checks remain separate acceptance evidence.
+stated here. The integrator requires Host CI to pass and dispatches Guest CI on
+GitHub Actions for the settled revision, then records the run and pending status
+and finishes without waiting for its verdict. The user monitors Guest CI and will
+report any issues; pending is not passing evidence. Contained compiler checks
+remain separate acceptance evidence.
 
 ## 1. Inhabited capability memory
 
@@ -153,8 +156,9 @@ register, model and route clauses. Review must decide all of the following:
   be reported as compiler emission, and a green document gate cannot be
   reported as a source-to-Sail proof.
 
-The integrator owns the shared handoff and checklist updates and the settled
-Host CI and Guest CI verdicts on GitHub Actions. This agreement changes no compiler
+The integrator owns the shared handoff and checklist updates, the settled Host CI
+verdict and Guest CI dispatch with pending status on GitHub Actions, under the
+handoff above. This agreement changes no compiler
 implementation, extraction manifest or proof statement; generated requirement-reference
 fingerprints follow their owner. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f remain open
 until their existing implementation and target predicates hold.
