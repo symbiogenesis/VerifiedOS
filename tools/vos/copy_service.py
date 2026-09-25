@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Final
 
 from vos import env, gallina
+from vos.cli import ring as ring_owner
 from vos.supervisor import c_compiler
 
 CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
@@ -21,6 +22,7 @@ WAITS: Final = ("Finite host C/reference agreement only. The accepted M1.2f back
                "M4.4 notification adapter, target memory-order refinement and composed "
                "M7.1e roster member remain open.")
 SOURCES: Final = ("include/vos_copy_service.h", "src/copy_service.c", "test/host.c")
+MAX_COMPARISON_CASES: Final = 50000
 
 
 @dataclass(frozen=True)
@@ -42,11 +44,29 @@ class Comparison:
     expressions: tuple[str, ...]
 
 
+def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate declaration key: {key}")
+        result[key] = value
+    return result
+
+
 def configuration(root: Path) -> Config:
     """Read build bounds from their declaration; no parallel copy of its values."""
-    data = json.loads((root / "interfaces" / "ring-reference.json").read_text(encoding="utf-8"))
+    path = root / ring_owner.DECLARATION
+    raw = path.read_bytes()
+    # The shared schema reader owns shape validation but permits duplicate keys.
+    json.loads(raw, object_pairs_hook=_unique)
+    try:
+        data = ring_owner.declaration(root)
+    except ring_owner.RingError as error:
+        raise ValueError(f"ring declaration: {error}") from error
+    if path.read_bytes() != raw:
+        raise ValueError("declaration changed while reading")
     worlds = [w for w in data["worlds"] if w["world"] == "ring_reference"]
-    if len(worlds) != 1:
+    if len(worlds) != 1 or data["worlds"][0]["world"] != "ring_reference":
         raise ValueError("requires exactly one ring_reference declaration")
     world = worlds[0]
     ring = world["ring"]
@@ -77,6 +97,9 @@ def configuration_header(config: Config) -> str:
 
 def generated(config: Config) -> list[Comparison]:
     """Inputs surround owned bounds; all expected answers remain Gallina terms."""
+    population_bound = 4 * config.span + 2 * (config.batch + 1)**2 + 216 + 480 + 4 * (2 + len(config.payloads))
+    if population_bound > MAX_COMPARISON_CASES:
+        raise ValueError(f"comparison population exceeds tool limit {MAX_COMPARISON_CASES}")
     cases: list[Comparison] = []
     # Every wire base, including the full window that crosses zero.
     for base, occupancy in itertools.product(range(config.span), (0, 1, config.capacity - 1, config.capacity)):
@@ -162,9 +185,14 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     compiler, found = c_compiler(), gallina.prover(env.ROCQ_SWITCH)
     if compiler is None or found is None:
         return 1, [f"FAIL requires C compiler and locked switch {env.ROCQ_SWITCH}", WAITS]
+    try:
+        cases = generated(configuration(root))
+    except ValueError as error:
+        return 1, [f"FAIL {error}", WAITS]
     identities = [root / "proofs" / name for name in ("RingContract.v", "CopyRingService.v")]
     identities += [root / "copy-service" / name for name in SOURCES]
     identities += [root / "tools" / "vos" / "copy_service.py", root / "interfaces" / "ring-reference.json"]
+    identities += [root / "tools" / "vos" / "cli" / "ring.py"]
     before = {p.relative_to(root).as_posix(): _digest(p) for p in identities}
     tools_before = {p: _digest(Path(p)) for p in (compiler, found.argv[0])}
     built = build_host(root, work, compiler)
@@ -176,7 +204,6 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     (logs / "controls.log").write_text(controls.stdout + controls.stderr, encoding="utf-8")
     if controls.returncode:
         return 1, ["FAIL fixed consumer controls", controls.stderr, WAITS]
-    cases = generated(configuration(root))
     inputs = "\n".join(" ".join(map(str, case.inputs)) for case in cases) + "\n"
     (work / "inputs.txt").write_text(inputs, encoding="utf-8")
     answers = subprocess.run([str(binary)], input=inputs, capture_output=True, text=True, timeout=60, check=False)

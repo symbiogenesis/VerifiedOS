@@ -7,7 +7,10 @@
 #include <stdatomic.h>
 #include "copy_service_config.h"
 
-/* Pure ordered helpers are separate from the atomic payload ring below. */
+/* Pure ordered helpers require a valid view and bounded observation counters.
+ * They are separate from the atomic payload ring below. API pointers must name
+ * disjoint accessible objects; request records and source bytes remain immutable
+ * for the duration of each submit. Reset requires both endpoints quiescent. */
 typedef struct { uint32_t produced, consumed; } vos_copy_view;
 typedef enum { VOS_COPY_FREE, VOS_COPY_WRITING, VOS_COPY_SUBMITTED,
                VOS_COPY_ACCEPTED, VOS_COPY_TERMINAL, VOS_COPY_RECLAIMED } vos_copy_state;
@@ -33,6 +36,11 @@ typedef struct {
     uint32_t generation;
     vos_copy_payload slots[VOS_COPY_CAPACITY];
 } vos_copy_ring;
+typedef struct {
+    uint32_t generation, request, operation;
+    const uint8_t *source;
+    size_t extent, length;
+} vos_copy_request;
 
 uint32_t vos_copy_occupancy(vos_copy_view view);
 int vos_copy_view_valid(vos_copy_view view);
@@ -40,6 +48,8 @@ int vos_copy_publish(vos_copy_view *view);
 int vos_copy_take_index(vos_copy_view *view);
 int vos_copy_batch(vos_copy_view *view, size_t count, uint32_t *results);
 int vos_copy_advance(vos_copy_slot *slot, vos_copy_event event);
+/* Source/destination extents must be accessible and disjoint; no concurrent
+ * writer may modify source bytes until staging returns (ordinary C11 memory). */
 int vos_copy_stage(uint8_t *destination, size_t capacity, const uint8_t *source,
                    size_t extent, size_t length);
 void vos_copy_producer(vos_copy_world *world, vos_copy_reset reset);
@@ -54,5 +64,7 @@ int vos_copy_submit(vos_copy_ring *ring, uint32_t generation, uint32_t request,
 int vos_copy_take(vos_copy_ring *ring, uint8_t *destination, size_t capacity,
                   size_t *length, uint32_t *request);
 int vos_copy_prepare_sleep(vos_copy_ring *ring);
+int vos_copy_submit_batch(vos_copy_ring *ring, const vos_copy_request *requests,
+                          size_t count, uint32_t *results, uint32_t *signals);
 
 #endif

@@ -71,7 +71,8 @@ int vos_copy_stage(uint8_t *destination, size_t capacity, const uint8_t *source,
 {
     size_t i;
     /* Metadata is passed by value. Once staged, consumers never reread source.
-     * The caller supplies disjoint, accessible source and destination extents. */
+     * The caller supplies disjoint, accessible extents and excludes concurrent
+     * source writes until this function returns, as required by C11. */
     if (length > extent || length > capacity) return 0;
     for (i = 0; i < length; ++i) destination[i] = source[i];
     return 1;
@@ -203,4 +204,19 @@ int vos_copy_prepare_sleep(vos_copy_ring *ring)
     produced = atomic_load_explicit(&ring->produced, memory_order_seq_cst);
     consumed = atomic_load_explicit(&ring->consumed, memory_order_seq_cst);
     return produced == consumed;
+}
+
+int vos_copy_submit_batch(vos_copy_ring *ring, const vos_copy_request *requests,
+                          size_t count, uint32_t *results, uint32_t *signals)
+{
+    size_t i;
+    if (count > VOS_COPY_MAX_BATCH) return 0;
+    for (i = 0; i < count; ++i) {
+        vos_copy_request request = requests[i];
+        uint32_t signal = 0;
+        results[i] = (uint32_t)vos_copy_submit(ring, request.generation, request.request,
+                         request.operation, request.source, request.extent, request.length, &signal);
+        signals[i] = signal;
+    }
+    return 1;
 }

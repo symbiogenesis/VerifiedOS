@@ -23,6 +23,12 @@ def generated_domains() -> None:
     ensure({case.inputs[8] for case in notifications} == set(range(5)), "publication step missing")
     ensure({case.inputs[1] for case in notifications} == {0, 1}, "reset owner missing")
     ensure(len([case for case in cases if case.inputs[0] == 2]) == 6 * 6 * 3 * 2, "lifecycle product incomplete")
+    try:
+        c.generated(c.Config(64, 2**31, 8, 1, (4096,)))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unbounded comparison population accepted")
 
 
 def answers_are_not_recomputed() -> None:
@@ -57,6 +63,13 @@ def declaration_owns_constants() -> None:
             except ValueError:
                 continue
             raise AssertionError(f"unsafe wire span accepted: {span!r}")
+        (root / "interfaces" / "ring-reference.json").write_text('{"worlds":[],"worlds":[]}', encoding="utf-8")
+        try:
+            c.configuration(root)
+        except ValueError as error:
+            ensure("duplicate" in str(error), "duplicate keys not refused at parsing boundary")
+        else:
+            raise AssertionError("duplicate declaration keys accepted")
 
 
 def native_payload_controls() -> None:

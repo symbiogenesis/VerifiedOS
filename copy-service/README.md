@@ -28,8 +28,10 @@ length bounds before reading any payload. It copies bytes once into private
 staging before publishing. Scalar length/extent inputs are snapshots by value.
 Consumers only read staging; changing the external buffer after publication
 cannot change its length or bytes. Accessible, disjoint source/destination bounds
-are caller obligations. A concurrently modified source can yield mixed bytes;
-this is no atomic snapshot guarantee, and semantic validation must use staging.
+and absence of concurrent source writes during staging are caller obligations:
+ordinary C11 byte accesses otherwise have a data race. An untrusted concurrently
+writable source needs a defined target access adapter or ownership discipline.
+This is no atomic snapshot guarantee; semantic validation must use staging.
 `take` refuses an insufficient destination without advancing or changing output
 arguments, then accepts, consumes all readers, completes and reclaims the slot
 before releasing the tail. Reuse begins a fresh Free-to-Writing lifecycle only
@@ -48,10 +50,14 @@ is not the payload ring's policy.
 Wire indices wrap modulo the declared span, and slots modulo capacity. The
 configuration reader requires capacity to divide span and span to exceed
 capacity, so the live window distinguishes full from empty across wrap. Its
-32-bit arithmetic bound is checked before generating C. The reference helpers'
+32-bit arithmetic bound is checked before generating C. The payload ring's
+atomic host storage uses `uint32_t`, not the declaration's physical wire index
+width; the descriptor/header encoding and target adapter still owe that mapping.
+The reference helpers'
 `signals` and `drained` fields are bounded test observations, not shared event
-counters. The batch helper reports each enqueue independently and never rolls
-back earlier success; a count above the declared bound is refused untouched.
+counters. Both the index batch helper and the atomic payload `submit_batch`
+report each enqueue independently and never roll back earlier success; a count
+above the declared bound is refused before reading requests or touching outputs.
 Wire descriptor encoding, segment descriptors, operation semantics, per-operation
 WCET admission and the completion-ring adapter remain separate work.
 
@@ -75,6 +81,8 @@ sequentially; they are neither a concurrent stress campaign nor a memory-model
 proof. The report binds source, declaration, generated header, binary, answers,
 comparison and compiler/prover identities. Native artifacts remain in the assigned
 lane under `/root/build` and logs under `/root/logs`.
+The tool refuses generated populations above 50,000 cases before expanding them;
+this is a comparison resource limit, not an interface capacity requirement.
 
 `python tools/run.py test --only test_copy_service` exercises the tool interface;
 Linux additionally compiles and runs the fixed C controls. The proof gate remains
