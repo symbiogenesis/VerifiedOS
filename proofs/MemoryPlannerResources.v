@@ -19,6 +19,16 @@
    balanced_trace_restores_credit states the reusable-slot postcondition, and
    repeated_balanced_traces_fit extends it to any finite number of invocations.
 
+   required_credit_app gives the exact requirement for sequential phases,
+   accounting for the first phase's net use. A balanced first phase permits
+   reuse of the larger phase requirement, rather than their sum.
+   required_credit_prefix_exact and run_credit_prefix_exact characterize
+   sufficient credit and successful execution by the demand at every prefix.
+   Final balance alone supplies no peak bound: equal-total traces below need
+   different credit, and a balanced trace can require any natural amount.
+   These are finite accounting facts, not a discrepancy theorem or permission
+   to reorder operations whose dependencies the credit model does not carry.
+
    These credit theorems do not prove that a Return names its own outstanding
    allocation or that holders and device users drained. Those independent
    identity and barrier checks belong to the bounded component interpreter and
@@ -39,7 +49,8 @@
    timing. These entries are cited, never discharged. R-05-163 audits every
    compiled assumption. R-05-165 and R-05-166 are witnessed by a concrete
    balanced nonlexical trace, failure one byte below its required credit, a
-   lost return that fails restoration, and a delayed cleanup refutation.
+   lost return that fails restoration, a delayed cleanup refutation, and
+   serial versus overlapping traces with equal totals but distinct peaks.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-006 R-08-007a R-08-014 R-08-015 R-08-046
@@ -105,6 +116,31 @@ Fixpoint returned (events : list CreditEvent) : nat :=
   | Return n :: rest => n + returned rest
   end.
 
+(* The first phase's final balance adjusts the second phase's requirement.
+   Natural subtraction is intentional: surplus returned credit can fund all
+   of the second phase, but cannot remove the first phase's own peak. *)
+Theorem required_credit_app : forall first second,
+  required_credit (first ++ second) =
+  Nat.max (required_credit first)
+          (required_credit second + taken first - returned first).
+Proof.
+  induction first as [| event rest IH]; intros second.
+  - cbn [app required_credit taken returned]. lia.
+  - destruct event as [n | n]; cbn [app required_credit taken returned];
+      rewrite IH; lia.
+Qed.
+
+Corollary balanced_prefix_composes_by_max : forall first second,
+  taken first = returned first ->
+  required_credit (first ++ second) =
+  Nat.max (required_credit first) (required_credit second).
+Proof.
+  intros first second HB. rewrite required_credit_app, HB.
+  replace (required_credit second + returned first - returned first)
+    with (required_credit second) by lia.
+  reflexivity.
+Qed.
+
 Theorem credit_conservation : forall events initial final,
   run_credit events initial = Some final ->
   final + taken events = initial + returned events.
@@ -115,6 +151,52 @@ Proof.
     + destruct (n <=? initial) eqn:HC; try discriminate.
       apply Nat.leb_le in HC. apply IH in HR. cbn [taken returned]. lia.
     + apply IH in HR. cbn [taken returned]. lia.
+Qed.
+
+(* A prefix includes the empty prefix and the whole trace. Returned credit
+   remains a protocol fact here, with identity and safe-reuse checks outside
+   this arithmetic model. No balance hypothesis is needed. *)
+Theorem required_credit_prefix_exact : forall events initial,
+  required_credit events <= initial <->
+  (forall prefix suffix, events = prefix ++ suffix ->
+    taken prefix <= initial + returned prefix).
+Proof.
+  intros events initial. split.
+  - intros HC prefix suffix HE.
+    assert (HP : required_credit prefix <= initial).
+    { rewrite HE, required_credit_app in HC.
+      pose proof (Nat.le_max_l (required_credit prefix)
+        (required_credit suffix + taken prefix - returned prefix)). lia. }
+    apply required_credit_exact in HP. destruct HP as [final HR].
+    pose proof (credit_conservation prefix initial final HR). lia.
+  - revert initial. induction events as [| event rest IH]; intros initial HP.
+    + cbn [required_credit]. lia.
+    + destruct event as [n | n]; cbn [required_credit].
+      * assert (HN : n <= initial).
+        { specialize (HP [Take n] rest eq_refl). cbn [taken returned] in HP. lia. }
+        assert (HR : required_credit rest <= initial - n).
+        { apply IH. intros prefix suffix HE.
+          assert (HC : Take n :: rest = (Take n :: prefix) ++ suffix).
+          { cbn [app]. now rewrite HE. }
+          specialize (HP (Take n :: prefix) suffix HC).
+          cbn [taken returned] in HP. lia. }
+        lia.
+      * assert (HR : required_credit rest <= initial + n).
+        { apply IH. intros prefix suffix HE.
+          assert (HC : Return n :: rest = (Return n :: prefix) ++ suffix).
+          { cbn [app]. now rewrite HE. }
+          specialize (HP (Return n :: prefix) suffix HC).
+          cbn [taken returned] in HP. lia. }
+        lia.
+Qed.
+
+Corollary run_credit_prefix_exact : forall events initial,
+  (exists final, run_credit events initial = Some final) <->
+  (forall prefix suffix, events = prefix ++ suffix ->
+    taken prefix <= initial + returned prefix).
+Proof.
+  intros events initial. rewrite required_credit_exact.
+  apply required_credit_prefix_exact.
 Qed.
 
 Theorem balanced_trace_restores_credit : forall events initial,
@@ -191,6 +273,57 @@ Proof. reflexivity. Qed.
 Example lost_obligation_is_not_restored : run_credit [Take 4; Take 3; Return 3] 7 = Some 3.
 Proof. reflexivity. Qed.
 
+Definition serial_trace : list CreditEvent := [Take 4; Return 4; Take 3; Return 3].
+Definition overlapping_trace : list CreditEvent := [Take 4; Take 3; Return 4; Return 3].
+
+Example equal_totals_have_different_prefix_requirements :
+  taken serial_trace = taken overlapping_trace /\
+  returned serial_trace = returned overlapping_trace /\
+  taken serial_trace = returned serial_trace /\
+  required_credit serial_trace = 4 /\ required_credit overlapping_trace = 7.
+Proof. repeat split; reflexivity. Qed.
+
+Example balanced_phases_reuse_the_larger_requirement :
+  required_credit ([Take 4; Return 4] ++ [Take 3; Return 3]) =
+  Nat.max (required_credit [Take 4; Return 4])
+          (required_credit [Take 3; Return 3]).
+Proof. apply balanced_prefix_composes_by_max. reflexivity. Qed.
+
+Example an_unbalanced_first_phase_cannot_use_the_plain_maximum :
+  required_credit ([Take 4] ++ [Take 3; Return 4; Return 3]) = 7 /\
+  Nat.max (required_credit [Take 4])
+          (required_credit [Take 3; Return 4; Return 3]) = 4.
+Proof. split; reflexivity. Qed.
+
+Example serial_prefixes_fit_four :
+  forall prefix suffix, serial_trace = prefix ++ suffix ->
+    taken prefix <= 4 + returned prefix.
+Proof. apply required_credit_prefix_exact. reflexivity. Qed.
+
+Example overlapping_prefix_exceeds_six :
+  overlapping_trace = [Take 4; Take 3] ++ [Return 4; Return 3] /\
+  ~ (taken [Take 4; Take 3] <= 6 + returned [Take 4; Take 3]).
+Proof. split; [reflexivity | cbn [taken returned]; lia]. Qed.
+
+Example equal_final_credit_does_not_equalize_peaks :
+  run_credit serial_trace 7 = Some 7 /\
+  run_credit overlapping_trace 7 = Some 7 /\
+  run_credit overlapping_trace 6 = None.
+Proof. repeat split; reflexivity. Qed.
+
+Theorem balanced_trace_can_require_any_credit : forall n,
+  taken [Take n; Return n] = returned [Take n; Return n] /\
+  required_credit [Take n; Return n] = n.
+Proof. intro n. cbn [taken returned required_credit]. lia. Qed.
+
+Corollary final_balance_has_no_uniform_credit_bound : forall bound,
+  exists events, taken events = returned events /\ bound < required_credit events.
+Proof.
+  intro bound. exists [Take (S bound); Return (S bound)].
+  destruct (balanced_trace_can_require_any_credit (S bound)) as [HB HR].
+  split; [exact HB | rewrite HR; lia].
+Qed.
+
 Example cleanup_bound_satisfied : Forall2 le [1; 3; 1; 2; 1] [1; 4; 2; 2; 1] /\
                                   list_sum [1; 4; 2; 2; 1] <= 10.
 Proof. repeat constructor; lia. Qed.
@@ -199,7 +332,13 @@ Example delayed_cleanup_refuted : ~ (list_sum [1; 5; 2; 2; 1] <= 10).
 Proof. simpl. lia. Qed.
 
 Print Assumptions required_credit_exact.
+Print Assumptions required_credit_app.
+Print Assumptions balanced_prefix_composes_by_max.
 Print Assumptions credit_conservation.
+Print Assumptions required_credit_prefix_exact.
+Print Assumptions run_credit_prefix_exact.
 Print Assumptions repeated_balanced_traces_fit.
 Print Assumptions resource_aware_refines_partial.
 Print Assumptions release_deadline_sound.
+Print Assumptions balanced_trace_can_require_any_credit.
+Print Assumptions final_balance_has_no_uniform_credit_bound.
