@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 #ifndef VOS_COPY_SERVICE_H
 #define VOS_COPY_SERVICE_H
 
