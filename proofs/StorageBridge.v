@@ -55,13 +55,25 @@
       journal. The decoded closing flag is the last payload's. The commit frame
       carries its own tag; whether commit evidence may authenticate itself this
       way or must be referenced by the checkpoint is open.
-   3. Nonce derivation. A nonce is the generation, the frame position and the
-      frame kind. It is unique under one key only while a generation is never
-      reused, which the checkpoint and journal-reuse boundary of R-10-002a must
-      guarantee; that producer is owed, as is the checkpoint that supplies
-      `acknowledged` and the generation.
+   3. Nonce derivation. A nonce encodes the generation, frame position and
+      frame kind in one byte each. AesGcm.block_from keeps only eight bits of
+      each nat, so generations g and g + 256 collide. Distinct mathematical
+      generations alone do not provide nonce uniqueness. This prototype has
+      no byte-range admission or exhaustion check: its owner must choose a
+      bounded generation with checked refusal before reuse under the same key,
+      or a wider injective encoding, before approving it. The checkpoint and
+      journal-reuse producer supplying `acknowledged` and the generation is owed.
    4. Refusal is a verdict about the affected store only. What a composition
       does with it (R-17-030zb) is outside this file.
+
+   Review boundary. `layout_fits` is exhibited for the witness, not enforced
+   by the writer or decoder. `bytes` is list nat, so its name provides no
+   octet-range invariant. The composition's admission and serialization must
+   enforce the geometry, field ranges, exact medium size and nonce discipline
+   before this prototype can process device traces. The acknowledgement
+   theorem below compares transaction counts; it does not bind recovered
+   transaction identities to the authenticated checkpoint. These open joins
+   prevent this file from establishing R-10-002a crash preservation.
 
    The acceptance this file carries is native compilation, an empty
    assumption closure, rocqchk, quantified properties of the decoder over an
@@ -543,8 +555,9 @@ Proof.
   eapply walk_sound; [| | |exact Ew]; [reflexivity|constructor|constructor].
 Qed.
 
-(* A recovery never falls short of the checkpoint's acknowledgement: fewer
-   recovered transactions than acknowledged is a refusal. *)
+(* The recovered count never falls short of the supplied acknowledgement
+   count. Preserving the identities and contents acknowledged by a checkpoint
+   additionally requires that checkpoint's generation and journal binding. *)
 Theorem a_recovery_keeps_every_acknowledged_transaction :
   forall l open g acknowledged medium txns,
   decode l open g acknowledged medium = Recovered txns -> acknowledged <= length txns.

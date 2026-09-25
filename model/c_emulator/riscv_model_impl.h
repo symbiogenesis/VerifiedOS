@@ -65,7 +65,7 @@ public:
   void bind_blkdev_image(const std::string &path, bool create, const std::string &receipt);
   // Records the bound image's final identity in its receipt and releases it;
   // later persistence answers are false.
-  void close_blkdev_image();
+  bool close_blkdev_image();
 
   void init_sail(uint64_t entry, const char *config_file, const std::optional<uint64_t> &htif_tohost_address);
   void reinit_sail();

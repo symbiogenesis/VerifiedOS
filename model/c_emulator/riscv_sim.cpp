@@ -389,7 +389,7 @@ void finish(ModelImpl &model, const CLIOptions &opts, const elf_info &elf_info, 
     write_memory_dumps(model.main_memory_regions(), opts.dump_memory_prefix);
   }
   // Every change is already durable; this records the image's final identity.
-  model.close_blkdev_image();
+  const bool blkdev_receipt_complete = model.close_blkdev_image();
 
   // `model_fini()` exits with failure if there was a Sail exception.
   model.model_fini();
@@ -404,7 +404,7 @@ void finish(ModelImpl &model, const CLIOptions &opts, const elf_info &elf_info, 
     fprintf(stderr, "Performance:      %" PRIu64 " kIPS\n", exec_msecs == 0 ? 0 : run_info.total_insns / exec_msecs);
   }
   close_logs(run_info);
-  exit(model.had_exception() ? EXIT_FAILURE : EXIT_SUCCESS);
+  exit(model.had_exception() || !blkdev_receipt_complete ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 void flush_logs(run_info &run_info) {

@@ -67,3 +67,8 @@ set_tests_properties(block_image_wrong_byte PROPERTIES
 set_tests_properties(block_image_reloaded_fixture PROPERTIES
     PASS_REGULAR_EXPRESSION "block image child: FAIL reopened medium byte [0-9]+ expected"
     FAIL_REGULAR_EXPRESSION "block image: B=")
+
+# Receipt sink failures can be reproduced without rebuilding generated Sail.
+add_executable(block_receipt "block_receipt.cpp" "../../c_emulator/blkdev_image.cpp")
+target_include_directories(block_receipt PRIVATE "../../c_emulator")
+add_test(NAME "block_receipt" COMMAND $<TARGET_FILE:block_receipt>)

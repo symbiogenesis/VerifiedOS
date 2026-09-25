@@ -310,10 +310,8 @@ void ModelImpl::bind_blkdev_image(const std::string &path, bool create, const st
   );
 }
 
-void ModelImpl::close_blkdev_image() {
-  if (m_blkdev_image) {
-    m_blkdev_image->close();
-  }
+bool ModelImpl::close_blkdev_image() {
+  return !m_blkdev_image || m_blkdev_image->close();
 }
 
 void ModelImpl::init_sail(

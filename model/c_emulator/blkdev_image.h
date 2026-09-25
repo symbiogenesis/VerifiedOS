@@ -111,12 +111,14 @@ public:
 
   // Records the image's current on-disk identity in the receipt, if any, and
   // releases the file. Later events answer false.
-  void close();
+  // False means the requested receipt could not be completed. A caller must
+  // report that evidence failure even if the guest handled an earlier IO.
+  bool close();
 
 private:
   void bind(mode how, const std::vector<uint8_t> &fixture);
   [[noreturn]] void refuse(const std::string &why);
-  void note(const std::string &json);
+  bool note(const std::string &json);
   void release();
 
   std::string m_path;
@@ -124,6 +126,7 @@ private:
   int m_fd = -1;
   FILE *m_receipt = nullptr;
   bool m_failed = false;
+  bool m_receipt_failed = false;
   std::vector<uint8_t> m_opened;
 };
 

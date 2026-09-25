@@ -20,6 +20,9 @@ directory also call the actual generated Sail model:
   writes, lost incomplete work, reset and error tears, media faults, a host
   write failure, startup refusals and the emulator's image options. Its two
   inverted expectations must fail at the reopened-medium comparison.
+- `block_receipt` checks startup, persistence and close failures when a requested
+  receipt cannot be written. It checks the host adapter directly, including
+  sticky failure and reopening the bytes persisted before a receipt failure.
 
 `block_payload` and `block_reset` implement the scoped
 [M5.3 prerequisite predicates](../../../docs/implementation/contracts/block-device-prerequisites.md).

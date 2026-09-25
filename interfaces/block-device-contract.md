@@ -343,7 +343,13 @@ object per line for the open, each persistence answer and the close, naming
 the image file by SHA-256 at open and, when the run reaches its normal end, at
 close; a run that exits early leaves no close record. It records persistence answers,
 not the complete input-event trace of progress events, resets and bus accesses
-that the composition input above asks for. A host process that exits
+that the composition input above asks for. A requested receipt that cannot record
+the opening identity refuses startup. A later receipt-write failure makes the
+persistence answer and later commands fail with `IO`; already durable bytes
+remain durable, including a full-block write whose receipt then failed. Failure
+to complete the final receipt makes normal emulator termination fail. The
+[receipt harness](../model/test/unit_tests/block_receipt.cpp) exercises these
+three boundaries and the reopened bytes. A host process that exits
 between two answers leaves the image as the last answer left it; one killed
 inside an answer can leave a mixture of the old and new bytes of the block
 being persisted. That mixture lies within the declared tear class but has no
@@ -370,6 +376,14 @@ reference, with its layout, commit-representation and nonce decisions left
 explicit. Its separate review, the executable authentication and crypto path,
 the recovery-policy implementation, the kernel join and the full M5.3 target
 predicate remain their owners' work.
+
+The bridge review identifies a blocking format constraint: generation occupies
+one byte of its AES-GCM nonce, so generations differing by 256 collide. Its
+`layout_fits` predicate and byte ranges are not enforced by its decoder; its
+acknowledgement theorem bounds a count rather than proving checkpoint identity
+preservation. The [recovery-policy owner](../docs/implementation/storage-recovery-policy.md)
+records the admission, nonce-exhaustion and checkpoint bindings required before
+device traces can be accepted through this prototype.
 
 The integrator records partial M5.3 progress and remaining findings in the shared
 checklist; this document grants no completed-item status, proof tier or

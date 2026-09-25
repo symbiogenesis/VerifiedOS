@@ -242,12 +242,20 @@ void image::refuse(const std::string &why) {
   throw refusal(why);
 }
 
-void image::note(const std::string &json) {
-  if (m_receipt != nullptr) {
-    std::fputs(json.c_str(), m_receipt);
-    std::fputc('\n', m_receipt);
-    std::fflush(m_receipt);
+bool image::note(const std::string &json) {
+  if (m_receipt_failed) {
+    return false;
   }
+  if (m_receipt != nullptr) {
+    if (std::fputs(json.c_str(), m_receipt) == EOF || std::fputc('\n', m_receipt) == EOF ||
+        std::fflush(m_receipt) != 0) {
+      m_receipt_failed = true;
+      m_failed = true;
+      std::fprintf(stderr, "Block device receipt failed: %s\n", error_text().c_str());
+      return false;
+    }
+  }
+  return true;
 }
 
 void image::release() {
@@ -358,10 +366,12 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
     refuse("cannot read image " + m_path + ": " + error_text());
   }
   m_opened.assign(whole.begin() + static_cast<std::ptrdiff_t>(header_bytes), whole.end());
-  note("{\"schema\":\"verifiedos-blkdev-receipt-1\",\"event\":\"open\",\"mode\":" +
+  if (!note("{\"schema\":\"verifiedos-blkdev-receipt-1\",\"event\":\"open\",\"mode\":" +
        quoted(how == mode::create ? "create" : "open") + ",\"image\":" + quoted(m_path) +
        ",\"block_bytes\":" + number(g.block_bytes) + ",\"block_count\":" + number(g.block_count) +
-       ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}");
+       ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}")) {
+    refuse("cannot record the opened image's identity");
+  }
 }
 
 void image::load(uint64_t *medium, size_t medium_len) {
@@ -419,11 +429,11 @@ bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint6
   if (!failure.empty()) {
     record += ",\"error\":" + quoted(failure);
   }
-  note(record + "}");
-  return durable;
+  const bool recorded = note(record + "}");
+  return durable && recorded;
 }
 
-void image::close() {
+bool image::close() {
   if (m_fd >= 0 && m_receipt != nullptr) {
     struct stat st {};
     std::vector<uint8_t> whole;
@@ -431,11 +441,15 @@ void image::close() {
       note("{\"event\":\"close\",\"healthy\":" + std::string(m_failed ? "false" : "true") +
            ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}");
     } else {
-      note("{\"event\":\"close\",\"healthy\":" + std::string(m_failed ? "false" : "true") +
-           ",\"error\":" + quoted(error_text()) + "}");
+      const std::string failure = error_text();
+      note("{\"event\":\"close\",\"healthy\":false,\"error\":" + quoted(failure) + "}");
+      m_receipt_failed = true;
+      m_failed = true;
+      std::fprintf(stderr, "Block device close identity failed: %s\n", failure.c_str());
     }
   }
   release();
+  return !m_receipt_failed;
 }
 
 } // namespace blkdev
