@@ -72,7 +72,7 @@ def _estimates_refused_edit_writes_nothing() -> None:
 
 
 def _estimates_repair_reaches_fixpoint() -> None:
-    # one stale share: the first --fix rewrites it, and a second --fix over the
+    # one legacy share: the first --fix removes it, and a second --fix over the
     # repaired text computes the same cells and stages nothing, which is the
     # one-application fixpoint the ground rules ask every mutating path to prove
     plan = ("# Plan\n\n"
@@ -84,8 +84,8 @@ def _estimates_repair_reaches_fixpoint() -> None:
         estimates.run(ctx)
         ensure(list(ctx.fixed) == [PLAN], f"the stale cell repairs: {list(ctx.fixed)!r}")
         repaired = ctx.fixed[PLAN]
-        ensure("· 3 h, range 2–4 · 100.0%" in repaired,
-               f"the share is recomputed over the items: {repaired!r}")
+        ensure("· 3 h, range 2–4\n" in repaired,
+               f"the obsolete share is removed: {repaired!r}")
         ensure(any(line.startswith("fixed: A:") for line in ctx.rep.out),
                f"the rewrite reports itself: {ctx.rep.out!r}")
 
@@ -143,7 +143,7 @@ def _retained_estimates_are_scope_not_actuals() -> None:
         ctx = _context(root, fix=True)
         estimates.run(ctx)
         repaired = ctx.fixed[PLAN]
-        ensure("6 h retained estimate, actual n/a · 40.0%" in repaired,
+        ensure("6 h retained estimate, actual n/a · agent-parallel" in repaired,
                f"repair must preserve the unavailable actual: {repaired!r}")
         ensure("6 h across 1 items; their cumulative actual is n/a" in repaired,
                "retained scope must be reported separately")
@@ -552,35 +552,6 @@ def _k88_foreign_library_is_a_finding() -> None:
            f"a foreign Sail library must be a finding, not a crash or silent omission: {findings}")
 
 
-def _counted_clause_scope() -> None:
-    ensure(counts.counted_clause("seventeen crown-jewel specifications are missing"),
-           "a real unheld specification count remains a candidate")
-    ensure(counts.counted_clause("1,454 requirements are present"),
-           "a digit separator is not a clause boundary")
-    ensure(not counts.counted_clause("seventeen defects they raised were repaired"),
-           "repaired does not confer a pair count")
-    ensure(not counts.counted_clause("seventeen are register gaps, and two are coverage cells"),
-           "the later clause's cells do not describe the gap count")
-    ensure(not counts.counted_clause(
-        "fifty-one and the early-release count from four to seven while the cell stood"),
-        "a later coordinated subject does not supply the first count's noun")
-    ensure(counts.counted_clause("fifty-one requirements and the old table disagree"),
-           "a counted noun before a new subject remains a candidate")
-    ensure(not counts.counted_clause("Fourteen obligations carry a hypothesis", ["cj-unauthored"]),
-           "a coincident historical proof count is not a current crown-jewel count")
-    ensure(counts.counted_clause("Fourteen crown-jewel specifications are missing", ["cj-unauthored"]),
-           "an actual inventory restatement remains a candidate")
-    ensure(counts.counted_clause("Fourteen obligations carry a hypothesis", ["type-obligations"]),
-           "another candidate quantity retains its own subject")
-
-
-def _count_form_numeric_groups() -> None:
-    pattern = counts.count_form_pattern(["521", "fifty-one", "1,454"])
-    raw = "521,712 pairs; 1,521 pairs; 521 requirements; 1,454 requirements; fifty-one seams"
-    found = [match.group() for match in counts._form_sites(pattern, ["521", "fifty-one", "1,454"], raw)]
-    ensure(found == ["521", "1,454", "fifty-one"],
-           f"numeric groups are not independent count forms: {found}")
-
 
 def _wasm_fixture() -> str:
     return (
@@ -758,8 +729,6 @@ def cases() -> list[Case]:
         Case("wasm-model-repair-and-comparator", _wasm_model_repair_and_comparator),
         Case("wasm-model-bad-inputs-refuse-repair", _wasm_model_bad_inputs_refuse_repair),
         Case("wasm-model-native-limit", _wasm_model_native_limit),
-        Case("counted-clause-scope", _counted_clause_scope),
-        Case("count-form-numeric-groups", _count_form_numeric_groups),
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),

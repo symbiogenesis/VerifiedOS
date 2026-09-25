@@ -100,9 +100,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S9
 · Disposition: closed by I13, the parse reaching that translation rather than repeating it, for the index listing and the staged-blob read alike
 
-**F-197g** measurement: a landed decline's ground names two opam switches where the lane now carries four, two having been added by milestones that landed after the sentence was written, and the argument the ground carries is strengthened rather than weakened by the count
+**F-197g** measurement: a landed decline's ground names the opam switches present at its landing; later milestones added switches, strengthening the original argument. The provisioner's `FACTS` table owns current membership, while the completion note retains its historical measurement
 · Raised: S9
-· Disposition: standing, the decline's cell left alone rather than repaired at its own site, no stock image carrying any of the four
+· Disposition: standing, the decline's cell left alone rather than repaired at its own site, no stock image carrying the required toolchain
 
 **F-197h** owed-act: every figure any document stated about the provisioner's fact table was a hand-copy no rule read, the row count and the rows carrying a command among them, and three of the stated figures disagreed with the table on the day they landed with every gate green
 · Raised: S9

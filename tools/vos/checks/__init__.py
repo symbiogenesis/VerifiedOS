@@ -63,10 +63,6 @@ class Context:
 
     # what later groups need from earlier ones
     q: dict[str, int] = field(default_factory=dict)          # quantity -> value
-    # one registered figure claim: the document asserting it, the quantity it is a
-    # count of, whether it is spelled in words or digits, and the pattern that finds
-    # it. The floors group reads only the quantity, and reads it positionally.
-    claims: list[tuple[str, str, str, str]] = field(default_factory=list)
     floors: dict[str, int] = field(default_factory=dict)     # enumeration -> its size
     views: list[View] = field(default_factory=list)
     # Everything a group leaves for a later one that has no shape worth naming.

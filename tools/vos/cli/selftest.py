@@ -767,12 +767,11 @@ def _k14(box: Sandbox) -> bool:
 
 
 def _k26(box: Sandbox) -> bool:
-    # the form has to be one the tool actually counts, so it is read out of the
-    # inventory rather than invented
-    n = len(re.findall(r"(?m)^\| \d+ \|", box.read(CROWN)))
+    # An arbitrary stale value must be caught independently of the current inventory.
     return box.write(CRITIQUE, replace_once(
         box.read(CRITIQUE), "\n## ",
-        f"\nThere are {words(n)} crown-jewel specifications in view.\n\n## "))
+        "\nThere are 9999 crown-jewel specifications in view.\n\n## "))
+
 
 
 def _k29(box: Sandbox) -> bool:
@@ -878,13 +877,11 @@ def _k43(box: Sandbox) -> bool:
 
 
 def _k46(box: Sandbox) -> bool:
-    """Comment out one registered claim, so a computed quantity is held by nothing."""
+    """Remove one source guard, leaving its computed quantity unprotected."""
     rel = "tools/vos/checks/counts.py"
-    text = box.read(rel)
-    m = re.search(r'(?m)^(\s*)\(REGISTER, "sections",', text)
-    if not m:
-        return False
-    return box.write(rel, text[:m.start()] + m.group(1) + "# (" + text[m.end():])
+    return _first_match(rel, r"(?m)^    \"sections\": \"the register's normative sections\",\r?\n",
+                        lambda _m: "")(box)
+
 
 
 def _k49(box: Sandbox) -> bool:
@@ -1024,7 +1021,7 @@ CASES: list[Case] = [
          r"\1 The unit refuses rather than degrades.", b))),
 
     ("K-24", "an asserted count the artifact no longer gives",
-     _renumber(CROWN, r"\d+(?= coarse targets)", 0, "99")),
+     _renumber(REGISTER, r"(?<=extracted, at )[\d,]+(?= requirements)", 0, "9999")),
 
     ("K-24", "a multiline prerequisite list loses one enumeration marker",
      _literal(SPEC, "- (3) A **WCET cost-annotation pass", "- A **WCET cost-annotation pass")),
@@ -1073,14 +1070,14 @@ CASES: list[Case] = [
 
     ("K-34", "a checklist item whose estimate cell the document cannot read",
      _first_match(PLAN,
-                  rf"(?m)^\* \[x\] \*\*[^*]+\*\* {MID} [\d.,]+ h actual {MID} [\d.]+%",
-                  lambda m: re.sub(rf" {MID} [\d.,]+ h actual {MID} [\d.]+%",
+                  rf"(?m)^\* \[x\] \*\*[^*]+\*\* {MID} [\d.,]+ h actual",
+                  lambda m: re.sub(rf" {MID} [\d.,]+ h actual",
                                    " (about half a day)", m.group()))),
 
     ("K-34", "an open item's cell carrying no authority class",
      _first_match(PLAN,
                   rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} [\d.,]+ h, range [\d.,]+–[\d.,]+ "
-                  rf"{MID} [\d.]+% {MID} [IX](?= {MID}|$)",
+                  rf"{MID} [IX](?= {MID}|$)",
                   lambda m: re.sub(rf" {MID} [IX]$", "", m.group()))),
 
     ("K-35", "an open midpoint that is not the mean of its own range",
@@ -1098,7 +1095,7 @@ CASES: list[Case] = [
     ("K-86", "an open class-X range narrowed to under a factor of two",
      _first_match(PLAN,
                   rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+) h, range [\d.,]+–[\d.,]+ "
-                  rf"{MID} [\d.]+% {MID} X(?= {MID}|$)",
+                  rf"{MID} X(?= {MID}|$)",
                   lambda m: re.sub(
                       r"range [\d.,]+–[\d.,]+",
                       f"range {float(m.group(1).replace(',', '')) - 0.5:g}–"
@@ -1107,6 +1104,10 @@ CASES: list[Case] = [
 
     ("K-36", "a subtotal that no longer sums the items beneath it",
      _renumber(PLAN, r"(?m)^\*\*[^*]+ subtotal:\*\* ([\d.,]+)(?= h )", 1, "999")),
+
+    ("K-36", "a legacy percentage reintroduced into an item cell",
+     _first_match(PLAN, r"(?m)^\* \[x\] \*\*[^*]+\*\* · [\d.,]+ h actual",
+                  lambda m: m.group() + " · 99.9%")),
 
     ("K-37", "a restated grand total the items do not give",
      _renumber(PLAN, r"(?m)^\* Total estimate: ([\d.,]+)(?= h midpoint)", 1, "999")),
@@ -1132,18 +1133,25 @@ CASES: list[Case] = [
     ("K-96", "a calibration ratio the record's estimates and the actuals do not give",
      _renumber(PLAN, r"(?m)^\| M0\.8d \| X-authored \| ([\d.,]+) \|", 1, "999")),
 
-    # a completed attended item's row is deleted whole, so every figure still adds up over
-    # one item fewer and only the record's totality can see it; the row is found by shape
-    # rather than by its estimate so the case survives the item being re-fitted
+    # The generated result site must remain uniquely shaped and numerically derived.
+    ("K-96", "a missing calibration result marker",
+     _literal(PLAN, "<!-- calibration-results:start -->", "<!-- calibration-results:missing -->")),
+
+    ("K-96", "a duplicated calibration result row",
+     _first_match(PLAN, r"(?m)^\| attended \| I \|[^\r\n]*",
+                  lambda m: m.group() + "\n" + m.group())),
+
+    ("K-96", "a malformed calibration result cell",
+     _renumber(PLAN, r"(?m)^\| attended \| I \| (\d+) \|", 1, "unknown")),
+
+    ("K-96", "a stale calibration result count",
+     _renumber(PLAN, r"(?m)^\| attended \| I \| (\d+) \|", 1, "9999")),
+
+    # Removing a source row must fail totality, not silently shrink the fit.
     ("K-96", "a completed attended item the calibration record no longer carries",
      _first_match(PLAN, r"(?m)^\| S1 \| I \| [\d.,]+ \|[^\r\n]*\r?\n", lambda _m: "")),
 
-    # the same move one record over, in the pool whose two ratios the ruling against
-    # pooling turns on: the agent-parallel authored estimate moves, so the parallel
-    # ratio and the pooled figure the plan states in order to refuse it both move with
-    # it while every actual stays in its cell. What the case asks is that the second
-    # record is fitted rather than merely present, which the attended record's own case
-    # cannot ask, its rows being a different table under a different heading
+    # Moving the parallel record changes only its own fit; every actual stays put.
     ("K-96", "an agent-parallel ratio the second record's estimates do not give",
      _renumber(PLAN, r"(?m)^\| M6\.0b \| X-authored \| ([\d.,]+) \|", 1, "999")),
 
@@ -1173,7 +1181,7 @@ CASES: list[Case] = [
     ("K-45", "a disposition left standing over a requirement that was retired",
      _literal(REGISTER, "**R-03-003** ", "**R-03-903** ")),
 
-    ("K-46", "a computed quantity with no claim to notice it going to zero", _k46),
+    ("K-46", "a computed quantity with no declared owner guard", _k46),
 
     ("K-47", "an enumeration whose reading has moved off the heading it read",
      _literal(PROFILE, "### 5.1 ", "### 5.9 ")),
@@ -1397,10 +1405,8 @@ CASES: list[Case] = [
          "capabilities beyond pure compute", "capabilities beyond pure computation"))),
 
     # An owned enumeration's lead-in moves with the list untouched: the reader
-    # returns zero, and the guard must report the moved owner rather than resolve
-    # the claims, whose --fix would rewrite every restating count-word to "zero"
-    # across three documents and leave the next run green.
-    ("K-24", "an owned enumeration whose lead-in moved out of the reader's reach",
+    # returns zero, and the guard must report the moved owner even without prose claims.
+    ("K-46", "an owned enumeration whose lead-in moved out of the reader's reach",
      _literal(REGISTER, "obligations are exactly:", "obligations are precisely:")),
 
     # A restated figure drifts from the entry that fixes it: the kernel budget's spec
@@ -1918,7 +1924,7 @@ def _case_mutation(rule: str) -> Mutation:
 # the exact document bytes a case would anchor on, and the repair restores the tree it
 # found.
 REPAIRABLE: dict[str, tuple[str, Mutation]] = {
-    "K-24": ("cj-targets", _case_mutation("K-24")),
+    "K-24": ("requirements", _case_mutation("K-24")),
     "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
     "K-32": ("product:", _case_mutation("K-32")),
     "K-36": (" subtotal:", _case_mutation("K-36")),

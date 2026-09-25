@@ -178,6 +178,8 @@ REQUIRED_COUNTS = {
     "requirements": "the requirements register",
     "lettered": "the register's permanent letter-suffixed entries",
     "sections": "the register's normative sections",
+    "findings the plan records": "the findings register entries",
+    "items whose findings the plan records": "the findings register raising items",
     "cj-targets": "the register's crown-jewel trace legend",
     "cj-specs": "the crown-jewel inventory",
     "cj-theorems": "the inventory's theorem-target table",
@@ -413,7 +415,6 @@ def _quantities(ctx: Context) -> dict[str, int]:
 def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     ctx.q = _quantities(ctx)
-    ctx.claims = CLAIMS
     rep.line(HEADING)
 
     def expected(quantity: str, style: str) -> str:

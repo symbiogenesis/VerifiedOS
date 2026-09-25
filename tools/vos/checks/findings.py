@@ -101,10 +101,6 @@ def run(ctx: Context) -> None:
     ctx.shared["landed items the completion log carries an entry for"] = len(read.log_items)
     ctx.q[ENTRY_COUNT] = len(index.entries)
     ctx.q[ITEM_COUNT] = len(items)
-    # rebound rather than appended to: the counts group's own list is a module-level
-    # constant, and mutating it here would grow it once per run in a process that
-    # performs many, which the mutation selftest is
-    ctx.claims = [*ctx.claims, *CLAIMS]
 
     found = findings.disagreements(index, read)
     for file, quantity, _, pattern in CLAIMS:
