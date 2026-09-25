@@ -504,10 +504,8 @@ def _floor(ctx: Context) -> None:
     comparison down and leave the rule green; and a site whose pattern no longer matches
     is a finding rather than a site quietly dropped from the enumeration.
 
-    The comparison is on the spelling each site owes rather than on the floor itself,
-    because two of them do not write it the way ty.toml does: ruff packs it into one
-    token of its own dialect, and the interpreter table states the running version of
-    each lane, which is at the floor without being it.
+    The comparison uses each site's spelling: ruff packs the version into one token
+    of its own dialect instead of writing it the way ty.toml does.
     """
     rep = ctx.rep
     findings: list[str] = []
