@@ -9,7 +9,8 @@
                                           | --purecap-record FILE) [--simulator PATH | --lane]
     tools/run.py compiler-diff generate --out DIR [--count N] [--seed S] [--perturb]
 
-**The program level** feeds C through `ccomp -S` in a fresh directory, hands the emitted
+**The program level** preprocesses C once with `ccomp -E`, then feeds its exact `.i`
+bytes through `ccomp -S` in a fresh directory and hands the emitted
 stream to the in-tree assembler ([vos/asm.py](../asm.py)) and the image composer
 ([vos/image.py](../image.py)) under the harness stated below, and runs the image on the
 golden emulator with the invocation `run.py model corpus` makes, asking the two questions
@@ -19,8 +20,13 @@ commit trace. The compiler is never in the tree: `--ccomp` names an executable o
 checkout, which is M1.1a's containment, and the driver records the path and the digest of
 what it found there rather than carrying either. `--ccomp-arg` passes the backend's own
 flags, `-fverifiedos-typed` selecting its typed purecap route. `--interp` also runs the
-source through the same compiler's reference interpreter, and an image whose `main`
+same frozen `.i` through the compiler's reference interpreter, and an image whose `main`
 returned something else is `source-disagrees`; a narrowing program has no such reading.
+Preprocessing runs beside the original source, so quoted and transitive includes retain
+their meaning; its argv and working directory are recorded. The preprocessed digest
+binds the effective include closure, including macro expansion, and `--against` refuses
+missing or changed identities even when outputs agree. An incoming `.i`, including a
+plan-bound narrowing input, is preserved byte for byte. `--keep` retains that unit.
 
 **The generated campaign** is deterministic in its seed and stays inside the selected
 scalar source profile: pointers through stack memory, struct fields and whole-struct
@@ -83,7 +89,6 @@ import functools
 import hashlib
 import json
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -436,6 +441,58 @@ def _layout_refusal(exc: AsmError, stream: str, offset: int) -> Refusal:
 
 
 @dataclass(frozen=True)
+class Preprocessed:
+    """The exact self-contained translation unit handed to both compiler readings.
+
+    `.c` runs through this compiler's `-E` in its source directory, preserving relative
+    includes. `.i` is already preprocessed and is copied byte for byte. The digest binds
+    the effective transitive include closure, not a separately guessed include list.
+    """
+
+    argv: tuple[str, ...]
+    cwd: str
+    exit_code: int
+    said: str
+    path: Path
+    source_sha256: str
+    sha256: str
+
+
+def preprocess_c(ccomp: list[str], source: Path, fresh: Path,
+                 timeout: int = COMPILE_TIMEOUT) -> Preprocessed:
+    source, fresh = source.resolve(), fresh.resolve()
+    fresh.mkdir(parents=True, exist_ok=True)
+    unit = fresh / f"{source.stem}.i"
+    argv = (*ccomp, "-E", source.name, "-o", str(unit))
+    digest = ""
+    try:
+        raw = source.read_bytes()
+        digest = _sha256(raw)
+        if source.suffix == ".i":
+            if source != unit:
+                unit.write_bytes(raw)
+            return Preprocessed((), str(source.parent), 0, "already preprocessed",
+                                unit, digest, digest)
+        unit.unlink(missing_ok=True)
+        done = subprocess.run(argv, cwd=source.parent, capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=timeout, check=False)
+        said = (done.stderr + done.stdout).strip()[:600]
+        if done.returncode != 0 or not unit.is_file():
+            return Preprocessed(argv, str(source.parent), done.returncode,
+                                said or "preprocessor wrote nothing", unit, digest, "")
+        if source.read_bytes() != raw:
+            return Preprocessed(argv, str(source.parent), -1,
+                                "source changed during preprocessing", unit, digest, "")
+        return Preprocessed(argv, str(source.parent), 0, said, unit, digest,
+                            _sha256(unit.read_bytes()))
+    except subprocess.TimeoutExpired:
+        said = f"preprocessor had no exit within {timeout}s"
+    except (OSError, ValueError) as err:
+        said = f"could not preprocess: {err}"
+    return Preprocessed(argv, str(source.parent), -1, said, unit, digest, "")
+
+
+@dataclass(frozen=True)
 class Compiled:
     """One `ccomp -S`: how it was asked, what it said, and the stream it wrote."""
 
@@ -445,26 +502,29 @@ class Compiled:
     stream: str | None
     stream_sha256: str
     lines: int
+    preprocessed: Preprocessed
 
 
 def compile_c(ccomp: list[str], source: Path, fresh: Path,
               timeout: int = COMPILE_TIMEOUT) -> Compiled:
     """Run `ccomp -S` over one source in `fresh`, a directory holding nothing else.
 
-    The source is copied in and the compiler is run there. This working directory is
+    The source is preprocessed once and the resulting `.i` compiled there. This directory is
     not an OS sandbox. Remove any previous assembly first, so a reused --keep directory
     cannot supply a successful invocation that wrote nothing with stale output, and any
     partial assembly an interrupted run left, because the typed route creates that file
     exclusively and would refuse a rerun over it. The argv records the compiler's path
-    and two names relative to this directory.
+    and two names relative to this directory. Preprocessing has its own recorded cwd.
     """
+    fresh = fresh.resolve()
     fresh.mkdir(parents=True, exist_ok=True)
-    copied = fresh / source.name
-    shutil.copyfile(source, copied)
     out = fresh / f"{source.stem}.s"
     out.unlink(missing_ok=True)
     out.with_name(f"{out.name}.partial").unlink(missing_ok=True)
-    argv = [*ccomp, "-S", copied.name, "-o", out.name]
+    prepared = preprocess_c(ccomp, source, fresh, timeout)
+    argv = [*ccomp, "-S", prepared.path.name, "-o", out.name]
+    if not prepared.sha256:
+        return Compiled(tuple(argv), prepared.exit_code, prepared.said, None, "", 0, prepared)
     said = ""
     exit_code = -1
     try:
@@ -477,11 +537,17 @@ def compile_c(ccomp: list[str], source: Path, fresh: Path,
     else:
         exit_code = done.returncode
         said = (done.stderr + done.stdout).strip()[:600]
+    try:
+        if _sha256(prepared.path.read_bytes()) != prepared.sha256:
+            return Compiled(tuple(argv), -1, "preprocessed input changed during compilation",
+                            None, "", 0, prepared)
+    except (OSError, ValueError) as err:
+        return Compiled(tuple(argv), -1, str(err), None, "", 0, prepared)
     if exit_code != 0 or not out.is_file():
-        return Compiled(tuple(argv), exit_code, said or "(wrote nothing)", None, "", 0)
+        return Compiled(tuple(argv), exit_code, said or "(wrote nothing)", None, "", 0, prepared)
     raw = out.read_bytes()
     stream = raw.decode("utf-8", errors="replace")
-    return Compiled(tuple(argv), 0, said, stream, _sha256(raw), len(stream.splitlines()))
+    return Compiled(tuple(argv), 0, said, stream, _sha256(raw), len(stream.splitlines()), prepared)
 
 
 @dataclass(frozen=True)
@@ -604,6 +670,7 @@ class Program:
     checks: int
     expect: int = 0
     narrowing: int = 0
+    source_path: Path | None = None
 
 
 class _Draw:
@@ -1098,17 +1165,19 @@ _TERMINATED_RE = re.compile(
 
 
 def interpret_c(ccomp: list[str], source: Path, fresh: Path,
-                timeout: int = COMPILE_TIMEOUT) -> Interpreted:
+                timeout: int = COMPILE_TIMEOUT, *, expected_sha256: str = "") -> Interpreted:
     """Run the same compiler's `-interp` over one source in `fresh`.
 
     The reading is the exit code the interpreter reports for `main`, and only where it
     reports exactly one termination; a stuck state, an undefined behaviour the
     interpreter detects, a timeout or a second termination line leave it `None`.
     """
-    fresh.mkdir(parents=True, exist_ok=True)
-    copied = fresh / source.name
-    shutil.copyfile(source, copied)
-    argv = [*ccomp, "-interp", copied.name]
+    fresh = fresh.resolve()
+    prepared = preprocess_c(ccomp, source, fresh, timeout)
+    argv = [*ccomp, "-interp", prepared.path.name]
+    if not prepared.sha256 or (expected_sha256 and prepared.sha256 != expected_sha256):
+        return Interpreted(tuple(argv), -1, None,
+                           prepared.said if not prepared.sha256 else "preprocessed input changed")
     try:
         done = subprocess.run(argv, cwd=fresh, capture_output=True, encoding="utf-8",
                               errors="replace", timeout=timeout, check=False)
@@ -1117,6 +1186,9 @@ def interpret_c(ccomp: list[str], source: Path, fresh: Path,
     except OSError as err:
         return Interpreted(tuple(argv), -1, None, f"could not run: {err}")
     said = done.stdout + done.stderr
+    if (not prepared.path.is_file()
+            or _sha256(prepared.path.read_bytes()) != prepared.sha256):
+        return Interpreted(tuple(argv), -1, None, "preprocessed input changed during interpretation")
     ended = _TERMINATED_RE.findall(done.stdout)
     code = int(ended[0]) if len(ended) == 1 else None
     return Interpreted(tuple(argv), done.returncode, code, said.strip()[-600:])
@@ -1175,16 +1247,19 @@ def run_program(program: Program, ccomp: list[str], workdir: Path,
     """
     # A narrowing program is handed over as `.i`, so the bytes the plan binds are the
     # bytes the compiler reads rather than a preprocessor's rewriting of them.
-    source = workdir / f"{program.name}{'.i' if program.narrowing else '.c'}"
-    source.write_text(program.source, encoding="utf-8", newline="\n")
-    digest = _sha256(source.read_bytes())
+    source = program.source_path or workdir / f"{program.name}{'.i' if program.narrowing else '.c'}"
+    if program.source_path is None:
+        source.write_text(program.source, encoding="utf-8", newline="\n")
     # The primitive has target semantics and no C interpreter meaning, so a narrowing
     # program has no source-side reading.
-    interpreted = (interpret_c(ccomp, source, workdir / f"{program.name}.interp",
-                               compile_timeout) if interp and not program.narrowing else None)
     extra = (narrowing_inputs(workdir / program.name, source.read_bytes(), profile,
                               program.narrowing) if program.narrowing else [])
     compiled = compile_c([*ccomp, *extra], source, workdir / program.name, compile_timeout)
+    digest = compiled.preprocessed.source_sha256
+    interpreted = (interpret_c(ccomp, compiled.preprocessed.path,
+                               workdir / f"{program.name}.interp", compile_timeout,
+                               expected_sha256=compiled.preprocessed.sha256)
+                   if interp and not program.narrowing and compiled.stream is not None else None)
     bound = narrowing_files(workdir / program.name) if program.narrowing else ()
 
     def report(compiled: Compiled | None, found: tuple[Refusal, ...], size: int,
@@ -1221,8 +1296,13 @@ def _refusal_json(refusal: Refusal) -> Json:
 
 
 def _compiled_json(compiled: Compiled) -> Json:
+    prepared = compiled.preprocessed
     return {"argv": list(compiled.argv), "exit": compiled.exit_code, "said": compiled.said,
-            "stream_sha256": compiled.stream_sha256, "lines": compiled.lines}
+            "stream_sha256": compiled.stream_sha256, "lines": compiled.lines,
+            "preprocessed_sha256": prepared.sha256 or None,
+            "preprocess": {"argv": list(prepared.argv), "cwd": prepared.cwd,
+                           "exit": prepared.exit_code, "said": prepared.said,
+                           "source_sha256": prepared.source_sha256 or None}}
 
 
 def _ran_json(ran: Ran) -> Json:
@@ -1264,8 +1344,9 @@ def grouped(found: tuple[Refusal, ...] | list[Refusal]) -> list[tuple[str, str, 
 def disagreements(current: list[Report], against: dict[str, Json]) -> list[str]:
     """Where this run's answers to the two questions differ from a recorded run's.
 
-    The program names and source digests must match before the HTIF code and trace
-    digest are compared. Duplicate names and missing campaign members are findings.
+    The program names, top-source and preprocessed-unit digests must match before the
+    HTIF code and trace digest are compared. Legacy unbound records, duplicate names
+    and missing campaign members are findings.
     The recorded run is a `--json` report of this command.
     """
     recorded = against.get("programs")
@@ -1291,6 +1372,17 @@ def disagreements(current: list[Report], against: dict[str, Json]) -> list[str]:
             continue
         if report.source_sha256 != before.get("source_sha256"):
             out.append(f"{report.name}: source digest differs from the recorded run")
+            continue
+        prior_compiler = before.get("ccomp")
+        prior_unit = (prior_compiler.get("preprocessed_sha256")
+                      if isinstance(prior_compiler, dict) else None)
+        current_unit = report.compiled.preprocessed.sha256 if report.compiled else ""
+        if (not current_unit or not isinstance(prior_unit, str)
+                or re.fullmatch(r"[0-9a-f]{64}", prior_unit) is None):
+            out.append(f"{report.name}: missing preprocessed input identity")
+            continue
+        if current_unit != prior_unit:
+            out.append(f"{report.name}: preprocessed input digest differs from the recorded run")
             continue
         was = before.get("run")
         if report.ran is None or not isinstance(was, dict):
@@ -1501,7 +1593,7 @@ def _inputs(args: argparse.Namespace) -> list[Program]:
     for spelled in args.source:
         path = Path(spelled)
         text = path.read_text(encoding="utf-8")
-        out.append(Program(path.stem, "given", text, 0))
+        out.append(Program(path.stem, "given", text, 0, source_path=path.resolve()))
     if args.generate:
         out += programs(args.seed, args.generate, args.perturb, args.pattern or None)
     if len({program.name for program in out}) != len(out):
@@ -1656,14 +1748,17 @@ def _component(args: argparse.Namespace) -> int:
                 else:
                     purecap, purecap_bytes = purecap_output(
                         elf, simulator, profile, workdir, args.timeout, args.inst_limit)
-                if args.interp:
-                    interpreted = interpret_c(ccomp, source,
+                if args.interp and lowered.compiled.stream is not None:
+                    interpreted = interpret_c(ccomp, lowered.compiled.preprocessed.path,
                                               workdir / f"{source.stem}.interp",
-                                              args.compile_timeout)
+                                              args.compile_timeout,
+                                              expected_sha256=lowered.compiled.preprocessed.sha256)
             bindings.update({
-                "c_source": _file_identity(source),
+                "c_source": {"path": str(source),
+                             "sha256": lowered.compiled.preprocessed.source_sha256 or None},
                 "ccomp": _executable_identity(args.ccomp),
                 "ccomp_args": list(args.ccomp_arg),
+                "compilation": _compiled_json(lowered.compiled),
                 "stream_sha256": lowered.compiled.stream_sha256 or None,
                 "refusals": [_refusal_json(r) for r in lowered.refusals],
                 "elf_sha256": lowered.elf_sha256,
