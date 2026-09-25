@@ -186,6 +186,14 @@ The restricted 2026 propositional lower bounds do not establish a lower bound
 for this checker or its real exported corpus. Finding a proof, its encoded
 length, translating it, and checking it remain separate costs.
 
+The survey's September proof-complexity-generator conversion starts from an
+assumed hardness property; its restricted applications retain their stated
+assumptions. It supplies no unconditional certificate-size or arena lower bound
+for this PCUIC profile. The p-optimality oracle results concern relativizing
+arguments, not an independence theorem for the admitted logic. Neither result
+changes M6.2b-0's missing premises or prices the local checker: a proposed format
+still needs the corpus comparison and sound reconstruction below.
+
 If an alternative certificate system is proposed, first freeze its judgment and
 prove translation/replay soundness into the same committed proposition and
 environment. Compare total evidence bytes, conversion work and peak arena use
