@@ -5339,8 +5339,25 @@ Record DomainHoldings : Type := {
 }.
 
 Definition held_by (p : Plan) (h : DomainHoldings) (d r : nat) : bool :=
-  andb (Nat.ltb (p.(base_of) r) (h.(domain_lo) d + h.(domain_len) d))
-       (Nat.ltb (h.(domain_lo) d) (p.(base_of) r + p.(length_of) r)).
+  andb (Nat.ltb 0 (h.(domain_len) d))
+       (andb (Nat.ltb 0 (p.(length_of) r))
+             (andb (Nat.ltb (p.(base_of) r) (h.(domain_lo) d + h.(domain_len) d))
+                   (Nat.ltb (h.(domain_lo) d) (p.(base_of) r + p.(length_of) r)))).
+
+(* Empty half-open intervals meet nothing, including when their endpoints
+   stand strictly inside the other interval. *)
+Lemma an_empty_domain_holds_no_region :
+  forall (p : Plan) (h : DomainHoldings) (d r : nat),
+    h.(domain_len) d = 0 -> held_by p h d r = false.
+Proof. intros p h d r H. unfold held_by. rewrite H. reflexivity. Qed.
+
+Lemma an_empty_region_is_held_by_no_domain :
+  forall (p : Plan) (h : DomainHoldings) (d r : nat),
+    p.(length_of) r = 0 -> held_by p h d r = false.
+Proof.
+  intros p h d r H. unfold held_by. rewrite H.
+  destruct (Nat.ltb 0 (h.(domain_len) d)); reflexivity.
+Qed.
 
 (* Reading h5: the label's scope, read from the plan's own class field. *)
 Definition second_class_region (p : Plan) (r : nat) : bool :=
@@ -5650,6 +5667,25 @@ Definition macro_unheld_holdings : DomainHoldings := {|
   cap_store_granted := fun _ => false
 |}.
 
+(* An empty domain strictly inside the arenas still holds no byte of them.
+   The ordinary endpoint inequalities alone would count it as a holding. *)
+Definition interior_empty_holdings : DomainHoldings := {|
+  domain_lo := fun d => match d with 1 => 2049 | _ => demo_domain_lo d end;
+  domain_len := unheld_holdings.(domain_len);
+  from_image := demo_from_image;
+  cap_store_granted := fun _ => false
+|}.
+
+(* The dual geometry: a zero-length arenas region strictly inside its
+   domain. This is a malformed plan used only to test interval emptiness. *)
+Definition interior_empty_region_plan : Plan :=
+  build_plan
+    (cons 64 (cons 0 (cons 32 (cons 96
+      (cons 128 (cons 512 (cons 192 (cons 1024 nil))))))))
+    (cons 0 (cons 2049 (cons 64 (cons 2304
+      (cons 96 (cons 2400 (cons 224 (cons 2928 nil))))))))
+    demo_base_granules demo_length_granules demo_slots 15.
+
 Definition derived_demo_labels (d : nat) : DomainLabel :=
   match d with 0 => SessionDerived | 1 => SessionDerived | _ => ImageDerived end.
 
@@ -5813,6 +5849,31 @@ Example an_unheld_region_passes_the_label_check_and_is_refused :
   /\ any_of (fun d => held_by demo_plan unheld_holdings d 1) (upto 4) = false
   /\ holdings_cover_ok demo_plan unheld_holdings mislabelled_vector = false :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
+
+(* The empty extent is refused at an interior point as well as at the
+   region's boundary. The nonempty original remains a holding. *)
+(*| discharges: R-15-247t |*)
+Example an_interior_empty_domain_cannot_supply_coverage :
+  interior_empty_holdings.(domain_len) 1 = 0
+  /\ Nat.ltb (demo_plan.(base_of) 1) (interior_empty_holdings.(domain_lo) 1) = true
+  /\ Nat.ltb (interior_empty_holdings.(domain_lo) 1)
+             (demo_plan.(base_of) 1 + demo_plan.(length_of) 1) = true
+  /\ held_by demo_plan interior_empty_holdings 1 1 = false
+  /\ any_of (fun d => held_by demo_plan interior_empty_holdings d 1) (upto 4) = false
+  /\ holdings_cover_ok demo_plan interior_empty_holdings held_vector = false
+  /\ held_by demo_plan demo_holdings 1 1 = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl eq_refl))))).
+
+Example an_interior_empty_region_is_not_held :
+  interior_empty_region_plan.(length_of) 1 = 0
+  /\ Nat.ltb (demo_holdings.(domain_lo) 1)
+             (interior_empty_region_plan.(base_of) 1) = true
+  /\ Nat.ltb (interior_empty_region_plan.(base_of) 1)
+             (demo_holdings.(domain_lo) 1 + demo_holdings.(domain_len) 1) = true
+  /\ held_by interior_empty_region_plan demo_holdings 1 1 = false
+  /\ held_by demo_plan demo_holdings 1 1 = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
 
 Theorem the_unheld_arenas_meet_the_content_obligation_vacuously :
   RetainsNoSessionContentOutsideResidency demo_plan unheld_holdings mislabelled_vector.
@@ -6562,6 +6623,8 @@ Print Assumptions the_retaining_vector_breaks_the_obligation.
 Print Assumptions the_image_derived_domain_may_be_retained_outside_residency.
 Print Assumptions DomainHoldings.
 Print Assumptions held_by.
+Print Assumptions an_empty_domain_holds_no_region.
+Print Assumptions an_empty_region_is_held_by_no_domain.
 Print Assumptions second_class_region.
 Print Assumptions second_class_domain.
 Print Assumptions named_session_kind.
@@ -6595,6 +6658,8 @@ Print Assumptions arenas_as_image_holdings.
 Print Assumptions cap_store_weights_holdings.
 Print Assumptions unheld_holdings.
 Print Assumptions macro_unheld_holdings.
+Print Assumptions interior_empty_holdings.
+Print Assumptions interior_empty_region_plan.
 Print Assumptions derived_demo_labels.
 Print Assumptions held_vector_power.
 Print Assumptions mislabelled_labels.
@@ -6611,6 +6676,8 @@ Print Assumptions the_mislabelled_vector_breaks_the_content_obligation.
 Print Assumptions a_retained_session_content_domain_is_refused.
 Print Assumptions the_retaining_held_vector_breaks_the_content_obligation.
 Print Assumptions an_unheld_region_passes_the_label_check_and_is_refused.
+Print Assumptions an_interior_empty_domain_cannot_supply_coverage.
+Print Assumptions an_interior_empty_region_is_not_held.
 Print Assumptions the_unheld_arenas_meet_the_content_obligation_vacuously.
 Print Assumptions the_unheld_arenas_break_the_coverage_obligation.
 Print Assumptions label_from.
