@@ -881,7 +881,7 @@ def _k46(box: Sandbox) -> bool:
     """Comment out one registered claim, so a computed quantity is held by nothing."""
     rel = "tools/vos/checks/counts.py"
     text = box.read(rel)
-    m = re.search(r'(?m)^(\s*)\("docs/README\.md", "absences",', text)
+    m = re.search(r'(?m)^(\s*)\(REGISTER, "sections",', text)
     if not m:
         return False
     return box.write(rel, text[:m.start()] + m.group(1) + "# (" + text[m.end():])

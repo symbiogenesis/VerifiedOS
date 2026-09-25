@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """counts: every figure any document asserts, against the artifact it derives from.
 
-"N requirements", "N crown-jewel specifications", "N enumerated absences" are all
+"N requirements" and "N crown-jewel specifications" are
 restatements of something a table already holds, and the figure each stands in for is
 the table's rather than this docstring's. Each quantity is
 computed here; each claim says where it is asserted and in which style, and captures
@@ -123,14 +123,6 @@ CLAIMS = [
     ("docs/assurance/coverage-matrix.md", "cells-unauthored", "digits",
      r"(?<=partial, and )\d+(?= not authored)"),
 
-    # the documentation index summarizes them
-    ("docs/README.md", "views", "words", r"[\w-]+(?= \*\*derived views\*\* collect)"),
-    ("docs/README.md", "sections", "words", r"(?<=covers all )[\w-]+(?= normative sections)"),
-    ("docs/README.md", "requirements", "digits", r"(?<=sections as )[\d,]+(?= numbered requirements)"),
-    ("docs/README.md", "absences", "words", r"[\w-]+(?= enumerated absences)"),
-    ("docs/README.md", "cj-specs", "words", r"(?<=the )[\w-]+(?= specifications the review gate audits)"),
-    ("docs/README.md", "cj-theorems", "words", r"(?<=plus the )[\w-]+(?= theorem targets)"),
-
     # the gap catalogue argues from them
     ("docs/background/critique.md", "views", "words", r"(?<=register and the )[\w-]+(?= derived views)"),
     ("docs/background/critique.md", "fc-conferrals", "words", r"[\w-]+(?= conferrals against)"),
@@ -151,12 +143,6 @@ CLAIMS = [
     ("docs/background/critique.md", "requirements", "digits", r"(?<=of the )[\d,]+(?= requirements has yet been booked)"),
     ("docs/background/critique.md", "lettered", "digits", r"[\d,]+(?= of [\d,]+ entries are post-hoc insertions)"),
     ("docs/background/critique.md", "requirements", "digits", r"(?<= of )[\d,]+(?= entries are post-hoc insertions)"),
-
-    # the reviewer's onramp restates the register's shape to the person it teaches
-    ("docs/assurance/reviewer-onramp.md", "lettered", "digits",
-     r"[\d,]+(?= of the register's [\d,]+ entries are post-hoc insertions)"),
-    ("docs/assurance/reviewer-onramp.md", "requirements", "digits",
-     r"(?<=of the register's )[\d,]+(?= entries are post-hoc insertions)"),
 
     # the type-obligation menu: owned by R-05-029's enumeration, its count restated
     # across both documents and the assembly language's own account
@@ -525,7 +511,6 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "cells-authored": sh.get("cm_standing", {}).get("authored", 0),
         "cells-partial": sh.get("cm_standing", {}).get("partial", 0),
         "cells-unauthored": sh.get("cm_standing", {}).get("unauthored", 0),
-        "absences": len(art.absence_ids),
         "model-facts": len(corpus_mod.MODEL_FACTS),
         # the counts the co-statement survey found restated across K-61 pairs, each
         # computed from the artifact that owns it: an entry's own enumeration, the

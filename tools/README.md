@@ -1,57 +1,32 @@
 # The Tools
 
-*Everything in this directory is Python 3.14. This document says why that is the rule, what each tool does, and the conventions every one of them keeps.*
+The tools use Python on the Windows host and in the WSL guest. Use
+`python tools/run.py <command>` on Windows and `python3 tools/run.py <command>`
+on Linux; the dispatcher sends guest commands to WSL when needed.
 
 ## One language, and what forced it
 
-The tools run in two places. The documents, the proofs metadata, and the checker run on the **Windows host**, where the repository is edited. The Sail model's build loops run inside **WSL**, where the toolchain lives. Three interpreters are in reach across those two lanes, and only one of them runs in both:
+Python spans both execution environments. The floor is **3.14** for command modules,
+enforced by [pyproject.toml](pyproject.toml) and the checker targets; the bootstrap
+accepts Python 3.12 or newer and selects the locked project environment through uv.
+The system interpreter need not be replaced.
 
-| Interpreter | Windows host | WSL guest |
-| --- | --- | --- |
-| Python | 3.14.7 | 3.14.7 |
-| `pwsh` | present | absent |
-| `bash` | the guest's | present |
-
-`bash.exe` does resolve on the host, and it is WSL's launcher rather than a shell of its own: what it starts is the guest's bash, in the guest's filesystem, so writing for it is writing for the WSL lane under another name. There is no host bash to target.
-
-Python is the only one that spans both, so it is the only choice that makes the tools one thing rather than two. It also closes the seam a split would open: a fact parsed on one side of it re-parsed by hand on the other, which is the defect [check.py](check.py) exists to catch, running loose in the tools that catch it.
-
-Nothing a shell offers is out of reach. Raising the OCaml stack the Sail emission needs is `resource.setrlimit` in the parent and inheritance in every child; and where a shell measures a stage badly, `/usr/bin/time` reporting the running maximum resident set over every child so far, `os.wait4` reports the child that was actually asked about.
-
-The floor is **3.14**, shared by the host and guest and enforced by the project constraint and checker targets. The system interpreter need not be replaced: uv can select an installed compatible interpreter for the tools' environment. The entry-point bootstrap accepts Python 3.12 or newer; command modules run only after the project environment is ready.
-
-Two things at that floor the tools depend on rather than merely tolerate:
-
-- **Annotations are lazy by default** ([PEP 649](https://peps.python.org/pep-0649/)), so no module here carries `from __future__ import annotations`. Under 3.14 that import is the *opt-out*: it selects the older stringized semantics, which is the reverse of what a file wanting current behaviour should say. This is load-bearing rather than incidental. Every check group annotates its `run` with the `Context` it is handed, and `Context` lives in the package `__init__` that imports the group, so naming it at run time would be a cycle. Deferred evaluation means the annotation is written plainly, imported only under `TYPE_CHECKING`, and never evaluated by anything: no quotes, no cycle, and no import paid for at startup. Nothing here reads `__annotations__` or calls `get_type_hints`, which is what makes that safe.
-- **`os.process_cpu_count()`** reports the cores this process may actually run on, honouring an affinity mask wherever one exists. Job sizing in [vos/env.py](vos/env.py) is one call rather than a `sched_getaffinity`-or-`cpu_count` branch that had to name the platform to pick between them.
-
-Two more the floor makes available go unused, because a version floor is a licence to use what pays and not an obligation to use what is new. `pathlib.Path.copy` would replace `shutil.copy2` one call for one call and buy nothing at sites the selftest runs fifty times over. Unparenthesized `except A, B:` ([PEP 758](https://peps.python.org/pep-0758/)) is spelling, and a handler reads the same either way.
+Annotations use Python's lazy evaluation, with cross-module type-only imports under
+`TYPE_CHECKING`; do not add `from __future__ import annotations` or evaluate those
+annotations at runtime. [vos/env.py](vos/env.py) uses `os.process_cpu_count()` to size
+jobs within the process's available CPU allocation.
 
 ## One entry point, and the commands under it
 
-There is one executable here, [run.py](run.py), and a command is a name rather than a
-path. It was seventeen executables, and using them meant knowing which file answered
-which question and which of the two lanes it ran in; both of those are now the tool's
-to know. `python tools/run.py` with no command runs the local host gate wave for diagnosis, and
-`run.py <command> --help` is that command's own help. Run Host CI and dispatch Guest CI
-on GitHub Actions for settled inputs. Agents require Host CI to pass and finish
-without waiting for Guest CI; the user monitors it and will report any issues.
-Host CI's complete set of read-only
-`run.py --check --tests --shard INDEX/4` jobs runs in
-[.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
-runners at every push and pull request to `main`, or through manual dispatch, over a clone with no submodule
-checked out. [Guest CI](../.github/workflows/guest-gates.yml) runs the model evidence
-sweep, proof gate, bundle comparison and standalone RTL checks on Linux, on manual
-dispatch and scheduled runs. Dispatch Guest CI for the published settled revision;
-record its run URL or identifier, revision and current status, then finish without
-polling, watching or waiting for its verdict. Do not wait for a scheduled run or run
-its gates locally as routine acceptance. Dispatch both guest lanes, including proof compilation, assumption audit and kernel
-checking under the proof gate's reuse contract. Select `cold: true` when acceptance
-requires `proofs --fresh` or cold installation evidence.
-Its [bootstrap and acceptance contract](ci/README.md) states the
-toolchain setup and the remaining experimental loops. Host and guest verdicts
-establish only the checks each workflow actually runs. Local gate execution is
-reserved for focused debugging or a hosted-service outage.
+[run.py](run.py) dispatches commands by name; `run.py <command> --help` describes
+their arguments. A bare `run.py` runs the local host gate for diagnosis. For settled
+inputs, follow the [validation handoff](../AGENTS.md#tool-execution-and-validation)
+and [check schedule](#check-scheduling-during-fan-out).
+
+[Host CI](../.github/workflows/host-gates.yml) runs on Windows and Ubuntu for pushes
+and pull requests to `main`, or through manual dispatch, without initialized
+submodules. The [Guest CI contract](ci/README.md) owns guest triggers, setup, gate
+commands, proof reuse, cold runs and evidence limits.
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and
@@ -746,31 +721,19 @@ The integrator closes the batch in this order:
    after the batch's authored inputs settle; repeat only if new input changes or
    findings require it. An intermediate merge needs a targeted check only when its
    answer affects the next integration decision.
-3. Commit and publish the settled tree. Let Host CI run every
-   `--check --tests --shard INDEX/4` partition on the pull request or dispatch it
-   for the published branch. Dispatch Guest CI for the same settled inputs; its
-   current triggers are manual dispatch and scheduled runs. Require green
-   Windows and Ubuntu host results. Include both guest lanes, including proofs,
-   and finish without polling, watching or waiting for their verdicts. The user
-   monitors Guest CI and will alert the agent to any issues.
-   Use `python tools/run.py check --fix` locally only to repair derived artifacts
-   before committing. Run local gates only for focused debugging or an unavailable
-   hosted service. Required slow tests, experiments and measurements outside the
-   [Guest CI contract](ci/README.md) retain their separate acceptance checks.
-4. Record both hosted run URLs or identifiers, their tested revisions, available
-   verdicts or pending status, and deferred checks. A pending Guest CI verdict does
-   not block task completion; record it honestly without claiming passing evidence.
-   Complete the other required gates and reviews. A selected-rule selftest cannot
-   establish that every mutant was killed. If later edits change a gate's inputs,
-   refresh the affected evidence or dispatch a new Guest CI run for the settled
-   inputs without waiting for it. Re-run hosted validation for a new integration batch
-   or when the affected scope cannot be established, not as a reassurance run.
+3. Follow the [validation handoff](../AGENTS.md#tool-execution-and-validation) to
+   publish the settled commit, require Host CI, dispatch both Guest CI lanes and
+   record their revision-bound status without waiting for Guest CI. Required
+   experiments and measurements outside the [Guest CI contract](ci/README.md)
+   retain their separate acceptance checks.
+4. Reuse evidence for unchanged inputs. Refresh affected evidence when later edits
+   invalidate it; rerun hosted validation for a new batch or when the affected
+   scope cannot be established. A selected-rule selftest establishes only its
+   selected mutants' results.
 
-These are scheduling rules; the [landing tiers](../docs/implementation/implementation-checklist.md#checklist-conventions)
-and item acceptance predicates keep their evidence requirements. Pending Guest CI
-evidence is explicitly deferred to the user and does not hold the agent's task open.
-`seed properties` still owns
-its checkout exclusively against every other reader and writer for the whole run.
+These scheduling rules do not replace the [landing tiers](../docs/implementation/implementation-checklist.md#checklist-conventions)
+or item acceptance predicates. `seed properties` owns its checkout exclusively
+against every other reader and writer for the whole run.
 
 ## Checking the tools themselves
 
@@ -1045,16 +1008,10 @@ that declared grid, not arbitrary placements or all natural-language requirement
 
 ## Agent instructions
 
-[AGENTS.md](../AGENTS.md) is the one shared instruction source, a tracked nonempty
-UTF-8 regular file, which is what K-110 checks inside check.py. Edit shared rules
-there; directory placement and lifecycle rules are the same for every agent.
-Personal standing preferences defer repository-specific paths and procedures to
-this repository instead of repeating them in a global configuration. `run.py --check`
-performs the full read-only gate; CI adds `--tests`. `run.py --fix` repairs derived
-artifacts, then runs a fresh validation wave. The tools run on Windows and Linux and
-install no hooks. Start a fresh agent session after changing instructions so its
-loaded guidance matches the file; existing worktrees retain the instructions at
-their own revision.
+[AGENTS.md](../AGENTS.md) owns shared agent rules; K-110 requires it to be a tracked,
+nonempty UTF-8 regular file. Edit shared rules there. Personal preferences should
+link to repository procedures instead of copying them. Existing worktrees retain
+the instructions at their own revision; a new session loads changed instructions.
 
 ## The conventions
 
