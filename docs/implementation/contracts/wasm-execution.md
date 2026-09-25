@@ -99,9 +99,14 @@ linear-memory object safety or constant-time execution of secrets.
    Neither a branch offset nor a function index is a native PC. Bound the pass's
    work, scratch, record widths and expansion before allocating; malformed,
    oversized or unrepresentable input follows the existing typed refusal.
-   Preparation executes no guest instruction or import. Persisted IR is
-   untrusted and requires reconstruction or verified validation of both its
-   structure and its correspondence to the exact validated module.
+   Preparation executes no guest instruction or import. The first implementation
+   persists the raw immutable module and reconstructs IR through verified
+   validation/preparation after restart. It never restores persisted prepared
+   records. Within the running host, reuse its own immutable validated results
+   under the full identity and fresh-grant checks. This selects R-14-013h's
+   reconstruction arm and avoids a second persisted-IR format, parser and
+   correspondence proof. A later restoration path needs measured cold-start
+   benefit and separately priced qualification before it is implemented.
 2. **Keep numeric values cheap without losing authority types.** Use numeric
    accumulators where the certifying backend can keep them live, compact scalar
    slots, and paired slots for admitted vector values. Guest references use
@@ -302,6 +307,40 @@ or a change to another application's reservation.
 
 ## Qualification and refutations
 
+### Shared upstream corpus
+
+Source readings here are dated 2026-09-24; these are candidate revisions,
+not incorporated dependencies or local qualification evidence.
+
+- [Official Core tests and generators](https://github.com/WebAssembly/spec/tree/608711107b7f1edb13efd57b7d79b49477462d36/test/core)
+  and the [reference interpreter](https://github.com/WebAssembly/spec/tree/608711107b7f1edb13efd57b7d79b49477462d36/interpreter)
+  supply test syntax, expected behavior and SIMD case generation. The selected
+  [test licence](https://github.com/WebAssembly/spec/blob/608711107b7f1edb13efd57b7d79b49477462d36/test/LICENSE)
+  and [interpreter licence](https://github.com/WebAssembly/spec/blob/608711107b7f1edb13efd57b7d79b49477462d36/interpreter/LICENSE)
+  are Apache-2.0. Filter the exact Core 3.0 snapshot explicitly; a newer tree
+  is not the pinned semantic edition merely because its tests run.
+- [wasm-tools](https://github.com/bytecodealliance/wasm-tools/tree/fe12b7d36b0ec7c79ff6a51e838617a0a2ae25cc)
+  supplies `json-from-wast`, `smith`, `mutate` and `shrink`, avoiding a new test
+  syntax reader, random module generator and reducer. Its
+  [MIT option](https://github.com/bytecodealliance/wasm-tools/blob/fe12b7d36b0ec7c79ff6a51e838617a0a2ae25cc/LICENSE-MIT)
+  is available beside its Apache offers. Pin feature configuration, seeds,
+  imports and resource limits; disable threads, components and proposals outside
+  the selected Core 3.0 language without disabling its GC, SIMD, exceptions or
+  64-bit index features. Record unsupported generator cases explicitly.
+
+Q34g owns one fixture manifest, upstream-to-local runner and failure reducer.
+Each fixture binds module bytes, feature, expected validation/result/trap,
+numeric profile, imports, resource limits and provenance. Q34f consumes those
+identities and adds lifecycle/host cases; Q34h adds source/output identities
+and producer-specific cases. No consumer implements another core validator or
+duplicates the core conformance campaign. Host tools remain untrusted test
+producers, never native admission dependencies. Their agreement establishes
+neither complete coverage nor either engine theorem. Qualification, feature
+mapping, local refusal cases and full semantic proofs remain charged to their
+existing owners; SpecTec and WasmCert receive no second reuse discount.
+
+### Target measurements
+
 Q34f freezes modules, sources, inputs, expected observable results, compiler
 flags, handler set, feature profile, import grants and composition before
 measurement. Its cases include scalar arithmetic, branch-heavy code, local
@@ -321,6 +360,13 @@ maximum type graphs, tail-call cycles, exception unwinding, memory64 overflow
 and multi-memory aliasing as required full-language cases, including feature
 combinations.
 These are qualification builds; a composed image still ships one engine artifact.
+Use the minimal baseline, the selected combined configuration and one-at-a-time
+removals of each selected mechanism. Add targeted combinations where effects
+interact, especially fusion/register state, GC/host roots and suspension/cache
+invalidation; do not run the Cartesian product of every performance toggle.
+The full semantic interaction campaign and proof of the combined configuration
+remain required. One versioned target capture may feed several analyses only
+when module, engine, profile, workload and composition identities match.
 Keep workload, guest language, authority and results fixed; report unsupported
 cases rather than silently removing them. A service comparison includes the
 guest frontend on both paths. Record individual regressions and distribution

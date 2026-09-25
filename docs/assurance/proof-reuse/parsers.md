@@ -124,6 +124,28 @@ The entry's actual [AFP licence instrument](https://isa-afp.org/LICENSE) is BSD-
 
 ## Sources that inform the search but are not qualified imports
 
+### Guest collector proof starting point
+
+Read 2026-09-24: [CertiGraph](https://github.com/CertiGraph/CertiGraph/tree/e42b44f4aad981210d56f9fa228414f09efd687c)
+offers finite graph/reachability libraries and the
+[`body_mark` proof](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/mark/verif_mark_bin.v).
+Its [MIT licence](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/LICENSE)
+names Hobor, Wang, Cao and Mohan. Q34g should compare its graph and marking laws
+before authoring equivalent guest-GC lemmas. The inspected dependency tuple is
+Rocq 9.1, VST 2.16 and CompCert 3.17; compatibility with the locked environment
+and actual transitive assumptions remain to qualify. Imported proof irrelevance
+or functional extensionality cannot enlarge the admitted assumptions.
+Binary-graph marking does not establish arbitrary Wasm type graphs, host roots,
+reference identity, bounded resumable nonmoving collection, CHERI refinement
+or WCET. This is an adaptation candidate with no additional estimate discount
+before that bridge is demonstrated. No collector source is incorporated.
+
+The [shared Wasm corpus](../../implementation/contracts/wasm-execution.md#shared-upstream-corpus)
+records the official tests and wasm-tools as untrusted engineering start-froms,
+distinct from the semantics and theorem sources above.
+
+### Other source leads
+
 **SpecTec and the official specification.** [The official adoption announcement](https://webassembly.org/news/2025-03-27-spectec/) describes generation of Rocq definitions and then-current Wasm 1.0 soundness work. The inspected `WebAssembly/spec` revision `95dffb694caa11c3663203f2756dda9bf24c2021` contains `specification/wasm-3.0` and `wasm-latest`, but no tracked `.v` proof files. Its root [LICENSE](https://github.com/WebAssembly/spec/blob/95dffb694caa11c3663203f2756dda9bf24c2021/LICENSE) delegates by directory, including Apache-2.0 for SpecTec and W3C terms for document material; the inspected tree has no `spectec/LICENSE` to complete that named pointer. No blanket licence conclusion or full soundness-import claim is drawn from it. It is the required tracked **semantic upstream** for R-14-013b/d; locating and checking the exact generated proof artifact and admitted-version frontier remains necessary. A soundness statement printed in the specification is not the complete Rocq proof.
 
 **Verified Protocol Buffers.** Qianchuan Ye and Benjamin Delaware's [CPP 2019 paper](https://doi.org/10.1145/3293880.3294105) verifies a realistic Protocol Buffers subset in Coq and validates against official conformance tests. Its deliberately many-to-one accepted encodings make it a useful counterexample to equating codec correctness with R-05-051a. A source revision and applicable source licence are not established here, so this is a published proof reference only, not an import candidate.

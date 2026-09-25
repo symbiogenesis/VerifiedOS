@@ -24,6 +24,28 @@ This is a serious research direction for a tightly provisioned, high-assurance a
 
 The calls this reading raises are carried as work rather than repeated as prose. [The implementation plan](../implementation/implementation-checklist.md)'s Q-series holds them: Q1 the baseline and its rejection gates, Q2 one single-source lowering route, Q3 the assurance instruments connected to a slice, Q4 and Q5 the demand and placement measurements, Q6 through Q8 the topology, remanence and acceleration decisions, Q9 the compatibility reconsideration, Q10 the product the slice demonstrates, Q16 the messaging scope the communications reading below raises, and Q34 the laptop's elastic desktop domain. This document carries the judgment and names the item that would answer it, and an item that lands deletes the paragraph it answers.
 
+### Work-plan economy
+
+The plan should spend new effort on the local composition gaps rather than on
+duplicate engineering around them. Q34g owns the official Wasm corpus adapter,
+generator and reducer; Q34f/Q34h consume its fixture identities and add their
+distinct host and producer evidence. Reconstructing prepared data from validated
+modules avoids a second persistent IR admission path without weakening
+R-14-013h. Q34h qualifies a small existing native C-to-Wasm compiler before
+authoring one. Q30b/Q30c share pilot cases and qualify diagnostic and direct-GEMM
+sources before replacing them. Their cells price acquisition and adaptation;
+none of these sources removes full Core 3.0, confinement, native admission or
+source-correspondence obligations.
+
+Interface-ready host, producer, protocol and adapter work can proceed beside
+their proof foundations, with actual implementations required at integration.
+Targeted optimization ablations avoid a combinatorial measurement project while
+retaining semantic interaction checks and the selected combined proof. Optional
+module, ensemble, browser and next-standard work stays priced but does not hold
+the software MVP or acquire a first-release dependency. The bounded CIC
+foundation and the complete Wasm proof remain large open obligations: no new
+drop-in proof found in this review justifies discounting their theorem work.
+
 ### The three objections
 
 **The two-class memory system is a rational defeat, and still a defeat.**

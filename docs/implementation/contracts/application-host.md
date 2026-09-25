@@ -45,6 +45,39 @@ cross-feature interactions; a partially implemented engine cannot close the gate
 
 ## Operations
 
+### Resident producer starting point
+
+Q34h qualifies the native C implementation of
+[xcc's `wcc`](https://github.com/tyfkda/xcc/tree/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b)
+before authoring a frontend, preprocessor, Wasm emitter or linker. At this
+2026-09-24 source reading, its [MIT licence](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/LICENSE)
+names tyfkda. The [build](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/Makefile)
+has a native `wcc` target and separate Wasm self-hosting and browser packaging
+targets. Select only the native compiler and the required guest library closure;
+the browser UI and its Node tooling are not resident prerequisites. Its library
+build uses `llvm-ar`; qualify that producer step or emit the selected library
+objects directly rather than assume the native target removes every dependency.
+
+Publish a supported C source profile, including the upstream's restricted
+`goto`, and reject unsupported source with bounded diagnostics. Native CHERI-C
+compatibility, pointer/host-ABI adaptation, recursion and allocation bounds,
+poll insertion, TAL admission, library notices and output conformance remain
+unproved local work. The first qualification slice builds one changed-source
+app through the native compiler and accounts for its imports, working set and
+resource refusals. Failure returns a priced porting gap before broad integration.
+A compiler that can run as a Wasm guest alone does not meet the native-producer
+contract. No source-correspondence theorem is inherited from this implementation.
+
+[WCPL](https://github.com/false-schemers/wcpl/tree/458a542ca81fa7a8fd8c8eed38a32dce8ed45135)
+is a fallback, not a parallel port: its
+[MIT licence](https://github.com/false-schemers/wcpl/blob/458a542ca81fa7a8fd8c8eed38a32dce8ed45135/LICENSE)
+names false-schemers, and its documented C subset and preprocessor restrictions
+require a different published source profile. Neither source is incorporated
+by this selection. Read the selected file/dependency closure and record its
+distribution in [THIRD-PARTY.md](../../../THIRD-PARTY.md) at incorporation.
+
+### Host operation interface
+
 All operations use existing composed roles, bounded request/result storage and
 activation-scoped handles. No operation accepts a filesystem path as authority.
 

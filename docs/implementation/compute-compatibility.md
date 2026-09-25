@@ -11,8 +11,9 @@ The Q30a record comprises the [feature and full/embedded profile audit](compute-
 [source-to-ISA and bounded-resource contract](contracts/compute-semantic.md), and
 [exact-revision source, license and dependency review](compute-upstream-review.md).
 The audit distinguishes proposed mappings from implemented support and retains
-every missing foundation with its checklist owner. Q30b/Q30c start only after
-their required correspondence, lowering and native-dispatch foundations land.
+every missing foundation with its checklist owner. Q30b/Q30c prepare adapters
+and fixtures against reviewed interfaces beside their foundation work; admitted
+target execution joins only after correspondence, lowering and dispatch land.
 
 ## Selected direction
 
@@ -58,6 +59,15 @@ in [THIRD-PARTY.md](../../THIRD-PARTY.md), under the
 [licensing rules](../../COPYRIGHT.md#terms-this-tree-does-not-carry).
 
 ## Compatibility boundary
+
+Q30b owns one frozen reduction, barrier-stencil and GEMM corpus, numerical
+results, negative controls and result schema for the source routes. Q30c and
+Q30e consume it and add their distinct source/API/target cases. The
+[supplementary source review](compute-upstream-review.md#supplementary-pilot-instruments)
+assigns Oclgrind to host diagnostics, CLBlast to a bounded GEMM reference and
+TestFloat to operation-level inputs. None is a proof or independent oracle by
+name alone. Source, option, representation and target changes invalidate affected
+evidence; unchanged cases do not need a second harness or duplicate authoring.
 
 The standard-facing adapter is a source library with explicit context and
 manifest-delegated authority. It shares the existing native kernel execution

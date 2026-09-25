@@ -55,6 +55,46 @@ import, gitlink or distribution permission is implied by this document.
 
 ## Reference tests and what they establish
 
+### Supplementary pilot instruments
+
+Readings dated 2026-09-24 add these candidates without incorporating source.
+
+[Oclgrind](https://github.com/jrprice/Oclgrind/blob/5597a379b4f7d74c4af5532260df0366c277259f/README.md)
+provides host-side invalid-access, data-race and divergent-barrier diagnostics
+over LLVM IR. Its [licence](https://github.com/jrprice/Oclgrind/blob/5597a379b4f7d74c4af5532260df0366c277259f/LICENSE)
+is BSD-3-Clause; this edition requires LLVM/Clang 18 or later and C++17.
+Q30b qualifies it on a positive kernel and seeded defects before expanding
+the population. It is an untrusted development instrument, not target semantics,
+an admission checker or a correctness theorem. Stop adaptation at the cell's
+qualification allowance and return a priced gap if the frozen IR is unsupported.
+
+[CLBlast 1.7.0's direct GEMM](https://github.com/CNugteren/CLBlast/blob/ca2fc3cb09d4917cc72d4ca661d30296865a4afc/doc/details_gemm.md)
+supplies an implementation/case reference including incomplete tiles and
+transposes. Its [licence](https://github.com/CNugteren/CLBlast/blob/ca2fc3cb09d4917cc72d4ca661d30296865a4afc/LICENSE)
+is Apache-2.0. Q30c reads selected kernel/test notices and compares one frozen
+configuration with the exact pilot arithmetic and no-reference cases. Runtime
+tuning, indirect-GEMM pre/postprocessing and a whole BLAS runtime are outside
+that experiment. A semantic mismatch rejects the implementation candidate;
+useful test cases can remain references without changing the frozen contract.
+
+[Berkeley TestFloat 3e](https://www.jhauser.us/arithmetic/TestFloat-3/doc/TestFloat-general.html)
+separates operation-level case generation from result checking. Source
+`a9c849f1b0eb0264b626d9686ffae167d996e3be` has
+[BSD-3-Clause terms](https://github.com/ucb-bar/berkeley-testfloat-3/blob/a9c849f1b0eb0264b626d9686ffae167d996e3be/COPYING.txt).
+Q30e may reuse its inputs; Q34g can consume the same source under its different
+numeric profile. Adapt rounding, NaNs and target invocation explicitly. The
+default oracle uses SoftFloat, already in Sail's dependency closure, so it is
+not an independent arithmetic implementation. These incomplete operation tests
+prove neither whole-kernel ordering nor target refinement. Consumers retain
+qualification costs, with no further estimate discount for this lead.
+
+GPUVerify's [Ms-PL source terms](https://github.com/mc-imperial/gpuverify/blob/master/LICENSE.TXT)
+are not MIT; its corpus is not selected for copying under the current
+tracked-tree policy. No license conclusion about a parent project replaces
+the selected files' incorporation audit.
+
+### Existing conformance sources
+
 The reference corpus candidates are [OpenCL-CTS at e7dcbda5a32cd90ed7dd54189ffda68624c04d2b](https://github.com/KhronosGroup/OpenCL-CTS/tree/e7dcbda5a32cd90ed7dd54189ffda68624c04d2b),
 the selected PoCL runtime/compiler tests and Vecz lit tests, and chipStar's
 `hip-tests` gitlink `bbbfe89edb2386664395677cff46b59abed2904d` and
