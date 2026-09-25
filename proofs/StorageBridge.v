@@ -31,10 +31,10 @@
    that is neither blank, a waiting payload nor an authentic commit ends the
    authenticated prefix: independent suffix salvage is declined. Whether that
    end is ordinary loss of unacknowledged work or corruption of acknowledged
-   work is decided against `acknowledged`, the count of transactions the
-   durable checkpoint acknowledges, which this file takes as an authenticated
-   input exactly as StorageRecovery takes its manifest. Fewer recovered
-   transactions than acknowledged is a refusal (R-10-002a's fail-closed arm).
+   work is decided against the exact ordered transactions in the durable
+   checkpoint, which this file takes as an authenticated input exactly as
+   StorageRecovery takes its manifest. Missing or substituted identities,
+   addresses or values refuse, even when the recovered count is sufficient.
    The decoder emits only records that authenticated, so the raw arms of
    JournalIndex agree on everything it recovers; it never invents a torn or
    intact record to feed them.
@@ -57,23 +57,23 @@
       way or must be referenced by the checkpoint is open.
    3. Nonce derivation. A nonce encodes the generation, frame position and
       frame kind in one byte each. AesGcm.block_from keeps only eight bits of
-      each nat, so generations g and g + 256 collide. Distinct mathematical
-      generations alone do not provide nonce uniqueness. This prototype has
-      no byte-range admission or exhaustion check: its owner must choose a
-      bounded generation with checked refusal before reuse under the same key,
-      or a wider injective encoding, before approving it. The checkpoint and
-      journal-reuse producer supplying `acknowledged` and the generation is owed.
+      each nat. Public admission bounds generations and positions below 256;
+      actual encoded nonces are injective on admitted fields. A key-wide
+      reservation state advances once per journal generation and refuses at
+      256. Its initial state requires a fresh key. Durable state, once-only
+      consumption, crash ordering and key replacement are producer obligations;
+      resetting or copying the state under one key violates that contract.
    4. Refusal is a verdict about the affected store only. What a composition
       does with it (R-17-030zb) is outside this file.
 
-   Review boundary. `layout_fits` is exhibited for the witness, not enforced
-   by the writer or decoder. `bytes` is list nat, so its name provides no
-   octet-range invariant. The composition's admission and serialization must
-   enforce the geometry, field ranges, exact medium size and nonce discipline
-   before this prototype can process device traces. The acknowledgement
-   theorem below compares transaction counts; it does not bind recovered
-   transaction identities to the authenticated checkpoint. These open joins
-   prevent this file from establishing R-10-002a crash preservation.
+   Review boundary. `write_journal` and `decode` enforce layout, field and
+   octet ranges and exact medium size. Raw framing helpers are internal.
+   Recovery binds the caller's generation, journal identity and layout to the
+   checkpoint and preserves its exact acknowledged transaction prefix.
+   Constructing a Checkpoint does not authenticate it. Its independent verifier
+   and durable publication/reuse producer, executable storage and crypto, and
+   full node-image serialization remain open. These joins prevent this file
+   from establishing R-10-002a ordinary-reset preservation.
 
    The acceptance this file carries is native compilation, an empty
    assumption closure, rocqchk, quantified properties of the decoder over an
@@ -141,7 +141,53 @@ Record Layout : Type := {
 Definition layout_fits (l : Layout) : bool :=
   (1 <=? payload_limit l)
   && (frame_header_bytes + frame_tag_bytes + payload_limit l * frame_entry_bytes <=? frame_bytes l)
-  && (journal_frames l <=? 256).
+  && (1 <=? journal_frames l) && (journal_frames l <=? 256)
+  && (payload_limit l <? 256).
+
+Definition octets (b : bytes) : bool := forallb (fun x => x <? 256) b.
+
+Definition medium_admissible (l : Layout) (g : nat) (medium : bytes) : bool :=
+  layout_fits l && (g <? 256)
+  && (length medium =? journal_frames l * frame_bytes l) && octets medium.
+
+(* A key-wide high-water mark, initialized only with a fresh key. Its owner
+   must persist the advanced state before consuming the returned generation. *)
+Definition reserve_generation (next : nat) : option (nat * nat) :=
+  if next <? 256 then Some (next, S next) else None.
+
+Theorem reservation_advances_without_wrap : forall next g after,
+  reserve_generation next = Some (g, after) ->
+  g = next /\ g < 256 /\ after = S next.
+Proof.
+  intros next g after H. unfold reserve_generation in H.
+  destruct (next <? 256) eqn:E; [|discriminate].
+  inversion H; subst. apply Nat.ltb_lt in E. auto.
+Qed.
+
+Theorem successive_reservations_are_distinct : forall n g n' g' n'',
+  reserve_generation n = Some (g, n') ->
+  reserve_generation n' = Some (g', n'') -> g <> g'.
+Proof.
+  intros n g n' g' n'' H H'.
+  apply reservation_advances_without_wrap in H as [-> [_ ->]].
+  apply reservation_advances_without_wrap in H' as [-> _]. lia.
+Qed.
+
+Theorem later_reservations_cannot_repeat : forall n g after later g' after',
+  reserve_generation n = Some (g, after) -> after <= later ->
+  reserve_generation later = Some (g', after') -> g < g'.
+Proof.
+  intros n g after later g' after' H Hle H'.
+  apply reservation_advances_without_wrap in H as [-> [_ ->]].
+  apply reservation_advances_without_wrap in H' as [-> _]. lia.
+Qed.
+
+Theorem exhausted_reservations_refuse : forall next,
+  256 <= next -> reserve_generation next = None.
+Proof.
+  intros next H. unfold reserve_generation.
+  destruct (next <? 256) eqn:E; [apply Nat.ltb_lt in E; lia|reflexivity].
+Qed.
 
 Definition pad_to (n : nat) (b : bytes) : bytes := b ++ repeat 0 (n - length b).
 
@@ -150,6 +196,65 @@ Definition frame_at (l : Layout) (medium : bytes) (p : nat) : bytes :=
 
 Definition frame_nonce (generation position kind : nat) : bytes :=
   generation :: position :: kind :: repeat 0 (frame_nonce_bytes - 3).
+
+(* A finite byte decoder establishes the injectivity of the actual AES
+   bit encoding. No assertion about unbounded nat serialization is used. *)
+Lemma every_octet_roundtrips :
+  forallb (fun n => AesGcm.byte_value (AesGcm.bits_of_byte n) =? n) (seq 0 256) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma octet_roundtrip : forall n, n < 256 ->
+  AesGcm.byte_value (AesGcm.bits_of_byte n) = n.
+Proof.
+  intros n H. pose proof every_octet_roundtrips as E.
+  rewrite forallb_forall in E. apply Nat.eqb_eq. apply E.
+  apply in_seq. lia.
+Qed.
+
+Lemma encoded_octet_length : forall n, length (AesGcm.bits_of_byte n) = 8.
+Proof. intros n. reflexivity. Qed.
+
+Lemma encoded_octets_cons : forall x xs,
+  AesGcm.block_from (x :: xs) = AesGcm.bits_of_byte x ++ AesGcm.block_from xs.
+Proof. reflexivity. Qed.
+
+Lemma encoded_octets_injective : forall a b,
+  octets a = true -> octets b = true ->
+  AesGcm.block_from a = AesGcm.block_from b -> a = b.
+Proof.
+  induction a as [|x a IH]; intros [|y b] Ha Hb H; try reflexivity;
+    try discriminate H.
+  cbn [octets forallb] in Ha, Hb.
+  apply andb_true_iff in Ha as [Hx Ha]. apply Nat.ltb_lt in Hx.
+  apply andb_true_iff in Hb as [Hy Hb]. apply Nat.ltb_lt in Hy.
+  rewrite !encoded_octets_cons in H.
+  assert (E : AesGcm.bits_of_byte x = AesGcm.bits_of_byte y).
+  { apply (f_equal (firstn 8)) in H.
+    rewrite !firstn_app, !encoded_octet_length in H.
+    change (firstn 8 (AesGcm.bits_of_byte x) ++ [] =
+      firstn 8 (AesGcm.bits_of_byte y) ++ []) in H.
+    rewrite !app_nil_r in H.
+    rewrite (firstn_all2 (AesGcm.bits_of_byte x)),
+      (firstn_all2 (AesGcm.bits_of_byte y)) in H;
+      try (rewrite encoded_octet_length; lia). exact H. }
+  assert (Exy : x = y).
+  { rewrite <- (octet_roundtrip x Hx), <- (octet_roundtrip y Hy). now rewrite E. }
+  subst y. apply app_inv_head in H. f_equal. eapply IH; eauto.
+Qed.
+
+Theorem admitted_nonce_encoding_is_injective : forall g p k g' p' k',
+  g < 256 -> p < 256 -> k < 256 -> g' < 256 -> p' < 256 -> k' < 256 ->
+  AesGcm.block_from (frame_nonce g p k) = AesGcm.block_from (frame_nonce g' p' k') ->
+  g = g' /\ p = p' /\ k = k'.
+Proof.
+  intros g p k g' p' k' Hg Hp Hk Hg' Hp' Hk' H.
+  apply encoded_octets_injective in H.
+  - inversion H. auto.
+  - cbn [octets frame_nonce frame_nonce_bytes forallb repeat].
+    repeat rewrite andb_true_iff. repeat split; try reflexivity; apply Nat.ltb_lt; assumption.
+  - cbn [octets frame_nonce frame_nonce_bytes forallb repeat].
+    repeat rewrite andb_true_iff. repeat split; try reflexivity; apply Nat.ltb_lt; assumption.
+Qed.
 
 Definition payload_header (txn target : nat) : bytes :=
   pad_to frame_header_bytes [payload_kind; txn; target].
@@ -245,6 +350,105 @@ Definition journal_medium (l : Layout) (frames : list bytes) : bytes :=
   flat_map (pad_to (frame_bytes l)) frames
   ++ repeat 0 ((journal_frames l - length frames) * frame_bytes l).
 
+Definition txn_admissible (l : Layout) (x : Txn) : bool :=
+  (txn_id x <? 256) && (1 <=? length (txn_writes x))
+  && (length (txn_writes x) <=? payload_limit l)
+  && forallb (fun w => (fst w <? 256) && (snd w <? 256)) (txn_writes x).
+
+Definition frames_needed (xs : list Txn) : nat :=
+  fold_right (fun x n => S (length (txn_writes x)) + n) 0 xs.
+
+Definition sealed_txn_admissible (seal : Sealer) (g p : nat) (x : Txn) : bool :=
+  let sealed := seal_payloads seal g (txn_id x) p (txn_writes x) in
+  forallb (fun f => (length f =? frame_header_bytes + frame_value_bytes) && octets f)
+    (fst sealed)
+  && forallb (fun e => (length (entry_tag e) =? frame_tag_bytes) && octets (entry_tag e))
+    (snd sealed)
+  && (length (seal_commit seal g (txn_id x) (p + length (txn_writes x)) (snd sealed))
+      =? frame_header_bytes + frame_tag_bytes + length (txn_writes x) * frame_entry_bytes).
+
+Fixpoint sealing_admissible (seal : Sealer) (g p : nat) (xs : list Txn) : bool :=
+  match xs with
+  | [] => true
+  | x :: rest => sealed_txn_admissible seal g p x
+      && sealing_admissible seal g (p + S (length (txn_writes x))) rest
+  end.
+
+(* The public writer checks inputs before calling the sealer and checks its
+   output shape before padding. A malformed sealer cannot enlarge a frame or
+   smuggle non-octets into an admitted medium. Raw helpers above are internal. *)
+Definition write_journal (l : Layout) (seal : Sealer) (g : nat) (xs : list Txn)
+  : option bytes :=
+  if layout_fits l && (g <? 256) && forallb (txn_admissible l) xs
+     && (frames_needed xs <=? journal_frames l)
+  then if sealing_admissible seal g 0 xs then
+       let frames := seal_journal seal g 0 xs in
+       if (length frames =? frames_needed xs)
+          && forallb (fun f => (length f <=? frame_bytes l) && octets f) frames
+       then let medium := journal_medium l frames in
+            if medium_admissible l g medium then Some medium else None
+       else None
+       else None
+  else None.
+
+Theorem every_written_medium_is_admitted : forall l seal g xs medium,
+  write_journal l seal g xs = Some medium -> medium_admissible l g medium = true.
+Proof.
+  intros l seal g xs medium H. unfold write_journal in H.
+  destruct (layout_fits l && (g <? 256) && forallb (txn_admissible l) xs
+    && (frames_needed xs <=? journal_frames l)); [|discriminate].
+  destruct (sealing_admissible seal g 0 xs); [|discriminate].
+  destruct ((length (seal_journal seal g 0 xs) =? frames_needed xs)
+    && forallb (fun f => (length f <=? frame_bytes l) && octets f)
+         (seal_journal seal g 0 xs)); [|discriminate].
+  destruct (medium_admissible l g (journal_medium l (seal_journal seal g 0 xs))) eqn:E;
+    [inversion H; subst; exact E|discriminate].
+Qed.
+
+Definition DecodedTxn : Type := nat * list (nat * nat).
+
+(* Authentication is a producer obligation, not inferred from this record. *)
+Record Checkpoint : Type := {
+  checkpoint_generation : nat;
+  checkpoint_journal : bytes;
+  checkpoint_layout : Layout;
+  checkpoint_transactions : list DecodedTxn
+}.
+
+Definition layout_eqb (a b : Layout) : bool :=
+  (frame_bytes a =? frame_bytes b) && (journal_frames a =? journal_frames b)
+  && (payload_limit a =? payload_limit b).
+
+Definition checkpoint_binds (l : Layout) (journal : bytes) (g : nat) (c : Checkpoint) : bool :=
+  (g =? checkpoint_generation c) && bytes_eqb journal (checkpoint_journal c)
+  && layout_eqb l (checkpoint_layout c).
+
+Lemma checkpoint_binding_is_exact : forall l journal g c,
+  checkpoint_binds l journal g c = true ->
+  g = checkpoint_generation c /\ journal = checkpoint_journal c
+  /\ l = checkpoint_layout c.
+Proof.
+  intros [f n p] journal g [g' journal' [f' n' p'] txns] H.
+  unfold checkpoint_binds, layout_eqb in H. cbn in H.
+  repeat rewrite andb_true_iff in H.
+  destruct H as [[Hg Hj] [[Hf Hn] Hp]].
+  apply Nat.eqb_eq in Hg, Hf, Hn, Hp. apply bytes_eqb_true in Hj.
+  subst. repeat split.
+Qed.
+
+Definition txn_eq_dec : forall a b : DecodedTxn, {a = b} + {a <> b}.
+Proof. decide equality; decide equality; decide equality; apply Nat.eq_dec. Defined.
+
+Definition transactions_eqb (a b : list DecodedTxn) : bool :=
+  if list_eq_dec txn_eq_dec a b then true else false.
+
+Lemma transactions_eqb_true : forall a b,
+  transactions_eqb a b = true -> a = b.
+Proof.
+  intros a b H. unfold transactions_eqb in H.
+  destruct (list_eq_dec txn_eq_dec a b); [assumption|discriminate].
+Qed.
+
 (* -------------------------------------------------------------------------
    The decoder.
    ------------------------------------------------------------------------- *)
@@ -274,11 +478,11 @@ Fixpoint open_payloads (open : Opener) (g txn : nat) (ps : list Pending) (es : l
          && bytes_eqb (pending_header q) (payload_header txn (entry_target e))
       then match open (frame_nonce g (pending_position q) payload_kind) (pending_header q)
                       (pending_body q) (entry_tag e) with
-           | Some [v] =>
+           | Some [v] => if v <? 256 then
                match open_payloads open g txn ps' es' with
                | Some ws => Some ((entry_target e, v) :: ws)
                | None => None
-               end
+               end else None
            | _ => None
            end
       else None
@@ -327,17 +531,46 @@ Fixpoint walk (l : Layout) (open : Opener) (g : nat) (medium : bytes) (fuel p : 
 Inductive Outcome : Type :=
 | Recovered (txns : list (nat * list (nat * nat)))
 | RefusedCommittedPayload (position : nat)
-| RefusedAcknowledgedMissing (recovered acknowledged : nat).
+| RefusedAcknowledgedMissing (recovered acknowledged : nat)
+| RefusedAcknowledgedMismatch
+| RefusedFormat
+| RefusedCheckpointBinding.
 
-Definition decode (l : Layout) (open : Opener) (g acknowledged : nat) (medium : bytes)
+Definition decode (l : Layout) (open : Opener) (journal : bytes) (g : nat)
+    (checkpoint : Checkpoint) (medium : bytes)
   : Outcome :=
+  if medium_admissible l g medium then
+  if checkpoint_binds l journal g checkpoint then
+  let acknowledged := checkpoint_transactions checkpoint in
   match walk l open g medium (journal_frames l) 0 [] [] with
   | CommittedPayloadRefused p => RefusedCommittedPayload p
   | Ended txns =>
-      if length txns <? acknowledged
-      then RefusedAcknowledgedMissing (length txns) acknowledged
-      else Recovered txns
-  end.
+      if length txns <? length acknowledged
+      then RefusedAcknowledgedMissing (length txns) (length acknowledged)
+      else if transactions_eqb (firstn (length acknowledged) txns) acknowledged
+           then Recovered txns else RefusedAcknowledgedMismatch
+  end
+  else RefusedCheckpointBinding
+  else RefusedFormat.
+
+Theorem every_recovery_enforces_admission : forall l open journal g c medium txns,
+  decode l open journal g c medium = Recovered txns ->
+  medium_admissible l g medium = true /\ checkpoint_binds l journal g c = true.
+Proof.
+  intros l open journal g c medium txns H. unfold decode in H.
+  destruct (medium_admissible l g medium); [|discriminate].
+  destruct (checkpoint_binds l journal g c); [auto|discriminate].
+Qed.
+
+Theorem every_recovery_matches_its_checkpoint_context : forall l open journal g c medium txns,
+  decode l open journal g c medium = Recovered txns ->
+  g = checkpoint_generation c /\ journal = checkpoint_journal c
+  /\ l = checkpoint_layout c.
+Proof.
+  intros l open journal g c medium txns H.
+  apply every_recovery_enforces_admission in H as [_ Hb].
+  apply checkpoint_binding_is_exact. exact Hb.
+Qed.
 
 (* -------------------------------------------------------------------------
    The records JournalIndex and StorageRecovery consume. A decoded payload is
@@ -479,6 +712,7 @@ Proof.
     destruct (open (frame_nonce g (pending_position q) payload_kind) (pending_header q)
                    (pending_body q) (entry_tag e)) as [[|v [|v' rest]]|] eqn:Eo;
       cbv beta iota in H; try discriminate H.
+    destruct (v <? 256); cbv beta iota in H; [|discriminate H].
     destruct (open_payloads open g txn ps es) as [ws'|] eqn:Er;
       cbv beta iota in H; [|discriminate H].
     inversion H; subst. destruct (IH es ws' Er) as [Hlen Hin]. split.
@@ -543,42 +777,51 @@ Qed.
 
 (* Every transaction a decode recovers is sound, whatever the opener. *)
 Theorem every_recovered_transaction_is_authenticated_and_bounded :
-  forall l open g acknowledged medium txns,
-  decode l open g acknowledged medium = Recovered txns ->
+  forall l open journal g acknowledged medium txns,
+  decode l open journal g acknowledged medium = Recovered txns ->
   Forall (sound_txn l open g medium) txns.
 Proof.
-  intros l open g acknowledged medium txns H. unfold decode in H.
+  intros l open journal g acknowledged medium txns H. unfold decode in H.
+  destruct (medium_admissible l g medium); [|discriminate H].
+  destruct (checkpoint_binds l journal g acknowledged); [|discriminate H].
   destruct (walk l open g medium (journal_frames l) 0 [] []) as [done|p] eqn:Ew;
     cbv beta iota in H; [|discriminate H].
-  destruct (length done <? acknowledged); cbv beta iota in H; [discriminate H|].
+  destruct (length done <? length (checkpoint_transactions acknowledged)); cbv beta iota in H; [discriminate H|].
+  destruct (transactions_eqb (firstn (length (checkpoint_transactions acknowledged)) done)
+    (checkpoint_transactions acknowledged)); [|discriminate H].
   inversion H; subst.
   eapply walk_sound; [| | |exact Ew]; [reflexivity|constructor|constructor].
 Qed.
 
-(* The recovered count never falls short of the supplied acknowledgement
-   count. Preserving the identities and contents acknowledged by a checkpoint
-   additionally requires that checkpoint's generation and journal binding. *)
+(* Exact ordered identities, addresses and contents, not merely a count. *)
 Theorem a_recovery_keeps_every_acknowledged_transaction :
-  forall l open g acknowledged medium txns,
-  decode l open g acknowledged medium = Recovered txns -> acknowledged <= length txns.
+  forall l open journal g acknowledged medium txns,
+  decode l open journal g acknowledged medium = Recovered txns ->
+  firstn (length (checkpoint_transactions acknowledged)) txns
+  = checkpoint_transactions acknowledged.
 Proof.
-  intros l open g acknowledged medium txns H. unfold decode in H.
+  intros l open journal g acknowledged medium txns H. unfold decode in H.
+  destruct (medium_admissible l g medium); [|discriminate H].
+  destruct (checkpoint_binds l journal g acknowledged); [|discriminate H].
   destruct (walk l open g medium (journal_frames l) 0 [] []) as [done|p];
     cbv beta iota in H; [|discriminate H].
-  destruct (length done <? acknowledged) eqn:E; cbv beta iota in H; [discriminate H|].
-  inversion H; subst. apply Nat.ltb_ge in E. exact E.
+  destruct (length done <? length (checkpoint_transactions acknowledged));
+    cbv beta iota in H; [discriminate H|].
+  destruct (transactions_eqb (firstn (length (checkpoint_transactions acknowledged)) done)
+    (checkpoint_transactions acknowledged)) eqn:E; [|discriminate H].
+  inversion H; subst. apply transactions_eqb_true. exact E.
 Qed.
 
 (* Each recovered transaction is admitted by StorageRecovery's complete
    recovery. *)
 Theorem every_recovered_transaction_is_a_complete_manifest :
-  forall l open g acknowledged medium txns s,
-  decode l open g acknowledged medium = Recovered txns ->
+  forall l open journal g acknowledged medium txns s,
+  decode l open journal g acknowledged medium = Recovered txns ->
   Forall (fun t => recover_complete (manifest_of l t) scan (records_of (fst t) (snd t)) s
                    = Some (recover_under scan (records_of (fst t) (snd t)) s)) txns.
 Proof.
-  intros l open g acknowledged medium txns s H.
-  pose proof (every_recovered_transaction_is_authenticated_and_bounded _ _ _ _ _ _ H) as Hs.
+  intros l open journal g acknowledged medium txns s H.
+  pose proof (every_recovered_transaction_is_authenticated_and_bounded _ _ _ _ _ _ _ H) as Hs.
   rewrite Forall_forall in *. intros t Ht. destruct (Hs t Ht) as [Hne [Hle _]].
   apply a_decoded_transaction_recovers_completely; assumption.
 Qed.
@@ -614,6 +857,13 @@ Definition bridge_txns : list Txn :=
 Definition bridge_recovered : list (nat * list (nat * nat)) :=
   [(8, [(1, 21); (2, 22)]); (7, [(3, 11)])].
 
+Definition bridge_journal : bytes := [17].
+
+Definition bridge_checkpoint (n : nat) : Checkpoint :=
+  {| checkpoint_generation := bridge_generation;
+     checkpoint_journal := bridge_journal; checkpoint_layout := bridge_layout;
+     checkpoint_transactions := firstn n bridge_recovered |}.
+
 Definition bridge_frames : list bytes :=
   seal_journal bridge_seal bridge_generation 0 bridge_txns.
 
@@ -629,7 +879,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_layout_fits_the_encoding : layout_fits bridge_layout = true := eq_refl.
 
 Example the_written_journal_recovers_both_transactions :
-  decode bridge_layout bridge_open bridge_generation 2 bridge_medium = Recovered bridge_recovered.
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 2) bridge_medium = Recovered bridge_recovered.
 Proof. vm_compute. reflexivity. Qed.
 
 (* What those transactions replay to, block by block, under either raw arm. *)
@@ -640,12 +890,12 @@ Example the_recovered_transactions_replay_every_write :
   = [0; 21; 22; 11].
 Proof. split; reflexivity. Qed.
 
-(* The key and the generation are inputs of every opening: another key, or
-   the right key read as another generation, authenticates no commit. *)
-Example another_key_or_generation_authenticates_nothing :
-  decode bridge_layout (gcm_opener 4 other_key) bridge_generation 1 bridge_medium
+(* A wrong key authenticates no commit; a mismatched checkpoint generation
+   refuses before opening any frame. *)
+Example another_key_or_checkpoint_generation_is_refused :
+  decode bridge_layout (gcm_opener 4 other_key) bridge_journal bridge_generation (bridge_checkpoint 1) bridge_medium
   = RefusedAcknowledgedMissing 0 1 /\
-  decode bridge_layout bridge_open 2 1 bridge_medium = RefusedAcknowledgedMissing 0 1.
+  decode bridge_layout bridge_open bridge_journal 2 (bridge_checkpoint 1) bridge_medium = RefusedCheckpointBinding.
 Proof. vm_compute. split; reflexivity. Qed.
 
 (* Device faults at the byte level. *)
@@ -687,15 +937,15 @@ Definition stale_payload : bytes :=
   payload_header 8 2 ++ fst (bridge_seal (frame_nonce 2 1 payload_kind) (payload_header 8 2) [22]).
 
 Example misdirected_swapped_and_stale_payloads_are_refused :
-  decode bridge_layout bridge_open bridge_generation 0
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0)
     (replace_frame bridge_layout bridge_medium 1 (frame_at bridge_layout bridge_medium 0))
   = RefusedCommittedPayload 2 /\
-  decode bridge_layout bridge_open bridge_generation 0
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0)
     (replace_frame bridge_layout
        (replace_frame bridge_layout bridge_medium 1 (frame_at bridge_layout bridge_medium 0))
        0 (frame_at bridge_layout bridge_medium 1))
   = RefusedCommittedPayload 2 /\
-  decode bridge_layout bridge_open bridge_generation 0
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0)
     (replace_frame bridge_layout bridge_medium 1 stale_payload)
   = RefusedCommittedPayload 2.
 Proof. vm_compute. repeat split; reflexivity. Qed.
@@ -707,16 +957,16 @@ Proof. vm_compute. repeat split; reflexivity. Qed.
 Example a_corrupted_commit_or_missing_payload_is_uncommitted_or_refused :
   let torn := flip_bit bridge_medium (2 * 128 + frame_header_bytes) in
   let missing := replace_frame bridge_layout bridge_medium 1 [] in
-  decode bridge_layout bridge_open bridge_generation 0 torn = Recovered [] /\
-  decode bridge_layout bridge_open bridge_generation 1 torn = RefusedAcknowledgedMissing 0 1 /\
-  decode bridge_layout bridge_open bridge_generation 0 missing = Recovered [] /\
-  decode bridge_layout bridge_open bridge_generation 1 missing = RefusedAcknowledgedMissing 0 1.
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0) torn = Recovered [] /\
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 1) torn = RefusedAcknowledgedMissing 0 1 /\
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0) missing = Recovered [] /\
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 1) missing = RefusedAcknowledgedMissing 0 1.
 Proof. vm_compute. repeat split; reflexivity. Qed.
 
 (* A payload that does not open under its authentic commit is a refusal even
    where the checkpoint acknowledges nothing. *)
 Example a_torn_committed_payload_is_refused :
-  decode bridge_layout bridge_open bridge_generation 0
+  decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0)
     (flip_bit bridge_medium (1 * 128 + frame_header_bytes))
   = RefusedCommittedPayload 2.
 Proof. vm_compute. reflexivity. Qed.
@@ -750,7 +1000,7 @@ Definition crash_cases : list (nat * bytes) :=
 Example the_crash_family_has_eleven_members : length crash_cases = 11 := eq_refl.
 
 Example each_crash_image_recovers_exactly_the_landed_commits :
-  map (fun c => decode bridge_layout bridge_open bridge_generation (commits_before (fst c))
+  map (fun c => decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint (commits_before (fst c)))
                   (crash_image (fst c) (snd c))) crash_cases
   = map (fun c => Recovered (expected_after_crash (fst c) (forallb (Nat.eqb 255) (snd c))))
         crash_cases.
@@ -772,12 +1022,126 @@ Definition field_offsets : list nat :=
 Example the_field_family_has_thirteen_members : length field_offsets = 13 := eq_refl.
 
 Example inverting_a_field_s_low_bit_is_refused :
-  forallb (fun o => is_refusal (decode bridge_layout bridge_open bridge_generation 1
+  forallb (fun o => is_refusal (decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 1)
                                         (flip_bit bridge_medium o)))
           field_offsets = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Admission and checkpoint controls for the reviewed bounded format.
+   Identity functions below are test doubles only, never crypto evidence. *)
+Definition checkpoint_for (l : Layout) (journal : bytes) (g : nat)
+    (txns : list DecodedTxn) : Checkpoint :=
+  {| checkpoint_generation := g; checkpoint_journal := journal;
+     checkpoint_layout := l; checkpoint_transactions := txns |}.
+
+Definition shape_sealer : Sealer := fun _ _ m => (m, repeat 0 frame_tag_bytes).
+
+Example the_public_writer_accepts_the_authenticated_fixture :
+  write_journal bridge_layout bridge_seal bridge_generation bridge_txns = Some bridge_medium.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_last_generation_is_usable_and_exhaustion_never_wraps :
+  reserve_generation 255 = Some (255, 256) /\ reserve_generation 256 = None
+  /\ reserve_generation 257 = None
+  /\ write_journal bridge_layout shape_sealer 255 [] = Some (repeat 0 (6 * 128))
+  /\ write_journal bridge_layout shape_sealer 256 [] = None
+  /\ write_journal bridge_layout shape_sealer 257 [] = None.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Example the_old_nonce_collision_is_outside_public_admission :
+  AesGcm.block_from (frame_nonce 1 0 payload_kind)
+  = AesGcm.block_from (frame_nonce 257 0 payload_kind)
+  /\ decode bridge_layout bridge_open bridge_journal 257 (bridge_checkpoint 2) bridge_medium
+     = RefusedFormat.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Definition invalid_layouts : list Layout :=
+  [{| frame_bytes := 49; journal_frames := 6; payload_limit := 1 |};
+   {| frame_bytes := 128; journal_frames := 0; payload_limit := 2 |};
+   {| frame_bytes := 128; journal_frames := 257; payload_limit := 2 |};
+   {| frame_bytes := 128; journal_frames := 6; payload_limit := 0 |};
+   {| frame_bytes := 4640; journal_frames := 256; payload_limit := 256 |}].
+
+Example invalid_geometry_is_refused_by_both_public_boundaries :
+  map (fun l => write_journal l shape_sealer 0 []) invalid_layouts = repeat None 5
+  /\ map (fun l => decode l bridge_open bridge_journal 0
+       (checkpoint_for l bridge_journal 0 []) []) invalid_layouts = repeat RefusedFormat 5.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Example short_long_and_non_octet_media_are_refused :
+  map (decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0))
+    [firstn 767 bridge_medium; bridge_medium ++ [0]; 256 :: tl bridge_medium]
+  = repeat RefusedFormat 3.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_largest_position_and_fields_fit :
+  let l := {| frame_bytes := 50; journal_frames := 256; payload_limit := 1 |} in
+  layout_fits l = true /\
+  match write_journal l shape_sealer 255
+    (repeat {| txn_id := 255; txn_writes := [(255,255)] |} 128) with
+  | Some medium => length medium = 256 * 50 /\ octets medium = true
+  | None => False
+  end.
+Proof. vm_compute. split; [reflexivity|]. split; reflexivity. Qed.
+
+Definition invalid_transactions : list (list Txn) :=
+  [[{| txn_id := 256; txn_writes := [(1,1)] |}];
+   [{| txn_id := 1; txn_writes := [(256,1)] |}];
+   [{| txn_id := 1; txn_writes := [(1,256)] |}];
+   [{| txn_id := 1; txn_writes := [] |}];
+   [{| txn_id := 1; txn_writes := [(1,1); (2,2); (3,3)] |}];
+   repeat {| txn_id := 1; txn_writes := [(1,1)] |} 4].
+
+Example invalid_writer_fields_and_overfull_journals_refuse :
+  map (write_journal bridge_layout shape_sealer 0) invalid_transactions = repeat None 6.
+Proof. vm_compute. reflexivity. Qed.
+
+Example malformed_sealer_outputs_refuse :
+  map (fun seal => write_journal bridge_layout seal 0 bridge_txns)
+    [(fun _ _ _ => ([], repeat 0 16));
+     (fun _ _ m => (m ++ [0], repeat 0 16));
+     (fun _ _ m => (m, repeat 0 15));
+     (fun _ _ m => (m, repeat 0 17));
+     (fun _ _ _ => ([256], repeat 0 16));
+     (fun _ _ m => (m, 256 :: repeat 0 15))]
+  = repeat None 6.
+Proof. vm_compute. reflexivity. Qed.
+
+Example an_opener_cannot_publish_a_non_octet :
+  decode bridge_layout (fun _ _ ciphertext _ =>
+    match ciphertext with [] => Some [] | _ => Some [256] end)
+    bridge_journal bridge_generation (bridge_checkpoint 0) bridge_medium
+  = RefusedCommittedPayload 2.
+Proof. vm_compute. reflexivity. Qed.
+
+Example wrong_checkpoint_contexts_refuse :
+  map (fun c => decode bridge_layout bridge_open bridge_journal bridge_generation c bridge_medium)
+    [checkpoint_for bridge_layout [18] bridge_generation bridge_recovered;
+     checkpoint_for bridge_layout bridge_journal 2 bridge_recovered;
+     checkpoint_for {| frame_bytes := 64; journal_frames := 12; payload_limit := 1 |}
+       bridge_journal bridge_generation bridge_recovered]
+  = repeat RefusedCheckpointBinding 3.
+Proof. vm_compute. reflexivity. Qed.
+
+Example equal_counts_cannot_hide_acknowledged_substitutions :
+  map (fun txns => decode bridge_layout bridge_open bridge_journal bridge_generation
+    (checkpoint_for bridge_layout bridge_journal bridge_generation txns) bridge_medium)
+    [[(9, [(1,21); (2,22)]); (7, [(3,11)])];
+     [(8, [(4,21); (2,22)]); (7, [(3,11)])];
+     [(8, [(1,99); (2,22)]); (7, [(3,11)])];
+     [(8, [(2,22); (1,21)]); (7, [(3,11)])];
+     rev bridge_recovered]
+  = repeat RefusedAcknowledgedMismatch 5.
+Proof. vm_compute. reflexivity. Qed.
+
+Example a_generation_bound_to_its_checkpoint_still_needs_authentication :
+  decode bridge_layout bridge_open bridge_journal 2
+    (checkpoint_for bridge_layout bridge_journal 2 bridge_recovered) bridge_medium
+  = RefusedAcknowledgedMissing 0 2.
 Proof. vm_compute. reflexivity. Qed.
 
 Definition witness_Layout : Layout := bridge_layout.
 Definition witness_Entry : Entry := {| entry_position := 0; entry_target := 1; entry_tag := [] |}.
 Definition witness_Txn : Txn := {| txn_id := 8; txn_writes := [(1, 21); (2, 22)] |}.
 Definition witness_Pending : Pending := pending_of 0 (frame_at bridge_layout bridge_medium 0).
+Definition witness_Checkpoint : Checkpoint := bridge_checkpoint 2.
