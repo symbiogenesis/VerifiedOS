@@ -212,6 +212,30 @@ resource-contract ideas, existing experiments and alternatives whose premises do
 not match fixed backing. A cited theorem is credited only at its stated endpoint;
 Q5b and Q22 retain the source, target and workload joins.
 
+## Survey handoff to unfinished proofs
+
+The [open-problem survey](open-math-conjectures.md) supplies research inputs, not
+additional implementation commitments. Its allocation and scheduling findings
+are consumed at the proof boundaries that would have to make them usable:
+[placement reductions](../implementation/placement-search.md#8-research-handoff-for-future-placement-proofs),
+[schedule synthesis](../implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis),
+[movable elastic storage](../implementation/contracts/elastic-domain.md#research-handoff-for-movable-storage),
+and [prefix accounting and legal ordering](../implementation/static-memory/resource-contracts.md#research-handoff-for-ordering-and-prefix-bounds).
+Those owners preserve the distinction between final balance, intermediate demand,
+fixed backing and permitted relocation, and identify positive and negative cases
+for any proposed theorem-to-implementation bridge.
+
+The project-specific questions remain with the
+[structural proofs](../implementation/static-memory/structure.md#research-handoff-for-the-open-structural-proofs),
+[public-phase composition](../implementation/static-memory/phases.md#boundary-and-remaining-work),
+[private-demand comparison](../implementation/static-memory/lending.md#checks-and-remaining-work),
+[transformation refinement](../implementation/static-memory/transformations.md#research-handoff-for-remaining-transformation-proofs),
+and [reclamation envelope](../implementation/static-memory/envelope.md#research-handoff-for-reclamation-aware-scheduling).
+Their completed finite results remain available, and their all-executions,
+compiler, physical and measured-workload joins remain open. No conjecture or
+external proof package becomes an assumption of the existing proofs through
+these links.
+
 ## Research todo list
 
 This backlog tracks a research project, not an additional implementation schedule. Work selected for execution is scoped in the [implementation checklist](../implementation/implementation-checklist.md); Q5 owns placement comparisons, Q4 inference demand, Q6 memory topology, Q8 measured bottlenecks, Q22 assurance boundaries, and Q10 the product judgment. The research reuses those artifacts and returns findings to their owners. Research outputs do not confer implementation landing credit or accept a new requirement.

@@ -51,6 +51,13 @@ No boolean supplied by a caller can promote this extraction into qualification.
 An emitted finite contract remains declared-input evidence; mapping from the
 actual instruction streams, arbiter and all initial/mode states remains open.
 
+The non-normative [schedule-synthesis handoff](../contracts/schedule-record.md#research-handoff-for-schedule-synthesis)
+connects pinwheel and transfer-coloring results to that missing correspondence.
+Their endpoint or unit-service abstractions must be compared with the full joint
+traffic and completion model here. A colored transfer set that still collides at
+a routed resource or retains bank occupancy is a useful rejected candidate; a
+combinatorial schedule alone does not establish the extraction's target premises.
+
 Acceptance requires a checked extraction which reproduces the grant-gap,
 same-bank joint and final-cycle occupancy refutations, a closed companion,
 per-hart over-issue refusal, resource-hash mismatch, missing names and unsupported

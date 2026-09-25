@@ -110,3 +110,29 @@ Every candidate is decided by the port of the file's own checks, one Python func
 **Two fields the plan would want for the register's own terms are reported to the register.** R-08-012a's bank-spreading term is stated over banks the plan does not model, and R-08-045's per-line-item charge is read over region indices with no owner named. Whether the plan gains a `bank_of` or an owner field is a register act at R-08-011 and R-08-012a, and this document carries the gap and takes no side.
 
 **No solver is added.** Q5 makes a solver conditional on an exposed coupled-search need and Q27a's disposition; R-05-104's criterion excludes ILP machinery, so need alone does not authorize integration. The enumeration completes over its declared set without a solver, and a dependency is selected at the milestone that reads its licence and pins it, which is a decision the plan reserves and this document does not take.
+
+## 8. Research handoff for future placement proofs
+
+These are non-normative inputs to Q5b's comparison and any later proof of a selected
+candidate producer. The [survey](../background/open-math-conjectures.md#allocation-fragmentation-and-scheduling)
+owns their mathematical status and sources. None changes the candidate set, admits
+a solver, or discharges the source-lifetime bridge. The useful proof target is a
+reduction from the actual finite instance followed by sound decoding through the
+existing checks; any approximation or optimality claim additionally needs its own
+objective and completeness argument.
+
+| Research input | Remaining bridge and useful witness |
+| --- | --- |
+| [DSA below factor two](../background/open-math-conjectures.md#dynamic-storage-allocation-below-a-factor-of-two) | State the unrestricted fixed-address relaxation and prove its lower-bound direction before comparing it with CHERI-aligned, island-confined placement. An approximation ratio requires a legal construction in the constrained model. Retain the crossing-family load gap and alignment/pinning counterexamples. The tree-scan bound permits movement and execution changes, so it belongs to a separately proved transformation, not this base search. |
+| [MIRUP and restricted Augmented IRUP algorithms](../background/open-math-conjectures.md#modified-integer-round-up-property-for-bin-packing) | First exhibit a subproblem of identical-capacity bins without hidden lifetime or cross-bin contiguity constraints. Keep LP lower bound, integer optimum and constructive additive guarantee separate. Compare a matching packing instance with a lifetime or size-class instance that violates the reduction; the restricted algorithms do not prove MIRUP. |
+| [Ordinary Komlós construction](../background/open-math-conjectures.md#efficient-constant-discrepancy-komlós-construction) and [existence/Beck-Fiala results](../background/open-math-conjectures.md#ordinary-komlós-and-beck-fiala-proof-announcements) | Map legal binary choices to normalized vectors, then decode signs into assignments preserving capacities, class and island restrictions. Prove the finite rational/bit-cost implementation separately from the announced real-RAM algorithm. Check a balanced candidate and one whose final balance hides an illegal placement or intermediate overflow. The inspected Lean constant-36 existence artifact supplies neither this reduction nor the later algorithm's runtime theorem. |
+| [Strongly polynomial LP](../background/open-math-conjectures.md#strongly-polynomial-linear-programming) and [sparse LP/circuit walks](../background/open-math-conjectures.md#sparse-linear-programs-and-short-circuit-walks) | Identify whether every row or every column of the actual relaxation has at most two nonzero entries before using the solved sparse case. Establish exact rational bound checking and integer decoding; a fractional solution can fit while every integer layout exceeds it. Short circuit walks are not a general strongly polynomial solver or an edge-walk theorem. No general LP resolution is assumed. |
+
+The [structural proof handoff](static-memory/structure.md#research-handoff-for-the-open-structural-proofs)
+owns the near-laminar exact cases; the
+[resource proof handoff](static-memory/resource-contracts.md#research-handoff-for-ordering-and-prefix-bounds)
+owns prefix demand and legal reordering. For the
+[portable planner](portable-memory-planner.md#optimization-evidence-and-extraction),
+the same reductions must preserve pool limits, aliases, reservations and the
+retained baseline. Candidate feasibility alone proves none of the external
+algorithmic guarantees.

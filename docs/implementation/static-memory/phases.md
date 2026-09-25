@@ -306,3 +306,14 @@ leakage model, the admitted-language derivation of live and retained sets, and a
 machine-checked compositional theorem taking those premises as hypotheses. Until
 those exist, the refuted rules, the counterexamples and the conjecture are the
 result.
+
+The survey's [compositional public-phase reuse question](../../background/open-math-conjectures.md#project-specific-questions-not-established-named-conjectures)
+hands back precisely that theorem: under the six stated premises, acceptance of
+all component summaries and extent chains implies global non-overlap and reuse
+only after every hazard has cleared, for all permitted component executions.
+A separate complexity claim would bound certificate size and checking work
+without a product-state enumeration. The current finite checker proves neither
+general claim. Preserve a closed composition as a positive witness and the late
+device completion, retained authority, relative completion bound and
+secret-dependent release cases as negative tests of proposed summary rules.
+This is an open proof direction, not an additional admission condition.

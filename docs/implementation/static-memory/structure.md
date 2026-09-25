@@ -384,6 +384,25 @@ such a family, its optimum is its load, and the finite sweeps found no such fami
 whose optimum exceeds its load. No fixed-parameter tractability and no hardness for
 any fixed `k` is claimed here.
 
+## Research handoff for the open structural proofs
+
+The survey's [near-laminar and deletion-number-two questions](../../background/open-math-conjectures.md#project-specific-questions-not-established-named-conjectures)
+refer to the exact binary-encoded model above. The next mechanization can state
+the deletion recurrence, two-stack placement and left-justification lemmas against
+that model, with the executable recurrence and candidate checker as separate
+refinement targets. The existing laminar theorem and load-gap witness are proof
+inputs; they do not establish these additional arguments by analogy.
+
+For `k = 2`, focus the unresolved equality question on crossing graphs containing
+a triangle and distinguish a checked gap witness from a proof of hardness. For
+the broader parameterized question, any algorithmic claim must bound work in
+binary input length, not in the numerical address span; the extent-gcd search
+does not already provide that bound. Useful proof tests retain equal endpoints,
+adjacency, binary-scaled extents, the noncanonical-remainder witness and the
+triangle-free `k = 3` gap. An extension to alignment or pinned bases starts a
+separate statement and retains the existing constrained-base counterexamples.
+This handoff changes none of the research item's open status.
+
 ## What remains open
 
 - The parameterized question for `k >= 2` with a non-bipartite crossing graph, in

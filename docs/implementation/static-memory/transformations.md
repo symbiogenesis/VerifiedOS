@@ -268,3 +268,26 @@ the real roster, memory classes, vectorization behavior, DMA completion, source
 and receiver charges, original deadlines and admitted image. The report leaves
 those quantities unknown and grants neither full research-item completion nor
 implementation landing credit.
+
+## Research handoff for remaining transformation proofs
+
+The survey's [Small Set Expansion connection](../../background/open-math-conjectures.md#small-set-expansion-conjecture)
+is a conditional hardness boundary for matching layout and one-shot pebbling
+models. It motivates restricted dependency graphs and checked instance-specific
+search; it does not prove hardness for every fixed-lifetime placement instance.
+A comparison must say whether recomputation is forbidden. This experiment's
+rematerialization changes that premise, so the one-shot lower bound cannot be
+silently applied to its transformed execution or treated as an adopted axiom.
+
+The [bounded-segmentation and reclamation hypotheses](../../background/open-math-conjectures.md#project-specific-questions-not-established-named-conjectures)
+feed the unfinished emitted-program equivalence and target-cost joins above.
+For segmentation, preserve the same service while bounding descriptors, aliasing,
+staging, representability, DMA/vector access and code growth. The online aggregate
+fragmentation result discussed in the [research agenda](../../background/static-memory-research.md#bounded-pieces-instead-of-mandatory-contiguity)
+does not supply a per-object segment bound or a fixed-slot theorem. For reclamation,
+consume the [all-executions envelope handoff](envelope.md#research-handoff-for-reclamation-aware-scheduling).
+A candidate whose payload saving is erased by descriptor/staging growth, or which
+misses an original deadline, refutes the workload hypothesis for that candidate. A positive result
+needs the source-to-emitted-program refinement, full physical ledger and original
+service bounds together; the functional list-model proof alone supplies none of
+the target costs. These are research directions within existing owners.
