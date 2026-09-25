@@ -126,13 +126,13 @@ context timing did not establish a reliable improvement. Pin-scanning rewrites
 that measured slower were rejected. The adopted changes add no dependency and
 retain fresh processes for checker mutations.
 
-[Provenance notes](performance/2026-09-19/README.md) and the archived
-[proof script](performance/2026-09-19/proof-benchmark.py) and
-[proof samples](performance/2026-09-19/proof-results.json),
-[checker script](performance/2026-09-19/checker-benchmark.py) and
-[checker samples](performance/2026-09-19/checker-results.json), and
-[template script](performance/2026-09-19/runner-final-benchmark.py) and
-[template samples](performance/2026-09-19/runner-final-results.json) are tracked.
+[Provenance notes](../docs/performance/tool-benchmarks-2026-09-19/README.md) and the archived
+[proof script](../docs/performance/tool-benchmarks-2026-09-19/proof-benchmark.py) and
+[proof samples](../docs/performance/tool-benchmarks-2026-09-19/proof-results.json),
+[checker script](../docs/performance/tool-benchmarks-2026-09-19/checker-benchmark.py) and
+[checker samples](../docs/performance/tool-benchmarks-2026-09-19/checker-results.json), and
+[template script](../docs/performance/tool-benchmarks-2026-09-19/runner-final-benchmark.py) and
+[template samples](../docs/performance/tool-benchmarks-2026-09-19/runner-final-results.json) are tracked.
 Replays write new results under ignored `out/performance-20260919/`
 and measure the current checkout, so they do not recreate the historical input
 population after later source edits. The native proof-cache and assumption-audit

@@ -1,11 +1,11 @@
 # September 19, 2026 component measurements
 
 These saved samples support the four medians in
-[the performance record](../../performance.md#recorded-component-measurements).
+[the performance record](../../../tools/performance.md#recorded-component-measurements).
 The three `*-results.json` files preserve the original values; Git normalizes
 their line endings under the repository text rule. The paired scripts have only
-their stale scratch/output paths changed to write replay results under
-`out/performance-20260919/`; that ignored directory is separate from this archive.
+their stale scratch/output paths and required license comments changed. Replay
+results go under `out/performance-20260919/`, separate from this archive.
 Python 3.14.7 ran on Windows 11 ARM64. Unrelated guest proof jobs were active.
 The scripts time components on shared inputs, not complete CI gates or proof
 checking.
