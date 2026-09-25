@@ -3725,8 +3725,10 @@ Qed.
 
    `insert_root` re-decides `admitted`, which is blind to where a leaf sits,
    and nothing in it reads the geometry's declared `depth`. `insert_gate`
-   runs it and then decides `published` on what it returned: the height the
-   call hands back is within the declared `depth`, the arena is within its
+   first refuses a caller's walk bound above that depth, before walking the
+   tree. It then runs `insert_root` and decides `published` on what it
+   returned: the height the call hands back is within the declared `depth`,
+   the arena is within its
    declared capacity, every leaf sits at exactly that height, and the tree is
    well_formed. The first conjunct is what ties a call's walk bound to the
    declared depth, since the height a gated call returns is the walk bound
@@ -3756,12 +3758,14 @@ Definition published (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
 Definition insert_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
                        (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
   : option (prod (Arena ka) (prod nat nat)) :=
-  match insert_root ka g ar h lo hi root k v with
-  | None => None
-  | Some (pair ar' (pair nr h')) =>
-      if published ka g ar' h' lo hi nr
-      then Some (pair ar' (pair nr h')) else None
-  end.
+  if Nat.leb h (depth g) then
+    match insert_root ka g ar h lo hi root k v with
+    | None => None
+    | Some (pair ar' (pair nr h')) =>
+        if published ka g ar' h' lo hi nr
+        then Some (pair ar' (pair nr h')) else None
+    end
+  else None.
 
 (* The empty leaf root at height zero is published under any geometry whose
    floors hold, which is where a composition's first gated write starts. *)
@@ -3787,6 +3791,7 @@ Theorem a_gated_insert_publishes_a_published_tree :
     /\ well_formed ka g ar' h' lo hi nr = true.
 Proof.
   intros ka g ar h lo hi root k v ar' nr h' H. unfold insert_gate in H.
+  destruct (Nat.leb h (depth g)); [ | discriminate H ].
   destruct (insert_root ka g ar h lo hi root k v)
     as [ [ ar1 [ nr1 h1 ] ] | ]; [ | discriminate H ].
   destruct (published ka g ar1 h1 lo hi nr1) eqn:Ep; [ | discriminate H ].
@@ -3815,6 +3820,7 @@ Proof.
   unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
   apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ _ Ht ].
   unfold insert_gate in H.
+  destruct (Nat.leb h (depth g)); [ | discriminate H ].
   destruct (insert_root ka g ar h lo hi root k v)
     as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
   destruct (published ka g ar1 h1 lo hi nr1); [ | discriminate H ].
@@ -3842,9 +3848,9 @@ Theorem the_gate_never_refuses_a_published_input_below_its_ceiling :
     insert_gate ka g ar h lo hi root k v = Some (pair ar' (pair nr h')).
 Proof.
   intros ka g ar h lo hi root k v ar' nr h' Hg Hp Hk H Hd.
-  unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
+  unfold published in Hp. apply andb_true_iff in Hp as [ Hdepth Hp ].
   apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ Ha Ht ].
-  unfold insert_gate. rewrite H.
+  unfold insert_gate. rewrite Hdepth, H.
   assert (Hpub : published ka g ar' h' lo hi nr = true).
   { unfold published. apply andb_true_iff. split; [ apply Nat.leb_le; exact Hd | ].
     apply andb_true_iff.
@@ -3890,8 +3896,7 @@ Proof.
 Qed.
 
 (* The declared depth bounds every gated call: a walk bound past it is
-   refused whatever the tree, because the height a call returns is never
-   below the bound it was given. *)
+   refused before insert_root walks the tree, whatever the tree. *)
 (*| discharges: R-10-003 |*)
 Theorem the_gate_refuses_a_walk_bound_past_the_declared_depth :
   forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
@@ -3900,14 +3905,8 @@ Theorem the_gate_refuses_a_walk_bound_past_the_declared_depth :
     insert_gate ka g ar h lo hi root k v = None.
 Proof.
   intros ka g ar h lo hi root k v Hd. unfold insert_gate.
-  destruct (insert_root ka g ar h lo hi root k v)
-    as [ [ ar' [ nr h' ] ] | ] eqn:E; [ | reflexivity ].
-  assert (Hh : depth g < h')
-    by (destruct (insert_root_height ka g h ar lo hi root k v ar' nr h' E)
-          as [ E1 | E1 ]; rewrite E1; lia).
-  unfold published.
-  replace (Nat.leb h' (depth g)) with false
-    by (symmetry; apply Nat.leb_gt; exact Hh).
+  replace (Nat.leb h (depth g)) with false
+    by (symmetry; apply Nat.leb_gt; exact Hd).
   reflexivity.
 Qed.
 
