@@ -95,4 +95,26 @@ Each finding is a register question the owner decides. The artifact exhibits the
 
 ## Evidence and its limits
 
+### Research handoff for movable storage
+
+The survey's [memory-reallocation advance](../../background/open-math-conjectures.md#optimal-copying-overhead-for-memory-reallocation)
+is a non-normative lead for an explicitly movable representation inside one label.
+It does not replace Q34c's chunk-service or heap refinement. Its cost is one plus
+moved volume divided by update size, with a worst-case expected bound against an
+oblivious adversary; neither CPU time, adaptive-request behavior nor a per-yield
+deadline follows.
+
+If that branch is selected, its missing proof connects logical object identities
+and every reference to the relocated bytes, preserving `PoolGuarantees`,
+`HeapNarrows` and capability confinement. It also accounts for simultaneous old
+and new backing, reference-update authority, quarantine, zeroization and Q34d's
+bounded yields. Native capabilities and Wasm offsets require separate reference
+disciplines. Useful witnesses include a successful move with all users accounted
+for, a retained alias or device access blocking reuse, insufficient staging space,
+and a copy within the volume budget that exceeds a yield or slot bound. The
+remaining asymptotic gap and implementation question stay open; no moving
+allocator or change to fixed-tier backing is selected here.
+
+### Existing statement evidence
+
 The artifact's decisions are held by the proof gate: its compile, its exact assumption audit, its witness scan and the kernel recheck. Every record the file declares has a named `witness_<Record>` definition. The gate's witness scan detects only the records that type-ascribed binders quantify, a subset of them, so its count is a floor. Nothing here executes, and no witness value is a composition claim. Row 31 moves to `authored` only after independent review under R-05-150, for which the findings above are inputs.

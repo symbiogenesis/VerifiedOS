@@ -232,3 +232,23 @@ absent. The tightness of the cohort and behind-cursor terms beyond these horizon
 undecided, and the gaps reported are gaps at the enumerated instances rather than
 proofs of slack. No statement here is mechanized, and a bounded exhaustive search
 over a declared finite move space is not an all-executions theorem.
+
+## Research handoff for reclamation-aware scheduling
+
+The survey's [reclamation-aware scheduling hypothesis](../../background/open-math-conjectures.md#project-specific-questions-not-established-named-conjectures)
+feeds the missing theorem for every retirement trace satisfying a declared arrival
+envelope and every admitted fixed service calendar. Such a theorem would bound
+release-to-reuse time and charged unreusable storage through Quiescing,
+containment, the post-barrier sweep and zeroization, with the same event-order
+convention as the implementation. Qualified holder coverage and service rates
+remain premises to discharge at Q22 and the target; none follows from bounded
+enumeration.
+
+The [schedule-synthesis handoff](../contracts/schedule-record.md#research-handoff-for-schedule-synthesis)
+can propose periodic sweep or replenishment slots only if its service model
+includes complete occupancy, overhead and competing grants. Preserve the restart
+storm, stalled acknowledgement, stale capability behind the cursor and saturation
+witnesses when replacing the search. Compare a closing calendar with one whose
+extra sweep traffic violates the original service deadline. That comparison tests
+the workload hypothesis after all costs; it makes no universal claim that faster
+reclamation saves capacity.

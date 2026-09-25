@@ -36,6 +36,30 @@ This is the target-side re-entry seam of U-05. R-11-018 additionally requires di
 
 ## Acceptance evidence
 
+### Research handoff for schedule synthesis
+
+The following non-normative research inputs belong to U-05's future producer and
+its join with U-03's resource model and code-derived WCET. The
+[survey](../../background/open-math-conjectures.md#allocation-fragmentation-and-scheduling)
+owns their status and sources. A usable proof first maps the selected workload to
+the theorem's job or transfer model, then maps its schedule into `ModeSchedule`
+while preserving the existing admission checks. No synthesis result supplies
+physical bounds, transitions, a new deadline or the target implementation proof.
+
+| Research input | Remaining bridge and discriminating examples |
+| --- | --- |
+| [Three identical processors](../../background/open-math-conjectures.md#three-identical-processors-with-unit-jobs-and-precedence) | Recognize exactly three identical processors and indivisible unit jobs before evaluating the subexponential result. Prove precedence and slot preservation. A varying-WCET job or a split requiring forbidden preemption rejects the reduction; the general polynomial-versus-NP-hard classification remains open. |
+| [Unrelated-machine makespan](../../background/open-math-conjectures.md#unrelated-machine-makespan-approximation) | Derive finite compatible-core costs from admitted bounds, retaining dependencies, labels, communication and slot deadlines in the decoded schedule. A low-makespan assignment that misses a dependency or fabric grant is a negative witness. A general approximation or prediction-assisted result gives no full-platform ratio without this bridge. |
+| [Pinwheel certificates/complexity](../../background/open-math-conjectures.md#pinwheel-scheduling-certificates-and-complexity) and [5/6 theorem/relaxed synthesis](../../background/open-math-conjectures.md#pinwheel-scheduling-the-56-theorem-and-relaxed-synthesis) | Include the whole service and overhead in each unit slot and prove every recurring window, including frame wrap. The published density theorem proposes candidates; density above 5/6 is not a refusal. An EPTAS schedule for relaxed periods must still meet the original periods before admission. Exercise a wraparound miss, overhead overrun and forbidden relaxation. Dense NP-completeness does not supply short certificates for general feasibility; a compact schedule representation still needs bounded expansion or a correspondence proof to this explicit record. |
+| [List edge coloring](../../background/open-math-conjectures.md#list-edge-coloring-conjecture) and [Goldberg-Seymour](../../background/open-math-conjectures.md#goldberg-seymour-and-the-number-of-transfer-rounds) | Prove conflicts are exactly shared endpoints for unit transfers, with repeated transfers as parallel edges; bind colors and permitted lists to actual grants. The ordinary coloring theorem and constructive preprint offer a round bound and candidate algorithm, not a list-coloring theorem. Use solved bipartite or stated prime-order special cases only after recognition. Check endpoint conflicts, a forbidden listed slot, an extra routed-resource conflict and unequal durations before claiming the model fits. |
+
+The [phase-service extraction boundary](../phase-service/prerequisite-contract.md#schedule-and-resource-extraction)
+still requires all joint traffic alternatives, refresh and completion occupancy.
+A matching-round schedule can pass endpoint coloring while failing that boundary;
+this is a useful negative comparison for a proposed transfer reduction.
+
+### Existing finite statement evidence
+
 The closed witnesses inhabit every new record. Conversion proves an accepted three-output mode, a two-mode catalog, and a partition with two visits whose joint deadline constraints require the faster point. The refusal witnesses include a slot overrun, a fitting OPP that is not the slowest, an incomplete bound table, a wrong execution class, duplicate or uncovered visits, missing or early watchdogs, overlapping NoC grants, unserved NoC demand, occupied or overrun re-entry, and a catalog containing a rejected mode. `schedule_decidable` exposes the executable yes/no verdict over the supplied finite bounds.
 
 The focused check compiles the new module and its dependency closure with the pinned Rocq toolchain, audits assumptions, and independently kernel-checks the compiled module in the assigned native lane. The integrated `python tools/run.py proofs` receipt supplies the corpus count and final evidence. Host metadata, generated requirement fingerprints and the implementation landing record are integrated with that receipt; no witness establishes a release timing floor.

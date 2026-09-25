@@ -171,6 +171,28 @@ revocation. A subsequent target proof must establish backing, complete footprint
 charges, slot admission and the elapsed bounds used by the report. The full Vela
 language, compiler and target machine are outside these finite models.
 
+### Research handoff for ordering and prefix bounds
+
+The [prefix Komlós review](../../background/open-math-conjectures.md#strong-or-prefix-komlós-conjecture)
+rules out using a universal constant-prefix assertion for unrestricted signed
+vector instances; its manuscript lower bound is not a theorem of this module.
+The missing source/interpreter refinement above can instead consume the exact
+finite prefix and concatenation lemmas already present. A future multidimensional
+extension would need a coordinate-to-pool correspondence and nonnegative inventory
+at every prefix, preserving object identity and return authorization. A final-sum
+signing theorem alone cannot discharge those facts.
+
+The [Steinitz lead](../../background/open-math-conjectures.md#euclidean-steinitz-conjecture)
+belongs to an optional transformation before extraction: show the total-zero and
+norm premises, meet the announced dimension restriction when using that special
+case, and prove that the chosen permutation preserves dependencies and observable
+effects. Translate the norm guarantee into charged capacity with an explicit
+initial inventory. A consumption-before-production permutation and a precedence
+violation are negative witnesses even when their final sum is zero; a legal
+reordering with checked prefix demand is the positive case. These are research
+handoffs, not permission to reorder the fixed credit trace or add an analysis
+whose only yield is bound tightening.
+
 ## Literature disposition and provenance
 
 Every adoption below is an adaptation of a specification or accounting idea into

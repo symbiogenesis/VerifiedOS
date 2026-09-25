@@ -209,3 +209,10 @@ product gate needs target timing, physical capacity and service qualification.
 The fast checked baseline remains available while an expensive offline mode is
 evaluated. Those measurements address costs the non-regression argument does
 not establish; they are not a vote on the argument itself.
+
+The [placement research handoff](placement-search.md#8-research-handoff-for-future-placement-proofs)
+maps the survey's DSA, bin-packing, discrepancy and LP advances to the unfinished
+reduction and decoding proofs. A portable producer must additionally preserve
+this instance's aliases, fixed ranges and componentwise pool guard. This is a
+research route through the existing independent check, not a new solver choice,
+an optimality claim or permission to erase unsupported constraints.

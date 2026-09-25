@@ -225,3 +225,13 @@ the revocation of a returned loan's authority, and the admission-time charge for
 lending mechanism are unmodeled and remain the branch's principal obligations. The
 agenda's architecture item stays unselected: this is a measurement of an excluded
 branch's cost, and it argues for no change to the register.
+
+The survey's [capacity-sharing question](../../background/open-math-conjectures.md#project-specific-questions-not-established-named-conjectures)
+therefore feeds an optional relational proof, not a fixed-tier allocator feature.
+For any selected policy, freeze the permitted observations and service commitments,
+then prove equality of those observations for all label-equal pairs or return a
+distinguishing pair. Keep refusal and completion-time channels separate. Pair
+that statement with the required return-capacity and ownership/revocation
+properties so that always refusing service cannot count as useful sharing.
+The existing padding, observed-idle and headroom witnesses distinguish these
+claims; a general theorem must also cover calendars beyond this finite fixture.
