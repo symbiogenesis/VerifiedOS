@@ -50,18 +50,41 @@ The final success predicate is R-10-002a preservation of all acknowledged transa
 
 ## Adopted boundary and remaining evidence
 
-The bridge's current format is not approved for device-trace acceptance. Its nonce
-puts the generation in one byte and the AES-GCM reference truncates each nat to
-eight bits, so distinct generations separated by 256 reuse a nonce at the same
-position and kind under one key. The format owner must select and check a bounded
-generation with refusal before exhaustion and reuse, or a wider injective
-encoding. Merely supplying a monotonically increasing nat is insufficient.
-`layout_fits`, byte-value ranges and the exact medium length also need enforced
-admission before serialization and decoding; the current definitions exhibit a
-valid finite fixture but provide no such guard. Finally, the acknowledgement
-theorem proves only that the recovered count reaches the supplied count. The
-checkpoint producer must authenticate the generation and journal binding that
-identify the acknowledged transactions and their contents. These are explicit
-remaining obligations, not assumptions that complete the crash predicate.
+The bridge format remains a bounded specification, not a production device-trace
+format. Its public writer and decoder must enforce positive fitting geometry,
+exact medium length, octet values, and one-byte transaction, position, target,
+value and payload-count fields. Raw framing helpers are internal definitions;
+only an admitted writer result can be presented as a serialized journal.
 
-The requirements register and paired specification own R-10-002a; B-05/P-2 cites its authenticated recovery boundary. The policy-choice findings F-194b and F-223c are closed. The [block-device contract](../../interfaces/block-device-contract.md) records the emulator's host image adapter, which supplies the persistent image and reopen boundary. [StorageBridge.v](../../proofs/StorageBridge.v) specifies a bytes-to-record decoder under this policy, with AES-GCM authentication through the functional reference and its layout, commit-representation and nonce decisions left explicit. This decision leaves M5.3 and M5.4 open for that bridge's separate review, the concrete format and measured bounds, executable storage and crypto, the checkpoint producing the generation and acknowledged count, and target crash tests. The policy-independent comparison functions remain useful refuters and are not relabelled as the implementation of the selected protocol.
+The selected nonce repair retains the twelve-byte format and admits generations
+0 through 255 only. A key-wide reservation state supplies each generation once,
+advances before the associated journal is sealed, and refuses at 256 without
+wrapping. The nonce proof must cover the AES-GCM reference's actual bit encoding
+for admitted generation, position and kind, not equality of unbounded naturals.
+The initial state belongs to a fresh key; restoring an old reservation state or
+starting another journal with the same key and state is outside the invariant.
+Durable reservation, crash ordering, key replacement and recovery of that state
+remain executable-producer obligations. A pure reservation function cannot prove
+that its caller persists or consumes the returned state.
+
+The decoder consumes a declared authenticated checkpoint containing generation,
+journal identity, layout and the exact ordered acknowledged transactions, each
+with its identity and ordered target/value writes. It compares every binding to
+the caller's intended journal and requires the acknowledged transactions to equal
+the recovered prefix. Missing transactions and equal-count substitutions both
+refuse. The preservation theorem must state exact prefix equality, retaining the
+existing authentication and boundedness theorems and distinguishing rejected
+identity, content, order, generation and journal substitutions. Checkpoint
+construction and equality checks do not authenticate this input: the independent
+checkpoint verifier, durable publication before acknowledgement or journal reuse,
+and ordinary-reset preservation remain M5.3d's operational joins.
+
+The repair's source acceptance requires the quantified admission, reservation,
+encoded nonce-injectivity and exact-prefix theorems, an inhabited checkpoint and
+writer, accepted boundary cases beside malformed geometry/length/octet and
+exhaustion/substitution refusals, focused candidate compilation, and the existing
+fresh hosted proof/assumption/kernel gate. No theorem assumptions may be added.
+The format's payload remains one byte; full node-image serialization, executable
+storage and crypto, measured bounds and real crash cuts remain outside this repair.
+
+The requirements register and paired specification own R-10-002a; B-05/P-2 cites its authenticated recovery boundary. The policy-choice findings F-194b and F-223c are closed. The [block-device contract](../../interfaces/block-device-contract.md) records the emulator's host image adapter, which supplies the persistent image and reopen boundary. [StorageBridge.v](../../proofs/StorageBridge.v) specifies a bytes-to-record decoder under this policy, with AES-GCM authentication through the functional reference and its layout, commit-representation and nonce decisions left explicit. This decision leaves M5.3 and M5.4 open for that bridge's separate review, the concrete format and measured bounds, executable storage and crypto, the independently authenticated checkpoint and durable nonce-reservation producer, and target crash tests. The policy-independent comparison functions remain useful refuters and are not relabelled as the implementation of the selected protocol.
