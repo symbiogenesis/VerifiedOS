@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 #include "vos_copy_service.h"
 
 uint32_t vos_copy_occupancy(vos_copy_view view)
