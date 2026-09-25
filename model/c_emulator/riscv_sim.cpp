@@ -760,6 +760,11 @@ InitResult preinit_model(
   }
   if (!blkdev_path.empty()) {
     try {
+      // Debugger reset recreates the model, while a bound image's load
+      // snapshot names its first open. Keep that lifecycle out of image runs.
+      if (opts.gdb_server_port != 0) {
+        throw blkdev::refusal("block-device images are unavailable in GDB server mode");
+      }
       model.bind_blkdev_image(blkdev_path, blkdev_create, opts.blkdev_receipt);
     } catch (const blkdev::refusal &refused) {
       fprintf(stderr, "Block device image refused: %s\n", refused.what());

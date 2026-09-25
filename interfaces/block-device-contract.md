@@ -328,6 +328,10 @@ or creation over an existing file, is a startup refusal before any ELF loads;
 neither the file nor the register changes. A bound run replaces the fixture copy
 with the image's bytes before the first instruction and begins with reset
 volatile state, so a restart never recreates the fixture over the image.
+Bound images are refused in RVFI mode, which bypasses device dispatch, and in
+GDB server mode, whose model reinitialization and termination do not implement
+the bound-image lifecycle. The GDB combination is refused before opening or
+creating either the image or its receipt.
 
 The model calls `blkdev_host_persist` at each persistent change, being a
 completed `WRITE`, a `WRITE` error's tear, a reset tear and a media fault, and

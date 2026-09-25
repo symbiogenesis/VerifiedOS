@@ -815,6 +815,31 @@ public:
 
     require(emulate({"--blkdev-image", made_image}, log) != 0, "an emulator run without an ELF still fails");
     require(contains(text(log), "Block device image opened: " + made_image), "the emulator must open the image");
+
+    // GDB can reinitialize the model and does not use the checked image-close
+    // path. Refuse the combination before opening either image or receipt.
+    const std::string gdb_receipt = path("gdb.receipt");
+    require(emulate({"--gdb-server-port", "1234", "--blkdev-image", made_image,
+                     "--blkdev-receipt", gdb_receipt}, log) != 0 &&
+              contains(text(log), "Block device image refused:") &&
+              contains(text(log), "unavailable in GDB server mode") &&
+              !contains(text(log), "Block device image opened:") &&
+              !contains(text(log), "No elf file provided."),
+            "a bound image must refuse GDB mode before binding or ELF handling");
+    compare(file_bytes(made_image), image_of(shape.fixture), "image after the refused GDB open");
+    require(!exists(gdb_receipt), "the refused GDB open must create no receipt");
+    ++refusals;
+
+    const std::string gdb_image = path("gdb.img");
+    require(emulate({"--gdb-server-port", "1234", "--blkdev-image-create", gdb_image,
+                     "--blkdev-receipt", gdb_receipt}, log) != 0 &&
+              contains(text(log), "Block device image refused:") &&
+              contains(text(log), "unavailable in GDB server mode"),
+            "image creation must refuse GDB mode");
+    require(!exists(gdb_image) && !exists(gdb_receipt),
+            "the refused GDB creation must create neither image nor receipt");
+    ++refusals;
+
     require(emulate({"--blkdev-image-create", made_image}, log) != 0 &&
               contains(text(log), "Block device image refused:") && contains(text(log), "already exists"),
             "the emulator must refuse to create over an image");
