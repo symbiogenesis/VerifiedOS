@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 759 of them across 131 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 768 of them across 132 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2276,6 +2276,22 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-196** method: a name a file declares beside one it imports shadows silently and no gate reads it, so a file claiming to restate no imported theorem can restate nine of them while every count stays correct
 · Raised: M5.2, in prose
 · Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; the hazard is one any second Require will carry
+
+**F-458** owed-act: StorageBridge.v serializes the generation into one nonce byte, so generations separated by 256 collide at the same position and kind under one key
+· Raised: M5.3d, in prose
+· Disposition: open, the bridge format owner must enforce bounded generation with refusal before exhaustion and reuse, or select and check a wider injective encoding before device-trace acceptance
+
+**F-459** owed-act: StorageBridge.v states layout_fits but neither serialization nor decoding enforces its layout, exact medium length and byte-value bounds
+· Raised: M5.3d, in prose
+· Disposition: open, checked admission at the serialization and decoder boundary before the prototype can supply the selected recovery protocol
+
+**F-460** owed-act: the bridge acknowledgement theorem compares recovered and supplied counts without authenticating the checkpoint generation, journal binding or acknowledged transaction identities and contents
+· Raised: M5.3d, in prose
+· Disposition: open, the authenticated checkpoint producer and recovery join must establish R-10-002a preservation of acknowledged work, not just a count inequality
+
+**F-461** owed-act: the persistent block-image receipt records image identities and persistence events but omits the complete input-event trace and separate architectural two-run HTIF reopen evidence
+· Raised: M5.3d, in prose
+· Disposition: open, the block-device campaign and M5.3d target integration must supply these records before the complete crash predicate can be accepted
 
 **F-389** measurement: universal symbolic authentication made the recovered witness-history theorem vacuous despite inhabited records
 · Raised: M5.5

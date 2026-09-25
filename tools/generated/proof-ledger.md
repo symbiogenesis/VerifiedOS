@@ -858,6 +858,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-002a | proofs/ExecutableIndex.v | n/a | cited |
 | R-10-002a | proofs/JournalIndex.v | n/a | cited |
 | R-10-002a | proofs/ObjectTransactor.v | n/a | cited |
+| R-10-002a | proofs/StorageBridge.v | n/a | cited |
 | R-10-002a | proofs/StorageRecovery.v | n/a | cited |
 | R-10-003 | proofs/ExecutableIndex.v | lookup_answers_the_logical_map | claimed |
 | R-10-003 | proofs/ExecutableIndex.v | an_insert_publishes_spanning_nodes | claimed |
@@ -869,6 +870,20 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-003 | proofs/ExecutableIndex.v | a_checked_insert_keeps_the_leaves_at_one_depth | claimed |
 | R-10-003 | proofs/ExecutableIndex.v | a_root_insert_keeps_the_leaves_at_one_depth | claimed |
 | R-10-003 | proofs/ExecutableIndex.v | a_root_insert_keeps_one_leaf_depth | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | the_check_never_refuses_a_well_formed_insert | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_well_formed_insert_is_refused_only_by_a_spent_arena | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_root_insert_keeps_a_well_formed_tree_well_formed | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_well_formed_root_insert_is_refused_only_by_a_spent_arena | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_gated_insert_publishes_a_published_tree | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_gated_insert_answers_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | the_gate_never_refuses_a_published_input_below_its_ceiling | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_published_insert_is_refused_only_for_spent_capacity | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | the_gate_refuses_a_walk_bound_past_the_declared_depth | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | an_admitted_tree_refuses_no_read | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_refused_read_names_an_unadmitted_tree | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_read_answers_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_gated_read_answers_the_logical_map | claimed |
+| R-10-003 | proofs/ExecutableIndex.v | a_gated_read_refuses_a_walk_bound_past_the_declared_depth | claimed |
 | R-10-003 | proofs/JournalIndex.v | inserting_preserves_the_order | claimed |
 | R-10-003 | proofs/JournalIndex.v | the_key_just_written_reads_back | claimed |
 | R-10-003 | proofs/JournalIndex.v | no_other_key_moves | claimed |
@@ -969,11 +984,13 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-022 | proofs/AesGcm.v | n/a | cited |
 | R-10-022 | proofs/JournalIndex.v | n/a | cited |
 | R-10-022 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-10-022 | proofs/StorageBridge.v | n/a | cited |
 | R-10-022a | proofs/AesGcm.v | n/a | cited |
 | R-10-022a | proofs/JournalIndex.v | the_specification_builder_overflows_no_node | claimed |
 | R-10-022a | proofs/JournalIndex.v | the_specification_reads_the_referrers_tag | claimed |
 | R-10-022a | proofs/JournalIndex.v | every_node_tag_opens_exactly_its_own_child | claimed |
 | R-10-022a | proofs/KeyspaceDomains.v | n/a | cited |
+| R-10-022a | proofs/StorageBridge.v | n/a | cited |
 | R-10-023 | proofs/AesGcm.v | n/a | cited |
 | R-10-023 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-10-024 | proofs/AesGcm.v | the_appendix_b_example_reaches_the_published_ciphertext | claimed |
@@ -988,6 +1005,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-024 | proofs/AesGcm.v | the_open_of_a_seal_returns_the_message_and_a_flipped_tag_bit_returns_nothing | claimed |
 | R-10-024 | proofs/Keccak.v | n/a | cited |
 | R-10-024 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-10-024 | proofs/StorageBridge.v | n/a | cited |
 | R-10-025 | proofs/ApexTheorem.v | n/a | cited |
 | R-10-025 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-10-026 | proofs/AdmissionPath.v | n/a | cited |
@@ -1541,6 +1559,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-247t | proofs/MemoryPlan.v | a_retained_session_content_domain_is_refused | claimed |
 | R-15-247t | proofs/MemoryPlan.v | the_retaining_held_vector_breaks_the_content_obligation | claimed |
 | R-15-247t | proofs/MemoryPlan.v | an_unheld_region_passes_the_label_check_and_is_refused | claimed |
+| R-15-247t | proofs/MemoryPlan.v | an_interior_empty_domain_cannot_supply_coverage | claimed |
 | R-15-247t | proofs/MemoryPlan.v | the_unheld_arenas_break_the_coverage_obligation | claimed |
 | R-15-247t | proofs/MemoryPlan.v | the_first_class_macro_is_outside_the_label | claimed |
 | R-15-247t | proofs/MemoryPlan.v | the_kind_only_derivation_misses_the_kv_cache | claimed |
@@ -1742,6 +1761,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-030v | proofs/WitnessContinuity.v | refused_rebootstrap_changes_nothing | claimed |
 | R-17-030v | proofs/WitnessContinuity.v | a_transition_below_the_pin_is_refused | claimed |
 | R-17-030x | proofs/EndpointIPC.v | an_unready_peer_refuses_every_offer_in_a_sequence | claimed |
+| R-17-030zb | proofs/StorageBridge.v | n/a | cited |
 | R-17-033 | proofs/AdmissionPath.v | the_specification_is_complete_for_the_typing_relation | claimed |
 | R-17-033 | proofs/AdmissionPath.v | the_specification_commits_every_accepted | claimed |
 | R-17-041 | proofs/ApexTheorem.v | n/a | cited |
