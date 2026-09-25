@@ -104,7 +104,7 @@ PARENT_RE = re.compile(r"(?:-[iv]+|[a-z]?)\u2032?$")
 # `AFTER_M8B` is what falls beyond the co-simulation gate; `AFTER_M8A` is that plus the RTL
 # chain, which runs beside the software one rather than inside it, so an item on it falls
 # after the software gate without being deferred past anything
-AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
+AFTER_M8B = ["R5", "R5a", "M9", "M9a", "M10", "Post-M10",
              "M0.8c", "M1.3", "M1.3a", "M1.4", "M1.8b",
              "M3.4b", "M3.6b", "M5.4", "M5.5", "M6.1b", "M6.2b-0", "M6.2b-i", "M6.2b-ii",
              "M6.2c", "M6.9a", "M6.9b", "M6.9c",
@@ -114,9 +114,11 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              # it consumes the accepted backend and the composed userland, and nothing on
              # either chain admits a generation the device composed itself
              "M1.10", "M6.10",
-             # the assessment's decision items, each a decision over measurements Q4 and Q5
-             # take ahead of the software gate, and none on either chain
-             "Q6", "Q7", "Q8", "Q9", "Q10",
+             # target inference measurements and the later assessment decisions are
+             # outside both early gates; Q4a/Q5a's host instruments can precede them
+             "Q4b", "Q6", "Q7", "Q8", "Q9", "Q10",
+             # final-artifact promotion follows its deferred producer evidence
+             "Q20c",
              # fault-model authoring is a hardening prerequisite, deferred behind M8a
              "Q3c",
              # scoping the later proof program does not gate the executable roster
@@ -130,12 +132,17 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "Q28a", "Q28b", "Q28c",
              # the shared browser and web application pilots are release-deferred
              "Q29a", "Q29b", "Q29c",
-             # compute foundations consume the later certifier and native execution path
-             "Q30d", "Q30e", "Q30f", "Q30g",
+             # the compute pilots consume the same deferred proof/dispatch foundations;
+             # no OpenCL or HIP pilot is part of the scalar boot roster
+             "Q30b", "Q30c", "Q30d", "Q30e", "Q30f", "Q30g",
              # the fixed package-layer comparison is also explicitly deferred
              "Q31",
              # workflow hibernation qualification is not a bring-up prerequisite
-             "Q32a", "Q32b", "Q32c"]
+             "Q32a", "Q32b", "Q32c",
+             # chain re-entry qualification and the elastic desktop are release work,
+             # not prerequisites of the contracted M8a or scalar co-simulation roster;
+             # their independent statement authoring may still start before either gate
+             "Q33", "Q34b", "Q34c", "Q34d", "Q34e", "Q34f", "Q34g", "Q34h"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A

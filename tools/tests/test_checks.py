@@ -205,12 +205,19 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
         "after the M8a gate\n" for suffix in "abc")
     packages = ("* [ ] **Q31 · Package comparison** · 12 h, range 8–16 · 0.0% · I · "
                 "after the M8a gate\n")
+    # These later release obligations formerly fell into the software budget
+    # merely because the accounting partition omitted their leaf identifiers.
+    # Include the two desktop proof siblings whose authoring can start early.
+    release = "".join(
+        f"* [ ] **{label} · Release fixture** · 6 h, range 3–9 · 0.0% · X\n"
+        for label in ("Q4b", "Q20c", "Q30b", "Q30c", "Q33", "R5a",
+                      "Q34b", "Q34c", "Q34d", "Q34e", "Q34f", "Q34g", "Q34h"))
     expected = [
         "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",
         "* M8b gate: a 20 h chain of open work.",
     ]
-    for addition in ("", modules, research, workflows, packages,
-                     modules + research + workflows + packages):
+    for addition in ("", modules, research, workflows, packages, release,
+                     modules + research + workflows + packages + release):
         with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                            PLAN: plan + addition}) as root:
             ctx = _context(root, fix=True)
@@ -220,6 +227,20 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
                       if line.startswith(("* M8a gate:", "* M8b gate:"))]
             ensure(actual == expected,
                    f"deferred qualification changed a required gate budget: {actual!r}")
+
+
+def _explicitly_deferred_checklist_leaves_leave_early_gates() -> None:
+    # Read the authored dispatch annotation through the owner's parser instead
+    # of maintaining another list of every leaf that promises later delivery.
+    root = Path(__file__).resolve().parents[2]
+    items, _, malformed = estimates._parse((root / PLAN).read_text(encoding="utf-8"))
+    ensure(not malformed, f"the shipped plan must parse: {malformed!r}")
+    deferred = [estimates._head(item.label) for item in items
+                if not item.done and "after the M8a gate" in item.tail]
+    ensure(bool(deferred), "the dispatch annotation population must not disappear")
+    for partition in (estimates.AFTER_M8A, estimates.AFTER_M8B):
+        missing = sorted(set(deferred) - set(partition))
+        ensure(not missing, f"deferred leaves must not enlarge an early gate: {missing!r}")
 
 
 def _k96_record_is_held_total_in_both_directions() -> None:
@@ -739,6 +760,8 @@ def cases() -> list[Case]:
         Case("retained-estimates-are-scope-not-actuals", _retained_estimates_are_scope_not_actuals),
         Case("optional-inference-work-stays-outside-both-gates",
              _optional_inference_work_stays_outside_both_gates),
+        Case("explicitly-deferred-checklist-leaves-leave-early-gates",
+             _explicitly_deferred_checklist_leaves_leave_early_gates),
         Case("k96-record-is-held-total-in-both-directions",
              _k96_record_is_held_total_in_both_directions),
         Case("bindings-truncated-row-is-a-finding",
