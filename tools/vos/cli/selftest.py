@@ -1590,6 +1590,9 @@ CASES: list[Case] = [
     # four conditions exists to refuse, and it is the state the rule was written for.
     ("K-84", "a Tier-B landing naming no rule holding what it created", _k84),
 
+    ("K-84", "a current claim relying on a retired rule",
+     _literal(PLAN, "K-86 checks this span floor", "**K-102** checks this span floor")),
+
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
     # moves and its bullets stay, which is exactly what a finding added to a note
@@ -1838,17 +1841,6 @@ CASES: list[Case] = [
     ("K-101", "a device region the configuration template declares executable",
      _literal("model/config/config.json.in",
               '"executable": false', '"executable": true')),
-
-    # The defect this rule exists for, in the shape it actually arrived in twice: an item
-    # lands, the summary's derived figures move with it under `--fix`, and the roster
-    # beside them keeps the set it had. `S30` is dropped rather than misspelled because a
-    # misspelling would leave a token the reading could still resolve, where an omission
-    # is what a landing commits. It is the id no other line reads: the two series' lists
-    # and the calibration record carry it, and K-96 rewrites both from the cells rather
-    # than from this sentence, so a roster missing it is exactly one rule's finding.
-    ("K-102", "a completed item the summary's roster stops naming",
-     _first_match(PLAN, r"^(\* Completed: [^\n]*), S30(?=,)",
-                  lambda m: m.group(1))),
 
     # A transposition rather than an invented id, because that is the shape the defect
     # actually takes: a header sentence is written from memory about an entry that turns

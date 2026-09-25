@@ -576,7 +576,9 @@ def _landings(ctx: Context, registered: set[str]) -> None:
 
     Two readings of the plan's two-tier landing rule, held as one rule because they are
     one claim seen from its two ends. A landing that created a fact says which rule
-    holds it, and the rule it names is one the registry carries.
+    holds it, and the rule it names is one the registry carries. Struck registry
+    rows in the `retired` group preserve former rule identities for historical
+    completion-log evidence only; never-allocated IDs remain invalid citations.
 
     Fail-closed in three places. An unreadable registry leaves `registered` empty, so
     every citation is a finding rather than a pass over nothing; a corpus stating no
@@ -591,6 +593,10 @@ def _landings(ctx: Context, registered: set[str]) -> None:
     """
     rep = ctx.rep
     findings: list[str] = []
+    registry = ctx.corpus.get(RULES)
+    retired = ({m.group(1) for _, m in registry.unfenced(
+        "| ~~K-", re.compile(r"^\| ~~(K-\d{2,3})~~ \| retired \|"))}
+        if registry is not None else set())
 
     if not registered:
         findings.append(f"neither {RULES} nor {Q_RULES} yields a rule this run can "
@@ -602,10 +608,12 @@ def _landings(ctx: Context, registered: set[str]) -> None:
             if doc.is_fenced(m.start()):
                 continue
             cited += 1
-            if m.group(1) not in registered:
+            if m.group(1) not in registered and not (
+                    doc.name == LOG and m.group(1) in retired):
                 findings.append(f"{doc.name}:{doc.at(m.start())} names {m.group(1)} as "
                                 f"the rule holding what it created, and {RULES} carries "
-                                "no such rule")
+                                "no active rule for that claim (retired rules apply "
+                                "only to completion-log evidence)")
     if not cited and registered:
         findings.append("no document names a rule holding what a landing created, so "
                         "this rule reads nothing; the form is the rule id in bold, which "
@@ -634,8 +642,8 @@ def _landings(ctx: Context, registered: set[str]) -> None:
 
     rep.report("K-84", "holder citation(s) and landing declaration(s) no registry "
                "answers:", findings,
-               f"the corpus's {cited} holder citations name rules {RULES} or "
-               f"{Q_RULES} carries, and each of the {declared} landing declarations "
+               f"the corpus's {cited} holder citations name active, quarantined or "
+               f"historical retired rules, and each of the {declared} landing declarations "
                "in the plan and the completion log states a tier and, at Tier B, the "
                "rule holding what it created")
 

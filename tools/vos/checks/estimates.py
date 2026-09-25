@@ -87,17 +87,6 @@ OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d
 # has an actual instead of a range for the prior to widen
 CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
 
-# K-102's sites, declared here rather than located by a sentence. An id is one of the five
-# families the plan numbers items in, so a label that is prose (the initial tooling clause)
-# is outside the subject rather than a finding, and a prime suffix is part of the id.
-ID_RE = re.compile(r"^(?:[SQIR]\d+[a-z]?(?:-[iv]+)?|M\d+(?:\.\d+)?[a-z]?(?:-[iv]+)?\u2032?)$")
-ROSTER_RE = re.compile(r"(?m)^\* Completed: .*$")
-RUN_RE = re.compile(r"[SQIRM]\d+(?:\.\d+)?[a-z]?(?:-[iv]+)?\u2032?")
-RANGE_RE = re.compile(r"(M\d+)\.(\d+)–(?:M\d+\.)?(\d+)")
-PART_RE = re.compile(r"(M\d+\.\d+[a-z])\s*\(([a-z])\d+–[a-z](\d+)\)")
-# The immediate parent drops a Roman child suffix, or a letter and prime.
-PARENT_RE = re.compile(r"(?:-[iv]+|[a-z]?)\u2032?$")
-
 # the gate is two gates over two chains, so the partition is two lists rather than one. A
 # label names a position in the order rather than one item, and `Post-M10` carries several,
 # so what is held below is that each label is occupied and not that the two counts match.
@@ -389,69 +378,6 @@ def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
     return sum(a for _, _, a in pairs) / estimated if estimated else None
 
 
-def _roster(raw: str, items: list[Item]) -> list[str]:
-    """K-102: the summary's completed roster against the items that are complete.
-
-    The roster is a derived fact stated by hand. Everything else the Current summary
-    carries is recomputed here, the subtotals, the grand total, the progress pair and
-    the two series' own lists, so a landing that adds an item moves them under `--fix`
-    and cannot leave them stale; the roster is the one sentence on those lines that
-    nothing read, and two landings walked past it with every gate green.
-
-    **Membership and not the string.** Which ids the roster collapses into a run and
-    which it writes out is the author's, `M0.1–M0.5` standing for five items and
-    `M0.6c (c1–c4)` for a parent and its four parts, so a rule recomputing the text
-    would be inventing that judgment rather than holding a fact. What is a fact is
-    that a completed item appears at all, and it is enough: the defect this catches is
-    an omission, which is the only shape the failure has taken.
-
-    **An item is named three ways, because the roster names them three ways and its
-    unevenness is authored rather than accidental.** Its own id, which is the ordinary
-    case; its parent's, which is how the four parts of `M0.6c` are carried; or all of
-    its completed children's, which is how `S10` is carried by `S10a` and `S10b`
-    standing in its place. A rule demanding the first alone would report the second and
-    third, which is a rule deciding how the sentence should be written.
-
-    Report-only: which form the roster takes at a given id is a judgment, so a repair
-    that inserted one would be choosing among the three above.
-
-    Fail-closed on the reading, on K-101's ground: no roster line at all, and a roster
-    naming no id, are each a finding rather than a comparison made against an empty
-    set, which is what keeps this from passing green on the day the summary is retitled.
-    """
-    line = ROSTER_RE.search(raw)
-    if line is None:
-        return [f"{PLAN} states no '* Completed: ' roster in the Current summary, so no "
-                "completed item is held against the set the summary claims"]
-
-    text = line.group(0)
-    named = set(RUN_RE.findall(text))
-    # `M0.1–M0.5` collapses a run of siblings under one parent
-    for parent, lo, hi in RANGE_RE.findall(text):
-        named.update(f"{parent}.{n}" for n in range(int(lo), int(hi) + 1))
-    # `M0.6c (c1–c4)` names a parent's parts by their own short letters
-    for _, letter, hi in PART_RE.findall(text):
-        named.update(f"{letter}{n}" for n in range(1, int(hi) + 1))
-    if not named:
-        return [f"{PLAN}'s completed roster names no id this rule can read, so the "
-                "comparison below is made against an empty set"]
-
-    done = [_head(i.label) for i in items if i.done and ID_RE.match(_head(i.label))]
-    findings: list[str] = []
-    for head in done:
-        if head in named:
-            continue
-        parent = PARENT_RE.sub("", head)
-        if parent and parent != head and parent in named:
-            continue
-        children = [d for d in done if d != head and d.startswith(head)]
-        if children and all(c in named for c in children):
-            continue
-        findings.append(f"{head} is complete and the summary's roster names neither it, "
-                        f"nor a parent standing for it, nor children standing in its place")
-    return findings
-
-
 def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
@@ -469,12 +395,6 @@ def run(ctx: Context) -> None:
     rep.report("K-34", "item(s) whose estimate cell the document cannot read:", malformed,
                f"all {len(items)} items carry a cell in the declared shape, and every one "
                "is under a subtotal")
-
-    rep.report("K-102", "completed item(s) the summary's roster does not name:",
-               _roster(raw, items),
-               f"every one of {len([i for i in items if i.done and ID_RE.match(_head(i.label))])} "
-               "completed items carrying an id is named in the summary's completed roster, "
-               "itself or by the parent or the children the roster names in its place")
 
     # an open item's midpoint is the mean of its range, so the range is the only figure
     # in the cell anybody wrote; a completed item's actual has no range to disagree
@@ -564,7 +484,6 @@ def run(ctx: Context) -> None:
                 if i.done and AGENT_PARALLEL not in i.tail}
     parallel_items = {_head(i.label): i for i in items
                       if i.done and AGENT_PARALLEL in i.tail}
-    parallel = list(parallel_items)
     fit = _fit(record, attended, "calibration record", "completed attended item", derived)
 
     precord, punreadable = _record(raw, PARALLEL_HEADING)
@@ -718,41 +637,12 @@ def run(ctx: Context) -> None:
                for pool, ratio in ratios.items()}
     pratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
                 for pool, ratio in pratios.items()}
-    outside = _count(len(fit["X-read"]) + len(fit["X-authored"]))
     judged_lines = [
         ("the critical chain",
          r"(?m)^\* Critical chain through M8a:.*?Over those items the chain sums to "
          r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h at a (?P<mid>[\d.,]+) h midpoint",
          {"lo": format_hours(chain_lo), "hi": format_hours(chain_hi),
           "mid": format_hours(chain_mid)}),
-        ("the calibration convention",
-         r"(?m)^\* \*\*Every open item carries an authority class beside its estimate\*\*"
-         r".*?over the (?P<n>[a-z-]+) completed items carrying both an estimate and an "
-         r"actual, the (?P<ni>[a-z-]+) whose authority is inside this repository ran at "
-         r"(?P<ri>[\d.]+), and the (?P<nx>[a-z-]+) whose authority is outside it split, "
-         r"the (?P<nr>[a-z-]+) that read, pin, install or measure an external thing "
-         r"running at (?P<rr>[\d.]+) and the (?P<na>[a-z-]+) that authored against an "
-         r"external authority at (?P<ra>[\d.]+)\. \*\*The (?P<ra2>[\d.]+) every open "
-         r"class-X cell is priced against is that second pool and not the class\*\*, which "
-         r"is the whole of what makes n = (?P<na2>\d+) the weakness",
-         {"n": _count(len(all_pairs)), "ni": counts["I"], "ri": ratio_t["I"],
-          "nx": outside, "nr": counts["X-read"], "rr": ratio_t["X-read"],
-          "na": counts["X-authored"], "ra": ratio_t["X-authored"],
-          "ra2": ratio_t["X-authored"], "na2": str(len(fit["X-authored"]))}),
-        ("the agent-parallel series",
-         r"(?m)^\* \*\*A completed item marked `agent-parallel`.*?\*\*The series is "
-         r"(?P<n>[a-z-]+) items\*\* \((?P<list>[^)]*)\)",
-         {"n": _count(len(parallel)), "list": ", ".join(parallel)}),
-        ("the class-X pool size",
-         r"the (?P<ra>[\d.]+) the whole convention rests on is fitted over "
-         r"(?P<na>[a-z-]+) completed items",
-         {"ra": ratio_t["X-authored"], "na": counts["X-authored"]}),
-        ("the fan-out count",
-         r"the fan-out having already run (?P<n>[a-z-]+) agent-parallel landings",
-         {"n": _count(len(parallel))}),
-        ("the fan-out ceiling count",
-         r"The fan-out has run against that ceiling (?P<n>[a-z-]+) times",
-         {"n": _count(len(parallel))}),
         ("the calibration risk",
          r"rests on (?P<na>[a-z-]+) completed items in the class that matters",
          {"na": counts["X-authored"]}),

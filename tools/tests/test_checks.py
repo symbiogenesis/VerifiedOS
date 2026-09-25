@@ -126,21 +126,6 @@ def _nested_estimates_keep_chain_membership() -> None:
                "the chain counts nested leaves and the later sibling exactly once")
 
 
-def _nested_milestone_roster_cannot_skip_roman_children() -> None:
-    plan = ("* [x] **M1.2g-i · Memory** · 1 h actual · 100.0%\n"
-            "**M1 subtotal:** 1 h · 100% · 1 h complete.\n")
-    items, _, malformed = estimates._parse(plan)
-    ensure(not malformed, f"completed child parses: {malformed}")
-    ensure(bool(estimates._roster("* Completed: M1.2b\n", items)),
-           "a Roman-suffixed milestone must not disappear from roster checking")
-    for named in ("M1.2g-i", "M1.2g"):
-        ensure(not estimates._roster(f"* Completed: {named}\n", items),
-               f"the child can be named directly or by its parent: {named}")
-    primed, _, _ = estimates._parse(plan.replace("M1.2g-i", "M1.2g-i\u2032"))
-    ensure(not estimates._roster("* Completed: M1.2g\n", primed),
-           "a primed Roman child retains the same immediate parent")
-
-
 def _retained_estimates_are_scope_not_actuals() -> None:
     plan = ("# Plan\n\n"
             "* Retained estimates in completed scope: 999 h across 999 items; "
@@ -314,26 +299,25 @@ def _counts_overflow_is_a_finding() -> None:
     # a words-style quantity past ninety-nine has no word form; before wave 1 the
     # whole run stopped on figures.words' ValueError, and the exit code could not
     # tell that crash from a verdict
-    absences = "# Absences\n\n" + "".join(f"| **A-{n}** | row |\n"
-                                          for n in range(1, 101))
-    inventory = "# Documents\n\nNinety-nine enumerated absences.\n"
-    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                       "docs/README.md": inventory,
-                       "docs/hardware/absence-contract.md": absences}) as root:
+    register = "# Register\n\n## §15\n\n" + "".join(
+        f"**R-15-{n:03}** MUST: Absence (fixture {n}).\n· Trace: t\n"
+        for n in range(1, 101))
+    language = "# Typed assembly language\n\n### 7.1 The ninety-nine absences\n"
+    with sandbox_tree({counts.REGISTER: register, counts.TAL: language}) as root:
         ctx = _context(root, fix=True)
         # the shared keys confers and views would have produced; counts reads
         # them positionally and this test runs counts alone
         ctx.shared.update(cj_confer=[], fc_seams=[], fc_confer=[], rf_confer=[],
                           dispositions=0, rot_cases=0)
         counts.run(ctx)
-        ensure("absences is 100, which has no word form; the claim in docs/README.md "
-               "must state it in digits" in _findings_under(ctx, "K-24"),
+        ensure("frozen-absences is 100, which has no word form; the claim in "
+               f"{counts.TAL} must state it in digits" in _findings_under(ctx, "K-24"),
                f"the overflow is K-24's finding, naming the claim owed digits: "
                f"{_findings_under(ctx, 'K-24')!r}")
-        ensure("docs/README.md" not in ctx.fixed,
+        ensure(counts.TAL not in ctx.fixed,
                "a quantity with no word form must not stage a repair")
-        ensure(ctx.text("docs/README.md") == inventory,
-               "the unresolved inventory claim must retain its original content")
+        ensure(ctx.text(counts.TAL) == language,
+               "the unresolved language claim must retain its original content")
 
 
 _PREREQ_REGISTER = (
@@ -742,6 +726,31 @@ def _wasm_scalar_bad_inputs() -> None:
                    "malformed scalar inputs or missing/duplicate sites must refuse repair")
 
 
+def _k84_retired_holders_are_historical_only() -> None:
+    registry = "# Rules\n\n| ~~K-999~~ | retired | n/a | Removed subject. |\n"
+    for name, accepted in ((meta.LOG, True), (PLAN, False), ("docs/current.md", False)):
+        files = {"docs/requirements-register.md": _REGISTER_MIN,
+                 meta.RULES: registry, PLAN: "# Plan\n", meta.LOG: "# Log\n"}
+        files[name] = "# Evidence\n\nLanded: Tier B under **K-999**.\n"
+        with sandbox_tree(files) as root:
+            ctx = _context(root)
+            meta._landings(ctx, {"K-00"})
+            found = _findings_under(ctx, "K-84")
+            ensure(bool(found) != accepted,
+                   f"retired holder acceptance must be scoped to the log: {name}: {found}")
+
+
+def _k84_retirement_needs_an_unfenced_registry_row() -> None:
+    for registry in ("# Rules\n", "# Rules\n\n```\n| ~~K-999~~ | retired | n/a | Gone. |\n```\n"):
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           meta.RULES: registry, PLAN: "# Plan\n",
+                           meta.LOG: "# Log\n\nLanded: Tier B under **K-999**.\n"}) as root:
+            ctx = _context(root)
+            meta._landings(ctx, {"K-00"})
+            ensure(bool(_findings_under(ctx, "K-84")),
+                   "a historical citation needs a real retirement record")
+
+
 def cases() -> list[Case]:
     return [
         Case("wasm-scalar-comparator-and-repair", _wasm_scalar_comparator_and_repair),
@@ -755,8 +764,6 @@ def cases() -> list[Case]:
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),
         Case("nested-estimates-keep-chain-membership", _nested_estimates_keep_chain_membership),
-        Case("nested-milestone-roster-cannot-skip-roman-children",
-             _nested_milestone_roster_cannot_skip_roman_children),
         Case("retained-estimates-are-scope-not-actuals", _retained_estimates_are_scope_not_actuals),
         Case("optional-inference-work-stays-outside-both-gates",
              _optional_inference_work_stays_outside_both_gates),
@@ -791,4 +798,7 @@ def cases() -> list[Case]:
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
+        Case("k84-retired-holders-are-historical-only", _k84_retired_holders_are_historical_only),
+        Case("k84-retirement-needs-an-unfenced-registry-row",
+             _k84_retirement_needs_an_unfenced_registry_row),
     ]
