@@ -251,6 +251,30 @@ R-13-027 obliges the device to hold the source closure every generation it runs 
 
 **What this verdict is not.** It is not a measurement of the device's compiler, which does not exist; not a measurement of a roster, which does not exist; and not a per-pass figure, which M1.10 owns. It is a demand, taken on a host, at the revisions named, against supply floors the register states. **Its one load-bearing claim is that the demand exceeds the supply by a margin no measurement error at this size closes**, the repeatability spread of section 4 being 2.5% against a 1.81 multiple, and that claim survives the two questions this report leaves open, the class the plan places the toolchain on and the layout relation between the two modes, because it fails on either answer to each.
 
+### Research leads for bounded resident passes
+
+M1.10's unfinished bounded-activation and pool proofs, together with the M6.10
+producer joins, are the consumers of the following
+[survey leads](../background/open-math-conjectures.md). These are prospective
+comparisons, not new measurements or savings credited to the tables above.
+Select a real pass and its input/output relation before developing a candidate.
+The [proof-production handoff](../assurance/proof-assistance.md#research-handoff-for-future-proof-producers)
+owns the distinct proof-search and certificate-cost questions.
+
+| Lead | Missing implementation/proof bridge and useful comparison |
+| --- | --- |
+| [Parallel matching and explicit-tree planning](../background/open-math-conjectures.md#p-versus-uniform-nc) | Reduce a concrete assignment pass to the stated matching/matroid problem with its weight bounds and field representation, or expose the actual expression tree. Prove returned assignments legal and the transformed pass equivalent. Compare against the sequential baseline with finite processor, memory and communication budgets. The general P/NC question and harder succinct representations remain separate. |
+| [Directed reachability](../background/open-math-conjectures.md#l-versus-nl-directed-reachability-in-logarithmic-workspace) | Preserve the explicit graph and reachability meaning, counting read-only graph storage and input accesses as well as writable workspace. Exercise cycles, unreachable vertices and the largest admitted graph. An O(log n) clean-space target supplies neither the missing classical algorithm nor its activation bound. |
+| [Square-root-space simulation](../background/open-math-conjectures.md#square-root-space-simulation-and-circuit-evaluation) | A chosen circuit/tree evaluator needs a simulation and output-equivalence proof, recomputation counts, intermediate representation sizes and resumable polling bounds. Compare total memory and turnaround; the Turing-machine theorem is not an arbitrary-RAM pass rewrite. The withdrawn O(sqrt(t)) claim supplies no bound. |
+| [Catalytic graph, sequence and streaming algorithms](../background/open-math-conjectures.md#catalytic-graph-and-sequence-algorithms) | Inside one authorized quiescent region, prove both the result and exact restoration of the original payload, tags, initialization and typed invariants. State supported interruptions and restoration behavior. Charge input replay, catalyst capacity and all restoration work; test arbitrary catalyst contents and interruption points. The multi-pass, passive-output and characteristic restrictions must match the chosen algorithm. The withdrawn almost-logarithmic-total-space claim is unusable. |
+
+For catalytic candidates the [computational model](../background/open-math-conjectures.md#the-power-of-catalytic-memory)
+does not authorize borrowing another compartment's memory or restore state after
+a fault by itself. For every candidate, a lower host peak is exploratory evidence;
+M1.10 still owes bounded target activations, declared-pool exhaustion and the
+accepted artifact. An unavailable pass or missing restoration/refinement theorem
+leaves the candidate unevaluated and the existing demand unchanged.
+
 ## 9. The reproducible invocation
 
 Every command ran in the guest lane at `/root/build/lane-q26-toolchain-20260914/q26`, with `$CC` the ccomp binary section 2 identifies, `$ROCQ` and `$ROCQCHK` the pinned switch's own binaries it identifies beside them, and `$F` the contained fork's working tree; the host-side tracked-byte reading ran on the host at the worktree. No output was written into the checkout.

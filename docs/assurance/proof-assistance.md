@@ -205,6 +205,33 @@ with added dependencies and all failures. Retain added machinery only when its
 measured benefit justifies its maintenance. Learned embeddings and planner debates
 remain optional experiments; this delivery claims no such benchmark result.
 
+## Research handoff for future proof producers
+
+The [mathematical survey](../background/open-math-conjectures.md) supplies
+non-normative leads for unfinished proof production and finite verification.
+The following are selection and experiment notes within the existing owners,
+not additional prerequisites for writing an ordinary proof. None changes a
+statement, assumption set, implementation estimate or accepted toolchain.
+
+| Survey lead | Future consumer and concrete next comparison | Transfer boundary |
+| --- | --- | --- |
+| [P versus NP](../background/open-math-conjectures.md#p-versus-np) | For a bounded synthesis or proof-search experiment in Q20b or the M1.10 resident producer, specify the finite decision relation, witness encoding and search limit; replay a found witness through its existing checker. Include an unsatisfiable instance and an exhausted search. | A claimed equality needs definitions of the actual complexity classes and proved reductions. The audited placeholder/assumed-bridge claim supplies no solver or premise. Exhaustion proves neither falsity nor nonexistence of a proof. |
+| [NP versus coNP](../background/open-math-conjectures.md#np-versus-conp-and-short-propositional-proofs) and [p-optimal proof systems](../background/open-math-conjectures.md#a-p-optimal-propositional-proof-system) | M6.2b's [certificate comparison](cic-checker-qualification.md#research-boundary-for-certificate-and-checker-cost) separates discovery time, proof bytes, translation and replay cost. Compare any proposed solver format on the same committed propositions. | The bounded-line tree-like Frege lower bound does not cover every proof system or CIC. A p-optimal translation would not promise short proofs or cheap discovery. No universal translation is supplied here. |
+| [P versus PSPACE](../background/open-math-conjectures.md#p-versus-pspace) | A future finite-state proof producer records whether its graph is explicit or succinct, the actual state bound and the checked reachability/invariant certificate. Compare reachable, unreachable and over-budget instances. | A finite machine can still have an unaffordable graph. Neither a class conjecture nor a simulator discharges the invariant, and unrestricted termination remains undecidable. |
+| [P versus uniform NC](../background/open-math-conjectures.md#p-versus-uniform-nc) | The [resident-producer comparison](../performance/toolchain-residency.md#research-leads-for-bounded-resident-passes) owns parallel matching, explicit-tree register planning and graph-pass experiments. | Uniformity, available processors, weight/field representation and communication belong in the implementation bridge; parallel circuit depth alone predicts no device speedup. |
+| [L versus NL](../background/open-math-conjectures.md#l-versus-nl-directed-reachability-in-logarithmic-workspace), [catalytic memory](../background/open-math-conjectures.md#the-power-of-catalytic-memory), and [explicit catalytic algorithms](../background/open-math-conjectures.md#catalytic-graph-and-sequence-algorithms) | The same resident-pass comparison owns graph/sequence candidates and restoration witnesses. A proof-search application must preserve its graph relation and framed state. | Input bytes, catalyst bytes and restoration work remain charged. Classical reachability does not inherit the cited quantum result. One-pass streaming and raw-bit restoration supply no general multi-pass or CHERI-state theorem. |
+| [P equals BPP](../background/open-math-conjectures.md#derandomization-p-equals-bpp) | Q20b may compare a deterministic candidate finder with the same bounded randomized search, frozen goals and kernel acceptance. Record seeds, unsuccessful searches and total cost. | Checked output already permits an untrusted randomized producer. Derandomization neither supplies secret entropy nor makes randomized fingerprints accepted proofs. |
+| [Square-root-space simulation and circuit evaluation](../background/open-math-conjectures.md#square-root-space-simulation-and-circuit-evaluation) | M1.10's resident-pass comparison can test recomputation on a named evaluation pass, with an output-equivalence proof and target cost account. | Retain the published logarithmic factor and model restrictions; the withdrawn strengthening is not an optimization premise. Savings in clean workspace do not imply reduced total capacity or unchanged runtime. |
+
+Before reusing a newly found proof repository, perform the survey's statement
+correspondence review at its immutable revision. Record definitions, quantifiers,
+dependencies and native assumptions separately from build status; a theorem name
+or absence of admission syntax is insufficient. For a foreign prover, source
+inspection and external CI are candidate evidence for a local argument, not an
+accepted Rocq proof. Qualification still follows the existing incorporation,
+non-vacuity and fresh-gate boundaries. This applies equally to new, AI-assisted
+and established repositories.
+
 ## Acceptance boundary
 
 R-05-018 makes synthesis an untrusted finder. R-05-018a requires fresh acceptance

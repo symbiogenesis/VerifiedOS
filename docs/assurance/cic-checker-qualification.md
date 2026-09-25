@@ -176,6 +176,28 @@ If measured conversion work dominates the corpus, compare bounded execution with
 
 The handoff is the frozen executable reference checker, proved profile and guard laws, closed replacement proof or both normalization families, native assumption receipts, real accepted/refused corpus fixtures and the bounded serialization/resource interface. Qualification is renewed on those actual inputs. Canonical decoding, bounded work-stack and bump-arena representations, zeroization and CompCert-C execution remain the refinement endpoint below. A source port, library extraction facility or successful fixture alone supplies none of them. If the first example or full corpus exposes missing premises or an unaffordable bridge, record the exact obstruction and revised scope/price; M6.2b-ii stays closed.
 
+### Research boundary for certificate and checker cost
+
+The survey's [NP versus coNP](../background/open-math-conjectures.md#np-versus-conp-and-short-propositional-proofs)
+and [p-optimal proof-system](../background/open-math-conjectures.md#a-p-optimal-propositional-proof-system)
+entries inform the unfinished M6.2b-0/M6.2b-ii certificate comparison. They supply
+no normalization, guard law, serialization theorem or local polynomial bound.
+The restricted 2026 propositional lower bounds do not establish a lower bound
+for this checker or its real exported corpus. Finding a proof, its encoded
+length, translating it, and checking it remain separate costs.
+
+If an alternative certificate system is proposed, first freeze its judgment and
+prove translation/replay soundness into the same committed proposition and
+environment. Compare total evidence bytes, conversion work and peak arena use
+on the retained positive/refuting corpus, including malformed translations and
+budget exhaustion. This is an optional route within the conversion-evidence
+experiment, not a claim that a universal efficient translation exists. A smaller
+certificate which assumes a conversion result has not met that experiment.
+Likewise [P versus PSPACE](../background/open-math-conjectures.md#p-versus-pspace)
+or a time-to-space simulation supplies no concrete resource proof for PCUIC.
+The partial-checker soundness and cumulative-work obligations above remain the
+entry conditions for the implementation refinement.
+
 ## Bounded wire and arena contract
 
 The proposed checker input is one immutable envelope containing: format and checker-profile versions; the artifact, source-closure, Sail, specification and theorem-environment commitments; the generation's closed step and working-set numerals; the closed expected proposition; and one serialized term with its ordered global declarations and universe data. Every commitment is checked before a verdict is bound to the candidate image. A claim supplied by the candidate is not itself evidence that the expected proposition is the required tier theorem.
