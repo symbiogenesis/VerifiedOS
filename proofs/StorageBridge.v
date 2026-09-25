@@ -173,6 +173,15 @@ Proof.
   apply reservation_advances_without_wrap in H' as [-> _]. lia.
 Qed.
 
+Theorem later_reservations_cannot_repeat : forall n g after later g' after',
+  reserve_generation n = Some (g, after) -> after <= later ->
+  reserve_generation later = Some (g', after') -> g < g'.
+Proof.
+  intros n g after later g' after' H Hle H'.
+  apply reservation_advances_without_wrap in H as [-> [_ ->]].
+  apply reservation_advances_without_wrap in H' as [-> _]. lia.
+Qed.
+
 Theorem exhausted_reservations_refuse : forall next,
   256 <= next -> reserve_generation next = None.
 Proof.
@@ -414,6 +423,19 @@ Definition checkpoint_binds (l : Layout) (journal : bytes) (g : nat) (c : Checkp
   (g =? checkpoint_generation c) && bytes_eqb journal (checkpoint_journal c)
   && layout_eqb l (checkpoint_layout c).
 
+Lemma checkpoint_binding_is_exact : forall l journal g c,
+  checkpoint_binds l journal g c = true ->
+  g = checkpoint_generation c /\ journal = checkpoint_journal c
+  /\ l = checkpoint_layout c.
+Proof.
+  intros [f n p] journal g [g' journal' [f' n' p'] txns] H.
+  unfold checkpoint_binds, layout_eqb in H. cbn in H.
+  repeat rewrite andb_true_iff in H.
+  destruct H as [[Hg Hj] [[Hf Hn] Hp]].
+  apply Nat.eqb_eq in Hg, Hf, Hn, Hp. apply bytes_eqb_true in Hj.
+  subst. repeat split.
+Qed.
+
 Definition txn_eq_dec : forall a b : DecodedTxn, {a = b} + {a <> b}.
 Proof. decide equality; decide equality; decide equality; apply Nat.eq_dec. Defined.
 
@@ -538,6 +560,16 @@ Proof.
   intros l open journal g c medium txns H. unfold decode in H.
   destruct (medium_admissible l g medium); [|discriminate].
   destruct (checkpoint_binds l journal g c); [auto|discriminate].
+Qed.
+
+Theorem every_recovery_matches_its_checkpoint_context : forall l open journal g c medium txns,
+  decode l open journal g c medium = Recovered txns ->
+  g = checkpoint_generation c /\ journal = checkpoint_journal c
+  /\ l = checkpoint_layout c.
+Proof.
+  intros l open journal g c medium txns H.
+  apply every_recovery_enforces_admission in H as [_ Hb].
+  apply checkpoint_binding_is_exact. exact Hb.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -858,9 +890,9 @@ Example the_recovered_transactions_replay_every_write :
   = [0; 21; 22; 11].
 Proof. split; reflexivity. Qed.
 
-(* The key and the generation are inputs of every opening: another key, or
-   the right key read as another generation, authenticates no commit. *)
-Example another_key_or_generation_authenticates_nothing :
+(* A wrong key authenticates no commit; a mismatched checkpoint generation
+   refuses before opening any frame. *)
+Example another_key_or_checkpoint_generation_is_refused :
   decode bridge_layout (gcm_opener 4 other_key) bridge_journal bridge_generation (bridge_checkpoint 1) bridge_medium
   = RefusedAcknowledgedMissing 0 1 /\
   decode bridge_layout bridge_open bridge_journal 2 (bridge_checkpoint 1) bridge_medium = RefusedCheckpointBinding.
@@ -995,7 +1027,121 @@ Example inverting_a_field_s_low_bit_is_refused :
           field_offsets = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* Admission and checkpoint controls for the reviewed bounded format.
+   Identity functions below are test doubles only, never crypto evidence. *)
+Definition checkpoint_for (l : Layout) (journal : bytes) (g : nat)
+    (txns : list DecodedTxn) : Checkpoint :=
+  {| checkpoint_generation := g; checkpoint_journal := journal;
+     checkpoint_layout := l; checkpoint_transactions := txns |}.
+
+Definition shape_sealer : Sealer := fun _ _ m => (m, repeat 0 frame_tag_bytes).
+
+Example the_public_writer_accepts_the_authenticated_fixture :
+  write_journal bridge_layout bridge_seal bridge_generation bridge_txns = Some bridge_medium.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_last_generation_is_usable_and_exhaustion_never_wraps :
+  reserve_generation 255 = Some (255, 256) /\ reserve_generation 256 = None
+  /\ reserve_generation 257 = None
+  /\ write_journal bridge_layout shape_sealer 255 [] = Some (repeat 0 (6 * 128))
+  /\ write_journal bridge_layout shape_sealer 256 [] = None
+  /\ write_journal bridge_layout shape_sealer 257 [] = None.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Example the_old_nonce_collision_is_outside_public_admission :
+  AesGcm.block_from (frame_nonce 1 0 payload_kind)
+  = AesGcm.block_from (frame_nonce 257 0 payload_kind)
+  /\ decode bridge_layout bridge_open bridge_journal 257 (bridge_checkpoint 2) bridge_medium
+     = RefusedFormat.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Definition invalid_layouts : list Layout :=
+  [{| frame_bytes := 49; journal_frames := 6; payload_limit := 1 |};
+   {| frame_bytes := 128; journal_frames := 0; payload_limit := 2 |};
+   {| frame_bytes := 128; journal_frames := 257; payload_limit := 2 |};
+   {| frame_bytes := 128; journal_frames := 6; payload_limit := 0 |};
+   {| frame_bytes := 4640; journal_frames := 256; payload_limit := 256 |}].
+
+Example invalid_geometry_is_refused_by_both_public_boundaries :
+  map (fun l => write_journal l shape_sealer 0 []) invalid_layouts = repeat None 5
+  /\ map (fun l => decode l bridge_open bridge_journal 0
+       (checkpoint_for l bridge_journal 0 []) []) invalid_layouts = repeat RefusedFormat 5.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Example short_long_and_non_octet_media_are_refused :
+  map (decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0))
+    [firstn 767 bridge_medium; bridge_medium ++ [0]; 256 :: tl bridge_medium]
+  = repeat RefusedFormat 3.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_largest_position_and_fields_fit :
+  let l := {| frame_bytes := 50; journal_frames := 256; payload_limit := 1 |} in
+  layout_fits l = true /\
+  match write_journal l shape_sealer 255
+    (repeat {| txn_id := 255; txn_writes := [(255,255)] |} 128) with
+  | Some medium => length medium = 256 * 50 /\ octets medium = true
+  | None => False
+  end.
+Proof. vm_compute. split; [reflexivity|]. split; reflexivity. Qed.
+
+Definition invalid_transactions : list (list Txn) :=
+  [[{| txn_id := 256; txn_writes := [(1,1)] |}];
+   [{| txn_id := 1; txn_writes := [(256,1)] |}];
+   [{| txn_id := 1; txn_writes := [(1,256)] |}];
+   [{| txn_id := 1; txn_writes := [] |}];
+   [{| txn_id := 1; txn_writes := [(1,1); (2,2); (3,3)] |}];
+   repeat {| txn_id := 1; txn_writes := [(1,1)] |} 4].
+
+Example invalid_writer_fields_and_overfull_journals_refuse :
+  map (write_journal bridge_layout shape_sealer 0) invalid_transactions = repeat None 6.
+Proof. vm_compute. reflexivity. Qed.
+
+Example malformed_sealer_outputs_refuse :
+  map (fun seal => write_journal bridge_layout seal 0 bridge_txns)
+    [(fun _ _ _ => ([], repeat 0 16));
+     (fun _ _ m => (m ++ [0], repeat 0 16));
+     (fun _ _ m => (m, repeat 0 15));
+     (fun _ _ m => (m, repeat 0 17));
+     (fun _ _ _ => ([256], repeat 0 16));
+     (fun _ _ m => (m, 256 :: repeat 0 15))]
+  = repeat None 6.
+Proof. vm_compute. reflexivity. Qed.
+
+Example an_opener_cannot_publish_a_non_octet :
+  decode bridge_layout (fun _ _ ciphertext _ =>
+    match ciphertext with [] => Some [] | _ => Some [256] end)
+    bridge_journal bridge_generation (bridge_checkpoint 0) bridge_medium
+  = RefusedCommittedPayload 2.
+Proof. vm_compute. reflexivity. Qed.
+
+Example wrong_checkpoint_contexts_refuse :
+  map (fun c => decode bridge_layout bridge_open bridge_journal bridge_generation c bridge_medium)
+    [checkpoint_for bridge_layout [18] bridge_generation bridge_recovered;
+     checkpoint_for bridge_layout bridge_journal 2 bridge_recovered;
+     checkpoint_for {| frame_bytes := 64; journal_frames := 12; payload_limit := 1 |}
+       bridge_journal bridge_generation bridge_recovered]
+  = repeat RefusedCheckpointBinding 3.
+Proof. vm_compute. reflexivity. Qed.
+
+Example equal_counts_cannot_hide_acknowledged_substitutions :
+  map (fun txns => decode bridge_layout bridge_open bridge_journal bridge_generation
+    (checkpoint_for bridge_layout bridge_journal bridge_generation txns) bridge_medium)
+    [[(9, [(1,21); (2,22)]); (7, [(3,11)])];
+     [(8, [(4,21); (2,22)]); (7, [(3,11)])];
+     [(8, [(1,99); (2,22)]); (7, [(3,11)])];
+     [(8, [(2,22); (1,21)]); (7, [(3,11)])];
+     rev bridge_recovered]
+  = repeat RefusedAcknowledgedMismatch 5.
+Proof. vm_compute. reflexivity. Qed.
+
+Example a_generation_bound_to_its_checkpoint_still_needs_authentication :
+  decode bridge_layout bridge_open bridge_journal 2
+    (checkpoint_for bridge_layout bridge_journal 2 bridge_recovered) bridge_medium
+  = RefusedAcknowledgedMissing 0 2.
+Proof. vm_compute. reflexivity. Qed.
+
 Definition witness_Layout : Layout := bridge_layout.
 Definition witness_Entry : Entry := {| entry_position := 0; entry_target := 1; entry_tag := [] |}.
 Definition witness_Txn : Txn := {| txn_id := 8; txn_writes := [(1, 21); (2, 22)] |}.
 Definition witness_Pending : Pending := pending_of 0 (frame_at bridge_layout bridge_medium 0).
+Definition witness_Checkpoint : Checkpoint := bridge_checkpoint 2.
