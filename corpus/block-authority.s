@@ -8,7 +8,7 @@
 # Input model/model/core/types.sail: 7f551abecd9a619feb19100f5bfb58f76f0a9c0e2d1d1d3300a842454e4c56bc
 # Input model/model/core/xlen.sail: 8c164c3c26d2cd5983a50bf6eeefa38f3a2abda58b79354ec0fb42f60958126a
 # Input model/model/core/types_common.sail: 8aecb1cfa1646ef8babedcf1a1785475c36f16dd00637c61992538f2c5fdfeeb
-# Input interfaces/block-device-contract.md: 13eb8075150e45e64eb16dd981af59ce5059cf23ee4cedd872e11e55a5718b99
+# Input interfaces/block-device-contract.md: 1f490b1eb6b6b34dc9fc793a78d6664a059d6ae41df58c6167b74d8cf14deff1
 # Input tools/generated/dialect-table.json: 58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a
         .text
         .globl _start

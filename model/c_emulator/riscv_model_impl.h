@@ -10,6 +10,7 @@
 
 #include "sail.h"
 #include "sail_riscv_model.h"
+#include "blkdev_image.h"
 #include "rot_slow_clock.h"
 
 struct MemoryRegion {
@@ -54,6 +55,18 @@ public:
   // initialization
 
   void init_platform_constants();
+
+  // Binds the block device's persistent medium to a host image
+  // (blkdev_image.h) after the configuration is validated and before
+  // `init_sail`, which loads the image's bytes in place of the configured
+  // fixture. `create` makes the image from that fixture first. Throws
+  // blkdev::refusal, including for a composition with no enabled device or a
+  // run whose RVFI mode bypasses device dispatch.
+  void bind_blkdev_image(const std::string &path, bool create, const std::string &receipt);
+  // Records the bound image's final identity in its receipt and releases it;
+  // later persistence answers are false.
+  bool close_blkdev_image();
+
   void init_sail(uint64_t entry, const char *config_file, const std::optional<uint64_t> &htif_tohost_address);
   void reinit_sail();
   void model_init();
@@ -133,6 +146,8 @@ private:
 
   unit plat_term_write(mach_bits) override;
 
+  bool blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length) override;
+
   bool sys_enable_experimental_extensions(unit) override;
 
   unit print_string(const_sail_string prefix, const_sail_string msg) override;
@@ -171,7 +186,8 @@ private:
 
   std::vector<std::shared_ptr<callbacks_if>> m_callbacks;
 
-
+  // The block device's host image, when the run binds one.
+  std::unique_ptr<blkdev::image> m_blkdev_image;
 
   bool m_enable_experimental_extensions = false;
 

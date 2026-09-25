@@ -388,6 +388,8 @@ void finish(ModelImpl &model, const CLIOptions &opts, const elf_info &elf_info, 
   if (!opts.dump_memory_prefix.empty()) {
     write_memory_dumps(model.main_memory_regions(), opts.dump_memory_prefix);
   }
+  // Every change is already durable; this records the image's final identity.
+  const bool blkdev_receipt_complete = model.close_blkdev_image();
 
   // `model_fini()` exits with failure if there was a Sail exception.
   model.model_fini();
@@ -402,7 +404,7 @@ void finish(ModelImpl &model, const CLIOptions &opts, const elf_info &elf_info, 
     fprintf(stderr, "Performance:      %" PRIu64 " kIPS\n", exec_msecs == 0 ? 0 : run_info.total_insns / exec_msecs);
   }
   close_logs(run_info);
-  exit(model.had_exception() ? EXIT_FAILURE : EXIT_SUCCESS);
+  exit(model.had_exception() || !blkdev_receipt_complete ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 void flush_logs(run_info &run_info) {
@@ -745,6 +747,25 @@ InitResult preinit_model(
   if (opts.do_print_gdb_target_xml) {
     fprintf(stdout, "%s", get_target_xml(model).c_str());
     return InitResult::ExitSuccess;
+  }
+
+  // The block device's host image is bound after the configuration is
+  // validated and before any ELF loads or instruction runs, so a refusal
+  // leaves the image and the run untouched.
+  const bool blkdev_create = !opts.blkdev_image_create.empty();
+  const std::string &blkdev_path = blkdev_create ? opts.blkdev_image_create : opts.blkdev_image;
+  if (blkdev_path.empty() && !opts.blkdev_receipt.empty()) {
+    fprintf(stderr, "--blkdev-receipt needs --blkdev-image or --blkdev-image-create.\n");
+    return InitResult::ExitFailure;
+  }
+  if (!blkdev_path.empty()) {
+    try {
+      model.bind_blkdev_image(blkdev_path, blkdev_create, opts.blkdev_receipt);
+    } catch (const blkdev::refusal &refused) {
+      fprintf(stderr, "Block device image refused: %s\n", refused.what());
+      return InitResult::ExitFailure;
+    }
+    fprintf(stderr, "Block device image %s: %s\n", blkdev_create ? "created" : "opened", blkdev_path.c_str());
   }
 
   // If we get here, we need to have ELF files to run (except in RVFI mode).

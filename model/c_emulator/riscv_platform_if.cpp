@@ -107,6 +107,14 @@ unit PlatformInterface::plat_term_write(mach_bits) {
   return UNIT;
 }
 
+bool PlatformInterface::blkdev_host_persist(
+  [[maybe_unused]] uint64_t kind,
+  [[maybe_unused]] uint64_t offset,
+  [[maybe_unused]] uint64_t length
+) {
+  return true;
+}
+
 bool PlatformInterface::sys_enable_experimental_extensions(unit) {
   return true;
 }

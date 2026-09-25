@@ -1,6 +1,6 @@
 # Storage recovery policy decision
 
-This is M5.3's decision input and contract for its policy-independent recovery work. It recommends a discipline and does not select it. The [register](../requirements-register.md), [JournalIndex.v](../../proofs/JournalIndex.v), [block-device contract](../../interfaces/block-device-contract.md), and [Q22f comparison](comparisons/storage-index.md) retain their existing authority. M5.3's target execution and M5.4's policy-dependent transactor behavior remain open.
+This is M5.3's contract for its policy-independent recovery work and implementation of the policy selected by R-10-002a. The [register](../requirements-register.md), [JournalIndex.v](../../proofs/JournalIndex.v), [block-device contract](../../interfaces/block-device-contract.md), and [Q22f comparison](comparisons/storage-index.md) retain their existing authority. M5.3's target execution and M5.4's policy-dependent transactor behavior remain open.
 
 ## The observable choice
 
@@ -46,8 +46,22 @@ The policy-independent companion passes a focused Rocq compilation, native assum
 
 The writable crash-half predicate feeds one recorded device-produced image through a separately qualified bytes-to-record decoder, runs the selected complete authenticated prefix-redo protocol; a separate comparison may report both raw filters over identical decoded inputs. Decoder or authentication refusal returns no reconstructed store. It records image identity, fault trace, decoder identity, selected policy and final root identity. Policy-independent properties are preservation of untouched blocks, replay of every selected committed write, idempotent replay, complete required payload before publication, and retained-root integrity.
 
-The final success predicate is R-10-002a preservation of all acknowledged transactions within the declared persistence contract, or the separately declared corruption/refusal outcome. Its execution still requires the persistent host-image adapter and reopen boundary, the bytes-to-record/authentication bridge, M5.3's real storage/crypto execution and one-index-body evidence, and M3.5's boot/counter join. A run of `python tools/run.py model corpus` must then show the policy-selected root after each declared crash cut, corruption refusal before returned object bytes, and no acknowledged partial transaction. `python tools/run.py storage-index --json` and `python tools/run.py test --only storage_index` exercise Q22f's bounded experiment; they do not supply those missing producers.
+The final success predicate is R-10-002a preservation of all acknowledged transactions within the declared persistence contract, or the separately declared corruption/refusal outcome. Its execution uses the emulator's persistent host-image adapter and reopen boundary, and still requires the reviewed bytes-to-record/authentication bridge, M5.3's real storage/crypto execution and one-index-body evidence, and M3.5's boot/counter join. A run of `python tools/run.py model corpus` must then show the policy-selected root after each declared crash cut, corruption refusal before returned object bytes, and no acknowledged partial transaction. `python tools/run.py storage-index --json` and `python tools/run.py test --only storage_index` exercise Q22f's bounded experiment; they do not supply those missing producers.
 
 ## Adopted boundary and remaining evidence
 
-The requirements register and paired specification own R-10-002a; B-05/P-2 cites its authenticated recovery boundary. The policy-choice findings F-194b and F-223c are closed. This decision leaves M5.3 and M5.4 open for the persistent image/reopen adapter, real bytes-to-record authentication, concrete format and measured bounds, storage/crypto execution and target crash tests. The policy-independent comparison functions remain useful refuters and are not relabelled as the implementation of the selected protocol.
+The bridge's current format is not approved for device-trace acceptance. Its nonce
+puts the generation in one byte and the AES-GCM reference truncates each nat to
+eight bits, so distinct generations separated by 256 reuse a nonce at the same
+position and kind under one key. The format owner must select and check a bounded
+generation with refusal before exhaustion and reuse, or a wider injective
+encoding. Merely supplying a monotonically increasing nat is insufficient.
+`layout_fits`, byte-value ranges and the exact medium length also need enforced
+admission before serialization and decoding; the current definitions exhibit a
+valid finite fixture but provide no such guard. Finally, the acknowledgement
+theorem proves only that the recovered count reaches the supplied count. The
+checkpoint producer must authenticate the generation and journal binding that
+identify the acknowledged transactions and their contents. These are explicit
+remaining obligations, not assumptions that complete the crash predicate.
+
+The requirements register and paired specification own R-10-002a; B-05/P-2 cites its authenticated recovery boundary. The policy-choice findings F-194b and F-223c are closed. The [block-device contract](../../interfaces/block-device-contract.md) records the emulator's host image adapter, which supplies the persistent image and reopen boundary. [StorageBridge.v](../../proofs/StorageBridge.v) specifies a bytes-to-record decoder under this policy, with AES-GCM authentication through the functional reference and its layout, commit-representation and nonce decisions left explicit. This decision leaves M5.3 and M5.4 open for that bridge's separate review, the concrete format and measured bounds, executable storage and crypto, the checkpoint producing the generation and acknowledged count, and target crash tests. The policy-independent comparison functions remain useful refuters and are not relabelled as the implementation of the selected protocol.

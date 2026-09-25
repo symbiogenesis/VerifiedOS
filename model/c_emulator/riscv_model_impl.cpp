@@ -146,6 +146,13 @@ unit ModelImpl::plat_term_write(mach_bits s) {
   return UNIT;
 }
 
+bool ModelImpl::blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length) {
+  if (!m_blkdev_image) {
+    return true;
+  }
+  return m_blkdev_image->persist(kind, offset, length, zblkdev_medium.data, zblkdev_medium.len);
+}
+
 bool ModelImpl::sys_enable_experimental_extensions(unit) {
   return m_enable_experimental_extensions;
 }
@@ -263,6 +270,50 @@ void ModelImpl::init_platform_constants() {
   // `Zalrsc` (R-15-025).
 }
 
+void ModelImpl::bind_blkdev_image(const std::string &path, bool create, const std::string &receipt) {
+  if (!zplat_have_blkdev) {
+    throw blkdev::refusal("the composition declares no enabled block device (platform.blkdev.supported)");
+  }
+  if (m_config_rvfi) {
+    throw blkdev::refusal("an RVFI run bypasses block-device dispatch");
+  }
+  if (m_blkdev_image) {
+    throw blkdev::refusal("a block-device image is already bound");
+  }
+  auto quantity = [](const sail_int value) -> uint64_t {
+    if (mpz_sgn(value) < 0 || !mpz_fits_ulong_p(value)) {
+      throw blkdev::refusal("the composition's block geometry does not fit the host");
+    }
+    return mpz_get_ui(value);
+  };
+  const blkdev::geometry shape{quantity(zplat_blkdev_block_bytes), quantity(zplat_blkdev_block_count)};
+  std::vector<uint8_t> fixture;
+  if (create) {
+    // The model's own startup copy of the configured fixture is what a new
+    // image holds. `init_model` repeats this startup, then the image replaces
+    // the copy.
+    zblkdev_initializze(UNIT);
+    const uint64_t bytes = shape.block_bytes * shape.block_count;
+    if (bytes > zblkdev_medium.len) {
+      throw blkdev::refusal("the composition's geometry exceeds the model's medium register");
+    }
+    for (uint64_t i = 0; i < bytes; ++i) {
+      fixture.push_back(static_cast<uint8_t>(zblkdev_medium.data[i]));
+    }
+  }
+  m_blkdev_image = std::make_unique<blkdev::image>(
+    path,
+    create ? blkdev::image::mode::create : blkdev::image::mode::open,
+    shape,
+    fixture,
+    receipt
+  );
+}
+
+bool ModelImpl::close_blkdev_image() {
+  return !m_blkdev_image || m_blkdev_image->close();
+}
+
 void ModelImpl::init_sail(
   uint64_t elf_entry,
   const char *config_file,
@@ -283,6 +334,11 @@ void ModelImpl::init_sail_impl() {
     zenable_htif(m_htif_tohost_address.value());
   }
   zinit_model(m_config_file.c_str());
+  // A bound image is the persistent medium a fresh run opens: its bytes
+  // replace the fixture copy `init_model` made, before any instruction.
+  if (m_blkdev_image) {
+    m_blkdev_image->load(zblkdev_medium.data, zblkdev_medium.len);
+  }
   zinit_boot_requirements(UNIT);
 }
 
