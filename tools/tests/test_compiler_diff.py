@@ -123,6 +123,16 @@ import hashlib, json, pathlib, re, sys
 args = sys.argv[1:]
 source = pathlib.Path(next(a for a in args if a.endswith((".c", ".i"))))
 text = source.read_text(encoding="utf-8")
+if "-E" in args:
+    # A fixture for the driver's handoff, not an implementation of C preprocessing.
+    def expand(path):
+        return re.sub(r'^#include "([^"\\n]+)"$',
+                      lambda m: expand(path.parent / m.group(1)),
+                      path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+    if "FAKE-CCOMP: no-preprocess" in text:
+        sys.exit(0)
+    pathlib.Path(args[args.index("-o") + 1]).write_text(expand(source), encoding="utf-8")
+    sys.exit(0)
 if "-fverifiedos-narrowing-plan" in args:
     plan = json.loads(pathlib.Path(args[args.index("-fverifiedos-narrowing-plan") + 1]).read_text())
     if plan["context"]["source_sha256"] != hashlib.sha256(source.read_bytes()).hexdigest():
@@ -443,11 +453,11 @@ def _loop_over_fake_ccomp_dialect() -> None:
         ensure(ran.cap_roundtrip and ran.emitted == b"true\n",
                "a tagged write read back tagged is reported, and the terminal log is read")
         ensure(run.compiled is not None
-               and run.compiled.argv == (*ccomp, "-S", "d-pass.c", "-o", "d-pass.s"),
+               and run.compiled.argv == (*ccomp, "-S", "d-pass.i", "-o", "d-pass.s"),
                f"ccomp is asked with names relative to the fresh directory: "
                f"{run.compiled and run.compiled.argv}")
-        ensure(sorted(p.name for p in (work / "d-pass").iterdir()) == ["d-pass.c", "d-pass.s"],
-               "the fresh directory holds the source and the stream and nothing else")
+        ensure(sorted(p.name for p in (work / "d-pass").iterdir()) == ["d-pass.i", "d-pass.s"],
+               "the fresh directory holds the frozen preprocessed unit and the stream")
         ensure(run.image_bytes > cd.STACK_BYTES and (work / "d-pass.elf").is_file(),
                "the image is written beside the stream")
 
@@ -497,7 +507,7 @@ def _loop_over_fake_ccomp_lp64d() -> None:
         run = cd.run_program(cd.Program("absent", "given", LP64D_C, 1),
                              [str(scratch / "no-such-ccomp")], work, None,
                              scratch / "p.json", "")
-        ensure(run.verdict == "ccomp-refused" and "could not run" in run.detail,
+        ensure(run.verdict == "ccomp-refused" and "could not preprocess" in run.detail,
                f"an absent compiler is a refusal naming the cause: {run.detail}")
 
 
@@ -513,10 +523,10 @@ def _source_interpreter_reading() -> None:
                                sim, profile, "", interp=True)
         read = agree.interpreted
         ensure(agree.verdict == "pass" and read is not None and read.code == 0
-               and read.argv[-2:] == ("-interp", "i-pass.c") and cd.as_expected(agree),
+               and read.argv[-2:] == ("-interp", "i-pass.i") and cd.as_expected(agree),
                f"an interpreter that agrees leaves the pass standing: {agree}")
-        ensure(sorted(p.name for p in (work / "i-pass").iterdir()) == ["i-pass.c", "i-pass.s"]
-               and (work / "i-pass.interp" / "i-pass.c").is_file(),
+        ensure(sorted(p.name for p in (work / "i-pass").iterdir()) == ["i-pass.i", "i-pass.s"]
+               and (work / "i-pass.interp" / "i-pass.i").is_file(),
                "the interpreter runs in a directory of its own, beside the compilation")
         three = DIALECT_C + "/* FAKE-CCOMP: interp 3 */\n"
         differ = cd.run_program(cd.Program("i-differ", "given", three, 1), ccomp, work,
@@ -535,7 +545,8 @@ def _source_interpreter_reading() -> None:
                "a perturbed twin that passes has not failed where its source says")
         twice = _script(scratch, "twice", "print('Time 1: program terminated (exit code = 0)')\n"
                                           "print('Time 2: program terminated (exit code = 0)')\n")
-        read = cd.interpret_c([sys.executable, str(twice)], work / "i-pass.c", work / "twice")
+        read = cd.interpret_c([sys.executable, str(twice)], work / "i-pass" / "i-pass.i",
+                              work / "twice")
         ensure(read.code is None, "two termination lines give no reading")
 
 
@@ -686,6 +697,7 @@ def _recorded_run_disagreements() -> None:
         stock = json.loads(json.dumps(cd.report_json(passed)))
         stock["name"] = "r-stock"
         stock["source_sha256"] = refused.source_sha256
+        stock["ccomp"] = json.loads(json.dumps(cd.report_json(refused)))["ccomp"]
         said = cd.disagreements([refused], {"programs": [stock]})
         ensure(said == ["r-stock: verdict 'dialect-refused' against the recorded 'pass'"],
                f"a stream refused here and run there is a verdict disagreement: {said}")
@@ -699,6 +711,17 @@ def _recorded_run_disagreements() -> None:
         changed["source_sha256"] = "0" * 64
         ensure("source digest" in cd.disagreements([passed], {"programs": [changed]})[0],
                "the same program name with a different source is a different input")
+        for identity in (None, "", "invalid", 7):
+            missing_unit = json.loads(json.dumps(cd.report_json(passed)))
+            missing_unit["ccomp"]["preprocessed_sha256"] = identity
+            ensure("missing preprocessed input identity" in
+                   cd.disagreements([passed], {"programs": [missing_unit]})[0],
+                   "legacy or malformed records cannot omit transitive input identity")
+        old = json.loads(json.dumps(cd.report_json(passed)))
+        del old["ccomp"]["preprocessed_sha256"]
+        ensure("missing preprocessed input identity" in
+               cd.disagreements([passed], {"programs": [old]})[0],
+               "a legacy report lacking this binding cannot agree")
         duplicated: dict[str, Json] = {
             "programs": [cd.report_json(passed), cd.report_json(passed)]}
         ensure("duplicate name" in cd.disagreements([passed], duplicated)[0],
@@ -771,7 +794,8 @@ def _cli_program() -> None:
         scratch = Path(td)
         ccomp = _wrapper(scratch, "ccomp", _script(scratch, "fake_ccomp", FAKE_CCOMP))
         sim = _wrapper(scratch, "sim", _script(scratch, "fake_sim", FAKE_SIM))
-        base = ["program", "--ccomp", str(ccomp), "--generate", "2", "--seed", "5", "--json"]
+        base = ["program", "--ccomp", str(ccomp), "--generate", "2", "--seed", "5", "--json",
+                "--keep", str(scratch / "kept")]
         first = _run_cli([*base, "--expect-refusal"])
         second = _run_cli([*base, "--expect-refusal"])
         ensure(first == second, f"the report must be deterministic:\n{first}\n{second}")
@@ -787,6 +811,9 @@ def _cli_program() -> None:
         ensure(_run_cli(base)[0] == 1, "without --expect-refusal a refused stream is not green")
         baseline = scratch / "refused.json"
         baseline.write_text(first[1], encoding="utf-8")
+        ensure(_run_cli([*base, "--expect-refusal", "--against", str(baseline),
+                         "--keep", str(scratch / "fresh")])[0] == 0,
+               "identical generated inputs in fresh directories retain comparable unit hashes")
         code, out, _ = _run_cli([*base, "--expect-refusal", "--against", str(baseline),
                                  "--seed", "6"])
         ensure(code == 1 and not json.loads(out)["green"],
@@ -846,6 +873,75 @@ def _fresh_compilation_and_complete_execution() -> None:
         run = cd.run_image(simulator, scratch / "p.json", scratch / "x.elf", scratch)
         ensure(run.verdict == "no-verdict" and run.code is None and "commit trace" in run.detail,
                "HTIF success alone cannot supply the trace half of a program result")
+
+
+def _preprocessed_closure_binds_transitive_inputs() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        compiler = _wrapper(scratch, "ccomp", _script(scratch, "compiler", FAKE_CCOMP))
+        simulator = _wrapper(scratch, "sim", _script(scratch, "simulator", FAKE_SIM))
+        source = scratch / "includes.c"
+        source.write_text('#include "outer.h"\n' + DIALECT_C, encoding="utf-8")
+        outer, inner = scratch / "outer.h", scratch / "inner.h"
+        outer.write_text('#include "inner.h"\n', encoding="utf-8")
+        inner.write_text("int included_value = 7;\n", encoding="utf-8")
+        kept = scratch / "kept"
+        args = ["program", "--ccomp", str(compiler), str(source), "--simulator",
+                str(simulator), "--keep", str(kept), "--interp", "--json"]
+        code, out, err = _run_cli(args)
+        ensure(code == 0, f"relative transitive includes compile: {out} {err}")
+        report = json.loads(out)
+        row = report["programs"][0]
+        frozen = kept / "includes" / "includes.i"
+        ensure(row["ccomp"]["preprocessed_sha256"] == cd._sha256(frozen.read_bytes())
+               and row["ccomp"]["preprocess"]["cwd"] == str(scratch.resolve())
+               and b"included_value = 7" in frozen.read_bytes()
+               and (kept / "includes.interp" / "includes.i").read_bytes() == frozen.read_bytes(),
+               "the compiled and interpreted unit binds expanded nested header bytes and cwd")
+        recorded = scratch / "recorded.json"
+        recorded.write_text(out, encoding="utf-8")
+        ensure(_run_cli([*args, "--against", str(recorded)])[0] == 0,
+               "unchanged preprocessed input agrees in a reused directory")
+        inner.write_text("int included_value = 8;\n", encoding="utf-8")
+        code, out, _ = _run_cli([*args, "--against", str(recorded)])
+        changed = json.loads(out)
+        ensure(code == 1 and changed["programs"][0]["source_sha256"] == row["source_sha256"]
+               and "preprocessed input digest" in changed["against"]["disagreements"][0],
+               "a changed nested header invalidates identical top source and emulator answers")
+        inner.unlink()
+        code, out, _ = _run_cli([*args, "--against", str(recorded)])
+        ensure(code == 1 and json.loads(out)["programs"][0]["verdict"] == "ccomp-refused"
+               and not frozen.exists() and not frozen.with_suffix(".s").exists(),
+               "a missing nested include cannot reuse either preprocessed or assembly output")
+        source.write_text("/* FAKE-CCOMP: no-preprocess */\n" + DIALECT_C, encoding="utf-8")
+        frozen.write_text(DIALECT_C, encoding="utf-8")
+        code, out, _ = _run_cli(args)
+        ensure(code == 1 and json.loads(out)["programs"][0]["verdict"] == "ccomp-refused"
+               and not frozen.exists(), "exit zero without preprocessing output refuses stale input")
+
+
+def _preprocessed_input_is_frozen_for_both_readings() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        source = scratch / "exact.i"
+        raw = DIALECT_C.replace("\n", "\r\n").encode()
+        source.write_bytes(raw)
+        compiler = [sys.executable, str(_script(scratch, "compiler", FAKE_CCOMP))]
+        compiled = cd.compile_c(compiler, source, scratch / "work")
+        ensure(compiled.stream is not None and not compiled.preprocessed.argv
+               and compiled.preprocessed.sha256 == cd._sha256(raw)
+               and compiled.preprocessed.path.read_bytes() == raw,
+               "already preprocessed plan-bound units retain every byte and skip -E")
+        changed = _script(scratch, "mutator", FAKE_CCOMP +
+                          '\nsource.write_bytes(source.read_bytes() + b" changed")\n')
+        refused = cd.compile_c([sys.executable, str(changed)], source, scratch / "changed")
+        ensure(refused.stream is None and "input changed" in refused.said,
+               "a compiler that changes its input cannot return bound evidence")
+        compiled.preprocessed.path.write_bytes(raw + b" changed")
+        interpreted = cd.interpret_c(compiler, compiled.preprocessed.path, scratch / "interp",
+                                     expected_sha256=compiled.preprocessed.sha256)
+        ensure(interpreted.code is None and "input changed" in interpreted.said,
+               "the interpreter refuses an input changed since compilation")
 
 
 def _component_rejects_missing_or_wrong_evidence() -> None:
@@ -968,6 +1064,8 @@ def cases() -> list[Case]:
         Case("component-encoding-and-comparator", _component_encoding_and_comparator),
         Case("cli-program", _cli_program),
         Case("fresh-compilation-and-complete-execution", _fresh_compilation_and_complete_execution),
+        Case("preprocessed-closure-binds-transitive-inputs", _preprocessed_closure_binds_transitive_inputs),
+        Case("preprocessed-input-is-frozen-for-both-readings", _preprocessed_input_is_frozen_for_both_readings),
         Case("component-rejects-missing-or-wrong-evidence", _component_rejects_missing_or_wrong_evidence),
         Case("cli-component-and-generate", _cli_component_and_generate),
     ]
