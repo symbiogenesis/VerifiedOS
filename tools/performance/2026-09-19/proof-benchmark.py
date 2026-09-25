@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Read-only old/new proof metadata benchmark and corpus equivalence check."""
 import dataclasses
 import json

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Recheck the twelve finite Hadamard matrices named in manifest.json."""
 
 import argparse
