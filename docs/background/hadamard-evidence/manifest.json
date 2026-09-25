@@ -1,0 +1,90 @@
+{
+  "source_repository": "https://github.com/bbeartheancient/hoa64",
+  "source_revision": "d825201089123126ce792d4921cba4ae1b8977a3",
+  "files": [
+    {
+      "order": 668,
+      "name": "hadamard_668.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_668.csv.gz",
+      "sha256_gzip": "4b293fe9c8d71abf4fe1095e4b4f68d7076a6b51f5c691ce3830c5459b887a21",
+      "sha256_csv": "afd95960604159441497bbc5f507aa5ff820682a5b11f19d6667c6e31a00d2ee"
+    },
+    {
+      "order": 716,
+      "name": "hadamard_716.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_716.csv.gz",
+      "sha256_gzip": "158b04b0b7dfe3145e4438de4217e4aefe4ba057e70fb868ed256f0ac91d8d97",
+      "sha256_csv": "52028dbb9a937fdb82b8b09c29a0dcda9502d378550b99649e16185555c0007d"
+    },
+    {
+      "order": 892,
+      "name": "hadamard_892.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_892.csv.gz",
+      "sha256_gzip": "20beacc079cd64368df66f1781125b3aff4a026f446c08ebd18a419f66a32e56",
+      "sha256_csv": "fa2b9b4bc0d2ab10f6c6422d427e24aefdc5be2c294e95b6476e332af4614ac5"
+    },
+    {
+      "order": 1132,
+      "name": "hadamard_1132.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1132.csv.gz",
+      "sha256_gzip": "1ba3de6a5e1d25467fa95677b02751115db315bf011241758c9cb85e211f82df",
+      "sha256_csv": "7f98a3824e42ede0ee755b1831fbb258cc8edc31ee449db2b950cb74340b405e"
+    },
+    {
+      "order": 1244,
+      "name": "hadamard_1244.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1244.csv.gz",
+      "sha256_gzip": "e92845e882befde229f7c949f156ec2578ffc564e301f9ab8126bd9f7e7f1de7",
+      "sha256_csv": "4a121ae7a4a6e7e7674c73809110b0031639fbe3c903a9f732e86d3eb43e86b7"
+    },
+    {
+      "order": 1388,
+      "name": "hadamard_1388.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1388.csv.gz",
+      "sha256_gzip": "f7d5c0ec21350058eb6328b63d150b419ceffa902156c0093d09694443fd097d",
+      "sha256_csv": "d40f6977253ab5f4b6312e256d3da459945b4b6458120cb3db2cf8b89581285e"
+    },
+    {
+      "order": 1436,
+      "name": "hadamard_1436.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1436.csv.gz",
+      "sha256_gzip": "74f6541378e85ca2c10110b310dddf8fdcdab383b650b232b8c868d5b426c5a9",
+      "sha256_csv": "f8e540ab1c1cf46aa1bddcefebb47674f10af99747eb515f435f5f032950623f"
+    },
+    {
+      "order": 1676,
+      "name": "hadamard_1676.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1676.csv.gz",
+      "sha256_gzip": "3bb48b0014d144c376a0c6a2ba15e59757067c7dc070d8ee886f33dabd1bb0f1",
+      "sha256_csv": "0d941013c468e41865181481bb8337e01a6cdbb853d69f556e56eb32b84f7041"
+    },
+    {
+      "order": 1772,
+      "name": "hadamard_1772.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1772.csv.gz",
+      "sha256_gzip": "e7087d772c47164e4ca15f9b9dedc0ec0a9396d09239db9eedd91d28a5382c71",
+      "sha256_csv": "8a4f05b4284e6680cace0a3bfd94080dd22b34d9e7514cbb1abc648a32106083"
+    },
+    {
+      "order": 1916,
+      "name": "hadamard_1916.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1916.csv.gz",
+      "sha256_gzip": "7c8c4e73b69456007d936c80ca9af224d512d176d006dd7072a354f006f0cdf1",
+      "sha256_csv": "cfa36237db34ce8d40b7a8cb9f5e8783c2f226193a324ad978a424f1946e3bb1"
+    },
+    {
+      "order": 1948,
+      "name": "hadamard_1948.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1948.csv.gz",
+      "sha256_gzip": "a6a8fc73d0c45c195d5ccbd131a5c3ecc4d7d7ee48dc03a9db889916325dd6a0",
+      "sha256_csv": "23ace1898b300d07f16e0381587cde125f71019ee8f1b9c8b4b4236d4793c810"
+    },
+    {
+      "order": 1964,
+      "name": "hadamard_1964.csv.gz",
+      "download_url": "https://raw.githubusercontent.com/bbeartheancient/hoa64/d825201089123126ce792d4921cba4ae1b8977a3/matrices/hadamard_1964.csv.gz",
+      "sha256_gzip": "a6b834d131a565aa1356b5657db85f2fce8928492d2e4c1d85fad2b5e994fe03",
+      "sha256_csv": "ad25816b9a10891175a673670bb2a671d648d75a14cc4ab9fb734648ca410700"
+    }
+  ]
+}
