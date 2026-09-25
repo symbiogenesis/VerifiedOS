@@ -113,6 +113,29 @@ artifact is host output and does not alter target execution.
 
 ## Mechanized statements and the remaining bridge
 
+### Prefix and sequential-composition proof contract
+
+The [prefix-discrepancy research review](../../background/open-math-conjectures.md#strong-or-prefix-komlós-conjecture)
+motivates checking intermediate demand independently of final balance. The finite
+credit model can establish that distinction directly, without assuming a
+discrepancy theorem. This extension keeps `CreditEvent`, `required_credit`,
+`run_credit`, `taken`, `returned` and all existing theorem statements unchanged.
+Its acceptance predicate is an axiom-free proof that sufficient credit is
+equivalent to `taken prefix <= initial + returned prefix` for every prefix;
+an exact requirement for concatenation; and the maximum-of-requirements law when
+the first phase is balanced. Concrete serial and overlapping traces must have
+the same totals but different peak requirements, and a balanced trace with
+arbitrary demand must refute any bound inferred from final balance alone.
+
+Review covers the unchanged placement and return-identity premises below.
+Acceptance uses the exact assumption audit, non-vacuity review and fresh kernel
+check through Guest CI with `cold: true`, together with green Host CI. Dispatch
+is recorded with its revision; a pending guest verdict is not proof acceptance.
+These are finite accounting results, not the prefix Komlós lower bound or a
+resource guarantee for catalytic computation.
+
+### Existing accounting and refinement boundary
+
 `required_credit_exact` equates successful finite execution with sufficient
 initial credit. `below_requirement_fails` establishes the failing side.
 `credit_conservation` accounts for issued and returned bytes;

@@ -278,6 +278,35 @@ TM-9 and the §4 seed-budget calculation must be recomputed for the selected cha
 including extraction's output loss. The simple raw-entropy sum in §4 cannot be
 used as its output-rate formula.
 
+### Finite composition and parameter proof contract
+
+The [extractor research review](../background/open-math-conjectures.md#explicit-low-error-two-source-extraction)
+keeps asymptotic improvements separate from this candidate's finite premises.
+The extension to `TwoSourceExtractor.v` preserves every existing definition,
+statement and allowed assumption. Its acceptance predicate is an axiom-free
+conditioner-to-target bound carrying both the input error and `delta_C`, a
+bit-string specialization, and a composed hybrid-plus-conditioner budget in the
+existing integer distance scaling. Equal positive total weights are required
+when interpreting those inequalities as normalized statistical distances.
+The conditioner still has to map each supported input to exactly one enumerated
+output. A constant conditioner must demonstrate that its additional error
+cannot be dropped.
+
+The finite-parameter addition must prove that a positive distribution over
+`n`-bit strings cannot satisfy the existing min-entropy premise at `k > n`.
+For a source pair meeting the candidate's `n + 2s <= kX + kY` target this yields
+`2s <= n`. An arithmetically admissible parameter record with an impossible
+entropy width must have no realizing source pair; an existing realizable record
+must still meet the bound. No source record or admissibility predicate is changed.
+
+Review covers correspondence to R-15-241ca, positive and distinguishing negative
+witnesses, and the unchanged physical and invocation premises. Acceptance uses
+the exact assumption audit and fresh kernel check through Guest CI with
+`cold: true`, together with green Host CI. The run and revision are recorded;
+a pending guest verdict supplies no proof acceptance or source qualification.
+
+### Current qualification boundary
+
 Qualification fails when any required premise, correspondence or resource bound
 is absent. The finite theorem for this candidate is landed at
 [TwoSourceExtractor.v](../../proofs/TwoSourceExtractor.v): over integer weight
