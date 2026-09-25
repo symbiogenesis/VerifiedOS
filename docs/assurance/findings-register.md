@@ -1802,7 +1802,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-457** owed-act: the program driver's result binds only the top translation unit's SHA-256 and not the sources it includes
 · Raised: M1.2f, in prose
-· Disposition: open, the driver recording the included sources' identities or the preprocessed unit's
+· Disposition: closed, compiler-diff records the exact preprocessed unit's identity, compiles and interprets those bytes, and refuses missing or changed bindings before comparing run evidence
 
 ## M2 · Fast emulator
 
@@ -2279,15 +2279,15 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-458** owed-act: StorageBridge.v serializes the generation into one nonce byte, so generations separated by 256 collide at the same position and kind under one key
 · Raised: M5.3d, in prose
-· Disposition: open, the bridge format owner must enforce bounded generation with refusal before exhaustion and reuse, or select and check a wider injective encoding before device-trace acceptance
+· Disposition: open, with the bounded source repaired: admitted nonce fields have an injective AES-GCM bit encoding and the key-wide reservation function refuses generation exhaustion; durable once-only reservation, crash ordering and key replacement remain owed before device-trace acceptance
 
 **F-459** owed-act: StorageBridge.v states layout_fits but neither serialization nor decoding enforces its layout, exact medium length and byte-value bounds
 · Raised: M5.3d, in prose
-· Disposition: open, checked admission at the serialization and decoder boundary before the prototype can supply the selected recovery protocol
+· Disposition: closed at the bounded specification, the public writer and decoder enforce layout, field/octet and exact-medium bounds, with malformed sealer/opener outputs refused; executable serialization and target recovery remain M5.3d's joins
 
 **F-460** owed-act: the bridge acknowledgement theorem compares recovered and supplied counts without authenticating the checkpoint generation, journal binding or acknowledged transaction identities and contents
 · Raised: M5.3d, in prose
-· Disposition: open, the authenticated checkpoint producer and recovery join must establish R-10-002a preservation of acknowledged work, not just a count inequality
+· Disposition: open, with the bounded source repaired: recovery binds the supplied checkpoint's generation, journal and layout and proves exact ordered acknowledged transaction identity/content preservation; the independent authenticated checkpoint producer and durable recovery join remain owed
 
 **F-461** owed-act: the persistent block-image receipt records image identities and persistence events but omits the complete input-event trace and separate architectural two-run HTIF reopen evidence
 · Raised: M5.3d, in prose

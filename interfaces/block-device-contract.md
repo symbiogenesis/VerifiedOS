@@ -381,13 +381,15 @@ explicit. Its separate review, the executable authentication and crypto path,
 the recovery-policy implementation, the kernel join and the full M5.3 target
 predicate remain their owners' work.
 
-The bridge review identifies a blocking format constraint: generation occupies
-one byte of its AES-GCM nonce, so generations differing by 256 collide. Its
-`layout_fits` predicate and byte ranges are not enforced by its decoder; its
-acknowledgement theorem bounds a count rather than proving checkpoint identity
-preservation. The [recovery-policy owner](../docs/implementation/storage-recovery-policy.md)
-records the admission, nonce-exhaustion and checkpoint bindings required before
-device traces can be accepted through this prototype.
+The bridge's checked writer and decoder enforce fitting geometry, exact medium
+length and octet ranges. Its nonce encoding is injective within the admitted
+generation range; generation reservation refuses exhaustion without wrapping.
+Recovery checks the checkpoint's generation, journal and layout and preserves
+its exact ordered acknowledged transaction prefix. The
+[recovery-policy owner](../docs/implementation/storage-recovery-policy.md) retains
+the independent checkpoint verifier, durable key-wide reservation and publication
+ordering, full node-image format and executable crash/reopen campaign as joins
+before device traces can be accepted through this bounded specification.
 
 The integrator records partial M5.3 progress and remaining findings in the shared
 checklist; this document grants no completed-item status, proof tier or

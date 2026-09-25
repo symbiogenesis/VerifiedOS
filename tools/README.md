@@ -132,6 +132,7 @@ caught by nothing, which is a residue the findings register carries.
 | `composer` | wsl; `compose`, `fixture`, `compare` on either lane | [The descriptor-only composer](composer/README.md). `composer fixture` emits the reference descriptors; `composer compose` emits canonical graph bytes; `composer compare` checks the finite source-reading comparison. `prove` compiles generated equalities against the Gallina reference in the native lane. Version 2 boot recipes embed the graph in the ELF and bind its digest. Real descriptors and production admission remain open. |
 | `admission` | wsl; `record`, `emit-reference` on either lane | [The offline reference checker](admission/README.md). `admission record` binds a metadata-only decision to exact image, graph, roster and request bytes; `admission emit-reference` writes the generated Gallina comparison. `compare` compiles that comparison in the locked native prover. Reference acceptance never supplies real checked derivations or production admission. |
 | `supervisor` | wsl | [The bounded supervisor C](../supervisor/README.md). `check` compares generated C decisions with the Gallina reference in the locked native prover. Target backend, kernel handoff and observed boot/fault order remain open. |
+| `copy-service` | wsl | [The bounded copy-service C](../copy-service/README.md). `check` compares generated C decisions with the Gallina reference in the locked native prover. Target lowering, notification effects and composed boot remain open. |
 | `witness` | host | `qualify` enumerates bounded witness quorums; `test --only witness` exercises durable recovery and policy transitions. Both separate honest intersection from availability and selective delivery. |
 | `session-binding` | host | Checks two symbolic attestation/session-binding models, the TLS application binding and the ensemble link session, against replay, parallel-session substitution, unit-substitution, foreign-ensemble-identity and relay cases. Cryptographic and implementation correspondence remain separate obligations. |
 | `assembly-compare` | host | Compares stock compiler assembly under the [reviewed annotation-only contract](../docs/implementation/comparisons/compiler-assembly.md). `LEFT RIGHT --json` reports input and tool identities; equal bytes supply no compiler-campaign verdict. |
@@ -214,7 +215,11 @@ connects this analysis to schedule extraction and workload cost arithmetic.
 
 `compiler-diff` is M1.2f's driver, and what it does not decide is stated with what it
 does. At the program level it runs the `ccomp` its command line names, which
-stays outside every checkout under M1.1a's containment, with `-S` in a fresh directory.
+stays outside every checkout under M1.1a's containment. It preprocesses C once with
+`-E` beside the original source, preserving relative transitive includes, then
+passes the exact retained `.i` bytes to `-S` in a fresh directory. Incoming `.i`
+files keep their bytes unchanged. The report records the preprocessing invocation,
+working directory and unit digest; `--interp` consumes that same frozen unit.
 Repeated `--ccomp-arg=ARG` options pass compiler flags unchanged, `-fverifiedos-typed`
 selecting the backend's typed purecap route, and retain them in each invocation's
 receipt. `--generate N` adds the campaign its seed names, generated inside the
@@ -253,8 +258,10 @@ root (R-15-001c), installs a trap handler and folds `main`'s return into the
 HTIF exit code, and is run with the invocation `model corpus` makes; the HTIF verdict
 and the commit trace's digest are the two questions. A successful emulator exit must
 carry both the HTIF success line and a nonempty commit trace. `--against FILE` holds
-the results to a recorded run with the same unique program names and source digests;
-missing members and comparison disagreements fail even under `--expect-refusal`.
+the results to a recorded run with the same unique program names, source digests
+and preprocessed-unit digests. Missing or changed input identities, including
+legacy records without the unit digest, fail before comparison. Missing members
+and comparison disagreements fail even under `--expect-refusal`.
 A reused `--keep` directory cannot supply stale compiler output, and the partial
 assembly and narrowing sidecars the typed route creates exclusively are removed before
 the compiler runs, so a rerun there is not refused for a file an earlier run left. A

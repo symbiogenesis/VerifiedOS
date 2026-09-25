@@ -50,7 +50,7 @@ source. Binding that manifest to the admitted image and target handoff remains o
 | `supervisor` | `image` | 3 | `partial` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `crypto-core`, `storage` and `copy-service` in its manifest's start order |
 | `crypto-core` | `image` | 4 | `statement-only` | M5.3d for the seal/open and keyed-digest operations storage invokes | [Keccak.v](../../../proofs/Keccak.v), [Sha256.v](../../../proofs/Sha256.v), [AesGcm.v](../../../proofs/AesGcm.v), [MlDsa.v](../../../proofs/MlDsa.v) | started by `supervisor` before `storage`; holds the volume keys and serves storage's seal/open and keyed-digest calls through its entry, no key material crossing to the caller (R-10-022, R-10-012, R-10-023) |
 | `storage` | `image` | 5 | `statement-only` | M5.3d | [ExecutableIndex.v](../../../proofs/ExecutableIndex.v), [JournalIndex.v](../../../proofs/JournalIndex.v), [StorageRecovery.v](../../../proofs/StorageRecovery.v) | started by `supervisor`; one index body at the system-integrity and user-data instantiations over the modeled block device, calling `crypto-core` for seal/open over ciphertext extents and tags |
-| `copy-service` | `image` | 6 | `statement-only` | M7.1 | [CopyRingService.v](../../../proofs/CopyRingService.v), [RingContract.v](../../../proofs/RingContract.v) | started by `supervisor`; serves one ring of the reference world in [the ring declaration](../../../interfaces/ring-reference.json) |
+| `copy-service` | `image` | 6 | `partial` | M7.1 | [CopyRingService.v](../../../proofs/CopyRingService.v), [RingContract.v](../../../proofs/RingContract.v) | started by `supervisor`; serves one ring of the reference world in [the ring declaration](../../../interfaces/ring-reference.json) |
 | `composer` | `offline` | n/a | `partial` | M7.1 | [HandlerGraph.v](../../../proofs/HandlerGraph.v) | runs at composition over the roster; emits the typed handler graph the image carries |
 | `admission` | `offline` | n/a | `partial` | M7.1 | [AdmissionPath.v](../../../proofs/AdmissionPath.v) | runs at composition over the composed roster; emits the admission record bound to the image digest |
 
@@ -66,8 +66,9 @@ exists only as a Gallina statement, and `fixture` in a fixture roster alone. A `
 `statement-only` member blocks acceptance, and a recipe that names one is refused with its
 owner.
 
-**No member has an accepted target product at this contract's revision.** The supervisor
-has a bounded host C implementation, and the offline composer and admission checker have
+**No member has an accepted target product at this contract's revision.** The supervisor and
+[copy-service](../../../copy-service/README.md) have bounded host C implementations,
+and the offline composer and admission checker have
 reference implementations; their remaining target, descriptor and derivation joins keep
 those rows `partial`. The other rows remain `statement-only`. The tracked Fiat-Crypto
 emissions are C field arithmetic that no target build compiles. The modeled block device
@@ -311,7 +312,7 @@ any real member's behaviour.
 
 ## 9. What stays open
 
-No recipe composes accepted products for the whole roster. The supervisor and offline
+No recipe composes accepted products for the whole roster. The supervisor, copy-service and offline
 reference programs are partial implementations, with their open joins recorded above.
 A version 2 recipe binds reference admission metadata; production derivations remain open.
 The RoT stage is not driven. The supervisor's static C manifest is a proposed source

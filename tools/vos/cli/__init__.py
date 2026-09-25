@@ -153,6 +153,8 @@ COMMANDS: tuple[Command, ...] = (
             host_ok=frozenset({"record", "emit-reference"})),
     Command("supervisor", "vos.cli.supervisor",
             "compare the bounded supervisor C with its Gallina reference", lane="guest"),
+    Command("copy-service", "vos.cli.copy_service",
+            "compare the bounded copy-service C with its Gallina reference", lane="guest"),
     Command("witness", "vos.cli.witness",
             "bounded witness quorum, recovery and policy-transition cases"),
     Command("session-binding", "vos.cli.session_binding",
