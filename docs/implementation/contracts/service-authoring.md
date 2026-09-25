@@ -21,6 +21,25 @@ Acceptance for the authorable scope:
 
 The intent variants and ambiguity policy remain owner decisions at R-12-013a and R-12-024b. The first/last-match arms in `HandlerGraph.v` must remain distinguishable; no predicate here chooses one. Deterministic translation-cache integration remains open with those decisions. Real namespace writes, queries and credential operations await M5.3's storage and an executable ring service.
 
+### Research handoff for the future index implementation
+
+M6.3b's unimplemented namespace and query indexes may compare the survey's
+[dynamic ordered indexes](../../background/open-math-conjectures.md#compact-static-dictionaries-and-dynamic-ordered-indexes),
+[hashing](../../background/open-math-conjectures.md#hashing-beyond-the-uniform-probing-conjecture)
+and [BST optimality](../../background/open-math-conjectures.md#dynamic-optimality-of-binary-search-trees)
+leads only after selecting an actual bounded workload. The
+[workload handoff](wasm-execution.md#mathematical-research-handoff) records their
+distinct models and cost limits; it does not choose this service's representation.
+A candidate here would still need a concrete index invariant and refinement of
+lookup, update, deletion and exhaustion, preserving domain confinement, untagged
+keys, committed publication and rescan behavior. Exercise absent and duplicate
+keys, the full-capacity boundary, a refused cross-domain query and restart during
+an update. Expected/amortized operations do not establish bounded service phases
+or crash consistency. Immutable composer tables have the separate
+[resident-producer comparison](../../performance/toolchain-residency.md#research-leads-for-bounded-resident-passes).
+These are optional research inputs, with no change to this contract's acceptance
+predicate, index selection or implementation scope.
+
 ## 2. Single kernel instance
 
 `proofs/KernelInstance.v` consumes `PartitionContext.v` and `CyclicExecutive.v`. `RunAnswersM44` supplies the three trace questions with unique attempts and exact observed-write multiplicity; `QualifiedRunAnswersM44` adds the semantic barrier and sanitized-image join. Both have reference/refuting traces. The [scalar ABI contract](purecap-abi.md) and the differential corpus schema own register, primitive and target conventions.

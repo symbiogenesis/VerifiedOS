@@ -26,6 +26,8 @@
 | **The wire-format inventory** (R-05-042) | row 10, Q23b's frame descriptor, Q24a's grammar, row 25's binary parser | U-12 |
 | **A Coq hardware DSL that builds at the locked prover** (R-15-091, Kami by default) | Q22d, Q23g, U-24 | U-23 |
 
+The [schedule-synthesis handoff](../implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis) supplies optional research inputs to U-03/U-05's future producer and target correspondence. The [security handoff](proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs) similarly informs U-20's consumers without supplying the missing probabilistic foundation. These links assign no new slice, assumption, price or completion credit.
+
 ## 2. The security policy model
 
 | Obligation | Required endpoint | Checked local artifact | Qualified source and its transfer gap | Missing correspondence | Owner or next slice |

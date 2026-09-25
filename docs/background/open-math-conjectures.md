@@ -14,13 +14,16 @@ The status review includes recent manuscripts, their revisions, and public GitHu
 
 | Project surface | Mathematical opportunity | Boundary that still applies |
 | --- | --- | --- |
-| [Fixed memory placement](../implementation/placement-search.md) and [portable planner](../implementation/portable-memory-planner.md) | Tighter packing, smaller search, stronger lower bounds | Fixed backing, exact capability bounds, alignment, islands, safe-reuse lifetimes and independently checked candidates |
-| [Elastic domain](../implementation/contracts/elastic-domain.md) | Better resource assignments and bounded allocation policies | Composition-fixed envelope, quarantine and revocation costs, permitted in-label contention |
-| [Phase service](../implementation/phase-service/prerequisite-contract.md) and [schedule records](../implementation/contracts/schedule-record.md) | Shorter schedules and smaller intermediate buffers | WCET, dependencies, nonpreemption, communication slots and confidentiality boundaries |
-| [Proof assistance](../assurance/proof-assistance.md) and [CIC qualification](../assurance/cic-checker-qualification.md) | Faster proof search, smaller certificates and tractable restricted verification | Frozen claims, exact assumptions, kernel checking and non-vacuity review |
-| [Wasm execution](../implementation/contracts/wasm-execution.md) | Better guest algorithms, preparation, representations and arithmetic | Pure interpretation, bounded native phases, no JIT, no new performance-only trusted checker |
-| [Cryptographic premises](../assurance/proof-reuse/crypto.md) and [entropy qualification](../hardware/trng-source-model-contract.md) | Stronger reductions, better finite parameters, explicit constructions | Concrete security games, attack budgets, source independence and physical qualification |
-| [Compute compatibility](../implementation/compute-compatibility.md) and [inference](../performance/inference-demand.md) | Fewer arithmetic operations, transfers and resident intermediates | Exact or explicitly permitted numerical semantics, fixed traffic budgets and measured target costs |
+| [Fixed memory placement](../implementation/placement-search.md#8-research-handoff-for-future-placement-proofs) and [portable planner](../implementation/portable-memory-planner.md) | Tighter packing, smaller search, stronger lower bounds | Fixed backing, exact capability bounds, alignment, islands, safe-reuse lifetimes and independently checked candidates |
+| [Elastic domain](../implementation/contracts/elastic-domain.md#research-handoff-for-movable-storage) | Better resource assignments and bounded allocation policies | Composition-fixed envelope, quarantine and revocation costs, permitted in-label contention |
+| [Phase service](../implementation/phase-service/prerequisite-contract.md#schedule-and-resource-extraction) and [schedule synthesis](../implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis) | Shorter schedules and smaller intermediate buffers | WCET, dependencies, nonpreemption, communication slots and confidentiality boundaries |
+| [Proof producers](../assurance/proof-assistance.md#research-handoff-for-future-proof-producers) and [CIC qualification](../assurance/cic-checker-qualification.md#research-boundary-for-certificate-and-checker-cost) | Faster proof search, smaller certificates and tractable restricted verification | Frozen claims, exact assumptions, kernel checking and non-vacuity review |
+| [Resident passes](../performance/toolchain-residency.md#research-leads-for-bounded-resident-passes) and [service indexes](../implementation/contracts/service-authoring.md#research-handoff-for-the-future-index-implementation) | Parallel graph algorithms, recomputation, compact dictionaries and private catalytic workspace | Result equivalence, finite backing, exact restoration, bounded activations and service semantics |
+| [Wasm execution](../implementation/contracts/wasm-execution.md#mathematical-research-handoff) | Better guest algorithms, preparation, representations and arithmetic | Pure interpretation, bounded native phases, no JIT, no new performance-only trusted checker |
+| [Cryptographic premises](../assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs) and [entropy qualification](../hardware/trng-source-model-contract.md#research-handoff-for-alternative-extractors) | Stronger reductions, better finite parameters, explicit constructions | Concrete security games, attack budgets, source independence and physical qualification |
+| [Coding proofs](../assurance/proof-reuse/hardware.md#research-handoff-for-future-code-and-decoder-proofs) and [communication proofs](../assurance/proof-reuse/protocols.md#research-handoff-for-future-communication-proofs) | Finite code certificates, smaller decoder scratch and topology-specific traffic comparisons | Actual channel and code family, total resident storage, decoded interface, fixed schedules and authenticated sessions |
+| [Compute proofs](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff) and [inference](../performance/inference-demand.md#research-handoff-to-unwritten-inference-proofs) | Fewer arithmetic operations, transfers and resident intermediates | Exact or explicitly permitted numerical semantics, fixed traffic budgets and measured target costs |
+| [Field/code parameter generation](../implementation/fiat-crypto-emission.md#research-handoff-for-future-field-and-code-parameters) and [finite rotations](../performance/bonsai2-assessment.md#finite-rotation-proof-handoff) | Checked algebraic witnesses for selected constants and transforms | Finite representation and certificates, construction costs and executable arithmetic correspondence |
 
 The [static-memory research agenda](static-memory-research.md) already separates live payload, legal address span, stranded reservations and reclamation overhead. That distinction governs every allocation entry below. A better placement does not shorten an object's lifetime or remove a quarantined capability. Likewise, an amortized data-structure theorem does not establish a per-slot deadline.
 
@@ -490,6 +493,16 @@ The result could inform scratch budgets for bulk recovery while preserving a hig
 | Collatz, Goldbach, Hodge and other famous open problems | No concrete reduction to a present VerifiedOS bottleneck or admission obligation is identified here. Their absence is a relevance decision, not a claim that they cannot ever affect computing. |
 
 ## How to use this survey
+
+The [owner links above](#how-the-connections-fit-this-machine) lead to research
+handoffs beside unfinished proof work. Each handoff identifies a matching
+consumer or explicitly deferred workload, the missing reduction or refinement,
+and useful positive/refuting examples. The
+[static-memory handoff](static-memory-research.md#survey-handoff-to-unfinished-proofs)
+also routes the project-specific questions to their existing owners. Relevant
+open checklist leaves link to these contracts; the survey owns research status,
+while those contracts own the local application. These notes change no estimate,
+completion state, accepted premise or implementation selection.
 
 For allocation work, start with Dynamic Storage Allocation, bin-packing gaps and the project's near-laminar questions. For scheduling, start with the precise job and service models, then test whether discrepancy or ordering results preserve their dependencies. For guarantees, distinguish the cost of finding proofs from their size, checking cost and truth under stated assumptions. For Wasm, profile the selected interpreter and guest algorithms before assigning value to an asymptotic result. For cryptography, maintain the existing concrete premise and attack ledger.
 
