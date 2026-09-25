@@ -162,6 +162,52 @@ def _calibration_has_no_count_width_cliff() -> None:
         ensure(not result.findings, f"a grown pool must still be readable: {result.findings!r}")
 
 
+def _invalid_records_never_rewrite_calibration() -> None:
+    plan = _marked(estimates._calibration_table(_fits())) + (
+        "* [x] **a** · 8 h actual\n"
+        "* [x] **b** · 5 h actual\n"
+        "* [x] **c** · 20 h actual\n"
+        "* [x] **p** · 2 h actual · agent-parallel\n"
+        "* [x] **q** · 3 h actual · agent-parallel\n"
+        "* [x] **r** · 4 h actual · agent-parallel\n"
+        "**S subtotal:** 42 h · 100% · 42 h complete.\n"
+        "* Calibrated against completed-item outturn (class I 0.80, class X 2.00): "
+        "approximately 42 h\n"
+        "### Calibration record\n\n"
+        "| Item | Pool | Estimate |\n| --- | --- | --- |\n"
+        "| a | I | 10 |\n| b | X-read | 10 |\n| c | X-authored | 10 |\n"
+        "#### The agent-parallel series\n\n"
+        "| Item | Pool | Estimate |\n| --- | --- | --- |\n"
+        "| p | I | 10 |\n| q | X-read | 10 |\n| r | X-authored | 10 |\n")
+    for invalid in (
+        plan.replace("### Calibration record", "### Missing record"),
+        plan.replace("| c | X-authored | 10 |\n", ""),
+        plan.replace("| c | X-authored | 10 |", "| c | Unknown | 10 |"),
+        plan.replace("| c | X-authored | 10 |", "| c | X-authored | 0 |"),
+        plan.replace("| c | X-authored | 10 |", "| c | X-authored | 10 |\n"
+                     "| c | X-authored | 10 |"),
+    ):
+        with sandbox_tree(_files(invalid)) as root:
+            ctx = _context(root, fix=True)
+            estimates.run(ctx)
+            ensure(any(line.startswith("FAIL K-96:") for line in ctx.rep.out),
+                   "invalid records must remain findings")
+            ensure(not ctx.fixed, "invalid records must not overwrite calibrated evidence")
+
+
+def _calibration_repair_preserves_crlf() -> None:
+    table = estimates._calibration_table(_fits())
+    wanted = _marked(table).replace("\n", "\r\n")
+    with sandbox_tree(_files(wanted)) as root:
+        ctx = _context(root, fix=True)
+        # Context normally reads normalized text. Seed its current text directly
+        # to exercise repair where a preceding producer retains CRLF bytes.
+        ctx.fixed[PLAN] = wanted.replace("| 33 | 1.10 |", "| 999 | 999 |")
+        result = estimates._calibration_results(ctx, _fits())
+        ensure(not result.findings and ctx.fixed[PLAN] == wanted,
+               "a table repair must preserve its existing newline convention")
+
+
 def cases() -> list[Case]:
     return [
         Case("parse-cells-without-shares", _parse_cells_without_shares),
@@ -171,4 +217,6 @@ def cases() -> list[Case]:
         Case("calibration-repairs-once-without-pooling", _calibration_repairs_once_without_pooling),
         Case("calibration-table-fails-closed", _calibration_table_fails_closed),
         Case("calibration-has-no-count-width-cliff", _calibration_has_no_count_width_cliff),
+        Case("invalid-records-never-rewrite-calibration", _invalid_records_never_rewrite_calibration),
+        Case("calibration-repair-preserves-crlf", _calibration_repair_preserves_crlf),
     ]

@@ -409,7 +409,8 @@ def _calibration_table(fits: dict[str, Fit]) -> str:
     return "\n".join(lines)
 
 
-def _calibration_results(ctx: Context, fits: dict[str, Fit]) -> figures.LineResult:
+def _calibration_results(ctx: Context, fits: dict[str, Fit], *,
+                         valid_records: bool = True) -> figures.LineResult:
     """Repair numeric results only inside one intact, explicitly owned table.
 
     Missing markers, duplicate rows and malformed cells are report-only. A repair
@@ -418,7 +419,7 @@ def _calibration_results(ctx: Context, fits: dict[str, Fit]) -> figures.LineResu
     """
     result = figures.LineResult()
     raw = ctx.text(PLAN)
-    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}\r?$", raw))
+    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
                for marker in (CALIBRATION_START, CALIBRATION_END)]
     if any(len(hits) != 1 for hits in markers) or any(
             raw.count(marker) != 1 for marker in (CALIBRATION_START, CALIBRATION_END)):
@@ -450,10 +451,11 @@ def _calibration_results(ctx: Context, fits: dict[str, Fit]) -> figures.LineResu
     if sorted(keys) != sorted(expected_keys):
         result.findings.append(f"{PLAN}: calibration results require exactly one row for "
                                "each measurement mode and pool, including its All row")
-    if result.findings:
+    if result.findings or not valid_records:
         return result
-    expected = "\n" + _calibration_table(fits) + "\n"
-    if body.replace("\r\n", "\n") == expected:
+    newline = "\r\n" if body.startswith("\r\n") else "\n"
+    expected = newline + _calibration_table(fits).replace("\n", newline) + newline
+    if body == expected:
         return result
     if ctx.fix:
         ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
@@ -563,6 +565,7 @@ def run(ctx: Context) -> None:
     # wall-clock, no item carries both, and the plan's own ruling is that nothing here
     # converts between them. So each series is joined to its own record and each ratio
     # the basis states is the quotient over the record that carries the pool it names.
+    calibration_findings_before = len(derived)
     record, unreadable = _record(raw, RECORD_HEADING)
     derived.extend(unreadable)
     ctx.shared["calibration_rows"] = len(record)
@@ -586,6 +589,7 @@ def run(ctx: Context) -> None:
     derived.extend(f"the {pool} pool of the agent-parallel record is empty, so the ratio "
                    "the basis states for it exists over nothing"
                    for pool, ratio in pratios.items() if ratio is None)
+    valid_records = len(derived) == calibration_findings_before
     all_pairs = [pair for pairs in fit.values() for pair in pairs]
     ppairs = [pair for pairs in pfit.values() for pair in pairs]
 
@@ -595,11 +599,11 @@ def run(ctx: Context) -> None:
     by_class = {c: round(sum(i.hours for i in open_items if i.cls == c), 1)
                 for c in ("I", "X")}
     class_ratio: dict[str, str] | None = None
-    if ratios["I"] is not None and ratios["X-authored"] is not None:
+    if valid_records and ratios["I"] is not None and ratios["X-authored"] is not None:
         class_ratio = {"I": quantize(ratios["I"], 2), "X": quantize(ratios["X-authored"], 2)}
     else:
-        derived.append("the calibrated total cannot be decided, its ratios resting on a "
-                       "pool the record leaves empty")
+        derived.append("the calibrated total cannot be decided because the calibration "
+                       "records are incomplete or invalid")
 
     # every derived token, old against new; nothing here is a judgment, so a repair
     # takes all of it
@@ -709,7 +713,8 @@ def run(ctx: Context) -> None:
                f"{len(derived_lines)} sentences")
 
     # ---- K-96: the chain sentences and the marked calibration results ----
-    calibration = _calibration_results(ctx, {"attended": fit, AGENT_PARALLEL: pfit})
+    calibration = _calibration_results(ctx, {"attended": fit, AGENT_PARALLEL: pfit},
+                                       valid_records=valid_records)
     for line in calibration.fixed:
         rep.line(line)
     derived.extend(calibration.findings)
