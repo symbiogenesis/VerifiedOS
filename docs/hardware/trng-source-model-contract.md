@@ -195,6 +195,12 @@ an exact finite theorem and its constants, not the phrase "polylogarithmic".
 [*Explicit two-source extractors and resilient functions*, Annals 2019](https://annals.math.princeton.edu/wp-content/uploads/annals-v189-n3-p01-s.pdf),
 [Li, *Two Source Extractors for Asymptotically Optimal Entropy, and (Many) More*](https://eccc.weizmann.ac.il/report/2023/023/)
 
+### Research handoff for alternative extractors
+
+For the unfinished Q28b qualification and S5 source-model join, the [low-error extraction survey](../background/open-math-conjectures.md#explicit-low-error-two-source-extraction) identifies alternative mathematical constructions to compare with the inner-product candidate below. This is research guidance within the existing qualification record, with no source selected or acceptance status changed. Li's logarithmic-entropy constant-error theorem is available as a proof source; simultaneously negligible error at the stated low entropy remains a different target. The surveyed May revision of TR26-011 withdraws its efficient negligible-error DAG-source construction, and TR26-089 is retracted. Their former claims cannot supply the missing efficient two-independent-source theorem.
+
+A candidate comparison should instantiate `n`, both entropy bounds, output length, finite constants and statistical error before comparing sample, buffer and latency costs. Derive the joint law conditioned on the actual observer and history, relate it to the theorem's independence premises, and connect the exact TM-8 conditioner through the existing input-plus-image error budget. A positive witness is a realizing finite distribution pair and a complete seed budget; useful negative witnesses are correlated sources with individually high entropy, repeated blocks without a fresh-history theorem, an impossible `k > n` record and a constant conditioner. The existing local witnesses can exercise those seams, but the physical source evidence, refinement and WCET remain owed. An existence theorem, asymptotic error label or unconditional source model does not discharge these joins, and quantum side information still requires its own applicable theorem.
+
 ### A finite first candidate
 
 The initial proof target is the binary inner product of the Chor-Goldreich

@@ -127,6 +127,12 @@ The selection predicate above admits both of R-15-119's families. Nothing in it 
 
 The first measurement named anywhere is Q23g's, a two-member pair on two FPGA instances of the R-18-005 scalar class carrying the endpoint block. **The family is therefore recorded as owed, with its operand named and its owner named**, and §4's `code_family` row carries it. What this document fixes today is that the choice is made once per link at composition against the predicate of §2.1 and against nothing else, so whichever family the measurement selects changes no clause above and no field of §1.
 
+### Research handoff for the unselected code
+
+Q23g's future selection can consult the [code and decoder proof handoff](../assurance/proof-reuse/hardware.md#research-handoff-for-future-code-and-decoder-proofs), which routes the survey's binary rate-distance bounds, folded/ordinary Reed-Solomon decoding and scratch-space advances to concrete finite proof obligations. Those results do not select one of the admitted families, establish the wire's error model or implement the decoded-bits-only interface. A list decoder with several candidates and authenticated selection is a different interface until a reviewed construction proves it satisfies every clause of §2.1. VT deletion correction and the seven-cycle zero-error construction have no identified matching channel here.
+
+The [communication proof handoff](../assurance/proof-reuse/protocols.md#research-handoff-for-future-communication-proofs) separately routes log-rank and Li-Li to possible future Q23d/Q23h comparisons. Neither licenses shorter unpadded transcripts, network coding, new forwarding behavior or lower reserved traffic in this point-to-point contract. These research notes supply no missing magnitude, new acceptance clause or completion evidence.
+
 ## 3. The endpoint's register description
 
 ### 3.1 What is a register of this endpoint and what is not
