@@ -182,6 +182,18 @@ extension would need a coordinate-to-pool correspondence and nonnegative invento
 at every prefix, preserving object identity and return authorization. A final-sum
 signing theorem alone cannot discharge those facts.
 
+The survey's [online Beck-Fiala advances](../../background/open-math-conjectures.md#ordinary-komlós-and-beck-fiala-proof-announcements)
+add a possible candidate generator for sparse legal binary assignments. The July
+result gives randomized prefix bounds only for a sequence fixed independently of
+its random choices, with an explicit sparsity/horizon condition. The September
+result instead assumes independent uniformly random sparse binary inputs and a
+horizon proportional to the dimension.
+A proposed reduction must preserve these premises and translate signed imbalance
+into each pool's nonnegative inventory. Check the resulting finite trace against
+the existing exact prefix contract, including a candidate that violates capacity
+despite acceptable final balance. Neither probability of success nor an
+oblivious-input theorem supplies deterministic admission for adaptive workloads.
+
 The [Steinitz lead](../../background/open-math-conjectures.md#euclidean-steinitz-conjecture)
 belongs to an optional transformation before extraction: show the total-zero and
 norm premises, meet the announced dimension restriction when using that special

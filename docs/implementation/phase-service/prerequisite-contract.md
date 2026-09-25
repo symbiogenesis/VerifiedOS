@@ -57,6 +57,9 @@ Their endpoint or unit-service abstractions must be compared with the full joint
 traffic and completion model here. A colored transfer set that still collides at
 a routed resource or retains bank occupancy is a useful rejected candidate; a
 combinatorial schedule alone does not establish the extraction's target premises.
+For a real-period pinwheel candidate, also establish the finite periodic frame
+and its correspondence to all required frequency windows before extraction;
+an infinite existence theorem or matching mean service rates supplies neither.
 
 Acceptance requires a checked extraction which reproduces the grant-gap,
 same-bank joint and final-cycle occupancy refutations, a closed companion,
