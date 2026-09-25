@@ -286,8 +286,8 @@ The extension to `TwoSourceExtractor.v` preserves every existing definition,
 statement and allowed assumption. Its acceptance predicate is an axiom-free
 conditioner-to-target bound carrying both the input error and `delta_C`, a
 bit-string specialization, and a composed hybrid-plus-conditioner budget in the
-existing integer distance scaling. Equal positive total weights are required
-when interpreting those inequalities as normalized statistical distances.
+existing integer distance scaling. Nonnegative weights with equal positive totals
+are required when interpreting those inequalities as normalized statistical distances.
 The conditioner still has to map each supported input to exactly one enumerated
 output. A constant conditioner must demonstrate that its additional error
 cannot be dropped.
@@ -328,3 +328,14 @@ extractor, TM-8 conditioner map, seed-accumulation invocation premise or
 qualified output-rate claim is present today. This record identifies exactly
 what would earn a statistical claim before the conditioner; the landed artifact
 supplies no new physical assumption by implication.
+
+The composition extension carries the separately supplied conditioner-image
+error into the final target distance, including after an invocation hybrid.
+Its integer-scaled budget is `m * per_invocation_budget + image_budget`; each
+budget uses the same `2^s` scale. It does not derive the image budget for an
+unselected conditioner. The parameter extension makes a different check:
+positive `n`-bit sources have min-entropy at most `n`, so a realizing source pair
+meeting this construction's target must satisfy `2s <= n`. The arithmetic
+admissibility predicate alone is weaker: `n=8, kX=kY=9, s=5` passes it, but no
+positive source pair realizes those bounds. This is a limit of the stated
+inner-product guarantee, not an impossibility theorem for all extractors.

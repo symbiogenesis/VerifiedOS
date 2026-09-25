@@ -144,6 +144,17 @@ initial credit. `below_requirement_fails` establishes the failing side.
 `resource_aware_refines_partial` derives a weaker specification that permits
 allocation failure while the stronger precondition excludes that failure.
 
+The prefix extension states the same success condition at every cut of a trace:
+issued bytes cannot exceed initial credit plus the bytes already returned.
+For sequential traces `a` and `b`, the exact initial requirement is
+`max(required_credit a, required_credit b + taken a - returned a)`, with
+natural-number subtraction. When `a` is balanced, this reduces to the maximum
+of the two phase requirements. The rule permits compositional accounting for
+one slot; it neither reorders operations nor lends credit between slots. Equal
+final totals alone do not determine the requirement: taking and returning four
+bytes before taking three needs four credits, while overlapping those takes
+needs seven.
+
 `release_deadline_sound` sums pointwise admitted elapsed bounds. Its premise is a
 real obligation on each operation, including device waiting and cleanup.
 `retained_alias_blocks_barrier` and the existing device barrier theorem in the

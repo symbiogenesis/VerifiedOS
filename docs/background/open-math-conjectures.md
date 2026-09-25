@@ -56,6 +56,8 @@ This sharpens the fragmentation-versus-copying tradeoff for explicitly movable a
 
 If a composition's legal binary assignments admit this vector model, constructive bounds could constrain accumulated resource imbalance at every phase and inform [buffer reservations](../spec.md#r-08-046). The refutation rules out a universal constant for unrestricted instances; structured workloads may still allow one. It is not an online dispatch theorem: signs, nonnegative inventory, precedence and per-coordinate capacities all need a faithful interpretation.
 
+The local [resource-credit proof contract](../implementation/static-memory/resource-contracts.md#prefix-and-sequential-composition-proof-contract) applies the distinction between final balance and intermediate demand to the existing finite take/return semantics. Its extension characterizes success at every prefix and composes sequential requirements exactly, with balanced traces of equal totals but different peaks as witnesses. This does not formalize the Komlós result or infer permission to reorder operations.
+
 ### Efficient constant-discrepancy Komlós construction
 
 **Polynomial-time construction announced in the real-RAM model; finite-arithmetic implementation remains separate.** Ordinary Komlós controls the final signed sum. Following the September existence proofs, [Guo, Fang and Lu's 20 September preprint](https://arxiv.org/html/2609.23540v1) gives a deterministic constant-discrepancy signing algorithm using `O((m*n^9 + n^10) log(2+m+n))` exact arithmetic operations and comparisons for `n` vectors in `R^m`. This is a unit-cost real-RAM result, also yielding an `O(sqrt(t))` Beck-Fiala construction. The authors credit Odin AI assistance and describe their revision and verification of the proofs. The elementary proof's own finite rational construction is not the frontier for algorithmic existence.
@@ -315,6 +317,8 @@ A neighboring [May 2026 secret-key private-information-retrieval result](https:/
 Better constructions could reduce raw samples, buffers and latency for a specified statistical guarantee in the [TRNG source contract](../hardware/trng-source-model-contract.md). They cannot create missing entropy, prove physical independence or automatically cover quantum side information. The broad `O(log n)`-entropy target at constant error is already achieved by [Li's 2023 result](https://arxiv.org/abs/2303.06802). Building and qualifying a finite instance of an existing extractor is project work, not an unresolved theorem.
 
 Revision checks matter here: [the May revision of TR26-011](https://eccc.weizmann.ac.il/report/2026/011/) withdraws its efficient negligible-error DAG-source construction while retaining an existence result, and [TR26-089](https://eccc.weizmann.ac.il/report/2026/089/) was retracted in June because of an error in Lemma 5.9. Neither supplies the required efficient two-independent-source theorem.
+
+The local [finite composition and parameter proof contract](../hardware/trng-source-model-contract.md#finite-composition-and-parameter-proof-contract) retains the existing inner-product construction. Its extension adds the conditioner-image error to the final seed budget and proves that some parameter records passing the arithmetic admissibility test have no realizing source pair. These strengthen the existing proof's use at its stated parameters; they do not claim an improved extractor or supply missing physical premises.
 
 ### Optimal binary-code rate versus distance
 
