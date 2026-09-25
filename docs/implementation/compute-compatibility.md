@@ -228,6 +228,20 @@ candidate selection records exact revisions, licence files and closures as the
 [upstream review](compute-upstream-review.md) did for Q30a, and nothing is
 vendored, pinned or trusted before that record exists.
 
+## Mathematical candidates for later proof work
+
+The [arithmetic research handoff](contracts/compute-semantic.md#arithmetic-research-handoff)
+routes MCSP, restricted PIT, Strong Descartes, matrix-multiplication and finite
+Hadamard leads to Q30d's source correspondence, Q30e's lowering and Q30g's
+later-slice selection. These are non-normative candidates, not new pilot scope.
+No algebraic theorem substitutes for the frozen numeric/effect semantics, and no
+asymptotic operation count establishes target performance. Candidate source or
+proof reuse still needs exact statement/dependency review and the incorporation
+licence reading before adoption. Workload-dependent graph and data-structure
+leads remain with the [Wasm workload handoff](contracts/wasm-execution.md#mathematical-research-handoff);
+the [inference handoff](../performance/inference-demand.md#research-handoff-to-unwritten-inference-proofs)
+retains the finite demand and quality decision.
+
 ## Qualification contract
 
 The Q30a record fixes exact source/API revisions, candidate implementation

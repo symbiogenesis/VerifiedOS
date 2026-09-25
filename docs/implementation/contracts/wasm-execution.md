@@ -34,6 +34,38 @@ needs such an artifact solely for performance, R-05-065 excludes it. R-14-013b
 requires the complete Core 3.0 binary language. The [proof-reuse assessment](../../assurance/proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries)
 still owns the parser, numeric/SIMD, GC and host-proof gaps; they block completion.
 
+## Mathematical research handoff
+
+The [mathematical survey](../../background/open-math-conjectures.md#computational-performance-and-wasm-workloads)
+supplies candidate algorithms and conditional limits for future Q34f/Q34h workload
+selection. It supplies no interpreter theorem or throughput credit. The leads below
+are deferred unless a frozen application or producer workload contains the named
+operation and profiling exposes its cost. They add no feature or proof obligation
+to the selected Core 3.0 engine. If a candidate enters the existing engine,
+Q34g's refinement covers it; a native service retains its own refinement owner
+and Q34d's applicable yield evidence. A guest-library change remains ordinary
+validated Wasm and claims no source correspondence without its own evidence.
+
+| Research input | Prospective use and missing connection |
+| --- | --- |
+| [ETH and SETH](../../background/open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis) | Use only to explain a selected exact-search workload's conditional scaling limit. Record the reduction, variable/instance-size parameter and deterministic or randomized model before transferring a lower bound. Neither hypothesis is an admission premise or a proof that a bounded search instance is infeasible; preprocessing, refusal and cancellation remain measured work. |
+| [Orthogonal Vectors](../../background/open-math-conjectures.md#orthogonal-vectors-conjecture), [weighted APSP](../../background/open-math-conjectures.md#weighted-all-pairs-shortest-paths-hypothesis) and [3SUM](../../background/open-math-conjectures.md#modern-3sum-conjecture) | For a selected string, graph or geometry workload, freeze dimension, weight/number representation, approximation tolerance and actual reduction. The OnlineOV and preprocessed-universe 3SUM advances have separate preprocessing/query models; charge construction space and time over the declared number of queries. Ordinary matrix products do not supply min-plus APSP. No matching workload or general interpreter lower bound is currently established here. |
+| [Online Boolean matrix-vector multiplication](../../background/open-math-conjectures.md#online-boolean-matrix-vector-multiplication-conjecture) | A bounded-VC-dimension dynamic graph is a possible restricted consumer. Establish that dimension bound, Boolean-semiring semantics and output-before-next-input order; charge preprocessing, total work and worst per-operation poll interval separately. Numerical inference and a fully known composition do not satisfy the same online problem. |
+| [Dynamic BST optimality](../../background/open-math-conjectures.md#dynamic-optimality-of-binary-search-trees) | Compare a bounded in-label map only after freezing the access sequence model and initial state. A competitive or amortized result leaves individual traversal/rebalance costs, resumability, exhaustion and native yields unproved. The persistent storage index has different costs and is not selected for replacement. |
+| [Hashing advances](../../background/open-math-conjectures.md#hashing-beyond-the-uniform-probing-conjecture) | For a fixed-capacity application table, separate successful/unsuccessful search, insertion, deletion, tombstones, resizing and rebuilding. The relaxed probe-order theorem and the `opthash-rs` implementation have different scopes. A qualified implementation still needs a representation invariant, complete operation semantics, finite backing and worst-case bounded chunks; expected probes supply no native WCET. |
+| [Static dictionaries and dynamic ordered indexes](../../background/open-math-conjectures.md#compact-static-dictionaries-and-dynamic-ordered-indexes) | Immutable prepared metadata is a possible static consumer; a clustered guest index is a separate dynamic one. Establish the word width, universe, payload and density/gap-entropy premises, and include construction workspace, randomized seeds and auxiliary tables. Prove decoded lookup/update correctness and charge purecap representations. Worst-case word-RAM static lookup and expected amortized dynamic operations each still need target costs and poll bounds. |
+| [Dynamic entropy-encoded arrays](../../background/open-math-conjectures.md#dynamic-entropy-encoded-arrays) | A selected compressible symbol array would need a proved encode/decode/update relation and qualification of the paper's resizable-buffer simulation over finite physical backing. Charge metadata, capabilities, initialization, failure and cancellation; expose content-dependent size only inside the authorized observation model. High-probability bounds do not establish deterministic capacity or per-phase time, and hardware virtual memory is not itself a prerequisite. |
+| [Directed shortest paths](../../background/open-math-conjectures.md#directed-shortest-paths-below-the-sorting-barrier) | For an identified nonnegative-weight SSSP kernel, compare concrete sizes before importing a construction. A local proof would connect encoded weights and overflow, graph representation, every density/fallback branch, scratch and charged operations to executable behavior. The C-HD Lean artifact's formal density branch and exact-real RAM model do not establish its broader paper range, linear space, target cycles or a local Rocq theorem; supplied replay records are not local acceptance. |
+| [Catalytic memory](../../background/open-math-conjectures.md#the-power-of-catalytic-memory) and [graph/sequence algorithms](../../background/open-math-conjectures.md#catalytic-graph-and-sequence-algorithms) | Compiler graphs or text processing are potential private-region experiments. Freeze clean and catalytic storage, input replay count and the selected algorithm's field/program model. A useful local refinement covers exact restoration, capability tags and object invariants, quiescence, cancellation/fault behavior and all restoration work. Multi-pass results give no one-pass space saving; the withdrawn tree-evaluation claim supplies no premise. No region is lent or physical capacity reduced by this reading. |
+| [Integer multiplication](../../background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication) | Consider only after a large exact-arithmetic guest or producer workload is identified. Compare finite operand sizes with simpler algorithms and prove limb representation, carries, output, scratch and bounded execution. The bit-model upper bound, open matching lower bound and conditional transposition route do not choose a fixed-width kernel or confer secret-data timing evidence. |
+
+Q34f owns any selected end-to-end comparison, including preparation, the complete
+guest frontend and residual dispatch; Q34h owns producer-side integration. An
+unselected lead stays in this table rather than expanding their priced scope.
+The [compute research handoff](compute-semantic.md#arithmetic-research-handoff)
+owns algebraic rewrite candidates, and the [inference handoff](../../performance/inference-demand.md#research-handoff-to-unwritten-inference-proofs)
+owns attention and matrix-kernel demand implications.
+
 ## Wasm 3.0 inside the existing boundary
 
 Full Core 3.0 is the release target, including all prior features, fixed/relaxed

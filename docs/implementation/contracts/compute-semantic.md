@@ -272,6 +272,27 @@ timing samples alone prove neither. Qualified target hardware or the accepted
 timing model supplies target ticks; host/emulator wall time is a separate
 engineering measurement and leaves the target verdict open.
 
+## Arithmetic research handoff
+
+These are non-normative inputs to Q30d/Q30e's future proof work and Q30g's
+selection of a later slice. The [mathematical survey](../../background/open-math-conjectures.md)
+owns source status and research claims. No candidate below changes the frozen
+pilot sequence, numeric comparator, assumptions or acceptance thresholds.
+
+| Research input | Connection to the unwritten proof and selection boundary |
+| --- | --- |
+| [Minimum Circuit Size Problem](../../background/open-math-conjectures.md#minimum-circuit-size-problem) | A truth-table-sized finite Boolean kernel could admit a smaller candidate circuit. First identify that workload; polynomial cost in the complete truth table may still be exponential in its input-bit count. Q30d would need exact equivalence to the original operation, and Q30e the executable lowering. Gate count supplies neither delay nor scratch, energy or proof cost. The open complexity classification is no premise of either theorem. |
+| [Polynomial identity testing](../../background/open-math-conjectures.md#deterministic-polynomial-time-polynomial-identity-testing) | Compare the deterministic read-4 formula result only when the exact representation is a non-multilinear read-4 formula over characteristic zero or at least five. Record degree and field/bit-operation costs and the white-box versus black-box interface. An identity or candidate filter is useful only before the existing exact correspondence proof; it does not prove FP32 order, overflow, traps or memory effects. The general circuit problem remains open and the frozen FP32 pilots are not automatically such a formula workload. |
+| [Strong Descartes' Rule](../../background/open-math-conjectures.md#strong-descartes-rule-over-finite-fields) | A future exponentiation-circuit filter would first need the proposed prime-field/subgroup and sparse-exponent premises. The conjectural soundness bound cannot become a checked equivalence premise. Even a qualified randomized filter leaves Q30d's exact source correspondence and Q30e's numerical/effect refinement owed; no such filter is selected for the pilots. |
+| [Matrix multiplication](../../background/open-math-conjectures.md#matrix-multiplication-exponent-equals-two) | A finite candidate requires the construction and certificates themselves, exact rectangular shapes, arithmetic domain, scratch and transfer bounds. Q30d/Q30e would prove the candidate's declared operation and executable lowering, including conversions and tails. A different reduction order is a separately admitted entry/reference, not a zero-ULP implementation of this pilot by algebraic identity alone. An announced exponent or unreproduced optimization certificate supplies no local proof or throughput. |
+| [Hadamard matrices](../../background/open-math-conjectures.md#hadamard-matrix-conjecture) | For a later transform slice selected by Q30g, a concrete finite sign matrix and checked `H*H^T = n*I` certificate establish the algebraic premise. The lowering still needs normalization, scaling, rounding, overflow, padding, layout and WCET proofs against that slice's semantics. The [Bonsai rotation handoff](../../performance/bonsai2-assessment.md#finite-rotation-proof-handoff) already has a power-of-two consumer independent of the universal conjecture; it is outside the current GEMM pilot. |
+
+Candidate generation may remain untrusted. Selection needs a finite input and
+resource contract before a new implementation is priced; the existing pilot
+proofs proceed without solving any of these conjectures. Q30b/Q30c reuse their
+shared oracle and adversarial corpus for a selected candidate, with target cost
+and exact assumption evidence still separate from successful tests.
+
 ## Foundation handoff and review boundary
 
 Q30d receives the source/closure and refinement interfaces; Q30e receives the
