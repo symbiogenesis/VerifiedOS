@@ -6,7 +6,7 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
 
 The first release targets a [general-purpose laptop](docs/spec.md#r-18-004a). The [release scope](docs/spec.md#r-18-004) defers the browser, handset and server ensemble. The design [prefers open standards wherever its guarantees permit](docs/spec.md#r-04-001a); the [compute and graphics compatibility plan](docs/implementation/compute-compatibility.md) records the proposed OpenCL, SPIR-V, HIP and Vulkan SC surfaces.
 
-> This repository is a living design specification. Nothing here is built or released.
+> This repository contains the design and an implementation in progress. The [implementation status](docs/implementation/implementation-checklist.md#current-summary) records completed artifacts and remaining work toward the full system.
 
 <details>
 <summary><strong>Contents</strong></summary>
@@ -109,7 +109,7 @@ Fixed-tier storage is assigned before boot. Within its fixed envelope, the deskt
 
 ## 🧱 Bug classes removed by construction <a id="bug-classes-removed-by-construction"></a>
 
-This inventory states the guarantees targeted by the **full specified stack**, not by an existing system: nothing is built, and many crown-jewel specifications and proofs remain unauthored. Each row claims one or more of seven discharge modes. Native binary guarantees apply to native apps and interpreter hosts; an interpreted guest has [arena confinement and the stated guest-semantic limits](docs/spec.md#r-14-013a), so native object-level safety is not implicitly a property of its linear memory.
+This inventory states the guarantees targeted by the **full specified stack**; implementation and proof work remain incomplete. Each row claims one or more of seven discharge modes. Native binary guarantees apply to native apps and interpreter hosts; an interpreted guest has [arena confinement and the stated guest-semantic limits](docs/spec.md#r-14-013a), so native object-level safety is not implicitly a property of its linear memory.
 
 Four say the bug class cannot occur at all:
 

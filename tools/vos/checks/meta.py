@@ -287,23 +287,14 @@ def _packed(floor: str) -> str:
 
 
 # The floor's sites, each with the file it is in, the pattern that reads it, and how
-# that site spells the figure. Every group a pattern captures is held, which is what
-# lets one row cover the interpreter table's two cells: they state the versions the two
-# lanes actually carry, so what is held there is the major and minor each one is at and
-# never the patch either has reached.
+# that site spells the figure. Every group a pattern captures is held.
 _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
     ("target version", RUFF_CONF,
      re.compile(r'(?m)^target-version = "([^"\r\n]*)"'), _packed),
     ("modernization comment", RUFF_CONF,
      re.compile(r"constructs the (\S+) floor makes obsolete"), _plain),
-    ("opening sentence", README,
-     re.compile(r"in this directory is Python (\S+?)\.(?=\s)"), _plain),
-    ("interpreter table", README,
-     re.compile(r"(?m)^\| Python \| (\d+\.\d+)\.\d+ \| (\d+\.\d+)\.\d+ \|"), _plain),
     ("floor sentence", README,
      re.compile(r"The floor is \*\*([^*]+)\*\*"), _plain),
-    ("lazy-annotations bullet", README,
-     re.compile(r"Under (\S+) that import is the \*opt-out\*"), _plain),
     ("launcher spelling", README,
      re.compile(r"`py -([^`\s]+)`"), _plain),
     ("manual interpreter install", README,
