@@ -111,11 +111,13 @@ Unrelated guest proof jobs were active on the machine.
 | Git index metadata without consuming document contents | 0.245 s | 0.077 s | 7 | 1 |
 | Mutation template construction after one document edit | 5.277 s | 3.996 s | 5 | 8 |
 
-The proof comparison uses baseline `62a39d76` and candidate `4e6d4e15`.
-Dependencies, wave order and witness decisions agree across the complete source
-set. The index comparisons use `1c7ac000` plus the batch reader accepted at
-`d1d97788`; their complete checker reports agree. The template comparison loads
-baseline `7a06adca` and candidate `ecc9ace7` against the same shared corpus
+The proof comparison loads baseline CLI source from `62a39d76`; the candidate
+change landed at `4e6d4e15`. Dependencies, wave order and witness decisions agree
+across the complete source set. The index comparison timed a working tree based
+on `1c7ac000` with three uncommitted candidate files, later accepted at
+`d1d97788`; the complete checker reports agree. The template comparison loads
+baseline `7a06adca` and times the reset candidate in a working tree based on
+`bfc6d0d`, before the repair landed at `ecc9ace7`. It uses the same shared corpus
 module and private fixture bytes, with separate caches. The edited-template
 timing includes the cached-object completeness check and fresh index construction.
 
@@ -124,14 +126,19 @@ context timing did not establish a reliable improvement. Pin-scanning rewrites
 that measured slower were rejected. The adopted changes add no dependency and
 retain fresh processes for checker mutations.
 
-Raw samples and replay scripts are retained locally under
-`out/performance-20260919/`. Run a script with the checkout's managed Python;
-it discovers the checkout above itself and compares against the named Git
-revision. Replays measure the current checkout, so they do not recreate the
-historical input population after later source edits. The native proof-cache and
-assumption-audit regressions exercise actual Rocq behavior; these timing scripts
-do not issue proof evidence. Changed gate inputs invalidate existing native
-proof receipts under the normal proof-evidence contract.
+[Provenance notes](performance/2026-09-19/README.md) and the archived
+[proof script](performance/2026-09-19/proof-benchmark.py) and
+[proof samples](performance/2026-09-19/proof-results.json),
+[checker script](performance/2026-09-19/checker-benchmark.py) and
+[checker samples](performance/2026-09-19/checker-results.json), and
+[template script](performance/2026-09-19/runner-final-benchmark.py) and
+[template samples](performance/2026-09-19/runner-final-results.json) are tracked.
+Replays write new results under ignored `out/performance-20260919/`
+and measure the current checkout, so they do not recreate the historical input
+population after later source edits. The native proof-cache and assumption-audit
+regressions exercise actual Rocq behavior; these timing scripts do not issue proof
+evidence. Changed gate inputs invalidate existing native proof receipts under the
+normal proof-evidence contract.
 
 ## Parallel kernel execution
 
