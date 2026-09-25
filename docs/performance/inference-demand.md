@@ -198,6 +198,32 @@ That is a tension between two entries of the same floor: R-18-004a(vii)'s member
 
 **The verdict, per term.** *Bandwidth* is the limit, and it is the limit whichever class the KV cache sits on. At the floor's rate and context the measured four-bit configuration demands 1.56 of the stated M-class grant floor on its weight stream alone and 1.96 with the cheaper cache added, the projection to the floor's own model size stays above the floor on its weight stream alone under every published four-bit format, and the aggregate floor is where the shortfall has to be found. *Storage* fits at the floor's model size under a `q8_0` cache and not under an f16 one, against a payload floor for the whole second class rather than inference's share of it, so the fit is a fit against the minimum a composition may declare. *Compute* is a demand of 64.4 GFLOP/s with no supply figure in any artifact, so it is undecidable here on the same ground as the slot grant. *The slot grant* is undecidable until M6.8 and R-15-108. Quantization reduces bytes and so traffic, the `q8_0` cache removes 2.83 GB/s at the floor's context and costs 5.00 MiB of scratch and 432 graph nodes, and a smaller model or a shorter context reduces the demand and the function together; useful quality decides which of those is a configuration and which is a smaller product, and that decision is Q1's.
 
+## Research handoff to unwritten inference proofs
+
+The [Orthogonal Vectors](../background/open-math-conjectures.md#orthogonal-vectors-conjecture)
+and [matrix-multiplication](../background/open-math-conjectures.md#matrix-multiplication-exponent-equals-two)
+survey entries are non-normative inputs to Q4b's kernel comparison, M6.6's
+shape/session descriptor and M6.8's grant-to-rate arithmetic. For an attention
+candidate, first identify the exact or approximate operation, dimension, value
+magnitudes and error regime; an OV-based lower bound needs a reduction preserving
+those parameters. The OnlineOV advance concerns a different preprocessing/query
+model and supplies no general attention improvement. A matrix-multiplication
+construction needs finite rectangular shapes, numerical correctness and concrete
+scratch and transfer counts before comparison. Autoregressive matrix-vector work
+does not inherit a large square GEMM exponent improvement.
+
+If a candidate qualifies, M6.6's future proofs consume its actual state and
+per-session bounds, and M6.8 recomputes demand from its complete access schedule,
+including preprocessing amortization, weights, KV/recurrent state and intermediate
+traffic. A lower arithmetic count alone changes none of this report's measured
+bytes or supply floors. Q4b retains target measurements and Q1 retains the quality
+decision; an altered approximation or model cannot silently inherit the baseline's
+quality. No concrete new attention or multiplication algorithm is selected by this
+handoff, and the current admission arithmetic remains owed independently of the
+open conjectures. The [compute contract](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff)
+owns the prospective rewrite/lowering proof boundary; the [Bonsai assessment](bonsai2-assessment.md#finite-rotation-proof-handoff)
+owns its concrete finite-rotation lead.
+
 ## 9. The reproducible invocation
 
 Every command below ran in the build lane at the paths shown, `$B` being the built binaries' directory, `$M` the models directory and `$L` the lane. Shell scripts in the lane ran them in this order, one model resident at a time, with the free memory and the power state stamped at each stage; the scripts are not tracked, a `.sh` being a kind no marks ruling covers, and their whole content is the commands here plus those stamps.

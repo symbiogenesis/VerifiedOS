@@ -81,6 +81,22 @@ operators remain costs even if unpacking becomes free. The proposed 128-lane
 RVV block can align with g128, but that is a layout opportunity, not a measured
 speedup. No x86 instruction or Intel timing is inherited.
 
+## Finite rotation proof handoff
+
+The [Hadamard survey](../background/open-math-conjectures.md#hadamard-matrix-conjecture)
+is a non-normative input to Q4b's candidate comparison and M6.6's future kernel
+and session work. The named block-1024 rotation has an unconditional power-of-two
+construction; it does not wait for the universal Hadamard conjecture. A useful
+finite proof records the actual sign matrix or recursive construction and checks
+`H*H^T = 1024*I`, then connects normalization, scales, tensor indexing, padding,
+rounding and overflow to the candidate's exact operator. Orthogonality over exact
+numbers alone supplies neither quantization quality nor executable equivalence.
+The missing lowering, scratch/lifetime and bounded-execution evidence stays with
+the selected kernel's existing proof path; M6.8 charges the full rotation traffic
+and schedule. A non-power-of-two construction is deferred unless a selected model
+exposes such a dimension, with its own certificate and complete cost comparison.
+No model, transform implementation or new compute slice is admitted by this lead.
+
 ## What Swift contributes
 
 The reviewed
