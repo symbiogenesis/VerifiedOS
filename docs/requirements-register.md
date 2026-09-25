@@ -24,7 +24,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **Prose references are derived from requirement IDs.** Each trace names the crown-jewel specs its requirement constrains. Its prose reference defaults to the corresponding `<a id="r-ss-nnn">` bookmark, which stays with the text when it moves. Write an explicit prose citation only for a departure from that default: a second occurrence (suffix `-2`), another requirement's bookmark, or a note after the citation. An explicit citation also names the section containing its bookmark. `tools/check.py` checks these references and reports redundant citations that merely repeat the default (R-05-151a).
 
-**Derived facts are computed, not copied.** A count, table, list or line number determined by another artifact must have a tool that keeps it consistent with that source. `tools/check.py` recomputes the asserted coverage totals, per-section table, crown-jewel status ratio and absence count, reports drift, and repairs them under `--fix`. It also checks membership in derived views and the bookmarks cited by traces. When an entry needs a set defined elsewhere, it **cites the defining entry**: R-06-009 cites R-05-029's type-level obligations, R-13-012 cites the tier subset of that list, and R-17-046 cites R-06-011's axiom inventory. Keeping one definition prevents the disagreement R-05-028 and R-17-016 prohibit.
+**Derived facts are computed, not copied.** A count, table, list or line number determined by another artifact must have a tool that keeps it consistent with that source. `tools/check.py` recomputes declared figures and generated summaries from their owners, reports drift, and repairs them under `--fix`. Narrative cross-references cite the owner without repeating its changing size. The checker also checks membership in derived views and the bookmarks cited by traces. When an entry needs a set defined elsewhere, it **cites the defining entry**: R-06-009 cites R-05-029's type-level obligations, R-13-012 cites the tier subset of that list, and R-17-046 cites R-06-011's axiom inventory. Keeping one definition prevents the disagreement R-05-028 and R-17-016 prohibit.
 
 **Modality.** `MUST`: obligation on the built system or its process. `MUST NOT`: prohibition; the acceptance criterion is an emptiness or absence check. `IS`: a definition or classification the rest of the register quantifies over; reviewable for correctness, not for compliance.
 
@@ -444,7 +444,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the three classes are what PCC rests on; the platform's full axiom set is enumerated once in §6 (R-06-011) and is larger, adding the TAL type-checker, its soundness metatheorem, and the bootstrap root. This bullet no longer claims to state the whole set.
 · Trace: CJ-T, CJ-SAIL
 
-**R-05-029** IS: The type-level obligations are exactly: memory safety, definite initialization, data-race freedom, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. This list is canonical: every other section cites it rather than restating it, and control-flow integrity carries both halves: the runtime *legal-here* the sentries enforce and its compose-time callee-set enumeration, which is the static shadow of the same fact and not a twelfth obligation.
+**R-05-029** IS: The type-level obligations are exactly: memory safety, definite initialization, data-race freedom, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. This list is canonical: every other section cites it rather than restating it, and control-flow integrity carries both halves: the runtime *legal-here* the sentries enforce and its compose-time callee-set enumeration, which is the static shadow of the same fact and not an additional obligation.
 · Accept: every admitted binary's derivation carries an attribute, citation, or deletion-check for each listed obligation, and no other section enumerates the obligations independently (R-06-009, R-13-012, and the move table at R-05-037/R-05-038 are citations of this entry).
 · Trace: CJ-TAL-SOUND
 
@@ -483,7 +483,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-05-038** IS: Move II carries temporal memory safety, definite initialization, data-race freedom, examined verdicts, constant-time, WCET, callee-set enumeration, and type/ABI conformance.
-· Accept: each has a finite attribute domain and a syntax-directed rule (see R-05-132). Callee-set enumeration is the compose-time half of R-05-029's CFI obligation, not a twelfth entry, so this row partitions the canonical eleven rather than extending them.
+· Accept: each has a finite attribute domain and a syntax-directed rule (see R-05-132). Callee-set enumeration is the compose-time half of R-05-029's CFI obligation, not an additional entry, so this row partitions the canonical list rather than extending it.
 · Trace: CJ-TAL-SOUND
 
 **R-05-039** IS: Move III carries representation-and-provenance conformance and absence of ambient mutable state, as one-pass inspections of absences.
@@ -494,7 +494,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no move-I obligation has a checker-side decision procedure beyond confirming the citation.
 · Trace: CJ-TAL-SOUND
 
-**R-05-041** MUST: The soundness metatheorem is stated over the three moves against the four unary invariants, not over a flat list of eleven obligations.
+**R-05-041** MUST: The soundness metatheorem is stated over the three moves against the four unary invariants, not over a flat list of R-05-029's obligations.
 · Accept: the theorem statement quantifies over move classes; adding an obligation within an existing move adds no new top-level case.
 · Trace: CJ-TAL-SOUND
 
@@ -755,7 +755,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no contained binary is admitted without one.
 · Trace: CJ-TAL-SOUND
 
-**R-05-094** IS: That certificate is a CHERI-TAL typing derivation stated at binary level against the Sail model, carrying the Tier-2 subset of R-05-029's eleven type-level obligations that R-13-012 scopes, and it is not full functional correctness.
+**R-05-094** IS: That certificate is a CHERI-TAL typing derivation stated at binary level against the Sail model, carrying the Tier-2 subset of R-05-029's type-level obligations that R-13-012 scopes, and it is not full functional correctness.
 · Accept: this entry cites R-13-012's tier scoping rather than enumerating the certificate's content, so the two cannot disagree; functional correctness remains a Tier-0/1 obligation.
 · Trace: CJ-TAL-SOUND, CJ-SAIL
 
@@ -1208,7 +1208,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no third checker exists; every install invokes the CIC kernel for exactly the local correspondence proof plus any additional certificate the package carries (R-13-028).
 · Trace: CJ-TAL-SOUND
 
-**R-06-009** IS: The TAL type-checker decides **the eleven type-level obligations of R-05-029** (every move-(I) citation, move-(II) attribute, and move-(III) deletion) plus closed-numeral overflow side conditions and the memory/ABI half of Tier 1. This row cites R-05-029 rather than restating it.
+**R-06-009** IS: The TAL type-checker decides **the type-level obligations of R-05-029** (every move-(I) citation, move-(II) attribute, and move-(III) deletion) plus closed-numeral overflow side conditions and the memory/ABI half of Tier 1. This row cites R-05-029 rather than restating it.
 · Accept: its ~10³-line budget is a consequence of the frozen theory (R-05-127), and its decided set is read off R-05-029 rather than enumerated here, so the two cannot disagree.
 · Trace: CJ-TAL-SOUND
 
@@ -3406,7 +3406,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: every admitted artifact carries exactly one tier and its required evidence.
 · Trace: CJ-TAL-SOUND, CJ-NI
 
-**R-13-012** IS: The Tier-2 certificate carries the subset of R-05-029's eleven type-level obligations this tier requires (ABI/type well-formedness, no runtime codegen, temporal safety, definite initialization, data-race freedom, and CFI) plus manifest consistency, a tier-local admission check that is not one of the eleven. Full functional PCC is deliberately not required, because app intent is unspecified.
+**R-13-012** IS: The Tier-2 certificate carries the subset of R-05-029's type-level obligations this tier requires (ABI/type well-formedness, no runtime codegen, temporal safety, definite initialization, data-race freedom, and CFI) plus manifest consistency, a tier-local admission check that is outside the canonical list. Full functional PCC is deliberately not required, because app intent is unspecified.
 · Accept: admission is type-checking the artifact, not trusting the producer; and the certificate's content is read off R-05-029 with a stated tier scoping rather than enumerated independently, so a change to the canonical list has one place to be made.
 · Trace: CJ-TAL-SOUND
 

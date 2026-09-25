@@ -6,14 +6,14 @@
 
 ## Why this document exists
 
-Ten acceptance criteria quantify over *the crown-jewel inventory*: R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-050 ("the NAS descriptor is flagged in the crown-jewel inventory as hand-transcribed"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-12-043c ("the inventory carries one row per reference model"), R-14-013b ("the pinned-semantics artifact appears in the crown-jewel inventory"), R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is that inventory; without it none of the ten is decidable.
+Acceptance criteria quantify over *the crown-jewel inventory*: R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-050 ("the NAS descriptor is flagged in the crown-jewel inventory as hand-transcribed"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-12-043c ("the inventory carries one row per reference model"), R-14-013b ("the pinned-semantics artifact appears in the crown-jewel inventory"), R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is that inventory; without it those criteria are not decidable.
 
 Membership is **conferred, never declared in bulk**: a specification is a crown jewel because some requirement says of it that proofs against it can only match it, never check it, so no single entry can hold the list and R-17-016 does not try to. What stays distributed is the conferral; what is collected here is the set.
 
 Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
-1. the register's **`CJ-` trace-target table**, 28 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose entry line asserts crown-jewel status, scattered across §5, §7, §8, §10, §11, §12, §13, §14, §15, §16, and §17. There are thirty-four such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership. Conferral lives in the entry's normative line, never in an acceptance criterion, which tests an obligation and states none: the two criteria that mention the status (R-11-015's and R-13-009's) each reference a conferral made elsewhere, R-17-041's and R-05-046's.
+1. the register's **`CJ-` trace-target table**, whose entries are all used and internally consistent, but which is a *legend of trace targets* rather than an enumeration of specifications (below);
+2. the **conferring requirements**, the entries whose entry line asserts crown-jewel status. Each confers the status on one specification or speaks about the set, and not one of them states the membership. Conferral lives in the entry's normative line, never in an acceptance criterion, which tests an obligation and states none: the criteria that mention the status (R-11-015's and R-13-009's) each reference a conferral made elsewhere, R-17-041's and R-05-046's.
 
 Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.py` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, a row citing an identifier the register does not hold, and a status assertion living only in an acceptance criterion without a recorded disposition.
 
@@ -66,7 +66,7 @@ Two rules decide how finely conferral is cut, and they cut in opposite direction
 
 ## The theorem targets
 
-The remaining ten `CJ-` targets name **theorems, not specifications**, things proven rather than authored. They are not crown jewels in R-17-016's sense (a specification whose *correctness is unverifiable*, so that a proof matching it may still miss intent); a theorem's correctness is exactly what its proof establishes. They are listed here so that every target is accounted for, and because each one's premise includes a specification above or a judgment fixed outside this corpus, which is the seam structure R-18-031(a)'s machine-checked statement has to align with.
+The remaining `CJ-` targets name **theorems, not specifications**, things proven rather than authored. They are not crown jewels in R-17-016's sense (a specification whose *correctness is unverifiable*, so that a proof matching it may still miss intent); a theorem's correctness is exactly what its proof establishes. They are listed here so that every target is accounted for, and because each one's premise includes a specification above or a judgment fixed outside this corpus, which is the seam structure R-18-031(a)'s machine-checked statement has to align with.
 
 | `CJ-` target | Theorem | Proven against |
 | --- | --- | --- |
@@ -87,14 +87,14 @@ Three premises above also name specifications the inventory does not carry: Comp
 
 ## What the `CJ-` table is, and is not
 
-The register's `CJ-` table is **healthy and should not be conflated with this inventory**: 28 targets, every one used by at least one `Trace:` line, none orphaned. But it is a *trace legend* (a controlled vocabulary letting each requirement name the specification it constrains) and its granularity is deliberately coarser than the inventory's. `CJ-FORMAT` is one target covering every Narcissus descriptor; `CJ-CRYPTO-SPEC` is one target covering every primitive's functional specification. R-05-046 and R-05-076 require the *members* to be enumerated, which a trace legend cannot do without one target per member.
+The register's `CJ-` table is **healthy and should not be conflated with this inventory**: every target is used by at least one `Trace:` line, none orphaned. But it is a *trace legend* (a controlled vocabulary letting each requirement name the specification it constrains) and its granularity is deliberately coarser than the inventory's. `CJ-FORMAT` is one target covering every Narcissus descriptor; `CJ-CRYPTO-SPEC` is one target covering every primitive's functional specification. R-05-046 and R-05-076 require the *members* to be enumerated, which a trace legend cannot do without one target per member.
 
 So the two artifacts answer different questions and both are needed:
 
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
-| `CJ-` table (in the register) | *which crown jewel does this requirement constrain?* | 28 coarse targets |
-| This inventory | *what are the crown jewels, and does each one exist yet?* | 31 specifications, per-member where a requirement demands it |
+| `CJ-` table (in the register) | *which crown jewel does this requirement constrain?* | Coarse trace targets |
+| This inventory | *what are the crown jewels, and does each one exist yet?* | Specifications, per-member where a requirement demands it |
 
 ## Standing obligations
 
@@ -105,8 +105,8 @@ So the two artifacts answer different questions and both are needed:
 
 ## Reading the status column
 
-Three of thirty-one are authored outright, and fourteen more are partial. Fourteen of those thirty-one are not authored. The inventory rows identify each artifact and its remaining scope; an authored reference model does not establish its implementation or the adequacy of its external premises.
+The inventory rows identify each artifact, its status and its remaining scope; an authored reference model does not establish its implementation or the adequacy of its external premises.
 
-That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these thirty-one are *named, constrained, and traced*; the as-existing assurance is low because fourteen of them are not yet written, and the ten theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
+That status is the specification half of R-01-003's honest position: the specifications are *named, constrained, and traced*, while the status column records which artifacts exist and which remain incomplete or unauthored. Each theorem target depends on its stated premises being available. The inventory makes those dependencies explicit, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
 
-**The column is a burn-down with a stated direction, not a census.** The obligation count rises with every hardening, each one adding a row, and falls only when an artifact is authored, so the ratio is read for its direction over the git history rather than as a snapshot: `tools/check.py` recomputes the classes at each edition, and the [implementation plan](../implementation/implementation-checklist.md)'s milestones are the retirement mechanism, each flipping the rows whose artifacts it lands (M0's curated Sail model alone bears on rows 6, 7, and 15). A run of milestones that flips no row is the column reporting that the specification half is not being discharged, which is what the inventory exists to make visible.
+**The column tracks outstanding specification work.** New obligations may add rows; an authored artifact changes the standing of the rows it answers. Read those changes alongside the git history and the [implementation plan](../implementation/implementation-checklist.md)'s milestones, which name the artifacts being delivered (M0's curated Sail model alone bears on rows 6, 7, and 15). A run of milestones that changes no row reports no progress against this specification work, which is what the inventory exists to make visible.

@@ -130,7 +130,7 @@ The terms below are load-bearing in the soundness statement, so each is fixed he
 The language defines a **menu** of obligations; each consumer selects the subset it requires.
 This document says what is expressible and decidable; the consumer's own specification says what it demands, so the two cannot come to disagree about a list.
 
-**TAL-011** IS: The menu is exactly these eleven obligations:
+**TAL-011** IS: The menu is exactly the following obligations:
 
 1. Memory safety, spatial and temporal.
 2. Definite initialization.
@@ -147,13 +147,13 @@ This document says what is expressible and decidable; the consumer's own specifi
 · Accept: no other section of this document enumerates the menu; §4.2 partitions it and cites this entry.
 · Trace: §4.2
 
-VerifiedOS requires all eleven, canonically enumerated at R-05-029 of its register, and its lower assurance tier scopes a stated subset of the same list rather than a list of its own.
+VerifiedOS requires the whole menu, canonically enumerated at R-05-029 of its register, and its lower assurance tier scopes a stated subset of the same list rather than a list of its own.
 
 ### 4.2 The facets
 
-The eleven rows are the user-facing grouping, not the unit of routing, because a profile may discharge the halves of one row differently: on capability hardware the machine enforces spatial safety but not temporal, and where an indirect transfer may land but not which callee is legal there.
+The menu rows are the user-facing grouping, not the unit of routing, because a profile may discharge the halves of one row differently: on capability hardware the machine enforces spatial safety but not temporal, and where an indirect transfer may land but not which callee is legal there.
 
-**TAL-012** IS: The unit of routing is the **facet**. The sixteen facets below partition the eleven menu rows; no facet belongs to two rows, and every row has at least one facet.
+**TAL-012** IS: The unit of routing is the **facet**. The sixteen facets below partition the menu rows; no facet belongs to two rows, and every row has at least one facet.
 
 | Facet | Row | Statement |
 | --- | --- | --- |
@@ -174,7 +174,7 @@ The eleven rows are the user-facing grouping, not the unit of routing, because a
 | `cost.wcet` | 11 | Every entry point's execution cost is at most the derivation's declared bound under the profile's cost model. |
 | `cost.space` | 11 | Every entry point's peak stack depth is at most the derivation's declared bound under the profile's cost model. |
 
-· Accept: sixteen facets, each naming one of the eleven rows; the profile matrix (§6) has one line per facet per profile and no line for a row.
+· Accept: sixteen facets, each naming one of the menu rows; the profile matrix (§6) has one line per facet per profile and no line for a row.
 · Trace: §6.2, §6.3
 
 **TAL-013** MUST: A profile declares exactly one route for every facet of every row its consumer selects. A row is never routed; its facets are.
