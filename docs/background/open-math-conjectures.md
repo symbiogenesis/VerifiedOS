@@ -10,6 +10,8 @@ The mathematical statements and status come from the linked sources. **The propo
 
 The status review includes recent manuscripts, their revisions, and public GitHub proof and implementation repositories. Repository age, popularity, author affiliation and AI assistance do not decide mathematical validity. A new repository can supply a decisive counterexample or a complete proof before journal review. Its evidence must still match the original statement: inspect definitions, quantifiers, assumptions, imported dependencies and the computational model, then distinguish source inspection, supplied build or kernel records, independent reproduction and external mathematical review. A declaration named after a conjecture, an empty placeholder type, or a clean search for `sorry` does not establish that correspondence. The artifact notes below identify what was actually inspected; this review did not rerun external Lean proof packages.
 
+The [Hadamard entry](#hadamard-matrix-conjecture) includes independent exact verification of twelve finite matrices. That evidence establishes those finite existence cases; external Lean packages retain the source-inspection and supplied-replay status stated in their entries. An open status elsewhere means that no matching resolution was located in this review, not that every unpublished manuscript or repository has been ruled out.
+
 ## How the connections fit this machine
 
 | Project surface | Mathematical opportunity | Boundary that still applies |
@@ -197,19 +199,23 @@ These entries concern algorithmic work performed by applications, native service
 
 These hypotheses constrain some exact scheduling, packing and finite verification methods more sharply than `P != NP`; [2026 high-multiplicity bin-packing research](https://drops.dagstuhl.de/storage/00lipics/lipics-vol374-icalp2026/html/LIPIcs.ICALP.2026.116/LIPIcs.ICALP.2026.116.html) illustrates such a connection. A refutation could improve exponential search without proving `P = NP`. A transfer to the [memory planner](../implementation/portable-memory-planner.md) needs a reduction preserving the relevant size parameter, not just an NP-hardness label.
 
+A [20 September 2026 revision by Fang et al.](https://arxiv.org/abs/2607.01671v2) studies logarithmic-width SAT, local-query indistinguishability and lower bounds for specified proof systems. These restricted-model results do not establish a general time lower bound or settle ETH or SETH.
+
 ### Orthogonal Vectors conjecture
 
 **Fine-grained hardness conjecture; conditional guest-workload connection.** For every `epsilon > 0`, there is a constant `c` for which finding an orthogonal pair between two sets of `n` Boolean vectors of dimension `c log n` has no `O(n^(2-epsilon))` algorithm in the stipulated computation model. [July 2026 research](https://arxiv.org/abs/2607.23799) proves restricted circuit and formula results, not the full conjecture.
 
 It underlies barriers for certain exact similarity, string and attention problems. These can matter to inference and applications hosted in Wasm. Connections to [attention complexity](https://proceedings.iclr.cc/paper_files/paper/2026/hash/8a01099096c85890b1d1aff3c6b4ea56-Abstract-Conference.html) depend on dimension, approximation error, magnitudes and other parameters. A refutation would invalidate particular conditional lower bounds, not make every attention variant linear or remove the [resident model's memory traffic](../performance/inference-demand.md).
 
-[May 2026 work on Online Orthogonal Vectors](https://arxiv.org/abs/2605.04798) gives deterministic data structures refuting a particular OnlineOV data-structure conjecture. Its preprocessing/query model is distinct from the standard offline conjecture stated here; that refutation must not be transferred without accounting for preprocessing and parameters.
+[The SODA 2026 Online Orthogonal Vectors result](https://epubs.siam.org/doi/10.1137/1.9781611978971.201), also [posted to arXiv in May](https://arxiv.org/abs/2605.04798), gives deterministic data structures refuting a particular OnlineOV data-structure conjecture. Its preprocessing/query model is distinct from the standard offline conjecture stated here; that refutation must not be transferred without accounting for preprocessing and parameters.
 
 ### Weighted All-Pairs Shortest Paths hypothesis
 
 **Fine-grained hardness hypothesis; conditional graph-analysis connection.** For every fixed positive `epsilon`, there is no `O(n^(3-epsilon))` algorithm for general weighted all-pairs shortest paths on `n` vertices in the stated model, commonly with polynomially bounded integer weights and distances well-defined. [Fischer's STOC 2026 work](https://arxiv.org/abs/2603.27736) studies conditional equivalences around this still-used hypothesis.
 
 Progress could improve graph analyses or min-plus computations if profiling identifies those kernels in the composer or guest applications. This is not a demonstrated current bottleneck. Fast ordinary matrix multiplication does not automatically accelerate min-plus multiplication, and graph-analysis savings do not directly reduce interpreter dispatch overhead.
+
+[Polak and Schmidt's July 2026 preprint](https://arxiv.org/html/2607.00857v1) gives prediction-assisted APSP in `O(n^2.83 + eta*n)` time, where `eta` measures prediction error. Error can be quadratic, leaving cubic worst-case work. A prospective graph-pass comparison must include prediction production and the error-dependent execution bound; the result does not refute the unrestricted hypothesis.
 
 ### Modern 3SUM conjecture
 
@@ -218,6 +224,8 @@ Progress could improve graph analyses or min-plus computations if profiling iden
 Consequences can constrain exact computational geometry and dynamic data structures used by desktop applications. A refutation could change those algorithm choices. A specific reduction is required before using it to bound [placement](../implementation/placement-search.md), graphics or Wasm performance; numerical representation and the machine model cannot be dropped from the claim.
 
 [Kirkpatrick et al., February 2026](https://arxiv.org/abs/2602.11363v1), obtain simultaneous subquadratic query and storage bounds for the preprocessed-universe variant: about `n^(1.5+epsilon)` randomized query time and `n^(2-2*epsilon/3)` space, suppressing polylogarithms, after roughly quadratic preprocessing. That initial cost prevents an immediate refutation of ordinary 3SUM; reuse across many queries is the prospective application.
+
+[Carmel, Kosoburd and Krauthgamer, 23 August 2026](https://arxiv.org/html/2608.22355v1), improve the space to `O-tilde(n^max(2-epsilon,11/6-epsilon/3))`, with worst-case query time `O-tilde(n^(3/2+epsilon))` for `0 <= epsilon <= 1/2` and randomized `O-tilde(n^2)` preprocessing. They preprocess two size-`n` integer sets; queries select subsets and supply an unknown target set of size `O(n)`. At `epsilon = 1/4`, space and query time are both `O-tilde(n^1.75)`. With high probability the preprocessing succeeds simultaneously for every query, including adaptive queries. This improves the earlier tradeoff at interior parameter values while retaining the initial quadratic cost and the distinction from ordinary 3SUM.
 
 ### Online Boolean matrix-vector multiplication conjecture
 
@@ -252,6 +260,8 @@ A proof would strengthen sequence-level efficiency guarantees for adaptive index
 **Specialized proposed conjecture; conditional optimizer connection.** There are constants `0 < epsilon, delta < 1` such that, for sufficiently large primes `p,q` with `q` dividing `p-1`, a nonzero polynomial over `F_p` with at most `q^delta` nonzero terms and distinct exponents modulo `q` has at most `epsilon*q` roots in the order-`q` subgroup of the multiplicative group of `F_p`. [Li and Wu, ITCS 2026](https://drops.dagstuhl.de/storage/00lipics/lipics-vol362-itcs2026/html/LIPIcs.ITCS.2026.95/LIPIcs.ITCS.2026.95.html), pose this as Conjecture 9.
 
 The conjecture would improve soundness bounds for randomized identity tests on restricted circuits with exponentiation, motivated by neural-network optimization. Such tests could filter candidate [compute rewrites](../implementation/compute-compatibility.md). They would not replace an exact admission theorem or establish equivalence of floating-point, quantized or effectful execution. This is a narrower research lead than general PIT, not an established platform optimization.
+
+[Malavolta and Rosen's June 2026 preprint](https://arxiv.org/html/2606.08662v1), Theorem 4.2, proves a nonuniform partial result: for each fixed prime `q`, all but finitely many eligible `p` give at most `k-1` subgroup roots for a nonzero `k`-sparse polynomial with distinct exponents modulo `q`. The exceptional range depends on `q`, leaving the uniform conjecture open. Their Theorem 4.3 gives a modified randomized-prime identity test for condensed `k`-sparse exponential polynomials, under its degree, coefficient-height and admissible-prime conditions, including `q > 2kw`. This supplies a restricted soundness theorem without assuming the full conjecture; it is neither general PIT nor a floating-point equivalence theorem.
 
 ## Security, entropy and reliable communication
 
@@ -461,7 +471,7 @@ The static result is especially compatible with composition-time construction of
 
 ### Dynamic entropy-encoded arrays
 
-**August 2026 preprint announcement.** [Blelloch et al.](https://arxiv.org/html/2608.06066v1) present mutable arrays with constant-time indexed reads and updates and space approaching empirical zero-order entropy, plus alphabet-support and lower-order terms. This addresses the longstanding tension between compression and constant-time modification. Crucially, the theorem uses a virtual-memory model and gives its time and space bounds with high probability. It does not claim the same bounds for every random choice on this platform.
+**August 2026 preprint, accepted at FOCS 2026.** [Blelloch et al.](https://arxiv.org/html/2608.06066v1) present mutable arrays with constant-time indexed reads and updates and space approaching empirical zero-order entropy, plus alphabet-support and lower-order terms; the [conference acceptance list](https://focs.computer.org/2026/accepted-papers/) records the paper. This addresses the longstanding tension between compression and constant-time modification. Crucially, the theorem uses a virtual-memory model and gives its time and space bounds with high probability. It does not claim the same bounds for every random choice on this platform.
 
 Possible consumers include compressible application metadata and symbol arrays. The paper's virtual memory is an abstract resizable-buffer model with a software simulation, so hardware address translation is not a prerequisite. A VerifiedOS implementation still needs to qualify that simulation and charge its physical backing, pointers, capability bounds and allocation overhead. Content-dependent compressed size must stay within the authorized observation model. This is a representation lead; it does not change the fixed-memory contract or make incompressible data smaller.
 
