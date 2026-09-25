@@ -79,6 +79,12 @@
    6. conditioner_join and conditioner_join_over_bit_strings. A fixed map
       does not increase statistical distance, so a block epsilon-close to
       uniform is carried to an output epsilon-close to the image of uniform.
+      conditioner_target_bound adds the separate distance from that image to
+      a named target. hybrid_conditioner_error_budget carries both the
+      accumulated invocation error and the conditioner image error in the
+      same integer scaling. These algebraic inequalities are statistical
+      distance bounds only for nonnegative distributions with equal positive
+      totals; they do not supply a concrete conditioner's image error.
    7. parameters_bound_a_matching_pair, parameter_output_budget and
       accepted_parameters_are_realized. The parameter record joined to the
       distributions it prices: an admissible record bounds every pair whose
@@ -86,6 +92,13 @@
       as the invocation count of one-bit outputs, the aggregate budget is
       stated at that width, and the accepted record is realized by a pair
       whose block width and min-entropy bounds are its own.
+   8. finite_min_entropy_fits_width and two_source_entropy_fits_width.
+      Positive finite n-bit source weights cannot meet a min-entropy lower
+      bound k above n. matching_parameters_have_feasible_security therefore
+      gives 2s <= n for a realizable record meeting this construction's
+      sufficient entropy-sum premise, not for every extractor or every error
+      bound. An arithmetically admissible record with impossible entropy
+      widths has no realizing pair.
 
    What this file does not author, with the owner of each decision.
 
@@ -108,8 +121,9 @@
    c. The conditioner's actual map. The join lemma is stated for an arbitrary
       fixed function whose image values are enumerated once. The TM-8 map of
       R-15-241c, its widths, its vetted-function evidence and the separate
-      distance delta_C from the image of uniform to the target uniform seed
-      are not supplied here, and post_processing_keeps_distance_from_the_image_only
+      instantiated distance delta_C from the image of uniform to the target
+      uniform seed are not supplied here. The symbolic composition includes
+      that term, and post_processing_keeps_distance_from_the_image_only
       is the construction showing why that second term cannot be dropped. A
       cryptographic claim about the conditioner remains a cryptographic claim
       with its own advantage and model.
@@ -170,7 +184,10 @@
    realizes although both its marginals keep full min-entropy, a conditioner
    carrying a uniform input to the maximum distance from uniform, and a
    hybrid whose aggregate reaches the sum of its steps rather than their
-   maximum. The observer statement, the accepted parameter record and its
+   maximum. The composed conditioner budget has an identity-map witness with
+   nonzero hybrid error, and an admissible but unrealizable parameter record
+   distinguishes an arithmetic budget from inhabited source premises.
+   The observer statement, the accepted parameter record and its
    realizing pair are instantiated at computed values rather than left
    quantified. Whether a refuted construction is a telling one
    is a reading, discharged at R-05-150's review gate and booked under
@@ -925,6 +942,59 @@ Proof.
   rewrite IH, Nat2Z.inj_succ. lia.
 Qed.
 
+(* A finite entropy bound cannot exceed the width of an inhabited source.
+   Positivity of the total is essential: zero weights would satisfy every
+   pointwise inequality at every claimed entropy. *)
+Lemma two_pow_le_reflect : forall k n,
+  two_pow k <= two_pow n -> (k <= n)%nat.
+Proof.
+  intros k n Hpow. destruct (Nat.le_gt_cases k n) as [Hle | Hgt].
+  - exact Hle.
+  - pose proof (two_pow_mono (S n) k Hgt) as Hmono.
+    rewrite two_pow_S in Hmono. pose proof (two_pow_pos n). lia.
+Qed.
+
+(*| discharges: R-15-241ca |*)
+Theorem finite_min_entropy_fits_width : forall (n k : nat) (w : list bool -> Z),
+  0 < sumZ (strings n) w ->
+  (forall x, In x (strings n) ->
+     w x * two_pow k <= sumZ (strings n) w) ->
+  (k <= n)%nat.
+Proof.
+  intros n k w Hpos Hent.
+  pose proof (sumZ_le (strings n) (fun x => w x * two_pow k)
+    (fun _ => sumZ (strings n) w) Hent) as Hsum.
+  rewrite <- sumZ_mul_r, sumZ_const in Hsum.
+  pose proof (strings_count n) as Hcount. rewrite sumZ_const in Hcount.
+  apply two_pow_le_reflect. nia.
+Qed.
+
+(*| discharges: R-15-241ca |*)
+Theorem two_source_entropy_fits_width : forall s : TwoSource,
+  (ts_kX s <= ts_n s)%nat /\ (ts_kY s <= ts_n s)%nat.
+Proof.
+  intro s. split.
+  - exact (finite_min_entropy_fits_width (ts_n s) (ts_kX s) (ts_w s)
+      (ts_w_positive s) (ts_w_minent s)).
+  - exact (finite_min_entropy_fits_width (ts_n s) (ts_kY s) (ts_v s)
+      (ts_v_positive s) (ts_v_minent s)).
+Qed.
+
+(* This bounds the sufficient entropy-sum premise for the current candidate;
+   it is not an impossibility theorem for other extraction constructions. *)
+(*| discharges: R-15-241ca |*)
+Theorem matching_parameters_have_feasible_security :
+  forall (p : Params) (s : TwoSource),
+  admissible p = true ->
+  ts_n s = p_n p -> ts_kX s = p_kX p -> ts_kY s = p_kY p ->
+  (2 * p_s p <= p_n p)%nat.
+Proof.
+  intros p s Hadm Hn HkX HkY.
+  apply admissible_premise in Hadm.
+  destruct (two_source_entropy_fits_width s) as [HX HY].
+  rewrite Hn, HkX in HX. rewrite Hn, HkY in HY. lia.
+Qed.
+
 (* The m-output hybrid: total error at most the sum of the per-invocation
    errors, with no maximum taken and nothing assumed about the intermediate
    distributions beyond their being distributions on the same enumeration. *)
@@ -1028,6 +1098,70 @@ Corollary conditioner_join_over_bit_strings :
 Proof.
   intros n n' C f g HC. apply conditioner_join.
   intros a Ha. apply bits_enumerated_once. apply HC. exact Ha.
+Qed.
+
+(* The distance to a target includes the error of the reference image.
+   Interpreting these integer inequalities as normalized statistical distance
+   requires nonnegative weights with equal positive totals. Neither the
+   algebra nor a choice of target establishes those premises. *)
+(*| discharges: R-15-241ca |*)
+Theorem conditioner_target_bound :
+  forall {A B} (enumA : list A) (enumB : list B)
+    (eqB : B -> B -> bool) (C : A -> B) (f g : A -> Z) (target : B -> Z),
+  (forall a, In a enumA ->
+     sumZ enumB (fun b => if eqB (C a) b then 1 else 0) = 1) ->
+  statdist enumB (pushforward enumA eqB C f) target
+  <= statdist enumA f g
+     + statdist enumB (pushforward enumA eqB C g) target.
+Proof.
+  intros A B enumA enumB eqB C f g target Hone.
+  pose proof (statdist_triangle enumB (pushforward enumA eqB C f)
+    (pushforward enumA eqB C g) target) as Htriangle.
+  pose proof (conditioner_join enumA enumB eqB C f g Hone) as Hjoin. lia.
+Qed.
+
+(*| discharges: R-15-241ca |*)
+Corollary conditioner_target_bound_over_bit_strings :
+  forall (n n' : nat) (C : list bool -> list bool)
+    (f g target : list bool -> Z),
+  (forall a, In a (strings n) -> length (C a) = n') ->
+  statdist (strings n') (pushforward (strings n) eqbits C f) target
+  <= statdist (strings n) f g
+     + statdist (strings n') (pushforward (strings n) eqbits C g) target.
+Proof.
+  intros n n' C f g target HC. apply conditioner_target_bound.
+  intros a Ha. apply bits_enumerated_once. apply HC. exact Ha.
+Qed.
+
+(* Both budgets use the same 2^sec scaling. The invocation hypotheses still
+   belong to the source qualification, and the image bound still belongs to
+   the actual conditioner; neither is inferred from the other. *)
+(*| discharges: R-15-241ca |*)
+Theorem hybrid_conditioner_error_budget :
+  forall {A B} (enumA : list A) (enumB : list B)
+    (eqB : B -> B -> bool) (C : A -> B) (hyb : nat -> (A -> Z))
+    (target : B -> Z) (m sec : nat) (bound image_bound : Z),
+  (forall a, In a enumA ->
+     sumZ enumB (fun b => if eqB (C a) b then 1 else 0) = 1) ->
+  (forall i, In i (natupto m) ->
+     statdist enumA (hyb i) (hyb (S i)) * two_pow sec <= bound) ->
+  statdist enumB (pushforward enumA eqB C (hyb m)) target
+    * two_pow sec <= image_bound ->
+  statdist enumB (pushforward enumA eqB C (hyb O)) target
+    * two_pow sec <= Z.of_nat m * bound + image_bound.
+Proof.
+  intros A B enumA enumB eqB C hyb target m sec bound image_bound
+    Hone Hsteps Himage.
+  pose proof (conditioner_target_bound enumA enumB eqB C
+    (hyb O) (hyb m) target Hone) as Hjoin.
+  pose proof (hybrid_error_budget enumA hyb m sec bound Hsteps) as Hhybrid.
+  pose proof (two_pow_pos sec) as Hscale.
+  assert (Hscaled :
+    statdist enumB (pushforward enumA eqB C (hyb O)) target * two_pow sec
+    <= (statdist enumA (hyb O) (hyb m)
+      + statdist enumB (pushforward enumA eqB C (hyb m)) target) * two_pow sec).
+  { apply Z.mul_le_mono_nonneg_r; [lia | exact Hjoin]. }
+  nia.
 Qed.
 
 (* ---- the observer's joint output, as one statistical distance ---- *)
@@ -1340,6 +1474,113 @@ Proof.
   apply parameters_bound_a_matching_pair; reflexivity.
 Qed.
 
+(* The existing realized record also inhabits the finite-width statements. *)
+(*| discharges: R-15-241ca |*)
+Example accepted_parameters_meet_the_finite_bound :
+  (ts_kX accepted_pair <= ts_n accepted_pair)%nat
+  /\ (ts_kY accepted_pair <= ts_n accepted_pair)%nat
+  /\ (2 * p_s accepted_params <= p_n accepted_params)%nat.
+Proof.
+  destruct (two_source_entropy_fits_width accepted_pair) as [HX HY].
+  split; [exact HX |]. split; [exact HY |].
+  apply (matching_parameters_have_feasible_security accepted_params accepted_pair);
+    reflexivity.
+Qed.
+
+Definition impossible_entropy_params : Params :=
+  {| p_n := 8; p_kX := 9; p_kY := 9; p_m := 4; p_s := 5 |}.
+
+(* Admissibility prices an arithmetic inequality, not an inhabited source.
+   The missing source cannot be supplied by a larger claimed entropy bound. *)
+(*| discharges: R-15-241ca |*)
+Theorem arithmetically_admissible_parameters_can_be_unrealizable :
+  admissible impossible_entropy_params = true
+  /\ ~ (exists s : TwoSource,
+    ts_n s = p_n impossible_entropy_params
+    /\ ts_kX s = p_kX impossible_entropy_params
+    /\ ts_kY s = p_kY impossible_entropy_params).
+Proof.
+  split; [reflexivity |]. intros [s [Hn [HkX HkY]]].
+  destruct (two_source_entropy_fits_width s) as [HX _].
+  rewrite Hn, HkX in HX. change (9 <= 8)%nat in HX. lia.
+Qed.
+
+(* A constant map refutes dropping the additional image error, even for a
+   uniform input with a positive total and the same input/output width. *)
+(*| discharges: R-15-241ca |*)
+Theorem conditioner_target_error_requires_the_image_term :
+  ~ (forall C : list bool -> list bool,
+    (forall a, In a (strings 1) -> length (C a) = 1%nat) ->
+    statdist (strings 1) (pushforward (strings 1) eqbits C unif) unif
+      <= statdist (strings 1) unif unif).
+Proof.
+  intro H.
+  assert (HC : forall a, In a (strings 1) ->
+    length (const_zero_string a) = 1%nat) by (intros; reflexivity).
+  specialize (H const_zero_string HC).
+  destruct post_processing_keeps_distance_from_the_image_only as [Hinput [_ Hout]].
+  rewrite Hinput, Hout in H. lia.
+Qed.
+
+(* The additional image term is attainable, not merely a conservative bound. *)
+(*| discharges: R-15-241ca |*)
+Example constant_conditioner_target_bound_is_tight :
+  statdist (strings 1)
+    (pushforward (strings 1) eqbits const_zero_string unif) unif = 2
+  /\ statdist (strings 1)
+    (pushforward (strings 1) eqbits const_zero_string unif) unif <= 0 + 2.
+Proof.
+  destruct post_processing_keeps_distance_from_the_image_only as [Hinput [_ Hout]].
+  split; [exact Hout |].
+  pose proof (conditioner_target_bound_over_bit_strings 1 1 const_zero_string
+    unif unif unif (fun a _ => eq_refl)) as Hbound.
+  rewrite Hinput, Hout in Hbound. rewrite Hout. exact Hbound.
+Qed.
+
+(* All three hybrid members below have nonnegative weights and total four.
+   With the identity conditioner the two per-step errors add exactly to the
+   final error, while the reference image is exactly the target. *)
+(*| discharges: R-15-241ca |*)
+Example hybrid_conditioner_budget_is_realized :
+  (forall i, In i (natupto 3) ->
+    (forall x, In x (strings 1) -> 0 <= ramp i x)
+    /\ sumZ (strings 1) (ramp i) = 4)
+  /\ (forall i, In i (natupto 2) ->
+    statdist (strings 1) (ramp i) (ramp (S i)) * two_pow 1 <= 4)
+  /\ statdist (strings 1)
+       (pushforward (strings 1) eqbits (fun x => x) (ramp 2)) (fun _ => 2) = 0
+  /\ statdist (strings 1)
+       (pushforward (strings 1) eqbits (fun x => x) (ramp O)) (fun _ => 2)
+       * two_pow 1 = 8
+  /\ statdist (strings 1)
+       (pushforward (strings 1) eqbits (fun x => x) (ramp O)) (fun _ => 2)
+       * two_pow 1 <= Z.of_nat 2 * 4 + 0.
+Proof.
+  assert (Hdistributions : forall i, In i (natupto 3) ->
+    (forall x, In x (strings 1) -> 0 <= ramp i x)
+    /\ sumZ (strings 1) (ramp i) = 4).
+  { intros i Hi.
+    assert (Hi2 : (i <= 2)%nat).
+    { cbn [natupto app In] in Hi.
+      destruct Hi as [Hi | [Hi | [Hi | Hi]]]; lia. }
+    split.
+    - intros x Hx. unfold ramp. destruct (eqbits x [false]); lia.
+    - cbn [ramp strings map app sumZ eqbits beqb negb andb]. lia. }
+  assert (Hsteps : forall i, In i (natupto 2) ->
+    statdist (strings 1) (ramp i) (ramp (S i)) * two_pow 1 <= 4).
+  { intros i Hi. cbn [natupto app In] in Hi.
+    destruct Hi as [Hi | [Hi | Hi]]; [subst i | subst i | contradiction];
+      change (4 <= 4); lia. }
+  split; [exact Hdistributions |]. split; [exact Hsteps |].
+  split; [vm_compute; reflexivity |].
+  split; [vm_compute; reflexivity |].
+  apply (hybrid_conditioner_error_budget (strings 1) (strings 1) eqbits
+    (fun x => x) ramp (fun _ => 2) 2 1 4 0).
+  - intros a Ha. apply bits_enumerated_once. exact (strings_length 1 a Ha).
+  - exact Hsteps.
+  - change (0 <= 0). lia.
+Qed.
+
 Lemma demo_weight_nonneg : forall e : bool, In e [true; false] -> 0 <= 1.
 Proof. intros e _. lia. Qed.
 
@@ -1420,6 +1661,12 @@ Print Assumptions hybrid_error_budget.
 Print Assumptions parameter_output_budget.
 Print Assumptions conditioner_join.
 Print Assumptions conditioner_join_over_bit_strings.
+Print Assumptions finite_min_entropy_fits_width.
+Print Assumptions two_source_entropy_fits_width.
+Print Assumptions matching_parameters_have_feasible_security.
+Print Assumptions conditioner_target_bound.
+Print Assumptions conditioner_target_bound_over_bit_strings.
+Print Assumptions hybrid_conditioner_error_budget.
 Print Assumptions accepted_source_witness.
 Print Assumptions accepted_source_meets_the_budget.
 Print Assumptions independence_without_an_entropy_sum_does_not_extract.
@@ -1429,6 +1676,11 @@ Print Assumptions post_processing_keeps_distance_from_the_image_only.
 Print Assumptions hybrid_sum_is_not_a_maximum.
 Print Assumptions parameter_witnesses.
 Print Assumptions accepted_parameters_are_realized.
+Print Assumptions accepted_parameters_meet_the_finite_bound.
+Print Assumptions arithmetically_admissible_parameters_can_be_unrealizable.
+Print Assumptions conditioner_target_error_requires_the_image_term.
+Print Assumptions constant_conditioner_target_bound_is_tight.
+Print Assumptions hybrid_conditioner_budget_is_realized.
 Print Assumptions observer_joint_witness.
 Print Assumptions witness_premises_are_jointly_inhabited.
 Print Assumptions inhabited_conditional_application.
