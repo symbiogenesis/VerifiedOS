@@ -95,6 +95,10 @@ The missing lowering, scratch/lifetime and bounded-execution evidence stays with
 the selected kernel's existing proof path; M6.8 charges the full rotation traffic
 and schedule. A non-power-of-two construction is deferred unless a selected model
 exposes such a dimension, with its own certificate and complete cost comparison.
+The survey records independently checked matrices for twelve formerly open orders,
+including 668; those finite witnesses make exact sign matrices available for a
+matching dimension. They supply no `O(n log n)` evaluation algorithm, scratch
+bound or quality result, and do not change the selected block-1024 operator.
 No model, transform implementation or new compute slice is admitted by this lead.
 
 ## What Swift contributes
