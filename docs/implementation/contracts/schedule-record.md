@@ -53,6 +53,17 @@ physical bounds, transitions, a new deadline or the target implementation proof.
 | [Pinwheel certificates/complexity](../../background/open-math-conjectures.md#pinwheel-scheduling-certificates-and-complexity) and [5/6 theorem/relaxed synthesis](../../background/open-math-conjectures.md#pinwheel-scheduling-the-56-theorem-and-relaxed-synthesis) | Include the whole service and overhead in each unit slot and prove every recurring window, including frame wrap. The published density theorem proposes candidates; density above 5/6 is not a refusal. An EPTAS schedule for relaxed periods must still meet the original periods before admission. Exercise a wraparound miss, overhead overrun and forbidden relaxation. Dense NP-completeness does not supply short certificates for general feasibility; a compact schedule representation still needs bounded expansion or a correspondence proof to this explicit record. |
 | [List edge coloring](../../background/open-math-conjectures.md#list-edge-coloring-conjecture) and [Goldberg-Seymour](../../background/open-math-conjectures.md#goldberg-seymour-and-the-number-of-transfer-rounds) | Prove conflicts are exactly shared endpoints for unit transfers, with repeated transfers as parallel edges; bind colors and permitted lists to actual grants. The ordinary coloring theorem and constructive preprint offer a round bound and candidate algorithm, not a list-coloring theorem. Use solved bipartite or stated prime-order special cases only after recognition. Check endpoint conflicts, a forbidden listed slot, an extra routed-resource conflict and unequal durations before claiming the model fits. |
 
+The survey's [real-period pinwheel artifact and dual covering result](../../background/open-math-conjectures.md#pinwheel-scheduling-the-56-theorem-and-relaxed-synthesis)
+offer separate synthesis leads. The inspected Lean theorem covers exactly four
+positive sorted real-period tasks; the manuscript's arbitrary multiplicities of
+four distinct values require a separate aggregation/splitting proof. Preserve
+the requirement of at least `ell` executions in every `ceil(ell*a_i)` slots for
+all positive `ell`, and prove a bounded finite periodic realization before
+encoding the infinite schedule as `ModeSchedule`. Matching mean rates or rounding
+each period once is insufficient. Dual covering enforces minimum rest between
+executions; a covering schedule that misses a replenishment deadline is a
+negative witness, even when it satisfies the covering density threshold.
+
 The [phase-service extraction boundary](../phase-service/prerequisite-contract.md#schedule-and-resource-extraction)
 still requires all joint traffic alternatives, refresh and completion occupancy.
 A matching-round schedule can pass endpoint coloring while failing that boundary;
