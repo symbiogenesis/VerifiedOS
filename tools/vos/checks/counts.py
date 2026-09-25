@@ -33,11 +33,10 @@ once and handed to both rules that scan it, and the floors group prices, after t
 group has run, every enumeration each of them recorded.
 """
 
-import json
 import re
 from typing import TYPE_CHECKING
 
-from vos import coread, dialectgen, differential, figures
+from vos import coread, figures
 from vos import corpus as corpus_mod
 from vos.checks.counts_capcauses import cap_causes
 from vos.checks.counts_capformat import cap_format
@@ -75,10 +74,8 @@ SPEC = "docs/spec.md"
 TAL = "docs/languages/typed-assembly-language.md"
 TOOLS_README = "tools/README.md"
 PLAN = "docs/implementation/implementation-checklist.md"
-# the completion log carries every landed item's note from S10b, so a claim a note
-# states is read there rather than in the plan
+# Historical landing measurements are deliberately not live repair targets.
 LOG = "docs/implementation/completion-log.md"
-FINDINGS = "docs/assurance/findings-register.md"
 
 # file, quantity, style, and the pattern that captures the stated figure alone
 CLAIMS = [
@@ -87,22 +84,6 @@ CLAIMS = [
     (REGISTER, "requirements", "digits", r"(?<=extracted, at )[\d,]+(?= requirements)"),
     (REGISTER, "lettered", "digits", r"(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)"),
 
-    # the crown-jewel inventory states its own status ratio
-    ("docs/assurance/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= entries, all used)"),
-    ("docs/assurance/crown-jewels.md", "cj-theorems", "words", r"(?<=The remaining )[\w-]+(?= `CJ-` targets name)"),
-    ("docs/assurance/crown-jewels.md", "cj-unauthored", "words", r"[\w-]+(?= of those [\w-]+ are not authored)"),
-    ("docs/assurance/crown-jewels.md", "cj-specs", "words", r"(?<=of those )[\w-]+(?= are not authored)"),
-    ("docs/assurance/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= targets, every one used)"),
-    ("docs/assurance/crown-jewels.md", "cj-targets", "digits", r"[\d]+(?= coarse targets)"),
-    ("docs/assurance/crown-jewels.md", "cj-specs", "digits", r"[\d]+(?= specifications, per-member)"),
-    ("docs/assurance/crown-jewels.md", "cj-authored", "words", r"[\w-]+(?= of [\w-]+ are authored outright)"),
-    ("docs/assurance/crown-jewels.md", "cj-specs", "words", r"(?<=of )[\w-]+(?= are authored outright)"),
-    ("docs/assurance/crown-jewels.md", "cj-partial", "words", r"(?<=and )[\w-]+(?= more are partial)"),
-    ("docs/assurance/crown-jewels.md", "cj-specs", "words", r"(?<=because these )[\w-]+(?= are \*named)"),
-    ("docs/assurance/crown-jewels.md", "cj-unauthored", "words", r"[\w-]+(?= of them are not yet written)"),
-    ("docs/assurance/crown-jewels.md", "cj-theorems", "words", r"(?<=the )[\w-]+(?= theorem targets above cannot start)"),
-    ("docs/assurance/crown-jewels.md", "cj-conferring", "words", r"(?<=There are )[\w-]+(?= such entries)"),
-
     # the prose states the size of each seam register it carries
     ("docs/spec.md", "fc-seams", "words", r"[\w-]+(?= fail-closed seams are named with owners)"),
 
@@ -110,58 +91,6 @@ CLAIMS = [
     (REGISTER, "fc-conferrals", "words", r"[\w-]+(?= requirements confer a refusal)"),
     (REGISTER, "fc-seams", "words", r"(?<=and )[\w-]+(?= seams collect them)"),
     (REGISTER, "rot-fresh", "words", r"[\w-]+(?= requirements confer freshness)"),
-
-    # the coverage matrix states the shape of its own product, and the partition of
-    # its cells by the standing K-95 computes for each
-    ("docs/assurance/coverage-matrix.md", "boundaries", "words", r"(?<=below are )[\w-]+(?= boundaries)"),
-    ("docs/assurance/coverage-matrix.md", "properties", "words", r"(?<=boundaries and )[\w-]+(?= properties)"),
-    ("docs/assurance/coverage-matrix.md", "cells", "words", r"(?<=carries all )[\w-]+(?= of their pairs)"),
-    ("docs/assurance/coverage-matrix.md", "cells-authored", "digits",
-     r"(?<=partitions the cells into )\d+(?= authored)"),
-    ("docs/assurance/coverage-matrix.md", "cells-partial", "digits",
-     r"(?<=partitions the cells into \d authored, )\d+(?= partial)"),
-    ("docs/assurance/coverage-matrix.md", "cells-unauthored", "digits",
-     r"(?<=partial, and )\d+(?= not authored)"),
-
-    # the gap catalogue argues from them
-    ("docs/background/critique.md", "views", "words", r"(?<=register and the )[\w-]+(?= derived views)"),
-    ("docs/background/critique.md", "fc-conferrals", "words", r"[\w-]+(?= conferrals against)"),
-    ("docs/background/critique.md", "fc-seams", "words", r"(?<=conferrals against )[\w-]+(?= seams)"),
-    ("docs/background/critique.md", "dispositions", "words", r"[\w-]+(?= candidates stand dispositioned)"),
-    ("docs/background/critique.md", "rot-cases", "words", r"(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)"),
-    ("docs/background/critique.md", "cj-specs", "words", r"[\w-]+(?= crown-jewel specifications are named)"),
-    ("docs/background/critique.md", "cj-theorems", "words", r"[\w-]+(?= theorem targets are named)"),
-    ("docs/background/critique.md", "cj-specs", "words", r"(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)"),
-    ("docs/background/critique.md", "cj-authored", "words", r"(?<=are named; \*\*)[\w-]+(?=\*\* are authored)"),
-    ("docs/background/critique.md", "cj-authored", "words", r"(?<=crown-jewel specifications, \*\*)[\w-]+(?= are authored\*\*)"),
-    ("docs/background/critique.md", "cj-partial", "words", r"(?<=are authored\*\*, )[\w-]+(?= are partial)"),
-    ("docs/background/critique.md", "cj-unauthored", "words", r"(?<=\*\*)[\w-]+(?= are not authored\*\*)"),
-    ("docs/background/critique.md", "cj-theorems", "words", r"(?<=The )[\w-]+(?= theorem targets each depend)"),
-    ("docs/background/critique.md", "cj-unauthored", "words", r"[\w-]+(?= of those premises do not exist)"),
-    ("docs/background/critique.md", "cj-specs", "words", r"[\w-]+(?= crown jewels, each a small oracle)"),
-    ("docs/background/critique.md", "requirements", "digits", r"(?<=of )[\d,]+(?= acceptance criteria)"),
-    ("docs/background/critique.md", "requirements", "digits", r"(?<=of the )[\d,]+(?= requirements has yet been booked)"),
-    ("docs/background/critique.md", "lettered", "digits", r"[\d,]+(?= of [\d,]+ entries are post-hoc insertions)"),
-    ("docs/background/critique.md", "requirements", "digits", r"(?<= of )[\d,]+(?= entries are post-hoc insertions)"),
-
-    # the type-obligation menu: owned by R-05-029's enumeration, its count restated
-    # across both documents and the assembly language's own account
-    (REGISTER, "type-obligations", "words", r"(?<=partitions the canonical )[\w-]+(?= rather)"),
-    (REGISTER, "type-obligations", "words", r"(?<=a flat list of )[\w-]+(?= obligations)"),
-    (REGISTER, "type-obligations", "words", r"(?<=R-05-029's )[\w-]+(?= type-level obligations)"),
-    (REGISTER, "type-obligations", "words", r"(?<=\*\*the )[\w-]+(?= type-level obligations of R-05-029)"),
-    (SPEC, "type-obligations", "words", r"(?<=These )[\w-]+(?= type-level obligations)"),
-    (SPEC, "type-obligations", "words", r"(?<=The )[\w-]+(?= obligations above)"),
-    (SPEC, "type-obligations", "words", r"(?<=a flat list of )[\w-]+(?= obligations)"),
-    (SPEC, "type-obligations", "words", r"(?<=subset of the )[\w-]+(?= type-level obligations)"),
-    (SPEC, "type-obligations", "words", r"(?<=\*\*The )[\w-]+(?= type-level obligations of §5)"),
-    (SPEC, "type-obligations", "words", r"(?<=§5's )[\w-]+(?= type-level obligations)"),
-    (REGISTER, "type-obligations", "words", r"(?<=admission check that is not one of the )[\w-]+"),
-    (SPEC, "type-obligations", "words", r"(?<=admission check and not one of the )[\w-]+"),
-    (SPEC, "type-obligations", "words", r"(?<=WCET\) are not )[\w-]+(?= mechanisms)"),
-    (TAL, "type-obligations", "words", r"(?<=exactly these )[\w-]+(?= obligations)"),
-    (TAL, "type-obligations", "words", r"(?<=all )[\w-]+(?=, canonically enumerated)"),
-    (TAL, "type-obligations", "words", r"(?<=partition the )[\w-]+(?= menu rows)"),
 
     # the four unary invariants, owned by R-05-159's enumeration
     (REGISTER, "unary-invariants", "words", r"[\w-]+(?= unary invariants form the substrate)"),
@@ -215,98 +144,7 @@ CLAIMS = [
     (REGISTER, "radio-protocols", "words", r"(?<=narrowed for the )[\w-]+(?= radio protocols)"),
     (REGISTER, "radio-protocols", "words", r"(?<=analyzed models for the )[\w-]+(?= radio protocols)"),
     (SPEC, "radio-protocols", "words", r"(?<=for the )[\w-]+(?= radio protocols that layer)"),
-
-    # the tools' own value window, owned by the tuple that declares it. The artifact is
-    # a constant rather than a table, which changes nothing about the discipline: the
-    # size of that window was hand-copied into three sentences and drifted from the
-    # tuple the day a file joined it, so the one sentence left states it derived.
-    (TOOLS_README, "model-facts", "words",
-     r"(?<=`MODEL_FACTS` names )[\w-]+(?= files by path)"),
-
-    # the differential corpus's own size, owned by the manifest. K-50 holds the
-    # membership in both directions and says nothing about how many members there
-    # are, so a program added to the manifest and described in the document left
-    # this sentence behind with every rule green; and the counted-noun sweep does
-    # not reach it either, `programs` not being one of the nouns it proposes.
-    ("docs/assurance/differential-corpus.md", "corpus-members", "words",
-     r"[\w-]+(?= purecap programs)"),
-
-    # the lane's own shape, owned by the provisioner's fact table. Three figures are
-    # read off `FACTS` and restated in two documents, and until these rows existed
-    # nothing owned one: the table's landing stated three of them wrongly, in three
-    # sentences across two documents, with every gate green, because no rule computed
-    # a count over that table. The rows *carrying* a command are deliberately not a
-    # quantity: they are the complement of the rows carrying none, and registering
-    # both would put their value into K-26's alternation, where fifteen collides with
-    # an unrelated fifteen in the plan that no artifact here owns. So the documents
-    # state the complement and one figure is registered rather than two.
-    (LOG, "provision-facts", "words", r"[\w-]+(?= rows, one per switch)"),
-    (LOG, "provision-facts", "words", r"(?<=the lane is )[\w-]+(?= stated facts)"),
-    (LOG, "provision-uncommanded", "words",
-     r"(?<=stated facts and all but )[\w-]+(?= of them carry a command)"),
-    (LOG, "provision-uncommanded", "words",
-     r"[\w-]+(?= of the [\w-]+ rows report and plan nothing)"),
-    (LOG, "provision-facts", "words",
-     r"(?<=of the )[\w-]+(?= rows report and plan nothing)"),
-    (LOG, "provision-switches", "words", r"(?<=this lane now carries )[\w-]+"),
-    (FINDINGS, "provision-switches", "words",
-     r"(?<=where the lane now carries )[\w-]+"),
-    (TOOLS_README, "provision-switches", "words",
-     r"(?<=Its probes cover )[\w-]+(?= opam switches)"),
-
-    # the encoder table's own size, owned by the artifact its generator writes. This is
-    # the derived-fact rule turned on the item that argued it: M1.4-prime replaced a
-    # transcribed table with a generated one and then restated the generated one's
-    # header by hand in the prose that made the argument. K-88 holds the artifact's
-    # bytes against its generator and reads nothing a document says about them, so
-    # until these rows existed the figure was right on the day it was written and would
-    # have gone wrong, silently, the first time the model gained a form. Only the
-    # admitted count is registered: the refusals are twelve, and `twelve` in K-26's
-    # alternation collides with twenty-three unrelated sentences in this corpus, which
-    # is the collision the provisioner's rows above already refused to pay for.
-    (LOG, "dialect-admitted", "digits",
-     r"(?<=The generated table carries \*\*)[\d,]+(?=\*\* admitted mnemonics)"),
-    (LOG, "dialect-admitted", "digits",
-     r"(?<=the generated table at \*\*)[\d,]+(?=\*\* admitted mnemonics)"),
 ]
-
-# The claims are the whole mechanism, so a restatement nobody registered is not checked
-# at all: right on the day it is written, drifting from then on, and under a repair left
-# alone while its neighbours are rewritten around it, which is worse than being
-# unchecked, because the document then disagrees with itself. Nothing announces a new
-# figure, so the trap is the value: a distinctive form standing on the same line as a
-# noun one of these quantities is counted in, and outside the span of every claim, is a
-# figure that escaped the register.
-COUNTED_NOUN = re.compile(
-    r"\b(?:requirement|acceptance criteri|normative section|crown.jewel|specification|"
-    r"theorem target|`CJ-`|absence|boundar|propert|pair|cell|derived view|seam|"
-    r"CSR|letter-suffixed|such entries|obligation|menu row)", re.IGNORECASE)
-
-
-def counted_clause(text: str, quantities: list[str] | None = None) -> bool:
-    """A counted noun in this clause, not a later unrelated historical count.
-
-    `repaired` is not `pair`; a count of defects before a comma does not count
-    the coverage cell mentioned in the next clause. Numeric separators remain
-    inside a count, since a clause delimiter must be followed by whitespace.
-    """
-    clause = re.split(r"[.;,]\s|\band (?:the|an?|its|their)\s", text,
-                      maxsplit=1, flags=re.IGNORECASE)[0]
-    # A crown-jewel total can coincide with an unrelated proof's obligation
-    # count. Matching its numeral alone cannot turn that historical statement
-    # into a restatement of the inventory's current status.
-    if (quantities and all(quantity.startswith("cj-") for quantity in quantities)
-            and re.search(r"\b(?:crown.jewel|specification|premise|authored|written|partial)",
-                          clause, re.IGNORECASE) is None):
-        return False
-    return COUNTED_NOUN.search(clause) is not None
-
-
-def count_form_pattern(forms: list[str]) -> re.Pattern[str]:
-    """Match complete count forms, never one group of a comma-separated integer."""
-    return re.compile(
-        r"(?i)(?<![\w-])(?<!\d,)(?:" + "|".join(re.escape(f) for f in forms)
-        + r")(?![\w-]|,\d)")
 
 # The trailing lookahead keeps CRLF out of the match: an anchored `\|$` never matches a
 # CRLF file, and every row would read as missing.
@@ -314,7 +152,8 @@ COVERAGE_ROW_RE = r"(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*
 
 # The enumerations the co-statement survey found restated as counts across K-61
 # pairs, each read from the one entry that owns it rather than declared here: the
-# count moves with the list, and every count-word restating it is a claim above.
+# count moves with the list. Incidental type-obligation count words are omitted;
+# its owner still has a nonempty guard independent of the remaining prose claims.
 TYPE_OBLIGATIONS_RE = re.compile(r"obligations are exactly: ([^.]+)\.")
 UNARY_INVARIANTS_RE = re.compile(
     r"unary invariants form the substrate every seam assumes: (.+)")
@@ -330,67 +169,134 @@ TCB_ITEM_RE = re.compile(r"^\d+\. ")
 TIER_ROW_RE = re.compile(r"^\s*\| \*\*Tier \d")
 
 
-def _form_sites(form_re: re.Pattern[str], forms: list[str], raw: str) -> list[re.Match[str]]:
-    """Every site the form pattern decides, reached through the literals it is built of.
-
-    The pattern is an alternation of the forms the counted quantities take, spelled words
-    and digit strings alike, each under a boundary on both sides and the whole under a
-    case-insensitive flag. An alternation gives the engine no literal to pre-scan
-    for, so it tries every branch at every one of three million positions to return the
-    few dozen sites the corpus actually states, and it is the most expensive scan a run
-    performs. `str.find` proposes those sites instead, over the case-folded text so that
-    a capitalised form is proposed too, and the pattern decides each one: this is the
-    pattern's own answer and only the order of the search differs, which is the same
-    bargain `figures.find_all` strikes for the claims.
-
-    A fold that is not length-preserving would move every offset under the proposal, so
-    the document is read whole rather than searched through a text that no longer lines
-    up with it.
-    """
-    folded = raw.lower()
-    if len(folded) != len(raw):
-        return list(form_re.finditer(raw))
-
-    sites: set[int] = set()
-    for form in forms:
-        at = folded.find(form)
-        while at >= 0:
-            sites.add(at)
-            at = folded.find(form, at + 1)
-
-    return [m for at in sorted(sites) if (m := form_re.match(raw, at))]
-
-
-# Every quantity below is a reading of one owner's phrasing, and a reading that
-# returns zero means the phrasing moved, never that the list emptied: none of these
-# enumerations can be empty while its entry exists. `run` therefore refuses to
-# resolve a zero-valued owned count's claims, because resolving them would hold, and
-# under `--fix` rewrite, every restatement to "zero", a confident corruption in
-# place of the loud stop the K-54 and K-69 owner guards give.
-OWNED_COUNTS = frozenset({
-    "type-obligations", "unary-invariants", "seam-lemmas", "frozen-absences",
-    "admission-tests", "tcb-items", "assurance-tiers", "build-prereqs",
-    "radio-protocols", "iris-theories",
-    # The one member here whose owner is a file rather than an entry, and it is a
-    # member for exactly the same reason: a manifest that will not parse yields no
-    # members, which is a reading that has moved and never a corpus that has
-    # emptied, and resolving its claim would rewrite the document's own sentence to
-    # "zero" under one routine `--fix`.
-    "corpus-members",
-    # The provisioner's table, on the same ground: a lane with no facts, no row
-    # stating a command, and no opam switch is an import that failed or a table
-    # that moved, never a machine. `provision-uncommanded` is here too, and it is
-    # the one member that *could* legitimately reach zero, on the day every route
-    # gets an owner; that day the sentences saying otherwise are owed a rewrite by
-    # hand, and this refuses to repair them to "zero" and call it done.
-    "provision-facts", "provision-uncommanded", "provision-switches",
-    # And the encoder table, for the third statement of the same ground: a table with
-    # no admitted mnemonic is an artifact this run could not read or a header whose
-    # shape moved, never a dialect that decodes nothing.
-    "dialect-admitted",
-})
-
 _PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
+
+# Every quantity declares its source guard independently of whether prose repeats it.
+# Required sources may not read empty. Optional buckets are bounded by a required
+# parent, so a legitimate zero never disguises a missing inventory.
+REQUIRED_COUNTS = {
+    "requirements": "the requirements register",
+    "lettered": "the register's permanent letter-suffixed entries",
+    "sections": "the register's normative sections",
+    "cj-targets": "the register's crown-jewel trace legend",
+    "cj-specs": "the crown-jewel inventory",
+    "cj-theorems": "the inventory's theorem-target table",
+    "cj-conferring": "the requirements conferring crown-jewel membership",
+    "fc-seams": "the fail-closed seam register",
+    "fc-conferrals": "the requirements conferring refusals",
+    "rot-fresh": "the requirements conferring freshness",
+    "dispositions": "the reviewed candidate dispositions",
+    "rot-cases": "the freshness candidate dispositions",
+    "views": "the declared derived views",
+    "boundaries": "the coverage matrix's boundary enumeration",
+    "properties": "the coverage matrix's property enumeration",
+    "cells": "the coverage matrix's cells",
+    "model-facts": "the MODEL_FACTS value-window declaration",
+    "type-obligations": "R-05-029's type-level obligation enumeration",
+    "unary-invariants": "R-05-159's unary invariant enumeration",
+    "seam-lemmas": "R-05-160's seam lemma enumeration",
+    "frozen-absences": "the register's frozen-theory absence entries",
+    "admission-tests": "R-15-010's admission test enumeration",
+    "tcb-items": "the specification's TCB enumeration",
+    "assurance-tiers": "the specification's assurance tier table",
+    "build-prereqs": "the specification's R-06-024 prerequisite enumeration",
+    "radio-protocols": "R-12-043e's inventory-row range",
+    "iris-theories": "R-13-017's theory enumeration",
+    "provision-facts": "the provisioner's FACTS declaration",
+    "provision-switches": "the provisioner's switch rows",
+}
+OPTIONAL_COUNTS = {
+    "cj-authored": "cj-specs",
+    "cj-partial": "cj-specs",
+    "cj-unauthored": "cj-specs",
+    "cells-authored": "cells",
+    "cells-partial": "cells",
+    "cells-unauthored": "cells",
+    "provision-uncommanded": "provision-facts",
+}
+
+
+def count_owner_findings(quantities: dict[str, int]) -> list[str]:
+    """Reject missing owner readings and undeclared policies; allow bounded zeros."""
+    findings = [f"{name} is computed without a declared owner guard"
+                for name in sorted(quantities.keys() - REQUIRED_COUNTS.keys()
+                                   - OPTIONAL_COUNTS.keys())]
+    findings += [f"{name} has both required and optional owner policies"
+                 for name in sorted(REQUIRED_COUNTS.keys() & OPTIONAL_COUNTS.keys())]
+    for name, owner in REQUIRED_COUNTS.items():
+        if quantities.get(name, 0) <= 0:
+            findings.append(f"{name} reads no members from {owner}")
+    for name, parent in OPTIONAL_COUNTS.items():
+        if parent not in REQUIRED_COUNTS or parent not in quantities:
+            findings.append(f"{name} names {parent}, which is not a recorded required owner")
+        value = quantities.get(name)
+        if value is None or not 0 <= value <= quantities.get(parent, 0):
+            findings.append(f"{name} must be a recorded bucket within {parent}")
+    return findings
+
+
+# K-26 declares both the subject and the document in which it denotes a live
+# inventory. Completion evidence is deliberately absent. Bare numbers or generic
+# nouns in unrelated documents never become candidates when an inventory grows.
+# A final field bounds the register introduction before normative entries begin.
+# New subjects and document scopes need explicit registration and a regression.
+_CROWN_SUBJECT = r"(?:crown[- ]jewel specifications|coarse targets|theorem targets|`CJ-` targets)"
+COUNT_SCOPES = [
+    (file, "crown-jewel inventory", _CROWN_SUBJECT, "")
+    for file in ("README.md", REGISTER, SPEC, TAL, TOOLS_README, PLAN,
+                 "docs/assurance/crown-jewels.md", "docs/background/critique.md",
+                 "docs/assurance/coverage-matrix.md")
+] + [
+    (REGISTER, "register summary",
+     r"(?:requirements|normative sections|letter-suffixed entries)", "## §1."),
+    ("docs/assurance/coverage-matrix.md", "coverage product",
+     r"(?:boundaries|properties|(?:boundary-property|coverage) (?:pairs|cells)|of their pairs)", ""),
+    ("docs/assurance/differential-corpus.md", "differential corpus", r"purecap programs", ""),
+    (TOOLS_README, "tool declarations", r"(?:files by path|opam switches)", ""),
+] + [
+    (file, "canonical type obligations", r"type-level obligations", "")
+    for file in (REGISTER, SPEC, TAL)
+]
+
+# Word spellings are a fixed lexical grammar, not the current values of inventories.
+# Digits have no upper bound; boundaries prevent reading a decimal, a version or one
+# group of a comma-separated integer as an independent count.
+_COUNT_WORDS = "|".join(sorted((figures.words(n) for n in range(100)),
+                             key=len, reverse=True))
+_COUNT_FORM = (r"(?<![\w,.-])(?P<count>(?:\d{1,3}(?:,\d{3})+|\d+|"
+               + _COUNT_WORDS + r"))(?![\w-]|[,.]\d)")
+
+
+def unheld_counts(ctx: Context) -> list[str]:
+    """Find unregistered live counts in explicit subject/document scopes.
+
+    Claims are found again on the current text so a preceding repair cannot leave
+    stale offsets. Fenced examples are not assertions. Findings are deduplicated
+    when a subject participates in more than one declared scope.
+    """
+    findings: dict[tuple[str, int], str] = {}
+    for file, subject, noun, until in COUNT_SCOPES:
+        raw = ctx.text(file)
+        if not raw:
+            continue
+        # The introduction is deliberately a bounded scope, not a keyword search
+        # over the register's normative contract quantities.
+        end = raw.find(until) if until else -1
+        scoped = raw[:end] if end >= 0 else raw
+        held = [m.span() for f, _, _, pattern in CLAIMS if f == file
+                for m in re.finditer(pattern, raw)]
+        fenced = corpus_mod.fence_lines(raw.splitlines())
+        pattern = re.compile(_COUNT_FORM + r"[*`]*[ \t]+(?:" + noun + r")\b",
+                             re.IGNORECASE)
+        for match in pattern.finditer(scoped):
+            start, finish = match.span("count")
+            line = raw.count("\n", 0, start)
+            if fenced[line] or any(a <= start and finish <= b for a, b in held):
+                continue
+            findings[file, start] = (
+                f"{file}:{line + 1} states '{match['count']}' where no claim holds it, "
+                f"for {subject}")
+    return list(findings.values())
 
 
 def _enumeration(pattern: re.Pattern[str], text: str, sep: str = ",") -> int:
@@ -439,40 +345,6 @@ def _anchor_span_marks(ctx: Context, ident: str) -> int:
     if SPEC not in ctx.corpus:
         return 0
     return len(ENUM_MARK_RE.findall(coread.spans(ctx.corpus).get(ident, "")))
-
-
-def _corpus_members(ctx: Context) -> int:
-    """How many programs the differential corpus's manifest lists, zero where it
-    will not parse.
-
-    Guarded rather than allowed to raise, because this group runs well before the
-    differential group that owns the manifest: an unreadable one there is that
-    group's finding, worded once, and here it must not take the whole run down
-    before any rule has decided anything. Zero is the moved-reading answer
-    `OWNED_COUNTS` refuses to resolve a claim against.
-    """
-    try:
-        return len(differential.load(ctx.root).members)
-    except (OSError, json.JSONDecodeError, KeyError, TypeError):
-        return 0
-
-
-def _dialect_admitted(ctx: Context) -> int:
-    """How many mnemonics the generated encoder table admits, read from the table.
-
-    The artifact is a generated one and K-88 has already decided, in the group that
-    runs before this one, that its bytes are what its generator writes; so this reads
-    the header it wrote rather than re-running the generator. Guarded rather than
-    allowed to raise, on `_corpus_members`' ground: an unreadable artifact is K-88's
-    finding, worded once there, and here it must be the moved-reading zero that
-    `OWNED_COUNTS` refuses to resolve a claim against.
-    """
-    try:
-        raw = (ctx.root / dialectgen.TABLE).read_text(encoding="utf-8")
-        header = json.loads(raw)["header"]
-        return int(header["admitted"])
-    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
-        return 0
 
 
 def _radio_protocols(reg_accept: str) -> int:
@@ -527,8 +399,6 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "build-prereqs": _anchor_span_marks(ctx, "r-06-024"),
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
         "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
-        "corpus-members": _corpus_members(ctx),
-        "dialect-admitted": _dialect_admitted(ctx),
         # the lane's shape, read off the provisioner's own table rather than parsed
         # out of the file a second time: a second parse of one table is exactly the
         # two-copies defect this group exists to catch, and the table is a tuple of
@@ -554,13 +424,13 @@ def run(ctx: Context) -> None:
     # are skipped rather than resolved: resolved, they would hold every restating
     # count-word to "zero", and one routine `--fix` would write that corruption
     # into three documents and leave the next run green.
-    dead = {q for q in OWNED_COUNTS if not ctx.q.get(q)}
+    dead = {q for q in REQUIRED_COUNTS if not ctx.q.get(q)}
+    claimed = {quantity for _, quantity, _, _ in CLAIMS}
     missed: list[str] = [
         f"{q}'s owner no longer states its enumeration in a form this rule reads, "
         f"so its claims stand unresolved rather than repaired to zero"
-        for q in sorted(dead)]
+        for q in sorted(dead & claimed)]
 
-    claim_spans: dict[str, list[re.Match[str]]] = {}
     for file, quantity, style, pattern in CLAIMS:
         if quantity in dead:
             continue
@@ -578,7 +448,6 @@ def run(ctx: Context) -> None:
             rep.line(r.fixed)
         if r.finding:
             missed.append(r.finding)
-        claim_spans.setdefault(file, []).extend(r.spans)
     rep.report("K-24", "asserted count(s) disagreeing with their artifact:", missed,
                f"all {len(CLAIMS)} asserted counts agree")
 
@@ -589,52 +458,9 @@ def run(ctx: Context) -> None:
                f"{ctx.q['cj-specs']} rows partition into {ctx.q['cj-authored']} authored, "
                f"{ctx.q['cj-partial']} partial, {ctx.q['cj-unauthored']} not authored")
 
-    # --- a figure stated where no claim holds it ------------------------------------
-    forms: dict[str, list[str]] = {}
-    for quantity, value in ctx.q.items():
-        form = figures.distinctive(value)
-        if form:
-            forms.setdefault(form, []).append(quantity)
-
-    loose: list[str] = []
-    if forms:
-        # one alternation over all the distinctive forms, longest first so a compound
-        # word form is never eaten by its own prefix; the hits are grouped back by form
-        # so the findings keep the per-form order the quantity table gives them
-        ordered = sorted(forms, key=len, reverse=True)
-        form_re = count_form_pattern(ordered)
-
-        for doc in ctx.corpus.docs:
-            was_fixed = doc.name in ctx.fixed
-            raw = ctx.text(doc.name)
-            if not raw:
-                continue
-
-            # a repaired file's offsets moved, so its held spans are found again on the
-            # new text; everywhere else the spans the claims loop found are reused
-            if was_fixed:
-                held = [m for f, _, _, p in CLAIMS if f == doc.name
-                        for m in re.finditer(p, raw)]
-            else:
-                held = claim_spans.get(doc.name, [])
-
-            by_form: dict[str, list[re.Match[str]]] = {}
-            for m in _form_sites(form_re, ordered, raw):
-                by_form.setdefault(m.group().lower(), []).append(m)
-
-            for form, quantities in forms.items():
-                for m in by_form.get(form, []):
-                    rest = raw[m.start():m.start() + 80].split("\n", 1)[0]
-                    if not counted_clause(rest, quantities):
-                        continue
-                    if any(s.start() <= m.start() < s.end() for s in held):
-                        continue
-                    line = (raw.count("\n", 0, m.start()) + 1 if was_fixed
-                            else doc.at(m.start()))
-                    loose.append(f"{doc.name}:{line} states '{m.group()}' where no claim "
-                                 f"holds it, for {' or '.join(quantities)}")
-    rep.report("K-26", "unheld restatement(s) of a counted figure:", loose,
-               "every stated figure is held by a claim")
+    # Subject and document scope decide a duplicate, never a coincident current value.
+    rep.report("K-26", "unheld restatement(s) of a counted figure:",
+               unheld_counts(ctx), "every count in a declared scope is held by a claim")
 
     # --- the Coverage table is one row per section, with the right count -------------
     register_raw = ctx.text(REGISTER)

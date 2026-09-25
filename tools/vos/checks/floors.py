@@ -12,11 +12,10 @@ Four floors close it, they answer to four different readings, and so they are fo
 rules rather than one: a registry row is what the review gate prices the tool by, and
 a row whose claim is a conjunction of four prices none of them.
 
-The first is nearly free because the design already almost has it. A quantity the
-counts group computes is compared against what the documents say, so an anchor that
-breaks drives the count to zero and the prose disagrees with it loudly: being
-*claimed* is what makes a quantity self-checking. So every quantity is required to be
-claimed, and the counts group becomes total rather than a habit.
+The first checks each computed quantity against its declared owner policy. Required
+enumerations must still have members even when no prose repeats their size. Status
+buckets may be empty within a nonempty parent inventory; an unknown quantity needs
+an explicit policy before the checker can treat its value as evidence.
 
 The second covers what is read and never counted. There is no prose to disagree with
 such a set, so the floor is stated here directly: it has members, or the reading that
@@ -61,6 +60,8 @@ is the same one every enumeration above declares.
 
 import re
 from typing import TYPE_CHECKING
+
+from vos.checks.counts import count_owner_findings
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -135,11 +136,9 @@ def run(ctx: Context) -> None:
     rep, reg, art, sh = ctx.rep, ctx.reg, ctx.art, ctx.shared
     rep.line(HEADING)
 
-    claimed = {quantity for _, quantity, _, _ in ctx.claims}
-    rep.report("K-46", "computed quantity(ies) no claim holds:",
-               [f"{q} is computed and no document is required to state it, so nothing "
-                "notices when it goes to zero" for q in ctx.q if q not in claimed],
-               f"all {len(ctx.q)} computed quantities are held by a claim")
+    rep.report("K-46", "computed quantity owner guard(s) not satisfied:",
+               count_owner_findings(ctx.q),
+               f"all {len(ctx.q)} computed quantities satisfy their owner guards")
 
     owned, moved = _two_class(ctx)
 
