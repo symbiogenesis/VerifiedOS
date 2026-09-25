@@ -185,16 +185,18 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     compiler, found = c_compiler(), gallina.prover(env.ROCQ_SWITCH)
     if compiler is None or found is None:
         return 1, [f"FAIL requires C compiler and locked switch {env.ROCQ_SWITCH}", WAITS]
-    try:
-        cases = generated(configuration(root))
-    except ValueError as error:
-        return 1, [f"FAIL {error}", WAITS]
     identities = [root / "proofs" / name for name in ("RingContract.v", "CopyRingService.v")]
     identities += [root / "copy-service" / name for name in SOURCES]
     identities += [root / "tools" / "vos" / "copy_service.py", root / "interfaces" / "ring-reference.json"]
     identities += [root / "tools" / "vos" / "cli" / "ring.py"]
     before = {p.relative_to(root).as_posix(): _digest(p) for p in identities}
     tools_before = {p: _digest(Path(p)) for p in (compiler, found.argv[0])}
+    # Snapshot every owner before reading configuration or generating cases, so
+    # the final identity check also covers edits during those input reads.
+    try:
+        cases = generated(configuration(root))
+    except ValueError as error:
+        return 1, [f"FAIL {error}", WAITS]
     built = build_host(root, work, compiler)
     (logs / "compile.log").write_text(built.stdout + built.stderr, encoding="utf-8")
     if built.returncode:
