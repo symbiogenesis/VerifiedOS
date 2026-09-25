@@ -63,47 +63,54 @@
    bound it. Both are booleans, so a witness is decided by conversion.
 
    **No operation runs either layer on its input before trusting it.**
-   `lookup`, `flatten`, `insert`, `publish_leaf` and `publish_branch` call
-   neither `spans` nor `admitted`; what bounds each of them is the fuel its
-   own caller passes, which is why a walk that runs out of it answers `None`
-   or `nil` rather than diverging, and why a cycle costs a bounded walk and
-   not termination. The two admission calls in this file are both *after* a
-   write, on what was just published: `insert_checked` re-decides
-   `admitted_grown`, and `insert_root` re-decides `admitted` on a new root it
-   allocated. Where a theorem below needs an admitted input it takes that as a
-   hypothesis, and a composition that wants the check ahead of a read has to
-   run it, since nothing here does.
+   `lookup`, `seek`, `flatten`, `insert`, `publish_leaf` and
+   `publish_branch` call neither `spans` nor `admitted`; what bounds each of
+   them is the fuel its own caller passes, which is why a walk that runs out
+   of it answers `None` or `nil` rather than diverging, and why a cycle costs
+   a bounded walk and not termination. Every admission call in this file is
+   *after* a write, on what was just published: `insert_checked` re-decides
+   `admitted_grown`, `insert_root` re-decides `admitted` on a new root it
+   allocated, and `insert_gate` decides `published` on what `insert_root`
+   returned. Where a theorem below needs an admitted or well formed input it
+   takes that as a hypothesis, and the gate's own output discharges that
+   hypothesis for the next gated call.
 
-   The fail-closed discipline, and the obligations it does not discharge.
+   The fail-closed discipline, and which inputs it is complete for.
    `insert_checked` re-decides `admitted` on what it published and refuses a
    result that does not decide true, so an admitted tree is followed by an
-   admitted tree or by a refusal and never by a tree nothing checked. **That
-   the check never refuses a well formed insert is a separate obligation and
-   is owed at M5.3d**, stated here as owed and asserted nowhere as an
-   admit, an axiom or a hypothesis: what is proved is that a checked result
-   is admitted, and what is computed is that the check passes on the
-   witnesses at the end of this file. Balance splits in two against this
-   check. Its occupancy half is inside it: `node_fits` is a conjunct of
-   `admitted`, `node_fits_everywhere` names that conjunct on its own down the
-   walk, and `an_admitted_tree_fits_everywhere` is the reading between them.
-   Its equal-leaf-depth half, which is the B+ property, is outside it:
-   `admitted` does not decide it, so the check neither enforces nor repairs
-   it, and the skew witness at the end of this file is admitted while one of
-   its leaves sits a level above the others. What carries that half is
-   `at_depth` and `leaves_share_one_depth` beside their two preservation
-   theorems, which take equal leaf depth of the input as a hypothesis and
-   return it of the output, at the same depth or, where the root split, at
-   exactly one more.
+   admitted tree or by a refusal and never by a tree nothing checked. That
+   the check never refuses a well formed insert holds for the inputs
+   `well_formed` decides and fails for `admitted` alone. `rising` lets a
+   separator equal the bound before it, and a split that cuts between two
+   equal separators publishes a half the check refuses;
+   `an_admitted_input_the_check_refuses` computes that refusal on an admitted
+   input with ample arena and an in-range key. `well_formed` is `admitted`
+   with every separator strictly above the bound before it, it holds of an
+   empty leaf root, and every write keeps it. Over it the check never refuses
+   what the write answered, and the write answers whenever the arena has room
+   for the walk's worst case, so a spent arena is the only refusal left.
 
-   The read path's one asymmetry, named rather than repaired. `lookup`
-   answers `None` for an address outside the arena, for a walk that runs out
-   of bound and for a cycle, which is the same answer it gives for a key that
-   is simply absent, so a reader cannot tell a structural refusal from a
-   miss. The write path does distinguish them, since `insert` answers `None`
-   only on a refusal. Making the read path distinguish them is a change to
-   `lookup`'s result type and to every statement over it, and it is not made
-   here; a composition that needs the distinction runs `spans` or `admitted`
-   itself, which is the same call this file's theorems take as a hypothesis.
+   Balance splits in two against the check. Its occupancy half is inside it:
+   `node_fits` is a conjunct of `admitted`, `node_fits_everywhere` names that
+   conjunct on its own down the walk, and `an_admitted_tree_fits_everywhere`
+   is the reading between them. Its equal-leaf-depth half, which is the B+
+   property, is outside `admitted`, so `insert_checked` and `insert_root`
+   neither enforce nor repair it, and the skew witness at the end of this
+   file is admitted while one of its leaves sits a level above the others.
+   `at_depth` and `leaves_share_one_depth` decide that half, their
+   preservation theorems carry it from input to output, and `insert_gate`
+   decides it inside the published gate: it refuses a result whose leaves do
+   not all sit at exactly the height it returns, and on an input it published
+   that check never fires.
+
+   The read path, and the refusal it tells from a miss. `lookup` answers
+   `None` for an address outside the arena, for a walk that runs out of
+   bound, for a routed child index outside the child list and for a cycle,
+   which is the same answer it gives for a key that is simply absent. `seek`
+   walks the same route and answers `None` for those structural refusals
+   alone and `Some None` for a miss, `lookup` being `seek` with that
+   distinction forgotten. On an admitted tree `seek` never refuses, so a
+   refusal is evidence against admission and a miss is the logical map's own.
 
    Readings of the register this file takes, each a reviewable judgment.
 
@@ -115,10 +122,14 @@
    2. Every walk below takes its bound as an argument rather than reading one
       from the geometry, and the tree's height is not assumed to stay put:
       the height a walk needs comes back with a result that split the root.
-      Geometry's `depth` is the declared ceiling the composition will fix and
-      no definition below reads it, so relating a call's bound to that
-      declaration is owed at M5.3d with the rest of the geometry. R-10-003
-      fixes neither quantity.
+      Geometry's `depth` is the declared height ceiling, and the gated pair
+      reads it: `insert_gate` refuses a result whose returned height passes
+      it, which makes a root split past the ceiling a spent-capacity refusal
+      like a spent arena, and `read_gate` refuses a walk bound past it. The
+      gate also decides that every leaf sits at exactly the returned height,
+      so the bound a gated call hands on is the tree's own height and not an
+      over-approximation. R-10-003 fixes neither quantity, so both are
+      declared magnitudes the composition supplies.
    3. A logical map is a list, so two of them are compared as lists and every
       equality below is an equality of lists or of a decidable boolean.
       `flatten` answers `nil` at a node it refuses, which conflates a refused
@@ -148,19 +159,16 @@
       arms is Q22f's to re-run under the actual composition.
    c. Every cost. No worst-case query or flush work, no write amplification,
       no barrier count and no WCET is stated or implied; `fan`, `depth` and
-      `arena_cap` are declared magnitudes and not measured ones. Owed at
-      R-10-004 and at the composition's own timing admission.
+      `arena_cap` are declared magnitudes and not measured ones. The capacity
+      figure the completeness statements take, two nodes per level the walk
+      bound admits and one more for a new root, is a sufficient condition
+      read off the definitions and not a cost bound, and each post-write
+      check re-walks the whole published tree at a price nothing here states.
+      Owed at R-10-004 and at the composition's own timing admission.
    d. Persistence. R-10-036 commits a checkpoint as a single L0 transaction
       and no transaction, journal record or commit appears below; the join
       between this index and JournalIndex.v's L0 is M5.3d's and is open.
    e. Concurrency. One writer, no reader visibility rule, no barrier.
-   f. Equal leaf depth inside the check rather than beside it. `insert_root`
-      re-decides `admitted`, which does not decide equal leaf depth, so the
-      operation neither enforces nor repairs it; what this file proves is
-      that an input whose leaves share a depth yields an output whose leaves
-      share one. Adding `leaves_share_one_depth` to the published gate is a
-      change to the operation and to every statement over its result, and is
-      owed at M5.3d with the geometry if the composition wants it.
 
    Non-vacuity (R-05-165, R-05-166). Every obligation is stated of an
    arbitrary key algebra, geometry, arena, walk bound, subtree, key and
@@ -174,7 +182,16 @@
    refusals, which are an arena whose declared capacity is spent, an address
    outside the arena, a reference past the walk bound, and a cycle among
    whole addressable nodes. The last is the case block completeness alone
-   cannot decide, which is what the bounded walk is for. Nothing below is
+   cannot decide, which is what the bounded walk is for. Beside them: the
+   occupancy walk refusing the address outside the arena and the reference
+   past the walk bound as the structural walk does; an admitted input with
+   two equal separators on which the write answers and the check refuses,
+   which is why completeness is stated over `well_formed`;
+   the three demo inserts published by the gate unchanged; the gate's three
+   refusals, of the skewed tree's insert, of a root split past a one-level
+   ceiling and of a walk bound past the declared depth, with a gated write
+   from an empty root; and the read path's hit and miss beside four
+   structural refusals `lookup` answers as absence. Nothing below is
    admitted, axiomatized or parameterized at top level: every composition
    magnitude is a field of the Geometry record. The Print Assumptions block
    at the end names the definitions and theorems this file exports and not
@@ -279,10 +296,11 @@ Record Geometry : Type := {
   fan : nat;
 
   (* The declared height ceiling the composition will fix. Every walk below
-     is structural in the bound its caller passes rather than in this field,
-     which no definition here reads; what that bound buys is the refusal of
-     an over-deep or cyclic reference, and tying a call's bound to this
-     declaration is owed at M5.3d. *)
+     is structural in the bound its caller passes rather than in this field;
+     what that bound buys is the refusal of an over-deep or cyclic
+     reference. `insert_gate` and `read_gate` read this field and refuse a
+     walk bound or a returned height past it, which is what ties a gated
+     call's bound to this declaration. *)
   depth : nat
 }.
 
@@ -1748,7 +1766,8 @@ Qed.
    published and refuses a result that does not decide true, so an admitted
    tree is followed by an admitted tree or by a refusal and never by a tree
    nothing checked. That the check never fires on a well formed input is a
-   separate obligation and is owed, not asserted, here.
+   separate obligation, proved below the balance section over the inputs
+   `well_formed` decides, and refuted over `admitted` by a computed witness.
    ========================================================================= *)
 
 Lemma lookup_grown_one :
@@ -1927,17 +1946,14 @@ Qed.
    passes. `at_depth` decides equal leaf depth at a stated depth and
    `leaves_share_one_depth` searches the depths a bound admits.
 
-   What carries the property is therefore not the check but the two theorems
-   below: an insert from a subtree whose leaves share a depth publishes both
-   halves at that same depth, and a root insert answers at that depth or at
-   exactly one more, which is the only place a B+ tree's height moves. Equal
-   leaf depth enters as a hypothesis, so a composition establishes it once, at
-   the empty root where it is immediate, and these theorems carry it from
-   there. Nothing below decides it inside `insert_root`, and the skew witness
-   is what that costs.
-
-   Still owed at M5.3d, here as everywhere in this file, and asserted nowhere
-   as an admit: that the fail-closed check never refuses a well formed insert.
+   What carries the property through `insert_root` is therefore not its check
+   but the two theorems below: an insert from a subtree whose leaves share a
+   depth publishes both halves at that same depth, and a root insert answers
+   at that depth or at exactly one more, which is the only place a B+ tree's
+   height moves. Equal leaf depth enters those theorems as a hypothesis, and
+   the skew witness is what `insert_root` alone costs. `insert_gate`, after
+   the completeness section, decides it on what it publishes, and these
+   theorems are what make that decision never fire on its own output.
    ========================================================================= *)
 
 Fixpoint node_fits_everywhere (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
@@ -2353,6 +2369,1683 @@ Proof.
 Qed.
 
 (* =========================================================================
+   Completeness of the fail-closed check, and the inputs it is complete for.
+
+   The obligation is that the check never refuses a well formed insert, so
+   the first thing to settle is which inputs are well formed, and `admitted`
+   is not the answer. `rising` lets a separator equal the bound before it,
+   which admits an empty child between two equal separators, and a later
+   internal split that cuts the separator list between those two hands its
+   left half a last separator that is not strictly below the half's new upper
+   bound. `admitted` refuses that half, so an admitted input with ample arena
+   capacity and a key inside its range is refused by the check. The witness
+   `an_admitted_input_the_check_refuses` at the end of this file computes
+   exactly that, which is why every completeness statement below is stated
+   over `well_formed` and none over `admitted` alone.
+
+   `well_formed` is `admitted` with one change: every separator is strictly
+   above the bound before it, where `rising` asks only that it not be below
+   it. It implies `admitted` (`a_well_formed_tree_is_admitted`), an empty leaf
+   root is well formed (`the_empty_root_is_well_formed`), and every write
+   below keeps it, so it is the class the writer produces from an empty root.
+   Over it the check is complete in two halves, stated apart because they are
+   different facts. Whenever the write itself answers, the check agrees with
+   it and the result is well formed again
+   (`the_check_never_refuses_a_well_formed_insert`). And the write answers
+   whenever the arena has room for the two nodes per level a split can cost,
+   so the only refusal a well formed input can meet is a spent arena
+   (`a_well_formed_insert_is_refused_only_by_a_spent_arena`). That capacity
+   figure is a sufficient bound read off the walk bound, not a measured cost.
+   ========================================================================= *)
+
+Definition above_strict (ka : KeyAlgebra) (lo : Bound ka) (k : Key ka) : bool :=
+  match lo with None => true | Some l => key_lt ka l k end.
+
+Definition strictly_within (ka : KeyAlgebra) (lo hi : Bound ka) (k : Key ka)
+  : bool :=
+  andb (above_strict ka lo k) (below ka hi k).
+
+(* The separators of one node, each strictly above the bound before it and
+   strictly below the node's upper bound, so no child's range is empty by
+   construction of its bounds. *)
+Fixpoint rising_strict (ka : KeyAlgebra) (lo : Bound ka) (ss : list (Key ka))
+                       (hi : Bound ka) : bool :=
+  match ss with
+  | nil => true
+  | cons s rest =>
+      andb (strictly_within ka lo hi s) (rising_strict ka (Some s) rest hi)
+  end.
+
+(* The well formed inputs: `admitted` with `rising_strict` in place of
+   `rising`, and nothing else changed. *)
+Fixpoint well_formed (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                     (fuel : nat) (lo hi : Bound ka) (b : nat) : bool :=
+  match nth_error ar b with
+  | None => false
+  | Some nd =>
+      andb (node_fits ka g nd)
+        (match en_kids nd with
+         | nil => andb (sorted ka (en_entries nd))
+                       (entries_within ka lo hi (en_entries nd))
+         | cons _ _ =>
+             match fuel with
+             | 0 => false
+             | S f =>
+                 andb (rising_strict ka lo (en_seps nd) hi)
+                      (chain ka (well_formed ka g ar f) lo (en_seps nd)
+                             (en_kids nd) hi)
+             end
+         end)
+  end.
+
+Definition well_formed_grown (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                             (fuel : nat) (lo hi : Bound ka) (gr : Grown ka)
+  : bool :=
+  match gr with
+  | pair a None => well_formed ka g ar fuel lo hi a
+  | pair a (Some (pair s r)) =>
+      andb (strictly_within ka lo hi s)
+      (andb (well_formed ka g ar fuel lo (Some s) a)
+            (well_formed ka g ar fuel (Some s) hi r))
+  end.
+
+(* -------------------------------------------------------------------------
+   The strict order, from KeyAlgebra's laws alone.
+   ------------------------------------------------------------------------- *)
+
+Lemma key_lt_trans :
+  forall (ka : KeyAlgebra) (a b c : Key ka),
+    key_lt ka a b = true -> key_lt ka b c = true -> key_lt ka a c = true.
+Proof.
+  intros ka a b c H1 H2.
+  exact (key_lt_trans_le ka a b c H1 (key_lt_le ka b c H2)).
+Qed.
+
+Lemma key_le_lt_trans :
+  forall (ka : KeyAlgebra) (a b c : Key ka),
+    key_leb ka a b = true -> key_lt ka b c = true -> key_lt ka a c = true.
+Proof.
+  intros ka a b c H1 H2. unfold key_lt in H2 |- *.
+  apply andb_true_iff in H2 as [ Hbc Hne ]. apply negb_true_iff in Hne.
+  apply andb_true_iff. split; [ exact (key_leb_trans ka a b c H1 Hbc) | ].
+  apply negb_true_iff. destruct (key_eqb ka a c) eqn:E; [ | reflexivity ].
+  rewrite (key_eqb_true ka a c E) in H1.
+  rewrite (key_leb_antisym ka b c Hbc H1) in Hne. discriminate Hne.
+Qed.
+
+Lemma above_strict_step :
+  forall (ka : KeyAlgebra) (lo : Bound ka) (x s : Key ka),
+    above_strict ka lo x = true -> key_lt ka x s = true ->
+    above_strict ka lo s = true.
+Proof.
+  intros ka lo x s H1 H2. destruct lo as [ l | ]; [ | reflexivity ].
+  exact (key_lt_trans ka l x s H1 H2).
+Qed.
+
+Lemma above_strict_of_above :
+  forall (ka : KeyAlgebra) (lo : Bound ka) (x s : Key ka),
+    above ka lo x = true -> key_lt ka x s = true -> above_strict ka lo s = true.
+Proof.
+  intros ka lo x s H1 H2. destruct lo as [ l | ]; [ | reflexivity ].
+  exact (key_le_lt_trans ka l x s H1 H2).
+Qed.
+
+Lemma below_step :
+  forall (ka : KeyAlgebra) (hi : Bound ka) (s x : Key ka),
+    key_lt ka s x = true -> below ka hi x = true -> below ka hi s = true.
+Proof.
+  intros ka hi s x H1 H2. destruct hi as [ h | ]; [ | reflexivity ].
+  exact (key_lt_trans ka s x h H1 H2).
+Qed.
+
+Lemma strictly_within_within :
+  forall (ka : KeyAlgebra) (lo hi : Bound ka) (k : Key ka),
+    strictly_within ka lo hi k = true -> within ka lo hi k = true.
+Proof.
+  intros ka lo hi k H. unfold strictly_within in H. unfold within.
+  apply andb_true_iff in H as [ H1 H2 ]. apply andb_true_iff. split; [ | exact H2 ].
+  destruct lo as [ l | ]; [ exact (key_lt_le ka l k H1) | reflexivity ].
+Qed.
+
+Lemma rising_strict_rising :
+  forall (ka : KeyAlgebra) (ss : list (Key ka)) (lo hi : Bound ka),
+    rising_strict ka lo ss hi = true -> rising ka lo ss hi = true.
+Proof.
+  intros ka ss. induction ss as [ | s rest IH ]; intros lo hi H; [ reflexivity | ].
+  cbn [rising_strict] in H. cbn [rising].
+  apply andb_true_iff in H as [ H1 H2 ]. apply andb_true_iff.
+  split; [ exact (strictly_within_within ka lo hi s H1) |
+          exact (IH (Some s) hi H2) ].
+Qed.
+
+Lemma a_well_formed_tree_is_admitted :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat),
+    well_formed ka g ar fuel lo hi b = true -> admitted ka g ar fuel lo hi b = true.
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ]; intros ar lo hi b H;
+    simpl in H |- *; destruct (nth_error ar b) as [ nd | ]; try discriminate H;
+    apply andb_true_iff in H as [ Hf H ]; apply andb_true_iff; split; try exact Hf.
+  - destruct (en_kids nd); [ exact H | discriminate H ].
+  - destruct (en_kids nd) as [ | c cs ]; [ exact H | ].
+    apply andb_true_iff in H as [ Hr Hc ]. apply andb_true_iff. split.
+    + exact (rising_strict_rising ka (en_seps nd) lo hi Hr).
+    + exact (chain_mono ka (well_formed ka g ar f) (admitted ka g ar f) (en_seps nd)
+               (cons c cs) lo hi (fun l h x Hx => IH ar l h x Hx) Hc).
+Qed.
+
+Lemma well_formed_grown_admitted :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (gr : Grown ka),
+    well_formed_grown ka g ar fuel lo hi gr = true ->
+    admitted_grown ka g ar fuel lo hi gr = true.
+Proof.
+  intros ka g fuel ar lo hi gr H. destruct gr as [ a [ [ s r ] | ] ].
+  - cbn [well_formed_grown] in H. cbn [admitted_grown].
+    apply andb_true_iff in H as [ Hs H ]. apply andb_true_iff in H as [ Ha Hr ].
+    apply andb_true_iff. split; [ exact (strictly_within_within ka lo hi s Hs) | ].
+    apply andb_true_iff. split.
+    + exact (a_well_formed_tree_is_admitted ka g fuel ar lo (Some s) a Ha).
+    + exact (a_well_formed_tree_is_admitted ka g fuel ar (Some s) hi r Hr).
+  - exact (a_well_formed_tree_is_admitted ka g fuel ar lo hi a H).
+Qed.
+
+Lemma well_formed_frame :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar ext : Arena ka)
+         (lo hi : Bound ka) (b : nat),
+    well_formed ka g ar fuel lo hi b = true ->
+    well_formed ka g (app ar ext) fuel lo hi b = true.
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ]; intros ar ext lo hi b H.
+  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
+      [ | discriminate H ].
+    rewrite (nth_error_app_l _ ar ext b nd E). exact H.
+  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
+      [ | discriminate H ].
+    rewrite (nth_error_app_l _ ar ext b nd E).
+    apply andb_true_iff in H as [ Hf H ]. apply andb_true_iff. split;
+      [ exact Hf | ].
+    destruct (en_kids nd) as [ | c cs ]; [ exact H | ].
+    apply andb_true_iff in H as [ Hr H ]. apply andb_true_iff. split;
+      [ exact Hr | ].
+    exact (chain_mono ka (well_formed ka g ar f) (well_formed ka g (app ar ext) f)
+             (en_seps nd) (cons c cs) lo hi
+             (fun l h x Hx => IH ar ext l h x Hx) H).
+Qed.
+
+Lemma well_formed_appended :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar ar' : Arena ka)
+         (lo hi : Bound ka) (b : nat),
+    appended ka ar ar' ->
+    well_formed ka g ar fuel lo hi b = true ->
+    well_formed ka g ar' fuel lo hi b = true.
+Proof.
+  intros ka g fuel ar ar' lo hi b [ ext He ] H. rewrite He.
+  exact (well_formed_frame ka g fuel ar ext lo hi b H).
+Qed.
+
+Lemma chain_well_formed_appended :
+  forall (ka : KeyAlgebra) (g : Geometry) (f : nat) (ar ar' : Arena ka)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka),
+    appended ka ar ar' ->
+    chain ka (well_formed ka g ar f) lo ss cs hi = true ->
+    chain ka (well_formed ka g ar' f) lo ss cs hi = true.
+Proof.
+  intros ka g f ar ar' ss cs lo hi Hap H.
+  exact (chain_mono ka (well_formed ka g ar f) (well_formed ka g ar' f) ss cs lo hi
+           (fun l h x Hx => well_formed_appended ka g f ar ar' l h x Hap Hx) H).
+Qed.
+
+(* -------------------------------------------------------------------------
+   Lists: lengths, and what a sorted list says about its two halves.
+   ------------------------------------------------------------------------- *)
+
+Lemma take_len :
+  forall (A : Type) (n : nat) (l : list A), n <= length l -> length (take n l) = n.
+Proof.
+  intros A n. induction n as [ | m IH ]; intros l H; [ reflexivity | ].
+  destruct l as [ | x r ]; [ simpl in H; lia | ].
+  simpl in H |- *. rewrite (IH r); [ reflexivity | lia ].
+Qed.
+
+Lemma drop_len :
+  forall (A : Type) (n : nat) (l : list A), length (drop n l) = length l - n.
+Proof.
+  intros A n. induction n as [ | m IH ]; intros l; [ simpl; lia | ].
+  destruct l as [ | x r ]; [ reflexivity | ]. simpl. exact (IH r).
+Qed.
+
+Lemma replace_at_len :
+  forall (A : Type) (l : list A) (j : nat) (x : A),
+    j < length l -> length (app (take j l) (cons x (drop (S j) l))) = length l.
+Proof.
+  intros A l j x H. rewrite length_app. cbn [length].
+  rewrite (take_len A j l) by lia. rewrite (drop_len A (S j) l). lia.
+Qed.
+
+Lemma insert_at_len :
+  forall (A : Type) (l : list A) (j : nat) (x : A),
+    j <= length l -> length (app (take j l) (cons x (drop j l))) = S (length l).
+Proof.
+  intros A l j x H. rewrite length_app. cbn [length].
+  rewrite (take_len A j l) by lia. rewrite (drop_len A j l). lia.
+Qed.
+
+Lemma split_at_len :
+  forall (A : Type) (l : list A) (j : nat) (x y : A),
+    j < length l ->
+    length (app (take j l) (cons x (cons y (drop (S j) l)))) = S (length l).
+Proof.
+  intros A l j x y H. rewrite length_app. cbn [length].
+  rewrite (take_len A j l) by lia. rewrite (drop_len A (S j) l). lia.
+Qed.
+
+Lemma nth_error_split_at :
+  forall (A : Type) (l : list A) (i : nat) (x : A),
+    nth_error l i = Some x -> l = app (take i l) (cons x (drop (S i) l)).
+Proof.
+  intros A l. induction l as [ | y r IH ]; intros i x H.
+  - destruct i; discriminate H.
+  - destruct i as [ | j ]; simpl in H.
+    + injection H as H. rewrite H. reflexivity.
+    + transitivity (cons y (app (take j r) (cons x (drop (S j) r)))).
+      * rewrite <- (IH j x H). reflexivity.
+      * reflexivity.
+Qed.
+
+Lemma nth_error_lt :
+  forall (A : Type) (l : list A) (i : nat) (x : A),
+    nth_error l i = Some x -> i < length l.
+Proof.
+  intros A l i x H. apply nth_error_Some. rewrite H. discriminate.
+Qed.
+
+Lemma all_of_both :
+  forall (A : Type) (p q r : A -> bool) (l : list A),
+    (forall x : A, p x = true -> q x = true -> r x = true) ->
+    all_of p l = true -> all_of q l = true -> all_of r l = true.
+Proof.
+  intros A p q r l H. induction l as [ | x t IH ]; intros Hp Hq; [ reflexivity | ].
+  cbn [all_of] in Hp, Hq |- *. apply andb_true_iff in Hp as [ Hp1 Hp2 ].
+  apply andb_true_iff in Hq as [ Hq1 Hq2 ].
+  apply andb_true_iff. split; [ exact (H x Hp1 Hq1) | exact (IH Hp2 Hq2) ].
+Qed.
+
+Lemma ge_all_is_keys_above :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    ge_all ka k ix = keys_above ka k ix.
+Proof.
+  intros ka k ix. unfold keys_above, key_lt.
+  induction ix as [ | e r IH ]; [ reflexivity | ].
+  cbn [ge_all all_of]. rewrite IH. reflexivity.
+Qed.
+
+Lemma sorted_take :
+  forall (ka : KeyAlgebra) (n : nat) (ix : Index ka),
+    sorted ka ix = true -> sorted ka (take n ix) = true.
+Proof.
+  intros ka n. induction n as [ | m IH ]; intros ix H; [ reflexivity | ].
+  destruct ix as [ | e r ]; [ reflexivity | ].
+  cbn [take sorted] in H |- *. apply andb_true_iff in H as [ Hg Hs ].
+  apply andb_true_iff. split; [ | exact (IH r Hs) ].
+  rewrite ge_all_is_keys_above in Hg |- *. unfold keys_above in Hg |- *.
+  exact (all_of_take _ _ m r Hg).
+Qed.
+
+Lemma sorted_drop :
+  forall (ka : KeyAlgebra) (n : nat) (ix : Index ka),
+    sorted ka ix = true -> sorted ka (drop n ix) = true.
+Proof.
+  intros ka n. induction n as [ | m IH ]; intros ix H; [ exact H | ].
+  destruct ix as [ | e r ]; [ reflexivity | ].
+  cbn [drop sorted] in H |- *. apply andb_true_iff in H as [ _ Hs ].
+  exact (IH r Hs).
+Qed.
+
+(* A sorted list cut at any point: every key before the cut is strictly
+   below the first key after it. *)
+Lemma sorted_cut_below :
+  forall (ka : KeyAlgebra) (n : nat) (ix rest : Index ka)
+         (e : prod (Key ka) nat),
+    sorted ka ix = true -> drop n ix = cons e rest ->
+    keys_below ka (fst e) (take n ix) = true.
+Proof.
+  intros ka n. induction n as [ | m IH ]; intros ix rest e Hs Hd;
+    [ reflexivity | ].
+  destruct ix as [ | x r ]; [ discriminate Hd | ].
+  cbn [sorted drop take] in Hs, Hd |- *. apply andb_true_iff in Hs as [ Hg Hs ].
+  unfold keys_below. cbn [all_of]. apply andb_true_iff. split.
+  - rewrite ge_all_is_keys_above in Hg. unfold keys_above in Hg.
+    pose proof (all_of_drop _ _ m r Hg) as Hdr. rewrite Hd in Hdr.
+    cbn [all_of] in Hdr. apply andb_true_iff in Hdr as [ He _ ]. exact He.
+  - exact (IH r rest e Hs Hd).
+Qed.
+
+Lemma length_ins :
+  forall (ka : KeyAlgebra) (k : Key ka) (v : nat) (ix : Index ka),
+    length (ins ka k v ix) <= S (length ix).
+Proof.
+  intros ka k v ix. induction ix as [ | e r IH ]; [ simpl; lia | ].
+  cbn [ins]. destruct (key_eqb ka k (fst e)); [ simpl; lia | ].
+  destruct (key_leb ka k (fst e)); simpl; simpl in IH; lia.
+Qed.
+
+Lemma ins_within :
+  forall (ka : KeyAlgebra) (lo hi : Bound ka) (k : Key ka) (v : nat)
+         (ix : Index ka),
+    entries_within ka lo hi ix = true -> within ka lo hi k = true ->
+    entries_within ka lo hi (ins ka k v ix) = true.
+Proof.
+  intros ka lo hi k v ix H Hk. unfold entries_within in *.
+  induction ix as [ | e r IH ].
+  - cbn [ins all_of fst]. apply andb_true_iff. split; [ exact Hk | reflexivity ].
+  - cbn [all_of] in H. apply andb_true_iff in H as [ He Hr ].
+    cbn [ins]. destruct (key_eqb ka k (fst e)).
+    + cbn [all_of fst]. apply andb_true_iff. split; [ exact Hk | exact Hr ].
+    + destruct (key_leb ka k (fst e)).
+      * cbn [all_of fst]. apply andb_true_iff. split; [ exact Hk | ].
+        apply andb_true_iff. split; [ exact He | exact Hr ].
+      * cbn [all_of]. apply andb_true_iff. split; [ exact He | exact (IH Hr) ].
+Qed.
+
+Lemma entries_within_cut_hi :
+  forall (ka : KeyAlgebra) (lo hi : Bound ka) (s : Key ka) (ix : Index ka),
+    entries_within ka lo hi ix = true -> keys_below ka s ix = true ->
+    entries_within ka lo (Some s) ix = true.
+Proof.
+  intros ka lo hi s ix H1 H2. unfold entries_within, keys_below in *.
+  apply (all_of_both _ (fun e => within ka lo hi (fst e))
+                       (fun e => key_lt ka (fst e) s)); [ | exact H1 | exact H2 ].
+  intros e Ha Hb. unfold within in Ha |- *. apply andb_true_iff in Ha as [ Ha _ ].
+  apply andb_true_iff. split; [ exact Ha | exact Hb ].
+Qed.
+
+Lemma entries_within_from_head :
+  forall (ka : KeyAlgebra) (lo hi : Bound ka) (e : prod (Key ka) nat)
+         (rest : Index ka),
+    entries_within ka lo hi (cons e rest) = true ->
+    sorted ka (cons e rest) = true ->
+    entries_within ka (Some (fst e)) hi (cons e rest) = true.
+Proof.
+  intros ka lo hi e rest H Hs. unfold entries_within in *.
+  cbn [all_of sorted] in H, Hs |- *. apply andb_true_iff in H as [ He Hr ].
+  apply andb_true_iff in Hs as [ Hg _ ].
+  rewrite ge_all_is_keys_above in Hg. unfold keys_above in Hg.
+  apply andb_true_iff. split.
+  - unfold within in He |- *. apply andb_true_iff in He as [ _ Hb ].
+    apply andb_true_iff. split; [ exact (key_leb_refl ka (fst e)) | exact Hb ].
+  - apply (all_of_both _ (fun x => within ka lo hi (fst x))
+                         (fun x => key_lt ka (fst e) (fst x)));
+      [ | exact Hr | exact Hg ].
+    intros x Ha Hb. unfold within in Ha |- *. apply andb_true_iff in Ha as [ _ Ha ].
+    apply andb_true_iff.
+    split; [ exact (key_lt_le ka (fst e) (fst x) Hb) | exact Ha ].
+Qed.
+
+(* The promoted separator of a leaf split is strictly inside the leaf's range,
+   because the half below it is non-empty and every key of that half is at or
+   above the lower bound and strictly below the separator. *)
+Lemma strictly_within_of_cut :
+  forall (ka : KeyAlgebra) (lo hi : Bound ka) (l : Index ka)
+         (e : prod (Key ka) nat) (rest : Index ka),
+    l <> nil -> entries_within ka lo hi l = true ->
+    keys_below ka (fst e) l = true ->
+    entries_within ka lo hi (cons e rest) = true ->
+    strictly_within ka lo hi (fst e) = true.
+Proof.
+  intros ka lo hi l e rest Hne Hl Hb He.
+  destruct l as [ | x t ]; [ exfalso; exact (Hne eq_refl) | ].
+  unfold entries_within, keys_below in *. cbn [all_of] in Hl, Hb, He.
+  apply andb_true_iff in Hl as [ Hx _ ]. apply andb_true_iff in Hb as [ Hxe _ ].
+  apply andb_true_iff in He as [ Hee _ ].
+  unfold within in Hx, Hee. apply andb_true_iff in Hx as [ Hxa _ ].
+  apply andb_true_iff in Hee as [ _ Heb ].
+  unfold strictly_within. apply andb_true_iff. split;
+    [ exact (above_strict_of_above ka lo (fst x) (fst e) Hxa Hxe) | exact Heb ].
+Qed.
+
+Lemma halve_split :
+  forall m fan : nat, 2 <= fan -> fan < m -> m <= S fan ->
+    0 < halve m /\ halve m < m /\ halve m <= fan /\ m - halve m <= fan.
+Proof.
+  intros m fan Hf H1 H2.
+  assert (Hp : 0 < halve m) by (apply halve_pos; lia).
+  assert (Hl : halve m < m) by (apply halve_lt; lia).
+  lia.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Reading `well_formed` and `node_fits` at one node.
+   ------------------------------------------------------------------------- *)
+
+Lemma node_fits_leaf_len :
+  forall (ka : KeyAlgebra) (g : Geometry) (nd : ENode ka),
+    en_kids nd = nil -> node_fits ka g nd = true ->
+    length (en_entries nd) <= fan g.
+Proof.
+  intros ka g nd Hk H. unfold node_fits in H. rewrite Hk in H.
+  apply andb_true_iff in H as [ H _ ]. apply Nat.leb_le. exact H.
+Qed.
+
+Lemma node_fits_branch_len :
+  forall (ka : KeyAlgebra) (g : Geometry) (nd : ENode ka) (c : nat)
+         (cs : list nat),
+    en_kids nd = cons c cs -> node_fits ka g nd = true ->
+    length (cons c cs) <= fan g /\ length (cons c cs) = S (length (en_seps nd)).
+Proof.
+  intros ka g nd c cs Hk H. unfold node_fits in H. rewrite Hk in H.
+  apply andb_true_iff in H as [ H1 H ]. apply andb_true_iff in H as [ H2 _ ].
+  split; [ apply Nat.leb_le; exact H1 | apply Nat.eqb_eq; exact H2 ].
+Qed.
+
+Lemma well_formed_of_leaf :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (fuel a : nat)
+         (lo hi : Bound ka) (ix : Index ka),
+    nth_error ar a = Some (leaf_of ka ix) ->
+    length ix <= fan g -> sorted ka ix = true ->
+    entries_within ka lo hi ix = true ->
+    well_formed ka g ar fuel lo hi a = true.
+Proof.
+  intros ka g ar fuel a lo hi ix H Hl Hs Hw.
+  assert (Hf : node_fits ka g (leaf_of ka ix) = true).
+  { unfold node_fits. cbn [leaf_of en_kids en_entries en_seps].
+    apply andb_true_iff. split; [ apply Nat.leb_le; exact Hl | reflexivity ]. }
+  destruct fuel as [ | f ]; cbn [well_formed]; rewrite H;
+    cbn [en_kids en_entries leaf_of];
+    rewrite Hf, Hs, Hw; reflexivity.
+Qed.
+
+Lemma well_formed_of_branch :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (f a : nat)
+         (lo hi : Bound ka) (ss : list (Key ka)) (cs : list nat),
+    nth_error ar a = Some (branch_of ka ss cs) ->
+    cs <> nil -> length cs <= fan g -> length cs = S (length ss) ->
+    rising_strict ka lo ss hi = true ->
+    chain ka (well_formed ka g ar f) lo ss cs hi = true ->
+    well_formed ka g ar (S f) lo hi a = true.
+Proof.
+  intros ka g ar f a lo hi ss cs H Hne Hl Hq Hr Hc.
+  destruct cs as [ | c cs' ]; [ exfalso; exact (Hne eq_refl) | ].
+  assert (Hf : node_fits ka g (branch_of ka ss (cons c cs')) = true).
+  { unfold node_fits. cbn [branch_of en_kids en_entries en_seps].
+    apply andb_true_iff. split; [ apply Nat.leb_le; exact Hl | ].
+    apply andb_true_iff. split; [ apply Nat.eqb_eq; exact Hq | reflexivity ]. }
+  cbn [well_formed]. rewrite H. cbn [en_kids en_seps branch_of].
+  rewrite Hf, Hr, Hc. reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   A leaf published whole or split, from a well formed leaf's insertion.
+   ------------------------------------------------------------------------- *)
+
+Lemma publish_leaf_well_formed :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (ix : Index ka)
+         (lo hi : Bound ka) (fuel : nat) (ar' : Arena ka) (gr : Grown ka),
+    geometry_ok g = true ->
+    sorted ka ix = true -> entries_within ka lo hi ix = true ->
+    length ix <= S (fan g) ->
+    publish_leaf ka g ar ix = Some (pair ar' gr) ->
+    well_formed_grown ka g ar' fuel lo hi gr = true.
+Proof.
+  intros ka g ar ix lo hi fuel ar' gr Hg Hs Hw Hlen H. unfold publish_leaf in H.
+  destruct (Nat.leb (length ix) (fan g)) eqn:Eb.
+  - destruct (alloc ka g ar (leaf_of ka ix)) as [ [ a0 ar1 ] | ] eqn:E1;
+      [ | discriminate H ].
+    injection H as H1 H2. rewrite <- H1, <- H2. cbn [well_formed_grown].
+    exact (well_formed_of_leaf ka g ar1 fuel a0 lo hi ix
+             (alloc_node ka g ar _ a0 ar1 E1) (proj1 (Nat.leb_le _ _) Eb) Hs Hw).
+  - apply Nat.leb_gt in Eb.
+    assert (Hf2 : 2 <= fan g).
+    { unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ Hf _ ].
+      apply Nat.leb_le. exact Hf. }
+    destruct (halve_split (length ix) (fan g) Hf2 Eb Hlen)
+      as [ Hpos [ Hlt [ Hle1 Hle2 ] ] ].
+    destruct (drop (halve (length ix)) ix) as [ | e rest ] eqn:Ed.
+    + exfalso. pose proof (drop_len _ (halve (length ix)) ix) as HL.
+      rewrite Ed in HL. simpl in HL. lia.
+    + cbn [head_key] in H.
+      destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
+        as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
+      destruct (alloc ka g ar1 (leaf_of ka (cons e rest)))
+        as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
+      injection H as H1 H2. rewrite <- H1, <- H2. cbn [well_formed_grown].
+      assert (HsL : sorted ka (take (halve (length ix)) ix) = true)
+        by exact (sorted_take ka _ ix Hs).
+      assert (HsR : sorted ka (cons e rest) = true).
+      { rewrite <- Ed. exact (sorted_drop ka _ ix Hs). }
+      assert (HwL : entries_within ka lo hi (take (halve (length ix)) ix) = true)
+        by exact (all_of_take _ _ _ ix Hw).
+      assert (HwR : entries_within ka lo hi (cons e rest) = true).
+      { rewrite <- Ed. exact (all_of_drop _ _ _ ix Hw). }
+      assert (Hcut : keys_below ka (fst e) (take (halve (length ix)) ix) = true)
+        by exact (sorted_cut_below ka _ ix rest e Hs Ed).
+      assert (HlenL : length (take (halve (length ix)) ix) = halve (length ix))
+        by (apply take_len; lia).
+      assert (HlenR : length (cons e rest) = length ix - halve (length ix)).
+      { rewrite <- Ed. exact (drop_len _ _ ix). }
+      assert (Hne : take (halve (length ix)) ix <> nil).
+      { intros Hn. rewrite Hn in HlenL. simpl in HlenL. lia. }
+      apply andb_true_iff. split;
+        [ exact (strictly_within_of_cut ka lo hi _ e rest Hne HwL Hcut HwR) | ].
+      apply andb_true_iff. split.
+      * apply (well_formed_of_leaf ka g ar2 fuel al lo (Some (fst e))
+                 (take (halve (length ix)) ix)).
+        { apply (appended_node ka ar1 ar2 al);
+            [ exact (proj1 (alloc_appended ka g ar1 _ ap ar2 E2))
+            | exact (alloc_node ka g ar _ al ar1 E1) ]. }
+        { lia. }
+        { exact HsL. }
+        { exact (entries_within_cut_hi ka lo hi (fst e) _ HwL Hcut). }
+      * apply (well_formed_of_leaf ka g ar2 fuel ap (Some (fst e)) hi
+                 (cons e rest)).
+        { exact (alloc_node ka g ar1 _ ap ar2 E2). }
+        { lia. }
+        { exact HsR. }
+        { exact (entries_within_from_head ka lo hi e rest HwR HsR). }
+Qed.
+
+(* -------------------------------------------------------------------------
+   A branch published whole or split, from well formed separators and
+   children.
+   ------------------------------------------------------------------------- *)
+
+Lemma chain_length :
+  forall (ka : KeyAlgebra) (rec : Bound ka -> Bound ka -> nat -> bool)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka),
+    chain ka rec lo ss cs hi = true -> length cs = S (length ss).
+Proof.
+  intros ka rec ss. induction ss as [ | s st IH ]; intros cs lo hi H.
+  - destruct cs as [ | c [ | y z ] ];
+      [ discriminate H | reflexivity | discriminate H ].
+  - destruct cs as [ | c ct ]; [ discriminate H | ].
+    cbn [chain] in H. apply andb_true_iff in H as [ _ H ].
+    simpl. rewrite (IH ct (Some s) hi H). reflexivity.
+Qed.
+
+Lemma chain_app :
+  forall (ka : KeyAlgebra) (rec : Bound ka -> Bound ka -> nat -> bool)
+         (ssL ssR : list (Key ka)) (s : Key ka) (csL csR : list nat)
+         (lo hi : Bound ka),
+    length csL = S (length ssL) ->
+    chain ka rec lo (app ssL (cons s ssR)) (app csL csR) hi
+      = andb (chain ka rec lo ssL csL (Some s)) (chain ka rec (Some s) ssR csR hi).
+Proof.
+  intros ka rec ssL. induction ssL as [ | t st IH ];
+    intros ssR s csL csR lo hi H.
+  - destruct csL as [ | c [ | y z ] ]; simpl in H; [ discriminate H | | lia ].
+    reflexivity.
+  - destruct csL as [ | c ct ]; simpl in H; [ discriminate H | ].
+    injection H as H. cbn [app chain].
+    rewrite (IH ssR s ct csR (Some t) hi H). rewrite andb_assoc. reflexivity.
+Qed.
+
+Lemma rising_strict_app :
+  forall (ka : KeyAlgebra) (ssL ssR : list (Key ka)) (s : Key ka)
+         (lo hi : Bound ka),
+    rising_strict ka lo (app ssL (cons s ssR)) hi = true ->
+    rising_strict ka lo ssL (Some s) = true
+    /\ strictly_within ka lo hi s = true
+    /\ rising_strict ka (Some s) ssR hi = true.
+Proof.
+  intros ka ssL. induction ssL as [ | t st IH ]; intros ssR s lo hi H.
+  - cbn [app rising_strict] in H. apply andb_true_iff in H as [ H1 H2 ].
+    split; [ reflexivity | split; [ exact H1 | exact H2 ] ].
+  - cbn [app rising_strict] in H. apply andb_true_iff in H as [ Ht H ].
+    destruct (IH ssR s (Some t) hi H) as [ HL [ Hs HR ] ].
+    unfold strictly_within in Ht, Hs. apply andb_true_iff in Ht as [ Hta Htb ].
+    apply andb_true_iff in Hs as [ Hsa Hsb ].
+    split; [ | split ].
+    + cbn [rising_strict]. apply andb_true_iff. split; [ | exact HL ].
+      unfold strictly_within. apply andb_true_iff. split; [ exact Hta | exact Hsa ].
+    + unfold strictly_within. apply andb_true_iff. split;
+        [ exact (above_strict_step ka lo t s Hta Hsa) | exact Hsb ].
+    + exact HR.
+Qed.
+
+(* A child list and its separators cut at a promoted separator: the halves
+   are chains between the old bounds and that separator. *)
+Lemma chain_cut :
+  forall (ka : KeyAlgebra) (rec : Bound ka -> Bound ka -> nat -> bool)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka) (n : nat)
+         (s0 : Key ka),
+    0 < n -> n < length cs ->
+    nth_error ss (Nat.pred n) = Some s0 ->
+    chain ka rec lo ss cs hi = true ->
+    chain ka rec lo (take (Nat.pred n) ss) (take n cs) (Some s0) = true
+    /\ chain ka rec (Some s0) (drop n ss) (drop n cs) hi = true.
+Proof.
+  intros ka rec ss cs lo hi n s0 Hpos Hlt Hs Hc.
+  pose proof (nth_error_split_at _ ss (Nat.pred n) s0 Hs) as Hss.
+  replace (S (Nat.pred n)) with n in Hss by lia.
+  pose proof (nth_error_lt _ ss (Nat.pred n) s0 Hs) as Hlts.
+  assert (Hcs : app (take n cs) (drop n cs) = cs)
+    by exact (app_of_take_and_drop nat n cs).
+  rewrite Hss in Hc. rewrite <- Hcs in Hc.
+  rewrite chain_app in Hc.
+  - apply andb_true_iff in Hc. exact Hc.
+  - rewrite (take_len _ n cs) by lia.
+    rewrite (take_len _ (Nat.pred n) ss) by lia. lia.
+Qed.
+
+Lemma rising_strict_cut :
+  forall (ka : KeyAlgebra) (ss : list (Key ka)) (lo hi : Bound ka) (i : nat)
+         (s0 : Key ka),
+    nth_error ss i = Some s0 ->
+    rising_strict ka lo ss hi = true ->
+    rising_strict ka lo (take i ss) (Some s0) = true
+    /\ strictly_within ka lo hi s0 = true
+    /\ rising_strict ka (Some s0) (drop (S i) ss) hi = true.
+Proof.
+  intros ka ss lo hi i s0 Hs Hr.
+  pose proof (nth_error_split_at _ ss i s0 Hs) as Hss.
+  rewrite Hss in Hr. exact (rising_strict_app ka _ _ s0 lo hi Hr).
+Qed.
+
+Lemma publish_branch_well_formed :
+  forall (ka : KeyAlgebra) (g : Geometry) (f : nat) (ar : Arena ka)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka)
+         (ar' : Arena ka) (gr : Grown ka),
+    geometry_ok g = true ->
+    length cs <= S (fan g) ->
+    rising_strict ka lo ss hi = true ->
+    chain ka (well_formed ka g ar f) lo ss cs hi = true ->
+    publish_branch ka g ar ss cs = Some (pair ar' gr) ->
+    well_formed_grown ka g ar' (S f) lo hi gr = true.
+Proof.
+  intros ka g f ar ss cs lo hi ar' gr Hg Hlen Hr Hc H.
+  assert (Hq : length cs = S (length ss))
+    by exact (chain_length ka _ ss cs lo hi Hc).
+  assert (Hne : cs <> nil) by (intros E; rewrite E in Hq; discriminate Hq).
+  unfold publish_branch in H.
+  destruct (Nat.leb (length cs) (fan g)) eqn:Eb.
+  - destruct (alloc ka g ar (branch_of ka ss cs)) as [ [ a0 ar1 ] | ] eqn:E1;
+      [ | discriminate H ].
+    injection H as H1 H2. rewrite <- H1, <- H2. cbn [well_formed_grown].
+    apply (well_formed_of_branch ka g ar1 f a0 lo hi ss cs
+             (alloc_node ka g ar _ a0 ar1 E1) Hne (proj1 (Nat.leb_le _ _) Eb)
+             Hq Hr).
+    exact (chain_well_formed_appended ka g f ar ar1 ss cs lo hi
+             (proj1 (alloc_appended ka g ar _ a0 ar1 E1)) Hc).
+  - apply Nat.leb_gt in Eb.
+    assert (Hf2 : 2 <= fan g).
+    { unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ Hf _ ].
+      apply Nat.leb_le. exact Hf. }
+    destruct (halve_split (length cs) (fan g) Hf2 Eb Hlen)
+      as [ Hpos [ Hlt [ Hle1 Hle2 ] ] ].
+    destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ] eqn:Es;
+      [ | discriminate H ].
+    destruct (alloc ka g ar
+                (branch_of ka (take (Nat.pred (halve (length cs))) ss)
+                              (take (halve (length cs)) cs)))
+      as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
+    destruct (alloc ka g ar1
+                (branch_of ka (drop (halve (length cs)) ss)
+                              (drop (halve (length cs)) cs)))
+      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
+    injection H as H1 H2. rewrite <- H1, <- H2. cbn [well_formed_grown].
+    destruct (appended_trans ka ar ar1 ar2
+                (proj1 (alloc_appended ka g ar _ al ar1 E1))
+                (proj1 (alloc_appended ka g ar1 _ ap ar2 E2))) as [ ext He ].
+    assert (Hc2 : chain ka (well_formed ka g ar2 f) lo ss cs hi = true).
+    { apply (chain_well_formed_appended ka g f ar ar2 ss cs lo hi); [ | exact Hc ].
+      exists ext. exact He. }
+    destruct (chain_cut ka _ ss cs lo hi (halve (length cs)) s0 Hpos Hlt Es Hc2)
+      as [ HcL HcR ].
+    destruct (rising_strict_cut ka ss lo hi (Nat.pred (halve (length cs))) s0 Es Hr)
+      as [ HrL [ Hs0 HrR ] ].
+    replace (S (Nat.pred (halve (length cs)))) with (halve (length cs)) in HrR
+      by lia.
+    pose proof (nth_error_lt _ ss _ s0 Es) as Hlts.
+    apply andb_true_iff. split; [ exact Hs0 | ].
+    apply andb_true_iff. split.
+    + apply (well_formed_of_branch ka g ar2 f al lo (Some s0)
+               (take (Nat.pred (halve (length cs))) ss)
+               (take (halve (length cs)) cs)).
+      * apply (appended_node ka ar1 ar2 al);
+          [ exact (proj1 (alloc_appended ka g ar1 _ ap ar2 E2))
+          | exact (alloc_node ka g ar _ al ar1 E1) ].
+      * apply take_not_nil; [ exact Hpos | exact Hne ].
+      * rewrite (take_len _ _ cs) by lia. exact Hle1.
+      * rewrite (take_len _ _ cs) by lia. rewrite (take_len _ _ ss) by lia. lia.
+      * exact HrL.
+      * exact HcL.
+    + apply (well_formed_of_branch ka g ar2 f ap (Some s0) hi
+               (drop (halve (length cs)) ss) (drop (halve (length cs)) cs)).
+      * exact (alloc_node ka g ar1 _ ap ar2 E2).
+      * exact (drop_not_nil nat (halve (length cs)) cs Hlt).
+      * rewrite (drop_len _ _ cs). exact Hle2.
+      * rewrite (drop_len _ _ cs). rewrite (drop_len _ _ ss). lia.
+      * exact HrR.
+      * exact HcR.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Where a routed walk lands, with its bounds named rather than existential,
+   and what replacing the routed child or splicing a split beside it does to
+   the separators and the chain.
+   ------------------------------------------------------------------------- *)
+
+(* The lower bound of child `j`: the separator to its left, or the node's own
+   lower bound for the first child. *)
+Fixpoint bound_at (ka : KeyAlgebra) (lo : Bound ka) (ss : list (Key ka))
+                  (j : nat) : Bound ka :=
+  match j, ss with
+  | 0, _ => lo
+  | S i, cons s rest => bound_at ka (Some s) rest i
+  | S _, nil => lo
+  end.
+
+(* The upper bound of child `j`: the separator to its right, or the node's
+   own upper bound for the last child. *)
+Fixpoint bound_after (ka : KeyAlgebra) (ss : list (Key ka)) (j : nat)
+                     (hi : Bound ka) : Bound ka :=
+  match ss, j with
+  | nil, _ => hi
+  | cons s _, 0 => Some s
+  | cons _ rest, S i => bound_after ka rest i hi
+  end.
+
+Lemma route_le :
+  forall (ka : KeyAlgebra) (k : Key ka) (ss : list (Key ka)),
+    route ka k ss <= length ss.
+Proof.
+  intros ka k ss. induction ss as [ | s rest IH ]; [ reflexivity | ].
+  cbn [route]. destruct (key_leb ka s k); simpl; lia.
+Qed.
+
+Lemma route_within :
+  forall (ka : KeyAlgebra) (k : Key ka) (ss : list (Key ka)) (lo hi : Bound ka),
+    within ka lo hi k = true ->
+    within ka (bound_at ka lo ss (route ka k ss))
+              (bound_after ka ss (route ka k ss) hi) k = true.
+Proof.
+  intros ka k ss. induction ss as [ | s rest IH ]; intros lo hi H; [ exact H | ].
+  cbn [route]. destruct (key_leb ka s k) eqn:Ek.
+  - cbn [bound_at bound_after]. apply IH.
+    unfold within in H |- *. apply andb_true_iff in H as [ _ Hb ].
+    apply andb_true_iff. split; [ exact Ek | exact Hb ].
+  - cbn [bound_at bound_after]. unfold within in H |- *.
+    apply andb_true_iff in H as [ Ha _ ].
+    apply andb_true_iff. split; [ exact Ha | exact (key_not_leb_lt ka s k Ek) ].
+Qed.
+
+Lemma chain_at :
+  forall (ka : KeyAlgebra) (rec : Bound ka -> Bound ka -> nat -> bool)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka) (j : nat),
+    chain ka rec lo ss cs hi = true -> j <= length ss ->
+    exists c : nat, nth_error cs j = Some c
+      /\ rec (bound_at ka lo ss j) (bound_after ka ss j hi) c = true.
+Proof.
+  intros ka rec ss. induction ss as [ | s st IH ]; intros cs lo hi j H Hj.
+  - destruct cs as [ | c [ | y z ] ]; [ discriminate H | | discriminate H ].
+    assert (Hj0 : j = 0) by (simpl in Hj; lia). subst j.
+    exists c. split; [ reflexivity | exact H ].
+  - destruct cs as [ | c ct ]; [ discriminate H | ].
+    cbn [chain] in H. apply andb_true_iff in H as [ Hc H ].
+    destruct j as [ | i ].
+    + exists c. split; [ reflexivity | exact Hc ].
+    + simpl in Hj. destruct (IH ct (Some s) hi i H) as [ x [ Hx Hr ] ]; [ lia | ].
+      exists x. split; [ exact Hx | exact Hr ].
+Qed.
+
+Lemma chain_replace :
+  forall (ka : KeyAlgebra) (rec : Bound ka -> Bound ka -> nat -> bool)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka) (j a : nat),
+    chain ka rec lo ss cs hi = true -> j <= length ss ->
+    rec (bound_at ka lo ss j) (bound_after ka ss j hi) a = true ->
+    chain ka rec lo ss (app (take j cs) (cons a (drop (S j) cs))) hi = true.
+Proof.
+  intros ka rec ss. induction ss as [ | s st IH ]; intros cs lo hi j a H Hj Ha.
+  - destruct cs as [ | c [ | y z ] ]; [ discriminate H | | discriminate H ].
+    assert (Hj0 : j = 0) by (simpl in Hj; lia). subst j. exact Ha.
+  - destruct cs as [ | c ct ]; [ discriminate H | ].
+    cbn [chain] in H. apply andb_true_iff in H as [ Hc H ].
+    destruct j as [ | i ].
+    + cbn [take drop app chain]. apply andb_true_iff. split; [ exact Ha | exact H ].
+    + simpl in Hj. cbn [take drop app chain]. apply andb_true_iff.
+      split; [ exact Hc | ].
+      apply (IH ct (Some s) hi i a H); [ lia | exact Ha ].
+Qed.
+
+Lemma chain_splice_split :
+  forall (ka : KeyAlgebra) (rec : Bound ka -> Bound ka -> nat -> bool)
+         (ss : list (Key ka)) (cs : list nat) (lo hi : Bound ka) (j a r : nat)
+         (s : Key ka),
+    chain ka rec lo ss cs hi = true -> j <= length ss ->
+    rec (bound_at ka lo ss j) (Some s) a = true ->
+    rec (Some s) (bound_after ka ss j hi) r = true ->
+    chain ka rec lo (app (take j ss) (cons s (drop j ss)))
+          (app (take j cs) (cons a (cons r (drop (S j) cs)))) hi = true.
+Proof.
+  intros ka rec ss. induction ss as [ | t st IH ];
+    intros cs lo hi j a r s H Hj Ha Hr.
+  - destruct cs as [ | c [ | y z ] ]; [ discriminate H | | discriminate H ].
+    assert (Hj0 : j = 0) by (simpl in Hj; lia). subst j.
+    cbn [take drop app chain]. apply andb_true_iff. split; [ exact Ha | exact Hr ].
+  - destruct cs as [ | c ct ]; [ discriminate H | ].
+    cbn [chain] in H. apply andb_true_iff in H as [ Hc H ].
+    destruct j as [ | i ].
+    + cbn [take drop app chain]. apply andb_true_iff. split; [ exact Ha | ].
+      apply andb_true_iff. split; [ exact Hr | exact H ].
+    + simpl in Hj. cbn [take drop app chain]. apply andb_true_iff.
+      split; [ exact Hc | ].
+      apply (IH ct (Some t) hi i a r s H); [ lia | exact Ha | exact Hr ].
+Qed.
+
+Lemma rising_strict_splice :
+  forall (ka : KeyAlgebra) (ss : list (Key ka)) (lo hi : Bound ka) (j : nat)
+         (s : Key ka),
+    rising_strict ka lo ss hi = true -> j <= length ss ->
+    strictly_within ka (bound_at ka lo ss j) (bound_after ka ss j hi) s = true ->
+    rising_strict ka lo (app (take j ss) (cons s (drop j ss))) hi = true.
+Proof.
+  intros ka ss. induction ss as [ | x st IH ]; intros lo hi j s H Hj Hs.
+  - assert (Hj0 : j = 0) by (simpl in Hj; lia). subst j.
+    cbn [take drop app rising_strict]. apply andb_true_iff.
+    split; [ exact Hs | reflexivity ].
+  - cbn [rising_strict] in H. apply andb_true_iff in H as [ Hx H ].
+    destruct j as [ | i ].
+    + cbn [bound_at bound_after] in Hs. cbn [take drop app rising_strict].
+      unfold strictly_within in Hs, Hx. apply andb_true_iff in Hs as [ Hsa Hsb ].
+      apply andb_true_iff in Hx as [ _ Hxb ].
+      apply andb_true_iff. split.
+      * unfold strictly_within. apply andb_true_iff.
+        split; [ exact Hsa | exact (below_step ka hi s x Hsb Hxb) ].
+      * apply andb_true_iff. split; [ | exact H ].
+        unfold strictly_within. apply andb_true_iff.
+        split; [ exact Hsb | exact Hxb ].
+    + simpl in Hj. cbn [bound_at bound_after] in Hs.
+      cbn [take drop app rising_strict].
+      apply andb_true_iff. split; [ exact Hx | ].
+      apply (IH (Some x) hi i s H); [ lia | exact Hs ].
+Qed.
+
+(* -------------------------------------------------------------------------
+   The write keeps `well_formed`: whatever `insert` publishes from a well
+   formed input is well formed again, split or not, at every level of the
+   walk.
+   ------------------------------------------------------------------------- *)
+
+Lemma insert_well_formed :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (gr : Grown ka),
+    geometry_ok g = true ->
+    well_formed ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    insert ka g ar fuel b k v = Some (pair ar' gr) ->
+    well_formed_grown ka g ar' fuel lo hi gr = true.
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ];
+    intros ar lo hi b k v ar' gr Hg Ht Hk H;
+    cbn [well_formed insert] in Ht, H; destruct (nth_error ar b) as [ nd | ] eqn:Eb;
+    try discriminate H; apply andb_true_iff in Ht as [ Hf Ht ].
+  - destruct (en_kids nd) as [ | c cs ] eqn:Ek; [ | discriminate H ].
+    apply andb_true_iff in Ht as [ Hs Hw ].
+    apply (publish_leaf_well_formed ka g ar (ins ka k v (en_entries nd)) lo hi 0
+             ar' gr Hg).
+    + exact (inserting_preserves_the_order ka k v _ Hs).
+    + exact (ins_within ka lo hi k v _ Hw Hk).
+    + pose proof (node_fits_leaf_len ka g nd Ek Hf) as Hl.
+      pose proof (length_ins ka k v (en_entries nd)) as Hi. lia.
+    + exact H.
+  - destruct (en_kids nd) as [ | c cs ] eqn:Ek.
+    + apply andb_true_iff in Ht as [ Hs Hw ].
+      apply (publish_leaf_well_formed ka g ar (ins ka k v (en_entries nd)) lo hi
+               (S f)
+               ar' gr Hg).
+      * exact (inserting_preserves_the_order ka k v _ Hs).
+      * exact (ins_within ka lo hi k v _ Hw Hk).
+      * pose proof (node_fits_leaf_len ka g nd Ek Hf) as Hl.
+        pose proof (length_ins ka k v (en_entries nd)) as Hi. lia.
+      * exact H.
+    + apply andb_true_iff in Ht as [ Hr Hc ].
+      destruct (node_fits_branch_len ka g nd c cs Ek Hf) as [ Hl Hq ].
+      pose proof (route_le ka k (en_seps nd)) as Hj.
+      destruct (chain_at ka _ (en_seps nd) (cons c cs) lo hi
+                  (route ka k (en_seps nd)) Hc Hj) as [ x [ Ex Hx ] ].
+      rewrite Ex in H.
+      destruct (insert ka g ar f x k v) as [ [ ar1 [ a0 sp0 ] ] | ] eqn:E1;
+        [ | discriminate H ].
+      assert (Hkx := route_within ka k (en_seps nd) lo hi Hk).
+      pose proof (IH ar _ _ x k v ar1 (pair a0 sp0) Hg Hx Hkx E1) as Hgr.
+      assert (Hc1 : chain ka (well_formed ka g ar1 f) lo (en_seps nd) (cons c cs) hi
+                    = true)
+        by exact (chain_well_formed_appended ka g f ar ar1 _ _ lo hi
+                    (an_insert_only_appends ka g f ar x k v ar1 _ E1) Hc).
+      destruct sp0 as [ [ s r ] | ]; cbn [splice] in H.
+      * cbn [well_formed_grown] in Hgr. apply andb_true_iff in Hgr as [ Hs Hgr ].
+        apply andb_true_iff in Hgr as [ Ha Hrr ].
+        refine (publish_branch_well_formed ka g f ar1 _ _ lo hi ar' gr Hg _ _ _ H).
+        -- rewrite split_at_len by (rewrite Hq; lia). lia.
+        -- exact (rising_strict_splice ka _ lo hi _ s Hr Hj Hs).
+        -- exact (chain_splice_split ka _ _ _ lo hi _ a0 r s Hc1 Hj Ha Hrr).
+      * cbn [well_formed_grown] in Hgr.
+        refine (publish_branch_well_formed ka g f ar1 _ _ lo hi ar' gr Hg _ _ _ H).
+        -- rewrite replace_at_len by (rewrite Hq; lia). lia.
+        -- exact Hr.
+        -- exact (chain_replace ka _ _ _ lo hi _ a0 Hc1 Hj Hgr).
+Qed.
+
+(* -------------------------------------------------------------------------
+   The write answers under capacity: a well formed input and room in the arena for
+   two nodes per level the walk bound admits leave no refusal to take.
+   ------------------------------------------------------------------------- *)
+
+Lemma alloc_some :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (nd : ENode ka),
+    length ar < arena_cap g ->
+    alloc ka g ar nd = Some (pair (length ar) (app ar (cons nd nil))).
+Proof.
+  intros ka g ar nd H. unfold alloc. apply Nat.ltb_lt in H. rewrite H. reflexivity.
+Qed.
+
+Lemma publish_leaf_some :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (ix : Index ka),
+    geometry_ok g = true -> length ix <= S (fan g) ->
+    length ar + 2 <= arena_cap g ->
+    exists (ar' : Arena ka) (gr : Grown ka),
+      publish_leaf ka g ar ix = Some (pair ar' gr) /\ length ar' <= length ar + 2.
+Proof.
+  intros ka g ar ix Hg Hlen Hcap. unfold publish_leaf.
+  destruct (Nat.leb (length ix) (fan g)) eqn:Eb.
+  - rewrite (alloc_some ka g ar (leaf_of ka ix)) by lia.
+    eexists; eexists; split; [ reflexivity | ].
+    rewrite length_app. simpl. lia.
+  - apply Nat.leb_gt in Eb.
+    assert (Hf2 : 2 <= fan g).
+    { unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ Hf _ ].
+      apply Nat.leb_le. exact Hf. }
+    destruct (halve_split (length ix) (fan g) Hf2 Eb Hlen)
+      as [ Hpos [ Hlt [ Hle1 Hle2 ] ] ].
+    destruct (drop (halve (length ix)) ix) as [ | e rest ] eqn:Ed.
+    + exfalso. pose proof (drop_len _ (halve (length ix)) ix) as HL.
+      rewrite Ed in HL. simpl in HL. lia.
+    + cbn [head_key].
+      rewrite (alloc_some ka g ar _) by lia.
+      rewrite (alloc_some ka g _ _) by (rewrite length_app; simpl; lia).
+      eexists; eexists; split; [ reflexivity | ].
+      rewrite !length_app. simpl. lia.
+Qed.
+
+Lemma publish_branch_some :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (ss : list (Key ka))
+         (cs : list nat),
+    geometry_ok g = true -> length cs = S (length ss) ->
+    length cs <= S (fan g) -> length ar + 2 <= arena_cap g ->
+    exists (ar' : Arena ka) (gr : Grown ka),
+      publish_branch ka g ar ss cs = Some (pair ar' gr)
+      /\ length ar' <= length ar + 2.
+Proof.
+  intros ka g ar ss cs Hg Hq Hlen Hcap. unfold publish_branch.
+  destruct (Nat.leb (length cs) (fan g)) eqn:Eb.
+  - rewrite (alloc_some ka g ar _) by lia.
+    eexists; eexists; split; [ reflexivity | ].
+    rewrite length_app. simpl. lia.
+  - apply Nat.leb_gt in Eb.
+    assert (Hf2 : 2 <= fan g).
+    { unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ Hf _ ].
+      apply Nat.leb_le. exact Hf. }
+    destruct (halve_split (length cs) (fan g) Hf2 Eb Hlen)
+      as [ Hpos [ Hlt [ Hle1 Hle2 ] ] ].
+    destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s0 | ] eqn:Es.
+    + rewrite (alloc_some ka g ar _) by lia.
+      rewrite (alloc_some ka g _ _) by (rewrite length_app; simpl; lia).
+      eexists; eexists; split; [ reflexivity | ].
+      rewrite !length_app. simpl. lia.
+    + exfalso. apply nth_error_None in Es. lia.
+Qed.
+
+Lemma insert_some :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat),
+    geometry_ok g = true ->
+    well_formed ka g ar fuel lo hi b = true ->
+    length ar + 2 * S fuel <= arena_cap g ->
+    exists (ar' : Arena ka) (gr : Grown ka),
+      insert ka g ar fuel b k v = Some (pair ar' gr)
+      /\ length ar' <= length ar + 2 * S fuel.
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ];
+    intros ar lo hi b k v Hg Ht Hcap;
+    cbn [well_formed] in Ht; cbn [insert];
+    destruct (nth_error ar b) as [ nd | ] eqn:Eb;
+    try discriminate Ht; apply andb_true_iff in Ht as [ Hf Ht ].
+  - destruct (en_kids nd) as [ | c cs ] eqn:Ek; [ | discriminate Ht ].
+    destruct (publish_leaf_some ka g ar (ins ka k v (en_entries nd)) Hg)
+      as [ ar' [ gr [ H1 H2 ] ] ].
+    + pose proof (node_fits_leaf_len ka g nd Ek Hf) as Hl.
+      pose proof (length_ins ka k v (en_entries nd)) as Hi. lia.
+    + lia.
+    + exists ar', gr. split; [ exact H1 | lia ].
+  - destruct (en_kids nd) as [ | c cs ] eqn:Ek.
+    + destruct (publish_leaf_some ka g ar (ins ka k v (en_entries nd)) Hg)
+        as [ ar' [ gr [ H1 H2 ] ] ].
+      * pose proof (node_fits_leaf_len ka g nd Ek Hf) as Hl.
+        pose proof (length_ins ka k v (en_entries nd)) as Hi. lia.
+      * lia.
+      * exists ar', gr. split; [ exact H1 | lia ].
+    + apply andb_true_iff in Ht as [ _ Hc ].
+      destruct (node_fits_branch_len ka g nd c cs Ek Hf) as [ Hl Hq ].
+      pose proof (route_le ka k (en_seps nd)) as Hj.
+      destruct (chain_at ka _ (en_seps nd) (cons c cs) lo hi
+                  (route ka k (en_seps nd)) Hc Hj) as [ x [ Ex Hx ] ].
+      rewrite Ex.
+      destruct (IH ar _ _ x k v Hg Hx) as [ ar1 [ [ a0 sp0 ] [ E1 Hl1 ] ] ];
+        [ lia | ].
+      rewrite E1.
+      destruct sp0 as [ [ s r ] | ]; cbn [splice].
+      * destruct (publish_branch_some ka g ar1
+                    (app (take (route ka k (en_seps nd)) (en_seps nd))
+                         (cons s (drop (route ka k (en_seps nd)) (en_seps nd))))
+                    (app (take (route ka k (en_seps nd)) (cons c cs))
+                         (cons a0 (cons r (drop (S (route ka k (en_seps nd)))
+                                                (cons c cs))))) Hg)
+          as [ ar' [ gr [ H1 H2 ] ] ].
+        -- rewrite split_at_len by (rewrite Hq; lia).
+           rewrite insert_at_len by lia. rewrite Hq. reflexivity.
+        -- rewrite split_at_len by (rewrite Hq; lia). lia.
+        -- lia.
+        -- exists ar', gr. split; [ exact H1 | lia ].
+      * destruct (publish_branch_some ka g ar1 (en_seps nd)
+                    (app (take (route ka k (en_seps nd)) (cons c cs))
+                         (cons a0 (drop (S (route ka k (en_seps nd)))
+                                        (cons c cs)))) Hg)
+          as [ ar' [ gr [ H1 H2 ] ] ].
+        -- rewrite replace_at_len by (rewrite Hq; lia). exact Hq.
+        -- rewrite replace_at_len by (rewrite Hq; lia). lia.
+        -- lia.
+        -- exists ar', gr. split; [ exact H1 | lia ].
+Qed.
+
+Lemma alloc_arena_ok :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (nd : ENode ka)
+         (a : nat) (ar' : Arena ka),
+    alloc ka g ar nd = Some (pair a ar') -> arena_ok ka g ar' = true.
+Proof.
+  intros ka g ar nd a ar' H. unfold alloc in H.
+  destruct (Nat.ltb (length ar) (arena_cap g)) eqn:E; [ | discriminate H ].
+  injection H as _ H. rewrite <- H. unfold arena_ok. apply Nat.leb_le.
+  apply Nat.ltb_lt in E. rewrite length_app. simpl. lia.
+Qed.
+
+Lemma publish_leaf_arena_ok :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (ix : Index ka)
+         (ar' : Arena ka) (gr : Grown ka),
+    publish_leaf ka g ar ix = Some (pair ar' gr) -> arena_ok ka g ar' = true.
+Proof.
+  intros ka g ar ix ar' gr H. unfold publish_leaf in H.
+  destruct (Nat.leb (length ix) (fan g)).
+  - destruct (alloc ka g ar (leaf_of ka ix)) as [ [ a ar1 ] | ] eqn:E1;
+      [ | discriminate H ].
+    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar _ a ar1 E1).
+  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s | ];
+      [ | discriminate H ].
+    destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
+      as [ [ al ar1 ] | ]; [ | discriminate H ].
+    destruct (alloc ka g ar1 (leaf_of ka (drop (halve (length ix)) ix)))
+      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
+    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar1 _ ap ar2 E2).
+Qed.
+
+Lemma publish_branch_arena_ok :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+         (ss : list (Key ka)) (cs : list nat) (ar' : Arena ka) (gr : Grown ka),
+    publish_branch ka g ar ss cs = Some (pair ar' gr) -> arena_ok ka g ar' = true.
+Proof.
+  intros ka g ar ss cs ar' gr H. unfold publish_branch in H.
+  destruct (Nat.leb (length cs) (fan g)).
+  - destruct (alloc ka g ar (branch_of ka ss cs)) as [ [ a ar1 ] | ] eqn:E1;
+      [ | discriminate H ].
+    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar _ a ar1 E1).
+  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s | ];
+      [ | discriminate H ].
+    destruct (alloc ka g ar
+                (branch_of ka (take (Nat.pred (halve (length cs))) ss)
+                              (take (halve (length cs)) cs)))
+      as [ [ al ar1 ] | ]; [ | discriminate H ].
+    destruct (alloc ka g ar1
+                (branch_of ka (drop (halve (length cs)) ss)
+                              (drop (halve (length cs)) cs)))
+      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
+    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar1 _ ap ar2 E2).
+Qed.
+
+Lemma insert_arena_ok :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (b : nat) (k : Key ka) (v : nat) (ar' : Arena ka) (gr : Grown ka),
+    insert ka g ar fuel b k v = Some (pair ar' gr) -> arena_ok ka g ar' = true.
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ]; intros ar b k v ar' gr H;
+    cbn [insert] in H; destruct (nth_error ar b) as [ nd | ]; try discriminate H.
+  - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
+    exact (publish_leaf_arena_ok ka g ar _ ar' gr H).
+  - destruct (en_kids nd) as [ | c cs ].
+    + exact (publish_leaf_arena_ok ka g ar _ ar' gr H).
+    + destruct (nth_error (cons c cs) (route ka k (en_seps nd))) as [ x | ];
+        [ | discriminate H ].
+      destruct (insert ka g ar f x k v) as [ [ ar1 [ a sp ] ] | ];
+        [ | discriminate H ].
+      destruct (splice ka (route ka k (en_seps nd)) a sp (en_seps nd)
+                       (cons c cs)) as [ ss' cs' ].
+      exact (publish_branch_arena_ok ka g ar1 ss' cs' ar' gr H).
+Qed.
+
+(* -------------------------------------------------------------------------
+   The completeness statements.
+   ------------------------------------------------------------------------- *)
+
+(* An empty leaf root is well formed, whatever the geometry, walk bound and range:
+   the class every write below keeps starts where a composition starts. *)
+Lemma the_empty_root_is_well_formed :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (lo hi : Bound ka),
+    well_formed ka g (cons (leaf_of ka nil) nil) fuel lo hi 0 = true.
+Proof.
+  intros ka g fuel lo hi. destruct fuel; reflexivity.
+Qed.
+
+(* Half one: whenever the write itself answers on a well formed input, the
+   fail-closed check agrees with it and the result is well formed again. *)
+(*| discharges: R-10-003 |*)
+Theorem the_check_never_refuses_a_well_formed_insert :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (gr : Grown ka),
+    geometry_ok g = true ->
+    well_formed ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    insert ka g ar fuel b k v = Some (pair ar' gr) ->
+    insert_checked ka g ar fuel lo hi b k v = Some (pair ar' gr)
+    /\ well_formed_grown ka g ar' fuel lo hi gr = true.
+Proof.
+  intros ka g fuel ar lo hi b k v ar' gr Hg Ht Hk H.
+  pose proof (insert_well_formed ka g fuel ar lo hi b k v ar' gr Hg Ht Hk H) as Hgr.
+  split; [ | exact Hgr ].
+  unfold insert_checked. rewrite H.
+  rewrite (insert_arena_ok ka g fuel ar b k v ar' gr H).
+  rewrite (well_formed_grown_admitted ka g fuel ar' lo hi gr Hgr). reflexivity.
+Qed.
+
+(* Half two: a well formed input with room in the arena for two nodes per level the
+   walk bound admits is never refused, so the one refusal a well formed input can
+   meet is a spent arena. *)
+(*| discharges: R-10-003 |*)
+Theorem a_well_formed_insert_is_refused_only_by_a_spent_arena :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat),
+    geometry_ok g = true ->
+    well_formed ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    length ar + 2 * S fuel <= arena_cap g ->
+    exists (ar' : Arena ka) (gr : Grown ka),
+      insert_checked ka g ar fuel lo hi b k v = Some (pair ar' gr)
+      /\ well_formed_grown ka g ar' fuel lo hi gr = true
+      /\ length ar' <= length ar + 2 * S fuel.
+Proof.
+  intros ka g fuel ar lo hi b k v Hg Ht Hk Hcap.
+  destruct (insert_some ka g fuel ar lo hi b k v Hg Ht Hcap)
+    as [ ar' [ gr [ H Hl ] ] ].
+  destruct (the_check_never_refuses_a_well_formed_insert ka g fuel ar lo hi b k v
+              ar' gr
+              Hg Ht Hk H) as [ Hc Hgr ].
+  exists ar', gr. split; [ exact Hc | split; [ exact Hgr | exact Hl ] ].
+Qed.
+
+Lemma insert_root_height :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h : nat),
+    insert_root ka g ar fuel lo hi b k v = Some (pair ar' (pair nr h)) ->
+    h = fuel \/ h = S fuel.
+Proof.
+  intros ka g fuel ar lo hi b k v ar' nr h H. unfold insert_root in H.
+  destruct (insert_checked ka g ar fuel lo hi b k v)
+    as [ [ ar1 [ a [ [ s r ] | ] ] ] | ]; [ | | discriminate H ].
+  - destruct (alloc ka g ar1 (branch_of ka (cons s nil) (cons a (cons r nil))))
+      as [ [ nr0 ar2 ] | ]; [ | discriminate H ].
+    destruct (andb (arena_ok ka g ar2) (admitted ka g ar2 (S fuel) lo hi nr0));
+      [ | discriminate H ].
+    injection H as _ _ H. right. symmetry. exact H.
+  - injection H as _ _ H. left. symmetry. exact H.
+Qed.
+
+Lemma insert_root_arena_ok :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h : nat),
+    insert_root ka g ar fuel lo hi b k v = Some (pair ar' (pair nr h)) ->
+    arena_ok ka g ar' = true.
+Proof.
+  intros ka g fuel ar lo hi b k v ar' nr h H. unfold insert_root in H.
+  destruct (insert_checked ka g ar fuel lo hi b k v)
+    as [ [ ar1 [ a [ [ s r ] | ] ] ] | ] eqn:E1; [ | | discriminate H ].
+  - destruct (alloc ka g ar1 (branch_of ka (cons s nil) (cons a (cons r nil))))
+      as [ [ nr0 ar2 ] | ]; [ | discriminate H ].
+    destruct (andb (arena_ok ka g ar2) (admitted ka g ar2 (S fuel) lo hi nr0))
+      eqn:E3; [ | discriminate H ].
+    injection H as H1 _ _. rewrite <- H1.
+    apply andb_true_iff in E3 as [ E3 _ ]. exact E3.
+  - injection H as H1 _ _. rewrite <- H1.
+    exact (proj1 (a_checked_insert_publishes_an_admitted_result ka g fuel ar lo hi
+                    b k v ar1 _ E1)).
+Qed.
+
+(* The root, where a split publishes a new root: from a well formed input the
+   published root is well formed at the height the call returns. *)
+(*| discharges: R-10-003 |*)
+Theorem a_root_insert_keeps_a_well_formed_tree_well_formed :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h : nat),
+    geometry_ok g = true ->
+    well_formed ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    insert_root ka g ar fuel lo hi b k v = Some (pair ar' (pair nr h)) ->
+    well_formed ka g ar' h lo hi nr = true.
+Proof.
+  intros ka g fuel ar lo hi b k v ar' nr h Hg Ht Hk H. unfold insert_root in H.
+  destruct (insert_checked ka g ar fuel lo hi b k v)
+    as [ [ ar1 [ a sp ] ] | ] eqn:E1; [ | discriminate H ].
+  destruct (a_checked_insert_publishes_an_admitted_result ka g fuel ar lo hi b
+              k v ar1 _ E1) as [ _ [ _ Hins ] ].
+  pose proof (insert_well_formed ka g fuel ar lo hi b k v ar1 _ Hg Ht Hk Hins)
+    as Hgr.
+  destruct sp as [ [ s r ] | ].
+  - destruct (alloc ka g ar1 (branch_of ka (cons s nil) (cons a (cons r nil))))
+      as [ [ nr0 ar2 ] | ] eqn:E2; [ | discriminate H ].
+    destruct (andb (arena_ok ka g ar2) (admitted ka g ar2 (S fuel) lo hi nr0));
+      [ | discriminate H ].
+    injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3.
+    cbn [well_formed_grown] in Hgr. apply andb_true_iff in Hgr as [ Hs Hgr ].
+    apply andb_true_iff in Hgr as [ Ha Hr ].
+    destruct (alloc_appended ka g ar1 _ nr0 ar2 E2) as [ Hap _ ].
+    apply (well_formed_of_branch ka g ar2 fuel nr0 lo hi (cons s nil)
+             (cons a (cons r nil)) (alloc_node ka g ar1 _ nr0 ar2 E2)).
+    + discriminate.
+    + unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ Hf _ ].
+      apply Nat.leb_le in Hf. simpl. exact Hf.
+    + reflexivity.
+    + cbn [rising_strict]. apply andb_true_iff. split; [ exact Hs | reflexivity ].
+    + cbn [chain]. apply andb_true_iff. split.
+      * exact (well_formed_appended ka g fuel ar1 ar2 lo (Some s) a Hap Ha).
+      * exact (well_formed_appended ka g fuel ar1 ar2 (Some s) hi r Hap Hr).
+  - injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3.
+    cbn [well_formed_grown] in Hgr. exact Hgr.
+Qed.
+
+(* And the root's completeness: a well formed input with room for one node more
+   than the walk can spend is never refused. *)
+(*| discharges: R-10-003 |*)
+Theorem a_well_formed_root_insert_is_refused_only_by_a_spent_arena :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat),
+    geometry_ok g = true ->
+    well_formed ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    length ar + S (2 * S fuel) <= arena_cap g ->
+    exists (ar' : Arena ka) (nr h : nat),
+      insert_root ka g ar fuel lo hi b k v = Some (pair ar' (pair nr h)).
+Proof.
+  intros ka g fuel ar lo hi b k v Hg Ht Hk Hcap.
+  destruct (a_well_formed_insert_is_refused_only_by_a_spent_arena ka g fuel ar lo
+              hi b
+              k v Hg Ht Hk) as [ ar1 [ gr [ Hc [ Hgr Hl ] ] ] ]; [ lia | ].
+  unfold insert_root. rewrite Hc.
+  destruct gr as [ a [ [ s r ] | ] ].
+  - rewrite (alloc_some ka g ar1 _) by lia.
+    assert (Hadm : admitted ka g
+                     (app ar1
+                        (cons (branch_of ka (cons s nil) (cons a (cons r nil)))
+                                    nil))
+                     (S fuel) lo hi (length ar1) = true).
+    { apply a_well_formed_tree_is_admitted.
+      cbn [well_formed_grown] in Hgr. apply andb_true_iff in Hgr as [ Hs Hgr ].
+      apply andb_true_iff in Hgr as [ Ha Hr ].
+      apply (well_formed_of_branch ka g _ fuel (length ar1) lo hi (cons s nil)
+               (cons a (cons r nil)) (nth_error_app_end _ ar1 _)).
+      - discriminate.
+      - unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ Hf _ ].
+        apply Nat.leb_le in Hf. simpl. exact Hf.
+      - reflexivity.
+      - cbn [rising_strict]. apply andb_true_iff. split; [ exact Hs | reflexivity ].
+      - cbn [chain]. apply andb_true_iff. split.
+        + exact (well_formed_frame ka g fuel ar1 _ lo (Some s) a Ha).
+        + exact (well_formed_frame ka g fuel ar1 _ (Some s) hi r Hr). }
+    assert (Hok : arena_ok ka g
+                    (app ar1 (cons (branch_of ka (cons s nil) (cons a (cons r nil)))
+                                   nil)) = true).
+    { unfold arena_ok. apply Nat.leb_le. rewrite length_app. simpl. lia. }
+    rewrite Hok, Hadm. eexists; eexists; eexists. reflexivity.
+  - eexists; eexists; eexists. reflexivity.
+Qed.
+
+(* =========================================================================
+   The published gate: equal leaf depth and the declared height decided
+   inside it, rather than carried beside it by hypothesis.
+
+   `insert_root` re-decides `admitted`, which is blind to where a leaf sits,
+   and nothing in it reads the geometry's declared `depth`. `insert_gate`
+   runs it and then decides `published` on what it returned: the height the
+   call hands back is within the declared `depth`, the arena is within its
+   declared capacity, every leaf sits at exactly that height, and the tree is
+   well_formed. The first conjunct is what ties a call's walk bound to the
+   declared depth, since the height a gated call returns is the walk bound
+   the next gated call and every gated read take. The third is equal leaf
+   depth decided rather than assumed, at the height the walk actually needs
+   and not at any height a search admits. The fourth is the class the
+   completeness statements above are stated over, so a result the gate
+   publishes is an input those statements cover.
+
+   **What this changes and what it does not.** `insert_checked` and
+   `insert_root` admit exactly what they admitted before, and the skew
+   witness below still computes that `insert_root` publishes a skewed tree.
+   The gate is a new and stricter operation above them: it refuses that same
+   write, and it refuses a root split whose new height passes the declared
+   ceiling, which is a spent-capacity refusal of the same kind as a spent
+   arena. On an input the gate itself published, its own checks never fire
+   (`the_gate_never_refuses_a_published_input_below_its_ceiling`), so the
+   refusals left to it are a spent arena and a spent height.
+   ========================================================================= *)
+
+Definition published (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+                     (lo hi : Bound ka) (root : nat) : bool :=
+  andb (Nat.leb h (depth g))
+  (andb (arena_ok ka g ar)
+  (andb (at_depth ka ar h root) (well_formed ka g ar h lo hi root))).
+
+Definition insert_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+                       (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  match insert_root ka g ar h lo hi root k v with
+  | None => None
+  | Some (pair ar' (pair nr h')) =>
+      if published ka g ar' h' lo hi nr
+      then Some (pair ar' (pair nr h')) else None
+  end.
+
+(* The empty leaf root at height zero is published under any geometry whose
+   floors hold, which is where a composition's first gated write starts. *)
+Lemma the_empty_root_is_published :
+  forall (ka : KeyAlgebra) (g : Geometry) (lo hi : Bound ka),
+    geometry_ok g = true ->
+    published ka g (cons (leaf_of ka nil) nil) 0 lo hi 0 = true.
+Proof.
+  intros ka g lo hi Hg. unfold published.
+  unfold geometry_ok in Hg. apply andb_true_iff in Hg as [ _ Hc ].
+  unfold arena_ok. cbn [length]. rewrite Hc. reflexivity.
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem a_gated_insert_publishes_a_published_tree :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    insert_gate ka g ar h lo hi root k v = Some (pair ar' (pair nr h')) ->
+    published ka g ar' h' lo hi nr = true
+    /\ h' <= depth g
+    /\ at_depth ka ar' h' nr = true
+    /\ well_formed ka g ar' h' lo hi nr = true.
+Proof.
+  intros ka g ar h lo hi root k v ar' nr h' H. unfold insert_gate in H.
+  destruct (insert_root ka g ar h lo hi root k v)
+    as [ [ ar1 [ nr1 h1 ] ] | ]; [ | discriminate H ].
+  destruct (published ka g ar1 h1 lo hi nr1) eqn:Ep; [ | discriminate H ].
+  injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3.
+  split; [ exact Ep | ].
+  unfold published in Ep. apply andb_true_iff in Ep as [ Hd Ep ].
+  apply andb_true_iff in Ep as [ _ Ep ]. apply andb_true_iff in Ep as [ Ha Ht ].
+  split; [ apply Nat.leb_le; exact Hd | split; [ exact Ha | exact Ht ] ].
+Qed.
+
+(* A gated insert answers the logical map's insert at every key, on an input
+   the gate published. *)
+(*| discharges: R-10-003 |*)
+Theorem a_gated_insert_answers_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h' : nat) (q : Key ka),
+    published ka g ar h lo hi root = true ->
+    within ka lo hi k = true ->
+    within ka lo hi q = true ->
+    insert_gate ka g ar h lo hi root k v = Some (pair ar' (pair nr h')) ->
+    flatten ka ar' h' nr = ins ka k v (flatten ka ar h root)
+    /\ lookup ka ar' h' nr q = look ka q (ins ka k v (flatten ka ar h root)).
+Proof.
+  intros ka g ar h lo hi root k v ar' nr h' q Hp Hk Hq H.
+  unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
+  apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ _ Ht ].
+  unfold insert_gate in H.
+  destruct (insert_root ka g ar h lo hi root k v)
+    as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
+  destruct (published ka g ar1 h1 lo hi nr1); [ | discriminate H ].
+  injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3.
+  destruct (a_checked_root_insert_answers_the_logical_map ka g h ar lo hi root k v
+              ar1 nr1 h1 q (a_well_formed_tree_is_admitted ka g h ar lo hi root Ht)
+              Hk Hq E1)
+    as [ _ [ Hf Hl ] ].
+  split; [ exact Hf | exact Hl ].
+Qed.
+
+(* The gate's own checks never fire on an input it published: whenever the
+   write answers with a height inside the declared ceiling, the gate
+   publishes exactly that answer. *)
+(*| discharges: R-10-003 |*)
+Theorem the_gate_never_refuses_a_published_input_below_its_ceiling :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    geometry_ok g = true ->
+    published ka g ar h lo hi root = true ->
+    within ka lo hi k = true ->
+    insert_root ka g ar h lo hi root k v = Some (pair ar' (pair nr h')) ->
+    h' <= depth g ->
+    insert_gate ka g ar h lo hi root k v = Some (pair ar' (pair nr h')).
+Proof.
+  intros ka g ar h lo hi root k v ar' nr h' Hg Hp Hk H Hd.
+  unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
+  apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ Ha Ht ].
+  unfold insert_gate. rewrite H.
+  assert (Hpub : published ka g ar' h' lo hi nr = true).
+  { unfold published. apply andb_true_iff. split; [ apply Nat.leb_le; exact Hd | ].
+    apply andb_true_iff.
+    split; [ exact (insert_root_arena_ok ka g h ar lo hi root k v ar' nr h' H) | ].
+    apply andb_true_iff. split.
+    - destruct (a_root_insert_keeps_the_leaves_at_one_depth ka g h ar lo hi h root
+                  k v ar' nr h' Hg (le_n h) Ha H) as [ [ Hd1 Hh ] | [ Hd1 Hh ] ];
+        rewrite Hh; exact Hd1.
+    - exact (a_root_insert_keeps_a_well_formed_tree_well_formed ka g h ar lo hi
+               root k v ar' nr
+               h' Hg Ht Hk H). }
+  rewrite Hpub. reflexivity.
+Qed.
+
+(* So a gated write from a published input is refused only for spent
+   capacity: room in the arena for the walk's worst case and one level of
+   headroom under the declared depth leave the gate nothing to refuse. *)
+(*| discharges: R-10-003 |*)
+Theorem a_published_insert_is_refused_only_for_spent_capacity :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat),
+    geometry_ok g = true ->
+    published ka g ar h lo hi root = true ->
+    within ka lo hi k = true ->
+    length ar + S (2 * S h) <= arena_cap g ->
+    S h <= depth g ->
+    exists (ar' : Arena ka) (nr h' : nat),
+      insert_gate ka g ar h lo hi root k v = Some (pair ar' (pair nr h')).
+Proof.
+  intros ka g ar h lo hi root k v Hg Hp Hk Hcap Hd.
+  assert (Ht : well_formed ka g ar h lo hi root = true).
+  { unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
+    apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ _ Ht ].
+    exact Ht. }
+  destruct (a_well_formed_root_insert_is_refused_only_by_a_spent_arena ka g h ar
+              lo hi
+              root k v Hg Ht Hk Hcap) as [ ar' [ nr [ h' H ] ] ].
+  exists ar', nr, h'.
+  apply (the_gate_never_refuses_a_published_input_below_its_ceiling ka g ar h lo hi
+           root k v ar' nr h' Hg Hp Hk H).
+  destruct (insert_root_height ka g h ar lo hi root k v ar' nr h' H) as [ E | E ];
+    rewrite E; lia.
+Qed.
+
+(* The declared depth bounds every gated call: a walk bound past it is
+   refused whatever the tree, because the height a call returns is never
+   below the bound it was given. *)
+(*| discharges: R-10-003 |*)
+Theorem the_gate_refuses_a_walk_bound_past_the_declared_depth :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat),
+    depth g < h ->
+    insert_gate ka g ar h lo hi root k v = None.
+Proof.
+  intros ka g ar h lo hi root k v Hd. unfold insert_gate.
+  destruct (insert_root ka g ar h lo hi root k v)
+    as [ [ ar' [ nr h' ] ] | ] eqn:E; [ | reflexivity ].
+  assert (Hh : depth g < h')
+    by (destruct (insert_root_height ka g h ar lo hi root k v ar' nr h' E)
+          as [ E1 | E1 ]; rewrite E1; lia).
+  unfold published.
+  replace (Nat.leb h' (depth g)) with false
+    by (symmetry; apply Nat.leb_gt; exact Hh).
+  reflexivity.
+Qed.
+
+(* =========================================================================
+   A read path that tells a structural refusal from a miss.
+
+   `lookup` answers `None` for an address outside the arena, for a walk that
+   runs out of its bound, for a routed child index outside the child list and
+   for a cycle, and the same `None` for a key that is simply absent. `seek`
+   walks the same route and answers `None` for the first four only; a walk
+   that reaches a leaf answers `Some` of what the leaf holds, which is `Some
+   None` for a miss. It runs no admission of its own and costs the same walk
+   `lookup` costs: what it adds is that the answer names which of the two
+   happened. `lookup` is `seek` with the distinction forgotten
+   (`lookup_forgets_a_refusal`), an admitted tree is never refused a read
+   (`an_admitted_tree_refuses_no_read`), and so a refusal is evidence that the
+   tree is not admitted (`a_refused_read_names_an_unadmitted_tree`).
+
+   `read_gate` is the read a gated composition makes: it takes the walk bound
+   from the height the gate published and refuses one past the geometry's
+   declared depth, which is the read's half of tying a call's walk bound to
+   that declaration.
+   ========================================================================= *)
+
+Fixpoint seek (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka)
+  : option (option nat) :=
+  match nth_error ar b with
+  | None => None
+  | Some nd =>
+      match en_kids nd with
+      | nil => Some (look ka k (en_entries nd))
+      | cons _ _ =>
+          match fuel with
+          | 0 => None
+          | S f =>
+              match nth_error (en_kids nd) (route ka k (en_seps nd)) with
+              | None => None
+              | Some c => seek ka ar f c k
+              end
+          end
+      end
+  end.
+
+Definition read_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h root : nat)
+                     (k : Key ka) : option (option nat) :=
+  if Nat.leb h (depth g) then seek ka ar h root k else None.
+
+Lemma lookup_forgets_a_refusal :
+  forall (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka),
+    lookup ka ar fuel b k
+      = match seek ka ar fuel b k with Some r => r | None => None end.
+Proof.
+  intros ka ar fuel. induction fuel as [ | f IH ]; intros b k;
+    cbn [lookup seek]; destruct (nth_error ar b) as [ nd | ]; try reflexivity;
+    destruct (en_kids nd) as [ | c cs ]; try reflexivity.
+  destruct (nth_error (cons c cs) (route ka k (en_seps nd))) as [ x | ];
+    [ exact (IH x k) | reflexivity ].
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem an_admitted_tree_refuses_no_read :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka),
+    admitted ka g ar fuel lo hi b = true ->
+    seek ka ar fuel b k = Some (lookup ka ar fuel b k).
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ]; intros ar lo hi b k H;
+    cbn [admitted] in H; cbn [seek lookup];
+    destruct (nth_error ar b) as [ nd | ] eqn:Eb; try discriminate H;
+    apply andb_true_iff in H as [ Hf H ].
+  - destruct (en_kids nd) as [ | c cs ]; [ reflexivity | discriminate H ].
+  - destruct (en_kids nd) as [ | c cs ] eqn:Ek; [ reflexivity | ].
+    apply andb_true_iff in H as [ _ Hc ].
+    destruct (node_fits_branch_len ka g nd c cs Ek Hf) as [ _ Hq ].
+    destruct (chain_at ka _ (en_seps nd) (cons c cs) lo hi
+                (route ka k (en_seps nd)) Hc (route_le ka k (en_seps nd)))
+      as [ x [ Ex Hx ] ].
+    rewrite Ex. exact (IH ar _ _ x k Hx).
+Qed.
+
+(*| discharges: R-10-003 |*)
+Corollary a_refused_read_names_an_unadmitted_tree :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka),
+    seek ka ar fuel b k = None ->
+    admitted ka g ar fuel lo hi b = false.
+Proof.
+  intros ka g fuel ar lo hi b k H.
+  destruct (admitted ka g ar fuel lo hi b) eqn:E; [ | reflexivity ].
+  rewrite (an_admitted_tree_refuses_no_read ka g fuel ar lo hi b k E) in H.
+  discriminate H.
+Qed.
+
+(* On an admitted tree a read answers the logical map, so a `Some None` is a
+   miss the map itself makes and never a structural defect. *)
+(*| discharges: R-10-003 |*)
+Theorem a_read_answers_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka),
+    admitted ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    seek ka ar fuel b k = Some (look ka k (flatten ka ar fuel b)).
+Proof.
+  intros ka g fuel ar lo hi b k H Hk.
+  rewrite (an_admitted_tree_refuses_no_read ka g fuel ar lo hi b k H).
+  rewrite (lookup_answers_the_logical_map ka g fuel ar lo hi b k H Hk).
+  reflexivity.
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem a_gated_read_answers_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka),
+    published ka g ar h lo hi root = true ->
+    within ka lo hi k = true ->
+    read_gate ka g ar h root k = Some (look ka k (flatten ka ar h root)).
+Proof.
+  intros ka g ar h lo hi root k Hp Hk.
+  unfold published in Hp. apply andb_true_iff in Hp as [ Hd Hp ].
+  apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ _ Ht ].
+  unfold read_gate. rewrite Hd.
+  exact (a_read_answers_the_logical_map ka g h ar lo hi root k
+           (a_well_formed_tree_is_admitted ka g h ar lo hi root Ht) Hk).
+Qed.
+
+(*| discharges: R-10-003 |*)
+Lemma a_gated_read_refuses_a_walk_bound_past_the_declared_depth :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h root : nat)
+         (k : Key ka),
+    depth g < h -> read_gate ka g ar h root k = None.
+Proof.
+  intros ka g ar h root k Hd. unfold read_gate.
+  replace (Nat.leb h (depth g)) with false
+    by (symmetry; apply Nat.leb_gt; exact Hd).
+  reflexivity.
+Qed.
+
+(* =========================================================================
    Inhabitation and the computed families.
 
    Every numeral below is a demo or probe witness value carrying no
@@ -2528,7 +4221,8 @@ Example a_skewed_tree_is_admitted_and_fits_yet_shares_no_leaf_depth :
    and the skew is still there. The preservation theorem above is therefore
    not a consequence of the check; it is a statement about an input whose
    leaves already share a depth, and this is the tree that shows the
-   difference. *)
+   difference. The gate refuses the same write, which a witness below
+   computes. *)
 Example an_insert_does_not_repair_a_skewed_tree :
   skew_probe 22 220 = Some (pair true false)
   /\ skew_probe 3 30 = Some (pair true false) :=
@@ -2552,6 +4246,142 @@ Example the_refusals_compute :
   /\ geometry_ok thin_geometry = false :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))).
+
+(* The occupancy walk refuses what the structural walk refuses: an address
+   outside the arena and a branch the walk bound does not reach both decide
+   false, so `node_fits_everywhere` holding of a tree is never a walk that
+   stopped short. *)
+Example the_occupancy_walk_refuses_what_the_structural_walk_refuses :
+  node_fits_everywhere nat_keys demo_geometry demo_arena 1 9 = false
+  /\ node_fits_everywhere nat_keys demo_geometry demo_arena 0 2 = false :=
+  conj eq_refl eq_refl.
+
+(* Whether an operation answered at all, so that a witness can state that a
+   write was published without spelling out the arena it published. *)
+Definition answers {A : Type} (o : option A) : bool :=
+  match o with Some _ => true | None => false end.
+
+(* The counterexample to completeness over `admitted`. Two equal separators
+   at 5 bound an empty child at address 1; the leaf at address 2 is full at
+   the fanout of three. Every node fits, every key is in order and inside
+   its range, and every reference is whole, so `admitted` decides true; the
+   second separator is not strictly above the first, so `well_formed`
+   decides false. *)
+Definition dup_geometry : Geometry :=
+  {| arena_cap := 16; fan := 3; depth := 4 |}.
+
+Definition dup_arena : Arena nat_keys :=
+  cons demo_leaf_left
+  (cons (leaf_of nat_keys nil)
+  (cons (leaf_of nat_keys
+           (cons (pair 5 50) (cons (pair 6 60) (cons (pair 7 70) nil))))
+  (cons (branch_of nat_keys (cons 5 (cons 5 nil)) (cons 0 (cons 1 (cons 2 nil))))
+        nil))).
+
+(* The insert of 9 splits the full leaf, which promotes 7 beside the two
+   fives, and the root's four children split at the second five: the left
+   half is published holding a separator of 5 under an upper bound of 5.
+   The write answers, the check refuses what it published, and so does the
+   root insert above it, with the arena at a quarter of its capacity and the
+   key inside the root's range. A write that splits nothing on the same tree
+   is published, so what is refused is the cut between the equal separators
+   and not the tree. *)
+Example an_admitted_input_the_check_refuses :
+  geometry_ok dup_geometry = true
+  /\ arena_ok nat_keys dup_geometry dup_arena = true
+  /\ admitted nat_keys dup_geometry dup_arena 1 None None 3 = true
+  /\ well_formed nat_keys dup_geometry dup_arena 1 None None 3 = false
+  /\ Nat.leb (length dup_arena + S (2 * S 1)) (arena_cap dup_geometry) = true
+  /\ answers (insert nat_keys dup_geometry dup_arena 1 3 9 90) = true
+  /\ insert_checked nat_keys dup_geometry dup_arena 1 None None 3 9 90 = None
+  /\ insert_root nat_keys dup_geometry dup_arena 1 None None 3 9 90 = None
+  /\ answers (insert_root nat_keys dup_geometry dup_arena 1 None None 3 9 90)
+     = false
+  /\ answers (insert_root nat_keys dup_geometry dup_arena 1 None None 3 3 30)
+     = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))).
+
+(* The demo tree is well formed and published, and the three inserts the
+   probes above make are published by the gate exactly as `insert_root`
+   answers them: the gate's own checks do not fire on them. *)
+Example the_gate_publishes_the_demo_inserts_unchanged :
+  well_formed nat_keys demo_geometry demo_arena 1 None None 2 = true
+  /\ published nat_keys demo_geometry demo_arena 1 None None 2 = true
+  /\ insert_gate nat_keys demo_geometry demo_arena 1 None None 2 3 30
+     = insert_root nat_keys demo_geometry demo_arena 1 None None 2 3 30
+  /\ insert_gate nat_keys demo_geometry demo_arena 1 None None 2 9 90
+     = insert_root nat_keys demo_geometry demo_arena 1 None None 2 9 90
+  /\ insert_gate nat_keys demo_geometry demo_arena 1 None None 2 5 99
+     = insert_root nat_keys demo_geometry demo_arena 1 None None 2 5 99
+  /\ answers (insert_gate nat_keys demo_geometry demo_arena 1 None None 2 3 30)
+     = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    eq_refl)))).
+
+(* A geometry whose declared height is one level, which the demo tree
+   already fills. *)
+Definition low_geometry : Geometry :=
+  {| arena_cap := 12; fan := 2; depth := 1 |}.
+
+(* The gate's three refusals, each beside the write `insert_root` publishes
+   for the same call. The skewed tree's insert is published by `insert_root`
+   and refused by the gate, which decides equal leaf depth where admission
+   does not. The splitting insert under the one-level ceiling is refused,
+   while the replacement under the same ceiling is not. And a walk bound past
+   the declared depth is refused before anything is read. The first gated
+   write from an empty leaf root is published. *)
+Example the_gate_refuses_skew_a_spent_height_and_an_undeclared_bound :
+  answers (insert_root nat_keys skew_geometry skew_arena 4 None None 4 22 220)
+    = true
+  /\ insert_gate nat_keys skew_geometry skew_arena 4 None None 4 22 220 = None
+  /\ published nat_keys skew_geometry skew_arena 4 None None 4 = false
+  /\ answers (insert_root nat_keys low_geometry demo_arena 1 None None 2 3 30)
+     = true
+  /\ insert_gate nat_keys low_geometry demo_arena 1 None None 2 3 30 = None
+  /\ answers (insert_gate nat_keys low_geometry demo_arena 1 None None 2 5 99)
+     = true
+  /\ insert_gate nat_keys demo_geometry demo_arena 3 None None 2 5 99 = None
+  /\ published nat_keys demo_geometry (cons (leaf_of nat_keys nil) nil) 0
+               None None 0 = true
+  /\ insert_gate nat_keys demo_geometry (cons (leaf_of nat_keys nil) nil) 0
+                 None None 0 3 30
+     = Some (pair (cons (leaf_of nat_keys nil)
+                   (cons (leaf_of nat_keys (cons (pair 3 30) nil)) nil))
+                  (pair 1 0)) :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))))))).
+
+(* A node naming fewer children than its separators route to: the walk
+   routes 7 past the one separator to a child index the list does not hold. *)
+Definition misrouted_arena : Arena nat_keys :=
+  cons (leaf_of nat_keys (cons (pair 7 70) nil))
+  (cons (branch_of nat_keys (cons 5 nil) (cons 0 nil)) nil).
+
+(* The read path, a hit and a miss beside the four structural refusals:
+   an address outside the arena, a walk bound that runs out, a cycle, and a
+   routed child index outside the child list. `lookup` answers `None` at the
+   miss and at every refusal alike; `seek` answers `Some None` at the miss
+   and `None` at each refusal. The gated read takes the published height and
+   refuses a bound past the declared depth. *)
+Example the_read_path_tells_a_refusal_from_a_miss :
+  seek nat_keys demo_arena 1 2 5 = Some (Some 50)
+  /\ seek nat_keys demo_arena 1 2 4 = Some None
+  /\ lookup nat_keys demo_arena 1 2 4 = None
+  /\ seek nat_keys demo_arena 1 9 5 = None
+  /\ lookup nat_keys demo_arena 1 9 5 = None
+  /\ seek nat_keys demo_arena 0 2 5 = None
+  /\ lookup nat_keys demo_arena 0 2 5 = None
+  /\ seek nat_keys cyclic_arena 5 0 5 = None
+  /\ lookup nat_keys cyclic_arena 5 0 5 = None
+  /\ seek nat_keys misrouted_arena 1 1 7 = None
+  /\ lookup nat_keys misrouted_arena 1 1 7 = None
+  /\ read_gate nat_keys demo_geometry demo_arena 1 2 5 = Some (Some 50)
+  /\ read_gate nat_keys demo_geometry demo_arena 1 2 4 = Some None
+  /\ read_gate nat_keys demo_geometry demo_arena 3 2 5 = None :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))))))).
 
 (* R-05-166's decidable half: one closed inhabitant per record this file's
    statements range over. *)
@@ -2618,5 +4448,41 @@ Print Assumptions the_inserts_keep_the_leaves_at_one_depth.
 Print Assumptions a_skewed_tree_is_admitted_and_fits_yet_shares_no_leaf_depth.
 Print Assumptions an_insert_does_not_repair_a_skewed_tree.
 Print Assumptions the_refusals_compute.
+Print Assumptions the_occupancy_walk_refuses_what_the_structural_walk_refuses.
+Print Assumptions above_strict.
+Print Assumptions strictly_within.
+Print Assumptions rising_strict.
+Print Assumptions well_formed.
+Print Assumptions well_formed_grown.
+Print Assumptions bound_at.
+Print Assumptions bound_after.
+Print Assumptions published.
+Print Assumptions insert_gate.
+Print Assumptions seek.
+Print Assumptions read_gate.
+Print Assumptions a_well_formed_tree_is_admitted.
+Print Assumptions insert_well_formed.
+Print Assumptions insert_some.
+Print Assumptions the_empty_root_is_well_formed.
+Print Assumptions the_check_never_refuses_a_well_formed_insert.
+Print Assumptions a_well_formed_insert_is_refused_only_by_a_spent_arena.
+Print Assumptions a_root_insert_keeps_a_well_formed_tree_well_formed.
+Print Assumptions a_well_formed_root_insert_is_refused_only_by_a_spent_arena.
+Print Assumptions the_empty_root_is_published.
+Print Assumptions a_gated_insert_publishes_a_published_tree.
+Print Assumptions a_gated_insert_answers_the_logical_map.
+Print Assumptions the_gate_never_refuses_a_published_input_below_its_ceiling.
+Print Assumptions a_published_insert_is_refused_only_for_spent_capacity.
+Print Assumptions the_gate_refuses_a_walk_bound_past_the_declared_depth.
+Print Assumptions lookup_forgets_a_refusal.
+Print Assumptions an_admitted_tree_refuses_no_read.
+Print Assumptions a_refused_read_names_an_unadmitted_tree.
+Print Assumptions a_read_answers_the_logical_map.
+Print Assumptions a_gated_read_answers_the_logical_map.
+Print Assumptions a_gated_read_refuses_a_walk_bound_past_the_declared_depth.
+Print Assumptions an_admitted_input_the_check_refuses.
+Print Assumptions the_gate_publishes_the_demo_inserts_unchanged.
+Print Assumptions the_gate_refuses_skew_a_spent_height_and_an_undeclared_bound.
+Print Assumptions the_read_path_tells_a_refusal_from_a_miss.
 Print Assumptions witness_Geometry.
 Print Assumptions witness_ENode.

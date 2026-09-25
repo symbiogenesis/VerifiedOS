@@ -801,7 +801,14 @@ Definition boundary_report : list string :=
    stated. The columns are the published height, the arena occupancy, the
    structural and order admission, the occupancy invariant, whether every
    leaf sits at one shared depth, whether the tree's map equals the
-   association list, and the two lookup answers.
+   association list, the two lookup answers, and then four more: whether the
+   tree is `well_formed`, the class the check's completeness is stated over;
+   what `seek` answers at the published height; and what `seek` and `lookup`
+   answer at one level less. The read columns print `r` for a structural
+   refusal, `n` for a miss and the value for a hit. At the published height
+   `seek` should never print `r`, admission being what rules a refusal out;
+   one level short of a height above zero the walk runs out before a leaf,
+   so `seek` prints `r` where `lookup` prints the `n` it prints for a miss.
 
    Where each column's weight sits. The map-equality column is decided on
    every published member and is the one that compares whole maps. On a probe
@@ -814,20 +821,34 @@ Definition boundary_report : list string :=
    path; the longer ones are where routing, splitting and a moving height are
    decided.
 
-   It also measures one obligation the proof leaves open. `insert_root`
-   re-decides admission on what it published and refuses a result that does
-   not decide true; that the check never refuses a well formed insert is owed
-   at M5.3d and is not proved there. A `refused` line under the ordinary
-   geometry would be that check firing, and the tight-arena family beside it
-   is the control that shows a refusal is reachable at all.
+   The builds come in two kinds. The first four orders and the tight-arena
+   control are built through `insert_root`, which re-decides admission on
+   what it published. The four `gate-` orders and the `ceiling` control are
+   built through `insert_gate`, which also decides that the returned height
+   is within the geometry's declared depth, that every leaf sits at exactly
+   that height and that the tree is `well_formed`. ExecutableIndex.v proves
+   that an empty leaf root is well formed and published, and that a step
+   from such an input keeps it and is refused only for spent capacity, which
+   is a spent arena or, for the gate, a returned height past the declared
+   depth. So the prediction is exact: an ungated `refused` line under the
+   ordinary geometry, at a step whose arena still had room for the walk's
+   worst case, would refute that proof, and a gated member is refused
+   precisely where its ungated twin's height passes the declared depth of
+   eight and otherwise prints its twin's line column for column.
+   The ascending run of twelve keys and the doubled run of twenty-four reach
+   height ten, because a fanout of two splits three children into one and
+   two and so leaves a one-child node on every split, which R-10-003's
+   missing minimum occupancy does not forbid. The tight-arena family is the
+   control that shows the arena refusal is reachable, and the `ceiling`
+   family, under a declared depth of one, is the control that shows the
+   gate's height refusal is reachable at a short run.
 
-   The depth column measures a different open edge. What `insert_root`
-   re-decides is admission, which does not decide equal leaf depth, so this
-   column is not a restatement of the one beside it: it is the check's blind
-   spot, watched over a build that begins at an empty leaf whose leaves
-   trivially share a depth. ExecutableIndex.v proves that such a build keeps
-   it and computes a skewed arena that admission accepts, so a `0` here under
-   the ordinary geometry would refute that proof rather than merely fail.
+   The depth column watches the blind spot of `insert_root`'s check, which
+   does not decide equal leaf depth, over builds that begin at an empty leaf
+   whose leaves trivially share a depth. ExecutableIndex.v proves that such a
+   build keeps it and computes a skewed arena that admission accepts, so a
+   `0` here under the ordinary geometry would refute that proof; on the gated
+   families the gate itself decides it.
    ------------------------------------------------------------------------- *)
 
 Require JournalIndex.
@@ -843,6 +864,13 @@ Definition ix_tight : ExecutableIndex.Geometry :=
   {| ExecutableIndex.arena_cap := 6;
      ExecutableIndex.fan := 2;
      ExecutableIndex.depth := 8 |}.
+
+(* The gate's control: an ample arena under a declared height of one level,
+   which a run of four or more keys outgrows. *)
+Definition ix_low : ExecutableIndex.Geometry :=
+  {| ExecutableIndex.arena_cap := 256;
+     ExecutableIndex.fan := 2;
+     ExecutableIndex.depth := 1 |}.
 
 Definition ix_state : Type :=
   option (ExecutableIndex.Arena JournalIndex.nat_keys * (nat * nat))%type.
@@ -863,6 +891,28 @@ Fixpoint ix_build (g : ExecutableIndex.Geometry) (ks : list nat)
             (ExecutableIndex.insert_root JournalIndex.nat_keys g ar h
                None None root k (10 * k))
       end
+  end.
+
+(* The same build through the published gate. *)
+Fixpoint ix_build_gate (g : ExecutableIndex.Geometry) (ks : list nat)
+                       (st : ix_state) : ix_state :=
+  match ks with
+  | nil => st
+  | k :: rest =>
+      match st with
+      | None => None
+      | Some (ar, (root, h)) =>
+          ix_build_gate g rest
+            (ExecutableIndex.insert_gate JournalIndex.nat_keys g ar h
+               None None root k (10 * k))
+      end
+  end.
+
+(* A read that may refuse: `r` for a structural refusal, `n` for a miss. *)
+Definition ix_seek_str (o : option (option nat)) : string :=
+  match o with
+  | None => "r"
+  | Some a => os a
   end.
 
 Definition ix_oracle (ks : list nat) : JournalIndex.Index JournalIndex.nat_keys :=
@@ -887,6 +937,14 @@ Definition ix_answer (g : ExecutableIndex.Geometry) (st : ix_state)
                         (ix_oracle ks))
         ++ " " ++ os (ExecutableIndex.lookup JournalIndex.nat_keys ar h root q)
         ++ " " ++ os (JournalIndex.look JournalIndex.nat_keys q (ix_oracle ks))
+        ++ " " ++ bs (ExecutableIndex.well_formed JournalIndex.nat_keys g ar h
+                        None None root)
+        ++ " " ++ ix_seek_str (ExecutableIndex.seek JournalIndex.nat_keys ar h
+                                 root q)
+        ++ " " ++ ix_seek_str (ExecutableIndex.seek JournalIndex.nat_keys ar
+                                 (Nat.pred h) root q)
+        ++ " " ++ os (ExecutableIndex.lookup JournalIndex.nat_keys ar (Nat.pred h)
+                        root q)
   end.
 
 Definition ix_probes : list nat := [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 11].
@@ -910,18 +968,25 @@ Definition ix_dup (n : nat) : list nat := List.app (seq 1 n) (seq 1 n).
 Definition ix_stride (n : nat) : list nat :=
   map (fun i => 1 + Nat.modulo (i * 3) 11) (seq 0 n).
 
-Definition ix_family (g : ExecutableIndex.Geometry) (tag : string)
-                     (ks : list nat) : list string :=
-  let st := ix_build g ks ix_seed in
+Definition ix_family
+  (build : ExecutableIndex.Geometry -> list nat -> ix_state -> ix_state)
+  (g : ExecutableIndex.Geometry) (tag : string) (ks : list nat) : list string :=
+  let st := build g ks ix_seed in
   map (ix_answer g st ks tag) (List.app ix_probes (ix_hits ks)).
 
 Definition ix_report : list string :=
   flat_map (fun n =>
-    List.app (ix_family ix_geometry "up" (ix_up n))
-    (List.app (ix_family ix_geometry "down" (ix_down n))
-    (List.app (ix_family ix_geometry "dup" (ix_dup n))
-    (List.app (ix_family ix_geometry "stride" (ix_stride n))
-              (ix_family ix_tight "tight" (ix_up n)))))) ix_lengths.
+    List.app (ix_family ix_build ix_geometry "up" (ix_up n))
+    (List.app (ix_family ix_build ix_geometry "down" (ix_down n))
+    (List.app (ix_family ix_build ix_geometry "dup" (ix_dup n))
+    (List.app (ix_family ix_build ix_geometry "stride" (ix_stride n))
+    (List.app (ix_family ix_build ix_tight "tight" (ix_up n))
+    (List.app (ix_family ix_build_gate ix_geometry "gate-up" (ix_up n))
+    (List.app (ix_family ix_build_gate ix_geometry "gate-down" (ix_down n))
+    (List.app (ix_family ix_build_gate ix_geometry "gate-dup" (ix_dup n))
+    (List.app (ix_family ix_build_gate ix_geometry "gate-stride" (ix_stride n))
+              (ix_family ix_build_gate ix_low "ceiling" (ix_up n)))))))))))
+    ix_lengths.
 
 Definition report : list string :=
   List.app ce_report (List.app boundary_report (List.app ipc_report ix_report)).
