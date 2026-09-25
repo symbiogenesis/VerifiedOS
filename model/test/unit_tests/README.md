@@ -14,11 +14,19 @@ directory also call the actual generated Sail model:
   staging cases from the admitted block geometry.
 - `block_reset` enumerates command progress and reset boundaries, tear masks,
   volatile-state clearing and stale-response refusals.
+- `block_image` binds the device to the emulator's host image adapter
+  ([`blkdev_image.h`](../../c_emulator/blkdev_image.h)) and checks the image
+  file and a fresh reopen across real process exits: completed and unobserved
+  writes, lost incomplete work, reset and error tears, media faults, a host
+  write failure, startup refusals and the emulator's image options. Its two
+  inverted expectations must fail at the reopened-medium comparison.
 
-The block campaigns implement the scoped
+`block_payload` and `block_reset` implement the scoped
 [M5.3 prerequisite predicates](../../../docs/implementation/contracts/block-device-prerequisites.md).
 They establish finite modeled behavior, not host-image persistence or complete
-storage acceptance. Their deliberately wrong expectations must be rejected.
+storage acceptance. `block_image` covers host-image persistence for the admitted
+fixture only; it supplies no architectural HTIF case or storage acceptance.
+Every deliberately wrong expectation must be rejected.
 
 From the repository root, run `python tools/run.py model build --background`
 and then `python tools/run.py model wait`. The canonical build registers these

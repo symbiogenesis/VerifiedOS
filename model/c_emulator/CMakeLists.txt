@@ -26,6 +26,8 @@ add_custom_target(generated_config_schema DEPENDS config_schema.h)
 ## A library that contains the C model and support code.
 
 add_library(riscv_model
+    blkdev_image.cpp
+    blkdev_image.h
     elf_loader.cpp
     elf_loader.h
     riscv_callbacks_if.cpp

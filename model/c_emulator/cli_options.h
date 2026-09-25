@@ -48,6 +48,14 @@ struct CLIOptions {
   // longer than the program's own host running time.
   uint64_t rot_slow_clock_ns = 0;
 
+  // The block device's host backing image (c_emulator/blkdev_image.h): an
+  // existing image to open, or a new one to create from the configured
+  // fixture, and an optional new receipt file for its events. Harness inputs;
+  // no host path reaches the guest.
+  std::string blkdev_image = {};
+  std::string blkdev_image_create = {};
+  std::string blkdev_receipt = {};
+
   std::string sig_file = {};
   unsigned signature_granularity = DEFAULT_SIGNATURE_GRANULARITY;
 

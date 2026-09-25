@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // M5.3's bounded PIO model, specified by interfaces/block-device-contract.md.
-// The persistent register is the modeled medium. A host image adapter must
-// persist and reopen these bytes explicitly; this module does not open files.
+// The persistent register is the modeled medium. This module opens no file:
+// the emulator's host image adapter (c_emulator/blkdev_image.h) loads a bound
+// image into the register before the first instruction and makes each change
+// durable through `blkdev_host_persist`.
 
 let blkdev_max_bytes : int(8192) = 8192
 let blkdev_max_block_bytes : int(4096) = 4096
@@ -95,7 +97,18 @@ function blkdev_access_valid forall 'n, 0 < 'n <= max_mem_access .
   & unsigned(addr) + width <= 2 ^ physaddr_bits
 }
 
-function blkdev_tear(mask : blkdev_buffer) -> unit = {
+// The host persistence boundary (interfaces/block-device-contract.md,
+// "Persistence, faults and reset"). `kind` names the event: 1, 2 and 3 are a
+// READ, WRITE or FLUSH completing without an injected error, 4 is a WRITE
+// error's tear, 5 a reset tear and 6 a media fault. A call asks the host to
+// make bytes [offset, offset + length) of `blkdev_medium` durable in the image
+// a restart opens, with a barrier for a FLUSH, and answers whether every medium
+// byte changed since startup is durable there. Once false, the answer stays
+// false for the run. With no bound image the register is the whole medium and
+// the platform layer answers true.
+val blkdev_host_persist = impure {cpp: "blkdev_host_persist"} : (bits(8), bits(64), bits(64)) -> bool
+
+function blkdev_tear(mask : blkdev_buffer, kind : bits(8)) -> bool = {
   let offset = unsigned(blkdev_pending_block) * plat_blkdev_block_bytes;
   assert(offset >= 0 & plat_blkdev_block_bytes > 0
     & plat_blkdev_block_bytes <= blkdev_max_block_bytes
@@ -103,11 +116,14 @@ function blkdev_tear(mask : blkdev_buffer) -> unit = {
   foreach (i from 0 to (plat_blkdev_block_bytes - 1)) {
     blkdev_medium[offset + i] = (blkdev_medium[offset + i] & not_vec(mask[i]))
                               | (blkdev_payload[i] & mask[i]);
-  }
+  };
+  blkdev_host_persist(kind, to_bits_truncate(64, offset), to_bits_truncate(64, plat_blkdev_block_bytes))
 }
 
+// A reset has no status to report a host failure through. The adapter keeps
+// the failure, so every later command completes with IO.
 function blkdev_reset(mask : blkdev_buffer) -> unit = {
-  if blkdev_status == 1 & blkdev_command == 2 then blkdev_tear(mask);
+  if blkdev_status == 1 & blkdev_command == 2 then { let _ : bool = blkdev_tear(mask, 0x05); () };
   blkdev_clear_volatile();
   blkdev_epoch = blkdev_epoch + 1;
 }
@@ -124,23 +140,33 @@ function blkdev_progress(epoch : nat, io_error : bool, misplaced : option(bits(6
     return ();
   };
   if io_error then {
-    if blkdev_command == 2 then blkdev_tear(mask);
+    if blkdev_command == 2 then { let _ : bool = blkdev_tear(mask, 0x04); () };
     blkdev_status = 3;
     blkdev_result = 4;
   } else {
-    if blkdev_command == 1 then {
-      let block : bits(64) = match misplaced { None() => blkdev_pending_block, Some(b) => b };
-      assert(unsigned(block) < plat_blkdev_block_count);
-      let offset = unsigned(block) * plat_blkdev_block_bytes;
-      assert(offset >= 0 & plat_blkdev_block_bytes > 0
-        & plat_blkdev_block_bytes <= blkdev_max_block_bytes
-        & offset + plat_blkdev_block_bytes <= blkdev_max_bytes);
-      foreach (i from 0 to (plat_blkdev_block_bytes - 1)) {
-        blkdev_staging[i] = blkdev_medium[offset + i];
-      }
-    } else if blkdev_command == 2 then blkdev_tear(vector_init(ones()));
-    blkdev_status = 2;
-    blkdev_result = 0;
+    // Success needs the host's answer: a write whose bytes the adapter cannot
+    // make durable, and every command after such a failure, completes with IO,
+    // so no later READ returns bytes a restart would not reopen.
+    let durable : bool = if blkdev_command == 2 then blkdev_tear(vector_init(ones()), 0x02)
+                         else blkdev_host_persist(to_bits(8, blkdev_command), zeros(), zeros());
+    if not(durable) then {
+      blkdev_status = 3;
+      blkdev_result = 4;
+    } else {
+      if blkdev_command == 1 then {
+        let block : bits(64) = match misplaced { None() => blkdev_pending_block, Some(b) => b };
+        assert(unsigned(block) < plat_blkdev_block_count);
+        let offset = unsigned(block) * plat_blkdev_block_bytes;
+        assert(offset >= 0 & plat_blkdev_block_bytes > 0
+          & plat_blkdev_block_bytes <= blkdev_max_block_bytes
+          & offset + plat_blkdev_block_bytes <= blkdev_max_bytes);
+        foreach (i from 0 to (plat_blkdev_block_bytes - 1)) {
+          blkdev_staging[i] = blkdev_medium[offset + i];
+        }
+      };
+      blkdev_status = 2;
+      blkdev_result = 0;
+    }
   };
   blkdev_payload = vector_init(zeros());
   blkdev_pending_block = zeros();
@@ -164,7 +190,12 @@ function blkdev_corrupt(block : bits(64), bytes : blkdev_buffer) -> unit = {
     & offset + plat_blkdev_block_bytes <= blkdev_max_bytes);
   foreach (i from 0 to (plat_blkdev_block_bytes - 1)) {
     blkdev_medium[offset + i] = bytes[i];
-  }
+  };
+  // A media fault is a persistent change; the adapter keeps a host failure
+  // here as it does for a reset tear.
+  let _ : bool = blkdev_host_persist(0x06, to_bits_truncate(64, offset),
+                                     to_bits_truncate(64, plat_blkdev_block_bytes));
+  ()
 }
 
 function blkdev_load forall 'n, 0 < 'n <= max_mem_access .

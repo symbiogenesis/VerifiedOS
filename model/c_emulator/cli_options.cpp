@@ -72,6 +72,30 @@ CLIOptions parse_cli(int argc, char **argv) {
       "reports)"
     )
     ->option_text("<uint>");
+  auto *blkdev_image = app
+    .add_option(
+      "--blkdev-image",
+      opts.blkdev_image,
+      "Bind the block device's persistent medium to this existing host image, which must record the "
+      "composition's block geometry; completed writes, tears and media faults are written through to it"
+    )
+    ->option_text("<file>");
+  app
+    .add_option(
+      "--blkdev-image-create",
+      opts.blkdev_image_create,
+      "Create this host image from the configured block-device fixture (no file may exist at the path) "
+      "and bind the medium to it as --blkdev-image does"
+    )
+    ->option_text("<file>")
+    ->excludes(blkdev_image);
+  app
+    .add_option(
+      "--blkdev-receipt",
+      opts.blkdev_receipt,
+      "Write the bound block-device image's open, persistence and close events to this new JSON Lines file"
+    )
+    ->option_text("<file>");
   app.add_option("--stop-at-pc", opts.stop_at_pc, "Stop execution when PC reaches address")->option_text("<address>");
 #ifdef SAILCOV
   app.add_option("--sailcov-file", opts.sailcov_file, "Sail coverage output file")->option_text("<file>");
