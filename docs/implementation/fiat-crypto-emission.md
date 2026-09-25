@@ -23,6 +23,14 @@ fiat_crypto word-by-word-montgomery p256 32 '2^256 - 2^224 + 2^192 + 2^96 - 1' -
 
 The exact executable path, flags and all output transformations are frozen by the recorded successful recipe, rather than inferred from these examples. A second party must build or identify the generator at the recorded parent and nested revisions, run each invocation twice, and compare byte-for-byte raw and wrapped output hashes. A historical binary built at `5691ca0d` cannot witness generation at the current pin.
 
+## Research handoff for future field and code parameters
+
+The survey's [finite-field factorization frontier](../background/open-math-conjectures.md#deterministic-polynomial-factorization-over-finite-fields) and [GRH entry](../background/open-math-conjectures.md#generalized-riemann-hypothesis-for-dirichlet-l-functions) are inputs to future parameter-generation proposals, not missing premises of the recorded M3.4c-ii emission. No present recipe bottleneck is identified by either result. This research guidance changes neither the chosen moduli nor the acceptance predicate below.
+
+For a future field or code construction, make the finite representation explicit: a prime `p`, and, for an extension, an irreducible defining polynomial over `F_p`. Supply checked finite primality/irreducibility evidence and prove any factorization output reconstructs the input with the claimed multiplicities and irreducible factors. A reducible defining polynomial, a composite modulus or an omitted repeated factor is a useful negative witness. The March 2026 structured factorization progress for Reed-Solomon decoding only applies after proving its particular input structure; general deterministic `poly(d,log q)` factorization remains open. The [decoder proof handoff](../assurance/proof-reuse/hardware.md#research-handoff-for-future-code-and-decoder-proofs) owns the subsequent code-specific bridge.
+
+GRH can inform the cost of some offline witness searches, but a search hypothesis need not enter a consumer theorem whose selected constants carry direct finite certificates. Separate search termination/cost from certificate soundness and charge bit operations, representation size and preprocessing to the actual producer. GRH alone does not settle unrestricted polynomial factorization, and neither result proves integer-factoring hardness or this suite's security. Any new emitted arithmetic still owes representation, target refinement and timing joins under its own reviewed scope.
+
 ## Acceptance predicate
 
 The generation half is accepted only when:

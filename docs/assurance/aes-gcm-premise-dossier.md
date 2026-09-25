@@ -140,6 +140,17 @@ faults and implementation attacks are not covered by the classical game.
 Post-quantum claims need a suitable game and resource analysis of their own;
 a quantum resource count is not a forecast of a machine's arrival.
 
+The [surveyed July 2026 AES result](../background/open-math-conjectures.md#concrete-aes-pseudorandom-permutation-security)
+is an input to the remaining premise review: an AI-assisted single-key attack
+on seven-round AES-128, with its chosen-plaintext volume and work estimates.
+It neither proves nor invalidates this dossier's full AES-256 forward-PRP
+premise. A future quantitative review records that parameter/game comparison
+explicitly before changing a bound; a reduced-round AES-128 instance must not
+be accepted as the subject of the AES-256 reduction. The
+[crypto proof handoff](proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs)
+keeps this attack evidence separate from functional refinement and the still
+owed numerical qualification.
+
 | Changed input | Invalidated claim/evidence | Required owner action |
 | --- | --- | --- |
 | AES key size, tag/IV width or GCM edition | Parameter binding, game correspondence and B specialization | Re-read this dossier and the functional reference before qualification |
