@@ -8,6 +8,8 @@ There is no exhaustive, stable list of **all** open mathematics that could affec
 
 The mathematical statements and status come from the linked sources. **The proposed VerifiedOS applications are this survey's inferences**, unless an existing project contract already states the connection. Recent preprints are identified as such; finding a claimed proof is not the same as establishing its acceptance or checking it in the project's prover.
 
+The status review includes recent manuscripts, their revisions, and public GitHub proof and implementation repositories. Repository age, popularity, author affiliation and AI assistance do not decide mathematical validity. A new repository can supply a decisive counterexample or a complete proof before journal review. Its evidence must still match the original statement: inspect definitions, quantifiers, assumptions, imported dependencies and the computational model, then distinguish source inspection, supplied build or kernel records, independent reproduction and external mathematical review. A declaration named after a conjecture, an empty placeholder type, or a clean search for `sorry` does not establish that correspondence. The artifact notes below identify what was actually inspected; this review did not rerun external Lean proof packages.
+
 ## How the connections fit this machine
 
 | Project surface | Mathematical opportunity | Boundary that still applies |
@@ -30,6 +32,8 @@ The [static-memory research agenda](static-memory-research.md) already separates
 
 A constructive improvement could reduce the backing needed by the fixed-tier [memory plan](../spec.md#r-08-012). A hardness result would sharpen the reason to exploit structured lifetimes. Neither outcome says that optimal span equals peak live bytes. Alignment, CHERI representability, pinned locations, distinct memory classes and revocation may invalidate a direct transfer of the classical guarantee.
 
+A related [August 2026 tree-scan preprint](https://arxiv.org/abs/2608.14471v1) bounds space by maximum live memory plus the largest buffer for constant-bounded programs, using defragmentation, and obtains optimality when in-place swapping is allowed. Moving objects and transforming execution distinguish that result from the fixed-address approximation question here.
+
 ### Modified Integer Round-Up Property for bin packing
 
 **Named conjecture; conditional allocation connection.** Let `OPT` be the minimum number of unit-capacity bins and `LP` the optimum of the Gilmore-Gomory configuration relaxation for the same item multiset. The Modified Integer Round-Up Property, MIRUP, asserts `OPT <= ceil(LP) + 1`. The stricter assertion `OPT = ceil(LP)` is false. See the [bin-packing discrepancy paper](https://sites.math.washington.edu/~rothvoss/publications/BinPackingViaDiscrepancyOfPermutations-talg.pdf) and a [2026 temporal-bin-packing study](https://doi.org/10.1007/s10288-025-00602-1).
@@ -37,6 +41,8 @@ A constructive improvement could reduce the backing needed by the fixed-tier [me
 Related unresolved targets are a universal constant additive LP gap and an efficient algorithm returning at most `OPT + O(1)` bins. These are different assertions: an existence bound does not itself supply the algorithm. [Hoberg and Rothvoss](https://arxiv.org/abs/1503.08796) give a logarithmic additive guarantee.
 
 Such results could tighten packing of equal-capacity banks or storage containers and estimates of unavoidable slack. Ordinary bin packing has no lifetimes or cross-bin contiguity requirement. It therefore does not directly solve [size-class waste](../spec.md#r-08-018b), elastic-heap fragmentation, or the full physical placement problem.
+
+A [4 June 2026 revision](https://arxiv.org/abs/2604.05152v2) gives polynomial algorithms for the Augmented IRUP benchmark class and pseudopolynomial algorithms for Augmented Non-IRUP instances. Their scoped optimality guarantees make them preprocessing leads, without resolving MIRUP or the unrestricted constant-additive-gap target.
 
 ### Optimal copying overhead for memory reallocation
 
@@ -46,19 +52,19 @@ This sharpens the fragmentation-versus-copying tradeoff for explicitly movable a
 
 ### Strong, or prefix, Komlós conjecture
 
-**Named conjecture; conditional resource-balancing connection.** For every fixed ordered sequence of vectors `v_i` in `R^d` with Euclidean norm at most one, can signs `epsilon_i` be chosen so that every prefix sum has maximum-coordinate magnitude at most a universal constant, independent of both sequence length and dimension? The signs may use knowledge of the entire sequence. [Karingula and Lovett's September 2026 preprint](https://arxiv.org/html/2609.20979v1) explicitly leaves this stronger question open; [earlier prefix-discrepancy work](https://arxiv.org/abs/2111.07049) supplies its algorithmic context.
+**Constant-bound conjecture refuted in a September 2026 manuscript; optimal growth remains open.** The conjecture asked whether every fixed ordered sequence of vectors of Euclidean norm at most one admits signs making every prefix's maximum-coordinate magnitude universally bounded, even when the signs can use the entire sequence. [Kintali's 15 September manuscript](https://shivakintali.github.io/papers/StrongKomlos.pdf) constructs square `n` by `n` examples requiring `Omega(sqrt(log log n))` prefix discrepancy. [Karingula and Lovett's 22 September revision](https://arxiv.org/html/2609.20979v2) incorporates this refutation and contrasts it with the dimension-independent `O(sqrt(log n))` upper bound. The remaining question is the optimal growth between these bounds, not whether a universal constant exists. No independent mechanization of the lower bound was located in this review.
 
-If a composition's legal binary assignments admit this vector model, a constructive theorem could bound accumulated imbalance across several resources at every phase, potentially reducing [buffer reservations](../spec.md#r-08-046). Failure would rule out that universal constant. It is not an online dispatch theorem: signs, nonnegative inventory, precedence and per-coordinate capacities all need a faithful interpretation.
+If a composition's legal binary assignments admit this vector model, constructive bounds could constrain accumulated resource imbalance at every phase and inform [buffer reservations](../spec.md#r-08-046). The refutation rules out a universal constant for unrestricted instances; structured workloads may still allow one. It is not an online dispatch theorem: signs, nonnegative inventory, precedence and per-coordinate capacities all need a faithful interpretation.
 
 ### Efficient constant-discrepancy Komlós construction
 
-**Open algorithmic follow-on; recent-proof watch item.** Ordinary Komlós asks for a constant bound on the final signed vector sum, rather than every prefix. September 2026 papers by [Guo, Fang and Lu](https://arxiv.org/abs/2609.11189) and [Karingula and Lovett](https://arxiv.org/abs/2609.20979) announce proofs. The latter gives a finite construction for rational inputs but explicitly does not establish polynomial running time. Ordinary Komlós and its Beck-Fiala consequence should therefore not be presented here as uncomplicated, untouched open conjectures.
+**Polynomial-time construction announced in the real-RAM model; finite-arithmetic implementation remains separate.** Ordinary Komlós controls the final signed sum. Following the September existence proofs, [Guo, Fang and Lu's 20 September preprint](https://arxiv.org/html/2609.23540v1) gives a deterministic constant-discrepancy signing algorithm using `O((m*n^9 + n^10) log(2+m+n))` exact arithmetic operations and comparisons for `n` vectors in `R^m`. This is a unit-cost real-RAM result, also yielding an `O(sqrt(t))` Beck-Fiala construction. The authors credit Odin AI assistance and describe their revision and verification of the proofs. The elementary proof's own finite rational construction is not the frontier for algorithmic existence.
 
-The remaining constructive question is whether a polynomial-time algorithm finds such a constant-discrepancy signing. That could make multidimensional balancing useful inside the [offline composer](../implementation/placement-search.md), subject to a reduction from actual legal decisions. The recent existence claims remain literature evidence, not machine-checked platform results, and do not imply a feasible memory layout.
+This makes multidimensional balancing a stronger lead for the [offline composer](../implementation/placement-search.md). A reduction from actual legal assignments, bit complexity and precision, finite constants, and a checked implementation still need to be established. A unit-cost real-RAM theorem alone does not supply polynomial bit complexity or a feasible memory layout. The [formal existence artifact](#ordinary-komlós-and-beck-fiala-proof-announcements) also does not certify the follow-on algorithm's running time.
 
 ### Euclidean Steinitz conjecture
 
-**Named conjecture; conditional buffer connection.** Given vectors of Euclidean norm at most one whose total is zero in `R^d`, is there a permutation for which every partial sum has norm `O(sqrt(d))`, with a universal constant? The general assertion remains open in [2026 work on Steinitz constants](https://londmathsoc.onlinelibrary.wiley.com/doi/10.1112/mtk.70085). [April 2026 algorithmic progress](https://arxiv.org/abs/2604.13355) achieves the desired scale in restricted dimensional regimes.
+**Named conjecture; conditional buffer connection.** Given vectors of Euclidean norm at most one whose total is zero in `R^d`, is there a permutation for which every partial sum has norm `O(sqrt(d))`, with a universal constant? The general assertion remains open in [2026 work on Steinitz constants](https://londmathsoc.onlinelibrary.wiley.com/doi/10.1112/mtk.70085). [Dutta, Jha and Jiang's April 2026 preprint](https://arxiv.org/abs/2604.13355v1) gives an efficient `O(sqrt(d))` construction for `n` vectors when `d >= Omega(log^7 n)`. This leaves the dimension-unrestricted question open.
 
 Production and consumption operations can sometimes be modeled as signed resource vectors. A suitable ordering could reduce temporary inventories in [joint scheduling and memory planning](static-memory-research.md#certified-offline-placement-and-joint-scheduling). An arbitrary permutation is not necessarily executable: dependencies may prohibit it or it may consume unavailable data. The result would require a legal ordering, a baseline inventory, and translation of the norm bound into the exact capacities charged by admission.
 
@@ -78,7 +84,7 @@ This resembles assigning compatible work to [scalar, vector and matrix cores](..
 
 **Open complexity questions; conditional repetitive-service connection.** Task `i` needs one unit of service in every `a_i` consecutive slots, forever, on one server. Does every feasible instance have a polynomial-size certificate checkable in polynomial time, placing feasibility in NP? Is general feasibility PSPACE-complete? [ICALP 2026 research](https://drops.dagstuhl.de/storage/00lipics/lipics-vol374-icalp2026/html/LIPIcs.ICALP.2026.122/LIPIcs.ICALP.2026.122.html) identifies these unresolved questions. A periodic schedule can exist without an explicitly written period having polynomial length.
 
-Compact certificates could help express maintenance or replenishment cadences without enormous schedule tables. This model omits WCET variation and the complete [schedule contract](../implementation/contracts/schedule-record.md). The same paper notes a new NP-hardness claim; the open entry here is certificate size and exact classification, not an unqualified claim that NP-hardness is still unknown.
+Compact certificates could help express maintenance or replenishment cadences without enormous schedule tables. This model omits WCET variation and the complete [schedule contract](../implementation/contracts/schedule-record.md). [Kobayashi, Lin and Swernofsky's 17 September preprint](https://arxiv.org/abs/2609.20075v1) strengthens the hardness frontier: dense instances with `sum_i 1/a_i = 1` are NP-complete even for unary periods and explicitly listed repeated tasks. Hence general feasibility is strongly NP-hard. NP membership for the dense restriction does not establish NP membership for general feasibility; its certificate-size and PSPACE-completeness questions remain open.
 
 ### Small Set Expansion conjecture
 
@@ -94,7 +100,7 @@ Such an algorithm could improve predictable search budgets for packing relaxatio
 
 ### List Edge-Coloring Conjecture
 
-**Named conjecture; conditional flexibility in static slot assignment.** Is the list chromatic index of every loopless multigraph equal to its ordinary chromatic index? If `k` colors suffice with a common palette, the conjecture says that giving each edge any list of `k` permitted colors still suffices. A [June 2026 survey](https://arxiv.org/abs/2606.31702) discusses the open general case and known cases such as bipartite graphs; [September 2026 preprint progress](https://arxiv.org/abs/2608.22895) addresses particular complete graphs.
+**Named conjecture; conditional flexibility in static slot assignment.** Is the list chromatic index of every loopless multigraph equal to its ordinary chromatic index? If `k` colors suffice with a common palette, the conjecture says that giving each edge any list of `k` permitted colors still suffices. A [June 2026 survey](https://arxiv.org/abs/2606.31702) discusses the open general case and known cases such as bipartite graphs; [Jafari's 16 September revision](https://arxiv.org/abs/2608.22895v2) proves the stronger online form for `K_(p-1)` and `K_(2p)` for odd primes `p`, plus specified matching-deletion families. It does not settle arbitrary loopless multigraphs.
 
 For unit transfers whose conflicts are exactly shared endpoints, edges can represent transfers and colors can represent time slots. Lists express allowed slots, so a constructive resolution could support more flexible [static schedule synthesis](../implementation/contracts/schedule-record.md). Routed fabric conflicts, unequal durations, precedence and additional shared resources do not automatically fit this graph. A bipartite endpoint model already has a theorem and need not await the general conjecture. The related ordinary edge-coloring bound is now a [published result](#goldberg-seymour-and-the-number-of-transfer-rounds).
 
@@ -108,11 +114,15 @@ A constructive equality could transform exact finite packing, schedule synthesis
 
 Neither answer decides unrestricted termination, arbitrary program equivalence or every theorem. `P != NP` is not a proof of cryptographic one-wayness; `P = NP` would defeat the usual asymptotic one-way-function definition. The [resident toolchain](../spec.md#r-13-027) would still produce artifacts checked by existing admission mechanisms.
 
+**Concrete proof-claim audit.** A [June 2026 preprint](https://arxiv.org/abs/2606.03194) claims a machine-verified equality, but its [Lean target at revision `3c9c90ed`](https://github.com/TiruArt/Pedigree-Polytopes-Lean4/blob/3c9c90ed2e38dd3a679891029c8e7622b5801988/MembershipProject/Core/N_PEqualsNP.lean) declares `P_equals_NP : Prop` without defining the standard classes, sets `An n := Unit`, and assumes bridges including `tardos_strongly_polynomial`, `membership_An_of_Pn` and `mi_objective_solves_stsp_ax`. Source inspection therefore does not establish the advertised theorem. These are statement and assumption gaps, independent of the author's identity or the repository's age; the proof package was not built here.
+
 ### NP versus coNP and short propositional proofs
 
 **Foundational conjecture, usually stated `NP != coNP`; direct certificate connection.** Is there a sound, complete, polynomial-time-checkable propositional proof system in which every tautology has a proof polynomial in its formula length? Existence of such a polynomially bounded system is equivalent to `NP = coNP`, by [Cook and Reckhow](https://www.cs.toronto.edu/~sacook/homepage/cook_reckhow.pdf). Strong proof-size lower bounds remain a subject of [current research](https://eccc.weizmann.ac.il/report/2025/080/download/).
 
 Equality could permit uniformly compact certificates for finite Boolean validity or unsatisfiability. It would not promise efficient discovery, a compact encoding of an entire physical system, or short proofs in this repository's particular logic. Inequality would mean that every such propositional system has hard families. This matters to proof artifact storage and checking budgets, while [the proof kernel](../assurance/cic-checker-qualification.md) remains responsible for each accepted claim.
+
+[De Rezende et al., May 2026](https://eccc.weizmann.ac.il/report/2026/078/), prove superpolynomial lower bounds for tree-like semantic Frege with bounded line size and related bounded-degree threshold systems. Tree structure and line restrictions are essential: this is proof-system progress, not a lower bound covering every Cook-Reckhow system.
 
 ### A p-optimal propositional proof system
 
@@ -131,6 +141,8 @@ Some reachability and temporal-verification problems over succinctly represented
 **Foundational conjecture, usually stated `P != NC`; conditional parallelism connection.** Does every polynomial-time decision problem admit uniform polynomial-size circuits of polylogarithmic depth, equivalently a suitable highly parallel algorithm with polynomially many processors? See the [University of Illinois complexity lecture](https://www.cs.uic.edu/~block/courses/cs505-spring2025/lecture-18.html). The processor count and uniformity condition are essential.
 
 A constructive equality could expand parallel compilation and analysis. A separation would establish that some efficient sequential computations resist this strong parallelization target. Neither predicts speedup on the finite number of cores and fixed communication grants of [this ensemble design](../spec.md#r-15-171a). Many useful restricted tasks are already parallelizable: [Ganardi and Lohrey](https://arxiv.org/html/2512.19060v1) distinguish efficient parallel register planning for explicit expression trees from harder succinct representations. Ordinary register planning need not wait for a resolution.
+
+**June-July 2026 preprint advance.** [Chatterjee et al., revision 2](https://eccc.weizmann.ac.il/report/2026/100/revision/2/download/), give deterministic NC algorithms for bipartite matching, including finding a maximum-weight perfect matching for polynomially bounded edge weights, and extend weighted/search results to linear matroid intersection. This is a concrete lead for parallel offline assignments that reduce to these problems. Processor count, memory, field/weight representation and checking the resulting assignment still matter; the general `P = NC` question is unchanged.
 
 ### L versus NL: directed reachability in logarithmic workspace
 
@@ -162,6 +174,8 @@ Useful constructions could remove random choices and probabilistic error from so
 
 This could improve exact algebraic simplification and validation of candidate [vector and matrix kernels](../implementation/compute-compatibility.md), reducing dependence on randomized fingerprints. It is narrower than all of `P = BPP`. Formal polynomial equality is not floating-point equivalence, equal trap order, equal memory effects, or equality of machine arithmetic with overflow. Any use in the certifying toolchain needs the actual semantics and the existing theorem-checking path.
 
+The cited [Kaplan-Shpilka result](https://eccc.weizmann.ac.il/report/2026/076/) gives deterministic polynomial-time white-box and quasipolynomial-time black-box tests for non-multilinear read-4 formulas over characteristic zero or at least five. The formula and field restrictions identify a usable special case without resolving arbitrary-circuit PIT.
+
 ### Deterministic polynomial factorization over finite fields
 
 **Open algorithmic problem; conditional algebraic-toolchain connection.** Given a dense degree-`d` polynomial over `F_q`, can its irreducible factors and multiplicities be computed deterministically in `poly(d,log q)` bit operations? Supply the field explicitly, for example as `F_p[t]/(h)` with binary-encoded prime `p` and an irreducible polynomial `h`; constructing that representation is a separate task. Efficient randomized algorithms exist. [Chatterjee, Harsha and Kumar's March 2026 revision](https://arxiv.org/abs/2511.05176) distinguishes the open general problem, even quadratics over varying prime fields, from the structured instances it solves for Reed-Solomon decoding.
@@ -184,6 +198,8 @@ These hypotheses constrain some exact scheduling, packing and finite verificatio
 
 It underlies barriers for certain exact similarity, string and attention problems. These can matter to inference and applications hosted in Wasm. Connections to [attention complexity](https://proceedings.iclr.cc/paper_files/paper/2026/hash/8a01099096c85890b1d1aff3c6b4ea56-Abstract-Conference.html) depend on dimension, approximation error, magnitudes and other parameters. A refutation would invalidate particular conditional lower bounds, not make every attention variant linear or remove the [resident model's memory traffic](../performance/inference-demand.md).
 
+[May 2026 work on Online Orthogonal Vectors](https://arxiv.org/abs/2605.04798) gives deterministic data structures refuting a particular OnlineOV data-structure conjecture. Its preprocessing/query model is distinct from the standard offline conjecture stated here; that refutation must not be transferred without accounting for preprocessing and parameters.
+
 ### Weighted All-Pairs Shortest Paths hypothesis
 
 **Fine-grained hardness hypothesis; conditional graph-analysis connection.** For every fixed positive `epsilon`, there is no `O(n^(3-epsilon))` algorithm for general weighted all-pairs shortest paths on `n` vertices in the stated model, commonly with polynomially bounded integer weights and distances well-defined. [Fischer's STOC 2026 work](https://arxiv.org/abs/2603.27736) studies conditional equivalences around this still-used hypothesis.
@@ -196,15 +212,19 @@ Progress could improve graph analyses or min-plus computations if profiling iden
 
 Consequences can constrain exact computational geometry and dynamic data structures used by desktop applications. A refutation could change those algorithm choices. A specific reduction is required before using it to bound [placement](../implementation/placement-search.md), graphics or Wasm performance; numerical representation and the machine model cannot be dropped from the claim.
 
+[Kirkpatrick et al., February 2026](https://arxiv.org/abs/2602.11363v1), obtain simultaneous subquadratic query and storage bounds for the preprocessed-universe variant: about `n^(1.5+epsilon)` randomized query time and `n^(2-2*epsilon/3)` space, suppressing polylogarithms, after roughly quadratic preprocessing. That initial cost prevents an immediate refutation of ordinary 3SUM; reuse across many queries is the prospective application.
+
 ### Online Boolean matrix-vector multiplication conjecture
 
 **Fine-grained hardness hypothesis; dynamic-workload connection.** Given an `n` by `n` Boolean matrix, receive `n` Boolean vectors sequentially and output each Boolean-semiring product before the next vector arrives. The OMv conjecture excludes total time `O(n^(3-epsilon))` for any constant positive `epsilon` in its stipulated randomized model. [Henzinger et al.](https://arxiv.org/abs/1511.06773) give the formulation; [current dynamic graph research](https://arxiv.org/abs/2403.02582) continues to use it for conditional bounds.
 
 Its reductions constrain some incremental reachability and dynamic indexes relevant to applications and analysis tools. It highlights why a generation known at composition can admit optimizations unavailable to an application receiving unknown future updates. This concerns Boolean products and online response order, not arbitrary numerical matrix-vector inference. Preprocessing, total cost and per-operation latency must be kept distinct when applying it to [Wasm workloads](../implementation/contracts/wasm-execution.md).
 
+A [February 2026 revision of the NeurIPS 2025 result](https://arxiv.org/abs/2502.21240v3) gives about `n^(2-1/d)` per-vector query time after roughly quadratic preprocessing for Boolean matrices of bounded VC-dimension `d`, suppressing polylogarithms. This is a structural opportunity for suitable dynamic graphs, not a general OMv refutation.
+
 ### Matrix multiplication exponent equals two
 
-**Named conjecture; direct arithmetic-kernel connection.** The conjecture `omega = 2` means that, for every fixed `epsilon > 0`, square matrix multiplication in the applicable algebraic model has an `O(n^(2+epsilon))` arithmetic-operation algorithm. It does not assert a literal `O(n^2)` implementation. An [August 2026 preprint by Dupont et al.](https://arxiv.org/abs/2608.16884) reports further progress without resolving `omega = 2`.
+**Named conjecture; direct arithmetic-kernel connection.** The conjecture `omega = 2` means that, for every fixed `epsilon > 0`, square matrix multiplication in the applicable algebraic model has an `O(n^(2+epsilon))` arithmetic-operation algorithm. It does not assert a literal `O(n^2)` implementation. An [August 2026 preprint by Dupont et al.](https://arxiv.org/html/2608.16884v1) reports `omega < 2.371177`, using optimization assisted by AlphaEvolve. It describes exact-rational certification with directed logarithm bounds, but says verification code and candidate data are being prepared for release. This review did not locate that promised artifact; the preprint bound is not independently reproduced evidence and does not resolve `omega = 2`.
 
 Practical constructions could improve dense inference, graphics and certified native kernels. Constants, scratch space, communication, rectangular shapes and numerical semantics still determine target value. Matrix-vector autoregressive decoding does not inherit the same benefit as large matrix-matrix multiplication. No operation-count theorem removes the cost of reading weights under the [fixed memory grants](../performance/inference-demand.md), or permits numerically different reassociation without an accepted semantic contract.
 
@@ -214,9 +234,11 @@ Practical constructions could improve dense inference, graphics and certified na
 
 A faster construction could improve sufficiently large exact arithmetic in proof producers, symbolic tools and guest libraries; a lower bound would establish an asymptotic limit. Neither determines the best fixed-width cryptographic multiplier or the practical crossover against simpler algorithms. Bit complexity differs from counting word multiplications, and secret-dependent arithmetic still needs the [cryptographic implementation's](../implementation/fiat-crypto-emission.md) timing and correctness evidence.
 
+[Harvey and van der Hoeven, FOCS 2025](https://arxiv.org/abs/2503.22848), reduce binary matrix transposition to multiplication. A conjectured transposition lower bound would therefore imply the desired multiplication lower bound. This sharpens the conditional route to optimality without proving the lower bound itself.
+
 ### Dynamic optimality of binary search trees
 
-**Named conjecture; conditional application data-structure connection.** Does splaying serve every access sequence within a universal constant factor of the best offline binary-search-tree execution in the same model, with the usual initial-state accounting? The broader existence question asks for any online BST with this guarantee. A [July 2026 preprint](https://arxiv.org/abs/2607.18498) gives a near-log-log competitive bound for splay trees, leaving the constant-factor target open.
+**Named conjecture; conditional application data-structure connection.** Does splaying serve every access sequence within a universal constant factor of the best offline binary-search-tree execution in the same model, with the usual initial-state accounting? The broader existence question asks for any online BST with this guarantee. A [July 2026 preprint](https://arxiv.org/abs/2607.18498v1) gives `O(log log n * (log log log n)^2)` competitiveness for splay trees, leaving the constant-factor target open.
 
 A proof would strengthen sequence-level efficiency guarantees for adaptive indexes or application maps. A counterexample would delimit the algorithm's universal claim. It would not establish bounded latency for each access: amortized and competitive guarantees can hide an expensive operation. Nor would it justify replacing the project's [storage index](../implementation/comparisons/storage-index.md), whose block traffic, persistence, recovery and endurance have different costs. The most plausible initial consumer is a bounded, in-label application data structure.
 
@@ -236,6 +258,8 @@ For these entries, a negative resolution may be more consequential than a perfor
 
 Existence would establish a foundation for general computational cryptography; nonexistence would undermine broad classes of encryption, signatures and pseudorandom generation. Neither outcome should be casually equated to a finite-cost attack on a deployed key size. Existence also would not prove this project's AES, hash or lattice choices secure. Worst-case `P != NP` is not known to imply the average-case hardness required here.
 
+A [February 2026 preprint](https://arxiv.org/abs/2602.17651) derives one-way functions from nontrivial non-interactive zero-knowledge arguments, or constant-round public-coin zero-knowledge arguments, for NP under `NP` not contained in `ioP/poly`. Here nontrivial means the completeness, soundness and zero-knowledge errors sum to at most `1-c` for a positive constant `c`. This extends the permitted error range without establishing unconditional one-wayness.
+
 ### Module Learning With Errors hardness
 
 **Current computational assumption; direct, critical connection.** Over the specified polynomial quotient ring, distinguish `(A, A*s + e)` from `(A, u)`, where `A` is uniform, `s,e` follow the selected small-noise distributions and `u` is uniform. Search formulations instead seek the secret. Parameters, distribution and classical or quantum adversary access are part of the statement. [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) connects ML-KEM security to Module Learning With Errors.
@@ -243,6 +267,8 @@ Existence would establish a foundation for general computational cryptography; n
 This bears directly on the selected key establishment and its [qualification contract](../assurance/pq-reference-contract.md). Better attacks could require migration or larger parameters, with memory, bandwidth and crypto-slot costs. Stronger reductions could improve the justification of a margin. A reduction to worst-case lattice problems does not prove those problems hard.
 
 **Status sensitivity:** a [2026 quantum-algorithm announcement](https://eprint.iacr.org/2026/1591) acknowledges correction and dispute; a [September-updated refutation](https://eprint.iacr.org/2026/1693) challenges its required advantage. This is not recorded as an accepted break, and rejecting an attack does not prove hardness. The existing [attack review](../assurance/proof-reuse/crypto.md#what-the-attack-corrections-establish) owns the project's disposition.
+
+The refutation has an [AI-assisted Lean artifact at revision `6de8c1db`](https://github.com/sragavan99/lean-ePrint-2026-1591-refutation/tree/6de8c1dbffec10b4b44b2cae3aeadeb1cf0cfc83), with an exact `Q*sqrt(K/N)` distinguishing-advantage bound for its specified dihedral-coset algorithm model. This review inspected the documented theorem scope, including register and rounding conventions, but did not build or audit the complete dependency closure. It is concrete evidence to examine for that attack, not a proof of Module LWE hardness. Separately, [Wen and Zheng, CRYPTO 2026](https://eprint.iacr.org/2026/155), relate constant-rank search MLWE over power-of-two cyclotomic rings to structured extrapolated dihedral cosets; a reduction is not an efficient attack.
 
 ### Module SIS and SelfTargetMSIS hardness
 
@@ -256,11 +282,15 @@ These assumptions affect generation signatures, attestation and replaceable boot
 
 A fast classical attack would remove the classical component's contribution to hybrid key establishment. It need not defeat a correctly proved combiner whose other component remains secure. Improvements in security analysis or arithmetic could alter the cost and confidence of that hedge. The [project's assumption inventory](../assurance/proof-reuse/crypto.md) requires the exact group, game and combiner theorem. This is not an RSA dependency or a claim that a single generic group lower bound proves the selected curve secure.
 
+A [July 2026 classical guess-and-determine proposal](https://arxiv.org/html/2607.09814v1#S5.SS1) leaves large-field success probability and total complexity unresolved, so it does not establish a break. [September quantum resource estimates for secp256k1](https://arxiv.org/abs/2609.05625) reach about 1,450 logical qubits and 40 million Toffoli gates under their model. Resource estimates sharpen the quantum threat assessment but are neither a classical algorithm nor a demonstrated attack on a deployed key.
+
 ### Concrete AES pseudorandom-permutation security
 
 **Concrete security assumption family; direct storage and session connection.** Can adversaries with specified resources and oracle access distinguish secret-key AES from a uniformly selected permutation with advantage above the claimed bound? This is a game-indexed quantitative question, not the assertion that AES is impossible to attack. [FIPS 197](https://csrc.nist.gov/pubs/fips/197/final) defines AES; the [GCM security analysis](https://eprint.iacr.org/2004/193.pdf) explains its role in composition.
 
 The [AES-GCM premise dossier](../assurance/aes-gcm-premise-dossier.md) already identifies the unresolved AES-256 forward-PRP premise. Stronger concrete evidence could improve defensible rekeying and data-volume budgets; a suitable attack could invalidate confidentiality or authenticity claims. Correct AES code does not prove pseudorandomness, and stronger AES security does not remove nonce requirements or GCM's finite-message bounds.
+
+**AI-assisted reduced-round advance, July 2026.** [Nasr and Carlini's cryptanalysis](https://anthropic.com/document/aes_mobius_bridge.pdf), [announced on 28 July](https://www.anthropic.com/research/discovering-cryptographic-weaknesses), improves single-key seven-round AES-128 attack work from about `2^99` to `2^89.3` through `2^91.4`, retaining `2^105` chosen plaintexts. An LLM discovered the central method. This is substantive cryptanalytic progress against seven of AES-128's ten rounds, not a full-round AES-128 or AES-256 break, and it does not discharge or invalidate the selected forward-PRP premise.
 
 ### Concrete SHA and Keccak security properties
 
@@ -268,11 +298,15 @@ The [AES-GCM premise dossier](../assurance/aes-gcm-premise-dossier.md) already i
 
 Consumers include content addressing, Merkle binding, measured boot, derivation and the ROM's signature verifier. New attacks can reach guarantees that software updates cannot repair in immutable hardware. Stronger constructions or reductions may improve justified signature, verification or randomness budgets. A proof in an ideal-permutation model does not prove concrete Keccak ideal. Fixed keyless hashing also needs careful adversary quantification, as [Rogaway explains](https://www.cs.ucdavis.edu/~rogaway/papers/ignorance.pdf); the [project ledger](../assurance/proof-reuse/crypto.md#idealized-models-and-keyless-hashing) records that boundary.
 
+[Li et al.'s 9 September revision](https://eprint.iacr.org/2026/1120) announces collisions for 38-step SHA-256 at `2^104.3` work, 38-step SHA-512 at `2^125.4`, and 39-step SHA-512 at `2^178`, plus an explicit 36-step SHA-256 collision. These reduced-step results do not cover the standardized full functions. The [Keccak designers' cryptanalysis inventory](https://keccak.team/third_party.html) also records a practical five-round preimage attack on `Keccak[r=640,c=160]`; its round count and capacity differ from the selected SHA-3/SHAKE instances. Preserve those parameters when assessing any impact on the premise ledger.
+
 ### Public-key cryptography from arbitrary one-way functions
 
 **Open foundational construction problem; speculative diversification connection.** Does existence of arbitrary one-way functions suffice to construct public-key encryption or secure key agreement? Known black-box barriers exclude broad generic approaches, not every possible non-black-box construction. See [Barak's survey](https://eccc.weizmann.ac.il/report/2017/065/download/) and [limits of random-oracle constructions](https://arxiv.org/abs/1205.3554).
 
 A positive answer might diversify the assumptions available to future session protocols beyond today's structured lattice and classical choices. It promises neither small keys nor practical speed, and one-way functions would still be an assumption unless proved to exist. Any replacement would need concrete security, protocol composition, implementation refinement and the existing [admission and qualification path](../assurance/pq-reference-contract.md).
+
+A neighboring [May 2026 secret-key private-information-retrieval result](https://eccc.weizmann.ac.il/report/2026/067/) uses arbitrary one-way functions and approximately square-root online communication. Its offline client secret-key processing is essential; it does not construct public-key encryption or key agreement from arbitrary one-way functions.
 
 ### Explicit low-error two-source extraction
 
@@ -280,9 +314,11 @@ A positive answer might diversify the assumptions available to future session pr
 
 Better constructions could reduce raw samples, buffers and latency for a specified statistical guarantee in the [TRNG source contract](../hardware/trng-source-model-contract.md). They cannot create missing entropy, prove physical independence or automatically cover quantum side information. The broad `O(log n)`-entropy target at constant error is already achieved by [Li's 2023 result](https://arxiv.org/abs/2303.06802). Building and qualifying a finite instance of an existing extractor is project work, not an unresolved theorem.
 
+Revision checks matter here: [the May revision of TR26-011](https://eccc.weizmann.ac.il/report/2026/011/) withdraws its efficient negligible-error DAG-source construction while retaining an existence result, and [TR26-089](https://eccc.weizmann.ac.il/report/2026/089/) was retracted in June because of an error in Lemma 5.9. Neither supplies the required efficient two-independent-source theorem.
+
 ### Optimal binary-code rate versus distance
 
-**Open mathematical optimization problem; direct reliability and capacity connection.** Determine `R_2(delta) = limsup_n log_2(A_2(n,ceil(delta*n)))/n`, where `A_2(n,d)` is the largest binary code of length `n` and minimum Hamming distance at least `d`. Exact general tradeoffs remain unknown. See [research on coding bounds](https://chrisjones.space/assets/papers/ho-delsarte.pdf) and [Alrabiah and Guruswami's August 2026 preprint](https://arxiv.org/abs/2608.09347); the latter announces improved upper bounds, not a complete solution.
+**Open mathematical optimization problem; direct reliability and capacity connection.** Determine `R_2(delta) = limsup_n log_2(A_2(n,ceil(delta*n)))/n`, where `A_2(n,d)` is the largest binary code of length `n` and minimum Hamming distance at least `d`. Exact general tradeoffs remain unknown. See [research on coding bounds](https://chrisjones.space/assets/papers/ho-delsarte.pdf) and [Alrabiah and Guruswami's August 2026 preprint](https://arxiv.org/abs/2608.09347); the latter announces mixed-qubit-channel upper bounds strictly improving the first MRRW bound throughout `0 < delta < 1/2`, and a masked construction strictly improving the second MRRW bound throughout that interval, for both linear and nonlinear codes. This is a substantial bound improvement, not the exact tradeoff or a constructive decoder.
 
 Constructive progress could reduce redundancy or improve protection within fixed memory and frame budgets. The [hardware ECC and link design](../spec.md#r-15-175) still requires concrete short block lengths, decoding latency, area, failure behavior and a qualified error model. An asymptotic existence bound does not supply a fixed-latency SECDED or DECTED implementation. Capacity under random errors and minimum-distance protection against adversarial errors are different questions.
 
@@ -292,11 +328,15 @@ Constructive progress could reduce redundancy or improve protection within fixed
 
 Progress could reduce redundancy while retaining predictable recovery algorithms for sufficiently large storage or communication blocks. These are large-alphabet list-decoding guarantees, not binary SECDED bounds. A list can contain several plausible messages; authenticated selection and bounded processing remain necessary. The [fixed-frame link contract](../spec.md#r-15-228b) still needs finite block lengths, fixed traffic, latency and failure behavior. A separate recent result improves [decoder scratch space](#capacity-approaching-decoding-with-small-workspace).
 
+**Separate September 2026 advance for ordinary Reed-Solomon codes.** [Brakensiek et al., 5 September revision](https://eccc.weizmann.ac.il/report/2026/164/revision/1/download), give deterministic polynomial-time capacity-approaching list decoding for every distinct evaluation set over sufficiently large prime fields, for any fixed rate `R` and fixed gap `0 < delta < 1-R`. The field requires `q >= C(R,delta)*n`, sufficiently large block length, and list size `n^{O_{R,delta}(1)}`. The exponent's parameter dependence does not settle polynomial time jointly in block length and inverse gap, and ordinary RS and folded RS remain distinct code families.
+
 ### Finite-length optimality of single-deletion VT codes
 
 **Named optimality conjecture; prospective framing connection.** Let `VT_0(n)` contain the binary strings satisfying `sum_i i*x_i = 0 mod (n+1)`. Is it a largest possible length-`n` code correcting one deletion for every `n`? Asymptotic optimality does not settle exact finite lengths. [Weindel and Heckel's June 2026 revision](https://arxiv.org/abs/2504.00613) still treats this as a conjecture; recovering the known construction does not prove maximality.
 
 A resolution could establish short-block redundancy limits for a matching synchronization-loss channel. Deletions are different from substitutions or erasures at known locations. The present memory and link contracts do not identify that channel model, so this is a possible future framing application rather than an improvement to the selected ECC.
+
+The [June revision](https://arxiv.org/abs/2504.00613v2) proves that an LLM-discovered function generates the VT family. Its broader multiple-deletion and quaternary-edit experiments remain finite construction/search results. Recovering a conjectured-optimal family, even with a proof of the construction, does not establish its finite-length maximality.
 
 ### Log-rank conjecture
 
@@ -304,11 +344,15 @@ A resolution could establish short-block redundancy limits for a matching synchr
 
 A constructive result could reduce communication for matching exact predicates on separately held inputs, potentially reducing [ensemble slot reservations](../spec.md#r-15-228b). It would not compress arbitrary tensor payloads or automatically extend to many parties. Protocol rounds, local work, confidentiality and padding to the permitted fixed schedule must all be charged. A short unpadded transcript that reveals private information is not a valid replacement for the platform's communication contract.
 
+[Song's August result](https://arxiv.org/abs/2608.01812) improves explicit lower bounds to `Omega((log r)^2/log log r)`, while recording the general `O(sqrt(r))` upper bound. This narrows one side of the gap; it neither gives the conjectured polylogarithmic upper bound nor refutes the existence of some polynomial in `log r`.
+
 ### Li-Li undirected multiple-unicast conjecture
 
 **Named conjecture; speculative ensemble connection.** For independent unicast sessions in an undirected capacitated network, network coding offers no throughput advantage over fractional routing. [Liu, Que, Li and Li's August 2026 paper](https://arxiv.org/abs/2608.06070) proves further special cases while leaving the general conjecture open.
 
 A proof would delimit coding-based capacity optimization; a counterexample could identify topologies and traffic where coding helps. Applying this to a future [ensemble](../spec.md#r-15-228b) first requires a matching multi-hop network model. A single point-to-point link, directed time-slot graph, multicast, or correlated inference traffic does not automatically fit. Coding would still have to preserve fixed schedules, bounded buffers, session integrity and authority confinement.
+
+The [August paper](https://arxiv.org/abs/2608.06070) includes all instances with at most five terminal locations and specified designated-face planar and structured-endpoint classes. These identify concrete solved topology families; the unrestricted undirected multiple-unicast statement remains open.
 
 ## More indirect mathematical opportunities
 
@@ -324,11 +368,15 @@ A proof could remove a hypothesis from some offline field-parameter or witness-s
 
 Constructions for more dimensions could broaden orthogonal sign transforms used in signal processing or quantization, sometimes avoiding padding. This is only a possible future representation choice. The [Bonsai assessment](../performance/bonsai2-assessment.md) already names block-1024 Hadamard rotations; that power-of-two transform requires no solution of the conjecture. General existence would not imply an `O(n log n)` transform, better model quality, smaller scratch space or permitted changes to frozen weight semantics.
 
+[Ramos, Hulak and de Queiroz, July 2026](https://arxiv.org/abs/2607.20765), identify order 668 as the smallest unresolved order and give certificate-supported restrictions on common-multiplier symmetry for length-333 Legendre pairs. Excluding that construction class does not exclude all order-668 matrices. A [Lean repository at revision `d1f22fc0`](https://github.com/SamuelSchlesinger/hadamard-conjecture/tree/d1f22fc03782292dddf44b9052eb5d8aee2be96b) develops Paley and Kronecker constructions and explicitly leaves the universal `hadamard_conjecture` target open. This is useful formalized special-case work, not a complete resolution.
+
 ### Shannon capacity of the seven-cycle
 
 **Open exact-value problem; speculative zero-error coding connection.** For the seven-cycle confusability graph `C_7`, determine `Theta(C_7) = sup_m alpha(C_7 strong-power m)^(1/m)`, where `alpha` is the maximum independent-set size. [Polak and Schrijver](https://arxiv.org/abs/1808.07438) give a constructive lower bound; [August 2026 research](https://arxiv.org/abs/2608.30273) continues to improve constructions without determining the exact capacity.
 
 The general method studies how distinguishable messages can be packed under a specified zero-error confusion model. It could inspire more efficient codes for a matching future channel. No evidence identifies `C_7` as this platform's electrical, storage or fault model. Its exact value would therefore be mathematical background, not an immediate change to [fixed-frame communication](../spec.md#r-15-228b), authentication or ECC.
+
+**AI-assisted construction with a public checker.** [Tandon's 31 August preprint](https://arxiv.org/abs/2608.30273) raises the constructive lower bound to `3.25883262...` using a dimension-500 construction. The [companion package at revision `c7534084`](https://github.com/tandonravi/C7-Shannon-Capacity-Heterogeneous-Recursion/tree/c753408492dde92a239708986d16c15dbf6c3235) contains exact finite-certificate and recursive-arithmetic checks. Source inspection found that the default arithmetic check assumes supplied certificate counts; `--recomputed` derives them from the base certificate. Neither path was executed in this review. This is a reproducible-construction lead, with the finite-certificate and recursion obligations explicit, not an exact determination of capacity.
 
 ## Project-specific questions, not established named conjectures
 
@@ -352,9 +400,11 @@ These entries include published resolutions, published partial results and expli
 
 ### Ordinary Komlós and Beck-Fiala proof announcements
 
-**September 2026 preprint claims.** [Guo, Fang and Lu](https://arxiv.org/abs/2609.11189) announce final-sum discrepancy below `3*sqrt(2*pi)` for unit-Euclidean-norm vectors, implying below `3*sqrt(2*pi*t)` for a set system in which each element occurs in at most `t` sets. [Karingula and Lovett](https://arxiv.org/abs/2609.20979) give a simplified proof with constant `36`. These are status-qualified claims, not locally checked theorems; neither entry settles the [prefix problem](#strong-or-prefix-komlós-conjecture) or [polynomial-time constant-discrepancy construction](#efficient-constant-discrepancy-komlós-construction).
+**September 2026 preprint claims.** [Guo, Fang and Lu](https://arxiv.org/abs/2609.11189) announce final-sum discrepancy below `3*sqrt(2*pi)` for unit-Euclidean-norm vectors, implying below `3*sqrt(2*pi*t)` for a set system in which each element occurs in at most `t` sets. [Karingula and Lovett](https://arxiv.org/abs/2609.20979) give a simplified proof with constant `36`. The [prefix counterexample](#strong-or-prefix-komlós-conjecture) and [polynomial real-RAM construction](#efficient-constant-discrepancy-komlós-construction) are separate subsequent results.
 
 Useful algorithms need not wait: [Bansal and Jiang's 2025 work](https://arxiv.org/abs/2508.03961) gives polynomial-time `O(sqrt(t))` Beck-Fiala discrepancy when `t >= log^2 n`, plus improved general Komlós bounds. Sparse resource assignments could use such algorithms to propose checked candidates. Normalization, legal placement choices and actual capacity constraints still need to match the theorem.
+
+**Formal artifact inspected.** [Dahia's Lean solution at revision `d8028574`](https://github.com/gdahia/Komlos/blob/d802857449234318d557361b1dbb0a27e0258528/Solution.lean) gives the constant-36 real-vector theorem and `36*sqrt(t)` Beck-Fiala consequence. Its solution imports the completed library, excluding the separate challenge placeholders. The [external CI build passed at that revision](https://github.com/gdahia/Komlos/actions/runs/35320354586), and [formalization metadata](https://github.com/gdahia/Komlos/blob/d802857449234318d557361b1dbb0a27e0258528/formalization.yaml) reports only `propext`, `Classical.choice` and `Quot.sound`. This review inspected sources and that build record, without independently replaying or fully auditing the proof. The artifact documents AI assistance; it formalizes neither the sharper constant, prefix discrepancy nor the polynomial-time algorithm.
 
 ### Square-root-space simulation and circuit evaluation
 
@@ -362,11 +412,15 @@ Useful algorithms need not wait: [Bansal and Jiang's 2025 work](https://arxiv.or
 
 These results support exploring recomputation and alternative evaluation orders to reduce intermediate storage. They do not preserve the original runtime, provide a direct arbitrary-RAM transformation, or merely repack an unchanged live set. A bounded implementation could be investigated in the [resident compiler](../spec.md#r-13-027) or a guest algorithm, with explicit costs for recomputation, input access and polling. This is distinct from reducing allocator fragmentation.
 
+A [separate claim of `O(sqrt(t))` simulation space](https://arxiv.org/abs/2508.14831v4) was withdrawn on 1 January 2026: its interval-based associative summary tree did not model the dependencies in Williams's simulation. That withdrawn strengthening does not supersede the established bound.
+
 ### Catalytic graph and sequence algorithms
 
 **Published 2026 algorithms.** [Cook and Pyne, ITCS 2026](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITCS.2026.43), give explicit catalytic graph algorithms, including directed reachability. [Chmel et al., CCC 2026](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.CCC.2026.29), obtain polynomial-time algorithms using `O(log n)` clean workspace and sublinear catalytic storage `n / 2^(Theta(sqrt(log n)))` for directed reachability and several sequence problems, including edit distance and longest common subsequence.
 
 Compiler graph passes and text tools are plausible consumers inside a private memory envelope. The retained payload remains physically present, and all work needed to restore it must be charged. [Catalytic memory's](#the-power-of-catalytic-memory) authority, quiescence, capability-tag and interruption qualifications are essential. A separate [April 2026 claim of polynomial-time, almost-logarithmic-total-space tree evaluation](https://arxiv.org/abs/2604.02606) was withdrawn because its polynomial-degree analysis was incorrect; it is not evidence of that stronger result.
+
+**Further July-September 2026 preprints.** [Becker et al.](https://arxiv.org/abs/2607.08559) and [Kaplan et al.](https://arxiv.org/abs/2607.09475) develop multi-pass catalytic streaming algorithms, with no asymptotic clean-space advantage in the one-pass model. Replaying input and retaining catalyst capacity are part of the cost. [Vinciguerra's 16 September operator approach](https://arxiv.org/html/2609.18692v1) proves at least four input accesses necessary for passive-output polynomial programs computing polynomials of degree at least three over characteristic-zero fields and constructs `x^(2t-1)` using four accesses and `t` registers in characteristic zero or greater than `2t-1`. It credits AI assistance and derives streaming and matrix-powering improvements. These scoped algebraic results leave `CL = L` and `P` containment in `CL` unresolved.
 
 ### Sparse linear programs and short circuit walks
 
@@ -380,15 +434,21 @@ The sparse theorem is a concrete option when a resource-assignment subproblem ac
 
 Under the [endpoint-conflict transfer model](#list-edge-coloring-conjecture), this bounds the number of matching rounds, with repeated transfers represented by parallel edges. It gives a useful lower-bound comparison and target for checked schedule synthesis. Per-transfer slot lists, routed conflicts and unequal durations remain additional problems; the theorem is not a complete schedule generator for the platform.
 
+A separate [Chen-Hao-Yu-Zang proof preprint](https://arxiv.org/abs/2407.09403v1) gives an `O(|V|^5 |E|^3)` algorithm attaining the same coloring bound, whereas the published proof above is nonalgorithmic. This supplies a constructive synthesis lead; its exponent and the platform's additional scheduling constraints still matter.
+
 ### Hashing beyond the uniform-probing conjecture
 
-**FOCS 2024 result, with a 2025 preprint and further STOC 2026 progress.** [Farach-Colton, Krapivin and Kuszmaul](https://arxiv.org/abs/2501.02305) disprove Yao's conjectured optimal worst-case expected search cost for greedy open addressing without reordering. Their funnel hashing improves the dependence on empty fraction `delta` from order `1/delta` to order `log^2(1/delta)` in its stated range. Their non-greedy elastic hashing also achieves constant amortized expected search cost without relocating existing entries. The [FOCS paper](https://ieee-focs.org/FOCS-2024-Papers/pdfs/FOCS2024-1oojWxXs5YAKfs3z3lBRMF/167400a594/167400a594.pdf) establishes the publication date. The [STOC 2026 follow-on](https://acm-stoc.org/stoc2026/toc.html) further separates the query probe order from the insertion order.
+**FOCS 2024 result, with a 2025 preprint and further STOC 2026 progress.** [Farach-Colton, Krapivin and Kuszmaul](https://arxiv.org/abs/2501.02305) disprove Yao's conjectured optimal worst-case expected search cost for greedy open addressing without reordering. Their funnel hashing improves the dependence on empty fraction `delta` from order `1/delta` to order `log^2(1/delta)` in its stated range. Their non-greedy elastic hashing also achieves constant amortized expected search cost without relocating existing entries. The [FOCS paper](https://ieee-focs.org/FOCS-2024-Papers/pdfs/FOCS2024-1oojWxXs5YAKfs3z3lBRMF/167400a594/167400a594.pdf) establishes the publication date. The [STOC 2026 follow-on](https://acm-stoc.org/stoc2026/toc.html), *Greedy Open Addressing Revisited: Beyond Yao's Lower Bound*, separates query probe order from insertion order: greedy insertion can then coexist with `O(1)` amortized expected queries and `O(log(1/delta))` worst-case expected queries. These guarantees concern that relaxed probing model.
 
 This can inform denser fixed-capacity application tables, reducing spare slots and avoiding some entry movement. Expected and high-probability costs are not deterministic WCET, successful searches are not every dictionary operation, and deletion/resizing support requires its own result. Hash-table slack is also distinct from general heap fragmentation. Applications must qualify a bounded implementation within their existing memory and authority envelope.
 
+An [experimental Rust implementation, `opthash-rs` revision `d7a408a3`](https://github.com/aaron-ang/opthash-rs/tree/d7a408a3dccdd48ccd5cc62f83397f35a0995412), makes the elastic and funnel constructions available for finite-workload evaluation. Its own comparison documents deterministic mixing, tombstones, growth, rebuilds and exhaustion fallbacks outside the paper's fixed-table insertion-only analysis. This is an implementation lead, not evidence that every library operation inherits the theorem; no target benchmark was run in this review.
+
 ### Compact static dictionaries and dynamic ordered indexes
 
-**Published 2025 and 2026 data-structure advances.** [Hu et al., STOC 2025](https://arxiv.org/abs/2412.10655), obtain static dictionaries with worst-case constant query time and `OPT+n^epsilon` total bits for fixed positive `epsilon`, under stated word-RAM and universe assumptions; `OPT = log_2 binom(U,n) + n log_2 sigma`. Construction uses randomness, and auxiliary tables/hash descriptions count toward the total. [Kuszmaul, Liang and Zhou, SODA 2026](https://arxiv.org/abs/2510.19175), obtain dynamic ordered dictionaries with sublinear redundancy for polynomial-size universes and optimal amortized expected operation time.
+**Published 2025 and 2026 results, with an August 2026 preprint advance.** [Hu et al., STOC 2025](https://arxiv.org/abs/2412.10655), obtain static dictionaries with worst-case constant query time and `OPT+n^epsilon` total bits for fixed positive `epsilon`, under stated word-RAM and universe assumptions; `OPT = log_2 binom(U,n) + n log_2 sigma`. Construction uses randomness, and auxiliary tables/hash descriptions count toward the total. [Kuszmaul, Liang and Zhou, SODA 2026](https://arxiv.org/abs/2510.19175), obtain dynamic ordered dictionaries with sublinear redundancy for polynomial-size universes and optimal amortized expected operation time.
+
+[Blelloch et al., 6 August 2026](https://arxiv.org/abs/2608.06077), address clustered keys through difference encoding. Their preprint gives space `(1+O(epsilon))*gap(S) + O(n log(gap(S)/n))` bits and expected amortized operation time `O(log(1/epsilon)/log log(1/epsilon))`, for `0 < epsilon < 1/4` and `n = U^(1-Theta(1))`, with a matching tradeoff lower bound even for static queries. Gap entropy can be much smaller than the unrestricted-set information bound; this is a distinct opportunity for clustered application indexes, without a per-operation deadline guarantee.
 
 The static result is especially compatible with composition-time construction of immutable metadata. The dynamic result could reduce index overhead inside applications. Neither eliminates CHERI representation costs or supplies a bound in target cycles. A checked construction needs to account for every lookup table, hash seed, encoded field, initialization step and construction workspace; expected update bounds do not establish a fixed-tier deadline.
 
@@ -404,6 +464,8 @@ Possible consumers include compressible application metadata and symbol arrays. 
 
 Matching graph kernels in planning or guest applications could benefit at sufficient scale. The result does not imply general faster sorting or faster interpreter dispatch. Concrete weight encoding, overflow, graph representation, scratch space and actual workload sizes must be evaluated before changing an implementation.
 
+**AI-produced formal artifact, September 2026.** [Vals AI's C-HD announcement](https://www.vals.ai/blogs/faster-shortest-path-algorithm) links a [frozen proof package at revision `98c53acc`](https://github.com/spicylemonade/c-hd-proof/tree/98c53accb47a505482a1781597ae14bf67e81cec). Its closed Lean theorem covers exact directed nonnegative-real SSSP and charged runtime in its RAM/comparison-addition model. The improved branch requires `m <= n*floor(floor(log2 n)^(3/4))`; along `m` of order `n log^(3/4) n`, its bound is `O(n log^(11/12) n)`. Small inputs and other densities use a Bellman-Ford fallback. The inspected theorem and package report a full build and kernel replays with standard Lean axioms; these records were not rerun here. One internal agent review is complete and another remains provisional. The broader paper range and linear-space bound are not formalized. This is a concrete new research artifact with enormous constants, no demonstrated practical speedup, and computational-model correspondence and novelty still requiring external review.
+
 ### Capacity-approaching decoding with small workspace
 
 **August 2026 preprint announcement.** [Fathollahi, Ron-Zewi and Wootters](https://arxiv.org/html/2608.15937v1) give explicit code families, for infinitely many block lengths `N`, with rate at least `R`, deterministic list decoding at error fraction `1-R-tau`, time `N^(1+tau)` and workspace `N^tau`, for fixed `R` and suitable constant `tau`. Alphabet and list sizes are constant in `N`. The workspace definition excludes read-only random-access input and sequential write-only output. This is not sublinear total resident storage or a streaming-input theorem.
@@ -415,7 +477,7 @@ The result could inform scratch budgets for bulk recovery while preserving a hig
 | Topic | Why it is not an unresolved opportunity in the stated form |
 | --- | --- |
 | Integer-period pinwheel 5/6 density conjecture | A [published theorem](#pinwheel-scheduling-the-56-theorem-and-relaxed-synthesis), included above for its useful consequences. The certificate-complexity questions remain distinct. |
-| Ordinary Komlós and Beck-Fiala discrepancy | [September 2026 proof claims](#ordinary-komlós-and-beck-fiala-proof-announcements) require explicit status qualification. Prefix and efficient-construction questions are separately stated. |
+| Ordinary Komlós and Beck-Fiala discrepancy | [September 2026 proof claims](#ordinary-komlós-and-beck-fiala-proof-announcements) require explicit status qualification. The fixed-order prefix constant has a counterexample manuscript, while polynomial constant signing has a real-RAM algorithm announcement; their remaining quantitative and implementation questions are separately stated. |
 | Sensitivity conjecture | [Huang proved it in 2019](https://arxiv.org/abs/1907.00847). It is not an open source of general compiler speedups. |
 | Constant-error two-source extraction at logarithmic min-entropy | [Li's result](https://arxiv.org/abs/2303.06802) achieves this target. Lower error and useful finite parameters are separate questions. |
 | Universal terminating verification of unrestricted programs | General undecidability is an established limit, not an unproved conjecture that `P = NP` would resolve. Bounded finite-state models and restricted languages require separate analysis. |
