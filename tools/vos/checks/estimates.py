@@ -11,9 +11,9 @@ renders as a subtotal, so the drift survives exactly the reading anyone gives it
 So the document declares one shape and this group owns everything derived from it.
 The authored weights are an open item's range, a completed item's actual, or an
 explicitly retained estimate when historical actual time is unavailable. The
-midpoint is the mean of the range ends, an item's share is that midpoint over the
-grand total, and every subtotal, the grand range, and the progress pair are sums over
-the items beneath them. All of it is arithmetic, so a repair rewrites all of it;
+midpoint is the mean of the range ends, and every subtotal, the grand range, and the
+progress pair are sums over the items beneath them. Item cells carry no share of a
+changing grand total. All derived figures are arithmetic, so a repair rewrites them;
 unlike the compounded product, there is no judgment layer here to leave standing.
 
 Two figures the plan derives over sets it names by judgment land here too, under K-96.
@@ -55,7 +55,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, cast
 
 from vos import figures
-from vos.figures import format_hours, percent, quantize, words
+from vos.figures import format_hours, percent, quantize
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -74,13 +74,15 @@ SCAN_RE = re.compile(
     r"\* \[(?P<box>[ x])\] \*\*(?P<label>[^*]+)\*\*(?P<rest>[^\r\n]*)"
     r"|\*\*(?P<sec>[^*]+) subtotal:\*\*(?P<tail>[^\r\n]*))")
 
-# the estimate cell's forms, each capturing the tail after it, which is prose
-# (`Parallel`, and what it is parallel with) that no figure here may disturb
-DONE_RE = re.compile(r"^ · (?P<h>[\d.,]+) h actual · (?P<pct>[\d.]+)%(?P<tail>.*)$")
-RETAINED_RE = re.compile(r"^ · (?P<h>[\d.,]+) h retained estimate, actual n/a "
-                         r"· (?P<pct>[\d.]+)%(?P<tail>.*)$")
-OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) "
-                     r"· (?P<pct>[\d.]+)%(?P<tail>.*)$")
+# The tail is authored prose (`Parallel`, and what it is parallel with). A legacy
+# share is read only to remove it under K-36; it never contributes to a value.
+# Numeric tokens must be readable before _hours is called, including comma groups.
+NUMBER = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
+CELL_END = r"(?: · (?P<pct>\d+(?:\.\d+)?)%)?(?P<tail>(?: · .*)?)$"
+DONE_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h actual" + CELL_END)
+RETAINED_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h retained estimate, actual n/a" + CELL_END)
+OPEN_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h, range (?P<lo>{NUMBER})–(?P<hi>{NUMBER})"
+                     + CELL_END)
 
 # the authority class opens the tail, ahead of whatever prose follows it. An open item owes
 # one and a completed item does not: the class is a prior on a range, and a completed item
@@ -163,7 +165,16 @@ RECORD_ROW_RE = re.compile(
 POOLS = ("I", "X-read", "X-authored")
 NOT_APPLICABLE = "n/a"
 AGENT_PARALLEL = "agent-parallel"
-HOURS_RE = re.compile(r"^[\d.,]+$")
+HOURS_RE = re.compile(rf"^{NUMBER}$")
+
+CALIBRATION_START = "<!-- calibration-results:start -->"
+CALIBRATION_END = "<!-- calibration-results:end -->"
+CALIBRATION_HEADER = "| Mode | Pool | Measured items | Estimate h | Actual h | Actual/estimate |"
+CALIBRATION_RULE = "| --- | --- | --- | --- | --- | --- |"
+MODES = ("attended", AGENT_PARALLEL)
+RESULT_POOLS = (*POOLS, "All")
+
+type Fit = dict[str, list[tuple[str, float, float]]]
 
 # the attended rate is the plan's to state and the horizon is this group's to derive from
 # it, so the sentence is read for its rate before it is held for its quotients
@@ -176,11 +187,6 @@ def _hours(text: str) -> float:
 
 def _head(label: str) -> str:
     return label.partition(" · ")[0].strip()
-
-
-def _count(n: int) -> str:
-    """A count as the plan writes one: in words where a word form exists, else digits."""
-    return words(n) if n < 100 else str(n)
 
 
 def _weeks(hours: float, rate: int) -> str:
@@ -276,12 +282,20 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
         if retained and m.group("box") != "x":
             malformed.append(f"{label}: a retained estimate with actual n/a requires "
                              "a completed checkbox")
+        if done and m.group("box") != "x":
+            malformed.append(f"{label}: a measured actual requires a completed checkbox")
+        if opened and m.group("box") == "x":
+            malformed.append(f"{label}: a completed checkbox requires an actual or a "
+                             "retained estimate with actual n/a")
+        if "%" in cell.group("tail"):
+            malformed.append(f"{label}: a percentage outside the legacy share position "
+                             "is not part of an estimate cell")
         lo = _hours(opened.group("lo")) if opened else 0.0
         hi = _hours(opened.group("hi")) if opened else 0.0
         klass = CLASS_RE.match(cell.group("tail"))
         if opened and klass is None:
             malformed.append(f"{label}: no authority class beside the estimate; an open cell "
-                             "reads '· I' or '· X' after its percentage")
+                             "reads '· I' or '· X' after its range")
         # every sum below reads `hours`, and for an open item that is the range's mean
         # rather than the midpoint as written: the range is the estimate, so a stated
         # midpoint that disagrees with it is a stale token, reported and rewritten
@@ -339,7 +353,7 @@ def _record(raw: str, heading: str) -> tuple[list[tuple[str, str, str]], list[st
 
 
 def _fit(record: list[tuple[str, str, str]], actuals: dict[str, Item], what: str,
-         subject: str, derived: list[str]) -> dict[str, list[tuple[str, float, float]]]:
+         subject: str, derived: list[str]) -> Fit:
     """One record joined to the actuals in the items' own cells, pool by pool.
 
     Held total in both directions, so a landing that adds no row is loud rather than a
@@ -347,7 +361,7 @@ def _fit(record: list[tuple[str, str, str]], actuals: dict[str, Item], what: str
     is a finding rather than a pair quietly counted in the wrong record.
     """
     seen: set[str] = set()
-    fit: dict[str, list[tuple[str, float, float]]] = {pool: [] for pool in POOLS}
+    fit: Fit = {pool: [] for pool in POOLS}
     for item, pool, est in record:
         if item in seen:
             derived.append(f"the {what} carries {item} twice")
@@ -376,6 +390,78 @@ def _fit(record: list[tuple[str, str, str]], actuals: dict[str, Item], what: str
 def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
     estimated = sum(e for _, e, _ in pairs)
     return sum(a for _, _, a in pairs) / estimated if estimated else None
+
+
+def _calibration_table(fits: dict[str, Fit]) -> str:
+    """One summary per measurement mode; no row combines the two clocks."""
+    lines = [CALIBRATION_HEADER, CALIBRATION_RULE]
+    for mode in MODES:
+        fit = fits[mode]
+        pools = {**fit, "All": [pair for pairs in fit.values() for pair in pairs]}
+        for pool in RESULT_POOLS:
+            pairs = pools[pool]
+            estimated = format_hours(round(sum(e for _, e, _ in pairs), 1))
+            actual = format_hours(round(sum(a for _, _, a in pairs), 1))
+            ratio = _ratio(pairs)
+            shown_ratio = quantize(ratio, 2) if ratio is not None else NOT_APPLICABLE
+            lines.append(f"| {mode} | {pool} | {len(pairs)} | {estimated} | {actual} | "
+                         f"{shown_ratio} |")
+    return "\n".join(lines)
+
+
+def _calibration_results(ctx: Context, fits: dict[str, Fit]) -> figures.LineResult:
+    """Repair numeric results only inside one intact, explicitly owned table.
+
+    Missing markers, duplicate rows and malformed cells are report-only. A repair
+    must not hide authored material or a broken table by replacing it wholesale.
+    Once its schema and keys are intact, all remaining cells are derived values.
+    """
+    result = figures.LineResult()
+    raw = ctx.text(PLAN)
+    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}\r?$", raw))
+               for marker in (CALIBRATION_START, CALIBRATION_END)]
+    if any(len(hits) != 1 for hits in markers) or any(
+            raw.count(marker) != 1 for marker in (CALIBRATION_START, CALIBRATION_END)):
+        result.findings.append(f"{PLAN}: calibration results require one start marker "
+                               "and one end marker, each on its own line")
+        return result
+    start, end = markers[0][0].end(), markers[1][0].start()
+    if start >= end:
+        result.findings.append(f"{PLAN}: calibration result markers are out of order")
+        return result
+    body = raw[start:end]
+    lines = body.strip().splitlines()
+    if lines[:2] != [CALIBRATION_HEADER, CALIBRATION_RULE]:
+        result.findings.append(f"{PLAN}: calibration results have a missing or malformed header")
+        return result
+    keys: list[tuple[str, str]] = []
+    for line in lines[2:]:
+        cells = line.split("|")
+        if len(cells) != 8 or cells[0].strip() or cells[-1].strip():
+            result.findings.append(f"{PLAN}: malformed calibration result row: {line}")
+            continue
+        mode, pool, count, estimated, actual, ratio = (cell.strip() for cell in cells[1:-1])
+        keys.append((mode, pool))
+        if (not re.fullmatch(r"\d+", count)
+                or not HOURS_RE.fullmatch(estimated) or not HOURS_RE.fullmatch(actual)
+                or (ratio != NOT_APPLICABLE and not HOURS_RE.fullmatch(ratio))):
+            result.findings.append(f"{PLAN}: unreadable calibration result values: {line}")
+    expected_keys = [(mode, pool) for mode in MODES for pool in RESULT_POOLS]
+    if sorted(keys) != sorted(expected_keys):
+        result.findings.append(f"{PLAN}: calibration results require exactly one row for "
+                               "each measurement mode and pool, including its All row")
+    if result.findings:
+        return result
+    expected = "\n" + _calibration_table(fits) + "\n"
+    if body.replace("\r\n", "\n") == expected:
+        return result
+    if ctx.fix:
+        ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
+        result.fixed.append(f"fixed: {PLAN}: calibration results from each mode's record")
+    else:
+        result.findings.append(f"{PLAN}: calibration results disagree with the records; "
+                               "run check --fix to regenerate the table")
+    return result
 
 
 def run(ctx: Context) -> None:
@@ -501,12 +587,7 @@ def run(ctx: Context) -> None:
                    "the basis states for it exists over nothing"
                    for pool, ratio in pratios.items() if ratio is None)
     all_pairs = [pair for pairs in fit.values() for pair in pairs]
-    fit_est = round(sum(e for _, e, _ in all_pairs), 1)
-    fit_act = round(sum(a for _, _, a in all_pairs), 1)
-    lowest = sorted((a / e, item) for item, e, a in all_pairs if e)[:2]
     ppairs = [pair for pairs in pfit.values() for pair in pairs]
-    pfit_est = round(sum(e for _, e, _ in ppairs), 1)
-    pfit_act = round(sum(a for _, _, a in ppairs), 1)
 
     # the calibrated total re-weights each class's open hours by its pool's ratio: class I
     # by the I pool's, and class X by the authored pool's alone, which the conventions state
@@ -524,12 +605,11 @@ def run(ctx: Context) -> None:
     # takes all of it
     edits: list[tuple[str, str, str]] = []
     for item in items:
-        pct = percent(item.hours, grand, 1)
-        cell = (f" · {format_hours(item.hours)} h retained estimate, actual n/a · {pct}%"
+        cell = (f" · {format_hours(item.hours)} h retained estimate, actual n/a"
                 if item.done and not item.measured_actual else
-                f" · {format_hours(item.hours)} h actual · {pct}%" if item.done
+                f" · {format_hours(item.hours)} h actual" if item.done
                 else f" · {format_hours(item.hours)} h, range {format_hours(item.lo)}–"
-                     f"{format_hours(item.hi)} · {pct}%")
+                     f"{format_hours(item.hi)}")
         new = item.head + cell + item.tail
         if new != item.line:
             edits.append((item.label, item.line, new))
@@ -588,9 +668,10 @@ def run(ctx: Context) -> None:
          {"h": format_hours(retained_h), "n": str(len(retained_items))}),
         ("the total estimate",
          r"(?m)^\* Total estimate: (?P<mid>[\d.,]+) h midpoint, class I (?P<ci>[\d.,]+) h "
-         r"and class X (?P<cx>[\d.,]+) h over the open items",
+         r"and class X (?P<cx>[\d.,]+) h over the open items; total range "
+         r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h",
          {"mid": grand_t, "ci": format_hours(by_class["I"]),
-          "cx": format_hours(by_class["X"])}),
+          "cx": format_hours(by_class["X"]), "lo": lo_t, "hi": hi_t}),
         ("the progress pair",
          r"(?m)^\* Progress by estimate: (?P<done>[\d.,]+) of (?P<total>[\d.,]+) h complete "
          r"\((?P<donePct>[\d.]+)%\); (?P<left>[\d.,]+) h remaining \((?P<leftPct>[\d.]+)%\)",
@@ -605,10 +686,6 @@ def run(ctx: Context) -> None:
         ("the M8b chain figure",
          r"(?m)^\* M8b gate: a (?P<chain>[\d.,]+) h chain of open work",
          {"chain": format_hours(chain_b)}),
-        ("the grand-total basis",
-         r"(?m)^\* Grand total: the sum of the item cells, (?P<mid>[\d.,]+) h midpoint over "
-         r"a (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h range",
-         {"mid": grand_t, "lo": lo_t, "hi": hi_t}),
     ]
     if class_ratio is not None:
         calibrated = round(done_h + sum(float(class_ratio[c]) * h
@@ -631,64 +708,18 @@ def run(ctx: Context) -> None:
                f"all {restated} restated totals agree with the items, over "
                f"{len(derived_lines)} sentences")
 
-    # ---- K-96: the sentences that state the chain and the calibration ----
-    counts = {pool: _count(len(pairs)) for pool, pairs in fit.items()}
-    ratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
-               for pool, ratio in ratios.items()}
-    pratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
-                for pool, ratio in pratios.items()}
+    # ---- K-96: the chain sentences and the marked calibration results ----
+    calibration = _calibration_results(ctx, {"attended": fit, AGENT_PARALLEL: pfit})
+    for line in calibration.fixed:
+        rep.line(line)
+    derived.extend(calibration.findings)
     judged_lines = [
         ("the critical chain",
          r"(?m)^\* Critical chain through M8a:.*?Over those items the chain sums to "
          r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h at a (?P<mid>[\d.,]+) h midpoint",
          {"lo": format_hours(chain_lo), "hi": format_hours(chain_hi),
           "mid": format_hours(chain_mid)}),
-        ("the calibration risk",
-         r"rests on (?P<na>[a-z-]+) completed items in the class that matters",
-         {"na": counts["X-authored"]}),
-        ("the calibration basis",
-         r"(?m)^\* \*\*The authority class is the calibration, and it is measured rather "
-         r"than assumed\.\*\*.*?across the (?P<n>[a-z-]+) items carrying both, gives "
-         r"(?P<act>[\d.,]+) h actual against (?P<est>[\d.,]+) h estimated, a ratio of "
-         r"(?P<r>[\d.]+)\..*?: (?P<ni>[a-z-]+) items whose authority is in this repository "
-         r"ran at \*\*(?P<ri>[\d.]+)\*\*, (?P<nr>[a-z-]+) that read, pin, install or "
-         r"measure an external thing ran at \*\*(?P<rr>[\d.]+)\*\*, and the "
-         r"(?P<na>[a-z-]+) that authored against an external authority ran at "
-         r"\*\*(?P<ra>[\d.]+)\*\*\..*?the two lowest ratios in the record being "
-         r"(?P<u1>\S+) at (?P<r1>[\d.]+) and (?P<u2>\S+) at (?P<r2>[\d.]+)\.",
-         {"n": _count(len(all_pairs)), "act": format_hours(fit_act),
-          "est": format_hours(fit_est),
-          "r": quantize(fit_act / fit_est, 2) if fit_est else "n/a",
-          "ni": counts["I"], "ri": ratio_t["I"], "nr": counts["X-read"],
-          "rr": ratio_t["X-read"], "na": counts["X-authored"], "ra": ratio_t["X-authored"],
-          **({"u1": lowest[0][1], "r1": quantize(lowest[0][0], 2),
-              "u2": lowest[1][1], "r2": quantize(lowest[1][0], 2)}
-             if len(lowest) == 2 else {})}),
-        ("the pool weakness",
-         r"n = (?P<na>\d+) in the pool that matters",
-         {"na": str(len(fit["X-authored"]))}),
-        # the second fit, over the second record, in the shape the first is stated in.
-        # Its last two figures are the pair the ruling turns on and are the two pools'
-        # own ratios again, stated together because what the sentence asserts is that
-        # they straddle one and neither figure alone says that
-        ("the agent-parallel fit",
-         r"(?m)^\* \*\*The agent-parallel series is fitted on its own record and the two "
-         r"fits are not pooled\*\*.*?across the (?P<n>[a-z-]+) items carrying both, gives "
-         r"(?P<act>[\d.,]+) h actual against (?P<est>[\d.,]+) h estimated, a ratio of "
-         r"(?P<r>[\d.]+): (?P<ni>[a-z-]+) items whose authority is in this repository ran "
-         r"at \*\*(?P<ri>[\d.]+)\*\*, (?P<nr>[a-z-]+) that read an external thing ran at "
-         r"\*\*(?P<rr>[\d.]+)\*\*, and the (?P<na>[a-z-]+) that authored against an "
-         r"external authority ran at \*\*(?P<ra>[\d.]+)\*\*\..*?"
-         r"(?P<attended>[\d.]+) attended against (?P<parallel>[\d.]+) here",
-         {"n": _count(len(ppairs)), "act": format_hours(pfit_act),
-          "est": format_hours(pfit_est),
-          "r": quantize(pfit_act / pfit_est, 2) if pfit_est else "n/a",
-          "ni": _count(len(pfit["I"])), "ri": pratio_t["I"],
-          "nr": _count(len(pfit["X-read"])), "rr": pratio_t["X-read"],
-          "na": _count(len(pfit["X-authored"])), "ra": pratio_t["X-authored"],
-          "attended": ratio_t["X-authored"], "parallel": pratio_t["X-authored"]}),
     ]
-
     # the horizon is the one sentence read before it is held: the rate is the plan's, and
     # the weeks are the remaining hours and the chain's midpoint over it
     rate = RATE_RE.search(raw)
