@@ -269,13 +269,13 @@ def native(args: argparse.Namespace) -> int:
                          "checks": differential.count_checks(text), "records": len(records),
                          "digest": trace.digest(records)},
               "verdict": verdict, "code": code, "output_hex": terminal.read_bytes().hex()}
-    json_write(stage / "result.json", report)
     if args.check:
         tracked = ROOT / "corpus" / assembly.name
         if tracked.read_bytes() != assembly.read_bytes():
             raise ValueError("tracked client assembly differs from reproduction")
     if args.export:
         (ROOT / "corpus" / assembly.name).write_bytes(assembly.read_bytes())
+    json_write(stage / "result.json", report)
     print(json.dumps({key: report[key] for key in ("member", "image_sha256", "assembly_sha256",
                                                  "verdict", "code")}, indent=2))
     return 0
