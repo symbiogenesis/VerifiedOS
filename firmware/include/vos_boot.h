@@ -171,8 +171,8 @@ typedef struct {
 } vos_rot_inputs;
 
 // A signature verifier's answer. The production binding is SLH-DSA-SHAKE-256s
-// verification (FIPS 205 Algorithm 20 over the signed header bytes), which
-// this tree does not yet carry; the contract names its owner.
+// verification (FIPS 205 Algorithm 20 over the signed header bytes), supplied
+// by crypto/slh256s.c. Its host comparisons leave target qualification open.
 typedef enum { VOS_SIG_ACCEPT = 1, VOS_SIG_REJECT = 2 } vos_sig_result;
 
 typedef vos_sig_result (*vos_sig_verify_fn)(void *context, const uint8_t *message,
