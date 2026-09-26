@@ -276,10 +276,10 @@ and where each one's executable form is:
 | Operation | Caller and use | Executable form | Owner of what is missing |
 | --- | --- | --- | --- |
 | SHAKE256 | the release: the payload digest, each extension, the chain digest | [keccak.c](../../../firmware/crypto/keccak.c), functional layer only | the target build (M1.7) and the constant-time layer (R-05-062, R-05-067) |
-| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | none: the harness binds a fixture | M7.1f, as an executable verifier under FIPS 205 with the parameter set RomVerifier.v states |
+| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | [slh256s.c](../../../firmware/crypto/slh256s.c), with the release-policy callback; the boot-handoff harness still binds a fixture | M7.1f's target lowering and M3.5's target binding, under FIPS 205 with the parameter set RomVerifier.v states |
 | Counter read | the release: the floor, counter 0 of R-10-013's enumeration | the RoT composition's counter window | n/a |
 | Entropy draw | none: the release reads the start-up verdict and draws nothing | n/a | n/a |
-| ML-DSA verification | the M-mode stage: the core-kernel stage's signature, before any core kernel runs; none at the ROM (R-05-058c, R-09-002) | none | M7.1f, as an executable ML-DSA verifier over M3.4b's Gallina reference, whose target lowering M3.4 leaves as separate work |
+| ML-DSA verification | the M-mode stage: the core-kernel stage's signature, before any core kernel runs; none at the ROM (R-05-058c, R-09-002) | [mldsa87.c](../../../firmware/crypto/mldsa87.c), functional host implementation | M7.1f's target lowering and M3.5's separately signed-stage integration |
 | Item-6 extension request | the M-mode stage: asking the RoT to extend the generation register with the core-kernel stage's measurement before that stage runs (R-09-002, R-09-025a) | none: no main-die interface to the RoT's registers exists | M3.5 |
 
 The bring-up M-mode image carries the kernel-entry fixture inside itself, so the
@@ -412,10 +412,11 @@ which is `c12`'s, is `init.header_bytes` plus P, W, S and C times their record
 sizes. An empty save-area extent, its base equal to its top, plans no context
 for its partition; M4.4's record carries a `has_context` flag in its place.
 M4.4's record has the other fields named above with narrower integer types whose
-padding the target ABI decides, and no magic or version, so its kernel reads
-this layout field by field rather than overlaying the struct; that join is
-section 8's. The bring-up composition declares no partition, window, slot or
-roster row, so its descriptor is the header alone and plans no successor, which
+padding the target ABI decides, and no magic or version. Its
+[byte reader](../../../kernel/src/handoff.c) checks the wire header and widths,
+reads each field separately and retains the save-area extents beside that record.
+Actual target entry remains section 8's join. The bring-up composition declares no
+partition, window, slot or roster row, so its descriptor is the header alone and plans no successor, which
 M4.4's kernel must refuse; the fixture, which is not that kernel, checks only
 the fields its check 7 reads.
 
@@ -469,8 +470,10 @@ through the fixture's checks.
 - **The RoT hart does not execute the release.** The stage runs host-compiled
   until the purecap backend (M1.2f) and M1.7's target path build it for the RoT
   composition.
-- **No executable SLH-DSA-SHAKE-256s verifier exists.** Section 5 assigns it to
-  M7.1f; until it lands the success case is conditional on the fixture.
+- **The target signature-verifier binding is unbuilt.** M7.1f's bounded C
+  implementation and release-policy callback have a separate host comparison
+  campaign. This contract's existing boot-handoff run still uses the fixture;
+  its success does not establish signature verification or target lowering.
 - **The model has no boot-core release door and no boot-target latch door.**
   The emulator composes one hart per run, so release is realized as starting the
   main-die run, and the latch (R-09-029) is a harness constant. Where the reset
@@ -494,14 +497,16 @@ through the fixture's checks.
   of the RoT runtime, which falls between items 3 and 5, is left out, so a
   released record's generation register is not the one a full chain produces for
   the same image. The M-mode stage's item-6 request and its ML-DSA verification
-  of the core-kernel stage have no executable form, and M7.1f owns the
-  executable ML-DSA verifier (section 5).
-- **M4.4's consumer record differs from the initialization descriptor.** Its
+  of the core-kernel stage are not integrated into that stage. M7.1f owns the
+  executable ML-DSA verifier and its target lowering (section 5).
+- **M4.4's target entry must bind the decoded records to actual capabilities.** Its
   `struct vos_init_desc` carries no magic or version, a `has_context` flag
   where section 6 declares the planned save area's extent, and narrower
-  integer fields laid out by the target ABI. The join is M4.4's kernel reading
-  section 6's layout field by field, with the correspondence section 6's table
-  records.
+  integer fields laid out by the target ABI. The bounded byte reader checks
+  section 6's layout and preserves those save areas. The remaining join reads
+  the actual c10/c11/c12 capabilities, establishes their provenance and extent,
+  and constructs the initial contexts before dispatch. Host byte-reader checks
+  supply no target capability or authentication evidence.
 - **The firmware's watchdog duty is not discharged.** R-15-198 puts every
   sequencing step under a watchdog-bounded timeout that the RoT firmware
   executes, and R-15-240's pets are RoT-nonce challenge-responses; this release

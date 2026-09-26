@@ -44,7 +44,7 @@ source. Binding that manifest to the admitted image and target handoff remains o
 
 | Member | Kind | Rank | Status | Executable owner | Reference | Entry and handoff |
 | --- | --- | --- | --- | --- | --- | --- |
-| `rot-firmware` | `rot` | n/a | `statement-only` | M3.5 for the firmware; its boot verifier's executable crypto has no priced producer (below) | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v), [Keccak.v](../../../proofs/Keccak.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); its ROM stage verifies `mmode-firmware` with SLH-DSA over SHAKE256 as the RoT's own integer code (R-09-005a, R-15-059), measures it and releases the main die through M3.5's harness |
+| `rot-firmware` | `rot` | n/a | `statement-only` | M3.5 for the firmware; M7.1f for the boot verifier's executable crypto | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v), [Keccak.v](../../../proofs/Keccak.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); its ROM stage verifies `mmode-firmware` with SLH-DSA over SHAKE256 as the RoT's own integer code (R-09-005a, R-15-059), measures it and releases the main die through M3.5's harness |
 | `mmode-firmware` | `image` | 1 | `statement-only` | M3.5 | [MModeFirmware.v](../../../proofs/MModeFirmware.v) | the image entry, reached with the reset root pair; enters `kernel` through [the selected scalar handoff](purecap-abi.md#7-the-kernel-entry-interface) |
 | `kernel` | `image` | 2 | `statement-only` | M4.4 | [KernelInstance.v](../../../proofs/KernelInstance.v), [PartitionContext.v](../../../proofs/PartitionContext.v), [CyclicExecutive.v](../../../proofs/CyclicExecutive.v) | entered from `mmode-firmware` by the handoff's no-link sentry jump; dispatches `supervisor` as its first partition by `mret` |
 | `supervisor` | `image` | 3 | `partial` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `crypto-core`, `storage` and `copy-service` in its manifest's start order |
@@ -87,13 +87,13 @@ on this roster. Whether a later composition gives it hardware of its own, which 
 specification's prose beside R-15-013 names as a disjoint failure domain, is not decided
 here.
 
-**The boot verifier's executable crypto has no priced producer.** The ROM stage verifies
+**M7.1f owns the boot verifier's executable crypto.** The ROM stage verifies
 with SLH-DSA over SHAKE256 as the RoT's own scalar integer code (R-09-005a, R-15-059), and
 [RomVerifier.v](../../../proofs/RomVerifier.v) states what that verifier needs without
 authoring a scheme. ML-DSA verifies the replaceable stages above the ROM (R-09-002). M3.5
 identifies those calls and consumes them as a join rather than owning their
-implementation, and M3.4's closing note has M3.5 assign them; no checklist item owns them
-yet. The `rot-firmware` row therefore names that gap in its owner cell rather than an owner.
+implementation. M7.1f owns the executable verifiers and their comparisons;
+M3.5 retains their firmware binding and target-execution join.
 
 **The executable owner of each statement-only userland member is M7.1**: M6.1a's
 supervisor, M6.2a's composition-time admission, M6.3a's package composer and M6.5a's
