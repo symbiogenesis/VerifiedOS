@@ -18,6 +18,17 @@ def _population_and_wrappers() -> None:
            "the Gallina wrapper changes only the observed definition")
     ensure("observed[k] = checks[k]" in c and "return (int)(k + 1)" in c,
            "the C wrapper serializes actual checks and preserves first failure")
+    reordered = c_source.replace("enumeration_checks(checks + n)", "temporary(checks + n)")
+    reordered = reordered.replace("act_checks(checks + n)", "enumeration_checks(checks + n)")
+    reordered = reordered.replace("temporary(checks + n)", "act_checks(checks + n)")
+    for bad in (reordered, c_source.replace("c[n++] = same_bool(bit_at(0, 13), 1)",
+                                          "c[n] = same_bool(bit_at(0, 13), 1)")):
+        try:
+            cc.wrappers(gallina, bad)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("changed C family population accepted")
 
 
 def _every_coordinate_and_shape() -> None:
