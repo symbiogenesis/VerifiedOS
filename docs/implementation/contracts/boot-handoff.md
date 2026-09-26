@@ -347,12 +347,14 @@ the base and length of each capability it is handed rather than trusting that.
 
 **Scalar scheduled composition.** M4.4's scalar target member extends this
 interface with three root-table slots, in order: the kernel data root, an
-eight-byte store-only window for hart zero's `mtimecmp`, and an eight-byte
+eight-byte read/write data window for hart zero's `mtimecmp`, and an eight-byte
 read-only window for `mtime`. The timer addresses come from the selected
 profile's CLINT base and the register offsets in
 [the platform model](../../../model/model/sys/platform.sail). The producer
 derives both timer capabilities from reset authority, narrows each exactly,
-and removes capability-transfer and execute permissions. The two timer
+and removes capability-transfer and execute permissions. Read/write is the
+least authority in the frozen permission lattice that permits a store; the
+lattice has no store-only shape. The two timer
 extents are explicit shared windows in the initialization descriptor; the
 kernel receives no authority over the rest of CLINT. The descriptor's
 `init.root` is the physical partition containing its declared text and data,
