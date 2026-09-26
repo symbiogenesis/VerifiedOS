@@ -142,7 +142,8 @@ def _explicit_signer() -> None:
     signed = bh.build_image(lay, payload, security_version=2, signer=pk, sign=sign)
     ensure(seen == [(pk, signed[:lay["BOOT_SIGNED_BYTES"]])],
            "the signer did not receive the exact signed prefix and selected root")
-    ensure(signed[lay["BOOT_HDR_SIGNATURE"]:lay["BOOT_HEADER_BYTES"]] == bytes([17]) * 29792,
+    ensure(signed[lay["BOOT_HDR_SIGNATURE"]:lay["BOOT_HEADER_BYTES"]]
+           == bytes([17]) * lay["BOOT_SIGNATURE_BYTES"],
            "the supplied signature was overwritten by the fixture")
     try:
         bh.build_image(lay, payload, security_version=2, signer=pk, sign=lambda p, m: b"short")

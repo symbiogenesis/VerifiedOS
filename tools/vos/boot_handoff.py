@@ -14,8 +14,8 @@ run meets them:
    lifecycle state, the entropy verdict and the floor are the model's answers.
 3. The M-mode image is [the handoff stage](../../firmware/mmode/handoff.s) assembled
    with [the kernel-entry fixture](../../firmware/harness/kernel_entry_fixture.s) by the
-   in-tree assembler, then wrapped in the fixed-layout header with a **fixture
-   signature**, which is not a signature scheme (see `fixture_signature`).
+   in-tree assembler, then wrapped in the fixed-layout header with either an actual
+   SLH-DSA-SHAKE-256s signature or an explicitly selected fixture signature.
 4. A release is the golden emulator started on the main-die composition from exactly
    the bytes the RoT stage placed and the record it wrote; a refusal starts no run.
 
@@ -175,7 +175,7 @@ class Assembled:
 
 
 def assemble_mmode(root: Path, stage_text: str | None = None,
-                   kernel_text: str | None = None) -> Assembled:
+                   kernel_text: str | None = None, *, data_base: int = asm.DATA_BASE) -> Assembled:
     """Assemble the handoff stage followed by the fixture, and flatten the image.
 
     `stage_text` replaces the stage's source, which is how the handoff mutants are
@@ -185,7 +185,7 @@ def assemble_mmode(root: Path, stage_text: str | None = None,
     stage = stage_text if stage_text is not None else (root / MMODE).read_text(encoding="utf-8")
     kernel = kernel_text if kernel_text is not None else (root / FIXTURE).read_text(encoding="utf-8")
     source = stage + "\n" + kernel
-    assembler = asm.Assembler(source, "mmode-image")
+    assembler = asm.Assembler(source, "mmode-image", data_base=data_base)
     sections, _, _ = assembler.assemble()
     text = next(s for s in sections if s.name == ".text")
     data = next(s for s in sections if s.name == ".data")
@@ -223,7 +223,7 @@ def timer_windows(root: Path) -> tuple[int, int]:
 
 
 def scheduled_mmode(root: Path, partition_text: tuple[tuple[str, str], ...] = ()) -> str:
-    """Mint the two exact timer slots before bounding the three-slot root table.
+    """Mint exact timer and partition execute slots before bounding the root table.
 
     The caller supplies a nonempty kernel composition and a root table holding
     three data slots followed by one execute slot per declared partition.
@@ -877,7 +877,7 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
     roots = signer.roots if signer is not None else {state: root_key(state) for state in ROOT_STATES}
     report: dict[str, object] = {
         "contract": CONTRACT,
-        "inputs_sha256": digests(root, INPUTS),
+        "inputs_sha256": receipts.inputs(root, *INPUTS, "tools/vos"),
         "simulator": str(simulator),
         "simulator_sha256": hashlib.sha256(simulator.read_bytes()).hexdigest(),
         "rot_executor": "firmware/rot/boot_verify.c compiled for the host; the RoT hart "
@@ -1055,7 +1055,7 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
     report["controls"] = [control]
     report["cases"] = rows
     report["signing"] = signer.identity() if signer is not None else {"scheme": "fixture"}
-    if report["inputs_sha256"] != digests(root, INPUTS):
+    if report["inputs_sha256"] != receipts.inputs(root, *INPUTS, "tools/vos"):
         findings.append("boot-handoff inputs changed during the campaign")
     if report["simulator_sha256"] != hashlib.sha256(simulator.read_bytes()).hexdigest():
         findings.append("the simulator changed during the campaign")
@@ -1063,6 +1063,10 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
         findings.append("model sources changed during the campaign")
     if build_receipt is not None and report["model_build_receipt_sha256"] != receipts.digest(build_receipt):
         findings.append("the model build receipt changed during the campaign")
+    if report["rot_stage_sha256"] != receipts.digest(binary):
+        findings.append("the compiled RoT stage changed during the campaign")
+    if report["compiler_executable"] != receipts.executables("cc"):
+        findings.append("the host C compiler changed during the campaign")
     report["findings"] = findings
     result = HarnessResult(report, lines, findings)
     report["ok"] = result.ok

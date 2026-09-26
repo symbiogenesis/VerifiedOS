@@ -20,8 +20,14 @@ must remain readable and immutable for the entire call.
 `vos_boot_slh256s_verify` binds the existing `vos_rot_policy.verify` callback to
 FIPS 205 Algorithm 20 over exactly the fixed signed boot prefix. Static
 assertions bind its signature and root sizes to the boot layout owner. The
-existing fixture boot harness remains useful for its race controls; the real
-binding has a separate campaign in `python tools/run.py boot-crypto run --gallina`.
+boot harness selects it with `python tools/run.py boot-handoff run
+--signature-scheme slh256s`, including the input-race control and main-die
+emulation from the released bytes. The default fixture mode stays explicit.
+The independent comparison campaign is `python tools/run.py boot-crypto run --gallina`.
+
+Keccak's unchanged round constants and rotation offsets use bounded local arrays.
+This storage placement fits the accepted purecap compiler's scalar-global profile;
+it introduces no table values, algorithm changes or larger input bounds.
 
 The campaign compiles host C with warnings as errors, freestanding options and
 AddressSanitizer/UndefinedBehaviorSanitizer. It compares every applicable

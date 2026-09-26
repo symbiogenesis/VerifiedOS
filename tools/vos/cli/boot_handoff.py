@@ -13,10 +13,11 @@ table's permission column against the assembled image's constants, and the
 fixture's initialization descriptor against its layout, and prints the payload's
 measurement; it needs no toolchain and answers on either lane.
 
-A green run says the host-compiled stage, the fixture signature and this emulator
-agree with the contract over the listed cases. It does not say the RoT hart executes
-the stage, that any signature scheme verifies, or that M4.4's kernel accepts the
-handoff, and every report carries `milestone_acceptance: open`.
+A green run says the host-compiled stage, the selected signature binding and this
+emulator agree over the listed cases. `--signature-scheme slh256s` binds the real
+verifier, with disposable OpenSSL-generated signatures; the default fixture mode
+is labeled separately. Neither says the RoT hart executes the stage or M4.4's
+kernel accepts the handoff. Every report carries `milestone_acceptance: open`.
 """
 
 import argparse
