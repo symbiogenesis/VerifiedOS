@@ -9,10 +9,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.harness import TOOLS, Case, ensure
 from vos import boot_handoff as bh
 from vos import boot_target, env, toolenv
-
-from tests.harness import TOOLS, Case, ensure
 
 ROOT = TOOLS.parent
 
