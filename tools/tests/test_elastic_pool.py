@@ -168,6 +168,19 @@ def physical_pool_extents_are_disjoint() -> None:
                          slots=((128, 0), (144, 0), (160, 1))))
     refused(lambda: p.DomainPools({(0, 0): local, (1, 0): gap}, {1: 0, 2: 1}),
             "physical pool extents overlap")
+    small = p.Pool(p.Plan(0, 0, 64, 4, (p.SizeClass(4, 4),), ((64, 0),), 4))
+    adjacent = p.Pool(replace(small.plan, memory_class=1, base=68, slots=((68, 0),)))
+    refused(lambda: p.DomainPools({(0, 0): small, (0, 1): adjacent}, {1: 0}),
+            "revocation granule")
+    separated = p.Pool(replace(adjacent.plan, base=72, slots=((72, 0),)))
+    domain = p.DomainPools({(0, 0): small, (0, 1): separated}, {1: 0})
+    first, second = domain.allocate(1, 0, 0), domain.allocate(1, 1, 0)
+    small.release(first)
+    state = small.slots[first.slot].retirement
+    ensure(state is not None, "release failed to publish")
+    if state is not None:
+        capability = rev.Capability(second.base, second.base + second.length, retired=False)
+        ensure(rev.load(capability, state.bits).tag, "retirement crossed a pool boundary")
 
 
 def heap_narrowing_and_lifetime_are_exclusive() -> None:

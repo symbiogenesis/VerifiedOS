@@ -315,6 +315,7 @@ class DomainPools:
         if set(self.pools) != {(island, cls) for island in islands for cls in classes}:
             raise PoolError("missing per-island memory-class pool")
         extents: list[tuple[int, int]] = []
+        revocation_extents: list[tuple[int, int]] = []
         for key, pool in self.pools.items():
             if key != (pool.plan.island, pool.plan.memory_class):
                 raise PoolError("pool bound to a different island or class")
@@ -323,7 +324,12 @@ class DomainPools:
             base, top = pool.plan.base, pool.plan.base + pool.plan.span
             if any(base < hi and lo < top for lo, hi in extents):
                 raise PoolError("physical pool extents overlap")
+            first = base // rev.GRANULE
+            limit = (top + rev.GRANULE - 1) // rev.GRANULE
+            if any(first < hi and lo < limit for lo, hi in revocation_extents):
+                raise PoolError("physical pool extents share a revocation granule")
             extents.append((base, top))
+            revocation_extents.append((first, limit))
 
     def allocate(self, holder: int, memory_class: int, cls: int) -> Grant:
         if holder not in self.launch_islands:

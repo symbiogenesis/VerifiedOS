@@ -22,7 +22,8 @@ granule footprints. Byte-disjoint small allocations cannot share a bitmap bit:
 retiring one would clear a stored capability to its still-live neighbor. Small
 size classes remain admitted when their placed slots leave the required gaps.
 `DomainPools` checks whole arena extents for overlap across all island and memory
-class keys, including unused arena gaps. These are addresses in the platform's
+class keys, including unused arena gaps, and prevents two arenas sharing a
+revocation granule at a byte-disjoint boundary. These are addresses in the platform's
 single physical address space, not coordinates local to an island.
 The [physical-address contract](../spec.md#r-15-002) and
 [ElasticDomain.v](../../proofs/ElasticDomain.v)'s `extents_separate` predicate
