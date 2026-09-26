@@ -144,13 +144,13 @@ and the racing verifier are harness driver arguments, and each row records them
 too.
 
 **What the predicate does not decide.** That the RoT hart executes the stage;
-that any signature scheme verifies, the harness binding a fixture that section 5
-describes; that the RoT's memory is private to it; that M4.4's kernel accepts
+signature-scheme behavior when the fixture verifier is selected; that the
+RoT's memory is private to it; that M4.4's kernel accepts
 the handoff; any timing, including R-09-006b's worst-case figure; A/B selection
 and boot counting (R-09-028); the ROM's verification and measurement of the RoT
 runtime itself (item 4); the watchdog's arming and petting (R-15-198, R-15-240);
 and the reset table's walk (R-15-198). A green run says the host-compiled stage,
-the fixture signature, the fixture kernel and this emulator agree with this
+the selected signature verifier, the fixture kernel and this emulator agree with this
 contract over the listed cases, and every report carries
 `milestone_acceptance: open`.
 
@@ -276,7 +276,7 @@ and where each one's executable form is:
 | Operation | Caller and use | Executable form | Owner of what is missing |
 | --- | --- | --- | --- |
 | SHAKE256 | the release: the payload digest, each extension, the chain digest | [keccak.c](../../../firmware/crypto/keccak.c), functional layer only | the target build (M1.7) and the constant-time layer (R-05-062, R-05-067) |
-| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | [slh256s.c](../../../firmware/crypto/slh256s.c), with the release-policy callback; the boot-handoff harness still binds a fixture | M7.1f's target lowering and M3.5's target binding, under FIPS 205 with the parameter set RomVerifier.v states |
+| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | [slh256s.c](../../../firmware/crypto/slh256s.c), with the release-policy callback; `boot-handoff run --signature-scheme slh256s` binds it in the host stage | M7.1f's target lowering and M3.5's target binding, under FIPS 205 with the parameter set RomVerifier.v states |
 | Counter read | the release: the floor, counter 0 of R-10-013's enumeration | the RoT composition's counter window | n/a |
 | Entropy draw | none: the release reads the start-up verdict and draws nothing | n/a | n/a |
 | ML-DSA verification | the M-mode stage: the core-kernel stage's signature, before any core kernel runs; none at the ROM (R-05-058c, R-09-002) | [mldsa87.c](../../../firmware/crypto/mldsa87.c), functional host implementation | M7.1f's target lowering and M3.5's separately signed-stage integration |
@@ -293,6 +293,14 @@ spanning the 136-byte rate's boundaries and output lengths spanning one squeeze
 block. That comparison is a finite campaign and not a proof; the functional
 reference is [Keccak.v](../../../proofs/Keccak.v) and no correspondence between
 the two is claimed.
+
+The optional `slh256s` campaign signs the actual copied header prefix with
+OpenSSL, using disposable per-lifecycle roots held in the caller's native
+output directory. The host stage verifies through `vos_slh256s_verify`; the
+same case table and signed-prefix race control apply. The report records the
+selected verifier and producer identities. This is executable real-signature
+evidence for the host release path, with no claim that the RoT hart runs the
+release stage or that the fixture kernel is M4.4's consumer.
 
 **The fixture verifier is not a signature scheme.** It accepts exactly
 SHAKE256(`VOS-FIXTURE-SIG1` || public key || signed bytes) at the signature
