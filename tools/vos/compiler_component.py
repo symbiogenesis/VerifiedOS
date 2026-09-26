@@ -99,7 +99,7 @@ def wrappers(gallina: str, c_source: str) -> tuple[str, str, tuple[str, ...]]:
         raise ValueError("C family order differs from Gallina population")
     bodies = dict(re.findall(r"static long (\w+_checks)\(long \*c\)\s*\{(.*?)(?=\nstatic long |\nint main|\Z)",
                              c_source, re.DOTALL))
-    if set(bodies) != set(calls) or any(bodies[group].count("c[n++]") != len(checks)
+    if set(bodies) != set(calls) or any(len(re.findall(r"\bn\s*\+\+", bodies[group])) != len(checks)
                                       for group, checks in grouped):
         raise ValueError("C family population differs from Gallina owner")
     count = re.findall(r"(?m)^#define CHECKS (\d+)\s*$", c_source)
