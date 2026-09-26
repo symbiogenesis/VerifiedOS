@@ -18,6 +18,7 @@ The manifest lists purecap programs in the frozen dialect, each running to a def
 
 | Member | What it exercises |
 | --- | --- |
+| [`gallina-hello`](../../corpus/gallina-hello.s) | Gallina character function lowered through Rupicola and the accepted purecap compiler; greeting bytes and tagged pointer stores and reloads in dedicated image-data slots; [reproduction recipe](../../tools/bedrock2-lowering/HELLO.md) |
 | [`base-integer`](../../corpus/base-integer.s) | RV64I arithmetic, logic, shifts, the W forms, every branch condition, and the zero register |
 | [`base-memory`](../../corpus/base-memory.s) | loads and stores at every width through a capability derived from the reset root, byte order, sign and zero extension, and a narrowed authority |
 | [`mul-div`](../../corpus/mul-div.s) | the M extension, including division by zero, the signed overflow, and the W forms |

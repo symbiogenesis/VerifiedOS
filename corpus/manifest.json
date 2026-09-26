@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 12,
   "trace_schema": 1,
   "members": [
     {
@@ -190,6 +190,13 @@
       "checks": 10,
       "records": 11533,
       "digest": "14e25733a5e0ce2c"
+    },
+    {
+      "name": "gallina-hello",
+      "source": "gallina-hello.s",
+      "checks": 15,
+      "records": 5045,
+      "digest": "de14cb6d7364f336"
     }
   ]
 }

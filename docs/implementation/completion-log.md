@@ -2907,6 +2907,45 @@ Historical checkpoint evidence follows. Its then-open descriptions retain their 
     * **The intermediate all three artifacts name for this route is absent from both of its exits.** R-05-043 reads *the Coq decoder reaches machine code by Fiat/Bedrock correct-by-construction synthesis to imperative Clight*, [the spec](../spec.md) names the Rupicola/Bedrock2 route as the instance of that synthesis in the same sentence, and §0's third bullet says the same. Neither exit emits Clight: the verified one is `coq-bedrock2-compiler` over `coq-riscv` straight to encoded RISC-V words, and the reaching one is `ToCString` to C *source text* and then a C front end. Clight is CompCert's own internal language and reaching it is what would put this route inside the CompCert-C/VST discipline the other three §0 routes share, so its absence is what makes the reaching exit a second front end rather than a shared back half. Reported and not closed, being a register act, and it is the checkable half of the entry gap above.
   * Landed: Tier A.
 
+### M1.7 · Boot purecap Gallina hello-world on the M0 emulator
+
+Calibration: original estimate 9 h, range 6–12; retained estimate, actual n/a.
+The earlier trace-check work has no recoverable attended interval. This fan-out's
+worktree-to-handoff interval was approximately 25 minutes; it does not replace
+the missing historical work or establish a cumulative actual.
+
+The [maintained recipe](../../tools/bedrock2-lowering/HELLO.md) derives the
+greeting function from Gallina through Rupicola, checks its closed assumptions
+and kernel acceptance, then compiles the emitted function and authored C client
+with M1.2f's accepted purecap backend. The relation ends at Bedrock2; no printer,
+compiler or source-to-binary refinement theorem is claimed. No external runtime
+or helper body enters the distributed assembly.
+
+At source commits `0498f342`, `44dd44c4` and `e45b6bc2`, the native recipe
+reports all fourteen dedicated image-data slots storing and reloading intact
+tagged pointers, with call frames excluded. The exact corpus command, after
+the runner repair `41db72a9`, passes fifteen checks over 5,045 normalized
+records with digest `de14cb6d7364f336`. The greeting is `Hello, world!` followed
+by a newline, with HTIF success and no failed check. An independent run in the
+integration checkout reproduces assembly SHA256
+`e126ecf0e0ef047c2669881fc5cd18955f0900d87d86ee4a32897c1c14b97975`
+and ELF SHA256
+`bb5ccdfae4b64bfcc30c95d125477ca7d7fc8a3820da710598e0b770790811d0`.
+The recipe binds source, installed prover and library trees, compiler, config,
+model receipt, output and trace; it checks freshness before publishing success.
+
+The three executed mutants change a greeting character, strip a client pointer
+tag through an integer store, and omit a client pointer store. All compile and
+are detected. Two focused host cases exercise the receipt/trace boundary.
+The first console-producing corpus member also exposed interleaved console and
+trace bytes; the runner now writes terminal output separately and requires a
+successful process exit, held by a focused regression. Its measured digest was
+not refreshed to accept the corrupted trace.
+
+Landed: Tier A. Review read the generated client, derivation boundary, slot
+ownership and exact corpus predicate. Host CI and both Guest CI lanes are the
+settled batch's validation handoff; a pending Guest CI run supplies no verdict.
+
 #### M1.8a · The instrument, its two renderings, its gate, and the checker rule
 
   * [tools/quarantine/freeze.py](../../tools/quarantine/freeze.py) is the instrument the contract specifies and [tools/quarantine/freeze-report.py](../../tools/quarantine/freeze-report.py) runs it: the six-member corpus manifest with each member's producer, its pins and the decisions §2 sends it to, the seven-step recipe with what each step records, the five operand classes, the five region classes with their enumerated refusal reasons, the nine decisions each carrying question, corpus, unit, procedure, threshold, default, variants and columns, the declared parameters read out of §8 rather than copied beside it, the report's two renderings generated from one record, and §9's twelve CI predicates as predicates over that record. It is [bank-dse.py](../../tools/quarantine/bank-dse.py)'s idiom from M0.17: every column whose operand does not exist prints **the symbol it waits on** rather than a number or a blank, and the verdict line states what is not decidable and why.

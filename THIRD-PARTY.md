@@ -513,6 +513,8 @@ The license assigns these additional terms:
 
 Section 4 requires distribution of the software or derivatives under the same terms without granting additional rights. This repository distributes none of that software.
 
+**Generated hello-world client.** M1.7 publishes [gallina-hello.s](corpus/gallina-hello.s), compiled from the authored Gallina character function and C harness through the contained compiler. The selected compiler's licence was re-read for this use. The inspected assembly contains only those client functions and the authored corpus wrapper, with no compiler source, runtime helper or library body. The Bedrock2 C printer's unused preamble is excluded before compilation; generated C, installed proof libraries and the compiler remain external. The [recipe](tools/bedrock2-lowering/HELLO.md) records this boundary and reproduces the client bytes.
+
 The verified backend passes, RISC-V backend, and SECOMP `cheririscV/` backend are outside the dual-licensed subset. M1.1b's subsequent route uses the RISC-V backend; `cheririscV/` remains a reading reference. Commercial rights to SECOMP's own contribution may require an agreement with its rightsholders separately from rights to CompCert.
 
 VST also contains CompCert material. Its `compcert/` tree provides dual-licensed Clight material, while `compcert_new/` contains files without that option. Using opam avoids incorporating those directories into this repository, but still installs CompCert and requires review of its usage terms, as documented [above](#vst).
