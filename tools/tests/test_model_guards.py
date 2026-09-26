@@ -238,6 +238,34 @@ def _invalid_test_corpus_pin() -> None:
                 raise AssertionError("a missing, duplicate or malformed corpus pin must fail")
 
 
+def _member_terminal_isolation() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        elf = root / "hello.elf"
+        terminal = elf.with_suffix(".terminal.log")
+        terminal.write_text("stale output", encoding="utf-8")
+
+        def run(argv: list[str], **_kwargs: object) -> SimpleNamespace:
+            ensure(not terminal.exists(), "member must remove stale terminal output")
+            ensure(argv[argv.index("--terminal-log") + 1] == str(terminal),
+                   "member console must be redirected away from the commit trace")
+            terminal.write_text("Hello, world!\n", encoding="utf-8")
+            return SimpleNamespace(stdout="I 0 0000000080000000 00000013\nSUCCESS\n",
+                                   stderr="", returncode=0)
+
+        fake = SimpleNamespace(run=run, TimeoutExpired=subprocess.TimeoutExpired)
+        with (patch.object(model, "_missing_simulator", return_value=None),
+              patch.object(model, "subprocess", fake)):
+            status, _, records = model._run_member(_environment(root), root / "profile", elf, 1)
+        ensure(status == "PASS" and records is not None and len(records) == 1,
+               "console-producing members must retain every commit record")
+        fake.run = Mock(return_value=SimpleNamespace(stdout="SUCCESS\n", stderr="", returncode=1))
+        with (patch.object(model, "_missing_simulator", return_value=None),
+              patch.object(model, "subprocess", fake)):
+            status, _, _ = model._run_member(_environment(root), root / "profile", elf, 1)
+        ensure(status == "FAIL", "success text cannot override an abnormal simulator exit")
+
+
 def cases() -> list[Case]:
     return [Case("solver-failure", _solver_failure), Case("detach-race", _detach_race),
             Case("reference-failure", _reference_failure), Case("stale-build", _stale_build),
@@ -245,4 +273,5 @@ def cases() -> list[Case]:
             Case("empty-sweep-refused", _empty_sweep_is_refused),
             Case("warm-test-corpus", _warm_test_corpus),
             Case("invalid-test-corpus-pin", _invalid_test_corpus_pin),
-            Case("empty-corpus-refused", _empty_corpus_is_refused)]
+            Case("empty-corpus-refused", _empty_corpus_is_refused),
+            Case("member-terminal-isolation", _member_terminal_isolation)]

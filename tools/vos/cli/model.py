@@ -1431,16 +1431,19 @@ def _run_member(e: env.Environment, profile: Path, elf: Path,
                 timeout: int) -> tuple[str, str, list[str] | None]:
     if (missing := _missing_simulator(e)) is not None:
         return "FAIL", f" ({missing})", None
+    terminal = elf.with_suffix(".terminal.log")
+    terminal.unlink(missing_ok=True)
     try:
         done = subprocess.run([str(e.simulator), "--config", str(profile),
-                               "--trace-commit", "--inst-limit", "1000000", str(elf)],
+                               "--trace-commit", "--terminal-log", str(terminal),
+                               "--inst-limit", "1000000", str(elf)],
                               capture_output=True, text=True, errors="replace",
                               timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         return "FAIL", " (no HTIF write within the timeout)", None
     output = done.stdout + done.stderr
     records = trace.normalize_commit(output.splitlines())
-    if "SUCCESS" in output:
+    if "SUCCESS" in output and done.returncode == 0:
         return "PASS", "", records
     failure = re.search(r"FAILURE: (\d+)", output)
     if failure:
