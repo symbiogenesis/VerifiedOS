@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vos import asm, image, trace
+from vos import asm, image, receipts, trace
 from vos import compiler_component as cc
 from vos.cli import compiler_diff as cd
 
@@ -75,13 +75,16 @@ def main() -> int:
     config.write_bytes(args.compiler_config.read_bytes())
     snapshot = Path(args.model_snapshot).resolve()
     simulator = snapshot / "sail_riscv_sim"
-    model = json.loads((snapshot / "model-build.json").read_text())
+    model_path = snapshot / "model-build.json"
+    model_receipt_sha256 = sha(model_path)
+    model = json.loads(model_path.read_text())
     require(model.get("exit_code") == 0 and model.get("stages") ==
             {"configure": 0, "build": 0, "ctest": 0}, "model build did not pass")
     require(sha(simulator) == model["artifacts"]["c_emulator/sail_riscv_sim"], "model binary drift")
-    for name, digest in model["identity"]["inputs"].items():
-        if name.startswith("model/"):
-            require(sha(root / name) == digest, "model source changed: " + name)
+    model_sources = {name: digest for name, digest in model["identity"]["inputs"].items()
+                     if name.startswith("model/")}
+    require(receipts.inputs(root, "model") == model_sources, "complete model source roster differs")
+    require(sha(snapshot / "model-build.log") == model["log_sha256"], "model log drift")
     profile = out / "profile.json"
     profile.write_bytes((root / "model/config/verifiedos.json").read_bytes())
     producer = out / "producer"
@@ -92,8 +95,11 @@ def main() -> int:
     require(prefix.is_absolute() and prefix.is_dir(), "invalid oracle switch prefix")
     coqc = prefix / "bin/coqc"
     tool_paths = [coqc, prefix / "bin/ocamlrun"]
-    libraries = {str(path.relative_to(prefix)): sha(path) for path in sorted((prefix / "lib").rglob("*"))
-                 if path.is_file() and path.suffix in (".vo", ".cmxs", ".so", ".cma", ".cmxa")}
+    def library_manifest() -> dict[str, str]:
+        return {str(path.relative_to(prefix)): sha(path) for path in sorted((prefix / "lib").rglob("*"))
+                if path.is_file() and path.suffix in (".vo", ".cmxs", ".so", ".cma", ".cmxa")}
+
+    libraries = library_manifest()
     require(bool(libraries) and any("CertiRocq" in name for name in libraries), "missing Wasm producer libraries")
     save(producer / "libraries.json", libraries)
     tool_ids = {str(path): sha(path) for path in tool_paths}
@@ -150,6 +156,7 @@ def main() -> int:
         argv = [str(simulator), "--config", str(profile), "--trace-commit", "--inst-limit", "10000000", str(elf)]
         before = time.monotonic()
         target = subprocess.run(argv, cwd=stage, text=True, capture_output=True, timeout=180, check=False)
+        require(target.returncode == int(mutant), "unexpected emulator process status")
         raw = target.stdout + target.stderr
         (stage / "trace.log").write_text(raw, encoding="utf-8", newline="\n")
         verdict, code, _ = cd.htif_verdict(raw, target.returncode)
@@ -203,11 +210,16 @@ def main() -> int:
             raise ValueError(f"coordinate control survived: {i+1}")
     require(all(sha(Path(path)) == digest for path, digest in sources.items()), "source changed during comparison")
     require(all(sha(Path(path)) == digest for path, digest in tool_ids.items()), "tool changed during comparison")
-    require(all(sha(prefix / name) == digest for name, digest in libraries.items()), "oracle library changed during comparison")
+    require(library_manifest() == libraries, "oracle library content or membership changed during comparison")
+    require(receipts.inputs(root, "model") == model_sources and sha(model_path) == model_receipt_sha256,
+            "model source roster or receipt changed during comparison")
+    require({str(path) for path in (root / "tools/vos").rglob("*.py")} <= set(sources),
+            "tool source membership changed during comparison")
     save(out / "result.json", {"schema": "verifiedos-reference-component-comparison-v1", "passed": True,
         "sources": sources, "tools": tool_ids, "producer_identity_sha256": sha(producer / "identity.json"),
         "population_sha256": sha(out / "population.json"), "rows": rows, "cross_controls": cross_controls,
         "coordinate_controls": len(ids), "model_source_identity": model["identity"],
+        "model_receipt_sha256": model_receipt_sha256,
         "steps_sha256": sha(out / "steps.json"), "seconds": time.monotonic()-started,
         "scope": "finite authored-C reference comparison; no extraction/refinement proof; legacy bootstrap not qualified"})
     return 0

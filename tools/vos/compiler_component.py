@@ -12,11 +12,13 @@ class Observation:
     first_failure: int
 
 
-def population(source: str) -> tuple[str, ...]:
+def families(source: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
     """Read the closed cons/app vocabulary of the actual Gallina check owner."""
     source = re.sub(r"\(\*.*?\*\)", "", source, flags=re.DOTALL)
-    definitions = dict(re.findall(r"Definition\s+(\w+_checks)\s*:\s*list bool\s*:=\s*(.*?)\.",
-                                  source, re.DOTALL))
+    rows = re.findall(r"Definition\s+(\w+_checks)\s*:\s*list bool\s*:=\s*(.*?)\.", source, re.DOTALL)
+    definitions = dict(rows)
+    if len(definitions) != len(rows):
+        raise ValueError("duplicate check-family definition")
     if "ipc_checks" not in definitions:
         raise ValueError("missing IPC population owner")
     groups = re.findall(r"\b\w+_checks\b", definitions["ipc_checks"])
@@ -24,16 +26,21 @@ def population(source: str) -> tuple[str, ...]:
         raise ValueError("missing or duplicate check family")
     if re.sub(r"\b(?:app|\w+_checks)\b|[()\s]", "", definitions["ipc_checks"]):
         raise ValueError("unsupported IPC population expression")
-    result: list[str] = []
+    result: list[tuple[str, tuple[str, ...]]] = []
     for group in groups:
         body = definitions[group]
         checks = re.findall(r"\bc_\w+\b", body)
         if not checks or re.sub(r"\b(?:cons|nil|c_\w+)\b|[()\s]", "", body):
             raise ValueError(f"unsupported check family: {group}")
-        result.extend(checks)
-    if len(result) != len(set(result)):
+        result.append((group, tuple(checks)))
+    identities = [name for _, checks in result for name in checks]
+    if len(identities) != len(set(identities)):
         raise ValueError("duplicated check identity")
     return tuple(result)
+
+
+def population(source: str) -> tuple[str, ...]:
+    return tuple(name for _, checks in families(source) for name in checks)
 
 
 def encode(ids: tuple[str, ...], values: tuple[bool, ...], first: int) -> str:
@@ -78,13 +85,23 @@ def compare(left: Observation, right: Observation) -> None:
 
 def wrappers(gallina: str, c_source: str) -> tuple[str, str, tuple[str, ...]]:
     """Expose existing outputs without replacing a check or its implementation."""
-    ids = population(gallina)
+    grouped = families(gallina)
+    ids = tuple(name for _, checks in grouped for name in checks)
     old = "CertiRocq Compile Wasm ipc_oracle."
     if gallina.count(old) != 1:
         raise ValueError("missing or ambiguous Wasm observation boundary")
     observed_gallina = gallina.replace(old, "CertiRocq Compile Wasm ipc_checks.")
     if c_source.count("int main(void)") != 1:
         raise ValueError("missing or ambiguous C observation boundary")
+    main = c_source.split("int main(void)", 1)[1]
+    calls = re.findall(r"n\s*=\s*n\s*\+\s*(\w+_checks)\(checks\s*\+\s*n\);", main)
+    if calls != [group for group, _ in grouped]:
+        raise ValueError("C family order differs from Gallina population")
+    bodies = dict(re.findall(r"static long (\w+_checks)\(long \*c\)\s*\{(.*?)(?=\nstatic long |\nint main|\Z)",
+                             c_source, re.DOTALL))
+    if set(bodies) != set(calls) or any(len(re.findall(r"\bn\s*\+\+", bodies[group])) != len(checks)
+                                      for group, checks in grouped):
+        raise ValueError("C family population differs from Gallina owner")
     count = re.findall(r"(?m)^#define CHECKS (\d+)\s*$", c_source)
     if count != [str(len(ids))]:
         raise ValueError("C population differs from Gallina owner")
