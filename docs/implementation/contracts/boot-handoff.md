@@ -370,6 +370,27 @@ initial saved program counters; neither an integer text address nor the
 kernel's narrower PCC supplies authority for a successor outside kernel text.
 No partition receives a timer or kernel-data root.
 
+The finite revocation composition may append one eight-byte read/write data
+root after the partition execute roots, also declared as a shared window.
+It covers exactly the bitmap word containing the dedicated retired object's
+granule. The address is derived from the selected profile's revocation base
+and interval and [the model's index function](../../../model/model/core/revocation.sail):
+the object's offset is divided by the capability granule size, then by the
+number of bits in one word. The producer narrows reset data authority to that
+word and removes execute and capability-transfer permissions. The kernel
+checks its tag, unsealed state, exact extent and permissions, and attempts an
+over-bound derivation just as for every other declared window. No partition
+receives the bitmap root.
+
+This finite composition declares the retired object's complete resident and
+saved-copy population and has no borrowed copy, proxy or device access to that
+object. Publication, resident-root clearing and filtered saved-image storage
+must be observed before semantic completion permits dispatch. Epoch-only
+completion and an unsanitized saved image refuse dispatch. The observation
+does not claim reuse, a complete sweep, a general ownership proof or a
+multi-hart barrier; [the revocation qualification](../../assurance/revocation-qualification.md)
+retains those boundaries.
+
 This composition keeps the timer unarmed through firmware entry. Before the
 first dispatch the kernel checks the actual root-table capabilities' tags,
 extents and permissions against the declaration. Its in-program bounds
