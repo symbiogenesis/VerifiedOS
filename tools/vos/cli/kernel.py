@@ -58,7 +58,7 @@ from pathlib import Path
 from typing import Final
 from unittest import mock
 
-from vos import cli, env, gallina, kernel_restore, kernelrun, proofs, seeded
+from vos import cli, env, gallina, kernel_restore, kernel_target, kernelrun, proofs, seeded
 from vos.corpus import find_root
 
 HARNESS: Final = gallina.KERNEL
@@ -622,16 +622,39 @@ def cmd_restore(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
+def cmd_target(args: argparse.Namespace) -> int:
+    """Compile and run the finite scalar kernel composition."""
+    e = env.load(toolchain=False)
+    out = Path(args.out) if args.out else e.lane_root / "kernel-target"
+    try:
+        report = kernel_target.run(e.root, Path(args.ccomp), args.ccomp_arg,
+                                   Path(args.simulator), Path(args.build_receipt), out, args.timeout)
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        print(f"FAIL kernel target: {error}")
+        return 1
+    print(f"kernel target: HTIF {report['htif']} {report['htif_code']}; {report['observations']}")
+    print(f"milestone_acceptance: open; {out / 'report.json'}")
+    return 0 if report["ok"] else 1
+
+
 COMMANDS: cli.Table = {
     "vectors": (cmd_vectors, "compile KernelVectors.v against its closure; print vectors"),
     "check": (cmd_check, "the kernel C and the trace reader against the vectors"),
     "mutants": (cmd_mutants, "authored defects through both differentials"),
     "reader": (cmd_reader, "the trace reader alone over a vector file on disk"),
     "restore": (cmd_restore, "generated scalar restore controls on the golden emulator"),
+    "target": (cmd_target, "compiled scalar kernel under signed M-mode handoff"),
 }
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "target":
+        sub.add_argument("--ccomp", required=True, help="accepted contained compiler")
+        sub.add_argument("--ccomp-arg", action="append", default=[], help="compiler argument")
+        sub.add_argument("--simulator", required=True, help="golden emulator executable")
+        sub.add_argument("--build-receipt", required=True, help="successful source-bound model build")
+        sub.add_argument("--out", help="native output directory in this lane")
+        sub.add_argument("--timeout", type=int, default=120, help="seconds per process")
     if name == "restore":
         sub.add_argument("--simulator", help="explicit golden emulator executable")
         sub.add_argument("--build-receipt", required=True,
