@@ -129,7 +129,9 @@ def stale_model_build_refused() -> None:
 
 
 def relative_run_paths_reach_the_child_absolutely() -> None:
-    with tempfile.TemporaryDirectory(prefix="kernel-restore-paths-") as directory:
+    fixture_root = Path(__file__).resolve().parents[2] / "out"
+    fixture_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="kernel-restore-paths-", dir=fixture_root) as directory:
         root = Path(directory).resolve()
         simulator = root / "simulator"
         simulator.write_bytes(b"path fixture; never executed")
