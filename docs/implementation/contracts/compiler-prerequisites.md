@@ -160,5 +160,6 @@ The integrator owns the shared handoff and checklist updates, the settled Host C
 verdict and Guest CI dispatch with pending status on GitHub Actions, under the
 handoff above. This agreement changes no compiler
 implementation, extraction manifest or proof statement; generated requirement-reference
-fingerprints follow their owner. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f remain open
-until their existing implementation and target predicates hold.
+fingerprints follow their owner. The [checklist](../implementation-checklist.md)
+records implementation acceptance for M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f;
+this agreement alone satisfies none of their implementation or target predicates.
