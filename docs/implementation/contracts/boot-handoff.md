@@ -346,7 +346,7 @@ its declared order. Every extent is exactly representable, and the fixture check
 the base and length of each capability it is handed rather than trusting that.
 
 **Scalar scheduled composition.** M4.4's scalar target member extends this
-interface with three root-table slots, in order: the kernel data root, an
+interface with three leading root-table slots, in order: the kernel data root, an
 eight-byte read/write data window for hart zero's `mtimecmp`, and an eight-byte
 read-only window for `mtime`. The timer addresses come from the selected
 profile's CLINT base and the register offsets in
@@ -360,6 +360,15 @@ kernel receives no authority over the rest of CLINT. The descriptor's
 `init.root` is the physical partition containing its declared text and data,
 not a claim that its data-root capability also authorizes text. Execute and
 store authority retain R-15-007p's split.
+
+One execute-side root follows for each declared partition, in descriptor
+order. Each is bounded exactly to that partition's text extent, unsealed,
+and stripped of access-system-registers permission. Firmware derives them
+from reset execute authority before narrowing its own kernel PCC. The kernel
+checks these roots against the descriptor and uses them to construct the
+initial saved program counters; neither an integer text address nor the
+kernel's narrower PCC supplies authority for a successor outside kernel text.
+No partition receives a timer or kernel-data root.
 
 This composition keeps the timer unarmed through firmware entry. Before the
 first dispatch the kernel checks the actual root-table capabilities' tags,
