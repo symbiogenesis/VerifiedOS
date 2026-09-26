@@ -16,7 +16,8 @@ from vos import proofcites
 from vos.register import REGISTER, Register, read_register
 
 # These compilers own their files whole; a second writer cannot share them.
-EXCLUDED = frozenset({"proofs/RingContract.v", "proofs/DeviceRegisters.v"})
+EXCLUDED = frozenset({"proofs/RingContract.v", "proofs/DeviceRegisters.v",
+                      "proofs/ElasticPoolCampaign.v"})
 
 # A refusable layout anchor, not a search for arbitrary comment syntax: the shipped
 # artifacts open with the licence comment and the ruled explanatory header.

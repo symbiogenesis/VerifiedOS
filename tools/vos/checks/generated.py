@@ -100,6 +100,7 @@ from vos import (
     calibration,
     device_registers,
     dialectgen,
+    elastic_pool_campaign,
     memplan,
     sailbundle,
     socmap,
@@ -199,6 +200,10 @@ def _device_registers_rtl(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return device_registers.emit_sv(root, bundle)
 
 
+def _elastic_pool_campaign(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    return elastic_pool_campaign.render()
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -277,6 +282,10 @@ GENERATED: tuple[Row, ...] = (
         generator="run.py device-registers emit", lane="host",
         owners="the register declarations and reviewed modeled MMIO functions",
         checker="this gate", emit=_device_registers_rtl),
+    Row(path="proofs/ElasticPoolCampaign.v",
+        generator="run.py check --fix", lane="host",
+        owners="the finite elastic pool producer and deterministic command campaigns",
+        checker="this gate", emit=_elastic_pool_campaign),
     *(Row(path=path,
           generator="tools/fiat_crypto_emit.py --emit",
           lane="guest",

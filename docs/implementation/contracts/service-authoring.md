@@ -61,6 +61,15 @@ Acceptance for the authorable scope:
 
 A corpus executable requires M1.2f's backend, M1.7's target path, an agreed primitive and initial-capability interface, and M3.5's actual handoff. Unbuilt C may be authored only against those explicit interfaces and must be labelled unbuilt; neither a fixture nor this Gallina predicate closes M4.4. R2 owns the multi-instance join.
 
+The [scalar final-restore primitive](../../../kernel/README.md#scalar-final-restore)
+owns an executable C-class subset with an empty partition-nameable CSR roster.
+Its setup, exact register-restore and dispatch extents are separate: MEPCC setup
+and the dispatching `mret`'s `mstatus` effect are observed outside the register
+restore burst. This supplies an emitter and generated target controls for that
+subset. The caller's stable protected save image, semantic revocation completion,
+initial capability handoff and trap/timer installation remain required inputs.
+General CSR, vector and pending-state restoration retain their existing owners.
+
 ## 3. Inference descriptor and admission
 
 `proofs/InferenceAdmission.v` owns a single common shape descriptor and session interface consumed by the residency and grant-to-rate arithmetic. A shape carries resident bytes, context length, quantization format, expert count, fixed top-k and KV bytes per token. The composition's ceiling carries those bounds/admitted formats plus the bank grant, the seven terms enumerated by R-12-085. `composition_opening` is the full admission entry point, `opening` its ceiling/resource core, and `checked_routed_work` the guarded route operation. Slot, worker identifiers, pools and session capacity are composition constants; opening a session changes occupancy or returns a typed refusal, never enlarges them.

@@ -4,7 +4,7 @@ This is executable reference work toward [Q34c](implementation-checklist.md),
 under the existing [elastic-domain contract](contracts/elastic-domain.md).
 Q34c remains open: the finite allocator needs its universal refinement to the
 history contract, and the native service/library producer and its admission are
-absent. The completed history proof and generated finite traces do not establish
+absent. The history-producer theorem and generated finite traces do not establish
 that missing correspondence.
 
 [elastic_pool.py](../../tools/vos/elastic_pool.py) implements composition-fixed
@@ -75,10 +75,9 @@ guarantee. These are detected finite controls, not a mutation-score claim about
 compiled native code.
 
 Run focused feedback with `python tools/run.py test --only elastic_pool`.
-The test compares the generated source byte for byte with `render()` from the
-campaign module, so changed producer histories require regeneration. Generate
-with the repository's Python environment and `tools` on `PYTHONPATH`, writing
-`render()` to `proofs/ElasticPoolCampaign.v` as UTF-8 with LF. The shared Host CI
+K-88 and the focused test compare the generated source byte for byte with
+`render()` from the campaign module, so changed producer histories require
+regeneration through `python tools/run.py check --fix`. The shared Host CI
 and cold Guest CI proof lanes own the settled checks; a focused compile does not
 supply their acceptance verdict.
 
