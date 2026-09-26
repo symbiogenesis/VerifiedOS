@@ -21,10 +21,9 @@ handoff, and every report carries `milestone_acceptance: open`.
 
 import argparse
 import hashlib
-import json
 from pathlib import Path
 
-from vos import boot_handoff, env
+from vos import boot_handoff, env, receipts
 from vos.cli import Table, dispatch
 from vos.corpus import find_root
 
@@ -51,13 +50,29 @@ def cmd_layout(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     e = env.load()
-    if not e.simulator.is_file():
-        print(f"no golden emulator at {e.simulator}; run `run.py model build` first")
+    simulator = Path(args.simulator) if args.simulator else e.simulator
+    if args.simulator and not args.build_receipt:
+        print("an explicit simulator requires --build-receipt for its model sources")
+        return 1
+    if not simulator.is_file():
+        print(f"no golden emulator at {simulator}; run `run.py model build` first")
         return 1
     out = Path(args.out) if args.out else e.lane_root / "boot-handoff"
-    result = boot_handoff.run_harness(e.root, e.simulator, out, args.timeout)
-    (out / "report.json").write_text(json.dumps(result.report, indent=2) + "\n",
-                                     encoding="utf-8")
+    out.mkdir(parents=True, exist_ok=True)
+    report_path = out / "report.json"
+    receipts.write(report_path, {"status": "incomplete", "milestone_acceptance": "open",
+                                "signature_scheme": args.signature_scheme})
+    try:
+        result = boot_handoff.run_harness(e.root, simulator, out, args.timeout,
+                                          args.signature_scheme,
+                                          Path(args.build_receipt) if args.build_receipt else None)
+    except (OSError, ValueError, RuntimeError) as exc:
+        receipts.write(report_path, {"status": "failed", "milestone_acceptance": "open",
+                                    "signature_scheme": args.signature_scheme, "error": str(exc)})
+        print(f"FAIL boot-handoff: {exc}")
+        return 1
+    result.report["status"] = "passed" if result.ok else "failed"
+    receipts.write(report_path, result.report)
     for line in result.lines:
         tail = f"; forced past the RoT: {line.forced}" if line.forced is not None else ""
         state = "PASS" if not line.problems else "FAIL"
@@ -68,7 +83,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"FAIL  {finding}")
     passed = sum(1 for line in result.lines if not line.problems)
     print(f"TOTAL pass={passed} fail={len(result.lines) - passed} of {len(result.lines)} "
-          f"cases; rot executor: host-compiled stage; signature verifier: fixture; "
+          f"cases; rot executor: host-compiled stage; signature verifier: {args.signature_scheme}; "
           f"milestone_acceptance: open; report {out / 'report.json'}")
     return 0 if result.ok else 1
 
@@ -84,6 +99,10 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--out", help="output directory (default: the lane's boot-handoff/)")
         sub.add_argument("--timeout", type=int, default=60,
                          help="seconds allowed for each emulator run")
+        sub.add_argument("--signature-scheme", choices=("fixture", "slh256s"), default="fixture",
+                         help="fixture controls or real SLH-DSA-SHAKE-256s verification")
+        sub.add_argument("--simulator", help="explicit golden emulator, requiring --build-receipt")
+        sub.add_argument("--build-receipt", help="successful model build receipt binding the simulator")
 
 
 def main(argv: list[str] | None = None) -> int:

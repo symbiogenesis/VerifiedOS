@@ -25,6 +25,7 @@
 
 #include "vos_boot.h"
 #include "vos_keccak.h"
+#include "vos_signature.h"
 
 #define FIXTURE_DOMAIN "VOS-FIXTURE-SIG1"
 
@@ -52,6 +53,20 @@ static vos_sig_result fixture_verify(void *context, const uint8_t *message,
   vos_shake256_squeeze(&ctx, fixture_expected, VOS_BOOT_SIGNATURE_BYTES);
   return memcmp(fixture_expected, signature, VOS_BOOT_SIGNATURE_BYTES) == 0
     ? VOS_SIG_ACCEPT : VOS_SIG_REJECT;
+}
+
+// The same input-race control with the actual SLH verifier. The mutation is in
+// the host driver; the callback still decides the signed copy it was handed.
+static vos_sig_result slh_verify(void *context, const uint8_t *message,
+                                size_t message_len, const uint8_t *signature,
+                                const uint8_t *public_key) {
+  if (context != NULL) {
+    race_context *race = context;
+    for (unsigned i = 0; i < 8; i++) {
+      race->image[VOS_BOOT_HDR_SECURITY_VERSION + i] = (uint8_t)(race->version >> (8u * i));
+    }
+  }
+  return vos_boot_slh256s_verify(NULL, message, message_len, signature, public_key);
 }
 
 static int released;
@@ -208,7 +223,8 @@ static int boot_command(int argc, char **argv) {
   if (!image_path || !lifecycle || !entropy || !target || !floor_text || !verifier
       || !sram_path || !handoff_path) {
     fprintf(stderr, "usage: rot-stage boot image= lifecycle= entropy= target= floor= "
-                    "verifier=fixture|fixture-racing|absent sram= handoff= [window=BYTES] "
+                    "verifier=fixture|fixture-racing|slh256s|slh256s-racing|absent "
+                    "sram= handoff= [window=BYTES] "
                     "[race_version=N] [root.STATE=HEX ...]\n");
     return 2;
   }
@@ -226,15 +242,18 @@ static int boot_command(int argc, char **argv) {
     }
   }
   race_context race = {NULL, 0};
-  int racing = strcmp(verifier, "fixture-racing") == 0;
-  if (strcmp(verifier, "fixture") == 0 || racing) {
+  int racing = strcmp(verifier, "fixture-racing") == 0
+               || strcmp(verifier, "slh256s-racing") == 0;
+  if (strcmp(verifier, "fixture") == 0 || strcmp(verifier, "fixture-racing") == 0) {
     policy.verify = fixture_verify;
+  } else if (strcmp(verifier, "slh256s") == 0 || strcmp(verifier, "slh256s-racing") == 0) {
+    policy.verify = slh_verify;
   } else if (strcmp(verifier, "absent") != 0) {
-    fprintf(stderr, "verifier must be fixture, fixture-racing or absent\n");
+    fprintf(stderr, "verifier must be fixture, fixture-racing, slh256s, slh256s-racing or absent\n");
     return 2;
   }
   if (racing != (race_text != NULL)) {
-    fprintf(stderr, "race_version= goes with verifier=fixture-racing and only with it\n");
+    fprintf(stderr, "race_version= requires a racing verifier and only that verifier\n");
     return 2;
   }
   policy.load_base = VOS_BRINGUP_MMODE_LOAD_BASE;

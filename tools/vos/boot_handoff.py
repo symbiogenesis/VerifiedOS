@@ -25,6 +25,7 @@ which owns them, so this module restates none of them.
 
 import ast
 import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -32,13 +33,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import asm, image, trace
+from . import asm, boot_signing, image, jsonc, kernel_restore, receipts, trace
 
 HEADER = "firmware/include/vos_boot.h"
 SOURCES = ("firmware/include/vos_keccak.h", "firmware/include/vos_boot.h",
+           "firmware/include/vos_signature.h", "firmware/crypto/slh256s.c",
            "firmware/crypto/keccak.c", "firmware/rot/boot_verify.c",
            "firmware/harness/rot_stage_main.c")
-C_UNITS = ("firmware/crypto/keccak.c", "firmware/rot/boot_verify.c",
+C_UNITS = ("firmware/crypto/keccak.c", "firmware/crypto/slh256s.c", "firmware/rot/boot_verify.c",
            "firmware/harness/rot_stage_main.c")
 MMODE = "firmware/mmode/handoff.s"
 FIXTURE = "firmware/harness/kernel_entry_fixture.s"
@@ -46,9 +48,12 @@ PROBE = "firmware/harness/rot_inputs.s"
 ROT_CONFIG = "model/config/verifiedos-rot.json"
 MAIN_CONFIG = "model/config/verifiedos.json"
 CONTRACT = "docs/implementation/contracts/boot-handoff.md"
-INPUTS = (*SOURCES, MMODE, FIXTURE, PROBE, ROT_CONFIG, MAIN_CONFIG, CONTRACT)
+INPUTS = (*SOURCES, MMODE, FIXTURE, PROBE, ROT_CONFIG, MAIN_CONFIG, CONTRACT,
+          "tools/vos/boot_handoff.py", "tools/vos/boot_signing.py",
+          "tools/vos/cli/boot_handoff.py")
 
 CFLAGS = ("-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-pedantic",
+          "-ffreestanding", "-fno-builtin",
           "-fsanitize=address,undefined", "-fno-sanitize-recover=all")
 
 # Not a signature scheme: anyone holding the public key computes it. It lets the
@@ -169,7 +174,8 @@ class Assembled:
     constants: dict[str, int]
 
 
-def assemble_mmode(root: Path, stage_text: str | None = None) -> Assembled:
+def assemble_mmode(root: Path, stage_text: str | None = None,
+                   kernel_text: str | None = None) -> Assembled:
     """Assemble the handoff stage followed by the fixture, and flatten the image.
 
     `stage_text` replaces the stage's source, which is how the handoff mutants are
@@ -177,7 +183,8 @@ def assemble_mmode(root: Path, stage_text: str | None = None) -> Assembled:
     between the two sections zero-filled, which is the extent the RoT measures.
     """
     stage = stage_text if stage_text is not None else (root / MMODE).read_text(encoding="utf-8")
-    source = stage + "\n" + (root / FIXTURE).read_text(encoding="utf-8")
+    kernel = kernel_text if kernel_text is not None else (root / FIXTURE).read_text(encoding="utf-8")
+    source = stage + "\n" + kernel
     assembler = asm.Assembler(source, "mmode-image")
     sections, _, _ = assembler.assemble()
     text = next(s for s in sections if s.name == ".text")
@@ -189,6 +196,66 @@ def assemble_mmode(root: Path, stage_text: str | None = None) -> Assembled:
     flat[data.addr - text.addr:] = data.data
     constants = {name: value for name, (value, _) in assembler.constants.items()}
     return Assembled(bytes(flat), dict(assembler.symbols), constants)
+
+
+def timer_windows(root: Path) -> tuple[int, int]:
+    """The reviewed scalar composition's exact hart-zero timer windows."""
+    config = jsonc.load(root / MAIN_CONFIG)
+    platform = config.get("platform") if isinstance(config, dict) else None
+    clint = platform.get("clint") if isinstance(platform, dict) else None
+    if not isinstance(clint, dict) or clint.get("supported") is not True:
+        raise ValueError("the scheduled handoff requires the profile's CLINT")
+    base, size = clint.get("base"), clint.get("size")
+    if type(base) is not int or type(size) is not int:
+        raise ValueError("the CLINT aperture requires integer base and size")
+    model = (root / "model/model/sys/platform.sail").read_text(encoding="utf-8")
+    addresses: list[int] = []
+    for name in ("MTIMECMP_BASE", "MTIME_BASE"):
+        found = re.findall(rf"^let {name}\s+: physaddrbits = zero_extend\((0x[0-9a-fA-F]+)\)$",
+                           model, re.MULTILINE)
+        if len(found) != 1:
+            raise ValueError(f"the platform must declare exactly one {name} offset")
+        offset = int(found[0], 16)
+        if offset % 8 or not 0 <= offset <= size - 8:
+            raise ValueError(f"{name} is not an aligned eight-byte CLINT window")
+        addresses.append(base + offset)
+    return addresses[0], addresses[1]
+
+
+def scheduled_mmode(root: Path, partition_text: tuple[tuple[str, str], ...] = ()) -> str:
+    """Mint the two exact timer slots before bounding the three-slot root table.
+
+    The caller supplies a nonempty kernel composition and a root table holding
+    three data slots followed by one execute slot per declared partition.
+    The kernel validates the producer's tags, extents and permissions on entry.
+    The fixture stage remains unchanged and no timer is armed by this producer.
+    """
+    compare, clock = timer_windows(root)
+    stage = (root / MMODE).read_text(encoding="utf-8")
+    anchor = "        sc      c7, 0(c10)\n"
+    if stage.count(anchor) != 1:
+        raise ValueError("the root-table producer anchor must occur exactly once")
+    addition = "        # Exact scalar timer windows: no capability transfer or execute.\n"
+    for slot, address, permissions in ((8, compare, 0x7), (16, clock, 0x3)):
+        addition += (f"        li      t0, {address:#x}\n"
+                     "        csetaddr c13, c8, t0\n"
+                     "        li      t0, 8\n"
+                     "        csetbounds c13, c13, t0\n"
+                     f"        li      t0, {permissions:#x}\n"
+                     "        candperm c13, c13, t0\n"
+                     f"        sc      c13, {slot}(c10)\n")
+    for index, (base, end) in enumerate(partition_text):
+        if not all(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", label) for label in (base, end)):
+            raise ValueError("partition text extents require explicit assembly labels")
+        # `la` derives from the current firmware PCC, which still carries reset
+        # execute authority. Kernel PCC has not been installed until the jump.
+        addition += (f"        la      c13, {base}\n"
+                     f"        li      t0, {end} - {base}\n"
+                     "        csetbounds c13, c13, t0\n"
+                     "        li      t0, 0x1cb\n"
+                     "        candperm c13, c13, t0\n"
+                     f"        sc      c13, {24 + 8 * index}(c10)\n")
+    return stage.replace(anchor, anchor + addition, 1)
 
 
 def composition_findings(lay: Layout, built: Assembled) -> list[str]:
@@ -255,7 +322,8 @@ def descriptor_findings(lay: Layout, built: Assembled) -> list[str]:
 def build_image(lay: Layout, payload: bytes, *, security_version: int, signer: bytes,
                 magic: int | None = None, stage: int | None = None,
                 offset: int | None = None, length: int | None = None,
-                digest: bytes | None = None) -> bytes:
+                digest: bytes | None = None,
+                sign: Callable[[bytes, bytes], bytes] | None = None) -> bytes:
     """The header and payload, every field defaulting to its well-formed value."""
     header = bytearray(lay["BOOT_HEADER_BYTES"])
 
@@ -272,7 +340,10 @@ def build_image(lay: Layout, payload: bytes, *, security_version: int, signer: b
         hashlib.shake_256(payload).digest(lay["BOOT_DIGEST_BYTES"]) if digest is None else digest)
     signed = bytes(header[:lay["BOOT_SIGNED_BYTES"]])
     at = lay["BOOT_HDR_SIGNATURE"]
-    header[at:at + lay["BOOT_SIGNATURE_BYTES"]] = fixture_signature(lay, signer, signed)
+    signature = fixture_signature(lay, signer, signed) if sign is None else sign(signer, signed)
+    if len(signature) != lay["BOOT_SIGNATURE_BYTES"]:
+        raise ValueError("the signer returned an incorrect signature length")
+    header[at:at + lay["BOOT_SIGNATURE_BYTES"]] = signature
     return bytes(header) + payload
 
 
@@ -373,13 +444,15 @@ class RotInputs:
 
 
 def rot_stage(binary: Path, image_path: Path, inputs: RotInputs, verifier: str,
-              out: Path, extra: tuple[str, ...] = ()) -> dict[str, str]:
-    roots = [f"root.{state}={root_key(state).hex()}" for state in ROOT_STATES]
+              out: Path, extra: tuple[str, ...] = (),
+              roots: dict[str, bytes] | None = None) -> dict[str, str]:
+    selected = roots if roots is not None else {state: root_key(state) for state in ROOT_STATES}
+    root_args = [f"root.{state}={public.hex()}" for state, public in selected.items()]
     done = subprocess.run(
         [str(binary), "boot", f"image={image_path}", f"lifecycle={inputs.lifecycle}",
          f"entropy={inputs.entropy_ok}", f"target={inputs.boot_target}",
          f"floor={inputs.floor}", f"verifier={verifier}", f"sram={out / 'sram.bin'}",
-         f"handoff={out / 'handoff.bin'}", *extra, *roots],
+         f"handoff={out / 'handoff.bin'}", *extra, *root_args],
         capture_output=True, text=True, check=False)
     if done.returncode != 0:
         raise RuntimeError(f"rot-stage exited {done.returncode}: {done.stderr.strip()}")
@@ -420,6 +493,13 @@ class Scenario:
     lay: Layout
     built: Assembled
     floor: int
+    roots: dict[str, bytes] = field(default_factory=lambda: {
+        state: root_key(state) for state in ROOT_STATES})
+    sign: Callable[[bytes, bytes], bytes] | None = None
+
+    def image(self, payload: bytes, state: str = "production") -> bytes:
+        return build_image(self.lay, payload, security_version=self.floor,
+                           signer=self.roots[state], sign=self.sign)
 
     def valid(self, *, security_version: int | None = None, magic: int | None = None,
               stage: int | None = None, offset: int | None = None,
@@ -427,8 +507,8 @@ class Scenario:
         return build_image(self.lay, self.built.payload,
                            security_version=self.floor if security_version is None
                            else security_version,
-                           signer=root_key("production"), magic=magic, stage=stage,
-                           offset=offset, length=length, digest=digest)
+                           signer=self.roots["production"], magic=magic, stage=stage,
+                           offset=offset, length=length, digest=digest, sign=self.sign)
 
 
 def _same(text: str, old: str, new: str) -> str:
@@ -464,8 +544,7 @@ def cases() -> list[Case]:
              "refuse-signature"),
         Case("development-root-on-production", "R-09-036: another state's root verifies "
              "nothing in production",
-             lambda s: build_image(s.lay, s.built.payload, security_version=s.floor,
-                                   signer=root_key("development")), "refuse-signature"),
+             lambda s: s.image(s.built.payload, "development"), "refuse-signature"),
         Case("below-floor", "a security version under the anti-rollback floor",
              lambda s: s.valid(security_version=s.floor - 1), "refuse-floor"),
         Case("header-rewritten-during-verify",
@@ -481,9 +560,8 @@ def cases() -> list[Case]:
         Case("length-zero", "a declared length of zero", lambda s: s.valid(length=0),
              "refuse-length"),
         Case("length-at-region", "a payload filling the region exactly is admitted",
-             lambda s: build_image(s.lay, s.built.payload + bytes(
-                 s.lay["BRINGUP_MMODE_REGION_BYTES"] - len(s.built.payload)),
-                 security_version=s.floor, signer=root_key("production")),
+             lambda s: s.image(s.built.payload + bytes(
+                 s.lay["BRINGUP_MMODE_REGION_BYTES"] - len(s.built.payload))),
              "release", emulator="success"),
         Case("image-window-short", "an image window one byte short of the payload refuses "
              "before anything is placed", lambda s: s.valid(), "refuse-placement",
@@ -508,8 +586,7 @@ def cases() -> list[Case]:
              inputs=lambda given: RotInputs(0, given.entropy_ok, given.boot_target, given.floor)),
         Case("development-part", "a development part (injected) admits its own root: "
              "same generation register, different device register",
-             lambda s: build_image(s.lay, s.built.payload, security_version=s.floor,
-                                   signer=root_key("development")), "release",
+             lambda s: s.image(s.built.payload, "development"), "release",
              emulator="success",
              inputs=lambda given: RotInputs(2, given.entropy_ok, given.boot_target, given.floor)),
         Case("mutant-mepcc-kept", "a released handoff that leaves MEPCC is caught at "
@@ -783,7 +860,8 @@ class HarnessResult:
             not line.problems for line in self.lines)
 
 
-def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> HarnessResult:
+def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
+                signature_scheme: str = "fixture", build_receipt: Path | None = None) -> HarnessResult:
     """Every case of `cases()`, the probe, the SHAKE comparison and the controls.
 
     The result is ok only when every case matched the contract and no run-level
@@ -791,6 +869,12 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
     """
     lay = layout(root)
     out.mkdir(parents=True, exist_ok=True)
+    if signature_scheme not in ("fixture", "slh256s"):
+        raise ValueError(f"unknown signature scheme {signature_scheme}")
+    signer = (boot_signing.SlhSigner(out / "signing", ROOT_STATES,
+               public_bytes=lay["BOOT_PUBLIC_KEY_BYTES"], signature_bytes=lay["BOOT_SIGNATURE_BYTES"])
+              if signature_scheme == "slh256s" else None)
+    roots = signer.roots if signer is not None else {state: root_key(state) for state in ROOT_STATES}
     report: dict[str, object] = {
         "contract": CONTRACT,
         "inputs_sha256": digests(root, INPUTS),
@@ -798,12 +882,23 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
         "simulator_sha256": hashlib.sha256(simulator.read_bytes()).hexdigest(),
         "rot_executor": "firmware/rot/boot_verify.c compiled for the host; the RoT hart "
                         "does not execute it until the purecap backend and M1.7 join",
-        "signature_verifier": "fixture (not a signature scheme); SLH-DSA-SHAKE-256s owed",
+        "signature_verifier": "firmware/crypto/slh256s.c: SLH-DSA-SHAKE-256s internal message"
+                              if signer is not None else "fixture (not a signature scheme)",
+        "kernel_consumer": FIXTURE,
         "milestone_acceptance": "open",
     }
+    model_sources = receipts.inputs(root, "model")
+    report["model_sources_sha256"] = model_sources
+    if build_receipt is not None:
+        kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
+                                      receipts.digest(simulator), model_sources)
+        report["model_build_receipt"] = str(build_receipt)
+        report["model_build_receipt_sha256"] = receipts.digest(build_receipt)
     findings: list[str] = contract_findings(root)
     binary, compiler = compile_rot_stage(root, out)
     report["compiler"] = compiler
+    report["rot_stage_sha256"] = receipts.digest(binary)
+    report["compiler_executable"] = receipts.executables("cc")
     report["cflags"] = list(CFLAGS)
     shake = shake_differential(binary)
     report["shake256_differential"] = shake
@@ -845,7 +940,8 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
     for case in cases():
         case_built = built if case.stage_text is None else assemble_mmode(
             root, case.stage_text(stage_source))
-        scenario = Scenario(lay, case_built, floor)
+        scenario = Scenario(lay, case_built, floor, roots,
+                            signer.sign if signer is not None else None)
         directory = out / case.name
         directory.mkdir(parents=True, exist_ok=True)
         for stale in ("sram.bin", "handoff.bin", "placed.elf", "forced.elf"):
@@ -855,16 +951,18 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
         inputs = case.inputs(given)
         problems: list[str] = []
         said: dict[str, str] = {}
+        verifier = case.verifier.replace("fixture", "slh256s") if signer is not None else case.verifier
         try:
-            said = rot_stage(binary, directory / "image.bin", inputs, case.verifier, directory,
-                             case.driver(scenario))
+            said = rot_stage(binary, directory / "image.bin", inputs, verifier, directory,
+                             case.driver(scenario), roots)
         except RuntimeError as exc:
             problems.append(f"the RoT stage failed: {str(exc)[:300]}")
         row: dict[str, object] = {
             "case": case.name, "decides": case.decides, "expected": case.expect,
             "inputs": {"lifecycle": inputs.lifecycle, "entropy_ok": inputs.entropy_ok,
                        "boot_target": inputs.boot_target, "floor": inputs.floor,
-                       "verifier": case.verifier, "driver": list(case.driver(scenario))},
+                       "verifier": verifier, "driver": list(case.driver(scenario))},
+            "image_sha256": hashlib.sha256(data).hexdigest(),
             "rot_verdict": said.get("verdict"), "released": said.get("released"),
             "measured_items": said.get("log"), "generation": said.get("generation"),
             "device": said.get("device"), "chain": said.get("chain"),
@@ -956,6 +1054,15 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int) -> Harness
         findings.append("the valid case produced no record for the controls")
     report["controls"] = [control]
     report["cases"] = rows
+    report["signing"] = signer.identity() if signer is not None else {"scheme": "fixture"}
+    if report["inputs_sha256"] != digests(root, INPUTS):
+        findings.append("boot-handoff inputs changed during the campaign")
+    if report["simulator_sha256"] != hashlib.sha256(simulator.read_bytes()).hexdigest():
+        findings.append("the simulator changed during the campaign")
+    if model_sources != receipts.inputs(root, "model"):
+        findings.append("model sources changed during the campaign")
+    if build_receipt is not None and report["model_build_receipt_sha256"] != receipts.digest(build_receipt):
+        findings.append("the model build receipt changed during the campaign")
     report["findings"] = findings
     result = HarnessResult(report, lines, findings)
     report["ok"] = result.ok

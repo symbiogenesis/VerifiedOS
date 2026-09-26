@@ -130,6 +130,51 @@ def _image_builder() -> None:
            "two roots produce one fixture signature")
 
 
+def _explicit_signer() -> None:
+    lay = bh.layout(ROOT)
+    seen: list[tuple[bytes, bytes]] = []
+
+    def sign(public: bytes, message: bytes) -> bytes:
+        seen.append((public, message))
+        return bytes([17]) * lay["BOOT_SIGNATURE_BYTES"]
+
+    pk, payload = bytes([19]) * lay["BOOT_PUBLIC_KEY_BYTES"], b"placed payload"
+    signed = bh.build_image(lay, payload, security_version=2, signer=pk, sign=sign)
+    ensure(seen == [(pk, signed[:lay["BOOT_SIGNED_BYTES"]])],
+           "the signer did not receive the exact signed prefix and selected root")
+    ensure(signed[lay["BOOT_HDR_SIGNATURE"]:lay["BOOT_HEADER_BYTES"]] == bytes([17]) * 29792,
+           "the supplied signature was overwritten by the fixture")
+    try:
+        bh.build_image(lay, payload, security_version=2, signer=pk, sign=lambda p, m: b"short")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a short signer result resized the fixed header")
+
+
+def _scheduled_producer() -> None:
+    compare, clock = bh.timer_windows(ROOT)
+    stage = bh.scheduled_mmode(ROOT)
+    ensure(compare != clock and compare % 8 == 0 and clock % 8 == 0,
+           "timer windows must be distinct and aligned")
+    ensure(f"li      t0, {compare:#x}" in stage and f"li      t0, {clock:#x}" in stage,
+           "scheduled producer missed its profile-derived windows")
+    kernel = (ROOT / bh.FIXTURE).read_text(encoding="utf-8")
+    ensure(bh.assemble_mmode(ROOT, kernel_text=kernel).payload == bh.assemble_mmode(ROOT).payload,
+           "explicit kernel substitution changed the unchanged fixture")
+    holder, root = _sandbox((bh.MAIN_CONFIG, "model/model/sys/platform.sail"))
+    with holder:
+        model = root / "model/model/sys/platform.sail"
+        model.write_text(model.read_text(encoding="utf-8").replace("let MTIME_BASE ", "let REMOVED "),
+                         encoding="utf-8", newline="\n")
+        try:
+            bh.timer_windows(root)
+        except ValueError as exc:
+            ensure("MTIME_BASE" in str(exc), "an absent timer owner failed for another reason")
+        else:
+            raise AssertionError("missing timer offset silently defaulted")
+
+
 def _registers_split() -> None:
     lay = bh.layout(ROOT)
     digest = hashlib.shake_256(b"image").digest(32)
@@ -158,6 +203,8 @@ def cases() -> list[Case]:
             Case("table, case and macro drift is reported", _drift_is_reported),
             Case("the descriptor's counts and magic are held", _descriptor_counts_are_held),
             Case("the image builder places every field", _image_builder),
+            Case("an explicit signer receives the exact prefix", _explicit_signer),
+            Case("the scheduled producer follows timer owners", _scheduled_producer),
             Case("the two registers split unit and generation inputs", _registers_split),
             Case("every contract case on the golden emulator", _harness_run,
                  slow=True, lane="toolchain")]

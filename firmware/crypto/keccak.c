@@ -8,8 +8,15 @@
 // byte of input, but no constant-time claim is made for any binary.
 #include "vos_keccak.h"
 
+static uint64_t rotl(uint64_t v, unsigned n) {
+  return (v << n) | (v >> ((64u - n) & 63u));
+}
+
+void vos_keccak_f1600(uint64_t a[25]) {
+// Fixed local storage keeps the immutable tables within the selected purecap
+// source profile, whose global authority currently admits scalar words only.
 // Algorithm 5's round constants for rounds 0 through 23.
-static const uint64_t round_constant[24] = {
+const uint64_t round_constant[24] = {
   0x0000000000000001u, 0x0000000000008082u, 0x800000000000808Au, 0x8000000080008000u,
   0x000000000000808Bu, 0x0000000080000001u, 0x8000000080008081u, 0x8000000000008009u,
   0x000000000000008Au, 0x0000000000000088u, 0x0000000080008009u, 0x000000008000000Au,
@@ -19,7 +26,7 @@ static const uint64_t round_constant[24] = {
 };
 
 // Table 2's rho offsets, indexed x + 5y.
-static const unsigned rho_offset[25] = {
+const unsigned rho_offset[25] = {
    0,  1, 62, 28, 27,
   36, 44,  6, 55, 20,
    3, 10, 43, 25, 39,
@@ -27,11 +34,6 @@ static const unsigned rho_offset[25] = {
   18,  2, 61, 56, 14,
 };
 
-static uint64_t rotl(uint64_t v, unsigned n) {
-  return (v << n) | (v >> ((64u - n) & 63u));
-}
-
-void vos_keccak_f1600(uint64_t a[25]) {
   for (unsigned round = 0; round < 24; round++) {
     // theta: each lane takes the parity of the column below it unrotated and
     // the column above it rotated by one.
