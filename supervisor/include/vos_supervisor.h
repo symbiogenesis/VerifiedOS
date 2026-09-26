@@ -57,7 +57,7 @@ struct vos_supervisor_decision {
 };
 
 struct vos_supervisor_epoch {
-    uint32_t number;
+    uint64_t number;
     uint32_t retired[VOS_SUPERVISOR_UNITS];
 };
 
@@ -65,7 +65,7 @@ struct vos_supervisor_epoch {
 struct vos_supervisor_start {
     uint32_t unit;
     uint32_t grants;
-    uint32_t epoch;
+    uint64_t epoch;
 };
 
 struct vos_supervisor_plan {
@@ -78,6 +78,9 @@ struct vos_supervisor_plan {
 int vos_supervisor_order_ok(const struct vos_supervisor_manifest *m,
                             const uint32_t *order, uint32_t length);
 int vos_supervisor_manifest_ok(const struct vos_supervisor_manifest *m);
+/* The manifest must already have passed admission. */
+uint32_t vos_supervisor_backoff(const struct vos_supervisor_manifest *m,
+                               uint32_t attempts);
 int vos_supervisor_decide(const struct vos_supervisor_manifest *m,
                           const struct vos_supervisor_declared *state,
                           uint32_t detector, uint32_t signal,
@@ -85,12 +88,12 @@ int vos_supervisor_decide(const struct vos_supervisor_manifest *m,
 /* Refusal leaves out unchanged. current_epoch is the kernel's current value. */
 int vos_supervisor_plan(const struct vos_supervisor_manifest *m,
                         const struct vos_supervisor_epoch *epoch,
-                        uint32_t current_epoch, uint32_t restart,
+                        uint64_t current_epoch, uint32_t restart,
                         uint32_t attempts, struct vos_supervisor_plan *out);
 /* Call after completed teardown and immediately before consuming any start. */
 int vos_supervisor_request_current(const struct vos_supervisor_manifest *m,
                                    const struct vos_supervisor_epoch *epoch,
-                                   uint32_t current_epoch,
+                                   uint64_t current_epoch,
                                    const struct vos_supervisor_start *request);
 
 extern const struct vos_supervisor_manifest vos_m8a_supervisor_manifest;

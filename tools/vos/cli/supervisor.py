@@ -4,7 +4,7 @@
     python tools/run.py supervisor check
 
 Generated C answers are compiled as exact equalities against SupervisionTree.v.
-Fixed consumer controls are reported separately. No target image is built.
+Consumer and generated effect controls are reported separately. No target image is built.
 """
 
 import argparse

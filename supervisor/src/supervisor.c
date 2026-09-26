@@ -43,7 +43,8 @@ int vos_supervisor_manifest_ok(const struct vos_supervisor_manifest *m)
     return 1;
 }
 
-static uint32_t delay(const struct vos_supervisor_manifest *m, uint32_t attempts)
+uint32_t vos_supervisor_backoff(const struct vos_supervisor_manifest *m,
+                               uint32_t attempts)
 {
     return attempts < m->backoff_count ? m->backoff[attempts] : m->ceiling;
 }
@@ -66,14 +67,14 @@ int vos_supervisor_decide(const struct vos_supervisor_manifest *m,
                     state->interventions < m->max_interventions;
     out->action = state->interventions < m->max_interventions ?
                   m->respond[detector] : m->escalation;
-    out->delay = delay(m, state->attempts);
+    out->delay = vos_supervisor_backoff(m, state->attempts);
     out->boot_admitted = state->boots < m->boot_bound;
     return 1;
 }
 
 int vos_supervisor_plan(const struct vos_supervisor_manifest *m,
                         const struct vos_supervisor_epoch *epoch,
-                        uint32_t current_epoch, uint32_t restart,
+                        uint64_t current_epoch, uint32_t restart,
                         uint32_t attempts, struct vos_supervisor_plan *out)
 {
     uint32_t i, unit, selected;
@@ -83,7 +84,7 @@ int vos_supervisor_plan(const struct vos_supervisor_manifest *m,
         return 0;
     selected = restart ? m->restart_members : members(m->units);
     plan.stop_members = restart ? selected : 0;
-    plan.delay = restart ? delay(m, attempts) : 0;
+    plan.delay = restart ? vos_supervisor_backoff(m, attempts) : 0;
     for (i = 0; i < m->units; ++i) {
         unit = m->order[i];
         if ((selected & (1U << unit)) != 0) {
@@ -99,7 +100,7 @@ int vos_supervisor_plan(const struct vos_supervisor_manifest *m,
 
 int vos_supervisor_request_current(const struct vos_supervisor_manifest *m,
                                    const struct vos_supervisor_epoch *epoch,
-                                   uint32_t current_epoch,
+                                   uint64_t current_epoch,
                                    const struct vos_supervisor_start *request)
 {
     if (m == 0 || epoch == 0 || request == 0 ||

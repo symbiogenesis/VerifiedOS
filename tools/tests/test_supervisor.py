@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Supervisor differential syntax, coverage and the native consumer controls."""
+"""Supervisor differential syntax, coverage and native consumer/effect controls."""
 
 import subprocess
 import sys
@@ -66,6 +66,7 @@ def native_consumer_controls() -> None:
                               text=True, timeout=60, check=False)
         ensure(done.returncode == 0, done.stderr)
         ensure("fixed consumer controls" in done.stderr, "consumer controls did not report")
+        ensure("generated effect executions" in done.stderr, "effect controls did not report")
         for bad in ("9\n", "0 18\n", "1 8 3 0 0 2 0\n", "2 5 0\n", "garbage\n"):
             refused = subprocess.run([str(binary)], input=bad, capture_output=True,
                                      text=True, timeout=60, check=False)
