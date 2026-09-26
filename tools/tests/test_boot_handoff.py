@@ -3,13 +3,16 @@
 
 import hashlib
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
+
+from vos import boot_handoff as bh
+from vos import boot_target, env, toolenv
 
 from tests.harness import TOOLS, Case, ensure
-from vos import boot_handoff as bh
-from vos import env, toolenv
 
 ROOT = TOOLS.parent
 
@@ -176,6 +179,40 @@ def _scheduled_producer() -> None:
             raise AssertionError("missing timer offset silently defaulted")
 
 
+def _target_stack_budget() -> None:
+    stream = "cincoffsetimm c2, c2, -16\nli x31, -2528\ncincoffset c2, c2, x31\n"
+    ensure(boot_target.stack_ceiling(stream) == 2544,
+           "large target frame was omitted from the declared stack ceiling")
+    for source in ("", stream + "cincoffset c2, c2, x15\n",
+                   "cincoffsetimm c2, c2, 16\n"):
+        try:
+            boot_target.stack_ceiling(source)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("an unknown stack allocation supplied a budget")
+
+
+def _emulator_process_verdict() -> None:
+    for line, code, expected in (("SUCCESS\n", 0, "success"), ("SUCCESS\n", -11, "no-verdict"),
+                                 ("FAILURE: 4\n", 1, "failure"), ("FAILURE: 4\n", -11, "no-verdict"),
+                                 ("FAILURE: 4\n", 0, "no-verdict")):
+        with patch.object(bh.subprocess, "run", return_value=subprocess.CompletedProcess([], code, line, "")):
+            result = bh.emulate(Path("simulator"), Path("profile"), Path("image"), 1)
+        ensure(result.verdict == expected, "an abnormal process exit supplied an emulator verdict")
+
+
+def _receipt_required() -> None:
+    holder, root = _sandbox((bh.HEADER,))
+    with holder:
+        try:
+            bh.run_harness(root, root / "missing-simulator", root / "output", 1)
+        except ValueError as exc:
+            ensure("build receipt" in str(exc), "missing receipt did not fail first")
+        else:
+            raise AssertionError("a receipt-free run was admitted")
+
+
 def _registers_split() -> None:
     lay = bh.layout(ROOT)
     digest = hashlib.shake_256(b"image").digest(32)
@@ -193,7 +230,8 @@ def _harness_run() -> None:
     environment = env.load()
     ensure(environment.simulator.is_file(), f"no golden emulator at {environment.simulator}")
     result = bh.run_harness(environment.root, environment.simulator,
-                            environment.lane_root / "boot-handoff-test", 60)
+                            environment.lane_root / "boot-handoff-test", 60,
+                            build_receipt=environment.log("model-build").with_suffix(".json"))
     failing = [f"{line.case}: {line.problems}" for line in result.lines if line.problems]
     ensure(result.ok, f"boot-handoff harness failed: {failing} {result.findings}")
     ensure(len(result.lines) == len(bh.cases()), "a case produced no line")
@@ -206,6 +244,9 @@ def cases() -> list[Case]:
             Case("the image builder places every field", _image_builder),
             Case("an explicit signer receives the exact prefix", _explicit_signer),
             Case("the scheduled producer follows timer owners", _scheduled_producer),
+            Case("the target stack budget includes large frames", _target_stack_budget),
+            Case("abnormal emulator exits provide no verdict", _emulator_process_verdict),
+            Case("the model build receipt is mandatory", _receipt_required),
             Case("the two registers split unit and generation inputs", _registers_split),
             Case("every contract case on the golden emulator", _harness_run,
                  slow=True, lane="toolchain")]

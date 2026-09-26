@@ -222,7 +222,8 @@ def timer_windows(root: Path) -> tuple[int, int]:
     return addresses[0], addresses[1]
 
 
-def scheduled_mmode(root: Path, partition_text: tuple[tuple[str, str], ...] = ()) -> str:
+def scheduled_mmode(root: Path, partition_text: tuple[tuple[str, str], ...] = (),
+                     revocation_word: str | None = None) -> str:
     """Mint exact timer and partition execute slots before bounding the root table.
 
     The caller supplies a nonempty kernel composition and a root table holding
@@ -255,6 +256,16 @@ def scheduled_mmode(root: Path, partition_text: tuple[tuple[str, str], ...] = ()
                      "        li      t0, 0x1cb\n"
                      "        candperm c13, c13, t0\n"
                      f"        sc      c13, {24 + 8 * index}(c10)\n")
+    if revocation_word is not None:
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", revocation_word):
+            raise ValueError("the revocation word requires a declared assembly symbol")
+        addition += (f"        li      t0, {revocation_word}\n"
+                     "        csetaddr c13, c8, t0\n"
+                     "        li      t0, 8\n"
+                     "        csetbounds c13, c13, t0\n"
+                     "        li      t0, 0x7\n"
+                     "        candperm c13, c13, t0\n"
+                     f"        sc      c13, {24 + 8 * len(partition_text)}(c10)\n")
     return stage.replace(anchor, anchor + addition, 1)
 
 
@@ -390,9 +401,9 @@ def emulate(simulator: Path, config: Path, elf: Path, timeout: int,
     records = trace.normalize_commit(output.splitlines())
     pcs = [int(r.split()[1], 16) for r in records if r.startswith("I ")]
     failure = re.search(r"^FAILURE: (\d+)", output, re.MULTILINE)
-    if re.search(r"^SUCCESS$", output, re.MULTILINE):
+    if done.returncode == 0 and re.search(r"^SUCCESS$", output, re.MULTILINE):
         verdict, code = "success", 0
-    elif failure:
+    elif done.returncode == 1 and failure:
         verdict, code = "failure", int(failure.group(1))
     else:
         verdict, code = "no-verdict", done.returncode
@@ -869,6 +880,8 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
     """
     lay = layout(root)
     out.mkdir(parents=True, exist_ok=True)
+    if build_receipt is None:
+        raise ValueError("boot-handoff requires a successful matching model build receipt")
     if signature_scheme not in ("fixture", "slh256s"):
         raise ValueError(f"unknown signature scheme {signature_scheme}")
     signer = (boot_signing.SlhSigner(out / "signing", ROOT_STATES,
@@ -889,11 +902,10 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
     }
     model_sources = receipts.inputs(root, "model")
     report["model_sources_sha256"] = model_sources
-    if build_receipt is not None:
-        kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
-                                      receipts.digest(simulator), model_sources)
-        report["model_build_receipt"] = str(build_receipt)
-        report["model_build_receipt_sha256"] = receipts.digest(build_receipt)
+    kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
+                                  receipts.digest(simulator), model_sources)
+    report["model_build_receipt"] = str(build_receipt)
+    report["model_build_receipt_sha256"] = receipts.digest(build_receipt)
     findings: list[str] = contract_findings(root)
     binary, compiler = compile_rot_stage(root, out)
     report["compiler"] = compiler

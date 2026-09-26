@@ -22,9 +22,10 @@ kernel accepts the handoff. Every report carries `milestone_acceptance: open`.
 
 import argparse
 import hashlib
+import subprocess
 from pathlib import Path
 
-from vos import boot_handoff, env, receipts
+from vos import boot_handoff, boot_target, env, receipts
 from vos.cli import Table, dispatch
 from vos.corpus import find_root
 
@@ -51,23 +52,31 @@ def cmd_layout(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     e = env.load()
-    simulator = Path(args.simulator) if args.simulator else e.simulator
-    if args.simulator and not args.build_receipt:
-        print("an explicit simulator requires --build-receipt for its model sources")
-        return 1
-    if not simulator.is_file():
-        print(f"no golden emulator at {simulator}; run `run.py model build` first")
-        return 1
     out = Path(args.out) if args.out else e.lane_root / "boot-handoff"
+    with env.hold_lock(out, "boot handoff"):
+        return _run_handoff(args, e, out)
+
+
+def _require_simulator(simulator: Path, explicit: bool, receipt: str | None) -> None:
+    if explicit and not receipt:
+        raise ValueError("an explicit simulator requires --build-receipt for its model sources")
+    if not simulator.is_file():
+        raise ValueError(f"no golden emulator at {simulator}; run `run.py model build` first")
+
+
+def _run_handoff(args: argparse.Namespace, e: env.Environment, out: Path) -> int:
+    simulator = Path(args.simulator) if args.simulator else e.simulator
     out.mkdir(parents=True, exist_ok=True)
     report_path = out / "report.json"
     receipts.write(report_path, {"status": "incomplete", "milestone_acceptance": "open",
                                 "signature_scheme": args.signature_scheme})
     try:
+        _require_simulator(simulator, bool(args.simulator), args.build_receipt)
         result = boot_handoff.run_harness(e.root, simulator, out, args.timeout,
                                           args.signature_scheme,
-                                          Path(args.build_receipt) if args.build_receipt else None)
-    except (OSError, ValueError, RuntimeError) as exc:
+                                          Path(args.build_receipt) if args.build_receipt
+                                          else e.log("model-build").with_suffix(".json"))
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         receipts.write(report_path, {"status": "failed", "milestone_acceptance": "open",
                                     "signature_scheme": args.signature_scheme, "error": str(exc)})
         print(f"FAIL boot-handoff: {exc}")
@@ -89,13 +98,47 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_signature_target(args: argparse.Namespace) -> int:
+    e = env.load()
+    out = Path(args.out) if args.out else e.lane_root / "boot-signature-target"
+    simulator = Path(args.simulator) if args.simulator else e.simulator
+    with env.hold_lock(out, "boot signature target"):
+        receipts.write(out / "report.json", {"status": "incomplete", "passed": False,
+                                              "milestone_acceptance": "open"})
+        try:
+            result = boot_target.run(e.root, out, Path(args.ccomp), args.ccomp_arg, simulator,
+                                      Path(args.build_receipt), Path(args.image),
+                                      Path(args.public_key), args.timeout, args.inst_limit)
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+            receipts.write(out / "report.json", {"status": "failed", "passed": False,
+                                                 "milestone_acceptance": "open", "error": str(exc)})
+            print(f"FAIL boot signature target: {exc}")
+            return 1
+        result["status"] = "passed" if result["passed"] else "failed"
+        receipts.write(out / "report.json", result)
+    print(f"{'ok' if result['passed'] else 'FAIL'} boot signature target: {out / 'report.json'}; "
+          "SLH callback on the RoT profile; milestone_acceptance: open")
+    return 0 if result["passed"] else 1
+
+
 TABLE: Table = {
     "layout": (cmd_layout, "the contract's tables and the image against vos_boot.h"),
     "run": (cmd_run, "every contract case through the RoT stage and the golden emulator"),
+    "signature-target": (cmd_signature_target, "real SLH verification on the RoT profile"),
 }
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "signature-target":
+        sub.add_argument("--ccomp", required=True, help="accepted contained compiler executable")
+        sub.add_argument("--ccomp-arg", action="append", default=[], help="compiler option, repeatable")
+        sub.add_argument("--simulator", help="golden emulator (default: lane model build)")
+        sub.add_argument("--build-receipt", required=True, help="successful matching model build receipt")
+        sub.add_argument("--image", required=True, help="complete real-signed boot image")
+        sub.add_argument("--public-key", required=True, help="exact raw SLH public-key file")
+        sub.add_argument("--out", help="native output directory")
+        sub.add_argument("--timeout", type=int, default=1200, help="seconds per target run")
+        sub.add_argument("--inst-limit", type=int, default=150_000_000, help="instructions per target run")
     if name == "run":
         sub.add_argument("--out", help="output directory (default: the lane's boot-handoff/)")
         sub.add_argument("--timeout", type=int, default=60,
