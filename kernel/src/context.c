@@ -8,10 +8,10 @@
  * the partition can name, restored or written to zero by the profile's own
  * disposition; and R-07-044's pending component on either arm. It is the
  * restore plan the switch text executes, not the instruction sequence: C
- * cannot place values into x1 to x31 or order a total restore, and no
- * emitter yet owns the sequence of `lc` loads, CSR writes, `vmclear`,
- * `fence.t` and the dispatching `mret` (kernel/README.md), so nothing here
- * claims one.
+ * cannot place values into x1 to x31 or order a total restore. The separate
+ * scalar emitter in tools/vos/kernel_restore.py owns `lc`, `fence.t` and
+ * `mret` for the C-class subset with an empty nameable CSR roster. General
+ * CSR restoration and `vmclear` remain unimplemented (kernel/README.md).
  *
  * `vos_rotation_image` is R-07-037b's intra-slot step between members of one
  * same-label group: the same register swap and restorable-CSR restore, the
