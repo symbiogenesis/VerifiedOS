@@ -631,6 +631,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-005b | proofs/KernelInstance.v | a_filtered_restore_carries_no_marked_authority | claimed |
 | R-08-005b | proofs/KernelInstance.v | a_filtered_restore_of_an_unsanitized_image_is_not_total | claimed |
 | R-08-006 | proofs/ElasticDomain.v | n/a | cited |
+| R-08-006 | proofs/ElasticPool.v | n/a | cited |
 | R-08-006 | proofs/KernelInstance.v | the_filter_is_the_identity_on_a_sanitized_image | claimed |
 | R-08-006 | proofs/KernelInstance.v | completion_refuses_a_resident_root | claimed |
 | R-08-006 | proofs/KernelInstance.v | completion_refuses_an_unfiltered_saved_context | claimed |
@@ -687,6 +688,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-047b | proofs/ElasticDomain.v | an_exact_grant_needs_no_rounding | claimed |
 | R-08-047b | proofs/ElasticDomain.v | every_byte_is_zero_at_handoff | claimed |
 | R-08-047b | proofs/ElasticDomain.v | a_passed_gate_is_a_barrier_then_a_whole_sweep_begun_after_it | claimed |
+| R-08-047b | proofs/ElasticPool.v | n/a | cited |
 | R-08-047c | proofs/ElasticDomain.v | confinement_survives_every_transfer | claimed |
 | R-08-047d | proofs/ElasticDomain.v | n/a | cited |
 | R-08-047e | proofs/ElasticDomain.v | n/a | cited |
@@ -1404,6 +1406,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-007i | proofs/KernelInstance.v | the_fixed_zero_register_is_a_premise_and_not_a_theorem | claimed |
 | R-15-007i | proofs/PartitionContext.v | restore_total_over_registers | claimed |
 | R-15-007k | proofs/ElasticDomain.v | an_exact_grant_needs_no_rounding | claimed |
+| R-15-007k | proofs/ElasticPool.v | n/a | cited |
 | R-15-007k | proofs/MemoryPlan.v | the_specification_quantum_is_the_coarsest_within_that_bound | claimed |
 | R-15-007k | proofs/MemoryPlan.v | a_quantized_slot_base_narrows_exactly | claimed |
 | R-15-007k | proofs/MemoryPlan.v | the_specification_narrowing_check_admits_only_exact_narrowings | claimed |

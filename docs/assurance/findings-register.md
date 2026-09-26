@@ -2169,7 +2169,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-421** owed-act: where a restore burst begins is undefined, and over a whole boundary window trap entry writes a general register and the dispatching `mret` writes `mstatus`, so `BurstWritesExactlyOnce` cannot hold there
 · Raised: M4.4, in prose
-· Disposition: partial: the scalar emitter declares distinct setup, register-restore and dispatch extents and checks their actual traces; the composed kernel and general CSR/vector restore remain open
+· Disposition: open; the scalar emitter declares distinct setup, register-restore and dispatch extents and checks their actual traces, while the composed kernel and general CSR/vector restore remain open
 
 **F-422** owed-act: every Zicsr access needs access-system-registers on PCC, which a partition lacks, so the CSRs a partition can name reduce to state its other instructions write implicitly
 · Raised: M4.4, in prose
@@ -2177,7 +2177,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-423** owed-act: no emitter owns the partition switch's context-restore sequence, C placing no value into `x1` to `x31` and ordering no total restore with the CSR writes, `vmclear`, `fence.t`, the MEPCC install and the dispatching `mret`
 · Raised: M4.4, in prose
-· Disposition: partial: tools/vos/kernel_restore.py owns ordered merged-register loads, MEPCC, fence.t and mret for the C-class subset with an empty nameable CSR roster; general CSR/vector/pending restoration and the real kernel binding remain open
+· Disposition: open; tools/vos/kernel_restore.py owns ordered merged-register loads, MEPCC, fence.t and mret for the C-class subset with an empty nameable CSR roster, while general CSR/vector/pending restoration and the real kernel binding remain open
 
 **F-424** measurement: the contained compiler in typed mode refuses a pointer result that is null on one path and an address on another, at the allocated-CFG check and again at a comparison with a live address
 · Raised: M4.4, in prose

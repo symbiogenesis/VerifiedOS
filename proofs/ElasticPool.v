@@ -6,6 +6,11 @@
    The finite metadata implementation in vos/elastic_pool.py needs its own
    refinement to this producer before Q34c can close. No accepted assumption
    stands in for that missing theorem or the physical R-08-006 barrier.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-08-006 R-08-047b R-15-007k
+   SHA256: a407f1939593abf05d1115294fa1cd45c99aa6419220bc5e045eaaa69f81ac33
+   (*| END derived |*)
    ========================================================================= *)
 
 From Stdlib Require Import Bool List Arith Lia.
