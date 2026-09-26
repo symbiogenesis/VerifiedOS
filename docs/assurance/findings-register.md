@@ -1770,11 +1770,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-449** measurement: the typed backend refuses a narrowing program whose allocation places the length register on the capability's register, "typed narrowing: length register aliases capability", 2 of the default campaign's 70 members and 4 of 30 narrowing draws
 · Raised: M1.2f, in prose
-· Disposition: open, the contained backend's narrowing lowering
+· Disposition: closed; the contained emitter preserves an aliased scalar length in the reserved scratch register before writing the capability result. The complete generated campaign and its perturbed twins compile and execute, and deleting the preservation copy produces an assembled target that traps
 
 **F-450** measurement: the typed frontend refuses assignment to any function parameter as an assignment to an undeclared temporary, the temporaries excluding the parameters
 · Raised: M1.2f, in prose
-· Disposition: open, the M1.2g-ii frontend and M1.2d-ii boundary owners, the refusal's message naming a parameter assignment at least
+· Disposition: closed; the contained frontend resolves assignment destinations against declared parameters and temporaries, preserving kinds and authority metadata. The clean rebuilt compiler passes integer, capability, call-result and primitive-result reassignment controls and their compiling semantic twins; the old compiler reproduces the original refusals
 
 **F-451** owed-act: every typed-backend frame saves and reloads `c30` and `c1`, so M1.7's capability round-trip trace reading holds of a program with no pointer and cannot show that a data pointer went through memory
 · Raised: M1.2f, in prose
@@ -1782,7 +1782,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-452** method: the component evidence's Wasm side was compiled in the undeclared, unlocked legacy switch `certirocq-0.9.1` under OCaml 4.14.2 rather than the declared oracle switch, and the component report binds the module digest but not its producing environment
 · Raised: M1.2f, in prose
-· Disposition: open, the component built in the declared switch or its environment bound in the report
+· Disposition: closed by the producer-binding arm of the component contract; the fresh ordered-vector comparison binds the legacy switch's package export, compiler/prover/runtime identities, installed libraries and staged sources. The intended portable oracle bootstrap remains incomplete
 
 **F-453** measurement: the simulator binary's digest is revision-bound, changing with the embedded `git describe` while `model/` is byte-identical
 · Raised: M1.2f, in prose
@@ -1790,15 +1790,15 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-454** owed-act: the generated campaign produces no composition-bound construct, no indirect or sealed call, other primitive, handle or global
 · Raised: M1.2f, in prose
-· Disposition: open, the campaign broadened against reviewed compositions
+· Disposition: closed for finite functional acceptance; the repaired compiler freshly replays the existing reviewed primitive, ordinary/sealed/spilled-call, handle, nested-boundary and global populations on the current source-identified model. Universal refinement and prior general proof receipts retain their separate scope
 
 **F-455** measurement: the contained compiler accepts a narrowing plan whose request is moved 256 bytes below its actual local with identical assembly, so only the final-byte census places a request on its local, and it is not run over campaign images
 · Raised: M1.2f, in prose
-· Disposition: open, M1.2e-ii's narrowing contract and M1.2f's census clause
+· Disposition: closed; the complete campaign receives final-image, runtime-placement and installed-root receipts. Their exact assumption audit and kernel check pass; a displaced request that passes static plan checks fails runtime_binding_0 against the actual local
 
 **F-456** owed-act: whether a hand-written CompCert-C counterpart of a Gallina component satisfies the criterion's *lowered purecap* is unruled, the comparison reading one boolean, the image's own first failing check unobserved, and no gate rerunning it when `ipc_oracle.v` or its imports change
 · Raised: M1.2f, in prose
-· Disposition: open, a ruling on the component route
+· Disposition: closed; the component comparison contract admits the reference-only authored-C route. Fresh Wasm and purecap executions compare the complete source-owned ordered check vector and first failure, with semantic, coordinate, order and malformed-output refusals and complete producer/input binding. No extraction or source-refinement proof is claimed
 
 **F-457** owed-act: the program driver's result binds only the top translation unit's SHA-256 and not the sources it includes
 · Raised: M1.2f, in prose

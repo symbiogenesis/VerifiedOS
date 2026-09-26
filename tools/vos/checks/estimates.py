@@ -138,11 +138,11 @@ AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A
 # member is the open item carrying that label, or every open child of one that carries no
-# cell of its own, which is how M1.2 enters through its open children. The membership is the
+# cell of its own. The membership is the
 # author's, as the two partitions above are; what is held is that each member is occupied
 # and that the range, the midpoint and the horizon the plan states are the arithmetic over
 # those cells
-CHAIN_M8A = ["M1.2", "M1.7", "M3.5", "M4.4", "M5.3", "M7.1", "M8a"]
+CHAIN_M8A = ["M1.7", "M3.5", "M4.4", "M5.3", "M7.1", "M8a"]
 
 # the calibration record: one row per completed attended item, the pool its authority fell
 # in and the earliest estimate its cell recorded. The pools are the three the plan's basis
