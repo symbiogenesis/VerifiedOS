@@ -1300,9 +1300,9 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     does is a finding here rather than a surprise later
     (docs/assurance/differential-corpus.md).
 
-    The programs are purecap and hand-written, and the assembler that reads them
-    is [vos/asm.py](vos/asm.py) rather than a toolchain: none exists until M1.4,
-    which is downstream of everything this corpus gates.
+    Members use the frozen purecap dialect. Generated clients retain their
+    reproduction recipes; the in-tree assembler reads both authored and
+    compiler-emitted members.
     """
     corpus = differential.load(e.root)
     if not corpus.members:
