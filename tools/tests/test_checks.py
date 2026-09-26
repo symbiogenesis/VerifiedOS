@@ -118,7 +118,9 @@ def _nested_estimates_keep_chain_membership() -> None:
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                        PLAN: plan}) as root:
         ctx = _context(root, fix=True)
-        estimates.run(ctx)
+        # The synthetic plan owns its chain independently of current project progress.
+        with patch.object(estimates, "CHAIN_M8A", ["M1.2", "M1.7"]):
+            estimates.run(ctx)
         ensure(not any("names M1.2 " in finding
                        for finding in _findings_under(ctx, "K-96")),
                "a nested chain member is occupied by its priced descendants")
