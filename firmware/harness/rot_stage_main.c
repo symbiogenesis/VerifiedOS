@@ -2,8 +2,8 @@
 // The boot-handoff harness's host driver for the RoT stage. Not firmware.
 //
 // It runs firmware/rot/boot_verify.c compiled for the host, standing in for
-// the RoT hart until the purecap backend and M1.7's target path can build that
-// file for the RoT composition. Main SRAM is two host buffers, release is a
+// the RoT hart while that stage's target lowering remains open.
+// Main SRAM is two host buffers, release is a
 // flag, and the verdict is printed as key=value lines that
 // tools/vos/boot_handoff.py reads.
 //
@@ -11,8 +11,8 @@
 // accepts exactly SHAKE256(FIXTURE_DOMAIN || public key || message) at the
 // SLH-DSA-SHAKE-256s signature size, which anyone holding the public key can
 // compute. It exists so the harness can exercise the verdict path a real
-// verifier's accept and reject would take; the production binding is the
-// SLH-DSA-SHAKE-256s verifier the contract assigns to M3.4.
+// verifier's accept and reject would take. The same driver can select the
+// actual SLH-DSA-SHAKE-256s callback for its measured-release campaign.
 //
 // The racing arm of the same verifier stands for another requester writing the
 // caller's input while the release runs: when called, it first writes a given

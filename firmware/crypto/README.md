@@ -28,6 +28,10 @@ The independent comparison campaign is `python tools/run.py boot-crypto run --ga
 Keccak's unchanged round constants and rotation offsets use bounded local arrays.
 This storage placement fits the accepted purecap compiler's scalar-global profile;
 it introduces no table values, algorithm changes or larger input bounds.
+The [target translation unit](../harness/slh_target.c) and `boot-handoff
+signature-target` retain a bounded RoT-profile trial with real header inputs.
+Compilation or an instruction-limited run without an HTIF verdict supplies no
+signature target acceptance.
 
 The campaign compiles host C with warnings as errors, freestanding options and
 AddressSanitizer/UndefinedBehaviorSanitizer. It compares every applicable

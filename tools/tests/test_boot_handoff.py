@@ -213,6 +213,29 @@ def _receipt_required() -> None:
             raise AssertionError("a receipt-free run was admitted")
 
 
+def _compiler_file_bindings() -> None:
+    holder, root = _sandbox(())
+    with holder:
+        config = root / "compcert.ini"
+        headers = root / "include"
+        headers.mkdir()
+        header = headers / "stdint.h"
+        config.write_text("model=64\n", encoding="utf-8")
+        header.write_text("typedef unsigned long uint64_t;\n", encoding="utf-8")
+        flags = ["-conf", str(config), "-stdlib", str(headers)]
+        original = boot_target.compiler_inputs(flags)
+        ensure(len(original) == 2, "compiler config or header closure was omitted")
+        header.write_text("typedef unsigned int uint64_t;\n", encoding="utf-8")
+        ensure(boot_target.compiler_inputs(flags) != original, "changed runtime header kept its identity")
+        for invalid in (["-conf"], ["-conf", str(root / "missing")]):
+            try:
+                boot_target.compiler_inputs(invalid)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("missing compiler input was silently omitted")
+
+
 def _registers_split() -> None:
     lay = bh.layout(ROOT)
     digest = hashlib.shake_256(b"image").digest(32)
@@ -247,6 +270,7 @@ def cases() -> list[Case]:
             Case("the target stack budget includes large frames", _target_stack_budget),
             Case("abnormal emulator exits provide no verdict", _emulator_process_verdict),
             Case("the model build receipt is mandatory", _receipt_required),
+            Case("compiler configuration and headers are bound", _compiler_file_bindings),
             Case("the two registers split unit and generation inputs", _registers_split),
             Case("every contract case on the golden emulator", _harness_run,
                  slow=True, lane="toolchain")]

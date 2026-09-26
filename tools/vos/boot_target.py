@@ -19,6 +19,21 @@ from vos.cli import compiler_diff as cd
 SOURCE = "firmware/harness/slh_target.c"
 
 
+def compiler_inputs(arguments: list[str]) -> dict[str, str]:
+    """Bind explicit compiler configuration, runtime headers and forced includes."""
+    paths: list[Path] = []
+    for index, argument in enumerate(arguments):
+        if argument not in ("-conf", "-stdlib", "-include"):
+            continue
+        if index + 1 >= len(arguments):
+            raise ValueError(f"{argument} requires a compiler input path")
+        path = Path(arguments[index + 1]).resolve()
+        if not path.exists():
+            raise ValueError(f"compiler input does not exist: {path}")
+        paths.extend([path] if path.is_file() else sorted(p for p in path.rglob("*") if p.is_file()))
+    return {str(path): receipts.digest(path) for path in paths}
+
+
 def stack_ceiling(stream: str) -> int:
     """Sum all nonrecursive function frames, refusing unknown allocation shapes."""
     small = re.findall(r"cincoffsetimm c2, c2, -(\d+)", stream)
@@ -76,6 +91,7 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
     sources = receipts.inputs(root, "firmware", "tools/vos")
     model_sources = receipts.inputs(root, "model")
     identities = {str(p): receipts.digest(p) for p in (ccomp, simulator, build_receipt, boot_image, public_key)}
+    compiler_files = compiler_inputs(ccomp_args)
     kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
                                   identities[str(simulator)], model_sources)
     lay = bh.layout(root)
@@ -86,7 +102,9 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
     signature = boot[lay["BOOT_HDR_SIGNATURE"]:lay["BOOT_HEADER_BYTES"]]
     # The real host callback must accept the exact same image before a positive
     # target claim is possible. The input image has the bring-up layout/floor.
+    host_compiler = receipts.executables("cc")
     host, _ = bh.compile_rot_stage(root, out)
+    host_digest = receipts.digest(host)
     host_said = bh.rot_stage(host, boot_image, bh.RotInputs(3, 1, 0, 0), "slh256s", out,
                              roots={"production": public})
     if host_said.get("verdict") != "release":
@@ -104,11 +122,12 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
     if frames > cd.STACK_BYTES:
         raise ValueError("the sum of SLH target frames exceeds the bounded harness stack")
     rows: list[dict[str, object]] = []
-    for name, key, sig, expected in (
+    cases = (
         ("valid", public, signature, 0),
         ("corrupt-signature", public, bh.flip(signature, 0), 1),
         ("wrong-root", bh.flip(public, 0), signature, 1),
-    ):
+    )
+    for name, key, sig, expected in cases:
         composite = compose(compiled.stream, key, message, sig)
         (out / f"{name}.s").write_text(composite, encoding="utf-8", newline="\n")
         assembler = asm.Assembler(composite, name)
@@ -122,26 +141,41 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
                 "--inst-limit", str(inst_limit), str(elf)]
         began = time.monotonic()
         log = out / f"{name}.log"
-        with log.open("w", encoding="utf-8") as output:
-            completed = subprocess.run(argv, cwd=out, stdout=output, stderr=subprocess.STDOUT,
-                                       timeout=timeout, check=False)
-        verdict, code, said = cd.htif_verdict(log.read_text(encoding="utf-8"), completed.returncode)
+        process_exit: int | None = None
+        try:
+            with log.open("w", encoding="utf-8") as output:
+                completed = subprocess.run(argv, cwd=out, stdout=output, stderr=subprocess.STDOUT,
+                                           timeout=timeout, check=False)
+                process_exit = completed.returncode
+        except subprocess.TimeoutExpired:
+            verdict, code, said = "no-verdict", None, f"target exceeded {timeout}s"
+        else:
+            verdict, code, said = cd.htif_verdict(log.read_text(encoding="utf-8"), completed.returncode)
         passed = (verdict == ("pass" if expected == 0 else "fail") and code == expected
-                  and completed.returncode == expected)
+                  and process_exit == expected)
         rows.append({"case": name, "expected_accept": expected == 0, "verdict": verdict,
                      "code": code, "diagnostic": said, "passed": passed,
                      "seconds": round(time.monotonic() - began, 3), "argv": argv,
-                     "process_exit": completed.returncode, "elf_sha256": receipts.digest(elf),
+                     "process_exit": process_exit, "elf_sha256": receipts.digest(elf),
                      "log_sha256": receipts.digest(log)})
         receipts.write(out / "progress.json", {"status": "incomplete", "cases": rows})
+        if name == "valid" and not passed:
+            break
     if sources != receipts.inputs(root, "firmware", "tools/vos") or model_sources != receipts.inputs(root, "model"):
         raise ValueError("signature target sources changed during the campaign")
     if any(receipts.digest(Path(path)) != value for path, value in identities.items()):
         raise ValueError("signature target tools or inputs changed during the campaign")
-    return {"passed": all(row["passed"] for row in rows), "cases": rows,
+    if compiler_files != compiler_inputs(ccomp_args):
+        raise ValueError("signature target compiler configuration or headers changed")
+    if host_compiler != receipts.executables("cc") or host_digest != receipts.digest(host):
+        raise ValueError("signature target host compiler or verifier changed")
+    return {"passed": len(rows) == len(cases) and all(row["passed"] for row in rows), "cases": rows,
+            "unexecuted_cases": [name for name, _, _, _ in cases[len(rows):]],
             "scope": "SLH callback on RoT profile, with host measured-release input",
             "milestone_acceptance": "open", "source_sha256": sources,
             "model_source_sha256": model_sources, "inputs_sha256": identities,
+            "compiler_inputs_sha256": compiler_files, "host_compiler": host_compiler,
+            "host_binary_sha256": host_digest,
             "preprocessed_sha256": compiled.preprocessed.sha256,
             "assembly_sha256": compiled.stream_sha256, "compile_argv": list(compiled.argv),
             "stack_bytes": cd.STACK_BYTES, "sum_of_function_frames": frames,

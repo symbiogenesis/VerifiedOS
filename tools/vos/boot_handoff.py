@@ -7,8 +7,8 @@ run meets them:
 
 1. The RoT stage is [boot_verify.c](../../firmware/rot/boot_verify.c) compiled for the
    host with [the harness driver](../../firmware/harness/rot_stage_main.c), standing in
-   for the RoT hart until the purecap backend and M1.7's target path can build it for
-   the RoT composition. Every report says so.
+   for the RoT hart while that stage's lowering and execution remain open.
+   Every report says so.
 2. Its device inputs come from the golden emulator running
    [the probe](../../firmware/harness/rot_inputs.s) under the RoT composition, so the
    lifecycle state, the entropy verdict and the floor are the model's answers.
@@ -893,8 +893,8 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
         "inputs_sha256": receipts.inputs(root, *INPUTS, "tools/vos"),
         "simulator": str(simulator),
         "simulator_sha256": hashlib.sha256(simulator.read_bytes()).hexdigest(),
-        "rot_executor": "firmware/rot/boot_verify.c compiled for the host; the RoT hart "
-                        "does not execute it until the purecap backend and M1.7 join",
+        "rot_executor": "firmware/rot/boot_verify.c compiled for the host; actual RoT stage "
+                        "lowering and execution remain open",
         "signature_verifier": "firmware/crypto/slh256s.c: SLH-DSA-SHAKE-256s internal message"
                               if signer is not None else "fixture (not a signature scheme)",
         "kernel_consumer": FIXTURE,
@@ -1073,7 +1073,7 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
         findings.append("the simulator changed during the campaign")
     if model_sources != receipts.inputs(root, "model"):
         findings.append("model sources changed during the campaign")
-    if build_receipt is not None and report["model_build_receipt_sha256"] != receipts.digest(build_receipt):
+    if report["model_build_receipt_sha256"] != receipts.digest(build_receipt):
         findings.append("the model build receipt changed during the campaign")
     if report["rot_stage_sha256"] != receipts.digest(binary):
         findings.append("the compiled RoT stage changed during the campaign")

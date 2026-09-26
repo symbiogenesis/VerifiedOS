@@ -8,8 +8,8 @@
 // which is checked against the composition's region before anything reads that
 // far. An optimizing compiler may still turn the byte loops into memcpy or
 // memset calls, so the target build must add -ffreestanding -fno-builtin. The
-// target build of this file waits on the purecap backend and M1.7's target
-// path; the harness compiles it for the host and says so in every report.
+// target lowering of this stage remains open; the harness compiles it for the
+// host and says so in every report.
 #include "vos_boot.h"
 #include "vos_keccak.h"
 

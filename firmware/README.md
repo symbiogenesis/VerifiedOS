@@ -15,6 +15,7 @@ file is and what it is not.
 | [harness/rot_stage_main.c](harness/rot_stage_main.c) | The host driver that runs the release with main SRAM as buffers, selecting real SLH verification or the fixture, with an input-race control for each | Firmware; the fixture verifier is not a signature scheme |
 | [harness/kernel_entry_fixture.s](harness/kernel_entry_fixture.s) | A kernel-entry fixture that checks the handoff state and reports through HTIF, with the bring-up kernel layout | M4.4's kernel |
 | [harness/rot_inputs.s](harness/rot_inputs.s) | A probe that reads the RoT's lifecycle state, entropy verdict and floor under the RoT composition | Firmware |
+| [harness/slh_target.c](harness/slh_target.c) | One translation unit for compiling the existing SHAKE and SLH callback through the selected purecap backend | The complete RoT release stage or a passing target execution claim |
 
 **Where each runs today.** The boot-handoff harness
 runs the release host-compiled in place of the RoT hart and says so in every
@@ -28,7 +29,8 @@ the same cases, including the racing input control. OpenSSL creates disposable
 signing keys and signatures in the native output lane; the firmware verifier
 makes each release decision. The default `fixture` mode remains separately named.
 An explicit `--simulator` requires its `--build-receipt`, checked against the
-current model sources; otherwise the command uses the lane's model build.
+current model sources; otherwise the command uses the lane's model build and its
+successful build receipt. A crash cannot supply a release or refusal verdict.
 `python tools/run.py
 boot-handoff layout` checks the contract's layout, case and permission tables and
 the assembled image against `vos_boot.h`, the harness and the image's constants
@@ -38,6 +40,15 @@ without a toolchain.
 timer windows and ASR-free partition execute roots before the final handoff.
 The kernel supplies the nonempty descriptor and validates the actual capabilities.
 The fixture and its empty descriptor retain their own predicate.
+
+`python tools/run.py boot-handoff signature-target --help` describes the bounded
+RoT-profile verifier trial. It requires a real signed boot image, its raw public
+key, an explicit contained compiler and a successful model build receipt. The
+positive must complete with HTIF success before the corrupt-signature and
+wrong-root controls run. A cutoff or timeout records no verdict and leaves those
+controls unexecuted. Target code and data stay in the native output lane. The
+complete RoT stage still needs its release mechanism, policy lowering and boot
+chain joins.
 
 The C is written to stay within what the target will need: no allocation, no
 library call in the source and no loop bound read from the image beyond a length

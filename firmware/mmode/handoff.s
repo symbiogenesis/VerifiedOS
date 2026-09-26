@@ -5,10 +5,9 @@
 # load base of the M-mode image region under the model's reset distribution
 # (model/model/postlude/step_ext.sail) and ends in the no-link sentry jump of
 # docs/implementation/contracts/purecap-abi.md section 7. The layout it installs
-# is docs/implementation/contracts/boot-handoff.md section 6. It is a hand
-# lowering because no compiler reaches the dialect yet: the C lowering of this
-# stage waits on the primitive bindings for cspecialrw and csealentry (M1.2d)
-# and on M1.7's target path, and the contract names that join.
+# is docs/implementation/contracts/boot-handoff.md section 6. This stage remains
+# a hand lowering; its C form and privileged primitive bindings have not joined
+# the accepted purecap compiler's target path.
 #
 # What it reads from the composition is symbolic: the kernel's text, data,
 # stack, root table and initialization descriptor are labels the composed image
