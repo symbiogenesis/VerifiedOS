@@ -65,18 +65,20 @@ The two `Compute` lines are the check count and the answer *inside* the kernel, 
 
 ## The purecap counterpart: `ipc_oracle.c` (M1.2f)
 
-[ipc_oracle.c](ipc_oracle.c) is the same 84-check battery written GC-free in the [selected scalar C profile](../../docs/implementation/contracts/compiler-source-values.md), check for check in `ipc_oracle.v`'s order, for M1.2f's component-level differential. It is a hand-written refinement and not an extraction: the inductives are integer codes, lists are caller-owned arrays, every function-valued argument is defunctionalized into a code, and structural recursion is a loop. `main` returns 0 when every check holds and otherwise the first failing check's number. `run.py compiler-diff component` lowers it through the contained backend, runs it on the golden emulator under a harness that prints `true` or `false` as `run_demo.mjs` does, and compares the two sides under one declared encoding:
+[ipc_oracle.c](ipc_oracle.c) implements the check battery GC-free in the [selected scalar C profile](../../docs/implementation/contracts/compiler-source-values.md), in `ipc_oracle.v`'s order. Its inductives are integer codes, lists are caller-owned arrays, function-valued arguments are defunctionalized codes, and structural recursion becomes a loop. The [component contract](../../docs/implementation/contracts/compiler-component.md) admits this authored-C reference route and retains the missing extraction and source-refinement proof. `main` returns zero on success or the first failing check's position.
+
+[compare_component.py](compare_component.py) freshly stages and compiles both arms, exposes every existing check through observation wrappers, and compares the complete ordered Boolean vectors and first failures. It runs the semantic mask-boundary mutation on both arms, both crossed comparisons and a corruption at every observation position. The population comes from the Gallina owner. Its receipt binds source closures, wrappers, preprocessed C, compiler, Wasm, final image, emulator, model sources and the installed Wasm producer. Run from the repository root in WSL, with a fresh output directory in the assigned native lane:
 
 ```console
-$ python3 tools/run.py compiler-diff component \
-    --wasm /root/build/lane-<name>/wasm/ipc_oracle.ipc_oracle.wasm \
-    --c tools/wasm-oracle/ipc_oracle.c \
-    --ccomp /native/contained/ccomp --ccomp-arg=-conf --ccomp-arg=/native/compcert.ini \
-    --ccomp-arg=-fverifiedos-typed --lane --interp
-AGREE     both sides under vos-component-output/1: verdict 0 and 5 byte(s)
+$ python3 tools/wasm-oracle/compare_component.py \
+    --compiler /native/contained/ccomp \
+    --compiler-config /native/compcert.ini \
+    --model-snapshot /root/build/lane-<name>/model-snapshot \
+    --switch certirocq-0.9.1 \
+    --out /root/build/lane-<name>/component-vector
 ```
 
-The seeded red line has a C twin: `upto(31, masks)` widened to `upto(32, masks)` in `mask_checks` answers `false` on both sides. The component harness reads only whether `main` returned 0, so the image's own first failing check is not observed; the reference interpreter names check 40 as the first to fail. Nothing but this comparison keeps the two files in step, and it reports a change the other file does not mirror only where the change moves an answer. No gate reruns it: a change to `ipc_oracle.v`, [EndpointIPC.v](../../proofs/EndpointIPC.v) or `ipc_oracle.c` needs the staging above and this comparison rerun by hand. Agreement over the battery is differential evidence rather than a refinement proof.
+The model snapshot contains `sail_riscv_sim` and its successful `model-build.json` receipt. The command identifies the existing legacy Wasm environment, including its package export and installed libraries; this does not complete the intended bootstrap above. Missing or changed dependencies invalidate the evidence. Source or tool changes require this experiment to be reissued; Host CI and Guest CI do not execute it. The older `run.py compiler-diff component` aggregate-output mode remains a driver diagnostic and does not satisfy the complete-vector contract. Agreement is finite differential evidence, not a refinement proof.
 
 ## Keeping the VM under a long build
 
