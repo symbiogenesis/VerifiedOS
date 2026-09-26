@@ -6,6 +6,7 @@
     python tools/run.py kernel check [--vectors FILE]
     python tools/run.py kernel mutants [--vectors FILE]
     python tools/run.py kernel reader --vectors FILE
+    python tools/run.py kernel restore --simulator PATH --build-receipt FILE
 
 [kernel/](../../../kernel/) is the GC-free C of one kernel instance, authored against
 [PartitionContext.v](../../../proofs/PartitionContext.v),
@@ -38,6 +39,12 @@ the C here was compiled by the lane's host compiler, not by the accepted purecap
 backend, and no image ran on the emulator. The kernel's target build, its
 initial-capability handoff and its corpus member remain M4.4's joins, and every
 report says so.
+
+`restore` is a separate target experiment: it emits the scalar final restore
+primitive, builds generated tagged/untagged images and executable defects, and
+checks actual ordered trace writes and in-program HTIF refusals on the emulator.
+It requires a successful model-build receipt matching the simulator and current
+model sources. It supplies no kernel C lowering, firmware handoff or boot.
 """
 
 import argparse
@@ -51,7 +58,7 @@ from pathlib import Path
 from typing import Final
 from unittest import mock
 
-from vos import cli, env, gallina, kernelrun, proofs, seeded
+from vos import cli, env, gallina, kernel_restore, kernelrun, proofs, seeded
 from vos.corpus import find_root
 
 HARNESS: Final = gallina.KERNEL
@@ -595,15 +602,42 @@ def oracle_named(decided: Sequence[tuple[seeded.Verdict, str | None]]) -> str:
     return f"kernel differential ({spread or 'no kill'})"
 
 
+def cmd_restore(args: argparse.Namespace) -> int:
+    """Focused target experiment for the scalar final restore primitive."""
+    e = env.load(toolchain=False)
+    simulator = Path(args.simulator) if args.simulator else e.simulator
+    if not simulator.is_file():
+        print(f"FAIL no simulator at {simulator}; supply --simulator or build this lane")
+        return 1
+    out = Path(args.out) if args.out else e.lane_root / "kernel-restore"
+    try:
+        report = kernel_restore.run(e.root, simulator, out, args.timeout, Path(args.build_receipt))
+    except (OSError, ValueError) as error:
+        print(f"FAIL scalar restore: {error}")
+        return 1
+    for row in report["cases"]:
+        state = "PASS" if row["matched"] else "FAIL"
+        print(f"{state} {row['name']}: HTIF {row['htif']} {row['htif_code']}")
+    print(f"scalar restore target controls; milestone_acceptance: open; {out / 'report.json'}")
+    return 0 if report["ok"] else 1
+
+
 COMMANDS: cli.Table = {
     "vectors": (cmd_vectors, "compile KernelVectors.v against its closure; print vectors"),
     "check": (cmd_check, "the kernel C and the trace reader against the vectors"),
     "mutants": (cmd_mutants, "authored defects through both differentials"),
     "reader": (cmd_reader, "the trace reader alone over a vector file on disk"),
+    "restore": (cmd_restore, "generated scalar restore controls on the golden emulator"),
 }
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "restore":
+        sub.add_argument("--simulator", help="explicit golden emulator executable")
+        sub.add_argument("--build-receipt", required=True,
+                         help="successful model build receipt binding simulator and model sources")
+        sub.add_argument("--out", help="output directory (default: this lane's kernel-restore/)")
+        sub.add_argument("--timeout", type=int, default=60, help="seconds per target control")
     if name == "vectors":
         sub.add_argument("--show", type=int, default=3, metavar="N",
                          help="print the first N vectors as a sample")

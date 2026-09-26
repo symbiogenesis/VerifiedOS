@@ -2,7 +2,7 @@
 
 The GC-free C of one isolated kernel instance, M4.4 in the [implementation checklist](../docs/implementation/implementation-checklist.md). It is authored against the Gallina statements [PartitionContext.v](../proofs/PartitionContext.v), [CyclicExecutive.v](../proofs/CyclicExecutive.v) and [KernelInstance.v](../proofs/KernelInstance.v), under M4.1b's ruling that the kernel C is authored rather than started from CHERI-seL4. Nothing here derives from seL4 or CHERI-seL4. The [service-authoring contract](../docs/implementation/contracts/service-authoring.md#2-single-kernel-instance) and the [scalar ABI](../docs/implementation/contracts/purecap-abi.md) govern its interfaces.
 
-**The target build is unbuilt.** The executive, context and partition sources compile in a host model and are checked there against generated Gallina vectors. The handoff byte readers have separate native C controls over the firmware-owned wire layout; [test/target_selfcheck.c](test/target_selfcheck.c) compiles only the earlier three sources through the contained compiler, as described below. No accepted purecap backend has compiled the kernel, no image containing it has booted on the emulator, and no corpus member exercises it. A green host check is agreement with the Gallina definitions at generated points, plus the harnesses' own stated expectations, and nothing more.
+**The target C build is unbuilt.** The executive, context and partition sources compile in a host model and are checked there against generated Gallina vectors. The handoff byte readers have separate native C controls over the firmware-owned wire layout; [test/target_selfcheck.c](test/target_selfcheck.c) compiles only the earlier three sources through the contained compiler, as described below. The [scalar restore emitter](../tools/vos/kernel_restore.py) runs its final register restore and dispatch on the golden emulator under generated controls. No accepted purecap backend has compiled the kernel, no image containing the kernel C has booted on the emulator, and no corpus member exercises it. A green host check is agreement with the Gallina definitions at generated points, plus the harnesses' own stated expectations, and nothing more.
 
 ## What each file owns
 
@@ -16,6 +16,7 @@ The GC-free C of one isolated kernel instance, M4.4 in the [implementation check
 | [include/vos_handoff.h](include/vos_handoff.h) and [src/handoff.c](src/handoff.c) | Bounded field-by-field readers for the `c11` record and `c12` initialization bytes, using [vos_boot.h](../firmware/include/vos_boot.h)'s layout constants; save-area declarations are retained beside the consumer record | [test/handoff.c](test/handoff.c)'s fixed controls, including the actual assembled firmware fixture's empty schedule refusal |
 | [test/host_vectors.c](test/host_vectors.c) | The host-model differential over [KernelVectors.v](../tools/quickchick/KernelVectors.v)'s `kx`, `kc`, `kr`, `kq` and `ke` families, the release expectations, and the fixed consumer refusal controls, each counted apart | n/a |
 | [test/target_selfcheck.c](test/target_selfcheck.c) | One translation unit for the contained compiler's program loop | n/a |
+| [vos/kernel_restore.py](../tools/vos/kernel_restore.py) | Scalar final restore emission and generated target controls, with distinct setup, restore and dispatch extents | [test_kernel_restore.py](../tools/tests/test_kernel_restore.py) checks assembler acceptance, missing observations, exact write multiplicity and stale build refusal; `kernel restore` checks actual emulator traces and in-program HTIF controls |
 
 `python tools/run.py kernel check` runs the host differential and the trace reader's; `python tools/run.py kernel mutants` runs the authored defects through both and credits each kill to the kind of expectation that decided it: a Gallina vector, a fixed consumer control, or the harness's release expectation. The [tool guide](../tools/README.md) lists the command.
 
@@ -42,11 +43,61 @@ adapter must supply that span from the read-only handoff, not trust a claimed si
 
 ## What is not here, and who supplies it
 
-- **The restore and dispatch sequence.** C cannot place values into `x1` to `x31` or order a total restore, and no emitter owns the sequence: the `lc` loads of the merged file, the CSR writes, `vmclear`, `fence.t`, the MEPCC install and the dispatching `mret`. Under R-05-023b a primitive is admissible for any instruction row the profile carries, so an `mret` primitive turns on the profile's rows and the backend's implementation rather than on a missing admission rule; what no artifact assigns is an owner for the register placement and ordering. The emitter R-15-069b gives the compartment switcher's `cclear` rule (R-18-014a) is a candidate. `context.c` computes the image that sequence must install and does not claim the sequence.
+- **The general restore and dispatch sequence.** The scalar emitter below owns register placement, MEPCC installation, `fence.t` and `mret` for the C-class subset with no nameable CSR. CSR writes, V/M `vmclear`, pending-state installation, and the compiler's primitive binding and call-site preparation remain owed. `context.c` computes the abstract image; its `vos_context` record is not the scalar emitter's wire image.
 - **Trap entry, the boundary timer and restart.** The save phase, R-07-040's boundary handler, the crash-only restart and the protected switcher frames the ABI's section 4 assigns to M4.4 are not written.
 - **The executive's other duties.** R-11-023's slot-to-tenant permutation, R-11-024's table swap, R-07-037b's group rotation dispatch and R-07-037g's elastic dispatch are not implemented. `vos_rotation_image` is R-07-037b's step between members of one group and never zeroizes; R-07-037g's cross-application `vmclear`, which PartitionContext.v's `Rotation` does not state either, is not here. The M4.4 member must therefore compose single-partition tenants.
 - **The target reads of the handoff.** The root-set table in `c10`, the boot descriptor in `c11` and the initialization descriptor in `c12` arrive as capabilities under M3.5's handoff. [The boot-handoff contract](../docs/implementation/contracts/boot-handoff.md#6-the-kernel-entry-and-initial-capability-handoff) fixes their wire layout. `vos_init_decode` reads `c12`'s bytes into the consumer record, checks exact length, widths and capacities, and invokes `vos_init_validate` before publishing it. `vos_boot_record_decode` reads the `c11` record's bytes. Neither reader inspects a capability or proves the measured chain authenticated those bytes. The `c10` tagged-member loads, capability tag/bounds/permission checks and their target primitive bindings remain owed. A nonempty save-area declaration sets `has_context` and is retained, but constructing an actual initial context still remains a separate join. The revocation observation half remains host-model only.
 - **The M4.4 corpus member.** [vos/kernelrun.py](../tools/vos/kernelrun.py) reads KernelInstance.v's three questions off an emulator trace and is held to the Gallina predicate over generated traces; its burst cut and trace parsing are held by host unit tests only. The member itself is a composed image that boots under the actual initial capability distribution, attempts the declared over-bound derivations and checks in the program that each is refused, reporting through HTIF, switches through declared restore text and runs the table. It waits on M1.2f's accepted backend, M1.7's target path and M3.5's actual handoff.
+
+## Scalar final restore
+
+[vos/kernel_restore.py](../tools/vos/kernel_restore.py)'s `emit` owns a final
+restore primitive for the C class with an empty partition-nameable CSR roster.
+The model's [CSR access check](../model/model/core/ext_regs.sail) denies every
+scalar CSR access to a successor PCC without access-system-registers permission.
+The emitter refuses V/M classes and nonempty rosters. This subset does not decide
+the general CSR roster, implicit vector CSR writes, or out-of-file capability and
+pending-state obligations.
+
+On entry, `c31` points at a stable kernel-owned image containing 32 eight-byte
+capability slots followed by the successor MEPCC at byte 256. The complete image
+occupies 264 bytes. This is a separate transfer layout, not a C struct overlay of
+`vos_context`: that record has CSR fields after its merged-register file. The
+caller must construct the image and establish readable bounds, a null slot zero,
+successor confinement, a PCC without access-system-registers, and the revocation,
+timer and trap-state prerequisites before entry. The generated test harness
+constructs that image directly with capability stores. It supplies no firmware
+handoff or C-to-primitive binding.
+
+Setup reads the saved MEPCC through `c30` and installs it. The declared restore
+extent then loads `c1` through `c31` once each, in order, keeping `c31` as the image
+base until its own final load, and executes `fence.t`. The separate dispatch
+extent contains `mret`; its `mstatus` write is observed there, outside the register
+restore extent. The primitive preserves tags through capability loads, has no
+ordinary call continuation, and never uses a restored register as scratch.
+Architectural `x0` remains the null zero register and supplies no trace write.
+
+`python tools/run.py kernel restore --simulator PATH --build-receipt FILE`
+assembles and executes generated controls on the golden emulator. The required
+successful model-build receipt binds the simulator's bytes and all current model
+source bytes. The report retains that receipt's identity, source and profile
+snapshots, each source/ELF/trace identity, declared extents, process return codes,
+HTIF results and individual observations. A changed input during the campaign
+refuses the aggregate result. The command compares the exported model-source and
+simulator join; it does not revalidate the original build tree's other artifacts
+or installed build tools.
+
+Each positive control stores a different mixed tagged/untagged image, captures all
+restored registers before using scratch, and compares the captured words and tags
+with the saved image in-program. The trace reader independently compares the
+actual input stores with the actual ordered restore writes, including the final
+`c31`, and checks MEPCC installation and `mret`'s effects. Omitted `x17`, lost `c3`
+tag, early image-base restoration and omitted `mret` controls must produce their
+specific HTIF refusals. A duplicate register load and an omitted fence retain HTIF
+success and must fail their trace obligations, so equal final values cannot
+conceal those defects. These controls exercise the emitted primitive on the
+target; they do not establish a kernel boot, schedule, static duration or semantic
+revocation completion. Every report keeps M4.4 acceptance open.
 
 ## Under the contained compiler
 
