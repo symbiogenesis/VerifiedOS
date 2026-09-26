@@ -136,6 +136,31 @@ def slot_roundtrips(records: list[str], base: int, count: int) -> list[int]:
     return sorted(matched)
 
 
+def controls(text: str, stage: Path, simulator: Path) -> dict[str, object]:
+    """Execute compiling defects in client values and client capability storage."""
+    mutants = (
+        ("wrong-gallina-character", " addi x6, x0, 72\n", " addi x6, x0, 73\n", 2),
+        ("untagged-client-slot", " sc c13, 0(c14)\n", " sd x13, 0(c14)\n", 284),
+        ("missing-client-store", " sc c13, 0(c14)\n", " nop\n", 284),
+    )
+    results: dict[str, object] = {}
+    for name, old, new, expected in mutants:
+        if text.count(old) != 1:
+            raise ValueError(f"control site missing or ambiguous: {name}")
+        source = stage / f"{name}.s"
+        source.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
+        elf = stage / f"{name}.elf"
+        asm.assemble_file(source, elf)
+        ran = compiler_diff.run_image([str(simulator)], ROOT / "model/config/verifiedos.json",
+                                      elf, stage)
+        if ran.code != expected or ran.verdict not in ("fail", "trap") or not ran.records:
+            raise ValueError(f"live target control survived or did not run: {name}: {ran}")
+        results[name] = {"image_sha256": sha(elf), "assembled": True,
+                         "verdict": ran.verdict, "code": ran.code,
+                         "records": ran.records, "digest": ran.digest}
+    return results
+
+
 def native(args: argparse.Namespace) -> int:
     stage = Path(args.stage)
     if not stage.is_absolute():
@@ -218,6 +243,7 @@ def native(args: argparse.Namespace) -> int:
     if (verdict != "pass" or code != 0 or not records
             or len(slots) != len(MESSAGE) or terminal.read_bytes() != MESSAGE):
         raise ValueError(f"target refused: {verdict} {code} {detail}; {len(slots)} slot roundtrips")
+    negative = controls(text, stage, simulator) if args.controls else {}
     if inputs != receipts.inputs(ROOT, *INPUTS):
         raise ValueError("source inputs changed during reproduction")
     if external != {str(path): sha(path) for path in external_paths}:
@@ -238,6 +264,7 @@ def native(args: argparse.Namespace) -> int:
               "client_c_sha256": sha(source), "assembly_sha256": sha(assembly),
               "image_sha256": sha(elf), "image_bytes": elf.stat().st_size,
               "slot_addresses": slots, "trace_sha256": sha(stage / "trace.log"),
+              "controls": negative,
               "member": {"name": MEMBER, "source": assembly.name,
                          "checks": differential.count_checks(text), "records": len(records),
                          "digest": trace.digest(records)},
@@ -269,6 +296,7 @@ def main() -> int:
     parser.add_argument("--model-receipt", required=True)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--export", action="store_true")
+    parser.add_argument("--controls", action="store_true")
     args = parser.parse_args()
     try:
         return native(args)
