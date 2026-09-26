@@ -131,6 +131,18 @@ def control_source(control: Control) -> str:
     return "\n".join(lines) + "\n"
 
 
+def instruction_groups(records: list[kernelrun.Record]) -> list[
+        tuple[tuple[int, int], list[kernelrun.Record]]]:
+    """Keep effects attached to the retirement that produced them."""
+    groups: list[tuple[tuple[int, int], list[kernelrun.Record]]] = []
+    for kind, fields in records:
+        if kind == "I":
+            groups.append(((fields[0], fields[1]), []))
+        elif groups:
+            groups[-1][1].append((kind, fields))
+    return groups
+
+
 def observations(records: list[kernelrun.Record], symbols: dict[str, int]) -> dict[str, bool]:
     """Read actual stored input and ordered restore writes, with independent cuts."""
     restore = kernelrun.Extent(symbols["vos_restore_begin"], symbols["vos_restore_end"])
@@ -159,6 +171,42 @@ def observations(records: list[kernelrun.Record], symbols: dict[str, int]) -> di
              if kind == "S" and fields[0] == dialect.SCRS["mepcc"]]
     dispatch_csrs = [fields[0] for b in dispatch_bursts for kind, fields in b if kind == "C"]
     pcs = [(fields[0], fields[1]) for kind, fields in records if kind == "I"]
+    groups = instruction_groups(records)
+    starts = [i for i, (instruction, _) in enumerate(groups) if instruction[0] == setup.base]
+    start = starts[0] if len(starts) == 1 else len(groups)
+    canonical = asm.Assembler(".text\n" + emit(), "restore-contract").assemble()[0][0].data
+    expected_path = [(setup.base + offset, int.from_bytes(canonical[offset:offset + 4], "little"))
+                     for offset in range(0, len(canonical), 4)]
+    window = groups[start:start + len(expected_path) + 1]
+    # Membership in a text extent cannot establish chronology. Require the
+    # complete contiguous instruction path, once, through the successor entry.
+    path = (len(window) == len(expected_path) + 1
+            and [instruction for instruction, _ in window[:-1]] == expected_path
+            and window[-1][0][0] == symbols["successor"]
+            and sum(setup.base <= instruction[0] <= symbols["successor"]
+                    for instruction, _ in groups) == len(window))
+    setup_window = groups[start:start + 3]
+    setup_before = (len(setup_window) == 3
+                    and [instruction for instruction, _ in setup_window[:2]] == expected_path[:2]
+                    and setup_window[2][0][0] == restore.base
+                    and not any(restore.within(instruction[0])
+                                for instruction, _ in groups[:start]))
+    setup_effects = [[(kind, fields) for kind, fields in effects if kind in ("X", "S", "C", "T")]
+                     for _, effects in setup_window[:2]]
+    setup_aligned = (saved_entry is not None and setup_effects == [
+        [("X", (30, *saved_entry))], [("S", (dialect.SCRS["mepcc"], *saved_entry))]])
+    restore_groups = [(instruction, effects) for instruction, effects in groups
+                      if restore.within(instruction[0])]
+    # Each load must write its own register, under that exact instruction; a
+    # shifted X record cannot borrow an adjacent instruction's register value.
+    aligned = (complete and len(restore_groups) == REGISTER_COUNT
+               and all(instruction == expected_path[r + 1]
+                       and [(kind, fields) for kind, fields in effects
+                            if kind in ("X", "S", "C", "T")]
+                       == [("X", (r, int(saved[r][1]), saved[r][0]))]
+                       for r, (instruction, effects) in enumerate(restore_groups[:-1], start=1))
+               and not any(kind in ("X", "S", "C", "T")
+                           for kind, _ in restore_groups[-1][1]))
     fence = asm.Assembler(".text\n fence.t\n", "fence").assemble()[0][0].data
     fence_word = int.from_bytes(fence, "little")
     return {
@@ -167,9 +215,13 @@ def observations(records: list[kernelrun.Record], symbols: dict[str, int]) -> di
         "register_values_and_tags": complete and kernelrun.switch_is_total((), succ, burst),
         "exactly_once": kernelrun.burst_writes_exactly_once((), burst),
         "ordered_registers_base_last": order == list(range(1, REGISTER_COUNT)),
-        "fence_at_restore_end": (restore.top - 4, fence_word) in pcs,
+        "exact_instruction_sequence": path,
+        "register_effects_aligned": aligned,
+        "fence_at_restore_end": (bool(restore_groups)
+                                  and restore_groups[-1][0] == (restore.top - 4, fence_word)),
         "mepcc_installed_before_restore": (saved_entry is not None and saved_entry[0] == 1
-                                            and len(mepcc) == 1 and mepcc[0][1:] == saved_entry),
+                                            and len(mepcc) == 1 and mepcc[0][1:] == saved_entry
+                                            and setup_before and setup_aligned),
         "dispatch_mret": (dispatch.base, 0x30200073) in pcs,
         "dispatch_mstatus_outside_restore": dispatch_csrs == [dialect.CSRS["mstatus"]],
         "successor_reached": any(pc == symbols["successor"] for pc, _ in pcs),
@@ -215,6 +267,8 @@ def require_build(record: object, simulator_digest: str, model_sources: dict[str
 
 def run(root: Path, simulator: Path, out: Path, timeout: int, build_receipt: Path) -> Report:
     """Run every generated control, retaining source, ELF and raw trace identities."""
+    root, simulator, out, build_receipt = (
+        path.resolve() for path in (root, simulator, out, build_receipt))
     out.mkdir(parents=True, exist_ok=True)
     profile = root / "model/config/verifiedos.json"
     input_paths = (
