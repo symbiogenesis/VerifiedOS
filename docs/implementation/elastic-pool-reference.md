@@ -17,6 +17,18 @@ changes the admitted layout. The quarantine allowance covers all declared slots.
 This deliberately conservative layout establishes no fragmentation or latency
 measurement for the desktop workload.
 
+Independently revocable sibling slots also have disjoint eight-byte revocation
+granule footprints. Byte-disjoint small allocations cannot share a bitmap bit:
+retiring one would clear a stored capability to its still-live neighbor. Small
+size classes remain admitted when their placed slots leave the required gaps.
+`DomainPools` checks whole arena extents for overlap across all island and memory
+class keys, including unused arena gaps. These are addresses in the platform's
+single physical address space, not coordinates local to an island.
+The [physical-address contract](../spec.md#r-15-002) and
+[ElasticDomain.v](../../proofs/ElasticDomain.v)'s `extents_separate` predicate
+own that interpretation; issuer identities cannot make overlapping physical
+storage independent.
+
 The mutable slot phases are `free`, `live`, `pending`, `barrier` and `sweeping`.
 Release publishes revocation and enters pending quarantine. A retained register
 copy prevents the semantic barrier. Successful barrier completion moves only
@@ -44,6 +56,13 @@ the old subtree unusable through the reference API, including after the parent's
 storage is reallocated. Issuer identities separate pools with identical layouts
 and allocation serials. These Python identities model trusted service handles;
 they are not capability tags or a proof of adversarial Python object isolation.
+
+Histories are recorded per pool level. A descendant's writes change the shared
+backing but are not copied into its ancestors' event lists. The generated Gallina
+campaign checks top-level histories; composing all descendant observations and
+the real initial backing with those histories remains part of the refinement
+join. The finite implementation zeroes each allocation before every grant,
+independently of the observer's reconstruction of previous bytes.
 
 [ElasticPool.v](../../proofs/ElasticPool.v) proves that an executable
 history-indexed event producer preserves `PoolGuarantees` for every requested

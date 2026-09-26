@@ -54,6 +54,7 @@ class Plan:
         if not all(c.exact() for c in self.classes):
             raise PoolError("class is not exactly representable")
         extents: list[tuple[int, int]] = []
+        revocation_extents: list[tuple[int, int]] = []
         for base, cls in self.slots:
             if not 0 <= cls < len(self.classes):
                 raise PoolError("class is outside the composition table")
@@ -63,7 +64,15 @@ class Plan:
                 raise PoolError("slot is unaligned or outside its arena")
             if any(base < hi and lo < top for lo, hi in extents):
                 raise PoolError("composition slots overlap")
+            # R-08-005a keys one bit by each eight-byte base granule. Byte-
+            # disjoint allocations that share that bit cannot retire and reuse
+            # independently. Small classes remain available with placed gaps.
+            first = base // rev.GRANULE
+            limit = (top + rev.GRANULE - 1) // rev.GRANULE
+            if any(first < hi and lo < limit for lo, hi in revocation_extents):
+                raise PoolError("composition slots share a revocation granule")
             extents.append((base, top))
+            revocation_extents.append((first, limit))
 
 
 @dataclass(frozen=True)
@@ -305,9 +314,16 @@ class DomainPools:
         classes = {cls for _, cls in self.pools}
         if set(self.pools) != {(island, cls) for island in islands for cls in classes}:
             raise PoolError("missing per-island memory-class pool")
+        extents: list[tuple[int, int]] = []
         for key, pool in self.pools.items():
             if key != (pool.plan.island, pool.plan.memory_class):
                 raise PoolError("pool bound to a different island or class")
+            # R-15-002 gives all islands and memory classes one physical address
+            # space. The whole owned arena is reserved, including unused gaps.
+            base, top = pool.plan.base, pool.plan.base + pool.plan.span
+            if any(base < hi and lo < top for lo, hi in extents):
+                raise PoolError("physical pool extents overlap")
+            extents.append((base, top))
 
     def allocate(self, holder: int, memory_class: int, cls: int) -> Grant:
         if holder not in self.launch_islands:
