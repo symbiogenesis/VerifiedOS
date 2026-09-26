@@ -8,8 +8,9 @@
  * a missing descriptor, a wrong-composition or wrong-hart descriptor, and an
  * initialization lacking a planned successor are refused before any dispatch,
  * as producer/consumer checks and not as capability faults. The record read
- * here is the consumer's, not the `c12` byte layout M3.5's handoff owns, and
- * no code yet parses that layout into it.
+ * here is the consumer's, not the `c12` byte layout M3.5's handoff owns.
+ * handoff.c parses that layout and invokes these checks before publishing
+ * the consumer record; target capability entry remains unbuilt.
  *
  * A tenant is one partition here. R-07-037b's same-label groups and
  * R-07-037e's elastic domains give one tenant several partitions; neither is
@@ -164,9 +165,9 @@ enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t compos
       }
     }
   }
-  /* Every table entry must name a partition with a planned save area and
-   * initial image: the successor of every boundary exists before the first
-   * dispatch, which is the ABI's "initialization lacking a planned successor". */
+  /* Every table entry must name a partition with a declared planned save
+   * area. These input checks do not construct its initial image; that must
+   * still precede dispatch under the ABI's planned-successor obligation. */
   for (i = 0; i < d->frame.slot_count; i++) {
     int32_t p = vos_partition_index(d, d->frame.slots[i].tenant);
     if (p < 0 || !d->partitions[p].has_context) {

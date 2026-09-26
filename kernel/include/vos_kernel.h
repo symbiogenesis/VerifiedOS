@@ -203,9 +203,10 @@ enum vos_status vos_dispatch_check(const struct vos_bitmap *bm,
  *
  * `vos_init_desc` is this consumer's record of what section 7's refusals and
  * the partition checks read. It is not the byte layout of the `c12`
- * descriptor, which M3.5's handoff owns: the target's reads of that layout,
- * including any header fields it fixes, fill this record and are not
- * written (kernel/README.md).
+ * descriptor, which M3.5's handoff owns. handoff.c decodes that byte layout
+ * into this record and preserves its save-area extents in vos_init_handoff.
+ * Target capability entry and initial-context construction remain unbuilt
+ * (kernel/README.md).
  * ------------------------------------------------------------------------ */
 
 struct vos_extent {
@@ -219,7 +220,7 @@ struct vos_extent {
  * refused (VOS_INIT_TENANT_SHARED) rather than half-validated. */
 struct vos_partition_desc {
   uint32_t tenant;
-  uint32_t has_context; /* a planned save area and initial image exist */
+  uint32_t has_context; /* a planned save area is declared; construction is separate */
   struct vos_extent text;
   struct vos_extent data;
 };
