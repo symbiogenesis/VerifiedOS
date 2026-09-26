@@ -3,12 +3,13 @@
 This directory owns M7.1b's bounded GC-free C core, authored against
 [SupervisionTree.v](../proofs/SupervisionTree.v). It admits a finite manifest, checks
 start order, computes detector/action, dwell, window, boot and backoff decisions,
-and produces ordered start requests with grants filtered by the current revocation
-snapshot. The [roster contract](../docs/implementation/contracts/boot-roster.md)
+and executes ordered start requests through explicit kernel effect bindings,
+with grants filtered by the current revocation snapshot. The
+[roster contract](../docs/implementation/contracts/boot-roster.md)
 fixes its place as the kernel's first partition.
 
 **This is a host-checked core, not an executable target roster member.** The accepted
-M1.2f backend, M4.4 kernel adapter, authenticated manifest handoff, and M7.1a image and
+M1.2f backend, M4.4 kernel effect bindings, authenticated manifest handoff, and M7.1a image and
 boot trace remain open. The code does not perform compartment entry, teardown,
 zeroization, revocation or capability derivation. M6.1b retains the Lustre/Vélus
 lowering and its control-plane obligations.
@@ -52,14 +53,49 @@ in the supplied current snapshot. This chooses the statement's implementation ar
 and does not resolve its documented normative regrant gap. No private memory or
 old capability slots enter the plan.
 
-The kernel adapter must complete teardown, zeroization and revocation of the stop
-set, wait the declared delay, acquire a current epoch snapshot, regenerate the
-plan, and consume starts in order. Immediately before each grant/start it calls
-`request_current` while serialized with revocation; a changed epoch or changed
-grant set is refused. Earlier successful starts must be acknowledged by the
-adapter before the next request. An integer epoch equality is not a kernel
-revocation-completion receipt. The core deliberately supplies no lifecycle,
-window clock or counter-reset policy that the reference leaves unspecified.
+Epoch snapshots, requests and comparisons carry the full nonwrapping 64-bit
+counter fixed by R-08-007a. The supervisor never increments that counter.
+
+## Effect execution boundary
+
+[src/effects.c](src/effects.c) implements the bounded orchestration in
+[include/vos_supervisor_effects.h](include/vos_supervisor_effects.h). The caller
+selects initial bring-up or an admitted restart and supplies trusted kernel
+bindings. Manifest and callback admission happens before any effect; copies keep
+callbacks from changing the selected manifest or callback table during the run.
+The caller still owns the detector, dwell, window and boot policy judgment:
+`execute` does not turn the independent `decide` predicates into an invented
+action rule or reset their declared counters.
+
+A restart first calls the binding that completes teardown and eager zeroization
+of the composition's ownership-closed stop set and returns its actual
+`vos_completion` record. The adapter applies the kernel's
+[`vos_semantic_completion`](../kernel/src/context.c) predicate to that record.
+Epoch advancement alone does not satisfy it. Only after completion does the
+adapter wait the declared delay, acquire serialization and read a fresh snapshot,
+regenerate the plan, and consume starts in manifest order. Initial bring-up starts
+at acquisition and does not call teardown or backoff bindings.
+
+The binding holds serialization against revocation and unit-lifecycle changes
+from snapshot acquisition through the last acknowledged start. Immediately before
+each grant/start the adapter calls `request_current` inside that interval; an
+epoch mismatch or changed grant set is refused. Each successful start acknowledges
+both the exact epoch-filtered grants and the unit's start before the next request.
+Refusal cannot make new authority accessible for that unit. This interval is
+part of the binding contract, not an inference from equal integer epochs.
+
+Any failure stops the sequence, releases an acquired lock exactly once, and
+reports the acknowledged start prefix and the refused unit. The adapter performs
+no retry or rollback. The caller must use that report when selecting recovery;
+repeating initial bring-up after a partial start is not a recovery policy.
+
+These callbacks do not yet have target kernel implementations. Their completion
+record is data from a trusted binding, not independently attested evidence. The
+adapter does not itself perform compartment entry, capability derivation,
+teardown, zeroization, revocation, or clock measurement. Those effects, ownership
+closure, bounded callback completion and the serialized region must be realized
+and checked at M4.4's join. Host test bindings establish sequencing and refusal
+behavior only.
 
 ## Focused comparison
 
@@ -74,8 +110,20 @@ cover stale epochs, retired and invented authority, start and restart requests,
 unchanged outputs on refusal, malformed manifests and boundary capacities; their
 verdict is reported separately from Gallina agreement.
 
+The same harness also generates effect executions across every supported roster
+size, every nonempty suffix of a dependency chain, declared backoff boundaries,
+and a refusal at every callback position beside successful controls. It checks
+the effect trace, exact grant/start order, release of serialization, and the
+reported prefix after refusal. Every revocation-completion bit pattern is
+exercised, including epoch advancement without containment. Controls also cover
+revocation during backoff, stale snapshots, full-width epochs, malformed callback
+tables, and attempted manifest changes by a callback. These checks use host
+bindings and the kernel's actual completion predicate; they supply no target
+effect evidence or new Gallina theorem.
+
 The native build lane retains inputs, answers, generated Gallina and a report
-binding source, generated comparison and binary hashes. Compiler and comparison
+binding source, generated comparison and binary hashes, including the kernel
+completion implementation and headers linked by the harness. Compiler and comparison
 logs live in its directory under `/root/logs`. Source and compiler identities are
 checked before and after the comparison. This is a finite host
 comparison. It neither proves C refinement nor supplies assumption-audit or proof

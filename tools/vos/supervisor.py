@@ -30,10 +30,13 @@ ACTIONS: Final = (
     "StepDownPopulationRung", "DisableNonessentialService", "RestartOwningSubtree",
     "FailStopOwningSubsystem", "EscalateToRotReset",
 )
-SOURCES: Final = ("src/supervisor.c", "src/manifest.c", "test/host.c")
+SOURCES: Final = ("src/supervisor.c", "src/manifest.c", "src/effects.c",
+                  "test/host.c", "test/effects.c")
+KERNEL_SOURCES: Final = ("src/context.c",)
+KERNEL_HEADERS: Final = ("include/vos_kernel.h", "include/vos_platform.h")
 CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
 WAITS: Final = ("Host C/reference agreement only; M1.2f's accepted backend, M4.4's "
-               "kernel adapter and M7.1a's target boot remain open.")
+               "kernel effect bindings and M7.1a's target boot remain open.")
 
 
 @dataclass(frozen=True)
@@ -120,7 +123,10 @@ def build_host(source: Path, binary: Path, compiler: str) -> subprocess.Complete
     binary.parent.mkdir(parents=True, exist_ok=True)
     return subprocess.run(
         [compiler, *CFLAGS, "-I", str(source / "include"),
-         *(str(source / name) for name in SOURCES), "-o", str(binary)],
+         "-I", str(source.parent / "kernel" / "include"),
+         *(str(source / name) for name in SOURCES),
+         *(str(source.parent / "kernel" / name) for name in KERNEL_SOURCES),
+         "-o", str(binary)],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=60, check=False)
 
@@ -146,6 +152,8 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     identities = [root / "proofs" / "SupervisionTree.v",
                   root / "tools" / "vos" / "supervisor.py",
                   root / "supervisor" / "include" / "vos_supervisor.h",
+                  root / "supervisor" / "include" / "vos_supervisor_effects.h",
+                  *(root / "kernel" / name for name in (*KERNEL_SOURCES, *KERNEL_HEADERS)),
                   *(root / "supervisor" / name for name in SOURCES)]
     inputs_before = {path.relative_to(root).as_posix(): _digest(path) for path in identities}
     compiler_before = _digest(Path(compiler))
@@ -202,6 +210,7 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         "compiler": compiler, "compiler_sha256": compiler_before, "cflags": CFLAGS,
         "inputs": inputs_before, "logs": str(logs),
         "binary_sha256": _digest(binary), "answers_sha256": _digest(work / "answers.txt"),
+        "effect_controls": controls.stderr.strip(),
         "comparison_sha256": _digest(work / "SupervisorComparison.v"),
         "limits": WAITS,
     }

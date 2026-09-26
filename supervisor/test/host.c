@@ -3,6 +3,8 @@
 #include <string.h>
 #include "vos_supervisor.h"
 
+int vos_supervisor_effect_controls(void);
+
 /* SupervisionTree.v's demo witness. This is not the M8a composition. */
 static const struct vos_supervisor_manifest demo = {
     5, {0, 1, 2, 3, 4}, {0, 1, 2, 4, 8},
@@ -95,8 +97,10 @@ int main(int argc, char **argv)
     struct vos_supervisor_decision result;
     struct vos_supervisor_epoch epoch = {0, {0, 0, 0, 0, 8}};
     struct vos_supervisor_plan plan;
-    if (argc == 2 && strcmp(argv[1], "controls") == 0)
-        return controls();
+    if (argc == 2 && strcmp(argv[1], "controls") == 0) {
+        int status = controls();
+        return status ? status : vos_supervisor_effect_controls();
+    }
     if (argc != 1)
         return 2;
     while (scanf("%u", &family) == 1) {
