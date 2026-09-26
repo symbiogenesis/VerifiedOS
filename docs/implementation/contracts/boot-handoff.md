@@ -392,7 +392,12 @@ receives the bitmap root.
 
 This finite composition declares the retired object's complete resident and
 saved-copy population and has no borrowed copy, proxy or device access to that
-object. Publication, resident-root clearing and filtered saved-image storage
+object. Its trusted kernel retains a wider protected data root, including
+MTDC, that could mint authority to the object again. The finite witness
+therefore assumes that this reviewed kernel text neither recreates nor regrants
+retired authority after publication; the complete holder and derivable-base
+inventory is explicit. A trace of cleared copies alone establishes no general
+admission proof for that premise. Publication, resident-root clearing and filtered saved-image storage
 must be observed before semantic completion permits dispatch. Epoch-only
 completion and an unsanitized saved image refuse dispatch. The observation
 does not claim reuse, a complete sweep, a general ownership proof or a
