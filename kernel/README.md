@@ -2,7 +2,7 @@
 
 The GC-free C of one isolated kernel instance, M4.4 in the [implementation checklist](../docs/implementation/implementation-checklist.md). It is authored against the Gallina statements [PartitionContext.v](../proofs/PartitionContext.v), [CyclicExecutive.v](../proofs/CyclicExecutive.v) and [KernelInstance.v](../proofs/KernelInstance.v), under M4.1b's ruling that the kernel C is authored rather than started from CHERI-seL4. Nothing here derives from seL4 or CHERI-seL4. The [service-authoring contract](../docs/implementation/contracts/service-authoring.md#2-single-kernel-instance) and the [scalar ABI](../docs/implementation/contracts/purecap-abi.md) govern its interfaces.
 
-**The target C build is unbuilt.** The executive, context and partition sources compile in a host model and are checked there against generated Gallina vectors. The handoff byte readers have separate native C controls over the firmware-owned wire layout; [test/target_selfcheck.c](test/target_selfcheck.c) compiles only the earlier three sources through the contained compiler, as described below. The [scalar restore emitter](../tools/vos/kernel_restore.py) runs its final register restore and dispatch on the golden emulator under generated controls. No accepted purecap backend has compiled the kernel, no image containing the kernel C has booted on the emulator, and no corpus member exercises it. A green host check is agreement with the Gallina definitions at generated points, plus the harnesses' own stated expectations, and nothing more.
+The accepted contained compiler builds the actual C readers, context image, executive and target adapter into a two-partition C-class composition. [The target runner](../tools/vos/kernel_target.py) authenticates its release with the real SLH verifier, executes the firmware handoff and kernel on Sail, and checks bounds, complete restoration, semantic completion and table order. The RoT C executes on the host in this experiment; the report keeps that executor boundary explicit. [The corpus member](../corpus/kernel-instance.s) replays the exact released memory and handoff record. General restoration, restart and extended executive duties remain open below.
 
 ## What each file owns
 
@@ -17,6 +17,7 @@ The GC-free C of one isolated kernel instance, M4.4 in the [implementation check
 | [test/host_vectors.c](test/host_vectors.c) | The host-model differential over [KernelVectors.v](../tools/quickchick/KernelVectors.v)'s `kx`, `kc`, `kr`, `kq` and `ke` families, the release expectations, and the fixed consumer refusal controls, each counted apart | n/a |
 | [test/target_selfcheck.c](test/target_selfcheck.c) | One translation unit for the contained compiler's program loop | n/a |
 | [vos/kernel_restore.py](../tools/vos/kernel_restore.py) | Scalar final restore emission and generated target controls, with distinct setup, restore and dispatch extents | [test_kernel_restore.py](../tools/tests/test_kernel_restore.py) checks assembler acceptance, missing observations, exact write multiplicity and stale build refusal; `kernel restore` checks actual emulator traces and in-program HTIF controls |
+| [include/vos_target.h](include/vos_target.h), [src/target.c](src/target.c), [test/target_unit.c](test/target_unit.c) and [vos/kernel_target.py](../tools/vos/kernel_target.py) | The exact scalar composition, actual byte readers and C switch/executive joined to assembly entry and final restore | `kernel target` runs the signed composition and executable defects on Sail |
 
 `python tools/run.py kernel check` runs the host differential and the trace reader's; `python tools/run.py kernel mutants` runs the authored defects through both and credits each kill to the kind of expectation that decided it: a Gallina vector, a fixed consumer control, or the harness's release expectation. The [tool guide](../tools/README.md) lists the command.
 
@@ -29,8 +30,8 @@ non-Boolean flags, invalid extents, missing save areas and unknown tenants.
 Every refusal leaves the destination unchanged. The boot reader preserves all
 measurement fields and refuses nonzero reserved bytes; reading a record supplies
 no authentication or fresh entropy verdict. Both readers require a stable readable
-span whose actual bounds the caller has established. The future capability entry
-adapter must supply that span from the read-only handoff, not trust a claimed size.
+span whose actual bounds the caller has established. The target entry adapter
+supplies these spans after checking the read-only handoff capabilities.
 
 ## Choices this code takes that the statements do not
 
@@ -39,15 +40,70 @@ adapter must supply that span from the read-only handoff, not trust a claimed si
 - **Two table refusals are the consumer's own.** A zero-width slot, which the time-to-slot map can never select, and a table whose list order is not its time order. The second exists because KernelInstance.v's `SwitchesInTableOrder` reads the table in list order while `admits` admits any order; a time-driven executive over a table listed out of time order would fail the frame clause without making a runtime decision.
 - **A tenant is one partition.** Each record declares one partition, with one text extent, per tenant, and a record giving two partitions one tenant is refused rather than validated through its first member. R-07-037b's same-label groups and R-07-037e's elastic domains are therefore refused, not served.
 - **The capacities are build constants.** `VOS_MAX_SLOTS`, `VOS_MAX_PARTITIONS`, `VOS_MAX_CSRS` and `VOS_MAX_WINDOWS` size the records, and a build supplies each for its composition; a record needing more is refused. No register entry bounds any of them. The header's defaults serve the host model and the smoke: 64 slots cover R-11-021's reference top rung of 32 tenants with R-11-022a's second focus slot and a reserved band of up to 31 slots, whose size R-11-020 does not state; the roster and window defaults answer to no entry at all (KernelInstance.v gaps b and f).
-- **A stale saved image is refused, not dispatched, in the host model.** On an image the barrier did not sanitize, the filtered restore stops satisfying R-07-015 and the faithful one installs stale authority, and the host model's dispatch check refuses both. That takes KernelInstance.v gap a's barrier-sanitizes arm, which the register leaves open at R-08-006 or R-07-015, and nothing specifies whether a refused dispatch idles the slot, restarts the partition or fails the kernel. The target build has no dispatch check.
+- **A stale saved image is refused before dispatch.** The host model checks KernelInstance.v gap a's barrier-sanitizes arm. The finite target composition publishes the bitmap bit, clears the resident source and consumes the model's defined filtered load before invoking the real semantic-completion predicate. A failed completion terminates this bounded observation through HTIF; general recovery policy remains open.
 
 ## What is not here, and who supplies it
 
-- **The general restore and dispatch sequence.** The scalar emitter below owns register placement, MEPCC installation, `fence.t` and `mret` for the C-class subset with no nameable CSR. CSR writes, V/M `vmclear`, pending-state installation, and the compiler's primitive binding and call-site preparation remain owed. `context.c` computes the abstract image; its `vos_context` record is not the scalar emitter's wire image.
-- **Trap entry, the boundary timer and restart.** The save phase, R-07-040's boundary handler, the crash-only restart and the protected switcher frames the ABI's section 4 assigns to M4.4 are not written.
+- **The general restore and dispatch sequence.** The scalar emitter below owns register placement, MEPCC installation, `fence.t` and `mret` for the C-class subset with no nameable CSR. General CSR writes, V/M `vmclear` and pending-state installation remain owed. The target adapter checks the compiled C layout before using its merged-register prefix and writes the separate MEPCC transfer slot explicitly.
+- **General trap entry and restart.** The finite composition installs and observes actual timer boundaries and dispatches each initial context once. Saving and resuming arbitrary outgoing state, crash-only restart and the protected switcher frames the ABI's section 4 assigns to M4.4 remain open.
 - **The executive's other duties.** R-11-023's slot-to-tenant permutation, R-11-024's table swap, R-07-037b's group rotation dispatch and R-07-037g's elastic dispatch are not implemented. `vos_rotation_image` is R-07-037b's step between members of one group and never zeroizes; R-07-037g's cross-application `vmclear`, which PartitionContext.v's `Rotation` does not state either, is not here. The M4.4 member must therefore compose single-partition tenants.
-- **The target reads of the handoff.** The root-set table in `c10`, the boot descriptor in `c11` and the initialization descriptor in `c12` arrive as capabilities under M3.5's handoff. [The boot-handoff contract](../docs/implementation/contracts/boot-handoff.md#6-the-kernel-entry-and-initial-capability-handoff) fixes their wire layout. `vos_init_decode` reads `c12`'s bytes into the consumer record, checks exact length, widths and capacities, and invokes `vos_init_validate` before publishing it. `vos_boot_record_decode` reads the `c11` record's bytes. Neither reader inspects a capability or proves the measured chain authenticated those bytes. The `c10` tagged-member loads, capability tag/bounds/permission checks and their target primitive bindings remain owed. A nonempty save-area declaration sets `has_context` and is retained, but constructing an actual initial context still remains a separate join. The revocation observation half remains host-model only.
-- **The M4.4 corpus member.** [vos/kernelrun.py](../tools/vos/kernelrun.py) reads KernelInstance.v's three questions off an emulator trace and is held to the Gallina predicate over generated traces; its burst cut and trace parsing are held by host unit tests only. The member itself is a composed image that boots under the actual initial capability distribution, attempts the declared over-bound derivations and checks in the program that each is refused, reporting through HTIF, switches through declared restore text and runs the table. It waits on M1.2f's accepted backend, M1.7's target path and M3.5's actual handoff.
+- **The full RoT target executor.** The finite runner consumes the actual firmware-owned handoff and validates tags, sealing, bounds, cursor and permissions before C access. It runs the real signature verifier and release source on the host; executing that RoT source on the modeled RoT remains M3.5's obligation.
+
+## Finite compiled target
+
+`python tools/run.py kernel target --ccomp PATH --ccomp-arg=ARG --simulator PATH
+--build-receipt FILE --out DIR` compiles [test/target_unit.c](test/target_unit.c),
+signs its exact composed payload, consumes the actual RoT release bytes and runs
+the firmware handoff and kernel on Sail. Compiler configuration and runtime inputs,
+source closures, simulator/build receipt, host release compiler/binary, released
+payload, record, measurement registers and traces are bound before and after the
+campaign. An output lock and incomplete/failed status prevent stale success reuse.
+
+The composition owner in `kernel_target.py` declares two partitions, two slots,
+three shared windows and no reachable partition CSR or pending state. Firmware
+supplies exact kernel-data, timer, partition-execute and bitmap-word roots. Entry
+checks those capabilities, the stack, PCC, MTCC and MTDC, and compares the descriptor
+with the exact generated composition before its actual C reader accepts it. A
+different valid descriptor is refused, including changed data extents or widths.
+Each successor PCC lacks access-system-registers. Its image contains a tagged,
+partition-bounded c3, a nonzero untagged c7 marker and no timer or kernel roots.
+
+The declared retired-capability population is one initially tagged saved c4 and its sole
+temporary source c20. The exact eight-byte object occupies one capability granule
+at a 64-byte aligned location and is seeded once. The model's profile and capability
+granule select one exact eight-byte bitmap word. Publication ORs the object's bit
+into the existing word, preserving other retired bits. After publication, the source is
+cleared, the saved copy is loaded through the actual load filter, and its physical
+memory tag is checked. Those observations feed `vos_semantic_completion`; the
+epoch alone is insufficient. Borrowed and device/proxy populations are explicitly
+empty, and no asynchronous invocation exists. The kernel retains its broader data
+root through MTDC, the root table and derived register/protected-frame copies.
+The completion witness therefore assumes this fixed trusted kernel never recreates
+or regrants retired authority. The trace checks the sole mint occurs before
+publication, the original tagged representation is not reintroduced and no later
+memory access addresses the retired object. These finite checks do not prove the
+premise for arbitrary kernel code or establish TAL admission. This is a qualified
+single-hart join, not a general sweep, loan cancellation or proxy protocol.
+
+The reader captures each selected input image before `vos_target_switch`, compares
+the C output with that independent input and uses the scalar protocol checker on
+each contiguous MEPCC/restore/fence/dispatch transfer. Two real timer interrupts
+drive the C table cursor through one frame. The run decides order, not duration.
+Fourteen executable controls cover missing/swapped/overbroad/wrong-permission roots,
+a sealed execute root, stack/MTDC substitutions, changed descriptors, resident or
+saved stale copies, epoch-only completion, a missing fence and a separately compiled
+wrong C register copy. The last two retain HTIF success and must fail their specific
+trace obligations; compilation failures receive no kill credit.
+
+`--export corpus/kernel-instance.s` writes the frozen corpus member only
+after the complete campaign passes. `--check corpus/kernel-instance.s`
+repeats the campaign and requires byte-identical generated source. The snapshot
+assembler must reproduce every released byte and symbol, including zero padding
+and the boot record. Its assembly is independently authored client C output and
+authored adapters, with no compiler/runtime library code or private signing keys.
+The containing compiler build remains in its native lane. `run.py model corpus`
+admits this member under the ordinary terminal HTIF contract; `kernel target`
+supplies its additional typed-trace observations and signed-release provenance.
 
 ## Scalar final restore
 
@@ -101,7 +157,7 @@ revocation completion. Every report keeps M4.4 acceptance open.
 
 ## Under the contained compiler
 
-[test/target_selfcheck.c](test/target_selfcheck.c) compiles through M1.2f's existing `run.py compiler-diff program` driver with the contained compiler's recorded master build in its typed scalar mode, and runs under the driver's test harness on the recorded Sail executable. That run is evidence about this program under that harness and says nothing about a kernel instance: there is no firmware handoff, no trap entry and no dispatch in it, and the compiler build is not M1.2f's accepted backend. Two refusals of the typed scalar check shape the source as it stands, and both are returned to the compiler's owner rather than worked around silently:
+[test/target_selfcheck.c](test/target_selfcheck.c) and [test/target_handoff_selfcheck.c](test/target_handoff_selfcheck.c) compile through M1.2f's existing `run.py compiler-diff program` driver with the accepted contained compiler in its typed scalar mode. They run under that driver's harness and supply component feedback. The finite target command above compiles the full [test/target_unit.c](test/target_unit.c) and supplies the real handoff, timer and dispatch join. Two earlier typed scalar refusals shape the source and remain compiler-owner issues:
 
 - **A pointer result that is null on one path and an address on another is refused.** A static function with an `if (...) { return 0; } return p;` shape fails at LTL with *use of undefined, overlapping or inconsistent location*, and comparing such a result with a live address fails at Clight with *comparison requires one retained source allocation or null*. `partition.c` therefore returns a partition index rather than an optional extent pointer.
 - **A `void *` slot holding a stack object's capability is refused** with *missing or incompatible retained object origin*, although the source-value contract admits an object pointer through `void *` and back. `void *` is the one C type that can hold any saved capability, so the smoke names a typed slot through `VOS_TARGET_SLOT` and the kernel's own slot type stays `void *`.

@@ -55,10 +55,20 @@ import tempfile
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 from unittest import mock
 
-from vos import cli, env, gallina, kernel_restore, kernel_target, kernelrun, proofs, seeded
+from vos import (
+    cli,
+    env,
+    gallina,
+    kernel_restore,
+    kernel_target,
+    kernelrun,
+    proofs,
+    receipts,
+    seeded,
+)
 from vos.corpus import find_root
 
 HARNESS: Final = gallina.KERNEL
@@ -626,15 +636,42 @@ def cmd_target(args: argparse.Namespace) -> int:
     """Compile and run the finite scalar kernel composition."""
     e = env.load(toolchain=False)
     out = Path(args.out) if args.out else e.lane_root / "kernel-target"
+    with env.hold_lock(out, "kernel target"):
+        return _run_target(args, e, out)
+
+
+def _run_target(args: argparse.Namespace, e: env.Environment, out: Path) -> int:
+    receipts.write(out / "report.json", {"status": "incomplete", "ok": False})
     try:
         report = kernel_target.run(e.root, Path(args.ccomp), args.ccomp_arg,
                                    Path(args.simulator), Path(args.build_receipt), out, args.timeout)
+        _frozen_target(args, e.root, out, bool(report["ok"]))
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        receipts.write(out / "report.json", {"status": "failed", "ok": False, "error": str(error)})
         print(f"FAIL kernel target: {error}")
         return 1
+    report["status"] = "passed" if report["ok"] else "failed"
+    receipts.write(out / "report.json", report)
     print(f"kernel target: HTIF {report['htif']} {report['htif_code']}; {report['observations']}")
+    for case in cast(list[dict[str, object]], report["controls"]):
+        print(f"{'PASS' if case['matched'] else 'FAIL'} {case['name']}: "
+              f"HTIF {case['htif']} {case['htif_code']}; decisive {case['decisive']}")
     print(f"milestone_acceptance: open; {out / 'report.json'}")
     return 0 if report["ok"] else 1
+
+
+def _frozen_target(args: argparse.Namespace, root: Path, out: Path, accepted: bool) -> None:
+    if not (args.export or args.check):
+        return
+    member = (root / (args.export or args.check)).resolve()
+    if not member.is_relative_to(root.resolve()):
+        raise ValueError("the corpus member must be inside this checkout")
+    snapshot = (out / "corpus.s").read_bytes()
+    if args.export and accepted:
+        member.parent.mkdir(parents=True, exist_ok=True)
+        member.write_bytes(snapshot)
+    if args.check and (not member.is_file() or member.read_bytes() != snapshot):
+        raise ValueError("the frozen kernel corpus source differs from the actual released image")
 
 
 COMMANDS: cli.Table = {
@@ -655,6 +692,11 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--build-receipt", required=True, help="successful source-bound model build")
         sub.add_argument("--out", help="native output directory in this lane")
         sub.add_argument("--timeout", type=int, default=120, help="seconds per process")
+        frozen = sub.add_mutually_exclusive_group()
+        frozen.add_argument("--export", nargs="?", const="corpus/kernel-instance.s",
+                            help="write the accepted released-image corpus source")
+        frozen.add_argument("--check", nargs="?", const="corpus/kernel-instance.s",
+                            help="require the corpus source to match a fresh target run")
     if name == "restore":
         sub.add_argument("--simulator", help="explicit golden emulator executable")
         sub.add_argument("--build-receipt", required=True,

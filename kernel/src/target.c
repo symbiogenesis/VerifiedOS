@@ -64,3 +64,16 @@ void vos_target_switch(const struct vos_target_state *state,
 {
   vos_switch_image(&state->handoff.init.machine, successor, previous, output);
 }
+
+int vos_target_complete(unsigned published, unsigned resident, unsigned saved,
+                         unsigned loans, unsigned devices, unsigned epoch)
+{
+  struct vos_completion done;
+  done.bits_published = published != 0u;
+  done.resident_roots_cleared = resident != 0u;
+  done.saved_contexts_filtered = saved != 0u;
+  done.loans_cancelled = loans != 0u;
+  done.device_boundary_reached = devices != 0u;
+  done.epoch_advanced = epoch != 0u;
+  return vos_semantic_completion(&done);
+}

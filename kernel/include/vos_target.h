@@ -32,5 +32,7 @@ void vos_target_switch(const struct vos_target_state *state,
                        const struct vos_context *successor,
                        const struct vos_context *previous,
                        struct vos_context *output);
+int vos_target_complete(unsigned published, unsigned resident, unsigned saved,
+                         unsigned loans, unsigned devices, unsigned epoch);
 
 #endif
