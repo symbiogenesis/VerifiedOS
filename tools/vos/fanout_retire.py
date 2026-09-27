@@ -242,13 +242,17 @@ def _retain_host(path: Path, destination: Path) -> list[str]:
 
 
 def _guest(record: LaneRecord, batch: str, root: Path) -> dict[str, object]:
+    registered = worktree.registered(root)
+    if any(item.lane is None for item in registered):
+        raise RetirementError("an unavailable peer checkout prevents native output ownership checks")
+    peers = [cast(str, item.lane) for item in registered]
     if sys.platform != "win32":
-        return retain_native(record.lane, record.lane_root, record.log_root, batch)
+        return retain_native(record.lane, record.lane_root, record.log_root, batch, peers)
     code = ("import json,sys;sys.path.insert(0,'tools');"
             "from vos.fanout_retire import retain_native;"
             "print(json.dumps(retain_native(**json.load(sys.stdin))))")
     payload = {"lane": record.lane, "lane_root": record.lane_root,
-               "log_root": record.log_root, "batch": batch}
+               "log_root": record.log_root, "batch": batch, "peers": peers}
     done = subprocess.run(["wsl", "-u", "root", "-e", "python3", "-c", code],
                           cwd=root, input=json.dumps(payload), capture_output=True,
                           text=True, check=False, timeout=120)
@@ -260,14 +264,67 @@ def _guest(record: LaneRecord, batch: str, root: Path) -> dict[str, object]:
     return cast(dict[str, object], result)
 
 
-def retain_native(lane: str, lane_root: str, log_root: str, batch: str) -> dict[str, object]:
+# Environment.log callers own these stems. The tests compare literal callers to
+# this inventory; dynamic Isla names are bounded by its Runner labels and controls.
+_LOG_STEMS = frozenset({
+    "model-build", "model-build-fast", "model-smt", "oracle-build", "rtl-elaborate",
+    "testrig", "sail-lsp-install", "sail-lsp-server", "sail-isla-baseline",
+    "sail-isla-semantic-defect", "sail-isla-outside-scope", "sail-isla-rejected-build",
+})
+_LOG_CHILDREN = ("composer-reference", "copy-service", "supervisor")
+
+
+def _log_inventory(logs: Path, lane: str, children: list[Path], *, existing: bool = True) -> set[Path]:
+    """Exact current output layouts, including companions and adjacent lock files."""
+    suffix = f"-{lane}" if lane else ""
+    paths = {logs / f"{stem}{suffix}.log" for stem in _LOG_STEMS}
+    paths.update(logs / f"{stem}{suffix}.json" for stem in ("model-build", "model-build-fast"))
+    paths.add(logs / f"testrig{suffix}.trace")
+    # Source owners: composer/copy_service/supervisor, cli/admission,
+    # cli/sail_assist, and sailmodular._qualify_locked (UUID hex run names).
+    paths.update(logs / lane / child for child in _LOG_CHILDREN)
+    paths.add(env.lane_dir(logs, lane) / "admission-reference")
+    paths.add(logs / f"sail-assist-{lane or 'main'}")
+    isla = re.compile(r"sail-isla-(?:provision|qualify)-[0-9]{2,}" + re.escape(suffix) + r"\.log")
+    modular = re.compile(r"sail-modular-" + re.escape(lane or "primary") + r"-[0-9a-f]{32}")
+    paths.update(path for path in children if isla.fullmatch(path.name) or modular.fullmatch(path.name))
+    paths.update(env._lock_path(path) for path in tuple(paths))
+    return {path for path in paths if not existing or path.exists() or path.is_symlink()}
+
+
+def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], list[dict[str, str]]]:
+    children = list(logs.iterdir()) if logs.exists() else []
+    wanted = _log_inventory(logs, lane, children)
+    others = {path for peer in set(peers) | {""} if peer != lane
+              for path in _log_inventory(logs, peer, children, existing=False)}
+    ambiguous = {path for path in wanted if any(
+        path == other or path.is_relative_to(other) or other.is_relative_to(path) for other in others)}
+    # Unknown legacy names are evidence to keep, not a license to infer ownership
+    # from a suffix: build-other-worker.log cannot be claimed by lane worker.
+    unknown = {path for path in children if path not in wanted and (
+        any(path.name.endswith(f"-{lane}{ending}") for ending in (".log", ".json", ".trace", ".log.lock"))
+        or path.name.startswith(f"sail-modular-{lane}-"))}
+    for container in {logs / lane, env.lane_dir(logs, lane)}:
+        if container.is_dir():
+            _plain(container)
+            unknown.update(path for path in container.iterdir() if path not in wanted)
+    deferred = [{"path": str(path), "reason": "output layout also belongs to a registered peer"}
+                for path in sorted(ambiguous)]
+    deferred.extend({"path": str(path), "reason": "unrecognized output layout; ownership is not inferred"}
+                    for path in sorted(unknown))
+    return sorted(wanted - ambiguous), deferred
+
+
+def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
+                  peers: list[str] | None = None) -> dict[str, object]:
     """Run only on the native guest; retain outputs while holding their live locks.
 
     Symlink files are renamed as links, never followed. Relative internal directory
     links are retained with their targets; external links and mounted subtrees
     refuse. All existing directory locks (including the proof workspace)
-    and *.lock files are held non-blockingly through the move. No glob ever removes
-    another lane, and no source path is recursively deleted.
+    and *.lock files in both build and log outputs are held non-blockingly through
+    the move. Exact peer-colliding and unknown log layouts remain in place with
+    explicit deferred evidence. No source path is recursively deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
@@ -277,6 +334,9 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str) -> dict[
         raise RetirementError("invalid native lane")
     if not re.fullmatch(r"[a-f0-9]{20}", batch):
         raise RetirementError("invalid native batch")
+    peers = [] if peers is None else peers
+    if any(peer and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", peer) for peer in peers):
+        raise RetirementError("invalid native peer lane")
     source, logs = Path(lane_root), Path(log_root)
     if not PurePosixPath(lane_root).is_absolute() or source.name != f"lane-{lane}":
         raise RetirementError("native lane root does not match the handoff")
@@ -289,20 +349,37 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str) -> dict[
             raise RetirementError(f"retention requires a persistent native filesystem: {path} ({kind})")
     destination = source.parent / "fanout-retained" / batch / lane
     _plain(destination)
-    entries = _tree_safe(source)
-    selected_logs = sorted(logs.glob(f"*-{lane}.log")) if logs.exists() else []
+    selected_logs, deferred = _owned_logs(logs, lane, peers)
     targets = [(source, destination / "lane")] if source.exists() else []
-    targets.extend((path, destination / "logs" / path.name) for path in selected_logs)
+    targets.extend((path, destination / "logs" / path.relative_to(logs)) for path in selected_logs)
+    lock_paths: set[Path] = set()
     for before, after in targets:
         _plain(before)
         if before.is_mount() or after.exists() or after.is_symlink():
             raise RetirementError(f"native output or retained destination needs review: {before}, {after}")
-    lock_paths = ([source] if source.exists() else []) + [
-        path for path in entries if path.is_dir() or path.name.endswith(".lock")]
+        if before.is_dir():
+            lock_paths.add(before)
+            lock_paths.update(path for path in _tree_safe(before)
+                              if path.is_dir() or path.name.endswith(".lock"))
+        else:
+            # Holds a log's own descriptor as well as any producer's sidecar lock.
+            lock_paths.add(before)
+        adjacent = env._lock_path(before)
+        if adjacent.exists() or adjacent.is_symlink():
+            lock_paths.add(adjacent)
+    # The oracle is shared across lanes; its owner locks the shared build tree,
+    # whereas its lane-specific log must travel with this lane.
+    if logs / f"oracle-build-{lane}.log" in selected_logs:
+        oracle_lock = env._lock_path(source.parent / env.ORACLE_TREE)
+        if oracle_lock.exists() or oracle_lock.is_symlink():
+            lock_paths.add(oracle_lock)
     with contextlib.ExitStack() as stack:
-        for path in lock_paths:
-            if path.is_symlink():
+        for path in sorted(lock_paths):
+            _plain(path)
+            if path.is_symlink() or path.is_junction():
                 raise RetirementError(f"lock redirects: {path}")
+            if not path.is_file() and not path.is_dir():
+                raise RetirementError(f"native output is not a regular file or directory: {path}")
             fd = os.open(path, os.O_RDONLY)
             stack.callback(os.close, fd)
             try:
@@ -314,7 +391,8 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str) -> dict[
             _plain(after)
             after.parent.mkdir(parents=True, exist_ok=True)
             before.rename(after)
-    return {"archive": str(destination), "retained": [str(after) for _, after in targets]}
+    return {"archive": str(destination), "retained": [str(after) for _, after in targets],
+            "deferred": deferred}
 
 
 def retire(root: Path, record: LaneRecord, revision: str, archive_root: Path) -> dict[str, object]:
