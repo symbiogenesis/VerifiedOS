@@ -216,6 +216,34 @@ def _native_directory_lock() -> None:
         ensure(proofs.exists(), "proof directory lock protects native outputs")
 
 
+def _venv_links_and_target_locks() -> None:
+    import fcntl  # noqa: PLC0415
+
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        library = lane / "venv-linux" / "lib"
+        library.mkdir(parents=True)
+        (library.parent / "lib64").symlink_to("lib", target_is_directory=True)
+        lock = library / "active.lock"
+        lock.write_text("", encoding="utf-8")
+        with lock.open() as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "c" * 20),
+                     "lock is active")
+        result = retire.retain_native("worker", str(lane), str(root / "logs"), "c" * 20)
+        saved = Path(str(result["archive"])) / "lane" / "venv-linux"
+        ensure((saved / "lib64").is_symlink() and (saved / "lib64").resolve() == saved / "lib",
+               "relative environment link and target survive together")
+    with sandbox_tree(FILES) as root, patch.object(retire, "_guest", return_value={}):
+        path, record, revision, archive = _worker(root)
+        library = path / "out" / "venv-linux" / "lib"
+        library.mkdir(parents=True)
+        (library.parent / "lib64").symlink_to("lib", target_is_directory=True)
+        result = retire.retire(root, record, revision, archive)
+        saved = Path(str(result["archive"])) / "checkout" / "out" / "venv-linux"
+        ensure((saved / "lib64").resolve() == saved / "lib", "checkout environment link retained")
+
+
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
@@ -227,4 +255,5 @@ def cases() -> list[Case]:
             Case("missing-without-receipt", _missing_without_receipt),
             Case("records", _records), Case("symlink-escape", _symlink_escape, lane="guest"),
             Case("native-outputs-and-lock", _native_outputs_and_lock, lane="guest"),
-            Case("native-directory-lock", _native_directory_lock, lane="guest")]
+            Case("native-directory-lock", _native_directory_lock, lane="guest"),
+            Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest")]

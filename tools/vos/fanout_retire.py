@@ -88,19 +88,27 @@ def _clean(path: Path) -> None:
 
 
 def _tree_safe(path: Path, *, checkout: bool = False) -> list[Path]:
-    """Never recurse through directory links, mount points, or nested checkouts."""
+    """Do not traverse links; retain relative internal links with their real targets."""
     found: list[Path] = []
     if not path.exists():
         return found
     _plain(path)
     for directory, dirs, files in os.walk(path, followlinks=False):
         current = Path(directory)
-        for name in dirs:
+        for name in dirs[:]:
             child = current / name
-            if child.is_symlink() or child.is_junction() or child.is_mount():
-                raise RetirementError(f"output directory redirects or is mounted: {child}")
             if checkout and name == ".git":
                 raise RetirementError(f"nested repository must be retained separately: {child}")
+            if child.is_junction() or child.is_mount():
+                raise RetirementError(f"output directory redirects or is mounted: {child}")
+            if child.is_symlink():
+                if (child.readlink().is_absolute() or name.endswith(".lock")
+                        or not child.resolve(strict=True).is_relative_to(path)):
+                    raise RetirementError(f"output directory redirects outside its tree: {child}")
+                # Python venv lib64 -> lib is retained by the enclosing rename.
+                # Its real target is traversed and locked independently below.
+                dirs.remove(name)
+                continue
             found.append(child)
         for name in files:
             child = current / name
@@ -255,8 +263,9 @@ def _guest(record: LaneRecord, batch: str, root: Path) -> dict[str, object]:
 def retain_native(lane: str, lane_root: str, log_root: str, batch: str) -> dict[str, object]:
     """Run only on the native guest; retain outputs while holding their live locks.
 
-    Symlink files are renamed as links, never followed. Directory links and mounted
-    subtrees refuse. All existing directory locks (including the proof workspace)
+    Symlink files are renamed as links, never followed. Relative internal directory
+    links are retained with their targets; external links and mounted subtrees
+    refuse. All existing directory locks (including the proof workspace)
     and *.lock files are held non-blockingly through the move. No glob ever removes
     another lane, and no source path is recursively deleted.
     """
