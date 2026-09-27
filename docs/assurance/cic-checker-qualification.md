@@ -170,6 +170,28 @@ Choose the least expressive guard profile that covers the required exports, usin
 
 Before broad implementation, close one difficult real recursive proof with dependent elimination and retained conversion, its environment construction, and corresponding refuting terms under the candidate checker. Add malformed references, inconsistent universes, unguarded recursion and at/below/above budget cases; select guard regression cases from the retained features and the literature's documented failures. Require native transitive assumptions of the actual instantiated soundness constant, plus explicit evidence that the positive example inhabits its hypotheses. Differential comparison with the native Rocq checker can locate disagreements, but cannot replace the theorem. An AST-only experiment does not satisfy the serialized fixtures below; record that remaining bridge explicitly. This checkpoint controls whether to widen the implementation and does not complete M6.2b-0.
 
+M6.2b-0a separately prices this decision inside the foundation's existing budget.
+Its accepted evidence contains actual serialized positive and refuting inputs,
+including the real recursive/dependent case and a sealed-constant case requiring
+conversion. Bind each input and its ordered environment to the source export,
+profile, candidate checker and instantiated soundness entry. Record the native
+transitive assumption closure of that entry, its concrete hypothesis witness,
+and the first intended rejection for each malformed or ill-typed neighbor. The
+resource cases distinguish type rejection from work/arena exhaustion, with
+acceptance at a sufficient bound and refusal below the required bound; both
+outcomes preserve the committed proposition and environment. Unknown or failed
+premises are a refused checkpoint, not permission to drop the difficult case.
+
+Publish a continue or refuse/replan verdict before M6.2b-0b opens. Continue
+requires the complete checkpoint evidence and a reviewed remaining scope within
+that child's estimate. Refusal names the missing theorem, serialized bridge,
+corpus feature or resource obstruction and its owner; widening needs a new scope
+decision. M6.2b-0b still owes all foundation laws and complete required-corpus
+qualification. A checkpoint pass supplies neither that qualification nor
+M6.2b-ii's native implementation, so the latter remains gated until both
+foundation children are accepted. No checker experiment is reported run by this
+planning split.
+
 ### Conditional conversion-evidence experiment and handoff
 
 If measured conversion work dominates the corpus, compare bounded execution with producer-supplied reduction or conversion evidence on the same terms. This is a local design experiment, not a result supplied by the cited papers. An untrusted producer may propose steps; the admitted checker must validate each rule, substitution, universe condition and environment reference and prove the resulting conversion judgment. Charge evidence bytes, replay work and intermediate storage. Tampered or truncated evidence refuses. Do not accept an asserted normal form or an external verdict. Retain this route only if it improves measured total cost and its canonical encoding and soundness bridge fit the reviewed scope; otherwise keep the direct bounded route. Any new wire form requires a reviewed update to the wire contract before implementation.
@@ -224,12 +246,12 @@ M6.2b-ii must provide a closed theorem over a named CompCert-C program `C_check`
 
 | Missing prerequisite | Owner and price boundary |
 | --- | --- |
-| Guard semantics, a correct executable guard, and its seven preservation laws | M6.2b-0, **Establish the bounded CIC foundation**, owned by a dedicated CIC metatheory/partial-checker lane: planning estimate 400 h, range 160–640. This is separate from M6.2b-i's 10 h (6–14) qualification and M6.2b-ii's conditional 20 h (12–28) connection. The checklist assigns this prerequisite independently of qualification and connection work. |
-| Both normalization families, or a proved replacement partial checker | Included in that same M6.2b-0 estimate, over a fixed subset containing the real required proofs, with no enlargement of R-05-163. This estimate is uncertain implementation planning, not a promise to prove general CIC normalization within it. Corpus or foundation requirements beyond the selected route require a reviewed replan or an explicit refusal. |
+| Guard semantics, a correct executable guard, and its seven preservation laws | M6.2b-0, **Establish the bounded CIC foundation**, has separately priced checkpoint and completion children M6.2b-0a and M6.2b-0b in the [checklist](../implementation/implementation-checklist.md). The completion lane consumes the accepted checkpoint. Those cells own the unchanged combined planning range, independently of M6.2b-i's source disposition and M6.2b-ii's conditional native connection. |
+| Both normalization families, or a proved replacement partial checker | Included in the same foundation children, over a fixed subset containing the real required proofs, with no enlargement of R-05-163. Their estimate is uncertain implementation planning, not a promise to prove general CIC normalization within it. Corpus or foundation requirements beyond the selected route require a reviewed replan or an explicit refusal. |
 | Fully instantiated checker/dependency audit and actual exported-term subset containment | Qualification must be renewed on the changed source and its real constants after the preceding foundation is supplied. The current negative disposition does not preapprove another checker or subset. |
 | Canonical bounded decoding, environment representation, budget accounting and bump-arena refinement | M6.2b-ii's existing conditional engineering boundary applies only once its accepted checker and checked premises exist. A missing serializer theorem or a larger corpus subset reopens that price, as its checklist cell requires. |
 | CHERI memory, primitive, lowering and target-image foundations | Reuse Q2c's reviewed ownership and existing compiler/admission joins. Its [foundation map](../hardware/cheri-foundation-map.md) already records unpriced missing concrete laws; this qualification does not claim to supply them. |
 
 No guard, normalization, extraction, frontend or foreign-runtime assumption is added to the register. Peregrine remains the inventory's unqualified lead: its inherited MetaRocq components and running extraction route do not supply this local byte-reader or CompCert-C theorem. The rejected source disposition completes the authorable qualification result while the named positive implementation prerequisites remain open.
 
-M6.2b-0 starts from the immutable tuple, this premise inventory and the actual exported proof corpus. It owns the supported profile, executable guard and all preservation laws, the two normalization families or a proved bounded partial replacement, and native assumptions for every instantiated entry constant. Acceptance requires concrete positive/refuting terms from that corpus, checked computation where retained definitions depend on it, and no undeclared assumptions. A route that cannot meet these obligations must return a precise refusal and revised scope/price; it does not release M6.2b-ii. This assigned prerequisite remains open; the negative qualification does not complete it.
+M6.2b-0a starts from the immutable tuple, this premise inventory and the actual exported proof corpus. M6.2b-0b consumes its accepted checkpoint and completes the supported profile, executable guard and all preservation laws, the two normalization families or a proved bounded partial replacement, and native assumptions for every instantiated entry constant. Full acceptance requires concrete positive/refuting terms across the required corpus, checked computation where retained definitions depend on it, and no undeclared assumptions. A route that cannot meet these obligations must return a precise refusal and revised scope/price; it does not release M6.2b-ii. Both children remain open; neither the source's negative qualification nor a checkpoint decision completes the foundation.
