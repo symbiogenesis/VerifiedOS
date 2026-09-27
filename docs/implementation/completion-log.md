@@ -3456,6 +3456,99 @@ descriptor equality, protected authority and restore protocol repairs. The
 broader parent remains open under M4.4b. Host CI and both Guest CI lanes form
 the settled batch's hosted handoff; pending guest evidence is not a pass.
 
+##### M4.4b-i · Bind scalar restart and service effects
+
+The declared C-class composition joins the real non-ASR supervisor, trusted
+lifecycle consumer and copy service under the [first scalar integration
+contract](contracts/boot-roster.md#2a-scalar-integration-and-producer-joins).
+The code inputs are `c8a7234e63b44252a8fd43f990b589c452585336`. On 2026-09-27 the user
+directed that final progress be recorded assuming the running checks are fine,
+without waiting. Completion is recorded at that direction; the final three-case
+target aggregate was not collected and is not represented as passed. The
+incomplete-completion case had passed its target exit and every trace fact when
+last observed. The normal-restart and stale-grant verdicts remain uncollected.
+This is the finite
+restart/effects checkpoint; M7.1a and M7.1b retain authenticated boot and the
+complete roster, M4.4b-ii retains group/elastic duties and general pending/CSR
+restoration, and M4.4b-iii retains V/M restoration.
+
+* The [effects implementation](../../kernel/include/vos_effects.h) binds owned
+  byte/capability spans, one-use actual bitmap-publication receipts, eager
+  clearing, semantic completion and fresh disjoint root replenishment. The
+  [lifecycle consumer](../../kernel/include/vos_lifecycle.h) serializes the
+  current snapshot through the acknowledged start batch. The supervisor writes
+  bounded scalar request slots without ASR, reads a kernel-writable-only
+  acknowledgment in a later reaction and retains no privileged callback across
+  the boundary. The generated layout has one owner and adds no invocation.
+* `copy-service join` exercises payload/notification, fault, retirement and
+  current-epoch restart plus stale-grant and incomplete-completion refusal
+  images. Its implementation uses an immutable alternating supervisor/copy table:
+  an unavailable copy activation runs an idle row with no data authority.
+  Every row pays the same padded boundary; an early copy fault retains its
+  programmed slot end. The trace independently derives release times from the
+  initial deadline and requires the next idle row even after refusal. An empty
+  supervisor reaction refreshes the old START acknowledgment without
+  redispatching the old activation. The running campaign writes
+  `/root/build/scalar-join/report.json`; no final digest or aggregate verdict
+  is claimed in this record.
+* The holder inventory is explicit. The 512 KiB private copy allocation remains
+  continuously owned, including its stack and staging/ring bytes. Separate
+  small exposed grant slots have actual bitmap coverage; their retired roots
+  lose tags and fresh disjoint roots retain tags. All 33 saved GPR/MEPCC words
+  and tags, resident scrub, fresh-image exclusion, whole-allocation byte/tag
+  clearing and saved-context cleanup are required by the observer before
+  semantic completion; the completed component and refusal evidence below
+  does not substitute for the two uncollected joined verdicts.
+  No bitmap bit is credited with covering the large private ring. The joined
+  cross-principal protected-call depth is zero; intra-compartment C calls stay
+  within its private PCC and stack. There are no external client or device loans
+  in this holder set. Crypto/storage manifest entries participate in lifecycle
+  validation, but their real service bodies and measured boot remain M7.1's.
+* Source-bound component receipts remain current at the integrated revision.
+  `/root/build/fanout-20260926-integrated/kernel-effects-settled/report.json`
+  (SHA256 `f76726e2814a1a9fe5a2f104dd62cc659ad012d761e8821d7d7f14a0ec92895d`)
+  passes seven controls over exact merged values/tags, MEPCC and fresh entry.
+  `/root/build/lane-scalar-effects-20260926/kernel-protected-final/report.json`
+  (SHA256 `530b6c06ac0676bba84612e09725dff6b0ea7349214789658d073f8322ec4e0a`)
+  supplies 32 actual timer cuts and 18 controls for a separate depth-two
+  protected-frame fixture. It is supplemental component evidence, not the
+  joined composition's call graph. The private loan campaign at
+  `/root/build/fanout-20260926-integrated/copy-loan-final/report.json`
+  (SHA256 `b45634083b3a73aabec0fb6fa59bbf11b522f6320168cc91600cdcc3bbf9c308`)
+  covers interior-base spill and holder cleanup, stale/wrong-slot refusal and
+  missing-holder controls; it supplies neither a public endpoint nor a general
+  no-capture theorem.
+* `/root/build/supervisor-target/report.json` (SHA256
+  `0ada634502d5d22c38bc5ab20a9656b75945b5836df6ee99ff78092bbd5d7c8e`)
+  passes ten target transport cases, including partial publication, supervisor
+  faults, stale epoch, incomplete retirement, acknowledgment-write and ASR
+  refusals, backoff across empty reactions and failed publication receipt. The source-derived
+  bounded handler and fixed-release oracle reject an undersized boundary and
+  executed MEPCC-clear and release-time defects in the retained worker campaign.
+  `/root/build/fanout-20260926-integrated/lifecycle-refusals/report.json`
+  (SHA256 `c8a12f36e182fa54ccfa34d9c5f1bbfa770ed8021171137a0313dc19099f8b60`)
+  exercises early-START refusal and adds four compiled and executed defects for replay, batch order, reserved
+  sequence exhaustion and continuing after a failed start. Compilation failures
+  are not counted as killed defects.
+* Duration evidence is a conservative source-path bound in the declared
+  instruction-tick profile, checked against actual handler steps. It does not
+  establish physical WCET or the later static timing proof. The model and
+  accepted compiler binaries, private compiler inputs and authored sources are
+  bound by the receipts and unchanged across each campaign. Host CI at this
+  code revision passed [run 36294896736](https://github.com/symbiogenesis/VerifiedOS/actions/runs/36294896736).
+  The final documentation revision uses the repository's Host/Guest CI handoff;
+  no pending Guest CI run is counted as a pass.
+* The original 4 h estimate and 2.6–5.4 h range are retained, actual `n/a`.
+  Historical component authoring and interleaved integration/review intervals
+  were not isolated for a complete item actual; observed build and simulator
+  durations do not replace them. The item is excluded from measured calibration.
+* The dispatch metadata's firmware handoff joins are assigned to M7.1a, matching
+  the landed leaf predicates and boot-roster section 2a. M3.5b's authenticated
+  handoff, reset observations and shared layout remain required by the full boot
+  integration; the explicit-reset scalar checkpoint supplies none of that credit.
+* Landed: Tier A. Independent holder and timing reviews cover the settled
+  composition, its refusal controls and the remaining scope above.
+
 ## M5 · Storage and objects
 
 ### M5.1 · Specify L0 recovery and the L1 abstract index
@@ -3867,6 +3960,69 @@ The completion audit records specification completion only. M7.1 owns executable
   * Exit evidence: the proof gate at **4,352 constants against 4,135**, **217 of them this file's**, every one closed under the global context, with one `Require` naming the sibling the header states, no `Compute` and no top-level axiom, and **16 witnesses over 4 quantified records**; a seeded sample of **40 of 376 mutants over nine operators, 40 killed, none surviving and none stillborn**, stillborn reported apart and being zero, the run stating its own scope as a sample rather than as a population, with the two earlier passes quoted beside it at **31 killed, 9 survived** over a population of 359 and at **37 killed, 3 survived** over 376, every survivor real and each closed above; three operators the sample did not reach at all, minus-to-plus, negb-dropped and orb-to-andb, which is a scope statement and not a result; every cited requirement id resolved against the register by hand, which no rule holds for a `.v` file; both type checkers clean at ty 0.0.75 and ruff 0.16.5; the tools' own tests green at **356 cases over 38 modules**, which this item owes because it changed [vos/checks/estimates.py](../../tools/vos/checks/estimates.py); and **K-00** reporting the registry's **91** rules and the checks in agreement. **Both verdicts are the prover's alone**: [Vectors.v](../../tools/quickchick/Vectors.v) computes over the partition, executive, probe and endpoint sources and never this file, so the generated input side reaches none of its 376 sites and every prover-accepted mutant survives the second oracle by construction, which is a measurement rather than a complaint. **The whole population is owed and is not run**, one sample of 40 taking about fifteen minutes of wall clock against a guest this lane shares, and the population being nine and a half times it. No `run.py evidence` sweep is owed: it measures the model build, the property harness, the profile sweep, the corpus, the devicetree and the reference, and this item touches none of them; the two guest runs that bear on it are quoted. No register, ISA-profile, crown-jewel, absence-contract or coverage-matrix edit, so the review gate is not re-entered and the co-read ledger is unmoved.
   * **The three host gates are not green on this branch and the reason is arithmetic no lane may repair.** `check.py` reports four figure families the landing moved and `--fix` owns: **K-36**'s four item and subtotal cells, **K-37**'s thirteen restated totals, **K-96**'s thirteen chain and calibration figures, and **K-82**'s two findings-register totals. Every other rule is green, and the selftest's baseline is red only because it runs the checker whole. The one **K-96** finding that is *not* arithmetic is repaired here rather than left: the critical chain named this item and the document carries no open cell under it any more, so the chain loses it in [estimates.py](../../tools/vos/checks/estimates.py) and at the two prose sites that spell it out.
   * Landed: Tier A. **Nothing holds what this artifact created**, which is why the tier is not B: the proof gate is not a rule of [check-rules.md](../../tools/check-rules.md), no rule reads a `.v` file's statements, and the readings the header takes of R-12-096, R-12-100 and R-12-101 are register readings a reviewer checks by hand. The rules the landing does touch, **K-36**, **K-37**, **K-82** and **K-96**, hold the plan's arithmetic and the findings index rather than the artifact.
+
+## M7 · Full emulated system
+
+#### M7.1e · Realize the copy-based service
+
+Completion is recorded on 2026-09-27 at the user's direction to assume the
+running checks are fine and finish without waiting. The final joint aggregate
+is uncollected, not passed; the [M4.4b-i record](#m44b-i-bind-scalar-restart-and-service-effects)
+states the available case evidence and this acceptance exception.
+
+The [bounded C service](../../copy-service/README.md) executes through the accepted
+typed backend, the real notification adapter and trusted lifecycle-completion bindings in the first
+scalar integration checkpoint. The accepted code inputs are
+`c8a7234e63b44252a8fd43f990b589c452585336`. Its reference is
+[CopyRingService.v](../../proofs/CopyRingService.v),
+[RingContract.v](../../proofs/RingContract.v) and the declaration-owned layout;
+the full boot roster remains M7.1a's acceptance boundary.
+
+* The GC-free core implements the single-producer/single-consumer index algebra,
+  full/empty refusal, bounded copy-once staging, independent partial-batch
+  acceptance, drain-arm-recheck-sleep and slot lifecycle. Callers keep source
+  bytes stable during staging. Declaration-generated configuration and the same
+  physical offsets are consumed by typed C and the fenced/atomic adapter.
+* `copy-service target` passes 1,895 generated reference rows, with 12,591 exact
+  Gallina equalities in the reference receipt. The actual target exercises
+  payload transfer, overlong refusal, repeated wrap, full/empty boundaries and
+  publication at each consumer-chain stage. Altered-answer and lost-publication
+  controls compile, execute and fail as intended. Native byte controls and the
+  generated host/reference comparison remain separate corroboration. Report
+  `/root/build/copy-target/report.json`, SHA256
+  `8fd4c958f9eae4c959f3cbdfdf003da89f0575c654de2af1088d6d0892b2bdab`.
+* `copy-service notification` binds the producer's actual signal to the modeled
+  interrupt-file store and ordinary pending loads. Lost-store/load controls and
+  an actual capability-authority refusal establish observation sensitivity.
+  Report `/root/build/copy-notification/report.json`, SHA256
+  `5dabd8dd33e782da7707789ac45caadc52b6c32f1b3a0cb44ecc54acdb6be51b`.
+  `copy-service partition` observes two private activations with payload,
+  notification, fault, exact saved state and owned-byte/tag cleanup, plus five
+  executed negative controls. Report `/root/build/copy-partition/report.json`,
+  SHA256 `96a83208d1bdf2f6c35503ceee0d350383c34cf6913fd917f85e768c68a08c0b`.
+* `copy-service join` implements the real non-ASR supervisor-to-kernel-to-copy
+  composition, with checks for later acknowledgment reads, current-epoch
+  restart and stale-grant/incomplete-completion refusal at the target boundary.
+  Its final report at `/root/build/scalar-join/report.json` remains uncollected. The
+  [M4.4b-i evidence](#m44b-i-bind-scalar-restart-and-service-effects) records the
+  complete holder inventory, immutable table, common boundary charge and
+  independent release oracle. The private copy allocation remains continuously
+  owned; small-slot revocation supplies no false coverage for the large ring.
+* The finite component target and Ztso projection support this bounded
+  implementation; final joined acceptance remains uncollected as stated above.
+  Complete C/ISA refinement, production IDL/admission, public-client
+  grant redemption, physical WCET and full measured boot remain their owners'
+  obligations. C is the working lowering; R-12-002's safe-Rust data-plane
+  requirement stays with the deferred certifying Rust toolchain. Its later
+  producer must retain the wire layout, effects adapters and generated fixtures;
+  this C implementation does not discharge the language requirement.
+* Source/model/private-toolchain identities are unchanged across acceptance.
+  Host CI passed [run 36294896736](https://github.com/symbiogenesis/VerifiedOS/actions/runs/36294896736)
+  for the accepted code revision. The final documentation revision follows the
+  Host/Guest CI handoff without treating a pending guest verdict as passed.
+  The original 14 h midpoint and 9–19 h range are retained, actual `n/a`;
+  historical authoring and interleaved integration/review intervals do not give
+  a complete measured actual, so the calibration row is `n/a`. Landed: Tier A.
 
 ## RTL track
 

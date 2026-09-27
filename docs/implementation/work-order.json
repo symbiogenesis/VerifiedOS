@@ -137,14 +137,12 @@
       ],
       "artifacts": [
         "docs/implementation/contracts/purecap-abi.md",
-        "docs/implementation/contracts/service-authoring.md"
+        "docs/implementation/contracts/service-authoring.md",
+        "docs/implementation/contracts/boot-roster.md",
+        "docs/implementation/contracts/supervisor-context.md"
       ],
       "unmet": [],
       "join": [
-        {
-          "item": "M3.5b",
-          "output": "real target handoff and reset observations"
-        },
         {
           "item": "M7.1b",
           "output": "real supervisor using the scalar effect bindings"
@@ -206,7 +204,7 @@
       "join": [
         {
           "item": "M3.5b",
-          "output": "RoT and M-mode target stages"
+          "output": "RoT and M-mode target stages, authenticated handoff, reset observations and shared C layout"
         },
         {
           "item": "M4.4b-i",
@@ -311,17 +309,16 @@
       ],
       "artifacts": [
         "proofs/CopyRingService.v",
-        "interfaces/ring-reference.json"
+        "interfaces/ring-reference.json",
+        "docs/implementation/contracts/purecap-abi.md",
+        "docs/implementation/contracts/boot-roster.md",
+        "docs/implementation/contracts/supervisor-context.md"
       ],
       "unmet": [],
       "join": [
         {
           "item": "M4.4b-i",
           "output": "notification and semantic-completion adapters"
-        },
-        {
-          "item": "M3.5b",
-          "output": "shared target handoff and C layout"
         },
         {
           "item": "M7.1a",
