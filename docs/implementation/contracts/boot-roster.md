@@ -120,7 +120,7 @@ M7.1e the copy-service implementation; M7.1a returns component defects to those
 owners. Passing this checkpoint is integration evidence only. Full measured boot,
 storage, the complete roster and the acceptance clauses below remain required.
 
-M6.1b's bounded Vélus compatibility trial decides the supervisor producer before
+M6.1b-i's bounded Vélus compatibility trial decides the supervisor producer before
 more interim C target integration. M7.1b consumes the selected route through the
 same manifest, effects ABI and fixtures. Its C host implementation remains a
 comparison oracle; neither a route decision nor a small-node success makes the
