@@ -1247,6 +1247,8 @@ CASES: list[Case] = [
      _literal("tools/sail-modular/overlay.cmake", "# SPDX-License-Identifier: Apache-2.0\n", "")),
     ("K-52", "an authored Sail project fixture whose license mark has gone",
      _literal("tools/sail-lsp/fixtures/qualification.sail_project", "// SPDX-License-Identifier: Apache-2.0\n", "")),
+    ("K-52", "an authored Lustre node whose license mark has gone",
+     _literal("supervisor/route/start_restart.lus", "-- SPDX-License-Identifier: Apache-2.0\n", "")),
 
     # A new file of an unknown kind cannot be seeded, because the corpus is the git
     # index and an untracked file is not in it. Withdrawing a kind's ruling puts an
@@ -1742,6 +1744,9 @@ CASES: list[Case] = [
     ("K-88", "the calibration view accepts a populated manifest its schema does not",
      _literal("docs/hardware/calibration-manifest.md",
               "This unpopulated schema", "This populated schema")),
+    ("K-88", "a supervisor acknowledgment field aliases the publication sequence",
+     _literal("supervisor/include/vos_context_layout.h",
+              "#define VOS_CTX_ACK_STATUS 1U", "#define VOS_CTX_ACK_STATUS 0U")),
     ("K-88", "a calibration field class outside the declared vocabulary",
      _literal("interfaces/calibration-schema.json",
               '"id": "sensor-trim"', '"id": "authority-trim"')),

@@ -80,6 +80,8 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # Authored OCaml and Gallina campaign templates keep their language's syntax.
     ".ml.in": ("(* ", " *)"),
     ".v.in": ("(* ", " *)"),
+    # Authored Lustre nodes use the language's line-comment syntax.
+    ".lus": ("-- ", ""),
     ".mjs": ("// ", ""),
     ".sh": ("# ", ""),
     ".s": ("# ", ""),

@@ -104,6 +104,7 @@ from vos import (
     memplan,
     sailbundle,
     socmap,
+    supervisor_context,
     wire_formats,
 )
 from vos import corpus as corpus_mod
@@ -204,6 +205,10 @@ def _elastic_pool_campaign(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return elastic_pool_campaign.render()
 
 
+def _supervisor_context(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    return supervisor_context.header(root)
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -282,6 +287,10 @@ GENERATED: tuple[Row, ...] = (
         generator="run.py device-registers emit", lane="host",
         owners="the register declarations and reviewed modeled MMIO functions",
         checker="this gate", emit=_device_registers_rtl),
+    Row(path=supervisor_context.ARTIFACT,
+        generator="run.py check --fix", lane="host",
+        owners="the lifecycle context-slot format and supervisor unit capacity",
+        checker="this gate", emit=_supervisor_context),
     Row(path="proofs/ElasticPoolCampaign.v",
         generator="run.py check --fix", lane="host",
         owners="the finite elastic pool producer and deterministic command campaigns",

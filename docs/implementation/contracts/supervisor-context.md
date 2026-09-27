@@ -33,6 +33,10 @@ the publication before any boundary consumption.
 Sequences are nonwrapping 64-bit integers. A request is fresh only when its
 sequence is the kernel's last acknowledged sequence plus one; zero, repetition,
 a gap or exhaustion refuses without performing an effect. The kernel publishes
+no new acknowledgment for those sequence refusals and leaves its watermark
+unchanged; zero means no request. A fresh but malformed request consumes its
+sequence and receives a definitive refusal acknowledgment without an effect.
+The kernel publishes
 all acknowledgment fields before their sequence. The supervisor consumes an
 acknowledgment only for its outstanding sequence. No phase retains a borrowed
 stack capability, live kernel lock or continuation across a boundary.
@@ -48,12 +52,18 @@ bound. The layout generator owns offsets and widths; no C struct overlay is a
 wire decoder.
 
 The boundary consumer validates the complete scalar input before effects. It
-checks the sequence, operation, widths, padding, current epoch, exact manifest
-restart set, batch bound and order, and each exact current-epoch grant mask.
+checks the sequence, operation, widths, padding, current epoch, exact selected
+set, batch bound and order, and each exact current-epoch grant mask. The initial
+start selects all manifest units; retirement and restart select exactly the
+manifest's declared restart set, which may be smaller.
 The supervisor supplies no allocation, authority source, arbitrary victim or
 successor. A stale snapshot, invented or retired grant, widened member set or
 malformed batch refuses before starting a unit. Initial bring-up is permitted
-once; later starts require the kernel's completed retirement for that same set.
+once, with its eligibility consumed by the first valid start attempt even if a
+later effect refuses. Retirement before that attempt refuses. Every later start
+requires completed retirement and fresh-root installation for the restart set;
+a failed start requires another retirement before retrying. The kernel publishes
+the post-installation snapshot with the retirement acknowledgment.
 
 Retirement stops the exact admitted set and must satisfy the existing semantic
 completion predicate over actual bitmap publication, epoch advancement, resident
