@@ -233,7 +233,7 @@ def _link_or_copy(src: str | Path, dst: str | Path) -> None:
         shutil.copy2(src, dst)
 
 
-def stand_up(template: Path, path: Path, fix_ok: bool = False) -> Sandbox:
+def stand_up(template: Path, path: Path, fix_ok: bool = False, *, jobs: int = 1) -> Sandbox:
     """One sandbox, as hardlinks into the template.
 
     Its .git is one pointer file naming the template's rather than a linked tree.
@@ -251,8 +251,13 @@ def stand_up(template: Path, path: Path, fix_ok: bool = False) -> Sandbox:
     a boundary that contains that corpus with room to spare while keeping the
     copying, and the scan a fresh copy costs on first read, to the hundred-odd files
     outside that tree.
+
+    Directory workers may overlap independent file placements while constructing
+    the first sandbox. Callers already constructing several sandboxes concurrently
+    retain one worker per sandbox, so the two levels do not multiply their pools.
     """
     remove_tree(path)
+    entries: list[tuple[Path, Path, list[str], bool]] = []
     for dirpath, dirnames, filenames in template.walk():
         rel = dirpath.relative_to(template)
         target = path / rel
@@ -261,12 +266,18 @@ def stand_up(template: Path, path: Path, fix_ok: bool = False) -> Sandbox:
         if not rel.parts:
             dirnames.remove(".git")
             names = [name for name in names if name != _MANIFEST]
-        linked = not fix_ok or rel.parts[:1] == ("model",)
+        entries.append((dirpath, target, names,
+                        not fix_ok or rel.parts[:1] == ("model",)))
+
+    def place(entry: tuple[Path, Path, list[str], bool]) -> None:
+        dirpath, target, names, linked = entry
         for name in names:
             if linked:
                 _link_or_copy(dirpath / name, target / name)
             else:
                 shutil.copy2(dirpath / name, target / name)
+
+    _across(place, entries, jobs)
     (path / ".git").write_text(f"gitdir: {template / '.git'}\n", encoding="utf-8")
     return Sandbox(path, template, fix_ok=fix_ok)
 
@@ -322,7 +333,7 @@ def _across[T, R](work: Callable[[T], R], items: Iterable[T], jobs: int) -> list
     released: the run is I/O the machine can overlap rather than Python it cannot.
     """
     work_list = list(items)
-    if len(work_list) < 2:
+    if jobs == 1 or len(work_list) < 2:
         return [work(item) for item in work_list]
     with ThreadPoolExecutor(max_workers=min(jobs, len(work_list))) as pool:
         return list(pool.map(work, work_list))
@@ -420,15 +431,23 @@ def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]]
     return None
 
 
-def _link_tree(src: Path, dst: Path) -> None:
+def _link_tree(src: Path, dst: Path, jobs: int = 1) -> None:
+    """Place directories first, then overlap independent file links within them."""
     def failed(error: OSError) -> None:
         raise error
 
+    entries: list[tuple[Path, Path, list[str]]] = []
     for dirpath, _dirnames, filenames in src.walk(on_error=failed):
         target = dst / dirpath.relative_to(src)
         target.mkdir(parents=True, exist_ok=True)
+        entries.append((dirpath, target, filenames))
+
+    def place(entry: tuple[Path, Path, list[str]]) -> None:
+        dirpath, target, filenames = entry
         for name in filenames:
             _link_or_copy(dirpath / name, target / name)
+
+    _across(place, entries, jobs)
 
 
 def _complete_index(root: Path, files: Iterable[str]) -> bool:
@@ -611,7 +630,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
         # a snapshot swept mid-carry surfaces as a link that fails or a walk that
         # yields nothing, and either answers like every other doubt: rebuild
         try:
-            _link_tree(snapshot / ".git", into / ".git")
+            _link_tree(snapshot / ".git", into / ".git", jobs)
             carried_index = ((into / ".git" / "index").is_file()
                              and _complete_index(into, old_files))
         except OSError:
@@ -2049,9 +2068,10 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         # The baseline needs one sandbox and nothing else, so only the first is stood
-        # up before it: the rest land while the baseline runs, each joining the queue
-        # as it does, and the case wave draws them out as they arrive.
-        made.append(stand_up(template, sandbox / "w0"))
+        # up before it, using the available setup workers across its directories.
+        # The rest land while the baseline runs, one worker per sandbox, each joining
+        # the queue as it does, and the case wave draws them out as they arrive.
+        made.append(stand_up(template, sandbox / "w0", jobs=jobs))
         boxes: Queue[Sandbox] = Queue()
         with ThreadPoolExecutor(max_workers=jobs) as setup:
             def later(i: int) -> Sandbox:
