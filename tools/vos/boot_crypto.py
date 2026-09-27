@@ -214,6 +214,18 @@ def gallina_build(root: Path, work: Path) -> tuple[ModuleType, dict[str, str]]:
         raise ValueError("missing ML-DSA extraction campaign")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    extraction = getattr(module, "EXTRACTION")
+    driver = getattr(module, "DRIVER")
+    marker = '| _ -> failwith "unsupported operation (including prehash)"'
+    if (not isinstance(extraction, str) or not isinstance(driver, str)
+            or extraction.count("dsa_sign_mu_test_fuel.") != 1 or driver.count(marker) != 1):
+        raise ValueError("the exact ML-DSA extraction adapter anchors changed")
+    setattr(module, "EXTRACTION", extraction.replace("dsa_sign_mu_test_fuel.",
+        "dsa_sign_mu_test_fuel Keccak.shake256 Keccak.bits_of_bytes Keccak.bytes_of."))
+    setattr(module, "DRIVER", driver.replace(marker,
+        '| "shake" -> let msg=List.map Big_int_Z.int_of_big_int (get ()) in\n'
+        ' let count=int_of_string (read ()) in print_endline (out\n'
+        ' (List.map Big_int_Z.big_int_of_int (bytes_of (shake256 (8*count) (bits_of_bytes msg)))))\n' + marker))
     work.mkdir(exist_ok=True)
     raw = module.build(work)
     if not isinstance(raw, dict):
@@ -224,6 +236,34 @@ def gallina_build(root: Path, work: Path) -> tuple[ModuleType, dict[str, str]]:
             raise TypeError("invalid extraction binding identity")
         bindings[key] = value
     return module, bindings
+
+
+def shake_cases(binary: Path, work: Path, oracle: ModuleType | None) -> list[dict[str, object]]:
+    """Exercise absorb/padding/squeeze rate boundaries against independent references."""
+    result: list[dict[str, object]] = []
+    for length in (0, 1, 31, 32, 135, 136, 137, 271, 272, 273, 512):
+        message = bytes((i * 73 + length) % 256 for i in range(length))
+        for count in (0, 32, 137, 273):
+            (work / "shake-message.bin").write_bytes(message)
+            (work / "shake-output.bin").write_bytes(bytes(count))
+            actual = run([str(binary), "shake", str(work / "shake-message.bin"),
+                          str(work / "shake-output.bin")], work)
+            expected = hashlib.shake_256(message).hexdigest(count)
+            answers = {"c": actual, "hashlib": expected}
+            if oracle is not None:
+                reading = oracle.invoke(work / "gallina", "shake", [message.hex(), str(count)])
+                if len(reading) != 1:
+                    # The zero-byte output is one empty line, which the common
+                    # vector adapter deliberately strips to an empty list.
+                    if count == 0 and reading == []:
+                        reading = [""]
+                    else:
+                        raise ValueError("invalid Gallina SHAKE output")
+                answers["gallina"] = reading[0]
+            result.append({"name": f"shake-{length}-{count}", "family": "SHAKE256",
+                "message_sha256": sha(message), "answers": answers,
+                "passed": all(value == expected for value in answers.values())})
+    return result
 
 
 def boot_cases(root: Path, binary: Path, work: Path) -> list[dict[str, object]]:
@@ -332,6 +372,7 @@ def campaign(root: Path, work: Path, gallina: bool = False, first: bool = False)
                 "milestone_acceptance": "open"}
     identities = openssl_identity(work)
     oracle, bindings = gallina_build(root, work / "gallina") if gallina else (None, None)
+    records.extend(shake_cases(binary, work, oracle))
     positives = [next(c for c in vectors if c.mode == mode and c.expected)
                  for mode in ("slh", "slh-internal", "mldsa", "mldsa-internal", "mldsa-mu")]
     for positive in positives:
