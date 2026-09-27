@@ -52,6 +52,14 @@ Use `git ls-files -s upstream` to inspect tracked pins: mode `160000` identifies
 
 ## Worktree isolation and ownership
 
+**Publish only `main`, and finish every session with all of its work merged into
+local and remote `main`.** Worktrees and work branches provide temporary local
+isolation. Never push work branches or publication tags, and never treat a branch
+handoff as session completion. Integrate and resolve conflicts on `main`, publish
+`main`, complete the validation handoff, then retire the session's eligible owned
+worktrees and local branches. Preserve another active session's uncommitted work;
+coordinate integration rather than ending with this session's work stranded.
+
 **Every fan-out subagent needs its own dedicated Git worktree**, including read-only scouts, reviewers, document workers, and nested agents. Only the integrator writes the integration checkout. Follow the [isolation procedure](tools/README.md#worktree-isolation-during-fan-out):
 
 Before dispatch, follow that procedure to create or verify isolation and provide the worker's path, revision, ownership, checks and integrator. Every worker call must target its assigned checkout; outputs follow the [filesystem placement rules](tools/README.md#where-a-file-lives-and-which-lane-touches-it). Retire only integrated, batch-owned lanes under the procedure's containment and output-retention checks. Keep host-managed worktrees at their assigned locations and leave their cleanup to the host.
@@ -110,7 +118,8 @@ checks outside the workflows. Resume `fanout finish` until Host CI passes and
 the command records Guest CI dispatch and safe retirement; never wait for Guest CI.
 
 1. Finish authored and generated changes, track deliverables by path, resolve
-   co-reads and known findings, then commit and publish the revision.
+   co-reads and known findings, then merge all session work into `main`, commit and
+   publish only `main`. A session is not complete while its work remains off `main`.
 2. Require [Host CI](.github/workflows/host-gates.yml) to pass on Windows and Ubuntu.
    Dispatch it manually if no automatic event starts it.
 3. Dispatch [Guest CI](.github/workflows/guest-gates.yml) with both model and proofs
