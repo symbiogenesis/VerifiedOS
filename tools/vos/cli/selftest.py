@@ -1434,8 +1434,8 @@ CASES: list[Case] = [
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
     ("K-67", "a resolved checker pin drifted from the manifest",
-     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.8"',
-              'name = "ruff"\nversion = "0.16.6"')),
+     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.9"',
+              'name = "ruff"\nversion = "0.16.8"')),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which
     # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
