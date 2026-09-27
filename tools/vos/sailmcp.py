@@ -7,7 +7,6 @@ The reader remains available during retrieval so cancellation can suppress repli
 """
 
 import json
-import math
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import Any, BinaryIO, Never
 from jsonschema import Draft202012Validator
 
 from vos import sailbundle, sailcontext
+from vos.jsonutil import finite_float, unique_object
 
 MODERN = "2026-07-28"
 LEGACY = "2025-11-25"
@@ -28,24 +28,8 @@ _JSON_QUOTE = ord('"')
 _JSON_ESCAPE = ord("\\")
 
 
-def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
-
-
 def _constant(value: str) -> None:
     raise ValueError(f"not a JSON number: {value}")
-
-
-def _float(value: str) -> float:
-    parsed = float(value)
-    if not math.isfinite(parsed):
-        raise ValueError(f"JSON number exceeds finite precision: {value}")
-    return parsed
 
 
 def _check_depth(raw: bytes) -> None:
@@ -74,7 +58,8 @@ def _check_depth(raw: bytes) -> None:
 def decode(raw: bytes) -> object:
     """Bounded RFC 8259 JSON; duplicate members and nonfinite numbers refuse."""
     _check_depth(raw)
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=_object, parse_constant=_constant, parse_float=_float)
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object,
+                      parse_constant=_constant, parse_float=finite_float)
 
 
 def tool_schema(operation: str) -> dict[str, Any]:

@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass
 from typing import Never, cast
 
 from vos.jsonc import Json
+from vos.jsonutil import unique_object
 from vos.phase_service import Batch, Contract
 
 
@@ -51,22 +52,13 @@ class Extraction:
     contract: Contract
 
 
-def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
-    result: dict[str, Json] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
-
-
 def _noninteger(_value: str) -> Never:
     raise ValueError("floating-point and non-finite JSON numbers are unsupported")
 
 
 def _decode(raw: bytes) -> Json:
     try:
-        return cast(Json, json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs,
+        return cast(Json, json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object,
                                     parse_float=_noninteger, parse_constant=_noninteger))
     except RecursionError as err:
         raise ValueError("JSON nesting exceeds the decoder limit") from err

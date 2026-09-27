@@ -16,7 +16,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[3]
-    sources = ("tools/vos/phase_cost.py", "tools/vos/cli/phase_cost.py",
+    sources = ("tools/vos/phase_cost.py", "tools/vos/jsonutil.py", "tools/vos/cli/phase_cost.py",
                "tools/tests/test_phase_cost.py",
                "docs/implementation/phase-service/prerequisite-contract.md",
                "docs/implementation/phase-service/cost-input.md")

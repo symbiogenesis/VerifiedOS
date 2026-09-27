@@ -538,6 +538,9 @@ def _receipt() -> None:
                        "resources": hashlib.sha256(resources.read_bytes()).hexdigest()},
            "the receipt binds the program and resource bytes")
     sources = cast("dict[str, Json]", report["sources_sha256"])
+    ensure({"tools/vos/phase_cost.py", "tools/vos/phase_schedule.py",
+            "tools/vos/phase_service.py", "tools/vos/jsonutil.py"} <= sources.keys(),
+           "the receipt binds shared program, cost and resource parsing and service semantics")
     ensure(set(sources) == set(cli.SOURCES) and all(
         sources[name] == hashlib.sha256((TOOLS.parent / name).read_bytes()).hexdigest()
         for name in cli.SOURCES), "the receipt binds the instrument, CLI, tests and contract")

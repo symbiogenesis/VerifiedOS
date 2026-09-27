@@ -15,6 +15,7 @@ at the same place in the original text.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import cast
 
@@ -24,55 +25,24 @@ from typing import cast
 type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 
 
+# Strings include an unterminated final token, so comment syntax inside one stays
+# untouched and json.loads reports the original malformed string. Escapes consume
+# exactly one following character, including a newline in invalid input.
+_STRING = r'"[^"\\]*(?:\\[\s\S][^"\\]*)*(?:"|\\?$)'
+_COMMENTS = re.compile(_STRING + r'|//[^\n]*|/\*(?:/|[\s\S]*?(?:\*/|$))')
+_TRAILING_COMMAS = re.compile(_STRING + r'|,(?=\s*[}\]])')
+
+
+def _blank_comment(match: re.Match[str]) -> str:
+    token = match.group()
+    return token if token.startswith('"') else "\n".join(" " * len(line) for line in token.split("\n"))
+
+
 def strip_comments(text: str) -> str:
-    out: list[str] = []
-    i, n = 0, len(text)
-    in_string = False
-    while i < n:
-        c = text[i]
-        if in_string:
-            out.append(c)
-            if c == "\\" and i + 1 < n:
-                out.append(text[i + 1])
-                i += 2
-                continue
-            if c == '"':
-                in_string = False
-            i += 1
-        elif c == '"':
-            in_string = True
-            out.append(c)
-            i += 1
-        elif c == "/" and i + 1 < n and text[i + 1] == "/":
-            while i < n and text[i] != "\n":
-                out.append(" ")
-                i += 1
-        elif c == "/" and i + 1 < n and text[i + 1] == "*":
-            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
-                out.append("\n" if text[i] == "\n" else " ")
-                i += 1
-            if i + 1 < n:
-                out.append("  ")
-                i += 2
-            else:
-                # an unterminated comment runs to the end of the text, so its last
-                # character is blanked like the rest rather than paired with a `*/`
-                # that is not there: `len(out) == len(text)` holds for every input,
-                # and the parse error json.loads still raises points where it should
-                out.append("\n" if text[i] == "\n" else " ")
-                i += 1
-        else:
-            # a comma left dangling by a deleted entry: the closing brace is the only
-            # place it can be seen, and only whitespace and comments can sit between
-            if c in "}]":
-                j = len(out) - 1
-                while j >= 0 and out[j].isspace():
-                    j -= 1
-                if j >= 0 and out[j] == ",":
-                    out[j] = " "
-            out.append(c)
-            i += 1
-    return "".join(out)
+    """Blank comments and trailing commas while retaining every source offset."""
+    uncommented = _COMMENTS.sub(_blank_comment, text)
+    return _TRAILING_COMMAS.sub(lambda match: " " if match.group() == "," else match.group(),
+                                uncommented)
 
 
 def load(path: str | Path) -> Json:

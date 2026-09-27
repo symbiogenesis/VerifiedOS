@@ -25,12 +25,14 @@ from jsonschema import Draft202012Validator
 
 from vos import env, receipts
 from vos.cli import entry
+from vos.jsonutil import finite_float, unique_object
 
 SCHEMA = Path(__file__).resolve().parents[1] / "sail-assist.schema.json"
 FROZEN = ("docs/requirements-register.md", "docs/hardware/isa-profile.md",
           "model/config/verifiedos.json")
 INPUTS = ("model", "tools/opam/sail.lock", "tools/run.py", "tools/vos/env.py",
-          "tools/vos/cli/model.py", "tools/vos/sailassist.py", "tools/vos/cli/sail_assist.py",
+          "tools/vos/cli/model.py", "tools/vos/jsonutil.py", "tools/vos/sailassist.py",
+          "tools/vos/cli/sail_assist.py",
           "tools/vos/cli/__init__.py", "tools/vos/toolenv.py", "tools/uv.lock",
           "tools/pyproject.toml", "tools/sail-assist.schema.json")
 SESSION = re.compile(r"[a-z][a-z0-9-]{0,63}\Z")
@@ -40,29 +42,13 @@ def now_text() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
-
-
 def _constant(value: str) -> None:
     raise ValueError(f"invalid JSON number: {value}")
 
 
-def _float(value: str) -> float:
-    parsed = float(value)
-    if not math.isfinite(parsed):
-        raise ValueError(f"JSON number exceeds finite precision: {value}")
-    return parsed
-
-
 def read_json(path: Path) -> dict[str, Any]:
-    raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_pairs,
-                     parse_constant=_constant, parse_float=_float)
+    raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object,
+                     parse_constant=_constant, parse_float=finite_float)
     if not isinstance(raw, dict):
         raise TypeError(f"{path}: expected a JSON object")
     return raw

@@ -20,7 +20,7 @@ from vos.jsonc import Json
 from vos.phase_schedule import contract_bytes
 from vos.phase_service import check
 
-SOURCES = ("tools/vos/phase_schedule.py", "tools/vos/cli/phase_schedule.py",
+SOURCES = ("tools/vos/phase_schedule.py", "tools/vos/jsonutil.py", "tools/vos/cli/phase_schedule.py",
            "tools/vos/phase_service.py", "docs/implementation/phase-service/schedule-input.md")
 MODE_SOURCES = ("tools/vos/phase_modes.py", "docs/implementation/phase-service/mode-contract.md")
 COMPLETION_SOURCES = ("tools/vos/phase_completion.py",)
