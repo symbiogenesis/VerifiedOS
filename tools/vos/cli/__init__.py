@@ -157,7 +157,7 @@ COMMANDS: tuple[Command, ...] = (
             "compare the bounded supervisor C with its Gallina reference", lane="guest"),
     Command("boot-crypto", "vos.cli.boot_crypto",
             "compare boot signature C with standard vectors and independent oracles",
-            lane="guest"),
+            lane="guest", host_ok=frozenset({"verify", "join"})),
     Command("copy-service", "vos.cli.copy_service",
             "compare the bounded copy-service C with its Gallina reference", lane="guest"),
     Command("witness", "vos.cli.witness",

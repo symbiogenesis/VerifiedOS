@@ -184,6 +184,11 @@ with the installed solver. The reporter records the memo as `cold` or `restored`
 `results.json` and the job summary; a restored memo's cached verdicts were not
 discharged again in that run.
 
+The [boot signature target campaign](../../firmware/crypto/README.md#hosted-target-campaign)
+restores the model lane's installed toolchains and Sail memo under these same keys and
+path lists and saves neither. A change to either key or path list here must change
+that workflow's restore with it, or its runners install and emit cold.
+
 Each command runs under GNU time, whose figures in its retained log end with
 `maxrss_kb`: the peak resident memory of the command's largest single process. For
 the proof gate this measures the kernel recheck against the planning budget in

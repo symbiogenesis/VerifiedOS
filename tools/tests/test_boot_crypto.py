@@ -6,9 +6,11 @@ import json
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
@@ -159,6 +161,200 @@ def compiler_source_drift_refuses() -> None:
         raise AssertionError("changed retained compiler source accepted")
 
 
+# One accepted function of a real stream: a single frame and only dialect mnemonics.
+_STREAM = ("# source-profile: verifiedos-scalar-source-v1; no pointer round-trip integer types\n\n"
+           ".text\n.globl rotl\nrotl:\n\tcmove c30, c2\n\tcincoffsetimm c2, c2, -16\n"
+           "\tsc c30, 0(c2)\n\tsc c1, 8(c2)\n\tmv\tx15, x10\n\tsll\tx15, x15, x11\n"
+           "\tmv\tx10, x15\n\tlc c1, 8(c2)\n\tlc c2, 0(c2)\n\tcjalr cnull, cra, 0\n")
+_SOURCES = {target.SOURCE: b"int main(void) { return 0; }\n",
+            "firmware/include/vos_fixture.h": b"#define VOS_FIXTURE 1\n"}
+
+
+def _staged_root(root: Path) -> None:
+    """A checkout holding one source, one header and a consistent staged directory."""
+    for name, data in _SOURCES.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_bytes(data)
+    directory = root / target.STAGED
+    directory.mkdir(parents=True)
+    raw = _STREAM.encode("utf-8")
+    modes: dict[str, object] = {}
+    for mode in target.MODES:
+        (directory / f"{mode}.s").write_bytes(target.HEADER.encode("utf-8") + raw)
+        modes[mode] = {"file": f"{mode}.s", "assembly_sha256": b.sha(raw), "argv": ["ccomp"],
+                       "sum_of_function_frames": 16, "lines": len(_STREAM.splitlines())}
+    (root / target.MANIFEST).write_text(json.dumps({
+        "schema": 1, "source": target.SOURCE, "stack_bytes": target.STACK_BYTES,
+        "compiler_provenance": {"revision": "fixture"}, "compiler_inputs_sha256": {},
+        "sources_sha256": {name: b.sha(data) for name, data in _SOURCES.items()},
+        "modes": modes}), encoding="utf-8")
+
+
+def _edit_json(path: Path, change: Callable[[dict[str, Any]], None]) -> None:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    change(data)
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def staged_streams_bind_manifest_and_sources() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        root = Path(name)
+        _staged_root(root)
+        manifest, streams = target.staged(root)
+        ensure(set(streams) == set(target.MODES) and streams["slh"] == _STREAM
+               and manifest["modes"]["slh"]["sum_of_function_frames"] == 16,
+               "consistent staged streams refused")
+    staged = Path(target.STAGED)
+    controls: list[tuple[str, Callable[[Path], object]]] = [
+        ("stale source", lambda root: (root / target.SOURCE).write_bytes(b"int changed;\n")),
+        ("stale header", lambda root: (root / "firmware/include/vos_fixture.h").unlink()),
+        ("changed stream", lambda root: (root / staged / "slh.s").write_bytes(
+            (root / staged / "slh.s").read_bytes().replace(b"x11", b"x12"))),
+        ("damaged header", lambda root: (root / staged / "mldsa.s").write_bytes(
+            (root / staged / "mldsa.s").read_bytes()[1:])),
+        ("unowned staged file", lambda root: (root / staged / "extra.s").write_bytes(b"")),
+        ("missing interface", lambda root: (root / staged / "mldsa-mu.s").unlink()),
+        ("misstated frame sum", lambda root: _edit_json(root / target.MANIFEST, lambda data:
+            data["modes"]["slh"].update(sum_of_function_frames=32))),
+        ("escaping source", lambda root: _edit_json(root / target.MANIFEST, lambda data:
+            data["sources_sha256"].update({"../outside.c": "0" * 64}))),
+        ("source inside the staged tree", lambda root: _edit_json(root / target.MANIFEST, lambda data:
+            data["sources_sha256"].update({f"{target.STAGED}/slh.s": "0" * 64}))),
+        ("another campaign's stack", lambda root: _edit_json(root / target.MANIFEST, lambda data:
+            data.update(stack_bytes=16384))),
+    ]
+    for label, change in controls:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            _staged_root(root)
+            change(root)
+            try:
+                target.staged(root)
+            except (OSError, ValueError):
+                continue
+            raise AssertionError(f"{label} accepted as a staged stream")
+
+
+def staging_reads_marked_sources() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        root = Path(name).resolve()
+        _staged_root(root)
+        (root / "firmware/crypto/keccak.c").write_bytes(b"static int keccak;\n")
+        unit_path = root / "unit.i"
+        unit_path.write_text(
+            '# 1 "signature_target.c"\n# 1 "<built-in>" 1\n# 1 "<command line>" 1\n'
+            '# 1 "./keccak.c" 1\n'
+            f'# 1 "{(root / "firmware/include/vos_fixture.h").as_posix()}" 1\n'
+            f'# 1 "{(root.parent / "outside-compiler/include/stddef.h").as_posix()}" 1\n',
+            encoding="utf-8")
+        unit = SimpleNamespace(preprocessed=SimpleNamespace(path=unit_path, cwd=str(root / "firmware/crypto")))
+        found = target.read_sources(root, cast("Any", unit))
+        ensure(set(found) == {target.SOURCE, "firmware/crypto/keccak.c", "firmware/include/vos_fixture.h"},
+               f"marked checkout sources misread: {sorted(found)}")
+        unit_path.write_text('# 1 "./keccak.c" 1\n', encoding="utf-8")
+        try:
+            target.read_sources(root, cast("Any", unit))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("a unit that never names its source was accepted")
+        argv = ("/native/ccomp", "-conf", "/native/lane/compcert.ini", "-fverifiedos-typed",
+                "-I" + str(root / "firmware/include"), "-DVOS_TARGET_SCHEME=1", "-S", "unit.i")
+        ensure(target.portable(argv, root) == ["ccomp", "-conf", "compcert.ini", "-fverifiedos-typed",
+                                               "-Ifirmware/include", "-DVOS_TARGET_SCHEME=1", "-S", "unit.i"],
+               "staged compile argv kept machine paths")
+
+
+def interfaces_select_their_population() -> None:
+    population = [b.Case(f"{mode}-{kind}", mode, b"", b"", b"", b"", kind == "positive")
+                  for mode in target.MODES for kind in ("positive", "refusal")]
+    chosen = target.select(population, ("mldsa-mu", "slh"), first=False)
+    ensure([case.name for case in chosen] == ["slh-positive", "slh-refusal", "mldsa-mu-positive",
+                                              "mldsa-mu-refusal"], "interface selection or order")
+    ensure([case.name for case in target.select(population, ("slh",), first=True)] == ["slh-positive"],
+           "positive-only selection")
+    for modes, arguments in (((), []), (("slh", "slh"), []), (("rsa",), []), (("slh",), ["-conf", "x"])):
+        try:
+            target.run(TOOLS.parent, Path("unused"), None, arguments, Path("sim"), Path("receipt"),
+                       1, 1, modes=modes)
+        except ValueError:
+            continue
+        raise AssertionError(f"target accepted modes {modes} with arguments {arguments}")
+
+
+def _shard(mode: str, **changes: object) -> dict[str, Any]:
+    names = [f"{mode}-positive", f"{mode}-refusal"]
+    report: dict[str, Any] = {
+        "status": "passed", "passed": True, "first_positive_only": False, "modes": [mode],
+        "selection": {mode: names}, "unexecuted_cases": [], "compiled": {mode: {"assembly_sha256": mode}},
+        "cases": [{"case": case, "mode": mode, "expected": case == names[0], "passed": True}
+                  for case in names],
+        "seconds": 1.0, "jobs": 4, "inputs_sha256": {"simulator": mode},
+        **{key: f"shared {key}" for key in target.SHARED}}
+    report.update(changes)
+    return report
+
+
+def joined_campaigns_are_complete_and_consistent() -> None:
+    shards = {mode: _shard(mode) for mode in reversed(target.MODES)}
+    joined = target.join(shards)
+    ensure(joined["passed"] and joined["complete_selected_population"] and not joined["unexecuted_cases"],
+           "consistent shards refused")
+    ensure([row["case"] for row in joined["cases"]] ==
+           [f"{mode}-{kind}" for mode in target.MODES for kind in ("positive", "refusal")],
+           "joined cases leave population order")
+    failed = _shard("slh", status="failed", passed=False)
+    failed["cases"][1]["passed"] = False
+    ensure(not target.join({**shards, "slh": failed})["passed"], "a failed case joined as success")
+    skipped = _shard("mldsa", status="failed", passed=False, unexecuted_cases=["mldsa-refusal"])
+    skipped["cases"] = skipped["cases"][:1]
+    joined = target.join({**shards, "mldsa": skipped})
+    ensure(not joined["passed"] and joined["unexecuted_cases"] == ["mldsa-refusal"],
+           "an unexecuted refusal disappeared from the joined campaign")
+    duplicate = _shard("slh")
+    duplicate["cases"].append(dict(duplicate["cases"][0]))
+    outside = _shard("slh")
+    outside["cases"][1] = {**outside["cases"][1], "case": "slh-invented"}
+    wrong_mode = _shard("slh")
+    wrong_mode["cases"][1] = {**wrong_mode["cases"][1], "mode": "mldsa"}
+    misstated = _shard("slh")
+    misstated["cases"][1] = {**misstated["cases"][1], "passed": False}
+    controls: list[tuple[str, dict[str, Any]]] = [
+        ("a missing interface", {mode: shards[mode] for mode in target.MODES[1:]}),
+        ("a repeated interface", {**shards, "again": _shard("slh")}),
+        ("different sources", {**shards, "slh": _shard("slh", source_sha256={"changed": "x"})}),
+        ("a different staged manifest", {**shards, "slh": _shard("slh", staged_manifest_sha256="other")}),
+        ("a positives-only shard", {**shards, "slh": _shard("slh", first_positive_only=True)}),
+        ("an incomplete shard", {**shards, "slh": _shard("slh", status="incomplete")}),
+        ("a shard that stopped", {**shards, "slh": {"passed": False, "status": "failed", "error": "no model"}}),
+        ("a duplicated case", {**shards, "slh": duplicate}),
+        ("a case outside the selection", {**shards, "slh": outside}),
+        ("a case under another interface", {**shards, "slh": wrong_mode}),
+        ("a success its cases contradict", {**shards, "slh": misstated}),
+        ("a misstated unexecuted list", {**shards, "slh": _shard("slh", unexecuted_cases=["slh-refusal"])}),
+        ("an empty selection", {**shards, "slh": _shard("slh", selection={"slh": []})}),
+    ]
+    for label, reports in controls:
+        try:
+            target.join(reports)
+        except ValueError:
+            continue
+        raise AssertionError(f"{label} joined into a complete campaign")
+
+
+def target_takes_one_stream_source() -> None:
+    required = ["target", "--simulator", "sim", "--build-receipt", "receipt"]
+    def parsed(args: argparse.Namespace) -> int:
+        raise AssertionError(f"target parsed stream sources {args.ccomp!r} and {args.staged!r}")
+    for extra in ([], ["--staged", "--ccomp", "ccomp"]):
+        with patch.dict(cli.TABLE, {"target": (parsed, "fixture")}):
+            try:
+                cli.main([*required, *extra])
+            except SystemExit:
+                continue
+        raise AssertionError(f"target accepted stream sources {extra}")
+
+
 def cases() -> list[Case]:
     return [Case("pure internal and mu selection", selected_interfaces),
             Case("corruption and strict boundary controls", controls_preserve_positive),
@@ -168,4 +364,9 @@ def cases() -> list[Case]:
             Case("target timeout and trap never mean refusal", target_requires_a_real_verdict),
             Case("target byte extents and scalar lengths", target_bounds_bind_lengths),
             Case("target compiler source drift", compiler_source_drift_refuses),
+            Case("staged streams bind their manifest and sources", staged_streams_bind_manifest_and_sources),
+            Case("staging reads the preprocessor's checkout sources", staging_reads_marked_sources),
+            Case("interfaces select their own population", interfaces_select_their_population),
+            Case("joined shards form one consistent campaign", joined_campaigns_are_complete_and_consistent),
+            Case("target takes exactly one stream source", target_takes_one_stream_source),
             Case("sanitized native bounds and refusals", native_controls, lane="guest")]

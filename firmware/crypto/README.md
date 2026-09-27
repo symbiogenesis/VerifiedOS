@@ -49,13 +49,16 @@ development checkpoint. Neither option can claim target acceptance.
 
 `boot-crypto target` compiles [signature_target.c](signature_target.c) through
 the accepted contained compiler and executes all five real signature interfaces
-on the scalar RoT profile. It takes `--ccomp`, repeated `--ccomp-arg` options,
-`--simulator` and `--build-receipt`. The compiler's native `build-result.json`
-and `build-inputs.json` must bind its executable and unchanged source archive.
+on the scalar RoT profile. It takes `--ccomp` with repeated `--ccomp-arg` options,
+or `--staged` for the [staged streams](#staged-target-streams), and `--simulator`
+and `--build-receipt`. The compiler's native `build-result.json` and
+`build-inputs.json` must bind its executable and unchanged source archive.
 The target population is one pinned ACVP positive per interface and each
 applicable authored corruption, root, message, context and length refusal.
 The full host population remains separately recorded. `--first` selects only
-the five positive target cases and cannot establish that refusal coverage.
+the positive target cases and cannot establish that refusal coverage. Repeated
+`--mode` options select interfaces; a receipt covering fewer than five records
+its selection and is complete only as a shard of a joined campaign.
 Exact ABI lengths accompany bounded read-only input capabilities. Timeout,
 instruction exhaustion and traps supply no signature decision. The report
 binds source, compiler, model, input, assembly, ELF and log identities and records
@@ -64,10 +67,10 @@ separate joins.
 
 The crypto composition reserves an exactly aligned 32 KiB stack and refuses
 a compiler stream whose conservative sum of function frames exceeds it.
-`--jobs` permits one to six isolated target cases. All interfaces compile
-before execution, and each interface's accepted positive gates its refusal
-controls. Final records use population order regardless of completion order.
-Duplicate, contradictory and malformed HTIF lines refuse the run.
+`--jobs` permits one to six isolated target cases. All selected interfaces
+compile or load before execution, and each interface's accepted positive gates
+its refusal controls. Final records use population order regardless of completion
+order. Duplicate, contradictory and malformed HTIF lines refuse the run.
 
 The same campaign generates an authored header signature using OpenSSL and
 tests the actual RoT release with a valid image, a corrupted signature, a wrong
@@ -106,3 +109,43 @@ The qualified vector/oracle campaign is separate from Host CI and
 Guest CI. Host execution and comparison are functional evidence. Target
 lowering, firmware execution on the RoT composition, binary refinement,
 constant-time and masking claims remain open under M7.1f and its joins.
+
+## Staged target streams
+
+`python tools/run.py boot-crypto stage --ccomp PATH --ccomp-arg=ARG` compiles
+all five interfaces through the contained compiler, applies the dialect and stack
+checks and writes [target/](target/): one stream per interface, each a three-line
+generated header followed by the compiler's exact bytes, and
+[manifest.json](target/manifest.json). The manifest binds each stream's SHA256,
+path-free compile arguments and frame sum, the compiler build's revision and
+executable and receipt digests, the configuration file's digest and every checkout
+file that the preprocessor's line markers name. `--check` recompiles and compares
+without writing. Staging runs only where the contained compiler is provisioned;
+its native `stage.json` keeps the literal arguments and preprocessed-unit digests,
+which name that checkout's paths.
+
+`boot-crypto verify` holds the tracked files to their manifest and to this
+checkout's sources on either lane. `boot-crypto target --staged` executes them
+instead of compiling. It refuses compiler arguments, a changed bound source, an
+altered stream or header, a missing or unowned file and a frame sum that disagrees
+with the manifest, and it repeats the dialect and stack checks. Its receipt records
+`"compilation": "staged"` and the manifest's digest. The compiler's provenance is
+the staging record, not a check made where the streams execute. Editing a bound
+source makes the streams stale until they are staged again.
+
+## Hosted target campaign
+
+[boot-crypto-target.yml](../../.github/workflows/boot-crypto-target.yml) executes
+the complete campaign from the staged streams on GitHub-hosted Linux. Pushes to
+`main` that change [target/](target/) or the workflow start it; manual dispatch
+accepts a revision already on `main` and a per-case timeout, 9,000 s by default.
+Each interface runs on its own runner with `--mode` and `--jobs 4`, so its positive
+still gates its refusals. Each runner verifies the streams, restores Guest CI's
+model-lane toolchains and Sail memo read-only, and builds the model for its
+simulator and build receipt. `boot-crypto join` then composes the five receipts:
+every interface exactly once, identical source, model, manifest, compiler and
+vector identities, verdicts that agree with their cases, and unexecuted cases
+listed. A failed case fails the joined receipt; an inconsistent set is refused.
+The run retains each interface's receipt and logs and the joined `report.json`
+for 30 days. A passing joined receipt is target execution evidence for the staged
+streams at its revision; the firmware join and the limits above remain.

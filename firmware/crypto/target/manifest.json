@@ -1,0 +1,125 @@
+{
+  "compiler_inputs_sha256": {
+    "compcert.ini": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+  },
+  "compiler_provenance": {
+    "compiler_sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca",
+    "kind": "clean native build from committed source archive; no compiled seed reused",
+    "revision": "e1f824401c98e6616ec865ead3e51eee05c7d24d",
+    "source_count": 548
+  },
+  "compiler_receipts_sha256": {
+    "build-inputs.json": "4c3250fe80cc979d449d2ed92f25604e357d3a64b31e4f1779296ace2cc8b912",
+    "build-result.json": "b33cbda2a6f45848a3e0b807ddf6721fa9b6feb187120118d29c38e91de30f29"
+  },
+  "generator": "run.py boot-crypto stage",
+  "modes": {
+    "mldsa": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-DVOS_TARGET_SCHEME=2",
+        "-DVOS_TARGET_INTERFACE=1",
+        "-S",
+        "signature_target.i",
+        "-o",
+        "signature_target.s"
+      ],
+      "assembly_sha256": "d2d86018da0e3902051c3a119e98cc255501d31ef971158862dd8455cea1ef36",
+      "file": "mldsa.s",
+      "lines": 3505,
+      "sum_of_function_frames": 17856
+    },
+    "mldsa-internal": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-DVOS_TARGET_SCHEME=2",
+        "-DVOS_TARGET_INTERFACE=2",
+        "-S",
+        "signature_target.i",
+        "-o",
+        "signature_target.s"
+      ],
+      "assembly_sha256": "33bba787efb6b2e2b9af259d0c615b840059aec9c88b7c8b03e765e5e26fbc43",
+      "file": "mldsa-internal.s",
+      "lines": 3502,
+      "sum_of_function_frames": 17856
+    },
+    "mldsa-mu": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-DVOS_TARGET_SCHEME=2",
+        "-DVOS_TARGET_INTERFACE=3",
+        "-S",
+        "signature_target.i",
+        "-o",
+        "signature_target.s"
+      ],
+      "assembly_sha256": "f9524c4c1cccad66e0ceb64e28c2cb4f2909ebcd97a55cd9c68f31139eafdf03",
+      "file": "mldsa-mu.s",
+      "lines": 3502,
+      "sum_of_function_frames": 17856
+    },
+    "slh": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-DVOS_TARGET_SCHEME=1",
+        "-DVOS_TARGET_INTERFACE=1",
+        "-S",
+        "signature_target.i",
+        "-o",
+        "signature_target.s"
+      ],
+      "assembly_sha256": "c5c034e78bd62c21425e039d59b45dc8b6e4f02d798ec69a884965a00cd8239c",
+      "file": "slh.s",
+      "lines": 2609,
+      "sum_of_function_frames": 5344
+    },
+    "slh-internal": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-DVOS_TARGET_SCHEME=1",
+        "-DVOS_TARGET_INTERFACE=2",
+        "-S",
+        "signature_target.i",
+        "-o",
+        "signature_target.s"
+      ],
+      "assembly_sha256": "698bb32f11560387376d4f5f890124df269a7ce258ace361d731f1487568297f",
+      "file": "slh-internal.s",
+      "lines": 2606,
+      "sum_of_function_frames": 5344
+    }
+  },
+  "schema": 1,
+  "source": "firmware/crypto/signature_target.c",
+  "sources_sha256": {
+    "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+    "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+    "firmware/crypto/signature_target.c": "cabed0d3893781e2a08a7bcd6e5bc0e7fd4ea310570e5b36424c02977f63d1da",
+    "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+    "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+    "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+    "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+  },
+  "stack_bytes": 32768
+}
