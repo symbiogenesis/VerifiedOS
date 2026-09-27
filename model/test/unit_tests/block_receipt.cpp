@@ -56,6 +56,12 @@ void child_case(const std::string &image_path, const std::string &receipt_path, 
     require(!image.persist(1, 0, 0, medium, 128), "later READ must return IO");
     require(!image.persist(3, 0, 0, medium, 128), "later FLUSH must return IO");
   }
+  if (which == 3) {
+    image.input("progress", "\"epoch\":0,\"input_epoch\":0,\"io_error\":false");
+    require(!image.healthy(), "lost input receipt must make IO sticky");
+    uint64_t medium[128] = {};
+    require(!image.persist(1, 0, 0, medium, 128), "READ after lost input must return IO");
+  }
   require(!image.close(), "a lost final receipt must fail close");
   require(!image.close(), "repeated close must retain the evidence failure");
 }
@@ -74,7 +80,7 @@ int main() {
       blkdev::image image(image_path, blkdev::image::mode::create, {64, 2}, std::vector<uint8_t>(128, 0));
       require(image.close(), "creation without a receipt must succeed");
     }
-    for (unsigned which = 0; which < 3; ++which) {
+    for (unsigned which = 0; which < 4; ++which) {
       const std::string receipt_path = dir + "/receipt-" + std::to_string(which);
       const pid_t pid = fork();
       require(pid >= 0, "fork failed");
@@ -101,7 +107,7 @@ int main() {
       require(unlink(receipt_path.c_str()) == 0, "cannot remove test receipt");
     }
     require(unlink(image_path.c_str()) == 0 && rmdir(dir.c_str()) == 0, "cannot remove test outputs");
-    std::puts("block receipt: startup, persistence and close failures PASS");
+    std::puts("block receipt: startup, input, persistence and close failures PASS");
     return 0;
   } catch (const std::exception &error) {
     std::fprintf(stderr, "block receipt: FAIL %s (scratch kept at %s)\n", error.what(), scratch);

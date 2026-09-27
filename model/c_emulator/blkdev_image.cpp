@@ -247,7 +247,8 @@ bool image::note(const std::string &json) {
     return false;
   }
   if (m_receipt != nullptr) {
-    if (std::fputs(json.c_str(), m_receipt) == EOF || std::fputc('\n', m_receipt) == EOF ||
+    const std::string sequenced = "{\"sequence\":" + number(m_sequence++) + "," + json.substr(1);
+    if (std::fputs(sequenced.c_str(), m_receipt) == EOF || std::fputc('\n', m_receipt) == EOF ||
         std::fflush(m_receipt) != 0) {
       m_receipt_failed = true;
       m_failed = true;
@@ -256,6 +257,10 @@ bool image::note(const std::string &json) {
     }
   }
   return true;
+}
+
+void image::input(const std::string &kind, const std::string &fields) {
+  note("{\"event\":\"input\",\"kind\":" + quoted(kind) + "," + fields + "}");
 }
 
 void image::release() {
@@ -366,7 +371,7 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
     refuse("cannot read image " + m_path + ": " + error_text());
   }
   m_opened.assign(whole.begin() + static_cast<std::ptrdiff_t>(header_bytes), whole.end());
-  if (!note("{\"schema\":\"verifiedos-blkdev-receipt-1\",\"event\":\"open\",\"mode\":" +
+  if (!note("{\"schema\":\"verifiedos-blkdev-receipt-2\",\"event\":\"open\",\"mode\":" +
        quoted(how == mode::create ? "create" : "open") + ",\"image\":" + quoted(m_path) +
        ",\"block_bytes\":" + number(g.block_bytes) + ",\"block_count\":" + number(g.block_count) +
        ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}")) {

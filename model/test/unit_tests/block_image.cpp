@@ -53,6 +53,11 @@ public:
   bool blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length) override {
     return bound == nullptr || bound->persist(kind, offset, length, zblkdev_medium.data, zblkdev_medium.len);
   }
+  bool blkdev_host_trace_enabled(unit) override { return bound != nullptr && bound->tracing(); }
+  unit blkdev_host_input(const_sail_string kind, const_sail_string fields) override {
+    if (bound != nullptr) bound->input(kind, fields);
+    return UNIT;
+  }
 };
 
 uint64_t quantity(const sail_int n) {
@@ -561,18 +566,27 @@ public:
     put_block(medium, last, p);
     compare(file_bytes(image), image_of(medium), "image after WRITE and FLUSH");
     {
-      const auto records = lines(write_receipt);
+      const auto all = lines(write_receipt);
+      std::vector<std::string> records;
+      for (const auto &record : all) {
+        if (!contains(record, "\"event\":\"input\"")) records.push_back(record);
+      }
       require(records.size() == 3 && contains(records[1], "\"kind\":\"write\"") &&
                 contains(records[1], "\"offset\":" + std::to_string(last * shape.block_bytes)) &&
                 contains(records[1], "\"durable\":true") && contains(records[2], "\"kind\":\"flush\"") &&
                 contains(records[2], "\"durable\":true"),
               "the write receipt must record the durable WRITE and FLUSH");
+      require(all.size() > records.size(), "the bound model omitted its input entries");
     }
     const std::string read_receipt = path("read.receipt");
     reopen(image, medium, read_receipt);
     {
       const auto records = lines(read_receipt);
-      require(records.size() == 2 + n && contains(records.back(), "\"event\":\"close\"") &&
+      size_t reads = 0;
+      for (const auto &record : records) {
+        if (contains(record, "\"event\":\"persist\"") && contains(record, "\"kind\":\"read\"")) ++reads;
+      }
+      require(reads == n && contains(records.back(), "\"event\":\"close\"") &&
                 contains(records.back(), "\"sha256\":\"" + hex(image_of(medium)) + "\""),
               "the reopen receipt must record each READ and the unchanged image");
     }
