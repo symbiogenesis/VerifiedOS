@@ -1134,12 +1134,12 @@ CASES: list[Case] = [
     ("K-37", "a restated class sum the open items of that class do not give",
      _renumber(PLAN, r"(?m)^\| Open class I h \| ([\d.,]+) \|", 1, "999")),
 
-    ("K-37", "a gate figure the partition beneath it does not give",
-     _renumber(PLAN, r"(?m)^\| M8a open h \| ([\d.,]+) \|", 1, "999")),
+    ("K-37", "a gate figure its explicit leaves do not give",
+     _renumber(PLAN, r"(?m)^\| Committed M8a open h \| ([\d.,]+) \|", 1, "999")),
 
     # Move the range alone: the midpoint still agrees with its source cells.
-    ("K-37", "a critical-chain range the cells on the chain do not give",
-     _renumber(PLAN, r"(?m)^\| M8a critical chain range h \| ([\d.,]+)–",
+    ("K-37", "a committed gate range its explicit leaves do not give",
+     _renumber(PLAN, r"(?m)^\| Committed M8a open range h \| ([\d.,]+)–",
                1, "999")),
 
     ("K-37", "a missing estimate summary marker",
@@ -1157,6 +1157,15 @@ CASES: list[Case] = [
     # stays in its cell; K-37 reports the calibrated total beside this, and what the case
     # asks is that the ratio itself is a quotient over the record rather than a figure
     # read out of the sentence stating it
+    ("K-96", "a leaf assigned to two work dispositions",
+     _literal("docs/implementation/work-order.json", '"Q3b"', '"M7.1a"')),
+
+    ("K-96", "a work owner with an unclassified priced leaf",
+     _first_match("docs/implementation/work-order.json", r'(?m)^      "Q3b",\n', lambda _m: "")),
+
+    ("K-96", "a stale generated authoring verdict",
+     _literal(PLAN, "available for authoring", "ready without its inputs")),
+
     ("K-96", "a calibration ratio the record's estimates and the actuals do not give",
      _renumber(PLAN, r"(?m)^\| M0\.8d \| X-authored \| ([\d.,]+) \|", 1, "999")),
 

@@ -13,12 +13,13 @@ finding rather than a stopped run, K-67 fails closed on an owner it cannot read,
 and K-75 decides the one floor site its single mutant does not seed.
 """
 
+import json
 from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
-from vos import sailbundle
+from vos import sailbundle, workorder
 from vos.checks import Context, bindings, compounds, counts, estimates, generated, meta, pins
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
@@ -27,6 +28,24 @@ from vos.report import Reporter
 _REGISTER_MIN = "# Register\n\n## §1\n\n**R-01-001** MUST x.\n· Trace: t\n"
 
 PLAN = estimates.PLAN
+
+
+def _work_files(plan: str, m8a: tuple[str, ...] = (),
+                m8b: tuple[str, ...] = ()) -> dict[str, str]:
+    items, _, _ = estimates._parse(plan)
+    assigned = set(m8a + m8b)
+    owner = {
+        "version": 1,
+        "buckets": {"m8a": list(m8a), "m8b": list(m8b), "committed": [],
+                    "conditional": [], "option": [i.label for i in items if not i.done
+                        and estimates._head(i.label) not in assigned]},
+        "dispatch": [{"item": key, "start": [],
+                      "artifacts": ["docs/requirements-register.md"], "unmet": [], "join": []}
+                     for key in m8a],
+        "unpriced": ["docs/requirements-register.md"],
+    }
+    return {"docs/requirements-register.md": _REGISTER_MIN, PLAN: plan,
+            workorder.OWNER: json.dumps(owner)}
 
 
 def _context(root: Path, fix: bool = False) -> Context:
@@ -106,7 +125,7 @@ def _estimate_summary() -> str:
             + "\n" + estimates.SUMMARY_END + "\n\n")
 
 
-def _nested_estimates_keep_chain_membership() -> None:
+def _nested_estimates_use_explicit_leaves() -> None:
     plan = ("# Plan\n\n" + _estimate_summary() +
             "* [ ] **M1.2 · Backend**\n"
             "  * [ ] **M1.2g · Carrier**\n"
@@ -120,18 +139,12 @@ def _nested_estimates_keep_chain_membership() -> None:
     ensure([item.ancestors for item in items] == [
         ("M1.2", "M1.2g"), ("M1.2", "M1.2g"), ("M1.2",), ()],
         "grandchildren retain the outer parent and the next sibling restores it")
-    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                       PLAN: plan}) as root:
+    with sandbox_tree(_work_files(plan, ("M1.2g-i", "M1.2g-ii", "M1.2f", "M1.7"))) as root:
         ctx = _context(root, fix=True)
-        # The synthetic plan owns its chain independently of current project progress.
-        with patch.object(estimates, "CHAIN_M8A", ["M1.2", "M1.7"]):
-            estimates.run(ctx)
-        ensure(not any("names M1.2 " in finding
-                       for finding in _findings_under(ctx, "K-96")),
-               "a nested chain member is occupied by its priced descendants")
-        ensure("| M8a critical chain midpoint h | 25 |" in ctx.fixed[PLAN]
-               and "| M8a critical chain range h | 15–35 |" in ctx.fixed[PLAN],
-               "the chain counts nested leaves and the later sibling exactly once")
+        estimates.run(ctx)
+        ensure("| Committed M8a open h | 25 |" in ctx.fixed[PLAN]
+               and "| Committed M8a open range h | 15–35 |" in ctx.fixed[PLAN],
+               "only explicitly listed nested leaves enter the committed effort")
 
 
 def _retained_estimates_are_scope_not_actuals() -> None:
@@ -143,19 +156,17 @@ def _retained_estimates_are_scope_not_actuals() -> None:
             "#### The agent-parallel series\n\n"
             "| Item | Pool | Estimate |\n| --- | --- | --- |\n"
             "| M1.2b | n/a | n/a |\n")
-    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                       PLAN: plan}) as root:
+    with sandbox_tree(_work_files(plan, ("M1.2g",))) as root:
         ctx = _context(root, fix=True)
-        with patch.object(estimates, "AFTER_M8A", []):
-            estimates.run(ctx)
+        estimates.run(ctx)
         repaired = ctx.fixed[PLAN]
         ensure("6 h retained estimate, actual n/a · agent-parallel" in repaired,
                f"repair must preserve the unavailable actual: {repaired!r}")
         ensure("| Retained completion estimate h | 6 |" in repaired
                and "| Unmeasured completed items | 1 |" in repaired,
                "retained scope must be reported separately")
-        ensure("| M8a open h | 9 |" in repaired
-               and "| M8a open class X h | 9 |" in repaired,
+        ensure("| Committed M8a open h | 9 |" in repaired
+               and "| Committed M8a open class X h | 9 |" in repaired,
                "completed estimated scope must leave the remaining-work budget")
         ensure(not _findings_under(ctx, "K-34"), "the completed form must be readable")
     items, _, malformed = estimates._parse(repaired)
@@ -179,68 +190,33 @@ def _retained_estimates_are_scope_not_actuals() -> None:
         ensure(not again.fixed, "retained-cell repair must reach its fixpoint")
 
 
-def _optional_inference_work_stays_outside_both_gates() -> None:
-    # Exercise the reported budgets, including _head's handling of full labels.
-    # Module and research qualification must leave both gate figures unchanged.
+def _optional_work_never_enters_gates_by_default() -> None:
     plan = ("# Plan\n\n" + _estimate_summary() +
-            "* [ ] **M1.7 · Software fixture** · 10 h, range 8–12 · 0.0% · I\n"
-            "* [ ] **R2 · RTL fixture** · 20 h, range 16–24 · 0.0% · I\n")
-    modules = "".join(
-        f"* [ ] **Q24{suffix} · Module fixture** · 3 h, range 2–4 · 0.0% · X · "
-        "after the M8a gate\n" for suffix in "abcdefgh")
-    research = "".join(
-        f"* [ ] **Q28{suffix} · Research fixture** · 6 h, range 3–9 · 0.0% · X · "
-        "after the M8a gate\n" for suffix in "abc")
-    workflows = "".join(
-        f"* [ ] **Q32{suffix} · Workflow fixture** · 6 h, range 3–9 · 0.0% · X · "
-        "after the M8a gate\n" for suffix in "abc")
-    packages = ("* [ ] **Q31 · Package comparison** · 12 h, range 8–16 · 0.0% · I · "
-                "after the M8a gate\n")
-    # These later release obligations formerly fell into the software budget
-    # merely because the accounting partition omitted their leaf identifiers.
-    # Include the two desktop proof siblings whose authoring can start early.
-    release = "".join(
-        f"* [ ] **{label} · Release fixture** · 6 h, range 3–9 · 0.0% · X\n"
-        for label in ("Q4b", "Q20c", "Q30b", "Q30c", "Q33", "R5a",
-                      "Q34b", "Q34c", "Q34d", "Q34e", "Q34f", "Q34g", "Q34h"))
-    expected = [
-        "| M8a open h | 10 |",
-        "| M8a open class X h | 0 |",
-        "| M8b parallel chain h | 20 |",
-    ]
-    for addition in ("", modules, research, workflows, packages, release,
-                     modules + research + workflows + packages + release):
-        fixture = plan + addition + "**S subtotal:** 0 h · 0%.\n"
-        items, _, _ = estimates._parse(fixture)
-        carried = {estimates._head(item.label) for item in items}
-        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                           PLAN: fixture}) as root:
-            ctx = _context(root, fix=True)
-            # Keep the real membership decision; only absent fixture owners are omitted.
-            with (patch.object(estimates, "AFTER_M8A",
-                               [key for key in estimates.AFTER_M8A if key in carried]),
-                  patch.object(estimates, "AFTER_M8B",
-                               [key for key in estimates.AFTER_M8B if key in carried])):
-                estimates.run(ctx)
-            repaired = ctx.fixed.get(PLAN, fixture)
-            actual = [line for line in repaired.splitlines()
-                      if line.startswith(("| M8a open", "| M8b parallel chain"))]
-            ensure(actual == expected,
-                   f"deferred qualification changed a required gate budget: {actual!r}")
+            "* [ ] **M1.7 · Software fixture** · 10 h, range 8–12 · I\n"
+            "* [ ] **R2 · RTL fixture** · 20 h, range 16–24 · I\n"
+            "* [ ] **Q3b · Conditional fault evidence** · 17 h, range 10–24 · X\n"
+            "* [ ] **New · Uncommissioned option** · 100 h, range 50–150 · X\n"
+            "**S subtotal:** 147 h · 100% · open range 84–210 h.\n")
+    with sandbox_tree(_work_files(plan, ("M1.7",), ("R2",))) as root:
+        ctx = _context(root, fix=True)
+        estimates.run(ctx)
+        repaired = ctx.fixed[PLAN]
+        ensure("| Committed M8a open h | 10 |" in repaired
+               and "| Committed M8b open h | 20 |" in repaired
+               and "| Unfunded option open h | 117 |" in repaired,
+               "an option changes full scope, not either committed gate")
 
 
 def _explicitly_deferred_checklist_leaves_leave_early_gates() -> None:
-    # Read the authored dispatch annotation through the owner's parser instead
-    # of maintaining another list of every leaf that promises later delivery.
     root = Path(__file__).resolve().parents[2]
     items, _, malformed = estimates._parse((root / PLAN).read_text(encoding="utf-8"))
     ensure(not malformed, f"the shipped plan must parse: {malformed!r}")
-    deferred = [estimates._head(item.label) for item in items
-                if not item.done and "after the M8a gate" in item.tail]
-    ensure(bool(deferred), "the dispatch annotation population must not disappear")
-    for partition in (estimates.AFTER_M8A, estimates.AFTER_M8B):
-        missing = sorted(set(deferred) - set(partition))
-        ensure(not missing, f"deferred leaves must not enlarge an early gate: {missing!r}")
+    deferred = {estimates._head(item.label) for item in items
+                if not item.done and "after the M8a gate" in item.tail}
+    owner = json.loads((root / workorder.OWNER).read_text(encoding="utf-8"))
+    early = set(owner["buckets"]["m8a"] + owner["buckets"]["m8b"])
+    ensure(bool(deferred) and not deferred & early,
+           "explicitly deferred leaves must not enlarge an early gate")
 
 
 def _k96_record_is_held_total_in_both_directions() -> None:
@@ -793,10 +769,10 @@ def cases() -> list[Case]:
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),
-        Case("nested-estimates-keep-chain-membership", _nested_estimates_keep_chain_membership),
+        Case("nested-estimates-use-explicit-leaves", _nested_estimates_use_explicit_leaves),
         Case("retained-estimates-are-scope-not-actuals", _retained_estimates_are_scope_not_actuals),
-        Case("optional-inference-work-stays-outside-both-gates",
-             _optional_inference_work_stays_outside_both_gates),
+        Case("optional-work-never-enters-gates-by-default",
+             _optional_work_never_enters_gates_by_default),
         Case("explicitly-deferred-checklist-leaves-leave-early-gates",
              _explicitly_deferred_checklist_leaves_leave_early_gates),
         Case("k96-record-is-held-total-in-both-directions",

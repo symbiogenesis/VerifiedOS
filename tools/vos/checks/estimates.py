@@ -16,12 +16,11 @@ progress figures are sums over the items beneath them. Item cells carry no share
 changing grand total. All derived figures are arithmetic, so a repair rewrites them;
 unlike the compounded product, there is no judgment layer here to leave standing.
 
-K-96 holds the authored sets behind the critical chain and calibration results.
-The critical chain is the author's to name and the tool's to sum: its members are a
-list held here beside the two gate partitions, and its range and midpoint are
-arithmetic over those cells in the generated summary. Narrative schedule guidance
-does not repeat those figures. The calibration is the author's to pool and the tool's
-to fit: the plan's
+K-96 holds the explicit priced-leaf dispositions and artifact joins in work-order.json,
+and the calibration results. Membership is authored; unknown work never enters a
+committed gate by default. The generated dispatch view distinguishes authoring inputs
+from acceptance joins and supplies no elapsed critical-path prediction. The calibration
+is the author's to pool and the tool's to fit: the plan's
 calibration record carries each completed attended item's pool and the earliest
 estimate its cell recorded, the actual is read from the item's own cell, and every
 ratio and count the calibration states is the quotient over that record, which is held
@@ -54,7 +53,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
-from vos import figures
+from vos import figures, workorder
 from vos.figures import format_hours, percent, quantize
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -89,60 +88,13 @@ OPEN_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h, range (?P<lo>{NUMBER})–(?P<hi>
 # has an actual instead of a range for the prior to widen
 CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
 
-# the gate is two gates over two chains, so the partition is two lists rather than one. A
-# label names a position in the order rather than one item, and `Post-M10` carries several,
-# so what is held below is that each label is occupied and not that the two counts match.
-# `AFTER_M8B` is what falls beyond the co-simulation gate; `AFTER_M8A` is that plus the RTL
-# chain, which runs beside the software one rather than inside it, so an item on it falls
-# after the software gate without being deferred past anything
-AFTER_M8B = ["R5", "R5a", "M9", "M9a", "M10", "Post-M10",
-             "M0.8c", "M1.3", "M1.3a", "M1.4", "M1.8b",
-             "M3.4b", "M3.6b", "M5.4", "M5.5", "M6.1b", "M6.2b-0", "M6.2b-i", "M6.2b-ii",
-             "M6.2c", "M6.9a", "M6.9b", "M6.9c",
-             "M6.3b", "M6.5b",
-             "M6.6", "M6.7", "M6.8", "S5", "S6",
-             # the resident toolchain is release-roster work like the inference server's:
-             # it consumes the accepted backend and the composed userland, and nothing on
-             # either chain admits a generation the device composed itself
-             "M1.10", "M6.10",
-             # target inference measurements and the later assessment decisions are
-             # outside both early gates; Q4a/Q5a's host instruments can precede them
-             "Q4b", "Q6", "Q7", "Q8", "Q9", "Q10",
-             # final-artifact promotion follows its deferred producer evidence
-             "Q20c",
-             # fault-model authoring is a hardening prerequisite, deferred behind M8a
-             "Q3c",
-             # scoping the later proof program does not gate the executable roster
-             "Q22g",
-             # the ensemble instantiation is later than the first release (R-02-003a) and none
-             # of its artifacts sits on either chain
-             "Q23b", "Q23c", "Q23d", "Q23e", "Q23f", "Q23g", "Q23h",
-             # optional inference modules supply no first-release gate prerequisite
-             "Q24a", "Q24b", "Q24c", "Q24d", "Q24e", "Q24f", "Q24g", "Q24h",
-             # research qualification adds no executable bring-up prerequisite
-             "Q28a", "Q28b", "Q28c",
-             # the shared browser and web application pilots are release-deferred
-             "Q29a", "Q29b", "Q29c",
-             # the compute pilots consume the same deferred proof/dispatch foundations;
-             # no OpenCL or HIP pilot is part of the scalar boot roster
-             "Q30b", "Q30c", "Q30d", "Q30e", "Q30f", "Q30g",
-             # the fixed package-layer comparison is also explicitly deferred
-             "Q31",
-             # workflow hibernation qualification is not a bring-up prerequisite
-             "Q32a", "Q32b", "Q32c",
-             # chain re-entry qualification and the elastic desktop are release work,
-             # not prerequisites of the contracted M8a or scalar co-simulation roster;
-             # their independent statement authoring may still start before either gate
-             "Q33", "Q34b", "Q34c", "Q34d", "Q34e", "Q34f", "Q34g", "Q34h"]
-AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
-
-# the critical chain through the software gate, in the order the summary names it. A
-# member is the open item carrying that label, or every open child of one that carries no
-# cell of its own. The membership is the
-# author's, as the two partitions above are; what is held is that each member is occupied
-# and that the range and midpoint the summary states are the arithmetic over
-# those cells
-CHAIN_M8A = ["M3.5", "M4.4", "M5.3", "M7.1", "M8a"]
+WORK_FIELDS = {
+    "m8a": "Committed M8a open h",
+    "m8b": "Committed M8b open h",
+    "committed": "Other committed open h",
+    "conditional": "Conditional open h",
+    "option": "Unfunded option open h",
+}
 
 # the calibration record: one row per completed attended item, the pool its authority fell
 # in and the earliest estimate its cell recorded. The pools are the three the plan's basis
@@ -182,6 +134,15 @@ SUMMARY_FIELDS: dict[str, re.Pattern[str]] = {
     "Retained completion estimate h": HOURS_RE,
     "Unmeasured completed items": re.compile(r"^\d+$"),
     "Calibrated total h": HOURS_RE,
+    **dict.fromkeys(WORK_FIELDS.values(), HOURS_RE),
+    "Committed M8a open class X h": HOURS_RE,
+    "Committed M8a open range h": re.compile(rf"^{NUMBER}–{NUMBER}$"),
+}
+# A one-way repair migration preserves the historical table until all new owners
+# are valid. It cannot populate new commitments from the old exclusion lists.
+LEGACY_SUMMARY_FIELDS = {
+    **{key: pattern for key, pattern in SUMMARY_FIELDS.items()
+       if key not in WORK_FIELDS.values() and not key.startswith("Committed M8a")},
     "M8a open h": HOURS_RE,
     "M8a open class X h": HOURS_RE,
     "M8b parallel chain h": HOURS_RE,
@@ -445,17 +406,21 @@ def _summary_results(ctx: Context, values: dict[str, str]) -> figures.LineResult
             continue
         key, value = (cell.strip() for cell in cells[1:-1])
         keys.append(key)
-        pattern = SUMMARY_FIELDS.get(key)
+        pattern = SUMMARY_FIELDS.get(key, LEGACY_SUMMARY_FIELDS.get(key))
         if pattern is None or not pattern.fullmatch(value):
             result.findings.append(f"{PLAN}: unreadable estimate summary value: {line}")
         current[key] = value
-    if sorted(keys) != sorted(SUMMARY_FIELDS):
+    legacy = sorted(keys) == sorted(LEGACY_SUMMARY_FIELDS)
+    if sorted(keys) != sorted(SUMMARY_FIELDS) and not legacy:
         result.findings.append(f"{PLAN}: estimate summary requires exactly one row "
                                "for each declared measure")
+    if legacy and (not ctx.fix or set(values) != set(SUMMARY_FIELDS)):
+        result.findings.append(f"{PLAN}: legacy estimate summary needs explicit work owners "
+                               "and check --fix before migration")
     if result.findings or not values:
         return result
     newline = "\r\n" if body.startswith("\r\n") else "\n"
-    expected = newline + _summary_table(current | values).replace("\n", newline) + newline
+    expected = newline + _summary_table(values if legacy else current | values).replace("\n", newline) + newline
     if body == expected:
         return result
     if ctx.fix:
@@ -541,6 +506,48 @@ def _calibration_results(ctx: Context, fits: dict[str, Fit], *,
     return result
 
 
+def _work_order_results(ctx: Context, order: workorder.WorkOrder) -> figures.LineResult:
+    """Regenerate only the marked table; reject missing markers and authored text."""
+    result = figures.LineResult()
+    raw = ctx.text(PLAN)
+    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
+               for marker in (workorder.START, workorder.END)]
+    if any(len(hits) != 1 for hits in markers) or any(
+            raw.count(marker) != 1 for marker in (workorder.START, workorder.END)):
+        result.findings.append(f"{PLAN}: work-order view requires one start and end marker")
+        return result
+    start, end = markers[0][0].end(), markers[1][0].start()
+    if start >= end:
+        result.findings.append(f"{PLAN}: work-order view markers are out of order")
+        return result
+    body = raw[start:end]
+    lines = body.strip().splitlines()
+    if lines[:2] != [workorder.HEADER, workorder.RULE]:
+        result.findings.append(f"{PLAN}: work-order view has a malformed header")
+        return result
+    keys: list[str] = []
+    for line in lines[2:]:
+        cells = line.split("|")
+        if len(cells) != 5 or cells[0].strip() or cells[-1].strip() or any(
+                not cell.strip() for cell in cells[1:-1]):
+            result.findings.append(f"{PLAN}: malformed work-order view row: {line}")
+        else:
+            keys.append(cells[1].strip())
+    if len(keys) != len(set(keys)):
+        result.findings.append(f"{PLAN}: duplicate work-order view row")
+    if result.findings or order.findings:
+        return result
+    newline = "\r\n" if body.startswith("\r\n") else "\n"
+    expected = newline + order.table().replace("\n", newline) + newline
+    if body != expected:
+        if ctx.fix:
+            ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
+            result.fixed.append(f"fixed: {PLAN}: dispatch view from explicit leaf and artifact owners")
+        else:
+            result.findings.append(f"{PLAN}: work-order view disagrees with its owners")
+    return result
+
+
 def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
@@ -600,45 +607,14 @@ def run(ctx: Context) -> None:
     open_hi = round(sum(i.hi for i in open_items), 1)
 
     stated: list[str] = []
-    carried = {_head(i.label) for i in items}
-    valid_partitions: dict[str, bool] = {}
-    for name, partition in (("M8a", AFTER_M8A), ("M8b", AFTER_M8B)):
-        empty = [label for label in partition if label not in carried]
-        valid_partitions[name] = not empty
-        if empty:
-            stated.append(f"the {name} partition names work the document carries no item "
-                          f"under: {', '.join(empty)}")
-
-    def _at_or_before(partition: list[str]) -> list[Item]:
-        return [i for i in open_items if _head(i.label) not in partition]
-
-    # the software gate is what open work falls at or before it, where the old single gate
-    # was the whole midpoint less the deferred tail; the two differ by the completed hours,
-    # and the open reading is the one a schedule is made against
-    gate_a = _at_or_before(AFTER_M8A)
-    gate_a_h = round(sum(i.hours for i in gate_a), 1)
-    gate_a_x = round(sum(i.hours for i in gate_a if i.cls == "X"), 1)
-    # the RTL chain is what the two partitions differ by: after the software gate, and not
-    # deferred past the co-simulation one, so it runs beside rather than behind
-    chain_b = round(sum(i.hours for i in open_items
-                        if _head(i.label) in AFTER_M8A
-                        and _head(i.label) not in AFTER_M8B), 1)
-
-    # ---- K-96, first half: the critical chain, summed over the cells its list names ----
-    derived: list[str] = []
-    chain = [i for i in open_items
-             if _head(i.label) in CHAIN_M8A
-             or any(parent in CHAIN_M8A for parent in i.ancestors)]
-    occupied = {_head(i.label) for i in chain} | {
-        parent for i in chain for parent in i.ancestors}
-    derived.extend(f"the critical chain names {label} and the document carries no open "
-                   "item under it" for label in CHAIN_M8A if label not in occupied)
-    if not CHAIN_M8A:
-        derived.append("the critical chain has no authored members")
-    valid_chain = not derived
-    chain_lo = round(sum(i.lo for i in chain), 1)
-    chain_hi = round(sum(i.hi for i in chain), 1)
-    chain_mid = round(sum(i.hours for i in chain), 1)
+    order = workorder.read(ctx.root, {item.label: item.done for item in items})
+    if len({item.label for item in items}) != len(items):
+        order.findings.append("duplicate priced leaf labels prevent work-order derivation")
+    if malformed:
+        order.findings.append("unreadable estimate cells prevent work-order derivation")
+    derived = list(order.findings)
+    buckets = {name: [item for item in open_items if item.label in labels]
+               for name, labels in order.buckets.items()}
 
     # ---- K-96, second half: the calibration, fitted over the record and the actuals ----
     # Two records and two fits, and the pair is never summed: an attended actual is an
@@ -758,15 +734,15 @@ def run(ctx: Context) -> None:
             calibrated = round(done_h + sum(float(class_ratio[c]) * h
                                             for c, h in by_class.items()), 1)
             values["Calibrated total h"] = format_hours(calibrated)
-        if valid_partitions["M8a"]:
-            values["M8a open h"] = format_hours(gate_a_h)
-            values["M8a open class X h"] = format_hours(gate_a_x)
-        if all(valid_partitions.values()):
-            values["M8b parallel chain h"] = format_hours(chain_b)
-        if valid_chain:
-            values["M8a critical chain midpoint h"] = format_hours(chain_mid)
-            values["M8a critical chain range h"] = (
-                f"{format_hours(chain_lo)}–{format_hours(chain_hi)}")
+        if not order.findings:
+            for name, field in WORK_FIELDS.items():
+                values[field] = format_hours(round(sum(i.hours for i in buckets[name]), 1))
+            gate_a = buckets["m8a"]
+            values["Committed M8a open class X h"] = format_hours(
+                round(sum(i.hours for i in gate_a if i.cls == "X"), 1))
+            values["Committed M8a open range h"] = (
+                f"{format_hours(round(sum(i.lo for i in gate_a), 2))}–"
+                f"{format_hours(round(sum(i.hi for i in gate_a), 2))}")
     summary = _summary_results(ctx, values)
     for line in summary.fixed:
         rep.line(line)
@@ -774,14 +750,18 @@ def run(ctx: Context) -> None:
     rep.report("K-37", "estimate summary or partition finding(s):", stated,
                "the generated summary agrees with its item and record owners")
 
-    # ---- K-96: authored chain membership and the marked calibration results ----
+    view = _work_order_results(ctx, order)
+    derived.extend(view.findings)
+    for line in view.fixed:
+        rep.line(line)
+    # ---- K-96: explicit work membership and the marked calibration results ----
     calibration = _calibration_results(ctx, {"attended": fit, AGENT_PARALLEL: pfit},
                                        valid_records=valid_records)
     for line in calibration.fixed:
         rep.line(line)
     derived.extend(calibration.findings)
-    rep.report("K-96", "chain or calibration finding(s):", derived,
-               f"the critical chain names {len(chain)} open cells, the calibration "
+    rep.report("K-96", "work-order or calibration finding(s):", derived,
+               f"the work order classifies {len(open_items)} open cells, the calibration "
                f"fits over {len(all_pairs)} of the record's {len(record)} rows and the "
                f"agent-parallel series over {len(ppairs)} of its own record's "
                f"{len(precord)}, and the generated calibration results agree")
