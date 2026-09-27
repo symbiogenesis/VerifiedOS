@@ -60,6 +60,8 @@ public:
   // medium. The emulator's override writes through to its image
   // (blkdev_image.h).
   virtual bool blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length);
+  virtual bool blkdev_host_trace_enabled(unit);
+  virtual unit blkdev_host_input(const_sail_string kind, const_sail_string fields);
 
   virtual bool sys_enable_experimental_extensions(unit);
 

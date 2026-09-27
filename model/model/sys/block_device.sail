@@ -33,6 +33,33 @@ register blkdev_remaining : nat = 0
 // Reset invalidates old events, including their medium effects.
 register blkdev_epoch : nat = 0
 
+// Optional evidence sink. The host records model input entries in call order;
+// no sink means no formatting and no change to device behavior. The sink's
+// failure is sticky at the existing host persistence boundary and final close.
+val blkdev_host_trace_enabled = impure {cpp: "blkdev_host_trace_enabled"} : unit -> bool
+val blkdev_host_input = impure {cpp: "blkdev_host_input"} : (string, string) -> unit
+
+function blkdev_trace_bytes(bytes : blkdev_buffer) -> string = {
+  var text = "[";
+  assert(plat_blkdev_block_bytes <= blkdev_max_block_bytes);
+  foreach (i from 0 to (plat_blkdev_block_bytes - 1)) {
+    if i != 0 then text = text ^ ",";
+    text = text ^ dec_str(unsigned(bytes[i]));
+  };
+  text ^ "]"
+}
+
+function blkdev_trace_state() -> string =
+  "\"epoch\":" ^ dec_str(blkdev_epoch) ^ ",\"status\":" ^ dec_str(blkdev_status)
+  ^ ",\"command\":" ^ dec_str(blkdev_command) ^ ",\"remaining\":" ^ dec_str(blkdev_remaining)
+
+function blkdev_trace_step(epoch : nat, io_error : bool, misplaced : option(bits(64)),
+                          mask : blkdev_buffer) -> string =
+  blkdev_trace_state() ^ ",\"input_epoch\":" ^ dec_str(epoch)
+  ^ ",\"io_error\":" ^ (if io_error then "true" else "false")
+  ^ ",\"misplaced\":" ^ (match misplaced { None() => "null", Some(b) => dec_str(unsigned(b)) })
+  ^ ",\"mask\":" ^ blkdev_trace_bytes(mask)
+
 function blkdev_backing_length(bytes : list(range(0, 255))) -> nat =
   match bytes { [||] => 0, _byte :: rest => 1 + blkdev_backing_length(rest) }
 
@@ -90,6 +117,9 @@ function blkdev_claims forall 'n, 0 < 'n <= max_mem_access .
 
 function blkdev_access_valid forall 'n, 0 < 'n <= max_mem_access .
     (access : MemoryAccessType(mem_payload), Physaddr(addr) : physaddr, width : int('n)) -> bool = {
+  if blkdev_host_trace_enabled() then blkdev_host_input("access-check",
+    blkdev_trace_state() ^ ",\"access\":\"" ^ accessType_to_str(access)
+    ^ "\",\"address\":" ^ dec_str(unsigned(addr)) ^ ",\"width\":" ^ dec_str(width));
   let ordinary : bool = match access { Load(Data) => true, Store(Data) => true, _ => false };
   ordinary & width == 8 & unsigned(addr) % 8 == 0
   & unsigned(plat_blkdev_base) <= unsigned(addr)
@@ -122,16 +152,22 @@ function blkdev_tear(mask : blkdev_buffer, kind : bits(8)) -> bool = {
 
 // A reset has no status to report a host failure through. The adapter keeps
 // the failure, so every later command completes with IO.
-function blkdev_reset(mask : blkdev_buffer) -> unit = {
+function blkdev_reset_apply(mask : blkdev_buffer) -> unit = {
   if blkdev_status == 1 & blkdev_command == 2 then { let _ : bool = blkdev_tear(mask, 0x05); () };
   blkdev_clear_volatile();
   blkdev_epoch = blkdev_epoch + 1;
 }
 
+function blkdev_reset(mask : blkdev_buffer) -> unit = {
+  if blkdev_host_trace_enabled() then blkdev_host_input("reset",
+    blkdev_trace_state() ^ ",\"mask\":" ^ blkdev_trace_bytes(mask));
+  blkdev_reset_apply(mask)
+}
+
 // Explicit, synchronous harness inputs. A final READ samples the addressed
 // medium here, after earlier ordered corruption. A wrong-block event supplies
 // intact bytes, with DONE; authentication remains the storage layer's work.
-function blkdev_progress(epoch : nat, io_error : bool, misplaced : option(bits(64)),
+function blkdev_progress_apply(epoch : nat, io_error : bool, misplaced : option(bits(64)),
                          mask : blkdev_buffer) -> unit = {
   if epoch != blkdev_epoch | blkdev_status != 1 then return ();
   let remaining = blkdev_remaining;
@@ -173,16 +209,30 @@ function blkdev_progress(epoch : nat, io_error : bool, misplaced : option(bits(6
   blkdev_remaining = 0;
 }
 
+function blkdev_progress(epoch : nat, io_error : bool, misplaced : option(bits(64)),
+                         mask : blkdev_buffer) -> unit = {
+  if blkdev_host_trace_enabled() then blkdev_host_input("progress",
+    blkdev_trace_step(epoch, io_error, misplaced, mask));
+  blkdev_progress_apply(epoch, io_error, misplaced, mask)
+}
+
 // A simultaneous reset/progress boundary has exactly the reviewed priority.
 function blkdev_boundary(reset_now : bool, step_now : bool, epoch : nat,
                          io_error : bool, misplaced : option(bits(64)),
                          mask : blkdev_buffer) -> unit = {
-  if reset_now then blkdev_reset(mask)
-  else if step_now then blkdev_progress(epoch, io_error, misplaced, mask);
+  if blkdev_host_trace_enabled() then blkdev_host_input("boundary",
+    blkdev_trace_step(epoch, io_error, misplaced, mask)
+    ^ ",\"reset_now\":" ^ (if reset_now then "true" else "false")
+    ^ ",\"step_now\":" ^ (if step_now then "true" else "false"));
+  if reset_now then blkdev_reset_apply(mask)
+  else if step_now then blkdev_progress_apply(epoch, io_error, misplaced, mask);
 }
 
 // Explicit media faults are independent of command completion and guest writes.
 function blkdev_corrupt(block : bits(64), bytes : blkdev_buffer) -> unit = {
+  if blkdev_host_trace_enabled() then blkdev_host_input("corrupt",
+    blkdev_trace_state() ^ ",\"block\":" ^ dec_str(unsigned(block))
+    ^ ",\"bytes\":" ^ blkdev_trace_bytes(bytes));
   assert(unsigned(block) < plat_blkdev_block_count);
   let offset = unsigned(block) * plat_blkdev_block_bytes;
   assert(offset >= 0 & plat_blkdev_block_bytes > 0
@@ -200,6 +250,9 @@ function blkdev_corrupt(block : bits(64), bytes : blkdev_buffer) -> unit = {
 
 function blkdev_load forall 'n, 0 < 'n <= max_mem_access .
     (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) = {
+  if blkdev_host_trace_enabled() then blkdev_host_input("load",
+    blkdev_trace_state() ^ ",\"address\":" ^ dec_str(unsigned(bits_of(paddr)))
+    ^ ",\"width\":" ^ dec_str(width));
   if not(blkdev_access_valid(access, paddr, width)) then return Err(paddr, accessFaultFromAccessType(access));
   let offset = unsigned(bits_of(paddr)) - unsigned(plat_blkdev_base);
   var value : bits(64) = zeros();
@@ -221,6 +274,9 @@ function blkdev_load forall 'n, 0 < 'n <= max_mem_access .
 
 function blkdev_store forall 'n, 0 < 'n <= max_mem_access .
     (paddr : physaddr, width : int('n), data : bits(8 * 'n)) -> MemoryOpResult(bool) = {
+  if blkdev_host_trace_enabled() then blkdev_host_input("store",
+    blkdev_trace_state() ^ ",\"address\":" ^ dec_str(unsigned(bits_of(paddr)))
+    ^ ",\"width\":" ^ dec_str(width) ^ ",\"data\":" ^ dec_str(unsigned(data)));
   if not(blkdev_access_valid(Store(Data), paddr, width)) then return Err(paddr, E_SAMO_Access_Fault());
   assert(width == 8);
   let offset = unsigned(bits_of(paddr)) - unsigned(plat_blkdev_base);

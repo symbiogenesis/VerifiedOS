@@ -147,6 +147,8 @@ private:
   unit plat_term_write(mach_bits) override;
 
   bool blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length) override;
+  bool blkdev_host_trace_enabled(unit) override;
+  unit blkdev_host_input(const_sail_string kind, const_sail_string fields) override;
 
   bool sys_enable_experimental_extensions(unit) override;
 

@@ -119,6 +119,16 @@ bool PlatformInterface::sys_enable_experimental_extensions(unit) {
   return true;
 }
 
+bool PlatformInterface::blkdev_host_trace_enabled(unit) {
+  return false;
+}
+
+unit PlatformInterface::blkdev_host_input(
+  [[maybe_unused]] const_sail_string kind, [[maybe_unused]] const_sail_string fields
+) {
+  return UNIT;
+}
+
 unit PlatformInterface::print_string(const_sail_string prefix, const_sail_string msg) {
   (void)prefix;
   (void)msg;
