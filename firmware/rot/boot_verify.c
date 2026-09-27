@@ -19,6 +19,9 @@
 _Static_assert(VOS_MEASURE_LOG_CAPACITY >= VOS_MEASURE_RELEASE_EXTENSIONS,
                "the measurement log cannot hold one release's extensions");
 
+#ifndef VOS_BOOT_TARGET
+// Human-readable diagnostics belong to the host driver. The target exports
+// the same enum as a bounded integer and needs no global string authority.
 const char *vos_boot_verdict_name(vos_boot_verdict verdict) {
   switch (verdict) {
   case VOS_BOOT_RELEASE: return "release";
@@ -38,6 +41,7 @@ const char *vos_boot_verdict_name(vos_boot_verdict verdict) {
   }
   return "refuse-unknown";
 }
+#endif
 
 static uint64_t read_u64(const uint8_t *p) {
   uint64_t v = 0;
@@ -91,8 +95,9 @@ int vos_measure_extend(vos_measurements *m, int generation_register, uint8_t cod
   uint8_t len_bytes[4] = {(uint8_t)len, (uint8_t)(len >> 8), (uint8_t)(len >> 16),
                           (uint8_t)(len >> 24)};
   vos_shake256_ctx ctx;
+  const uint8_t domain[] = VOS_MEASURE_EXTEND_DOMAIN;
   vos_shake256_init(&ctx);
-  (void)vos_shake256_absorb(&ctx, (const uint8_t *)VOS_MEASURE_EXTEND_DOMAIN, 8);
+  (void)vos_shake256_absorb(&ctx, domain, 8);
   (void)vos_shake256_absorb(&ctx, reg, VOS_MEASURE_BYTES);
   (void)vos_shake256_absorb(&ctx, &code, 1);
   (void)vos_shake256_absorb(&ctx, len_bytes, 4);
@@ -105,8 +110,9 @@ int vos_measure_extend(vos_measurements *m, int generation_register, uint8_t cod
 
 void vos_measure_chain(const vos_measurements *m, uint8_t out[VOS_MEASURE_BYTES]) {
   vos_shake256_ctx ctx;
+  const uint8_t domain[] = VOS_MEASURE_CHAIN_DOMAIN;
   vos_shake256_init(&ctx);
-  (void)vos_shake256_absorb(&ctx, (const uint8_t *)VOS_MEASURE_CHAIN_DOMAIN, 8);
+  (void)vos_shake256_absorb(&ctx, domain, 8);
   (void)vos_shake256_absorb(&ctx, m->generation, VOS_MEASURE_BYTES);
   (void)vos_shake256_absorb(&ctx, m->device, VOS_MEASURE_BYTES);
   vos_shake256_squeeze(&ctx, out, VOS_MEASURE_BYTES);
@@ -142,11 +148,10 @@ static void write_handoff(uint8_t *record, const vos_rot_inputs *inputs,
   copy_bytes(record + VOS_HANDOFF_CHAIN_AT, result->chain, VOS_MEASURE_BYTES);
 }
 
-vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
+vos_boot_verdict vos_rot_prepare_mmode(const uint8_t *image, uint64_t image_len,
                                     const vos_rot_inputs *inputs,
                                     const vos_rot_policy *policy,
                                     const vos_sram_windows *sram,
-                                    vos_release_fn release, void *release_context,
                                     vos_boot_result *result) {
   result->verdict = VOS_BOOT_REFUSE_TRUNCATED;
   result->security_version = 0;
@@ -212,6 +217,15 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
 
   // VerifySignature over the copied signed bytes under the one root this
   // lifecycle state accepts (R-09-036). No bound verifier is a refusal.
+#ifdef VOS_BOOT_TARGET_VERIFY
+  // A target composition binds its verifier statically; the host driver keeps
+  // its explicitly selected callback. Both decide the same copied bytes.
+  if (VOS_BOOT_TARGET_VERIFY(policy->verify_context, header, VOS_BOOT_SIGNED_BYTES,
+                            image + VOS_BOOT_HDR_SIGNATURE, policy->root[lifecycle])
+      != VOS_SIG_ACCEPT) {
+    return refuse(sram, result, VOS_BOOT_REFUSE_SIGNATURE);
+  }
+#else
   if (policy->verify == NULL) {
     return refuse(sram, result, VOS_BOOT_REFUSE_NO_VERIFIER);
   }
@@ -220,6 +234,7 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
       != VOS_SIG_ACCEPT) {
     return refuse(sram, result, VOS_BOOT_REFUSE_SIGNATURE);
   }
+#endif
 
   // Place, then Measure the placed bytes: what is hashed is what the boot core
   // will fetch, and the core is held until the comparison below. A window too
@@ -244,6 +259,19 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
   // Execute: the record first, then the release, and nothing after it.
   result->verdict = VOS_BOOT_RELEASE;
   write_handoff(sram->handoff, inputs, policy, result, entropy, target);
-  release(release_context);
   return VOS_BOOT_RELEASE;
 }
+
+#ifndef VOS_BOOT_TARGET
+vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
+                                    const vos_rot_inputs *inputs,
+                                    const vos_rot_policy *policy,
+                                    const vos_sram_windows *sram,
+                                    vos_release_fn release, void *release_context,
+                                    vos_boot_result *result) {
+  vos_boot_verdict verdict = vos_rot_prepare_mmode(image, image_len, inputs,
+                                                   policy, sram, result);
+  if (verdict == VOS_BOOT_RELEASE) release(release_context);
+  return verdict;
+}
+#endif

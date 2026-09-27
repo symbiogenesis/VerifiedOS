@@ -10,8 +10,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
+from vos import asm, boot_release_target, boot_target, env, toolenv
 from vos import boot_handoff as bh
-from vos import boot_target, env, toolenv
 
 ROOT = TOOLS.parent
 
@@ -192,6 +192,37 @@ def _target_stack_budget() -> None:
             raise AssertionError("an unknown stack allocation supplied a budget")
 
 
+def _target_release_composition() -> None:
+    lay = bh.layout(ROOT)
+    built = bh.assemble_mmode(ROOT)
+    boot = bh.build_image(lay, built.payload, security_version=2,
+                          signer=bh.root_key("production"))
+    source = boot_release_target.compose(ROOT, "main:\n        li a0, 0\n        ret\n",
+                                          boot, bh.root_key("production"), 2)
+    sections, symbols, _ = asm.Assembler(source, "target-release-test").assemble()
+    ensure(symbols["end_signature"][1] - symbols["begin_signature"][1]
+           == 128 + lay["HANDOFF_BYTES"] + lay["BRINGUP_MMODE_REGION_BYTES"],
+           "release target does not capture the complete handoff and placed window")
+    ensure(symbols["begin_signature"][1] % 131072 == 0, "target output capability is not exact")
+    ensure("sd zero, 32(c21)" in source and "ld t0, 0(c22)" in source,
+           "release inputs did not come from RoT startup and counter doors")
+    ensure(any(s.name == ".text" for s in sections), "release target lacks executable text")
+    holder, root = _sandbox((bh.ROT_CONFIG, bh.HEADER))
+    with holder:
+        path = root / "capture"
+        path.write_text("0706050403020100\n0f0e0d0c0b0a0908\n", encoding="utf-8")
+        ensure(boot_release_target.read_output(path, 16) == bytes(range(16)),
+               "target output was decoded with the wrong byte order")
+        for malformed in ("0\n", "0000000000000000\n", "xxxxxxxxxxxxxxxx\n" * 2):
+            path.write_text(malformed, encoding="utf-8")
+            try:
+                boot_release_target.read_output(path, 16)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("a malformed or truncated target capture was accepted")
+
+
 def _emulator_process_verdict() -> None:
     for line, code, expected in (("SUCCESS\n", 0, "success"), ("SUCCESS\n", -11, "no-verdict"),
                                  ("FAILURE: 4\n", 1, "failure"), ("FAILURE: 4\n", -11, "no-verdict"),
@@ -267,6 +298,7 @@ def cases() -> list[Case]:
             Case("an explicit signer receives the exact prefix", _explicit_signer),
             Case("the scheduled producer follows timer owners", _scheduled_producer),
             Case("the target stack budget includes large frames", _target_stack_budget),
+            Case("the release target binds devices and exact output capture", _target_release_composition),
             Case("abnormal emulator exits provide no verdict", _emulator_process_verdict),
             Case("the model build receipt is mandatory", _receipt_required),
             Case("compiler configuration and headers are bound", _compiler_file_bindings),
