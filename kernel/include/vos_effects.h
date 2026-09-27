@@ -39,11 +39,11 @@ struct vos_kernel_effect_state {
     uint64_t *bitmap;
     uint64_t *clock;
     uint64_t epoch;
-    uint64_t prepared_mask, publication_epoch, published_mask;
+    uint64_t prepared_mask, publication_epoch, published_mask, retired_mask;
     uint64_t wait_epoch, wait_start, wait_now;
     uint32_t wait_delay, wait_ready, wait_seen;
     uint32_t locked, bound, polls, started, resident_clean;
-    uint32_t loans, devices, retirement_pending;
+    uint32_t loans, devices, retirement_pending, needs_replenish;
 };
 
 int vos_kernel_effect_init(struct vos_kernel_effect_state *state,
@@ -66,6 +66,12 @@ uint64_t vos_kernel_retirement_mask(struct vos_kernel_effect_state *state,
                                     uint32_t members);
 int vos_kernel_publication(struct vos_kernel_effect_state *state, uint64_t epoch,
                             uint64_t mask, uint64_t observed);
+/* Restore a retired unit only from a fresh composition-supplied allocation.
+ * The target verifies root bounds/tags against these masks. Previously retired
+ * bitmap bits remain set forever in this bounded pool; exhaustion refuses.
+ * Call after completed teardown and before the next snapshot acquisition. */
+int vos_kernel_replenish(struct vos_kernel_effect_state *state, uint64_t epoch,
+                          const vos_cap_t *roots, const uint64_t *masks);
 int vos_kernel_wait_sample(struct vos_kernel_effect_state *state, uint64_t epoch,
                             uint32_t delay,
                             uint64_t start, uint64_t now);

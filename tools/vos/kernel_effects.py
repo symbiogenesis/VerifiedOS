@@ -10,6 +10,8 @@ frames. It does not stand for the separately composed sentry switcher ABI.
 
 import json
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 from vos import (
@@ -277,5 +279,143 @@ def run(root: Path, simulator: Path, build_receipt: Path, out: Path,
               "simulator_sha256": simulator_sha, "build_receipt_sha256": receipt_sha,
               "cases": cases, "inputs_unchanged": unchanged,
               "ok": unchanged and all(row["matched"] for row in cases)}
+    receipts.write(out / "report.json", report)
+    return report
+
+
+def protected_observations(records: list[kernelrun.Record], symbols: dict[str, int]) -> dict[str, bool]:
+    """Independently require a live depth-two population and its destruction.
+
+    Exact old backward-return words are observed, not manufactured from numeric
+    addresses. Absence of these words is narrower than an ancestry theorem.
+    """
+    prefix = "__vos_boundary_"
+    private = symbols[prefix + "private"]
+    registers = dict.fromkeys(range(32), (0, 0))
+    cells: dict[int, tuple[int, int]] = {}
+    specials: dict[int, tuple[int, int]] = {}
+    interrupted: tuple[dict[int, tuple[int, int]], dict[int, tuple[int, int]]] | None = None
+    fresh: tuple[dict[int, tuple[int, int]], dict[int, tuple[int, int]],
+                 dict[int, tuple[int, int]]] | None = None
+    for kind, fields in records:
+        if kind == "I" and fields[0] == symbols[prefix + "kernel_entry"] and interrupted:
+            fresh = dict(registers), dict(cells), dict(specials)
+            break
+        if kind == "X":
+            registers[fields[0]] = (fields[1], fields[2])
+        elif kind == "S":
+            specials[fields[0]] = (fields[1], fields[2])
+        elif kind == "W" and fields[1] == 8:
+            cells[fields[0]] = (fields[2], fields[3])
+        elif kind == "T" and fields == (1, 7):
+            interrupted = dict(registers), dict(cells)
+    checks = {"actual_timer_cut": interrupted is not None,
+              "two_running_protected_frames": False, "three_observed_return_holders": False,
+              "exact_old_return_words_absent": False, "real_activation_storage_cleared": False}
+    if interrupted is None or fresh is None:
+        return checks
+    old_regs, old_cells = interrupted
+    new_regs, new_cells, new_specials = fresh
+    checks["two_running_protected_frames"] = (
+        old_cells.get(private) == (0, 2)
+        and all(old_cells.get(private + offset + 48) == (0, 2) for offset in (256, 512)))
+    returns = [old_regs.get(1), *(old_cells.get(private + offset + 8) for offset in (256, 512))]
+    checks["three_observed_return_holders"] = all(value is not None and value[0] == 1
+                                                  for value in returns)
+    current = {*new_regs.values(), *new_cells.values(), *new_specials.values()}
+    checks["exact_old_return_words_absent"] = checks["three_observed_return_holders"] and all(
+        value not in current for value in returns)
+    stack_bases = [symbols[prefix + f"domain_{unit}_stack"] for unit in (1, 2, 3)]
+    cleared = [*(base + offset for base in stack_bases for offset in range(0, 128, 8)),
+               *(private + offset for offset in range(16, 1024, 8))]
+    checks["real_activation_storage_cleared"] = all(new_cells.get(address) == (0, 0)
+                                                    for address in cleared)
+    return checks
+
+
+def protected_run(root: Path, ccomp: Path, config: Path, runner: Path,
+                  simulator: Path, build_receipt: Path, out: Path,
+                  timeout: int = 180) -> dict[str, object]:
+    """Run contained producer tools read-only; retain products in this native lane.
+
+    No contained source, generated compiler text or compiler proof is copied into
+    this repository. The actual output images and consumed inputs stay native.
+    """
+    root, ccomp, config, runner, simulator, build_receipt, out = (
+        path.resolve() for path in (root, ccomp, config, runner, simulator, build_receipt, out))
+    out.mkdir(parents=True, exist_ok=True)
+    if any((out / name).exists() for name in ("timer", "plain", "controls")):
+        raise ValueError("protected-frame campaign requires fresh native output children")
+    receipts.write(out / "report.json", {"status": "incomplete", "ok": False})
+    producer = runner.parent
+    paths = {"compiler": ccomp, "compiler_config": config, "timer_runner": runner,
+             "plain_runner": producer / "run_boundary.py", "control_runner": producer / "run_controls.py",
+             "producer_source": ccomp.parent / "driver/TypedScalarBoundary.ml",
+             "source": producer / "nested2.c", "header": ccomp.parent / "include/verifiedos/stdint.h",
+             "model": simulator, "model_receipt": build_receipt}
+    external = {name: receipts.digest(path) for name, path in paths.items()}
+    sources = receipts.inputs(root, "tools/vos/kernel_effects.py", "tools/vos/asm.py",
+        "tools/vos/dialect.py", "tools/vos/image.py", "tools/vos/cli/compiler_diff.py")
+    model = receipts.inputs(root, "model")
+    kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
+                                 external["model"], model)
+    common = ["--compiler", str(ccomp), "--compiler-config", str(config),
+              "--vos-source", str(root), "--model", str(simulator)]
+    commands = [
+        ("timer", [sys.executable, str(runner), *common, "--output", str(out / "timer")]),
+        ("plain", [sys.executable, str(paths["plain_runner"]), *common,
+                   "--output", str(out / "plain"), "--compiler-argument=-fverifiedos-boundary",
+                   "--compiler-argument=nested2", "--compiler-argument=-fverifiedos-boundary-output",
+                   "--compiler-argument=" + str(out / "plain/program")]),
+        ("controls", [sys.executable, str(paths["control_runner"]), "--baseline", str(out / "plain"),
+                      "--vos-source", str(root), "--model", str(simulator),
+                      "--output", str(out / "controls")]),
+    ]
+    executions: list[dict[str, object]] = []
+    for name, argv in commands:
+        started = time.monotonic()
+        with (out / f"{name}.log").open("w", encoding="utf-8") as log:
+            done = subprocess.run(argv, cwd=root, stdout=log, stderr=subprocess.STDOUT,
+                                  timeout=timeout, check=False)
+        executions.append({"name": name, "argv": argv, "exit": done.returncode,
+                           "seconds": round(time.monotonic() - started, 3)})
+        if done.returncode:
+            raise ValueError(f"contained {name} campaign refused; see {out / (name + '.log')}")
+    timer = json.loads((out / "timer/result.json").read_text(encoding="utf-8"))
+    plain = json.loads((out / "plain/result.json").read_text(encoding="utf-8"))
+    controls = json.loads((out / "controls/result.json").read_text(encoding="utf-8"))
+    inventory = json.loads((out / "timer/program.boundary.json").read_text(encoding="utf-8"))
+    if (inventory["composition"]["maximum_depth"] != 2
+            or inventory["composition"]["stack_bytes"] != 128
+            or len(inventory["composition"]["edges"]) != 2):
+        raise ValueError("contained producer does not declare the reviewed depth-two fixture")
+    candidates = [i for i, case in enumerate(timer["cases"]) if case["name"] == "leaf_0"]
+    if len(candidates) != 1:
+        raise ValueError("missing actual innermost leaf timer cut")
+    case_dir = out / "timer" / f"cut-{candidates[0]:02d}"
+    assembler = asm.Assembler((case_dir / "program.s").read_text(encoding="utf-8"), "protected-cut")
+    assembler.assemble()
+    records = kernelrun.parse_records(trace.normalize_commit(
+        (case_dir / "trace.log").read_text(encoding="utf-8").splitlines()))
+    observed = protected_observations(records, assembler.symbols)
+    unchanged = (external == {name: receipts.digest(path) for name, path in paths.items()}
+        and sources == receipts.inputs(root, "tools/vos/kernel_effects.py", "tools/vos/asm.py",
+            "tools/vos/dialect.py", "tools/vos/image.py", "tools/vos/cli/compiler_diff.py")
+        and model == receipts.inputs(root, "model"))
+    artifacts = {str(path.relative_to(out)): receipts.digest(path)
+                 for path in out.rglob("*") if path.is_file() and
+                 path.name in {"result.json", "program.elf", "program.s", "trace.log",
+                               "program.boundary.json", "program.c", "program.i"}}
+    report = {"status": "complete", "scope": "actual contained depth-two fixture; explicit one-instruction clock",
+              "milestone_acceptance": "open", "external_inputs": external, "sources": sources,
+              "model_sources": model, "executions": executions, "artifacts": artifacts,
+              "observations": observed, "timer_cut_count": len(timer["cases"]),
+              "target_control_count": len(controls["cases"]), "inputs_unchanged": unchanged,
+              "limits": ["producer's fixed main/service/leaf fixture, not arbitrary roster lowering",
+                         "raw old return-word absence is not universal authority ancestry",
+                         "instruction-clock delay is not physical WCET",
+                         "actual supervisor/copy/storage composition remains a separate join"],
+              "ok": bool(timer["passed"] and plain["passed"] and controls["passed"]
+                         and unchanged and all(observed.values()))}
     receipts.write(out / "report.json", report)
     return report

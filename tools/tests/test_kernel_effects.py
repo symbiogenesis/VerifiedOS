@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import Case, ensure
-from vos import asm, kernel_effects, toolenv
+from vos import asm, kernel_effects, kernelrun, toolenv
 from vos.corpus import find_root
 
 
@@ -39,6 +39,27 @@ def no_trace_no_evidence() -> None:
            'empty trace supplied trap evidence')
 
 
+def protected_cut_requires_live_frames() -> None:
+    prefix = "__vos_boundary_"
+    symbols = {prefix + "private": 1000, prefix + "kernel_entry": 2000,
+               **{prefix + f"domain_{unit}_stack": 3000 + unit * 128 for unit in (1, 2, 3)}}
+    ensure(not any(kernel_effects.protected_observations([], symbols).values()),
+           "empty protected trace supplied evidence")
+    records: list[kernelrun.Record] = [("W", (1000, 8, 0, 2)), ("W", (1304, 8, 0, 2)),
+               ("W", (1560, 8, 0, 2)), ("X", (1, 1, 41)),
+               ("W", (1264, 8, 1, 42)), ("W", (1520, 8, 1, 43)),
+               ("T", (1, 7))]
+    records += [("W", (base + offset, 8, 0, 0)) for base in (3128, 3256, 3384)
+                for offset in range(0, 128, 8)]
+    records += [("W", (1000 + offset, 8, 0, 0)) for offset in range(16, 1024, 8)]
+    records += [("X", (1, 0, 0)), ("I", (2000, 1))]
+    observed = kernel_effects.protected_observations(records, symbols)
+    ensure(all(observed.values()), f"live finite protected trace refused: {observed}")
+    old_word_retained: list[kernelrun.Record] = [*records[:-1], ("W", (9992, 8, 1, 41)), records[-1]]
+    ensure(not kernel_effects.protected_observations(old_word_retained, symbols)[
+        "exact_old_return_words_absent"], "retained old continuation escaped the observation")
+
+
 def owned_storage_controls() -> None:
     cc = shutil.which('cc') or shutil.which('gcc') or shutil.which('clang')
     ensure(cc is not None, 'native scalar effect tests require a C compiler')
@@ -67,5 +88,6 @@ def cases() -> list[Case]:
     return [
         Case('scalar save and trusted adapters assemble', emit_controls),
         Case('missing trace supplies no scalar effects evidence', no_trace_no_evidence),
+        Case('real protected frames and old return holders required', protected_cut_requires_live_frames),
         Case('bounded owned-storage and effect ticket controls', owned_storage_controls, lane='guest'),
     ]

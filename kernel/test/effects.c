@@ -7,7 +7,8 @@ static struct vos_kernel_effect_state state;
 static uint8_t owned[524288];
 static vos_cap_t owned_caps[128];
 static vos_cap_t roots[VOS_SUPERVISOR_UNITS];
-static uint64_t masks[VOS_SUPERVISOR_UNITS], bitmap, ticks;
+static uint64_t masks[VOS_SUPERVISOR_UNITS], fresh_masks[VOS_SUPERVISOR_UNITS], bitmap, ticks;
+static vos_cap_t fresh_roots[VOS_SUPERVISOR_UNITS];
 
 static int prepare(uint64_t epoch)
 {
@@ -16,6 +17,9 @@ static int prepare(uint64_t epoch)
         roots[i].value = 100 + i;
         roots[i].tag = 1;
         masks[i] = UINT64_C(1) << i;
+        fresh_masks[i] = UINT64_C(1) << (i + 16);
+        fresh_roots[i].value = 200 + i;
+        fresh_roots[i].tag = 1;
     }
     bitmap = 0x8000000000000000ULL;
     ticks = 0;
@@ -95,7 +99,20 @@ int main(void)
     CHECK(!vos_kernel_wait(&state, 3) && vos_kernel_wait(&state, 2));
     CHECK(!vos_kernel_wait(&state, 2));
     CHECK(!vos_kernel_wait_sample(&state, 8, 2, 10, 12));
-    CHECK(starts() && !state.unit[1].grants[0].tag);
+    CHECK(!vos_kernel_replenish(&state, 7, fresh_roots, fresh_masks));
+    CHECK(!vos_kernel_replenish(&state, 8, roots, masks));
+    CHECK(vos_kernel_acquire(&state, &snapshot, &epoch));
+    request.unit = 0; request.grants = 0; request.epoch = epoch;
+    CHECK(!vos_kernel_start(&state, &request));
+    vos_kernel_release(&state);
+    fresh_masks[1] = fresh_masks[0];
+    CHECK(!vos_kernel_replenish(&state, 8, fresh_roots, fresh_masks));
+    CHECK(state.roots[0].value == 100);
+    fresh_masks[1] = UINT64_C(1) << 17;
+    CHECK(vos_kernel_replenish(&state, 8, fresh_roots, fresh_masks));
+    CHECK(!vos_kernel_replenish(&state, 8, fresh_roots, fresh_masks));
+    CHECK(starts() && state.unit[1].grants[0].tag && state.unit[1].grants[0].value == 200);
+    CHECK(bitmap == 0x8000000000000007ULL);
     CHECK(!vos_kernel_notify(&state, 2, 7));
     /* Every completion pattern: independently withhold publication or resident
      * scrub; missing physical conditions never become true through the epoch. */
@@ -107,6 +124,7 @@ int main(void)
         if (n & 2) CHECK(vos_kernel_publication(&state, 7, mask, mask));
         CHECK(vos_kernel_retire(&state, 7, &done));
         CHECK(vos_semantic_completion(&done) == (n == 3));
+        if (n == 3) CHECK(vos_kernel_replenish(&state, 8, fresh_roots, fresh_masks));
         CHECK(vos_kernel_acquire(&state, &snapshot, &epoch));
         request.unit = 0; request.grants = 0; request.epoch = epoch;
         CHECK(vos_kernel_start(&state, &request) == (n == 3));
@@ -130,7 +148,7 @@ int main(void)
     state.manifest.backoff[0] = 0;
     CHECK(vos_supervisor_execute(&state.manifest, 1, 0,
               &vos_kernel_supervisor_effects, &state,
-              &(struct vos_supervisor_execution){0}) == VOS_SUPERVISOR_EXECUTED);
+              &(struct vos_supervisor_execution){0}) == VOS_SUPERVISOR_START_REFUSED);
     fprintf(stderr, "ok scalar effects %u checks; real host storage, hardware boundary mocked\n", checks);
     return 0;
 }

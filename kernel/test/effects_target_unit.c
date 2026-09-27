@@ -21,6 +21,7 @@ int main(void)
     struct vos_completion done;
     vos_cap_t roots[VOS_SUPERVISOR_UNITS] = {0};
     uint64_t masks[VOS_SUPERVISOR_UNITS] = {1, 2, 4};
+    uint64_t fresh_masks[VOS_SUPERVISOR_UNITS] = {8, 16, 32};
     uint64_t bitmap = 0, clock = 0, epoch, mask;
     uint32_t i;
     uint8_t bytes[16];
@@ -57,5 +58,14 @@ int main(void)
     if (!vos_kernel_wait_sample(&state, 8, 1, 10, 11)) return 25;
     if (!vos_kernel_wait(&state, 1) || vos_kernel_wait(&state, 1)) return 26;
     if (vos_kernel_wait_sample(&state, 8, 1, 10, 11)) return 27;
+    if (vos_kernel_replenish(&state, 7, roots, fresh_masks)) return 28;
+    if (vos_kernel_replenish(&state, 8, roots, masks)) return 29;
+    if (!vos_kernel_replenish(&state, 8, roots, fresh_masks)) return 30;
+    if (bitmap != 7 || state.snapshot.retired[1] != 0) return 31;
+    if (!vos_kernel_acquire(&state, &snapshot, &epoch)) return 32;
+    if (!vos_supervisor_plan(&manifest, &snapshot, epoch, 0, 0, &plan)) return 33;
+    for (i = 0; i < plan.count; ++i)
+        if (!vos_kernel_start(&state, &plan.starts[i])) return 34;
+    vos_kernel_release(&state);
     return 0;
 }

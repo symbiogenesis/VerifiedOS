@@ -68,6 +68,16 @@ passing a C pointer is not that evidence. Manifest authority edges close the
 victim set even when the current grant table happens to be empty. Active copy
 work, loans, devices, epoch exhaustion and an open holder set refuse teardown.
 
+Old allocation masks remain set. Completed teardown marks the victim as needing
+replacement, and every start refuses until `vos_kernel_replenish` installs a
+composition-supplied fresh allocation at the current epoch. Replacement masks
+must be disjoint from all retired bits and every still-current allocation. Only
+then does the snapshot make those unit IDs grantable again, so a restarted storage
+service receives the new crypto authority instead of silently losing its manifest
+edge or receiving the retired root. Pool exhaustion refuses. The target producer
+must validate actual replacement roots against those fresh masks; this C API does
+not mint authority, clear the bitmap or establish an unobserved sweep.
+
 The direct typed C path uses one-use hardware observation tickets. Assembly
 preflights retirement, publishes the actual bitmap, reads it back and acknowledges
 the same mask and epoch; C consumes the ticket. A missing publication or resident
@@ -107,9 +117,24 @@ hardware observations declared as mocked. The contained compiler builds and runs
 controls on Sail, with three declared units and local bitmap/clock objects. This
 component does not supply authenticated hardware roots. The assembly experiment
 does not execute an exported sentry switcher or a full supervisor/copy boot.
-Protected nested-call activation semantics, timer cuts through every switcher
-instruction class and the real composed service teardown remain M4.4b-i's joins.
-The finite frame reserve/pop helpers alone do not establish that full ABI.
+`python tools/run.py kernel protected` takes the accepted contained compiler,
+its configuration, its `run_timer.py` runner, the simulator and current model-build
+receipt. It runs the actual unmodified depth-two compiler producer, its selected
+timer cuts and executable refusal/retention controls in native lane directories.
+No contained implementation source or generated compiler output is incorporated
+into this tree. The public observer independently requires both real private
+frames to be running at the innermost cut, observes three tagged return holders,
+and checks the old full words disappear from registers, specials and memory when
+the actual activation stacks/private storage are cleared before fresh entry.
+
+That campaign uses the producer's fixed `main`/`service`/`leaf` fixture, two
+256-byte protected frames and three 128-byte stacks. It checks real comparator
+cuts through each selected phase, clear and cleanup population and old/pop-phase
+refusals. It is not an arbitrary-roster producer, a proof of all authority ancestry
+or physical WCET: the declared release delay uses an explicit one-instruction
+clock profile. Joining those actual protected-frame mechanisms to the real
+supervisor/copy/storage composition remains M4.4b-i's duty. The finite C frame
+reserve/pop helpers alone do not establish that full ABI.
 
 ## Finite compiled target
 

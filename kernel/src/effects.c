@@ -48,6 +48,8 @@ int vos_kernel_effect_init(struct vos_kernel_effect_state *state,
     state->loans = 0;
     state->devices = 0;
     state->retirement_pending = 0;
+    state->needs_replenish = 0;
+    state->retired_mask = 0;
     state->prepared_mask = 0;
     state->publication_epoch = epoch;
     state->published_mask = 0;
@@ -170,6 +172,8 @@ int vos_kernel_retire(struct vos_kernel_effect_state *state, uint32_t members,
         mask != state->prepared_mask || state->publication_epoch != state->epoch)
         return 0;
     done.bits_published = state->published_mask == mask;
+    state->retired_mask |= mask;
+    state->needs_replenish |= members;
     state->prepared_mask = 0;
     state->published_mask = 0;
     for (i = 0; i < state->manifest.units; ++i) {
@@ -191,6 +195,38 @@ int vos_kernel_retire(struct vos_kernel_effect_state *state, uint32_t members,
     if (vos_semantic_completion(&done))
         state->retirement_pending = 0;
     *completion = done;
+    return 1;
+}
+
+int vos_kernel_replenish(struct vos_kernel_effect_state *state, uint64_t epoch,
+                          const vos_cap_t *roots, const uint64_t *masks)
+{
+    uint32_t i, members;
+    uint64_t seen;
+    if (state == 0 || roots == 0 || masks == 0 || !state->bound || state->locked ||
+        state->retirement_pending || epoch != state->epoch || !state->needs_replenish)
+        return 0;
+    members = state->needs_replenish;
+    if ((members & state->started) != 0)
+        return 0;
+    seen = state->retired_mask;
+    for (i = 0; i < state->manifest.units; ++i)
+        if ((members & (1U << i)) == 0)
+            seen |= state->masks[i];
+    for (i = 0; i < state->manifest.units; ++i)
+        if ((members & (1U << i)) != 0) {
+            if (masks[i] == 0 || (seen & masks[i]) != 0)
+                return 0;
+            seen |= masks[i];
+        }
+    for (i = 0; i < state->manifest.units; ++i) {
+        if ((members & (1U << i)) != 0) {
+            state->roots[i] = roots[i];
+            state->masks[i] = masks[i];
+        }
+        state->snapshot.retired[i] &= ~members;
+    }
+    state->needs_replenish = 0;
     return 1;
 }
 
@@ -239,7 +275,7 @@ int vos_kernel_start(struct vos_kernel_effect_state *state,
                       const struct vos_supervisor_start *request)
 {
     uint32_t i, unit;
-    if (state == 0 || request == 0 || !state->bound || !state->locked || state->retirement_pending ||
+    if (state == 0 || request == 0 || !state->bound || !state->locked || state->retirement_pending || state->needs_replenish ||
         !vos_supervisor_request_current(&state->manifest, &state->snapshot,
                                         state->epoch, request))
         return 0;
