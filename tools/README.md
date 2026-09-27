@@ -702,7 +702,11 @@ removal or reset a branch to reuse its name. A squash or cherry-pick may require
 separate equivalence review. Host-managed checkout cleanup belongs to that host;
 do not rename or remove another active session's worktree.
 
-Use [`run.py fanout`](fanout.md) to carry out completion and retirement. Its batch
+Every session finishes with all its work merged into local and remote `main`.
+Work branches are local isolation only; never push them or publication tags. Run
+[`run.py fanout`](fanout.md) from the checkout holding `main` to carry out completion
+and retirement. Include any temporary integration worktree as a selected worker.
+Its batch
 journal names the selected worktrees and freezes their handoff revisions; it never
 selects unrelated lanes by age or branch prefix. `fanout finish` preserves local
 outputs, removes eligible worktrees and branches without force, and retains
@@ -761,7 +765,8 @@ The integrator closes the batch in this order:
    findings require it. An intermediate merge needs a targeted check only when its
    answer affects the next integration decision.
 3. Follow the [validation handoff](../AGENTS.md#tool-execution-and-validation) to
-   publish the settled commit, require Host CI, dispatch both Guest CI lanes and
+   merge all session work into `main`, publish only `main`, require Host CI,
+   dispatch both Guest CI lanes and
    record their revision-bound status without waiting for Guest CI. Required
    experiments and measurements outside the [Guest CI contract](ci/README.md)
    retain their separate acceptance checks.

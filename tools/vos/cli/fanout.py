@@ -135,6 +135,8 @@ def _load(path: Path, root: Path) -> Batch:
 
 
 def _checkout(root: Path, state: Batch) -> None:
+    if state["branch"] != "main":
+        raise ValueError("completion requires main; initialize a new batch on main")
     if _git(root, "rev-parse", "--show-toplevel") != root.as_posix() and Path(
             _git(root, "rev-parse", "--show-toplevel")).resolve() != root:
         raise ValueError("integration root is no longer a checkout")
@@ -144,6 +146,8 @@ def _checkout(root: Path, state: Batch) -> None:
 
 
 def initialize(root: Path, args: argparse.Namespace) -> Batch:
+    if _git(root, "symbolic-ref", "--short", "HEAD") != "main":
+        raise ValueError("initialize completion on main; select the worktree as a worker to merge and retire")
     path = _location(root, args.batch) / "state.json"
     if path.exists():
         raise ValueError(f"batch already exists: {path}")
@@ -230,15 +234,18 @@ def _prepare(root: Path, paths: list[str], message: str | None) -> None:
 
 
 def _publish(root: Path, state: Batch, revision: str) -> str:
+    _settled(root, state, revision)
     remote = state["remote"]
-    ref = f"fanout/{state['batch']}/{revision}"
-    _git(root, "push", remote, f"{revision}:refs/heads/{state['branch']}")
-    _git(root, "push", remote, f"{revision}:refs/tags/{ref}")
-    for target in (f"refs/heads/{state['branch']}", f"refs/tags/{ref}"):
-        answer = _git(root, "ls-remote", "--exit-code", remote, target)
-        if answer.split() != [revision, target]:
-            raise ValueError(f"publication ref does not identify settled inputs: {target}")
-    return ref
+    # Explicitly disable followTags even if a user's Git configuration enables it.
+    _git(root, "-c", "push.followTags=false", "push", remote, f"{revision}:refs/heads/main")
+    _published(root, state, revision)
+    return "main"
+
+
+def _published(root: Path, state: Batch, revision: str) -> None:
+    answer = _git(root, "ls-remote", "--exit-code", state["remote"], "refs/heads/main")
+    if answer.split() != [revision, "refs/heads/main"]:
+        raise ValueError("remote main changed; integrate its changes and refresh hosted evidence")
 
 
 def _settled(root: Path, state: Batch, revision: str) -> None:
@@ -255,6 +262,7 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
         ci = state["ci"]
         if ci is None or ci["revision"] != _git(root, "rev-parse", "HEAD"):
             raise ValueError("completed batch inputs changed; initialize a new batch")
+        _published(root, state, ci["revision"])
         return True
     if state["status"] != "retiring":
         integrate(root, state, path)
@@ -288,12 +296,14 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
     _save(path, state)
     for raw in state["lanes"]:
         _settled(root, state, revision)
+        _published(root, state, revision)
         lane = fanout_retire.validate_record(raw)
         if lane.path not in state["retired"]:
             state["retired"][lane.path] = fanout_retire.retire(
                 root, lane, revision, path.parent / "retained")
             _save(path, state)
     _settled(root, state, revision)
+    _published(root, state, revision)
     state["status"] = "complete"
     _save(path, state)
     return True

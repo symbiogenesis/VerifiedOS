@@ -25,7 +25,8 @@ old branch/tag journals, exact-revision dispatch and preserved retirement behavi
 ## Usage
 
 After workers commit their handoffs and stop using their lanes, run from the
-integration checkout (use `python3` on Linux):
+checkout holding `main` (use `python3` on Linux). Include a temporary integration
+worktree with `--worktree` so its work is merged and its lane is retired too:
 
 ```console
 python tools/run.py fanout init batch-name --worktree <absolute-worker-path> --cold
@@ -38,19 +39,20 @@ Repeat `--worktree` for each batch-owned lane. Use `--host-worktree` for a host-
 checkout whose commits should be integrated but whose checkout and branch remain
 with its host. No option discovers or retires unrelated worktrees. An empty lane
 list supports CI handoff for an integrator-only batch. `--remote` defaults to
-`origin`; publication targets the integration checkout's recorded branch. Use
+`origin`; publication always targets `main`. Use
 `--defer` repeatedly to retain acceptance checks outside the hosted workflows.
 
 `integrate` makes ordinary merges so worker ancestry remains decidable. Resolve
 conflicts and shared edits normally; it never resets a checkout. `finish` includes
-integration when needed, runs `check --fix`, requires clean settled inputs, pushes
-the branch without force and publishes `fanout/<batch>/<revision>` as a lightweight
-tag for exact CI dispatch. Authentication uses the configured GitHub credentials;
+integration into `main` when needed, runs `check --fix`, requires clean settled
+inputs, and pushes only `main` without force. CI dispatches on `main` with the exact
+commit as its revision input. Authentication uses the configured GitHub credentials;
 the REST client reads `GH_TOKEN`, then `GITHUB_TOKEN`, then the noninteractive Git
 credential helper. It needs Actions read/write access as well as Git push access.
 The GitHub CLI is not required, and credentials never enter the journal.
-Publication tags remain as evidence references. Retirement removes local worker
-branches; it does not delete remote branches or evidence tags.
+Run identifiers and tested commits remain in the journal as evidence references.
+Retirement removes local worker branches; the tool never creates remote work
+branches or publication tags. Preexisting remote refs need explicit cleanup.
 
 To commit integrator edits through the tool, pass repeatable `--path <file>` with
 `--message <message>` to `finish`. It prints status and selected diffs, stages only
@@ -81,8 +83,8 @@ When a completed batch's integration revision changes, initialize a new batch.
 
 ## Required behavior
 
-- A batch records its integration checkout, base revision, publication remote and
-  branch, explicitly selected worker paths and heads, lifecycle ownership, cold
+- A batch records its `main` checkout, base revision, publication remote and
+  `main` branch, explicitly selected worker paths and heads, lifecycle ownership, cold
   proof policy and deferred acceptance checks. State and evidence live under the
   integration checkout's ignored `out/fanout/` directory. Unrelated worktrees are
   never inferred to be stale from age or a branch name.
@@ -90,7 +92,9 @@ When a completed batch's integration revision changes, initialize a new batch.
   handoffs and dirty workers, and stops on conflicts without resetting anything.
   Repair uses the owning checker. Commits stage only explicitly named paths after
   presenting their diffs; unresolved judgments and dirty inputs stop publication.
-- Publication pushes a settled commit without force. Host CI must pass on both
+- Publication pushes a settled commit only to `main`, without force or tags.
+  Initialization and completion refuse a work branch, including old completed
+  journals. Host CI must pass on both
   Windows and Ubuntu for that exact revision. Start Host CI when no suitable run
   exists. Pending, failed, skipped or canceled checks supply no passing evidence.
 - After Host CI passes, dispatch Guest CI with both model and proofs lanes for the

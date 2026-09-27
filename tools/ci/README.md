@@ -7,11 +7,15 @@ require Host CI and dispatch both guest lanes without waiting for their verdicts
 
 ## Running it
 
-The [`fanout` completion command](../fanout.md) publishes a revision-specific tag,
+The [`fanout` completion command](../fanout.md) runs from `main`, merges the selected
+local worktrees and publishes only `main`,
 requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
 lanes with the batch's `cold` policy. It records the dispatch response and returns
 without polling Guest CI. Optional `fanout_token` workflow inputs give interrupted
-dispatches an identity for recovery; they do not change gate scope or acceptance.
+dispatches an identity for recovery. The explicit `revision` input pins checkout
+to the settled commit even if `main` advances during dispatch. Work branches and
+publication tags are never pushed. A session finishes only after its work is on
+local and remote `main`; Guest CI may remain pending.
 
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through

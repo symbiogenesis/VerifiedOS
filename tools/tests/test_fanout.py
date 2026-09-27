@@ -107,8 +107,9 @@ def _publish_wait_resume() -> None:
             ensure(checkout == root, "CI uses integration checkout")
             published = _git(remote, "rev-parse", "refs/heads/main")
             ensure(published == ci["revision"], "publication precedes CI")
-            ensure(_git(remote, "rev-parse", f"refs/tags/{ci['ref']}") == published,
-                   "dispatch tag pins the same revision")
+            ensure(ci["ref"] == "main", "dispatch always uses main")
+            ensure(_git(remote, "for-each-ref", "--format=%(refname)") == "refs/heads/main",
+                   "publication creates no work branch or tag")
             ensure(ci["cold"], "fresh-proof policy propagates")
             observed.append("ci")
             save()
@@ -142,7 +143,8 @@ def _retirement_resume() -> None:
         state, path = _init(root, lane)
         state["status"] = "retiring"
         revision = _git(root, "rev-parse", "HEAD")
-        state["ci"] = fanout_ci.new_state("example/repo", f"fanout/example/{revision}",
+        fanout._publish(root, state, revision)
+        state["ci"] = fanout_ci.new_state("example/repo", "main",
                                            revision, True)
         # A prior retirement may already have removed the checkout before failing
         # branch deletion. The retirement module owns recovery from its receipt.
@@ -210,6 +212,44 @@ def _inputs_change_during_ci() -> None:
             ensure(state["status"] != "complete", "changed inputs do not complete")
 
 
+def _main_only() -> None:
+    with _fixture() as (root, lane, remote):
+        _refuses(lambda: _init(lane, root), "on main")
+        state, path = _init(root, lane)
+        revision = _git(root, "rev-parse", "HEAD")
+        _git(root, "config", "push.followTags", "true")
+        _git(root, "tag", "-a", "private", "-m", "must remain local")
+        ensure(fanout._publish(root, state, revision) == "main", "only main is a dispatch ref")
+        ensure(_git(remote, "for-each-ref", "--format=%(refname)") == "refs/heads/main",
+               "user followTags configuration cannot publish tags")
+        # A legacy completed journal must not bypass the main-only invariant.
+        _git(root, "switch", "-c", "work/old-integration")
+        state["branch"] = "work/old-integration"
+        state["status"] = "complete"
+        with patch.object(fanout_ci, "advance") as advance:
+            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "requires main")
+            _refuses(lambda: fanout._publish(root, state, revision), "requires main")
+            advance.assert_not_called()
+
+
+def _remote_changes_during_ci() -> None:
+    with _fixture() as (root, lane, remote):
+        state, path = _init(root, lane)
+
+        def changed(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
+            _git(remote, "update-ref", "refs/heads/main", ci["revision"] + "^")
+            return True
+
+        # Give main a parent so the remote can move independently of local HEAD.
+        _commit(root, "settled input")
+        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
+              patch.object(fanout_ci, "advance", side_effect=changed),
+              patch.object(fanout_retire, "retire") as retire):
+            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "remote main changed")
+            retire.assert_not_called()
+            ensure(state["status"] != "complete", "remote change does not complete")
+
+
 def cases() -> list[Case]:
     return [Case("journal, merge ancestry and changed handoff", _roundtrip_and_handoff),
             Case("conflict remains for integrator", _conflict),
@@ -218,4 +258,6 @@ def cases() -> list[Case]:
             Case("paths, journal identity and exclusive mutation", _paths_and_journal),
             Case("only explicit paths enter commit", _explicit_commit),
             Case("dirty handoff stops before integration", _dirty_handoff),
-            Case("concurrent inputs prevent retirement", _inputs_change_during_ci)]
+            Case("concurrent inputs prevent retirement", _inputs_change_during_ci),
+            Case("main-only completion and publication without tags", _main_only),
+            Case("remote changes prevent retirement", _remote_changes_during_ci)]
