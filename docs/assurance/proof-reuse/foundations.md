@@ -20,12 +20,13 @@ evidence.
 **Exact use.** [MemoryPlan.v](../../../proofs/MemoryPlan.v) requires
 `Stdlib.Arith.PeanoNat` without importing its namespace. Its existing helper
 names and propositions remain the interface to the slot-placement, alignment
-and admission proofs. `add_0_r`, `add_succ_r`, `add_comm`, `add_assoc`,
-`mul_add_distr_l`, `sub_diag`, `sub_0_r`, `mul_0_r`, `leb_refl` and `eqb_refl`
-refer directly to the identically named `PeanoNat.Nat` theorems. `eqb_true`
-uses the forward implication of `PeanoNat.Nat.eqb_eq`. These are proofs over
-the same `nat`, addition, subtraction, multiplication and Boolean comparisons,
-so no representation bridge or new premise is required.
+and admission proofs. Arithmetic identities, monotonicity, strict-order and
+subtraction adapters use qualified `PeanoNat.Nat` facts. The Boolean adapters
+cross to propositional order through `leb_le`, `ltb_lt` and `leb_gt`, and
+`eqb_true` uses the forward implication of `eqb_eq`. These are proofs over the
+same `nat`, arithmetic and Boolean comparisons, so no representation bridge,
+new import or new premise is required. The adapter bodies own the exact lemma
+references.
 
 **Scope.** This supports the existing memory-plan arithmetic behind R-08-011,
 R-08-018 and R-15-060. It changes no discharge claim. In particular it does

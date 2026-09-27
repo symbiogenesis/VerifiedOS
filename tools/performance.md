@@ -230,3 +230,12 @@ Copy fallback, private repair files, fresh checker processes and ordered reports
 retain their existing behavior. Recorded setup medians with eight workers improved
 from 0.988 to 0.425 seconds for the object store, 1.512 to 0.691 seconds for the first
 sandbox, and 2.838 to 2.227 seconds for a complete warm template.
+
+## September 27 JSONC scanning
+
+The [recorded comparison](../docs/performance/tool-benchmarks-2026-09-27/README.md)
+retains the source identities, replay script and raw samples. String-aware token
+passes replace the JSONC reader's per-character Python state machine, preserving
+exact output and error offsets. Configuration scanning and JSON parsing took a
+median 4.842 ms against 13.534 ms before on the measured corpus. This is a
+component improvement; no whole-gate or proof-compilation speedup is claimed.
