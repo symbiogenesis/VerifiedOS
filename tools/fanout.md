@@ -4,6 +4,63 @@
 handoffs to hosted validation and retirement. The integrator owns judgments,
 conflict resolution, co-reads and acceptance checks outside the workflows.
 
+## Usage
+
+After workers commit their handoffs and stop using their lanes, run from the
+integration checkout (use `python3` on Linux):
+
+```console
+python tools/run.py fanout init batch-name --worktree <absolute-worker-path> --cold
+python tools/run.py fanout integrate batch-name
+python tools/run.py fanout finish batch-name --wait-host 1800
+python tools/run.py fanout status batch-name
+```
+
+Repeat `--worktree` for each batch-owned lane. Use `--host-worktree` for a host-owned
+checkout whose commits should be integrated but whose checkout and branch remain
+with its host. No option discovers or retires unrelated worktrees. An empty lane
+list supports CI handoff for an integrator-only batch. `--remote` defaults to
+`origin`; publication targets the integration checkout's recorded branch. Use
+`--defer` repeatedly to retain acceptance checks outside the hosted workflows.
+
+`integrate` makes ordinary merges so worker ancestry remains decidable. Resolve
+conflicts and shared edits normally; it never resets a checkout. `finish` includes
+integration when needed, runs `check --fix`, requires clean settled inputs, pushes
+the branch without force and publishes `fanout/<batch>/<revision>` as a lightweight
+tag for exact CI dispatch. Authentication uses the configured GitHub credentials;
+the REST client reads `GH_TOKEN`, then `GITHUB_TOKEN`, then the noninteractive Git
+credential helper. It needs Actions read/write access as well as Git push access.
+The GitHub CLI is not required, and credentials never enter the journal.
+Publication tags remain as evidence references. Retirement removes local worker
+branches; it does not delete remote branches or evidence tags.
+
+To commit integrator edits through the tool, pass repeatable `--path <file>` with
+`--message <message>` to `finish`. It prints status and selected diffs, stages only
+the named files, and includes them in the checker corpus before repair. If a repair
+changes another file, a required co-read is unresolved, or the index already has
+staged changes, resolve that explicitly before resuming. No command performs
+co-read blessing or decides that an external acceptance check passed.
+
+Without `--wait-host`, `finish` returns a finding with pending Host CI and the
+resume command. `--wait-host SECONDS` bounds host-only polling (maximum 7200);
+expiration leaves the journal resumable. Failure or cancellation stops completion.
+Guest dispatch records its identifier, tested revision and pending status, then
+retirement runs without waiting for a guest verdict. `status` reads only the local
+journal. An ambiguous interrupted dispatch retains its intent and uses the unique
+workflow token to recover identity; it never silently submits a duplicate.
+
+The journal is `out/fanout/<batch>/state.json`. Retained checkout outputs live under
+that batch's `retained/` directory; native guest outputs stay on their native
+filesystem under the build root's `fanout-retained/` directory. Retirement records
+the destinations. Known log layouts and companion receipts are retained together.
+Ambiguous shared logs and unknown legacy layouts stay in place and are listed as
+deferred retention; the command does not guess their owner. Host output retention
+uses same-filesystem renames and refuses cross-volume moves. Failed retention or
+unsafe cleanup leaves a resumable refusal.
+Keep the worker stopped throughout integration and retirement. Host-managed lanes,
+dirty or unintegrated work, unexpected branch changes and unrelated lanes survive.
+When a completed batch's integration revision changes, initialize a new batch.
+
 ## Required behavior
 
 - A batch records its integration checkout, base revision, publication remote and

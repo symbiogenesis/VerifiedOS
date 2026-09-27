@@ -114,6 +114,8 @@ COMMANDS: tuple[Command, ...] = (
             "the tools' own behavioral tests"),
     Command("worktree", "vos.cli.worktree",
             "create and verify isolated checkouts with a provider-neutral root"),
+    Command("fanout", "vos.cli.fanout",
+            "integrate a batch, publish hosted CI evidence and retire its worktrees"),
     Command("proof-search", "vos.cli.proof_search",
             "retrieve local proof examples as advisory source text, without a prover"),
     Command("sail-context", "vos.cli.sail_context",

@@ -89,6 +89,7 @@ caught by nothing, which is a residue the findings register carries.
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
+| `fanout` | host | Records explicit worker handoffs, merges their commits, repairs derived facts, publishes settled inputs, requires Host CI on both platforms, dispatches both Guest CI lanes and retires integrated batch-owned lanes. Journals support resume without waiting for Guest CI. See the [completion contract and usage](fanout.md). |
 | `proof-search` | host | Retrieves current local proof examples by query words, script tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded repair and the unchanged fresh proof gate. |
 | `sail-context` | host | Retrieves compiler-emitted Sail declarations, scattered clauses and recorded incoming references. Checks the bundle's recorded local source hashes before returning bounded context and SHA-256 identities; omitted sources and the freshness boundary remain explicit. `search`, `symbol` and `references` accept `--json` under the tracked [JSON Schema](sail-context.schema.json). The [portable Sail workflow](../docs/assurance/sail-assistance.md) defines repair, validation and upstream adoption decisions. |
 | `sail-assist` | guest | `init`, `status`, `typecheck`, `pause`, `resume`, `replan`, `finish` and `recover` manage finite repair journals under the tracked [schema](sail-assist.schema.json). The strict compiler process envelope preserves raw diagnostics, exit status and before/after input identities. Follow the [workflow and recovery contract](../docs/assurance/sail-assistance.md#agent-workflow). Windows launcher notices go to stderr so JSON stdout remains machine-readable. |
@@ -700,6 +701,14 @@ it off the listing before the removal. A refusal leaves the lane or branch for r
 removal or reset a branch to reuse its name. A squash or cherry-pick may require a
 separate equivalence review. Host-managed checkout cleanup belongs to that host;
 do not rename or remove another active session's worktree.
+
+Use [`run.py fanout`](fanout.md) to carry out completion and retirement. Its batch
+journal names the selected worktrees and freezes their handoff revisions; it never
+selects unrelated lanes by age or branch prefix. `fanout finish` preserves local
+outputs, removes eligible worktrees and branches without force, and retains
+host-managed checkouts. Conflicts, changed handoffs and unsafe retirement paths
+stop for integrator judgment. The same command resumes pending Host CI and partial
+retirement; `fanout status` reads local evidence without querying Guest CI.
 
 ## Check scheduling during fan-out
 

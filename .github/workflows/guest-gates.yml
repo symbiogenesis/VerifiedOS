@@ -6,10 +6,15 @@
 # its own toolchains and runs on its own runner.
 
 name: guest-gates
+run-name: ${{ inputs.fanout_token && format('fanout:{0}', inputs.fanout_token) || github.workflow }}
 
 on:
   workflow_dispatch:
     inputs:
+      fanout_token:
+        description: Optional fan-out dispatch identity for interrupted handoff recovery
+        type: string
+        default: ""
       cold:
         description: Install toolchains cold and recompile/recheck every proof
         type: boolean
