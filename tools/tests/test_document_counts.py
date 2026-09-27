@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """Document counts follow declared subjects and owners, not numeric coincidences."""
 
+import re
+from itertools import product
 from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
+from vos import figures
 from vos.checks import Context, counts
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
@@ -76,6 +79,67 @@ def _registered_claim_offsets_follow_repairs() -> None:
         with patch.object(counts, "CLAIMS", [claim]):
             ensure(not counts.unheld_counts(ctx),
                    "a registered count remains held when a repair changes its width")
+
+
+def _subject_scan_preserves_count_grammar() -> None:
+    tokens = [*(figures.words(n) for n in range(100)), "12", "521,712", "0007",
+              "1234,567", "1,23", "3.14", "v12", "1-2", "one-hundred", "_7",
+              "FOUR", "\u017fix", "nİne", "٢٣", "9" * 4096]
+    prefixes = ("", "(", "🙂", ".", ",", "-", "_", "x", "é")
+    gaps = (" ", "\t", "** ", "` \t", "*``* ", "\n", "\r\n", "\u00a0")
+    raw = "\n".join(prefix + token + gap + "crown-jewel specifications."
+                    for prefix, token, gap in product(prefixes, tokens, gaps))
+    noun = counts._CROWN_SUBJECT
+    original = re.compile(counts._COUNT_FORM + r"[*`]*[ \t]+(?:" + noun + r")\b",
+                          re.IGNORECASE)
+    expected = [(match.span(), match.span("count"), match["count"])
+                for match in original.finditer(raw)]
+    actual = [(match.span(), match.span("count"), match["count"])
+              for match in counts._count_matches(raw, noun, len(raw))]
+    ensure(actual == expected,
+           "subject proposals preserve every count, boundary, spelling and source offset")
+    raw = "17 crown-jewel specificationsuffix"
+    end = len("17 crown-jewel specifications")
+    ensure([match.span() for match in counts._count_matches(raw, noun, end)]
+           == [match.span() for match in original.finditer(raw[:end])],
+           "the scope endpoint retains the original sliced-text word boundary")
+
+
+def _claim_intervals_and_diagnostic_order() -> None:
+    raw = ("17 crown-jewel specifications, 18 crown-jewel specifications.\r\n"
+           "19 crown-jewel specifications, 20 crown-jewel specifications.\r\n")
+    with sandbox_tree({counts.REGISTER: _REGISTER, _CRITIQUE: raw}) as root:
+        ctx = _context(root)
+        claims = [(_CRITIQUE, "fixture", "digits", pattern)
+                  for pattern in (r"17.*18", r"17", r"19")]
+        scopes = [(_CRITIQUE, subject, counts._CROWN_SUBJECT, "")
+                  for subject in ("first scope", "second scope")]
+        with patch.object(counts, "CLAIMS", claims), patch.object(counts, "COUNT_SCOPES", scopes):
+            ensure(counts.unheld_counts(ctx) == [
+                f"{_CRITIQUE}:2 states '20' where no claim holds it, for second scope"],
+                "a containing outer interval holds later counts; duplicate scopes keep order")
+            ctx.fixed[_CRITIQUE] = "9 crown-jewel specifications.\n" + raw
+            ensure(counts.unheld_counts(ctx) == [
+                f"{_CRITIQUE}:1 states '9' where no claim holds it, for second scope",
+                f"{_CRITIQUE}:3 states '20' where no claim holds it, for second scope"],
+                "another call rebuilds offsets and claim intervals from repaired text")
+
+
+def _count_scan_refuses_unsupported_fences() -> None:
+    with sandbox_tree({counts.REGISTER: _REGISTER, _CRITIQUE: "No live counts.\n"}) as root:
+        ctx = _context(root)
+        ctx.fixed[_CRITIQUE] = "No live counts.\n> ```text\n"
+        try:
+            counts.unheld_counts(ctx)
+        except ValueError as exc:
+            ensure(str(exc) == "line 2: unsupported container or indented fence; "
+                   "use a top-level fence with at most three leading spaces",
+                   "an unsupported fence keeps its exact diagnostic even without a candidate")
+        else:
+            ensure(False, "absence of count candidates cannot bypass the fence grammar")
+        ctx.fixed[_CRITIQUE] = "17 crown-jewel specifications.\n"
+        ensure(len(counts.unheld_counts(ctx)) == 1,
+               "a failed parse does not cache a successful or failed later verdict")
 
 
 def _canonical_references_need_no_count() -> None:
@@ -165,6 +229,9 @@ def cases() -> list[Case]:
         Case("growth-does-not-reclassify-counts", _growth_does_not_reclassify_counts),
         Case("scopes-and-count-tokens", _scopes_and_count_tokens),
         Case("registered-claim-offsets-follow-repairs", _registered_claim_offsets_follow_repairs),
+        Case("subject-scan-preserves-count-grammar", _subject_scan_preserves_count_grammar),
+        Case("claim-intervals-and-diagnostic-order", _claim_intervals_and_diagnostic_order),
+        Case("count-scan-refuses-unsupported-fences", _count_scan_refuses_unsupported_fences),
         Case("canonical-references-need-no-count", _canonical_references_need_no_count),
         Case("missing-owner-and-valid-zero-buckets", _missing_owner_and_valid_zero_buckets),
         Case("owner-policy-is-total", _owner_policy_is_total),
