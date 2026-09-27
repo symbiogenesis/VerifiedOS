@@ -175,6 +175,13 @@ def initialize(root: Path, args: argparse.Namespace) -> Batch:
     return state
 
 
+def _merge_message(root: Path, lane: fanout_retire.LaneRecord) -> str:
+    # A push run is titled with this subject, so it names the lane, not a hash.
+    name = lane.branch or lane.lane
+    latest = _git(root, "log", "-1", "--no-merges", "--format=%s", f"HEAD..{lane.head}")
+    return f"Merge {name}: {latest}" if latest else f"Merge {name}"
+
+
 def integrate(root: Path, state: Batch, path: Path) -> None:
     _checkout(root, state)
     for raw in state["lanes"]:
@@ -189,7 +196,7 @@ def integrate(root: Path, state: Batch, path: Path) -> None:
         if _git(root, "merge-base", lane.head, "HEAD") == lane.head:
             continue
         _clean(root)
-        _git(root, "merge", "--no-edit", "--no-ff", lane.head)
+        _git(root, "merge", "--no-ff", "-m", _merge_message(root, lane), lane.head)
         state["ci"] = None
         state["status"] = "integrating"
         _save(path, state)

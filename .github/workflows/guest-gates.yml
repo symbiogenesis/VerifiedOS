@@ -6,12 +6,12 @@
 # The model and proof lanes share no toolchain or output, so each installs only
 # its own toolchains and runs on its own runner. Manual dispatch runs from main;
 # its optional revision input pins checkout to a commit already on main, verified
-# before any checked-out code runs. A run title follows its identity prefix with the
+# before any checked-out code runs. A run title follows the workflow name with the
 # title input, which fanout fills with the commit subject, or else with the
 # checked-out revision.
 
 name: guest-gates
-run-name: ${{ format('{0}:{1}', inputs.fanout_token && format('fanout:{0}', inputs.fanout_token) || github.workflow, inputs.title || inputs.revision || github.sha) }}
+run-name: ${{ format('{0}:{1}', github.workflow, inputs.title || inputs.revision || github.sha) }}
 
 on:
   workflow_dispatch:
@@ -20,12 +20,8 @@ on:
         description: Full commit SHA already on main (empty selects current main)
         type: string
         default: ""
-      fanout_token:
-        description: Optional fan-out dispatch identity for interrupted handoff recovery
-        type: string
-        default: ""
       title:
-        description: Optional run title text after the prefix (empty shows the revision)
+        description: Optional run title text after the workflow name (empty shows the revision)
         type: string
         default: ""
       cold:

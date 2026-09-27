@@ -11,9 +11,9 @@ The [`fanout` completion command](../fanout.md) runs from `main`, merges the sel
 local worktrees and publishes only `main`,
 requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
 lanes with the batch's `cold` policy. It records the dispatch response and returns
-without polling Guest CI. Optional `fanout_token` workflow inputs give interrupted
-dispatches an identity for recovery, and the optional `title` input carries the
-commit subject into the run title. The explicit `revision` input pins checkout
+without polling Guest CI. The optional `title` workflow input carries the commit
+subject into the run title, which also identifies an interrupted dispatch for
+recovery. The explicit `revision` input pins checkout
 to the settled commit even if `main` advances during dispatch. Work branches and
 publication tags are never pushed. A session finishes only after its work is on
 local and remote `main`; Guest CI may remain pending.
@@ -22,8 +22,8 @@ local and remote `main`; Guest CI may remain pending.
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
 GitHub's **Run workflow** control on `main`. A manual run's optional `revision` input
 names a full lowercase commit already on `main`; the workflow refuses any other ref or
-revision before installing tools. Each run title follows its prefix with the `title`
-input, or else with its checked-out revision, and runs are not serialized, so a
+revision before installing tools. Each run title follows the workflow name with the
+`title` input, or else with its checked-out revision, and runs are not serialized, so a
 queued handoff is never replaced. Ordinary runs reuse installed toolchains and
 content-validated native proof results. The monthly run and the manual `cold` input
 force cold toolchain installation and a fresh full proof check. A weekly scheduled

@@ -3,9 +3,9 @@
 
 The caller publishes main, owns the journal lock and atomically saves
 the enclosing batch whenever requested. A dispatch intent reaches disk before the
-POST. An interrupted POST is recovered by the unique token in its workflow title,
-never retried on the assumption that a missing response means GitHub did not start
-a run.
+POST. An interrupted POST is recovered by its workflow title among the runs GitHub
+created after that intent, never retried on the assumption that a missing response
+means GitHub did not start a run.
 """
 
 import json
@@ -16,10 +16,10 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TypedDict, cast, override
+from typing import NotRequired, TypedDict, cast, override
 
 HOST = "host-gates.yml"
 GUEST = "guest-gates.yml"
@@ -29,15 +29,21 @@ API_VERSION = "2026-03-10"
 # accepts the push. Dispatching before then runs every host shard twice for one
 # revision, so the first lookup retries after each of these pauses before dispatching.
 PUSH_RUN_WAITS: tuple[int, ...] = (5, 10, 15, 30)
-# A dispatched run's title follows its identity prefix with the commit subject,
+# A dispatched run's title follows the workflow name with the commit subject,
 # shortened to the length GitHub gives a push run's default title.
 SUBJECT_LIMIT = 70
+# GitHub creates a dispatched run after its intent reaches disk. Recovery also
+# accepts a run stamped this much earlier, in case the local clock runs ahead.
+CLOCK_SKEW = timedelta(seconds=60)
 
 
 class RunState(TypedDict):
     workflow: str
     revision: str
-    token: str
+    # A record from when run titles carried a recovery token keeps that token;
+    # later records keep the time their dispatch intent reached disk.
+    token: NotRequired[str]
+    requested: NotRequired[str]
     phase: str
     run_id: int | None
     url: str
@@ -107,6 +113,20 @@ def _run_id(value: object) -> int:
     return value
 
 
+def _instant(value: object) -> datetime:
+    try:
+        moment = datetime.fromisoformat(value) if isinstance(value, str) else None
+    except ValueError:
+        moment = None
+    if moment is None or moment.tzinfo is None:
+        raise CIError("hosted evidence has no zoned timestamp")
+    return moment
+
+
+def _now() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def validate_state(value: object) -> CIState:
     record = _object(value)
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", _string(record, "repository")):
@@ -129,8 +149,12 @@ def validate_state(value: object) -> CIState:
             raise CIError("hosted evidence belongs to another workflow or revision")
         if run.get("phase") not in {"intent", "accepted", "observed", "rejected"}:
             raise CIError("hosted evidence has an unknown dispatch phase")
-        for key in ("token", "url", "status"):
+        for key in ("url", "status"):
             _string(run, key)
+        if "token" in run:
+            _string(run, "token")
+        if "requested" in run:
+            _instant(run["requested"])
         for key in ("conclusion", "request_id"):
             if key not in run or (run[key] is not None and not isinstance(run[key], str)):
                 raise CIError(f"invalid hosted evidence {key}")
@@ -232,7 +256,7 @@ class GitHub:
 
 
 def _blank(workflow: str, revision: str) -> RunState:
-    return {"workflow": workflow, "revision": revision, "token": uuid.uuid4().hex,
+    return {"workflow": workflow, "revision": revision,
             "phase": "intent", "run_id": None, "url": "", "status": "pending",
             "conclusion": None, "request_id": None, "jobs": {}}
 
@@ -249,16 +273,20 @@ def _subject(root: Path, revision: str) -> str:
     return subject[:SUBJECT_LIMIT - 1].rstrip() + "…"
 
 
-def _prefix(record: RunState) -> str:
-    return f"fanout:{record['token']}:"
+def _title(record: RunState, subject: str) -> str:
+    # Each workflow is named for its file, and its run-name falls back to the revision.
+    return f"{record['workflow'].removesuffix('.yml')}:{subject or record['revision']}"
 
 
-def _dispatched(record: RunState, run: dict[str, object]) -> bool:
+def _dispatched(record: RunState, run: dict[str, object], subject: str) -> bool:
     title = run.get("display_title")
-    return isinstance(title, str) and title.startswith(_prefix(record))
+    if "token" in record and isinstance(title, str) and title.startswith(
+            f"fanout:{record['token']}:"):
+        return True
+    return "requested" in record and title == _title(record, subject)
 
 
-def _identity(state: CIState, record: RunState, run: dict[str, object]) -> None:
+def _identity(state: CIState, record: RunState, run: dict[str, object], subject: str) -> None:
     if run.get("head_branch") != "main":
         raise CIError("GitHub workflow run did not use main")
     event = run.get("event")
@@ -266,11 +294,11 @@ def _identity(state: CIState, record: RunState, run: dict[str, object]) -> None:
         if record["workflow"] != HOST or run.get("head_sha") != state["revision"]:
             raise CIError("GitHub push run tested a different revision")
     elif event == "workflow_dispatch":
-        # The title's token names this record's own dispatch request, which carried
-        # the checkout input. head_sha instead names the main tip used to load the
-        # workflow and can advance before GitHub starts it. The subject after the
-        # token is display text only.
-        if not _dispatched(record, run):
+        # The run identifier comes from this record's own request or its bounded
+        # recovery, and the title carries the checkout input's commit subject.
+        # head_sha instead names the main tip used to load the workflow and can
+        # advance before GitHub starts it.
+        if not _dispatched(record, run, subject):
             raise CIError("GitHub dispatch did not identify the requested checkout revision")
     else:
         raise CIError("pull-request or scheduled runs cannot establish this publication's host evidence")
@@ -280,31 +308,34 @@ def _identity(state: CIState, record: RunState, run: dict[str, object]) -> None:
     record["url"] = f"https://github.com/{state['repository']}/actions/runs/{record['run_id']}"
 
 
-def _recover(client: GitHub, state: CIState, record: RunState,
+def _recover(client: GitHub, state: CIState, record: RunState, subject: str,
              save: Callable[[], None]) -> None:
-    # One identity lookup resolves interrupted requests. A guest's verdict is never
+    # One identity lookup resolves interrupted requests. Another dispatch with the
+    # same title since the intent leaves them ambiguous. A guest's verdict is never
     # read or copied, even when it happens to be included in this API response.
+    requested = record.get("requested")
+    earliest = _instant(requested) - CLOCK_SKEW if requested is not None else None
     matches = [run for run in client.runs(record["workflow"])
-               if _dispatched(record, run)
+               if _dispatched(record, run, subject)
                and run.get("head_branch") == "main"
-               and run.get("event") == "workflow_dispatch"]
+               and run.get("event") == "workflow_dispatch"
+               and (earliest is None or _instant(run.get("created_at")) >= earliest)]
     if len(matches) != 1:
         raise CIError("dispatch identity remains ambiguous; no dispatch was repeated. "
                       "Inspect GitHub Actions and retry recovery when the original run is visible")
-    _identity(state, record, matches[0])
+    _identity(state, record, matches[0], subject)
     record["phase"] = "accepted"
     record["status"] = "pending"
     save()
 
 
-def _dispatch(root: Path, client: GitHub, state: CIState, record: RunState,
+def _dispatch(client: GitHub, state: CIState, record: RunState, subject: str,
               save: Callable[[], None]) -> None:
     client.verify_ref(state)
-    title = _subject(root, state["revision"])
     record["phase"] = "intent"
+    record["requested"] = _now()
     save()
-    inputs: dict[str, object] = {"fanout_token": record["token"], "revision": state["revision"],
-                                 "title": title}
+    inputs: dict[str, object] = {"revision": state["revision"], "title": subject}
     if record["workflow"] == GUEST:
         # guest-gates owns a mandatory model/proofs matrix; there is no lane filter.
         inputs["cold"] = state["cold"]
@@ -330,12 +361,12 @@ def _dispatch(root: Path, client: GitHub, state: CIState, record: RunState,
     save()
 
 
-def _host_status(client: GitHub, state: CIState, record: RunState,
+def _host_status(client: GitHub, state: CIState, record: RunState, subject: str,
                  save: Callable[[], None]) -> bool:
     run = client.request("GET", f"actions/runs/{record['run_id']}")
     if run.get("id") != record["run_id"]:
         raise CIError("GitHub returned the wrong workflow run identifier")
-    _identity(state, record, run)
+    _identity(state, record, run, subject)
     record["phase"] = "observed"
     record["status"] = _string(run, "status")
     conclusion = run.get("conclusion")
@@ -394,6 +425,7 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
         return True
     client = GitHub(root, state["repository"])
     client.verify_ref(state)
+    subject = _subject(root, state["revision"])
     host = state["host"]
     if host is None:
         runs = _push_runs(client, state)
@@ -406,25 +438,25 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
         state["host"] = host
         if runs:
             selected = max(runs, key=lambda run: _run_id(run.get("id")))
-            _identity(state, host, selected)
+            _identity(state, host, selected, subject)
             host["phase"] = "accepted"
             save()
         else:
-            _dispatch(root, client, state, host, save)
+            _dispatch(client, state, host, subject, save)
             return False
     elif host["phase"] == "rejected":
-        _dispatch(root, client, state, host, save)
+        _dispatch(client, state, host, subject, save)
         return False
     elif host["phase"] == "intent" or host["run_id"] is None:
-        _recover(client, state, host, save)
-    if not _host_status(client, state, host, save):
+        _recover(client, state, host, subject, save)
+    if not _host_status(client, state, host, subject, save):
         return False
     if guest is None:
         guest = _blank(GUEST, state["revision"])
         state["guest"] = guest
-        _dispatch(root, client, state, guest, save)
+        _dispatch(client, state, guest, subject, save)
     elif guest["phase"] == "rejected":
-        _dispatch(root, client, state, guest, save)
+        _dispatch(client, state, guest, subject, save)
     else:
-        _recover(client, state, guest, save)
+        _recover(client, state, guest, subject, save)
     return True
