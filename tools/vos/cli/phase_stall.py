@@ -11,6 +11,8 @@ from vos import phase_cost, phase_stall
 from vos.jsonc import Json
 
 SOURCES = ("tools/vos/phase_stall.py", "tools/vos/cli/phase_stall.py",
+           "tools/vos/phase_cost.py", "tools/vos/phase_schedule.py",
+           "tools/vos/phase_service.py", "tools/vos/jsonutil.py",
            "tools/tests/test_phase_stall.py",
            "docs/implementation/phase-service/stall-contract.md")
 
