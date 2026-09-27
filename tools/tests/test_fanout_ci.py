@@ -18,6 +18,13 @@ from vos import fanout_ci as ci
 
 REVISION = "a" * 40
 SUBJECT = "Settle the fixture batch"
+HOST_TITLE = f"host-gates:{SUBJECT}"
+GUEST_TITLE = f"guest-gates:{SUBJECT}"
+# The fixture's dispatch intent reaches disk at NOW; GitHub creates its run LATER.
+NOW = "2026-09-27T16:00:00Z"
+LATER = "2026-09-27T16:00:05Z"
+# A dispatch identity from when run titles carried one, as `fanout:<id>:`.
+OLD_ID = "5c6c433b07cb4212b594b83fffccdc48"
 REPO = "example/verifiedos"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,7 +35,7 @@ def _state() -> ci.CIState:
 
 def _run(number: int = 10, **changes: object) -> dict[str, object]:
     return {"id": number, "head_sha": REVISION, "head_branch": "main",
-            "event": "push", "status": "completed",
+            "event": "push", "status": "completed", "created_at": LATER,
             "path": ".github/workflows/host-gates.yml", "conclusion": "success", **changes}
 
 
@@ -77,7 +84,7 @@ class FakeGitHub:
                 raise self.dispatch_error
             if lane == "host" and saved_run is not None:
                 self.host = _run(event="workflow_dispatch", head_sha=self.dispatch_sha,
-                                 display_title=ci._prefix(saved_run) + SUBJECT)
+                                 display_title=HOST_TITLE)
             number = 20 if lane == "guest" else 10
             return {"workflow_run_id": number,
                     "html_url": f"https://github.com/{REPO}/actions/runs/{number}",
@@ -95,6 +102,7 @@ class FakeGitHub:
     def advance(self) -> bool:
         with (patch.object(ci, "_token", return_value="fixture-credential"),
               patch.object(ci, "_subject", return_value=SUBJECT),
+              patch.object(ci, "_now", return_value=NOW),
               patch.object(ci.GitHub, "request", side_effect=self.request),
               patch.object(ci.time, "sleep", side_effect=self.sleep)):
             return ci.advance(ROOT, self.state, self.save)
@@ -127,9 +135,10 @@ def _successful_handoff() -> None:
     posts = fake.posts()
     ensure(len(posts) == 1, "dispatch guest exactly once")
     ensure(posts[0][2] == {"ref": state["ref"], "inputs": {
-        "fanout_token": guest["token"] if guest else "", "revision": REVISION,
-        "title": SUBJECT, "cold": True}},
-        "guest dispatch must use main, exact revision, explicit cold policy and recovery token")
+        "revision": REVISION, "title": SUBJECT, "cold": True}},
+        "guest dispatch must use main, exact revision, explicit cold policy and subject title")
+    ensure(guest is not None and guest.get("requested") == NOW and "token" not in guest,
+           "the record keeps when its intent reached disk, for recovery by title")
     ensure(not any(ci.GUEST in path and method == "GET" for method, path, _ in fake.calls),
            "normal guest dispatch must not query guest runs")
     fake.calls.clear()
@@ -188,11 +197,8 @@ def _host_dispatch() -> None:
     posts = fake.posts()
     ensure(len(posts) == 1 and ci.HOST in posts[0][1],
            "start Host CI when no exact suitable run exists")
-    payload = posts[0][2]
-    host = fake.state["host"]
-    ensure(payload == {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT,
-        "fanout_token": host["token"] if host else ""}},
-        "Host CI dispatch must pin checkout to the requested main revision")
+    ensure(posts[0][2] == {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT}},
+           "Host CI dispatch must pin checkout to the requested main revision")
     ensure(fake.state["guest"] is None, "host dispatch supplies no verdict")
     ensure(fake.advance(), "the next advance can accept the completed host run")
 
@@ -236,14 +242,13 @@ def _dispatch_revision_survives_main_advance() -> None:
     ensure(fake.advance(), "pinned checkout remains evidence when main advances during dispatch")
     ensure(fake.state["host"] is not None and fake.state["host"]["revision"] == REVISION,
            "evidence must name the checked out revision, not the workflow's newer main tip")
-    for title in ("fanout:old-format", "fanout:other:" + SUBJECT, "host-gates:" + SUBJECT,
-                  "fanout:{token}", "fanout:{token}0:" + SUBJECT, "host-gates:fanout:{token}:"):
+    for title in (GUEST_TITLE, "host-gates:Another subject", "host-gates:" + REVISION,
+                  HOST_TITLE + " ", f"fanout:{'0' * 32}:{SUBJECT}", None):
         fake = FakeGitHub(_state())
         fake.host_runs = []
         ensure(not fake.advance(), "fixture host dispatch starts pending")
-        host = fake.state["host"]
-        fake.host["display_title"] = title.format(token=host["token"] if host else "missing")
-        _refuses(fake.advance, "a dispatch needs the token its request carried with the revision")
+        fake.host["display_title"] = title
+        _refuses(fake.advance, "a dispatch needs the title its request set with the revision")
         ensure(len(fake.posts()) == 1, "wrong dispatch cannot start guest")
 
 
@@ -254,10 +259,10 @@ def _guest_interrupt_recovery() -> None:
     guest = fake.state["guest"]
     ensure(guest is not None and guest["phase"] == "intent", "preserve ambiguous intent")
     ensure(fake.saved[-1]["guest"] == guest, "intent is recoverable from the saved journal")
-    token = guest["token"] if guest else "missing"
     fake.dispatch_error = None
+    # Stamped a clock allowance before the intent, as by a GitHub clock running behind.
     fake.guest_runs = [_run(20, event="workflow_dispatch", head_sha="b" * 40,
-                            display_title=f"fanout:{token}:{SUBJECT}",
+                            display_title=GUEST_TITLE, created_at="2026-09-27T15:59:00Z",
                             status="completed", conclusion="failure",
                             path=".github/workflows/guest-gates.yml")]
     ensure(fake.advance(), "a unique dispatched identity must be adopted")
@@ -273,10 +278,7 @@ def _ambiguous_recovery_never_reposts() -> None:
         fake = FakeGitHub(_state())
         fake.dispatch_error = ci.APIError(500)
         _refuses(fake.advance, "server error may have accepted the dispatch")
-        guest = fake.state["guest"]
-        token = guest["token"] if guest else "missing"
-        fake.guest_runs = [_run(number, event="workflow_dispatch",
-                               display_title=f"fanout:{token}:{SUBJECT}")
+        fake.guest_runs = [_run(number, event="workflow_dispatch", display_title=GUEST_TITLE)
                            for number in range(20, 20 + count)]
         fake.dispatch_error = None
         _refuses(fake.advance, "ambiguous identity must not authorize a second dispatch")
@@ -284,20 +286,20 @@ def _ambiguous_recovery_never_reposts() -> None:
 
 
 def _recovery_requires_main_and_own_dispatch() -> None:
-    for change in ("branch", "token", "workflow"):
+    for change in ("branch", "title", "earlier", "workflow"):
         fake = FakeGitHub(_state())
         fake.dispatch_error = ci.APIError(None)
         _refuses(fake.advance, "interrupted dispatch must retain its intent")
-        guest = fake.state["guest"]
-        ensure(guest is not None, "interrupted guest intent must exist")
-        prefix = ci._prefix(guest) if guest else "missing"
-        candidate = _run(20, event="workflow_dispatch", display_title=prefix + SUBJECT,
+        ensure(fake.state["guest"] is not None, "interrupted guest intent must exist")
+        candidate = _run(20, event="workflow_dispatch", display_title=GUEST_TITLE,
                          path=".github/workflows/guest-gates.yml")
         if change == "branch":
             candidate["head_branch"] = "work/stranded"
-        elif change == "token":
-            # Another request's run, even for the same commit, carried its own inputs.
-            candidate["display_title"] = f"fanout:{'0' * 32}:{SUBJECT}"
+        elif change == "title":
+            candidate["display_title"] = "guest-gates:Another subject"
+        elif change == "earlier":
+            # An older dispatch of the same commit, beyond the local clock allowance.
+            candidate["created_at"] = "2026-09-27T15:58:59Z"
         else:
             candidate["path"] = ".github/workflows/host-gates.yml"
         fake.guest_runs = [candidate]
@@ -322,16 +324,38 @@ def _host_interrupt_recovery() -> None:
     fake.host_runs = []
     fake.dispatch_error = ci.APIError(None)
     _refuses(fake.advance, "host transport error must preserve its intent")
-    host = fake.state["host"]
-    token = host["token"] if host else "missing"
-    # A dispatch made before titles carried the subject still recovers by its token.
     fake.host_runs = [_run(event="workflow_dispatch", head_sha="b" * 40,
-                          display_title=f"fanout:{token}:{REVISION}")]
+                          display_title=HOST_TITLE)]
     fake.host = fake.host_runs[0]
     fake.dispatch_error = None
     ensure(fake.advance(), "recovered host may establish evidence and dispatch guest")
     ensure(sum(ci.HOST in path for _, path, _ in fake.posts()) == 1,
            "interrupted host dispatch must not duplicate")
+
+
+def _token_journal_recovery() -> None:
+    for title, adopted in ((f"fanout:{OLD_ID}:{REVISION}", True),
+                           (f"fanout:{OLD_ID}:{SUBJECT}", True), (HOST_TITLE, False)):
+        fake = FakeGitHub(_state())
+        fake.host_runs = []
+        fake.dispatch_error = ci.APIError(None)
+        _refuses(fake.advance, "host transport error must preserve its intent")
+        host = fake.state["host"]
+        if host is None:
+            raise AssertionError("interrupted host intent must exist")
+        # A journal from when titles carried a token has the token and no request time.
+        del host["requested"]
+        host["token"] = OLD_ID
+        fake.host_runs = [_run(event="workflow_dispatch", display_title=title,
+                               created_at="2026-09-20T00:00:00Z")]
+        fake.host = fake.host_runs[0]
+        fake.dispatch_error = None
+        if adopted:
+            ensure(fake.advance(), "a token-titled dispatch recovers by its token")
+        else:
+            _refuses(fake.advance, "without a request time, a title alone cannot identify it")
+        ensure(sum(ci.HOST in path for _, path, _ in fake.posts()) == 1,
+               "recovering a token journal never repeats its dispatch")
 
 
 def _remote_validation() -> None:
@@ -356,6 +380,17 @@ def _state_validation() -> None:
         _refuses(lambda state=state: ci.validate_state(state), f"invalid {key} must be refused")
     fake = FakeGitHub(_state())
     ensure(fake.advance(), "fixture must complete its hosted handoff")
+    for requested in ("yesterday", "2026-09-27T16:00:00", 1759000000):
+        timed = copy.deepcopy(fake.state)
+        guest: dict[str, object] = dict(timed["guest"] or {})
+        guest["requested"] = requested
+        _refuses(lambda guest=guest, timed=timed: ci.validate_state({**timed, "guest": guest}),
+                 f"request time {requested!r} must be a zoned timestamp")
+    tokened = copy.deepcopy(fake.state)
+    guest = dict(tokened["guest"] or {})
+    del guest["requested"]
+    guest["token"] = OLD_ID
+    ci.validate_state({**tokened, "guest": guest})
     legacy = copy.deepcopy(fake.state)
     legacy["ref"] = f"fanout/batch/{REVISION}"
     _refuses(lambda: ci.advance(ROOT, legacy, lambda: None),
@@ -417,6 +452,19 @@ def _dispatch_subject() -> None:
         _refuses(lambda: ci._subject(root, "b" * 40), "a missing revision has no subject")
 
 
+def _workflow_titles() -> None:
+    record = ci._blank(ci.GUEST, REVISION)
+    ensure(ci._title(record, "") == f"guest-gates:{REVISION}",
+           "an empty subject leaves the revision, as the workflow's title fallback does")
+    for workflow in (ci.HOST, ci.GUEST):
+        contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
+        ensure(f"\nname: {workflow.removesuffix('.yml')}\n" in contents,
+               f"{workflow} is named for its file, as fanout's expected title assumes")
+        ensure("format('{0}:{1}', github.workflow, inputs.title || inputs.revision || github.sha)"
+               in contents and "fanout_token" not in contents,
+               f"{workflow} titles a dispatch with its name and the title input, and no token")
+
+
 def _workflow_checkout_validation() -> None:
     scripts: list[str] = []
     for workflow in (ci.HOST, ci.GUEST):
@@ -465,7 +513,9 @@ def cases() -> list[Case]:
             Case("recovery-main-and-own-dispatch", _recovery_requires_main_and_own_dispatch),
             Case("rejected-dispatch-retry", _rejected_dispatch_can_retry),
             Case("host-interrupt-recovery", _host_interrupt_recovery),
+            Case("token-journal-recovery", _token_journal_recovery),
             Case("remote-validation", _remote_validation), Case("state-validation", _state_validation),
             Case("transport-contract", _transport_contract),
             Case("dispatch-subject", _dispatch_subject),
+            Case("workflow-titles", _workflow_titles),
             Case("workflow-checkout-validation", _workflow_checkout_validation)]

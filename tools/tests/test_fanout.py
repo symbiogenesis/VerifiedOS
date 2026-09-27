@@ -20,6 +20,8 @@ def _roundtrip_and_handoff() -> None:
         git(root, "merge-base", "--is-ancestor", head, "HEAD")
         ensure((root / "worker.txt").read_text(encoding="utf-8") == "landed\n",
                "worker changes reach integration")
+        ensure(git(root, "log", "-1", "--format=%s") == "Merge work/worker: worker",
+               "the merge subject, a push run's title, names the lane and its work")
         revision = git(root, "rev-parse", "HEAD")
         fanout.integrate(root, state, path)
         ensure(git(root, "rev-parse", "HEAD") == revision, "resume does not merge twice")

@@ -42,7 +42,9 @@ list supports CI handoff for an integrator-only batch. `--remote` defaults to
 `origin`; publication always targets `main`. Use
 `--defer` repeatedly to retain acceptance checks outside the hosted workflows.
 
-`integrate` makes ordinary merges so worker ancestry remains decidable. Resolve
+`integrate` makes ordinary merges so worker ancestry remains decidable. Each merge
+subject names the lane branch and its latest non-merge commit subject, because the
+published commit's subject titles its Host CI push run. Resolve
 conflicts and shared edits normally; it never resets a checkout. `finish` includes
 integration into `main` when needed, runs `check --fix`, requires clean settled
 inputs, and pushes only `main` without force. CI dispatches on `main` with the exact
@@ -66,8 +68,11 @@ resume command. `--wait-host SECONDS` bounds host-only polling (maximum 7200);
 expiration leaves the journal resumable. Failure or cancellation stops completion.
 Guest dispatch records its identifier, tested revision and pending status, then
 retirement runs without waiting for a guest verdict. `status` reads only the local
-journal. An ambiguous interrupted dispatch retains its intent and uses the unique
-workflow token to recover identity; it never silently submits a duplicate.
+journal. An interrupted dispatch retains its intent and the time it reached disk,
+then recovers identity from the one run with its title that GitHub created since
+then, allowing `fanout_ci.CLOCK_SKEW` for the local clock. Another dispatch with
+the same title in that interval leaves the identity ambiguous; the command never
+silently submits a duplicate.
 
 The journal is `out/fanout/<batch>/state.json`. Retained checkout outputs live under
 that batch's `retained/` directory; native guest outputs stay on their native
@@ -96,10 +101,12 @@ When a completed batch's integration revision changes, initialize a new batch.
   Initialization and completion refuse a work branch, including old completed
   journals. Host CI must pass on both
   Windows and Ubuntu for that exact revision, from the push run on `main` whose head
-  is that revision or from the batch's own dispatch, identified by the token in its
-  `fanout:<token>:<subject>` run title. The dispatch request carries that token with
-  the revision input; the subject is the revision's commit subject, shortened to
-  `fanout_ci.SUBJECT_LIMIT` characters, and is display text only. GitHub lists a
+  is that revision or from the batch's own dispatch, identified by its
+  `<workflow>:<subject>` run title. The subject is the revision's commit subject,
+  shortened to `fanout_ci.SUBJECT_LIMIT` characters and passed as the `title`
+  input with the revision input; an empty subject leaves the revision in its place.
+  Journals from when titles carried a `fanout:<token>:` prefix still recover by
+  that token. GitHub lists a
   push run seconds after it accepts the push, so the first lookup retries after the
   bounded pauses in `fanout_ci.PUSH_RUN_WAITS` and starts Host CI only when no such
   push run appears.
