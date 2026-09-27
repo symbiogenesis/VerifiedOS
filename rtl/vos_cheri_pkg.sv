@@ -260,25 +260,25 @@ package vos_cheri_pkg;
   // handed. Where two admitted sets of equal size both fit, the lower codepoint
   // wins; the order of the table above is part of the freeze.
   //
-  // This is a 32-way search and it is the one place in the format path where the
-  // frozen dialect is more logic than the imported one.
+  // Every shape has both local and global forms. Adding an allowed global bit
+  // increases every candidate's size equally, so it cannot change shape ranking
+  // or ties. Search the nonempty local shapes once, then restore that bit.
   function automatic cap_perms_code_t perms_narrow(cap_perms_t want);
     cap_perms_code_t best;
     int signed best_n;
-    cap_perms_code_t code;
     cap_perms_t set;
     int signed n;
     best = PermsNone;
-    best_n = -1;
-    for (int unsigned i = 0; i < 32; i++) begin
-      code = cap_perms_code_t'(i);
-      set = perms_expand(code);
+    best_n = 0;
+    for (int unsigned i = 1; i < 16; i++) begin
+      set = perms_expand(cap_perms_code_t'(i));
       n = int'($countones(set));
       if (((set & want) == set) && (n > best_n)) begin
-        best = code;
+        best = cap_perms_code_t'(i);
         best_n = n;
       end
     end
+    if (want[PermGlobal]) best |= PermsGlobalBit;
     return best;
   endfunction
 
