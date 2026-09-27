@@ -11,6 +11,7 @@ import json
 import subprocess
 from collections import deque
 from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -484,6 +485,40 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
             "later_ack_reads": wire.later_reads, "release_instants": releases, "handler_steps": work_steps}
 
 
+@dataclass(frozen=True)
+class TargetCase:
+    simulator: Path
+    profile: Path
+    out: Path
+    name: str
+    symbols: dict[str, int]
+    windows: tuple[int, int]
+    bitmap: tuple[int, int]
+    bound: dict[str, object]
+    instruction_limit: int
+    timeout: int
+
+
+def execute_case(case: TargetCase) -> dict[str, object]:
+    """Independent process, image, log and observer; no shared writes."""
+    elf = case.out / f"{case.name}.elf"
+    log = case.out / f"{case.name}.trace"
+    with log.open("w", encoding="utf-8") as output:
+        done = subprocess.run([str(case.simulator), "--config", str(case.profile), "--trace-commit",
+                               "--inst-limit", str(case.instruction_limit), str(elf)], cwd=case.out,
+                              stdout=output, stderr=subprocess.STDOUT, timeout=case.timeout, check=False)
+    with log.open(encoding="utf-8") as output:
+        tail = "".join(deque(output, maxlen=64))
+    verdict, code, detail = cd.htif_verdict(tail, done.returncode)
+    observed = observations(log, case.symbols, case.windows, case.bitmap, case.bound, case.name)
+    result: dict[str, object] = {"name": case.name, "verdict": verdict, "code": code, "detail": detail,
+        "ok": verdict == "pass" and observed["ok"] is True, "observations": observed,
+        "source_sha256": receipts.digest(case.out / f"{case.name}.s"),
+        "image_sha256": receipts.digest(elf), "trace_sha256": receipts.digest(log)}
+    receipts.write(case.out / f"{case.name}.json", result)
+    return result
+
+
 def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Path,
         build_receipt: Path, timeout: int = 1800) -> dict[str, object]:
     out.mkdir(parents=True, exist_ok=True)
@@ -537,8 +572,7 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     platform["instructions_per_tick"] = 1
     profile_path = out / "profile.json"
     receipts.write(profile_path, profile)
-    results: list[dict[str, object]] = []
-    accepted = []
+    cases = []
     for defect in ("none", "stale", "incomplete"):
         emitted = source(root, kernel.stream, supervisor.stream, copy.stream, windows, bitmap, boundary, service_slot, defect)
         source_path = out / f"{defect}.s"
@@ -547,28 +581,19 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
         sections, symbols, entry = assembler.assemble()
         if assembler.symbols["scalar_join_copy_code_end"] - assembler.symbols["scalar_join_copy_code"] > copy_partition.CODE_BYTES:
             raise ValueError("copy code exceeds the exact composed PCC extent")
-        elf, log = out / f"{defect}.elf", out / f"{defect}.trace"
+        elf = out / f"{defect}.elf"
         image.write_elf(elf, sections, symbols, entry)
-        with log.open("w", encoding="utf-8") as output:
-            done = subprocess.run([str(simulator), "--config", str(profile_path), "--trace-commit",
-                                   "--inst-limit", str(instruction_limit), str(elf)], cwd=out, stdout=output,
-                                  stderr=subprocess.STDOUT, timeout=timeout, check=False)
-        with log.open(encoding="utf-8") as output:
-            tail = "".join(deque(output, maxlen=64))
-        verdict, code, detail = cd.htif_verdict(tail, done.returncode)
-        observed = observations(log, assembler.symbols, windows, bitmap, bound, defect)
-        accepted.append(verdict == "pass" and observed["ok"] is True)
-        results.append({"name": defect, "verdict": verdict, "code": code, "detail": detail,
-                        "observations": observed, "source_sha256": receipts.digest(source_path),
-                        "image_sha256": receipts.digest(elf), "trace_sha256": receipts.digest(log)})
-        receipts.write(out / f"{defect}.json", results[-1])
-        if verdict != "pass" or not observed["ok"]:
-            break
+        cases.append(TargetCase(simulator, profile_path, out, defect, assembler.symbols,
+                                windows, bitmap, bound, instruction_limit, timeout))
+    # Assembly and all file creation above are serial. Workers receive immutable
+    # source-bound inputs and own only their distinct trace/receipt paths.
+    with ProcessPoolExecutor(max_workers=3) as pool:
+        results = list(pool.map(execute_case, cases))
     unchanged = inputs == receipts.inputs(root, *INPUTS) and model == receipts.inputs(root, "model")
     unchanged &= private == compiler_inputs(arguments) and external == {
         "compiler": receipts.digest(ccomp), "simulator": receipts.digest(simulator),
         "build_receipt": receipts.digest(build_receipt)}
-    report = {"ok": unchanged and len(results) == 3 and all(accepted),
+    report = {"ok": unchanged and len(results) == 3 and all(item["ok"] is True for item in results),
               "sources": inputs, "model_sources": model, "external": external, "compiler_inputs": private,
               "bound": bound, "results": results, "limits": LIMITS, "instruction_limit": instruction_limit,
               "timeout_seconds_per_image": timeout, "inputs_unchanged": unchanged}
