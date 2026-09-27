@@ -3,10 +3,10 @@
 
 A cardinality is not the only figure a document can restate, and this is the second
 kind. The tag plane's cost is not a count of anything: it is one register field, the
-granule width, read as a ratio, and four documents state that ratio in four spellings
-between them. Nothing about it is anybody's measurement, so a granule that moves has
-to move every one of them in the same edit, which is exactly what a claim is. The
-band beside it is the other half: the DECTED code over the plane is a width
+granule width, read as a ratio. Deliberately retained numerical statements are checked
+against their owner; background and performance discussions link to the canonical
+calculation. Nothing about the ratio is a measurement. The band beside it is the
+other half: the DECTED code over the plane is a width
 R-15-181a states as a judgment, and everything built on that width is arithmetic
 again, the plane's share of the codeword with its code and the megabytes a gigabyte
 of data then carries, so the share is held against the entry's own bit counts and
@@ -27,8 +27,6 @@ if TYPE_CHECKING:
     from . import Context
 
 SPEC = "docs/spec.md"
-ALTERNATIVES = "docs/background/architectural-alternatives.md"
-ESTIMATES = "docs/performance/performance-estimates.md"
 
 # file, key, and the pattern capturing the stated figure alone. Each pattern holds
 # exactly one site in its own file, which a claim owes because a repair rewrites every
@@ -42,15 +40,6 @@ TAG_PLANE: list[tuple[str, str, str]] = [
     (SPEC, "plane-short", r"(?<=the tag plane doubles to )[\d.]+(?=% of the array)"),
     (REGISTER, "plane-short", r"(?<=tag plane's ~)[\d.]+(?=% share of the array)"),
     (SPEC, "plane-short", r"(?<=tag plane's ~)[\d.]+(?=% share of the array)"),
-    (ALTERNATIVES, "mb-per-gb", r"(?<=granule is )[\d.]+(?= MB per GB of data)"),
-    (ESTIMATES, "plane-short", r"(?<=and )[\d.]+(?=% in array area)"),
-    (ESTIMATES, "plane-short", r"(?<=the plane is )[\d.]+(?=% of the array rather than)"),
-    (ESTIMATES, "half-short", r"(?<=% of the array rather than )[\d.]+(?=% and its DECTED)"),
-    (ESTIMATES, "payload", r"(?<=codeword is unchanged at )\d+(?= data bits)"),
-    # [\w-]+ and not \w+: the expected value is figures.words(payload // granule), and
-    # every word form from twenty-one up that is not a round ten is hyphenated, so a
-    # bare \w+ would repair to a spelling its own pattern can no longer find.
-    (ESTIMATES, "tags-per-codeword", r"(?<=data bits carrying )[\w-]+(?= tag bits)"),
 ]
 
 # The plane's share of the codeword, read from the entry that fixes the code over it:
@@ -76,9 +65,9 @@ def tag_plane(ctx: Context) -> None:
 
     The granule is one bit of validity per so many bits of data, so the plane is
     `100/granule` percent of the array it covers and `1000/granule` megabytes per
-    gigabyte of it, and the ECC codeword carries `payload/granule` tag bits. Three
-    quantities, two register fields, and four documents that between them state the
-    result eleven times over.
+    gigabyte of it, and the ECC codeword carries `payload/granule` tag bits. Source
+    parameters and the code-inclusive shares stay checked independently of which
+    narrative documents repeat the arithmetic.
 
     A reading that has moved is the one finding this rule cannot repair: with no
     granule there is no arithmetic to compare against, so it reports and stops rather
@@ -104,12 +93,7 @@ def tag_plane(ctx: Context) -> None:
     expected = {
         "plane-exact": figures.quantize(100 / g, 4),
         "plane-short": figures.quantize(100 / g, 2),
-        # the halved comparator: the plane a granule twice this wide would have given,
-        # which the estimate row states beside the one this profile took
-        "half-short": figures.quantize(100 / (2 * g), 2),
         "mb-per-gb": figures.quantize(1000 / g, 1),
-        "payload": str(p),
-        "tags-per-codeword": figures.words(p // g),
     }
 
     missed: list[str] = []

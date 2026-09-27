@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """counts, the welded block: one parameter, and the constraints that admit it.
 
-Four instructions share the block size, four artifacts write it, and the document
-beside them states the set it may be taken from and the bound it sits under. The set
-and the bound are arithmetic over the granule the model declares and the codeword
-R-15-181a fixes, so both are recomputed here rather than trusted where they are
-written.
+The block-size declarations must agree and lie in the admissible set. The constraint
+document keeps one derived candidate calculation; its other explanations use the
+governing formulas and reference the exact bound R-15-007q owns. Removing those
+incidental copies does not remove the source, equality or membership checks.
 """
 
 import re
@@ -27,20 +26,11 @@ if TYPE_CHECKING:
 # composition rendering wrong.
 BLOCK_CEILING_RE = re.compile(r"the block at most \*\*(\d+) bytes\*\*")
 
-# The constraint document's own statements of the figures this rule computes. The two
-# in §3 are held as whole sentences because each states its figure a second way, the
-# ceiling beside the granule it is taken at and the set in bytes and again in granules:
-# a repair that wrote one and left the other would leave the sentence describing a set
-# it no longer carries, which is the shape that keeps K-70 report-only. The two in the
-# constraint table stand alone in their own rows and are claims accordingly.
-BLOCK_CEILING_SENTENCE = (
-    r"At the (?P<granule>\d+)-byte granule R-15-203 fixes, that is a "
-    r"ceiling of \*\*(?P<ceiling>\d+) bytes\*\*")
+# One required calculation presents the admissible set in bytes and granules.
+# Repair both units together; the constraint rows refer to their source parameters.
 BLOCK_CANDIDATE_SENTENCE = (
     r"\*\*the block is (?P<bytes>[\d, ]+or \d+) bytes\*\*, which is "
     r"(?P<granules>[\d, ]+or \d+) granules")
-BLOCK_C3_CEILING = r"(?<=so the block is at most )\d+(?= bytes)"
-BLOCK_C5_CODEWORD = r"(?<=whole number of ECC codewords, )\d+(?= bytes at the payload)"
 
 
 def _series(values: list[int]) -> str:
@@ -61,43 +51,15 @@ def _series(values: list[int]) -> str:
 def block_geometry(ctx: Context) -> None:
     """K-57: the welded block size, in every artifact that writes it.
 
-    Four instructions share one parameter, and it is written at four sites: the model's
-    declaration, the frozen profile's composition, the generated configurations'
-    template, and a literal in the model's own harness. The assertions inside the model
-    hold the declaration and the composition together at run time; nothing held the
-    template or the harness's literal against them, nor the set the document beside them
-    states, and a document stating a figure nothing checks is worse than one that states
-    none, because it reads as checked.
+    The model, composition, configuration template, harness and authored RTL must
+    agree. Their selected value is a freeze decision, so disagreement is reported,
+    never repaired. Missing source parameters are findings even if narrative copies
+    are absent.
 
-    The candidate set is recomputed rather than trusted, from the granule the model
-    declares and the codeword the payload gives, so a candidate row edited in the
-    document without its arithmetic is a finding.
-
-    **What is repaired and what is reported divides on the two grounds, and the two
-    grounds fall on different sides of it.** All four sites are under a `-text` tree,
-    where a rewrite risks the line-ending sweep the tools' `newline=""` convention
-    exists to prevent, so a site that disagrees is reported; and which value inside the
-    set is taken is R-15-014a's second act rather than arithmetic, so it is not this
-    rule's to write at all. Neither ground reaches the *document's* own figures: they
-    are arithmetic over the granule and the codeword, in a document git normalizes like
-    every other, so the ceiling, the candidate set, and the two constraint rows that
-    restate them are rewritten from the arithmetic under `--fix`. Two of the four are
-    repaired as whole sentences, because the prose beside each states its figure a second
-    way, the ceiling beside the granule it is taken at and the set in bytes and again in
-    granules: half a sentence rewritten leaves the other half describing a set it no
-    longer carries, which is the shape that keeps K-70 report-only. What the document
-    states from an operand this rule does not read stays a person's: R-15-181a's fallback
-    codeword and the halved floor it gives are stated in those same two places and held
-    by nothing.
-
-    The ceiling has a ground as well as a value, and R-15-007q states both: the group
-    comes back in one integer register, so the bound is that register's width times the
-    granule. Holding the entry's number against the same arithmetic is what keeps the
-    derivable half of the constraint from having its only normative statement be one a
-    later edit could move on its own. That one is reported and never repaired however
-    the document's copies are treated: the value is the entry's, the arithmetic is here,
-    and a repair rewriting the normative statement from the tool would delete the
-    decision instead of checking it.
+    The candidate set is recomputed from the model's granule and register width and
+    R-15-181a's payload. Its single document calculation is repaired in both units.
+    The ceiling R-15-007q fixes is checked against that same arithmetic but is never
+    repaired: its normative decision stays with the register.
     """
     rep, reg = ctx.rep, ctx.reg
     geo = geometry.read(ctx.root, ctx.shared.get("bundle"))
@@ -142,27 +104,14 @@ def block_geometry(ctx: Context) -> None:
     ceiling = granule * xlen                     # caps_per_block at most XLEN
     candidates = [b for e in range(13) if codeword <= (b := 1 << e) <= ceiling]
 
-    for pattern, want, what in (
-        (BLOCK_CEILING_SENTENCE,
-         {"granule": str(granule), "ceiling": str(ceiling)},
-         "the block-size ceiling"),
-        (BLOCK_CANDIDATE_SENTENCE,
-         {"bytes": _series(candidates),
-          "granules": _series([b // granule for b in candidates])},
-         "the block's candidate set"),
-    ):
-        sentence = figures.resolve_line(ctx, geometry.DOCUMENT, pattern, want, what)
-        findings += sentence.findings
-        for repaired in sentence.fixed:
-            rep.line(repaired)
-
-    for pattern, value, what in ((BLOCK_C3_CEILING, ceiling, "the C3 row's ceiling"),
-                                 (BLOCK_C5_CODEWORD, codeword, "the C5 row's codeword")):
-        row = figures.resolve_claim(ctx, geometry.DOCUMENT, pattern, str(value), what)
-        if row.fixed:
-            rep.line(row.fixed)
-        if row.finding:
-            findings.append(row.finding)
+    sentence = figures.resolve_line(
+        ctx, geometry.DOCUMENT, BLOCK_CANDIDATE_SENTENCE,
+        {"bytes": _series(candidates),
+         "granules": _series([b // granule for b in candidates])},
+        "the block's candidate set")
+    findings += sentence.findings
+    for repaired in sentence.fixed:
+        rep.line(repaired)
 
     stated = BLOCK_CEILING_RE.search(reg.accept_text.get("R-15-007q", ""))
     if stated is None:
