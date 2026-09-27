@@ -120,6 +120,13 @@ M7.1e the copy-service implementation; M7.1a returns component defects to those
 owners. Passing this checkpoint is integration evidence only. Full measured boot,
 storage, the complete roster and the acceptance clauses below remain required.
 
+The [supervisor context-slot contract](supervisor-context.md) owns the contained
+lifecycle transport. M7.1b supplies its separate nonblocking reaction adapter;
+the synchronous effects callback interface remains kernel-internal. The first
+join must execute the supervisor without ASR, publish into its bounded request
+slots and consume the kernel's read-only acknowledgment at a later reaction.
+Kernel effect functions called by an ASR-enabled supervisor are not this join.
+
 M6.1b-i's bounded Vélus compatibility trial decides the supervisor producer before
 more interim C target integration. M7.1b consumes the selected route through the
 same manifest, effects ABI and fixtures. Its C host implementation remains a
