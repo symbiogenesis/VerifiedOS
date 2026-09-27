@@ -140,6 +140,11 @@ caught by nothing, which is a residue the findings register carries.
 | `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 | `cic-corpus` | wsl | Reads the objects `proofs` compiled in this lane and writes what the corpus asks a CIC checker to decide: per enumerated symbol, its transitive dependency closure from `Print All Dependencies`, its kind, opacity and universe status from `About`, and the term features a declared lexical predicate finds in the declaration `Print` wrote under `Set Printing All`. `report` writes the report to the ignored `out/` directory with its source, exporter and prover identities and a freshness verdict; `check` re-decides that verdict against the live checkout. The report is evidence for M6.2b-0's profile decision and holds no acceptance verdict; a stale report is a finding rather than a figure to quote. |
 
+`supervisor target` compiles separate contained supervisor and trusted consumer
+units and checks the timer transport, authority and padded logical release.
+It requires `--ccomp`, `--compiler-config`, `--simulator` and `--build-receipt`.
+The full service roster and physical timing qualification remain separate joins.
+
 `kernel loan` checks private sealed-slot redemption and complete fixed-borrower
 holder cleanup. It takes the accepted `--ccomp`, `--compiler-config`, `--simulator`
 and `--build-receipt`, with an optional native `--out` directory.

@@ -130,6 +130,24 @@ reserved sequence handling. [The typed unit](test/context_target.c) runs the
 same component controls under the accepted backend. Full-width epochs and
 refused-prefix recovery remain distinct from authority and boot acceptance.
 
+## Contained target transport
+
+`python tools/run.py supervisor target --ccomp PATH --compiler-config FILE
+--simulator PATH --build-receipt FILE` compiles separate supervisor and trusted
+consumer translation units. The supervisor enters without ASR and receives an
+exact read-only acknowledgment, a writable request region, a read-only manifest
+and a private stack. The timer boundary saves and scrubs the interrupted context,
+consumes a complete publication and releases a fresh reaction at the declared
+padded instant. A fault invalidates the request instead of resuming its publisher.
+
+The driver accounts for emitted instructions and source-level finite loop bounds,
+then checks the actual empty and occupied boundary releases against one logical
+instruction clock. Its permission, publication, stale-epoch, incomplete-retirement
+and phase-cut controls retain images and traces. This component uses three
+lifecycle states and a small owned span; it does not execute the service bodies,
+establish physical WCET or supply the complete measured boot roster. The scalar
+copy join must account separately for its full allocation and service interval.
+
 ## Focused comparison
 
 `python tools/run.py supervisor check` compiles the C harness with the native C
