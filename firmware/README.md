@@ -58,8 +58,8 @@ measurement, placed image and handoff record. Completed attempts use HTIF
 success so the emulator saves that capture, while the capture's verdict decides
 release or refusal. The harness compares every output byte with the host stage
 and starts the main-die fixture only from an accepted target capture. Its finite
-campaign covers a valid image, bad magic, a version below the floor, a corrupt
-signature, a wrong root and a corrupt payload. It does not establish the complete
+campaign covers a valid image, bad magic, an over-length payload field, a version
+below the floor, a corrupt signature, a wrong root and a corrupt payload. It does not establish the complete
 boot-handoff predicate above: MMIO access and terminal observation use assembly,
 and the release callback, item-6 request and remaining firmware stages still
 need their compiler and model joins. Timeouts and missing captures fail the
