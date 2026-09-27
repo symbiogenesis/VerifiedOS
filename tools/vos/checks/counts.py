@@ -261,8 +261,9 @@ class _CountText:
 
     @classmethod
     def read(cls, file: str, raw: str) -> _CountText:
+        # The same matches K-24 resolves, proposed by each pattern's literal phrase.
         spans = sorted(m.span() for f, _, _, pattern in CLAIMS if f == file
-                       for m in re.finditer(pattern, raw))
+                       for m in figures.find_all(pattern, raw))
         # A containing interval can start before the nearest one. Prefix maxima
         # preserve that interval without scanning every claim for every count.
         held_ends: list[int] = []
