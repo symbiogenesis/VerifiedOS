@@ -25,15 +25,6 @@ const uint64_t round_constant[24] = {
   0x8000000080008081u, 0x8000000000008080u, 0x0000000080000001u, 0x8000000080008008u,
 };
 
-// Table 2's rho offsets, indexed x + 5y.
-const unsigned rho_offset[25] = {
-   0,  1, 62, 28, 27,
-  36, 44,  6, 55, 20,
-   3, 10, 43, 25, 39,
-  41, 45, 15, 21,  8,
-  18,  2, 61, 56, 14,
-};
-
   for (unsigned round = 0; round < 24; round++) {
     // theta: each lane takes the parity of the column below it unrotated and
     // the column above it rotated by one.
@@ -41,24 +32,39 @@ const unsigned rho_offset[25] = {
     for (unsigned x = 0; x < 5; x++) {
       c[x] = a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
     }
-    for (unsigned x = 0; x < 5; x++) {
-      uint64_t d = c[(x + 4) % 5] ^ rotl(c[(x + 1) % 5], 1);
-      for (unsigned y = 0; y < 5; y++) {
-        a[x + 5 * y] ^= d;
-      }
-    }
+    // The topology is fixed. Expanding these columns avoids division and
+    // variable-index traffic in the scalar RoT binary; the round count stays 24.
+#define VOS_THETA(x, before, after) do { \
+    uint64_t d = c[before] ^ rotl(c[after], 1); \
+    a[x] ^= d; a[x+5] ^= d; a[x+10] ^= d; a[x+15] ^= d; a[x+20] ^= d; \
+  } while (0)
+    VOS_THETA(0, 4, 1); VOS_THETA(1, 0, 2); VOS_THETA(2, 1, 3);
+    VOS_THETA(3, 2, 4); VOS_THETA(4, 3, 0);
+#undef VOS_THETA
     // rho and pi: lane (x, y) moves to (y, 2x + 3y) after its rotation.
     uint64_t b[25];
-    for (unsigned x = 0; x < 5; x++) {
-      for (unsigned y = 0; y < 5; y++) {
-        b[y + 5 * ((2 * x + 3 * y) % 5)] = rotl(a[x + 5 * y], rho_offset[x + 5 * y]);
-      }
-    }
+    // Table 2's rho offsets in x + 5y order; the macro states pi directly.
+#define VOS_RHO_PI(x, y, offset) \
+    b[y + 5 * ((2*x + 3*y) % 5)] = rotl(a[x + 5*y], offset)
+    VOS_RHO_PI(0, 0, 0); VOS_RHO_PI(1, 0, 1); VOS_RHO_PI(2, 0, 62);
+    VOS_RHO_PI(3, 0, 28); VOS_RHO_PI(4, 0, 27);
+    VOS_RHO_PI(0, 1, 36); VOS_RHO_PI(1, 1, 44); VOS_RHO_PI(2, 1, 6);
+    VOS_RHO_PI(3, 1, 55); VOS_RHO_PI(4, 1, 20);
+    VOS_RHO_PI(0, 2, 3); VOS_RHO_PI(1, 2, 10); VOS_RHO_PI(2, 2, 43);
+    VOS_RHO_PI(3, 2, 25); VOS_RHO_PI(4, 2, 39);
+    VOS_RHO_PI(0, 3, 41); VOS_RHO_PI(1, 3, 45); VOS_RHO_PI(2, 3, 15);
+    VOS_RHO_PI(3, 3, 21); VOS_RHO_PI(4, 3, 8);
+    VOS_RHO_PI(0, 4, 18); VOS_RHO_PI(1, 4, 2); VOS_RHO_PI(2, 4, 61);
+    VOS_RHO_PI(3, 4, 56); VOS_RHO_PI(4, 4, 14);
+#undef VOS_RHO_PI
     // chi, row by row.
     for (unsigned y = 0; y < 5; y++) {
-      for (unsigned x = 0; x < 5; x++) {
-        a[x + 5 * y] = b[x + 5 * y] ^ (~b[(x + 1) % 5 + 5 * y] & b[(x + 2) % 5 + 5 * y]);
-      }
+      unsigned p = 5 * y;
+      a[p] = b[p] ^ (~b[p+1] & b[p+2]);
+      a[p+1] = b[p+1] ^ (~b[p+2] & b[p+3]);
+      a[p+2] = b[p+2] ^ (~b[p+3] & b[p+4]);
+      a[p+3] = b[p+3] ^ (~b[p+4] & b[p]);
+      a[p+4] = b[p+4] ^ (~b[p] & b[p+1]);
     }
     // iota.
     a[0] ^= round_constant[round];
