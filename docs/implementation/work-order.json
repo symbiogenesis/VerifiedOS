@@ -1,0 +1,417 @@
+{
+  "version": 1,
+  "buckets": {
+    "m8a": [
+      "M3.5b",
+      "M4.4b-i",
+      "M5.3d",
+      "M6.1b-i",
+      "M7.1a",
+      "M7.1b",
+      "M7.1c",
+      "M7.1d",
+      "M7.1e",
+      "M7.1f",
+      "M7.2",
+      "M7.3",
+      "M8a"
+    ],
+    "m8b": [
+      "R1b",
+      "R1c-ii",
+      "R2",
+      "R3",
+      "M8b"
+    ],
+    "committed": [
+      "S5",
+      "S6",
+      "Q7",
+      "Q9",
+      "Q10",
+      "Q28b",
+      "Q32b",
+      "Q32c",
+      "Q33",
+      "Q34b",
+      "Q34c",
+      "Q34d",
+      "Q34e",
+      "Q34f",
+      "Q34g",
+      "Q34h",
+      "M1.3",
+      "M1.3a",
+      "M1.4",
+      "M1.8b",
+      "M1.10",
+      "M3.6b",
+      "M5.4",
+      "M6.2c",
+      "M6.3b",
+      "M6.5b",
+      "M6.6",
+      "M6.7",
+      "M6.8",
+      "M6.9a",
+      "M6.9b",
+      "M6.9c",
+      "M6.10",
+      "R5",
+      "R5a",
+      "M9",
+      "M10",
+      "M9a",
+      "Post-M10 · Author the probing model in Coq",
+      "Post-M10 · Qualify and author the arithmetic composition half",
+      "Post-M10 · Author the Boolean composition half",
+      "Post-M10 · Author the R-17-058d reduction theorem",
+      "M4.4b-ii",
+      "M4.4b-iii",
+      "M6.2b-0a",
+      "M6.1b-ii"
+    ],
+    "conditional": [
+      "Q2b",
+      "Q3b",
+      "Q3c",
+      "Q4b",
+      "Q5b",
+      "Q6",
+      "Q8",
+      "Q22e",
+      "Q30b",
+      "Q30c",
+      "Q30d",
+      "Q30e",
+      "Q30f",
+      "M0.8c",
+      "M6.2b-0b",
+      "M6.2b-ii"
+    ],
+    "option": [
+      "Q23d",
+      "Q23g",
+      "Q23h",
+      "Q24b",
+      "Q24c",
+      "Q24d",
+      "Q24e",
+      "Q24f",
+      "Q24g",
+      "Q24h",
+      "Q28c",
+      "Q29b",
+      "Q29c",
+      "Q30g",
+      "Q31"
+    ]
+  },
+  "dispatch": [
+    {
+      "item": "M3.5b",
+      "start": [
+        "M3.5a",
+        "M1.2f"
+      ],
+      "artifacts": [
+        "docs/implementation/contracts/boot-handoff.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M7.1f",
+          "output": "target SLH-DSA and ML-DSA verifiers"
+        },
+        {
+          "item": "M7.1a",
+          "output": "composed firmware image and boot record"
+        }
+      ]
+    },
+    {
+      "item": "M4.4b-i",
+      "start": [
+        "M4.4a",
+        "M1.2f"
+      ],
+      "artifacts": [
+        "docs/implementation/contracts/purecap-abi.md",
+        "docs/implementation/contracts/service-authoring.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M3.5b",
+          "output": "real target handoff and reset observations"
+        },
+        {
+          "item": "M7.1b",
+          "output": "real supervisor using the scalar effect bindings"
+        },
+        {
+          "item": "M7.1e",
+          "output": "real copy service using notification and completion bindings"
+        },
+        {
+          "item": "M7.1a",
+          "output": "shared real-call and fault/restart checkpoint"
+        }
+      ]
+    },
+    {
+      "item": "M5.3d",
+      "start": [
+        "M5.3a",
+        "M5.3b",
+        "M5.3c"
+      ],
+      "artifacts": [
+        "interfaces/block-device-contract.md",
+        "docs/implementation/storage-recovery-policy.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M4.4b-i",
+          "output": "scalar service effects and completion bindings"
+        },
+        {
+          "item": "M3.5b",
+          "output": "authenticated boot root and counter path"
+        }
+      ]
+    },
+    {
+      "item": "M6.1b-i",
+      "start": [
+        "M6.0a",
+        "M6.1a",
+        "M1.2f"
+      ],
+      "artifacts": [
+        "supervisor/README.md",
+        "docs/implementation/contracts/boot-roster.md"
+      ],
+      "unmet": [],
+      "join": []
+    },
+    {
+      "item": "M7.1a",
+      "start": [],
+      "artifacts": [
+        "docs/implementation/contracts/boot-roster.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M3.5b",
+          "output": "RoT and M-mode target stages"
+        },
+        {
+          "item": "M4.4b-i",
+          "output": "scalar kernel service and restart bindings"
+        },
+        {
+          "item": "M5.3d",
+          "output": "storage and separate crypto compartment"
+        },
+        {
+          "item": "M7.1b",
+          "output": "target supervisor"
+        },
+        {
+          "item": "M7.1c",
+          "output": "image-bound admission record"
+        },
+        {
+          "item": "M7.1d",
+          "output": "typed graph and package descriptors"
+        },
+        {
+          "item": "M7.1e",
+          "output": "target copy service"
+        },
+        {
+          "item": "M7.1f",
+          "output": "target signature verifiers"
+        }
+      ]
+    },
+    {
+      "item": "M7.1b",
+      "start": [
+        "M6.1a",
+        "M6.1b-i"
+      ],
+      "artifacts": [
+        "proofs/SupervisionTree.v",
+        "docs/implementation/contracts/boot-roster.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M4.4b-i",
+          "output": "trusted start, restart, epoch and snapshot effects"
+        },
+        {
+          "item": "M3.5b",
+          "output": "authenticated supervisor handoff"
+        },
+        {
+          "item": "M7.1a",
+          "output": "shared target call, completion and restart observations"
+        }
+      ]
+    },
+    {
+      "item": "M7.1c",
+      "start": [
+        "M6.2a"
+      ],
+      "artifacts": [
+        "proofs/AdmissionPath.v",
+        "docs/implementation/contracts/boot-roster.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M7.1d",
+          "output": "real package graph"
+        },
+        {
+          "item": "M7.1a",
+          "output": "real image and member derivation records"
+        }
+      ]
+    },
+    {
+      "item": "M7.1d",
+      "start": [
+        "M6.3a"
+      ],
+      "artifacts": [
+        "proofs/HandlerGraph.v",
+        "docs/implementation/contracts/boot-roster.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M7.1a",
+          "output": "real member package descriptors"
+        }
+      ]
+    },
+    {
+      "item": "M7.1e",
+      "start": [
+        "M6.5a",
+        "M6.4",
+        "M1.2f"
+      ],
+      "artifacts": [
+        "proofs/CopyRingService.v",
+        "interfaces/ring-reference.json"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M4.4b-i",
+          "output": "notification and semantic-completion adapters"
+        },
+        {
+          "item": "M3.5b",
+          "output": "shared target handoff and C layout"
+        },
+        {
+          "item": "M7.1a",
+          "output": "shared target call, completion and restart observations"
+        }
+      ]
+    },
+    {
+      "item": "M7.1f",
+      "start": [
+        "M1.2f"
+      ],
+      "artifacts": [
+        "firmware/crypto/README.md",
+        "proofs/Keccak.v",
+        "proofs/MlDsa.v"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M3.5b",
+          "output": "RoT target executor and firmware binding"
+        }
+      ]
+    },
+    {
+      "item": "M7.2",
+      "start": [],
+      "artifacts": [
+        "docs/implementation/contracts/roster-measurement.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M7.1a",
+          "output": "accepted roster and complete allocation capture"
+        },
+        {
+          "item": "M4.4b-i",
+          "output": "executable teardown and sweep observations"
+        }
+      ]
+    },
+    {
+      "item": "M7.3",
+      "start": [],
+      "artifacts": [
+        "docs/implementation/contracts/roster-measurement.md",
+        "interfaces/ring-reference.json"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M7.1a",
+          "output": "accepted roster and complete queue capture"
+        },
+        {
+          "item": "M7.1e",
+          "output": "executable queue and notification producer"
+        }
+      ]
+    },
+    {
+      "item": "M8a",
+      "start": [
+        "M7.1a",
+        "M7.2",
+        "M7.3"
+      ],
+      "artifacts": [
+        "docs/implementation/contracts/boot-roster.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M7.1a",
+          "output": "accepted image and corpus verdict"
+        },
+        {
+          "item": "M7.2",
+          "output": "allocation-churn verdict"
+        },
+        {
+          "item": "M7.3",
+          "output": "ring-parameter verdict"
+        }
+      ]
+    }
+  ],
+  "unpriced": [
+    "docs/assurance/unassigned-proof-map.md"
+  ]
+}

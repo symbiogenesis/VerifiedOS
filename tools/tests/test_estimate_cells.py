@@ -2,7 +2,6 @@
 """Estimate cells stay local; calibration results remain owned and fail closed."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
@@ -112,11 +111,13 @@ def _summary_values() -> dict[str, str]:
         "Retained completion estimate h": "6",
         "Unmeasured completed items": "1",
         "Calibrated total h": "24",
-        "M8a open h": "9",
-        "M8a open class X h": "9",
-        "M8b parallel chain h": "0",
-        "M8a critical chain midpoint h": "9",
-        "M8a critical chain range h": "5–13",
+        "Committed M8a open h": "9",
+        "Committed M8a open class X h": "9",
+        "Committed M8b open h": "0",
+        "Other committed open h": "0",
+        "Conditional open h": "0",
+        "Unfunded option open h": "0",
+        "Committed M8a open range h": "5–13",
     }
 
 
@@ -191,29 +192,22 @@ def _summary_preserves_values_with_invalid_owners() -> None:
         ensure(not ctx.fixed, "an invalid item parse must not replace the summary with zeroes")
 
 
-def _missing_partition_and_chain_owners_preserve_their_values() -> None:
+def _missing_work_owner_preserves_its_values() -> None:
     values = _summary_values()
-    values["M8b parallel chain h"] = "999"
     plan = _summary_marked(estimates._summary_table(values)) + (
         "* [ ] **A** · 3 h, range 2–4 · X\n"
         "**S subtotal:** 3 h · 100% · open range 2–4 h.\n")
-    for chain in (["missing"], []):
-        with sandbox_tree(_files(plan)) as root:
-            ctx = _context(root, fix=True)
-            with (patch.object(estimates, "CHAIN_M8A", chain),
-                  patch.object(estimates, "AFTER_M8A", ["missing"]),
-                  patch.object(estimates, "AFTER_M8B", ["missing"])):
-                estimates.run(ctx)
-            ensure(any(line.startswith("FAIL K-37:") for line in ctx.rep.out)
-                   and any(line.startswith("FAIL K-96:") for line in ctx.rep.out),
-                   "missing partition and chain owners must remain findings")
-            repaired = ctx.fixed[PLAN]
-            ensure("| Remaining h | 3 |" in repaired, "independent valid measures still repair")
-            for key in ("M8a open h", "M8a open class X h", "M8b parallel chain h",
-                        "M8a critical chain midpoint h", "M8a critical chain range h",
-                        "Calibrated total h"):
-                ensure(f"| {key} | {values[key]} |" in repaired,
-                       f"an unreadable owner must not replace {key}")
+    with sandbox_tree(_files(plan)) as root:
+        ctx = _context(root, fix=True)
+        estimates.run(ctx)
+        ensure(any(line.startswith("FAIL K-96:") for line in ctx.rep.out),
+               "missing work-order ownership must remain a finding")
+        repaired = ctx.fixed[PLAN]
+        ensure("| Remaining h | 3 |" in repaired, "independent valid measures still repair")
+        for key in (*estimates.WORK_FIELDS.values(), "Committed M8a open class X h",
+                    "Committed M8a open range h", "Calibrated total h"):
+            ensure(f"| {key} | {values[key]} |" in repaired,
+                   f"an unreadable owner must not replace {key}")
 
 
 def _marked(table: str) -> str:
@@ -334,8 +328,8 @@ def cases() -> list[Case]:
         Case("summary-repairs-once-and-preserves-prose", _summary_repairs_once_and_preserves_prose),
         Case("summary-table-fails-closed", _summary_table_fails_closed),
         Case("summary-preserves-values-with-invalid-owners", _summary_preserves_values_with_invalid_owners),
-        Case("missing-partition-and-chain-owners-preserve-their-values",
-             _missing_partition_and_chain_owners_preserve_their_values),
+        Case("missing-work-owner-preserves-its-values",
+             _missing_work_owner_preserves_its_values),
         Case("calibration-repairs-once-without-pooling", _calibration_repairs_once_without_pooling),
         Case("calibration-table-fails-closed", _calibration_table_fails_closed),
         Case("calibration-has-no-count-width-cliff", _calibration_has_no_count_width_cliff),

@@ -101,6 +101,40 @@ copy-based service. M6.2b's on-device CIC checker is not a roster member: M7.1's
 acceptance keeps that deferred checker outside this roster, and R-06-014 makes the checkers
 the admitters no admission certificate covers.
 
+### 2a. Scalar integration and producer joins
+
+The scalar roster's kernel input is the accepted M4.4a composition plus M4.4b-i's
+restart and service-effect bindings. M4.4b-ii's group/elastic duties and M4.4b-iii's
+V/M context duties keep their own acceptance and do not gate this declared scalar
+composition. This split does not accept a callback stub or change a roster status.
+
+M7.1a owns the first real kernel-to-supervisor-to-copy-service integration. Before
+joining the products, their owners freeze the entry, notification, completion and
+restart interfaces against the scalar ABI, and retain the existing generated
+lifecycle/ring fixtures and source-bound receipts. The checkpoint observes one
+payload-bearing service call and its notification, followed by a fault/restart
+whose teardown supplies semantic completion and whose re-grant uses the current
+epoch. Stale-grant and incomplete-completion controls must refuse at the actual
+target boundary. M4.4b-i supplies the trusted effects, M7.1b the supervisor, and
+M7.1e the copy-service implementation; M7.1a returns component defects to those
+owners. Passing this checkpoint is integration evidence only. Full measured boot,
+storage, the complete roster and the acceptance clauses below remain required.
+
+M6.1b-i's bounded Vélus compatibility trial decides the supervisor producer before
+more interim C target integration. M7.1b consumes the selected route through the
+same manifest, effects ABI and fixtures. Its C host implementation remains a
+comparison oracle; neither a route decision nor a small-node success makes the
+supervisor executable in this roster. The copy service retains its C bring-up
+producer and the later safe-Rust obligation without pulling the deferred Rust
+toolchain onto the scalar path.
+
+M7.1f's boot-signature producer and M5.3d's storage-crypto compartment proceed as
+independent products against their reviewed interfaces. Their common primitive
+source and fixture work has one owner where its exact configuration qualifies
+for reuse. The boot producer joins M3.5; the storage producer joins M5.3d and keeps
+volume keys inside the separate crypto-core compartment. M7.1a's complete roster
+consumes both, with no intermediate product presented as the other's acceptance.
+
 ## 3. Entry and handoff
 
 The emulator enters the image at its ELF entry with the reset state: PCC is the

@@ -3,6 +3,10 @@
 > Non-normative acceptance contract for Q20a of [the implementation plan](../implementation/implementation-checklist.md). It implements the bounded comparison in [the language strategy](verification-strategy.md#language-product-contract), under [the requirements register](../requirements-register.md). Where they disagree, the register wins and this document is defective.
 > This document fixes a trial, not its outcome. The copying implementations, qualified CHERI instance and complete artifact connections needed to open that trial are unavailable at the inspection revision below. No productivity, target performance or production-qualification result follows from authoring this contract.
 
+## Commissioning disposition
+
+The Q19c, Q20b and Q20c execution experiments are canceled in the [implementation plan](../implementation/implementation-checklist.md). This retained protocol does not commission a trial. References to their roles below describe the frozen comparison, not active implementation owners. A new proposal must identify a concrete consumer blocked by the existing route, supply the checked foundations and usable environment, price all missing work and adopt a finite stop threshold before opening a new suffixed checklist item. Q2b/Q3b, M1, M6 and M7 retain all required backend, proof, admission and final-artifact duties; canceling the comparison neither completes nor weakens them.
+
 ## Clients and baseline evidence
 
 The development client is **P, parser destination initialization**: Q2b's copy-once extension of the ring descriptor check, using generic bounded fill to initialize its fixed destination. The held-out client is **S, private service staging**: M7.1's sequential disjoint copy into the copy service's private staging buffer, under the declaration M6.4 generates. Q2b and M7.1 own their implementations and independently maintained comparison baselines. Q19c owns the generic interface, proofs and concrete instance; Q20b owns the one held-out adaptation record that both trials consume.
