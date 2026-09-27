@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Resumable hosted validation for a settled fan-out revision.
 
-The caller publishes a lightweight tag, owns the journal lock and atomically saves
+The caller publishes main, owns the journal lock and atomically saves
 the enclosing batch whenever requested. A dispatch intent reaches disk before the
 POST. An interrupted POST is recovered by its unique workflow title, never retried
 on the assumption that a missing response means GitHub did not start a run.
@@ -106,9 +106,8 @@ def validate_state(value: object) -> CIState:
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise CIError("hosted validation needs a full lowercase commit SHA")
     ref = _string(record, "ref")
-    if (not ref.startswith("fanout/") or not ref.endswith("/" + revision)
-            or not re.fullmatch(r"[A-Za-z0-9_./-]+", ref) or ".." in ref or "//" in ref):
-        raise CIError("hosted validation needs its immutable fanout/<batch>/<SHA> tag")
+    if ref != "main":
+        raise CIError("hosted validation publishes and dispatches only main; initialize a new main batch")
     if type(record.get("cold")) is not bool:
         raise CIError("hosted validation needs an explicit cold boolean")
     for lane, workflow in (("host", HOST), ("guest", GUEST)):
@@ -197,8 +196,13 @@ class GitHub:
         except (OSError, ValueError):
             raise APIError(None) from None
 
-    def runs(self, workflow: str, revision: str) -> list[dict[str, object]]:
-        query = urllib.parse.urlencode({"head_sha": revision, "per_page": 100})
+    def runs(self, workflow: str, revision: str | None = None) -> list[dict[str, object]]:
+        parameters: dict[str, str | int] = {"branch": "main", "per_page": 100}
+        if revision is not None:
+            parameters["head_sha"] = revision
+        else:
+            parameters["event"] = "workflow_dispatch"
+        query = urllib.parse.urlencode(parameters)
         response = self.request("GET", f"actions/workflows/{workflow}/runs?{query}")
         runs = response.get("workflow_runs")
         if not isinstance(runs, list):
@@ -206,10 +210,16 @@ class GitHub:
         return [_object(run) for run in runs]
 
     def verify_ref(self, state: CIState) -> None:
-        response = self.request("GET", "git/ref/tags/" + urllib.parse.quote(state["ref"], safe=""))
+        response = self.request("GET", "git/ref/heads/main")
         target = _object(response.get("object"))
-        if target.get("type") != "commit" or target.get("sha") != state["revision"]:
-            raise CIError("published fan-out tag no longer identifies the settled revision")
+        head = _string(target, "sha")
+        if target.get("type") != "commit" or not re.fullmatch(r"[0-9a-f]{40}", head):
+            raise CIError("remote main does not identify a commit")
+        if head != state["revision"]:
+            comparison = self.request("GET", f"compare/{state['revision']}...{head}")
+            ancestor = _object(comparison.get("merge_base_commit"))
+            if comparison.get("status") != "ahead" or ancestor.get("sha") != state["revision"]:
+                raise CIError("settled revision is not on remote main")
 
 
 def _blank(workflow: str, revision: str) -> RunState:
@@ -218,10 +228,23 @@ def _blank(workflow: str, revision: str) -> RunState:
             "conclusion": None, "request_id": None, "jobs": {}}
 
 
+def _title(record: RunState) -> str:
+    return f"fanout:{record['token']}:{record['revision']}"
+
+
 def _identity(state: CIState, record: RunState, run: dict[str, object]) -> None:
-    if run.get("head_sha") != state["revision"]:
-        raise CIError("GitHub workflow run tested a different revision")
-    if run.get("event") not in {"push", "workflow_dispatch"}:
+    if run.get("head_branch") != "main":
+        raise CIError("GitHub workflow run did not use main")
+    event = run.get("event")
+    if event == "push":
+        if record["workflow"] != HOST or run.get("head_sha") != state["revision"]:
+            raise CIError("GitHub push run tested a different revision")
+    elif event == "workflow_dispatch":
+        # The workflow title binds the checkout input. head_sha instead names the
+        # main tip used to load the workflow and can advance before GitHub starts it.
+        if run.get("display_title") != _title(record):
+            raise CIError("GitHub dispatch did not identify the requested checkout revision")
+    else:
         raise CIError("pull-request or scheduled runs cannot establish this publication's host evidence")
     if run.get("path") != ".github/workflows/" + record["workflow"]:
         raise CIError("GitHub workflow run used a different workflow file")
@@ -233,9 +256,9 @@ def _recover(client: GitHub, state: CIState, record: RunState,
              save: Callable[[], None]) -> None:
     # One identity lookup resolves interrupted requests. A guest's verdict is never
     # read or copied, even when it happens to be included in this API response.
-    matches = [run for run in client.runs(record["workflow"], state["revision"])
-               if run.get("display_title") == "fanout:" + record["token"]
-               and run.get("head_sha") == state["revision"]
+    matches = [run for run in client.runs(record["workflow"])
+               if run.get("display_title") == _title(record)
+               and run.get("head_branch") == "main"
                and run.get("event") == "workflow_dispatch"]
     if len(matches) != 1:
         raise CIError("dispatch identity remains ambiguous; no dispatch was repeated. "
@@ -251,7 +274,7 @@ def _dispatch(client: GitHub, state: CIState, record: RunState,
     client.verify_ref(state)
     record["phase"] = "intent"
     save()
-    inputs: dict[str, object] = {"fanout_token": record["token"]}
+    inputs: dict[str, object] = {"fanout_token": record["token"], "revision": state["revision"]}
     if record["workflow"] == GUEST:
         # guest-gates owns a mandatory model/proofs matrix; there is no lane filter.
         inputs["cold"] = state["cold"]
@@ -337,7 +360,8 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
     if host is None:
         runs = [run for run in client.runs(HOST, state["revision"])
                 if run.get("head_sha") == state["revision"]
-                and run.get("event") in {"push", "workflow_dispatch"}]
+                and run.get("head_branch") == "main"
+                and run.get("event") == "push"]
         host = _blank(HOST, state["revision"])
         state["host"] = host
         if runs:

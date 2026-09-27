@@ -35,6 +35,21 @@ def _bootstrap_failure() -> None:
             ensure(not (logs / "proof-evidence.json").exists(), "old proof was published as fresh")
 
 
+def _pinned_checkout_revision() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        environment = {"GUEST_LANE": "proofs", "GUEST_TOOLCHAINS": "cold",
+                       "VOS_LOG_DIR": str(root), "RUNNER_TEMP": str(root),
+                       "STEP_RESULTS": "{}", "GITHUB_SHA": "b" * 40,
+                       "GITHUB_STEP_SUMMARY": str(root / "summary.md")}
+        for pinned in ("", "a" * 40):
+            with patch.dict(os.environ, {**environment, "GUEST_REVISION": pinned}):
+                main()
+            result = json.loads((root / "results.json").read_text(encoding="utf-8"))
+            ensure(result["revision"] == (pinned or "b" * 40),
+                   "guest diagnostics must identify the pinned checkout, with head SHA fallback")
+
+
 def _toolchain_state_recorded() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -167,6 +182,7 @@ def _member_names_cannot_break_table() -> None:
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
+        Case("pinned checkout revision survives a newer main head", _pinned_checkout_revision),
         Case("toolchain installation state is recorded and validated", _toolchain_state_recorded),
         Case("proof receipt follows its gate verdict", _proof_outcomes),
         Case("model lane publishes no proof receipt", _model_lane_publishes_no_proof),

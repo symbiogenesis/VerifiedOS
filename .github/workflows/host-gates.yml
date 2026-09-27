@@ -11,11 +11,15 @@
 # Reporting is diagnostic; the gate step owns the job's verdict.
 
 name: host-gates
-run-name: ${{ inputs.fanout_token && format('fanout:{0}', inputs.fanout_token) || github.workflow }}
+run-name: ${{ format('{0}:{1}', inputs.fanout_token && format('fanout:{0}', inputs.fanout_token) || github.workflow, inputs.revision || github.sha) }}
 
 on:
   workflow_dispatch:
     inputs:
+      revision:
+        description: Full commit SHA already on main (empty selects current main)
+        type: string
+        default: ""
       fanout_token:
         description: Optional fan-out dispatch identity for interrupted handoff recovery
         type: string
@@ -50,9 +54,32 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
           # The checker reads gitlinks from the index; submodule sources are unnecessary.
           submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
 
       - uses: actions/setup-python@v7
         with:
