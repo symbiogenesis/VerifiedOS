@@ -124,6 +124,13 @@ int vos_lifecycle_target_controls(void)
     CHECK(prepare(3) == VOS_LIFECYCLE_ACK && publish(3));
     CHECK(lifecycle.status == VOS_CTX_STATUS_INVALID && !lifecycle.initial_consumed);
     CHECK(lifecycle.last_sequence == 1 && effect.epoch == high_epoch);
+    request(VOS_CTX_OP_START, 2); put(req, VOS_CTX_REQ_MEMBERS, 8);
+    CHECK(prepare(4) == VOS_LIFECYCLE_ACK && publish(4));
+    CHECK(get(ack, VOS_CTX_ACK_MEMBERS) == 0 && lifecycle.status == VOS_CTX_STATUS_INVALID);
+    request(VOS_CTX_OP_START, 3); put(req, VOS_CTX_REQ_OPERATION, 99);
+    CHECK(prepare(5) == VOS_LIFECYCLE_ACK && publish(5));
+    CHECK(get(ack, VOS_CTX_ACK_OPERATION) == VOS_CTX_OP_NONE &&
+          lifecycle.status == VOS_CTX_STATUS_INVALID && lifecycle.last_sequence == 3);
 
     /* Every padding and unused pair cell refuses before a unit starts. */
     for (i = VOS_CTX_REQ_STARTS + 3 * VOS_CTX_START_WORDS;

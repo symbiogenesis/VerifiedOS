@@ -87,7 +87,9 @@ uint32_t vos_kernel_lifecycle_prepare(struct vos_kernel_lifecycle *c,
     if (value != VOS_CTX_OP_RETIRE && value != VOS_CTX_OP_START) return c->action;
     operation = (uint32_t)value; c->operation = operation;
     value = lifecycle_word(request, VOS_CTX_REQ_MEMBERS);
-    if (value > UINT32_MAX) return c->action;
+    /* A definitive refusal still has a decodable acknowledgment. Do not echo
+     * an invalid wire member mask into the trusted recovery snapshot. */
+    if (value > ((1U << e->manifest.units) - 1U)) return c->action;
     members = (uint32_t)value; c->members = members;
     value = lifecycle_word(request, VOS_CTX_REQ_COUNT);
     if (value > VOS_CTX_UNITS) return c->action;
