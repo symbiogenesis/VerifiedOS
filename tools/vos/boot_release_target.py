@@ -175,6 +175,8 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
         raise ValueError("release target frame sum exceeds its bounded stack")
     cases = (("valid", boot, public, 0),
              ("bad-magic", bh.flip(boot, 0), public, 4),
+             ("length-beyond-region", bh.put_word(boot, lay["BOOT_HDR_PAYLOAD_LENGTH"],
+                                                   lay["BRINGUP_MMODE_REGION_BYTES"] + 1), public, 7),
              ("below-floor", bh.put_word(boot, 16, floor - 1), public, 8),
              ("corrupt-signature", bh.flip(boot, lay["BOOT_HDR_SIGNATURE"]), public, 10),
              ("wrong-root", boot, bh.flip(public, 0), 10),
