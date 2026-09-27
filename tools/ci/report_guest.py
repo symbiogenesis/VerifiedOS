@@ -25,6 +25,12 @@ TOOLCHAINS: dict[str, str] = {
     "cold": "installed cold.",
     "restored": "restored from the installed-toolchain cache; not cold-installation evidence.",
 }
+# How the model lane's Sail memo started; only a cold memo re-discharges every obligation.
+SAIL_MEMO: dict[str, str] = {
+    "cold": "none restored; the build discharges every solver obligation.",
+    "restored": "restored from an earlier main run; its cached solver verdicts were "
+                "not discharged again.",
+}
 
 
 @dataclass(frozen=True)
@@ -90,14 +96,19 @@ def evidence_rows(logs: Path, outcome: str) -> list[str]:
 
 
 def report(lane: str, logs: Path, console: Path, proof: Path,
-           steps: dict[str, dict[str, str]], revision: str, *, toolchains: str) -> str:
+           steps: dict[str, dict[str, str]], revision: str, *, toolchains: str,
+           sail_memo: str | None = None) -> str:
     """Keep command outcomes even when evidence is absent or unreadable."""
     logs.mkdir(parents=True, exist_ok=True)
     outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in LANES[lane]}
-    receipts.write(logs / "results.json", {"revision": revision, "lane": lane,
-                                           "toolchains": toolchains, "commands": outcomes})
-    rows = [f"### Guest gates: {lane}", "", f"Toolchains: {TOOLCHAINS[toolchains]}",
-            "", "| Command | Outcome |", "| --- | --- |"]
+    results: dict[str, object] = {"revision": revision, "lane": lane, "toolchains": toolchains}
+    if sail_memo is not None:
+        results["sail_memo"] = sail_memo
+    receipts.write(logs / "results.json", {**results, "commands": outcomes})
+    rows = [f"### Guest gates: {lane}", "", f"Toolchains: {TOOLCHAINS[toolchains]}"]
+    if sail_memo is not None:
+        rows.extend(("", f"Sail memo: {SAIL_MEMO[sail_memo]}"))
+    rows.extend(("", "| Command | Outcome |", "| --- | --- |"))
     rows.extend(f"| {name} | {outcome} |" for name, outcome in outcomes.items())
     retained_proof = logs / "proof-evidence.json"
     retained_proof.unlink(missing_ok=True)
@@ -119,6 +130,13 @@ def main() -> None:
     if toolchains not in TOOLCHAINS:
         raise SystemExit(f"unknown toolchain state {toolchains!r}; "
                          f"expected one of {', '.join(TOOLCHAINS)}")
+    # Only the model lane builds with Sail, so only it may state a memo.
+    sail_memo = os.environ.get("GUEST_SAIL_MEMO", "")
+    if lane == "model" and sail_memo not in SAIL_MEMO:
+        raise SystemExit(f"unknown Sail memo state {sail_memo!r}; "
+                         f"expected one of {', '.join(SAIL_MEMO)}")
+    if lane != "model" and sail_memo:
+        raise SystemExit(f"the {lane} lane runs no Sail build to state a memo for")
     summary = report(
         lane,
         Path(os.environ.get("VOS_LOG_DIR", Path.home() / "verifiedos-guest" / "logs")),
@@ -126,7 +144,7 @@ def main() -> None:
         ROOT / "proofs" / "proof-evidence.json",
         json.loads(os.environ["STEP_RESULTS"]),
         os.environ.get("GUEST_REVISION") or os.environ["GITHUB_SHA"],
-        toolchains=toolchains,
+        toolchains=toolchains, sail_memo=sail_memo or None,
     )
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8", newline="") as stream:
         stream.write(summary)

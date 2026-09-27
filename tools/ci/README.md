@@ -167,6 +167,28 @@ bytes and their original timings, not a new kernel execution. Cold runs retain
 periodic installation and full recheck evidence. Model build trees and compiler
 caches are not restored, and every run regenerates its RTL vectors.
 
+The model lane restores one file into its fresh build tree before the evidence
+sweep: Sail's SMT memo, `model/sail_smt_cache`, which maps each typechecking
+obligation's digest to the solver's verdict. A cold memo re-discharges every
+obligation and turns the model's C++ emission from seconds into minutes. The build
+seeds itself from that copy exactly as a
+[new local lane](../vos/cli/model.py) seeds itself from the primary tree's, with
+one writer per runner. The memo keys obligations, not the solver that answered
+them, so its key binds the runner image, architecture, and the Sail version, Z3
+version and Sail snapshot recorded in `bootstrap.json`; a fallback within that
+identity supplies an older model's memo, which costs misses and never supplies
+another solver's verdict. Only main saves it, after a passing evidence sweep, under
+a key that also hashes the model's Sail sources. The monthly and manual cold modes
+look the key up without restoring it, so their build discharges every obligation
+with the installed solver. The reporter records the memo as `cold` or `restored` in
+`results.json` and the job summary; a restored memo's cached verdicts were not
+discharged again in that run.
+
+Each command runs under GNU time, whose figures in its retained log end with
+`maxrss_kb`: the peak resident memory of the command's largest single process. For
+the proof gate this measures the kernel recheck against the planning budget in
+[vos/env.py](../vos/env.py)'s `proof_jobs`.
+
 ## Inputs and execution
 
 The checked-out revision owns the Sail and Rocq package snapshots, solver and
@@ -209,9 +231,10 @@ working model bytes remain bound by the build manifest. Bundle comparison reloca
 only the selected switch's absolute library hash keys to the canonical locations
 used by the tracked artifact. A private opam root therefore does not change the
 comparison, while changed library digests and model contents still fail it.
-Download and installed-toolchain caches accelerate installation; native proof
-reuse requires the proof gate's validation, never a cache-action verdict. A cold
-run must work without any cache. Built model outputs remain uncached.
+Download and installed-toolchain caches accelerate installation, and the Sail memo
+accelerates emission; native proof reuse requires the proof gate's validation,
+never a cache-action verdict. A cold run must work without any cache. Built model
+outputs remain uncached.
 
 ## Acceptance and handoff
 

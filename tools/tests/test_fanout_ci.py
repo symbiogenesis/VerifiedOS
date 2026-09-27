@@ -46,9 +46,18 @@ class FakeGitHub:
         self.comparison: dict[str, object] = {"status": "ahead", "merge_base_commit": {"sha": REVISION}}
         self.dispatch_error: ci.APIError | None = None
         self.saved: list[ci.CIState] = []
+        self.slept: list[float] = []
+        # Host runs GitHub lists only after the first pause, as a push run it has
+        # accepted but not yet registered.
+        self.late_host_runs: list[dict[str, object]] | None = None
 
     def save(self) -> None:
         self.saved.append(copy.deepcopy(self.state))
+
+    def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        if self.late_host_runs is not None:
+            self.host_runs, self.late_host_runs = self.late_host_runs, None
 
     def request(self, method: str, path: str,
                 payload: dict[str, object] | None = None) -> dict[str, object]:
@@ -84,8 +93,12 @@ class FakeGitHub:
 
     def advance(self) -> bool:
         with (patch.object(ci, "_token", return_value="fixture-credential"),
-              patch.object(ci.GitHub, "request", side_effect=self.request)):
+              patch.object(ci.GitHub, "request", side_effect=self.request),
+              patch.object(ci.time, "sleep", side_effect=self.sleep)):
             return ci.advance(ROOT, self.state, self.save)
+
+    def host_lookups(self) -> int:
+        return sum(f"workflows/{ci.HOST}/runs?" in path for _, path, _ in self.calls)
 
     def posts(self) -> list[tuple[str, str, dict[str, object] | None]]:
         return [call for call in self.calls if call[0] == "POST"]
@@ -166,6 +179,9 @@ def _host_dispatch() -> None:
     fake.host_runs = [_run(head_sha="b" * 40), _run(event="pull_request"),
                       _run(head_branch="work/stranded"), _run(event="workflow_dispatch")]
     ensure(not fake.advance(), "manual host dispatch is initially pending")
+    ensure(fake.slept == list(ci.PUSH_RUN_WAITS)
+           and fake.host_lookups() == len(ci.PUSH_RUN_WAITS) + 1,
+           "dispatch only after the bounded wait for GitHub to list a push run")
     posts = fake.posts()
     ensure(len(posts) == 1 and ci.HOST in posts[0][1],
            "start Host CI when no exact suitable run exists")
@@ -176,6 +192,21 @@ def _host_dispatch() -> None:
         "Host CI dispatch must pin checkout to the requested main revision")
     ensure(fake.state["guest"] is None, "host dispatch supplies no verdict")
     ensure(fake.advance(), "the next advance can accept the completed host run")
+
+
+def _late_push_run_adopted() -> None:
+    fake = FakeGitHub(_state())
+    fake.host_runs = []
+    fake.late_host_runs = [_run()]
+    ensure(fake.advance(), "a push run listed during the wait establishes host evidence")
+    ensure(not any(ci.HOST in path for _, path, _ in fake.posts()),
+           "a push run GitHub had not yet listed must not be duplicated by a dispatch")
+    ensure(fake.slept == list(ci.PUSH_RUN_WAITS[:1]), "stop waiting once the push run is listed")
+    host = fake.state["host"]
+    ensure(host is not None and host["run_id"] == 10 and host["jobs"]
+           == dict.fromkeys(ci.HOST_JOBS, "success"), "adopt the push run's host evidence")
+    fake = FakeGitHub(_state())
+    ensure(fake.advance() and not fake.slept, "an already listed push run needs no wait")
 
 
 def _main_ancestry() -> None:
@@ -395,7 +426,9 @@ def cases() -> list[Case]:
             Case("host-pending", _host_pending), Case("host-failure", _host_failure),
             Case("host-aggregate-evidence", _host_aggregate_evidence),
             Case("host-revision-binding", _host_revision_binding),
-            Case("host-dispatch", _host_dispatch), Case("main-ancestry", _main_ancestry),
+            Case("host-dispatch", _host_dispatch),
+            Case("late-push-run-adopted", _late_push_run_adopted),
+            Case("main-ancestry", _main_ancestry),
             Case("dispatch-revision-survives-main-advance", _dispatch_revision_survives_main_advance),
             Case("guest-interrupt-recovery", _guest_interrupt_recovery),
             Case("ambiguous-recovery-never-reposts", _ambiguous_recovery_never_reposts),
