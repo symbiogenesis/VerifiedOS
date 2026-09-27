@@ -1,6 +1,6 @@
 # Open mathematical problems and recent advances relevant to VerifiedOS
 
-> Non-normative research survey. Sources checked on 24 September 2026. The [requirements register](../requirements-register.md) remains authoritative. This survey admits no new axiom or implementation decision and supplies no evidence that a platform guarantee has been established. Existing declared cryptographic premises retain their current status.
+> Non-normative research survey. Sources checked through 26 September 2026. The [requirements register](../requirements-register.md) remains authoritative. This survey admits no new axiom or implementation decision and supplies no evidence that a platform guarantee has been established. Existing declared cryptographic premises retain their current status.
 
 The strongest connections are to memory placement, scheduling, proof production, computational security, and arithmetic kernels. Some resolutions could improve an algorithm; others would establish limits or invalidate a security assumption. A proof of existence need not provide a usable construction, and a faster asymptotic algorithm need not be faster at this machine's sizes.
 
@@ -49,6 +49,12 @@ Such results could tighten packing of equal-capacity banks or storage containers
 
 A [4 June 2026 revision](https://arxiv.org/abs/2604.05152v2) gives polynomial algorithms for the Augmented IRUP benchmark class and pseudopolynomial algorithms for Augmented Non-IRUP instances. Their scoped optimality guarantees make them preprocessing leads, without resolving MIRUP or the unrestricted constant-additive-gap target.
 
+### Asymptotic Rank Conjecture and exact bin packing
+
+**Named conjecture; conditional exact-search connection.** The tight-tensor formulation of Strassen's Asymptotic Rank Conjecture over the rationals asserts that a tight `d` by `d` by `d` tensor has asymptotic rank at most `d`, with equality for concise tensors. Asymptotic rank measures the exponential growth of rank under repeated tensor products. [Björklund et al., section 1.1 and footnote 1](https://arxiv.org/html/2404.04987v2#S1.SS1), distinguish this formulation from stronger unrestricted versions; the tensors used for their partitioning algorithms are tight, and their conditional algorithm works over characteristic-zero fields.
+
+[Dhar et al.'s 12 August 2026 preprint, Theorem 4](https://arxiv.org/html/2608.12224v1#S1), uses that partitioning result to obtain a randomized exact bin-packing algorithm in `O((2-epsilon)^n)` time for some constant `epsilon > 0`, with high-probability correctness, assuming ARC. The unconditional general sub-`2^n` target remains open. This is a possible route to smaller offline packing searches, separate from [MIRUP's additive approximation gap](#modified-integer-round-up-property-for-bin-packing). The runtime remains exponential, and ordinary bins still omit lifetimes, alignment and CHERI bounds. A finite candidate needs independent checking under the [placement contract](../implementation/placement-search.md); the conjecture supplies no platform proof premise.
+
 ### Optimal copying overhead for memory reallocation
 
 **Open tight-bound and implementation problems, with a major 2026 advance; direct fragmentation connection.** In `M` cells, maintain contiguous objects under insertions and deletions, with live volume at most `(1-epsilon)M` and relocation allowed. For an update of size `s`, charge `1 + moved_existing_volume/s`. [Jin's STOC 2026 result](https://arxiv.org/html/2602.15417v1) gives `O(log^4(1/epsilon) * (log log(1/epsilon))^2)` worst-case expected per-update overhead against an oblivious adversary. The general lower bound is `Omega(log(1/epsilon))`; closing that gap and obtaining a time-efficient implementation remain open. The same paper rules out the corresponding blanket high-probability subpolynomial-overhead hope. Moved volume is not computation time.
@@ -66,6 +72,8 @@ The local [resource-credit proof contract](../implementation/static-memory/resou
 ### Efficient constant-discrepancy Komlós construction
 
 **Polynomial-time construction announced in the real-RAM model; finite-arithmetic implementation remains separate.** Ordinary Komlós controls the final signed sum. Following the September existence proofs, [Guo, Fang and Lu's 20 September preprint](https://arxiv.org/html/2609.23540v1) gives a deterministic constant-discrepancy signing algorithm using `O((m*n^9 + n^10) log(2+m+n))` exact arithmetic operations and comparisons for `n` vectors in `R^m`. This is a unit-cost real-RAM result, also yielding an `O(sqrt(t))` Beck-Fiala construction. The authors credit Odin AI assistance and describe their revision and verification of the proofs. The elementary proof's own finite rational construction is not the frontier for algorithmic existence.
+
+**Faster construction claimed in a 23 September preprint.** [Akbas and Sra, Appendix B, Theorem B.1](https://arxiv.org/html/2609.27172v1#A2), give discrepancy below `105 + 3*sqrt(99) < 135` with deterministic `O-tilde(m*n^3 + n^4)` arithmetic operations and comparisons; the tilde suppresses logarithmic factors. This implementation uses only addition, subtraction, multiplication and division, with rational states for rational inputs. The authors explicitly mark the appendix as not yet carefully scrutinized and rewritten. The operation count does not establish polynomial bit complexity, and this construction does not attain the paper's sharper existence constant. No independent replay or implementation assessment was performed here.
 
 This makes multidimensional balancing a stronger lead for the [offline composer](../implementation/placement-search.md). A reduction from actual legal assignments, bit complexity and precision, finite constants, and a checked implementation still need to be established. A unit-cost real-RAM theorem alone does not supply polynomial bit complexity or a feasible memory layout. The [formal existence artifact](#ordinary-komlós-and-beck-fiala-proof-announcements) also does not certify the follow-on algorithm's running time.
 
@@ -169,6 +177,8 @@ A constructive equality could expand parallel compilation and analysis. A separa
 
 A constructive answer could reduce scratch reservations for dependency analysis and graph-based checking in the [resident toolchain](../spec.md#r-13-027). It would not shrink an implicitly exponential state graph, remove input storage, or guarantee near-linear time. The cited paper's new quantum result is not an algorithm for this classical machine. The relevant target is a complete classical implementation with explicit time and memory bounds.
 
+**Intermediate time-space frontier.** Even a deterministic algorithm combining polynomial time with ordinary workspace `O(n^(1-epsilon))`, for some fixed `epsilon > 0`, remains open for general directed reachability. [Pyne and Tell's 2026 account, section 3.3.1](https://eccc.weizmann.ac.il/report/2026/045/download), contrasts the known polynomial-time, `O(n / 2^sqrt(log n))`-space algorithm with Savitch's `O(log^2 n)`-space algorithm, whose runtime is superpolynomial. A polynomial-factor scratch reduction would already be useful for resident graph passes. Input backing still counts toward the machine's capacity, and a catalytic clean-space bound does not establish this ordinary-workspace target.
+
 ### The power of catalytic memory
 
 **Open computational-model questions; direct allocation-flexibility connection.** A catalytic computation has clean scratch space plus writable storage initially holding an arbitrary string, which it must restore exactly on termination. `CL` allows `O(log n)` clean workspace and polynomially many catalytic bits. Does `CL = L`? Does every polynomial-time problem belong to `CL`? [Koucky's account](https://bulletin.eatcs.org/index.php/beatcs/article/download/400/380) and [Henzinger, Pyne and Ragavan's February 2026 paper](https://arxiv.org/html/2602.14320v1) discuss the unresolved power of this model.
@@ -259,6 +269,8 @@ A [February 2026 revision of the NeurIPS 2025 result](https://arxiv.org/abs/2502
 
 Practical constructions could improve dense inference, graphics and certified native kernels. Constants, scratch space, communication, rectangular shapes and numerical semantics still determine target value. Matrix-vector autoregressive decoding does not inherit the same benefit as large matrix-matrix multiplication. No operation-count theorem removes the cost of reading weights under the [fixed memory grants](../performance/inference-demand.md), or permits numerically different reassociation without an accepted semantic contract.
 
+Finite algorithms can advance independently of this asymptotic conjecture. The [48-multiplication constructions](#finite-matrix-multiplication-with-48-products) below supply concrete candidates for small matrix blocks and recursive kernels.
+
 ### Optimal bit complexity of integer multiplication
 
 **Open lower-bound conjecture; arithmetic and proof-production connection.** Is multiplying two `n`-bit integers intrinsically an `Omega(n log n)`-time task in the multitape Turing-machine bit model? [Harvey and van der Hoeven](https://www.texmacs.org/joris/nlogn/nlogn.pdf) achieve the matching upper bound and explicitly distinguish it from the unproved lower bound. The upper bound was announced in 2019 and [published in 2021](https://annals.math.princeton.edu/2021/193-2/p04); it is not a newly solved 2026 problem.
@@ -270,6 +282,8 @@ A faster construction could improve sufficiently large exact arithmetic in proof
 ### Dynamic optimality of binary search trees
 
 **Named conjecture; conditional application data-structure connection.** Does splaying serve every access sequence within a universal constant factor of the best offline binary-search-tree execution in the same model, with the usual initial-state accounting? The broader existence question asks for any online BST with this guarantee. A [July 2026 preprint](https://arxiv.org/abs/2607.18498v1) gives `O(log log n * (log log log n)^2)` competitiveness for splay trees, leaving the constant-factor target open.
+
+For the other leading candidate, [Guo, Pettie, Skora and Wan's 5 August preprint](https://arxiv.org/abs/2608.04410v1) proves `2^{O(sqrt(log log n))}` competitiveness for Greedy BST, its first `o(log n)` competitive bound. Greedy's conjectured constant competitiveness also remains open; this is a separate algorithm and guarantee from the splay result.
 
 A proof would strengthen sequence-level efficiency guarantees for adaptive indexes or application maps. A counterexample would delimit the algorithm's universal claim. It would not establish bounded latency for each access: amortized and competitive guarantees can hide an expensive operation. Nor would it justify replacing the project's [storage index](../implementation/comparisons/storage-index.md), whose block traffic, persistence, recovery and endurance have different costs. The most plausible initial consumer is a bounded, in-label application data structure.
 
@@ -373,7 +387,9 @@ Constructive progress could reduce redundancy or improve protection within fixed
 
 Progress could reduce redundancy while retaining predictable recovery algorithms for sufficiently large storage or communication blocks. These are large-alphabet list-decoding guarantees, not binary SECDED bounds. A list can contain several plausible messages; authenticated selection and bounded processing remain necessary. The [fixed-frame link contract](../spec.md#r-15-228b) still needs finite block lengths, fixed traffic, latency and failure behavior. A separate recent result improves [decoder scratch space](#capacity-approaching-decoding-with-small-workspace).
 
-**Separate September 2026 advance for ordinary Reed-Solomon codes.** [Brakensiek et al., 5 September revision](https://eccc.weizmann.ac.il/report/2026/164/revision/1/download), give deterministic polynomial-time capacity-approaching list decoding for every distinct evaluation set over sufficiently large prime fields, for any fixed rate `R` and fixed gap `0 < delta < 1-R`. The field requires `q >= C(R,delta)*n`, sufficiently large block length, and list size `n^{O_{R,delta}(1)}`. The exponent's parameter dependence does not settle polynomial time jointly in block length and inverse gap, and ordinary RS and folded RS remain distinct code families.
+**Separate September 2026 preprint advances for ordinary Reed-Solomon codes.** [Brakensiek et al., 5 September revision, Corollary 5.1](https://eccc.weizmann.ac.il/report/2026/164/revision/1/download), give deterministic capacity-approaching list decoding for every distinct evaluation set over prime fields `q >= C(R,delta)*n`, for fixed rate bound `R`, fixed gap `0 < delta < 1-R` and sufficiently large block length. The formal corollary bounds both runtime and list size by `q^{O_{R,delta}(1)}`; the informal introduction instead states an `n`-polynomial list bound. The formal statement supports polynomial time in `n` when `q` is polynomially bounded in `n`, not unrestricted polynomial time in the encoded input size `O(n log q)`.
+
+[Jeronimo's preprint, posted 6 September](https://eccc.weizmann.ac.il/report/2026/169/), covers every prime `q >= n` and dimension `1 <= k <= (1-gamma)n`, for fixed slack `gamma > 0` and sufficiently large `n`. It finds all codewords within relative distance `1-k/n-gamma` in deterministic `q^{O_gamma(1)}` time, with final list size `n^{O_gamma(1)}` independent of `q`. The runtime still depends polynomially on the field size. Neither result settles the deterministic bound jointly polynomial in block length and inverse gap; ordinary RS and folded RS also remain distinct code families.
 
 ### Finite-length optimality of single-deletion VT codes
 
@@ -440,6 +456,26 @@ The closest opportunities need not await a famous theorem. The [existing researc
 ## Recent solutions and advances worth evaluating
 
 These entries include published resolutions, published partial results and explicitly labeled preprint announcements. Dates refer to the stated publication or announcement, not to a claim that all of the underlying work happened in the last few months. Their potential applications remain subject to the same implementation bridge as the open problems. Recent results with an important remaining frontier also appear above under [memory reallocation](#optimal-copying-overhead-for-memory-reallocation), [finite-field factorization](#deterministic-polynomial-factorization-over-finite-fields) and [list decoding](#deterministic-fully-polynomial-list-decoding).
+
+### Randomized online allocation and the Luby-Naor-Orda conjecture
+
+**Resolution claimed in an August 2026 submission; direct fragmentation connection.** [Bender et al., Theorem 3.1](https://arxiv.org/html/2608.28462v1), prove an `Omega(log M)` expected competitive-ratio lower bound for randomized, nonmoving, contiguous online allocation, where `M` is peak live volume and the cost is peak address span relative to `M`. The bound holds even when `M` is known, matches the upper bound, and resolves the Luby-Naor-Orda conjecture in that model. The [28 August preprint](https://arxiv.org/abs/2608.28462v1) is marked "in submission"; no independent proof reproduction was performed here.
+
+The same paper studies deliberately splitting requests. For a fixed aggregate fragmentation factor `k > 1` and unknown peak volume bounded by `Mbar`, it gives a tight `Theta(log log Mbar)` ratio. The budget compares all-time peak simultaneous fragments with all-time peak simultaneous requests. A fixed per-request fragment limit is different and retains a logarithmic ratio in `M`.
+
+The lower bound limits what randomization alone can promise for an elastic heap. The [bounded-pieces research handoff](static-memory-research.md#bounded-pieces-instead-of-mandatory-contiguity) owns possible representation experiments and their capability, metadata, revocation and access costs. These online bounds neither solve fixed offline placement nor provide a deadline or finite-arena exhaustion guarantee.
+
+### Stochastic first-fit packing
+
+**Expanded result in a 24 September 2026 preprint revision.** [Ernst, Stolyar and Wang, Theorem 4.1](https://arxiv.org/html/2404.03797v3#S4), analyze stationary first-fit packing on the unbounded positive half-axis. Arrivals are Poisson with rate `r`, lifetimes are independent unit-mean exponentials, and positive item sizes are independent and identically distributed with finite mean `M`; their support is a finite increasing sequence or a countable increasing sequence tending to infinity. As `r` grows, empty space within `[0,r*M)`, divided by `r`, converges to zero in probability. This extends the earlier two-size result to the stated discrete distributions.
+
+This motivates an allocation comparison for a workload that can justify those assumptions. It does not bound the rightmost occupied address, finite-capacity allocation failure, adversarial fragmentation or per-request latency. A bounded elastic-domain experiment must measure those quantities separately and account for quarantine and reclamation; the asymptotic occupancy result alone cannot size the platform's reserved pool.
+
+### Finite matrix multiplication with 48 products
+
+**Concrete 2026 preprint constructions.** [Dumas, Pernet and Sedoglavic's 29 July revision](https://arxiv.org/abs/2603.18699v3) gives a rational noncommutative algorithm for multiplying `4` by `4` matrices with `48` multiplications over rings in which `2` is invertible, with improved numerical error bounds. [Dumas, Pernet, Sedoglavic and Tichavský's 10 September preprint](https://arxiv.org/abs/2609.12027v1) gives a construction using `48` multiplications and `216` additions, subtractions or constant scalings, with recursive leading cost `7.75*n^log_4(48)`. These are explicit finite algorithms, without establishing optimality of `48` or resolving [the exponent-two conjecture](#matrix-multiplication-exponent-equals-two).
+
+The constructions are candidates for the [compute arithmetic handoff](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff). Algebraic operation counts must be supplemented by scratch, transfers, conversions, tails and target-cycle measurements. Invertibility of `2` is not available in every modular integer domain, and algebraic equivalence does not imply FP32 bit equality. The frozen pilot compares against a particular zero-ULP reference sequence; a different reduction order requires a separately admitted entry and reference. No construction or target benchmark was independently reproduced in this review.
 
 ### Pinwheel scheduling: the 5/6 theorem and relaxed synthesis
 
@@ -524,6 +560,8 @@ Possible consumers include compressible application metadata and symbol arrays. 
 ### Directed shortest paths below the sorting barrier
 
 **Published 2025 breakthrough and 2026 improvement.** [Duan et al., STOC 2025](https://arxiv.org/abs/2504.17033), give deterministic directed single-source shortest paths with nonnegative real weights in `O(m log^(2/3) n)` comparison-addition operations. [The ICALP 2026 improvement](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ICALP.2026.81) gives `O(m sqrt(log n) + sqrt(m n log n log log n))`. These results break the old sorting barrier for sparse graphs; they do not settle the [weighted APSP hypothesis](#weighted-all-pairs-shortest-paths-hypothesis).
+
+**Negative-weight extension, July 2026 preprint.** [Hair, Li, Li and Zhang, Theorem 1.1](https://arxiv.org/html/2607.19346v1), give a Las Vegas randomized SSSP algorithm for directed graphs with possibly negative real weights, running in `m^{1+o(1)}` time with high probability. This broadens the admissible weight domain; it does not strengthen the deterministic nonnegative-weight guarantee or provide a deterministic deadline. The single-source bound also leaves the truly subcubic APSP question open.
 
 Matching graph kernels in planning or guest applications could benefit at sufficient scale. The result does not imply general faster sorting or faster interpreter dispatch. Concrete weight encoding, overflow, graph representation, scratch space and actual workload sizes must be evaluated before changing an implementation.
 
