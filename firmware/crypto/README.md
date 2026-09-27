@@ -25,9 +25,11 @@ boot harness selects it with `python tools/run.py boot-handoff run
 emulation from the released bytes. The default fixture mode stays explicit.
 The independent comparison campaign is `python tools/run.py boot-crypto run --gallina`.
 
-Keccak's unchanged round constants and rotation offsets use bounded local arrays.
-This storage placement fits the accepted purecap compiler's scalar-global profile;
-it introduces no table values, algorithm changes or larger input bounds.
+Keccak keeps its unchanged round constants in a bounded local array and expands
+the fixed theta, rho/pi and chi topology with literal rotation offsets. This
+removes variable index arithmetic from the scalar RoT binary without changing
+the algorithm, 24-round count or input bounds. Local storage fits the accepted
+purecap compiler's scalar-global profile.
 The [target translation unit](../harness/slh_target.c) and `boot-handoff
 signature-target` retain a bounded RoT-profile trial with real header inputs.
 Compilation or an instruction-limited run without an HTIF verdict supplies no
@@ -39,8 +41,25 @@ byte-oriented pure, internal and external-mu verification input in pinned NIST
 ACVP files, records excluded prehash/partial-byte inputs, and compares positive
 and corrupted signatures with installed OpenSSL 3.5.5. `--gallina` additionally
 extracts the exact ML-DSA reference and compares each selected interface and its
-refusals. `--first` runs one positive per scheme as an explicitly incomplete
+refusals. It also compares streaming SHAKE256 against `Keccak.v` and Python's
+independent digest over empty inputs and absorb/padding/squeeze rate boundaries.
+`--first` runs one positive per scheme as an explicitly incomplete
 development checkpoint. Neither option can claim target acceptance.
+
+`boot-crypto target` compiles [signature_target.c](signature_target.c) through
+the accepted contained compiler and executes all five real signature interfaces
+on the scalar RoT profile. It takes `--ccomp`, repeated `--ccomp-arg` options,
+`--simulator` and `--build-receipt`. The compiler's native `build-result.json`
+and `build-inputs.json` must bind its executable and unchanged source archive.
+The target population is one pinned ACVP positive per interface and each
+applicable authored corruption, root, message, context and length refusal.
+The full host population remains separately recorded. `--first` selects only
+the five positive target cases and cannot establish that refusal coverage.
+Exact ABI lengths accompany bounded read-only input capabilities. Timeout,
+instruction exhaustion and traps supply no signature decision. The report
+binds source, compiler, model, input, assembly, ELF and log identities and records
+unexecuted cases. Firmware release and the complete boot chain retain their
+separate joins.
 
 The same campaign generates an authored header signature using OpenSSL and
 tests the actual RoT release with a valid image, a corrupted signature, a wrong

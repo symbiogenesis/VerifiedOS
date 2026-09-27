@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "vos_signature.h"
+#include "vos_keccak.h"
 
 static uint8_t pk[2593], message[65537], context[256], signature[65537];
 static uint8_t image[VOS_BOOT_HEADER_BYTES + 65536], window[65536], handoff[VOS_HANDOFF_BYTES];
@@ -18,6 +19,24 @@ static size_t read_file(const char *path, uint8_t *out, size_t capacity) {
 static void release(void *count) { (*(unsigned *)count)++; }
 
 int main(int argc, char **argv) {
+  if (argc == 4 && !strcmp(argv[1], "shake")) {
+    size_t n = read_file(argv[2], message, sizeof message);
+    size_t output = read_file(argv[3], signature, sizeof signature);
+    if (n == (size_t)-1 || output == (size_t)-1) return 2;
+    vos_shake256_ctx state;
+    vos_shake256_init(&state);
+    size_t split = n / 2;
+    if (!vos_shake256_absorb(&state, message, split)
+        || !vos_shake256_absorb(&state, message + split, n - split)) return 2;
+    // Split squeezing crosses a rate boundary in the campaign's long outputs.
+    split = output / 2;
+    vos_shake256_squeeze(&state, signature, split);
+    vos_shake256_squeeze(&state, signature + split, output - split);
+    if (vos_shake256_absorb(&state, NULL, 0)) return 2;
+    for (size_t i = 0; i < output; i++) printf("%02x", signature[i]);
+    printf("\n");
+    return 0;
+  }
   if (argc == 2 && !strcmp(argv[1], "bounds")) {
     // Declared invalid lengths refuse before even null storage is read.
     int accepted = vos_slh256s_verify_internal(NULL, 64, NULL, 65537, NULL, 29792)

@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import boot_crypto as b
+from vos import boot_crypto_target as target
 from vos import toolenv
 from vos.cli import boot_crypto as cli
 
@@ -104,6 +105,28 @@ def native_controls() -> None:
         for case in b.offline_fixtures(TOOLS.parent):
             ensure(b.invoke(binary, output, case), f"{case.mode} positive refused")
             ensure(not b.invoke(binary, output, b.refusals(case)[0]), f"{case.mode} corrupt neighbor accepted")
+        ensure(all(row["passed"] for row in b.shake_cases(binary, output, None)),
+               "streaming SHAKE rate boundaries disagree")
+
+
+def target_requires_a_real_verdict() -> None:
+    ensure(not target.target_verdict("", None, False)[0], "timeout became refusal")
+    ensure(not target.target_verdict("", 0, True)[0], "missing HTIF verdict became acceptance")
+    with patch.object(target.cd, "htif_verdict", return_value=("trap", 1, "fault")):
+        ensure(not target.target_verdict("trap", 1, False)[0], "trap became signature refusal")
+    with patch.object(target.cd, "htif_verdict", return_value=("fail", 1, "refused")):
+        ensure(target.target_verdict("refused", 1, False)[0], "real refusal rejected")
+        ensure(not target.target_verdict("refused", 0, False)[0], "process mismatch accepted")
+
+
+def target_bounds_bind_lengths() -> None:
+    case = b.Case("test", "mldsa", bytes(2592), b"", b"ctx", bytes(4627), True)
+    source = target.compose("main:\n        ret\n", case)
+    ensure("li x11, 2592" in source and "li x13, 0" in source and
+           "li x15, 3" in source and "li x17, 4627" in source, "target ABI lost exact lengths")
+    ensure(".balign 4096\nvos_crypto_pk:" in source and
+           ".balign 8192\nvos_crypto_signature:" in source, "unrepresentable input bounds")
+    ensure(source.count("candperm c") >= 4, "input capabilities lack read-only narrowing")
 
 
 def cases() -> list[Case]:
@@ -112,4 +135,6 @@ def cases() -> list[Case]:
             Case("source drift invalidates evidence", drift_refuses),
             Case("operational failures are not refusals", operational_failure_is_not_refusal),
             Case("failed rerun replaces previous success", failed_rerun_replaces_pass),
+            Case("target timeout and trap never mean refusal", target_requires_a_real_verdict),
+            Case("target byte extents and scalar lengths", target_bounds_bind_lengths),
             Case("sanitized native bounds and refusals", native_controls, lane="guest")]
