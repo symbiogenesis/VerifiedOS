@@ -97,7 +97,7 @@ jobs:
           python-version: "3.14"
 
       # run.py enters the locked tool environment for every command, so uv comes first.
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
@@ -124,7 +124,7 @@ jobs:
       - name: Restore installed toolchains
         # Guest CI's model-lane installation, restored read-only: the key and the path
         # list must equal guest-gates.yml's for its saved cache to match.
-        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/verifiedos-guest/.verifiedos-guest-root
@@ -160,7 +160,7 @@ jobs:
       - name: Restore the Sail memo
         if: ${{ steps.solver.outcome == 'success' }}
         # guest-gates.yml's memo under the same solver identity; misses cost time only.
-        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
           key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
@@ -241,7 +241,7 @@ jobs:
         with:
           python-version: "3.14"
 
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version-file: tools/pyproject.toml
           enable-cache: true

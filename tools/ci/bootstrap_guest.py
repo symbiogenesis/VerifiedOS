@@ -30,10 +30,10 @@ from vos import (  # noqa: E402  (standalone bootstrap precedes the locked envir
 )
 from vos.cli import rtl  # noqa: E402
 
-OPAM_VERSION = "2.5.2"
+OPAM_VERSION = "2.6.0"
 OPAM_HASHES: dict[str, tuple[str, str]] = {
-    "aarch64": ("arm64", "c4106ece84bcb60c68342573d2d6b4f0d6770ee088015c2216adc83d8854dcf9"),
-    "x86_64": ("x86_64", "edfca2630c373b44b7ee1c2f81cd8dcf67468d0db57d6c02158de553ac63dbd4"),
+    "aarch64": ("arm64", "aeaeb4294a9abaa7d37844d9138230125933c648e631da2eec888b5e4ce55bde"),
+    "x86_64": ("x86_64", "a59184447f881005dae70b2ae455c3a7e9549834a41c635c49a5a28235eca758"),
 }
 PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
     "build-essential", "bubblewrap", "ca-certificates", "curl", "unzip", "patch",

@@ -1313,7 +1313,7 @@ def _ran_json(ran: Ran) -> Json:
 
 
 def report_json(report: Report) -> Json:
-    files: dict[str, Json] = dict(report.narrowing_files)
+    files = dict[str, Json](report.narrowing_files)
     return {
         "name": report.name, "pattern": report.pattern,
         "source_sha256": report.source_sha256, "checks": report.checks,

@@ -169,7 +169,7 @@ jobs:
         with:
           python-version: "3.14"
 
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
@@ -180,7 +180,7 @@ jobs:
             tools/uv.lock
 
       - name: Cache guest source downloads
-        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # The ownership marker lets bootstrap resume this private root.
           # No installed switches, build outputs or verdicts are restored.
@@ -198,7 +198,7 @@ jobs:
 
       - name: Restore installed toolchains
         id: toolchains
-        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
           # Switch names and the Verilator prefix carry their versions, and bootstrap
@@ -220,7 +220,7 @@ jobs:
       - name: Save installed toolchains
         # Saved from main once the probes pass, so a later gate failure keeps them.
         if: ${{ github.ref == 'refs/heads/main' && steps.bootstrap.outcome == 'success' && steps.toolchains.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
           key: ${{ steps.toolchains.outputs.cache-primary-key }}
@@ -245,7 +245,7 @@ jobs:
       - name: Restore the Sail memo
         id: sail-memo
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.solver.outcome == 'success' }}
-        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # A private copy the build seeds itself from; the build tree stays uncached.
           path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
@@ -268,7 +268,7 @@ jobs:
       - name: Save the Sail memo
         # Sail rewrites the memo whole at exit; one writer per runner keeps it intact.
         if: ${{ github.ref == 'refs/heads/main' && !cancelled() && steps.evidence.outcome == 'success' && steps.sail-memo.outcome == 'success' && steps.sail-memo.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
           key: ${{ steps.sail-memo.outputs.cache-primary-key }}
@@ -276,7 +276,7 @@ jobs:
       - name: Restore proof cache candidates
         id: proof-cache
         if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
-        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_PROOF_PATHS }}
           key: guest-proofs-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}-${{ hashFiles('proofs/*.v', 'tools/**/*.py', 'tools/pyproject.toml', 'tools/uv.lock', 'docs/requirements-register.md', '.github/workflows/guest-gates.yml') }}
@@ -312,7 +312,7 @@ jobs:
         # A rebuilt toolchain may differ byte-for-byte from an existing immutable
         # installation cache. Seed cold proof results only with a new toolchain key.
         if: ${{ github.ref == 'refs/heads/main' && !cancelled() && steps.proofs.outcome == 'success' && steps.proof-cache.outputs.cache-hit != 'true' && (env.GUEST_COLD != 'true' || steps.toolchains.outputs.cache-hit != 'true') }}
-        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_PROOF_PATHS }}
           key: ${{ steps.proof-cache.outputs.cache-primary-key }}

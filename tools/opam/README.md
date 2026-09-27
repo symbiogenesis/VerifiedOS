@@ -12,6 +12,8 @@ Each `.lock` file records the complete compiler, root-package and installed-pack
 
 The Sail, proof, QuickChick and Rupicola switches use OCaml 5.4.1 and ocamlfind 1.9.8. OCaml 5.5.1 is available, but the [released findlib package](https://opam.ocaml.org/packages/ocamlfind/ocamlfind.1.9.8/) requires OCaml below 5.5.0; its 5.5-compatible package is `1.9.9~preview`, marked `avoid-version`.
 
+Sail 0.20.3 and Rocq 9.3.0 are released upstream but not locked. Sail is the model's acceptance compiler, and its paired Rocq support library is unpublished: the latest `rocq-sail-stdpp` release, 0.20.2, conflicts with every other Sail version. The opam repositories carry no `rocq-core` 9.3.0, and `rocq-sail-stdpp` 0.20.2 requires `rocq-core` below 9.3. The proof switch keeps dune 3.23.1 because `rocq-runtime` 9.2.0 requires dune below 3.24.
+
 The CertiRocq oracle switch selects OCaml 5.1.1 and ocamlfind 1.9.8. The unmodified CertiRocq 0.9.1+9.1 release fails its native bootstrap with OCaml 5.4.1: its runtime's `Hd_val` macro collides with the inline function in OCaml's runtime header. OCaml [5.1.1 still defines that name as a macro](https://github.com/ocaml/ocaml/blob/5.1.1/runtime/caml/mlvalues.h), while [5.2.0 defines an inline function](https://github.com/ocaml/ocaml/blob/5.2.0/runtime/caml/mlvalues.h). This compatibility boundary keeps the oracle on 5.1.1 without patching its release. The installed dependencies retain `ocaml-compiler-libs` v0.12.4.
 
 The 5.1.1 wrapper compilation and Gallina vector checks pass, but the full CertiRocq bootstrap and Wasm smoke checks remain incomplete. No `certirocq.lock` is exported until that compiler build and the positive and negative Wasm checks pass. The Docker and native import recipes require that pending snapshot.
