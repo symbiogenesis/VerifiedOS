@@ -16,6 +16,7 @@ from typing import cast
 
 from vos.cli import ring as ring_owner
 from vos.jsonc import Json
+from vos.jsonutil import unique_object
 
 COST_FIELDS = ("validation_cost", "device_service_bound", "cancellation_cleanup_cost",
                "completion_publication_cost")
@@ -96,21 +97,12 @@ class Analysis:
     findings: tuple[str, ...]
 
 
-def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
-    result: dict[str, Json] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
-
-
 def _noninteger(_value: str) -> None:
     raise ValueError("floating-point and non-finite numbers are unsupported")
 
 
 def _decode(blob: bytes) -> Json:
-    return cast(Json, json.loads(blob.decode("utf-8"), object_pairs_hook=_pairs,
+    return cast(Json, json.loads(blob.decode("utf-8"), object_pairs_hook=unique_object,
                                  parse_float=_noninteger, parse_constant=_noninteger))
 
 

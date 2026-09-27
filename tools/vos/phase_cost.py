@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from vos.jsonc import Json
+from vos.jsonutil import unique_object
 
 
 @dataclass(frozen=True)
@@ -44,15 +45,6 @@ def multiply(count: int, value: Bound) -> Bound:
 
 def _json(value: Bound) -> Json:
     return None if value is None else value.json()
-
-
-def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
-    result: dict[str, Json] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
 
 
 def _constant(value: str) -> None:
@@ -147,7 +139,7 @@ def _costs(value: Json, where: str) -> Costs:
 def parse(raw: bytes) -> Comparison:
     """Parse strict JSON. Omitted numeric operands are unknown, never zero."""
     try:
-        value = cast("Json", json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant))
+        value = cast("Json", json.loads(raw, object_pairs_hook=unique_object, parse_constant=_constant))
     except RecursionError as err:
         raise ValueError("comparison JSON nesting exceeds the parser limit") from err
     data = _object(value, {"version", "workload", "domain", "schedule", "clock", "units", "slots",

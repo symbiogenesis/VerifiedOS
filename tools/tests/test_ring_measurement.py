@@ -336,7 +336,9 @@ def _cli_evidence() -> None:
                     ensure(report["milestone_acceptance"] == "open", "no target acceptance")
                     if exit_code != 2:
                         ensure(report["capture_sha256"] == _hash(capture_path.read_bytes()), "byte identity")
-                        ensure(len(report["sources_sha256"]) == 4, "source and contract identities")
+                        ensure(len(report["sources_sha256"]) == 5
+                               and "tools/vos/jsonutil.py" in report["sources_sha256"],
+                               "source and contract identities")
         with redirect_stdout(StringIO()):
             ensure(cli.main([str(root / "missing"), "--expected-identity", str(expected_path)]) == 2,
                    "missing capture is malformed input")

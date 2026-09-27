@@ -27,7 +27,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = analyze(args.capture.read_bytes(), args.expected_identity.read_bytes(), root)
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-                   for name in ("tools/vos/ring_measurement.py", "tools/vos/cli/ring_measurement.py",
+                   for name in ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
+                                "tools/vos/cli/ring_measurement.py",
                                 "tools/vos/cli/ring.py", "docs/implementation/contracts/roster-measurement.md")}
     except (OSError, ValueError, RecursionError) as error:
         if args.json:

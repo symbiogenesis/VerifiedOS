@@ -20,7 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = compare(args.plan.read_bytes(), args.report.read_bytes())
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-                   for name in ("tools/vos/matrix_margin.py", "tools/vos/cli/matrix_margin.py",
+                   for name in ("tools/vos/matrix_margin.py", "tools/vos/jsonutil.py",
+                                "tools/vos/cli/matrix_margin.py",
                                 "docs/implementation/contracts/matrix-margin.md")}
     except (OSError, ValueError, RecursionError) as error:
         if args.json:

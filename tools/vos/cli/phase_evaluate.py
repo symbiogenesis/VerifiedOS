@@ -31,7 +31,7 @@ TERMS_NOT_CARRIED: tuple[str, ...] = (
     "mode-transition budget: a mode change adds no boundary visit and the cost input's "
     "switches remain the declared slot-boundary count",
 )
-SOURCES = ("tools/vos/cli/phase_evaluate.py", "tools/vos/phase_schedule.py",
+SOURCES = ("tools/vos/cli/phase_evaluate.py", "tools/vos/phase_schedule.py", "tools/vos/jsonutil.py",
            "tools/vos/phase_service.py", "tools/vos/phase_completion.py",
            "tools/vos/phase_cost.py", "tools/tests/test_phase_pipeline.py",
            "docs/implementation/phase-service/prerequisite-contract.md")

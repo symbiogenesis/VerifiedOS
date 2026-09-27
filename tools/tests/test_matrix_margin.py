@@ -202,7 +202,8 @@ def _cli() -> None:
             ensure(payload["milestone_acceptance"] == "open", "comparison cannot admit ISA")
             ensure(payload["plan_sha256"] == _hash(plan_file.read_bytes()), "original plan identity")
             ensure(payload["report_sha256"] == _hash(report_file.read_bytes()), "original report identity")
-            ensure(len(payload["sources_sha256"]) == 3, "tool and contract identity")
+            ensure(len(payload["sources_sha256"]) == 4
+                   and "tools/vos/jsonutil.py" in payload["sources_sha256"], "tool and contract identity")
             outputs.append(output.getvalue())
         ensure(outputs[0] == outputs[1], "stable evidence")
         _arm(report)["ticks"] = 1

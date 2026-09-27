@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
+from vos.jsonutil import unique_object
+
 OWNER = "docs/implementation/work-order.json"
 BUCKETS = ("m8a", "m8b", "committed", "conditional", "option")
 START = "<!-- work-order:start -->"
@@ -47,20 +49,11 @@ def _strings(value: object, where: str) -> list[str]:
     return values
 
 
-def _pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
-
-
 def _read(root: Path, leaves: dict[str, bool]) -> WorkOrder:
     """Read full leaf labels with completion flags; unique short IDs are permitted."""
     result = WorkOrder()
     raw: object = json.loads((root / OWNER).read_text(encoding="utf-8"),
-                             object_pairs_hook=_pairs)
+                             object_pairs_hook=unique_object)
     owner = _object(raw, {"version", "buckets", "dispatch", "unpriced"}, OWNER)
     if type(owner["version"]) is not int or owner["version"] != 1:
         raise ValueError(f"{OWNER}: unsupported version")
