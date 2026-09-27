@@ -11,7 +11,8 @@ used by the host comparison. [The target adapter](src/atomic_target.s) owns the
 atomic entry boundaries and calls those compiled stages; the backend is not
 asked to lower unsupported C11 atomics, volatile accesses or unchecked external
 calls. The focused target campaign executes this member on the source-bound
-model. Kernel notification/completion and the composed boot checkpoint remain
+model. The notification adapter performs actual interrupt-file stores and
+ordinary pending loads. Completion and the composed boot checkpoint remain
 separate joins. This C implementation does not discharge the deferred safe-Rust
 obligation or establish CHERI-TAL ownership.
 
@@ -49,9 +50,10 @@ and refuse a value that cannot fit, never truncate its full-width epoch.
 The payload ring selects `reset_at_the_signal`: successful publication exchanges
 the armed word for zero and returns a binary signal request to the adapter. After
 draining its admitted batch, the consumer calls `prepare_sleep`, which arms,
-rechecks the head and allows sleep only if empty. The adapter must preserve a
-pending signal across the check-to-wait boundary; a host Boolean is no kernel
-wait operation. The producer signals even if another activation has already
+rechecks the head and allows a quiet yield only if empty. The adapter preserves a
+pending signal across that boundary. R-07-031b has no notification syscall, and
+the ring's sleep state means a poll-site yield, not a blocking wait. The producer
+signals even if another activation has already
 drained the work, which is permitted coalescing. Ordinary notification helpers
 also exhibit `reset_at_the_drain` to compare both arms of the reference; that arm
 is not the payload ring's policy.
@@ -59,7 +61,8 @@ is not the payload ring's policy.
 Wire indices wrap modulo the declared span, and slots modulo capacity. The
 configuration reader requires capacity to divide span and span to exceed
 capacity, so the live window distinguishes full from empty across wrap. Its
-32-bit arithmetic bound is checked before generating C. The host and target use the declaration's one-byte physical wire indices.
+32-bit arithmetic bound is checked before generating C. The host and target use
+the declaration's one-byte physical wire indices.
 The generation and notification words keep their separate four-byte storage.
 The target layout check rejects any compiler layout incompatible with the
 assembly adapter before running a request. The packed IDL descriptor encoding
@@ -135,6 +138,33 @@ its constants generated from the declaration for the integration owner. It uses
 the scalar ABI and the public C signatures, restores `csp` and `cra`, and treats
 all ordinary registers as caller-clobbered. Snapshot helpers are private stages
 of these adapters, not independent untrusted service entry points.
+
+## Notification device adapter
+
+`copy-service notification` accepts the same compiler and model arguments as
+`target`. It executes actual ring publication, passes that call's signal request
+to [the notification adapter](src/notification_target.s), and observes the
+modeled interrupt-file pending word with ordinary loads. The validated
+device-register declaration and current model composition own its offsets,
+access width and identity bound. `copy_notification.adapter(root)` exposes the
+same assembly and generated constant for composition.
+
+The [notification header](include/vos_copy_notification.h) fixes its scalar ABI.
+The sender gets an exact device-word data read/write capability; the doorbell's
+device semantics make its read side return zero. The receiver gets an exact
+read-only capability to the pending word. Neither carries capability-store or
+system-register authority. `notify` rejects malformed identities and nonbinary
+requests; a zero request performs no store. `poll` returns pending as a Boolean
+or -1 for an invalid identity, and does not clear the word. The device's writeback
+replaces the entire pending word, so unsynchronized read-modify-write clearing
+would lose another sender's event and is not exposed by this adapter.
+
+The target controls cover coalescing, reserved and out-of-range identities,
+zero signal requests, pending across repeated polls, another identity's pending
+bit and the copied payload. Executed lost-store and lost-load mutants must fail
+the controls. Removing the sender's store permission must cause an actual
+capability trap and is reported as authority refusal, not a mutant kill.
+No new syscall, scheduler suspension or completion-ring semantics is introduced.
 
 The C and Python files are original Apache-2.0 sources; this document is CC-BY-4.0
 under [COPYRIGHT.md](../COPYRIGHT.md).

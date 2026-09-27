@@ -7,7 +7,7 @@
 import argparse
 from pathlib import Path
 
-from vos import cli, copy_service, copy_target, env
+from vos import cli, copy_notification, copy_service, copy_target, env
 from vos.corpus import find_root
 
 
@@ -31,8 +31,18 @@ def cmd_target(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_notification(args: argparse.Namespace) -> int:
+    work = env.load().lane_root / "copy-notification"
+    with env.hold_lock(work, "an actual copy notification experiment"):
+        report = copy_notification.run(find_root(), work, args.ccomp, args.ccomp_arg,
+                                       args.simulator, args.build_receipt)
+    print(f"ok actual copy notification, ordinary poll and two executed controls: {work / 'report.json'}")
+    print(report["limits"])
+    return 0
+
+
 def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
-    if name != "target":
+    if name not in {"target", "notification"}:
         return
     parser.add_argument("--ccomp", type=Path, required=True)
     parser.add_argument("--ccomp-arg", action="append", default=[])
@@ -44,6 +54,7 @@ def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
 COMMANDS: cli.Table = {
     "check": (cmd_check, "bounded C and atomic payload controls against the ring reference"),
     "target": (cmd_target, "accepted scalar stages and actual fenced ring adapter"),
+    "notification": (cmd_notification, "actual interrupt-file store and ordinary pending load"),
 }
 
 

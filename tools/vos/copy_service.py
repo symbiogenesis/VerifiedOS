@@ -18,9 +18,9 @@ from vos.supervisor import c_compiler
 CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
 STATES: Final = ("Free", "Writing", "Submitted", "Accepted", "Terminal", "Reclaimed")
 EVENTS: Final = ("reserve", "publish", "accept", "complete", "reclaim", "malformed")
-WAITS: Final = ("Finite host C/reference agreement only. The accepted M1.2f backend, "
-               "M4.4 notification adapter, target memory-order refinement and composed "
-               "M7.1e roster member remain open.")
+WAITS: Final = ("Finite host C/reference agreement only; copy-service target and notification "
+               "supply their separate scalar evidence. The composed boot join, complete "
+               "memory-order refinement and CHERI-TAL ownership remain separate.")
 SOURCES: Final = ("include/vos_copy_service.h", "src/copy_service.c", "test/host.c", "include/vos_copy_atomic.h", "test/fixed_controls.h")
 MAX_COMPARISON_CASES: Final = 50000
 
