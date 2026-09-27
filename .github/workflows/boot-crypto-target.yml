@@ -94,10 +94,7 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Verify the staged streams
-        # Stale or altered streams refuse before any runner time is spent on them.
-        run: python3 tools/run.py boot-crypto verify
-
+      # run.py enters the locked tool environment for every command, so uv comes first.
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           version-file: tools/pyproject.toml
@@ -107,6 +104,16 @@ jobs:
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
+
+      - name: Verify the staged streams and the case timeout
+        # Stale or altered streams refuse before any runner time is spent on them. Two
+        # phases of one case timeout each must fit the execution step's 320 minutes.
+        run: |
+          if ! [[ "$CASE_TIMEOUT" =~ ^[0-9]+$ ]] || (( CASE_TIMEOUT < 1 || CASE_TIMEOUT > 9600 )); then
+            echo "::error::case_timeout must be a whole number of seconds from 1 to 9600"
+            exit 1
+          fi
+          python3 tools/run.py boot-crypto verify
 
       - name: Identify the runner image
         id: image
@@ -176,7 +183,8 @@ jobs:
             2>&1 | tee "$VOS_LOG_DIR/boot-crypto-target.log"
 
       - name: Preserve the interface receipt and logs
-        if: ${{ !cancelled() }}
+        # always(): a job that reaches its time limit still keeps its progress and logs.
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7.0.1
         with:
           # One name per interface and revision; a rerun of a failed interface replaces it.
@@ -230,6 +238,15 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
 
       - name: Collect the interface receipts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1

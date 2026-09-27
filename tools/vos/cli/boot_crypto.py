@@ -38,10 +38,11 @@ def cmd_target(args: argparse.Namespace) -> int:
         receipts.write(out / "report.json", {"passed": False, "status": "incomplete",
                                               "milestone_acceptance": "open"})
         try:
-            result = boot_crypto_target.run(e.root, out, Path(args.ccomp) if args.ccomp else None,
+            result = boot_crypto_target.run(e.root, out, None if args.staged else Path(args.ccomp),
                 args.ccomp_arg, Path(args.simulator), Path(args.build_receipt), args.timeout,
                 args.inst_limit, args.first, args.jobs, modes)
-        except (OSError, ValueError, TypeError, RuntimeError, subprocess.SubprocessError) as error:
+        except (OSError, ValueError, TypeError, KeyError, RuntimeError,
+                subprocess.SubprocessError) as error:
             receipts.write(out / "report.json", {"passed": False, "status": "failed", "error": str(error),
                                                  "milestone_acceptance": "open"})
             print(f"FAIL boot-crypto target: {error}")
@@ -58,9 +59,12 @@ def cmd_stage(args: argparse.Namespace) -> int:
     out = Path(args.out) if args.out else e.lane_root / "boot-crypto-stage"
     out.mkdir(parents=True, exist_ok=True)
     with env.hold_lock(out, "boot signature staging"):
+        receipts.write(out / "stage.json", {"passed": False, "status": "incomplete"})
         try:
             result = boot_crypto_target.stage(e.root, out, Path(args.ccomp), args.ccomp_arg, args.check)
-        except (OSError, ValueError, TypeError, RuntimeError, subprocess.SubprocessError) as error:
+        except (OSError, ValueError, TypeError, KeyError, RuntimeError,
+                subprocess.SubprocessError) as error:
+            receipts.write(out / "stage.json", {"passed": False, "status": "failed", "error": str(error)})
             print(f"FAIL boot-crypto stage: {error}")
             return 1
         receipts.write(out / "stage.json", result)

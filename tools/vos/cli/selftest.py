@@ -1532,6 +1532,15 @@ CASES: list[Case] = [
     ("K-75", "a guest workflow interpreter below the floor ty.toml fixes",
      _literal(".github/workflows/guest-gates.yml", 'python-version: "3.14"',
               'python-version: "3.13"')),
+    # The campaign installs the interpreter in each of its jobs, so the second job's
+    # copy is seeded too: a rule reading only the first site in a file passes it.
+    ("K-75", "a campaign workflow's first interpreter below the floor ty.toml fixes",
+     _literal(".github/workflows/boot-crypto-target.yml", 'python-version: "3.14"',
+              'python-version: "3.13"')),
+    ("K-75", "a campaign workflow's later interpreter below the floor ty.toml fixes",
+     _first_match(".github/workflows/boot-crypto-target.yml",
+                  r'(python-version: "3\.14".*)python-version: "3\.14"',
+                  lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
     ("K-75", "a project admitting an interpreter below the typing target",
      _literal("tools/pyproject.toml", 'requires-python = ">=3.14,<3.15"',
               'requires-python = ">=3.13,<3.15"')),

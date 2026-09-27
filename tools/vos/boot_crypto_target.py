@@ -7,7 +7,7 @@ import re
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
 from vos import asm, boot_crypto, boot_handoff, boot_target, image, kernel_restore, receipts
@@ -128,6 +128,27 @@ def read_sources(root: Path, unit: cd.Compiled) -> dict[str, str]:
     return found
 
 
+def search_directories(root: Path, unit: cd.Compiled, sources: dict[str, str]) -> set[str]:
+    """The checkout directories an include of this unit can search: each read file's
+    own directory, which a quoted include tries first, and each `-I` directory."""
+    base = root.resolve()
+    found = {PurePosixPath(name).parent.as_posix() for name in sources}
+    for argument in unit.argv:
+        if argument.startswith("-I"):
+            path = (Path(unit.preprocessed.cwd) / argument[2:]).resolve()
+            if path.is_relative_to(base):
+                found.add(path.relative_to(base).as_posix())
+    return found
+
+
+def listing(root: Path, directory: str) -> list[str]:
+    """Every file under one search directory by name, outside the staged tree. A file
+    added beside a read header can shadow it without changing any read file's bytes."""
+    base, excluded = (root / directory).resolve(), (root / STAGED).resolve()
+    return sorted(path.relative_to(base).as_posix() for path in base.rglob("*")
+                  if path.is_file() and not path.resolve().is_relative_to(excluded))
+
+
 def portable(argv: tuple[str, ...], root: Path) -> list[str]:
     """A compile argv without this machine's paths: the compiler by role, its
     configuration files by name and the include directory relative to the checkout."""
@@ -171,13 +192,18 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str],
     files: dict[str, bytes] = {}
     modes: dict[str, object] = {}
     sources: dict[str, str] = {}
+    directories: set[str] = set()
     native: dict[str, object] = {}
     for mode in MODES:
         unit, stream, frames = compile_mode(root, out, ccomp, compiler_args, mode)
         raw = (out / mode / "compiled" / f"{Path(SOURCE).stem}.s").read_bytes()
         if hashlib.sha256(raw).hexdigest() != unit.stream_sha256:
             raise ValueError(f"{mode} stream changed after compilation")
-        sources.update(read_sources(root, unit))
+        read = read_sources(root, unit)
+        if changed := sorted(name for name, value in read.items() if sources.get(name, value) != value):
+            raise ValueError(f"staging inputs changed between interfaces: {changed}")
+        sources.update(read)
+        directories |= search_directories(root, unit, read)
         files[f"{mode}.s"] = HEADER.encode("utf-8") + raw
         # The unit's line markers name this checkout's absolute include paths, so its
         # digest stays in the native receipt rather than in the portable manifest.
@@ -193,7 +219,9 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str],
                 "stack_bytes": STACK_BYTES, "compiler_provenance": provenance,
                 "compiler_receipts_sha256": _named(provenance_files),
                 "compiler_inputs_sha256": _named(compiler_files),
-                "sources_sha256": dict(sorted(sources.items())), "modes": modes}
+                "sources_sha256": dict(sorted(sources.items())),
+                "search_directories": {name: listing(root, name) for name in sorted(directories)},
+                "modes": modes}
     files["manifest.json"] = _json(manifest)
     differences = sorted(name for name in files.keys() | tracked.keys()
                          if files.get(name) != tracked.get(name))
@@ -235,12 +263,27 @@ def staged(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
         if not path.is_file() or receipts.digest(path) != value:
             raise ValueError(f"the staged streams are stale: {name} changed since staging; "
                              "rerun run.py boot-crypto stage")
+    searched = manifest.get("search_directories")
+    if (not isinstance(searched, dict)
+            or not all(isinstance(names, list) for names in searched.values())
+            or not {PurePosixPath(name).parent.as_posix() for name in sources} <= set(searched)):
+        raise ValueError("the staged manifest does not list every include search directory")
+    for name, names in searched.items():
+        path = (root / name).resolve()
+        if not path.is_relative_to(root) or not path.is_dir():
+            raise ValueError(f"invalid staged search directory: {name}")
+        if listing(root, name) != names:
+            raise ValueError(f"the staged streams are stale: the files in {name} changed "
+                             "since staging; rerun run.py boot-crypto stage")
     header = HEADER.encode("utf-8")
     streams: dict[str, str] = {}
     for mode in MODES:
         entry = modes[mode]
         if not isinstance(entry, dict) or entry.get("file") != f"{mode}.s":
             raise ValueError(f"{mode} staged entry names another file")
+        argv = entry.get("argv")
+        if not isinstance(argv, list) or not all(isinstance(argument, str) for argument in argv):
+            raise ValueError(f"{mode} staged entry records no compile arguments")
         data = (directory / f"{mode}.s").read_bytes()
         if not data.startswith(header):
             raise ValueError(f"{mode} staged stream lacks its generated header")

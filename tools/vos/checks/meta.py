@@ -186,6 +186,7 @@ PROVISION = "tools/vos/cli/provision.py"
 
 _HOST_WORKFLOW = ".github/workflows/host-gates.yml"
 _GUEST_WORKFLOW = ".github/workflows/guest-gates.yml"
+_CAMPAIGN_WORKFLOW = ".github/workflows/boot-crypto-target.yml"
 
 TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
@@ -273,7 +274,8 @@ def _packed(floor: str) -> str:
 
 
 # The floor's sites, each with the file it is in, the pattern that reads it, and how
-# that site spells the figure. Every group a pattern captures is held.
+# that site spells the figure. Every match of a pattern and every group it captures is
+# held, because a workflow with several jobs installs the interpreter once per job.
 _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
     ("target version", RUFF_CONF,
      re.compile(r'(?m)^target-version = "([^"\r\n]*)"'), _packed),
@@ -284,6 +286,8 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
     ("workflow interpreter", _HOST_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
     ("workflow interpreter", _GUEST_WORKFLOW,
+     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
+    ("workflow interpreter", _CAMPAIGN_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
 ]
 
@@ -513,13 +517,13 @@ def _floor(ctx: Context) -> None:
 
         for label, file, pattern, spell in _FLOOR_SITES:
             want = spell(floor)
-            hit = pattern.search(text[file])
-            if hit is None:
+            hits = list(pattern.finditer(text[file]))
+            if not hits:
                 findings.append(f"{file} no longer states the floor in its {label}, in a "
                                 "form this rule reads")
                 continue
             findings += [f"{file}'s {label} states {found}, {TY_CONF} fixes {want}"
-                         for found in hit.groups() if found != want]
+                         for hit in hits for found in hit.groups() if found != want]
 
     rep.report("K-75", "interpreter floor site(s) disagreeing with the version ty.toml "
                "fixes:", findings,
