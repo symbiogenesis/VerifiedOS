@@ -17,6 +17,7 @@ from tests.harness import Case, ensure, sandbox_tree
 from vos import fanout_ci as ci
 
 REVISION = "a" * 40
+SUBJECT = "Settle the fixture batch"
 REPO = "example/verifiedos"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,7 +77,7 @@ class FakeGitHub:
                 raise self.dispatch_error
             if lane == "host" and saved_run is not None:
                 self.host = _run(event="workflow_dispatch", head_sha=self.dispatch_sha,
-                                 display_title=ci._title(saved_run))
+                                 display_title=ci._prefix(saved_run) + SUBJECT)
             number = 20 if lane == "guest" else 10
             return {"workflow_run_id": number,
                     "html_url": f"https://github.com/{REPO}/actions/runs/{number}",
@@ -93,6 +94,7 @@ class FakeGitHub:
 
     def advance(self) -> bool:
         with (patch.object(ci, "_token", return_value="fixture-credential"),
+              patch.object(ci, "_subject", return_value=SUBJECT),
               patch.object(ci.GitHub, "request", side_effect=self.request),
               patch.object(ci.time, "sleep", side_effect=self.sleep)):
             return ci.advance(ROOT, self.state, self.save)
@@ -125,7 +127,8 @@ def _successful_handoff() -> None:
     posts = fake.posts()
     ensure(len(posts) == 1, "dispatch guest exactly once")
     ensure(posts[0][2] == {"ref": state["ref"], "inputs": {
-        "fanout_token": guest["token"] if guest else "", "revision": REVISION, "cold": True}},
+        "fanout_token": guest["token"] if guest else "", "revision": REVISION,
+        "title": SUBJECT, "cold": True}},
         "guest dispatch must use main, exact revision, explicit cold policy and recovery token")
     ensure(not any(ci.GUEST in path and method == "GET" for method, path, _ in fake.calls),
            "normal guest dispatch must not query guest runs")
@@ -187,7 +190,7 @@ def _host_dispatch() -> None:
            "start Host CI when no exact suitable run exists")
     payload = posts[0][2]
     host = fake.state["host"]
-    ensure(payload == {"ref": "main", "inputs": {"revision": REVISION,
+    ensure(payload == {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT,
         "fanout_token": host["token"] if host else ""}},
         "Host CI dispatch must pin checkout to the requested main revision")
     ensure(fake.state["guest"] is None, "host dispatch supplies no verdict")
@@ -233,12 +236,14 @@ def _dispatch_revision_survives_main_advance() -> None:
     ensure(fake.advance(), "pinned checkout remains evidence when main advances during dispatch")
     ensure(fake.state["host"] is not None and fake.state["host"]["revision"] == REVISION,
            "evidence must name the checked out revision, not the workflow's newer main tip")
-    for title in ("fanout:old-format", "fanout:other:" + REVISION, "host-gates:" + REVISION):
+    for title in ("fanout:old-format", "fanout:other:" + SUBJECT, "host-gates:" + SUBJECT,
+                  "fanout:{token}", "fanout:{token}0:" + SUBJECT, "host-gates:fanout:{token}:"):
         fake = FakeGitHub(_state())
         fake.host_runs = []
         ensure(not fake.advance(), "fixture host dispatch starts pending")
-        fake.host["display_title"] = title
-        _refuses(fake.advance, "a dispatch needs its recorded identity and pinned revision")
+        host = fake.state["host"]
+        fake.host["display_title"] = title.format(token=host["token"] if host else "missing")
+        _refuses(fake.advance, "a dispatch needs the token its request carried with the revision")
         ensure(len(fake.posts()) == 1, "wrong dispatch cannot start guest")
 
 
@@ -252,7 +257,7 @@ def _guest_interrupt_recovery() -> None:
     token = guest["token"] if guest else "missing"
     fake.dispatch_error = None
     fake.guest_runs = [_run(20, event="workflow_dispatch", head_sha="b" * 40,
-                            display_title=f"fanout:{token}:{REVISION}",
+                            display_title=f"fanout:{token}:{SUBJECT}",
                             status="completed", conclusion="failure",
                             path=".github/workflows/guest-gates.yml")]
     ensure(fake.advance(), "a unique dispatched identity must be adopted")
@@ -271,32 +276,33 @@ def _ambiguous_recovery_never_reposts() -> None:
         guest = fake.state["guest"]
         token = guest["token"] if guest else "missing"
         fake.guest_runs = [_run(number, event="workflow_dispatch",
-                               display_title=f"fanout:{token}:{REVISION}")
+                               display_title=f"fanout:{token}:{SUBJECT}")
                            for number in range(20, 20 + count)]
         fake.dispatch_error = None
         _refuses(fake.advance, "ambiguous identity must not authorize a second dispatch")
         ensure(len(fake.posts()) == 1, "only the original request may have started guest")
 
 
-def _recovery_requires_main_and_pinned_revision() -> None:
-    for change in ("branch", "revision", "workflow"):
+def _recovery_requires_main_and_own_dispatch() -> None:
+    for change in ("branch", "token", "workflow"):
         fake = FakeGitHub(_state())
         fake.dispatch_error = ci.APIError(None)
         _refuses(fake.advance, "interrupted dispatch must retain its intent")
         guest = fake.state["guest"]
         ensure(guest is not None, "interrupted guest intent must exist")
-        title = ci._title(guest) if guest else "missing"
-        candidate = _run(20, event="workflow_dispatch", display_title=title,
+        prefix = ci._prefix(guest) if guest else "missing"
+        candidate = _run(20, event="workflow_dispatch", display_title=prefix + SUBJECT,
                          path=".github/workflows/guest-gates.yml")
         if change == "branch":
             candidate["head_branch"] = "work/stranded"
-        elif change == "revision":
-            candidate["display_title"] = title.replace(REVISION, "b" * 40)
+        elif change == "token":
+            # Another request's run, even for the same commit, carried its own inputs.
+            candidate["display_title"] = f"fanout:{'0' * 32}:{SUBJECT}"
         else:
             candidate["path"] = ".github/workflows/host-gates.yml"
         fake.guest_runs = [candidate]
         fake.dispatch_error = None
-        _refuses(fake.advance, "recovery must identify main and the exact checkout revision")
+        _refuses(fake.advance, "recovery must identify main and this record's own dispatch")
         ensure(len(fake.posts()) == 1, "identity mismatch must not repeat the guest dispatch")
 
 
@@ -318,6 +324,7 @@ def _host_interrupt_recovery() -> None:
     _refuses(fake.advance, "host transport error must preserve its intent")
     host = fake.state["host"]
     token = host["token"] if host else "missing"
+    # A dispatch made before titles carried the subject still recovers by its token.
     fake.host_runs = [_run(event="workflow_dispatch", head_sha="b" * 40,
                           display_title=f"fanout:{token}:{REVISION}")]
     fake.host = fake.host_runs[0]
@@ -380,12 +387,37 @@ def _transport_contract() -> None:
             raise AssertionError("failed transport must not establish a verdict")
 
 
-def _workflow_checkout_validation() -> None:
-    def git(root: Path, *args: str) -> str:
-        done = subprocess.run(["git", "-C", str(root), *args], capture_output=True,
-                              text=True, check=True, timeout=30)
-        return done.stdout.strip()
+def _git(root: Path, *args: str) -> str:
+    done = subprocess.run(["git", "-C", str(root), *args], capture_output=True,
+                          text=True, check=True, timeout=30)
+    return done.stdout.strip()
 
+
+def _fixture_identity(root: Path) -> None:
+    _git(root, "config", "user.name", "Workflow test")
+    _git(root, "config", "user.email", "workflow@example.invalid")
+    _git(root, "config", "commit.gpgsign", "false")
+
+
+def _dispatch_subject() -> None:
+    long = "Accelerate scoped document count checks with candidate and offset indexes"
+    with sandbox_tree({"README.md": "subject fixture\n"}) as root:
+        _fixture_identity(root)
+        revisions: dict[str, str] = {}
+        for subject in ("Short subject", "a" * ci.SUBJECT_LIMIT, long):
+            _git(root, "commit", "--allow-empty", "-qm", subject, "-m", "Body text stays out.")
+            revisions[subject] = _git(root, "rev-parse", "HEAD")
+        ensure(ci._subject(root, revisions["Short subject"]) == "Short subject",
+               "a short subject is the whole title text, without the body")
+        ensure(ci._subject(root, revisions["a" * ci.SUBJECT_LIMIT]) == "a" * ci.SUBJECT_LIMIT,
+               "a subject at the limit is not shortened")
+        ensure(ci._subject(root, revisions[long])
+               == "Accelerate scoped document count checks with candidate and offset ind…",
+               "a long subject is shortened as GitHub shortens a push run's title")
+        _refuses(lambda: ci._subject(root, "b" * 40), "a missing revision has no subject")
+
+
+def _workflow_checkout_validation() -> None:
     scripts: list[str] = []
     for workflow in (ci.HOST, ci.GUEST):
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
@@ -393,16 +425,14 @@ def _workflow_checkout_validation() -> None:
         script = step.split("        run: |\n", 1)[1].split("\n      - ", 1)[0]
         scripts.append(textwrap.dedent(script))
     with sandbox_tree({"README.md": "workflow fixture\n"}) as root:
-        git(root, "config", "user.name", "Workflow test")
-        git(root, "config", "user.email", "workflow@example.invalid")
-        git(root, "config", "commit.gpgsign", "false")
-        git(root, "commit", "--allow-empty", "-qm", "base")
-        base = git(root, "rev-parse", "HEAD")
-        git(root, "commit", "--allow-empty", "-qm", "advance main")
-        advanced = git(root, "rev-parse", "HEAD")
-        git(root, "checkout", "--detach", base)
-        git(root, "commit", "--allow-empty", "-qm", "unpublished sibling")
-        sibling = git(root, "rev-parse", "HEAD")
+        _fixture_identity(root)
+        _git(root, "commit", "--allow-empty", "-qm", "base")
+        base = _git(root, "rev-parse", "HEAD")
+        _git(root, "commit", "--allow-empty", "-qm", "advance main")
+        advanced = _git(root, "rev-parse", "HEAD")
+        _git(root, "checkout", "--detach", base)
+        _git(root, "commit", "--allow-empty", "-qm", "unpublished sibling")
+        sibling = _git(root, "rev-parse", "HEAD")
         cases = ((base, base, base, "refs/heads/main", True),
                  (base, base, advanced, "refs/heads/main", True),
                  (advanced, base, advanced, "refs/heads/main", False),
@@ -410,7 +440,7 @@ def _workflow_checkout_validation() -> None:
                  (sibling, sibling, advanced, "refs/heads/main", False),
                  (base, base, advanced, "refs/heads/work/stranded", False))
         for checkout, requested, main, ref, passes in cases:
-            git(root, "checkout", "--detach", checkout)
+            _git(root, "checkout", "--detach", checkout)
             environment = dict(os.environ, REQUESTED_REVISION=requested,
                                DISPATCH_REF=ref, DISPATCH_MAIN_SHA=main)
             for script in scripts:
@@ -432,9 +462,10 @@ def cases() -> list[Case]:
             Case("dispatch-revision-survives-main-advance", _dispatch_revision_survives_main_advance),
             Case("guest-interrupt-recovery", _guest_interrupt_recovery),
             Case("ambiguous-recovery-never-reposts", _ambiguous_recovery_never_reposts),
-            Case("recovery-main-and-pinned-revision", _recovery_requires_main_and_pinned_revision),
+            Case("recovery-main-and-own-dispatch", _recovery_requires_main_and_own_dispatch),
             Case("rejected-dispatch-retry", _rejected_dispatch_can_retry),
             Case("host-interrupt-recovery", _host_interrupt_recovery),
             Case("remote-validation", _remote_validation), Case("state-validation", _state_validation),
             Case("transport-contract", _transport_contract),
+            Case("dispatch-subject", _dispatch_subject),
             Case("workflow-checkout-validation", _workflow_checkout_validation)]

@@ -96,10 +96,13 @@ When a completed batch's integration revision changes, initialize a new batch.
   Initialization and completion refuse a work branch, including old completed
   journals. Host CI must pass on both
   Windows and Ubuntu for that exact revision, from the push run on `main` whose head
-  is that revision or from the batch's own dispatch, identified by its
-  `fanout:<token>:<revision>` run title. GitHub lists a push run seconds after it
-  accepts the push, so the first lookup retries after the bounded pauses in
-  `fanout_ci.PUSH_RUN_WAITS` and starts Host CI only when no such push run appears.
+  is that revision or from the batch's own dispatch, identified by the token in its
+  `fanout:<token>:<subject>` run title. The dispatch request carries that token with
+  the revision input; the subject is the revision's commit subject, shortened to
+  `fanout_ci.SUBJECT_LIMIT` characters, and is display text only. GitHub lists a
+  push run seconds after it accepts the push, so the first lookup retries after the
+  bounded pauses in `fanout_ci.PUSH_RUN_WAITS` and starts Host CI only when no such
+  push run appears.
   Pending, failed, skipped or canceled checks supply no passing evidence.
 - After Host CI passes, dispatch Guest CI with both model and proofs lanes for the
   same revision, forwarding the explicit cold policy. Record run identifiers or
