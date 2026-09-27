@@ -194,6 +194,22 @@ def _dirty_handoff() -> None:
         ensure(state["status"] == "initialized", "dirty worker never enters integration")
 
 
+def _inputs_change_during_ci() -> None:
+    with _fixture() as (root, lane, _):
+        state, path = _init(root, lane)
+
+        def changed(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
+            (checkout / "README.md").write_text("concurrent edit\n", encoding="utf-8")
+            return True
+
+        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
+              patch.object(fanout_ci, "advance", side_effect=changed),
+              patch.object(fanout_retire, "retire") as retire):
+            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "uncommitted inputs")
+            retire.assert_not_called()
+            ensure(state["status"] != "complete", "changed inputs do not complete")
+
+
 def cases() -> list[Case]:
     return [Case("journal, merge ancestry and changed handoff", _roundtrip_and_handoff),
             Case("conflict remains for integrator", _conflict),
@@ -201,4 +217,5 @@ def cases() -> list[Case]:
             Case("partial retirement resumes without checkout", _retirement_resume),
             Case("paths, journal identity and exclusive mutation", _paths_and_journal),
             Case("only explicit paths enter commit", _explicit_commit),
-            Case("dirty handoff stops before integration", _dirty_handoff)]
+            Case("dirty handoff stops before integration", _dirty_handoff),
+            Case("concurrent inputs prevent retirement", _inputs_change_during_ci)]

@@ -69,7 +69,10 @@ def _exclusive(root: Path) -> Iterator[None]:
     """All batches in one integration checkout share a process-lifetime lock."""
     directory = _location(root, "lock").parent
     directory.mkdir(parents=True, exist_ok=True)
-    with (directory / ".lock").open("a+b") as stream:
+    lock = directory / ".lock"
+    if lock.is_symlink() or lock.is_junction() or lock.resolve() != lock:
+        raise ValueError(f"integration lock must not redirect: {lock}")
+    with lock.open("a+b") as stream:
         if stream.tell() == 0:
             stream.write(b"0")
             stream.flush()
@@ -238,6 +241,13 @@ def _publish(root: Path, state: Batch, revision: str) -> str:
     return ref
 
 
+def _settled(root: Path, state: Batch, revision: str) -> None:
+    _checkout(root, state)
+    _clean(root)
+    if _git(root, "rev-parse", "HEAD") != revision:
+        raise ValueError("integration revision changed during hosted validation or retirement")
+
+
 def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bool:
     _checkout(root, state)
     if state["status"] == "complete":
@@ -250,7 +260,9 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
         integrate(root, state, path)
         _prepare(root, args.path, args.message)
     else:
-        _clean(root)
+        # A fix to the retirement code may itself need a new tested revision.
+        # Already removed workers resume via their durable removal receipts.
+        _prepare(root, args.path, args.message)
     revision = _git(root, "rev-parse", "HEAD")
     if state["ci"] is None or state["ci"]["revision"] != revision:
         ref = _publish(root, state, revision)
@@ -260,27 +272,28 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
         _save(path, state)
     deadline = time.monotonic() + args.wait_host
     while True:
-        _checkout(root, state)
-        _clean(root)
-        if _git(root, "rev-parse", "HEAD") != revision:
-            raise ValueError("integration revision changed while awaiting Host CI")
+        _settled(root, state, revision)
         ready = fanout_ci.advance(root, state["ci"], lambda: _save(path, state))
         if ready:
             break
         state["status"] = "host-pending"
         _save(path, state)
-        print(json.dumps(state["ci"], indent=2), flush=True)
+        host = state["ci"]["host"]
+        print(f"Host CI {host['status'] if host else 'pending'}: "
+              f"{host['url'] if host else 'awaiting dispatch'}", flush=True)
         if time.monotonic() >= deadline:
             return False
         time.sleep(min(15, max(0, deadline - time.monotonic())))
     state["status"] = "retiring"
     _save(path, state)
     for raw in state["lanes"]:
+        _settled(root, state, revision)
         lane = fanout_retire.validate_record(raw)
         if lane.path not in state["retired"]:
             state["retired"][lane.path] = fanout_retire.retire(
                 root, lane, revision, path.parent / "retained")
             _save(path, state)
+    _settled(root, state, revision)
     state["status"] = "complete"
     _save(path, state)
     return True
