@@ -6,6 +6,9 @@
 # edge between arming and rechecking, and payload release/acquire edges.
 .text
 vos_copy_init:
+    li x11, COPY_GENERATION
+vos_copy_init_generation:
+    beqz x11, vos_copy_init_refuse
     cmove c5, c2
     cincoffsetimm c2, c2, -16
     sc c1, 0(c2)
@@ -15,9 +18,13 @@ vos_copy_init:
     sb x0, 1(c10)
     sw x0, 4(c10)
     fence rw, rw
-    call vos_copy_init_slots
+    call vos_copy_init_generation_slots
+    li x10, 1
     lc c1, 0(c2)
     lc c2, 8(c2)
+    ret
+vos_copy_init_refuse:
+    li x10, 0
     ret
 vos_copy_submit:
     cmove c5, c2

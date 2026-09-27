@@ -61,11 +61,13 @@ void vos_copy_activation(vos_copy_world *world, vos_copy_reset reset,
 /* Snapshot helpers are called only by the host atomic adapter or the target
  * assembly adapter while the relevant endpoint owns its slots. */
 void vos_copy_init_slots(vos_copy_ring *ring);
+void vos_copy_init_generation_slots(vos_copy_ring *ring, uint32_t generation);
 int vos_copy_submit_snapshot(vos_copy_ring *ring, const vos_copy_request *input,
                               vos_copy_view *view);
 int vos_copy_take_snapshot(vos_copy_ring *ring, uint8_t *destination, size_t capacity,
                             size_t *length, uint32_t *request, vos_copy_view *view);
 void vos_copy_init(vos_copy_ring *ring);
+int vos_copy_init_generation(vos_copy_ring *ring, uint32_t generation);
 int vos_copy_submit(vos_copy_ring *ring, uint32_t generation, uint32_t request,
                     uint32_t operation, const uint8_t *source,
                     size_t extent, size_t length, uint32_t *signal);

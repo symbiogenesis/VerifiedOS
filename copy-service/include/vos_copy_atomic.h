@@ -9,11 +9,6 @@
 #ifdef VOS_COPY_TARGET
 typedef struct { uint8_t value; } vos_copy_atomic_index;
 typedef struct { uint32_t value; } vos_copy_atomic_word;
-uint32_t vos_copy_index_load(const vos_copy_atomic_index *cell);
-void vos_copy_index_store(vos_copy_atomic_index *cell, uint32_t value);
-uint32_t vos_copy_word_load(const vos_copy_atomic_word *cell);
-void vos_copy_word_store(vos_copy_atomic_word *cell, uint32_t value);
-uint32_t vos_copy_word_exchange(vos_copy_atomic_word *cell, uint32_t value);
 #else
 #include <stdatomic.h>
 typedef _Atomic uint8_t vos_copy_atomic_index;

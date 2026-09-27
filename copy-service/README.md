@@ -6,15 +6,21 @@ capacity, index span, batch, generation and operation payload limits have no
 second maintained copy. The core uses caller-owned fixed arrays and no allocation,
 recursion or garbage collector.
 
-**The target roster member is unbuilt.** The accepted M1.2f backend, its C11 atomic
-lowering, M4.4's notification/wait adapter and M7.1a's composed member remain open.
-Host agreement does not establish CHERI-TAL slot ownership or refinement under
-Ztso. This C implementation does not discharge the deferred safe-Rust obligation.
+The accepted scalar backend lowers the same validation, staging and lifecycle C
+used by the host comparison. [The target adapter](src/atomic_target.s) owns the
+atomic entry boundaries and calls those compiled stages; the backend is not
+asked to lower unsupported C11 atomics, volatile accesses or unchecked external
+calls. The focused target campaign executes this member on the source-bound
+model. Kernel notification/completion and the composed boot checkpoint remain
+separate joins. This C implementation does not discharge the deferred safe-Rust
+obligation or establish CHERI-TAL ownership.
 
 ## Executable boundary
 
 [The header](include/vos_copy_service.h) separates ordinary finite state helpers
-from a payload ring whose head, tail and binary armed word have C11 atomic types.
+from a payload ring whose head, tail and binary armed word have explicit atomic
+interface types. The host defines those types with C11 atomics; the target keeps
+them opaque to C and accesses them only in the assembly adapter.
 The payload ring supports exactly one producer and one consumer. Publication and
 return of ownership use sequentially consistent stores, including release;
 observations use sequentially consistent loads, including acquire. The stronger
@@ -36,6 +42,9 @@ This is no atomic snapshot guarantee; semantic validation must use staging.
 arguments, then accepts, consumes all readers, completes and reclaims the slot
 before releasing the tail. Reuse begins a fresh Free-to-Writing lifecycle only
 after that release. Reset/reinitialization requires both endpoints quiescent.
+`init_generation` refuses zero and installs the supplied four-byte generation;
+the serialized kernel binding must advance the session generation before reuse
+and refuse a value that cannot fit, never truncate its full-width epoch.
 
 The payload ring selects `reset_at_the_signal`: successful publication exchanges
 the armed word for zero and returns a binary signal request to the adapter. After
@@ -50,9 +59,11 @@ is not the payload ring's policy.
 Wire indices wrap modulo the declared span, and slots modulo capacity. The
 configuration reader requires capacity to divide span and span to exceed
 capacity, so the live window distinguishes full from empty across wrap. Its
-32-bit arithmetic bound is checked before generating C. The payload ring's
-atomic host storage uses `uint32_t`, not the declaration's physical wire index
-width; the descriptor/header encoding and target adapter still owe that mapping.
+32-bit arithmetic bound is checked before generating C. The host and target use the declaration's one-byte physical wire indices.
+The generation and notification words keep their separate four-byte storage.
+The target layout check rejects any compiler layout incompatible with the
+assembly adapter before running a request. The packed IDL descriptor encoding
+and generated Narcissus parser remain distinct from this direct bounded C API.
 The reference helpers'
 `signals` and `drained` fields are bounded test observations, not shared event
 counters. Both the index batch helper and the atomic payload `submit_batch`
@@ -88,6 +99,42 @@ this is a comparison resource limit, not an interface capacity requirement.
 Linux additionally compiles and runs the fixed C controls. The proof gate remains
 the authority for compiled proof acceptance. This finite comparison performs no
 assumption audit, target run or composed boot.
+
+## Scalar target comparison
+
+After `copy-service check`, run `copy-service target --ccomp PATH
+--ccomp-arg=-conf --ccomp-arg=CONFIG --simulator PATH --build-receipt FILE`.
+The target driver refuses stale reference inputs or answers and a model receipt
+that does not bind the current source population and simulator. Its report binds
+the C producer, configuration, generated rows, emitted assembly, image, actual
+trace and reference comparison. The compiled row consumer executes every answer
+from the existing Gallina comparison; an altered answer must fail on target.
+A separate executed mutant drops head publication and must be detected by the
+payload controls. Both mutants must run to a control failure; a trap or failure
+to assemble is not a kill.
+
+The actual atomic entry controls cover empty/full/one-past-full, repeated wire
+wrap, maximum payload, guard bytes, post-publication source mutation, overlong,
+stale-generation and duplicate refusal, independent partial batch decisions,
+and publication at every drain/arm/recheck/sleep boundary. Source, destination,
+ring and row-table capabilities have separate power-of-two bounded extents.
+The stack is bounded independently and no ring lives on it. Generation reset is
+quiescent; runtime teardown must zero the actual owned ring/staging extent.
+
+The adapter fences payload publication and consumption and the consumer's
+arm-store to head-load edge. The producer clears `armed` with `amoswap.w.aqrl`.
+The projected two-cell Ztso Store/Load experiment exhausts the event orders under
+those edges and rejects a removed consumer fence with a lost-wakeup witness.
+This finite projection is not a proof of the whole C/ISA refinement. A single-hart
+emulator cannot establish cross-core ordering or the kernel's sticky pending
+notification contract; the scalar integration checkpoint supplies the latter.
+The adapter's source and all its linked instruction bytes remain in the receipt.
+
+`copy_target.adapter(root)` returns the same assembly entry implementation and
+its constants generated from the declaration for the integration owner. It uses
+the scalar ABI and the public C signatures, restores `csp` and `cra`, and treats
+all ordinary registers as caller-clobbered. Snapshot helpers are private stages
+of these adapters, not independent untrusted service entry points.
 
 The C and Python files are original Apache-2.0 sources; this document is CC-BY-4.0
 under [COPYRIGHT.md](../COPYRIGHT.md).

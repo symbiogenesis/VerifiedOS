@@ -2,6 +2,7 @@
 #define VOS_COPY_TARGET
 #include "vos_copy_service.h"
 #include "../src/copy_service.c"
+#include "target_comparison.c"
 int vos_copy_target_layout(void)
 {
     return offsetof(vos_copy_ring, produced) == 0u

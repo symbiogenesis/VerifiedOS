@@ -114,10 +114,10 @@ void vos_copy_activation(vos_copy_world *world, vos_copy_reset reset,
     }
 }
 
-void vos_copy_init_slots(vos_copy_ring *ring)
+void vos_copy_init_generation_slots(vos_copy_ring *ring, uint32_t generation)
 {
     uint32_t i;
-    ring->generation = VOS_COPY_GENERATION;
+    ring->generation = generation;
     for (i = 0; i < VOS_COPY_CAPACITY; ++i) {
         ring->slots[i].life.state = VOS_COPY_FREE;
         ring->slots[i].life.readers = 0;
@@ -125,6 +125,11 @@ void vos_copy_init_slots(vos_copy_ring *ring)
         ring->slots[i].life.request = 0;
         ring->slots[i].length = 0;
     }
+}
+
+void vos_copy_init_slots(vos_copy_ring *ring)
+{
+    vos_copy_init_generation_slots(ring, VOS_COPY_GENERATION);
 }
 
 int vos_copy_submit_snapshot(vos_copy_ring *ring, const vos_copy_request *input,
@@ -185,10 +190,17 @@ int vos_copy_take_snapshot(vos_copy_ring *ring, uint8_t *destination, size_t cap
 #ifndef VOS_COPY_TARGET
 void vos_copy_init(vos_copy_ring *ring)
 {
+    (void)vos_copy_init_generation(ring, VOS_COPY_GENERATION);
+}
+
+int vos_copy_init_generation(vos_copy_ring *ring, uint32_t generation)
+{
+    if (generation == 0) return 0;
     vos_copy_index_store(&ring->produced, 0);
     vos_copy_index_store(&ring->consumed, 0);
     vos_copy_word_store(&ring->armed, 0);
-    vos_copy_init_slots(ring);
+    vos_copy_init_generation_slots(ring, generation);
+    return 1;
 }
 
 int vos_copy_submit(vos_copy_ring *ring, uint32_t generation, uint32_t request,

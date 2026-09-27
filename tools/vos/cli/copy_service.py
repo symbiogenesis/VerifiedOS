@@ -5,8 +5,9 @@
 """
 
 import argparse
+from pathlib import Path
 
-from vos import cli, copy_service, env
+from vos import cli, copy_service, copy_target, env
 from vos.corpus import find_root
 
 
@@ -18,8 +19,33 @@ def cmd_check(_args: argparse.Namespace) -> int:
     return code
 
 
-COMMANDS: cli.Table = {"check": (cmd_check, "bounded C and atomic payload controls against the ring reference")}
+def cmd_target(args: argparse.Namespace) -> int:
+    work = env.load().lane_root / "copy-target"
+    reference = args.reference or env.load().lane_root / "copy-service"
+    with env.hold_lock(work, "a scalar copy service target comparison"):
+        report = copy_target.run(find_root(), work, reference, args.ccomp,
+                                 args.ccomp_arg, args.simulator, args.build_receipt)
+    print(f"ok copy target: {report['rows']} reference rows and actual atomic payload controls")
+    print(f"report: {work / 'report.json'}")
+    print(report["limits"])
+    return 0
+
+
+def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
+    if name != "target":
+        return
+    parser.add_argument("--ccomp", type=Path, required=True)
+    parser.add_argument("--ccomp-arg", action="append", default=[])
+    parser.add_argument("--simulator", type=Path, required=True)
+    parser.add_argument("--build-receipt", type=Path, required=True)
+    parser.add_argument("--reference", type=Path)
+
+
+COMMANDS: cli.Table = {
+    "check": (cmd_check, "bounded C and atomic payload controls against the ring reference"),
+    "target": (cmd_target, "accepted scalar stages and actual fenced ring adapter"),
+}
 
 
 def main(argv: list[str] | None = None) -> int:
-    return cli.dispatch(__doc__, COMMANDS, argv, prog="run.py copy-service")
+    return cli.dispatch(__doc__, COMMANDS, argv, target_parser, prog="run.py copy-service")

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
 from vos import copy_service as c
-from vos import toolenv
+from vos import copy_target, toolenv
 
 
 def generated_domains() -> None:
@@ -72,6 +72,15 @@ def declaration_owns_constants() -> None:
             raise AssertionError("duplicate declaration keys accepted")
 
 
+def wakeup_projection() -> None:
+    count, lost = copy_target.wakeup_litmus(True)
+    unconstrained, counterexamples = copy_target.wakeup_litmus(False)
+    ensure(count > 0 and not lost, "fenced arm/recheck loses a publication")
+    ensure(unconstrained > count and bool(counterexamples), "removed Store/Load edge went undetected")
+    ensure(("arm", "recheck", "publish", "exchange", "flush") in counterexamples,
+           "the store-buffered lost-wakeup witness disappeared")
+
+
 def native_payload_controls() -> None:
     compiler = c.c_compiler()
     ensure(compiler is not None, "native C compiler missing")
@@ -96,4 +105,5 @@ def cases() -> list[Case]:
     return [Case("generated comparison domains", generated_domains),
             Case("C answers remain reference equalities", answers_are_not_recomputed),
             Case("declaration owns bounded C constants", declaration_owns_constants),
+            Case("wakeup Store/Load projection and negative control", wakeup_projection),
             Case("native atomic payload controls", native_payload_controls, lane="guest")]
