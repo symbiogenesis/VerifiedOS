@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """Retirement checks ownership, ancestry, retention and interrupted removal in real Git."""
 
+import ast
 import os
 from collections.abc import Callable
 from dataclasses import asdict, replace
 from pathlib import Path
 from unittest.mock import patch
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
 from vos.cli import worktree
@@ -184,7 +185,7 @@ def _native_outputs_and_lock() -> None:
         lane.mkdir(parents=True)
         logs.mkdir()
         (lane / "result.bin").write_bytes(b"proof")
-        (logs / "build-worker.log").write_text("log", encoding="utf-8")
+        (logs / "model-build-worker.log").write_text("log", encoding="utf-8")
         other = logs / "build-other.log"
         other.write_text("unrelated", encoding="utf-8")
         lock = lane / "model.lock"
@@ -196,7 +197,7 @@ def _native_outputs_and_lock() -> None:
         result = retire.retain_native("worker", str(lane), str(logs), "a" * 20)
         archive = Path(str(result["archive"]))
         ensure(not lane.exists() and (archive / "lane" / "result.bin").read_bytes() == b"proof", "native build retained")
-        ensure((archive / "logs" / "build-worker.log").exists() and other.exists(), "only lane logs moved")
+        ensure((archive / "logs" / "model-build-worker.log").exists() and other.exists(), "only lane logs moved")
         ensure(retire.retain_native("worker", str(lane), str(logs), "a" * 20)["retained"] == [], "native retry is idempotent")
 
 
@@ -244,6 +245,98 @@ def _venv_links_and_target_locks() -> None:
         ensure((saved / "lib64").resolve() == saved / "lib", "checkout environment link retained")
 
 
+def _log_inventory_covers_callers() -> None:
+    stems: set[str] = set()
+    for path in (TOOLS / "vos").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for call in ast.walk(tree):
+            if not isinstance(call, ast.Call) or not isinstance(call.func, ast.Attribute):
+                continue
+            if call.func.attr != "log" or not call.args:
+                continue
+            argument = call.args[0]
+            candidates = [argument.body, argument.orelse] if isinstance(argument, ast.IfExp) else [argument]
+            stems.update(item.value for item in candidates
+                         if isinstance(item, ast.Constant) and isinstance(item.value, str))
+    ensure(stems <= retire._LOG_STEMS, f"unclassified Environment.log callers: {stems - retire._LOG_STEMS}")
+
+
+def _native_exact_log_ownership() -> None:
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane, logs = root / "build" / "lane-worker", root / "logs"
+        lane.mkdir(parents=True)
+        logs.mkdir()
+        for name in ("model-build-worker.log", "model-build-worker.json", "model-build-fast-worker.log",
+                     "model-build-fast-worker.json", "build-other-worker.log", "model-build-other-worker.log"):
+            (logs / name).write_text(name, encoding="utf-8")
+        result = retire.retain_native("worker", str(lane), str(logs), "d" * 20,
+                                      ["worker", "fast-worker", "other-worker"])
+        saved = Path(str(result["archive"])) / "logs"
+        ensure((saved / "model-build-worker.log").exists() and (saved / "model-build-worker.json").exists(),
+               "the exact model log and SHA-bound receipt travel together")
+        ensure(all((logs / name).exists() for name in ("model-build-fast-worker.log", "model-build-fast-worker.json",
+                                                      "build-other-worker.log", "model-build-other-worker.log")),
+               "ambiguous and unknown suffix matches remain untouched")
+        deferred = str(result["deferred"])
+        ensure("registered peer" in deferred and "build-other-worker.log" in deferred,
+               "ambiguities and unknown historical outputs are explicit evidence")
+
+
+def _native_log_directories_and_companions() -> None:
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane, logs = root / "build" / "lane-worker", root / "logs"
+        lane.mkdir(parents=True)
+        relative = ["worker/composer-reference", "worker/copy-service", "worker/supervisor",
+                    "lane-worker/admission-reference", "sail-assist-worker/session/attempt-0001",
+                    "sail-modular-worker-" + "a" * 32]
+        for name in relative:
+            folder = logs / name
+            folder.mkdir(parents=True)
+            (folder / "evidence.bin").write_bytes(b"evidence")
+        for name in ("model-build-fast-worker.log", "model-build-fast-worker.json",
+                     "testrig-worker.log", "testrig-worker.trace", "testrig-worker.log.lock",
+                     "sail-isla-provision-00-worker.log", "sail-isla-qualify-100-worker.log"):
+            (logs / name).write_text(name, encoding="utf-8")
+        result = retire.retain_native("worker", str(lane), str(logs), "e" * 20)
+        saved = Path(str(result["archive"])) / "logs"
+        ensure(all((saved / name / "evidence.bin").read_bytes() == b"evidence" for name in relative),
+               "all current log directory layouts retain their full contents")
+        ensure((saved / "testrig-worker.trace").exists() and (saved / "testrig-worker.log.lock").exists(),
+               "RVFI trace and native log lock sidecars are retained")
+        ensure((saved / "model-build-fast-worker.json").exists()
+               and (saved / "sail-isla-qualify-100-worker.log").exists(), "dynamic logs and receipts are retained")
+        ensure(not result["deferred"], "complete unambiguous inventory has no deferred outputs")
+
+
+def _native_log_locks_and_peer_directories() -> None:
+    import fcntl  # noqa: PLC0415
+
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane, logs = root / "build" / "lane-worker", root / "logs"
+        lane.mkdir(parents=True)
+        logs.mkdir()
+        lock = logs / "testrig-worker.log.lock"
+        lock.write_text("", encoding="utf-8")
+        with lock.open() as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "f" * 20), "lock is active")
+        folder = logs / "worker" / "supervisor"
+        folder.mkdir(parents=True)
+        fd = os.open(folder, os.O_RDONLY)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "f" * 20), "lock is active")
+        finally:
+            os.close(fd)
+        shared = logs / "sail-assist-worker"
+        shared.mkdir()
+        (shared / "evidence.bin").write_bytes(b"retain")
+        result = retire.retain_native("worker", str(lane), str(logs), "f" * 20,
+                                      ["worker", "sail-assist-worker"])
+        ensure((shared / "evidence.bin").exists() and "registered peer" in str(result["deferred"]),
+               "a peer's nested log namespace protects an overlapping output directory")
+
+
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
@@ -253,7 +346,11 @@ def cases() -> list[Case]:
             Case("interrupted-after-git-remove", _interrupted_after_git_remove),
             Case("branch-moved-after-removal", _branch_moved_after_removal),
             Case("missing-without-receipt", _missing_without_receipt),
-            Case("records", _records), Case("symlink-escape", _symlink_escape, lane="guest"),
+            Case("records", _records), Case("log-inventory-covers-callers", _log_inventory_covers_callers),
+            Case("symlink-escape", _symlink_escape, lane="guest"),
             Case("native-outputs-and-lock", _native_outputs_and_lock, lane="guest"),
             Case("native-directory-lock", _native_directory_lock, lane="guest"),
-            Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest")]
+            Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
+            Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
+            Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
+            Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest")]
