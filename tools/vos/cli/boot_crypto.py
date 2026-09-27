@@ -37,7 +37,7 @@ def cmd_target(args: argparse.Namespace) -> int:
                                               "milestone_acceptance": "open"})
         try:
             result = boot_crypto_target.run(e.root, out, Path(args.ccomp), args.ccomp_arg,
-                Path(args.simulator), Path(args.build_receipt), args.timeout, args.inst_limit, args.first)
+                Path(args.simulator), Path(args.build_receipt), args.timeout, args.inst_limit, args.first, args.jobs)
         except (OSError, ValueError, TypeError, RuntimeError, subprocess.SubprocessError) as error:
             receipts.write(out / "report.json", {"passed": False, "status": "failed", "error": str(error),
                                                  "milestone_acceptance": "open"})
@@ -66,6 +66,7 @@ def _flags(name: str, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--build-receipt", required=True, help="successful matching model build receipt")
         parser.add_argument("--timeout", type=int, default=1200, help="seconds per target case")
         parser.add_argument("--inst-limit", type=int, default=500_000_000, help="instructions per target case")
+        parser.add_argument("--jobs", type=int, choices=(1, 2, 3), default=1, help="isolated target cases in parallel")
 
 
 def main(argv: list[str] | None = None) -> int:

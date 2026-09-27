@@ -214,18 +214,18 @@ def gallina_build(root: Path, work: Path) -> tuple[ModuleType, dict[str, str]]:
         raise ValueError("missing ML-DSA extraction campaign")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    extraction = getattr(module, "EXTRACTION")
-    driver = getattr(module, "DRIVER")
+    extraction = module.__dict__["EXTRACTION"]
+    driver = module.__dict__["DRIVER"]
     marker = '| _ -> failwith "unsupported operation (including prehash)"'
     if (not isinstance(extraction, str) or not isinstance(driver, str)
             or extraction.count("dsa_sign_mu_test_fuel.") != 1 or driver.count(marker) != 1):
         raise ValueError("the exact ML-DSA extraction adapter anchors changed")
-    setattr(module, "EXTRACTION", extraction.replace("dsa_sign_mu_test_fuel.",
-        "dsa_sign_mu_test_fuel Keccak.shake256 Keccak.bits_of_bytes Keccak.bytes_of."))
-    setattr(module, "DRIVER", driver.replace(marker,
+    module.__dict__["EXTRACTION"] = extraction.replace("dsa_sign_mu_test_fuel.",
+        "dsa_sign_mu_test_fuel Keccak.shake256 Keccak.bits_of_bytes Keccak.bytes_of.")
+    module.__dict__["DRIVER"] = driver.replace(marker,
         '| "shake" -> let msg=List.map Big_int_Z.int_of_big_int (get ()) in\n'
         ' let count=int_of_string (read ()) in print_endline (out\n'
-        ' (List.map Big_int_Z.big_int_of_int (bytes_of (shake256 (8*count) (bits_of_bytes msg)))))\n' + marker))
+        ' (List.map Big_int_Z.big_int_of_int (bytes_of (shake256 (8*count) (bits_of_bytes msg)))))\n' + marker)
     work.mkdir(exist_ok=True)
     raw = module.build(work)
     if not isinstance(raw, dict):

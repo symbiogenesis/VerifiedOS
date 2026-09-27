@@ -112,11 +112,15 @@ def native_controls() -> None:
 def target_requires_a_real_verdict() -> None:
     ensure(not target.target_verdict("", None, False)[0], "timeout became refusal")
     ensure(not target.target_verdict("", 0, True)[0], "missing HTIF verdict became acceptance")
-    with patch.object(target.cd, "htif_verdict", return_value=("trap", 1, "fault")):
-        ensure(not target.target_verdict("trap", 1, False)[0], "trap became signature refusal")
-    with patch.object(target.cd, "htif_verdict", return_value=("fail", 1, "refused")):
-        ensure(target.target_verdict("refused", 1, False)[0], "real refusal rejected")
-        ensure(not target.target_verdict("refused", 0, False)[0], "process mismatch accepted")
+    ensure(not target.target_verdict("FAILURE: 256 (0x00000100)\n", 1, False)[0],
+           "trap became signature refusal")
+    refused = "FAILURE: 1 (0x00000001)\n"
+    ensure(target.target_verdict(refused, 1, False)[0], "real refusal rejected")
+    ensure(target.target_verdict("SUCCESS\n", 0, True)[0], "real acceptance rejected")
+    for spoiled in ("SUCCESS\n" + refused, refused * 2, "diagnostic " + refused,
+                    "FAILURE: 1 (0x00000002)\n"):
+        ensure(not target.target_verdict(spoiled, 1, False)[0], "ambiguous HTIF line accepted")
+    ensure(not target.target_verdict(refused, 0, False)[0], "process mismatch accepted")
 
 
 def target_bounds_bind_lengths() -> None:
@@ -127,6 +131,28 @@ def target_bounds_bind_lengths() -> None:
     ensure(".balign 4096\nvos_crypto_pk:" in source and
            ".balign 8192\nvos_crypto_signature:" in source, "unrepresentable input bounds")
     ensure(source.count("candperm c") >= 4, "input capabilities lack read-only narrowing")
+    ensure("li      t1, 32768" in source and ".space  32768" in source
+           and ".balign 32768\n__vos_stack:" in source, "stack allocation/bounds disagree")
+
+
+def compiler_source_drift_refuses() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        work = Path(name)
+        compiler, source = work / "ccomp", work / "source.v"
+        compiler.write_bytes(b"compiler fixture")
+        source.write_bytes(b"source fixture")
+        result = {"passed": True, "inputs_unchanged": True, "revision": "fixture-revision",
+                  "compiler_sha256": b.receipts.digest(compiler)}
+        (work / "build-result.json").write_text(json.dumps(result), encoding="utf-8")
+        (work / "build-inputs.json").write_text(json.dumps({"source.v": {
+            "canonical_sha256": b.receipts.digest(source)}}), encoding="utf-8")
+        ensure(target.compiler_provenance(compiler)[0]["source_count"] == 1, "compiler receipt refused")
+        source.write_bytes(b"changed source")
+        try:
+            target.compiler_provenance(compiler)
+        except ValueError:
+            return
+        raise AssertionError("changed retained compiler source accepted")
 
 
 def cases() -> list[Case]:
@@ -137,4 +163,5 @@ def cases() -> list[Case]:
             Case("failed rerun replaces previous success", failed_rerun_replaces_pass),
             Case("target timeout and trap never mean refusal", target_requires_a_real_verdict),
             Case("target byte extents and scalar lengths", target_bounds_bind_lengths),
+            Case("target compiler source drift", compiler_source_drift_refuses),
             Case("sanitized native bounds and refusals", native_controls, lane="guest")]
