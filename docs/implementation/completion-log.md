@@ -3461,13 +3461,12 @@ the settled batch's hosted handoff; pending guest evidence is not a pass.
 The declared C-class composition joins the real non-ASR supervisor, trusted
 lifecycle consumer and copy service under the [first scalar integration
 contract](contracts/boot-roster.md#2a-scalar-integration-and-producer-joins).
-The code inputs are `c8a7234e63b44252a8fd43f990b589c452585336`. On 2026-09-27 the user
-directed that final progress be recorded assuming the running checks are fine,
-without waiting. Completion is recorded at that direction; the final three-case
-target aggregate was not collected and is not represented as passed. The
-incomplete-completion case had passed its target exit and every trace fact when
-last observed. The normal-restart and stale-grant verdicts remain uncollected.
-This is the finite
+The code inputs are `c8a7234e63b44252a8fd43f990b589c452585336`. On 2026-09-27 the
+final three-case target aggregate passed, and its source/model manifests were
+verified against `6daf827225308987fbc885ef1196e6c3f3cca028`, whose changes since
+the code revision are documentation and dispatch metadata. This collected
+evidence supersedes the same day's user-directed completion recorded while
+validation was running. This is the finite
 restart/effects checkpoint; M7.1a and M7.1b retain authenticated boot and the
 complete roster, M4.4b-ii retains group/elastic duties and general pending/CSR
 restoration, and M4.4b-iii retains V/M restoration.
@@ -3488,17 +3487,20 @@ restoration, and M4.4b-iii retains V/M restoration.
   programmed slot end. The trace independently derives release times from the
   initial deadline and requires the next idle row even after refusal. An empty
   supervisor reaction refreshes the old START acknowledgment without
-  redispatching the old activation. The running campaign writes
-  `/root/build/scalar-join/report.json`; no final digest or aggregate verdict
-  is claimed in this record.
+  redispatching the old activation. The completed campaign reports aggregate
+  `ok: true` in `/root/build/scalar-join/report.json`, SHA256
+  `dc203e82975804680726910504d08e46d0e56f834e07b0a656b349cd2c1f7b0b`.
+  Normal restart, stale-grant refusal and incomplete-completion refusal pass
+  all 26, 27 and 24 trace facts respectively, with 9, 9 and 5 independently
+  checked releases. The command exited 0; each case's target and observer passed.
 * The holder inventory is explicit. The 512 KiB private copy allocation remains
   continuously owned, including its stack and staging/ring bytes. Separate
   small exposed grant slots have actual bitmap coverage; their retired roots
   lose tags and fresh disjoint roots retain tags. All 33 saved GPR/MEPCC words
   and tags, resident scrub, fresh-image exclusion, whole-allocation byte/tag
-  clearing and saved-context cleanup are required by the observer before
-  semantic completion; the completed component and refusal evidence below
-  does not substitute for the two uncollected joined verdicts.
+  clearing and saved-context cleanup pass the joined observer's checks before
+  semantic completion; the incomplete control refuses completion while an old
+  resident root remains.
   No bitmap bit is credited with covering the large private ring. The joined
   cross-principal protected-call depth is zero; intra-compartment C calls stay
   within its private PCC and stack. There are no external client or device loans
@@ -3531,7 +3533,11 @@ restoration, and M4.4b-iii retains V/M restoration.
   sequence exhaustion and continuing after a failed start. Compilation failures
   are not counted as killed defects.
 * Duration evidence is a conservative source-path bound in the declared
-  instruction-tick profile, checked against actual handler steps. It does not
+  instruction-tick profile, checked against actual handler steps. The joined
+  campaign's largest observed handler takes 11,309,294 steps against the
+  11,467,079-step source bound and common 16,777,216-step padded boundary.
+  Supervisor and copy slots are fixed at 200,000 and 2,097,152 steps.
+  This does not
   establish physical WCET or the later static timing proof. The model and
   accepted compiler binaries, private compiler inputs and authored sources are
   bound by the receipts and unchanged across each campaign. Host CI at this
@@ -3965,10 +3971,10 @@ The completion audit records specification completion only. M7.1 owns executable
 
 #### M7.1e · Realize the copy-based service
 
-Completion is recorded on 2026-09-27 at the user's direction to assume the
-running checks are fine and finish without waiting. The final joint aggregate
-is uncollected, not passed; the [M4.4b-i record](#m44b-i-bind-scalar-restart-and-service-effects)
-states the available case evidence and this acceptance exception.
+The final joint aggregate passed on 2026-09-27. The
+[M4.4b-i record](#m44b-i-bind-scalar-restart-and-service-effects) binds its digest,
+unchanged inputs and all three passing cases, superseding the earlier
+user-directed completion recorded while validation was running.
 
 The [bounded C service](../../copy-service/README.md) executes through the accepted
 typed backend, the real notification adapter and trusted lifecycle-completion bindings in the first
@@ -4003,13 +4009,14 @@ the full boot roster remains M7.1a's acceptance boundary.
 * `copy-service join` implements the real non-ASR supervisor-to-kernel-to-copy
   composition, with checks for later acknowledgment reads, current-epoch
   restart and stale-grant/incomplete-completion refusal at the target boundary.
-  Its final report at `/root/build/scalar-join/report.json` remains uncollected. The
+  Its final report at `/root/build/scalar-join/report.json` passes all three
+  cases and all 77 trace facts. The
   [M4.4b-i evidence](#m44b-i-bind-scalar-restart-and-service-effects) records the
   complete holder inventory, immutable table, common boundary charge and
   independent release oracle. The private copy allocation remains continuously
   owned; small-slot revocation supplies no false coverage for the large ring.
-* The finite component target and Ztso projection support this bounded
-  implementation; final joined acceptance remains uncollected as stated above.
+* The finite component target, Ztso projection and completed joint target
+  campaign support this bounded implementation.
   Complete C/ISA refinement, production IDL/admission, public-client
   grant redemption, physical WCET and full measured boot remain their owners'
   obligations. C is the working lowering; R-12-002's safe-Rust data-plane
