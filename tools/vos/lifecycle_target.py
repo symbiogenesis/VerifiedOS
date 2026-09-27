@@ -336,7 +336,7 @@ def instruction_counts(stream: str) -> dict[str, int]:
     assembled.assemble()
     names = re.findall(r"^\.globl\s+(\S+)", stream, re.MULTILINE)
     starts = sorted((assembled.symbols[name], name) for name in names)
-    counts = dict.fromkeys(names, 0)
+    counts: dict[str, int] = dict.fromkeys(names, 0)
     for site in assembled.sites:
         preceding = [name for address, name in starts if address <= site.address]
         if preceding:

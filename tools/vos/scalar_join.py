@@ -13,10 +13,26 @@ from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
-from vos import asm, boot_handoff, copy_notification, copy_partition, copy_service, copy_target
-from vos import dialect, image, jsonc, kernel_restore, kernel_target, kernelrun, lifecycle_target
-from vos import receipts, supervisor_context, trace
+from vos import (
+    asm,
+    boot_handoff,
+    copy_notification,
+    copy_partition,
+    copy_service,
+    copy_target,
+    dialect,
+    image,
+    jsonc,
+    kernel_restore,
+    kernel_target,
+    kernelrun,
+    lifecycle_target,
+    receipts,
+    supervisor_context,
+    trace,
+)
 from vos.boot_target import compiler_inputs
 from vos.cli import compiler_diff as cd
 
@@ -216,7 +232,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         for suffix, expected in (("tag", 1), ("base", symbols[name]),
                                  ("length", extent), ("permissions", perm)):
             checks[symbols[f"supervisor_cap_{reg}_{suffix}"]] = (expected, [])
-    send, _, _ = copy_notification.layout(log_root := Path(bound["root"]))
+    send, _, _ = copy_notification.layout(log_root := Path(cast(str, bound["root"])))
     del log_root
     expected_slots = {symbols[name] + offset for name in ("saved_clear", "restore_context")
                       for offset in range(0, 264, 8)}
@@ -251,11 +267,10 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                     entries.append(order)
                 if pc == symbols["scalar_join_copy_entry"]:
                     generations.append(registers[11])
-                if pc in (symbols["supervisor_entry"], symbols["scalar_join_copy_entry"]):
-                    if sample is not None:
-                        releases.append({"expected": release, "observed": sample[1] + order - sample[0],
-                                         "kind": "supervisor" if pc == symbols["supervisor_entry"] else "copy"})
-                        sample = None
+                if pc in (symbols["supervisor_entry"], symbols["scalar_join_copy_entry"]) and sample is not None:
+                    releases.append({"expected": release, "observed": sample[1] + order - sample[0],
+                                     "kind": "supervisor" if pc == symbols["supervisor_entry"] else "copy"})
+                    sample = None
                 if pc == symbols["scalar_join_clear_begin"]:
                     clearing = set()
                 if pc == symbols["scalar_join_clear_end"]:
@@ -266,7 +281,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                                         all(value == (0, 0) for value in slots.values()) and
                                         not any(owned) and not tagged)
             elif kind == "X":
-                registers[fields[0]] = fields[1:]
+                registers[fields[0]] = (fields[1], fields[2])
                 if pc in checks and fields[0] == 5:
                     checks[pc][1].append(fields[2])
                 if pc == symbols["scalar_join_copy_base"] and fields[0] == 6:
@@ -280,11 +295,11 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
             elif kind == "T" and fields[0] == 0:
                 faults.append((pc, fields))
             elif kind == "R":
-                if pc in (symbols["lifecycle_padding_sample"], symbols["scalar_join_padding_sample"]):
-                    if fields[0] == windows[1]:
-                        sample = (order, fields[3])
-                        if work_start is not None:
-                            work_steps.append(order - work_start + 44)
+                if (pc in (symbols["lifecycle_padding_sample"], symbols["scalar_join_padding_sample"])
+                        and fields[0] == windows[1]):
+                    sample = (order, fields[3])
+                    if work_start is not None:
+                        work_steps.append(order - work_start + 44)
             elif kind == "W":
                 address, width, tag, value = fields
                 if address == symbols["kernel_private"] + 56:
@@ -303,7 +318,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                 if address in expected_slots and width == 8:
                     slots[address] = (tag, value)
                 offset = address - symbols["lifecycle_owned_span"]
-                if 0 <= offset and offset + width <= len(owned):
+                if offset >= 0 and offset + width <= len(owned):
                     owned[offset:offset + width] = value.to_bytes(width, "little")
                     for slot in range(offset // 8, (offset + width - 1) // 8 + 1):
                         tagged.discard(slot)
@@ -341,7 +356,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         "ack_sequence_last_fences": bool(ack_fences) and all(ack_fences),
         "ack_consumed_in_later_reaction": set(wire.later_reads) >= ({1, 2} if defect != "incomplete" else {1}),
         "fixed_releases": bool(releases) and all(item["expected"] == item["observed"] for item in releases),
-        "source_work_account": bool(work_steps) and max(work_steps) <= int(bound["longest_path_steps"]),
+        "source_work_account": bool(work_steps) and max(work_steps) <= cast(int, bound["longest_path_steps"]),
         "bitmap_old_and_fresh": bitmap_writes == [7] and old_tags == [0] and fresh_tags == [1],
     }
     if defect == "incomplete":
@@ -386,8 +401,8 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     hooks = 4 * (copy_partition.OWNED_BYTES // 8 + 33) + 4096
     hooks += 4 * sum(counts.values())  # actual fault helper and dispatch predicates
     bound["joined_hook_steps"] = hooks
-    bound["longest_path_steps"] = int(bound["longest_path_steps"]) + hooks
-    boundary = 1 << int(bound["longest_path_steps"]).bit_length()
+    bound["longest_path_steps"] = cast(int, bound["longest_path_steps"]) + hooks
+    boundary = 1 << bound["longest_path_steps"].bit_length()
     bound.update({"padded_boundary_steps": boundary, "root": str(root), "copy_reaction_steps": copy_steps,
                   "copy_slot_steps": service_slot, "copy_counts": copy_counts,
                   "supervisor_reaction": lifecycle_target.reaction_path(lifecycle_target.instruction_counts(supervisor.stream))})
@@ -397,10 +412,12 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     probe.assemble()
     bitmap = kernel_target.revocation_window(root, probe.symbols["grant_slots"])
     profile = jsonc.load(root / boot_handoff.MAIN_CONFIG)
-    profile["platform"]["instructions_per_tick"] = 1
+    if not isinstance(profile, dict) or not isinstance(platform := profile.get("platform"), dict):
+        raise TypeError("missing model platform configuration")
+    platform["instructions_per_tick"] = 1
     profile_path = out / "profile.json"
     receipts.write(profile_path, profile)
-    results = []
+    results: list[dict[str, Any]] = []
     for defect in ("none", "stale", "incomplete"):
         emitted = source(root, kernel.stream, supervisor.stream, copy.stream, windows, bitmap, boundary, service_slot, defect)
         source_path = out / f"{defect}.s"
