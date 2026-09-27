@@ -19,13 +19,16 @@ local and remote `main`; Guest CI may remain pending.
 
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
-GitHub's **Run workflow** control. Ordinary runs reuse installed toolchains and
-content-validated native proof results. The monthly run and the manual `cold` input
-force cold toolchain installation and a fresh full proof check. A weekly scheduled
-run first reads the latest completed run on the same branch. If that run succeeded
-at the current revision, it skips the guest lanes before allocating their runners or
-installing tools. New revisions, failed or canceled runs, absent history and failed
-history lookups run all gates. Manual dispatch, monthly cold runs and explicit
+GitHub's **Run workflow** control on `main`. A manual run's optional `revision` input
+names a full lowercase commit already on `main`; the workflow refuses any other ref or
+revision before installing tools. Each run title ends with its checked-out revision,
+and runs are not serialized, so a queued handoff is never replaced. Ordinary runs
+reuse installed toolchains and content-validated native proof results. The monthly
+run and the manual `cold` input force cold toolchain installation and a fresh full
+proof check. A weekly scheduled run first reads the latest completed run on the same
+branch. If that run succeeded and its title ends with the current revision, it skips
+the guest lanes before allocating their runners or installing tools. New revisions,
+failed or canceled runs, absent history and failed history lookups run all gates. Manual dispatch, monthly cold runs and explicit
 reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
@@ -111,7 +114,8 @@ receipt. Diagnostic copies are atomic;
 copy failures appear in the summary without discarding command outcomes or other
 diagnostics. The reporter uses `VOS_LOG_DIR`, with the workflow's default log directory
 as its fallback when bootstrap did not export an environment. Each lane's
-`guest-<lane>` artifact retains its logs and receipts for 14 days. A canceled run may
+`guest-<lane>-<revision>-<attempt>` artifact, named for the checked-out revision and
+run attempt, retains its logs and receipts for 14 days. A canceled run may
 end before it uploads diagnostics.
 
 uv downloads, opam's source download cache and verified Verilator source archives

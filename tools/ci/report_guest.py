@@ -124,7 +124,8 @@ def main() -> None:
         Path(os.environ.get("VOS_LOG_DIR", Path.home() / "verifiedos-guest" / "logs")),
         Path(os.environ["RUNNER_TEMP"]) / "guest-bootstrap-console.log",
         ROOT / "proofs" / "proof-evidence.json",
-        json.loads(os.environ["STEP_RESULTS"]), os.environ["GITHUB_SHA"],
+        json.loads(os.environ["STEP_RESULTS"]),
+        os.environ.get("GUEST_REVISION") or os.environ["GITHUB_SHA"],
         toolchains=toolchains,
     )
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8", newline="") as stream:

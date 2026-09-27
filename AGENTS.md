@@ -121,7 +121,8 @@ the command records Guest CI dispatch and safe retirement; never wait for Guest 
    co-reads and known findings, then merge all session work into `main`, commit and
    publish only `main`. A session is not complete while its work remains off `main`.
 2. Require [Host CI](.github/workflows/host-gates.yml) to pass on Windows and Ubuntu.
-   Dispatch it manually if no automatic event starts it.
+   If no automatic event starts it, dispatch it from `main` with the published commit
+   as its `revision` input.
 3. Dispatch [Guest CI](.github/workflows/guest-gates.yml) with both model and proofs
    lanes for the same revision. Use `cold: true` when acceptance requires
    `proofs --fresh` or cold installation evidence. The [Guest CI contract](tools/ci/README.md)
