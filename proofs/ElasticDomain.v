@@ -23,8 +23,8 @@
    What this file is. A statement artifact in PartitionContext.v's idiom,
    not a proof development and not an implementation. Every quantity the
    register leaves to composition is a field of a record. Nothing is
-   admitted and nothing is axiomatized: the Print Assumptions block at the
-   end reports every shipped constant closed under the global context.
+   admitted and nothing is axiomatized: the native assumption audit reports
+   every shipped constant closed under the global context.
    What the proof gate's green line means for it: compiled, axiom-free,
    witnessed and enumerated, and not verified. Nothing here executes on
    either emulator, and no kernel, pool service, heap library or toolchain
@@ -2829,81 +2829,3 @@ Definition witness_Distribution : Distribution := sealed_distribution.
 (* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions select.
-Print Assumptions reply.
-Print Assumptions charge.
-Print Assumptions rebalance.
-Print Assumptions an_admitted_envelope_has_one_label_and_no_fixed_tier_member.
-Print Assumptions launch_activates_only_placed_contexts.
-Print Assumptions preferred_total.
-Print Assumptions preferred_trans.
-Print Assumptions select_is_the_eevdf_choice.
-Print Assumptions select_idles_only_when_nothing_is_eligible.
-Print Assumptions a_selection_exists_whenever_a_member_is_eligible.
-Print Assumptions the_dispatch_reads_only_its_label.
-Print Assumptions every_domain_transition_stays_inside.
-Print Assumptions a_runtime_width_choice_moves_another_tenant_s_instant.
-Print Assumptions the_boundary_rule_leaves_no_member_cut.
-Print Assumptions the_backstop_bounds_an_unchecked_sink.
-Print Assumptions a_cross_application_step_clears_the_zeroize_class.
-Print Assumptions a_cross_application_step_leaves_no_residue.
-Print Assumptions a_same_application_step_is_the_rotation.
-Print Assumptions the_clear_costs_one_vmclear_and_nothing_else.
-Print Assumptions a_cross_application_step_is_satisfiable.
-Print Assumptions a_step_between_applications_clears_the_zeroize_class.
-Print Assumptions a_step_between_applications_leaves_no_residue.
-Print Assumptions a_step_between_applications_costs_one_vmclear.
-Print Assumptions a_step_inside_one_application_is_the_rotation.
-Print Assumptions a_rotation_across_applications_leaves_vector_state_standing.
-Print Assumptions a_kernel_saving_vector_state_is_refuted.
-Print Assumptions an_instant_bound_bounds_every_interval.
-Print Assumptions the_share_bound_is_its_instant_half.
-Print Assumptions cx_trace_conforms.
-Print Assumptions cx_lags.
-Print Assumptions the_register_s_lag_bound_is_refuted.
-Print Assumptions the_register_s_lag_bound_is_refuted_over_slot_time.
-Print Assumptions the_register_s_share_bound_is_refuted.
-Print Assumptions tail_trace_conforms.
-Print Assumptions tail_lags.
-Print Assumptions the_slot_time_reading_is_refuted.
-Print Assumptions wc_trace_conforms.
-Print Assumptions wc_starves_member_0.
-Print Assumptions a_leave_without_the_published_adjustment_is_not_work_conserving.
-Print Assumptions the_published_leave_separates_accounting_from_service_lag.
-Print Assumptions a_call_bound_test_cuts_a_member_mid_sink.
-Print Assumptions dropping_the_boundary_rule_cuts_a_member.
-Print Assumptions the_backstop_alone_cuts_a_member.
-Print Assumptions a_dispatch_reading_another_label_is_refuted.
-Print Assumptions admission_refuses_a_narrow_slot_and_an_uncharged_clear.
-Print Assumptions paths_within_reactions.
-Print Assumptions the_polled_loop_is_admitted_at_its_longest_reaction.
-Print Assumptions a_reaction_above_the_bound_is_refused.
-Print Assumptions an_exit_block_s_cost_is_counted.
-Print Assumptions a_sink_that_does_not_yield_is_refused.
-Print Assumptions an_unpolled_back_edge_admits_no_yield_bound.
-Print Assumptions the_counter_bounds_every_path_between_invocations.
-Print Assumptions a_miscompiled_counter_exceeds_the_call_bound.
-Print Assumptions the_counter_at_a_declaration.
-Print Assumptions live_chunks_share_no_byte.
-Print Assumptions an_exact_grant_needs_no_rounding.
-Print Assumptions every_byte_is_zero_at_handoff.
-Print Assumptions a_passed_gate_is_a_barrier_then_a_whole_sweep_begun_after_it.
-Print Assumptions the_pool_history_keeps_all_four_guarantees.
-Print Assumptions two_live_chunks_sharing_a_byte_are_refuted.
-Print Assumptions a_chunk_wider_than_its_allocation_is_refuted.
-Print Assumptions a_chunk_handed_out_unzeroed_is_refuted.
-Print Assumptions a_chunk_reused_ahead_of_the_sweep_is_refuted.
-Print Assumptions a_sweep_begun_before_the_barrier_is_refuted.
-Print Assumptions the_table_refuses_classes_that_would_round.
-Print Assumptions the_heap_history_narrows_every_allocation.
-Print Assumptions every_non_narrowing_allocator_is_refuted.
-Print Assumptions confinement_survives_every_transfer.
-Print Assumptions the_pool_s_holders_are_the_domain_s_footprint.
-Print Assumptions the_sealed_distribution_confines_the_pool.
-Print Assumptions a_pool_capability_held_outside_the_domain_is_refuted.
-Print Assumptions the_demo_envelope_is_admitted.
-Print Assumptions the_envelope_refuses_what_r_07_037e_names.
-Print Assumptions a_launch_that_creates_is_refuted.
-Print Assumptions a_placed_member_launches.
-Print Assumptions the_demo_members_step_across_applications.

@@ -222,6 +222,3 @@ Example pool_rejects_presweep_reuse :
   pool_event pool_reference_arena pool_presweep_prefix
     (Grant 2 0 64 (chunk_cap 64 16)) = pool_presweep_prefix.
 Proof. reflexivity. Qed.
-
-Print Assumptions pool_run_refines_four_guarantees.
-Print Assumptions heap_run_narrows.

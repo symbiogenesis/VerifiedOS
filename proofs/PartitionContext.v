@@ -14,7 +14,7 @@
    record rather than a literal or a top-level Parameter, which is what
    keeps the R-05-163 assumption gate green while leaving the decision
    where its owner can make it. Nothing is admitted and nothing is
-   axiomatized: the Print Assumptions block at the end reports every
+   axiomatized: the native assumption audit reports every
    shipped constant closed under the global context.
 
    What this file does not do. It executes nothing. No constant here is
@@ -975,43 +975,3 @@ Definition witness_Machine : Machine := demo_rotation_swaps.
    set R-05-164 currently makes empty, so "Closed under the global context"
    is that emptiness checked mechanically.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions Switch.
-Print Assumptions Rotation.
-Print Assumptions RestoresNameableCsrs.
-Print Assumptions RestoresRestorableCsrs.
-Print Assumptions NoResidue.
-Print Assumptions switch_cost.
-Print Assumptions four_term_cost.
-Print Assumptions constants_paid.
-Print Assumptions restore_total_over_registers.
-Print Assumptions restore_total_over_nameable_csrs.
-Print Assumptions no_residue.
-Print Assumptions pending_carries_nothing_across.
-Print Assumptions cost_is_three_terms.
-Print Assumptions lt_add_pos.
-Print Assumptions drain_counted_once.
-Print Assumptions rotation_is_a_strict_subset.
-Print Assumptions rotation_omits_the_three_constants.
-Print Assumptions switch_pays_all_three.
-Print Assumptions rotation_pays_none_of_the_three.
-Print Assumptions rotation_restore_is_total.
-Print Assumptions switch_discharges_every_rotation_obligation.
-Print Assumptions switch_is_satisfiable.
-Print Assumptions rotation_is_satisfiable.
-Print Assumptions demo_switch_holds.
-Print Assumptions the_two_pending_arms_differ.
-Print Assumptions csr_totality_is_vacuous_where_nothing_is_nameable.
-Print Assumptions truncated_switch_refutes_register_totality.
-Print Assumptions tag_dropping_switch_refutes_register_totality.
-Print Assumptions partial_switch_refutes_csr_totality.
-Print Assumptions residue_switch_refutes_no_residue.
-Print Assumptions residue_needs_the_leak.
-Print Assumptions heavy_rotation_refutes_the_omission.
-Print Assumptions heavy_rotation_pays_a_constant.
-Print Assumptions containment_conjunct_excludes_a_superset.
-Print Assumptions full_rotation_refutes_strictness.
-Print Assumptions four_term_reading_is_refuted.
-Print Assumptions rotation_omits_the_zeroize_at_state_level.
-Print Assumptions rotation_pending_carries_nothing_on_the_swapping_arm.
-Print Assumptions rotation_pending_arm_is_observable.

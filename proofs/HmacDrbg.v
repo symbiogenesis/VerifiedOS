@@ -27,7 +27,7 @@
    emulator. The computed checks are decided inside the kernel, the light ones
    by conversion in the silent `Example ... := eq_refl` form and the ones that
    run a draw by the bytecode machine, which contributes nothing to the
-   Print Assumptions block at the end.
+   native assumption audit.
 
    The three assurance layers, and which one this is. What is here is the
    **functional layer** and a **statement of the seeding hypothesis**, and
@@ -1257,155 +1257,9 @@ Definition witness_DrbgState : DrbgState := instantiated_for_pr.
 Definition witness_Run : Run := witness_run.
 
 (* -------------------------------------------------------------------------
-   The R-05-163 assumption gate reads this block. Every shipped constant is
-   enumerated from its own proof term and held against the declared set: the
+   The R-05-163 assumption gate inventories the native environment and holds
+   each constant against the declared assumption set: the
    one Require above is a sibling under proofs/ that Requires nothing, so
    there is no Admitted, no Axiom and no top-level Parameter reachable, and
    nothing is declared inside the development to make the gate pass.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions nat_eqb_refl.
-Print Assumptions andb_left.
-Print Assumptions andb_right.
-Print Assumptions fresh_pool.
-Print Assumptions outlen_bits.
-Print Assumptions outlen_bytes.
-Print Assumptions zero_key.
-Print Assumptions one_value.
-Print Assumptions separator_zero.
-Print Assumptions separator_one.
-Print Assumptions the_initial_key_and_value_are_outlen_long.
-Print Assumptions DrbgState.
-Print Assumptions hmac_drbg_update.
-Print Assumptions update_with_its_branch_inverted.
-Print Assumptions instantiate_over.
-Print Assumptions instantiate.
-Print Assumptions instantiate_with_the_counter_at_zero.
-Print Assumptions instantiate_with_the_inverted_update.
-Print Assumptions reseed.
-Print Assumptions reseed_ignoring_its_entropy.
-Print Assumptions draw_blocks.
-Print Assumptions blocks_for.
-Print Assumptions a_partial_block_still_costs_a_block.
-Print Assumptions update_on.
-Print Assumptions generate_core.
-Print Assumptions generate_core_updating_before_it_emits.
-Print Assumptions generate.
-Print Assumptions Lifecycle.
-Print Assumptions LockState.
-Print Assumptions Transition.
-Print Assumptions lifecycle_eqb.
-Print Assumptions lock_eqb.
-Print Assumptions transition_eqb.
-Print Assumptions lifecycle_edges.
-Print Assumptions lock_edges.
-Print Assumptions all_transitions.
-Print Assumptions the_lock_edge.
-Print Assumptions all_lifecycles.
-Print Assumptions all_lock_states.
-Print Assumptions eqb_decides.
-Print Assumptions the_three_equalities_decide_their_own_enumerations.
-Print Assumptions transition_probes.
-Print Assumptions the_transition_equality_decides_a_wider_probe_than_the_edges.
-Print Assumptions lax_transition_eqb.
-Print Assumptions a_reflexive_equality_can_still_be_wrong.
-Print Assumptions there_are_five_lifecycle_edges_and_two_lock_edges.
-Print Assumptions no_edge_leaves_rma_and_none_joins_development_to_production.
-Print Assumptions SeedingDiscipline.
-Print Assumptions disciplined_b.
-Print Assumptions Disciplined.
-Print Assumptions Op.
-Print Assumptions Run.
-Print Assumptions take_entropy.
-Print Assumptions step.
-Print Assumptions run.
-Print Assumptions start.
-Print Assumptions run_from.
-Print Assumptions completed.
-Print Assumptions outputs_of.
-Print Assumptions output_at.
-Print Assumptions pool_left.
-Print Assumptions state_of.
-Print Assumptions disciplined_run_b.
-Print Assumptions a_reseed_resets_the_counter.
-Print Assumptions a_draw_advances_the_counter.
-Print Assumptions a_draw_emits_before_it_updates.
-Print Assumptions a_draw_past_the_interval_is_refused_by_the_algorithm.
-Print Assumptions a_draw_past_the_bound_is_refused.
-Print Assumptions every_transition_reseeds_under_a_disciplined_discipline.
-Print Assumptions the_lock_edge_reseeds_under_a_disciplined_discipline.
-Print Assumptions a_lock_transition_takes_fresh_entropy.
-Print Assumptions a_draw_past_the_interval_reseeds_first.
-Print Assumptions an_empty_pool_halts_a_reseed.
-Print Assumptions no_reseed_entropy.
-Print Assumptions no_reseed_nonce.
-Print Assumptions pr_false_entropy.
-Print Assumptions pr_false_nonce.
-Print Assumptions pr_false_reseed_entropy.
-Print Assumptions pr_true_entropy.
-Print Assumptions pr_true_nonce.
-Print Assumptions pr_true_first_reseed_entropy.
-Print Assumptions pr_true_second_reseed_entropy.
-Print Assumptions corpus_draw_bits.
-Print Assumptions demo.
-Print Assumptions demo_pr.
-Print Assumptions the_witness_is_disciplined.
-Print Assumptions the_prediction_resistant_witness_is_disciplined.
-Print Assumptions silent_on_the_lock_edge.
-Print Assumptions seeded_below_its_strength.
-Print Assumptions with_no_interval.
-Print Assumptions the_discipline_silent_on_the_lock_edge_is_refused.
-Print Assumptions the_discipline_silent_on_the_lock_edge_reseeds_on_every_other_edge.
-Print Assumptions the_discipline_seeded_below_its_strength_is_refused.
-Print Assumptions the_discipline_with_no_interval_is_refused.
-Print Assumptions nonced_below_half_its_strength.
-Print Assumptions the_discipline_nonced_below_half_its_strength_is_refused.
-Print Assumptions the_two_short_lengths_are_short_by_one_bit.
-Print Assumptions the_four_refused_disciplines_move_one_field_each.
-Print Assumptions bounded_at.
-Print Assumptions one_is_the_smallest_bound_and_zero_is_refused_on_either.
-Print Assumptions prediction_resistance_is_requested_and_not_required.
-Print Assumptions two_draws.
-Print Assumptions no_reseed_run.
-Print Assumptions pr_false_run.
-Print Assumptions pr_true_run.
-Print Assumptions the_three_families_complete_and_use_their_whole_pool.
-Print Assumptions the_three_families_are_disciplined_runs.
-Print Assumptions the_second_draw_without_a_reseed.
-Print Assumptions the_second_draw_after_one_reseed.
-Print Assumptions the_second_draw_under_prediction_resistance.
-Print Assumptions the_two_draws_of_a_run_differ.
-Print Assumptions the_algorithm_alone_reaches_the_first_family.
-Print Assumptions first_draw.
-Print Assumptions first_draw_updating_first.
-Print Assumptions blocks_of_output.
-Print Assumptions the_state_that_leaves_a_draw_carries_no_block_of_its_output.
-Print Assumptions the_draw_that_updates_first_leaves_its_last_block_as_its_value.
-Print Assumptions the_draw_that_updates_first_keeps_the_length_and_the_counter.
-Print Assumptions the_draw_that_updates_first_misses_the_published_answer.
-Print Assumptions instantiated_for_pr.
-Print Assumptions two_fresh_strings_leave_two_states.
-Print Assumptions the_reseed_that_ignores_its_entropy_leaves_one_state.
-Print Assumptions a_pool_that_reuses_a_string_is_not_fresh.
-Print Assumptions a_run_over_a_reused_pool_is_refused_by_the_discipline.
-Print Assumptions witness_run.
-Print Assumptions a_draw_past_the_bound_is_refused_at_the_witness.
-Print Assumptions a_run_with_a_draw_past_the_bound_is_not_disciplined.
-Print Assumptions the_lock_edge_takes_a_string_from_the_pool.
-Print Assumptions every_transition_takes_a_string_from_the_pool_at_the_witness.
-Print Assumptions the_discipline_silent_on_the_lock_edge_takes_nothing_there.
-Print Assumptions a_lock_transition_from_an_empty_pool_halts.
-Print Assumptions an_instantiation_refuses_each_wrong_length_on_its_own.
-Print Assumptions three_draws.
-Print Assumptions four_draws.
-Print Assumptions five_draws.
-Print Assumptions the_third_draw_reseeds_from_the_pool_and_the_fifth_halts.
-Print Assumptions the_third_draw_leaves_a_counter_of_two.
-Print Assumptions witness_run_without_a_pool.
-Print Assumptions witness_run_counting_from_zero.
-Print Assumptions the_counter_at_zero_admits_a_third_draw_the_standard_halts.
-Print Assumptions the_counter_at_zero_agrees_with_the_standard_on_the_outputs_it_shares.
-Print Assumptions a_halted_run_reports_nothing.
-Print Assumptions the_inverted_update_misses_the_published_answer.
-Print Assumptions the_alternative_instantiations_move_one_thing_each.
-Print Assumptions the_inverted_update_is_one_pass_from_the_standard_on_each_branch.

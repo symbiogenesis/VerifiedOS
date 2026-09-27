@@ -21,8 +21,8 @@
    a deployment fixes is a field of a record rather than a literal or a
    top-level Parameter, which is what keeps the R-05-163 assumption gate
    green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized: the Print Assumptions block at the
-   end reports every shipped constant closed under the global context.
+   admitted and nothing is axiomatized: the native assumption audit reports
+   every shipped constant closed under the global context.
 
    What the gate's green line means. The stated model theorems are compiled,
    axiom-free, non-vacuous and enumerated. No signature is checked, no
@@ -2074,49 +2074,3 @@ Definition witness_Rebootstrap : Rebootstrap := replacement.
    set R-05-164 currently makes empty, so "Closed under the global context"
    is that emptiness checked mechanically.
    ========================================================================= *)
-
-Print Assumptions safe_matches_the_register_spelling.
-Print Assumptions enrolled_keys_identify_witnesses.
-Print Assumptions certified_implies_counted.
-Print Assumptions honest_intersection.
-Print Assumptions honest_run_never_forks.
-Print Assumptions sealed_releases_are_anchor_prefixes.
-Print Assumptions terminal_releases_are_identical.
-Print Assumptions deployment_is_an_honest_chain.
-Print Assumptions deployment_is_a_sealed_chain.
-Print Assumptions deployment_has_unique_terminal_statements.
-Print Assumptions deployment_started_at_an_anchor_is_anchored.
-Print Assumptions accepted_checkpoints_are_compatible.
-Print Assumptions old_epoch_cannot_pass_the_anchor.
-Print Assumptions accepted_terminal_transitions_are_identical.
-Print Assumptions cross_epoch_histories_are_compatible.
-Print Assumptions new_epoch_extends_the_anchor.
-Print Assumptions withholding_bound_is_sufficient.
-Print Assumptions refused_transition_changes_nothing.
-Print Assumptions refused_rebootstrap_changes_nothing.
-Print Assumptions transition_keeps_the_continuity_claim.
-Print Assumptions rebootstrap_surrenders_the_continuity_claim.
-Print Assumptions a_reused_trust_scope_is_refused.
-Print Assumptions an_accepted_rebootstrap_records_its_scope.
-Print Assumptions the_intersection_condition_is_tight.
-Print Assumptions an_honest_quorum_is_accepted.
-Print Assumptions every_binding_failure_costs_its_signer.
-Print Assumptions padded_certificates_are_refused.
-Print Assumptions duplicated_keys_let_one_holder_fill_two_slots.
-Print Assumptions one_of_two_is_refused_and_the_fork_is_real.
-Print Assumptions rollback_is_refused_and_tolerating_it_forks.
-Print Assumptions every_crash_cut_keeps_the_history.
-Print Assumptions only_authenticated_latest_recovery_restores_signing.
-Print Assumptions shared_prefix_transition_is_refused_and_forks.
-Print Assumptions a_sealed_old_witness_refuses_to_continue.
-Print Assumptions terminal_recovery_preserves_the_exact_destination.
-Print Assumptions a_transition_below_the_pin_is_refused.
-Print Assumptions a_bound_transition_moves_policy_and_pin_together.
-Print Assumptions safety_and_availability_are_independent.
-Print Assumptions lowering_the_threshold_to_restore_progress_can_break_safety.
-Print Assumptions rebootstrap_is_explicit_and_surrenders_the_old_claim.
-Print Assumptions one_checkpoint_carries_two_valid_variants.
-Print Assumptions safety_premises_are_jointly_inhabited.
-Print Assumptions inhabited_within_epoch_application.
-Print Assumptions cross_epoch_premises_are_jointly_inhabited.
-Print Assumptions inhabited_cross_epoch_application.

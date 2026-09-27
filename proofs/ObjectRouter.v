@@ -40,8 +40,8 @@
    fixes is a field of the Composition record rather than a literal or a
    top-level Parameter, which is what keeps the R-05-163 assumption gate
    green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized: the Print Assumptions block at the
-   end reports every shipped constant closed under the global context.
+   admitted and nothing is axiomatized: the native assumption audit reports
+   every shipped constant closed under the global context.
 
    What the gate's green line means. Compiled, axiom-free, non-vacuous and
    enumerated, and it does not mean verified. Nothing below is compiled,
@@ -62,7 +62,7 @@
    conjunct 3 of the composition's admission compares the bound against a
    declared capacity, which the demo instantiates with that file's own
    `ring_capacity`. Nothing else it exports is read, and no name declared
-   here shadows one it exports, so the assumption block at the end audits
+   here shadows one it exports, so the native assumption audit follows
    the imported constants and not local twins of them, which is a hazard a
    `Require` carries and no gate reads. **What is not claimed is that the
    subscription rides the reference world**: that declaration's five
@@ -2522,174 +2522,6 @@ Definition witness_Txn : Txn := committed_txn.
    that emptiness checked mechanically.
    ------------------------------------------------------------------------- *)
 
-Print Assumptions all_of.
-Print Assumptions any_of.
-Print Assumptions count_of.
-Print Assumptions map_over.
-Print Assumptions filter_of.
-Print Assumptions append_of.
-Print Assumptions take_of.
-Print Assumptions find_of.
-Print Assumptions upto.
-Print Assumptions at_member.
-Print Assumptions drop_at.
-Print Assumptions before_last.
-Print Assumptions nat_list_eqb.
-Print Assumptions andb_split.
-Print Assumptions nat_eqb_refl.
-Print Assumptions nat_leb_refl.
-Print Assumptions leb_succ_right.
-Print Assumptions leb_trans.
-Print Assumptions add_succ_right.
-Print Assumptions leb_add_right.
-Print Assumptions leb_add_left.
-Print Assumptions add_assoc_nat.
-Print Assumptions all_of_cons.
-Print Assumptions all_of_weaken.
-Print Assumptions all_of_map.
-Print Assumptions all_of_const.
-Print Assumptions all_of_take.
-Print Assumptions count_take_bounded.
-Print Assumptions count_append_one.
-Print Assumptions count_append_two.
-Print Assumptions count_map_over.
-Print Assumptions filter_append.
-Print Assumptions filter_none.
-Print Assumptions there_are_three_namespace_prohibitions.
-Print Assumptions the_prohibitions_are_pairwise_distinct.
-Print Assumptions there_are_three_candidate_disciplines.
-Print Assumptions there_are_five_composition_conjuncts.
-Print Assumptions an_admitted_composition_separates_the_domains.
-Print Assumptions an_admitted_composition_places_every_index.
-Print Assumptions an_admitted_composition_sizes_its_queue.
-Print Assumptions count_replace_last_word.
-Print Assumptions replace_last_word_untagged.
-Print Assumptions map_over_plain_untagged.
-Print Assumptions records_at_untagged.
-Print Assumptions records_at_inside.
-Print Assumptions placed_at.
-Print Assumptions placed_unplaced.
-Print Assumptions placed_keeps_the_tag_reading.
-Print Assumptions placed_at_the_slot_stays_inside.
-Print Assumptions placed_from_a_closed_body_writes_no_authority.
-Print Assumptions plain_key_untagged.
-Print Assumptions stamped_key_untagged.
-Print Assumptions plain_key_count.
-Print Assumptions sealed_key_count.
-Print Assumptions capability_key_count.
-Print Assumptions stamped_key_count.
-Print Assumptions the_specification_writes_no_tag_inside_an_extent.
-Print Assumptions the_specification_places_inside_the_declared_extent.
-Print Assumptions the_specification_writes_no_authority.
-Print Assumptions the_sealing_writer_keeps_the_authority_reading.
-Print Assumptions the_sealing_writer_keeps_the_placement.
-Print Assumptions the_capability_writer_keeps_the_placement.
-Print Assumptions the_stamped_writer_keeps_the_tag_reading.
-Print Assumptions the_stamped_writer_keeps_the_placement.
-Print Assumptions the_spilling_writer_keeps_the_tag_reading.
-Print Assumptions the_spilling_writer_keeps_the_authority_reading.
-Print Assumptions the_writers_are_five.
-Print Assumptions grant_of_is_derivable.
-Print Assumptions truncated_grant_is_derivable.
-Print Assumptions answer_under_is_derivable.
-Print Assumptions the_specification_mints_nothing.
-Print Assumptions the_specification_grants_nothing_without_a_live_session.
-Print Assumptions the_specification_holds_no_standing_authority.
-Print Assumptions the_specification_refuses_the_widening_where_the_composition_says_so.
-Print Assumptions the_standing_router_mints_nothing.
-Print Assumptions the_standing_router_holds_the_fabric_fixed.
-Print Assumptions the_standing_router_refuses_the_widening_it_admits.
-Print Assumptions the_immortal_router_mints_nothing.
-Print Assumptions the_immortal_router_refuses_the_widening_it_admits.
-Print Assumptions the_peer_router_grants_nothing_without_a_live_session.
-Print Assumptions the_widening_router_grants_nothing_without_a_live_session.
-Print Assumptions the_widening_router_holds_the_fabric_fixed.
-Print Assumptions queue_of_with_queue.
-Print Assumptions phase_of_with_queue.
-Print Assumptions spec_publish_uncommitted.
-Print Assumptions spec_publish_after_the_marker.
-Print Assumptions spec_publish_fits.
-Print Assumptions spec_publish_overflows.
-Print Assumptions the_specification_stays_inside_the_declared_bound.
-Print Assumptions the_specification_emits_exactly_one_marker.
-Print Assumptions the_specification_emits_no_further_delta.
-Print Assumptions the_specification_publishes_only_after_the_commit.
-Print Assumptions an_overflow_leaves_the_subscription_needing_a_rescan.
-Print Assumptions the_hoarding_publisher_emits_no_further_delta.
-Print Assumptions the_hoarding_publisher_publishes_only_after_the_commit.
-Print Assumptions the_twin_marker_publisher_emits_no_further_delta.
-Print Assumptions the_twin_marker_publisher_publishes_only_after_the_commit.
-Print Assumptions the_twin_marker_publisher_still_bounds_the_queue.
-Print Assumptions the_resuming_publisher_publishes_only_after_the_commit.
-Print Assumptions the_resuming_publisher_stays_inside_the_declared_bound.
-Print Assumptions the_prepare_time_publisher_emits_no_further_delta.
-Print Assumptions the_prepare_time_publisher_stays_inside_the_declared_bound.
-Print Assumptions the_specification_survives_no_reboot.
-Print Assumptions the_specification_reestablishes_by_rescan.
-Print Assumptions the_silent_establishment_still_starts_inside_the_bound.
-Print Assumptions the_specification_never_backpressures_the_commit.
-Print Assumptions the_ring_blocking_commit_agrees_where_the_ring_accepted.
-Print Assumptions the_queue_sensitive_commit_agrees_on_an_empty_table.
-Print Assumptions the_demo_composition_is_admissible.
-Print Assumptions each_spoiled_composition_breaks_exactly_one_conjunct.
-Print Assumptions every_dropped_conjunct_admits_its_own_composition.
-Print Assumptions no_spoiled_composition_is_admissible.
-Print Assumptions the_declared_extents_separate_the_two_domains.
-Print Assumptions two_extents_of_one_domain_are_unconstrained.
-Print Assumptions an_empty_extent_overlaps_nothing.
-Print Assumptions every_writer_is_decided_at_every_obligation.
-Print Assumptions the_specification_write_lands_where_the_extent_declares.
-Print Assumptions the_sealing_write_lands_at_the_same_addresses.
-Print Assumptions the_spilled_write_lands_in_another_domain_s_index.
-Print Assumptions the_sealing_writer_is_refuted.
-Print Assumptions the_capability_writer_is_refuted.
-Print Assumptions the_capability_writer_also_writes_the_authority.
-Print Assumptions the_stamped_writer_is_refuted.
-Print Assumptions the_spilling_writer_is_refuted.
-Print Assumptions the_two_readings_of_one_sentence_are_independent.
-Print Assumptions the_specification_answers_every_ask_as_the_delegation_admits.
-Print Assumptions the_rights_comparison_is_exercised_on_its_boundary.
-Print Assumptions a_dead_delegation_answers_nothing.
-Print Assumptions the_three_disciplines_answer_one_widening_differently.
-Print Assumptions every_discipline_mints_only_what_the_delegation_derives.
-Print Assumptions the_answer_discipline_is_observable.
-Print Assumptions the_empty_answer_discipline_does_not_refuse.
-Print Assumptions the_truncating_discipline_does_not_refuse.
-Print Assumptions the_standing_router_is_refuted.
-Print Assumptions the_immortal_router_is_refuted.
-Print Assumptions the_peer_router_is_refuted.
-Print Assumptions the_peer_router_mints_what_another_session_delegated.
-Print Assumptions the_widening_router_is_refuted.
-Print Assumptions the_widening_router_answers_the_widening.
-Print Assumptions the_two_fabrics_hold_one_delegation_fixed.
-Print Assumptions a_publication_on_the_bound_carries_every_delta.
-Print Assumptions a_publication_one_past_the_bound_collapses_to_one_marker.
-Print Assumptions the_next_publication_after_the_marker_adds_nothing.
-Print Assumptions the_hoarding_publisher_is_refuted.
-Print Assumptions the_hoarding_publisher_emits_no_marker_at_all.
-Print Assumptions the_twin_marker_publisher_is_refuted.
-Print Assumptions the_resuming_publisher_is_refuted.
-Print Assumptions the_prepare_time_publisher_is_refuted.
-Print Assumptions the_four_publishers_differ_only_at_the_overflow.
-Print Assumptions the_warm_reboot_is_refuted.
-Print Assumptions the_silent_establishment_is_refuted.
-Print Assumptions a_reboot_leaves_no_subscription_and_recovery_rescans.
-Print Assumptions the_ring_blocking_commit_is_refuted.
-Print Assumptions the_queue_sensitive_commit_is_refuted.
-Print Assumptions the_commit_answers_both_of_the_ring_s_results.
-Print Assumptions the_ledger_covers_five_authored_extents.
-Print Assumptions every_extent_declares_its_base_span_domain_and_namespace.
-Print Assumptions every_capability_declares_its_domain_namespace_and_rights.
-Print Assumptions every_session_declares_its_identifier_capability_and_epoch.
-Print Assumptions every_ask_declares_its_domain_namespace_object_and_rights.
-Print Assumptions the_demo_entry_declares.
-Print Assumptions every_subscription_declares_its_identity_domain_and_namespace.
-Print Assumptions every_transaction_declares_its_identifier_and_its_commit.
-Print Assumptions the_two_publications_declare_their_deltas.
-Print Assumptions the_demo_composition_declares.
-Print Assumptions each_spoiled_composition_moves_its_own_field.
-Print Assumptions every_spoiled_composition_keeps_the_demo_s_other_figures.
-Print Assumptions the_three_disciplined_compositions_differ_in_one_field.
 
 (* Every returned batch is bounded and derives from the currently presented
    session capability. Result discovery and the lifetime matching-set budget
@@ -2733,4 +2565,3 @@ Example result_delivery_cannot_launder_wider_or_stale_authority :
   bounded_result_delivery demo_composition demo_fabric 2
     (cons (grant_of demo_cap demo_ask) nil) = None.
 Proof. split; reflexivity. Qed.
-Print Assumptions delivered_results_obey_the_bound_and_presented_capability.

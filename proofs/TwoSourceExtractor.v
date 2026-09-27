@@ -27,8 +27,8 @@
    quantity the source contract fixes, the block width n, the two min-entropy
    bounds kX and kY, the invocation count m and the security parameter s, is
    a record field or a hypothesis, never a literal outside the witnesses.
-   Nothing is admitted and nothing is axiomatized: the Print Assumptions
-   block at the end reports every shipped constant closed under the global
+   Nothing is admitted and nothing is axiomatized: the native assumption
+   audit reports every shipped constant closed under the global
    context, which is the R-05-163 assumption gate against R-05-164's
    currently empty declared set.
 
@@ -1644,43 +1644,3 @@ Definition witness_Params : Params := accepted_params.
 Definition witness_ConditionedFamily : ConditionedFamily := demo_family.
 
 (* ---- R-05-163's assumption gate ---- *)
-
-Print Assumptions chor_goldreich_squared.
-Print Assumptions total_variation_scaling.
-Print Assumptions total_variation_squared.
-Print Assumptions per_bit_squared_error.
-Print Assumptions per_bit_total_variation_squared.
-Print Assumptions bias_linear_bound.
-Print Assumptions parameters_bound_a_matching_pair.
-Print Assumptions conditional_pairs_carry_the_same_bound.
-Print Assumptions conditional_pairs_meet_the_parameter_premise.
-Print Assumptions observer_joint_distance_is_the_weighted_bias.
-Print Assumptions observer_joint_meets_the_per_bit_budget.
-Print Assumptions hybrid_aggregation.
-Print Assumptions hybrid_error_budget.
-Print Assumptions parameter_output_budget.
-Print Assumptions conditioner_join.
-Print Assumptions conditioner_join_over_bit_strings.
-Print Assumptions finite_min_entropy_fits_width.
-Print Assumptions two_source_entropy_fits_width.
-Print Assumptions matching_parameters_have_feasible_security.
-Print Assumptions conditioner_target_bound.
-Print Assumptions conditioner_target_bound_over_bit_strings.
-Print Assumptions hybrid_conditioner_error_budget.
-Print Assumptions accepted_source_witness.
-Print Assumptions accepted_source_meets_the_budget.
-Print Assumptions independence_without_an_entropy_sum_does_not_extract.
-Print Assumptions conditioning_can_destroy_independence.
-Print Assumptions cond_joint_marginals_keep_full_min_entropy.
-Print Assumptions post_processing_keeps_distance_from_the_image_only.
-Print Assumptions hybrid_sum_is_not_a_maximum.
-Print Assumptions parameter_witnesses.
-Print Assumptions accepted_parameters_are_realized.
-Print Assumptions accepted_parameters_meet_the_finite_bound.
-Print Assumptions arithmetically_admissible_parameters_can_be_unrealizable.
-Print Assumptions conditioner_target_error_requires_the_image_term.
-Print Assumptions constant_conditioner_target_bound_is_tight.
-Print Assumptions hybrid_conditioner_budget_is_realized.
-Print Assumptions observer_joint_witness.
-Print Assumptions witness_premises_are_jointly_inhabited.
-Print Assumptions inhabited_conditional_application.

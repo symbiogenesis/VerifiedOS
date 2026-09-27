@@ -81,7 +81,7 @@
    row: malformed bytes, an over-budget length, a trailing byte, a
    non-canonical length form, a subject naming another design or model, and
    an assumption the host did not permit. R-05-163's assumption gate is
-   answered by the Print Assumptions block at the end, which reports each
+   answered by the native assumption audit, which reports each
    shipped theorem closed under the global context.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
@@ -1287,19 +1287,3 @@ Proof. split; reflexivity. Qed.
 
 Definition witness_FormatBounds : FormatBounds := bounds_witness.
 Definition witness_Certificate : Certificate := certificate_witness.
-
-Print Assumptions manifest_parse_of_serialize.
-Print Assumptions manifest_serialize_of_parse.
-Print Assumptions manifest_has_one_admissible_encoding.
-Print Assumptions manifest_encoding_is_injective.
-Print Assumptions manifest_refuses_trailing_bytes.
-Print Assumptions certificate_parse_of_serialize.
-Print Assumptions certificate_serialize_of_parse.
-Print Assumptions certificate_has_one_admissible_encoding.
-Print Assumptions certificate_encoding_is_injective.
-Print Assumptions certificate_refuses_trailing_bytes.
-Print Assumptions a_numeral_has_one_admissible_form.
-Print Assumptions encoded_admission_pins_its_bytes.
-Print Assumptions a_different_subject_is_refused.
-Print Assumptions an_added_assumption_is_refused.
-Print Assumptions unparsed_bytes_admit_nothing.

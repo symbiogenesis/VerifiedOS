@@ -330,15 +330,3 @@ Proof. repeat constructor; lia. Qed.
 
 Example delayed_cleanup_refuted : ~ (list_sum [1; 5; 2; 2; 1] <= 10).
 Proof. simpl. lia. Qed.
-
-Print Assumptions required_credit_exact.
-Print Assumptions required_credit_app.
-Print Assumptions balanced_prefix_composes_by_max.
-Print Assumptions credit_conservation.
-Print Assumptions required_credit_prefix_exact.
-Print Assumptions run_credit_prefix_exact.
-Print Assumptions repeated_balanced_traces_fit.
-Print Assumptions resource_aware_refines_partial.
-Print Assumptions release_deadline_sound.
-Print Assumptions balanced_trace_can_require_any_credit.
-Print Assumptions final_balance_has_no_uniform_credit_bound.

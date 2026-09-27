@@ -497,15 +497,3 @@ Definition witness_FourOutputSchedule : FourOutputSchedule bool :=
 Example fourth_output_compiles_against_q23d :
   all_of (admits demo_composition) (ms_cores (ensemble_projection witness_FourOutputSchedule))
   = true := eq_refl.
-
-Print Assumptions every_catalog_mode_is_admitted.
-Print Assumptions admitted_visit_selects_slowest_partition_point.
-Print Assumptions admitted_mode_preserves_frame_admission.
-Print Assumptions admitted_mode_checks_each_visit.
-Print Assumptions admitted_mode_has_checked_reentry.
-Print Assumptions schedule_decidable.
-Print Assumptions fourth_output_preserves_frames.
-Print Assumptions complete_mode_admits.
-Print Assumptions non_slowest_point_is_refused.
-Print Assumptions slot_overrun_is_refused.
-Print Assumptions each_global_mode_admits.

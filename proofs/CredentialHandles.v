@@ -509,24 +509,6 @@ Definition witness_ClientRequest : ClientRequest := demo_request.
 Definition witness_CredentialPolicy : CredentialPolicy := demo_policy.
 Definition witness_ServerState : ServerState := approved_state.
 
-Print Assumptions delegated_bindings_are_parent_bindings.
-Print Assumptions admitted_schema_values_are_inside_their_declared_bounds.
-Print Assumptions authorization_checks_the_authority.
-Print Assumptions authority_requires_binding_budget_and_expiry.
-Print Assumptions delegated_authority_is_monotone.
-Print Assumptions authorization_checks_trusted_consent.
-Print Assumptions operations_without_approval_skip_the_callback.
-Print Assumptions a_charge_increments_the_shared_account.
-Print Assumptions a_charge_preserves_other_accounts.
-Print Assumptions a_delegated_charge_is_visible_to_the_parent.
-Print Assumptions a_refused_request_changes_no_state.
-Print Assumptions the_fixture_expiry_relation_is_monotone.
-Print Assumptions every_changed_request_binding_is_refused.
-Print Assumptions every_widened_binding_and_cloned_account_is_refused.
-Print Assumptions each_missing_delegation_check_admits_its_own_widening.
-Print Assumptions every_authorization_guard_has_a_distinguishing_refuter.
-Print Assumptions the_child_spends_the_shared_counter_without_copying_its_quota.
-Print Assumptions unchanged_consent_for_an_old_ordinal_does_not_approve_the_next_use.
 
 (* Opaque service boundary. These constructors model the result of authenticated
    lookup; constructing a Gallina value does not implement CHERI sealing. *)
@@ -582,8 +564,3 @@ Example widened_role_scope_and_operation_are_refused_through_the_handle :
     (ProtocolUse (alter_request 3 demo_request)) = None.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 Definition witness_Vault : Vault := snd demo_issued.
-Print Assumptions issuance_resolves_the_identical_seven_bindings_and_account.
-Print Assumptions issued_use_consumes_existing_authorization.
-Print Assumptions raw_references_are_refused.
-Print Assumptions handle_export_is_always_refused.
-Print Assumptions widened_role_scope_and_operation_are_refused_through_the_handle.
