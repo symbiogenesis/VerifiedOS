@@ -174,9 +174,3 @@ Proof.
   intros [_ [_ HP]].
   destruct (HP (0, 0) (1, 0) (in_eq _ _)) as [H | H]; discriminate H.
 Qed.
-
-Print Assumptions legal_selection_has_encoded_witness.
-Print Assumptions encoded_witness_decodes_safely.
-Print Assumptions finite_encoding_equivalent.
-Print Assumptions unsat_excludes_every_legal_selection.
-Print Assumptions optimum_requires_encoding_completeness.

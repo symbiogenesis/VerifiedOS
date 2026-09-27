@@ -377,37 +377,3 @@ Qed.
 (* Inhabited record instances for the repository's domain gate. *)
 Definition witness_SealedEdge : SealedEdge demo_wx := demo_forward_entry.
 Definition witness_SealingPolicy : SealingPolicy demo_wx := demo_sealing_policy.
-
-Print Assumptions seal_eqb_refl.
-Print Assumptions seal_eqb_sound.
-Print Assumptions site_eqb_refl.
-Print Assumptions site_eqb_sound.
-Print Assumptions sealed_edge_eqb_refl.
-Print Assumptions sealed_edge_eqb_sound.
-Print Assumptions sealing_check_reaches_actual_installed_edges.
-Print Assumptions sealing_handoff_preserves_original_handoff.
-Print Assumptions sealing_handoff_has_bounded_roots.
-Print Assumptions sealing_handoff_remains_quiescent.
-Print Assumptions unsealed_is_not_invocation_only.
-Print Assumptions only_kernel_holds_usable_asr.
-Print Assumptions only_kernel_holds_unsealed_kernel_text.
-Print Assumptions only_kernel_holds_kernel_data.
-Print Assumptions nonkernel_asr_is_exact_admitted_invocation.
-Print Assumptions admitted_continuation_is_local.
-Print Assumptions sealing_handoff_is_satisfiable.
-Print Assumptions sealed_distribution_is_nonempty.
-Print Assumptions sealed_distribution_passes.
-Print Assumptions legacy_asr_check_cannot_qualify_this_distribution.
-Print Assumptions demo_sealing_handoff_holds.
-Print Assumptions demo_installed_sealing_policy_holds.
-Print Assumptions demo_sealing_handoff_is_quiescent.
-Print Assumptions nonkernel_sentries_are_actually_installed.
-Print Assumptions every_sealing_edge_mutation_is_refused.
-Print Assumptions sealing_edge_mutation_count.
-Print Assumptions dangerous_export_has_the_same_erased_edge.
-Print Assumptions full_edge_identity_detects_seal_and_tag_changes.
-Print Assumptions listing_a_global_backward_sentry_does_not_admit_it.
-Print Assumptions listing_unsealed_asr_does_not_admit_it.
-Print Assumptions kernel_data_stays_private_even_if_listed_as_a_sentry.
-Print Assumptions injected_unsealed_authority_refutes_installed_policy.
-Print Assumptions erased_handoff_does_not_supply_sealing_refinement.

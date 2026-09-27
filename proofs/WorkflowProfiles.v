@@ -686,8 +686,3 @@ Proof.
   apply negb_true_iff. now apply (generated_neighbor_is_refused prefix es).
 Qed.
 Compute (length generated_corpus, length generated_refusals).
-
-Print Assumptions reachable_exclusive_and_bounded.
-Print Assumptions continuing_service_bound.
-Print Assumptions restore_uses_current_grant.
-Print Assumptions no_authority_resurrection_under_machine_premise.

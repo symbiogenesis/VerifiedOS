@@ -58,7 +58,7 @@
    is a field of the Plan record rather than a literal or a top-level
    Parameter, which is what keeps the R-05-163 assumption gate green while
    leaving the decision where its owner can make it. Nothing is admitted
-   and nothing is axiomatized: the Print Assumptions block at the end
+   and nothing is axiomatized: the native assumption audit
    reports every shipped constant closed under the global context.
 
    What the gate's green line means. Compiled, axiom-free, non-vacuous and
@@ -525,13 +525,8 @@ Qed.
    enumeration that decided it. *)
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
 Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
-  - destruct k as [ | b ].
-    + discriminate H.
-    + simpl in H. destruct (IH b H) as [ Hlt | Heq ].
-      * left. exact Hlt.
-      * right. rewrite Heq. reflexivity.
+  intros v k. rewrite PeanoNat.Nat.leb_le, PeanoNat.Nat.ltb_lt.
+  apply PeanoNat.Nat.le_lteq.
 Qed.
 
 Lemma all_of_upto :
@@ -553,15 +548,10 @@ Qed.
    check answering false refutes the property rather than reporting that
    the check moved. *)
 Lemma ltb_succ_r : forall v k : nat, Nat.ltb v k = true -> Nat.ltb v (S k) = true.
-Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - reflexivity.
-  - destruct k as [ | b ]; [ discriminate H | ].
-    simpl in H. simpl. exact (IH b H).
-Qed.
+Proof. intros v k. rewrite !PeanoNat.Nat.ltb_lt. apply PeanoNat.Nat.lt_lt_succ_r. Qed.
 
 Lemma ltb_succ_diag : forall k : nat, Nat.ltb k (S k) = true.
-Proof. intros k. induction k as [ | j IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros k. apply PeanoNat.Nat.ltb_lt, PeanoNat.Nat.lt_succ_diag_r. Qed.
 
 Lemma all_of_upto_intro :
   forall (p : nat -> bool) (n : nat),
@@ -636,65 +626,38 @@ Proof. exact PeanoNat.Nat.mul_0_r. Qed.
 
 Lemma add_sub_cancel : forall n m : nat, Nat.leb n m = true -> n + (m - n) = m.
 Proof.
-  intros n. induction n as [ | k IH ]; intros m H.
-  - simpl. destruct m as [ | j ]; reflexivity.
-  - destruct m as [ | j ]; [ discriminate H | ].
-    simpl in H. simpl. rewrite (IH j H). reflexivity.
+  intros n m H. rewrite PeanoNat.Nat.add_comm.
+  apply PeanoNat.Nat.sub_add, PeanoNat.Nat.leb_le. exact H.
 Qed.
 
 Lemma ltb_add_pos :
   forall n k : nat, Nat.ltb 0 k = true -> Nat.ltb n (n + k) = true.
-Proof.
-  intros n k H. induction n as [ | a IH ].
-  - simpl. destruct k as [ | b ]; [ discriminate H | reflexivity ].
-  - simpl. exact IH.
-Qed.
+Proof. intros n k. rewrite !PeanoNat.Nat.ltb_lt. apply PeanoNat.Nat.lt_add_pos_r. Qed.
 
 Lemma leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. exact PeanoNat.Nat.leb_refl. Qed.
 
 Lemma leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c Hab Hbc.
-  - reflexivity.
-  - destruct b as [ | y ]; [ discriminate Hab | ].
-    destruct c as [ | z ]; [ discriminate Hbc | ].
-    simpl in Hab. simpl in Hbc. simpl. exact (IH y z Hab Hbc).
-Qed.
+Proof. intros a b c. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.le_trans. Qed.
 
 Lemma ltb_leb_false : forall n m : nat, Nat.ltb m n = true -> Nat.leb n m = false.
-Proof.
-  intros n. induction n as [ | b IH ]; intros m H.
-  - discriminate H.
-  - destruct m as [ | a ].
-    + reflexivity.
-    + simpl in H. simpl. exact (IH a H).
-Qed.
+Proof. intros n m. rewrite PeanoNat.Nat.ltb_lt, PeanoNat.Nat.leb_gt. trivial. Qed.
 
 Lemma leb_add_l : forall n k : nat, Nat.leb n (n + k) = true.
-Proof. intros n k. induction n as [ | a IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n k. apply PeanoNat.Nat.leb_le, PeanoNat.Nat.le_add_r. Qed.
 
 Lemma leb_add_r : forall n k : nat, Nat.leb n (k + n) = true.
-Proof. intros n k. rewrite (add_comm k n). exact (leb_add_l n k). Qed.
+Proof. intros n k. apply PeanoNat.Nat.leb_le, PeanoNat.Nat.le_add_l. Qed.
 
 Lemma add_le_mono :
   forall a b c d : nat,
     Nat.leb a b = true -> Nat.leb c d = true -> Nat.leb (a + c) (b + d) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c d Hab Hcd.
-  - simpl. exact (leb_trans c d (b + d) Hcd (leb_add_r d b)).
-  - destruct b as [ | y ]; [ discriminate Hab | ].
-    simpl in Hab. simpl. exact (IH y c d Hab Hcd).
-Qed.
+Proof. intros a b c d. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.add_le_mono. Qed.
 
 Lemma mul_le_mono_l :
   forall a b c : nat, Nat.leb b c = true -> Nat.leb (a * b) (a * c) = true.
-Proof.
-  intros a. induction a as [ | k IH ]; intros b c H.
-  - reflexivity.
-  - simpl. exact (add_le_mono b c (k * b) (k * c) H (IH b c H)).
-Qed.
+Proof. intros a b c. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.mul_le_mono_l. Qed.
 
 Lemma eqb_true : forall n m : nat, Nat.eqb n m = true -> n = m.
 Proof. intros n m. exact (proj1 (PeanoNat.Nat.eqb_eq n m)). Qed.
@@ -705,16 +668,10 @@ Proof. exact PeanoNat.Nat.eqb_refl. Qed.
 (* A refused comparison read the other way, which is what a search that
    stops needs: the step it declined is the step past its own bound. *)
 Lemma leb_false_ltb : forall n m : nat, Nat.leb n m = false -> Nat.ltb m n = true.
-Proof.
-  intros n. induction n as [ | k IH ]; intros m H.
-  - discriminate H.
-  - destruct m as [ | j ].
-    + reflexivity.
-    + simpl in H. simpl. exact (IH j H).
-Qed.
+Proof. intros n m. rewrite PeanoNat.Nat.leb_gt, PeanoNat.Nat.ltb_lt. trivial. Qed.
 
 Lemma leb_succ_false : forall n : nat, Nat.leb (S n) n = false.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. apply PeanoNat.Nat.leb_gt, PeanoNat.Nat.lt_succ_diag_r. Qed.
 
 Lemma leb_mul_self :
   forall a x : nat, Nat.leb 1 a = true -> Nat.leb x (a * x) = true.
@@ -727,12 +684,7 @@ Qed.
    which is the arithmetic of an index past a band's own slots. *)
 Lemma leb_sub_of_add :
   forall a b i : nat, Nat.leb (a + b) i = true -> Nat.leb b (i - a) = true.
-Proof.
-  intros a. induction a as [ | k IH ]; intros b i H.
-  - rewrite (sub_0_r i). exact H.
-  - destruct i as [ | j ]; [ discriminate H | ].
-    simpl in H. simpl. exact (IH b j H).
-Qed.
+Proof. intros a b i. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.le_add_le_sub_l. Qed.
 
 Lemma count_of_app :
   forall (A : Type) (l r : list A),
@@ -6061,639 +6013,3 @@ Definition witness_DomainHoldings : DomainHoldings := demo_holdings.
    R-05-164 currently makes empty, so "Closed under the global context" is
    that emptiness checked mechanically.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions any_of.
-Print Assumptions sum_slot_deltas.
-Print Assumptions slot_delta.
-Print Assumptions sum_slot_deltas_app.
-Print Assumptions charge_slots_from.
-Print Assumptions charge_plan.
-Print Assumptions charge_slots_from_app.
-Print Assumptions frame_slots_charge_plan.
-Print Assumptions plan_timing_admission.
-Print Assumptions plan_timing_admission_sound.
-Print Assumptions aggregate_demo_plan.
-Print Assumptions aggregate_demo_frame.
-Print Assumptions isolated_probes_miss_the_combined_overrun.
-Print Assumptions combined_delta_accepts_the_exact_budget.
-Print Assumptions separate_slots_receive_their_own_totals.
-Print Assumptions an_omitted_region_cannot_evade_timing_admission.
-Print Assumptions a_nonexistent_slot_cannot_evade_timing_admission.
-Print Assumptions map_over.
-Print Assumptions filter_of.
-Print Assumptions upto.
-Print Assumptions before_last.
-Print Assumptions at_list.
-Print Assumptions occurrences.
-Print Assumptions only_if.
-Print Assumptions andb_split.
-Print Assumptions andb_join.
-Print Assumptions only_if_elim.
-Print Assumptions only_if_intro.
-Print Assumptions all_of_const.
-Print Assumptions all_of_app.
-Print Assumptions all_of_app_join.
-Print Assumptions any_of_app_true.
-Print Assumptions leb_split.
-Print Assumptions all_of_upto.
-Print Assumptions ltb_succ_r.
-Print Assumptions ltb_succ_diag.
-Print Assumptions all_of_upto_intro.
-Print Assumptions any_of_upto_intro.
-Print Assumptions all_of_at.
-Print Assumptions add_0_r.
-Print Assumptions add_succ_r.
-Print Assumptions add_comm.
-Print Assumptions add_assoc.
-Print Assumptions mul_add_distr_l.
-Print Assumptions sub_diag.
-Print Assumptions sub_0_r.
-Print Assumptions mul_0_r.
-Print Assumptions add_sub_cancel.
-Print Assumptions ltb_add_pos.
-Print Assumptions leb_refl.
-Print Assumptions leb_trans.
-Print Assumptions ltb_leb_false.
-Print Assumptions leb_add_l.
-Print Assumptions leb_add_r.
-Print Assumptions add_le_mono.
-Print Assumptions mul_le_mono_l.
-Print Assumptions eqb_true.
-Print Assumptions eqb_refl.
-Print Assumptions leb_false_ltb.
-Print Assumptions leb_succ_false.
-Print Assumptions leb_mul_self.
-Print Assumptions leb_sub_of_add.
-Print Assumptions count_of_app.
-Print Assumptions the_empty_disjunction_fails.
-Print Assumptions before_last_of_nothing.
-Print Assumptions the_index_set_of_three.
-Print Assumptions the_fallback_past_the_end.
-Print Assumptions nothing_occurs_in_nothing.
-Print Assumptions a_filter_that_keeps_nothing.
-Print Assumptions a_map_over_nothing.
-Print Assumptions only_if_is_implication.
-Print Assumptions all_classes.
-Print Assumptions first_class_list.
-Print Assumptions second_class_list.
-Print Assumptions listed_kinds.
-Print Assumptions named_kinds.
-Print Assumptions all_kinds.
-Print Assumptions placed_by_name.
-Print Assumptions criterion_class.
-Print Assumptions class_eqb.
-Print Assumptions class_eqb_refl.
-Print Assumptions class_eqb_true.
-Print Assumptions kind_eqb.
-Print Assumptions kind_eqb_refl.
-Print Assumptions kind_eqb_true.
-Print Assumptions there_are_two_latency_classes.
-Print Assumptions the_first_list_names_twelve_kinds.
-Print Assumptions the_second_list_names_eight_kinds.
-Print Assumptions the_two_lists_name_twenty_kinds.
-Print Assumptions the_entries_place_twenty_one_kinds_by_name.
-Print Assumptions the_first_list_is_all_first_class.
-Print Assumptions the_second_list_is_all_second_class.
-Print Assumptions the_three_placements_named_by_their_own_entries.
-Print Assumptions the_interpreter_body_is_in_neither_list.
-Print Assumptions one_kind_is_placed_by_criterion_and_not_by_name.
-Print Assumptions the_criterion_agrees_with_the_carriers_the_entry_names.
-Print Assumptions Assignment.
-Print Assumptions register_place.
-Print Assumptions spec_assign.
-Print Assumptions places_ok.
-Print Assumptions PlacesAsTheRegisterPlaces.
-Print Assumptions places_ok_sound.
-Print Assumptions the_specification_places_as_the_register_places.
-Print Assumptions the_specification_assignment_passes_the_check.
-Print Assumptions PlacesKindOn.
-Print Assumptions HardTaskCodeIsFirstClass.
-Print Assumptions ArenasAreSecondClass.
-Print Assumptions TheInterpreterBodyIsFirstClass.
-Print Assumptions PlacesPayloadsByTheCriterion.
-Print Assumptions whole_placement_gives_each.
-Print Assumptions the_specification_places_hard_task_code_first.
-Print Assumptions the_specification_places_the_arenas_second.
-Print Assumptions the_specification_places_the_interpreter_body_first.
-Print Assumptions the_specification_places_payloads_by_the_criterion.
-Print Assumptions demote.
-Print Assumptions promote.
-Print Assumptions demote_keeps_other_placements.
-Print Assumptions promote_keeps_other_placements.
-Print Assumptions by_name_payload_assign.
-Print Assumptions the_by_name_payload_placement_keeps_every_named_placement.
-Print Assumptions Observation.
-Print Assumptions Placer.
-Print Assumptions spec_placer.
-Print Assumptions DecidedOnceAtComposition.
-Print Assumptions the_specification_placer_is_decided_once.
-Print Assumptions promoting_placer.
-Print Assumptions demoting_placer.
-Print Assumptions fetch_constant.
-Print Assumptions fetch_constant_first.
-Print Assumptions fetch_constant_second.
-Print Assumptions placement_delta.
-Print Assumptions per_fetch_delta.
-Print Assumptions SecondClassIsNoFaster.
-Print Assumptions DeltaIsFaithful.
-Print Assumptions the_delta_is_faithful_under_the_side_condition.
-Print Assumptions the_delta_is_the_count_times_the_per_fetch_delta.
-Print Assumptions the_first_class_carries_no_delta.
-Print Assumptions equal_constants_carry_no_delta.
-Print Assumptions Delta.
-Print Assumptions DeltaReadsThePlacementAlone.
-Print Assumptions the_placement_delta_reads_the_placement_alone.
-Print Assumptions length_scaled_delta.
-Print Assumptions the_length_scaled_delta_charges_nothing_on_the_first_class.
-Print Assumptions the_length_scaled_delta_charges_nothing_where_the_constants_agree.
-Print Assumptions charge_slot.
-Print Assumptions charge_nth.
-Print Assumptions charge_band_at.
-Print Assumptions charge_frame_at.
-Print Assumptions charge_nth_app_lt.
-Print Assumptions charge_nth_app_ge.
-Print Assumptions band_slots_charge_at.
-Print Assumptions major_frame_charge_at.
-Print Assumptions frame_slots_charge_at.
-Print Assumptions charge_nth_past_the_end.
-Print Assumptions charge_band_past_the_end.
-Print Assumptions charge_frame_past_the_end.
-Print Assumptions disjoint_from_charge_head.
-Print Assumptions disjoint_from_charge_nth.
-Print Assumptions pairwise_disjoint_charge_nth.
-Print Assumptions charging_moves_no_offset_and_no_width.
-Print Assumptions Admission.
-Print Assumptions spec_admission.
-Print Assumptions reporting_admission.
-Print Assumptions focus_charging_admission.
-Print Assumptions CountsTheDelta.
-Print Assumptions ChargesTheRegionSOwnSlot.
-Print Assumptions the_specification_admission_counts_the_delta.
-Print Assumptions the_specification_admission_charges_the_region_s_own_slot.
-Print Assumptions slot_indices_held.
-Print Assumptions ChargesOnlySlotsTheFrameHolds.
-Print Assumptions slot_indices_held_sound.
-Print Assumptions slot_indices_held_complete.
-Print Assumptions a_slot_the_frame_does_not_carry_absorbs_the_whole_delta.
-Print Assumptions IgnoresThePlan.
-Print Assumptions the_reporting_admission_ignores_the_plan.
-Print Assumptions the_focus_charging_admission_agrees_at_the_focus.
-Print Assumptions charged_bound_mono.
-Print Assumptions slot_fits_charge_mono.
-Print Assumptions all_of_fits_charge_nth_mono.
-Print Assumptions a_smaller_delta_is_admitted_wherever_a_larger_one_is.
-Print Assumptions MonotoneInTheDelta.
-Print Assumptions the_specification_admission_is_monotone_in_the_delta.
-Print Assumptions the_reporting_admission_is_monotone.
-Print Assumptions the_focus_charging_admission_is_monotone.
-Print Assumptions brittle_admission.
-Print Assumptions the_brittle_admission_counts_the_delta.
-Print Assumptions pow2.
-Print Assumptions pow2_step.
-Print Assumptions mul_two.
-Print Assumptions pow2_pos.
-Print Assumptions len_lt_pow2.
-Print Assumptions is_pow2.
-Print Assumptions a_power_of_two_is_recognized.
-Print Assumptions a_granule_the_encoding_can_align_on_and_two_it_cannot.
-Print Assumptions granule_exponent.
-Print Assumptions granule_exponent_step.
-Print Assumptions the_exponent_of_no_fuel.
-Print Assumptions representable_granule.
-Print Assumptions Quantum.
-Print Assumptions spec_quantum.
-Print Assumptions ByteExactBelowTheThreshold.
-Print Assumptions NoCoarserThanTheLengthOverTheSixthPower.
-Print Assumptions TheCoarsestGranuleWithinThatBound.
-Print Assumptions AlignsOnAPowerOfTwo.
-Print Assumptions the_specification_quantum_is_byte_exact_below_the_threshold.
-Print Assumptions granule_exponent_within_the_bound.
-Print Assumptions granule_exponent_stopped_or_unspent.
-Print Assumptions the_specification_quantum_is_no_coarser_than_the_bound.
-Print Assumptions the_specification_quantum_is_the_coarsest_within_that_bound.
-Print Assumptions the_specification_quantum_aligns_on_a_power_of_two.
-Print Assumptions flat_quantum.
-Print Assumptions no_plan_wide_granule_quantizes_as_the_encoding_does.
-Print Assumptions the_byte_exact_plan_wide_granule_keeps_the_regime_it_does_not_break.
-Print Assumptions the_byte_exact_plan_wide_granule_keeps_the_bound_and_the_alignment.
-Print Assumptions the_byte_exact_plan_wide_granule_is_refuted.
-Print Assumptions inclusive_threshold_quantum.
-Print Assumptions the_inclusive_threshold_quantum_keeps_the_other_clauses.
-Print Assumptions the_inclusive_threshold_quantum_is_refuted.
-Print Assumptions the_inclusive_threshold_quantum_breaks_at_the_threshold.
-Print Assumptions coarser_quantum.
-Print Assumptions the_coarser_quantum_keeps_the_regime_below_and_the_alignment.
-Print Assumptions the_coarser_quantum_is_refuted.
-Print Assumptions the_coarser_quantum_rounds_one_exponent_past_the_bound.
-Print Assumptions granule_inside_the_window.
-Print Assumptions a_granule_inside_the_window_keeps_both_bounds.
-Print Assumptions the_two_regimes_meet_at_the_threshold.
-Print Assumptions granule_of.
-Print Assumptions base_is_quantized.
-Print Assumptions length_is_quantized.
-Print Assumptions slot_bases_quantized.
-Print Assumptions slot_lengths_quantized.
-Print Assumptions BasesAreRepresentablyAligned.
-Print Assumptions LengthsAreGranuleQuantized.
-Print Assumptions slot_bases_quantized_sound.
-Print Assumptions slot_lengths_quantized_sound.
-Print Assumptions slot_bases_quantized_complete.
-Print Assumptions slot_lengths_quantized_complete.
-Print Assumptions narrowing_granules.
-Print Assumptions narrowing_base.
-Print Assumptions narrowing_length.
-Print Assumptions Exact.
-Print Assumptions a_quantized_slot_base_narrows_exactly.
-Print Assumptions a_narrowed_length_is_a_whole_number_of_granules.
-Print Assumptions NarrowingCheck.
-Print Assumptions spec_narrow_ok.
-Print Assumptions AdmitsOnlyExactNarrowings.
-Print Assumptions the_specification_narrowing_check_admits_only_exact_narrowings.
-Print Assumptions rounding_narrow_ok.
-Print Assumptions within_one_granule_narrow_ok.
-Print Assumptions the_within_one_granule_check_admits_what_the_specification_admits.
-Print Assumptions the_rounding_check_admits_what_the_specification_admits.
-Print Assumptions Placement.
-Print Assumptions island_lo.
-Print Assumptions island_hi.
-Print Assumptions inside_island.
-Print Assumptions containment_ok.
-Print Assumptions StaysInsideItsIsland.
-Print Assumptions containment_ok_sound.
-Print Assumptions containment_ok_complete.
-Print Assumptions spec_placement.
-Print Assumptions ChecksThePlanSOwnBases.
-Print Assumptions the_specification_placement_is_the_plan_s_own_bases.
-Print Assumptions the_plan_s_own_placement_stays_inside_every_island.
-Print Assumptions clamped_placement.
-Print Assumptions the_clamped_placement_agrees_wherever_the_plan_stays_inside.
-Print Assumptions live_overlap.
-Print Assumptions slots_disjoint.
-Print Assumptions colouring_ok.
-Print Assumptions NoInterference.
-Print Assumptions colouring_ok_sound.
-Print Assumptions colouring_ok_complete.
-Print Assumptions strict_colouring_ok.
-Print Assumptions literal_colouring_ok.
-Print Assumptions each_region_once.
-Print Assumptions no_stranger.
-Print Assumptions plan_ok.
-Print Assumptions ChargedExactlyOnce.
-Print Assumptions plan_ok_sound.
-Print Assumptions plan_ok_complete.
-Print Assumptions plan_ok_against.
-Print Assumptions WellFormedAgainstTheFrame.
-Print Assumptions plan_ok_against_sound.
-Print Assumptions plan_ok_against_complete.
-Print Assumptions bytes_on.
-Print Assumptions member_first_class_cost.
-Print Assumptions PopulationBound.
-Print Assumptions pool_fits.
-Print Assumptions MonotoneInTheMemberCost.
-Print Assumptions the_specification_bound_is_monotone_in_the_member_cost.
-Print Assumptions brittle_bound.
-Print Assumptions the_brittle_bound_agrees_where_the_member_costs_something.
-Print Assumptions bytes_on_promote_ge.
-Print Assumptions promoting_a_kind_never_lowers_the_member_cost.
-Print Assumptions the_register_placement_admits_every_population_a_promotion_admits.
-Print Assumptions swap_at.
-Print Assumptions drop_at.
-Print Assumptions insert_at.
-Print Assumptions transpositions.
-Print Assumptions deletions.
-Print Assumptions duplications.
-Print Assumptions all_masks.
-Print Assumptions mask_eqb.
-Print Assumptions assignment_of.
-Print Assumptions the_generators_on_a_short_list.
-Print Assumptions the_generators_on_nothing.
-Print Assumptions the_masks_of_two.
-Print Assumptions the_masks_of_nothing.
-Print Assumptions mask_equality_is_pointwise.
-Print Assumptions a_vector_shorter_than_the_roster_reads_the_fallback.
-Print Assumptions demo_kinds.
-Print Assumptions demo_critical.
-Print Assumptions demo_lengths.
-Print Assumptions demo_bases.
-Print Assumptions demo_base_granules.
-Print Assumptions demo_length_granules.
-Print Assumptions demo_islands.
-Print Assumptions demo_island_bases.
-Print Assumptions demo_island_spans.
-Print Assumptions demo_live_starts.
-Print Assumptions demo_live_ends.
-Print Assumptions demo_fetch_counts.
-Print Assumptions demo_slots.
-Print Assumptions demo_placed.
-Print Assumptions demo_origin_regions.
-Print Assumptions demo_kind_of.
-Print Assumptions demo_cycle_critical.
-Print Assumptions demo_class_of.
-Print Assumptions build_plan.
-Print Assumptions demo_plan.
-Print Assumptions over_margin_plan.
-Print Assumptions flat_plan.
-Print Assumptions unit_delta_plan.
-Print Assumptions fast_second_plan.
-Print Assumptions shared_bases.
-Print Assumptions shared_base_granules.
-Print Assumptions shared_slot_plan.
-Print Assumptions overlapping_bases.
-Print Assumptions overlapping_base_granules.
-Print Assumptions overlapping_live_plan.
-Print Assumptions escaping_bases.
-Print Assumptions escaping_base_granules.
-Print Assumptions island_escaping_plan.
-Print Assumptions underflow_bases.
-Print Assumptions underflow_base_granules.
-Print Assumptions island_underflow_plan.
-Print Assumptions unquantized_bases.
-Print Assumptions unquantized_plan.
-Print Assumptions off_by_one_bases.
-Print Assumptions off_by_one_plan.
-Print Assumptions odd_bases.
-Print Assumptions odd_base_granules.
-Print Assumptions odd_base_plan.
-Print Assumptions unquantized_lengths.
-Print Assumptions unquantized_length_plan.
-Print Assumptions shorter_lengths.
-Print Assumptions shorter_length_granules.
-Print Assumptions shorter_region_plan.
-Print Assumptions reserved_charged_slots.
-Print Assumptions reserved_charged_plan.
-Print Assumptions escaped_charged_slots.
-Print Assumptions slot_escaping_plan.
-Print Assumptions tight_reserved.
-Print Assumptions slack_background.
-Print Assumptions charged_rung.
-Print Assumptions the_charged_rung_moves_two_declared_bounds_and_nothing_else.
-Print Assumptions the_demo_plan_declares.
-Print Assumptions the_demo_rosters.
-Print Assumptions the_demo_geometry.
-Print Assumptions the_demo_granules_are_read_from_the_lengths.
-Print Assumptions the_demo_islands_and_lives.
-Print Assumptions the_demo_fetch_counts_and_slots.
-Print Assumptions nothing_is_declared_past_the_roster.
-Print Assumptions the_variant_plans_keep_the_class_constants.
-Print Assumptions the_constant_variants_keep_every_slot.
-Print Assumptions the_layout_variants_each_move_one_base.
-Print Assumptions the_length_variants_each_move_one_length.
-Print Assumptions spec_mask.
-Print Assumptions the_demo_kinds.
-Print Assumptions the_demo_classes.
-Print Assumptions the_demo_class_vector_alternates.
-Print Assumptions the_two_payloads_share_a_kind_and_differ_in_class.
-Print Assumptions the_demo_plan_places_as_the_register_places.
-Print Assumptions the_demo_plan_places_its_payloads_by_the_criterion.
-Print Assumptions the_demo_plan_is_charged_exactly_once.
-Print Assumptions the_demo_plan_colours_contains_and_quantizes.
-Print Assumptions the_demo_plan_has_no_interference.
-Print Assumptions the_demo_plan_stays_inside_its_islands.
-Print Assumptions the_demo_plan_lays_every_base_at_its_representable_alignment.
-Print Assumptions the_demo_plan_quantizes_every_length.
-Print Assumptions the_demo_plan_is_charged_once_per_region.
-Print Assumptions the_demo_plan_charges_only_slots_the_frames_hold.
-Print Assumptions the_demo_plan_is_well_formed_against_the_charged_rung.
-Print Assumptions the_specification_declares_the_side_condition.
-Print Assumptions a_plan_whose_classes_agree_declares_the_side_condition.
-Print Assumptions the_demo_plan_charges_a_faithful_delta.
-Print Assumptions a_plan_whose_classes_agree_charges_nothing.
-Print Assumptions the_flat_plan_carries_no_delta.
-Print Assumptions the_unit_delta_plan_charges_one_fetch.
-Print Assumptions the_demo_deltas.
-Print Assumptions the_delta_at_the_margin_and_one_unit_past_it.
-Print Assumptions an_island_holds_a_slot_at_each_of_its_own_ends.
-Print Assumptions a_slot_ending_where_the_next_begins_is_disjoint.
-Print Assumptions a_live_range_ending_where_the_next_begins_does_not_overlap.
-Print Assumptions a_region_outside_the_roster_is_refused.
-Print Assumptions a_region_claimed_twice_is_refused.
-Print Assumptions a_quantized_base_and_one_that_is_not.
-Print Assumptions class_masks.
-Print Assumptions mask_admitted.
-Print Assumptions the_class_assignment_family_size.
-Print Assumptions exactly_one_assignment_places_as_the_register_places.
-Print Assumptions the_one_admitted_assignment_is_the_register_s.
-Print Assumptions every_assignment_but_the_register_s_is_refused.
-Print Assumptions no_assignment_but_the_register_s_is_admitted.
-Print Assumptions mask_transpositions.
-Print Assumptions the_mask_transposition_family_size.
-Print Assumptions the_first_mask_transposition.
-Print Assumptions every_transposition_of_the_class_vector_is_one_of_the_assignments.
-Print Assumptions every_transposition_of_the_class_vector_is_refused.
-Print Assumptions no_transposed_class_vector_is_admitted.
-Print Assumptions placement_deletions.
-Print Assumptions placement_duplications.
-Print Assumptions placement_transpositions.
-Print Assumptions the_placement_family_sizes.
-Print Assumptions the_first_deletion_and_the_first_duplication.
-Print Assumptions every_deletion_leaves_a_region_unclaimed.
-Print Assumptions every_duplication_claims_a_region_twice.
-Print Assumptions no_transposition_of_the_placement_list_is_a_weakening.
-Print Assumptions no_deletion_of_the_placement_list_charges_every_region.
-Print Assumptions no_duplication_of_the_placement_list_charges_a_region_once.
-Print Assumptions every_transposition_of_the_placement_list_is_charged_exactly_once.
-Print Assumptions stranger_placement.
-Print Assumptions the_stranger_placement_breaks_the_second_conjunct_alone.
-Print Assumptions the_stranger_placement_is_refuted.
-Print Assumptions the_stranger_is_the_first_index_the_roster_does_not_carry.
-Print Assumptions margin_ladder.
-Print Assumptions the_margin_ladder.
-Print Assumptions the_background_slot_s_ladder_stops_earlier.
-Print Assumptions every_delta_at_or_below_the_margin_is_admitted.
-Print Assumptions no_delta_past_the_margin_is_admitted.
-Print Assumptions one_unit_of_placement_delta_decides.
-Print Assumptions the_reserved_band_slot_carries_a_charge.
-Print Assumptions reserved_ladder.
-Print Assumptions the_reserved_ladder.
-Print Assumptions the_reserved_slot_s_margin_is_one.
-Print Assumptions the_demo_class_field_is_the_register_placement.
-Print Assumptions hard_task_demoted.
-Print Assumptions arenas_promoted.
-Print Assumptions body_demoted.
-Print Assumptions scalar_demoted.
-Print Assumptions the_demoted_hard_task_code_is_refuted.
-Print Assumptions the_demoted_hard_task_code_keeps_the_other_two_placements.
-Print Assumptions the_promoted_arenas_are_refuted.
-Print Assumptions the_promoted_arenas_keep_the_other_two_placements.
-Print Assumptions the_demoted_interpreter_body_is_refuted.
-Print Assumptions the_demoted_interpreter_body_keeps_the_other_two_placements.
-Print Assumptions the_demoted_scalar_working_set_keeps_all_three_named_placements.
-Print Assumptions the_demoted_scalar_working_set_is_refuted.
-Print Assumptions the_demoted_scalar_working_set_moves_no_delta.
-Print Assumptions payloads_named_second.
-Print Assumptions payloads_named_first.
-Print Assumptions no_by_name_payload_placement_places_by_the_criterion.
-Print Assumptions the_by_name_payload_placements_keep_the_three_named_placements.
-Print Assumptions the_by_name_payload_placement_differs_at_one_payload.
-Print Assumptions the_demoted_hard_task_code_is_refused_by_the_arithmetic.
-Print Assumptions the_demoted_interpreter_body_is_refused_by_the_arithmetic.
-Print Assumptions obs_quiet.
-Print Assumptions obs_hot.
-Print Assumptions the_probe_observations.
-Print Assumptions the_promoting_placer_is_refuted.
-Print Assumptions the_demoting_placer_is_refuted.
-Print Assumptions the_promoting_placer_still_places_hard_task_code_first.
-Print Assumptions the_demoting_placer_still_places_the_arenas_second.
-Print Assumptions the_promoting_placer_agrees_where_nothing_is_observed.
-Print Assumptions a_faster_second_class_is_refuted.
-Print Assumptions the_faster_second_class_plan_truncates_its_delta.
-Print Assumptions the_truncation_the_faster_second_class_produces.
-Print Assumptions the_faster_second_class_plan_keeps_everything_else.
-Print Assumptions the_length_scaled_delta_is_refuted.
-Print Assumptions the_shorter_region_plan_keeps_everything_else.
-Print Assumptions the_two_plans_the_length_scaled_delta_separates.
-Print Assumptions the_reporting_admission_is_refuted.
-Print Assumptions the_reporting_admission_agrees_where_the_delta_is_zero.
-Print Assumptions the_brittle_admission_is_refuted.
-Print Assumptions the_brittle_admission_refuses_a_costless_placement.
-Print Assumptions the_focus_charging_admission_is_refuted.
-Print Assumptions the_focus_charging_admission_does_not_count_the_delta.
-Print Assumptions the_slot_the_mischarge_misses.
-Print Assumptions the_focus_charging_admission_agrees_on_the_demo_plan.
-Print Assumptions the_slot_escaping_plan_is_refuted.
-Print Assumptions the_slot_escaping_plan_keeps_everything_else.
-Print Assumptions the_one_region_the_escaping_plan_charges_nowhere.
-Print Assumptions the_escaped_slot_absorbs_its_whole_delta.
-Print Assumptions the_verdict_the_escaped_slot_flips.
-Print Assumptions inner_narrowing.
-Print Assumptions the_narrowing_the_plan_admits.
-Print Assumptions the_specification_narrowing_is_exact.
-Print Assumptions the_unquantized_slot_base_rounds_outward.
-Print Assumptions the_rounding_the_unquantized_base_produces.
-Print Assumptions the_rounding_narrowing_check_is_refuted.
-Print Assumptions the_within_one_granule_check_is_refuted.
-Print Assumptions the_rounding_check_stops_at_one_granule.
-Print Assumptions the_unquantized_length_plan_is_refuted.
-Print Assumptions the_unquantized_length_plan_keeps_everything_else.
-Print Assumptions the_granule_the_unquantized_length_would_need.
-Print Assumptions the_divided_granule_at_the_payload.
-Print Assumptions the_divided_granule_keeps_every_bound_clause.
-Print Assumptions the_divided_granule_is_refuted.
-Print Assumptions the_window_the_two_bound_clauses_leave_open.
-Print Assumptions the_odd_base_plan_is_refuted.
-Print Assumptions the_odd_base_plan_keeps_everything_else.
-Print Assumptions the_odd_base_is_no_whole_number_of_its_own_granule.
-Print Assumptions the_island_escaping_plan_is_refuted.
-Print Assumptions the_island_escaping_plan_leaves_its_island.
-Print Assumptions the_island_underflow_plan_is_refuted.
-Print Assumptions the_island_underflow_plan_leaves_its_island.
-Print Assumptions the_clamped_placement_is_refuted.
-Print Assumptions the_clamped_placement_contains_what_the_plan_does_not.
-Print Assumptions the_clamped_placement_agrees_on_the_demo_plan.
-Print Assumptions the_overlapping_live_plan_is_refuted.
-Print Assumptions the_overlapping_live_plan_interferes.
-Print Assumptions the_unquantized_plan_is_refuted.
-Print Assumptions the_unquantized_plan_lays_a_base_off_its_own_granule.
-Print Assumptions the_shared_slot_plan_is_admitted.
-Print Assumptions the_shared_slot_plan_has_no_interference.
-Print Assumptions the_strict_colouring_refuses_the_mechanism.
-Print Assumptions the_literal_reading_of_the_side_condition_refuses_the_mechanism.
-Print Assumptions the_literal_reading_admits_what_the_side_condition_must_refuse.
-Print Assumptions the_two_readings_differ_at_the_shared_pair.
-Print Assumptions the_member_cost_under_each_placement.
-Print Assumptions the_origin_pool_ceiling_rises_when_the_arenas_move.
-Print Assumptions the_demo_pool_survives_every_promotion.
-Print Assumptions the_brittle_bound_is_refuted.
-Print Assumptions the_brittle_bound_refuses_a_costless_member.
-Print Assumptions the_brittle_bound_agrees_on_the_demo_placement.
-Print Assumptions DomainLabel.
-Print Assumptions PowerState.
-Print Assumptions PowerVector.
-Print Assumptions session_derived.
-Print Assumptions retained_here.
-Print Assumptions on_here.
-Print Assumptions off_here.
-Print Assumptions resident_here.
-Print Assumptions session_retention_ok.
-Print Assumptions label_vector_ok.
-Print Assumptions RetainsNoSessionDerivedDomainOutsideResidency.
-Print Assumptions SessionDomainIsOnExactlyWhenResident.
-Print Assumptions negb_gives_false.
-Print Assumptions false_gives_negb.
-Print Assumptions off_is_not_retained.
-Print Assumptions session_retention_ok_sound.
-Print Assumptions session_retention_ok_complete.
-Print Assumptions label_vector_ok_sound.
-Print Assumptions the_whole_rule_carries_the_narrow_check.
-Print Assumptions the_composed_vector_is_admitted.
-Print Assumptions a_retained_session_derived_domain_is_refused.
-Print Assumptions the_whole_rule_refuses_what_the_narrow_check_admits.
-Print Assumptions the_composed_vector_meets_the_obligation.
-Print Assumptions the_retaining_vector_breaks_the_obligation.
-Print Assumptions the_image_derived_domain_may_be_retained_outside_residency.
-Print Assumptions DomainHoldings.
-Print Assumptions held_by.
-Print Assumptions an_empty_domain_holds_no_region.
-Print Assumptions an_empty_region_is_held_by_no_domain.
-Print Assumptions second_class_region.
-Print Assumptions second_class_domain.
-Print Assumptions named_session_kind.
-Print Assumptions holds_session_content.
-Print Assumptions taints.
-Print Assumptions derived_label.
-Print Assumptions label_eqb.
-Print Assumptions label_eqb_refl.
-Print Assumptions label_eqb_true.
-Print Assumptions label_derived_ok.
-Print Assumptions LabelIsDerived.
-Print Assumptions holdings_cover_ok.
-Print Assumptions HoldingsCoverTheSecondClass.
-Print Assumptions RetainsNoSessionContentOutsideResidency.
-Print Assumptions label_derived_ok_sound.
-Print Assumptions label_derived_ok_complete.
-Print Assumptions any_of_app_split.
-Print Assumptions any_of_upto_elim.
-Print Assumptions holdings_cover_ok_sound.
-Print Assumptions holdings_cover_ok_complete.
-Print Assumptions a_second_class_holding_is_in_scope.
-Print Assumptions a_tainted_domain_derives_session.
-Print Assumptions the_derived_label_keeps_session_content_out_of_retention.
-Print Assumptions every_session_region_sits_in_a_declared_session_domain.
-Print Assumptions demo_domain_lo.
-Print Assumptions demo_domain_len.
-Print Assumptions demo_from_image.
-Print Assumptions demo_holdings.
-Print Assumptions kv_cache_holdings.
-Print Assumptions arenas_as_image_holdings.
-Print Assumptions cap_store_weights_holdings.
-Print Assumptions unheld_holdings.
-Print Assumptions macro_unheld_holdings.
-Print Assumptions interior_empty_holdings.
-Print Assumptions interior_empty_region_plan.
-Print Assumptions derived_demo_labels.
-Print Assumptions held_vector_power.
-Print Assumptions mislabelled_labels.
-Print Assumptions all_retained_power.
-Print Assumptions held_vector.
-Print Assumptions mislabelled_vector.
-Print Assumptions retaining_held_vector.
-Print Assumptions the_demo_domains_hold_the_regions_their_extents_meet.
-Print Assumptions the_demo_domains_derive_their_labels.
-Print Assumptions the_held_vector_is_admitted.
-Print Assumptions the_held_vector_meets_the_content_obligation.
-Print Assumptions a_mislabelled_domain_passes_the_declared_checks_and_is_refused.
-Print Assumptions the_mislabelled_vector_breaks_the_content_obligation.
-Print Assumptions a_retained_session_content_domain_is_refused.
-Print Assumptions the_retaining_held_vector_breaks_the_content_obligation.
-Print Assumptions an_unheld_region_passes_the_label_check_and_is_refused.
-Print Assumptions an_interior_empty_domain_cannot_supply_coverage.
-Print Assumptions an_interior_empty_region_is_not_held.
-Print Assumptions the_unheld_arenas_meet_the_content_obligation_vacuously.
-Print Assumptions the_unheld_arenas_break_the_coverage_obligation.
-Print Assumptions label_from.
-Print Assumptions kind_only_label.
-Print Assumptions provenance_only_label.
-Print Assumptions delegation_blind_label.
-Print Assumptions labels_agree.
-Print Assumptions the_specification_check_is_the_comparison_at_its_derivation.
-Print Assumptions kind_read_vector.
-Print Assumptions the_first_class_macro_is_outside_the_label.
-Print Assumptions the_kind_only_derivation_misses_the_kv_cache.
-Print Assumptions the_kv_cache_retained_breaks_the_content_obligation.
-Print Assumptions the_kind_only_derivation_keeps_the_named_kinds.
-Print Assumptions the_provenance_only_derivation_misses_the_named_arenas.
-Print Assumptions the_arenas_as_image_break_the_content_obligation.
-Print Assumptions the_provenance_only_derivation_keeps_the_provenance.
-Print Assumptions the_delegation_blind_derivation_misses_the_store_permission.
-Print Assumptions the_store_permitted_weights_break_the_content_obligation.
-Print Assumptions the_delegation_blind_derivation_keeps_the_kind_and_the_provenance.

@@ -52,8 +52,3 @@ Qed.
 
 Example the_ideal_game_has_a_concrete_attacker :
   ideal_successes guess_false = 2 := eq_refl.
-
-Print Assumptions fresh_ideal_answer_has_two_successes.
-Print Assumptions constant_answer_is_always_predicted.
-Print Assumptions ideal_bound_does_not_transfer_to_every_implementation.
-Print Assumptions the_ideal_game_has_a_concrete_attacker.

@@ -18,11 +18,9 @@
    element i after reading it, then XORs only after the reduction is
    complete, emits the same bytes in index order. Everything below is
    proved outright over Rocq's standard library: nothing is admitted and
-   no axiom is declared. The Print Assumptions block at the end reports
-   the theorems and the named examples closed under the global context;
-   it is a reader's check and not the inventory, since `run.py proofs`
-   enumerates every constant of the file itself, which is the R-05-163
-   gate.
+   no axiom is declared. R-05-163's native assumption gate, `run.py proofs`,
+   enumerates every constant and checks that each is closed under the global
+   context.
 
    What this file is not. It does not model the interpreter. The Python
    `execute` walks an instruction list over a flat byte array with base
@@ -704,38 +702,5 @@ Qed.
 
 (* -------------------------------------------------------------------------
    The R-05-163 gate: every constant closed under the global context, which
-   `run.py proofs` decides through its own inventory of the file. The
-   lines below are the theorems and named examples, for a reader.
+   `run.py proofs` decides through its own native inventory of the file.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions emitted_map_is_map_byte.
-Print Assumptions emitted_map_checked_over_every_byte.
-Print Assumptions reduce_is_checksum.
-Print Assumptions retained_correct.
-Print Assumptions early_release_correct.
-Print Assumptions chunked_correct.
-Print Assumptions early_release_is_chunked.
-Print Assumptions tiled_is_chunked.
-Print Assumptions tiled_correct.
-Print Assumptions fused_correct.
-Print Assumptions in_place_correct.
-Print Assumptions generator_chunks_partition.
-Print Assumptions generator_chunks_clamp.
-Print Assumptions generator_early_release_correct.
-Print Assumptions generator_chunked_correct.
-Print Assumptions generator_tiled_correct.
-Print Assumptions single_chunk_agrees.
-Print Assumptions reference_bytes.
-Print Assumptions demo_reference.
-Print Assumptions demo_variants_agree.
-Print Assumptions generator_chunks_of_the_demo.
-Print Assumptions copy_variant_refuted.
-Print Assumptions copy_variant_same_length.
-Print Assumptions missing_chunk_refuted.
-Print Assumptions missing_chunk_prefix_refuted.
-Print Assumptions duplicate_chunk_refuted.
-Print Assumptions duplicate_chunk_same_length.
-Print Assumptions missing_chunk_is_no_partition.
-Print Assumptions duplicate_chunk_is_no_partition.
-Print Assumptions overshoot_chunk_is_no_partition.
-Print Assumptions partitions_not_necessary.

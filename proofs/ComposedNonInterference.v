@@ -125,7 +125,7 @@
    9. No new axiom class. `ensemble_Ax` is per-member Ax and nothing else:
       an ensemble is N attested copies of one mask set, so the residuals
       R-17-061b enumerates do not multiply and none is added here
-      (R-05-162). The Print Assumptions commands at the end report every
+      (R-05-162). The native assumption audit reports every
       constant closed under the global context, R-05-163's gate over the
       declared set R-05-164 currently makes empty.
    10. This is not a second reading of *hyper-secure*. T is that reading
@@ -591,14 +591,3 @@ Qed.
    set R-05-164 reads from the register, which is empty today. "Closed under
    the global context" is that emptiness, checked mechanically.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions composed_noninterference.
-Print Assumptions quantifier_domains_inhabited.
-Print Assumptions composed_premises_inhabited.
-Print Assumptions composed_noninterference_inhabitation_witness.
-Print Assumptions leaky_members_hold.
-Print Assumptions leaky_wire_is_permitted.
-Print Assumptions composed_noninterference_distinguishing_instance.
-Print Assumptions composition_is_carried_by_no_per_member_theorem.
-Print Assumptions link_premise_carries_vacuity_and_not_contribution.
-Print Assumptions endpoint_labels_decide_something.

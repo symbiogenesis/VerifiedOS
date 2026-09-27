@@ -138,13 +138,10 @@
    The proofs use the Rocq prelude, the standard List, Arith, Bool, Lia and
    Eqdep_dec modules, and ProbingModel.v. Decidable-equality uniqueness of
    identity proofs is the constructive Eqdep_dec result and introduces no
-   axiom. No global axioms and no admitted proofs are introduced. The Print
-   Assumptions block at the end enumerates this file's named results, which
-   is not the same set as every constant it ships: the four inhabitation
-   witnesses of section 10 are reachable from no listed name. What covers
-   every shipped constant is R-05-163's assumption gate, run by
-   `run.py proofs`, which compares each constant's enumerated assumption set
-   against the declared set R-05-164 makes empty, as section 11 records.
+   axiom. No global axioms and no admitted proofs are introduced. R-05-163's
+   native assumption gate, run by `run.py proofs`, inventories every shipped
+   constant and compares its assumption set against the declared set
+   R-05-164 makes empty, including the inhabitation witnesses of section 10.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-163 R-05-164 R-05-165 R-05-166 R-15-053a R-17-058a R-17-058d
@@ -1299,30 +1296,3 @@ Proof. reflexivity. Qed.
    11. R-05-163's assumption gate. Every shipped constant's enumerated
    assumption set is compared against the declared set R-05-164 makes empty.
    ========================================================================= *)
-
-Print Assumptions primeb_refuses_every_proper_divisor.
-Print Assumptions five_is_prime_and_four_is_not.
-Print Assumptions fp_eq_rep.
-Print Assumptions fp_sharing.
-Print Assumptions prime_field_sharing_hides_from_short_share_lists.
-Print Assumptions the_composite_modulus_is_refused_as_a_field.
-Print Assumptions the_group_laws_survive_a_composite_modulus.
-Print Assumptions each_stage_refreshes_the_previous_tuple.
-Print Assumptions every_stage_shares_the_same_secret.
-Print Assumptions the_algebraic_pipeline_is_not_a_netlist_claim.
-Print Assumptions shiftable_observations_have_uniform_preimage_counts.
-Print Assumptions mask_tuples_length_pow.
-Print Assumptions the_single_wire_preimage_count.
-Print Assumptions the_single_wire_observation_has_one_in_p_of_the_tapes.
-Print Assumptions counting_rerandomization_on_members.
-Print Assumptions every_stage_hides_the_secret_from_one_wire.
-Print Assumptions the_conditional_reading_of_the_single_wire_bound.
-Print Assumptions the_prime_field_pipeline_hides_every_single_wire.
-Print Assumptions the_prime_field_single_wire_preimage_count.
-Print Assumptions the_hiding_argument_does_not_consume_primality.
-Print Assumptions the_demo_single_wire_has_five_preimages.
-Print Assumptions a_completing_stage_view_recovers_the_secret.
-Print Assumptions the_completing_stage_view_distinguishes_two_secrets.
-Print Assumptions the_completing_stage_view_weighs_five_against_zero.
-Print Assumptions the_demo_single_wire_is_not_a_leak.
-Print Assumptions the_prime_field_inhabits_the_probing_model_sharing.

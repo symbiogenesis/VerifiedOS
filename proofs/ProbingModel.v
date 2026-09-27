@@ -50,8 +50,8 @@
 
    The proofs use the Rocq prelude and, for general finite enumeration, the
    standard List/Arith/Lia modules. No global axioms or admitted proofs are
-   introduced. Native inventory and assumption audit, not these footer
-   commands or the existence of an inhabitant alone, determine proof evidence.
+   introduced. Native inventory and assumption auditing determine proof
+   evidence; the existence of an inhabitant alone does not.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-163 R-05-164 R-05-165 R-05-166 R-15-053a R-15-108 R-17-058a
@@ -1928,46 +1928,6 @@ Definition witness_Gadget : Gadget := copy_gadget.
    acceptance clause names, which is why the interface above is a record.
    ------------------------------------------------------------------------- *)
 
-Print Assumptions pr.
-Print Assumptions SameDistribution.
-Print Assumptions reindexing_preserves_probability.
-Print Assumptions rerandomization_hides.
-Print Assumptions a_degenerate_equality_test_hides_every_difference.
-Print Assumptions identical_views_are_identically_distributed.
-Print Assumptions equal_image_multisets_are_identically_distributed.
-Print Assumptions the_soundness_law_refuses_a_degenerate_equality_test.
-Print Assumptions well_formed_gate_reads_earlier_wires.
-Print Assumptions eval_fuel_irrelevant.
-Print Assumptions stable_sources_determine_the_probed_value.
-Print Assumptions robust_expansion_contains_the_glitch_expansion.
-Print Assumptions ProbingSecure.
-Print Assumptions Leaks.
-Print Assumptions the_whole_sharing_recovers_the_secret.
-Print Assumptions masks_alone_carry_no_secret.
-Print Assumptions two_share_encoding_hides_the_secret.
-Print Assumptions NI.
-Print Assumptions SNI.
-Print Assumptions PINI.
-Print Assumptions dependence_yields_a_simulator.
-Print Assumptions sni_implies_ni.
-Print Assumptions pini_implies_ni.
-Print Assumptions an_unmasked_wire_is_a_leak.
-Print Assumptions one_share_of_a_secret_is_not_a_leak.
-Print Assumptions a_glitch_extended_probe_is_a_leak.
-Print Assumptions the_stable_probe_on_that_wire_is_not_a_leak.
-Print Assumptions glitch_probe_sees_strictly_more_than_the_stable_probe.
-Print Assumptions the_robust_expansion_inherits_the_glitch_leak.
-Print Assumptions a_transition_probe_on_a_reused_register_is_a_leak.
-Print Assumptions the_stable_probe_on_that_register_is_not_a_leak.
-Print Assumptions a_transition_probe_on_a_held_register_is_not_a_leak.
-Print Assumptions the_two_transition_readings_disagree.
-Print Assumptions the_constant_gadget_satisfies_all_three_notions.
-Print Assumptions copy_gadget_refutes_sni.
-Print Assumptions copy_gadget_meets_the_pini_obligation_where_sni_fails.
-Print Assumptions three_shares_hide_the_secret_from_the_two_masks.
-Print Assumptions three_shares_hide_the_secret_from_a_mask_and_the_last_share.
-Print Assumptions three_shares_are_recovered_by_the_whole_sharing.
-Print Assumptions the_two_order_conventions_are_not_the_same_number.
 
 (* Arbitrary-order finite counting. These standard-library list and natural
    arithmetic lemmas introduce no probability or classical-choice axiom. *)

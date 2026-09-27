@@ -1825,53 +1825,6 @@ Definition witness_Widths : Widths := demo_widths.
    R-05-163's assumption gate, as in the artifacts beside this one.
    ========================================================================= *)
 
-Print Assumptions field_decode_encode.
-Print Assumptions field_encode_decode.
-Print Assumptions fields_decode_encode.
-Print Assumptions fields_encode_decode.
-Print Assumptions re_encoding_its_bytes_gives_decode_injectivity.
-Print Assumptions the_schema_codec_re_encodes_its_bytes.
-Print Assumptions the_schema_codec_decode_is_injective.
-Print Assumptions the_schema_codec_decodes_what_it_encodes.
-Print Assumptions the_schema_codec_length_is_a_schema_constant.
-Print Assumptions the_schema_codec_emits_admissible_bytes.
-Print Assumptions the_shape_descriptor_re_encodes_its_bytes.
-Print Assumptions the_shape_descriptor_decode_is_injective.
-Print Assumptions the_shape_descriptor_decodes_what_it_encodes.
-Print Assumptions the_shape_descriptor_length_is_a_schema_constant.
-Print Assumptions the_ceiling_verdict_names_its_term.
-Print Assumptions a_uniform_expert_cost_makes_work_per_token_constant.
-Print Assumptions all_experts_resident_makes_the_cost_uniform.
-Print Assumptions residency_and_fixed_top_k_make_work_per_token_constant.
-Print Assumptions routed_fetch_across_the_storage_boundary_is_refused.
-Print Assumptions a_boolean_verdict_loses_the_refusal_cause.
-Print Assumptions the_derived_rate_spends_no_more_than_the_grant.
-Print Assumptions both_cache_placements_stay_inside_the_grant.
-Print Assumptions the_admitted_rate_follows_no_load_signal.
-Print Assumptions the_server_is_fixed_at_composition.
-Print Assumptions a_model_above_the_ceiling_is_refused_when_the_session_opens.
-Print Assumptions a_rate_above_the_grant_is_refused_and_not_degraded.
-Print Assumptions no_admitted_session_spends_more_than_the_grant.
-Print Assumptions the_session_pool_never_exceeds_its_declared_capacity.
-Print Assumptions a_full_session_pool_declines_the_binding.
-Print Assumptions an_unqualified_route_reaches_no_other_destination.
-Print Assumptions an_ensemble_rate_exceeds_no_member_rate.
-Print Assumptions an_accept_and_ignore_field_is_refuted.
-Print Assumptions an_accept_and_ignore_field_breaks_injectivity.
-Print Assumptions a_normalizing_decoder_is_refuted.
-Print Assumptions two_admissible_length_forms_break_injectivity.
-Print Assumptions a_self_describing_length_is_refuted.
-Print Assumptions a_non_resident_expert_makes_work_per_token_vary.
-Print Assumptions experts_of_unequal_width_make_work_per_token_vary.
-Print Assumptions a_routed_fetch_across_storage_is_refuted.
-Print Assumptions an_elastic_server_is_refuted.
-Print Assumptions an_elastic_server_admits_a_model_above_the_ceiling.
-Print Assumptions a_degraded_admission_is_refuted.
-Print Assumptions a_ceiling_with_no_grant_term_is_refuted.
-Print Assumptions a_load_following_rate_is_refuted.
-Print Assumptions an_overcommitting_pool_is_refuted.
-Print Assumptions an_implicit_route_fallback_is_refuted.
-Print Assumptions a_pooled_ensemble_rate_is_refuted.
 
 (* Complete admission entry point. `opening` is the resource/ceiling core;
    this wrapper additionally decides the composition's finite residency map.
@@ -1962,8 +1915,3 @@ Example every_over_boundary_has_its_typed_refusal :
      Some FormatNotAdmitted; Some ExpertCountAboveCeiling;
      Some TopKNotTheFixedValue; Some KvPerTokenAboveCeiling].
 Proof. vm_compute; reflexivity. Qed.
-Print Assumptions finite_residency_is_complete.
-Print Assumptions full_admission_preserves_server_resources.
-Print Assumptions admitted_composition_uses_the_ceiling_and_resource_core.
-Print Assumptions admitted_composition_has_every_expert_resident.
-Print Assumptions invalid_expert_routes_are_refused.

@@ -255,14 +255,3 @@ Example max_instead_of_sequential_sum_is_refuted :
 
 Definition witness_ResidencyCase : ResidencyCase := operation_fault_prefix.
 Definition witness_BoundaryInputs : BoundaryInputs := demo_boundary_inputs.
-
-Print Assumptions residency_bounds_declared_case.
-Print Assumptions boundary_bounds_declared_prefix.
-Print Assumptions boundary_bounds_refined_prefix.
-Print Assumptions padding_fixes_successful_release.
-Print Assumptions successful_release_is_prefix_independent.
-Print Assumptions residency_max_monotone.
-Print Assumptions boundary_components_monotone.
-Print Assumptions omitted_context_is_refuted.
-Print Assumptions omitted_operation_is_refuted.
-Print Assumptions max_instead_of_sequential_sum_is_refuted.

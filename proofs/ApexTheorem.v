@@ -10,7 +10,7 @@
    constant is a Definition of sort Prop over the Vocabulary record, whose
    fields are the interfaces other crown-jewel rows author; binding a row
    is instantiating its fields. Nothing is admitted and nothing is
-   axiomatized: the Print Assumptions commands at the end report every
+   axiomatized: the native assumption audit reports every
    constant closed under the global context, which is R-05-163's gate
    holding over the declared set R-05-164 currently makes empty (no
    admission axiom, bootstrap root, or Ax-ledger entry is yet authored).
@@ -584,10 +584,3 @@ Qed.
    empty today. "Closed under the global context" is that emptiness,
    checked mechanically; any other output fails the gate.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions T.
-Print Assumptions composition_meta_lemma.
-Print Assumptions seam_lemmas.
-Print Assumptions statement_inhabitation_witness.
-Print Assumptions premises_inhabited.
-Print Assumptions statement_distinguishing_instance.

@@ -1646,93 +1646,6 @@ Definition witness_Completion : Completion := complete_with_epoch.
    that emptiness checked mechanically.
    ------------------------------------------------------------------------- *)
 
-Print Assumptions RootIsThePartitions.
-Print Assumptions AttemptsCover.
-Print Assumptions SwitchIsTotal.
-Print Assumptions RegisterBurstTotal.
-Print Assumptions CsrBurstTotal.
-Print Assumptions BurstCarriesNothingElse.
-Print Assumptions replay.
-Print Assumptions BurstStep.
-Print Assumptions FrameIsTheTables.
-Print Assumptions ExtentsAreReadable.
-Print Assumptions ReservedEnteredOnce.
-Print Assumptions SwitchesInTableOrder.
-Print Assumptions NoUnnamedSwitch.
-Print Assumptions SemanticCompletion.
-Print Assumptions BurstCarriesNoStaleAuthority.
-Print Assumptions ImageIsSanitized.
-Print Assumptions RunAnswersM44.
-Print Assumptions andb_split.
-Print Assumptions andb_join.
-Print Assumptions only_if_elim.
-Print Assumptions bool_eqb_sound.
-Print Assumptions bool_eqb_holds.
-Print Assumptions nat_eqb_sound.
-Print Assumptions nat_eqb_holds.
-Print Assumptions leb_cases.
-Print Assumptions all_of_app.
-Print Assumptions filter_of_app.
-Print Assumptions all_of_ext.
-Print Assumptions all_of_true.
-Print Assumptions all_of_member.
-Print Assumptions all_of_filter_upto.
-Print Assumptions all_of_map.
-Print Assumptions only_if_filtered.
-Print Assumptions observed_register_reached.
-Print Assumptions next_result_untagged_blank.
-Print Assumptions refused_at_blank.
-Print Assumptions pcs_shift.
-Print Assumptions kernel_roster_covers.
-Print Assumptions confinement_reads_the_tag_and_not_the_value.
-Print Assumptions the_burst_restores_every_witnessed_register.
-Print Assumptions the_burst_restores_every_nameable_csr.
-Print Assumptions a_fixed_zero_register_closes_the_gap.
-Print Assumptions the_frame_check_decides_order_and_not_duration.
-Print Assumptions the_frame_check_ignores_the_order_numeral.
-Print Assumptions a_filtered_restore_carries_no_marked_authority.
-Print Assumptions the_filter_is_the_identity_on_a_sanitized_image.
-Print Assumptions completion_refuses_a_resident_root.
-Print Assumptions completion_refuses_an_unfiltered_saved_context.
-Print Assumptions completion_refuses_an_outstanding_loan.
-Print Assumptions completion_refuses_an_open_device_boundary.
-Print Assumptions the_demo_table_is_admitted.
-Print Assumptions the_demo_extents_are_readable.
-Print Assumptions the_declared_attempts_are_all_refused.
-Print Assumptions a_derivation_that_kept_its_tag_is_refused.
-Print Assumptions a_member_skipping_a_declared_window_is_refused.
-Print Assumptions a_bounds_decoding_check_is_refuted.
-Print Assumptions the_restore_burst_is_total.
-Print Assumptions a_restore_truncated_to_the_low_registers_is_refused.
-Print Assumptions a_restore_dropping_a_validity_tag_is_refused.
-Print Assumptions a_restore_exempting_a_nameable_csr_is_refused.
-Print Assumptions a_write_outside_the_merged_file_is_refused.
-Print Assumptions a_write_to_a_csr_the_partition_cannot_name_is_refused.
-Print Assumptions clause_two_does_not_read_the_capability_registers_outside_the_file.
-Print Assumptions burst_step_low.
-Print Assumptions burst_step_high.
-Print Assumptions clause_two_admits_a_burst_that_fails_no_residue.
-Print Assumptions the_zero_register_is_outside_what_a_run_witnesses.
-Print Assumptions clause_two_does_not_reach_the_zero_register.
-Print Assumptions the_burst_step_alone_is_not_partition_contexts_totality.
-Print Assumptions the_fixed_zero_register_is_a_premise_and_not_a_theorem.
-Print Assumptions the_demo_frame_runs_in_the_tables_order.
-Print Assumptions the_longer_run_has_the_same_run_sequence.
-Print Assumptions a_departure_from_the_declared_order_is_refused.
-Print Assumptions a_reserved_slot_entered_twice_is_refused.
-Print Assumptions a_switch_the_table_names_no_boundary_for_is_refused.
-Print Assumptions a_retire_outside_every_declared_extent_is_refused.
-Print Assumptions overlapping_extents_are_not_readable.
-Print Assumptions a_dwell_reading_check_is_refuted.
-Print Assumptions total_restoration_is_not_removal_of_stale_authority.
-Print Assumptions a_filtered_restore_of_an_unsanitized_image_is_not_total.
-Print Assumptions a_sanitized_image_satisfies_both_obligations.
-Print Assumptions marking_one_base_alone_leaves_a_derived_base_live.
-Print Assumptions an_epoch_mark_alone_is_not_semantic_completion.
-Print Assumptions an_epoch_reading_predicate_admits_a_resident_root.
-Print Assumptions completion_does_not_turn_on_the_epoch_mark.
-Print Assumptions the_demo_run_answers_all_three_questions.
-Print Assumptions a_run_failing_any_one_question_is_refused.
 
 (* The final single-hart acceptance joins all three trace questions to the
    semantic barrier and to the concrete image/burst checked by this run.
@@ -1778,10 +1691,6 @@ Example repeated_register_or_csr_writes_are_refused :
   BurstWritesExactlyOnce demo_kernel (cons (RecX 8 false false) restore_burst) = false /\
   BurstWritesExactlyOnce demo_kernel (cons (RecC 0 false) restore_burst) = false.
 Proof. split; reflexivity. Qed.
-Print Assumptions qualified_run_requires_the_actual_barrier_and_image.
-Print Assumptions the_sanitized_run_passes_the_joined_predicate.
-Print Assumptions unrelated_untagged_writes_are_not_derivation_results.
-Print Assumptions repeated_register_or_csr_writes_are_refused.
 
 Example attempt_register_bounds_are_attained_and_exclusive :
   WellFormedAttempts (cons {|att_pc := 300; att_result_register := 1; att_target := RootTop|} nil) = true /\

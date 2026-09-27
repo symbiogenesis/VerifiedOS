@@ -107,10 +107,8 @@
    absence can cost, and the lower bound `feasible_span_ge_load` is not
    attained in general.
 
-   The R-05-163 gate applies as to every artifact: the Print Assumptions
-   block at the end reports every named theorem closed under the global
-   context, and `run.py proofs` checks the same of every constant the
-   module defines.
+   The R-05-163 gate applies as to every artifact: `run.py proofs` inventories
+   every constant and checks that each is closed under the global context.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-011 R-08-012 R-08-013 R-08-014
@@ -1095,19 +1093,3 @@ Qed.
 (* -------------------------------------------------------------------------
    The R-05-163 gate: every theorem closed under the global context.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions load_at_starts_suffices.
-Print Assumptions construction_feasible.
-Print Assumptions construction_span_le_load.
-Print Assumptions feasible_span_ge_load.
-Print Assumptions construction_attains_load.
-Print Assumptions laminar_optimum.
-Print Assumptions laminar_plan_does_not_interfere.
-Print Assumptions laminar_plan_attains_load.
-Print Assumptions no_interference_spans_load.
-Print Assumptions demo_family_attains_its_load.
-Print Assumptions crossing_family_is_not_laminar.
-Print Assumptions feasibility_does_not_force_the_load.
-Print Assumptions demo_plan_satisfies_the_bridge_hypotheses.
-Print Assumptions gap_family_needs_more_than_its_load.
-Print Assumptions gap_family_optimum_exceeds_its_load.

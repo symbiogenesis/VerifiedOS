@@ -268,17 +268,3 @@ Qed.
    global context, checked by `run.py proofs` against the declared set
    R-05-164 currently makes empty.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions seam_lemmas_inhabitation.
-Print Assumptions substrate_and_tower_inhabitation.
-Print Assumptions composition_meta_lemma_inhabitation.
-Print Assumptions seam_ni_timing_distinguishing.
-Print Assumptions seam_wcet_isolation_distinguishing.
-Print Assumptions seam_ct_rtl_sail_distinguishing.
-Print Assumptions seam_cheri_tal_sail_distinguishing.
-Print Assumptions seam_ae_noninterference_distinguishing.
-Print Assumptions seam_liveness_schedulability_distinguishing.
-Print Assumptions seam_consent_declassification_distinguishing.
-Print Assumptions seam_attestation_capability_safety_distinguishing.
-Print Assumptions seam_crypto_hardness_distinguishing.
-Print Assumptions composition_meta_lemma_distinguishing.

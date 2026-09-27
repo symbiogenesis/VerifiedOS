@@ -193,11 +193,10 @@
    from an empty root; and the read path's hit and miss beside four
    structural refusals `lookup` answers as absence. Nothing below is
    admitted, axiomatized or parameterized at top level: every composition
-   magnitude is a field of the Geometry record. The Print Assumptions block
-   at the end names the definitions and theorems this file exports and not
-   every constant it holds; what enumerates every constant, local lemmas
-   included, and queries each one's assumption set is the proof gate, and
-   `Closed under the global context` is that emptiness checked there.
+   magnitude is a field of the Geometry record. The native assumption audit
+   enumerates every constant, including local lemmas, and queries its
+   assumption set. `Closed under the global context` is that emptiness
+   checked by the proof gate.
 
    Requires. JournalIndex.v, for the KeyAlgebra record and its five laws, the
    L1 Index, `look`, `ins`, `sorted` and the list helpers; and the Rocq
@@ -4392,96 +4391,3 @@ Definition witness_ENode : ENode nat_keys := demo_branch.
    set is compared against the declared set R-05-164 makes empty, so `Closed
    under the global context` is that emptiness checked mechanically.
    ========================================================================= *)
-
-Print Assumptions halve.
-Print Assumptions Geometry.
-Print Assumptions geometry_ok.
-Print Assumptions ENode.
-Print Assumptions Arena.
-Print Assumptions leaf_of.
-Print Assumptions branch_of.
-Print Assumptions alloc.
-Print Assumptions key_lt.
-Print Assumptions within.
-Print Assumptions route.
-Print Assumptions spans.
-Print Assumptions node_fits.
-Print Assumptions rising.
-Print Assumptions chain.
-Print Assumptions admitted.
-Print Assumptions arena_ok.
-Print Assumptions lookup.
-Print Assumptions flatten.
-Print Assumptions Grown.
-Print Assumptions splice.
-Print Assumptions publish_leaf.
-Print Assumptions publish_branch.
-Print Assumptions insert.
-Print Assumptions flatten_grown.
-Print Assumptions lookup_grown.
-Print Assumptions admitted_grown.
-Print Assumptions insert_checked.
-Print Assumptions insert_root.
-Print Assumptions node_fits_everywhere.
-Print Assumptions at_depth.
-Print Assumptions leaves_share_one_depth.
-Print Assumptions an_insert_only_appends.
-Print Assumptions a_retained_root_survives_a_later_insert.
-Print Assumptions lookup_answers_the_logical_map.
-Print Assumptions an_insert_publishes_spanning_nodes.
-Print Assumptions an_insert_represents_the_logical_map.
-Print Assumptions a_checked_insert_publishes_an_admitted_result.
-Print Assumptions a_checked_insert_answers_the_logical_map.
-Print Assumptions a_checked_root_insert_answers_the_logical_map.
-Print Assumptions an_admitted_tree_fits_everywhere.
-Print Assumptions an_insert_keeps_the_leaves_at_one_depth.
-Print Assumptions a_checked_insert_keeps_the_leaves_at_one_depth.
-Print Assumptions a_root_insert_keeps_the_leaves_at_one_depth.
-Print Assumptions a_root_insert_keeps_one_leaf_depth.
-Print Assumptions the_demo_tree_is_admitted_fitting_and_read_back.
-Print Assumptions the_demo_tree_keeps_its_leaves_at_one_depth.
-Print Assumptions an_insert_that_splits_to_a_new_root_stays_admitted.
-Print Assumptions an_insert_past_every_separator_stays_admitted.
-Print Assumptions a_replacement_changes_one_value_and_no_key.
-Print Assumptions the_inserts_keep_the_leaves_at_one_depth.
-Print Assumptions a_skewed_tree_is_admitted_and_fits_yet_shares_no_leaf_depth.
-Print Assumptions an_insert_does_not_repair_a_skewed_tree.
-Print Assumptions the_refusals_compute.
-Print Assumptions the_occupancy_walk_refuses_what_the_structural_walk_refuses.
-Print Assumptions above_strict.
-Print Assumptions strictly_within.
-Print Assumptions rising_strict.
-Print Assumptions well_formed.
-Print Assumptions well_formed_grown.
-Print Assumptions bound_at.
-Print Assumptions bound_after.
-Print Assumptions published.
-Print Assumptions insert_gate.
-Print Assumptions seek.
-Print Assumptions read_gate.
-Print Assumptions a_well_formed_tree_is_admitted.
-Print Assumptions insert_well_formed.
-Print Assumptions insert_some.
-Print Assumptions the_empty_root_is_well_formed.
-Print Assumptions the_check_never_refuses_a_well_formed_insert.
-Print Assumptions a_well_formed_insert_is_refused_only_by_a_spent_arena.
-Print Assumptions a_root_insert_keeps_a_well_formed_tree_well_formed.
-Print Assumptions a_well_formed_root_insert_is_refused_only_by_a_spent_arena.
-Print Assumptions the_empty_root_is_published.
-Print Assumptions a_gated_insert_publishes_a_published_tree.
-Print Assumptions a_gated_insert_answers_the_logical_map.
-Print Assumptions the_gate_never_refuses_a_published_input_below_its_ceiling.
-Print Assumptions a_published_insert_is_refused_only_for_spent_capacity.
-Print Assumptions the_gate_refuses_a_walk_bound_past_the_declared_depth.
-Print Assumptions lookup_forgets_a_refusal.
-Print Assumptions an_admitted_tree_refuses_no_read.
-Print Assumptions a_refused_read_names_an_unadmitted_tree.
-Print Assumptions a_read_answers_the_logical_map.
-Print Assumptions a_gated_read_answers_the_logical_map.
-Print Assumptions a_gated_read_refuses_a_walk_bound_past_the_declared_depth.
-Print Assumptions an_admitted_input_the_check_refuses.
-Print Assumptions the_gate_publishes_the_demo_inserts_unchanged.
-Print Assumptions the_gate_refuses_skew_a_spent_height_and_an_undeclared_bound.
-Print Assumptions the_read_path_tells_a_refusal_from_a_miss.
-Print Assumptions witness_Geometry.
-Print Assumptions witness_ENode.

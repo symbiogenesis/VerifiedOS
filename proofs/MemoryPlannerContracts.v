@@ -328,10 +328,3 @@ Proof. simpl. lia. Qed.
 
 Example invalid_baseline_violates_premise : ~ (20 <= 8).
 Proof. lia. Qed.
-
-Print Assumptions barrier_sound.
-Print Assumptions late_device_blocks_barrier.
-Print Assumptions conflict_extraction_exact.
-Print Assumptions extracted_placement_safe.
-Print Assumptions coexisting_objects_cannot_touch_one_byte.
-Print Assumptions selection_nonregression.

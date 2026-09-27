@@ -29,8 +29,8 @@
    `PowerVector`, the same binding its label checks read, so the table
    carries no second copy of R-15-228's map. Every quantity the register
    leaves to composition is a field of the ResetTable record; nothing is
-   admitted and nothing is axiomatized, and the Print Assumptions block at
-   the end reports every shipped constant closed under the global context.
+   admitted and nothing is axiomatized, and the native assumption audit
+   reports every shipped constant closed under the global context.
 
    What the gate's green line means. Compiled, axiom-free, non-vacuous and
    enumerated, and it does not mean verified. No shipped composition
@@ -1164,103 +1164,3 @@ Definition witness_ResetTable : ResetTable := demo_table.
    constant's enumerated assumption set is compared against the declared set
    R-05-164 currently makes empty.
    ------------------------------------------------------------------------- *)
-
-Print Assumptions TableStep.
-Print Assumptions step_eqb.
-Print Assumptions step_eqb_refl.
-Print Assumptions step_eqb_true.
-Print Assumptions step_occurs.
-Print Assumptions step_precedes.
-Print Assumptions suffix_from.
-Print Assumptions step_after.
-Print Assumptions all_of_steps.
-Print Assumptions all_of_steps_intro.
-Print Assumptions all_of_members.
-Print Assumptions all_of_members_intro.
-Print Assumptions step_precedes_occurs.
-Print Assumptions step_precedes_occurs_left.
-Print Assumptions step_precedes_trans.
-Print Assumptions ResetTable.
-Print Assumptions entries_of.
-Print Assumptions own_reads_before.
-Print Assumptions releases_follow_own_reads.
-Print Assumptions release_points_ok.
-Print Assumptions ReleasesFollowOwnReads.
-Print Assumptions ReleasePointsFollowOwnReads.
-Print Assumptions releases_follow_own_reads_sound.
-Print Assumptions releases_follow_own_reads_complete.
-Print Assumptions release_points_ok_sound.
-Print Assumptions release_points_ok_complete.
-Print Assumptions islands_released_ok.
-Print Assumptions EveryBoundIslandIsReleased.
-Print Assumptions islands_released_ok_sound.
-Print Assumptions islands_released_ok_complete.
-Print Assumptions all_reads_before.
-Print Assumptions releases_follow_all_reads.
-Print Assumptions fill_of.
-Print Assumptions staged_ahead_of.
-Print Assumptions ahead_listed.
-Print Assumptions staging_ok.
-Print Assumptions the_ahead_fills_precede_the_inference_release.
-Print Assumptions tests_begin_after_rot_rail.
-Print Assumptions tests_run_under.
-Print Assumptions verdict_before_draws.
-Print Assumptions verdict_before_releases.
-Print Assumptions entropy_ok.
-Print Assumptions an_admitted_table_draws_after_the_verdict.
-Print Assumptions an_admitted_table_releases_no_island_before_the_verdict.
-Print Assumptions the_inference_fills_follow_the_verdict.
-Print Assumptions reset_table_ok.
-Print Assumptions demo_steps.
-Print Assumptions with_steps.
-Print Assumptions with_entries.
-Print Assumptions demo_table.
-Print Assumptions early_release_table.
-Print Assumptions late_entry_table.
-Print Assumptions unready_table.
-Print Assumptions inference_first_steps.
-Print Assumptions inference_first_table.
-Print Assumptions early_draw_table.
-Print Assumptions late_tests_table.
-Print Assumptions serialized_steps.
-Print Assumptions serialized_table.
-Print Assumptions verdict_between_steps.
-Print Assumptions controller_first_steps.
-Print Assumptions late_begin_steps.
-Print Assumptions late_begin_table.
-Print Assumptions release_before_verdict_steps.
-Print Assumptions release_before_verdict_table.
-Print Assumptions session_first_steps.
-Print Assumptions session_first_table.
-Print Assumptions one_point_steps.
-Print Assumptions one_point_table.
-Print Assumptions one_point_unstaged_table.
-Print Assumptions no_release_steps.
-Print Assumptions no_release_table.
-Print Assumptions third_island_of_domain.
-Print Assumptions third_island_vector.
-Print Assumptions third_island_steps.
-Print Assumptions third_island_table.
-Print Assumptions the_staged_table_is_admitted.
-Print Assumptions the_staged_table_meets_the_release_obligation.
-Print Assumptions a_table_releasing_before_its_own_reads_is_refused.
-Print Assumptions the_early_release_table_breaks_the_release_obligation.
-Print Assumptions a_reentry_past_its_domains_reads_is_refused.
-Print Assumptions the_late_entry_table_breaks_the_release_obligation.
-Print Assumptions a_table_staging_the_inference_island_first_is_refused.
-Print Assumptions a_bound_island_never_released_is_refused.
-Print Assumptions the_unreleased_island_breaks_the_coverage_obligation.
-Print Assumptions entropy_clauses.
-Print Assumptions refused_by_entropy_alone.
-Print Assumptions verdict_between_table.
-Print Assumptions controller_first_table.
-Print Assumptions the_entropy_clauses_each_refuse_their_table.
-Print Assumptions the_admitted_table_fills_the_inference_island_after_the_verdict.
-Print Assumptions the_one_point_reading_refuses_the_staged_table.
-Print Assumptions a_table_with_no_island_ahead_is_refused.
-Print Assumptions the_whole_check_refuses_every_malformed_table.
-Print Assumptions a_confirmation_ahead_of_the_staging_is_no_fill.
-Print Assumptions the_deletions_refused_are_the_reads.
-Print Assumptions the_deletions_the_coverage_refuses_are_the_releases.
-Print Assumptions the_transpositions_refused_are_one.
-Print Assumptions the_walk_helpers_on_short_lists.

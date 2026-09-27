@@ -1369,10 +1369,9 @@ Qed.
 
 
 (* -------------------------------------------------------------------------
-   The R-05-163 assumption gate reads the native environment rather than this
-   block, and the block is here because a reader wants the same list the gate
-   enumerates: there is no Admitted, no Axiom, no top-level Parameter, and
-   the only Require is the four Stdlib modules the header names. R-05-164
-   reads the declared set from the register and it is empty, so the only
-   passing line is the one this block prints, once per constant.
+   The R-05-163 assumption gate inventories the native environment and
+   checks every constant. There is no Admitted, no Axiom, no top-level
+   Parameter, and the only Require is the four Stdlib modules the header
+   names. R-05-164 reads the empty declared set from the register, so each
+   audited constant must be closed under the global context.
    ------------------------------------------------------------------------- *)
