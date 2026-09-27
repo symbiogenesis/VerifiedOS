@@ -22,10 +22,15 @@ static void target_release(uint64_t *count) {
 // probe result. The selected compiler does not yet lower volatile accesses.
 int main(const uint8_t *public_key, const uint8_t *image, uint8_t *output,
          const uint64_t *parameters) {
-  zero_bytes(output, TARGET_IMAGE_AT + VOS_BRINGUP_MMODE_REGION_BYTES);
+  zero_bytes(output, TARGET_METADATA_BYTES);
   uint64_t release_count = 0;
   for (unsigned i = 0; i < VOS_HANDOFF_BYTES; i++) {
     output[TARGET_HANDOFF_AT + i] = 0x5a;
+  }
+  // Poison must survive unless the release body actually overwrites it.
+  // Otherwise a missing refusal erase or zero-tail store could pass capture.
+  for (unsigned i = 0; i < VOS_BRINGUP_MMODE_REGION_BYTES; i++) {
+    output[TARGET_IMAGE_AT + i] = 0xa5;
   }
   vos_rot_inputs inputs;
   inputs.lifecycle = (uint8_t)parameters[2];
@@ -58,5 +63,8 @@ int main(const uint8_t *public_key, const uint8_t *image, uint8_t *output,
   for (unsigned i = 0; i < result.measured.count; i++) {
     output[64 + i] = result.measured.log[i];
   }
-  return (int)verdict;
+  // HTIF SUCCESS means this attempt completed and its output can be captured.
+  // The signed-image decision is the separate verdict at output offset zero.
+  // The emulator exits before signature capture on a nonzero HTIF outcome.
+  return 0;
 }
