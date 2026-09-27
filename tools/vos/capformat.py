@@ -22,10 +22,10 @@ restatements. A regex whose fact the bundle does not carry is kept.
 The format is fixed in three Sail files, `model/model/core/cap_format.sail`
 for the packed fields, `cap_common.sail` for the permission bitmap and the reserved
 object types, and `core/xlen.sail` for the register width the address field sits
-inside, and it is restated in eight other artifacts: the authored SystemVerilog
+inside, and it is restated in the artifacts registered below: the authored SystemVerilog
 package, the curated synthesis configuration, the frozen profile, the
-re-parameterization delta, the specification, the version matrix, the block-geometry
-constraint, and two comments inside the model beside the declarations themselves. Every
+re-parameterization delta, the specification, the version matrix, and comments inside
+the model beside the declarations themselves. Every
 one of those is a hand transcription, and a width that drifts in any of them is a
 document describing a format the machine does not have.
 
@@ -65,7 +65,6 @@ PROFILE = "docs/hardware/isa-profile.md"
 DELTA = "docs/hardware/rtl-reparameterization-delta.md"
 SPEC = "docs/spec.md"
 MATRIX = "docs/hardware/cheri-version-matrix.md"
-BLOCK = "docs/hardware/block-geometry-constraint.md"
 
 # The figure a Sail declaration ends in, whichever of the two forms it takes:
 # `type cap_addr_width : Int = 36` and `let reserved_otypes = 3` differ in everything
@@ -202,11 +201,6 @@ SITES: tuple[tuple[str, str, str, str], ...] = (
     (PROFILE, "stored_mantissa_width", "the profile's top-mantissa figure",
      r"\d+- and (\d+)-bit mantissas"),
 
-    # The block-geometry constraint's own statement of the register width, which is
-    # the operand the welded block's ceiling is taken against and which K-57 now reads
-    # out of the model rather than writing down.
-    (BLOCK, "xlen", "the block constraint's integer-register width",
-     r"an integer register is (\d+) bits"),
 )
 
 # The budget sentences: the one claim four artifacts rest on, that the packed fields

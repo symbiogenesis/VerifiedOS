@@ -1110,20 +1110,28 @@ CASES: list[Case] = [
                   lambda m: m.group() + " · 99.9%")),
 
     ("K-37", "a restated grand total the items do not give",
-     _renumber(PLAN, r"(?m)^\* Total estimate: ([\d.,]+)(?= h midpoint)", 1, "999")),
+     _renumber(PLAN, r"(?m)^\| Total estimate midpoint h \| ([\d.,]+) \|", 1, "999")),
 
     ("K-37", "a restated class sum the open items of that class do not give",
-     _renumber(PLAN, r"(?m)^\* Total estimate:.*?class I ([\d.,]+) h and class X", 1, "999")),
+     _renumber(PLAN, r"(?m)^\| Open class I h \| ([\d.,]+) \|", 1, "999")),
 
     ("K-37", "a gate figure the partition beneath it does not give",
-     _renumber(PLAN, r"(?m)^\* M8a gate: ([\d.,]+) h of open work", 1, "999")),
+     _renumber(PLAN, r"(?m)^\| M8a open h \| ([\d.,]+) \|", 1, "999")),
 
-    # the chain's lower end alone is moved, so the midpoint the same sentence states still
-    # agrees with the cells and what the case asks is that the range is summed and not
-    # only the midpoint; the first case is the one the repair lane rides
-    ("K-96", "a critical-chain range the cells on the chain do not give",
-     _renumber(PLAN, r"(?m)^\* Critical chain through M8a:.*?the chain sums to ([\d.,]+)–",
+    # Move the range alone: the midpoint still agrees with its source cells.
+    ("K-37", "a critical-chain range the cells on the chain do not give",
+     _renumber(PLAN, r"(?m)^\| M8a critical chain range h \| ([\d.,]+)–",
                1, "999")),
+
+    ("K-37", "a missing estimate summary marker",
+     _literal(PLAN, "<!-- estimate-summary:start -->", "<!-- estimate-summary:missing -->")),
+
+    ("K-37", "a duplicated estimate summary row",
+     _first_match(PLAN, r"(?m)^\| Open class I h \|[^\r\n]*",
+                  lambda m: m.group() + "\n" + m.group())),
+
+    ("K-37", "a malformed estimate summary value",
+     _renumber(PLAN, r"(?m)^\| Total estimate midpoint h \| ([\d.,]+) \|", 1, "unknown")),
 
     # one recorded estimate is moved in the pool the calibrated total rests on, so the
     # ratio every open class-X cell is priced against moves with it while every actual
@@ -1923,14 +1931,15 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
     "K-32": ("product:", _case_mutation("K-32")),
     "K-36": (" subtotal:", _case_mutation("K-36")),
-    "K-37": ("the total estimate", _case_mutation("K-37")),
-    "K-96": ("the critical chain", _case_mutation("K-96")),
+    "K-37": ("estimate summary", _case_mutation("K-37")),
+    "K-96": ("calibration results", _renumber(
+        PLAN, r"(?m)^\| attended \| I \| (\d+) \|", 1, "9999")),
     "K-54": ("the tag plane's", _literal(
         REGISTER, "granule is 15.6 MB per GB of data",
         "granule is 99.9 MB per GB of data")),
-    "K-57": ("the block-size ceiling", _literal(
-        GEOMETRY, "that is a ceiling of **512 bytes**",
-        "that is a ceiling of **256 bytes**")),
+    "K-57": ("the block's candidate set", _literal(
+        GEOMETRY, "**the block is 32, 64, 128, 256, or 512 bytes**",
+        "**the block is 32, 64, 128, or 256 bytes**")),
     "K-69": ("kernel-line-budget", _case_mutation("K-69")),
     # A standing rather than a figure, and it rides its own case: the repair writes the
     # inventory's class back over the cell a hand promoted.

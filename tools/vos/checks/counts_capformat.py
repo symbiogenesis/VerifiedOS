@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """counts, the capability format: every site that restates a frozen parameter.
 
-The format is decided in Sail and transcribed into eight other artifacts, none of
-which was held against anything. What is read here is the definition, the entry that
+The format is decided in Sail and transcribed into the registered artifacts.
+What is read here is the definition, the entry that
 states the parameterization normatively, both packings, and every sentence writing
 the field widths out as a sum; the widths themselves are `vos/capformat.py`'s parse
 and no figure is written down in this module.
@@ -41,7 +41,7 @@ def cap_format(ctx: Context) -> None:
     The format is decided in three Sail files, `cap_format.sail` for the packed
     fields, `cap_common.sail` for the permission bitmap and the reserved object types,
     and `core/xlen.sail` for the register width the address field sits inside, and it
-    is restated across eight other artifacts. Every one of those is a hand
+    is restated across the registered artifacts. Every one of those is a hand
     transcription and none of them was held against anything, which is the K-57 shape
     one level up: there the five sites of one parameter, here many sites of ten.
 

@@ -324,7 +324,12 @@ def _counts_overflow_is_a_finding() -> None:
         # them positionally and this test runs counts alone
         ctx.shared.update(cj_confer=[], fc_seams=[], fc_confer=[], rf_confer=[],
                           dispositions=0, rot_cases=0)
-        counts.run(ctx)
+        # This fixture deliberately registers a word count; narrative absence
+        # counts in the real documents are optional and no longer registered.
+        claim = (counts.TAL, "frozen-absences", "words",
+                 r"(?<=### 7\.1 The )[\w-]+(?= absences)")
+        with patch.object(counts, "CLAIMS", [claim]):
+            counts.run(ctx)
         ensure("frozen-absences is 100, which has no word form; the claim in "
                f"{counts.TAL} must state it in digits" in _findings_under(ctx, "K-24"),
                f"the overflow is K-24's finding, naming the claim owed digits: "

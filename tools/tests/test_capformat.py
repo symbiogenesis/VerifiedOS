@@ -131,8 +131,6 @@ lattice. |
 no spare bits (20+2+3+4+5+3 = 32), so a colour could come only from a mantissa. |
 """
 
-_BLOCK = "and an integer register is 32 bits (R-15-002a, R-15-007i).\n"
-
 _FILES = {
     capformat.CAP_FORMAT: _CAP_FORMAT,
     capformat.CAP_COMMON: _CAP_COMMON,
@@ -142,7 +140,6 @@ _FILES = {
     capformat.DELTA: _DELTA,
     capformat.SPEC: _SPEC,
     capformat.MATRIX: _MATRIX,
-    capformat.BLOCK: _BLOCK,
 }
 
 
