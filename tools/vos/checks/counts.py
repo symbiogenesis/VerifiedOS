@@ -33,7 +33,10 @@ once and handed to both rules that scan it, and the floors group prices, after t
 group has run, every enumeration each of them recorded.
 """
 
+import bisect
 import re
+from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from vos import coread, figures
@@ -246,6 +249,65 @@ _COUNT_FORM = (r"(?<![\w,.-])(?P<count>(?:\d{1,3}(?:,\d{3})+|\d+|"
                + _COUNT_WORDS + r"))(?![\w-]|[,.]\d)")
 
 
+@dataclass
+class _CountText:
+    """Offsets over one invocation's current bytes, shared by a file's scopes."""
+
+    raw: str
+    fenced: list[bool]
+    lines: list[int]
+    held_starts: list[int]
+    held_ends: list[int]
+
+    @classmethod
+    def read(cls, file: str, raw: str) -> _CountText:
+        spans = sorted(m.span() for f, _, _, pattern in CLAIMS if f == file
+                       for m in re.finditer(pattern, raw))
+        # A containing interval can start before the nearest one. Prefix maxima
+        # preserve that interval without scanning every claim for every count.
+        held_ends: list[int] = []
+        end = 0
+        for _, finish in spans:
+            end = max(end, finish)
+            held_ends.append(end)
+        return cls(raw, corpus_mod.fence_lines(raw.splitlines()),
+                   [0, *(m.end() for m in re.finditer("\n", raw))],
+                   [start for start, _ in spans], held_ends)
+
+    def holds(self, start: int, finish: int) -> bool:
+        index = bisect.bisect_right(self.held_starts, start) - 1
+        return index >= 0 and finish <= self.held_ends[index]
+
+
+def _count_matches(raw: str, noun: str, end: int) -> Iterator[re.Match[str]]:
+    """Propose subjects first; apply the complete count grammar at their token.
+
+    The count alternation has no literal prefix and admits unbounded digits.
+    Searching it at every character was the checker's largest scan. A subject
+    proposes only the token immediately before its spaces and optional markup.
+    Walking that token backwards supplies its start without copying a growing
+    document prefix. The original grammar still decides the whole match, including
+    Unicode words, numeric punctuation and the character before the count.
+    """
+    subject = re.compile(r"(?:" + noun + r")\b", re.IGNORECASE)
+    pattern = re.compile(_COUNT_FORM + r"[*`]*[ \t]+(?:" + noun + r")\b",
+                         re.IGNORECASE)
+    for proposal in subject.finditer(raw, 0, end):
+        start = proposal.start()
+        while start and raw[start - 1] in " \t":
+            start -= 1
+        if start == proposal.start():
+            continue
+        while start and raw[start - 1] in "*`":
+            start -= 1
+        # These are exactly the count grammar's forbidden leading characters.
+        # No later position inside the token can satisfy its left boundary.
+        while start and (raw[start - 1].isalnum() or raw[start - 1] in "_,.-"):
+            start -= 1
+        if match := pattern.match(raw, start, end):
+            yield match
+
+
 def unheld_counts(ctx: Context) -> list[str]:
     """Find unregistered live counts in explicit subject/document scopes.
 
@@ -254,23 +316,22 @@ def unheld_counts(ctx: Context) -> list[str]:
     when a subject participates in more than one declared scope.
     """
     findings: dict[tuple[str, int], str] = {}
+    documents: dict[str, _CountText] = {}
     for file, subject, noun, until in COUNT_SCOPES:
-        raw = ctx.text(file)
-        if not raw:
-            continue
+        if file not in documents:
+            raw = ctx.text(file)
+            if not raw:
+                continue
+            documents[file] = _CountText.read(file, raw)
+        document = documents[file]
+        raw = document.raw
         # The introduction is deliberately a bounded scope, not a keyword search
         # over the register's normative contract quantities.
         end = raw.find(until) if until else -1
-        scoped = raw[:end] if end >= 0 else raw
-        held = [m.span() for f, _, _, pattern in CLAIMS if f == file
-                for m in re.finditer(pattern, raw)]
-        fenced = corpus_mod.fence_lines(raw.splitlines())
-        pattern = re.compile(_COUNT_FORM + r"[*`]*[ \t]+(?:" + noun + r")\b",
-                             re.IGNORECASE)
-        for match in pattern.finditer(scoped):
+        for match in _count_matches(raw, noun, end if end >= 0 else len(raw)):
             start, finish = match.span("count")
-            line = raw.count("\n", 0, start)
-            if fenced[line] or any(a <= start and finish <= b for a, b in held):
+            line = bisect.bisect_right(document.lines, start) - 1
+            if document.fenced[line] or document.holds(start, finish):
                 continue
             findings[file, start] = (
                 f"{file}:{line + 1} states '{match['count']}' where no claim holds it, "
