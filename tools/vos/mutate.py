@@ -195,72 +195,50 @@ OPERATORS: tuple[Operator, ...] = (
 )
 
 
+# Search only for lexical boundaries; ordinary source bytes need no Python loop.
+_OPENERS = {COQ: re.compile(r'\(\*|"'), SAIL: re.compile(r'/[/*]|"')}
+_BLOCK_OR_STRING = re.compile(r'/\*|"')
+_COQ_COMMENT = re.compile(r"\(\*|\*\)")
+_STRING_TOKEN = re.compile(r'\\[\s\S]?|"')
+
+
 def mask(text: str, lane: str) -> list[bool]:
     """Which characters a mutation may land on: everything but comments and strings.
 
-    Rocq comments **nest**, which is why this is a scanner and not a regular
-    expression: `(* a (* b *) c *)` closes once, and a pattern that stopped at the
-    first `*)` would leave ` c *)` mutable and produce mutants that are pure noise.
-    Sail's `/* */` do not nest, and it costs nothing to run the same scanner over both
-    with the depth capped at one.
+    Searches advance from the previous boundary, so each source span is scanned
+    once. Rocq comments nest; Sail comments do not. Unterminated constructs mask
+    through EOF, and an escaped quote remains part of its string in either lane.
     """
     size = len(text)
     ok = [True] * size
-    opener, closer = ("(*", "*)") if lane == COQ else ("/*", "*/")
-
-    def blank(at: int, run: int) -> None:
-        """Mark a run of characters unmutable, clipped to the text: an opener at the
-        very last character is not a reason for an index error."""
-        for n in range(at, min(at + run, size)):
-            ok[n] = False
-
-    i = 0
-    depth = 0
-    line_comment = False
-    in_string = False
-    while i < size:
-        if line_comment:
-            ok[i] = False
-            line_comment = text[i] != "\n"
-            i += 1
-            continue
-        if depth:
-            if lane == COQ and text.startswith(opener, i):
-                depth += 1
-                blank(i, 2)
-                i += 2
-                continue
-            if text.startswith(closer, i):
-                depth -= 1
-                blank(i, 2)
-                i += 2
-                continue
-            ok[i] = False
-            i += 1
-            continue
-        if in_string:
-            ok[i] = False
-            if text[i] == "\\":
-                blank(i, 2)
-                i += 2
-                continue
-            in_string = text[i] != '"'
-            i += 1
-            continue
-        if text.startswith(opener, i):
+    opener = _OPENERS.get(lane, _BLOCK_OR_STRING)
+    cursor = 0
+    while found := opener.search(text, cursor):
+        start = found.start()
+        opening = found.group()
+        cursor = size
+        if opening == '"':
+            for boundary in _STRING_TOKEN.finditer(text, found.end()):
+                if boundary.group() == '"':
+                    cursor = boundary.end()
+                    break
+        elif opening == "//":
+            end = text.find("\n", found.end())
+            if end >= 0:
+                # A line comment excludes its terminating newline as well.
+                cursor = end + 1
+        elif lane == COQ:
             depth = 1
-            blank(i, 2)
-            i += 2
-            continue
-        if lane == SAIL and text.startswith("//", i):
-            line_comment = True
-            continue
-        if text[i] == '"':
-            in_string = True
-            ok[i] = False
-            i += 1
-            continue
-        i += 1
+            for boundary in _COQ_COMMENT.finditer(text, found.end()):
+                depth += 1 if boundary.group() == "(*" else -1
+                if depth == 0:
+                    cursor = boundary.end()
+                    break
+        else:
+            end = text.find("*/", found.end())
+            if end >= 0:
+                cursor = end + 2
+        ok[start:cursor] = [False] * (cursor - start)
     return ok
 
 
@@ -306,9 +284,8 @@ def mutable_mask(text: str, lane: str, only: tuple[str, ...] | None = None,
             continue
         if named and region.name not in named:
             continue
-        for i in range(region.start, region.end):
-            inside[i] = True
-    return [a and b for a, b in zip(ok, inside, strict=True)]
+        inside[region.start:region.end] = ok[region.start:region.end]
+    return inside
 
 
 def mutants(text: str, lane: str, path: str, *, only: tuple[str, ...] | None = None,
@@ -329,15 +306,19 @@ def mutants(text: str, lane: str, path: str, *, only: tuple[str, ...] | None = N
         if lane not in operator.lanes:
             continue
         seen = 0
+        line, cursor = 1, 0
         for found in operator.pattern.finditer(text):
             if not all(admissible[found.start():found.end()]):
                 continue
             after = operator.rewrite(found)
             if after == found.group(0):
                 continue
+            # Matches advance within each operator: never recount the prefix.
+            line += text.count("\n", cursor, found.start())
+            cursor = found.start()
             out.append(Mutant(
                 ident=f"{operator.name}/{seen}", operator=operator.name, path=path,
-                line=text.count("\n", 0, found.start()) + 1,
+                line=line,
                 start=found.start(), end=found.end(),
                 before=found.group(0), after=after))
             seen += 1

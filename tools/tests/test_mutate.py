@@ -9,6 +9,8 @@ that says nothing about whether the statement constrains the definition. Neither
 visible in a run's output, which is why both are pinned here.
 """
 
+import re
+
 from tests.harness import Case, ensure
 from vos import mutate
 
@@ -135,8 +137,71 @@ def _every_operator_names_a_lane_it_runs_on() -> None:
     ensure(len(set(names)) == len(names), "two operators share a name")
 
 
+def _lexical_boundaries_and_unterminated_spans() -> None:
+    # Prefix/suffix code stays visible; each middle span must be entirely masked.
+    spans = (
+        (mutate.SAIL, "/* outer /* inner */", " tail */"),
+        (mutate.COQ, "(* outer (* inner *) tail *)", ""),
+        (mutate.SAIL, "// comment\r\n", ""),
+        (mutate.SAIL, '"/* text */ \\" still string"', ""),
+        (mutate.COQ, '\"(* text *)\"', ""),
+        (mutate.COQ, "(* unterminated (* nested *)", None),
+        (mutate.SAIL, "/* unterminated *", None),
+        (mutate.SAIL, "// no newline", None),
+        (mutate.SAIL, '\"unterminated\\', None),
+        (mutate.COQ, '\"escaped newline\\\n', None),
+    )
+    for lane, hidden, tail in spans:
+        prefix = "code / * ( ) \\ "
+        suffix = "" if tail is None else tail + " code"
+        source = prefix + hidden + suffix
+        expected = [True] * len(prefix) + [False] * len(hidden) + [True] * len(suffix)
+        ensure(mutate.mask(source, lane) == expected, f"wrong mask for {source!r}")
+    ensure(mutate.mask("", mutate.SAIL) == [], "empty input grew a mask")
+    ensure(mutate.mask('""/**/""', mutate.SAIL) == [False] * 8,
+           "adjacent spans left a mutable boundary")
+
+
+def _line_offsets_and_region_gaps() -> None:
+    text = ("// true 0\r\n"
+            "function a() = true + 1\r\n"
+            '  "false 2" /* true 3 */\n'
+            "val b : int\n"
+            "  true + 4\n"
+            "function c() = false + 5")
+    found = mutate.mutants(text, mutate.SAIL, "offsets.sail")
+    ensure({m.line for m in found} == {2, 6}, "an excluded span gained a mutant")
+    ensure([m.line for m in found if m.operator == "const-inc"] == [2, 6],
+           "line offsets skipped CRLF or the final unterminated line")
+    for site in found:
+        ensure(site.line == text.count("\n", 0, site.start) + 1,
+               f"line differs for {site.ident}")
+    ensure(not mutate.mutants(text, mutate.SAIL, "offsets.sail", only=()),
+           "an empty region selection produced mutants")
+    selected = mutate.mutants(text, mutate.SAIL, "offsets.sail", named=("c",))
+    ensure(bool(selected) and all(m.line == 6 for m in selected), "named region leaked")
+    changed = mutate.mutants("\n" + text, mutate.SAIL, "offsets.sail")
+    ensure([m.line for m in changed] == [m.line + 1 for m in found],
+           "new input reused old line offsets")
+
+
+def _empty_matches_and_unchanged_rewrites() -> None:
+    text = "function f() =\n true\n false\n"
+    operator = mutate.Operator("boundary", (mutate.SAIL,), re.compile(r"(?m)^"),
+                               mutate._fixed("!"), "insert at a line start")
+    found = mutate.mutants(text, mutate.SAIL, "empty.sail", operators=(operator,))
+    ensure([m.line for m in found] == [1, 2, 3, 4], "empty matches lost line offsets")
+    identity = mutate.Operator("identity", (mutate.SAIL,), re.compile(r"true|false"),
+                               lambda match: match.group(), "leave a token unchanged")
+    ensure(not mutate.mutants(text, mutate.SAIL, "empty.sail", operators=(identity,)),
+           "an unchanged rewrite became a mutant")
+
+
 def cases() -> list[Case]:
     return [
+        Case("lexical boundaries preserve malformed spans", _lexical_boundaries_and_unterminated_spans),
+        Case("line offsets follow selected source regions", _line_offsets_and_region_gaps),
+        Case("empty matches preserve offsets", _empty_matches_and_unchanged_rewrites),
         Case("a Sail line comment is not mutable", _sail_line_comments_are_cut_out),
         Case("a Sail block comment is not mutable", _sail_block_comments_are_cut_out),
         Case("a Rocq comment nests", _coq_comments_nest),
