@@ -97,6 +97,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 import fiat_crypto_emit as fiat
 from vos import (
+    boot_crypto_target,
     calibration,
     device_registers,
     dialectgen,
@@ -135,6 +136,33 @@ class GuestInspector(Protocol):
     """The host-readable identity checks of a generator that runs in the guest."""
 
     def __call__(self, ctx: Context, row: Row, staged: bytes | None) -> Reading: ...
+
+
+def _signature_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
+    """Hold one staged signature stream member to its index, and the set to its manifest.
+
+    The contained compiler that writes these files is provisioned on one native lane
+    and never here, so `boot_crypto_target.staged` decides what this lane can: every
+    stream against its manifest's hash, header, dialect and frame sum, and the manifest's
+    bound sources and include-search listings against this checkout. The set is read
+    once per run and its refusal reported at its first row. No repair restages.
+    """
+    out = Reading(findings=[], fixed=[])
+    try:
+        if staged is None or (ctx.root / row.path).read_bytes() != staged:
+            out.findings.append(f"{row.path} differs from its indexed staging; run and review "
+                                f"`{row.checker}` before staging")
+    except OSError as exc:
+        out.findings.append(f"{row.path} cannot be read: {exc}")
+    if "signature_staging" not in ctx.shared:
+        try:
+            boot_crypto_target.staged(ctx.root)
+            ctx.shared["signature_staging"] = ""
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            ctx.shared["signature_staging"] = str(exc)
+            out.findings.append(f"{boot_crypto_target.STAGED} no longer matches its manifest "
+                                f"and sources: {exc}")
+    return out
 
 
 def _fiat_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
@@ -301,6 +329,15 @@ GENERATED: tuple[Row, ...] = (
           owners="the Fiat gitlink, recorded generator and recipe/wrapper source",
           checker="tools/fiat_crypto_emit.py --check --generator <recorded> --work-dir <native-lane>",
           inspect=_fiat_row) for path in fiat.ARTIFACTS),
+    # The contained compiler's staged boot signature streams, which hosted runners
+    # execute without that compiler, and the manifest binding them.
+    *(Row(path=f"{boot_crypto_target.STAGED}/{name}",
+          generator="run.py boot-crypto stage",
+          lane="guest",
+          owners="the contained compiler build and the signature sources the manifest binds",
+          checker="run.py boot-crypto stage --check",
+          inspect=_signature_row)
+      for name in ("manifest.json", *(f"{mode}.s" for mode in boot_crypto_target.MODES))),
 )
 
 
@@ -554,7 +591,8 @@ def run(ctx: Context) -> None:
         f"all {len(GENERATED)} generated artifact(s) are carried by the git index, "
         f"{hosted} of them held against what their generator writes here and now, and "
         f"the rest against their indexed bytes and host-readable provenance, including "
-        f"{owners} Sail owner(s) and the Fiat source pin/recipe/wrapper/hashes; "
+        f"{owners} Sail owner(s), the Fiat source pin/recipe/wrapper/hashes and the staged "
+        f"signature streams' manifest; "
         f"guest regeneration remains `{guest}`")
     for line in fixed:
         rep.line(line)
