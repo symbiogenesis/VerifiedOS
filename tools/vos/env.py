@@ -161,10 +161,11 @@ Z3_VERSION = "5.1.0"
 Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
 Z3_DISTRIBUTION = "4.13.3"
 
-# The proof gate uses the newest released prover independently of oracle libraries.
-# CertiRocq and QuickChick retain their own 9.1 compatibility constraints in gallina.py;
-# neither limits proofs compiled in this switch. Rocq runtime caps dune below 3.24,
-# so the prover and Sail keep separate dependency resolutions.
+# The proof gate uses the newest prover its own libraries admit, independently of oracle
+# libraries; tools/opam/README.md records what holds it there. CertiRocq and QuickChick
+# retain their own 9.1 compatibility constraints in gallina.py; neither limits proofs
+# compiled in this switch. Rocq runtime caps dune below 3.24, so the prover and Sail
+# keep separate dependency resolutions.
 ROCQ_VERSION = "9.2.0"
 ROCQ_SWITCH = f"verifiedos-rocq-{ROCQ_VERSION}-ocaml-{OCAML_VERSION}"
 

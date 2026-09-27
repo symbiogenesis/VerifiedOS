@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
         "scope": "declared-program-stall-bounds",
         "target_comparison": "open",
         "not_established": list(NOT_ESTABLISHED),
-        "statements": dict(STATEMENTS),
+        "statements": {**STATEMENTS},
         "program": str(args.program), "resources": str(args.resources),
         "costs": None if args.costs is None else str(args.costs),
     }
