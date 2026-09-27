@@ -123,14 +123,12 @@ actually enforces it at, `VERILATOR_PIN` in [vos/cli/rtl.py](../cli/rtl.py), whi
 restatement here where it is the owner there, and the direction of the reading flips
 with it.
 
-**Nothing held that constant's restatements**, and the two neighbouring rules each miss
-it by their own subject: K-81 reads abbreviated object ids and a dotted version is not
-one, and K-67 reads the two checkers `run.py typecheck` installs and no third pin. What
-was left is a figure restated in the record's development-tools row, in the record's own
-Verilator paragraph, and in the plan's RTL-track cell, with the constant that enforces it
-free to move under all three. A pin stale in the record is the same defect K-81 exists
-for one column over: the row's terms were read at an edition, and a reader installing
-what the row states runs a lane the tools refuse.
+K-97 holds the record's development-tools row against that constant. Narrative
+references link to this reviewed row or the command instead of repeating its version.
+A pin stale in the record is the same defect K-81 exists for one column over: the
+row's terms were read at an edition, and a reader installing what the row states runs
+a lane the tools refuse. K-81 reads abbreviated object ids rather than version numbers;
+K-67 holds the checker dependencies and does not cover this elaborator.
 
 **The sites are enumerated in code and read fail-closed**, on K-67's and K-75's ground,
 which is why this rule owes the floors group no member: a site whose pattern no longer
@@ -149,17 +147,15 @@ count; and the *upstream's own* version of the same tool, the one the imported c
 pins through nix, is a fact about that upstream rather than a pin taken here, so no rule
 holds it and this one says so rather than reaching for it.
 
-**Reported and never repaired**, on this group's own ground. The record's row states the
-version beside the terms read at it and the plan's cell states it beside a lane, so a
-token substitution would leave both sentences describing work done at a version they no
-longer name.
+**Reported and never repaired**, on this group's own ground. The record's row states
+the version beside the terms read at it, so a token substitution would claim a licence
+review at a version that has not been reviewed.
 """
 
 import re
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
-from vos import figures
 from vos import pins as pins_mod
 from vos.checks import generated
 
@@ -171,14 +167,11 @@ if TYPE_CHECKING:
 
 HEADING = "=== pins: every upstream pin against the artifact that owns it ==="
 
-# The version pin K-97 holds, and the three sites that restate it. The constant is read
-# out of the source as text rather than imported, for the reason K-67 reads typecheck.py
-# the same way: the rule is about what the file *states*, and a value taken by import
-# would be the checker's own module rather than the one under the root it was pointed at.
+# The version pin K-97 holds against the reviewed licence row. The constant is read
+# out of the source as text rather than imported: a value taken by import would be
+# the checker's own module rather than the one under the root it was pointed at.
 VERILATOR_SRC = "tools/vos/cli/rtl.py"
 _VERILATOR_SRC_RE = re.compile(r'(?m)^VERILATOR_PIN = "([^"\r\n]*)"')
-
-PLAN = "docs/implementation/implementation-checklist.md"
 
 # Each row is a site, the file carrying it, and the pattern that reads the figure out of
 # it. Every pattern is anchored on the sentence's own words rather than on the number, so
@@ -186,10 +179,6 @@ PLAN = "docs/implementation/implementation-checklist.md"
 _VERILATOR_SITES: list[tuple[str, str, re.Pattern[str]]] = [
     ("development-tools row", pins_mod.RECORD,
      re.compile(r"(?m)^\| Verilator \|[^|]*\|[^|]*pinned at \*\*([^*]+)\*\*")),
-    ("pin paragraph", pins_mod.RECORD,
-     re.compile(r"\*\*Verilator is pinned[^*]*\*\* The pin is \*\*([^*]+)\*\*")),
-    ("RTL-track cell", PLAN,
-     re.compile(r"Verilator is pinned at (\S+) with its own")),
 ]
 
 # Every id this repository writes beside an upstream's name that is not that
@@ -319,8 +308,7 @@ def _version_pin(ctx: Context) -> None:
 
     rep.report("K-97", "site(s) restating a version pin the lane's own constant does "
                "not fix:", findings,
-               f"the {figures.words(len(_VERILATOR_SITES))} sites restating the "
-               f"elaborator's version state {pin or 'no version'}, which "
+               f"the reviewed elaborator row states {pin or 'no version'}, which "
                f"{VERILATOR_SRC} fixes and every rtl loop refuses another of")
 
 

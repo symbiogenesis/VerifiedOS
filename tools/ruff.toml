@@ -32,7 +32,7 @@ select = [
     "A",      # a name shadowing a builtin
     "C4",     # comprehension and collection-call shape
     "N",      # pep8 naming
-    "UP",     # constructs the 3.14 floor makes obsolete
+    "UP",     # constructs the supported Python version makes obsolete
     "RET",    # return-statement consistency
     "PIE",    # redundant code
     "PERF",   # loops that are a builtin

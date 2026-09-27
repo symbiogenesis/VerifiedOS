@@ -6,8 +6,8 @@ on Linux; the dispatcher sends guest commands to WSL when needed.
 
 ## One language, and what forced it
 
-Python spans both execution environments. The floor is **3.14** for command modules,
-enforced by [pyproject.toml](pyproject.toml) and the checker targets; the bootstrap
+Python spans both execution environments. Command modules use the supported version
+declared by [pyproject.toml](pyproject.toml) and the checker targets; the bootstrap
 accepts Python 3.12 or newer and selects the locked project environment through uv.
 The system interpreter need not be replaced.
 
@@ -315,7 +315,7 @@ consistency, not parser derivation, device behavior or physical qualification.
 
 ## Running them
 
-Install Python at the floor above and [uv](https://docs.astral.sh/uv/getting-started/installation/)
+Install Python within the project's supported range and [uv](https://docs.astral.sh/uv/getting-started/installation/)
 at the version declared by [pyproject.toml](pyproject.toml)'s
 `tool.uv.required-version`. Both must be available in each OS where commands run;
 Windows installations do not supply WSL's prerequisites. No activation, global
@@ -422,7 +422,7 @@ $ python tools/run.py proofs --fresh             # force compilation and full ke
 
 There is no `-d` on the `wsl` invocation `run.py` makes: it uses WSL's default distribution, expected to be the Ubuntu installation carrying the toolchain. No release number or distribution name is enforced by the tools. `wsl --install` can change that default, so check `wsl -l -v` after installing another distribution; `wsl -s Ubuntu` selects Ubuntu again.
 
-The entry-point spellings differ by OS. Use `python` on Windows, or `py -3.14` when selecting among installed versions; the `python3` app-execution alias may not launch an interpreter. Use `python3` in Ubuntu, where a bare `python` is not guaranteed. [PEP 394](https://peps.python.org/pep-0394/) gives the guest spelling, which the shebangs and WSL launcher retain. After bootstrap, both lanes use the compatible interpreter in their managed environment.
+The entry-point spellings differ by OS. Use `python` on Windows; the `python3` app-execution alias may not launch an interpreter. Use `python3` in Ubuntu, where a bare `python` is not guaranteed. [PEP 394](https://peps.python.org/pep-0394/) gives the guest spelling, which the shebangs and WSL launcher retain. The [installation guidance](#running-them) supplies a compatible interpreter; after bootstrap, both lanes use it in their managed environment.
 
 `run.py model build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 
@@ -767,10 +767,10 @@ it starts. Each sandbox runs the generated-artifact checks too: a generator's co
 is multiplied by the mutant population. Keep generators small and measure them
 before adding work to every gate run.
 
-| Checker | Pin | What it decides |
-| --- | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | 0.0.82 | Every expression, against the types it can infer, with `--error all` |
-| [ruff](https://github.com/astral-sh/ruff) | 0.16.8 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
+| Checker | What it decides |
+| --- | --- |
+| [ty](https://github.com/astral-sh/ty) | Every expression, against the types it can infer, with `--error all` |
+| [ruff](https://github.com/astral-sh/ruff) | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
 annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
@@ -784,12 +784,12 @@ The ring emitter uses a cached JSON Schema validator to check declaration shapes
 before exposing typed records; fields outside the emitter's scope remain intact.
 [run.py typecheck](vos/cli/typecheck.py) reads the pins from the manifest, runs only
 the environment's executables, and explicitly gives ty that environment's Python.
-K-67 holds this table and the lockfile against the manifest. Global checker shims
+K-67 holds the lockfile against the manifest. Global checker shims
 and an unrelated activated environment cannot select different tools.
 
 The Python project lives in `tools/`. From the repository root, add a dependency
 with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run
-`uv lock --project tools`. Update this checker table when its pins change, and run
+`uv lock --project tools`. After changing pins, run
 the Windows and Linux gates. Review and commit the manifest and lockfile together.
 To refresh resolution within the declared constraints, use
 `uv lock --project tools --upgrade`. Normal commands synchronize each checkout on
