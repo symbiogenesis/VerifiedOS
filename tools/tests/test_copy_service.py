@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import copy_service as c
 from vos import copy_notification, copy_target, toolenv
+from vos import copy_service as c
 
 
 def generated_domains() -> None:
