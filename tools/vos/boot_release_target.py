@@ -101,7 +101,7 @@ def read_output(path: Path, expected_bytes: int) -> bytes:
 def completed_attempt(log: str, process_exit: int | None) -> bool:
     """Only one exact HTIF completion authorizes reading the exported verdict."""
     outcomes = [line.strip() for line in log.splitlines()
-                if line.strip().startswith(("SUCCESS", "FAILURE"))]
+                if "SUCCESS" in line or "FAILURE" in line]
     return process_exit == 0 and outcomes == ["SUCCESS"]
 
 
