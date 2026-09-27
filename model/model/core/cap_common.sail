@@ -169,9 +169,11 @@ function perms_count(p : CapPermsBits) -> int = {
  * the table above is part of the freeze.
  */
 function perms_narrow(want : CapPermsBits) -> CapPermsCode = {
+  // Global authority adds one bit to every shape equally, preserving ranking
+  // and codepoint tie order. Search nonempty local shapes, then restore it.
   var best : CapPermsCode = perms_none;
-  var best_n : int = -1;
-  foreach (i from 0 to 31) {
+  var best_n : int = 0;
+  foreach (i from 1 to 15) {
     let code : CapPermsCode = to_bits_truncate(cap_perms_code_width, i);
     let set = perms_expand(code);
     let n = perms_count(set);
@@ -180,7 +182,7 @@ function perms_narrow(want : CapPermsBits) -> CapPermsCode = {
       best_n = n;
     }
   };
-  best
+  if bit_to_bool(want[0]) then best | perms_global_bit else best
 }
 
 // *****************************************************************
