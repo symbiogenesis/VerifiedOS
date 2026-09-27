@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import cast
 
-from vos import env
+from vos import env, receipts
 from vos.cli import worktree
 
 
@@ -139,11 +139,8 @@ def snapshot(root: Path, path: Path, owned: bool = True) -> LaneRecord:
 
 
 def _write(path: Path, value: dict[str, object]) -> None:
-    temporary = path.with_suffix(".tmp")
     _plain(path)
-    _plain(temporary)
-    temporary.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
-    temporary.replace(path)
+    receipts.write(path, value)
 
 
 def _archive(root: Path, record: LaneRecord, archive_root: Path) -> tuple[Path, str]:
