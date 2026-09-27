@@ -50,7 +50,7 @@ def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--build-receipt", type=Path, required=True)
     parser.add_argument("--reference", type=Path)
     if name == "join":
-        parser.add_argument("--timeout", type=int, default=900)
+        parser.add_argument("--timeout", type=int, default=1800)
 
 
 def cmd_partition(args: argparse.Namespace) -> int:
