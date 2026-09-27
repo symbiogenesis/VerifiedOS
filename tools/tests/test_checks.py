@@ -9,7 +9,7 @@ sentence rather than hand-copied into it. What is pinned here is the wave the
 selftest's single-defect mutants cannot reach: a `--fix` whose only edit is
 refused writes nothing, a repair reaches its fixpoint in one application, a
 truncated table row is a finding rather than a crash, an overgrown quantity is a
-finding rather than a stopped run, K-67 fails closed on a pin site it cannot read,
+finding rather than a stopped run, K-67 fails closed on an owner it cannot read,
 and K-75 decides the one floor site its single mutant does not seed.
 """
 
@@ -381,17 +381,15 @@ def _counts_unreadable_prerequisite_owner_is_not_repaired() -> None:
 _PROJECT_PINNED = '[dependency-groups]\ndev = ["ty==1.2.3", "ruff==4.5.6"]\n'
 _LOCK_PINNED = ('[[package]]\nname = "ty"\nversion = "1.2.3"\n'
                 '[[package]]\nname = "ruff"\nversion = "4.5.6"\n')
-_README_PINNED = ("# Tools\n\n"
-                  "| Checker | Pin | What |\n| --- | --- | --- |\n"
-                  "| [ty](https://x) | 1.2.3 | types |\n"
-                  "| [ruff](https://x) | 4.5.6 | lint |\n")
+_README_REFERENCES = "# Tools\n\nThe project manifest owns the checker pins.\n"
 
 
-def _k67(readme: str, project: str | None,
+def _k67(readme: str | None, project: str | None,
          lock: str = _LOCK_PINNED) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
-             "tools/README.md": readme,
              "tools/uv.lock": lock}
+    if readme is not None:
+        files["tools/README.md"] = readme
     if project is not None:
         files["tools/pyproject.toml"] = project
     with sandbox_tree(files) as root:
@@ -401,14 +399,14 @@ def _k67(readme: str, project: str | None,
 
 
 def _k67_agreement_is_ok() -> None:
-    ctx = _k67(_README_PINNED, _PROJECT_PINNED)
-    ensure("ok K-67: the README and lockfile state ty 1.2.3 and "
+    ctx = _k67(_README_REFERENCES, _PROJECT_PINNED)
+    ensure("ok K-67: the lockfile states ty 1.2.3 and "
            "ruff 4.5.6, the versions tools/pyproject.toml fixes" in ctx.rep.out,
            f"agreement names both pins: {ctx.rep.out!r}")
 
 
 def _k67_lock_drift_is_a_finding() -> None:
-    ctx = _k67(_README_PINNED, _PROJECT_PINNED,
+    ctx = _k67(_README_REFERENCES, _PROJECT_PINNED,
                _LOCK_PINNED.replace('version = "4.5.6"', 'version = "4.5.5"'))
     ensure("tools/uv.lock's ruff versions are ['4.5.5'], tools/pyproject.toml pins 4.5.6"
            in _findings_under(ctx, "K-67"),
@@ -416,21 +414,32 @@ def _k67_lock_drift_is_a_finding() -> None:
            f"{_findings_under(ctx, 'K-67')!r}")
 
 
-def _k67_disagreement_names_both_figures() -> None:
-    ctx = _k67(_README_PINNED.replace("| 1.2.3 |", "| 9.9.9 |"), _PROJECT_PINNED)
-    found = _findings_under(ctx, "K-67")
-    ensure("tools/README.md's ty checker-table row states 9.9.9, "
-           "tools/pyproject.toml pins 1.2.3" in found,
-           f"a drifted site names the two figures and nothing else: {found!r}")
+def _k67_does_not_require_prose_pins() -> None:
+    for readme in (None, _README_REFERENCES, "# Checking tools\n\nRead the manifest.\n"):
+        ctx = _k67(readme, _PROJECT_PINNED)
+        ensure(not _findings_under(ctx, "K-67"),
+               f"checker prose is not a required copy of the pins: {ctx.rep.out!r}")
 
 
 def _k67_unreadable_source_fails_closed() -> None:
-    ctx = _k67(_README_PINNED, "# no pins here\n")
-    found = _findings_under(ctx, "K-67")
-    ensure(any("cannot supply exact ty and ruff pins" in item for item in found),
-           f"an unreadable source side is the finding: {found!r}")
-    ensure(not any(line.startswith("ok K-67:") for line in ctx.rep.out),
-           "fail-closed: no ok line stands beside the unread side")
+    for project in (None, "# no pins here\n", "[broken\n",
+                    _PROJECT_PINNED.replace('"ty==1.2.3"', '"ty>=1.2.3"'),
+                    _PROJECT_PINNED.replace('"ty==1.2.3"', '"ty==1.2.3", "ty==1.2.3"')):
+        ctx = _k67(_README_REFERENCES, project)
+        found = _findings_under(ctx, "K-67")
+        ensure(any("cannot supply exact ty and ruff pins" in item for item in found),
+               f"an unreadable source side is the finding: {found!r}")
+        ensure(not any(line.startswith("ok K-67:") for line in ctx.rep.out),
+               "fail-closed: no ok line stands beside the unread side")
+
+
+def _k67_unreadable_lock_fails_closed() -> None:
+    for lock in ("", "[broken\n", 'package = "not a table array"\n',
+                 '[[package]]\nname = "ty"\nversion = "1.2.3"\n',
+                 _LOCK_PINNED + '[[package]]\nname = "ty"\nversion = "1.2.3"\n'):
+        ctx = _k67(_README_REFERENCES, _PROJECT_PINNED, lock)
+        ensure(bool(_findings_under(ctx, "K-67")),
+               f"missing, malformed or duplicate resolved pins must fail: {ctx.rep.out!r}")
 
 
 _TY_CONF = 'python-version = "3.14"\n'
@@ -440,11 +449,15 @@ _FLOOR_SITE = "tools/vos/cli/provision.py's provisioned floor states "
 
 
 def _k75(provision: str, project: str =
-         '[project]\nrequires-python = ">=3.14,<3.15"\n') -> Context:
+         '[project]\nrequires-python = ">=3.14,<3.15"\n',
+         readme: str = "# Tools\n\nUse `uv python install --no-config 3.14`.\n") -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
-             "tools/README.md": _README_PINNED,
+             "tools/README.md": readme,
              "tools/ty.toml": _TY_CONF,
+             "tools/ruff.toml": 'target-version = "py314"\n',
              "tools/pyproject.toml": project,
+             ".github/workflows/host-gates.yml": 'python-version: "3.14"\n',
+             ".github/workflows/guest-gates.yml": 'python-version: "3.14"\n',
              "tools/vos/cli/provision.py": provision}
     with sandbox_tree(files) as root:
         ctx = _context(root)
@@ -454,8 +467,8 @@ def _k75(provision: str, project: str =
 
 def _k75_provisioned_floor_at_the_pin_is_not_a_finding() -> None:
     found = _findings_under(_k75(_PROVISION_AT), "K-75")
-    ensure(not any(f.startswith(_FLOOR_SITE) for f in found),
-           f"the provisioner's floor agrees, so its site names nothing: {found!r}")
+    ensure(not found,
+           f"configuration and install command agree without prose copies: {found!r}")
 
 
 def _k75_provisioned_floor_drifted_is_a_finding() -> None:
@@ -474,12 +487,40 @@ def _k75_unreadable_provisioner_fails_closed() -> None:
 
 
 def _k75_project_floor_is_held() -> None:
-       for project, fragment in (
-                     ('[project]\nrequires-python = ">=3.13,<3.15"\n', "requires-python states"),
-                     ("", "cannot supply requires-python")):
-              found = _findings_under(_k75(_PROVISION_AT, project), "K-75")
-              ensure(any(fragment in item for item in found),
-                        f"a drifted or missing project constraint must report: {found!r}")
+    for project, fragment in (
+            ('[project]\nrequires-python = ">=3.13,<3.15"\n', "requires-python states"),
+            ("", "cannot supply requires-python")):
+        found = _findings_under(_k75(_PROVISION_AT, project), "K-75")
+        ensure(any(fragment in item for item in found),
+               f"a drifted or missing project constraint must report: {found!r}")
+
+
+def _k75_install_command_still_uses_supported_version() -> None:
+    for command in ("Install Python from the project manifest.\n",
+                    "Use `uv python install --no-config 3.13`.\n"):
+        found = _findings_under(_k75(_PROVISION_AT, readme=command), "K-75")
+        ensure(any("manual interpreter install" in item for item in found),
+               f"an executable example must stay present and supported: {found!r}")
+
+
+def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
+    source = 'VERILATOR_PIN = "9.999"\n'
+    record = ("# Components\n\n| Tool | License | Standing |\n| --- | --- | --- |\n"
+              "| Verilator | example terms | pinned at **9.999**. |\n")
+    for owner, reviewed, accepted in (
+            (source, record, True),
+            (source, record.replace("9.999", "9.998"), False),
+            ("", record, False),
+            (source, "# Components\n", False),
+            (source, "", False)):
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           pins.VERILATOR_SRC: owner, "THIRD-PARTY.md": reviewed}) as root:
+            ctx = _context(root, fix=True)
+            pins._version_pin(ctx)
+            found = _findings_under(ctx, "K-97")
+            ensure(bool(found) != accepted,
+                   f"only an exact reviewed row and pin can pass: {ctx.rep.out!r}")
+            ensure(not ctx.fixed, "a version edit cannot manufacture a licence review")
 
 
 def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
@@ -752,17 +793,21 @@ def cases() -> list[Case]:
         Case("counts-unreadable-prerequisite-owner-is-not-repaired",
              _counts_unreadable_prerequisite_owner_is_not_repaired),
         Case("k67-agreement-is-ok", _k67_agreement_is_ok),
-        Case("k67-disagreement-names-both-figures",
-             _k67_disagreement_names_both_figures),
-              Case("k67-lock-drift-is-a-finding", _k67_lock_drift_is_a_finding),
+        Case("k67-does-not-require-prose-pins", _k67_does_not_require_prose_pins),
+        Case("k67-lock-drift-is-a-finding", _k67_lock_drift_is_a_finding),
         Case("k67-unreadable-source-fails-closed", _k67_unreadable_source_fails_closed),
+        Case("k67-unreadable-lock-fails-closed", _k67_unreadable_lock_fails_closed),
         Case("k75-provisioned-floor-at-the-pin-is-not-a-finding",
              _k75_provisioned_floor_at_the_pin_is_not_a_finding),
         Case("k75-provisioned-floor-drifted-is-a-finding",
              _k75_provisioned_floor_drifted_is_a_finding),
         Case("k75-unreadable-provisioner-fails-closed",
              _k75_unreadable_provisioner_fails_closed),
-       Case("k75-project-floor-is-held", _k75_project_floor_is_held),
+        Case("k75-project-floor-is-held", _k75_project_floor_is_held),
+        Case("k75-install-command-still-uses-supported-version",
+             _k75_install_command_still_uses_supported_version),
+        Case("k97-reviewed-pin-is-required-without-prose-copies",
+             _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
         Case("k81-historical-residue-cannot-exempt-table",

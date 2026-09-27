@@ -15,30 +15,29 @@ would make this agreement trivially true and stop deciding anything. What no sca
 decides is whether a registered claim is the right claim, which is the same residue
 every conferral declares.
 
-K-67 holds the README's checker pins and the resolved lockfile against tools/pyproject.toml.
+K-67 holds the resolved lockfile against tools/pyproject.toml's checker pins.
 The runtime reads the same manifest. Missing, malformed and duplicate declarations
 are findings, so an unreadable side cannot silently remove the comparison.
 
 K-75 is that rule one figure over, on the version the tools are *written* to rather
 than the versions they run. The interpreter floor decides what the two checkers admit
 and what this directory's Python may say, and it is written as a setting in ty's
-dialect and in ruff's, restated in prose, and restated as a literal the provisioner
-probes the running interpreter against and as the version the CI workflows install;
+dialect and in ruff's, shown in the manual install command, and restated as a literal
+the provisioner probes the running interpreter against and as the version the CI workflows install;
 ty.toml's is the source because it is the environment an editor's language server and
 this gate both resolve against, and the only site that writes the figure bare. The
 sites are enumerated rather than counted here, because the count is `_FLOOR_SITES`' to
 state. The two dialects are why the rule is worth having rather than obvious: `3.14`
 and `py314` are one figure in two spellings, so a bump applied to one of them does not
-read as a disagreement with the other, and every prose site was a hand-copy nothing
-owned. The provisioner explicitly restates the floor, while tools/pyproject.toml constrains
-the interpreter used for dependency resolution. Both are held against ty's target.
+read as a disagreement with the other. Narrative prose links to the supported version
+instead of copying it. The provisioner explicitly restates the floor, while
+tools/pyproject.toml constrains the interpreter used for dependency resolution.
+Both are held against ty's target.
 
 The window is the enumerated sites rather than a directory, as K-67's is: the host
 and guest workflows' `python-version` settings sit outside `tools/` and select the
-interpreters their gates run on. The plan restates the floor in two of its own cells
-and is outside by decision, a rule about how this directory is written having no business holding a
-sentence in a document about the build order; that pairing is the plan's to own if
-anything is to own it.
+interpreters their gates run on. Historical measurements retain the interpreter
+versions used for those runs and are outside this current setup check.
 
 K-84 is the third direction on the same registry and the one that faces outward. K-00
 holds the registry against the checks and the selftest holds it against the mutants,
@@ -185,21 +184,8 @@ PROJECT = toolenv.PROJECT
 LOCK = toolenv.LOCK
 PROVISION = "tools/vos/cli/provision.py"
 
-_README_TY_ROW_RE = re.compile(r"(?m)^\| \[ty\]\([^)]*\) \| ([^ |]+) \|")
-_README_RUFF_ROW_RE = re.compile(r"(?m)^\| \[ruff\]\([^)]*\) \| ([^ |]+) \|")
-
-# The sites, as the table every figure stated over them is read off rather than
-# copied from. Each row names the constant it holds that site against, so a site and
-# a pin cannot be paired wrongly and a site added here moves the ok line's count with
-# it: the derived-fact discipline this rule enforces on the README, applied to the
-# rule's own prose, which is where a hand-copied count last went stale.
 _HOST_WORKFLOW = ".github/workflows/host-gates.yml"
 _GUEST_WORKFLOW = ".github/workflows/guest-gates.yml"
-
-_PIN_SITES: list[tuple[str, str, re.Pattern[str], str]] = [
-    ("checker-table row", README, _README_TY_ROW_RE, "ty"),
-    ("checker-table row", README, _README_RUFF_ROW_RE, "ruff"),
-]
 
 TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
@@ -277,7 +263,7 @@ _SYMBOL_TREE = "tools/"
 
 
 def _plain(floor: str) -> str:
-    """The floor as ty.toml writes it, which is how the prose writes it too."""
+    """The floor as ty.toml and the installer spell it."""
     return floor
 
 
@@ -291,12 +277,6 @@ def _packed(floor: str) -> str:
 _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
     ("target version", RUFF_CONF,
      re.compile(r'(?m)^target-version = "([^"\r\n]*)"'), _packed),
-    ("modernization comment", RUFF_CONF,
-     re.compile(r"constructs the (\S+) floor makes obsolete"), _plain),
-    ("floor sentence", README,
-     re.compile(r"The floor is \*\*([^*]+)\*\*"), _plain),
-    ("launcher spelling", README,
-     re.compile(r"`py -([^`\s]+)`"), _plain),
     ("manual interpreter install", README,
      re.compile(r"`uv python install --no-config ([^`\s]+)`"), _plain),
     ("provisioned floor", PROVISION,
@@ -457,7 +437,7 @@ def _source(ctx: Context, rel: str) -> str:
 
 
 def _pins(ctx: Context) -> None:
-    """K-67: the README and lockfile agree with the runtime's manifest reader."""
+    """K-67: the lockfile agrees with the runtime's manifest reader."""
     rep = ctx.rep
     findings: list[str] = []
     pins: dict[str, str] = {}
@@ -466,15 +446,6 @@ def _pins(ctx: Context) -> None:
     except (OSError, ValueError, TypeError, KeyError) as err:
         findings.append(f"{PROJECT} cannot supply exact ty and ruff pins: {err}")
     if pins:
-        for label, file, pattern, key in _PIN_SITES:
-            want = pins[key]
-            m = pattern.search(_source(ctx, file))
-            if m is None:
-                findings.append(f"{file} no longer states {key}'s pin in its "
-                                f"{label}, in a form this rule reads")
-            elif m.group(1) != want:
-                findings.append(f"{file}'s {key} {label} states {m.group(1)}, "
-                                f"{PROJECT} pins {want}")
         try:
             packages = tomllib.loads(_source(ctx, LOCK))["package"]
             if not isinstance(packages, list) or not all(
@@ -492,7 +463,7 @@ def _pins(ctx: Context) -> None:
 
     rep.report("K-67", f"pin site(s) disagreeing with the versions {PROJECT} "
                "fixes:", findings,
-               f"the README and lockfile state ty {pins.get('ty')} and "
+               f"the lockfile states ty {pins.get('ty')} and "
                f"ruff {pins.get('ruff')}, the versions {PROJECT} fixes")
 
 
