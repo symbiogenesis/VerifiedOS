@@ -7,6 +7,12 @@ require Host CI and dispatch both guest lanes without waiting for their verdicts
 
 ## Running it
 
+The [`fanout` completion command](../fanout.md) publishes a revision-specific tag,
+requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
+lanes with the batch's `cold` policy. It records the dispatch response and returns
+without polling Guest CI. Optional `fanout_token` workflow inputs give interrupted
+dispatches an identity for recovery; they do not change gate scope or acceptance.
+
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
 GitHub's **Run workflow** control. Ordinary runs reuse installed toolchains and

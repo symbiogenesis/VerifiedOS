@@ -103,6 +103,12 @@ outage, with reason, scope and verdict recorded.
 
 For the settled batch:
 
+Use [`python tools/run.py fanout`](tools/fanout.md) for the mechanical integration,
+publication, hosted-validation handoff and retirement of explicitly selected lanes.
+The integrator still resolves conflicts, shared edits, co-reads and acceptance
+checks outside the workflows. Resume `fanout finish` until Host CI passes and
+the command records Guest CI dispatch and safe retirement; never wait for Guest CI.
+
 1. Finish authored and generated changes, track deliverables by path, resolve
    co-reads and known findings, then commit and publish the revision.
 2. Require [Host CI](.github/workflows/host-gates.yml) to pass on Windows and Ubuntu.
