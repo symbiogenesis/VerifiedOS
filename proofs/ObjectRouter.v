@@ -2515,12 +2515,7 @@ Definition witness_Composition : Composition := demo_composition.
 Definition witness_Subscription : Subscription := demo_subscription.
 Definition witness_Txn : Txn := committed_txn.
 
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`: every shipped
-   constant's enumerated assumption set is compared against the declared set
-   R-05-164 currently makes empty, so "Closed under the global context" is
-   that emptiness checked mechanically.
-   ------------------------------------------------------------------------- *)
+(* R-05-164: `run.py proofs` audits the complete native inventory. *)
 
 
 (* Every returned batch is bounded and derives from the currently presented

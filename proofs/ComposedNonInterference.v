@@ -584,10 +584,3 @@ Lemma endpoint_labels_decide_something :
 Proof.
   split; [reflexivity | intros Hc; discriminate Hc].
 Qed.
-
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`: the enumerated
-   assumption set of every constant above is compared against the declared
-   set R-05-164 reads from the register, which is empty today. "Closed under
-   the global context" is that emptiness, checked mechanically.
-   ------------------------------------------------------------------------- *)

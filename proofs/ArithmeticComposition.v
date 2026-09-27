@@ -1291,8 +1291,3 @@ Qed.
 Example the_prime_field_inhabits_the_probing_model_sharing :
   Val (fp_sharing five) = Fp five.
 Proof. reflexivity. Qed.
-
-(* =========================================================================
-   11. R-05-163's assumption gate. Every shipped constant's enumerated
-   assumption set is compared against the declared set R-05-164 makes empty.
-   ========================================================================= *)

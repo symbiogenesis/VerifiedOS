@@ -1821,9 +1821,7 @@ Definition witness_Shape : Shape := demo_shape.
 Definition witness_Step : Step := opening demo demo_server demo_idle demo_request.
 Definition witness_Widths : Widths := demo_widths.
 
-(* =========================================================================
-   R-05-163's assumption gate, as in the artifacts beside this one.
-   ========================================================================= *)
+(* R-05-163: `run.py proofs` audits the complete native inventory. *)
 
 
 (* Complete admission entry point. `opening` is the resource/ceiling core;

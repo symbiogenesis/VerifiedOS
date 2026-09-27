@@ -1123,7 +1123,3 @@ Definition witness_Ladder : Ladder bool := demo_ladder.
 Definition witness_Population : Population :=
   {| live_count := 0; utilization := 0; queue_depth := 0 |}.
 Definition witness_Slot : Slot bool := reserved_slot.
-
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, as in the two artifacts beside this one.
-   ------------------------------------------------------------------------- *)

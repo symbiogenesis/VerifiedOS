@@ -699,8 +699,3 @@ Proof.
   - exact overshoot_chunk_is_no_partition.
   - apply single_chunk_agrees. cbn. lia.
 Qed.
-
-(* -------------------------------------------------------------------------
-   The R-05-163 gate: every constant closed under the global context, which
-   `run.py proofs` decides through its own native inventory of the file.
-   ------------------------------------------------------------------------- *)

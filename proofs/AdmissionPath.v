@@ -5991,9 +5991,4 @@ Definition witness_Step : Step :=
      st_site := 0 |}.
 Definition witness_Versions : Versions := demo_versions.
 
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`: every shipped
-   constant's enumerated assumption set is compared against the declared set
-   R-05-164 currently makes empty, so `Closed under the global context` is
-   that emptiness checked mechanically.
-   ------------------------------------------------------------------------- *)
+(* R-05-164: `run.py proofs` audits the complete native inventory. *)

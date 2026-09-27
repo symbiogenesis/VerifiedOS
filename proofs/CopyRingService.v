@@ -3305,7 +3305,3 @@ Definition witness_Service : Service := demo_service.
 Definition witness_ring_view : ring_view := full_view.
 Definition witness_slot : slot := demo_slot.
 Definition witness_world : world := quiet_world.
-
-(* -------------------------------------------------------------------------
-   The R-05-163 gate: every constant closed under the global context.
-   ------------------------------------------------------------------------- *)

@@ -1256,10 +1256,4 @@ Definition witness_DrbgState : DrbgState := instantiated_for_pr.
 
 Definition witness_Run : Run := witness_run.
 
-(* -------------------------------------------------------------------------
-   The R-05-163 assumption gate inventories the native environment and holds
-   each constant against the declared assumption set: the
-   one Require above is a sibling under proofs/ that Requires nothing, so
-   there is no Admitted, no Axiom and no top-level Parameter reachable, and
-   nothing is declared inside the development to make the gate pass.
-   ------------------------------------------------------------------------- *)
+(* R-05-163: `run.py proofs` audits the complete native inventory. *)

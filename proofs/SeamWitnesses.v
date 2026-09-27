@@ -263,8 +263,4 @@ Proof.
   repeat split; intro K; exact I.
 Qed.
 
-(* -------------------------------------------------------------------------
-   The R-05-163 gate, as in ApexTheorem.v: every constant closed under the
-   global context, checked by `run.py proofs` against the declared set
-   R-05-164 currently makes empty.
-   ------------------------------------------------------------------------- *)
+(* R-05-163 and R-05-164: `run.py proofs` audits the complete native inventory. *)
