@@ -1,13 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """extraction: every normative section of the prose, extracted by the register.
 
-The register opens by asserting that **all eighteen normative sections are extracted**,
-and the counts group holds that figure the way it holds every other: by recomputing it.
-What it recomputes it from is `len(reg.per_section)`, the number of `## §n` sections the
-register itself carries. So the figure is arithmetic over the register alone, and the
-claim it discharges is *the register has eighteen sections*, which is not the claim the
-sentence makes. Whether eighteen is **all** of them is a fact about the prose, and
-nothing read it.
+The register asserts that all normative sections are extracted. Counting its own
+sections cannot establish that claim: completeness requires comparing them with
+the prose's normative sections, independently of any narrative count.
 
 The gap is not hypothetical and was not reasoned about: a normative `## 20.` seeded into
 the prose, extracted by nothing, leaves a run green. Every other rule looks past it. The

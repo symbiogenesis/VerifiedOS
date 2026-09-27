@@ -76,7 +76,7 @@ unlabelled blank is exactly the seam going quiet.
 | Field | Value |
 | --- | --- |
 | Block | [`rtl/vos_cheri_pkg.sv`](../../rtl/vos_cheri_pkg.sv), the frozen capability format and its algebra |
-| Source semantics | `model/model/core/cap_format.sail` and `model/model/core/cap_common.sail`, with `model/model/core/xlen.sail` fixing the register width the address field sits in. The five files the vector generator compiles against are declared in [the tool](../../tools/vos/cli/rtl.py); rule K-79 holds the package's declared parameters against the first three on the host |
+| Source semantics | `model/model/core/cap_format.sail` and `model/model/core/cap_common.sail`, with `model/model/core/xlen.sail` fixing the register width the address field sits in. The files the vector generator compiles against are declared in [the tool](../../tools/vos/cli/rtl.py); rule K-79 holds the package's declared parameters against the first three on the host |
 | Theorem endpoint | `n/a, not yet`. No proof object relates this package to those files. Route (a) is the owner and the plan's §11 opens it after the co-simulation gate |
 | Emitter identity and revision | `n/a, by route`. [The RTL tree's §2](../../rtl/README.md) lists this file authored, not generated. It was transcribed from the Sail source by hand |
 | Emitted bytes | `n/a, by route`, on the same ground. There is no generator output to hold the tracked bytes against, which is why the transcription itself is the seam |

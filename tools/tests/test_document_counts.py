@@ -71,8 +71,27 @@ def _registered_claim_offsets_follow_repairs() -> None:
     with sandbox_tree({counts.REGISTER: raw}) as root:
         ctx = _context(root, fix=True)
         ctx.fixed[counts.REGISTER] = raw.replace("eighteen", "twenty-two")
-        ensure(not counts.unheld_counts(ctx),
-               "a registered count remains held when a repair changes its width")
+        claim = (counts.REGISTER, "sections", "words",
+                 r"[\w-]+(?= normative sections are extracted)")
+        with patch.object(counts, "CLAIMS", [claim]):
+            ensure(not counts.unheld_counts(ctx),
+                   "a registered count remains held when a repair changes its width")
+
+
+def _canonical_references_need_no_count() -> None:
+    raw = "# Register\n\nAll normative sections are extracted.\n\n" + _REGISTER
+    with sandbox_tree({counts.REGISTER: raw}) as root:
+        ctx = _context(root)
+        ensure(not counts.unheld_counts(ctx), "a narrative reference needs no count")
+        ctx.fixed[counts.REGISTER] = raw.replace("All normative", "Eighteen normative")
+        ensure(len(counts.unheld_counts(ctx)) == 1,
+               "reintroducing an unchecked live summary count still fails")
+    for name in ("sections", "requirements", "lettered", "fc-seams",
+                 "frozen-absences", "admission-tests", "iris-theories"):
+        quantities = _source_counts()
+        quantities[name] = 0
+        ensure(any(name in item for item in counts.count_owner_findings(quantities)),
+               f"{name}'s owner remains required after secondary counts are removed")
 
 
 def _missing_owner_and_valid_zero_buckets() -> None:
@@ -146,6 +165,7 @@ def cases() -> list[Case]:
         Case("growth-does-not-reclassify-counts", _growth_does_not_reclassify_counts),
         Case("scopes-and-count-tokens", _scopes_and_count_tokens),
         Case("registered-claim-offsets-follow-repairs", _registered_claim_offsets_follow_repairs),
+        Case("canonical-references-need-no-count", _canonical_references_need_no_count),
         Case("missing-owner-and-valid-zero-buckets", _missing_owner_and_valid_zero_buckets),
         Case("owner-policy-is-total", _owner_policy_is_total),
         Case("missing-enumeration-is-not-repaired", _missing_enumeration_is_not_repaired),

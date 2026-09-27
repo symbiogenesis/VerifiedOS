@@ -9,8 +9,8 @@ the number alone, so a repair is the substitution of a single token.
 
 A cardinality is not the only figure a document can restate, and the second kind is
 here for the same reason the first is. The tag plane's cost is not a count of anything:
-it is one register field, the granule width, read as a ratio, and four documents state
-that ratio in four spellings between them. Nothing about it is anybody's measurement,
+it is one register field, the granule width, read as a ratio. Deliberately presented
+calculations remain registered; secondary prose cites them. None is a measurement,
 so a granule that moves has to move every one of them in the same edit, which is
 exactly what a claim is. The band beside it is the other half and is not arithmetic at
 all, the DECTED code over the plane being fixed at no width; that half is held by
@@ -79,15 +79,7 @@ LOG = "docs/implementation/completion-log.md"
 
 # file, quantity, style, and the pattern that captures the stated figure alone
 CLAIMS = [
-    # the register states its own coverage
-    (REGISTER, "sections", "words", r"[\w-]+(?= normative sections are extracted)"),
-    (REGISTER, "requirements", "digits", r"(?<=extracted, at )[\d,]+(?= requirements)"),
-    (REGISTER, "lettered", "digits", r"(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)"),
-
-    # the prose states the size of each seam register it carries
-    ("docs/spec.md", "fc-seams", "words", r"[\w-]+(?= fail-closed seams are named with owners)"),
-
-    # and the register states the shape of each enumeration it closes by conferral
+    # the register states the shape of each enumeration it closes by conferral
     (REGISTER, "fc-conferrals", "words", r"[\w-]+(?= requirements confer a refusal)"),
     (REGISTER, "fc-seams", "words", r"(?<=and )[\w-]+(?= seams collect them)"),
     (REGISTER, "rot-fresh", "words", r"[\w-]+(?= requirements confer freshness)"),
@@ -103,23 +95,11 @@ CLAIMS = [
     # list without its count, so the register's is the one count-word to hold
     (REGISTER, "seam-lemmas", "words", r"(?<=seam lemmas are exactly )[\w-]+(?=: NI)"),
 
-    # the frozen theory's absences, owned by the entries themselves
-    (SPEC, "frozen-absences", "words", r"(?<=the )[\w-]+(?= absences that produce)"),
-    (TAL, "frozen-absences", "words", r"(?<=### 7\.1 The )[\w-]+(?= absences)"),
-    (TAL, "frozen-absences", "words", r"(?<=The )[\w-]+(?= absences hold)"),
-
     # the five-part admission test, owned by R-15-010's own markers
     (REGISTER, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?= tests)"),
-    (REGISTER, "admission-tests", "words", r"(?<=### 15\.2 The )[\w-]+(?=-part admission test)"),
     (REGISTER, "admission-tests", "words", r"(?<=carries )[\w-]+(?= recorded dispositions)"),
-    (REGISTER, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part admission test)"),
-    (REGISTER, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part test)"),
     (SPEC, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?= parts)"),
-    (SPEC, "admission-tests", "words", r"(?<=The )[\w-]+(?=-part test governs)"),
     (SPEC, "admission-tests", "words", r"(?<=passes all )[\w-]+(?= admission tests)"),
-    (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part mechanism test)"),
-    (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part admission test)"),
-    (SPEC, "admission-tests", "words", r"(?<=The \*\*)[\w-]+(?=-part admission test)"),
 
     # the TCB's item count, owned by the specification's own §6 list
     (REGISTER, "tcb-items", "words", r"(?<=exhaustively enumerated as )[\w-]+(?= items)"),
@@ -134,10 +114,7 @@ CLAIMS = [
     (SPEC, "build-prereqs", "words", r"(?<=All )[\w-]+(?= are untrusted evidence-producing)"),
 
     # the one program logic's theories, owned by R-13-017's roster
-    (REGISTER, "iris-theories", "words", r"(?<=program logic with its )[\w-]+(?= theories)"),
     (REGISTER, "iris-theories", "words", r"(?<=program logic with )[\w-]+(?= theories, not five frameworks)"),
-    (SPEC, "iris-theories", "words", r"(?<=logic\*\* with its )[\w-]+(?= theories)"),
-    (SPEC, "iris-theories", "words", r"(?<=Iris-over-Sail logic with )[\w-]+(?= theories)"),
 
     # the machine-checked radio protocols, owned by the inventory-row span R-12-043e pins
     (REGISTER, "radio-protocols", "words", r"(?<=and for the )[\w-]+(?= radio protocols)"),

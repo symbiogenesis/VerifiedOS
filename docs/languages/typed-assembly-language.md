@@ -486,9 +486,9 @@ The profile with no capability hardware. It cites no invariant, so move I is emp
 
 ## 7. The frozen theory
 
-### 7.1 The four absences
+### 7.1 The absences
 
-This document fixes and closes the type theory. Four absences are what make checking a dataflow validation rather than proof checking.
+This document fixes and closes the type theory. The absences below make checking a dataflow validation rather than proof checking.
 
 1. **Predicative, rank-1 prenex polymorphism.**
    Type variables are quantified only at the outermost position of a code type and instantiated only at monotypes: the classical TALx86 use (polymorphism over callee-saved registers and stack tails) and no more.
@@ -501,7 +501,7 @@ This document fixes and closes the type theory. Four absences are what make chec
 4. **No user-extensible inductive definitions.**
    The type constructors are the fixed, closed vocabulary of §8.2. The checker performs no positivity check, guard check, or eliminator generation. The vocabulary grows only by amendment to this document, never at install time.
 
-**TAL-033** MUST: The four absences hold of every profile, every rule table, and every amendment.
+**TAL-033** MUST: The absences in §7.1 hold of every profile, every rule table, and every amendment.
 · Accept: no rule anywhere in this document or in a profile's rule table requires higher-rank instantiation, conversion, a universe constraint, or a user-supplied former.
 · Trace: §8.2, §7.5
 

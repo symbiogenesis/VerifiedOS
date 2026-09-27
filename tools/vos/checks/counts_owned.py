@@ -30,14 +30,9 @@ CONTRACT = "docs/hardware/bank-count-dse-contract.md"
 # holds every occurrence its file carries.
 OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
     ("kernel-line-budget", "R-07-001", r"targeting ≤(\d+k) lines", [
-        # anchored on the microkernel's own sentence, not the stock magnitude
-        # idiom: "on the order of Nk LoC" is a spelling any entry may use, and a
-        # repair rewrites every match its pattern holds
-        (REGISTER, r"(?<=microkernel is on the order of )\d+k(?= LoC of verified C)"),
-        (SPEC, r"(?<=\(~)\d+k(?= LoC verified C\))"),
+        # The kernel's own explanation presents the budget; secondary references
+        # name its owner without copying the value.
         (SPEC, r"(?<=target ≤)\d+k(?= lines)"),
-        # the prose writes a thin space (U+2009) between the sign and the figure
-        (SPEC, r"(?<=below the ≤\u2009)\d+k(?=-line target)"),
     ]),
     ("range-decoder-share", "R-15-067g", r"measured at roughly (\d+)% of decode time", [
         (SPEC, r"(?<=measured at roughly )\d+(?=% of decode time)"),

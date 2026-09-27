@@ -1021,7 +1021,7 @@ CASES: list[Case] = [
          r"\1 The unit refuses rather than degrades.", b))),
 
     ("K-24", "an asserted count the artifact no longer gives",
-     _renumber(REGISTER, r"(?<=extracted, at )[\d,]+(?= requirements)", 0, "9999")),
+     _renumber(REGISTER, r"[\w-]+(?= requirements confer a refusal)", 0, "ninety-nine")),
 
     ("K-24", "a multiline prerequisite list loses one enumeration marker",
      _literal(SPEC, "- (3) A **WCET cost-annotation pass", "- A **WCET cost-annotation pass")),
@@ -1390,8 +1390,6 @@ CASES: list[Case] = [
     ("K-66", "a form the profile excludes and the model still decodes",
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
-    ("K-67", "a README pin drifted from the manifest",
-     _literal("tools/README.md", "| 0.0.82 |", "| 0.0.80 |")),
     ("K-67", "a resolved checker pin drifted from the manifest",
      _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.8"',
               'name = "ruff"\nversion = "0.16.6"')),
@@ -1481,11 +1479,8 @@ CASES: list[Case] = [
      _first_match(MATRIX, r"(?m)^\| `B-\d\d` \| `P-\d` \|[^\r\n]*\| not authored \|",
                   lambda m: m.group().replace("| not authored |", "| authored |"))),
 
-    # One of the two settings rather than one of the five sentences, because the pair of
-    # settings is where the figure is hardest to see moving: `py314` and `3.14` are one
-    # floor in two dialects, so a bump taken in one of them looks like an edit to a
-    # different quantity, and the prose that restates the floor goes on agreeing with
-    # the half that did not move.
+    # The settings express one target in different dialects. Narrative references
+    # may omit the version; executable configuration must still agree.
     ("K-75", "a checker settings file at an interpreter floor the other does not fix",
      _literal("tools/ruff.toml", 'target-version = "py314"',
               'target-version = "py313"')),
@@ -1511,13 +1506,10 @@ CASES: list[Case] = [
      _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
               "BHTEntries: unsigned'(1),")),
 
-    # The elaborator's pin moved in the record's own paragraph and left in the row four
-    # lines above it, which is the shape a version bump takes when it is applied where a
-    # reader is looking and not where the lane enforces it. Nothing else reads the edit:
-    # the paragraph carries no link, no id and no count, and K-81 reads object ids alone,
-    # so a dotted version is not a restatement it can see.
+    # The reviewed license row must still match the elaborator's enforced pin;
+    # secondary prose refers to this row without copying its version.
     ("K-97", "an elaborator pin the record states and the lane's own constant refuses",
-     _literal(THIRD_PARTY, "The pin is **5.052**", "The pin is **5.036**")),
+     _literal(THIRD_PARTY, "pinned at **5.052**", "pinned at **5.036**")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
@@ -1927,7 +1919,7 @@ def _case_mutation(rule: str) -> Mutation:
 # the exact document bytes a case would anchor on, and the repair restores the tree it
 # found.
 REPAIRABLE: dict[str, tuple[str, Mutation]] = {
-    "K-24": ("requirements", _case_mutation("K-24")),
+    "K-24": ("fc-conferrals", _case_mutation("K-24")),
     "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
     "K-32": ("product:", _case_mutation("K-32")),
     "K-36": (" subtotal:", _case_mutation("K-36")),
