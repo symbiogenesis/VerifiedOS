@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "item": "M6.1b-i",
+  "decision": "C for M8a; final Velus producer remains after M8a",
+  "trial_verdict": "refused",
+  "first_failed_predicate": "The real start/restart node did not reach the purecap target: unchanged printed Clight parameters use _Alignas(8), refused by the accepted C frontend.",
+  "source_revision": "300da38236bfddb981a8a302b94a664e9044c4ab",
+  "frozen_inputs": {
+    "supervisor/route/start_restart.lus": "db96e2c055416f9bf9783e31346977bd590c4624632233f983876d74b57f35e9",
+    "supervisor/route/oracle.c": "bf3348d800fe947dfb5b88dd7a7882c1d4e7748c38aec45d72a940c6d45d84f4",
+    "supervisor/route/probe.py": "f101b76dba09220ee6cac323c788aae6b23f55e7c41768420918c9dbd0917a6b",
+    "supervisor/include/vos_supervisor.h": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28",
+    "supervisor/include/vos_supervisor_effects.h": "d4788e16aa95049351527f631b040f5dd5c97986d82a52ff075e19954b5ec1cd",
+    "supervisor/src/supervisor.c": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd",
+    "supervisor/src/effects.c": "1d4296de8664d5db017cc47c57fcf91506ee31904c20fe6a67f35c7c8d6f0715",
+    "supervisor/src/manifest.c": "825bf58cb0c62d82a4e56dcea8156ab65212dbeef41d7085751a47d08421630d",
+    "supervisor/test/host.c": "34b0413fb698f373b2f65ce34d1256892e45f4d8ad5e488558e9c43c9dfc4e29",
+    "supervisor/test/effects.c": "61797d6596626a07427ff7e0e7a766bb26d3dd83ccb75478fdbe9968e7d9e4da",
+    "proofs/SupervisionTree.v": "cdf585372d0524e45c784aeb7a24077eabfa8310e373d0ffa2258f813fe48488",
+    "tools/vos/supervisor.py": "698c919f332ad50e5dc91643c9fc5580793b4fdaa4fcff9e34979cc12b3697c9",
+    "kernel/src/context.c": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7",
+    "kernel/include/vos_kernel.h": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301",
+    "kernel/include/vos_platform.h": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0"
+  },
+  "velus": {
+    "source_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+    "compcert_revision": "22c33b91d42c7df986c97b13b6cd630866a56494",
+    "binary": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/velus",
+      "sha256": "ca69a076e83891ced822802210df01ef740e7de597af3a7929f01f4e4b80a804",
+      "bytes": 15764256
+    },
+    "license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+      "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+      "bytes": 5884
+    },
+    "compcert_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+      "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+      "bytes": 43807
+    },
+    "coq": "8.20.1",
+    "ocaml": "4.14.2",
+    "menhir": "20240715",
+    "configure": [
+      "./configure",
+      "-no-runtime-lib",
+      "-no-standard-headers",
+      "x86_64-linux"
+    ],
+    "build_log": {
+      "path": "/root/build/lane-supervisor-velus-20260926/build.log",
+      "sha256": "d1c152cf14b70b21c4c6a96db0571bac2458de34eea9084fa657329445f4aecd",
+      "bytes": 323009
+    },
+    "opam_switch": {
+      "path": "/root/build/lane-supervisor-velus-20260926/switch.export",
+      "sha256": "495b456716753e1691f294384eb961275e411f6804483b7779592add9dba0b29",
+      "bytes": 936
+    },
+    "node_command": [
+      "/root/build/lane-supervisor-velus-20260926/source/velus",
+      "-nomain",
+      "-lib",
+      "-header",
+      "-dclight",
+      "-o",
+      "/root/build/lane-supervisor-route-20260926/route/start_restart.lus",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/supervisor-route-20260926/supervisor/route/start_restart.lus"
+    ],
+    "node_exit": 0,
+    "node_log": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/velus.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "clight": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/start_restart.light.c",
+      "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+      "bytes": 2329
+    },
+    "header": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/start_restart.h",
+      "sha256": "a8bf7abc5397a955cf6de4a069d9fc54cff105625e70617180fc01a8d5d59042",
+      "bytes": 575
+    }
+  },
+  "oracle": {
+    "binary": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/oracle",
+      "sha256": "2e946baec236e82084952457b48aebcd7fcef794bf7d78c09860160258e4605a",
+      "bytes": 71160
+    },
+    "fixtures": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/fixtures.txt",
+      "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+      "bytes": 24120
+    },
+    "fixture_rows": 576,
+    "reference_report": {
+      "path": "/root/build/lane-supervisor-route-20260926/supervisor/report.json",
+      "sha256": "b6f56eeff8e6685659b1b345fa03ece19d4a9b74b8255eb9f0054ab9648ca1dc",
+      "bytes": 2344
+    },
+    "reference_cases": 656,
+    "reference_equalities": 3088,
+    "reference_verdict": "passed",
+    "effect_controls": "ok 31 fixed consumer controls (not Gallina comparisons)\nok 9249 generated effect executions (64340 checks; host bindings only)"
+  },
+  "native_clight_compile": {
+    "exit": 1,
+    "diagnostic": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/probe-host-build.log",
+      "sha256": "c750db93d99cc0bc4d6fd10ca10f60095633b81061aa47286ff2e87295eb663c",
+      "bytes": 1972
+    },
+    "comparison": "not reached",
+    "compiler": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-15",
+      "sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+      "version": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+  },
+  "purecap": {
+    "compiler": {
+      "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca"
+    },
+    "simulator": {
+      "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+      "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793"
+    },
+    "profile": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/supervisor-route-20260926/model/config/verifiedos.json",
+      "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424"
+    },
+    "report": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/purecap-report.json",
+      "sha256": "8a67a03626ece2279cc255a7c7de397d7a14e42de7357f0fcb1537d64015626d",
+      "bytes": 4742
+    },
+    "preprocessed": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/purecap/probe/probe.i",
+      "sha256": "5aa612e5de4877c3da39c87cad48122377939068bd3e4970c0e698efe9452d49",
+      "bytes": 198957
+    },
+    "replayed_compiler_exit": 2,
+    "diagnostic": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/ccomp-refusal.log",
+      "sha256": "d6bbd042546b7a199f0c651a510f428850eb3eec972106be8409ca7c6afa8ef0",
+      "bytes": 812
+    },
+    "target_image": null,
+    "target_run": null,
+    "comparison": "not reached",
+    "config": {
+      "path": "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+    },
+    "current_include_closure_matches_retained_input": true
+  },
+  "timing": {
+    "provisioned_utc": "2026-09-27T02:14:42+00:00",
+    "trial_finished_utc": "2026-09-27T02:37:56+00:00",
+    "provision_to_trial_end_seconds": 1394,
+    "interval_kind": "elapsed provisioning-to-decision bound, includes attended installation/build waits; integration review separate",
+    "budget_seconds": 7200,
+    "budget_exhausted": false
+  },
+  "remaining": [
+    "Final complete Lustre producer and qualified Clight exchange",
+    "All detector/action, dwell, window, boot and escalation cases",
+    "Nonblocking supervisor lifecycle adapter and authenticated kernel transport",
+    "Measured handoff and actual composed start/fault/restart observations"
+  ],
+  "limits": [
+    "No claim that all Velus exchange routes fail",
+    "No new compiler port, printer rewrite, erased alignment annotation or runtime was introduced",
+    "The printed Clight C boundary is not a direct Clight-AST importer or a composed compiler correctness theorem",
+    "The passing host reference and fixture generation do not supply target agreement",
+    "No target supervisor or roster status is accepted by this decision"
+  ]
+}

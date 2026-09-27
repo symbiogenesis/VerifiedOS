@@ -8,9 +8,12 @@ with grants filtered by the current revocation snapshot. The
 [roster contract](../docs/implementation/contracts/boot-roster.md)
 fixes its place as the kernel's first partition.
 
-**This is a host-checked core, not an executable target roster member.** The accepted
-M1.2f backend, M4.4 kernel effect bindings, authenticated manifest handoff, and M7.1a image and
-boot trace remain open. The code does not perform compartment entry, teardown,
+**This is a host-checked core, not an executable target roster member.** M1.2f's
+accepted backend is available. Trusted M4.4 kernel effect bindings, authenticated
+manifest handoff, and the M7.1a image and boot trace remain integration joins.
+The [bounded producer trial](route/README.md) keeps C as the M8a route after
+the emitted Vélus Clight interface is refused by that backend's C frontend.
+The code does not perform compartment entry, teardown,
 zeroization, revocation or capability derivation. M6.1b retains the Lustre/Vélus
 lowering and its control-plane obligations.
 
@@ -96,8 +99,8 @@ teardown, zeroization, revocation, or clock measurement. Those effects, ownershi
 closure, bounded callback completion and the serialized region must be realized
 and checked at M4.4b-i's scalar join. M7.1a owns the first real kernel/supervisor/
 copy-service integration under the [boot-roster contract](../docs/implementation/contracts/boot-roster.md#2a-scalar-integration-and-producer-joins).
-M6.1b-i's bounded route trial selects the final Vélus producer or the C fallback
-before further interim target integration; this C host remains a comparison oracle.
+M6.1b-i's [bounded route trial](route/README.md) selects the C fallback for M8a;
+M6.1b-ii retains the final Vélus producer after that gate. This C host remains a comparison oracle.
 Host test bindings establish sequencing and refusal
 behavior only.
 
