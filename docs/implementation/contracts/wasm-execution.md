@@ -23,7 +23,7 @@ revision's own licence closure and record it in THIRD-PARTY.md.
 | [Titzer, A Fast In-Place Interpreter for WebAssembly, OOPSLA 2022](https://arxiv.org/abs/2205.01183) | Direct execution with side metadata can reduce preparation and representation space | Keep as a startup/space comparison. A second shipping interpreter would conflict with the single-engine scope and add proof work; no automatic tier or extra production engine is selected. |
 | [Lowther, Jacob and Singer, CHERI Performance Enhancement for a Bytecode Interpreter, 2023](https://arxiv.org/abs/2308.05076) | Pointer-size assumptions can create large interpreter overhead on Morello | Audit numeric cells, metadata and capability traffic on the actual purecap lowering. Morello's measurements are not this ISA's forecast. Never compress authority into an integer to recover space. |
 | [Silverfir-nano source and feature matrix](https://github.com/mbbill/Silverfir-nano) | A current project offers separate interpreter and native-code engines with different feature coverage | Its native-code results cannot price pure interpretation; its interpreter excludes SIMD and GC. Use its fixed register-window/local-cache and fusion ideas as references, with no upstream runtime substitution or transferred JIT score. |
-| [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) and [producer interface](https://github.com/bytecodealliance/weval) | Specialization removes an inner interpreter by producing Wasm from Wasm | Select an untrusted guest-producer path under Q34h: specialize guest-language interpreters into ordinary validated Wasm, still executed by the one pure platform engine. Its reported SpiderMonkey gains use a different outer engine and are not this target's forecast. No guest-to-native output or new verified specialization tool is admitted. |
+| [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) and [producer interface](https://github.com/bytecodealliance/weval) | Specialization removes an inner interpreter by producing Wasm from Wasm | Conditional Q34h candidate under the selection gate below: specialize guest-language interpreters into ordinary validated Wasm, still executed by the one pure platform engine. Its reported SpiderMonkey gains use a different outer engine and are not this target's forecast. No guest-to-native output or new verified specialization tool is admitted. |
 | [Wasm 3.0 release](https://webassembly.org/news/2025-09-17-wasm-3.0/), [standard profiles](https://webassembly.github.io/spec/core/appendix/profiles.html) and [implementation limits](https://webassembly.github.io/spec/core/appendix/implementation.html) | Typed references, tail calls and managed guest objects can avoid emulated language machinery; the standard permits implementation resource limits | Require the full Core 3.0 binary language. Standard quantitative limits and explicit imports preserve the host boundary; missing proofs block release, not features in the advertised language. |
 | [Denis, Performance of WebAssembly runtimes in 2026](https://00f.net/2026/06/23/webassembly-runtimes-2026/) | Reproducible workload comparisons distinguish runtime modes and enabled language features | The WAMR result uses AOT and some variants use features outside the freeze. Neither is a pure-interpreter target estimate; use the comparison discipline, not its numbers. |
 
@@ -192,8 +192,9 @@ transitions are native image code compiled before admission. A template miss,
 large index, deep operand stack or exhausted optimization budget emits the
 same engine's general record forms. Those forms support the entire language;
 optimization success is never a compatibility condition. This needs neither
-source nor a special producer flag. Whole-loop recognition is another automatic
-case, while explicit service imports and weval remain optional producer paths.
+source nor a special producer flag. Whole-loop recognition is an automatic
+case only if selected through the gate below; weval is a separately conditional
+producer path. Explicit service imports retain their declared authority.
 
 Spill/fill, join permutations and call/exception transitions re-establish one
 exact guest state. References are published to complete root maps before any
@@ -273,11 +274,35 @@ partly performed.
 
 ## Coarse native services and placement
 
+### Selection gate for optional acceleration
+
+Whole-loop handlers and Wasm-to-Wasm specialization are conditional options,
+each selected separately under R-14-013h. Before commissioning an option,
+record the versioned workload and baseline, a measured dispatch or
+nested-interpreter penalty or a missed declared product target, a finite
+investigation budget and stop condition, the priced implementation/proof scope
+and owner, and its qualification and proof acceptance predicates. Target
+measurements retain the product gate's evidence tier; a host ranking alone
+does not justify selection. A failed experiment records its result and stops
+within that budget. Successful selection still requires the applicable
+refinement, confinement, resource/yield and qualification evidence before the
+configuration ships.
+
+An unselected option is `n/a` with its reason in Q34f's report and creates no
+implementation or comparison-build obligation. Ordinary interpretation and
+the native source-to-Wasm bundle producer remain usable without either option.
+Full Core 3.0, both engine theorems, the compact slot/register representation,
+required register-resident handler forms and fusion, and native yield/resource
+bounds remain required. The Q34f/g/h cells retain their planning ranges;
+separate mandatory and selected optional work and reprice the affected scope
+at entry instead of claiming an unmeasured saving from this gate.
+
 ### Whole-loop handlers in the interpreter
 
-Select a finite set of typed integer map/reduction and byte-scan loop forms
-against Q34f's frozen corpus. This extends the existing AOT superinstruction
-mechanism from a few opcodes to a complete recognized loop. A fixed handler
+If the selection gate admits this option, select a finite set of typed integer
+map/reduction and byte-scan loop forms against Q34f's frozen corpus. This
+extends the existing AOT superinstruction mechanism from a few opcodes to a
+complete recognized loop. A fixed handler
 uses data operands, a count and checked memory descriptors; it performs a
 bounded chunk of work per poll without dispatching each original instruction.
 Recognition is a translation case of the original interpreter refinement, not
@@ -295,10 +320,12 @@ registration exists. Q34g proves recognition and execution together.
 
 ### Remove a nested language interpreter at Build
 
-Q34h selects a weval-style Wasm-to-Wasm specialization route for closed guest
-programs where an inner language interpreter otherwise runs inside the outer
-Wasm interpreter. Known program bytes drive partial evaluation; unresolved
-dynamic code keeps the original inner-interpreter behavior inside the guest.
+Q34h may select a weval-style Wasm-to-Wasm specialization route only through
+the selection gate above, for named closed guest programs where an inner
+language interpreter otherwise runs inside the outer Wasm interpreter. The
+ordinary native source-to-Wasm producer does not depend on this option.
+Known program bytes drive partial evaluation; unresolved dynamic code keeps
+the original inner-interpreter behavior inside the guest.
 Specialized functions and guest table entries remain Wasm data, never host PCs.
 The producer is untrusted for guest semantics and confinement: the existing
 validator and proved interpreter supply the latter, while source correspondence
@@ -381,13 +408,15 @@ a small startup-dominated app and a realistic edit/build/run workflow. The
 selected native-service case includes small and large batches. Include
 concurrent unrelated guests and repeated instances of one module.
 
-Measure a minimal configuration of the same proved engine and isolate each
-selected representation, fusion, register-resident execution, whole-loop,
-specialization, cache, SIMD,
-batching and placement change. Freeze the unspecialized and specialized guest
-programs together; check their observable outputs and dynamic fallback cases.
-Report whole-loop coverage and all residual interpreter work, not just a
-matched microkernel. Include GC-heavy cyclic graphs, retained host roots,
+Measure a minimal configuration of the same proved engine and isolate
+representation, fusion, register-resident execution, cache, SIMD, batching
+and placement changes. Add whole-loop handlers and specialization only when
+their selection records satisfy the gate above. Record an unselected option
+as `n/a` with its reason; do not build it for a comparison. For selected
+specialization, freeze the unspecialized and specialized guest programs
+together; check their observable outputs and dynamic fallback cases. For
+selected whole-loop handlers, report coverage alongside all residual
+interpreter work. Include GC-heavy cyclic graphs, retained host roots,
 maximum type graphs, tail-call cycles, exception unwinding, memory64 overflow
 and multi-memory aliasing as required full-language cases, including feature
 combinations.
