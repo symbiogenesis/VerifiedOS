@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from ci.report_guest import LANES, TOOLCHAINS, main, report
+from ci.report_guest import LANES, SAIL_MEMO, TOOLCHAINS, main, report
 from tests.harness import Case, ensure
 
 
@@ -68,6 +68,42 @@ def _toolchain_state_recorded() -> None:
             ensure("unknown toolchain state" in str(err), f"the refusal said {err}")
             return
     ensure(False, "an unknown toolchain state was reported")
+
+
+def _sail_memo_state_recorded() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for state in SAIL_MEMO:
+            logs = root / state
+            summary = report("model", logs, root / "absent-console", root / "absent-proof",
+                             {"evidence": {"outcome": "success"}}, "abc", toolchains="restored",
+                             sail_memo=state)
+            result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
+            ensure(result["sail_memo"] == state, "the Sail memo state was not retained")
+            ensure(("not discharged again" in summary) == (state == "restored"),
+                   "a restored memo was presented as re-discharged solver work")
+        report("proofs", root / "proofs", root / "absent-console", root / "absent-proof",
+               {}, "abc", toolchains="cold")
+        result = json.loads((root / "proofs" / "results.json").read_text(encoding="utf-8"))
+        ensure("sail_memo" not in result, "a lane without a Sail build stated a memo")
+        environment = {"VOS_LOG_DIR": str(root / "main"), "RUNNER_TEMP": str(root),
+                       "STEP_RESULTS": "{}", "GITHUB_SHA": "b" * 40, "GUEST_REVISION": "",
+                       "GUEST_TOOLCHAINS": "cold",
+                       "GITHUB_STEP_SUMMARY": str(root / "summary.md")}
+        with patch.dict(os.environ, {**environment, "GUEST_LANE": "model",
+                                     "GUEST_SAIL_MEMO": "restored"}):
+            main()
+        result = json.loads((root / "main" / "results.json").read_text(encoding="utf-8"))
+        ensure(result["sail_memo"] == "restored", "the workflow's memo state was not retained")
+        for lane, memo in (("model", ""), ("model", "warm"), ("proofs", "cold")):
+            with patch.dict(os.environ, {**environment, "GUEST_LANE": lane,
+                                         "GUEST_SAIL_MEMO": memo}):
+                try:
+                    main()
+                except SystemExit as err:
+                    ensure("memo" in str(err), f"the refusal said {err}")
+                    continue
+            ensure(False, f"the {lane} lane accepted Sail memo state {memo!r}")
 
 
 def _proof_outcomes() -> None:
@@ -184,6 +220,7 @@ def cases() -> list[Case]:
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
         Case("pinned checkout revision survives a newer main head", _pinned_checkout_revision),
         Case("toolchain installation state is recorded and validated", _toolchain_state_recorded),
+        Case("Sail memo state is recorded and validated", _sail_memo_state_recorded),
         Case("proof receipt follows its gate verdict", _proof_outcomes),
         Case("model lane publishes no proof receipt", _model_lane_publishes_no_proof),
         Case("unreadable evidence preserves command outcomes", _unreadable_evidence),

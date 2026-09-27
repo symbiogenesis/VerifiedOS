@@ -995,9 +995,11 @@ workspace lock. [The resource policy](vos/env.py) owns the headroom, per-worker 
 and conservative fallbacks when memory cannot be read. Kernel workers receive a larger
 budget because the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs)
 show substantially higher memory use for a full recheck than for compilation.
-These are estimates, not measured limits for the current parallel batches. The selected
-limits are printed. An explicit `--jobs N` overrides automatic CPU/memory sizing for
-both phases; the single-process fallback for an unknown library identity still applies.
+These are estimates, not measured limits for the current parallel batches. Guest CI's
+proof log records the gate's peak single-process resident memory
+([Guest CI contract](ci/README.md)). The selected limits are printed. An explicit
+`--jobs N` overrides automatic CPU/memory sizing for both phases; the single-process
+fallback for an unknown library identity still applies.
 Help, status, export and whole-set cache hits do not sample worker capacity.
 
 Changed runs use Rocq's documented

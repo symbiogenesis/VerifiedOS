@@ -11,6 +11,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -23,6 +24,10 @@ HOST = "host-gates.yml"
 GUEST = "guest-gates.yml"
 HOST_JOBS = {"host-gates (ubuntu-latest)", "host-gates (windows-latest)"}
 API_VERSION = "2026-03-10"
+# A push to main starts Host CI itself, but GitHub lists that run seconds after it
+# accepts the push. Dispatching before then runs every host shard twice for one
+# revision, so the first lookup retries after each of these pauses before dispatching.
+PUSH_RUN_WAITS: tuple[int, ...] = (5, 10, 15, 30)
 
 
 class RunState(TypedDict):
@@ -344,11 +349,19 @@ def _host_status(client: GitHub, state: CIState, record: RunState,
     return True
 
 
+def _push_runs(client: GitHub, state: CIState) -> list[dict[str, object]]:
+    return [run for run in client.runs(HOST, state["revision"])
+            if run.get("head_sha") == state["revision"]
+            and run.get("head_branch") == "main"
+            and run.get("event") == "push"]
+
+
 def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
     """Advance once; False means host pending, True means guest dispatch recorded.
 
     The caller may repeat pending host steps. Never repeat this function to learn
     a guest verdict: after accepted dispatch it returns without contacting GitHub.
+    The first host lookup waits a bounded time for the push run before dispatching.
     """
     validate_state(state)
     guest = state["guest"]
@@ -358,10 +371,12 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
     client.verify_ref(state)
     host = state["host"]
     if host is None:
-        runs = [run for run in client.runs(HOST, state["revision"])
-                if run.get("head_sha") == state["revision"]
-                and run.get("head_branch") == "main"
-                and run.get("event") == "push"]
+        runs = _push_runs(client, state)
+        for pause in PUSH_RUN_WAITS:
+            if runs:
+                break
+            time.sleep(pause)
+            runs = _push_runs(client, state)
         host = _blank(HOST, state["revision"])
         state["host"] = host
         if runs:

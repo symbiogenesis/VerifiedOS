@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
-# defines the scope. Ordinary runs restore toolchains and validated proof inputs.
-# Monthly and explicitly cold runs install and check everything from scratch.
+# defines the scope. Ordinary runs restore toolchains, validated proof inputs and
+# the model lane's Sail solver memo. Monthly and explicitly cold runs install and
+# check everything from scratch.
 # The model and proof lanes share no toolchain or output, so each installs only
 # its own toolchains and runs on its own runner. Manual dispatch runs from main;
 # its optional revision input pins checkout to a commit already on main, verified
@@ -42,6 +43,9 @@ env:
   PYTHONUNBUFFERED: "1"
   GUEST_REVISION: ${{ inputs.revision || github.sha }}
   GUEST_COLD: ${{ inputs.cold == true || github.event.schedule == '23 4 1 * *' }}
+  # GNU time's figures for each command, including the peak resident memory of its
+  # largest process, which sizes the proof gate's kernel workers.
+  GUEST_TIME: 'real %e\nuser %U\nsys %S\nmaxrss_kb %M'
 
 defaults:
   run:
@@ -185,7 +189,7 @@ jobs:
         id: bootstrap
         timeout-minutes: 120
         run: |
-          /usr/bin/time -p python3 tools/ci/bootstrap_guest.py \
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
             --root "$HOME/verifiedos-guest" --install-system ${{ matrix.toolchains }} \
             --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
@@ -198,15 +202,53 @@ jobs:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
           key: ${{ steps.toolchains.outputs.cache-primary-key }}
 
+      - name: Identify the Sail solver
+        id: solver
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        # The memo only accelerates the build; without an identity the build runs cold.
+        continue-on-error: true
+        # Sail's memo keys each obligation, not the solver that answered it, so a
+        # memo never crosses the installed Sail, Z3 or snapshot bootstrap recorded.
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
+          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
+          PY
+
+      - name: Restore the Sail memo
+        id: sail-memo
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.solver.outcome == 'success' }}
+        uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          # A private copy the build seeds itself from; the build tree stays uncached.
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
+          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
+          # An older model's memo costs misses, never a wrong verdict, within one solver.
+          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+          # A cold run discharges every obligation again.
+          lookup-only: ${{ env.GUEST_COLD == 'true' }}
+
       - name: Model evidence
         id: evidence
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 180
         # The proofs lane runs the proof gate on its own runner.
         run: |
-          /usr/bin/time -p python3 tools/run.py evidence --no-proofs \
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py evidence --no-proofs \
             --out "$VOS_LOG_DIR/evidence.json" \
             2>&1 | tee "$VOS_LOG_DIR/evidence-console.log"
+
+      - name: Save the Sail memo
+        # Sail rewrites the memo whole at exit; one writer per runner keeps it intact.
+        if: ${{ github.ref == 'refs/heads/main' && !cancelled() && steps.evidence.outcome == 'success' && steps.sail-memo.outcome == 'success' && steps.sail-memo.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
+          key: ${{ steps.sail-memo.outputs.cache-primary-key }}
 
       - name: Restore proof cache candidates
         id: proof-cache
@@ -234,7 +276,7 @@ jobs:
           else
             echo "Proof policy: validate native cache candidates; rebuild and recheck anything stale. See proofs.log for actual reuse." >> "$GITHUB_STEP_SUMMARY"
           fi
-          /usr/bin/time -p env -i \
+          /usr/bin/time -f "$GUEST_TIME" env -i \
             HOME="$HOME" PATH="$PATH" LANG=C.UTF-8 \
             PYTHONUTF8=1 PYTHONUNBUFFERED=1 TMPDIR="$TMPDIR" \
             VOS_BUILD_ROOT="$VOS_BUILD_ROOT" VOS_LANE= \
@@ -257,7 +299,7 @@ jobs:
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 15
         run: |
-          /usr/bin/time -p python3 tools/run.py model bundle --check \
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model bundle --check \
             2>&1 | tee "$VOS_LOG_DIR/bundle.log"
 
       - name: Lint standalone RTL
@@ -265,7 +307,7 @@ jobs:
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 5
         run: |
-          /usr/bin/time -p python3 tools/run.py rtl lint \
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl lint \
             2>&1 | tee "$VOS_LOG_DIR/rtl-lint.log"
 
       - name: Crosscheck RTL against fresh model vectors
@@ -273,7 +315,7 @@ jobs:
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 30
         run: |
-          /usr/bin/time -p python3 tools/run.py rtl crosscheck \
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl crosscheck \
             2>&1 | tee "$VOS_LOG_DIR/rtl-crosscheck.log"
 
       - name: Report guest results
@@ -282,6 +324,8 @@ jobs:
           GUEST_LANE: ${{ matrix.lane }}
           # A restored run is not evidence that the toolchains install cold.
           GUEST_TOOLCHAINS: ${{ env.GUEST_COLD != 'true' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
+          # A restored memo's verdicts were not discharged again in this run.
+          GUEST_SAIL_MEMO: ${{ matrix.lane == 'model' && (env.GUEST_COLD != 'true' && steps.sail-memo.outputs.cache-matched-key != '' && 'restored' || 'cold') || '' }}
           STEP_RESULTS: ${{ toJSON(steps) }}
         run: python3 tools/ci/report_guest.py
 
