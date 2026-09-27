@@ -29,6 +29,11 @@ _CASES: Final[tuple[tuple[str, jsonc.Json | None], ...]] = (
     ('{"a": 1,\n}', {"a": 1}),
     ("/* /* */ 1", 1),          # not nested: the first */ closes
     ('{"a": 1 /* x', None),     # unterminated comment: blanked to the end
+    ("/*/1", 1),               # preserve the legacy overlapping terminator
+    ('["\\\"/*", "x, }", // tail\n]', ['"/*', 'x, }']),
+    ('[1,\t/* first */\r\n// second\n]', [1]),
+    ('"unterminated /* comment', None),
+    ('"unterminated escape\\', None),
     ("/", None),                # a lone slash before EOF is data, by fallthrough
     ("{} /", None),
     ("", None),
@@ -65,6 +70,10 @@ def _newlines_survive_blanking() -> None:
     out = jsonc.strip_comments('// note\n{"x": 1}')
     ensure(out.startswith("       \n"),
            f"a line comment must blank to spaces up to its newline: {out!r}")
+    text = '["\\\"/*", "x, }",\u2003/* first */\r\n// second\n]'
+    expected = '["\\\"/*", "x, }" \u2003           \r\n         \n]'
+    ensure(jsonc.strip_comments(text) == expected,
+           "strings, Unicode whitespace and comment newlines must retain exact offsets")
 
 
 def _load_reads_the_dialect() -> None:
