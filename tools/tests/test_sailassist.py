@@ -80,12 +80,29 @@ def _wait_stopped(pid: int) -> None:
     while True:
         try:
             state = Path(f"/proc/{pid}/stat").read_text().rpartition(")")[2].split()[0]
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
+            # procfs can report ESRCH if the process vanishes after open.
             return
         if state in {"Z", "X"}:
             return
         ensure(time.monotonic() < deadline, f"descendant {pid} still running after cleanup (state {state})")
         time.sleep(0.01)
+
+
+def _stopped_probe_race() -> None:
+    for disappearance in (FileNotFoundError, ProcessLookupError):
+        with (patch.object(Path, "read_text", side_effect=["123 (worker) S", disappearance()]) as read,
+              patch.object(time, "sleep") as pause):
+            _wait_stopped(123)
+        ensure(read.call_count == 2 and pause.call_count == 1,
+               "a live descendant must be checked again before disappearance establishes cleanup")
+    with patch.object(Path, "read_text", side_effect=PermissionError("procfs denied")):
+        try:
+            _wait_stopped(123)
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("an unreadable process must not count as stopped")
 
 
 def _timeout_process_tree() -> None:
@@ -328,6 +345,7 @@ def _preparation_budget_and_foreign_model() -> None:
 def cases() -> list[Case]:
     return [Case("raw-process-status-and-bytes", _raw_process_bytes),
             Case("timeout-stops-descendants", _timeout_process_tree),
+            Case("stopped-process-procfs-race", _stopped_probe_race),
             Case("resistant-descendant-after-parent-exit", _resistant_descendant, lane="guest"),
             Case("bounded-inline-diagnostics", _bounded_inline_output),
             Case("attempt-budget-and-replan", _attempt_budget_and_replan),
