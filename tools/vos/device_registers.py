@@ -334,7 +334,7 @@ def emit_gallina(root: Path, bundle: sailbundle.Bundle | None = None) -> str:
                   f"  {name}_get word = declared_extract word {name}_shift {name}_width.",
                   f"Proof. intro word; change (N.land (N.shiftr word {field.lsb}) (N.ones {field.width})",
                   f"  = declared_extract word {field.lsb} {field.width}); apply shift_mask_correct. Qed."]
-    lines += ["", "Print Assumptions shift_mask_correct.", ""]
+    lines.append("")
     return "\n".join(lines)
 
 

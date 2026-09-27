@@ -474,5 +474,3 @@ Theorem htif_tohost_exit_code_correct : forall word : N,
   htif_tohost_exit_code_get word = declared_extract word htif_tohost_exit_code_shift htif_tohost_exit_code_width.
 Proof. intro word; change (N.land (N.shiftr word 1) (N.ones 47)
   = declared_extract word 1 47); apply shift_mask_correct. Qed.
-
-Print Assumptions shift_mask_correct.

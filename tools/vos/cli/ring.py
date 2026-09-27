@@ -590,11 +590,10 @@ def _preamble(worlds: list[World]) -> list[str]:
     ]
 
 
-def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], list[str]]:
+def _dma_part(own: Owned, world: World, names: list[str]) -> list[str]:
     """Part 4: the DMA clauses, over this world's own declared constants.
 
-    Returns the lines and the constants the R-05-163 gate below prints, both empty for
-    a world declaring no DMA.
+    Returns no lines for a world declaring no DMA.
 
     Every clause here is one of R-12-100's, minus what part 2 and part 3 already carry
     of them. The bounded segment list at its fixed maximum and the payload charged
@@ -606,7 +605,7 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
     """
     dma = world["dma"]
     if dma is None:
-        return [], []
+        return []
     ops = world["operations"]
     directions = world["directions"]
     required = dma["direction_permission"]
@@ -854,29 +853,11 @@ def _dma_part(own: Owned, world: World, names: list[str]) -> tuple[list[str], li
         "intros o s H; destruct s; vm_compute in H |- *;"
         " try reflexivity; discriminate H.")
 
-    return lines, [
-        "permission_eqb_reflexive",
-        "the_permission_check_admits_exactly_the_declared_map",
-        "every_declared_direction_requires_its_own_permission",
-        "a_reference_is_authorized_by_the_direction_it_declares",
-        "the_maximum_segment_list_is_admitted",
-        "one_segment_past_the_maximum_is_refused",
-        "a_segment_extending_past_its_capability_is_refused",
-        "a_segment_larger_than_the_declared_ceiling_is_refused",
-        "a_bad_segment_at_any_position_refuses_the_list",
-        "the_complete_extent_is_validated_before_the_transfer_starts",
-        "a_validation_short_of_the_declared_payload_is_not_the_extent",
-        "the_validation_cost_is_one_check_per_declared_segment",
-        "an_operation_with_segments_charges_each_of_them",
-        "no_capability_is_acquired_before_acceptance",
-        "no_capability_is_retained_past_terminal_completion",
-        "a_hold_released_only_at_reclamation_outlives_terminal_completion",
-        "the_two_holds_agree_before_terminal_completion",
-    ]
+    return lines
 
 
 def _world_block(own: Owned, world: World) -> list[str]:
-    """One world's whole block: the skeleton, the constants, the campaign, the gate."""
+    """One world's whole block: the skeleton, constants and campaign."""
     ring, enc = world["ring"], world["encoding"]
     ops = world["operations"]
     names = [op["name"] for op in ops]
@@ -1437,55 +1418,7 @@ def _world_block(own: Owned, world: World) -> list[str]:
         f" cancel o s position = cancel_{own.cancels[2]}.",
         "intros o s position H; unfold cancel; rewrite H; reflexivity.")
 
-    printed = [
-        "eqb_reflexive",
-        "the_width_rule_admits_one_form",
-        "the_flag_set_spends_its_declared_width",
-        "descriptor_fills_its_slot_exactly", "completion_fills_its_slot_exactly",
-        "both_slots_are_aligned", "the_index_span_is_the_declared_width",
-        "the_capacity_divides_the_index_span", "ring_fills_to_capacity",
-        "ring_refuses_one_past_capacity",
-        "completion_capacity_is_the_accepted_maximum_and_its_declared_slack",
-        "the_batch_is_the_capacity_less_its_declared_slack",
-        "drain_is_bounded_by_the_batch",
-        "the_declared_batch_and_segment_maxima_are_attained",
-        "notifications_are_coalesced_to_one",
-        "the_payload_is_exactly_the_declared_segments",
-        "an_activation_spends_the_declared_slot_budget",
-        "cancellation_spends_the_declared_interval",
-        "a_non_cancellable_operation_declares_no_cancellation",
-        "cancellability_is_the_declaration_and_nothing_else",
-        "the_commit_point_is_the_declared_points_less_its_slack",
-        "labels_are_drawn_from_the_declared_lattice",
-        "the_empty_validation_case_is_a_claim",
-        "lifecycle_advances_monotonically", "lifecycle_has_one_terminal_state",
-        "the_malformed_step_skips_forward",
-        "the_malformed_step_acquires_no_authority",
-        "a_stale_generation_is_refused", "a_duplicate_live_identifier_is_refused",
-        "a_fresh_unique_request_is_accepted",
-        "no_published_work_stays_behind_a_sleep",
-        "a_consumer_that_skips_the_recheck_loses_a_wakeup",
-        "the_two_consumers_differ_only_where_the_producer_moved",
-        "a_sleep_needs_the_armed_word_and_an_empty_recheck",
-        "an_unstarted_cancellable_target_is_cancelled",
-        "a_target_before_its_commit_point_is_cancelled",
-        "cancellation_outside_live_states_is_not_live",
-        "reset_in_every_lifecycle_state_clears_the_indices_and_notification",
-        "reset_without_quiescence_never_publishes_a_generation",
-        "reset_in_every_lifecycle_state_refuses_the_old_generation",
-        "a_target_past_its_commit_point_is_too_late",
-        "a_non_cancellable_operation_is_never_live_to_cancel",
-    ]
-    dma_lines, dma_printed = _dma_part(own, world, names)
-    lines += dma_lines
-    printed += dma_printed
-    lines += [
-        "(* -------------------------------------------------------------------------",
-        "   The R-05-163 gate: every constant closed under the global context.",
-        "   ------------------------------------------------------------------------- *)",
-        "",
-    ]
-    lines += [f"Print Assumptions {name}." for name in printed]
+    lines += _dma_part(own, world, names)
     return lines
 
 

@@ -693,52 +693,6 @@ Theorem a_non_cancellable_operation_is_never_live_to_cancel :
   forall (o : op) (s : slot_state) (position : nat), op_cancellable o = false -> cancel o s position = cancel_not_live.
 Proof. intros o s position H; unfold cancel; rewrite H; reflexivity. Qed.
 
-(* -------------------------------------------------------------------------
-   The R-05-163 gate: every constant closed under the global context.
-   ------------------------------------------------------------------------- *)
-
-Print Assumptions eqb_reflexive.
-Print Assumptions the_width_rule_admits_one_form.
-Print Assumptions the_flag_set_spends_its_declared_width.
-Print Assumptions descriptor_fills_its_slot_exactly.
-Print Assumptions completion_fills_its_slot_exactly.
-Print Assumptions both_slots_are_aligned.
-Print Assumptions the_index_span_is_the_declared_width.
-Print Assumptions the_capacity_divides_the_index_span.
-Print Assumptions ring_fills_to_capacity.
-Print Assumptions ring_refuses_one_past_capacity.
-Print Assumptions completion_capacity_is_the_accepted_maximum_and_its_declared_slack.
-Print Assumptions the_batch_is_the_capacity_less_its_declared_slack.
-Print Assumptions drain_is_bounded_by_the_batch.
-Print Assumptions the_declared_batch_and_segment_maxima_are_attained.
-Print Assumptions notifications_are_coalesced_to_one.
-Print Assumptions the_payload_is_exactly_the_declared_segments.
-Print Assumptions an_activation_spends_the_declared_slot_budget.
-Print Assumptions cancellation_spends_the_declared_interval.
-Print Assumptions a_non_cancellable_operation_declares_no_cancellation.
-Print Assumptions cancellability_is_the_declaration_and_nothing_else.
-Print Assumptions the_commit_point_is_the_declared_points_less_its_slack.
-Print Assumptions labels_are_drawn_from_the_declared_lattice.
-Print Assumptions the_empty_validation_case_is_a_claim.
-Print Assumptions lifecycle_advances_monotonically.
-Print Assumptions lifecycle_has_one_terminal_state.
-Print Assumptions the_malformed_step_skips_forward.
-Print Assumptions the_malformed_step_acquires_no_authority.
-Print Assumptions a_stale_generation_is_refused.
-Print Assumptions a_duplicate_live_identifier_is_refused.
-Print Assumptions a_fresh_unique_request_is_accepted.
-Print Assumptions no_published_work_stays_behind_a_sleep.
-Print Assumptions a_consumer_that_skips_the_recheck_loses_a_wakeup.
-Print Assumptions the_two_consumers_differ_only_where_the_producer_moved.
-Print Assumptions a_sleep_needs_the_armed_word_and_an_empty_recheck.
-Print Assumptions an_unstarted_cancellable_target_is_cancelled.
-Print Assumptions a_target_before_its_commit_point_is_cancelled.
-Print Assumptions cancellation_outside_live_states_is_not_live.
-Print Assumptions reset_in_every_lifecycle_state_clears_the_indices_and_notification.
-Print Assumptions reset_without_quiescence_never_publishes_a_generation.
-Print Assumptions reset_in_every_lifecycle_state_refuses_the_old_generation.
-Print Assumptions a_target_past_its_commit_point_is_too_late.
-Print Assumptions a_non_cancellable_operation_is_never_live_to_cancel.
 
 (* -------------------------------------------------------------------------
    World `ring_dma`, in a scope of its own: the declaration lists it
@@ -1613,68 +1567,5 @@ Theorem the_two_holds_agree_before_terminal_completion :
   forall (o : op) (s : slot_state), Nat.ltb (lifecycle_rank s) (lifecycle_rank state_Terminal) = true -> holds_until_terminal o s = holds_until_reclaimed o s.
 Proof. intros o s H; destruct s; vm_compute in H |- *; try reflexivity; discriminate H. Qed.
 
-(* -------------------------------------------------------------------------
-   The R-05-163 gate: every constant closed under the global context.
-   ------------------------------------------------------------------------- *)
-
-Print Assumptions eqb_reflexive.
-Print Assumptions the_width_rule_admits_one_form.
-Print Assumptions the_flag_set_spends_its_declared_width.
-Print Assumptions descriptor_fills_its_slot_exactly.
-Print Assumptions completion_fills_its_slot_exactly.
-Print Assumptions both_slots_are_aligned.
-Print Assumptions the_index_span_is_the_declared_width.
-Print Assumptions the_capacity_divides_the_index_span.
-Print Assumptions ring_fills_to_capacity.
-Print Assumptions ring_refuses_one_past_capacity.
-Print Assumptions completion_capacity_is_the_accepted_maximum_and_its_declared_slack.
-Print Assumptions the_batch_is_the_capacity_less_its_declared_slack.
-Print Assumptions drain_is_bounded_by_the_batch.
-Print Assumptions the_declared_batch_and_segment_maxima_are_attained.
-Print Assumptions notifications_are_coalesced_to_one.
-Print Assumptions the_payload_is_exactly_the_declared_segments.
-Print Assumptions an_activation_spends_the_declared_slot_budget.
-Print Assumptions cancellation_spends_the_declared_interval.
-Print Assumptions a_non_cancellable_operation_declares_no_cancellation.
-Print Assumptions cancellability_is_the_declaration_and_nothing_else.
-Print Assumptions the_commit_point_is_the_declared_points_less_its_slack.
-Print Assumptions labels_are_drawn_from_the_declared_lattice.
-Print Assumptions the_empty_validation_case_is_a_claim.
-Print Assumptions lifecycle_advances_monotonically.
-Print Assumptions lifecycle_has_one_terminal_state.
-Print Assumptions the_malformed_step_skips_forward.
-Print Assumptions the_malformed_step_acquires_no_authority.
-Print Assumptions a_stale_generation_is_refused.
-Print Assumptions a_duplicate_live_identifier_is_refused.
-Print Assumptions a_fresh_unique_request_is_accepted.
-Print Assumptions no_published_work_stays_behind_a_sleep.
-Print Assumptions a_consumer_that_skips_the_recheck_loses_a_wakeup.
-Print Assumptions the_two_consumers_differ_only_where_the_producer_moved.
-Print Assumptions a_sleep_needs_the_armed_word_and_an_empty_recheck.
-Print Assumptions an_unstarted_cancellable_target_is_cancelled.
-Print Assumptions a_target_before_its_commit_point_is_cancelled.
-Print Assumptions cancellation_outside_live_states_is_not_live.
-Print Assumptions reset_in_every_lifecycle_state_clears_the_indices_and_notification.
-Print Assumptions reset_without_quiescence_never_publishes_a_generation.
-Print Assumptions reset_in_every_lifecycle_state_refuses_the_old_generation.
-Print Assumptions a_target_past_its_commit_point_is_too_late.
-Print Assumptions a_non_cancellable_operation_is_never_live_to_cancel.
-Print Assumptions permission_eqb_reflexive.
-Print Assumptions the_permission_check_admits_exactly_the_declared_map.
-Print Assumptions every_declared_direction_requires_its_own_permission.
-Print Assumptions a_reference_is_authorized_by_the_direction_it_declares.
-Print Assumptions the_maximum_segment_list_is_admitted.
-Print Assumptions one_segment_past_the_maximum_is_refused.
-Print Assumptions a_segment_extending_past_its_capability_is_refused.
-Print Assumptions a_segment_larger_than_the_declared_ceiling_is_refused.
-Print Assumptions a_bad_segment_at_any_position_refuses_the_list.
-Print Assumptions the_complete_extent_is_validated_before_the_transfer_starts.
-Print Assumptions a_validation_short_of_the_declared_payload_is_not_the_extent.
-Print Assumptions the_validation_cost_is_one_check_per_declared_segment.
-Print Assumptions an_operation_with_segments_charges_each_of_them.
-Print Assumptions no_capability_is_acquired_before_acceptance.
-Print Assumptions no_capability_is_retained_past_terminal_completion.
-Print Assumptions a_hold_released_only_at_reclamation_outlives_terminal_completion.
-Print Assumptions the_two_holds_agree_before_terminal_completion.
 
 End RingDma.

@@ -15,10 +15,9 @@ tokens the author wrote, not terms anything elaborates. `Compute` is conversion,
 field name is not a term conversion reduces to, so an artifact printing its own field
 names would be quoting its own syntax back through a reflection plugin: the same
 lexical fact through a heavier machine, and an import into a file whose own prose says
-it depends on nothing beyond the prelude. The assumption gate settles it in any case,
-since `run.py proofs` reads the statement's compile output and holds every line that
-is not `Closed under the global context` against the set R-05-164 makes empty, so a
-`Compute` here fails R-05-163 rather than serving it. This runs on the host wave with
+it depends on nothing beyond the prelude. The proof gate independently inventories
+compiled constants and audits their assumptions; source-authored print commands
+do not decide its verdict. This lexical analysis runs on the host wave with
 no toolchain in reach instead, which is what lets K-42, K-43 and K-44 be decided by the
 push workflow on a runner with no Rocq and no submodule. What a term *means* is the
 guest lane's, and `run.py proofs` is where it is asked.
