@@ -67,10 +67,15 @@ _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 # The current source changes only zicond-csr and adds sixteen image bytes. Both
 # source variants also produce identical images under the pre-10df928b encoder:
 # the executable-alignment change moves no image in this corpus.
+#
+# M1.7 and M4.4a add gallina-hello and kernel-instance. Before extending this
+# fixture, assembling every other member reproduced the prior 27-image,
+# 110,440-byte hash bf86519f60c11af4ec3703b921fb1fb2237f93c85822f7b11e200d72cd3f8130.
+# The two new images add 20,104 and 77,216 bytes; no previous image moved.
 _CORPUS_IMAGES: Final[str] = \
-    "bf86519f60c11af4ec3703b921fb1fb2237f93c85822f7b11e200d72cd3f8130"
-_CORPUS_BYTES: Final[int] = 110_440
-_CORPUS_MEMBERS: Final[int] = 27
+    "dfbd34cf05f09e61d09c0cc718e1ae2c759ac0e4583eee411e2f5a513c9d2766"
+_CORPUS_BYTES: Final[int] = 207_760
+_CORPUS_MEMBERS: Final[int] = 29
 
 
 def _program(rows: int) -> str:
