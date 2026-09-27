@@ -396,13 +396,30 @@ These figures sum the priced reference-build, assessment and named hardening cel
 
 * Item checkboxes below own completion status; [Sequencing](#sequencing) owns the work order, and [the completion log](completion-log.md) owns landing evidence.
 
-* Total estimate: 4,059.4 h midpoint, class I 717 h and class X 2,680 h over the open items; total range 2,566.4–5,552.4 h.
-* Calibrated against completed-item outturn (class I 0.71, class X 1.42): approximately 4,977.1 h.
-* Progress by estimate: 662.4 of 4,059.4 h complete (16.3%); 3,397 h remaining (83.7%).
-* Retained estimates in completed scope: 142.5 h across 16 items; their cumulative actual is n/a.
-* M8a gate: 193.5 h of open work falls at or before it, of which 80 h is class X.
-* M8b gate: a 90.5 h chain of open work running beside the software one, R1b through M8b.
-* Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, and M1.9 with them, its memory plan closed on a population that decided every site, so what remains of it runs M3.5, M4.4, M5.3, M7.1 and M8a; independent Gallina statement authoring adds none, and M6.5a has left it the same way, its copy-based service landing as a statement artifact that wanted no backend. Over those items the chain sums to 69–146 h at a 107.5 h midpoint. The membership is the author's and the sum is arithmetic `tools/check.py` recomputes over those cells like the two gate figures above, so a re-price of anything on the chain moves it in the same edit, and it is read as a serial-path ceiling rather than as a bill.
+<!-- estimate-summary:start -->
+| Measure | Value |
+| --- | --- |
+| Total estimate midpoint h | 4,059.4 |
+| Total estimate range h | 2,566.4–5,552.4 |
+| Completed scope h | 662.4 |
+| Complete by estimate % | 16.3 |
+| Remaining h | 3,397 |
+| Open class I h | 717 |
+| Open class X h | 2,680 |
+| Retained completion estimate h | 142.5 |
+| Unmeasured completed items | 16 |
+| Calibrated total h | 4,977.1 |
+| M8a open h | 193.5 |
+| M8a open class X h | 80 |
+| M8b parallel chain h | 90.5 |
+| M8a critical chain midpoint h | 107.5 |
+| M8a critical chain range h | 69–146 |
+<!-- estimate-summary:end -->
+
+The generated summary derives from the item cells and [calibration records](#calibration-record). Completed scope includes retained estimates whose actual time is unavailable. The calibrated total applies the attended authority-pool ratios reported in [the schedule basis](#estimate-and-schedule-basis); it does not combine execution clocks.
+
+* M8a includes the open work at or before the software gate. The M8b chain, R1b through M8b, runs beside the software one.
+* Critical chain through M8a: M3.5, M4.4, M5.3, M7.1 and M8a. The membership is authored; the summary sums its open cells and reads as a serial-path ceiling rather than as a bill. Independent Gallina statement authoring adds no member.
 
 ### Sequencing
 
@@ -1864,7 +1881,7 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 * **The ratio informs range width; it does not re-price item midpoints.** The attended external-authoring pool is limited, so the calibrated total remains a separate planning view. Individual items can meet, exceed or fall below their estimates.
 * **Attended and agent-parallel fits are kept separate.** Attended actuals measure elapsed attended intervals, while agent-parallel actuals measure summed agent-session wall-clock. There is no measured conversion between those clocks. The agent-parallel fit prices no item because its execution mode is not known when it is priced.
 * **The strategy the classes imply is one sentence: move work across the authority line, and generate what is currently authored.** The gate figures above state the remaining class-X share of the open budget; accepted compiler evidence supplies the backend prerequisite for M1.7.
-* Horizon: at 10–20 attended hours per week, the 3,397 h remaining is 170–340 attended weeks and the critical chain's 107.5 h midpoint 5–11 of them, both arithmetic `tools/check.py` recomputes over the cells and the stated rate, and neither a promise.
+* Horizon: the planning assumption is 10–20 attended hours per week. Apply available attended capacity to the remaining work and critical-chain estimate in the [current summary](#current-summary); neither gives a calendar promise or a conversion to agent-parallel time.
 * At that rate the M8a gate is set by the critical chain rather than by the bill, and the chain is lane 1's to release. Review capacity was the constraint beyond three lanes; the two-tier landing rule and the unattended runner are what move it, so lane count is bounded by the register acts that gate a lane rather than by attention at the end of one.
 
 <!-- calibration-results:start -->

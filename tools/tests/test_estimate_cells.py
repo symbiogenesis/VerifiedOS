@@ -2,6 +2,7 @@
 """Estimate cells stay local; calibration results remain owned and fail closed."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
@@ -97,6 +98,122 @@ def _fits() -> dict[str, estimates.Fit]:
         "agent-parallel": {"I": [("p", 10, 2)], "X-read": [("q", 10, 3)],
                            "X-authored": [("r", 10, 4)]},
     }
+
+
+def _summary_values() -> dict[str, str]:
+    return {
+        "Total estimate midpoint h": "15",
+        "Total estimate range h": "11–19",
+        "Completed scope h": "6",
+        "Complete by estimate %": "40.0",
+        "Remaining h": "9",
+        "Open class I h": "0",
+        "Open class X h": "9",
+        "Retained completion estimate h": "6",
+        "Unmeasured completed items": "1",
+        "Calibrated total h": "24",
+        "M8a open h": "9",
+        "M8a open class X h": "9",
+        "M8b parallel chain h": "0",
+        "M8a critical chain midpoint h": "9",
+        "M8a critical chain range h": "5–13",
+    }
+
+
+def _summary_marked(table: str) -> str:
+    return ("# Plan\n\nAny schedule wording can live here.\n\n"
+            + estimates.SUMMARY_START + "\n" + table + "\n"
+            + estimates.SUMMARY_END + "\n\nHistorical evidence stays here.\n")
+
+
+def _summary_repairs_once_and_preserves_prose() -> None:
+    values = _summary_values()
+    values["Unmeasured completed items"] = "1234"
+    values["Remaining h"] = "1,234.5"
+    expected = _summary_marked(estimates._summary_table(values))
+    stale = expected.replace("| Completed scope h | 6 |", "| Completed scope h | 999 |")
+    for newline in ("\n", "\r\n"):
+        with sandbox_tree(_files(stale)) as root:
+            ctx = _context(root)
+            result = estimates._summary_results(ctx, values)
+            ensure(bool(result.findings) and not ctx.fixed, "stale summary must be reported")
+            ctx.fix = True
+            ctx.fixed[PLAN] = stale.replace("\n", newline)
+            result = estimates._summary_results(ctx, values)
+            ensure(not result.findings and ctx.fixed[PLAN] == expected.replace("\n", newline),
+                   "repair must preserve the surrounding prose and newline convention")
+            result = estimates._summary_results(ctx, values)
+            ensure(not result.findings and not result.fixed, "summary repair must reach its fixpoint")
+
+
+def _summary_table_fails_closed() -> None:
+    values = _summary_values()
+    plan = _summary_marked(estimates._summary_table(values))
+    row = "| Completed scope h | 6 |"
+    malformed_plans = [
+        plan.replace(estimates.SUMMARY_START, ""),
+        plan.replace(estimates.SUMMARY_END, ""),
+        plan + estimates.SUMMARY_START + "\n",
+        plan + estimates.SUMMARY_END + "\n",
+        estimates.SUMMARY_END + "\n" + estimates.SUMMARY_START + "\n",
+        plan.replace(estimates.SUMMARY_HEADER, "| Different header |"),
+        plan.replace(row + "\n", ""),
+        plan.replace(row, row + "\n" + row),
+        plan.replace(row, "| Unknown measure | 6 |"),
+        plan.replace(row, "| Completed scope h | 6 | extra |"),
+        plan.replace(row, "| Completed scope h | unknown |"),
+        plan.replace(row, row + "\nAuthored material must not be discarded."),
+        plan.replace("| Unmeasured completed items | 1 |", "| Unmeasured completed items | 1.5 |"),
+    ]
+    for malformed in malformed_plans:
+        with sandbox_tree(_files(malformed)) as root:
+            ctx = _context(root, fix=True)
+            result = estimates._summary_results(ctx, values)
+            ensure(bool(result.findings) and not result.fixed and not ctx.fixed,
+                   f"a malformed summary must fail without replacement: {malformed!r}")
+
+
+def _summary_preserves_values_with_invalid_owners() -> None:
+    plan = _summary_marked(estimates._summary_table(_summary_values()))
+    with sandbox_tree(_files(plan)) as root:
+        ctx = _context(root, fix=True)
+        result = estimates._summary_results(ctx, {})
+        ensure(not result.fixed and not ctx.fixed, "unreadable owners permit no repair")
+        result = estimates._summary_results(ctx, {"Remaining h": "99"})
+        ensure(not result.findings and ctx.fixed[PLAN] == plan.replace(
+            "| Remaining h | 9 |", "| Remaining h | 99 |"),
+            "only measures with readable owners may change")
+    # The caller must withhold all item-derived values when any cell is unreadable.
+    invalid = plan + "* [ ] **A** · not an estimate\n**S subtotal:** 0 h · 0%.\n"
+    with sandbox_tree(_files(invalid)) as root:
+        ctx = _context(root, fix=True)
+        estimates.run(ctx)
+        ensure(not ctx.fixed, "an invalid item parse must not replace the summary with zeroes")
+
+
+def _missing_partition_and_chain_owners_preserve_their_values() -> None:
+    values = _summary_values()
+    values["M8b parallel chain h"] = "999"
+    plan = _summary_marked(estimates._summary_table(values)) + (
+        "* [ ] **A** · 3 h, range 2–4 · X\n"
+        "**S subtotal:** 3 h · 100% · open range 2–4 h.\n")
+    for chain in (["missing"], []):
+        with sandbox_tree(_files(plan)) as root:
+            ctx = _context(root, fix=True)
+            with (patch.object(estimates, "CHAIN_M8A", chain),
+                  patch.object(estimates, "AFTER_M8A", ["missing"]),
+                  patch.object(estimates, "AFTER_M8B", ["missing"])):
+                estimates.run(ctx)
+            ensure(any(line.startswith("FAIL K-37:") for line in ctx.rep.out)
+                   and any(line.startswith("FAIL K-96:") for line in ctx.rep.out),
+                   "missing partition and chain owners must remain findings")
+            repaired = ctx.fixed[PLAN]
+            ensure("| Remaining h | 3 |" in repaired, "independent valid measures still repair")
+            for key in ("M8a open h", "M8a open class X h", "M8b parallel chain h",
+                        "M8a critical chain midpoint h", "M8a critical chain range h",
+                        "Calibrated total h"):
+                ensure(f"| {key} | {values[key]} |" in repaired,
+                       f"an unreadable owner must not replace {key}")
 
 
 def _marked(table: str) -> str:
@@ -214,6 +331,11 @@ def cases() -> list[Case]:
         Case("legacy-cells-migrate-once", _legacy_cells_migrate_once),
         Case("grand-total-change-keeps-other-cells", _grand_total_change_keeps_other_cells),
         Case("malformed-cells-report-instead-of-crashing", _malformed_cells_report_instead_of_crashing),
+        Case("summary-repairs-once-and-preserves-prose", _summary_repairs_once_and_preserves_prose),
+        Case("summary-table-fails-closed", _summary_table_fails_closed),
+        Case("summary-preserves-values-with-invalid-owners", _summary_preserves_values_with_invalid_owners),
+        Case("missing-partition-and-chain-owners-preserve-their-values",
+             _missing_partition_and_chain_owners_preserve_their_values),
         Case("calibration-repairs-once-without-pooling", _calibration_repairs_once_without_pooling),
         Case("calibration-table-fails-closed", _calibration_table_fails_closed),
         Case("calibration-has-no-count-width-cliff", _calibration_has_no_count_width_cliff),

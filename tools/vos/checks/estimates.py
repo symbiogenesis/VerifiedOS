@@ -12,15 +12,16 @@ So the document declares one shape and this group owns everything derived from i
 The authored weights are an open item's range, a completed item's actual, or an
 explicitly retained estimate when historical actual time is unavailable. The
 midpoint is the mean of the range ends, and every subtotal, the grand range, and the
-progress pair are sums over the items beneath them. Item cells carry no share of a
+progress figures are sums over the items beneath them. Item cells carry no share of a
 changing grand total. All derived figures are arithmetic, so a repair rewrites them;
 unlike the compounded product, there is no judgment layer here to leave standing.
 
-Two figures the plan derives over sets it names by judgment land here too, under K-96.
+K-96 holds the authored sets behind the critical chain and calibration results.
 The critical chain is the author's to name and the tool's to sum: its members are a
-list held here beside the two gate partitions, and its range, its midpoint, and the
-horizon they give at the attended rate the plan states are arithmetic over those
-cells. The calibration is the author's to pool and the tool's to fit: the plan's
+list held here beside the two gate partitions, and its range and midpoint are
+arithmetic over those cells in the generated summary. Narrative schedule guidance
+does not repeat those figures. The calibration is the author's to pool and the tool's
+to fit: the plan's
 calibration record carries each completed attended item's pool and the earliest
 estimate its cell recorded, the actual is read from the item's own cell, and every
 ratio and count the calibration states is the quotient over that record, which is held
@@ -51,7 +52,6 @@ counted. Anything else missing a cell is counted by nothing and is the finding.
 
 import re
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, cast
 
 from vos import figures
@@ -140,7 +140,7 @@ AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 # member is the open item carrying that label, or every open child of one that carries no
 # cell of its own. The membership is the
 # author's, as the two partitions above are; what is held is that each member is occupied
-# and that the range, the midpoint and the horizon the plan states are the arithmetic over
+# and that the range and midpoint the summary states are the arithmetic over
 # those cells
 CHAIN_M8A = ["M3.5", "M4.4", "M5.3", "M7.1", "M8a"]
 
@@ -167,6 +167,28 @@ NOT_APPLICABLE = "n/a"
 AGENT_PARALLEL = "agent-parallel"
 HOURS_RE = re.compile(rf"^{NUMBER}$")
 
+SUMMARY_START = "<!-- estimate-summary:start -->"
+SUMMARY_END = "<!-- estimate-summary:end -->"
+SUMMARY_HEADER = "| Measure | Value |"
+SUMMARY_RULE = "| --- | --- |"
+SUMMARY_FIELDS: dict[str, re.Pattern[str]] = {
+    "Total estimate midpoint h": HOURS_RE,
+    "Total estimate range h": re.compile(rf"^{NUMBER}–{NUMBER}$"),
+    "Completed scope h": HOURS_RE,
+    "Complete by estimate %": HOURS_RE,
+    "Remaining h": HOURS_RE,
+    "Open class I h": HOURS_RE,
+    "Open class X h": HOURS_RE,
+    "Retained completion estimate h": HOURS_RE,
+    "Unmeasured completed items": re.compile(r"^\d+$"),
+    "Calibrated total h": HOURS_RE,
+    "M8a open h": HOURS_RE,
+    "M8a open class X h": HOURS_RE,
+    "M8b parallel chain h": HOURS_RE,
+    "M8a critical chain midpoint h": HOURS_RE,
+    "M8a critical chain range h": re.compile(rf"^{NUMBER}–{NUMBER}$"),
+}
+
 CALIBRATION_START = "<!-- calibration-results:start -->"
 CALIBRATION_END = "<!-- calibration-results:end -->"
 CALIBRATION_HEADER = "| Mode | Pool | Measured items | Estimate h | Actual h | Actual/estimate |"
@@ -176,10 +198,6 @@ RESULT_POOLS = (*POOLS, "All")
 
 type Fit = dict[str, list[tuple[str, float, float]]]
 
-# the attended rate is the plan's to state and the horizon is this group's to derive from
-# it, so the sentence is read for its rate before it is held for its quotients
-RATE_RE = re.compile(r"(?m)^\* Horizon: at (?P<lo>\d+)–(?P<hi>\d+) attended hours per week")
-
 
 def _hours(text: str) -> float:
     return float(text.replace(",", ""))
@@ -187,11 +205,6 @@ def _hours(text: str) -> float:
 
 def _head(label: str) -> str:
     return label.partition(" · ")[0].strip()
-
-
-def _weeks(hours: float, rate: int) -> str:
-    """Attended weeks at a rate, to the whole week, rounded the way a share is."""
-    return str(int(Decimal(hours / rate).quantize(Decimal(1), rounding=ROUND_HALF_UP)))
 
 
 @dataclass
@@ -392,6 +405,68 @@ def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
     return sum(a for _, _, a in pairs) / estimated if estimated else None
 
 
+def _summary_table(values: dict[str, str]) -> str:
+    """The summary has one row per measure, independent of narrative wording."""
+    return "\n".join([SUMMARY_HEADER, SUMMARY_RULE,
+                      *(f"| {key} | {values[key]} |" for key in SUMMARY_FIELDS)])
+
+
+def _summary_results(ctx: Context, values: dict[str, str]) -> figures.LineResult:
+    """Repair only values with valid sources in an intact generated summary.
+
+    Every declared row and its numeric shape must remain readable. Missing markers,
+    unknown rows and authored text inside the block are report-only; repair cannot
+    silently discard them. A caller omits a value whose owner could not be read.
+    """
+    result = figures.LineResult()
+    raw = ctx.text(PLAN)
+    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
+               for marker in (SUMMARY_START, SUMMARY_END)]
+    if any(len(hits) != 1 for hits in markers) or any(
+            raw.count(marker) != 1 for marker in (SUMMARY_START, SUMMARY_END)):
+        result.findings.append(f"{PLAN}: estimate summary requires one start marker "
+                               "and one end marker, each on its own line")
+        return result
+    start, end = markers[0][0].end(), markers[1][0].start()
+    if start >= end:
+        result.findings.append(f"{PLAN}: estimate summary markers are out of order")
+        return result
+    body = raw[start:end]
+    lines = body.strip().splitlines()
+    if lines[:2] != [SUMMARY_HEADER, SUMMARY_RULE]:
+        result.findings.append(f"{PLAN}: estimate summary has a missing or malformed header")
+        return result
+    current: dict[str, str] = {}
+    keys: list[str] = []
+    for line in lines[2:]:
+        cells = line.split("|")
+        if len(cells) != 4 or cells[0].strip() or cells[-1].strip():
+            result.findings.append(f"{PLAN}: malformed estimate summary row: {line}")
+            continue
+        key, value = (cell.strip() for cell in cells[1:-1])
+        keys.append(key)
+        pattern = SUMMARY_FIELDS.get(key)
+        if pattern is None or not pattern.fullmatch(value):
+            result.findings.append(f"{PLAN}: unreadable estimate summary value: {line}")
+        current[key] = value
+    if sorted(keys) != sorted(SUMMARY_FIELDS):
+        result.findings.append(f"{PLAN}: estimate summary requires exactly one row "
+                               "for each declared measure")
+    if result.findings or not values:
+        return result
+    newline = "\r\n" if body.startswith("\r\n") else "\n"
+    expected = newline + _summary_table(current | values).replace("\n", newline) + newline
+    if body == expected:
+        return result
+    if ctx.fix:
+        ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
+        result.fixed.append(f"fixed: {PLAN}: estimate summary from its item and record owners")
+    else:
+        result.findings.append(f"{PLAN}: estimate summary disagrees with its owners; "
+                               "run check --fix to regenerate the table")
+    return result
+
+
 def _calibration_table(fits: dict[str, Fit]) -> str:
     """One summary per measurement mode; no row combines the two clocks."""
     lines = [CALIBRATION_HEADER, CALIBRATION_RULE]
@@ -526,8 +601,11 @@ def run(ctx: Context) -> None:
 
     stated: list[str] = []
     carried = {_head(i.label) for i in items}
+    valid_partitions: dict[str, bool] = {}
     for name, partition in (("M8a", AFTER_M8A), ("M8b", AFTER_M8B)):
-        if empty := [label for label in partition if label not in carried]:
+        empty = [label for label in partition if label not in carried]
+        valid_partitions[name] = not empty
+        if empty:
             stated.append(f"the {name} partition names work the document carries no item "
                           f"under: {', '.join(empty)}")
 
@@ -555,6 +633,9 @@ def run(ctx: Context) -> None:
         parent for i in chain for parent in i.ancestors}
     derived.extend(f"the critical chain names {label} and the document carries no open "
                    "item under it" for label in CHAIN_M8A if label not in occupied)
+    if not CHAIN_M8A:
+        derived.append("the critical chain has no authored members")
+    valid_chain = not derived
     chain_lo = round(sum(i.lo for i in chain), 1)
     chain_hi = round(sum(i.hi for i in chain), 1)
     chain_mid = round(sum(i.hours for i in chain), 1)
@@ -657,104 +738,51 @@ def run(ctx: Context) -> None:
                    f"all {len(items)} item cells and {len(sections)} subtotals agree with "
                    "their hours")
 
-    # the figures the summary and the basis restate, the prose that carries them staying
-    # the document's. These are claims in exactly the counts group's sense, differing
-    # only in that the value is computed from the items above rather than read from the
-    # quantity table, and that each is owed exactly one site: a second sentence
-    # restating a total is the drift, not a synonym.
-    grand_t = format_hours(grand)
-    lo_t = format_hours(done_h + open_lo)
-    hi_t = format_hours(done_h + open_hi)
-    derived_lines = [
-        ("the retained completion weights",
-         r"(?m)^\* Retained estimates in completed scope: (?P<h>[\d.,]+) h across "
-         r"(?P<n>\d+) items; their cumulative actual is n/a",
-         {"h": format_hours(retained_h), "n": str(len(retained_items))}),
-        ("the total estimate",
-         r"(?m)^\* Total estimate: (?P<mid>[\d.,]+) h midpoint, class I (?P<ci>[\d.,]+) h "
-         r"and class X (?P<cx>[\d.,]+) h over the open items; total range "
-         r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h",
-         {"mid": grand_t, "ci": format_hours(by_class["I"]),
-          "cx": format_hours(by_class["X"]), "lo": lo_t, "hi": hi_t}),
-        ("the progress pair",
-         r"(?m)^\* Progress by estimate: (?P<done>[\d.,]+) of (?P<total>[\d.,]+) h complete "
-         r"\((?P<donePct>[\d.]+)%\); (?P<left>[\d.,]+) h remaining \((?P<leftPct>[\d.]+)%\)",
-         {"done": format_hours(done_h), "total": grand_t,
-          "donePct": percent(done_h, grand, 1),
-          "left": format_hours(grand - done_h),
-          "leftPct": percent(grand - done_h, grand, 1)}),
-        ("the M8a gate figure",
-         r"(?m)^\* M8a gate: (?P<gate>[\d.,]+) h of open work falls at or before it, of "
-         r"which (?P<x>[\d.,]+) h is class X",
-         {"gate": format_hours(gate_a_h), "x": format_hours(gate_a_x)}),
-        ("the M8b chain figure",
-         r"(?m)^\* M8b gate: a (?P<chain>[\d.,]+) h chain of open work",
-         {"chain": format_hours(chain_b)}),
-    ]
-    if class_ratio is not None:
-        calibrated = round(done_h + sum(float(class_ratio[c]) * h
-                                        for c, h in by_class.items()), 1)
-        derived_lines.insert(1, (
-            "the calibrated total",
-            r"(?m)^\* Calibrated against completed-item outturn \(class I (?P<ri>[\d.]+), "
-            r"class X (?P<rx>[\d.]+)\): approximately (?P<cal>[\d.,]+) h",
-            {"ri": class_ratio["I"], "rx": class_ratio["X"],
-             "cal": format_hours(calibrated)}))
+    # Each measure has one generated home. Narrative wording carries no numeric
+    # obligation, and a broken source must not rewrite the measure it owns.
+    values: dict[str, str] = {}
+    if items and not malformed:
+        values = {
+            "Total estimate midpoint h": format_hours(grand),
+            "Total estimate range h": (f"{format_hours(done_h + open_lo)}–"
+                                       f"{format_hours(done_h + open_hi)}"),
+            "Completed scope h": format_hours(done_h),
+            "Complete by estimate %": percent(done_h, grand, 1),
+            "Remaining h": format_hours(grand - done_h),
+            "Open class I h": format_hours(by_class["I"]),
+            "Open class X h": format_hours(by_class["X"]),
+            "Retained completion estimate h": format_hours(retained_h),
+            "Unmeasured completed items": str(len(retained_items)),
+        }
+        if class_ratio is not None:
+            calibrated = round(done_h + sum(float(class_ratio[c]) * h
+                                            for c, h in by_class.items()), 1)
+            values["Calibrated total h"] = format_hours(calibrated)
+        if valid_partitions["M8a"]:
+            values["M8a open h"] = format_hours(gate_a_h)
+            values["M8a open class X h"] = format_hours(gate_a_x)
+        if all(valid_partitions.values()):
+            values["M8b parallel chain h"] = format_hours(chain_b)
+        if valid_chain:
+            values["M8a critical chain midpoint h"] = format_hours(chain_mid)
+            values["M8a critical chain range h"] = (
+                f"{format_hours(chain_lo)}–{format_hours(chain_hi)}")
+    summary = _summary_results(ctx, values)
+    for line in summary.fixed:
+        rep.line(line)
+    stated.extend(summary.findings)
+    rep.report("K-37", "estimate summary or partition finding(s):", stated,
+               "the generated summary agrees with its item and record owners")
 
-    restated = 0
-    for what, pattern, expected in derived_lines:
-        restated += len(expected)
-        r = figures.resolve_line(ctx, PLAN, pattern, expected, what)
-        for line in r.fixed:
-            rep.line(line)
-        stated.extend(r.findings)
-    rep.report("K-37", "restated total(s) disagreeing with the items beneath them:", stated,
-               f"all {restated} restated totals agree with the items, over "
-               f"{len(derived_lines)} sentences")
-
-    # ---- K-96: the chain sentences and the marked calibration results ----
+    # ---- K-96: authored chain membership and the marked calibration results ----
     calibration = _calibration_results(ctx, {"attended": fit, AGENT_PARALLEL: pfit},
                                        valid_records=valid_records)
     for line in calibration.fixed:
         rep.line(line)
     derived.extend(calibration.findings)
-    judged_lines = [
-        ("the critical chain",
-         r"(?m)^\* Critical chain through M8a:.*?Over those items the chain sums to "
-         r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h at a (?P<mid>[\d.,]+) h midpoint",
-         {"lo": format_hours(chain_lo), "hi": format_hours(chain_hi),
-          "mid": format_hours(chain_mid)}),
-    ]
-    # the horizon is the one sentence read before it is held: the rate is the plan's, and
-    # the weeks are the remaining hours and the chain's midpoint over it
-    rate = RATE_RE.search(raw)
-    if rate is None:
-        derived.append(f"{PLAN} states no attended rate in a '* Horizon: at N–N attended "
-                       "hours per week' sentence, so no horizon can be derived")
-    else:
-        lo_rate, hi_rate = int(rate.group("lo")), int(rate.group("hi"))
-        left = grand - done_h
-        judged_lines.append((
-            "the horizon",
-            r"(?m)^\* Horizon: at \d+–\d+ attended hours per week, the (?P<left>[\d.,]+) h "
-            r"remaining is (?P<wlo>\d+)–(?P<whi>\d+) attended weeks and the critical "
-            r"chain's (?P<cmid>[\d.,]+) h midpoint (?P<clo>\d+)–(?P<chi>\d+) of them",
-            {"left": format_hours(left), "wlo": _weeks(left, hi_rate),
-             "whi": _weeks(left, lo_rate), "cmid": format_hours(chain_mid),
-             "clo": _weeks(chain_mid, hi_rate), "chi": _weeks(chain_mid, lo_rate)}))
-
-    held = 0
-    for what, pattern, expected in judged_lines:
-        held += len(expected)
-        r = figures.resolve_line(ctx, PLAN, pattern, expected, what)
-        for line in r.fixed:
-            rep.line(line)
-        derived.extend(r.findings)
-    rep.report("K-96", "chain or calibration figure(s) the cells beneath them do not give:",
-               derived,
-               f"the critical chain sums over {len(chain)} open cells, the calibration "
+    rep.report("K-96", "chain or calibration finding(s):", derived,
+               f"the critical chain names {len(chain)} open cells, the calibration "
                f"fits over {len(all_pairs)} of the record's {len(record)} rows and the "
                f"agent-parallel series over {len(ppairs)} of its own record's "
-               f"{len(precord)}, and all {held} figures stated over them agree, across "
-               f"{len(judged_lines)} sentences")
+               f"{len(precord)}, and the generated calibration results agree")
     rep.line()
