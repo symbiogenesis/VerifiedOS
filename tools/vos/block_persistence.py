@@ -320,7 +320,7 @@ def run(root: Path, simulator: Path, profile: Path, output: Path,
                               f.block_count + 1 if negative else None) and bool(normalized)
         results.append({"name": name, "argv": argv, "returncode": done.returncode,
                         "elapsed_seconds": round(time.monotonic() - started, 3),
-                        "records": len(normalized), "trace_sha256": trace.digest(normalized),
+                        "records": len(normalized), "trace_digest": trace.digest(normalized),
                         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
                         "expected": "HTIF refusal" if negative else "HTIF success",
                         "passed": passed})
