@@ -19,9 +19,8 @@ that misses rather than a pattern that quietly matches nothing; the figure is st
 authored SystemVerilog. None is something a Sail documentation emitter indexes, so each
 keeps the pattern that reads the artifact writing it.
 
-The document that constrains it is *inside* the corpus, so its own statements of the
-set and the bound are claims like any other document's, held and repaired in
-`vos/checks/counts_geometry.py` with every other claim about it. What is read here is
+The document that constrains it is *inside* the corpus, so its candidate calculation
+is held and repaired in `vos/checks/counts_geometry.py`. What is read here is
 what the corpus does not carry: four sites in the curated model and one in the
 authored SystemVerilog, which is what makes this module's whole reason the reach.
 

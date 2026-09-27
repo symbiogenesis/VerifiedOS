@@ -198,11 +198,9 @@ def _tag_plane_closure() -> None:
 
 
 def _hyphenated_capture() -> None:
-    # the tags-per-codeword capture is [\w-]+ rather than \w+, because its value
-    # is figures.words of a ratio and every non-round word form from twenty-one up
-    # is hyphenated: a bare \w+ would repair a grown quantity to a spelling its
-    # own pattern could no longer find
-    pattern = next(p for _f, k, p in counts.TAG_PLANE if k == "tags-per-codeword")
+    # A numerical prose claim may use a hyphenated word form. Keep the engine's
+    # closure test independent of whether a live document needs this spelling.
+    pattern = r"(?<=data bits carrying )[\w-]+(?= tag bits)"
     raw = "the codeword is unchanged at 92 data bits carrying twenty-three tag bits"
     hits = figures.find_all(pattern, raw)
     ensure(len(hits) == 1 and hits[0].group() == "twenty-three",
