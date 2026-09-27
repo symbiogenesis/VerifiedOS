@@ -36,7 +36,8 @@ from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_attachments import _attached_recipe
-from vos import admission, composer, kernelrun, memory_planner, rtltrace, rvfi
+from tests.test_boot_crypto import _shard
+from vos import admission, boot_crypto_target, composer, kernelrun, memory_planner, rtltrace, rvfi
 from vos.cli import COMMANDS
 
 _ROOT = TOOLS.parent
@@ -165,6 +166,17 @@ def _admission_fixture(scratch: Path) -> list[str]:
             "--out", str(scratch / "admission-record.json")]
 
 
+def _signature_shards(scratch: Path) -> list[str]:
+    """One consistent interface receipt per signature interface, for `join` to compose."""
+    reports: list[str] = []
+    for mode in boot_crypto_target.MODES:
+        report = scratch / "signature-shards" / mode / "report.json"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(json.dumps(_shard(mode)), encoding="utf-8", newline="")
+        reports.append(str(report))
+    return ["--out", str(scratch / "signature-campaign"), *reports]
+
+
 _RUNS: dict[tuple[str, str], Argv] = {
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
@@ -208,6 +220,9 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("admission", "emit-reference"): lambda scratch: ["--out", str(scratch / "AdmissionComparison.v")],
     ("kernel", "reader"): _kernel_vectors,
     ("boot-handoff", "layout"): lambda _: [],
+    # `verify` reads this checkout's staged streams, which K-88 already holds current.
+    ("boot-crypto", "verify"): lambda _: [],
+    ("boot-crypto", "join"): _signature_shards,
 }
 
 

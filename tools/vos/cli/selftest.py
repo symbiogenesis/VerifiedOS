@@ -1775,6 +1775,11 @@ CASES: list[Case] = [
     ("K-88", "a generated pool trace grants wider authority than its producer",
      _literal("proofs/ElasticPoolCampaign.v",
               "Grant 1 0 64 (chunk_cap 64 16)", "Grant 1 0 64 (chunk_cap 64 32)")),
+    # The staged signature streams' own bytes are untouched here: the source they were
+    # compiled from changes, which only the manifest's recorded source digests can see.
+    ("K-88", "a signature adapter inverted after its staged streams were compiled",
+     _literal("firmware/crypto/signature_target.c",
+              "  return accepted ? 0 : 1;", "  return accepted ? 1 : 0;")),
     ("K-88", "a Fiat inclusion header changed after the recorded emission",
      _literal("tools/generated/fiat-crypto/25519_32.h",
               "static void fiat_25519_carry_mul", "static void fiat_25519_carry_mul_changed")),
