@@ -28,7 +28,11 @@ conflicts and shared edits normally; it never resets a checkout. `finish` includ
 integration when needed, runs `check --fix`, requires clean settled inputs, pushes
 the branch without force and publishes `fanout/<batch>/<revision>` as a lightweight
 tag for exact CI dispatch. Authentication uses the configured GitHub credentials;
-credentials never enter the journal. Publication tags remain as evidence references.
+the REST client reads `GH_TOKEN`, then `GITHUB_TOKEN`, then the noninteractive Git
+credential helper. It needs Actions read/write access as well as Git push access.
+The GitHub CLI is not required, and credentials never enter the journal.
+Publication tags remain as evidence references. Retirement removes local worker
+branches; it does not delete remote branches or evidence tags.
 
 To commit integrator edits through the tool, pass repeatable `--path <file>` with
 `--message <message>` to `finish`. It prints status and selected diffs, stages only
@@ -48,7 +52,11 @@ workflow token to recover identity; it never silently submits a duplicate.
 The journal is `out/fanout/<batch>/state.json`. Retained checkout outputs live under
 that batch's `retained/` directory; native guest outputs stay on their native
 filesystem under the build root's `fanout-retained/` directory. Retirement records
-the destinations. Failed retention or unsafe cleanup leaves a resumable refusal.
+the destinations. Known log layouts and companion receipts are retained together.
+Ambiguous shared logs and unknown legacy layouts stay in place and are listed as
+deferred retention; the command does not guess their owner. Host output retention
+uses same-filesystem renames and refuses cross-volume moves. Failed retention or
+unsafe cleanup leaves a resumable refusal.
 Keep the worker stopped throughout integration and retirement. Host-managed lanes,
 dirty or unintegrated work, unexpected branch changes and unrelated lanes survive.
 When a completed batch's integration revision changes, initialize a new batch.
