@@ -9,6 +9,7 @@ medium, including untouched blocks. Image receipts bind the process boundary.
 
 import hashlib
 import json
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -134,26 +135,147 @@ def program(root: Path, phase: str, *, wrong_byte: bool = False) -> str:
     return source
 
 
-def read_receipt(path: Path) -> list[dict[str, object]]:
-    """Require complete identities and successful persistence answers."""
+def _nat(value: object) -> bool:
+    return type(value) is int and value >= 0
+
+
+def _input(record: dict[str, object], block_bytes: int) -> None:
+    """Refuse missing fields instead of interpreting a partial event trace."""
+    kind = record.get("kind")
+    if not isinstance(kind, str) or not kind:
+        raise ValueError("block input lacks its kind")
+    if (not all(_nat(record.get(key)) for key in ("epoch", "status", "command", "remaining"))
+            or cast("int", record["status"]) > 3 or cast("int", record["command"]) > 3):
+        raise ValueError("block input has invalid state fields")
+    if kind in {"progress", "boundary", "reset", "corrupt"}:
+        values = record.get("bytes" if kind == "corrupt" else "mask")
+        if (not isinstance(values, list) or len(values) != block_bytes
+                or not all(_nat(value) and cast("int", value) < 256 for value in values)):
+            raise ValueError("block input has a missing or invalid full-block byte array")
+    if kind in {"progress", "boundary"}:
+        if (not _nat(record.get("input_epoch")) or type(record.get("io_error")) is not bool
+                or (record.get("misplaced") is not None and not _nat(record["misplaced"]))
+                or "misplaced" not in record):
+            raise ValueError("block progress lacks its error, epoch or misplaced-read input")
+        if kind == "boundary" and any(type(record.get(key)) is not bool
+                                       for key in ("reset_now", "step_now")):
+            raise ValueError("block boundary lacks reset/progress priority inputs")
+    elif kind == "corrupt":
+        if not _nat(record.get("block")):
+            raise ValueError("block corruption lacks its target")
+    elif kind in {"load", "store", "access-check"}:
+        if not _nat(record.get("address")) or not _nat(record.get("width")) or record["width"] == 0:
+            raise ValueError("block access lacks its address or width")
+        if kind == "store" and not _nat(record.get("data")):
+            raise ValueError("block store lacks its payload")
+        if kind == "access-check" and record.get("access") not in {"R", "W", "RW", "X", "C"}:
+            raise ValueError("block access check lacks its access kind")
+    elif kind != "reset":
+        raise ValueError("unknown block input kind")
+
+
+def read_receipt(path: Path, *, complete: bool = True) -> list[dict[str, object]]:
+    """Require sequential input records, identities and persistence answers.
+
+    HTIF failure exits before emulator finalization, so a negative control uses
+    complete=False and must independently prove its exact normal failure exit.
+    Such a prefix never qualifies as a completed positive receipt.
+    """
     records: list[dict[str, object]] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         value: object = json.loads(line)
-        if not isinstance(value, dict):
+        if not isinstance(value, dict) or "event" not in value:
             raise ValueError("block receipt record is not an object")
         records.append(cast("dict[str, object]", value))
     if (len(records) < 2 or records[0].get("event") != "open"
-            or records[-1].get("event") != "close"
-            or records[-1].get("healthy") is not True):
+            or records[0].get("schema") != "verifiedos-blkdev-receipt-2"
+            or (complete and (records[-1].get("event") != "close"
+                              or records[-1].get("healthy") is not True))):
         raise ValueError("block receipt lacks a healthy open/close boundary")
-    for record in (records[0], records[-1]):
+    block_bytes = records[0].get("block_bytes")
+    if not _nat(block_bytes) or block_bytes == 0:
+        raise ValueError("block receipt lacks its geometry")
+    identities = [records[0], records[-1]] if complete else [records[0]]
+    for record in identities:
         digest = record.get("sha256")
         if (not isinstance(digest, str) or len(digest) != 64
                 or any(c not in "0123456789abcdef" for c in digest)):
             raise ValueError("block receipt lacks a valid image identity")
-    if any(r.get("event") == "persist" and r.get("durable") is not True for r in records):
-        raise ValueError("block receipt reports a persistence failure")
+    for index, record in enumerate(records):
+        if type(record.get("sequence")) is not int or record["sequence"] != index:
+            raise ValueError("block receipt input sequence is incomplete or reordered")
+        event = record.get("event")
+        if event == "input":
+            _input(record, cast("int", block_bytes))
+        elif event == "persist":
+            if (record.get("durable") is not True
+                    or record.get("kind") not in {"read", "write", "flush", "write-error-tear",
+                                                   "reset-tear", "media-fault"}
+                    or not _nat(record.get("offset")) or not _nat(record.get("length"))):
+                raise ValueError("block receipt reports an invalid persistence answer")
+        elif not ((event == "open" and index == 0)
+                  or (event == "close" and index == len(records) - 1 and complete)):
+            raise ValueError("block receipt contains an unexpected record")
+    if not any(record.get("event") == "input" for record in records):
+        raise ValueError("block receipt omits device inputs")
     return records
+
+
+def htif_verdict(output: str, returncode: int, expected_failure: int | None) -> bool:
+    """A fault after verdict text is not a successful negative control."""
+    successes = re.findall(r"(?m)^SUCCESS$", output)
+    failures = re.findall(r"(?m)^FAILURE:.*$", output)
+    if expected_failure is None:
+        return returncode == 0 and len(successes) == 1 and not failures
+    expected = f"FAILURE: {expected_failure} (0x{expected_failure:08x})"
+    return returncode == 1 and not successes and failures == [expected]
+
+
+def validate_case(root: Path, records: list[dict[str, object]], phase: str) -> None:
+    """Check actual input entries against the generated architectural case."""
+    f = block_authority.fixture(root)
+    if records[0].get("block_bytes") != f.block_bytes or records[0].get("block_count") != f.block_count:
+        raise ValueError("receipt geometry differs from the generated campaign")
+    inputs = [r for r in records if r.get("event") == "input"]
+    stores = [r for r in inputs if r.get("kind") == "store"]
+    commands = [r["data"] for r in stores if r["address"] == f.base + 48]
+    wanted = [1] * f.block_count if phase == "reopen" else [2, 3] if phase == "flush" else [2]
+    if commands != wanted:
+        raise ValueError("input receipt omits or substitutes a command")
+    if not all(r["width"] == 8 for r in inputs if r.get("kind") in {"load", "store", "access-check"}):
+        raise ValueError("architectural campaign issued a non-word input")
+    if not any(r.get("kind") == "access-check" for r in inputs):
+        raise ValueError("input receipt omits whole-access validation")
+    if phase in {"durable", "flush"}:
+        raw = payload(f.block_bytes)
+        staged = [(r["address"], r["data"]) for r in stores if cast("int", r["address"]) >= f.base + 256]
+        expected = [(f.base + 256 + offset, int.from_bytes(raw[offset:offset + 8], "little"))
+                    for offset in range(0, f.block_bytes, 8)]
+        if staged != expected:
+            raise ValueError("input receipt does not bind the complete staged payload")
+        if phase == "durable":
+            at = next(i for i, r in enumerate(inputs)
+                      if r.get("kind") == "store" and r.get("address") == f.base + 48)
+            if any((r.get("kind") == "load" and r.get("address") == f.base + 24)
+                   or (r.get("kind") == "store" and r.get("address") == f.base + 56) for r in inputs[at + 1:]):
+                raise ValueError("C-durable observed or acknowledged completion before exit")
+        elif not any(r["address"] == f.base + 40 and r["data"] == f.block_count for r in stores):
+            raise ValueError("P-flush omitted the out-of-range block argument")
+    for command, name in ((1, "read"), (2, "write"), (3, "flush")):
+        count = wanted.count(command)
+        steps = config.integer(root / block_authority.CONFIG, "platform", "blkdev", name + "_steps")
+        if steps is None:
+            raise ValueError("missing progress bound")
+        actual = sum(r.get("kind") == "progress" and r.get("status") == 1
+                     and r.get("command") == command for r in inputs)
+        if actual != count * steps:
+            raise ValueError("input receipt omits or duplicates active progress events")
+
+
+def producer_identity(root: Path, simulator: Path, profile: Path) -> dict[str, object]:
+    return {"simulator_sha256": hashlib.sha256(simulator.read_bytes()).hexdigest(),
+            "profile_sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
+            "inputs": receipts.inputs(root, "model", "tools", "interfaces", "corpus")}
 
 
 def run(root: Path, simulator: Path, profile: Path, output: Path,
@@ -164,6 +286,7 @@ def run(root: Path, simulator: Path, profile: Path, output: Path,
     because neither a previous image nor a receipt is eligible as new evidence.
     """
     output.mkdir(parents=True, exist_ok=False)
+    identity = producer_identity(root, simulator, profile)
     results: list[dict[str, object]] = []
     expected = expected_image(root)
     expected_digest = hashlib.sha256(expected).hexdigest()
@@ -193,29 +316,29 @@ def run(root: Path, simulator: Path, profile: Path, output: Path,
         text = done.stdout + done.stderr
         (output / f"{name}.log").write_text(text, encoding="utf-8")
         normalized = trace.normalize_commit(text.splitlines())
-        passed = done.returncode == 0 and "SUCCESS" in text and bool(normalized)
-        rejected = "FAILURE:" in text and bool(normalized) and not passed
+        passed = htif_verdict(text, done.returncode,
+                              f.block_count + 1 if negative else None) and bool(normalized)
         results.append({"name": name, "argv": argv, "returncode": done.returncode,
                         "elapsed_seconds": round(time.monotonic() - started, 3),
                         "records": len(normalized), "trace_sha256": trace.digest(normalized),
                         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
                         "expected": "HTIF refusal" if negative else "HTIF success",
-                        "passed": rejected if negative else passed})
-        if not (rejected if negative else passed):
+                        "passed": passed})
+        if not passed:
             raise ValueError(f"{name}: missing expected HTIF verdict and nonempty trace")
-        return read_receipt(receipt) if image is not None else []
+        if image is None:
+            return []
+        records = read_receipt(receipt, complete=not negative)
+        validate_case(root, records, phase)
+        return records
 
     report: dict[str, object] = {
         "schema": "verifiedos-block-persistence-1", "scope": "architectural device persistence",
-        "simulator_sha256": hashlib.sha256(simulator.read_bytes()).hexdigest(),
-        "profile_sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
-        "inputs": receipts.inputs(root, "tools/vos/block_persistence.py",
-                                   "tools/vos/block_authority.py", "tools/vos/asm.py",
-                                   "model/config/verifiedos.json"),
+        **identity,
         "initial_image_sha256": initial_digest, "expected_image_sha256": expected_digest,
         "cases": results, "passed": False,
     }
-    try:
+    def campaign() -> None:
         for phase in ("durable", "flush"):
             image = output / f"{phase}.img"
             writer = execute(phase, phase, image, create=True)
@@ -232,6 +355,12 @@ def run(root: Path, simulator: Path, profile: Path, output: Path,
                 raise ValueError(f"{phase}: reopen changed or substituted the image")
         execute("wrong-byte", "reopen", output / "durable.img", negative=True)
         execute("fixture-reload", "reopen", None, negative=True)
+        if (output / "durable.img").read_bytes() != expected:
+            raise ValueError("negative read control changed the persistent image")
+        if producer_identity(root, simulator, profile) != identity:
+            raise ValueError("campaign inputs or simulator changed during execution")
+    try:
+        campaign()
         report["passed"] = True
     except (OSError, ValueError, subprocess.TimeoutExpired) as error:
         report["error"] = str(error)
