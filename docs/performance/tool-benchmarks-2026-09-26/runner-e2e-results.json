@@ -1,0 +1,30 @@
+{
+  "baseline": "69e1d5f6322f80186a3de59e5f03bb248c84616e",
+  "candidate_head": "501271ba1815a328e87bcad26e212d27bbbdbef2",
+  "candidate_scope": "bounded directory workers in selftest filesystem placement",
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 11:30:42) [MSC v.1944 64 bit (ARM64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "command": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\perf-runner-20260926\\out\\performance-20260926\\runner-e2e-benchmark.py --seed-cache C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\perf-runner-20260926\\out\\performance-20260926\\runner-1790469861524015600\\cache",
+  "scope": "selftest --rule K-52 --jobs 5; setup, pristine baseline, five mutants, registry coverage, cleanup",
+  "workers": 5,
+  "repetitions": 3,
+  "machine_concurrency": "Other isolated optimization agents were active; alternating samples share the same machine and source bytes.",
+  "raw_seconds": {
+    "baseline": [
+      18.567262500000652,
+      19.09846770000877,
+      19.77103440000792
+    ],
+    "candidate": [
+      18.255868400010513,
+      18.49844560000929,
+      16.76472019997891
+    ]
+  },
+  "medians": {
+    "baseline": 19.09846770000877,
+    "candidate": 18.255868400010513
+  },
+  "diagnostics_identical": true,
+  "verdicts": "all passed"
+}

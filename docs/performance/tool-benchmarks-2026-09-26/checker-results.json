@@ -1,0 +1,68 @@
+{
+  "baseline_revision": "69e1d5f6322f80186a3de59e5f03bb248c84616e",
+  "checkout_revision": "69e1d5f6322f80186a3de59e5f03bb248c84616e",
+  "working_tree_status": " M tools/tests/test_document_counts.py\n M tools/vos/checks/counts.py\n",
+  "source_sha256": "79de6bfb26d3a94ee1296ab288b250456780ea541952ed1c490d809fe073348d",
+  "interpreter": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 11:30:42) [MSC v.1944 64 bit (ARM64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "machine": "ARM64",
+  "command": [
+    "out\\performance-20260926\\checker-benchmark.py"
+  ],
+  "workers": 1,
+  "scope": {
+    "markdown_documents": 190,
+    "markdown_characters": 10734319,
+    "declared_count_scopes": 16,
+    "count_findings": 0,
+    "checker_findings": 0,
+    "checker_report_sha256": "07bdda1321556ecf510763c98c2d30425939111fe8e39fb822a8cf79a3e07cbb"
+  },
+  "component_seconds": {
+    "before": [
+      2.9975617000018246,
+      3.047280700004194,
+      2.932933000003686,
+      2.9635663000226486,
+      3.2403174999926705,
+      3.5853485999978147,
+      3.1410814999835566
+    ],
+    "after": [
+      0.7384792000229936,
+      0.7397399000183214,
+      0.7383243000076618,
+      0.764036100008525,
+      0.9310446000017691,
+      0.7440959000086877,
+      0.7554655999992974
+    ]
+  },
+  "complete_in_process_checker_seconds": {
+    "before": [
+      5.873389699991094,
+      5.937694199994439,
+      6.3033180000202265,
+      5.867208100011339,
+      5.6609724999871105
+    ],
+    "after": [
+      3.5806070000107866,
+      3.326483900018502,
+      3.528752700018231,
+      4.160434899997199,
+      3.2484148999792524
+    ]
+  },
+  "medians": {
+    "component": {
+      "before": 3.047280700004194,
+      "after": 0.7440959000086877
+    },
+    "complete_in_process_checker": {
+      "before": 5.873389699991094,
+      "after": 3.528752700018231
+    }
+  },
+  "limitations": "Same current checkout, alternating implementations; checker timing excludes Python/uv startup and warms optional imports. No gate-suite timing claim."
+}

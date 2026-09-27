@@ -193,3 +193,40 @@ unchanged and unavailable-cache-context paths. The largest connected component,
 unequal proof costs and repeated external-library reads can limit improvement;
 compiled size does not predict conversion time exactly. No speedup is claimed
 until the focused host/native regressions, stable host wave and comparison pass.
+
+## September 26 source scans and context queries
+
+The [recorded comparisons](../docs/performance/tool-benchmarks-2026-09-26/README.md)
+retain baseline/candidate scripts, raw samples, input scope and source identities.
+On Python 3.14.7 / Windows ARM64, identical complete checker reports took a median
+3.529 seconds against 5.873 seconds before; source mutation enumeration took
+1.055 seconds against 2.250 seconds. Complete Sail context API calls also improved.
+These measurements exclude interpreter startup and do not claim a whole-gate speedup.
+
+The [count checker](vos/checks/counts.py) searches for declared subjects before
+applying the full count grammar at candidate offsets. Per-invocation document
+snapshots share fence parsing, newline offsets and sorted claim intervals. Binary
+search and prefix maximum endpoints decide containing claims without scanning every
+claim for each count. Diagnostics retain their original positions and order.
+
+The [mutation scanner](vos/mutate.py) searches lexical boundaries with the standard
+library's compiled regular expressions and string searches. Slice operations mark
+comments, strings and admitted regions. Each operator advances its newline-count
+offset with its matches: line reporting scans at most the source length per
+operator instead of rescanning the prefix for every mutant. Nested comments,
+escapes, unterminated constructs and empty matches retain their behavior.
+
+[Sail context](vos/sailcontext.py) validates each repeated source-path spelling
+once per invocation with `functools.cache`, builds byte-line offsets with a compiled
+newline search and skips search tokenization for exact-symbol queries. Every call
+still reads and hashes all recorded owners and validates unselected records.
+No dependency, persistent cache or proof-acceptance rule changes are introduced.
+
+The [selftest runner](vos/cli/selftest.py) overlaps independent file placements
+across directories while carrying a Git object store and constructing the initial
+sandbox. It uses the configured setup worker budget. Later sandbox construction
+already runs concurrently and uses one placement worker each, avoiding nested pools.
+Copy fallback, private repair files, fresh checker processes and ordered reports
+retain their existing behavior. Recorded setup medians with eight workers improved
+from 0.988 to 0.425 seconds for the object store, 1.512 to 0.691 seconds for the first
+sandbox, and 2.838 to 2.227 seconds for a complete warm template.
