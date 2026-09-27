@@ -172,8 +172,13 @@ Before broad implementation, close one difficult real recursive proof with depen
 
 M6.2b-0a separately prices this decision inside the foundation's existing budget.
 Its accepted evidence contains actual serialized positive and refuting inputs,
-including the real recursive/dependent case and a sealed-constant case requiring
-conversion. Bind each input and its ordered environment to the source export,
+including the real recursive/dependent case and a paired conversion experiment.
+Accept the original exported proof and environment at sufficient resource bounds;
+seal selected computational constants needed by that proof, then refuse the same
+proof specifically because the required conversion is unavailable. Restore the
+original environment and recover acceptance. Each variant has its own coherent
+environment commitment; a stale identity, malformed encoding or exhausted budget
+does not supply the sealed control's rejection. Bind each input and its ordered environment to the source export,
 profile, candidate checker and instantiated soundness entry. Record the native
 transitive assumption closure of that entry, its concrete hypothesis witness,
 and the first intended rejection for each malformed or ill-typed neighbor. The
