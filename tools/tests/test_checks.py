@@ -99,17 +99,22 @@ def _estimates_repair_reaches_fixpoint() -> None:
                f"and report no rewrite: {again.rep.out!r}")
 
 
+def _estimate_summary() -> str:
+    values = {key: "999–999" if "range" in key else "999"
+              for key in estimates.SUMMARY_FIELDS}
+    return (estimates.SUMMARY_START + "\n" + estimates._summary_table(values)
+            + "\n" + estimates.SUMMARY_END + "\n\n")
+
+
 def _nested_estimates_keep_chain_membership() -> None:
-    plan = ("# Plan\n\n"
+    plan = ("# Plan\n\n" + _estimate_summary() +
             "* [ ] **M1.2 · Backend**\n"
             "  * [ ] **M1.2g · Carrier**\n"
             "    * [ ] **M1.2g-i · Memory** · 1.5 h, range 1–2 · 0.0% · X\n"
             "    * [ ] **M1.2g-ii · Integration** · 7.5 h, range 4–11 · 0.0% · X\n"
             "  * [ ] **M1.2f · Campaign** · 7 h, range 4–10 · 0.0% · X\n"
             "* [ ] **M1.7 · Boot** · 9 h, range 6–12 · 0.0% · I\n"
-            "**M1 subtotal:** 25 h · 100% · open range 15–35 h.\n"
-            "* Critical chain through M8a: Over those items the chain sums to "
-            "999–999 h at a 999 h midpoint.\n")
+            "**M1 subtotal:** 25 h · 100% · open range 15–35 h.\n")
     items, _, malformed = estimates._parse(plan)
     ensure(not malformed, f"nested cell-less parents are legal: {malformed}")
     ensure([item.ancestors for item in items] == [
@@ -124,15 +129,13 @@ def _nested_estimates_keep_chain_membership() -> None:
         ensure(not any("names M1.2 " in finding
                        for finding in _findings_under(ctx, "K-96")),
                "a nested chain member is occupied by its priced descendants")
-        ensure("at a 25 h midpoint" in ctx.fixed[PLAN],
+        ensure("| M8a critical chain midpoint h | 25 |" in ctx.fixed[PLAN]
+               and "| M8a critical chain range h | 15–35 |" in ctx.fixed[PLAN],
                "the chain counts nested leaves and the later sibling exactly once")
 
 
 def _retained_estimates_are_scope_not_actuals() -> None:
-    plan = ("# Plan\n\n"
-            "* Retained estimates in completed scope: 999 h across 999 items; "
-            "their cumulative actual is n/a.\n"
-            "* M8a gate: 999 h of open work falls at or before it, of which 999 h is class X.\n"
+    plan = ("# Plan\n\n" + _estimate_summary() +
             "* [x] **M1.2b · Accepted** · 6 h retained estimate, actual n/a · 99.0%"
             " · agent-parallel\n"
             "* [ ] **M1.2g · Open** · 9 h, range 5–13 · 60.0% · X\n\n"
@@ -143,13 +146,16 @@ def _retained_estimates_are_scope_not_actuals() -> None:
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                        PLAN: plan}) as root:
         ctx = _context(root, fix=True)
-        estimates.run(ctx)
+        with patch.object(estimates, "AFTER_M8A", []):
+            estimates.run(ctx)
         repaired = ctx.fixed[PLAN]
         ensure("6 h retained estimate, actual n/a · agent-parallel" in repaired,
                f"repair must preserve the unavailable actual: {repaired!r}")
-        ensure("6 h across 1 items; their cumulative actual is n/a" in repaired,
+        ensure("| Retained completion estimate h | 6 |" in repaired
+               and "| Unmeasured completed items | 1 |" in repaired,
                "retained scope must be reported separately")
-        ensure("9 h of open work falls at or before it, of which 9 h is class X" in repaired,
+        ensure("| M8a open h | 9 |" in repaired
+               and "| M8a open class X h | 9 |" in repaired,
                "completed estimated scope must leave the remaining-work budget")
         ensure(not _findings_under(ctx, "K-34"), "the completed form must be readable")
     items, _, malformed = estimates._parse(repaired)
@@ -176,9 +182,7 @@ def _retained_estimates_are_scope_not_actuals() -> None:
 def _optional_inference_work_stays_outside_both_gates() -> None:
     # Exercise the reported budgets, including _head's handling of full labels.
     # Module and research qualification must leave both gate figures unchanged.
-    plan = ("# Plan\n\n"
-            "* M8a gate: 999 h of open work falls at or before it, of which 999 h is class X.\n"
-            "* M8b gate: a 999 h chain of open work.\n\n"
+    plan = ("# Plan\n\n" + _estimate_summary() +
             "* [ ] **M1.7 · Software fixture** · 10 h, range 8–12 · 0.0% · I\n"
             "* [ ] **R2 · RTL fixture** · 20 h, range 16–24 · 0.0% · I\n")
     modules = "".join(
@@ -200,18 +204,27 @@ def _optional_inference_work_stays_outside_both_gates() -> None:
         for label in ("Q4b", "Q20c", "Q30b", "Q30c", "Q33", "R5a",
                       "Q34b", "Q34c", "Q34d", "Q34e", "Q34f", "Q34g", "Q34h"))
     expected = [
-        "* M8a gate: 10 h of open work falls at or before it, of which 0 h is class X.",
-        "* M8b gate: a 20 h chain of open work.",
+        "| M8a open h | 10 |",
+        "| M8a open class X h | 0 |",
+        "| M8b parallel chain h | 20 |",
     ]
     for addition in ("", modules, research, workflows, packages, release,
                      modules + research + workflows + packages + release):
+        fixture = plan + addition + "**S subtotal:** 0 h · 0%.\n"
+        items, _, _ = estimates._parse(fixture)
+        carried = {estimates._head(item.label) for item in items}
         with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                           PLAN: plan + addition}) as root:
+                           PLAN: fixture}) as root:
             ctx = _context(root, fix=True)
-            estimates.run(ctx)
-            repaired = ctx.fixed.get(PLAN, plan + addition)
+            # Keep the real membership decision; only absent fixture owners are omitted.
+            with (patch.object(estimates, "AFTER_M8A",
+                               [key for key in estimates.AFTER_M8A if key in carried]),
+                  patch.object(estimates, "AFTER_M8B",
+                               [key for key in estimates.AFTER_M8B if key in carried])):
+                estimates.run(ctx)
+            repaired = ctx.fixed.get(PLAN, fixture)
             actual = [line for line in repaired.splitlines()
-                      if line.startswith(("* M8a gate:", "* M8b gate:"))]
+                      if line.startswith(("| M8a open", "| M8b parallel chain"))]
             ensure(actual == expected,
                    f"deferred qualification changed a required gate budget: {actual!r}")
 
