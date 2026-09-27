@@ -3198,6 +3198,35 @@ Calibration: no original estimate was recorded; excluded from the fit.
     * **Three seeded weakenings survived across two samples, and every one was a site nothing above it decided.** The key expansion's *Nk greater than six* guard is the first: `6 < Nk` and `7 < Nk` agree at 4, at 6 and at 8, so no key length FIPS 197 admits can part them and every published vector accepts the six one higher. It is a parameter now, with the raised guard built beside it and the two parted at a key of seven words, which is a statement about the expansion rather than about the cipher. The second is the restricted tag-length list, which no computation visited at all; both lists are held to the standard's own shape **and to its own count**, the admissible ones descending one byte at a time from the full tag and five of them, each restricted one whole bytes below the shortest admissible and two of them. The count is what the shape alone leaves free, and it decides: a sixth admissible 88 descends one byte at a time like the five above it and a third restricted 24 is whole bytes below 96 like the two beside it, so the shape without the count passes lists SP 800-38D s5.2.1.2 does not admit. The statement that reads the two lists together holds each length to being a whole number of bytes the tag actually has, the truncation equality beside it being the weakest of its three clauses and true of every natural number. The third is the sharpest: **RotWord returning a longer word survives every published answer**, because the exclusive-or that consumes it truncates to the shorter of its operands and cuts the extra byte off again, so the rotation is now stated over four arbitrary bytes in both of its clauses, one place moved and four applications the identity. Each mutant is refused after the addition, which is how a survivor closes.
   * Landed: Tier A.
 
+#### M3.5a · Bind real signatures to the measured host release
+
+Calibration: split estimate 3 h, range 2–4; retained estimate, actual n/a.
+The allocation separates this finite host predicate from M3.5b within the
+parent's existing budget. Earlier firmware authoring has no recoverable
+cumulative interval; the current fan-out's elapsed time is not its actual.
+
+The [release harness](../../firmware/README.md) binds the actual SLH-DSA-SHAKE-256s
+callback to disposable OpenSSL-generated lifecycle roots. The copied signed
+prefix, payload measurement, root selection and release/refusal ordering are
+exercised through the existing contract, including the signed-prefix race.
+The integration replay at code revision `cda686d1` passes all 28 cases and all
+102 SHAKE comparisons. Eleven focused host cases cover the interfaces and
+failure evidence. The separate crypto campaign at `7ca2df95` passes all 140
+records, including its Gallina comparisons. Native integration evidence is
+`/root/build/critical-fanout-20260926/boot-final/report.json`, SHA256
+`b7fe77239e81f8c3e896674af35936e1f0a15654c03875052a8f134a5b4fc889`.
+
+Review repaired abnormal-process acceptance and the default invocation's
+missing model receipt. The report now requires a successful source-matched
+emulator and unchanged sources and producer identities. It continues to state
+that the RoT stage runs on the host. The RoT target trial's instruction cutoff
+is not a pass; actual RoT execution and the remaining boot chain belong to
+M3.5b, which stays open.
+
+Landed: Tier A. Independent review read the callback, race, source binding,
+failure handling and capability producer. The settled batch retains the Host CI
+requirement and both Guest CI lanes without treating a pending guest run as passed.
+
 #### M3.6a · State and refute the ordered sequence
 
   * One statement artifact in [ApexTheorem.v](../../proofs/ApexTheorem.v)'s idiom and nothing else. [DischargeSequence.v](../../proofs/DischargeSequence.v) states R-15-247d's order, requesters in reset, tag-plane discharge, a fixed worst-corner dwell, a single completion read, fail-stop on a negative reading, the domain addressable, and separately admitted after that the data sanitization before measured execution; R-15-247f's single read after the dwell with no poll and no retry; the fail-stop arm **as a pair**, so that a machine latching on every reading is not a fail-stop; and R-15-247d's acceptance clause that no path admits a partially sanitized bank, stated over R-15-247e's per-bank drain and R-15-247b's granule-atomic commit. **The order is one order across two paths**, the first four phases sitting on the exit path R-15-247q relocates the discharge to and the last three on the entry path, which is R-15-189j's *what a bulk domain owes on the way in is the confirmation R-15-247d orders* read from the other side.
@@ -3308,6 +3337,46 @@ Landed: Tier A.
   * Net change: 2,209 lines across five files, two of them new.
   * Exit evidence: **1,503 generated vectors** answered by the Gallina front against 1,152 before, **31 property sets** green under coq-quickchick 2.2.0 in the `quickchick-9.1.1` switch, the Wasm oracle green at 84 checks and red on its seeded twin at exit 1, and the artifact's own seeded population **274 of 274 killed**. The proof gate never compiles any of these three files and no constant in them reaches R-05-163's assumption enumeration. No register, coverage-matrix, absence-contract or crown-jewel edit.
   * Landed: Tier A.
+
+#### M4.4a · Execute the bounded scalar kernel composition
+
+Calibration: split estimate 10 h, range 6–14; retained estimate, actual n/a.
+The allocation separates the existing finite acceptance predicate from M4.4b
+within the parent's original budget. Historical kernel-C authoring has no
+recoverable cumulative interval, so this fan-out supplies no replacement actual.
+
+The [target recipe](../../kernel/README.md#finite-compiled-target) compiles the
+authored scalar C with the accepted backend, authenticates the actual payload
+through M3.5a's release, and consumes the produced capability distribution and
+measurement record. It checks the exact descriptor and stack/PCC/MTCC/MTDC
+authority, attempts derivation beyond the data root and all three windows,
+and runs two single-partition slots separated by actual timer interrupts.
+Each restore must equal the selected input image and the C-produced output,
+with exact values/tags, multiplicity and MEPCC/fence/return chronology.
+
+The revocation witness publishes one bit for an exact eight-byte object,
+preserving the remaining bitmap word, clears its resident copy, and filters
+and rewrites its saved representation before semantic completion and dispatch.
+Its inventory includes protected wider kernel roots. The fixed trusted text's
+no-recreation/no-regrant premise is explicit; this is no general ownership,
+admission, reuse or multi-hart barrier proof.
+
+At integrated code revision `cda686d1`, all ten observations and fourteen
+executed defects pass their expected decisions. Authority, descriptor and
+revocation defects refuse on target. The corrupted C switch output and missing
+fence retain HTIF success and fail their independent trace predicates. The
+generated corpus snapshot matches every released byte and symbol; an
+independent regeneration passes `--check`. The exact corpus command passes
+22 checks over 54,805 records, digest `96176f2ae55df528`. Snapshot SHA256 is
+`7c7d6689bd46328bdfadcf898a6cb1be8e702c70563f7bc48b325b92509ce625`.
+Native integration evidence is
+`/root/build/critical-fanout-20260926/kernel-final/report.json`, SHA256
+`48ef22ca4918dfc5bf0e5be5acaa0d5e70ee9a6e318c0d58cf97e420c1c93a3e`.
+
+Landed: Tier A. Independent source review verified the input/output boundary,
+descriptor equality, protected authority and restore protocol repairs. The
+broader parent remains open under M4.4b. Host CI and both Guest CI lanes form
+the settled batch's hosted handoff; pending guest evidence is not a pass.
 
 ## M5 · Storage and objects
 

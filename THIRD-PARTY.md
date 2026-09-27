@@ -519,6 +519,8 @@ The verified backend passes, RISC-V backend, and SECOMP `cheririscV/` backend ar
 
 VST also contains CompCert material. Its `compcert/` tree provides dual-licensed Clight material, while `compcert_new/` contains files without that option. Using opam avoids incorporating those directories into this repository, but still installs CompCert and requires review of its usage terms, as documented [above](#vst).
 
+**Generated scalar kernel client.** [kernel-instance.s](corpus/kernel-instance.s) contains the authored firmware/entry adapter, the accepted compiler's output for the original kernel C, and the released data and measurement record. Its emitted function population maps to the authored context, executive, partition, handoff and target sources. No compiler implementation, runtime helper or external library body is incorporated. The [recipe](kernel/README.md#finite-compiled-target) regenerates the snapshot and checks its loaded bytes and symbols against the actual measured release; signing keys and compiler products remain in the native build lane.
+
 #### Vélus
 
 `INRIA/velus/LICENSE` is the Inria Non-Commercial License Agreement for the Vélus verified Lustre compiler. Vélus also includes a modified CompCert as its own submodule. The recorded clauses are:

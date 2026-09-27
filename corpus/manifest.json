@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "trace_schema": 1,
   "members": [
     {
@@ -197,6 +197,13 @@
       "checks": 15,
       "records": 5045,
       "digest": "de14cb6d7364f336"
+    },
+    {
+      "name": "kernel-instance",
+      "source": "kernel-instance.s",
+      "checks": 22,
+      "records": 54805,
+      "digest": "96176f2ae55df528"
     }
   ]
 }
