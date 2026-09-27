@@ -3,8 +3,9 @@
 
 The caller publishes main, owns the journal lock and atomically saves
 the enclosing batch whenever requested. A dispatch intent reaches disk before the
-POST. An interrupted POST is recovered by its unique workflow title, never retried
-on the assumption that a missing response means GitHub did not start a run.
+POST. An interrupted POST is recovered by the unique token in its workflow title,
+never retried on the assumption that a missing response means GitHub did not start
+a run.
 """
 
 import json
@@ -28,6 +29,9 @@ API_VERSION = "2026-03-10"
 # accepts the push. Dispatching before then runs every host shard twice for one
 # revision, so the first lookup retries after each of these pauses before dispatching.
 PUSH_RUN_WAITS: tuple[int, ...] = (5, 10, 15, 30)
+# A dispatched run's title follows its identity prefix with the commit subject,
+# shortened to the length GitHub gives a push run's default title.
+SUBJECT_LIMIT = 70
 
 
 class RunState(TypedDict):
@@ -233,8 +237,25 @@ def _blank(workflow: str, revision: str) -> RunState:
             "conclusion": None, "request_id": None, "jobs": {}}
 
 
-def _title(record: RunState) -> str:
-    return f"fanout:{record['token']}:{record['revision']}"
+def _subject(root: Path, revision: str) -> str:
+    done = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%s", revision],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          check=False, timeout=30)
+    if done.returncode:
+        raise CIError("cannot read the settled revision's commit subject")
+    subject = done.stdout.strip()
+    if len(subject) <= SUBJECT_LIMIT:
+        return subject
+    return subject[:SUBJECT_LIMIT - 1].rstrip() + "…"
+
+
+def _prefix(record: RunState) -> str:
+    return f"fanout:{record['token']}:"
+
+
+def _dispatched(record: RunState, run: dict[str, object]) -> bool:
+    title = run.get("display_title")
+    return isinstance(title, str) and title.startswith(_prefix(record))
 
 
 def _identity(state: CIState, record: RunState, run: dict[str, object]) -> None:
@@ -245,9 +266,11 @@ def _identity(state: CIState, record: RunState, run: dict[str, object]) -> None:
         if record["workflow"] != HOST or run.get("head_sha") != state["revision"]:
             raise CIError("GitHub push run tested a different revision")
     elif event == "workflow_dispatch":
-        # The workflow title binds the checkout input. head_sha instead names the
-        # main tip used to load the workflow and can advance before GitHub starts it.
-        if run.get("display_title") != _title(record):
+        # The title's token names this record's own dispatch request, which carried
+        # the checkout input. head_sha instead names the main tip used to load the
+        # workflow and can advance before GitHub starts it. The subject after the
+        # token is display text only.
+        if not _dispatched(record, run):
             raise CIError("GitHub dispatch did not identify the requested checkout revision")
     else:
         raise CIError("pull-request or scheduled runs cannot establish this publication's host evidence")
@@ -262,7 +285,7 @@ def _recover(client: GitHub, state: CIState, record: RunState,
     # One identity lookup resolves interrupted requests. A guest's verdict is never
     # read or copied, even when it happens to be included in this API response.
     matches = [run for run in client.runs(record["workflow"])
-               if run.get("display_title") == _title(record)
+               if _dispatched(record, run)
                and run.get("head_branch") == "main"
                and run.get("event") == "workflow_dispatch"]
     if len(matches) != 1:
@@ -274,12 +297,14 @@ def _recover(client: GitHub, state: CIState, record: RunState,
     save()
 
 
-def _dispatch(client: GitHub, state: CIState, record: RunState,
+def _dispatch(root: Path, client: GitHub, state: CIState, record: RunState,
               save: Callable[[], None]) -> None:
     client.verify_ref(state)
+    title = _subject(root, state["revision"])
     record["phase"] = "intent"
     save()
-    inputs: dict[str, object] = {"fanout_token": record["token"], "revision": state["revision"]}
+    inputs: dict[str, object] = {"fanout_token": record["token"], "revision": state["revision"],
+                                 "title": title}
     if record["workflow"] == GUEST:
         # guest-gates owns a mandatory model/proofs matrix; there is no lane filter.
         inputs["cold"] = state["cold"]
@@ -385,10 +410,10 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
             host["phase"] = "accepted"
             save()
         else:
-            _dispatch(client, state, host, save)
+            _dispatch(root, client, state, host, save)
             return False
     elif host["phase"] == "rejected":
-        _dispatch(client, state, host, save)
+        _dispatch(root, client, state, host, save)
         return False
     elif host["phase"] == "intent" or host["run_id"] is None:
         _recover(client, state, host, save)
@@ -397,9 +422,9 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
     if guest is None:
         guest = _blank(GUEST, state["revision"])
         state["guest"] = guest
-        _dispatch(client, state, guest, save)
+        _dispatch(root, client, state, guest, save)
     elif guest["phase"] == "rejected":
-        _dispatch(client, state, guest, save)
+        _dispatch(root, client, state, guest, save)
     else:
         _recover(client, state, guest, save)
     return True

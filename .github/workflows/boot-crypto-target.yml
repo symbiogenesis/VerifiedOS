@@ -7,10 +7,12 @@
 # campaign job joins the five shard receipts. Pushes to main that change the staged
 # streams or this workflow start it; manual dispatch runs from main, and its optional
 # revision input pins checkout to a commit already on main, verified before any
-# checked-out code runs. Each run title ends with the checked-out revision.
+# checked-out code runs. A push run keeps GitHub's title, the commit subject; a
+# dispatched run's title ends with the checked-out revision.
 
 name: boot-crypto-target
-run-name: ${{ format('{0}:{1}', github.workflow, inputs.revision || github.sha) }}
+# A blank run-name selects GitHub's own title.
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('{0}:{1}', github.workflow, inputs.revision || github.sha) || '' }}
 
 on:
   workflow_dispatch:
