@@ -171,7 +171,11 @@ The pipeline runs the existing commands. In the model lane:
 
 - `python3 tools/run.py evidence --no-proofs` builds and tests the model, runs the
   reference, profile, differential-corpus and device-tree checks, and records the
-  proof gate as excluded.
+  proof gate as excluded. The full corpus command also runs the architectural
+  block-image persistence campaign: separate emulator processes write and reopen
+  a backing image, with complete-medium comparisons and refusal controls. Its
+  failure fails the corpus member. The manifest's trace tally stays separate
+  from this generated multi-process campaign.
 - `python3 tools/run.py model bundle --check` compares the emitted model bundle.
 - `python3 tools/run.py rtl lint` checks the standalone authored and generated RTL.
 - `python3 tools/run.py rtl crosscheck` regenerates model vectors and compares RTL

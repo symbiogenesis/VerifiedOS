@@ -55,6 +55,7 @@ from typing import IO, cast
 
 from vos import (
     asm,
+    block_persistence,
     cli,
     compose,
     config,
@@ -1289,6 +1290,21 @@ def _run_trace(argv: list[str], timeout: int) -> list[str] | None:
     return (done.stdout + done.stderr).splitlines()
 
 
+def _corpus_persistence(e: env.Environment, out: Path, timeout: int) -> int:
+    """Include architectural reopen evidence in the corpus command's verdict."""
+    output = out / f"persistence-{uuid.uuid4().hex}"
+    try:
+        report = block_persistence.run(e.root, e.simulator, e.profile, output, timeout)
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+        print(f"PERSISTENCE FAIL ({exc})", file=sys.stderr)
+        return 1
+    passed = report.get("passed") is True
+    print(f"PERSISTENCE {'PASS' if passed else 'FAIL'} (receipt {output / 'results.json'})")
+    if not passed and report.get("error"):
+        print(f"PERSISTENCE {report['error']}", file=sys.stderr)
+    return 0 if passed else 1
+
+
 def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     """Assemble the differential corpus and run it on the curated emulator.
 
@@ -1304,6 +1320,13 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     reproduction recipes; the in-tree assembler reads both authored and
     compiler-emitted members.
     """
+    if getattr(args, "persistence_only", False):
+        if args.member or args.assemble_only or args.refresh:
+            print("--persistence-only cannot combine with members, --assemble-only or --refresh",
+                  file=sys.stderr)
+            return 1
+        out = Path(args.out) if args.out else e.lane_root / "corpus"
+        return _corpus_persistence(e, out, args.timeout)
     corpus = differential.load(e.root)
     if not corpus.members:
         print("the differential corpus contains no member to execute", file=sys.stderr)
@@ -1354,7 +1377,8 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
         print(f"REFRESH {len(measured)} manifest rows rewritten")
     print(f"TOTAL pass={tally['PASS']} fail={tally['FAIL']} of {len(members)} "
           f"(corpus v{corpus.version}, trace schema v{corpus.trace_schema})")
-    return 1 if tally["FAIL"] else 0
+    persistence = _corpus_persistence(e, out_dir, args.timeout) if not wanted else 0
+    return 1 if tally["FAIL"] or persistence else 0
 
 
 def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
@@ -1727,6 +1751,8 @@ def main(argv: list[str] | None = None) -> int:
     cp.add_argument("member", nargs="*", help="the members to run (default: all)")
     cp.add_argument("--assemble-only", action="store_true",
                     help="write the images and do not run them")
+    cp.add_argument("--persistence-only", action="store_true",
+                    help="run only the architectural persistent-device reopen campaign")
     cp.add_argument("--out", help="where to write the images")
     cp.add_argument("--refresh", action="store_true",
                     help="rewrite the manifest's record counts and trace digests")

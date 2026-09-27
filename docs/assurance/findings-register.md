@@ -2291,7 +2291,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-461** owed-act: the persistent block-image receipt records image identities and persistence events but omits the complete input-event trace and separate architectural two-run HTIF reopen evidence
 · Raised: M5.3d, in prose
-· Disposition: open, the block-device campaign and M5.3d target integration must supply these records before the complete crash predicate can be accepted
+· Disposition: closed at the device boundary, schema-2 receipts sequence model inputs and the architectural C-durable and P-flush campaign checks separate writer/reopen processes, complete-medium equality, image-identity continuity and exact wrong-byte/fixture-reload refusals; executable authenticated storage and its crash predicate remain M5.3d's joins
 
 **F-389** measurement: universal symbolic authentication made the recovered witness-history theorem vacuous despite inhabited records
 · Raised: M5.5

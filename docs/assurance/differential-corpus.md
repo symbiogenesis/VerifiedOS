@@ -62,7 +62,13 @@ causes, wrong fault sites and continuations reached without refusal.
 wrong-byte, missing-refusal and wrong-cause negative controls. The
 [M5.3c contract](../implementation/contracts/block-device-prerequisites.md#architectural-authority)
 limits this evidence to architectural access refusal and modeled device state;
-kernel authority distribution, host-image persistence and storage integration remain open.
+kernel authority distribution and storage integration remain separate obligations.
+The full corpus command additionally runs [the generated persistence
+campaign](../../tools/vos/block_persistence.py), outside the single-run manifest:
+write/reopen and flush/reopen each use separate emulator processes, compare the
+complete medium and retain image identities and input-event receipts. A wrong-byte
+reader and a reader reopened from the original fixture must refuse. These device
+checks do not establish storage authentication or crash recovery.
 
 ## 2. Writing a member
 

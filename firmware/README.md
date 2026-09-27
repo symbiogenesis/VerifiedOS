@@ -16,6 +16,7 @@ file is and what it is not.
 | [harness/kernel_entry_fixture.s](harness/kernel_entry_fixture.s) | A kernel-entry fixture that checks the handoff state and reports through HTIF, with the bring-up kernel layout | M4.4's kernel |
 | [harness/rot_inputs.s](harness/rot_inputs.s) | A probe that reads the RoT's lifecycle state, entropy verdict and floor under the RoT composition | Firmware |
 | [harness/slh_target.c](harness/slh_target.c) | One translation unit for compiling the existing SHAKE and SLH callback through the selected purecap backend | The complete RoT release stage or a passing target execution claim |
+| [harness/rot_release_target.c](harness/rot_release_target.c) | The target measurement, signature decision, placement and handoff-record preparation, with captured results for comparison | The model's missing release/latch doors, ROM/A-B/counting or the separately signed kernel stage |
 
 **Where each runs today.** The boot-handoff harness
 runs the release host-compiled in place of the RoT hart and says so in every
@@ -49,6 +50,20 @@ wrong-root controls run. A cutoff or timeout records no verdict and leaves those
 controls unexecuted. Target code and data stay in the native output lane. The
 complete RoT stage still needs its release mechanism, policy lowering and boot
 chain joins.
+
+`boot-handoff release-target` compiles the preparation body with the real SLH
+verifier through the contained backend. Trusted assembly reads the actual RoT
+inputs and supplies bounded buffers; the compiled body exports its verdict,
+measurement, placed image and handoff record. Completed attempts use HTIF
+success so the emulator saves that capture, while the capture's verdict decides
+release or refusal. The harness compares every output byte with the host stage
+and starts the main-die fixture only from an accepted target capture. Its finite
+campaign covers a valid image, bad magic, a version below the floor, a corrupt
+signature, a wrong root and a corrupt payload. It does not establish the complete
+boot-handoff predicate above: MMIO access and terminal observation use assembly,
+and the release callback, item-6 request and remaining firmware stages still
+need their compiler and model joins. Timeouts and missing captures fail the
+campaign.
 
 The C is written to stay within what the target will need: no allocation, no
 library call in the source and no loop bound read from the image beyond a length

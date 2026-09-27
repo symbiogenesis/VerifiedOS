@@ -342,12 +342,15 @@ answer completes the command with `IO`. The adapter retains that failure, so
 every later command also completes with `IO`, and no `READ` returns bytes a
 restart would not reopen. With no bound image the platform layer answers true
 and the register is the whole medium. The adapter chooses no tear: the model
-applies the recorded mask before asking. `--blkdev-receipt` writes one JSON
-object per line for the open, each persistence answer and the close, naming
+applies the recorded mask before asking. `--blkdev-receipt` writes one sequenced
+JSON object per line for the open, model inputs, each persistence answer and the close, naming
 the image file by SHA-256 at open and, when the run reaches its normal end, at
-close; a run that exits early leaves no close record. It records persistence answers,
-not the complete input-event trace of progress events, resets and bus accesses
-that the composition input above asks for. A requested receipt that cannot record
+close; a run that exits early leaves no close record. Schema 2 records each model
+input call before its transition: whole-access checks, loads and stores, progress
+epochs and error/misplaced-read inputs, effective tear masks, reset and simultaneous
+boundary flags, and corruption bytes. Initial image binding is named by the open
+record. Architectural refusals before device dispatch remain in the commit trace.
+A requested receipt that cannot record
 the opening identity refuses startup. A later receipt-write failure makes the
 persistence answer and later commands fail with `IO`; already durable bytes
 remain durable, including a full-block write whose receipt then failed. Failure
@@ -372,8 +375,16 @@ It also checks each startup refusal and the emulator's own options. Its
 inverted expectations fail at the reopened-medium comparison, including a
 reopen that keeps the fixture copy instead of loading the image.
 
-The remaining architectural HTIF acceptance cases stay open, including C-durable
-and P-flush as guest programs spanning two emulator runs.
+The [architectural persistence campaign](../tools/vos/block_persistence.py)
+checks C-durable and P-flush with separate writer and reader emulator processes.
+It compares the complete reopened medium, binds the writer's final image identity
+to the reader's initial identity, and validates the input-event sequence. The
+C-durable writer observes no status and sends no acknowledgment after its write;
+the P-flush writer flushes with an out-of-range selected block. Wrong-byte and
+fixture-reload readers must report their exact HTIF refusal. The full
+`model corpus` command includes this campaign; `--persistence-only` selects it
+for focused debugging. These finite device cases do not establish storage
+authentication or recovery.
 [StorageBridge.v](../proofs/StorageBridge.v) specifies a bytes-to-record decoder
 for the selected recovery policy, authenticated through AesGcm.v's functional
 reference, with its layout, commit-representation and nonce decisions left
