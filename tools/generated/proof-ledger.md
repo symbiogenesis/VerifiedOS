@@ -222,7 +222,6 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/PqArith.v | n/a | cited |
 | R-05-163 | proofs/ProbingModel.v | n/a | cited |
 | R-05-163 | proofs/ResetTable.v | n/a | cited |
-| R-05-163 | proofs/RingContract.v | n/a | cited |
 | R-05-163 | proofs/RomVerifier.v | n/a | cited |
 | R-05-163 | proofs/RotFirmware.v | n/a | cited |
 | R-05-163 | proofs/SeamWitnesses.v | n/a | cited |
