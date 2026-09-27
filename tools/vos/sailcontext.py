@@ -11,6 +11,7 @@ import hashlib
 import re
 from bisect import bisect_right
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -25,6 +26,7 @@ NOTICE = ("Advisory context only. Freshness covers recorded local owners, not pr
           "compilation or behavioral correctness.")
 _TOKEN = re.compile(r"[\w']+")
 _WORD = re.compile(r"[^\W_]+")
+_NEWLINE = re.compile(b"\n")
 _RESERVED = frozenset(("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
                        *(f"{prefix}{digit}" for prefix in ("COM", "LPT")
                          for digit in "123456789¹²³")))
@@ -148,7 +150,7 @@ def _read(root: Path) -> tuple[sailbundle.Bundle, str, dict[str, _Owner]]:
             raise ValueError(f"{rel}: recorded owner digest differs from current bytes; "
                              "regenerate and compare the bundle before using its context")
         owners[rel] = _Owner(data, hashlib.sha256(data).hexdigest(),
-                             tuple([0] + [pos + 1 for pos, byte in enumerate(data) if byte == 10]))
+                             tuple([0] + [match.end() for match in _NEWLINE.finditer(data)]))
     return bundle, hashlib.sha256(raw).hexdigest(), owners
 
 
@@ -239,6 +241,10 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
     if missing:
         raise ValueError("--exclude is not a recorded local owner: " + ", ".join(sorted(missing)))
     declarations, references = bundle.declarations(), bundle.references()
+    # A bundle repeats owner spellings at every declaration and reference. Validate
+    # each spelling once in this invocation; all owner bytes and locations below
+    # are still checked, including records that the query will not select.
+    source_path = cache(_source_path)
     coverage = Coverage(local_declarations=0, unlocated_declarations=0,
                         unrecorded_declarations=0, local_references=0,
                         unlocated_references=0, unrecorded_references=0)
@@ -248,7 +254,7 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
         if source.file is None:
             coverage["unlocated_declarations"] += 1
             continue
-        rel = _source_path(source.file)
+        rel = source_path(source.file)
         if rel not in checked_paths:
             _safe_path(root, rel)
             checked_paths.add(rel)
@@ -261,7 +267,7 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
         if reference.file is None:
             coverage["unlocated_references"] += 1
             continue
-        rel = _source_path(reference.file)
+        rel = source_path(reference.file)
         if rel not in checked_paths:
             _safe_path(root, rel)
             checked_paths.add(rel)
@@ -280,7 +286,7 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
             if reference.file is None:
                 omitted["unlocated"] += 1
                 continue
-            rel = _source_path(reference.file)
+            rel = source_path(reference.file)
             if rel not in owners:
                 omitted["unrecorded"] += 1
                 continue
@@ -307,14 +313,21 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
             if kinds and declaration.kind not in kinds:
                 continue
             source = declaration.source
-            rel = _source_path(source.file) if source.file is not None else None
+            rel = source_path(source.file) if source.file is not None else None
             if rel in exclude:
                 continue
-            name_words = _words(declaration.name)
-            found = query_words & (name_words | _words(source.contents))
-            if ((operation == "symbol" and declaration.name != query)
-                    or (operation == "search" and not found)):
-                continue
+            score = 0
+            terms: list[str] = []
+            if operation == "symbol":
+                if declaration.name != query:
+                    continue
+            else:
+                name_words = _words(declaration.name)
+                found = query_words & (name_words | _words(source.contents))
+                if not found:
+                    continue
+                score = sum(8 if term in name_words else 1 for term in found)
+                terms = sorted(found)
             if rel is None:
                 omitted["unlocated"] += 1
                 continue
@@ -324,10 +337,9 @@ def context(root: Path, operation: Operation, query: str, *, kinds: tuple[str, .
             loc = source.loc
             if loc is None:
                 raise ValueError(f"{declaration.name}: local source has no location")
-            score = sum(8 if term in name_words else 1 for term in found) if operation == "search" else 0
             matches.append(_match(declaration.kind, declaration.name, declaration.clause,
                                   None, None, rel, owners[rel], loc[2], loc[5], loc[2], loc[5],
-                                  max_chars, score, sorted(found) if operation == "search" else []))
+                                  max_chars, score, terms))
     matches.sort(key=lambda hit: (-hit["score"], hit["path"], hit["start_byte"], hit["end_byte"],
                                   hit["kind"], hit["symbol"], hit["clause"] or 0,
                                   hit["reference_kind"] or ""))

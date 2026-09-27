@@ -179,6 +179,8 @@ def _late_reference_window() -> None:
 def _freshness_all_owners() -> None:
     files, _ = _fixture()
     with sandbox_tree(files) as root:
+        ensure(sailcontext.context(root, "symbol", "shared")["total_matches"] == 3,
+               "the initial snapshot must be readable before its bytes change")
         path = root / "model/model/b.sail"
         before = path.stat()
         path.write_bytes(SECOND.replace("target", "edited").encode("utf-8"))
@@ -190,6 +192,61 @@ def _freshness_all_owners() -> None:
         status, stdout, stderr = _call(root, ["symbol", "shared", "--json"])
         ensure(status == 1 and not stdout and "missing regular source" in stderr,
                "a deleted owner must refuse the complete output")
+
+
+def _owner_line_offsets_and_utf8_boundaries() -> None:
+    files, raw = _fixture()
+    for file, source in (("empty.sail", ""), ("edges.sail", "\n\r\ncafé\n\nlast")):
+        files[f"model/model/{file}"] = source
+        raw["hashes"][file] = {"md5": hashlib.md5(
+            source.encode("utf-8"), usedforsecurity=False).hexdigest()}
+    files[sailbundle.BUNDLE] = json.dumps(raw)
+    with sandbox_tree(files) as root:
+        _, _, owners = sailcontext._read(root)
+        for owner in owners.values():
+            expected_lines = (0, *(offset + 1 for offset, byte in enumerate(owner.raw)
+                                   if byte == 10))
+            ensure(owner.lines == expected_lines, "the line index must include every LF boundary")
+            for offset in range(len(owner.raw) + 1):
+                begin = owner.raw.rfind(b"\n", 0, offset) + 1
+                try:
+                    column = len(owner.raw[begin:offset].decode("utf-8")) + 1
+                except UnicodeError:
+                    try:
+                        sailcontext._position(owner, offset)
+                    except ValueError as exc:
+                        ensure("splits a UTF-8" in str(exc), "split characters need an exact refusal")
+                    else:
+                        raise RuntimeError("a split UTF-8 character was accepted")
+                else:
+                    ensure(sailcontext._position(owner, offset) ==
+                           (owner.raw.count(b"\n", 0, offset) + 1, column, begin),
+                           "empty lines, CRLF, Unicode and EOF must preserve exact positions")
+
+
+def _unselected_records_are_validated() -> None:
+    files, baseline = _fixture()
+    with sandbox_tree(files) as root:
+        ensure(not sailcontext.context(root, "symbol", "absent")["matches"],
+               "an unknown exact symbol is an empty successful result on valid inputs")
+        bad_bundles: list[dict[str, Any]] = []
+        raw = json.loads(json.dumps(baseline))
+        raw["functions"]["shared"]["function"][0]["source"]["contents"] = "forged source"
+        bad_bundles.append(raw)
+        raw = json.loads(json.dumps(baseline))
+        raw["functions"]["shared"]["function"][1]["source"]["file"] = "../a.sail"
+        bad_bundles.append(raw)
+        raw = json.loads(json.dumps(baseline))
+        raw["functions"]["shared"]["links"][0]["loc"] = [0, 99999]
+        bad_bundles.append(raw)
+        for raw in bad_bundles:
+            _write_bundle(root, raw)
+            status, stdout, stderr = _call(root, ["symbol", "absent", "--json"])
+            ensure(status == 1 and not stdout and bool(stderr),
+                   "unselected declarations and references must be validated on every invocation")
+        _write_bundle(root, baseline)
+        ensure(not sailcontext.context(root, "symbol", "absent")["matches"],
+               "a repaired bundle must be read afresh after earlier refusals")
 
 
 def _bounds_schema_and_human_output() -> None:
@@ -299,6 +356,8 @@ def cases() -> list[Case]:
             Case("byte-locations-and-compiler-aliases", _byte_locations_and_aliases),
             Case("late-reference-window", _late_reference_window),
             Case("freshness-all-recorded-owners", _freshness_all_owners),
+            Case("owner-line-offsets-and-utf8-boundaries", _owner_line_offsets_and_utf8_boundaries),
+            Case("unselected-records-are-validated", _unselected_records_are_validated),
             Case("bounds-json-schema-and-human-output", _bounds_schema_and_human_output),
             Case("malformed-bundle-and-locations", _malformed_bundle_and_locations),
             Case("unsafe-paths-and-links", _unsafe_paths_and_links),
