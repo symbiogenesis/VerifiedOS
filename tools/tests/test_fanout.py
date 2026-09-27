@@ -1,175 +1,62 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Batch orchestration preserves inputs and orders publication, CI and retirement."""
+"""Batch integration preserves worker ancestry, the journal and explicit commit paths."""
 
-import argparse
 import json
-import subprocess
-import tempfile
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
 from pathlib import Path
-from unittest.mock import patch
 
-from tests.harness import Case, ensure, sandbox_tree
-from vos import fanout_ci, fanout_retire
-from vos.cli import fanout, worktree
-
-FILES = {".gitignore": "/.worktrees/\n/out/\n", "README.md": "base\n",
-         "tools/run.py": "raise SystemExit(0)\n"}
-
-
-def _git(root: Path, *args: str) -> str:
-    done = subprocess.run(["git", "-C", str(root), *args], check=False, capture_output=True,
-                          encoding="utf-8", timeout=60)
-    ensure(done.returncode == 0, f"fixture Git failed: {done.stderr}")
-    return done.stdout.strip()
-
-
-def _commit(root: Path, name: str) -> str:
-    _git(root, "commit", "--allow-empty", "-qm", name)
-    return _git(root, "rev-parse", "HEAD")
-
-
-@contextmanager
-def _fixture() -> Iterator[tuple[Path, Path, Path]]:
-    with sandbox_tree(FILES) as root, tempfile.TemporaryDirectory(prefix="vos-remote-") as remote:
-        _git(root, "config", "user.name", "Fanout test")
-        _git(root, "config", "user.email", "fanout@example.invalid")
-        _git(root, "config", "commit.gpgsign", "false")
-        base = _commit(root, "base")
-        _git(root, "branch", "-M", "main")
-        _git(Path(remote), "init", "--bare", "-q")
-        _git(root, "remote", "add", "origin", remote)
-        record = worktree.create(root, "worker", base)
-        lane = Path(str(record["path"]))
-        yield root, lane, Path(remote)
-
-
-def _init(root: Path, lane: Path) -> tuple[fanout.Batch, Path]:
-    args = argparse.Namespace(batch="example", worktree=[lane], host_worktree=[],
-                              remote="origin", cold=True, defer=["separate experiment"])
-    return fanout.initialize(root, args), root / "out/fanout/example/state.json"
-
-
-def _finish_args() -> argparse.Namespace:
-    return argparse.Namespace(path=[], message=None, wait_host=0)
-
-
-def _refuses(action: Callable[[], object], fragment: str) -> None:
-    try:
-        action()
-    except ValueError as err:
-        ensure(fragment in str(err), f"expected {fragment}: {err}")
-    else:
-        raise AssertionError(f"expected refusal: {fragment}")
+from tests.fanout_fixture import commit, fixture, git, init, refuses
+from tests.harness import Case, ensure
+from vos.cli import fanout
 
 
 def _roundtrip_and_handoff() -> None:
-    with _fixture() as (root, lane, _):
+    with fixture() as (root, lane, _):
         (lane / "worker.txt").write_text("landed\n", encoding="utf-8")
-        _git(lane, "add", "--", "worker.txt")
-        head = _commit(lane, "worker")
-        state, path = _init(root, lane)
+        git(lane, "add", "--", "worker.txt")
+        head = commit(lane, "worker")
+        state, path = init(root, lane)
         ensure(fanout._load(path, root) == state, "journal round-trips")
         fanout.integrate(root, state, path)
-        _git(root, "merge-base", "--is-ancestor", head, "HEAD")
+        git(root, "merge-base", "--is-ancestor", head, "HEAD")
         ensure((root / "worker.txt").read_text(encoding="utf-8") == "landed\n",
                "worker changes reach integration")
-        revision = _git(root, "rev-parse", "HEAD")
+        revision = git(root, "rev-parse", "HEAD")
         fanout.integrate(root, state, path)
-        ensure(_git(root, "rev-parse", "HEAD") == revision, "resume does not merge twice")
-        _commit(lane, "changed handoff")
-        _refuses(lambda: fanout.integrate(root, state, path), "handoff changed")
+        ensure(git(root, "rev-parse", "HEAD") == revision, "resume does not merge twice")
+        commit(lane, "changed handoff")
+        refuses(lambda: fanout.integrate(root, state, path), "handoff changed")
 
 
 def _conflict() -> None:
-    with _fixture() as (root, lane, _):
+    with fixture() as (root, lane, _):
         (lane / "README.md").write_text("worker\n", encoding="utf-8")
-        _git(lane, "add", "--", "README.md")
-        _commit(lane, "worker edit")
+        git(lane, "add", "--", "README.md")
+        commit(lane, "worker edit")
         (root / "README.md").write_text("integrator\n", encoding="utf-8")
-        _git(root, "add", "--", "README.md")
-        _commit(root, "integrator edit")
-        state, path = _init(root, lane)
-        _refuses(lambda: fanout.integrate(root, state, path), "")
-        ensure("UU README.md" in _git(root, "status", "--porcelain"),
+        git(root, "add", "--", "README.md")
+        commit(root, "integrator edit")
+        state, path = init(root, lane)
+        refuses(lambda: fanout.integrate(root, state, path), "")
+        ensure("UU README.md" in git(root, "status", "--porcelain"),
                "conflict left for integrator, never reset")
         ensure(lane.exists() and state["ci"] is None, "conflict neither dispatches nor retires")
 
 
-def _publish_wait_resume() -> None:
-    with _fixture() as (root, lane, remote):
-        _commit(lane, "worker commit")
-        state, path = _init(root, lane)
-        observed: list[str] = []
-
-        def advance(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            ensure(checkout == root, "CI uses integration checkout")
-            published = _git(remote, "rev-parse", "refs/heads/main")
-            ensure(published == ci["revision"], "publication precedes CI")
-            ensure(ci["ref"] == "main", "dispatch always uses main")
-            ensure(_git(remote, "for-each-ref", "--format=%(refname)") == "refs/heads/main",
-                   "publication creates no work branch or tag")
-            ensure(ci["cold"], "fresh-proof policy propagates")
-            observed.append("ci")
-            save()
-            return len(observed) > 1
-
-        def retire(checkout: Path, record: fanout_retire.LaneRecord,
-                   revision: str, archive_root: Path) -> dict[str, object]:
-            ensure(observed == ["ci", "ci"], "retirement follows successful hosted handoff")
-            ensure(checkout == root and record.path == str(lane), "only selected lane retires")
-            ensure(revision == _git(root, "rev-parse", "HEAD"), "retirement bound to tested commit")
-            ensure(archive_root.is_relative_to(root / "out/fanout"), "outputs retained per batch")
-            observed.append("retire")
-            return {"status": "retired"}
-
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=advance),
-              patch.object(fanout_retire, "retire", side_effect=retire)):
-            ensure(not fanout.finish(root, state, path, _finish_args()), "pending host stops completion")
-            ensure(state["status"] == "host-pending" and not state["retired"], "pending is not success")
-            state = fanout._load(path, root)
-            ensure(fanout.finish(root, state, path, _finish_args()), "resume finishes")
-            ensure(state["status"] == "complete", "completion persisted")
-            ensure(fanout.finish(root, state, path, _finish_args()), "completed resume is read-only")
-            ensure(observed == ["ci", "ci", "retire"], "no repeated dispatch or retirement")
-            _commit(root, "new inputs")
-            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "inputs changed")
-
-
-def _retirement_resume() -> None:
-    with _fixture() as (root, lane, _):
-        state, path = _init(root, lane)
-        state["status"] = "retiring"
-        revision = _git(root, "rev-parse", "HEAD")
-        fanout._publish(root, state, revision)
-        state["ci"] = fanout_ci.new_state("example/repo", "main",
-                                           revision, True)
-        # A prior retirement may already have removed the checkout before failing
-        # branch deletion. The retirement module owns recovery from its receipt.
-        _git(root, "worktree", "remove", str(lane))
-        with (patch.object(fanout_ci, "advance", return_value=True),
-              patch.object(fanout_retire, "retire", return_value={"status": "retired"}) as retire):
-            ensure(fanout.finish(root, state, path, _finish_args()), "partial removal can resume")
-            ensure(retire.call_count == 1, "retirement receipt handles missing checkout")
-
-
 def _paths_and_journal() -> None:
-    with _fixture() as (root, lane, _):
-        _refuses(lambda: fanout._location(root, "../escape"), "portable")
-        state, path = _init(root, lane)
-        _refuses(lambda: _init(root, lane), "already exists")
+    with fixture() as (root, lane, _):
+        refuses(lambda: fanout._location(root, "../escape"), "portable")
+        state, path = init(root, lane)
+        refuses(lambda: init(root, lane), "already exists")
         value = dict(state)
         value["root"] = str(lane)
         path.write_text(json.dumps(value), encoding="utf-8")
-        _refuses(lambda: fanout._load(path, root), "different integration")
+        refuses(lambda: fanout._load(path, root), "different integration")
         fanout._save(path, state)
-        _refuses(lambda: fanout._prepare(root, ["../outside"], "bad"), "individual file")
-        _refuses(lambda: fanout._prepare(root, ["tools"], "bad"), "individual file")
-        _refuses(lambda: fanout._prepare(root, ["README.md"], None), "together")
+        refuses(lambda: fanout._prepare(root, ["../outside"], "bad"), "individual file")
+        refuses(lambda: fanout._prepare(root, ["tools"], "bad"), "individual file")
+        refuses(lambda: fanout._prepare(root, ["README.md"], None), "together")
         with fanout._exclusive(root):
-            _refuses(lambda: _lock_again(root), "another fanout")
+            refuses(lambda: _lock_again(root), "another fanout")
 
 
 def _lock_again(root: Path) -> None:
@@ -178,86 +65,27 @@ def _lock_again(root: Path) -> None:
 
 
 def _explicit_commit() -> None:
-    with _fixture() as (root, _, _):
+    with fixture() as (root, _, _):
         (root / "deliverable.txt").write_text("new\n", encoding="utf-8")
         (root / "unrelated.txt").write_text("other session\n", encoding="utf-8")
-        _refuses(lambda: fanout._prepare(root, ["deliverable.txt"], "deliver explicit file"),
+        refuses(lambda: fanout._prepare(root, ["deliverable.txt"], "deliver explicit file"),
                  "uncommitted inputs")
-        ensure(_git(root, "show", "HEAD:deliverable.txt") == "new", "explicit path committed")
-        ensure("?? unrelated.txt" in _git(root, "status", "--porcelain"),
+        ensure(git(root, "show", "HEAD:deliverable.txt") == "new", "explicit path committed")
+        ensure("?? unrelated.txt" in git(root, "status", "--porcelain"),
                "another session's work is not staged")
 
 
 def _dirty_handoff() -> None:
-    with _fixture() as (root, lane, _):
-        state, path = _init(root, lane)
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane)
         (lane / "uncommitted.txt").write_text("work in progress", encoding="utf-8")
-        _refuses(lambda: fanout.integrate(root, state, path), "uncommitted inputs")
+        refuses(lambda: fanout.integrate(root, state, path), "uncommitted inputs")
         ensure(state["status"] == "initialized", "dirty worker never enters integration")
-
-
-def _inputs_change_during_ci() -> None:
-    with _fixture() as (root, lane, _):
-        state, path = _init(root, lane)
-
-        def changed(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            (checkout / "README.md").write_text("concurrent edit\n", encoding="utf-8")
-            return True
-
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=changed),
-              patch.object(fanout_retire, "retire") as retire):
-            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "uncommitted inputs")
-            retire.assert_not_called()
-            ensure(state["status"] != "complete", "changed inputs do not complete")
-
-
-def _main_only() -> None:
-    with _fixture() as (root, lane, remote):
-        _refuses(lambda: _init(lane, root), "on main")
-        state, path = _init(root, lane)
-        revision = _git(root, "rev-parse", "HEAD")
-        _git(root, "config", "push.followTags", "true")
-        _git(root, "tag", "-a", "private", "-m", "must remain local")
-        ensure(fanout._publish(root, state, revision) == "main", "only main is a dispatch ref")
-        ensure(_git(remote, "for-each-ref", "--format=%(refname)") == "refs/heads/main",
-               "user followTags configuration cannot publish tags")
-        # A legacy completed journal must not bypass the main-only invariant.
-        _git(root, "switch", "-c", "work/old-integration")
-        state["branch"] = "work/old-integration"
-        state["status"] = "complete"
-        with patch.object(fanout_ci, "advance") as advance:
-            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "requires main")
-            _refuses(lambda: fanout._publish(root, state, revision), "requires main")
-            advance.assert_not_called()
-
-
-def _remote_changes_during_ci() -> None:
-    with _fixture() as (root, lane, remote):
-        state, path = _init(root, lane)
-
-        def changed(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            _git(remote, "update-ref", "refs/heads/main", ci["revision"] + "^")
-            return True
-
-        # Give main a parent so the remote can move independently of local HEAD.
-        _commit(root, "settled input")
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=changed),
-              patch.object(fanout_retire, "retire") as retire):
-            _refuses(lambda: fanout.finish(root, state, path, _finish_args()), "remote main changed")
-            retire.assert_not_called()
-            ensure(state["status"] != "complete", "remote change does not complete")
 
 
 def cases() -> list[Case]:
     return [Case("journal, merge ancestry and changed handoff", _roundtrip_and_handoff),
             Case("conflict remains for integrator", _conflict),
-            Case("publish, pending host, resume and retirement order", _publish_wait_resume),
-            Case("partial retirement resumes without checkout", _retirement_resume),
             Case("paths, journal identity and exclusive mutation", _paths_and_journal),
             Case("only explicit paths enter commit", _explicit_commit),
-            Case("dirty handoff stops before integration", _dirty_handoff),
-            Case("concurrent inputs prevent retirement", _inputs_change_during_ci),
-            Case("main-only completion and publication without tags", _main_only),
-            Case("remote changes prevent retirement", _remote_changes_during_ci)]
+            Case("dirty handoff stops before integration", _dirty_handoff)]

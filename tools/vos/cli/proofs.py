@@ -19,6 +19,7 @@ hop to hash native outputs; `proofs export` preserves an existing run without Ro
 """
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -471,17 +472,52 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     return results[joint]
 
 
-def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
+def _gate_modules(root: Path) -> list[Path]:
+    """This gate's implementation: every checkout module Python runs to import it.
+
+    Derived from import statements, so a module the gate starts to use joins its
+    identity without a list to maintain. Imports inside functions count, a parent
+    package counts because importing its module runs it, and a name imported from a
+    module counts when it is a module itself. Names resolve against `tools/`, the
+    entry point's first import path. The launcher, command table and lockfile stay
+    out: they choose the process, whose environment `_cache_context` binds.
+    """
     tools = root / "tools"
-    owned = [tools / "run.py", tools / "vos" / "__init__.py",
-             tools / "vos" / "cli" / "__init__.py", tools / "vos" / "env.py",
-             tools / "vos" / "corpus.py", tools / "vos" / "register.py",
-             tools / "vos" / "proofs.py", tools / "vos" / "proofcites.py",
-             tools / "vos" / "proofaudit.py", tools / "vos" / "receipts.py",
-             tools / "vos" / "toolenv.py", tools / "pyproject.toml", tools / "uv.lock",
-             tools / "vos" / "cli" / "proofs.py",
-             root / "docs" / "requirements-register.md"]
-    return receipts.snapshot(root, [*sources, *owned])
+
+    def module(name: str) -> Path | None:
+        base = tools.joinpath(*name.split("."))
+        for path in (base / "__init__.py", base.with_suffix(".py")):
+            if path.is_file():
+                return path
+        return None   # an imported attribute, or a module outside the checkout
+
+    if module(__name__) is None:
+        raise ValueError(f"the proof gate cannot find its own module {__name__} under {tools}")
+    pending: list[str] = [__name__]
+    seen: set[str] = set()
+    found: set[Path] = set()
+    while pending:
+        name = pending.pop()
+        if name in seen or (path := module(name)) is None:
+            continue
+        seen.add(name)
+        found.add(path)
+        parts = name.split(".")
+        pending += [".".join(parts[:end]) for end in range(1, len(parts))]
+        package = parts if path.name == "__init__.py" else parts[:-1]
+        for node in ast.walk(ast.parse(path.read_bytes(), filename=str(path))):
+            if isinstance(node, ast.Import):
+                pending += [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                anchor = package[:len(package) + 1 - node.level] if node.level else []
+                named = ".".join([*anchor, *([node.module] if node.module else [])])
+                pending += [named, *(f"{named}.{alias.name}" for alias in node.names)]
+    return sorted(found)
+
+
+def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
+    return receipts.snapshot(root, [*sources, *_gate_modules(root),
+                                    root / "docs" / "requirements-register.md"])
 
 
 def _sources(root: Path) -> list[Path]:
@@ -818,10 +854,11 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
               toolchain: dict[str, object], context: dict[str, object] | None) -> dict[str, Cached]:
     """Reuse checked objects and audits only across identical prerequisite closures.
 
-    Gate/toolchain changes invalidate all evidence. Register prose is recorded but
-    is not a compiler or audit input: claims bind IDs from the source; their semantic
-    agreement with requirements belongs to review and K-109. Adding/removing a source
-    invalidates any changed local dependency resolution, not unrelated components.
+    Changes to the gate's own modules or toolchain invalidate all evidence. Register
+    prose is recorded but is not a compiler or audit input: claims bind IDs from the
+    source; their semantic agreement with requirements belongs to review and K-109.
+    Adding/removing a source invalidates any changed local dependency resolution, not
+    unrelated components.
     """
     try:
         if context is None:

@@ -1,16 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Template index reuse preserves sandbox bytes, pins and copy-on-write isolation."""
+"""Template index reuse preserves sandbox bytes, pins and copy-on-write isolation.
 
+A case's checker run stops after its rule's group, and only a survivor runs whole.
+"""
+
+import contextlib
+import io
 import json
 import stat
 import subprocess
 from pathlib import Path
 from threading import Barrier, Lock
+from types import SimpleNamespace
+from typing import cast
 from unittest.mock import patch
 
+import check
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
+from vos.checks import Context
 from vos.cli import selftest
+from vos.seeded import KILLED, SURVIVED, UNSEEDED
 from vos.sharding import Shard
 
 
@@ -264,9 +274,90 @@ def _parallel_work_is_complete_ordered_and_bounded() -> None:
         raise AssertionError("a worker failure must propagate to its caller")
 
 
+def _checker_stops_after_the_rules_group() -> None:
+    ran: list[str] = []
+
+    def group(name: str, *rules: str) -> SimpleNamespace:
+        def run(ctx: Context) -> None:
+            ran.append(name)
+            for rule in rules:
+                ctx.rep.report(rule, "finding(s):", ["seeded"] if rule == "K-02" else [], "held")
+        return SimpleNamespace(run=run)
+
+    groups = [group("first", "K-01"), group("second", "K-02", "K-03"), group("third", "K-04")]
+    expectations = {
+        "K-01": (["first"], ["ok K-01: held",
+                             "stopped after the group deciding K-01; "
+                             "the 2 later group(s) decided nothing."]),
+        "K-03": (["first", "second"], ["ok K-03: held",
+                                       "stopped after the group deciding K-03; "
+                                       "the 1 later group(s) decided nothing.",
+                                       "1 finding(s)."]),
+        "K-04": (["first", "second", "third"], ["ok K-04: held", "1 finding(s)."]),
+        "K-99": (["first", "second", "third"], ["ok K-04: held", "1 finding(s)."]),
+    }
+    with patch.object(check, "GROUPS", groups), patch.object(check.corpus_mod, "load"), \
+            patch.object(check, "read_register"), patch.object(check, "read_artifacts"):
+        for through, (expected, tail) in expectations.items():
+            ran.clear()
+            report = check.run(Path("unused"), through=through)
+            ensure(ran == expected, f"--through {through} ran {ran}, expected {expected}")
+            ensure(report.out[-len(tail):] == tail, f"--through {through} ended {report.out}")
+        ran.clear()
+        ensure(check.run(Path("unused")).out[-1] == "1 finding(s)." and len(ran) == 3,
+               "a run without --through must run every group")
+        with contextlib.redirect_stderr(io.StringIO()):
+            try:
+                check.main(["--fix", "--through", "K-01"])
+            except SystemExit as err:
+                ensure(err.code == 2, "--fix with --through must be refused during parsing")
+            else:
+                raise AssertionError("--fix repaired a run that stops at one rule's group")
+
+
+class _Scripted:
+    """A sandbox whose checker answers from a script and records each run's stop."""
+
+    def __init__(self, *answers: tuple[int, list[str], list[str]]) -> None:
+        self.answers = list(answers)
+        self.calls: list[str | None] = []
+
+    def check(self, fix: bool = False,
+              through: str | None = None) -> tuple[int, list[str], list[str]]:
+        ensure(not fix, "a case never repairs")
+        self.calls.append(through)
+        return self.answers.pop(0)
+
+
+def _case_verdict_reruns_only_survivors() -> None:
+    scenarios: list[tuple[bool, tuple[tuple[int, list[str], list[str]], ...], str,
+                          list[str | None], str]] = [
+        (True, ((1, [], ["K-24"]),), KILLED, ["K-24"], "K-24"),
+        (True, ((0, [], []), (1, [], ["K-24", "K-26"])), KILLED, ["K-24", None], "K-26"),
+        (True, ((1, [], ["K-26"]), (1, [], ["K-26", "K-88"])), SURVIVED, ["K-24", None],
+         "other rules fired: K-26, K-88"),
+        (True, ((1, [selftest.OVERRAN], []),), SURVIVED, ["K-24"], "exited 1"),
+        (False, (), UNSEEDED, [], "will not apply"),
+    ]
+    for applies, answers, outcome, calls, detail in scenarios:
+        box = _Scripted(*answers)
+
+        def seed(_box: selftest.Sandbox, applies: bool = applies) -> bool:
+            return applies
+
+        verdict = selftest._verdict(("K-24", "a seeded figure", seed),
+                                    cast("selftest.Sandbox", box))
+        ensure(verdict.outcome == outcome, f"{answers} gave {verdict.outcome}, expected {outcome}")
+        ensure(box.calls == calls, f"{answers} ran the checker as {box.calls}, expected {calls}")
+        ensure(detail in verdict.detail, f"{answers} explained itself as {verdict.detail!r}")
+        ensure(not box.answers, "a scripted checker run was left unused")
+
+
 def cases() -> list[Case]:
     return [
         Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
+        Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
+        Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
         Case("failed-carry-rebuilds-index", _failed_carry_rebuilds_index),
         Case("attribute-change-matches-cold-index", _attribute_change_matches_cold_index),

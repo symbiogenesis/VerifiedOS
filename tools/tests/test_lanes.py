@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The two lanes as one command surface, held to the declaration that makes it one.
 
-[vos/cli/\\_\\_init\\_\\_.py](../vos/cli/__init__.py) says which subcommands of a guest
+[vos/commands.py](../vos/commands.py) says which subcommands of a guest
 command answer on either lane, and `run.py` reads that `host_ok` set to decide whether
 to re-launch into WSL. A declaration like that is worth having only if the command it
 names answers where it says it does, and for as long as `model.py` loaded the build
@@ -38,7 +38,7 @@ from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_attachments import _attached_recipe
 from tests.test_boot_crypto import _shard
 from vos import admission, boot_crypto_target, composer, kernelrun, memory_planner, rtltrace, rvfi
-from vos.cli import COMMANDS
+from vos.commands import COMMANDS
 
 _ROOT = TOOLS.parent
 _README = TOOLS / "README.md"

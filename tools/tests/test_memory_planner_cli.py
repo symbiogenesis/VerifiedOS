@@ -12,8 +12,8 @@ from typing import Any
 from tests.harness import Case, ensure
 from vos import memory_planner as planner
 from vos import memory_planner_resources as resources
-from vos.cli import BY_NAME
 from vos.cli import memory_planner as cli
+from vos.commands import BY_NAME
 
 
 def invoke(arguments: list[str]) -> tuple[int, dict[str, Any]]:

@@ -243,6 +243,62 @@ def _incremental_run() -> None:
                     sizing.assert_called_once_with()
 
 
+def _gate_identity_follows_imports() -> None:
+    """The implementation identity is the gate's import closure, not a kept list."""
+    checkout = Path(__file__).resolve().parents[2]
+    live = {path.relative_to(checkout).as_posix() for path in gate._gate_modules(checkout)}
+    for required in ("tools/vos/cli/proofs.py", "tools/vos/proofaudit.py",
+                     "tools/vos/receipts.py", "tools/vos/cli/__init__.py",
+                     "tools/vos/__init__.py", "tools/vos/proofheaders.py"):
+        ensure(required in live, f"the gate's identity omits {required}")
+    for launcher in ("tools/run.py", "tools/vos/commands.py", "tools/vos/toolenv.py"):
+        ensure(launcher not in live, f"{launcher} chooses the process and must not invalidate proofs")
+
+    with tempfile.TemporaryDirectory(prefix="vos-gate-identity-") as temporary:
+        root = Path(temporary)
+        files = {
+            "vos/__init__.py": "",
+            "vos/cli/__init__.py": "",
+            "vos/cli/proofs.py": "from vos import helper\nimport vos.deep.leaf\n\n"
+                                 "def later():\n    from .sibling import value\n"
+                                 "    from ..nested import inner\n",
+            "vos/helper.py": "import json\n",
+            "vos/cli/sibling.py": "value = 1\n",
+            "vos/deep/__init__.py": "",
+            "vos/deep/leaf.py": "",
+            "vos/nested/__init__.py": "from . import inner\n",
+            "vos/nested/inner.py": "",
+            "vos/unused.py": "",
+            "vos/commands.py": "from vos.cli import proofs\n",
+        }
+        for name, text in files.items():
+            path = root / "tools" / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        found = {path.relative_to(root / "tools").as_posix() for path in gate._gate_modules(root)}
+        ensure(found == set(files) - {"vos/unused.py", "vos/commands.py"},
+               f"derived gate modules differ: {sorted(found)}")
+        register = root / "docs" / "requirements-register.md"
+        register.parent.mkdir()
+        register.write_text("register", encoding="utf-8")
+        before = gate._inputs(root, [])
+        (root / "tools" / "vos" / "unused.py").write_text("changed = True\n", encoding="utf-8")
+        (root / "tools" / "vos" / "commands.py").write_text("rows = ()\n", encoding="utf-8")
+        ensure(gate._inputs(root, []) == before, "an unimported module changed the gate identity")
+        (root / "tools" / "vos" / "helper.py").write_text("from vos import unused\n",
+                                                          encoding="utf-8")
+        after = gate._inputs(root, [])
+        ensure(after != before and "tools/vos/unused.py" in after,
+               "a newly imported module did not join the gate identity")
+        (root / "tools" / "vos" / "cli" / "proofs.py").unlink()
+        try:
+            gate._gate_modules(root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("a checkout without the gate module derived an identity")
+
+
 def _jobs_cli_defaults_to_auto_without_probing_metadata_commands() -> None:
     root = Path(__file__).resolve().parents[2]
     with patch.object(gate, "find_root", return_value=root), \
@@ -572,6 +628,7 @@ def _native_incremental_kernel() -> None:
 
 def cases() -> list[Case]:
     return [Case("incremental-proof-cache-invalidation", _incremental_run),
+            Case("gate-identity-follows-imports", _gate_identity_follows_imports),
             Case("proof-jobs-cli-defaults-to-auto",
                  _jobs_cli_defaults_to_auto_without_probing_metadata_commands),
             Case("kernel-batches-preserve-dependencies", _kernel_batches_preserve_dependencies),

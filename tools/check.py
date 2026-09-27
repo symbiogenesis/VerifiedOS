@@ -44,12 +44,18 @@ matrix's standing column, and the checklist's totals and shares from their artif
 Every other finding has no mechanical repair: it is a person's edit, reported not
 guessed.
 
+`--through K-nn` stops after the group that decides that rule. A group reads only
+what earlier groups computed, so the rule's verdict is the one a whole run reaches;
+the mutation selftest uses it because each case needs its own rule's verdict alone.
+A stopped run decides nothing about the later groups and says so.
+
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
 
 import argparse
 import io
+import re
 import sys
 from pathlib import Path
 
@@ -81,10 +87,10 @@ def _utf8_output() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
-def run(root: Path, fix: bool = False) -> Reporter:
+def run(root: Path, fix: bool = False, through: str | None = None) -> Reporter:
     """One whole run, as data. The caller decides what to do with the verdict, which
     is what lets the mutation selftest read a run back instead of parsing its
-    stdout."""
+    stdout. `through` stops the run after the group that reports that rule."""
     corpus = corpus_mod.load(root)
     ctx = Context(
         root=root,
@@ -94,8 +100,14 @@ def run(root: Path, fix: bool = False) -> Reporter:
         rep=Reporter(),
         fix=fix,
     )
-    for group in GROUPS:
+    decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if through else None
+    skipped = 0
+    for index, group in enumerate(GROUPS):
+        start = len(ctx.rep.out)
         group.run(ctx)
+        if decided is not None and any(decided.match(line) for line in ctx.rep.out[start:]):
+            skipped = len(GROUPS) - index - 1
+            break
 
     if fix:
         for name, text in ctx.fixed.items():
@@ -105,9 +117,12 @@ def run(root: Path, fix: bool = False) -> Reporter:
         ctx.rep.line(f"rewrote {len(ctx.fixed)} file(s)." if ctx.fixed
                      else "nothing to rewrite.")
 
+    if skipped:
+        ctx.rep.line(f"stopped after the group deciding {through}; "
+                     f"the {skipped} later group(s) decided nothing.")
     if ctx.rep.findings:
         ctx.rep.line(f"{ctx.rep.findings} finding(s).")
-    else:
+    elif not skipped:
         ctx.rep.line("every derived fact agrees with its artifact.")
     return ctx.rep
 
@@ -118,9 +133,13 @@ def main(argv: list[str] | None = None) -> int:
         description="Check every derived fact against the artifact that owns it.")
     parser.add_argument("--fix", action="store_true",
                         help="rewrite the figures that are arithmetic over an artifact")
+    parser.add_argument("--through", metavar="RULE",
+                        help="stop after the group that decides RULE (a K- id)")
     args = parser.parse_args(argv)
+    if args.fix and args.through:
+        parser.error("--fix repairs the whole run; it cannot stop at one rule's group")
 
-    report = run(corpus_mod.find_root(), fix=args.fix)
+    report = run(corpus_mod.find_root(), fix=args.fix, through=args.through)
     print("\n".join(report.out))
     return 1 if report.findings else 0
 

@@ -32,8 +32,8 @@ FROZEN = ("docs/requirements-register.md", "docs/hardware/isa-profile.md",
           "model/config/verifiedos.json")
 INPUTS = ("model", "tools/opam/sail.lock", "tools/run.py", "tools/vos/env.py",
           "tools/vos/cli/model.py", "tools/vos/jsonutil.py", "tools/vos/sailassist.py",
-          "tools/vos/cli/sail_assist.py",
-          "tools/vos/cli/__init__.py", "tools/vos/toolenv.py", "tools/uv.lock",
+          "tools/vos/cli/sail_assist.py", "tools/vos/cli/__init__.py",
+          "tools/vos/commands.py", "tools/vos/toolenv.py", "tools/uv.lock",
           "tools/pyproject.toml", "tools/sail-assist.schema.json")
 SESSION = re.compile(r"[a-z][a-z0-9-]{0,63}\Z")
 
