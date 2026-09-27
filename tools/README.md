@@ -24,9 +24,11 @@ inputs, follow the [validation handoff](../AGENTS.md#tool-execution-and-validati
 and [check schedule](#check-scheduling-during-fan-out).
 
 [Host CI](../.github/workflows/host-gates.yml) runs on Windows and Ubuntu for pushes
-and pull requests to `main`, or through manual dispatch, without initialized
-submodules. The [Guest CI contract](ci/README.md) owns guest triggers, setup, gate
-commands, proof reuse, cold runs and evidence limits.
+and pull requests to `main`, or through manual dispatch from `main`, without
+initialized submodules. A dispatch's optional `revision` input names a full commit
+already on `main`; the workflow checks out that commit and refuses any other ref or
+revision before running checked-out code. The [Guest CI contract](ci/README.md) owns
+guest triggers, setup, gate commands, proof reuse, cold runs and evidence limits.
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and

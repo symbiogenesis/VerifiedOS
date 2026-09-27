@@ -95,8 +95,10 @@ When a completed batch's integration revision changes, initialize a new batch.
 - Publication pushes a settled commit only to `main`, without force or tags.
   Initialization and completion refuse a work branch, including old completed
   journals. Host CI must pass on both
-  Windows and Ubuntu for that exact revision. Start Host CI when no suitable run
-  exists. Pending, failed, skipped or canceled checks supply no passing evidence.
+  Windows and Ubuntu for that exact revision, from the push run on `main` whose head
+  is that revision or from the batch's own dispatch, identified by its
+  `fanout:<token>:<revision>` run title. Start Host CI when no such push run is
+  found. Pending, failed, skipped or canceled checks supply no passing evidence.
 - After Host CI passes, dispatch Guest CI with both model and proofs lanes for the
   same revision, forwarding the explicit cold policy. Record run identifiers or
   URLs, revisions and available statuses. Never poll or wait for a guest verdict.

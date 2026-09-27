@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Read-only host validation on Windows and Ubuntu. Sail, Rocq and Verilator
 # evidence runs in guest-gates.yml; see tools/README.md for the gate contracts.
+# Manual dispatch runs from main; its optional revision input pins checkout to a
+# commit already on main, verified before any checked-out code runs. Each run title
+# ends with the checked-out revision.
 #
 # Four shards per OS partition mutation cases and behavioral test modules. Shard 1
 # also runs the checker, typecheck and mutation repair path. All shards must pass.
