@@ -62,6 +62,7 @@ from vos import (
     cli,
     env,
     gallina,
+    kernel_effects,
     kernel_restore,
     kernel_target,
     kernelrun,
@@ -612,6 +613,26 @@ def oracle_named(decided: Sequence[tuple[seeded.Verdict, str | None]]) -> str:
     return f"kernel differential ({spread or 'no kill'})"
 
 
+def cmd_effects(args: argparse.Namespace) -> int:
+    """Run the bounded trap/save/restart experiment in this native lane."""
+    e = env.load(toolchain=False)
+    out = Path(args.out) if args.out else e.lane_root / "kernel-effects"
+    simulator = Path(args.simulator) if args.simulator else e.simulator
+    with env.hold_lock(out, "kernel effects"):
+        try:
+            report = kernel_effects.run(e.root, simulator, Path(args.build_receipt),
+                                        out, args.timeout)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            receipts.write(out / "report.json", {"status": "failed", "ok": False,
+                                                  "error": str(error)})
+            print(f"FAIL scalar effects: {error}")
+            return 1
+    for case in cast(list[dict[str, object]], report["cases"]):
+        print(f"{case['name']}: {case['matched']} HTIF {case['htif']} {case['code']}")
+    print(out / "report.json")
+    return 0 if report["ok"] else 1
+
+
 def cmd_restore(args: argparse.Namespace) -> int:
     """Focused target experiment for the scalar final restore primitive."""
     e = env.load(toolchain=False)
@@ -679,6 +700,7 @@ COMMANDS: cli.Table = {
     "check": (cmd_check, "the kernel C and the trace reader against the vectors"),
     "mutants": (cmd_mutants, "authored defects through both differentials"),
     "reader": (cmd_reader, "the trace reader alone over a vector file on disk"),
+    "effects": (cmd_effects, "scalar trap save and crash-only restart target controls"),
     "restore": (cmd_restore, "generated scalar restore controls on the golden emulator"),
     "target": (cmd_target, "compiled scalar kernel under signed M-mode handoff"),
 }
@@ -697,7 +719,7 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                             help="write the accepted released-image corpus source")
         frozen.add_argument("--check", nargs="?", const="corpus/kernel-instance.s",
                             help="require the corpus source to match a fresh target run")
-    if name == "restore":
+    if name in ("restore", "effects"):
         sub.add_argument("--simulator", help="explicit golden emulator executable")
         sub.add_argument("--build-receipt", required=True,
                          help="successful model build receipt binding simulator and model sources")

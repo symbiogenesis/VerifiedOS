@@ -49,6 +49,68 @@ supplies these spans after checking the read-only handoff capabilities.
 - **The executive's other duties.** R-11-023's slot-to-tenant permutation, R-11-024's table swap, R-07-037b's group rotation dispatch and R-07-037g's elastic dispatch are not implemented. `vos_rotation_image` is R-07-037b's step between members of one group and never zeroizes; R-07-037g's cross-application `vmclear`, which PartitionContext.v's `Rotation` does not state either, is not here. The M4.4 member must therefore compose single-partition tenants.
 - **The full RoT target executor.** The finite runner consumes the actual firmware-owned handoff and validates tags, sealing, bounds, cursor and permissions before C access. It runs the real signature verifier and release source on the host; executing that RoT source on the modeled RoT remains M3.5's obligation.
 
+## Bounded scalar effects and fault restart
+
+[include/vos_effects.h](include/vos_effects.h) and
+[src/effects.c](src/effects.c) bind serialized grant snapshots, acknowledged
+runnable-state installation, sticky notification hints, one synchronous copy
+invocation, bounded private-frame storage and ownership-closed retirement.
+`poll_hint` records the notification protocol only; it never blocks a partition,
+changes its runnable status or creates a blocked queue. The caller returns a quiet
+poll to its admitted synchronous yield site.
+
+The authenticated composition supplies disjoint private spans, capability slots,
+root capabilities and exact revocation masks. `vos_kernel_own` binds the actual
+external service storage, including up to the copy service's 524288-byte composed
+region, and retirement clears every declared byte and capability slot. These
+bounds and ownership declarations require actual target producer validation;
+passing a C pointer is not that evidence. Manifest authority edges close the
+victim set even when the current grant table happens to be empty. Active copy
+work, loans, devices, epoch exhaustion and an open holder set refuse teardown.
+
+The direct typed C path uses one-use hardware observation tickets. Assembly
+preflights retirement, publishes the actual bitmap, reads it back and acknowledges
+the same mask and epoch; C consumes the ticket. A missing publication or resident
+scrub leaves retirement pending and prevents a new start. Hardware clock samples
+carry the current epoch and delay, reject backwards or replayed time, and are
+consumed once. The host callback table implements the same boundaries using
+volatile accesses; `VOS_EFFECTS_TYPED` omits that host-only table because the
+contained scalar backend rejects volatile operations and a global function table.
+The direct C functions remain identical in both builds. Every loop has a fixed
+composition bound. A successful start means the exact current grant slots and
+runnable state are installed; observing the service's actual first entry remains
+the composition runner's duty.
+
+[vos/kernel_effects.py](../tools/vos/kernel_effects.py) owns reusable trusted
+assembly adapters for actual bitmap publication and bounded clock polling. Its
+trap saver exchanges the outgoing `c31` through MTDC, saves all 32 merged values
+and tags, recovers that original `c31`, reinstalls MTDC and saves the interrupted
+MEPCC. The architectural trap-live guard owns the temporary exchange's nested
+fault exclusion. The following scrub retains only the new private trap root.
+This is crash-only handling: it destroys the abandoned image and never resumes
+an outgoing PCC or partially completed store.
+
+`python tools/run.py kernel effects --simulator PATH --build-receipt FILE`
+runs a reset-root C-class experiment with actual capability faults, two dirty
+256-byte private frames, actual bitmap publication, complete data/tag cleanup,
+and fresh-entry restart. Trace observations decide exact save multiplicity,
+values and tags, saved MEPCC, restored MTDC, all-register scrub and the fresh
+image. Missing, tagless and corrupted bootstrap saves and a missing scrub retain
+HTIF success but fail their trace obligations; stale saved/frame slots fail the
+in-program zeroization check. Every campaign binds its sources, model build,
+simulator and traces, and begins with an incomplete receipt.
+
+The native [effect controls](test/effects.c) exercise real host storage and the
+host callback adapter, including the whole external copy-size span, with the
+hardware observations declared as mocked. The contained compiler builds and runs
+[test/effects_target_unit.c](test/effects_target_unit.c)'s actual C transition
+controls on Sail, with three declared units and local bitmap/clock objects. This
+component does not supply authenticated hardware roots. The assembly experiment
+does not execute an exported sentry switcher or a full supervisor/copy boot.
+Protected nested-call activation semantics, timer cuts through every switcher
+instruction class and the real composed service teardown remain M4.4b-i's joins.
+The finite frame reserve/pop helpers alone do not establish that full ABI.
+
 ## Finite compiled target
 
 `python tools/run.py kernel target --ccomp PATH --ccomp-arg=ARG --simulator PATH
