@@ -61,6 +61,13 @@ binds source, compiler, model, input, assembly, ELF and log identities and recor
 unexecuted cases. Firmware release and the complete boot chain retain their
 separate joins.
 
+The crypto composition reserves an exactly aligned 32 KiB stack and refuses
+a compiler stream whose conservative sum of function frames exceeds it.
+`--jobs` permits one to three isolated target cases. All interfaces compile
+before execution, and each interface's accepted positive gates its refusal
+controls. Final records use population order regardless of completion order.
+Duplicate, contradictory and malformed HTIF lines refuse the run.
+
 The same campaign generates an authored header signature using OpenSSL and
 tests the actual RoT release with a valid image, a corrupted signature, a wrong
 root, an over-length payload field and a corrupted payload. A refused image
