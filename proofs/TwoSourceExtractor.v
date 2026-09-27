@@ -1642,5 +1642,3 @@ Qed.
 Definition witness_TwoSource : TwoSource := uniform_pair.
 Definition witness_Params : Params := accepted_params.
 Definition witness_ConditionedFamily : ConditionedFamily := demo_family.
-
-(* ---- R-05-163's assumption gate ---- *)

@@ -1919,14 +1919,9 @@ Definition witness_Probe : Probe := probe_of 0 0.
 Definition witness_Experiment : Experiment := glitch_experiment.
 Definition witness_Gadget : Gadget := copy_gadget.
 
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`: every shipped
-   constant's enumerated assumption set is compared against the declared set
-   R-05-164 currently makes empty, so "Closed under the global context" is
-   that emptiness checked mechanically. A probing model resting on an
-   undeclared probability axiom would be the exact defect R-05-164's
-   acceptance clause names, which is why the interface above is a record.
-   ------------------------------------------------------------------------- *)
+(* The probability laws are record fields rather than undeclared global
+   axioms, so the native gate can enforce R-05-164's declared assumption set. *)
+(* R-05-163: `run.py proofs` audits the complete native inventory. *)
 
 
 (* Arbitrary-order finite counting. These standard-library list and natural

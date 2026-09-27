@@ -1368,10 +1368,4 @@ Proof.
 Qed.
 
 
-(* -------------------------------------------------------------------------
-   The R-05-163 assumption gate inventories the native environment and
-   checks every constant. There is no Admitted, no Axiom, no top-level
-   Parameter, and the only Require is the four Stdlib modules the header
-   names. R-05-164 reads the empty declared set from the register, so each
-   audited constant must be closed under the global context.
-   ------------------------------------------------------------------------- *)
+(* R-05-163 and R-05-164: `run.py proofs` audits the complete native inventory. *)

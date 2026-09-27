@@ -1639,12 +1639,7 @@ Definition witness_Extent : Extent := {| ext_base := 100; ext_top := 200 |}.
 Definition witness_Attempt : Attempt := {| att_pc := 300; att_result_register := 8; att_target := RootTop |}.
 Definition witness_Completion : Completion := complete_with_epoch.
 
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`: every shipped
-   constant's enumerated assumption set is compared against the declared set
-   R-05-164 currently makes empty, so "Closed under the global context" is
-   that emptiness checked mechanically.
-   ------------------------------------------------------------------------- *)
+(* R-05-164: `run.py proofs` audits the complete native inventory. *)
 
 
 (* The final single-hart acceptance joins all three trace questions to the

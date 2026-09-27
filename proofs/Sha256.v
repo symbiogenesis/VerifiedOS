@@ -1552,11 +1552,4 @@ Example the_comparison_answers_where_the_second_string_runs_out :
   leb_be zero_word nil = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* -------------------------------------------------------------------------
-   The R-05-163 assumption gate inventories the native environment and holds
-   each constant against the declared assumption set: there
-   is no Admitted, no Axiom, no top-level Parameter and no Require anywhere
-   above, and nothing is declared inside the development to make the gate pass.
-   R-05-164 reads the declared set from the register and it is empty, so the
-   audit requires each constant to be closed under the global context.
-   ------------------------------------------------------------------------- *)
+(* R-05-164: `run.py proofs` audits the complete native inventory. *)

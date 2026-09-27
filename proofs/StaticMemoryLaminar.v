@@ -1089,7 +1089,3 @@ Proof.
   - exact gap_placement_span_computed.
   - exact gap_family_needs_more_than_its_load.
 Qed.
-
-(* -------------------------------------------------------------------------
-   The R-05-163 gate: every theorem closed under the global context.
-   ------------------------------------------------------------------------- *)

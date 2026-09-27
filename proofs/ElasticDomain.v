@@ -2826,6 +2826,4 @@ Definition witness_Arena : Arena := pool_arena.
 Definition witness_Edge : Edge := {| e_from := 1; e_to := 9; e_kind := RingEdge |}.
 Definition witness_Distribution : Distribution := sealed_distribution.
 
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`.
-   ------------------------------------------------------------------------- *)
+(* R-05-163: `run.py proofs` audits the complete native inventory. *)

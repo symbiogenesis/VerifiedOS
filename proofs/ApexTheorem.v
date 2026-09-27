@@ -576,11 +576,3 @@ Proof.
               (conj I (fun _ _ contra => contra)) true false I) as [Hvalue _].
   discriminate Hvalue.
 Qed.
-
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, run by `run.py proofs`: the enumerated
-   assumption set of every shipped constant is compared against the
-   declared set, which R-05-164 reads from the register and which is
-   empty today. "Closed under the global context" is that emptiness,
-   checked mechanically; any other output fails the gate.
-   ------------------------------------------------------------------------- *)

@@ -1843,10 +1843,6 @@ Definition witness_Leap : Leap := demo_leap.
 Definition witness_MemberSchedule : MemberSchedule bool := follower_member.
 Definition witness_Emission : Emission bool := demo_emission.
 
-(* -------------------------------------------------------------------------
-   R-05-163's assumption gate, as in the artifacts beside this one.
-   ------------------------------------------------------------------------- *)
-
 
 (* The normative qualification wrapper keeps the derived bound and the physical
    qualification observation separate. R-15-196a requires both; its measured
