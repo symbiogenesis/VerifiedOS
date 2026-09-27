@@ -30,14 +30,17 @@ fixed poll-site return follows it. A timer cut before publication supplies no
 request and does not resume a partial reaction. A synchronous fault invalidates
 the publication before any boundary consumption.
 
-Sequences are nonwrapping 64-bit integers. A request is fresh only when its
+Sequences are nonwrapping 64-bit integers; `UINT64_MAX` is reserved and the last
+admissible sequence is `UINT64_MAX - 1`. A request is fresh only when its
 sequence is the kernel's last acknowledged sequence plus one; zero, repetition,
 a gap or exhaustion refuses without performing an effect. The kernel publishes
 no new acknowledgment for those sequence refusals and leaves its watermark
 unchanged; zero means no request. A fresh but malformed request consumes its
 sequence and receives a definitive refusal acknowledgment without an effect.
-The kernel publishes
-all acknowledgment fields before their sequence. The supervisor consumes an
+The kernel publishes all acknowledgment fields before their sequence. On an
+empty boundary it refreshes the admitted clock and current epoch/snapshot while
+retaining the last sequence, result, completed prefix and deadline. This refresh
+does not acknowledge a new effect. The supervisor consumes an
 acknowledgment only for its outstanding sequence. No phase retains a borrowed
 stack capability, live kernel lock or continuation across a boundary.
 
@@ -75,7 +78,8 @@ the manifest. Reusing an address or clearing a revocation bit without the requir
 sweep and zeroization is not a re-grant; a new epoch number alone is insufficient.
 
 Backoff is a deadline measured from acknowledged completion with the admitted
-clock. Its attempts and delay are checked against kernel-retained lifecycle
+clock, sampled after clearing and fresh-root installation. Its attempts and delay
+are checked against kernel-retained lifecycle
 state and the manifest. Waiting consists of later complete supervisor reactions
 in its existing slots. The boundary consumer neither spins to await the deadline
 nor runs the supervisor on another partition's behalf. It refuses an early start.

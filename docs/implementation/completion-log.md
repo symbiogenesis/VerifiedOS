@@ -3691,6 +3691,37 @@ Landed: Tier A. The read accepts the actual reference model and quantified theor
     * **A hysteresis band may be zero-width.** R-16-027 requires both thresholds declared and says nothing about the width between them, so a pair whose clear threshold equals its assertion threshold re-asserts the moment it clears, which is the oscillation that entry's own criterion is about. The file takes the weaker reading because that is what the words carry.
   * Landed: Tier A.
 
+##### M6.1b-i · Decide the supervisor target route
+
+The bounded compatibility trial selects the existing C producer for M8a. M6.1b-ii
+retains complete Vélus delivery after M8a; no compiler port, runtime repair or
+duplicate target supervisor is opened by this decision.
+
+* The [authored node and probe](../../supervisor/route/README.md) freeze the current
+  three-unit manifest, 64-bit epochs, ordered start/restart policy, effects ABI and
+  lifecycle fixtures. The trial's acceptance required target execution and agreement
+  within two attended agent-session hours; its first failed predicate decides refusal.
+* The [source-bound result](../../supervisor/route/result.json) records Vélus
+  `27ba860c2624ba232816591290c6c119b9ead88a`, its CompCert gitlink
+  `22c33b91d42c7df986c97b13b6cd630866a56494`, the selected license reads, private
+  toolchain and exact product hashes. Vélus compiles the real node successfully.
+  Its unchanged printed Clight places `_Alignas(8)` on parameters; the accepted
+  purecap frontend refuses it with exit 2. No target assembly, image or target
+  comparison verdict exists for this trial. This refuses the tested exchange, not
+  every possible Vélus integration.
+* The frozen C/Gallina baseline passes 656 cases and 3,088 equalities. The trial
+  prepares 576 start/restart rows, including full-width stale epochs. Those inputs
+  do not turn a frontend refusal into target agreement. M7.1b consumes the C route
+  and keeps its real privilege, handoff, fault and restart joins.
+* The observed provisioning-to-decision interval is 23 min 14 s, below the two-hour
+  trial bound. Preparation and integration/review intervals were not isolated for
+  a complete item actual; the original 1.5 h midpoint and 1–2 h range are retained,
+  with actual `n/a` and exclusion from calibration. A later approval-service wait
+  is not engineering effort or part of the completed trial.
+* Landed: Tier A. The integration review reads the failed predicate, emitted
+  interface, provenance and unchanged downstream obligations. Hosted validation
+  follows the batch handoff; component evidence does not assert a guest-gate verdict.
+
 #### M6.2a · Specify the composition-time admission path
 
 The completion audit records specification completion only. M7.1 owns executable composition-time admission for its actual roster and must compare accepted/refused decisions and retain the image-bound admission record. This assignment does not close or replace M6.2b's separately deferred on-device CIC checker.

@@ -249,6 +249,30 @@ revocation completion. Every report keeps M4.4 acceptance open.
 - **A pointer result that is null on one path and an address on another is refused.** A static function with an `if (...) { return 0; } return p;` shape fails at LTL with *use of undefined, overlapping or inconsistent location*, and comparing such a result with a live address fails at Clight with *comparison requires one retained source allocation or null*. `partition.c` therefore returns a partition index rather than an optional extent pointer.
 - **A `void *` slot holding a stack object's capability is refused** with *missing or incompatible retained object origin*, although the source-value contract admits an object pointer through `void *` and back. `void *` is the one C type that can hold any saved capability, so the smoke names a typed slot through `VOS_TARGET_SLOT` and the kernel's own slot type stays `void *`.
 
+## Supervisor lifecycle boundary
+
+[lifecycle.c](src/lifecycle.c) consumes the supervisor's generated scalar request
+layout under the [context-slot contract](../docs/implementation/contracts/supervisor-context.md).
+It decodes bytes without C struct overlays, validates the entire ordered start
+batch before effects, consumes definitive malformed requests and preserves the
+last watermark for zero, replay, gaps and sequence exhaustion. Initial bring-up
+is one-use; later starts require completed retirement and fresh roots.
+
+The entry points are kernel-private. Trusted assembly owns actual bitmap
+publication/readback, architectural holder teardown, authentic fresh-root checks
+and clock samples. A completion deadline is anchored after clearing and
+replenishment. The consumer never spins during backoff. Start serialization stays
+held until assembly publishes the acknowledgment fields and sequence, then calls
+`published` before dispatch. Empty boundaries refresh the clock and snapshot
+without claiming a new effect.
+
+`python tools/run.py test --only test_kernel_lifecycle` exercises the finite
+native decision/refusal controls. [The typed unit](test/lifecycle_target_unit.c)
+also lowers and runs on the accepted scalar target. Its local hardware
+observations are component inputs, not evidence of a composed timer boundary or
+ownership closure. The real supervisor/copy, privilege, fixed-release and
+fault/restart joins remain M4.4b-i and M7.1a obligations.
+
 ## Licensing
 
 The C sources are original files under `Apache-2.0` and this document is under `CC-BY-4.0`, by the path map in [COPYRIGHT.md](../COPYRIGHT.md).

@@ -92,8 +92,9 @@ reports the acknowledged start prefix and the refused unit. The adapter performs
 no retry or rollback. The caller must use that report when selecting recovery;
 repeating initial bring-up after a partial start is not a recovery policy.
 
-These callbacks do not yet have target kernel implementations. Their completion
-record is data from a trusted binding, not independently attested evidence. The
+The [kernel effects](../kernel/include/vos_effects.h) implement the bounded
+trusted state transitions. Their completion record is data from a trusted
+binding, not independently attested evidence. The
 adapter does not itself perform compartment entry, capability derivation,
 teardown, zeroization, revocation, or clock measurement. Those effects, ownership
 closure, bounded callback completion and the serialized region must be realized
@@ -103,6 +104,31 @@ M6.1b-i's [bounded route trial](route/README.md) selects the C fallback for M8a;
 M6.1b-ii retains the final Vélus producer after that gate. This C host remains a comparison oracle.
 Host test bindings establish sequencing and refusal
 behavior only.
+
+## Nonblocking context reactions
+
+[context.c](src/context.c) implements the
+[context-slot contract](../docs/implementation/contracts/supervisor-context.md)
+over the [generated scalar layout](include/vos_context_layout.h). The contained
+supervisor plans a bounded request, awaits the matching acknowledgment and checks
+backoff across later complete reactions. It holds no kernel lock, callback
+continuation or borrowed stack across a boundary. Fresh-entry recovery reads the
+kernel's acknowledged phase and prefix; an unmatched acknowledgment supplies no
+successful effect. A failed start requires a new retirement before retrying.
+
+The adapter's request buffer is local and its sequence remains zero. The target
+wrapper clears the shared publication, copies the scalar fields, fences and
+publishes the returned sequence last. The acknowledgment capability must be
+read-only. Pure C component execution tests the planner and protocol decisions;
+actual region permissions, target ordering, timer consumption and bounded fixed
+successor release belong to the composed target join. The kernel counterpart is
+[lifecycle.c](../kernel/src/lifecycle.c).
+
+`python tools/run.py test --only test_supervisor_context` runs finite native
+controls and compiled mutations for unmatched acknowledgment, early backoff and
+reserved sequence handling. [The typed unit](test/context_target.c) runs the
+same component controls under the accepted backend. Full-width epochs and
+refused-prefix recovery remain distinct from authority and boot acceptance.
 
 ## Focused comparison
 

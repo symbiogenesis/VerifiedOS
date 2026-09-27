@@ -499,7 +499,7 @@ No source from these components is tracked here. The [implementation plan](docs/
 
 CompCert and Vélus have separate grants despite their agreements' similar form. Keeping a producer external addresses distribution; it does not remove restrictions on use.
 
-**The resident toolchain moves the question the *product* has to answer, and not the one this repository answers.** R-13-027 makes the certifying toolchain software the device runs and R-18-004e puts it in the first release's composed configuration, so a shipped generation carries a compiler and a prover, which is distribution in the sense these agreements govern. Both calls above stay correct for this repository, which distributes no source from either upstream and invokes neither in any build here; what changes is that a product built on a CompCert-derived backend cannot meet R-18-004e on the non-commercial grant, the verified backend passes being outside the dual-licensed subset recorded below. The routes are the ones already named rather than new ones: the independently implemented direct backend [the verification strategy](docs/languages/verification-strategy.md) prices as removing this dependency, a separate commercial agreement with the rightsholders, or a shipped component restricted to the enumerated dual-licensed files. M1.10 reads the terms of every component it would admit onto the device at that incorporation, which is where this rule puts the reading, and a component whose terms do not permit redistribution in a product image fails R-18-004e rather than shipping.
+**The resident toolchain requires a separate distribution decision.** R-13-027 makes the certifying toolchain software the device runs and R-18-004e puts it in the first release's composed configuration, so a shipped generation carries a compiler and a prover, which is distribution in the sense these agreements govern. This repository distributes no source from either upstream; explicit contained evaluation experiments invoke separately provisioned producers. A product built on a CompCert-derived backend cannot meet R-18-004e on the non-commercial grant, the verified backend passes being outside the dual-licensed subset recorded below. The routes are the independently implemented direct backend [the verification strategy](docs/languages/verification-strategy.md) prices as removing this dependency, a separate commercial agreement with the rightsholders, or a shipped component restricted to the enumerated dual-licensed files. M1.10 reads the terms of every component it would admit onto the device at that incorporation, which is where this rule puts the reading, and a component whose terms do not permit redistribution in a product image fails R-18-004e rather than shipping.
 
 #### CompCert and SECOMP
 
@@ -531,6 +531,16 @@ VST also contains CompCert material. Its `compcert/` tree provides dual-licensed
 - **Section 7:** noncompliance immediately terminates the license without notice and requires discontinuing use and returning or destroying copies.
 
 CompCert agreements do not extend to Vélus. Any commercial route must address both grants separately. If the project instead authors the control-plane compiler, the plan's existing Gallina state-machine reference model provides a starting point.
+
+**Contained supervisor route evaluation.** M6.1b-i reads `LICENSE` at Vélus
+`27ba860c2624ba232816591290c6c119b9ead88a` and its CompCert gitlink
+`22c33b91d42c7df986c97b13b6cd630866a56494` before building the selected producer.
+The [trial receipt](supervisor/route/result.json) binds both license hashes and
+the private toolchain. This finite research/evaluation use emits printed Clight
+for the authored supervisor node; the accepted purecap frontend refuses that
+exchange. Upstream source, binaries and generated trial products remain in the
+contained worktrees and native output lanes. The tracked node, oracle and probe
+are authored here; no upstream implementation is incorporated or redistributed.
 
 #### seL4
 
