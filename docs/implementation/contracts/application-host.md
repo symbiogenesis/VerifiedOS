@@ -153,6 +153,14 @@ backing normally uses the second memory class; a bounded first-class working
 set is allowed when its measured gain pays its explicitly charged capacity.
 No claim depends on a JIT or a newly loaded native helper.
 
+Whole-loop handlers and nested guest-interpreter specialization enter only
+through the [Wasm execution selection gate](wasm-execution.md#selection-gate-for-optional-acceleration):
+a named workload and measured penalty or missed target, bounded investigation,
+priced scope and owner, and declared qualification/proof acceptance precede
+commissioning. Unselected options are `n/a` with reasons, without comparison
+builds. They do not gate the ordinary native source-to-Wasm bundle producer,
+full Core 3.0 or the required interpreter representation and proofs.
+
 Q34f fixes the workload before candidate measurements. It reports cold and
 reused preparation, launch to first useful response and edit through changed
 response under the concurrent desktop workload, with build, validation,
