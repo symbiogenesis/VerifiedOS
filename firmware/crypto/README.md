@@ -26,8 +26,9 @@ emulation from the released bytes. The default fixture mode stays explicit.
 The independent comparison campaign is `python tools/run.py boot-crypto run --gallina`.
 
 Keccak keeps its unchanged round constants in a bounded local array and expands
-the fixed theta, rho/pi and chi topology with literal rotation offsets. This
-removes variable index arithmetic from the scalar RoT binary without changing
+the fixed theta, rho/pi and chi topology with scalar lane locals and literal
+rotation offsets in a nonrecursive round helper. This removes repeated indexed
+array addressing from the scalar RoT binary without changing
 the algorithm, 24-round count or input bounds. Local storage fits the accepted
 purecap compiler's scalar-global profile.
 The [target translation unit](../harness/slh_target.c) and `boot-handoff
@@ -63,7 +64,7 @@ separate joins.
 
 The crypto composition reserves an exactly aligned 32 KiB stack and refuses
 a compiler stream whose conservative sum of function frames exceeds it.
-`--jobs` permits one to three isolated target cases. All interfaces compile
+`--jobs` permits one to six isolated target cases. All interfaces compile
 before execution, and each interface's accepted positive gates its refusal
 controls. Final records use population order regardless of completion order.
 Duplicate, contradictory and malformed HTIF lines refuse the run.

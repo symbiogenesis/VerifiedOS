@@ -12,6 +12,124 @@ static uint64_t rotl(uint64_t v, unsigned n) {
   return (v << n) | (v >> ((64u - n) & 63u));
 }
 
+static void vos_keccak_round(uint64_t state[25], uint64_t constant) {
+  // Keep each lane in a scalar local while computing the round. The selected
+  // backend can allocate/spill these values without repeated array addressing.
+  uint64_t a0 = state[0];
+  uint64_t a1 = state[1];
+  uint64_t a2 = state[2];
+  uint64_t a3 = state[3];
+  uint64_t a4 = state[4];
+  uint64_t a5 = state[5];
+  uint64_t a6 = state[6];
+  uint64_t a7 = state[7];
+  uint64_t a8 = state[8];
+  uint64_t a9 = state[9];
+  uint64_t a10 = state[10];
+  uint64_t a11 = state[11];
+  uint64_t a12 = state[12];
+  uint64_t a13 = state[13];
+  uint64_t a14 = state[14];
+  uint64_t a15 = state[15];
+  uint64_t a16 = state[16];
+  uint64_t a17 = state[17];
+  uint64_t a18 = state[18];
+  uint64_t a19 = state[19];
+  uint64_t a20 = state[20];
+  uint64_t a21 = state[21];
+  uint64_t a22 = state[22];
+  uint64_t a23 = state[23];
+  uint64_t a24 = state[24];
+  // Theta: five column parities, then the two neighboring column contributions.
+  uint64_t c0 = a0 ^ a5 ^ a10 ^ a15 ^ a20;
+  uint64_t c1 = a1 ^ a6 ^ a11 ^ a16 ^ a21;
+  uint64_t c2 = a2 ^ a7 ^ a12 ^ a17 ^ a22;
+  uint64_t c3 = a3 ^ a8 ^ a13 ^ a18 ^ a23;
+  uint64_t c4 = a4 ^ a9 ^ a14 ^ a19 ^ a24;
+  uint64_t d0 = c4 ^ rotl(c1, 1);
+  uint64_t d1 = c0 ^ rotl(c2, 1);
+  uint64_t d2 = c1 ^ rotl(c3, 1);
+  uint64_t d3 = c2 ^ rotl(c4, 1);
+  uint64_t d4 = c3 ^ rotl(c0, 1);
+  a0 ^= d0;
+  a1 ^= d1;
+  a2 ^= d2;
+  a3 ^= d3;
+  a4 ^= d4;
+  a5 ^= d0;
+  a6 ^= d1;
+  a7 ^= d2;
+  a8 ^= d3;
+  a9 ^= d4;
+  a10 ^= d0;
+  a11 ^= d1;
+  a12 ^= d2;
+  a13 ^= d3;
+  a14 ^= d4;
+  a15 ^= d0;
+  a16 ^= d1;
+  a17 ^= d2;
+  a18 ^= d3;
+  a19 ^= d4;
+  a20 ^= d0;
+  a21 ^= d1;
+  a22 ^= d2;
+  a23 ^= d3;
+  a24 ^= d4;
+  // Rho and pi: source x+5y moves to y+5*((2x+3y) mod 5), using Table 2.
+  uint64_t b0 = rotl(a0, 0);
+  uint64_t b10 = rotl(a1, 1);
+  uint64_t b20 = rotl(a2, 62);
+  uint64_t b5 = rotl(a3, 28);
+  uint64_t b15 = rotl(a4, 27);
+  uint64_t b16 = rotl(a5, 36);
+  uint64_t b1 = rotl(a6, 44);
+  uint64_t b11 = rotl(a7, 6);
+  uint64_t b21 = rotl(a8, 55);
+  uint64_t b6 = rotl(a9, 20);
+  uint64_t b7 = rotl(a10, 3);
+  uint64_t b17 = rotl(a11, 10);
+  uint64_t b2 = rotl(a12, 43);
+  uint64_t b12 = rotl(a13, 25);
+  uint64_t b22 = rotl(a14, 39);
+  uint64_t b23 = rotl(a15, 41);
+  uint64_t b8 = rotl(a16, 45);
+  uint64_t b18 = rotl(a17, 15);
+  uint64_t b3 = rotl(a18, 21);
+  uint64_t b13 = rotl(a19, 8);
+  uint64_t b14 = rotl(a20, 18);
+  uint64_t b24 = rotl(a21, 2);
+  uint64_t b9 = rotl(a22, 61);
+  uint64_t b19 = rotl(a23, 56);
+  uint64_t b4 = rotl(a24, 14);
+  // Chi uses each completed row; iota adds this round's constant to lane zero.
+  state[0] = b0 ^ (~b1 & b2) ^ constant;
+  state[1] = b1 ^ (~b2 & b3);
+  state[2] = b2 ^ (~b3 & b4);
+  state[3] = b3 ^ (~b4 & b0);
+  state[4] = b4 ^ (~b0 & b1);
+  state[5] = b5 ^ (~b6 & b7);
+  state[6] = b6 ^ (~b7 & b8);
+  state[7] = b7 ^ (~b8 & b9);
+  state[8] = b8 ^ (~b9 & b5);
+  state[9] = b9 ^ (~b5 & b6);
+  state[10] = b10 ^ (~b11 & b12);
+  state[11] = b11 ^ (~b12 & b13);
+  state[12] = b12 ^ (~b13 & b14);
+  state[13] = b13 ^ (~b14 & b10);
+  state[14] = b14 ^ (~b10 & b11);
+  state[15] = b15 ^ (~b16 & b17);
+  state[16] = b16 ^ (~b17 & b18);
+  state[17] = b17 ^ (~b18 & b19);
+  state[18] = b18 ^ (~b19 & b15);
+  state[19] = b19 ^ (~b15 & b16);
+  state[20] = b20 ^ (~b21 & b22);
+  state[21] = b21 ^ (~b22 & b23);
+  state[22] = b22 ^ (~b23 & b24);
+  state[23] = b23 ^ (~b24 & b20);
+  state[24] = b24 ^ (~b20 & b21);
+}
+
 void vos_keccak_f1600(uint64_t a[25]) {
 // Fixed local storage keeps the immutable tables within the selected purecap
 // source profile, whose global authority currently admits scalar words only.
@@ -25,50 +143,8 @@ const uint64_t round_constant[24] = {
   0x8000000080008081u, 0x8000000000008080u, 0x0000000080000001u, 0x8000000080008008u,
 };
 
-  for (unsigned round = 0; round < 24; round++) {
-    // theta: each lane takes the parity of the column below it unrotated and
-    // the column above it rotated by one.
-    uint64_t c[5];
-    for (unsigned x = 0; x < 5; x++) {
-      c[x] = a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
-    }
-    // The topology is fixed. Expanding these columns avoids division and
-    // variable-index traffic in the scalar RoT binary; the round count stays 24.
-#define VOS_THETA(x, before, after) do { \
-    uint64_t d = c[before] ^ rotl(c[after], 1); \
-    a[x] ^= d; a[x+5] ^= d; a[x+10] ^= d; a[x+15] ^= d; a[x+20] ^= d; \
-  } while (0)
-    VOS_THETA(0, 4, 1); VOS_THETA(1, 0, 2); VOS_THETA(2, 1, 3);
-    VOS_THETA(3, 2, 4); VOS_THETA(4, 3, 0);
-#undef VOS_THETA
-    // rho and pi: lane (x, y) moves to (y, 2x + 3y) after its rotation.
-    uint64_t b[25];
-    // Table 2's rho offsets in x + 5y order; the macro states pi directly.
-#define VOS_RHO_PI(x, y, offset) \
-    b[y + 5 * ((2*x + 3*y) % 5)] = rotl(a[x + 5*y], offset)
-    VOS_RHO_PI(0, 0, 0); VOS_RHO_PI(1, 0, 1); VOS_RHO_PI(2, 0, 62);
-    VOS_RHO_PI(3, 0, 28); VOS_RHO_PI(4, 0, 27);
-    VOS_RHO_PI(0, 1, 36); VOS_RHO_PI(1, 1, 44); VOS_RHO_PI(2, 1, 6);
-    VOS_RHO_PI(3, 1, 55); VOS_RHO_PI(4, 1, 20);
-    VOS_RHO_PI(0, 2, 3); VOS_RHO_PI(1, 2, 10); VOS_RHO_PI(2, 2, 43);
-    VOS_RHO_PI(3, 2, 25); VOS_RHO_PI(4, 2, 39);
-    VOS_RHO_PI(0, 3, 41); VOS_RHO_PI(1, 3, 45); VOS_RHO_PI(2, 3, 15);
-    VOS_RHO_PI(3, 3, 21); VOS_RHO_PI(4, 3, 8);
-    VOS_RHO_PI(0, 4, 18); VOS_RHO_PI(1, 4, 2); VOS_RHO_PI(2, 4, 61);
-    VOS_RHO_PI(3, 4, 56); VOS_RHO_PI(4, 4, 14);
-#undef VOS_RHO_PI
-    // chi, row by row.
-    for (unsigned y = 0; y < 5; y++) {
-      unsigned p = 5 * y;
-      a[p] = b[p] ^ (~b[p+1] & b[p+2]);
-      a[p+1] = b[p+1] ^ (~b[p+2] & b[p+3]);
-      a[p+2] = b[p+2] ^ (~b[p+3] & b[p+4]);
-      a[p+3] = b[p+3] ^ (~b[p+4] & b[p]);
-      a[p+4] = b[p+4] ^ (~b[p] & b[p+1]);
-    }
-    // iota.
-    a[0] ^= round_constant[round];
-  }
+  // A separate nonrecursive round keeps the loop's branch displacement small.
+  for (unsigned round = 0; round < 24; round++) vos_keccak_round(a, round_constant[round]);
 }
 
 static void xor_byte(uint64_t state[25], size_t at, uint8_t byte) {
