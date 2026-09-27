@@ -21,7 +21,7 @@ EVENTS: Final = ("reserve", "publish", "accept", "complete", "reclaim", "malform
 WAITS: Final = ("Finite host C/reference agreement only. The accepted M1.2f backend, "
                "M4.4 notification adapter, target memory-order refinement and composed "
                "M7.1e roster member remain open.")
-SOURCES: Final = ("include/vos_copy_service.h", "src/copy_service.c", "test/host.c")
+SOURCES: Final = ("include/vos_copy_service.h", "src/copy_service.c", "test/host.c", "include/vos_copy_atomic.h", "test/fixed_controls.h")
 MAX_COMPARISON_CASES: Final = 50000
 
 
@@ -77,7 +77,8 @@ def configuration(root: Path) -> Config:
     if any(type(v) is not int or v < 0 for v in values):
         raise ValueError("ring fields must be natural integers")
     if not (0 < config.batch <= config.capacity < config.span <= 2**31
-            and config.span % config.capacity == 0 and 0 < config.maximum <= 65536
+            and config.span % config.capacity == 0 and ring["index_width_bytes"] == 1
+            and config.span <= 256 and 0 < config.maximum <= 65536
             and config.generation < 2**32):
         raise ValueError("declaration exceeds the bounded C implementation domain")
     return config
@@ -90,8 +91,9 @@ def configuration_header(config: Config) -> str:
     lines = ["/* Generated from interfaces/ring-reference.json. */",
              "#ifndef VOS_COPY_CONFIG_H", "#define VOS_COPY_CONFIG_H"]
     lines += [f"#define VOS_COPY_{name} {value}u" for name, value in values.items()]
-    lines += ["static const unsigned vos_copy_payload_limits[VOS_COPY_OPERATION_COUNT] = {",
-              "    " + ", ".join(f"{v}u" for v in config.payloads), "};", "#endif", ""]
+    lines += ["static unsigned vos_copy_payload_limit(unsigned operation)", "{"]
+    lines += [f"    if (operation == {i}u) return {v}u;" for i, v in enumerate(config.payloads)]
+    lines += ["    return 0u;", "}", "#endif", ""]
     return "\n".join(lines)
 
 

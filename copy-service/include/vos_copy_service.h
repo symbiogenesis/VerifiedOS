@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdatomic.h>
+#include "vos_copy_atomic.h"
 #include "copy_service_config.h"
 
 /* Pure ordered helpers require a valid view and bounded observation counters.
@@ -32,7 +32,8 @@ typedef struct {
     uint8_t bytes[VOS_COPY_MAX_PAYLOAD];
 } vos_copy_payload;
 typedef struct {
-    _Atomic uint32_t produced, consumed, armed;
+    vos_copy_atomic_index produced, consumed;
+    vos_copy_atomic_word armed;
     uint32_t generation;
     vos_copy_payload slots[VOS_COPY_CAPACITY];
 } vos_copy_ring;
@@ -42,8 +43,8 @@ typedef struct {
     size_t extent, length;
 } vos_copy_request;
 
-uint32_t vos_copy_occupancy(vos_copy_view view);
-int vos_copy_view_valid(vos_copy_view view);
+uint32_t vos_copy_occupancy(const vos_copy_view *view);
+int vos_copy_view_valid(const vos_copy_view *view);
 int vos_copy_publish(vos_copy_view *view);
 int vos_copy_take_index(vos_copy_view *view);
 int vos_copy_batch(vos_copy_view *view, size_t count, uint32_t *results);
@@ -57,6 +58,13 @@ void vos_copy_consumer(vos_copy_world *world, vos_copy_reset reset,
                        uint32_t budget, vos_copy_act act);
 void vos_copy_activation(vos_copy_world *world, vos_copy_reset reset,
                          uint32_t budget, uint32_t publication_step);
+/* Snapshot helpers are called only by the host atomic adapter or the target
+ * assembly adapter while the relevant endpoint owns its slots. */
+void vos_copy_init_slots(vos_copy_ring *ring);
+int vos_copy_submit_snapshot(vos_copy_ring *ring, const vos_copy_request *input,
+                              vos_copy_view *view);
+int vos_copy_take_snapshot(vos_copy_ring *ring, uint8_t *destination, size_t capacity,
+                            size_t *length, uint32_t *request, vos_copy_view *view);
 void vos_copy_init(vos_copy_ring *ring);
 int vos_copy_submit(vos_copy_ring *ring, uint32_t generation, uint32_t request,
                     uint32_t operation, const uint8_t *source,
