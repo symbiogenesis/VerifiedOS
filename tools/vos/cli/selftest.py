@@ -1507,15 +1507,16 @@ CASES: list[Case] = [
      _literal(MATRIX, "R-08-006, R-15-208, R-17-037", "R-08-006, R-15-208")),
     # The standing column is the one column of the matrix no hand writes: the
     # inventory's status lifted over the rows a cell's requirements constrain. A cell
-    # promoted by hand is the defect, a pair reading as discharged by specifications
-    # that do not exist, and every other rule reads it as sound: the mode still places,
+    # assigned another standing by hand is the defect. Other rules read it as sound:
+    # the mode still places,
     # the citations still resolve, the row is still its header's width. The cell is
-    # found by its standing rather than named, so the case survives the column moving
-    # as rows of the inventory are authored.
-    ("K-95", "a coverage cell standing authored over specifications the inventory does "
-             "not carry",
-     _first_match(MATRIX, r"(?m)^\| `B-\d\d` \| `P-\d` \|[^\r\n]*\| not authored \|",
-                  lambda m: m.group().replace("| not authored |", "| authored |"))),
+    # found by its standing rather than named, and changes any valid standing so the
+    # case survives the last not-authored or partial cell being implemented.
+    ("K-95", "a coverage cell whose standing differs from the inventory",
+     _first_match(MATRIX,
+                  r"(?m)^\| `B-\d\d` \| `P-\d` \|[^\r\n]*\| (authored|partial|not authored) \|$",
+                  lambda m: m.group().replace(f"| {m[1]} |",
+                      "| not authored |" if m[1] == "authored" else "| authored |"))),
 
     # The settings express one target in different dialects. Narrative references
     # may omit the version; executable configuration must still agree.
