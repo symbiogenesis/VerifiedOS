@@ -12,7 +12,8 @@ local worktrees and publishes only `main`,
 requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
 lanes with the batch's `cold` policy. It records the dispatch response and returns
 without polling Guest CI. Optional `fanout_token` workflow inputs give interrupted
-dispatches an identity for recovery. The explicit `revision` input pins checkout
+dispatches an identity for recovery, and the optional `title` input carries the
+commit subject into the run title. The explicit `revision` input pins checkout
 to the settled commit even if `main` advances during dispatch. Work branches and
 publication tags are never pushed. A session finishes only after its work is on
 local and remote `main`; Guest CI may remain pending.
@@ -21,13 +22,16 @@ local and remote `main`; Guest CI may remain pending.
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
 GitHub's **Run workflow** control on `main`. A manual run's optional `revision` input
 names a full lowercase commit already on `main`; the workflow refuses any other ref or
-revision before installing tools. Each run title ends with its checked-out revision,
-and runs are not serialized, so a queued handoff is never replaced. Ordinary runs
-reuse installed toolchains and content-validated native proof results. The monthly
-run and the manual `cold` input force cold toolchain installation and a fresh full
-proof check. A weekly scheduled run first reads the latest completed run on the same
-branch. If that run succeeded and its title ends with the current revision, it skips
-the guest lanes before allocating their runners or installing tools. New revisions,
+revision before installing tools. Each run title follows its prefix with the `title`
+input, or else with its checked-out revision, and runs are not serialized, so a
+queued handoff is never replaced. Ordinary runs reuse installed toolchains and
+content-validated native proof results. The monthly run and the manual `cold` input
+force cold toolchain installation and a fresh full proof check. A weekly scheduled
+run first reads the latest completed run on the same branch. It skips the guest
+lanes before allocating their runners or installing tools when that run succeeded
+on the current revision: a scheduled run's head commit, or for a dispatched run,
+which may pin an older revision than its head, the revision named by both lanes'
+artifacts. New revisions,
 failed or canceled runs, absent history and failed history lookups run all gates. Manual dispatch, monthly cold runs and explicit
 reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
