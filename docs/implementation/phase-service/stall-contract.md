@@ -407,7 +407,7 @@ when the program contract is refuted. Every receipt, a refusal included, binds
 the instrument sources and each input read before the refusal. Its consumers
 carry it: the command table of
 [the tool guide](../../../tools/README.md) holds a `phase-stall` row,
-`tools/vos/cli/__init__.py` registers the command, `phase-evaluate`'s
+`tools/vos/commands.py` registers the command, `phase-evaluate`'s
 refutation reason names `phase-stall`, the comparison's missing-model sentence
 points to this document while its arrival and WCET halves stay open, and
 [the document index](../../README.md) indexes this page.

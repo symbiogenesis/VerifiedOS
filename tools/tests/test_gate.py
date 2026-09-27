@@ -18,7 +18,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos.cli import BY_NAME, gate
+from vos.cli import gate
+from vos.commands import BY_NAME
 from vos.report import Reporter
 from vos.sharding import Shard
 

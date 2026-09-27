@@ -86,6 +86,8 @@ from vos.socmap import ARTIFACT as SOC_MAP
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
+CHECK_TIMEOUT = 300
+OVERRAN = f"FAIL: the checker run overran {CHECK_TIMEOUT} s and was killed"
 
 # the two characters the documents' own shapes are written in, named so that a case
 # composing a pattern around one never has to spell it inside a regex
@@ -173,7 +175,8 @@ class Sandbox:
                 _link_or_copy(source, target)
         self.touched.clear()
 
-    def check(self, fix: bool = False) -> tuple[int, list[str], list[str]]:
+    def check(self, fix: bool = False,
+              through: str | None = None) -> tuple[int, list[str], list[str]]:
         """The checker's own verdict, as the rule ids it reported, so a case asserts
         against what the run decided rather than against its prose.
 
@@ -181,6 +184,7 @@ class Sandbox:
         source, and only a fresh interpreter reads the mutant rather than the module
         this process already imported. Import the checker in the settled interpreter:
         a mutated lockfile is input to audit, never an environment to install.
+        `through` stops the run after the group that decides that rule.
         """
         if fix and not self.fix_ok:
             raise SystemExit("--fix rewrites documents in place, which writes through "
@@ -189,18 +193,19 @@ class Sandbox:
         argv = [sys.executable, "-c",
             "import sys; sys.path.insert(0, sys.argv.pop(1)); "
             "import check; raise SystemExit(check.main())",
-            str((self.path / CHECKER).parent)] + (["--fix"] if fix else [])
-        # a run is ~1 s, so an overrun this size is a hang (a mutant that sends a
-        # pattern into catastrophic backtracking), and it must land as its case's
-        # failure rather than as a run that never ends; errors='replace' for the same
-        # containment, a mutant being allowed to make the checker's output undecodable
-        timeout = 300
+            str((self.path / CHECKER).parent)] + (["--fix"] if fix else []) + (
+            ["--through", through] if through else [])
+        # a run is seconds, so an overrun of CHECK_TIMEOUT is a hang (a mutant that
+        # sends a pattern into catastrophic backtracking), and it must land as its
+        # case's failure rather than as a run that never ends; errors='replace' for the
+        # same containment, a mutant being allowed to make the checker's output
+        # undecodable
         try:
             proc = subprocess.run(argv, cwd=self.path, capture_output=True,
                                   text=True, encoding="utf-8", errors="replace",
-                                  timeout=timeout, check=False)
+                                  timeout=CHECK_TIMEOUT, check=False)
         except subprocess.TimeoutExpired:
-            return 1, [f"FAIL: the checker run overran {timeout} s and was killed"], []
+            return 1, [OVERRAN], []
         out: list[str] = [*(proc.stdout or "").splitlines(),
                           *(proc.stderr or "").splitlines()]
         failed: list[str] = sorted({m.group(1) for line in out
@@ -2112,6 +2117,38 @@ def main(argv: list[str] | None = None) -> int:
             remove_tree(sandbox)
 
 
+def _verdict(case: Case, box: Sandbox) -> Verdict:
+    """One case, run against a sandbox of its own: the whole of this oracle.
+
+    A case passes when its own rule is among those the checker reported, so the kill
+    states which rules fired rather than only that one did: a mutant that trips its
+    neighbours as well is expected, and a reader who cannot see which ones cannot tell
+    that from a mutant that tripped only a neighbour.
+
+    The run stops after the group that decides the case's rule. A group reads only
+    what earlier groups computed, so that verdict is the whole run's, and a kill names
+    the rules that fired up to it. A survivor is run again whole, so its report names
+    every rule that fired and every exit a full run gives; a hang is not run twice.
+    """
+    rule, what, apply = case
+    seeded = Seeding(rule, what)
+    if not apply(box):
+        return Verdict(seeded, UNSEEDED,
+                       "the mutant will not apply; the document it seeds has moved")
+    code, out, failed = box.check(through=rule)
+    if rule not in failed and out != [OVERRAN]:
+        code, _, failed = box.check()
+    if rule in failed:
+        return Verdict(seeded, KILLED, f"the checker reported {', '.join(failed)}")
+    # a run that reported nothing and a run that died before reporting look the same
+    # from the rule's side and are repaired differently, so the exit code is stated
+    how = (f"other rules fired: {', '.join(failed)}" if failed
+           else "the run was green" if code == 0
+           else f"the run exited {code} with no finding, so the checker did not "
+                "survive the mutant either")
+    return Verdict(seeded, SURVIVED, how)
+
+
 def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
          repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None) -> int:
     # Nothing below means anything against a sandbox that was already failing: a mutant
@@ -2133,32 +2170,9 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     boxes.put(first)
 
     def one(case: Case) -> Verdict:
-        """One case, run against a sandbox of its own: the whole of this oracle.
-
-        A case passes when its own rule is among those the checker reported, so the
-        kill states which rules fired rather than only that one did: a mutant that
-        trips its neighbours as well is expected, and a reader who cannot see which
-        ones cannot tell that from a mutant that tripped only a neighbour.
-        """
-        rule, what, apply = case
-        seeded = Seeding(rule, what)
         box = boxes.get()
         try:
-            if not apply(box):
-                return Verdict(seeded, UNSEEDED,
-                               "the mutant will not apply; the document it seeds has "
-                               "moved")
-            code, _, failed = box.check()
-            if rule in failed:
-                return Verdict(seeded, KILLED, f"the checker reported {', '.join(failed)}")
-            # a run that reported nothing and a run that died before reporting look the
-            # same from the rule's side and are repaired differently, so the exit code
-            # is stated
-            how = (f"other rules fired: {', '.join(failed)}" if failed
-                   else "the run was green" if code == 0
-                   else f"the run exited {code} with no finding, so the checker did not "
-                        "survive the mutant either")
-            return Verdict(seeded, SURVIVED, how)
+            return _verdict(case, box)
         finally:
             box.reset()
             boxes.put(box)

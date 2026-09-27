@@ -10,7 +10,7 @@
     python tools/run.py model build          dispatched into WSL from here
     python tools/run.py evidence             the whole exit-evidence sweep
 
-A command is a name and never a path: `vos/cli/__init__.py` carries the table, and
+A command is a name and never a path: `vos/commands.py` carries the table, and
 `run.py <name> --help` is that command's own help. Asked for nothing, this runs the
 host gate wave, which is what has to be green before anything lands.
 
@@ -47,7 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
 from vos import toolenv
-from vos.cli import BY_NAME, COMMANDS, Command
+from vos.commands import BY_NAME, COMMANDS, Command
 
 # What every command's entry point is. `import_module` hands back a module whose
 # attributes are untyped, so the shape is stated once here and asserted at the single

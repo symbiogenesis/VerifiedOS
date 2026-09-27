@@ -21,8 +21,8 @@ from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import env, sailassist
-from vos.cli import BY_NAME
 from vos.cli import sail_assist as cli
+from vos.commands import BY_NAME
 
 
 @contextmanager

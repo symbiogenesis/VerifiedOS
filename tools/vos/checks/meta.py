@@ -163,7 +163,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from vos import cli, figures, toolenv
+from vos import commands as command_table
+from vos import figures, toolenv
 from vos.cli import provision
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -369,7 +370,7 @@ def _lane(ctx: Context) -> None:
         findings.append(f"{PROVISION} declares no fact at all, so this lane is described "
                         "by nothing and there is no row to hold")
 
-    commands = {command.name for command in cli.COMMANDS}
+    commands = {command.name for command in command_table.COMMANDS}
     paths = symbols = named = 0
     for fact in facts:
         found = [path for path in _OWNER_PATH_RE.findall(fact.owner)

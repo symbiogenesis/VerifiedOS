@@ -48,7 +48,8 @@ so these durations overlap and must not be added to obtain the wave's duration.
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Each OS runs four independent shards. Mutation cases and sorted
 behavioral test modules are partitioned by position, with every item assigned once.
-Every mutation still runs the whole checker in a fresh process and private sandbox.
+Every mutation runs the checker in a fresh process and private sandbox, through the
+group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
 the complete repair path, the ordinary checker and typecheck. Members within a
 shard run concurrently. Both existing `host-gates (OS)` checks require every shard
@@ -171,7 +172,7 @@ fetch them.
 
 Each command is one module of [vos/cli/](vos/cli/), which is what those executables
 became: each keeps its docstring, its argparse and its `main(argv)`, less its own
-preamble and its own `__main__` block. [vos/cli/\_\_init\_\_.py](vos/cli/__init__.py)
+preamble and its own `__main__` block. [vos/commands.py](vos/commands.py)
 is the table `run.py` reads, and it is the only place a command's name, its module and
 its lane are written down.
 
@@ -969,7 +970,13 @@ only from a successful native receipt with matching source bytes, compiled-objec
 hashes, dependency resolution, gate inputs and toolchain context. A changed source
 or object invalidates its transitive dependents. Adding or removing a source retains
 unaffected components; any change to a module's local dependency resolution invalidates
-that module. Gate implementation changes invalidate all objects. Register prose is
+that module. A change to the gate's implementation invalidates all objects. That
+implementation is every checkout module Python runs to import
+[the gate](vos/cli/proofs.py), derived from their import statements, including imports
+inside functions and parent packages. The launcher, the [command table](vos/commands.py)
+and the Python lockfile choose and start the process without deciding anything in it;
+the environment digest below covers the process they start, including the token the
+tool environment derives from its manifest and lockfile. Register prose is
 recorded in each receipt but does not invalidate native checks: annotations still
 bind the exact proof source, K-109 holds its reference manifest, and semantic
 agreement with a requirement remains a review obligation. Timestamps do not establish

@@ -57,6 +57,7 @@ from vos import (
     asm,
     block_persistence,
     cli,
+    commands,
     compose,
     config,
     differential,
@@ -1800,10 +1801,10 @@ def main(argv: list[str] | None = None) -> int:
     ka.set_defaults(run=cmd_keepalive)
 
     args = parser.parse_args(argv)
-    # Which subcommands answer on either lane is `cli.COMMANDS`'s and is asked rather
+    # Which subcommands answer on either lane is `commands.COMMANDS`'s and is asked rather
     # than restated: a second list here would be the two-copies defect inside the table
     # that exists to prevent it, and it would drift the first time one is added.
-    hosted = next((c.host_ok for c in cli.COMMANDS if c.name == "model"), frozenset())
+    hosted = next((c.host_ok for c in commands.COMMANDS if c.name == "model"), frozenset())
     needs_guest = args.command not in hosted
     e = env.load(toolchain=needs_guest)
     if args.command != "keepalive" and needs_guest:
