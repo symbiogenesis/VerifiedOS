@@ -5,6 +5,7 @@ import json
 import stat
 import subprocess
 from pathlib import Path
+from threading import Barrier, Lock
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
@@ -74,7 +75,7 @@ def _failed_carry_rebuilds_index() -> None:
             selftest.build_template(root, output / "first", 2)
             selftest._publish(output / "first", cache)
 
-            def interrupted(_source: Path, target: Path) -> None:
+            def interrupted(_source: Path, target: Path, _jobs: int = 1) -> None:
                 target.mkdir(parents=True)
                 (target / "partial").touch()
                 raise OSError("snapshot disappeared")
@@ -191,15 +192,76 @@ def _sandbox_writes_remain_private() -> None:
         with patch.object(selftest, "_cache_root", return_value=output / "cache"):
             template = output / "template"
             selftest.build_template(root, template, 2)
-        first = selftest.stand_up(template, output / "first")
+        first = selftest.stand_up(template, output / "first", jobs=2)
         second = selftest.stand_up(template, output / "second")
-        repair = selftest.stand_up(template, output / "repair", fix_ok=True)
+        repair = selftest.stand_up(template, output / "repair", fix_ok=True, jobs=2)
         ensure(first.write("a.txt", "mutant\n"), "mutation did not apply")
         (repair.path / "a.txt").write_bytes(b"repaired\n")
         ensure(second.read("a.txt") == "kept\n", "a peer saw another sandbox's mutation")
         ensure((template / "a.txt").read_bytes() == b"kept\n", "sandbox edited the template")
         first.reset()
         ensure(first.read("a.txt") == "kept\n", "reset failed to restore pristine bytes")
+
+
+def _parallel_placement_matches_serial() -> None:
+    with sandbox_tree({".gitignore": "out/\n", "a.txt": "root\n",
+                       "docs/a.txt": "nested\n", "docs/sub/b.txt": "deep\n",
+                       "model/example.sail": "model\n"}) as root:
+        output = root / "out"
+        template = output / "template"
+        with patch.object(selftest, "_cache_root", return_value=output / "cache"):
+            selftest.build_template(root, template, 2)
+        (template / "empty").mkdir()
+        serial = selftest.stand_up(template, output / "serial")
+        with patch.object(selftest.os, "link", side_effect=OSError("no hardlinks")):
+            parallel = selftest.stand_up(template, output / "parallel", jobs=3)
+            selftest._link_tree(template / ".git", output / "git-copy", 3)
+
+        def contents(path: Path) -> dict[str, bytes | None]:
+            return {str(item.relative_to(path)): item.read_bytes() if item.is_file() else None
+                    for item in path.rglob("*")}
+
+        ensure(contents(serial.path) == contents(parallel.path),
+               "parallel placement or hardlink fallback changed sandbox bytes or directories")
+        ensure(contents(template / ".git") == contents(output / "git-copy"),
+               "parallel object-store fallback changed copied bytes or directories")
+        ensure(not (parallel.path / selftest._MANIFEST).exists(),
+               "template metadata must remain outside the sandbox corpus")
+
+
+def _parallel_work_is_complete_ordered_and_bounded() -> None:
+    barrier, lock = Barrier(3, timeout=10), Lock()
+    active = 0
+    maximum = 0
+    visited: list[int] = []
+
+    def work(item: int) -> int:
+        nonlocal active, maximum
+        with lock:
+            active += 1
+            maximum = max(maximum, active)
+        barrier.wait()
+        with lock:
+            visited.append(item)
+            active -= 1
+        return item
+
+    ensure(selftest._across(work, range(9), 3) == list(range(9)),
+           "parallel results must preserve input order")
+    ensure(sorted(visited) == list(range(9)) and maximum == 3,
+           "every item must run once with bounded concurrency")
+
+    def fail(item: int) -> int:
+        if item == 1:
+            raise OSError("placement failed")
+        return item
+
+    try:
+        selftest._across(fail, range(3), 2)
+    except OSError as err:
+        ensure(str(err) == "placement failed", "a worker failure lost its diagnostic")
+    else:
+        raise AssertionError("a worker failure must propagate to its caller")
 
 
 def cases() -> list[Case]:
@@ -213,4 +275,7 @@ def cases() -> list[Case]:
         Case("missing-object-rebuilds-index", _missing_object_rebuilds_index),
         Case("snapshot-shape-falls-back", _snapshot_shape_falls_back),
         Case("sandbox-writes-remain-private", _sandbox_writes_remain_private),
+        Case("parallel-placement-matches-serial", _parallel_placement_matches_serial),
+        Case("parallel-work-is-complete-ordered-and-bounded",
+             _parallel_work_is_complete_ordered_and_bounded),
     ]
