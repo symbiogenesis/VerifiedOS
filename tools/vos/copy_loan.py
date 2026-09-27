@@ -309,7 +309,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path, build_receipt: P
             raise ValueError("grant block is not aligned to a complete bitmap word")
         profile = jsonc.load(root / "model/config/verifiedos.json")
         if not isinstance(profile, dict) or not isinstance(platform := profile.get("platform"), dict):
-            raise ValueError("missing model platform configuration")
+            raise TypeError("missing model platform configuration")
         if not isinstance(plane := platform.get("revocation"), dict) or plane.get("interval_size") != 32768:
             raise ValueError("requires the reviewed unchanged 32KiB revocation capacity")
         plane["interval_base"] = symbols["grant_slots"]

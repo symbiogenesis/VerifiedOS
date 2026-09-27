@@ -166,5 +166,22 @@ the controls. Removing the sender's store permission must cause an actual
 capability trap and is reported as authority refusal, not a mutant kill.
 No new syscall, scheduler suspension or completion-ring semantics is introduced.
 
+## Confined private activation
+
+`copy-service partition` accepts the compiler and model arguments of `target`.
+It enters the real compiled copy code with a bounded PCC without ASR, a private
+stack inside its complete 524,288-byte owned allocation, byte-only payload
+capabilities and exact notification words. Each activation transfers a payload,
+observes its notification and faults at a named instruction. The trusted handler
+saves all 33 capability slots, scrubs registers, clears and reads back the whole
+owned allocation and saved/fresh images, then enters a fresh generation.
+
+Executed controls omit tail, saved-image or resident cleanup, supply an ASR
+entry, or retain a stale generation. These must fail the corresponding target
+check. The receipt binds each image and trace and requires the positive trace's
+entry, notification, fault and cleanup observations. The private allocation
+remains continuously owned; this experiment does not claim physical ring
+revocation, a public client endpoint, fixed scheduler timing or composed boot.
+
 The C and Python files are original Apache-2.0 sources; this document is CC-BY-4.0
 under [COPYRIGHT.md](../COPYRIGHT.md).

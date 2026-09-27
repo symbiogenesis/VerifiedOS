@@ -60,6 +60,7 @@ from unittest import mock
 
 from vos import (
     cli,
+    copy_loan,
     env,
     gallina,
     kernel_effects,
@@ -630,6 +631,18 @@ def cmd_protected(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
+def cmd_loan(args: argparse.Namespace) -> int:
+    """Exercise private slot validation and complete bounded holder cleanup."""
+    e = env.load(toolchain=False)
+    out = Path(args.out) if args.out else e.lane_root / "copy-loan"
+    with env.hold_lock(out, "private copy loan target controls"):
+        report = copy_loan.run(e.root, Path(args.ccomp), Path(args.compiler_config),
+                               Path(args.simulator), Path(args.build_receipt), out, args.timeout)
+    print(out / "report.json")
+    print(report["limits"])
+    return 0 if report["ok"] else 1
+
+
 def cmd_effects(args: argparse.Namespace) -> int:
     """Run the bounded trap/save/restart experiment in this native lane."""
     e = env.load(toolchain=False)
@@ -718,6 +731,7 @@ COMMANDS: cli.Table = {
     "mutants": (cmd_mutants, "authored defects through both differentials"),
     "reader": (cmd_reader, "the trace reader alone over a vector file on disk"),
     "protected": (cmd_protected, "actual contained nested sentry frames and timer retirement"),
+    "loan": (cmd_loan, "private grant-slot validation and complete borrower holder cleanup"),
     "effects": (cmd_effects, "scalar trap save and crash-only restart target controls"),
     "restore": (cmd_restore, "generated scalar restore controls on the golden emulator"),
     "target": (cmd_target, "compiled scalar kernel under signed M-mode handoff"),
@@ -725,10 +739,11 @@ COMMANDS: cli.Table = {
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
-    if name == "protected":
+    if name in {"protected", "loan"}:
         sub.add_argument("--ccomp", required=True, help="accepted contained compiler")
         sub.add_argument("--compiler-config", required=True, help="contained compiler configuration")
-        sub.add_argument("--boundary-runner", required=True, help="contained run_timer.py producer runner")
+        if name == "protected":
+            sub.add_argument("--boundary-runner", required=True, help="contained run_timer.py producer runner")
         sub.add_argument("--simulator", required=True, help="golden emulator executable")
         sub.add_argument("--build-receipt", required=True, help="successful model-source build receipt")
         sub.add_argument("--out", help="native output directory with fresh campaign children")

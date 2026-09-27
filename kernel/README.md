@@ -249,6 +249,30 @@ revocation completion. Every report keeps M4.4 acceptance open.
 - **A pointer result that is null on one path and an address on another is refused.** A static function with an `if (...) { return 0; } return p;` shape fails at LTL with *use of undefined, overlapping or inconsistent location*, and comparing such a result with a live address fails at Clight with *comparison requires one retained source allocation or null*. `partition.c` therefore returns a partition index rather than an optional extent pointer.
 - **A `void *` slot holding a stack object's capability is refused** with *missing or incompatible retained object origin*, although the source-value contract admits an object pointer through `void *` and back. `void *` is the one C type that can hold any saved capability, so the smoke names a typed slot through `VOS_TARGET_SLOT` and the kernel's own slot type stays `void *`.
 
+## Private bounded copy loans
+
+[copy_loan.c](src/copy_loan.c) and [the target helpers](../tools/vos/copy_loan.py)
+guard one synchronous activation over a continuously live ring allocation. The
+redeem helper checks an actual sealed eight-byte grant slot, derives its bit from
+the real base and reads the current bitmap even for a resident handle. Only a
+live slot may yield a local byte-only ring capability. Revoking that small slot
+does not revoke the large ring's physical extent.
+
+The cleanup helper validates the composition's complete stack, saved-image and
+protected-frame capabilities, clears and reads back every granule, scrubs
+registers and cancels obsolete MEPCC before closing the loan. Missing any holder
+class leaves the C loan outstanding. These are private kernel helpers: the
+existing grant-redeem boundary still owns the protected transfer, and each
+borrower binary needs its complete no-capture and ownership argument.
+
+`python tools/run.py kernel loan --ccomp PATH --compiler-config FILE --simulator
+PATH --build-receipt FILE` compiles the guard and executes a fixed borrower.
+The positive control includes a real interior-base spill; resident-revoked and
+wrong-bounds slots refuse, and omitted stack/save/frame cleanup is detected.
+The component does not create a public service entry or establish an arbitrary
+borrower theorem. Output stays in the native lane and includes source, tool,
+model, image and trace identities.
+
 ## Supervisor lifecycle boundary
 
 [lifecycle.c](src/lifecycle.c) consumes the supervisor's generated scalar request
@@ -265,6 +289,10 @@ replenishment. The consumer never spins during backoff. Start serialization stay
 held until assembly publishes the acknowledgment fields and sequence, then calls
 `published` before dispatch. Empty boundaries refresh the clock and snapshot
 without claiming a new effect.
+
+Dispatch must refuse a victim while retirement is pending or fresh roots are
+still needed. An incomplete retirement can preserve the old runnable flags;
+clearing a pending request or publishing a refusal does not authorize resumption.
 
 `python tools/run.py test --only test_kernel_lifecycle` exercises the finite
 native decision/refusal controls. [The typed unit](test/lifecycle_target_unit.c)

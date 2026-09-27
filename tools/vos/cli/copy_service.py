@@ -7,7 +7,7 @@
 import argparse
 from pathlib import Path
 
-from vos import cli, copy_notification, copy_service, copy_target, env
+from vos import cli, copy_notification, copy_partition, copy_service, copy_target, env
 from vos.corpus import find_root
 
 
@@ -42,7 +42,7 @@ def cmd_notification(args: argparse.Namespace) -> int:
 
 
 def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
-    if name not in {"target", "notification"}:
+    if name not in {"target", "notification", "partition"}:
         return
     parser.add_argument("--ccomp", type=Path, required=True)
     parser.add_argument("--ccomp-arg", action="append", default=[])
@@ -51,10 +51,21 @@ def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--reference", type=Path)
 
 
+def cmd_partition(args: argparse.Namespace) -> int:
+    work = env.load().lane_root / "copy-partition"
+    with env.hold_lock(work, "a confined copy activation target experiment"):
+        report = copy_partition.run(find_root(), work, args.ccomp, args.ccomp_arg,
+                                    args.simulator, args.build_receipt)
+    print(f"report: {work / 'report.json'}")
+    print(report["limits"])
+    return 0 if report["ok"] else 1
+
+
 COMMANDS: cli.Table = {
     "check": (cmd_check, "bounded C and atomic payload controls against the ring reference"),
     "target": (cmd_target, "accepted scalar stages and actual fenced ring adapter"),
     "notification": (cmd_notification, "actual interrupt-file store and ordinary pending load"),
+    "partition": (cmd_partition, "confined copy payload, fault and private activation reset"),
 }
 
 
