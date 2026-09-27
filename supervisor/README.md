@@ -94,7 +94,11 @@ record is data from a trusted binding, not independently attested evidence. The
 adapter does not itself perform compartment entry, capability derivation,
 teardown, zeroization, revocation, or clock measurement. Those effects, ownership
 closure, bounded callback completion and the serialized region must be realized
-and checked at M4.4's join. Host test bindings establish sequencing and refusal
+and checked at M4.4b-i's scalar join. M7.1a owns the first real kernel/supervisor/
+copy-service integration under the [boot-roster contract](../docs/implementation/contracts/boot-roster.md#2a-scalar-integration-and-producer-joins).
+M6.1b's bounded route trial selects the final Vélus producer or the C fallback
+before further interim target integration; this C host remains a comparison oracle.
+Host test bindings establish sequencing and refusal
 behavior only.
 
 ## Focused comparison
