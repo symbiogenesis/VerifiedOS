@@ -77,7 +77,8 @@ def source(kernel_stream: str, supervisor_stream: str,
            boundary_bound: int, *, defect: str = "none", owned_bytes: int = 64,
            service_text: str = "", service_data: str = "", init_extra: str = "",
            after_ack: str = "", retire_extra: str = "", fault_handler: str = "",
-           dispatch_handler: str = "", supervisor_publish_extra: str = "") -> str:
+           dispatch_handler: str = "", supervisor_publish_extra: str = "",
+           timer_extra: str = "") -> str:
     """Compose original compiled units with explicit authority and timer adapters.
 
     Offline service fragments own their labels and declared extents. The default
@@ -85,6 +86,8 @@ def source(kernel_stream: str, supervisor_stream: str,
     to the C compiler as VOS_JOIN_OWNED_BYTES and included in the timing account.
     The component account covers empty hooks only. A composition must add every
     injected hook's finite work before supplying its admitted boundary_bound.
+    timer_extra runs only after timer-cause validation, with trusted c31/c18 roots
+    and c2 stack, before any supervisor request consumption or completion check.
     """
     if defect not in {"none", "stale", "incomplete", "ack-write", "asr",
                       "partial", "fault-before", "fault-after", "fault-backoff", "publication"}:
@@ -134,7 +137,7 @@ def source(kernel_stream: str, supervisor_stream: str,
               kernel_effects.emit_save("lifecycle_trap", 128),
               kernel_effects.emit_scrub("lifecycle_trap"), *_root(), "    lc c2, 8(c31)",
               "    csrr x5, mcause", "    li x6, 0x8000000000000007",
-              "    bne x5, x6, lifecycle_fault_entry", "    ld x5, 64(c31)",
+              "    bne x5, x6, lifecycle_fault_entry", timer_extra, "    ld x5, 64(c31)",
               "    bnez x5, lifecycle_finish_check"]
     lines += _root()
     for reg, label in ((10, "lifecycle"), (11, "effects"), (12, "request")):
