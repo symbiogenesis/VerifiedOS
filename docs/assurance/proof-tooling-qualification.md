@@ -59,7 +59,7 @@ Thus the positive predicate's measured review-effort clause is also unsatisfied.
 
 ## Reproducing the rejected rendering candidate
 
-Q19 permits a child to reject a candidate with a reproducible failing comparison. Q19a closes under that negative-outcome rule, with its [completion evidence](../implementation/completion-log.md#q19a-qualify-source-oriented-proof-diagnostics-and-rendered-review). The positive predicate remains unsatisfied: no freshness-safe presentation workflow or measured human review-effort comparison is retained. Q20b still requires a retained usable environment; a later adoption proposal must reopen Q19a and meet that original predicate before it can supply one.
+Q19 permits a child to reject a candidate with a reproducible failing comparison. Q19a closes under that negative-outcome rule, with its [completion evidence](../implementation/completion-log.md#q19a-qualify-source-oriented-proof-diagnostics-and-rendered-review). The positive predicate remains unsatisfied: no freshness-safe presentation workflow or measured human review-effort comparison is retained. Q20b is canceled. A later adoption proposal must meet Q19a's original positive predicate and the [workflow re-entry conditions](../languages/workflow-contract.md#commissioning-disposition) before commissioning a new comparison; this rejection supplies no usable environment.
 
 [The replay experiment](../../proofs/campaigns/q19a-render-cache.py) consumes the existing qualified renderer and separate candidate switch. From the repository root in WSL, run:
 

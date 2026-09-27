@@ -1,5 +1,7 @@
 # Bounded language core and qualification contract
 
+> **Execution status:** Q19c/Q20b/Q20c are canceled optional experiments. Their named roles in this design remain frozen proposal roles under the [workflow contract's re-entry conditions](workflow-contract.md#commissioning-disposition), not commissioned work. Required compiler, proof and production-artifact duties retain their existing owners.
+
 > Non-normative Q21a design record. The decision declines commissioning the present core qualification under its missing foundation and translator-admission prerequisites. The bounded design below supplies no implemented frontend, proved metatheory or production qualification. The [requirements register](../requirements-register.md) remains authoritative. [The strategy](verification-strategy.md#a-compositional-core) states the wider objective; [the implementation checklist](../implementation/implementation-checklist.md#q-assessment-actions) owns scheduling.
 
 ## Decision and boundary

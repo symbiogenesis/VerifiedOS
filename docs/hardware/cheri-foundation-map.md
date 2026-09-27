@@ -1,5 +1,7 @@
 # CHERI component foundation map
 
+Q19c/Q20b/Q20c references below describe the retained, canceled trial allocation. They commission no implementation; required machine-logic, byte-instance and artifact-admission duties remain unchanged.
+
 This is Q2c's prerequisite inspection for parser destination initialization and
 copy-service private staging. It supplies the existing-route input to Q21b's
 [compiler comparison](../languages/compiler-route-contract.md) and identifies what Q19c would
@@ -11,7 +13,7 @@ report a fresh prover run, a byte-memory implementation or an accepted target
 connection. Q2c takes its reasoned-rejection arm: commissioning the missing
 foundation for the bounded generic experiment is declined on the evidence below.
 The existing realization route and mandatory hardening obligations retain their
-owners. Q19c remains unopened; this decision supplies no checked primitive law.
+owners. Q19c is canceled; the retained comparison can be proposed again only under the [workflow re-entry conditions](../languages/workflow-contract.md#commissioning-disposition). This decision supplies no checked primitive law.
 
 ## Available artifacts
 
@@ -65,7 +67,7 @@ absorbed by Q19c, Q20 or M1's functional-bring-up cells.
 | `scoped-resources`: the concrete resource interpretation consumed by Q21a/Q19c | `byte-instance` and actual permission/loan interpretation. Owns disjoint-field split/join, shared/exclusive reborrow, suspended-parent access and restoration entailments. | Actual entailment constants, including refusal to restore a parent with a live child and preservation of the disjoint audit field. Branch joins and loop induction compose these laws at the language owner. | Missing concrete instance remains part of rejected foundation commissioning. Q21a's separately priced abstract rules do not pay for it. |
 | `source-transport`: Q2b's decoder-to-device relation | Authoritative decoder operation, byte representation, selected imperative route and Clight. Owns the connection absent between `Derive` and emitted C, including its preamble. | Source-to-imperative/Clight constants preserving success/refusal, initialized destination, frame and declared trace; source identity includes representation and foreign contracts. | Existing Q2b work is charged once. A new printer proof, port or component extension requires a separately estimated child if it exceeds that scope; none is commissioned by this rejection. |
 | `context-preservation`: the R-05-024/R-05-032 secure-compilation hardening deliverable | Compartment/interface contract, CHERI lowering and ABI, the universal-contract interpretation in `machine-logic`. | Top-level statements quantify over an adversarial linked context and compose with the exact final artifact. A theorem about only known generated code cannot fill this slot. | Existing M1 backend estimates explicitly exclude this hardening proof. Its full establishment and an alternate route's distinct preservation join remain unpriced; Q21b cannot claim a saving by omitting either. |
-| `artifact-admission`: the R-05-023a validation and R-05-026 admission hardening deliverables | `machine-logic`, final image and source closure, actual TAL producer/checker and soundness artifacts, component tier and required observation/cost contracts. | Kernel-checked final-byte refinement and source correspondence plus the applicable admission artifacts, refreshed after assembly, linking and image composition; required guarantee removal fails at that guarantee. | Existing hardening obligations retain their owners. Q20c prices promotion of supplied evidence, not construction of this missing logic, validator or TAL foundation. |
+| `artifact-admission`: the R-05-023a validation and R-05-026 admission hardening deliverables | `machine-logic`, final image and source closure, actual TAL producer/checker and soundness artifacts, component tier and required observation/cost contracts. | Kernel-checked final-byte refinement and source correspondence plus the applicable admission artifacts, refreshed after assembly, linking and image composition; required guarantee removal fails at that guarantee. | Existing hardening obligations retain their owners. The canceled Q20c experiment priced only comparison of supplied evidence. This missing logic, validator and TAL foundation remain mandatory hardening work at their existing owners, with no budget supplied by that experiment. |
 
 `machine-logic` precedes its concrete byte instance; that instance precedes its
 resource interpretation and the generic clients. Source transport joins the

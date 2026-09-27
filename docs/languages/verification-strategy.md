@@ -1,5 +1,7 @@
 # A Verification-First Systems Language: Strategy and Research
 
+> **Execution status:** Q19c/Q20b/Q20c are canceled optional experiments. Their named roles in this design remain frozen proposal roles under the [workflow contract's re-entry conditions](workflow-contract.md#commissioning-disposition), not commissioned work. Required compiler, proof and production-artifact duties retain their existing owners.
+
 > Non-normative research and design proposal. Scheduled experiments belong to the implementation checklist; this document supplies no admission rule, semantic anchor, or accepted trust assumption.
 > The [requirements register](../requirements-register.md) governs VerifiedOS; the [typed assembly language](typed-assembly-language.md) governs the certificate language.
 > Research snapshot: 2026-09-08. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
