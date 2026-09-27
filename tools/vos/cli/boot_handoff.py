@@ -25,7 +25,7 @@ import hashlib
 import subprocess
 from pathlib import Path
 
-from vos import boot_handoff, boot_target, env, receipts
+from vos import boot_handoff, boot_release_target, boot_target, env, receipts
 from vos.cli import Table, dispatch
 from vos.corpus import find_root
 
@@ -121,15 +121,39 @@ def cmd_signature_target(args: argparse.Namespace) -> int:
     return 0 if result["passed"] else 1
 
 
+def cmd_release_target(args: argparse.Namespace) -> int:
+    e = env.load()
+    out = Path(args.out) if args.out else e.lane_root / "boot-release-target"
+    simulator = Path(args.simulator) if args.simulator else e.simulator
+    with env.hold_lock(out, "boot release target"):
+        receipts.write(out / "report.json", {"status": "incomplete", "passed": False,
+                                              "milestone_acceptance": "open"})
+        try:
+            result = boot_release_target.run(e.root, out, Path(args.ccomp), args.ccomp_arg, simulator,
+                                              Path(args.build_receipt), Path(args.image),
+                                              Path(args.public_key), args.timeout, args.inst_limit)
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+            receipts.write(out / "report.json", {"status": "failed", "passed": False,
+                                                 "milestone_acceptance": "open", "error": str(exc)})
+            print(f"FAIL boot release target: {exc}")
+            return 1
+        result["status"] = "passed" if result["passed"] else "failed"
+        receipts.write(out / "report.json", result)
+    print(f"{'ok' if result['passed'] else 'FAIL'} boot release target: {out / 'report.json'}; "
+          "RoT target release; milestone_acceptance: open")
+    return 0 if result["passed"] else 1
+
+
 TABLE: Table = {
     "layout": (cmd_layout, "the contract's tables and the image against vos_boot.h"),
     "run": (cmd_run, "every contract case through the RoT stage and the golden emulator"),
     "signature-target": (cmd_signature_target, "real SLH verification on the RoT profile"),
+    "release-target": (cmd_release_target, "RoT target release and captured main-die handoff"),
 }
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
-    if name == "signature-target":
+    if name in ("signature-target", "release-target"):
         sub.add_argument("--ccomp", required=True, help="accepted contained compiler executable")
         sub.add_argument("--ccomp-arg", action="append", default=[], help="compiler option, repeatable")
         sub.add_argument("--simulator", help="golden emulator (default: lane model build)")
@@ -138,7 +162,9 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--public-key", required=True, help="exact raw SLH public-key file")
         sub.add_argument("--out", help="native output directory")
         sub.add_argument("--timeout", type=int, default=1200, help="seconds per target run")
-        sub.add_argument("--inst-limit", type=int, default=150_000_000, help="instructions per target run")
+        sub.add_argument("--inst-limit", type=int,
+                         default=1_500_000_000 if name == "release-target" else 150_000_000,
+                         help="instructions per target run")
     if name == "run":
         sub.add_argument("--out", help="output directory (default: the lane's boot-handoff/)")
         sub.add_argument("--timeout", type=int, default=60,

@@ -247,4 +247,14 @@ vos_boot_verdict vos_rot_boot_mmode(const uint8_t *image, uint64_t image_len,
                                     vos_release_fn release, void *release_context,
                                     vos_boot_result *result);
 
+// The common verifier/placement body. Success means the handoff is complete;
+// the caller must release exactly once only on VOS_BOOT_RELEASE. This split
+// lets a target composition bind its release door statically and lets the host
+// wrapper above retain its callback without a void-pointer target adapter.
+vos_boot_verdict vos_rot_prepare_mmode(const uint8_t *image, uint64_t image_len,
+                                       const vos_rot_inputs *inputs,
+                                       const vos_rot_policy *policy,
+                                       const vos_sram_windows *sram,
+                                       vos_boot_result *result);
+
 #endif
