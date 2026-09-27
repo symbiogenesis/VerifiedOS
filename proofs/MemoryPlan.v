@@ -525,13 +525,8 @@ Qed.
    enumeration that decided it. *)
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
 Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
-  - destruct k as [ | b ].
-    + discriminate H.
-    + simpl in H. destruct (IH b H) as [ Hlt | Heq ].
-      * left. exact Hlt.
-      * right. rewrite Heq. reflexivity.
+  intros v k. rewrite PeanoNat.Nat.leb_le, PeanoNat.Nat.ltb_lt.
+  apply PeanoNat.Nat.le_lteq.
 Qed.
 
 Lemma all_of_upto :
@@ -553,15 +548,10 @@ Qed.
    check answering false refutes the property rather than reporting that
    the check moved. *)
 Lemma ltb_succ_r : forall v k : nat, Nat.ltb v k = true -> Nat.ltb v (S k) = true.
-Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - reflexivity.
-  - destruct k as [ | b ]; [ discriminate H | ].
-    simpl in H. simpl. exact (IH b H).
-Qed.
+Proof. intros v k. rewrite !PeanoNat.Nat.ltb_lt. apply PeanoNat.Nat.lt_lt_succ_r. Qed.
 
 Lemma ltb_succ_diag : forall k : nat, Nat.ltb k (S k) = true.
-Proof. intros k. induction k as [ | j IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros k. apply PeanoNat.Nat.ltb_lt, PeanoNat.Nat.lt_succ_diag_r. Qed.
 
 Lemma all_of_upto_intro :
   forall (p : nat -> bool) (n : nat),
@@ -636,65 +626,38 @@ Proof. exact PeanoNat.Nat.mul_0_r. Qed.
 
 Lemma add_sub_cancel : forall n m : nat, Nat.leb n m = true -> n + (m - n) = m.
 Proof.
-  intros n. induction n as [ | k IH ]; intros m H.
-  - simpl. destruct m as [ | j ]; reflexivity.
-  - destruct m as [ | j ]; [ discriminate H | ].
-    simpl in H. simpl. rewrite (IH j H). reflexivity.
+  intros n m H. rewrite PeanoNat.Nat.add_comm.
+  apply PeanoNat.Nat.sub_add, PeanoNat.Nat.leb_le. exact H.
 Qed.
 
 Lemma ltb_add_pos :
   forall n k : nat, Nat.ltb 0 k = true -> Nat.ltb n (n + k) = true.
-Proof.
-  intros n k H. induction n as [ | a IH ].
-  - simpl. destruct k as [ | b ]; [ discriminate H | reflexivity ].
-  - simpl. exact IH.
-Qed.
+Proof. intros n k. rewrite !PeanoNat.Nat.ltb_lt. apply PeanoNat.Nat.lt_add_pos_r. Qed.
 
 Lemma leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. exact PeanoNat.Nat.leb_refl. Qed.
 
 Lemma leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c Hab Hbc.
-  - reflexivity.
-  - destruct b as [ | y ]; [ discriminate Hab | ].
-    destruct c as [ | z ]; [ discriminate Hbc | ].
-    simpl in Hab. simpl in Hbc. simpl. exact (IH y z Hab Hbc).
-Qed.
+Proof. intros a b c. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.le_trans. Qed.
 
 Lemma ltb_leb_false : forall n m : nat, Nat.ltb m n = true -> Nat.leb n m = false.
-Proof.
-  intros n. induction n as [ | b IH ]; intros m H.
-  - discriminate H.
-  - destruct m as [ | a ].
-    + reflexivity.
-    + simpl in H. simpl. exact (IH a H).
-Qed.
+Proof. intros n m. rewrite PeanoNat.Nat.ltb_lt, PeanoNat.Nat.leb_gt. trivial. Qed.
 
 Lemma leb_add_l : forall n k : nat, Nat.leb n (n + k) = true.
-Proof. intros n k. induction n as [ | a IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n k. apply PeanoNat.Nat.leb_le, PeanoNat.Nat.le_add_r. Qed.
 
 Lemma leb_add_r : forall n k : nat, Nat.leb n (k + n) = true.
-Proof. intros n k. rewrite (add_comm k n). exact (leb_add_l n k). Qed.
+Proof. intros n k. apply PeanoNat.Nat.leb_le, PeanoNat.Nat.le_add_l. Qed.
 
 Lemma add_le_mono :
   forall a b c d : nat,
     Nat.leb a b = true -> Nat.leb c d = true -> Nat.leb (a + c) (b + d) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c d Hab Hcd.
-  - simpl. exact (leb_trans c d (b + d) Hcd (leb_add_r d b)).
-  - destruct b as [ | y ]; [ discriminate Hab | ].
-    simpl in Hab. simpl. exact (IH y c d Hab Hcd).
-Qed.
+Proof. intros a b c d. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.add_le_mono. Qed.
 
 Lemma mul_le_mono_l :
   forall a b c : nat, Nat.leb b c = true -> Nat.leb (a * b) (a * c) = true.
-Proof.
-  intros a. induction a as [ | k IH ]; intros b c H.
-  - reflexivity.
-  - simpl. exact (add_le_mono b c (k * b) (k * c) H (IH b c H)).
-Qed.
+Proof. intros a b c. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.mul_le_mono_l. Qed.
 
 Lemma eqb_true : forall n m : nat, Nat.eqb n m = true -> n = m.
 Proof. intros n m. exact (proj1 (PeanoNat.Nat.eqb_eq n m)). Qed.
@@ -705,16 +668,10 @@ Proof. exact PeanoNat.Nat.eqb_refl. Qed.
 (* A refused comparison read the other way, which is what a search that
    stops needs: the step it declined is the step past its own bound. *)
 Lemma leb_false_ltb : forall n m : nat, Nat.leb n m = false -> Nat.ltb m n = true.
-Proof.
-  intros n. induction n as [ | k IH ]; intros m H.
-  - discriminate H.
-  - destruct m as [ | j ].
-    + reflexivity.
-    + simpl in H. simpl. exact (IH j H).
-Qed.
+Proof. intros n m. rewrite PeanoNat.Nat.leb_gt, PeanoNat.Nat.ltb_lt. trivial. Qed.
 
 Lemma leb_succ_false : forall n : nat, Nat.leb (S n) n = false.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. intros n. apply PeanoNat.Nat.leb_gt, PeanoNat.Nat.lt_succ_diag_r. Qed.
 
 Lemma leb_mul_self :
   forall a x : nat, Nat.leb 1 a = true -> Nat.leb x (a * x) = true.
@@ -727,12 +684,7 @@ Qed.
    which is the arithmetic of an index past a band's own slots. *)
 Lemma leb_sub_of_add :
   forall a b i : nat, Nat.leb (a + b) i = true -> Nat.leb b (i - a) = true.
-Proof.
-  intros a. induction a as [ | k IH ]; intros b i H.
-  - rewrite (sub_0_r i). exact H.
-  - destruct i as [ | j ]; [ discriminate H | ].
-    simpl in H. simpl. exact (IH b j H).
-Qed.
+Proof. intros a b i. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.le_add_le_sub_l. Qed.
 
 Lemma count_of_app :
   forall (A : Type) (l r : list A),
