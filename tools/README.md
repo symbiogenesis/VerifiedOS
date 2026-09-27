@@ -153,6 +153,13 @@ private-span cleanup using the same compiler/model arguments as `copy-service ta
 Each report states the exercised ownership boundary and retains the image and
 trace identities; neither command supplies public-client or full-roster acceptance.
 
+`copy-service join` composes the non-ASR supervisor and private copy activation in
+one image, using the same compiler/model arguments as `target` and an optional
+`--timeout` per image. It checks payload/notification, the context request and
+later acknowledgment, fault cleanup, current-epoch restart, stale and incomplete
+refusals, and the declared padded logical boundary. The complete boot roster,
+external-client transport and physical WCET retain their separate acceptance.
+
 `rtl widthcheck` checks frozen transport widths and every store-rotation bit/lane.
 `rtl device-regs` emits register constants from their pinned owner; `rtl devicescheck`
 checks owner-byte agreement and the standalone UART, block and route simulation.
