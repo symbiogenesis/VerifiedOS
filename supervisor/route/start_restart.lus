@@ -5,21 +5,22 @@
 -- This node emits a plan. Kernel completion and serialization stay in the
 -- existing effects ABI; this trial does not implement those effects.
 node start_restart (
-  restart, attempts : uint32;
+  restart_requested, attempts : uint32;
   snapshot_epoch, current_epoch : uint64;
   storage_edge_retired : bool)
 returns (accepted : bool;
   count, stop_members, delay, storage_grant, first_unit, second_unit, third_unit : uint32)
 var restart_delay : uint32;
 let
-  accepted = (restart = 0 or restart = 1) and snapshot_epoch = current_epoch;
-  restart_delay = if attempts = 0 then 1 else
-    if attempts = 1 then 2 else if attempts = 2 then 3 else 5;
-  count = if accepted then 3 else 0;
-  stop_members = if accepted and restart = 1 then 7 else 0;
-  delay = if accepted and restart = 1 then restart_delay else 0;
-  storage_grant = if accepted and not storage_edge_retired then 1 else 0;
-  first_unit = 0;
-  second_unit = if accepted then 1 else 0;
-  third_unit = if accepted then 2 else 0;
+  accepted = (restart_requested = 0U or restart_requested = 1U)
+    and snapshot_epoch = current_epoch;
+  restart_delay = if attempts = 0U then 1U else
+    if attempts = 1U then 2U else if attempts = 2U then 3U else 5U;
+  count = if accepted then 3U else 0U;
+  stop_members = if accepted and restart_requested = 1U then 7U else 0U;
+  delay = if accepted and restart_requested = 1U then restart_delay else 0U;
+  storage_grant = if accepted and not storage_edge_retired then 1U else 0U;
+  first_unit = 0U;
+  second_unit = if accepted then 1U else 0U;
+  third_unit = if accepted then 2U else 0U;
 tel
