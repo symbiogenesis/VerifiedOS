@@ -144,6 +144,18 @@
         {
           "item": "M3.5b",
           "output": "real target handoff and reset observations"
+        },
+        {
+          "item": "M7.1b",
+          "output": "real supervisor using the scalar effect bindings"
+        },
+        {
+          "item": "M7.1e",
+          "output": "real copy service using notification and completion bindings"
+        },
+        {
+          "item": "M7.1a",
+          "output": "shared real-call and fault/restart checkpoint"
         }
       ]
     },
@@ -245,6 +257,10 @@
         {
           "item": "M3.5b",
           "output": "authenticated supervisor handoff"
+        },
+        {
+          "item": "M7.1a",
+          "output": "shared target call, completion and restart observations"
         }
       ]
     },
@@ -306,6 +322,10 @@
         {
           "item": "M3.5b",
           "output": "shared target handoff and C layout"
+        },
+        {
+          "item": "M7.1a",
+          "output": "shared target call, completion and restart observations"
         }
       ]
     },

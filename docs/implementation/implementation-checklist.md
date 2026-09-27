@@ -399,21 +399,23 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,059.4 |
-| Total estimate range h | 2,566.4–5,552.4 |
+| Total estimate midpoint h | 4,006.4 |
+| Total estimate range h | 2,536.4–5,476.4 |
 | Completed scope h | 662.4 |
-| Complete by estimate % | 16.3 |
-| Remaining h | 3,397 |
+| Complete by estimate % | 16.5 |
+| Remaining h | 3,344 |
 | Open class I h | 717 |
-| Open class X h | 2,680 |
+| Open class X h | 2,627 |
 | Retained completion estimate h | 142.5 |
 | Unmeasured completed items | 16 |
-| Calibrated total h | 4,977.1 |
-| M8a open h | 193.5 |
-| M8a open class X h | 80 |
-| M8b parallel chain h | 90.5 |
-| M8a critical chain midpoint h | 107.5 |
-| M8a critical chain range h | 69–146 |
+| Calibrated total h | 4,901.8 |
+| Committed M8a open h | 114 |
+| Committed M8b open h | 90.5 |
+| Other committed open h | 1,977.5 |
+| Conditional open h | 748 |
+| Unfunded option open h | 414 |
+| Committed M8a open class X h | 5.5 |
+| Committed M8a open range h | 73.6–154.4 |
 <!-- estimate-summary:end -->
 
 The generated summary derives from the item cells and [calibration records](#calibration-record). Completed scope includes retained estimates whose actual time is unavailable. The calibrated total applies the attended authority-pool ratios reported in [the schedule basis](#estimate-and-schedule-basis); it does not combine execution clocks.
@@ -431,6 +433,19 @@ The generated view below reports the explicit M8a leaf joins in [the work-order 
 <!-- work-order:start -->
 | Leaf | Authoring inputs | Open acceptance joins |
 | --- | --- | --- |
+| M3.5b | available for authoring | M7.1f: target SLH-DSA and ML-DSA verifiers; M7.1a: composed firmware image and boot record |
+| M4.4b-i | available for authoring | M3.5b: real target handoff and reset observations; M7.1b: real supervisor using the scalar effect bindings; M7.1e: real copy service using notification and completion bindings; M7.1a: shared real-call and fault/restart checkpoint |
+| M5.3d | available for authoring | M4.4b-i: scalar service effects and completion bindings; M3.5b: authenticated boot root and counter path |
+| M6.1b-i | available for authoring | n/a |
+| M7.1a | available for authoring | M3.5b: RoT and M-mode target stages; M4.4b-i: scalar kernel service and restart bindings; M5.3d: storage and separate crypto compartment; M7.1b: target supervisor; M7.1c: image-bound admission record; M7.1d: typed graph and package descriptors; M7.1e: target copy service; M7.1f: target signature verifiers |
+| M7.1b | blocked: M6.1b-i | M4.4b-i: trusted start, restart, epoch and snapshot effects; M3.5b: authenticated supervisor handoff; M7.1a: shared target call, completion and restart observations |
+| M7.1c | available for authoring | M7.1d: real package graph; M7.1a: real image and member derivation records |
+| M7.1d | available for authoring | M7.1a: real member package descriptors |
+| M7.1e | available for authoring | M4.4b-i: notification and semantic-completion adapters; M3.5b: shared target handoff and C layout; M7.1a: shared target call, completion and restart observations |
+| M7.1f | available for authoring | M3.5b: RoT target executor and firmware binding |
+| M7.2 | available for authoring | M7.1a: accepted roster and complete allocation capture; M4.4b-i: executable teardown and sweep observations |
+| M7.3 | available for authoring | M7.1a: accepted roster and complete queue capture; M7.1e: executable queue and notification producer |
+| M8a | blocked: M7.1a; M7.2; M7.3 | M7.1a: accepted image and corpus verdict; M7.2: allocation-churn verdict; M7.3: ring-parameter verdict |
 <!-- work-order:end -->
 
 | Work package | Start and overlap | Integration boundary |
@@ -1019,7 +1034,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,256.6 h · 56% · 94.6 h complete · open range 1,224–3,100 h.
+**Q subtotal:** 2,203.6 h · 55% · 94.6 h complete · open range 1,194–3,024 h.
 
 ### M0 · Hardware reference
 
@@ -1390,11 +1405,11 @@ Gallina microkernel (§5), exercised through the existing host oracle and one pu
     * The compiled scalar composition consumes the real signed handoff and checks bounded authority, qualified revocation, exact restores and timer-driven table order. ([note](completion-log.md#m44a-execute-the-bounded-scalar-kernel-composition))
   * [ ] **M4.4b · Complete the broader kernel target duties**
     * The children retain every broader duty below and divide the existing estimate without claiming a saving. M7.1's scalar roster consumes M4.4a and M4.4b-i; group/elastic and V/M completion keep their own consumers and acceptance. R2 retains multiple instances, and duration retains its static proof owner.
-    * [ ] **M4.4b-i · Bind scalar restart and service effects** · 4 h, range 2.5–5.5 · X
+    * [ ] **M4.4b-i · Bind scalar restart and service effects** · 4 h, range 2.6–5.4 · X
       * **Start:** M4.4a, the scalar ABI, the existing kernel statements and the supervisor's reviewed effects interface. **Owns:** scalar save/trap/restart and protected frames for the declared C-class composition, trusted teardown/zeroization and semantic-completion bindings, serialized current-grant acquisition, acknowledged start/re-grant and the copy service's notification/completion bindings. **Check:** generated oracle comparisons and actual target calls exercise normal entry, a fault/restart, stale grants, incomplete completion and save/restore boundary refusals; bounded callback completion and ownership closure are explicit obligations. **Join:** the accepted compiler primitives, M7.1b's supervisor and M7.1e's copy service through M7.1a's first end-to-end handoff. Host callbacks alone do not close the item.
-    * [ ] **M4.4b-ii · Complete group and elastic executive duties** · 2 h, range 1.25–2.75 · X
+    * [ ] **M4.4b-ii · Complete group and elastic executive duties** · 2 h, range 1.2–2.8 · X
       * **Start:** the kernel ABI and statements, with Q34b's accepted dispatch/share statement before elastic implementation. **Owns:** general scalar CSR/pending-state restoration beyond the bounded composition, R-11-023's slot permutation, R-11-024's table swap, R-07-037b's group rotation and R-07-037g's elastic dispatch. **Check:** generated oracle comparisons and target controls cover each admitted shape, wrong table order, incomplete restoration and cross-application boundary state. **Join:** the corresponding compiler primitives and Q34's desktop consumers. This child does not gate the single-partition scalar roster.
-    * [ ] **M4.4b-iii · Complete V/M context restoration** · 2 h, range 1.25–2.75 · X
+    * [ ] **M4.4b-iii · Complete V/M context restoration** · 2 h, range 1.2–2.8 · X
       * **Start:** the reviewed class-specific context and primitive contracts. **Owns:** vector/matrix state, their nameable CSRs, pending-state installation and `vmclear` bindings for the admitted V/M shapes. **Check:** generated class-specific restore and refusal controls establish exact values/tags, clearing and boundary state on the target. **Join:** M10 class support and its executable compiler primitives. This child does not gate the scalar roster.
   * **Scalar restore checkpoint:** [The final restore emitter](../../kernel/README.md#scalar-final-restore) executes ordered merged-register restoration, MEPCC installation, `fence.t` and `mret` on the golden emulator. Generated tagged/untagged images and executable defects check exact write multiplicity, values/tags, fence and dispatch in separately declared extents. The supported C-class subset has an empty partition-nameable CSR roster; the finite C, handoff and corpus joins are M4.4a's, while general CSR/vector/pending-state and trap/restart work remain M4.4b's.
     * **Focused target evidence, 2026-09-25:** the integrated emitter and chronological trace checker at `67bc3562` pass all ten controls: four tagged/untagged patterns and six executable defects. Omitted register, lost tag, early base restore and missing dispatch are detected through target failure; duplicate restoration and missing fence return success from the program and are refused by the trace checker. The report binds unchanged model sources, the successful build receipt and simulator SHA256 `25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793`. Native report `/root/build/progress-fanout-20260925/kernel-restore-final/report.json` has SHA256 `45ddf0833a6dff9c950869eb25357ecd0f128040658659a4cb27b1d78b57e566`. Six focused host cases also reject reordered phases, shifted register effects, stale builds and incorrectly rebased paths. This is an experiment outside Guest CI, not full M4.4 acceptance.
@@ -1591,7 +1606,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * **Check:** both generations admitted by the ordinary path and booted by the transactor with health-gated rollback intact, the mint reachable only through the consent act, the composition mode entered and left as R-11-018 requires, and the install's proof checking staying inside R-06-015a's declared budget. **Join:** Q26 prices the occupancy and the storage this act needs; Q9 measures its turnaround beside the remote path's.
   * **Done when** the device composes, signs, admits and boots its own generation twice over, once for a package change and once for the base image, with nothing reachable and no artifact another machine produced, and the run records what it occupied rather than only that it finished.
 
-**M6 subtotal:** 665 h · 16% · 48 h complete · open range 298–936 h.
+**M6 subtotal:** 665 h · 17% · 48 h complete · open range 298–936 h.
 
 ### M7 · Full emulated system
 
