@@ -66,7 +66,7 @@ def _flags(name: str, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--build-receipt", required=True, help="successful matching model build receipt")
         parser.add_argument("--timeout", type=int, default=1200, help="seconds per target case")
         parser.add_argument("--inst-limit", type=int, default=500_000_000, help="instructions per target case")
-        parser.add_argument("--jobs", type=int, choices=(1, 2, 3), default=1, help="isolated target cases in parallel")
+        parser.add_argument("--jobs", type=int, choices=range(1, 7), default=1, help="isolated target cases in parallel")
 
 
 def main(argv: list[str] | None = None) -> int:

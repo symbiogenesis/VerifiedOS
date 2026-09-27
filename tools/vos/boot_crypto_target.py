@@ -45,6 +45,7 @@ def compiler_provenance(ccomp: Path) -> tuple[dict[str, object], dict[str, str]]
 def population(work: Path) -> list[boot_crypto.Case]:
     """Pinned ACVP positives with every applicable authored refusal family."""
     result: list[boot_crypto.Case] = []
+    boot_crypto.fetch(boot_crypto.BASE + "README.md", work / "NIST-NOTICE.md", boot_crypto.NOTICE_SHA)
     for scheme, (directory, digest) in boot_crypto.SOURCES.items():
         data = boot_crypto.fetch(boot_crypto.BASE +
             f"gen-val/json-files/{directory}/internalProjection.json", work / (scheme + ".json"), digest)
@@ -116,8 +117,8 @@ def run(root: Path, out: Path, ccomp: Path, compiler_args: list[str], simulator:
     root, out, ccomp, simulator, build_receipt = (
         path.resolve() for path in (root, out, ccomp, simulator, build_receipt))
     out.mkdir(parents=True, exist_ok=True)
-    if not 1 <= jobs <= 3 or timeout < 1 or inst_limit < 1:
-        raise ValueError("target requires 1..3 jobs and positive timeout/instruction limits")
+    if not 1 <= jobs <= 6 or timeout < 1 or inst_limit < 1:
+        raise ValueError("target requires 1..6 jobs and positive timeout/instruction limits")
     sources = receipts.inputs(root, *SOURCES)
     model = receipts.inputs(root, "model")
     identities = {str(path): receipts.digest(path) for path in (ccomp, simulator, build_receipt)}
@@ -226,6 +227,7 @@ def run(root: Path, out: Path, ccomp: Path, compiler_args: list[str], simulator:
         "compiler_provenance": provenance,
         "host_binary_sha256": host_identity, "host_compiler": host_compiler,
         "acvp_revision": boot_crypto.REVISION, "acvp_sources": boot_crypto.SOURCES,
+        "acvp_notice_sha256": boot_crypto.NOTICE_SHA,
         "stack_bytes": STACK_BYTES, "jobs": jobs, "seconds": round(time.monotonic() - started, 3),
         "scope": "real signature interfaces on the scalar RoT profile",
         "milestone_acceptance": "open", "limits": ["firmware release join separate",
