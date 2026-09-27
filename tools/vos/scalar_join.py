@@ -13,7 +13,7 @@ from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from vos import (
     asm,
@@ -40,7 +40,7 @@ LIMITS = ("Explicit reset composition; persistent private copy allocation, separ
           "grant slots. No external clients, physical WCET, full boot roster or ring bitmap claim.")
 INPUTS = (*lifecycle_target.INPUTS, *copy_partition.INPUTS, "tools/vos/scalar_join.py",
           "tools/vos/supervisor_context.py")
-MAX_STEPS = 200000000
+MAX_ROWS = 24  # At most12 supervisor stages, each with its fixed copy row.
 
 
 @dataclass(frozen=True)
@@ -110,6 +110,19 @@ def wire_trace(lines: Iterable[str], *, request: int, acknowledgment: int,
     return WireTrace(tuple(requests), tuple(acknowledgments), tuple(reads))
 
 
+def table_rows(first_deadline: int, boundary: int, copy_slot: int,
+               count: int = MAX_ROWS) -> list[tuple[str, int, int]]:
+    """Immutable role, release and next deadline; no request or outcome input."""
+    rows = []
+    deadline = first_deadline
+    for index in range(count):
+        role = "copy" if index % 2 == 0 else "supervisor"
+        release = deadline + boundary
+        deadline = release + (copy_slot if role == "copy" else lifecycle_target.SLOT)
+        rows.append((role, release, deadline))
+    return rows
+
+
 def source(root: Path, kernel: str, supervisor: str, copy: str,
            windows: tuple[int, int], bitmap: tuple[int, int], boundary: int,
            service_slot: int, defect: str = "none") -> str:
@@ -132,7 +145,8 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
             "    li x3, 20", "    bne x5, x6, lifecycle_fail",
             "    li x5, scalar_join_copy_entry", "    csetaddr c20, c20, x5",
             "    sc c20, 112(c31)", "    sd x0, 120(c31)",
-            *address(20, "service_state + 64"), "    li x5, 123", "    sd x5, 0(c20)"]
+            *address(20, "service_state"), "    sd x0, 0(c20)", "    sd x0, 16(c20)",
+            "    li x5, 123", "    sd x5, 64(c20)"]
     after = [*address(20, "acknowledgment"),
              f"    ld x5, {8 * layout['ACK_STATUS']}(c20)"]
     if defect == "stale":
@@ -141,15 +155,30 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
                   "    li x6, 3", "    li x3, 21", "    bne x5, x6, lifecycle_fail",
                   "    ld x5, 120(c31)", "    li x6, 2", "    bne x5, x6, lifecycle_fail",
                   *call("vos_join_dispatchable", ("effects",)),
-                  "    bnez x10, lifecycle_fail", "    j lifecycle_control_pass",
+                  "    bnez x10, lifecycle_fail", *address(20, "service_state"),
+                  "    li x5, 1", "    sd x5, 16(c20)", "    j scalar_join_idle",
                   "scalar_join_ack_normal:", *address(20, "acknowledgment"),
                   f"    ld x5, {8 * layout['ACK_STATUS']}(c20)"]
-    after += ["    bnez x5, scalar_join_ack_continue",
+    if defect == "incomplete":
+        after += [f"    li x6, {layout['STATUS_INCOMPLETE']}",
+                  "    bne x5, x6, scalar_join_not_incomplete",
+                  *call("vos_join_incomplete", ("effects", "lifecycle")),
+                  "    li x3, 28", "    beqz x10, lifecycle_fail",
+                  *address(20, "service_state"), "    li x5, 1", "    sd x5, 16(c20)",
+                  "    j scalar_join_idle", "scalar_join_not_incomplete:",
+                  *address(20, "acknowledgment"), f"    ld x5, {8 * layout['ACK_STATUS']}(c20)"]
+    after += ["    bnez x5, scalar_join_idle",
               f"    ld x5, {8 * layout['ACK_OPERATION']}(c20)",
-              f"    li x6, {layout['OP_START']}", "    bne x5, x6, scalar_join_ack_continue",
+              f"    li x6, {layout['OP_START']}", "    bne x5, x6, scalar_join_idle",
               "    ld x5, 120(c31)", "    beqz x5, scalar_join_first",
-              "    li x6, 2", "    li x3, 22", "    bne x5, x6, lifecycle_fail",
-              "    li x5, 3", "    j scalar_join_mark", "scalar_join_first:", "    li x5, 1",
+              "    li x6, 2", "    bne x5, x6, scalar_join_idle",
+              "    ld x5, 0(c20)", "    li x6, 3", "    bne x5, x6, scalar_join_idle",
+              f"    ld x5, {8 * layout['ACK_EPOCH']}(c20)", "    li x6, 2",
+              "    bne x5, x6, scalar_join_idle",
+              "    li x5, 3", "    j scalar_join_mark", "scalar_join_first:",
+              "    ld x5, 0(c20)", "    li x6, 1", "    bne x5, x6, scalar_join_idle",
+              f"    ld x5, {8 * layout['ACK_EPOCH']}(c20)",
+              "    bne x5, x6, scalar_join_idle", "    li x5, 1",
               "scalar_join_mark:", "    sd x5, 120(c31)",
               *call("vos_join_dispatchable", ("effects",)),
               "    li x3, 23", "    beqz x10, lifecycle_fail",
@@ -168,7 +197,12 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
         if register == 15:
             after += ["    li x5, 3", "    candperm c20, c20, x5"]
         after += [f"    sc c20, {8 * register}(c19)"]
-    after += address(20, "saved_clear")
+    after += ["    j scalar_join_install", "scalar_join_idle:", *address(19, "restore_context")]
+    after += [f"    sc cnull, {8 * register}(c19)" for register in range(33)]
+    after += ["    lc c20, 112(c31)", "    li x5, scalar_join_copy_idle",
+              "    csetaddr c20, c20, x5", "    sc c20, 256(c19)",
+              "scalar_join_install:", *address(20, "service_state"),
+              "    li x5, 1", "    sd x5, 0(c20)", *address(20, "saved_clear")]
     after += ["    li x6, 33", "scalar_join_abandon_supervisor:", "    sc cnull, 0(c20)",
               "    cincoffsetimm c20, c20, 8", "    addi x6, x6, -1",
               "    bnez x6, scalar_join_abandon_supervisor", "    ld x7, 48(c31)",
@@ -182,33 +216,46 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
               "    beqz x8, scalar_join_restore", "scalar_join_padding_loop:", "    addi x8, x8, -1",
               "    bnez x8, scalar_join_padding_loop", "scalar_join_restore:",
               kernel_restore.emit().replace("vos_restore", "scalar_join_restore_image"),
+              "scalar_join_return_supervisor:", *roots(), *address(20, "service_state"),
+              "    sd x0, 0(c20)", "    j lifecycle_not_done",
               "scalar_join_ack_continue:"]
     fault = ["    csrr x5, mcause", "    li x6, 28", "    li x3, 26",
              "    bne x5, x6, lifecycle_fail", "    cspecialrw c20, mepcc, cnull",
              "    cgetaddr x5, c20", "    li x6, vos_copy_partition_fault",
              "    bne x5, x6, lifecycle_fail", "    ld x5, 120(c31)", "    li x6, 1",
              "    bne x5, x6, scalar_join_second_fault", "    li x5, 2", "    sd x5, 120(c31)",
-             "    j lifecycle_not_done", "scalar_join_second_fault:", "    li x6, 3",
+             "    j scalar_join_return_supervisor", "scalar_join_second_fault:", "    li x6, 3",
              "    bne x5, x6, lifecycle_fail", "    li x5, 4", "    sd x5, 120(c31)",
              "    j lifecycle_finish_check"]
-    publish = ""
+    # The first RETIRE reaction has the initial START receipt's old clock.
+    # Withhold its publication once; the next real timer refreshes that clock.
+    # This executes the repeated-ACK1 case after the first completed copy fault.
+    publish_lines = [f"    ld x5, {8 * layout['REQ_OPERATION']}(c12)",
+        f"    li x6, {layout['OP_RETIRE']}", "    bne x5, x6, scalar_join_cut_done",
+        f"    ld x5, {8 * layout['ACK_NOW']}(c11)", f"    li x6, {boundary}",
+        "    bltu x5, x6, supervisor_poll_return", "scalar_join_cut_done:"]
     if defect == "stale":
-        publish = "\n".join([f"    ld x5, {8 * layout['REQ_EPOCH']}(c12)", "    li x6, 1",
+        publish_lines += [f"    ld x5, {8 * layout['REQ_EPOCH']}(c12)", "    li x6, 1",
              "    bleu x5, x6, scalar_join_publish_current",
              f"    ld x6, {8 * layout['REQ_OPERATION']}(c12)", f"    li x7, {layout['OP_START']}",
              "    bne x6, x7, scalar_join_publish_current", "    addi x5, x5, -1",
-             f"    sd x5, {8 * layout['REQ_EPOCH']}(c12)", "scalar_join_publish_current:"])
+             f"    sd x5, {8 * layout['REQ_EPOCH']}(c12)", "scalar_join_publish_current:"]
     service = "\n".join([".align 16", "scalar_join_copy_code:", cd.normalize(copy),
              copy_target.adapter(root), copy_notification.adapter(root), copy_partition.entry(root),
              "scalar_join_copy_entry:", "    cspecialrw c5, pcc, cnull",
              "scalar_join_copy_base:", "    cgetbase x6, c5", "    li x7, scalar_join_copy_code",
              "    bne x6, x7, vos_copy_partition_failed_fault", "    j vos_copy_partition_entry",
+             "scalar_join_copy_idle:", "    wfi", "    j scalar_join_copy_idle",
              "scalar_join_copy_code_end:"])
     return lifecycle_target.source(kernel, supervisor, windows, bitmap, boundary,
         defect="incomplete" if defect == "incomplete" else "none", owned_bytes=copy_partition.OWNED_BYTES,
         service_text=service, init_extra="\n".join(init), after_ack="\n".join(after),
         retire_extra="\n".join(["    lc c20, 96(c31)", copy_partition.clear_span("scalar_join")]),
-        fault_handler="\n".join(fault), supervisor_publish_extra=publish,
+        fault_handler="\n".join(fault), supervisor_publish_extra="\n".join(publish_lines),
+        timer_extra="\n".join([*address(20, "service_state"), "    ld x5, 0(c20)",
+                                 "    beqz x5, scalar_join_timer_supervisor", "    ld x5, 16(c20)",
+                                 "    bnez x5, lifecycle_control_pass", "    j scalar_join_return_supervisor",
+                                 "scalar_join_timer_supervisor:"]),
         dispatch_handler="\n".join([*roots(), "    ld x5, 120(c31)", "    li x6, 4",
                                       "    li x3, 27", "    bne x5, x6, lifecycle_fail"]))
 
@@ -219,11 +266,14 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     pc = previous_pc = order = 0
     registers = dict.fromkeys(range(32), (0, 0))
     owned = bytearray(copy_partition.OWNED_BYTES)
+    acknowledgment = bytearray(256)
     tagged: set[int] = set()
     slots: dict[int, tuple[int, int]] = {}
     entries, faults, scrubs, clears, retire_clean, releases = [], [], [], [], [], []
     bitmap_writes, old_tags, fresh_tags, copy_bases = [], [], [], []
     generations, payloads, notifications = [], [], []
+    saved_captures, fresh_images = [], []
+    save_expected: dict[int, tuple[int, int]] | None = None
     checks: dict[int, tuple[int, list[int]]] = {}
     for reg, name, extent, perm in ((20, "supervisor_text_base", 65536, 0x1cb),
             (2, "supervisor_stack", lifecycle_target.STACK, 0xfe),
@@ -232,8 +282,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         for suffix, expected in (("tag", 1), ("base", symbols[name]),
                                  ("length", extent), ("permissions", perm)):
             checks[symbols[f"supervisor_cap_{reg}_{suffix}"]] = (expected, [])
-    send, _, _ = copy_notification.layout(log_root := Path(cast(str, bound["root"])))
-    del log_root
+    send, _, _ = copy_notification.layout(Path(cast(str, bound["root"])))
     expected_slots = {symbols[name] + offset for name in ("saved_clear", "restore_context")
                       for offset in range(0, 264, 8)}
     mepcc = None
@@ -243,12 +292,19 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     work_start = None
     work_steps = []
     ack_zero, ack_fences, empty_boundaries = [], [], []
+    request_fences, refreshed_initial, idle_images, consumer_rows = [], [], [], []
+    idle_traps = []
+    refusal_order = None
+    last_trap = None
+    tenant = 0
+    table: list[tuple[str, int, int]] = []
+    programmed_deadline = None
     phase = 0
     no_ecall = confined = True
 
     def monitor(lines: Iterable[str]) -> Iterable[str]:
         nonlocal pc, previous_pc, order, mepcc, clearing, sample, release, work_start, phase
-        nonlocal no_ecall, confined
+        nonlocal no_ecall, confined, save_expected, last_trap, tenant, table, programmed_deadline, refusal_order
         for raw in lines:
             text = raw.strip()
             if not trace.COMMIT_RE.fullmatch(text):
@@ -261,16 +317,43 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                 no_ecall &= fields[1] != 0x73
                 if pc == symbols["lifecycle_timer_entry"]:
                     work_start = order
+                if pc == symbols["lifecycle_trap_save_begin"]:
+                    save_expected = {symbols["saved_clear"] + 8 * r: registers[r] for r in range(32)}
+                    if mepcc is not None:
+                        save_expected[symbols["saved_clear"] + 256] = (mepcc[0], mepcc[1])
+                if pc == symbols["lifecycle_trap_save_end"]:
+                    saved_captures.append(save_expected is not None and len(save_expected) == 33 and
+                                          all(slots.get(address) == value for address, value in save_expected.items()))
                 if pc == symbols["lifecycle_trap_scrub_end"]:
                     scrubs.append(all(registers[r] == (0, 0) for r in range(1, 31)))
                 if pc == symbols["supervisor_entry"]:
                     entries.append(order)
+                    allowed = {2, 10, 11, 12}
+                    fresh_images.append(previous_pc == symbols["vos_restore_dispatch"] and
+                        all(tag == int(r in allowed) and (r in allowed or r == 13 or value == 0)
+                            for r, (tag, value) in registers.items() if r))
                 if pc == symbols["scalar_join_copy_entry"]:
                     generations.append(registers[11])
-                if pc in (symbols["supervisor_entry"], symbols["scalar_join_copy_entry"]) and sample is not None:
-                    releases.append({"expected": release, "observed": sample[1] + order - sample[0],
-                                     "kind": "supervisor" if pc == symbols["supervisor_entry"] else "copy"})
+                    allowed = {2, 10, 12, 13, 14, 15}
+                    fresh_images.append(previous_pc == symbols["scalar_join_restore_image_dispatch"] and
+                        all(tag == int(r in allowed) and (r in allowed or r == 11 or value == 0)
+                            for r, (tag, value) in registers.items() if r))
+                idle_entry = (pc == symbols["scalar_join_copy_idle"] and
+                              previous_pc == symbols["scalar_join_restore_image_dispatch"])
+                if idle_entry:
+                    idle_images.append(all(value == (0, 0) for r, value in registers.items() if r))
+                if ((pc in (symbols["supervisor_entry"], symbols["scalar_join_copy_entry"]) or idle_entry)
+                        and sample is not None):
+                    role = "supervisor" if pc == symbols["supervisor_entry"] else "copy"
+                    expected_role, expected_release, expected_deadline = (
+                        table[len(releases)] if len(releases) < len(table) else ("exhausted", -1, -1))
+                    releases.append({"expected": expected_release, "written": release,
+                                     "observed": sample[1] + order - sample[0],
+                                     "kind": role, "expected_kind": expected_role, "idle": idle_entry,
+                                     "deadline": programmed_deadline, "expected_deadline": expected_deadline})
                     sample = None
+                if pc == symbols["k_vos_kernel_lifecycle_prepare"]:
+                    consumer_rows.append(tenant == 0 and last_trap == (1, 7))
                 if pc == symbols["scalar_join_clear_begin"]:
                     clearing = set()
                 if pc == symbols["scalar_join_clear_end"]:
@@ -292,8 +375,12 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                     fresh_tags.append(fields[2])
             elif kind == "S" and fields[0] == dialect.SCRS["mepcc"]:
                 mepcc = fields[1:]
-            elif kind == "T" and fields[0] == 0:
-                faults.append((pc, fields))
+            elif kind == "T":
+                last_trap = fields
+                if fields[0] == 0:
+                    faults.append((pc, fields))
+                elif tenant == 1 and symbols["scalar_join_copy_idle"] <= pc <= symbols["scalar_join_copy_idle"] + 4:
+                    idle_traps.append(order)
             elif kind == "R":
                 if (pc in (symbols["lifecycle_padding_sample"], symbols["scalar_join_padding_sample"])
                         and fields[0] == windows[1]):
@@ -306,6 +393,13 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                     release = value
                 if address == symbols["kernel_private"] + 120:
                     phase = value
+                if address == symbols["service_state"]:
+                    tenant = value
+                if address == windows[0]:
+                    programmed_deadline = value
+                    if not table:
+                        table = table_rows(value, cast(int, bound["padded_boundary_steps"]),
+                                           cast(int, bound["copy_slot_steps"]))
                 if address == bitmap[0]:
                     bitmap_writes.append(value)
                 if address == send and value == 1:
@@ -317,6 +411,9 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                                     for name, size in (("request", 512), ("supervisor_stack", lifecycle_target.STACK)))
                 if address in expected_slots and width == 8:
                     slots[address] = (tag, value)
+                offset = address - symbols["acknowledgment"]
+                if offset >= 0 and offset + width <= len(acknowledgment):
+                    acknowledgment[offset:offset + width] = value.to_bytes(width, "little")
                 offset = address - symbols["lifecycle_owned_span"]
                 if offset >= 0 and offset + width <= len(owned):
                     owned[offset:offset + width] = value.to_bytes(width, "little")
@@ -331,7 +428,13 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                     if value == 2:
                         ack_zero.append(not any(owned) and not tagged)
                     empty_boundaries.append(value)
-            yield normalized
+                    if value == 1:
+                        refreshed_initial.append((int.from_bytes(acknowledgment[80:88], "little"), phase))
+                    if int.from_bytes(acknowledgment[8:16], "little") in (2, 3):
+                        refusal_order = order
+                if address == symbols["request"] and width == 8 and value != 0:
+                    request_fences.append(previous_pc == symbols["supervisor_publish"])
+            yield raw
 
     with log.open(encoding="utf-8") as lines:
         wire = wire_trace(monitor(lines), request=symbols["request"], acknowledgment=symbols["acknowledgment"],
@@ -346,6 +449,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         "exact_copy_pcc_base": copy_bases == [symbols["scalar_join_copy_code"]] * expected_entries,
         "completed_copy_faults": faults == [(symbols["vos_copy_partition_fault"], (0, 28))] * expected_entries,
         "all_resident_scrubs": bool(scrubs) and all(scrubs),
+        "all_33_trap_words_and_tags_saved": bool(saved_captures) and all(saved_captures),
+        "fresh_images_exclude_undeclared_roots": bool(fresh_images) and all(fresh_images),
         "all_owned_words_and_tags_cleared": clears == [set(range(0, copy_partition.OWNED_BYTES, 8))],
         "save_restore_mepcc_before_completion": retire_clean == [True],
         "whole_owned_zero_at_ack": bool(ack_zero) and all(ack_zero),
@@ -354,8 +459,15 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         "supervisor_stores_confined": confined,
         "no_extra_syscall": no_ecall,
         "ack_sequence_last_fences": bool(ack_fences) and all(ack_fences),
+        "request_sequence_last_fences": bool(request_fences) and all(request_fences),
         "ack_consumed_in_later_reaction": set(wire.later_reads) >= ({1, 2} if defect != "incomplete" else {1}),
-        "fixed_releases": bool(releases) and all(item["expected"] == item["observed"] for item in releases),
+        "fixed_table_releases": bool(releases) and all(item["expected"] == item["observed"] == item["written"] and
+              item["kind"] == item["expected_kind"] and item["deadline"] == item["expected_deadline"] for item in releases),
+        "idle_copy_zero_authority": bool(idle_images) and all(idle_images),
+        "only_supervisor_rows_consume_requests": bool(consumer_rows) and all(consumer_rows),
+        "refreshed_start_ack_does_not_redispatch": len(refreshed_initial) == 2 and
+             refreshed_initial[0][0] < cast(int, bound["padded_boundary_steps"]) <= refreshed_initial[1][0] and
+             refreshed_initial[1][1] == 2,
         "source_work_account": bool(work_steps) and max(work_steps) <= cast(int, bound["longest_path_steps"]),
         "bitmap_old_and_fresh": bitmap_writes == [7] and old_tags == [0] and fresh_tags == [1],
     }
@@ -366,12 +478,14 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         facts["empty_and_occupied_boundaries"] = empty_boundaries.count(2) >= 2
         facts["fresh_epoch_or_stale_refusal"] = len(acks) == 3 and acks[-1][0:2] == [3, 2 if defect == "stale" else 0] and acks[-1][3] == 2
         facts["final_copy_state"] = phase == (2 if defect == "stale" else 4)
+    if defect != "none":
+        facts["refusal_preserves_next_idle_copy_row"] = bool(releases) and releases[-1]["idle"] is True and bool(idle_traps) and refusal_order is not None and idle_traps[-1] > refusal_order
     return {"ok": all(facts.values()), "facts": facts, "requests": reqs, "acknowledgments": acks,
             "later_ack_reads": wire.later_reads, "release_instants": releases, "handler_steps": work_steps}
 
 
 def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Path,
-        build_receipt: Path, timeout: int = 900) -> dict[str, object]:
+        build_receipt: Path, timeout: int = 1800) -> dict[str, object]:
     out.mkdir(parents=True, exist_ok=True)
     receipts.write(out / "report.json", {"ok": False, "status": "incomplete"})
     inputs, model = receipts.inputs(root, *INPUTS), receipts.inputs(root, "model")
@@ -394,8 +508,10 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     bound = lifecycle_target.longest_path(counts, copy_partition.OWNED_BYTES, 1 << 26)
     copy_counts = lifecycle_target.instruction_counts(copy.stream)
     # In this immutable entry only initialization loops64 times, two one-byte
-    # stages run, and the empty submit scan executes zero iterations. Eight
-    # calls per whole body and128 traversals overcounts every reachable branch.
+    # stages run, and the empty submit scan executes zero iterations. The most
+    # repeated leaf, occupancy, is called ten times. The uniform1024 multiplier
+    # exceeds every whole-body traversal count, including65 initialization
+    # traversals and all branch paths. It does not model arbitrary input loads.
     copy_steps = 1024 * sum(copy_counts.values()) + 16384
     service_slot = 1 << copy_steps.bit_length()
     hooks = 4 * (copy_partition.OWNED_BYTES // 8 + 33) + 4096
@@ -406,18 +522,23 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     bound.update({"padded_boundary_steps": boundary, "root": str(root), "copy_reaction_steps": copy_steps,
                   "copy_slot_steps": service_slot, "copy_counts": copy_counts,
                   "supervisor_reaction": lifecycle_target.reaction_path(lifecycle_target.instruction_counts(supervisor.stream))})
+    instruction_limit = MAX_ROWS * (boundary + max(service_slot, lifecycle_target.SLOT)) + 1048576
     windows = boot_handoff.timer_windows(root)
     probe = asm.Assembler(source(root, kernel.stream, supervisor.stream, copy.stream, windows, (0, 1), boundary, service_slot),
                           "layout", text_base=lifecycle_target.TEXT_BASE, data_base=lifecycle_target.DATA_BASE)
     probe.assemble()
     bitmap = kernel_target.revocation_window(root, probe.symbols["grant_slots"])
     profile = jsonc.load(root / boot_handoff.MAIN_CONFIG)
-    if not isinstance(profile, dict) or not isinstance(platform := profile.get("platform"), dict):
-        raise TypeError("missing model platform configuration")
+    if not isinstance(profile, dict):
+        raise TypeError("model profile must be an object")
+    platform = profile.get("platform")
+    if not isinstance(platform, dict):
+        raise TypeError("model profile lacks its platform object")
     platform["instructions_per_tick"] = 1
     profile_path = out / "profile.json"
     receipts.write(profile_path, profile)
-    results: list[dict[str, Any]] = []
+    results: list[dict[str, object]] = []
+    accepted = []
     for defect in ("none", "stale", "incomplete"):
         emitted = source(root, kernel.stream, supervisor.stream, copy.stream, windows, bitmap, boundary, service_slot, defect)
         source_path = out / f"{defect}.s"
@@ -430,12 +551,13 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
         image.write_elf(elf, sections, symbols, entry)
         with log.open("w", encoding="utf-8") as output:
             done = subprocess.run([str(simulator), "--config", str(profile_path), "--trace-commit",
-                                   "--inst-limit", str(MAX_STEPS), str(elf)], cwd=out, stdout=output,
+                                   "--inst-limit", str(instruction_limit), str(elf)], cwd=out, stdout=output,
                                   stderr=subprocess.STDOUT, timeout=timeout, check=False)
         with log.open(encoding="utf-8") as output:
             tail = "".join(deque(output, maxlen=64))
         verdict, code, detail = cd.htif_verdict(tail, done.returncode)
         observed = observations(log, assembler.symbols, windows, bitmap, bound, defect)
+        accepted.append(verdict == "pass" and observed["ok"] is True)
         results.append({"name": defect, "verdict": verdict, "code": code, "detail": detail,
                         "observations": observed, "source_sha256": receipts.digest(source_path),
                         "image_sha256": receipts.digest(elf), "trace_sha256": receipts.digest(log)})
@@ -446,9 +568,9 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     unchanged &= private == compiler_inputs(arguments) and external == {
         "compiler": receipts.digest(ccomp), "simulator": receipts.digest(simulator),
         "build_receipt": receipts.digest(build_receipt)}
-    report = {"ok": unchanged and len(results) == 3 and all(r["verdict"] == "pass" and r["observations"]["ok"] for r in results),
+    report = {"ok": unchanged and len(results) == 3 and all(accepted),
               "sources": inputs, "model_sources": model, "external": external, "compiler_inputs": private,
-              "bound": bound, "results": results, "limits": LIMITS, "instruction_limit": MAX_STEPS,
+              "bound": bound, "results": results, "limits": LIMITS, "instruction_limit": instruction_limit,
               "timeout_seconds_per_image": timeout, "inputs_unchanged": unchanged}
     receipts.write(out / "report.json", report)
     return report

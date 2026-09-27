@@ -22,7 +22,18 @@ def wire_publication_order() -> None:
                   "W 2000 8 0 1\n"])
     ensure(later.later_reads == (1,) and len(later.acknowledgments) == 1,
            "refreshing an acknowledgment invented a second effect result")
+    kernel_read = read([*early, "I 2 0000000000008000 00000013\n",
+                        "I 3 000000000000A000 00000013\n", "R 2000 8 0 1\n"])
+    ensure(not kernel_read.later_reads, "a kernel read passed as supervisor acknowledgment consumption")
+
+
+def fixed_table() -> None:
+    ensure(scalar_join.table_rows(100, 20, 40, 4) == [
+        ("copy", 120, 160), ("supervisor", 180, 200180),
+        ("copy", 200200, 200240), ("supervisor", 200260, 400260)],
+        "fixed rows changed width, role or common boundary charge")
 
 
 def cases() -> list[Case]:
-    return [Case("joined request publication and later acknowledgment chronology", wire_publication_order)]
+    return [Case("joined request publication and later acknowledgment chronology", wire_publication_order),
+            Case("joined fixed supervisor/copy table", fixed_table)]
