@@ -10,6 +10,7 @@ vos_copy_notify:
     bgtu x12, x5, vos_copy_notify_invalid
     beqz x12, vos_copy_notify_done
     fence iorw, iorw
+vos_copy_notify_store:
     sd x11, 0(c10)
     fence iorw, iorw
 vos_copy_notify_done:

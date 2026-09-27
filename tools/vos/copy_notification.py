@@ -2,6 +2,7 @@
 """Real copy publication to interrupt-file store and ordinary pending load."""
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
 
 from vos import (
@@ -13,6 +14,7 @@ from vos import (
     jsonc,
     kernel_restore,
     receipts,
+    trace,
 )
 from vos.boot_target import compiler_inputs
 from vos.cli import compiler_diff as cd
@@ -21,6 +23,20 @@ INPUTS = ("copy-service", "interfaces/ring-reference.json", "interfaces/device-r
           "tools/vos/copy_notification.py", "tools/vos/copy_service.py", "tools/vos/copy_target.py",
           "tools/vos/cli/copy_service.py", "tools/vos/device_registers.py", "tools/generated",
           "tools/vos/cli/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py")
+
+
+def denied_store(lines: Iterable[str], store_pc: int) -> bool:
+    """Exactly one synchronous capability fault belongs to the actual store."""
+    pc = None
+    faults = []
+    for line in lines:
+        for record in trace.normalize_commit([line]):
+            fields = record.split()
+            if fields[0] == "I":
+                pc = int(fields[1], 16)
+            elif fields[0] == "T":
+                faults.append((pc, int(fields[1]), int(fields[2])))
+    return faults == [(store_pc, 0, 28)]
 
 
 def layout(root: Path) -> tuple[int, int, int]:
@@ -156,8 +172,9 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     variants = {"notification": stream,
                 "lost-notify": stream.replace("    sd x11, 0(c10)\n", "    sd x0, 0(c10)\n", 1),
                 "lost-pending": stream.replace("    ld x5, 0(c10)\n", "    li x5, 0\n", 1),
-                "no-send-authority": stream.replace("    sd x11, 0(c10)\n",
-                    "    li x5, 3\n    candperm c10, c10, x5\n    sd x11, 0(c10)\n", 1)}
+                "no-send-authority": stream.replace("vos_copy_notify_store:\n    sd x11, 0(c10)\n",
+                    "    li x5, 3\n    candperm c10, c10, x5\nvos_copy_notify_store:\n"
+                    "    sd x11, 0(c10)\n", 1)}
     if variants["lost-notify"] == stream or variants["lost-pending"] == stream:
         raise ValueError("notification mutant no longer applies")
     results = {}
@@ -168,10 +185,14 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
         image.write_elf(elf, sections, symbols, entry)
         result = copy_target.execute(simulator, root / "model/config/verifiedos.json", elf, timeout)
         expected = "pass" if name == "notification" else "trap" if name == "no-send-authority" else "fail"
-        expected_code = 0 if expected == "pass" else 1
+        expected_code = 0 if expected == "pass" else 284 if expected == "trap" else 1
         if (result["verdict"] != expected
-                or (expected != "trap" and result["code"] != expected_code)):
+                or result["code"] != expected_code):
             raise ValueError(f"{name}: expected actual {expected}, got {result['detail']}")
+        if name == "no-send-authority":
+            with elf.with_suffix(".log").open(encoding="utf-8") as log:
+                if not denied_store(log, assembler.symbols["vos_copy_notify_store"]):
+                    raise ValueError("notification capability fault did not belong to its actual store")
         results[name] = {"run": result, "image_sha256": receipts.digest(elf)}
     if (sources != receipts.inputs(root, *INPUTS) or model_sources != receipts.inputs(root, "model")
             or compiler_sha != receipts.digest(ccomp) or simulator_sha != receipts.digest(simulator)

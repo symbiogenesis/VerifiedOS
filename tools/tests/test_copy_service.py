@@ -9,7 +9,7 @@ from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
 from vos import copy_service as c
-from vos import copy_target, toolenv
+from vos import copy_notification, copy_target, toolenv
 
 
 def generated_domains() -> None:
@@ -101,9 +101,22 @@ def native_payload_controls() -> None:
             ensure(refused.returncode != 0, f"malformed harness input accepted: {text!r}")
 
 
+def notification_fault_site() -> None:
+    instruction = "I 1 0000000080000020 00B53023\n"
+    ensure(copy_notification.denied_store([instruction, "T 0 28\n"], 0x80000020),
+           "actual denied store was not recognized")
+    for records in ([], ["T 0 28\n"], [instruction, "T 0 2\n"],
+                    [instruction, "T 1 28\n"], [instruction, "T 0 28\n", "T 0 28\n"]):
+        ensure(not copy_notification.denied_store(records, 0x80000020),
+               "missing, wrong or repeated fault supplied notification evidence")
+    ensure(not copy_notification.denied_store([instruction, "T 0 28\n"], 0x80000024),
+           "capability fault at another instruction supplied notification evidence")
+
+
 def cases() -> list[Case]:
     return [Case("generated comparison domains", generated_domains),
             Case("C answers remain reference equalities", answers_are_not_recomputed),
             Case("declaration owns bounded C constants", declaration_owns_constants),
             Case("wakeup Store/Load projection and negative control", wakeup_projection),
+            Case("notification fault belongs to the exact denied store", notification_fault_site),
             Case("native atomic payload controls", native_payload_controls, lane="guest")]
