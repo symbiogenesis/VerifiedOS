@@ -233,6 +233,8 @@ def _target_completion() -> None:
                          ("SUCCESS\n FAILURE: 4\n", 0), ("SUCCESS but cutoff\n", 0)):
         ensure(not boot_release_target.completed_attempt(log, status),
                f"invalid completion authorized capture: {log!r}, {status}")
+    ensure(not boot_release_target.completed_attempt("diagnostic FAILURE: 4 (0x00000004)\nSUCCESS\n", 0),
+           "a prefixed contradictory HTIF marker authorized capture")
 
 
 def _target_refusal_capture() -> None:
