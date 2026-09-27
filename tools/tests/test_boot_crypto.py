@@ -147,6 +147,10 @@ def compiler_source_drift_refuses() -> None:
         (work / "build-inputs.json").write_text(json.dumps({"source.v": {
             "canonical_sha256": b.receipts.digest(source)}}), encoding="utf-8")
         ensure(target.compiler_provenance(compiler)[0]["source_count"] == 1, "compiler receipt refused")
+        alias = work / "path-alias"
+        alias.mkdir()
+        ensure(target.compiler_provenance(alias / ".." / "ccomp") == target.compiler_provenance(compiler),
+               "compiler directory alias changed source containment")
         source.write_bytes(b"changed source")
         try:
             target.compiler_provenance(compiler)

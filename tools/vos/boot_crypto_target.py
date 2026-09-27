@@ -20,6 +20,7 @@ SOURCES = ("firmware", "tools/vos", "tools/generated/dialect-table.json")
 
 def compiler_provenance(ccomp: Path) -> tuple[dict[str, object], dict[str, str]]:
     """Bind the selected executable to its successful contained source build."""
+    ccomp = ccomp.resolve()
     result_path, inputs_path = ccomp.parent / "build-result.json", ccomp.parent / "build-inputs.json"
     result = json.loads(result_path.read_text(encoding="utf-8"))
     inputs = json.loads(inputs_path.read_text(encoding="utf-8"))
