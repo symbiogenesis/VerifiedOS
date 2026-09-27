@@ -157,6 +157,17 @@ bool ModelImpl::sys_enable_experimental_extensions(unit) {
   return m_enable_experimental_extensions;
 }
 
+bool ModelImpl::blkdev_host_trace_enabled(unit) {
+  return m_blkdev_image && m_blkdev_image->tracing();
+}
+
+unit ModelImpl::blkdev_host_input(const_sail_string kind, const_sail_string fields) {
+  if (m_blkdev_image) {
+    m_blkdev_image->input(kind, fields);
+  }
+  return UNIT;
+}
+
 unit ModelImpl::print_string(const_sail_string prefix, const_sail_string msg) {
   printf("%s%s\n", prefix, msg);
   return UNIT;
