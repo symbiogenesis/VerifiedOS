@@ -1,0 +1,25 @@
+-- SPDX-License-Identifier: Apache-2.0
+-- Bounded route trial over the current immutable three-unit manifest.
+-- Units 0, 1, 2 start in that order; only unit 1 holds an edge to unit 0.
+-- Full-width epochs are compared, never incremented or truncated.
+-- This node emits a plan. Kernel completion and serialization stay in the
+-- existing effects ABI; this trial does not implement those effects.
+node start_restart (
+  restart, attempts : uint32;
+  snapshot_epoch, current_epoch : uint64;
+  storage_edge_retired : bool)
+returns (accepted : bool;
+  count, stop_members, delay, storage_grant, first_unit, second_unit, third_unit : uint32)
+var restart_delay : uint32;
+let
+  accepted = (restart = 0 or restart = 1) and snapshot_epoch = current_epoch;
+  restart_delay = if attempts = 0 then 1 else
+    if attempts = 1 then 2 else if attempts = 2 then 3 else 5;
+  count = if accepted then 3 else 0;
+  stop_members = if accepted and restart = 1 then 7 else 0;
+  delay = if accepted and restart = 1 then restart_delay else 0;
+  storage_grant = if accepted and not storage_edge_retired then 1 else 0;
+  first_unit = 0;
+  second_unit = if accepted then 1 else 0;
+  third_unit = if accepted then 2 else 0;
+tel
