@@ -9,7 +9,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from vos import asm, boot_target, config, image, kernel_restore, receipts
+from vos import asm, boot_crypto_target, boot_target, config, image, kernel_restore, receipts
 from vos import boot_handoff as bh
 from vos.cli import compiler_diff as cd
 
@@ -147,6 +147,8 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
     sources = receipts.inputs(root, *SOURCE_INPUTS)
     model_sources = receipts.inputs(root, "model")
     identities = {str(p): receipts.digest(p) for p in (ccomp, simulator, build_receipt, boot_image, public_key)}
+    provenance, provenance_files = boot_crypto_target.compiler_provenance(ccomp)
+    identities.update(provenance_files)
     compiler_files = boot_target.compiler_inputs(ccomp_args)
     kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
                                   identities[str(simulator)], model_sources)
@@ -217,7 +219,8 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
         row: dict[str, object] = {"case": name, "expected": expected, "verdict": verdict,
                                  "code": code, "process_exit": process_exit, "argv": argv,
                                  "seconds": round(time.monotonic() - began, 3), "problems": problems,
-                                 "elf_sha256": receipts.digest(elf), "log_sha256": receipts.digest(log)}
+                                 "elf_sha256": receipts.digest(elf), "log_sha256": receipts.digest(log),
+                                 "assembly_sha256": receipts.digest(directory / "target.s")}
         if not problems:
             captured = read_output(signature, output_bytes)
             record = captured[METADATA_BYTES:METADATA_BYTES + lay["HANDOFF_BYTES"]]
@@ -253,6 +256,8 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
         raise ValueError("release target sources changed during execution")
     if any(receipts.digest(Path(path)) != digest for path, digest in identities.items()):
         raise ValueError("release target tool or input bytes changed")
+    if boot_crypto_target.compiler_provenance(ccomp) != (provenance, provenance_files):
+        raise ValueError("release target retained compiler sources changed")
     if compiler_files != boot_target.compiler_inputs(ccomp_args) or host_compiler != receipts.executables("cc") or host_digest != receipts.digest(host):
         raise ValueError("release target compiler or host oracle changed")
     return {"passed": len(rows) == len(cases) and all(row["passed"] for row in rows),
@@ -262,6 +267,7 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
                            "reset-table sequencing", "watchdog asynchronous timeout campaign", "complete roster"],
             "source_sha256": sources, "model_source_sha256": model_sources, "inputs_sha256": identities,
             "compiler_inputs_sha256": compiler_files, "compile_argv": list(compiled.argv),
+            "compiler_provenance": provenance,
             "preprocessed_sha256": compiled.preprocessed.sha256, "assembly_sha256": compiled.stream_sha256,
             "sum_of_function_frames": frames, "host_binary_sha256": host_digest,
             "host_compiler": host_compiler,
