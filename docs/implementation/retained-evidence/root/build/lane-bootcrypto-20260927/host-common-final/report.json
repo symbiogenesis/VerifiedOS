@@ -1,0 +1,1825 @@
+{
+  "acvp_revision": "975de31eb83d87039ec88934fdc47d8c312b892d",
+  "acvp_sources": {
+    "mldsa": [
+      "ML-DSA-sigVer-FIPS204",
+      "47cdd6314c7f746d02421ffcba89d4dbc7bb875ac49e07a029fdfc26fba55437"
+    ],
+    "slh": [
+      "SLH-DSA-sigVer-FIPS205",
+      "a013fc2104f4ed4799d96d51141f65b965969b2cf10646626a021b6d456ce792"
+    ]
+  },
+  "binary_sha256": "33c179783465e20706f7024084288ddaea7c0ae96781d97d6c82ecbe674a6227",
+  "compiler": {
+    "command": [
+      "gcc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ffreestanding",
+      "-fno-builtin",
+      "-fsanitize=address,undefined",
+      "-fno-sanitize-recover=all",
+      "-I",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/bootcrypto-20260927/firmware/include",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/bootcrypto-20260927/firmware/crypto/keccak.c",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/bootcrypto-20260927/firmware/crypto/slh256s.c",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/bootcrypto-20260927/firmware/crypto/mldsa87.c",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/bootcrypto-20260927/firmware/crypto/check_signature.c",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/bootcrypto-20260927/firmware/rot/boot_verify.c",
+      "-o",
+      "/root/build/lane-bootcrypto-20260927/host-common-final/check-signature"
+    ],
+    "executables": {
+      "/usr/bin/aarch64-linux-gnu-gcc-15": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b"
+    },
+    "version": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+  },
+  "gallina_bindings": {
+    "ExtractDsa.v": "ba2460218dbb642ea4cd5fab862e5635c4c118fbf1024bc1ea1c9027eacbd63d",
+    "Keccak.vo": "0af4b5c5dce4b355ae112df194d848fd78aa5d721aa86fb1627811124910ef08",
+    "MlDsa.vo": "a3a235f152111907960cefd570a4ad334412c6805f5e47a6a31ee264ae873db1",
+    "PqArith.vo": "bf7dc977303411b9e45447a8f6884d313483339da2d3a72493b1107ae2cbb40f",
+    "driver.ml": "becc94eb8a78366c2c2b21159300916dea84f7b3a090bc6ac70b265973f119f1",
+    "dsa.exe": "fb313d2640c1c8b2c88c9dff8c6c79e01404d99b21ddf389dfa795a1c98906b3",
+    "mldsa.ml": "bded74db85761617366dee72c31d370f9e6f1d6bd503b21edc75b749de61f19b",
+    "mldsa.mli": "58fe41558c05f65e279ce0cd86198f7d47e63147527d6419628d84cf3e1841cb",
+    "proofs/Keccak.v": "9e888f724eeaf31ca56e03e4147c73db9283418751dce116737e4ee7fc7ff3af",
+    "proofs/MlDsa.v": "70d8785b066fdee5fe5461885ee17c2006e87b268519488505b19dbd87facac2",
+    "proofs/PqArith.v": "d9ac52e57e2b17dc87ffc01f29f91ce78bf50fb8aad71e3644f86a23bc53d957",
+    "proofs/campaigns/mldsa_vectors.py": "85186db73e0e16546cf1134cfdd5d0a2925cdaa5b121338459de42bfadf733aa"
+  },
+  "gallina_comparison": "run",
+  "git_revision": "0f61470a7f1a947d377bb4af58f1de234f73124e",
+  "limits": [
+    "host executable only",
+    "byte messages only",
+    "target backend and firmware join open",
+    "no binary constant-time, masking or refinement claim"
+  ],
+  "milestone_acceptance": "open",
+  "omitted_vectors": [
+    "slh-tg30-tc407: prehash outside pure API",
+    "slh-tg30-tc408: prehash outside pure API",
+    "slh-tg30-tc409: prehash outside pure API",
+    "slh-tg30-tc410: prehash outside pure API",
+    "slh-tg30-tc411: prehash outside pure API",
+    "slh-tg30-tc412: prehash outside pure API",
+    "slh-tg30-tc413: prehash outside pure API",
+    "slh-tg30-tc414: prehash outside pure API",
+    "slh-tg30-tc415: prehash outside pure API",
+    "slh-tg30-tc416: prehash outside pure API",
+    "slh-tg30-tc417: prehash outside pure API",
+    "slh-tg30-tc418: prehash outside pure API",
+    "slh-tg30-tc419: prehash outside pure API",
+    "slh-tg30-tc420: prehash outside pure API",
+    "mldsa-tg6-tc76: prehash outside pure API",
+    "mldsa-tg6-tc77: prehash outside pure API",
+    "mldsa-tg6-tc78: prehash outside pure API",
+    "mldsa-tg6-tc79: prehash outside pure API",
+    "mldsa-tg6-tc80: prehash outside pure API",
+    "mldsa-tg6-tc81: prehash outside pure API",
+    "mldsa-tg6-tc82: prehash outside pure API",
+    "mldsa-tg6-tc83: prehash outside pure API",
+    "mldsa-tg6-tc84: prehash outside pure API",
+    "mldsa-tg6-tc85: prehash outside pure API",
+    "mldsa-tg6-tc86: prehash outside pure API",
+    "mldsa-tg6-tc87: prehash outside pure API",
+    "mldsa-tg6-tc88: prehash outside pure API",
+    "mldsa-tg6-tc89: prehash outside pure API",
+    "mldsa-tg6-tc90: prehash outside pure API"
+  ],
+  "openssl": {
+    "binaries": {
+      "/usr/bin/openssl": "4ae710a7bae8a4fa3488c3e47e969849b1d9299ecdf1716963bb44b7686c5f8b",
+      "/usr/lib/aarch64-linux-gnu/libcrypto.so.3": "2779d6a289807e1655e98d13eb787f676173a16862bb0f6c06723e869e1002e7",
+      "/usr/lib/aarch64-linux-gnu/libssl.so.3": "72d4ec12305748d5c561394e68201f5619d6765e32cc1cca3c549adfd713c0d5"
+    },
+    "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+    "package_notice_sha256": "6a7da622fe0637a334d2a8fc470852d2ffb77d9a2b2f930f854e32a41ad6ef35",
+    "version": "OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026)\nbuilt on: Wed Aug 26 11:58:23 2026 UTC\nplatform: debian-arm64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/build/openssl-CW9cGL/openssl-3.5.5=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -mbranch-protection=standard -fdebug-prefix-map=/build/openssl-CW9cGL/openssl-3.5.5=/usr/src/openssl-3.5.5-1ubuntu3.5 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=3\nOPENSSLDIR: \"/usr/lib/ssl\"\nENGINESDIR: \"/usr/lib/aarch64-linux-gnu/engines-3\"\nMODULESDIR: \"/usr/lib/aarch64-linux-gnu/ossl-modules\"\nSeeding source: os-specific JITTER (3060300)\nCPUINFO: OPENSSL_armcap=0xffd"
+  },
+  "passed": true,
+  "records": [
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc393",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc394",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc395",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc396",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc397",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc398",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "slh-tg29-tc399",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc400",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc401",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc402",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc403",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc404",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "slh-tg29-tc405",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg29-tc406",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "slh-tg36-tc491",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc492",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc493",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc494",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc495",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc496",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc497",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc498",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc499",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc500",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc501",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc502",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "slh-tg36-tc503",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "slh-tg36-tc504",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc61",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc62",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc63",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc64",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc65",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc66",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc67",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc68",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc69",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc70",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc71",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc72",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc73",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc74",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg5-tc75",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc151",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc152",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc153",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc154",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc155",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc156",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc157",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc158",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc159",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc160",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc161",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc162",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc163",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc164",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg11-tc165",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc166",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc167",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc168",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc169",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc170",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc171",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc172",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc173",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc174",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc175",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc176",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc177",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc178",
+      "passed": true
+    },
+    {
+      "actual": false,
+      "expected": false,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc179",
+      "passed": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "family": "ACVP",
+      "name": "mldsa-tg12-tc180",
+      "passed": true
+    },
+    {
+      "family": "bounds",
+      "name": "invalid-lengths-before-read",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "shake-0-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f",
+        "gallina": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f",
+        "hashlib": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "shake-0-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd94",
+        "gallina": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd94",
+        "hashlib": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd94"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "shake-0-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd943b6aec468a2d621a7c06c6a957c62b54dafc3be87567d677231395f6147293b68ceab7a9e0c58d864e8efde4e1b9a46cbe854713672f5caaae314ed9083dab4b099f8e300f01b8650f1f4b1d8fcf3f3cb53fb8e9eb2ea203bdc970f50ae55428a91f7f53ac266b28419c3778a15fd248d339ede785fb7f5a1aaa96d313eacc890936c173cdcd0fab",
+        "gallina": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd943b6aec468a2d621a7c06c6a957c62b54dafc3be87567d677231395f6147293b68ceab7a9e0c58d864e8efde4e1b9a46cbe854713672f5caaae314ed9083dab4b099f8e300f01b8650f1f4b1d8fcf3f3cb53fb8e9eb2ea203bdc970f50ae55428a91f7f53ac266b28419c3778a15fd248d339ede785fb7f5a1aaa96d313eacc890936c173cdcd0fab",
+        "hashlib": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be141e96616fb13957692cc7edd0b45ae3dc07223c8e92937bef84bc0eab862853349ec75546f58fb7c2775c38462c5010d846c185c15111e595522a6bcd16cf86f3d122109e3b1fdd943b6aec468a2d621a7c06c6a957c62b54dafc3be87567d677231395f6147293b68ceab7a9e0c58d864e8efde4e1b9a46cbe854713672f5caaae314ed9083dab4b099f8e300f01b8650f1f4b1d8fcf3f3cb53fb8e9eb2ea203bdc970f50ae55428a91f7f53ac266b28419c3778a15fd248d339ede785fb7f5a1aaa96d313eacc890936c173cdcd0fab"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "shake-0-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+      "name": "shake-1-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba",
+        "gallina": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba",
+        "hashlib": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+      "name": "shake-1-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba5cc356e16eea587f2c74c5480c41fea01b45f55abc9722853f30d2a34e7fcdef062e69d6d26c6431c3423d2b0d2a02b3c609a623afba9b696964f282592e18d288d2f4abc47a142f485fc292e4226d3be64e816b77588ae0066dc5fbf6e76f7f0120c2f2ab1fe0b5fc",
+        "gallina": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba5cc356e16eea587f2c74c5480c41fea01b45f55abc9722853f30d2a34e7fcdef062e69d6d26c6431c3423d2b0d2a02b3c609a623afba9b696964f282592e18d288d2f4abc47a142f485fc292e4226d3be64e816b77588ae0066dc5fbf6e76f7f0120c2f2ab1fe0b5fc",
+        "hashlib": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba5cc356e16eea587f2c74c5480c41fea01b45f55abc9722853f30d2a34e7fcdef062e69d6d26c6431c3423d2b0d2a02b3c609a623afba9b696964f282592e18d288d2f4abc47a142f485fc292e4226d3be64e816b77588ae0066dc5fbf6e76f7f0120c2f2ab1fe0b5fc"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+      "name": "shake-1-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba5cc356e16eea587f2c74c5480c41fea01b45f55abc9722853f30d2a34e7fcdef062e69d6d26c6431c3423d2b0d2a02b3c609a623afba9b696964f282592e18d288d2f4abc47a142f485fc292e4226d3be64e816b77588ae0066dc5fbf6e76f7f0120c2f2ab1fe0b5fc135640ebbe62e186e301934d28ec69244ddedf049e8dc85fac9210117b99e93c91162bf8ad669b81760add2cfc59059279beb6e22f72e9038a3d6377f7595cd1cdf4600b546f4d6b01b8f8b87e6e0acbb53a47e8dac7f871b46c66b89b768c41885ae0197df8afe7ae79eb883e88ad08bf3f9fe3472253b97d2f1c59d05fe92449f0089486d958a8",
+        "gallina": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba5cc356e16eea587f2c74c5480c41fea01b45f55abc9722853f30d2a34e7fcdef062e69d6d26c6431c3423d2b0d2a02b3c609a623afba9b696964f282592e18d288d2f4abc47a142f485fc292e4226d3be64e816b77588ae0066dc5fbf6e76f7f0120c2f2ab1fe0b5fc135640ebbe62e186e301934d28ec69244ddedf049e8dc85fac9210117b99e93c91162bf8ad669b81760add2cfc59059279beb6e22f72e9038a3d6377f7595cd1cdf4600b546f4d6b01b8f8b87e6e0acbb53a47e8dac7f871b46c66b89b768c41885ae0197df8afe7ae79eb883e88ad08bf3f9fe3472253b97d2f1c59d05fe92449f0089486d958a8",
+        "hashlib": "94da6280b240ea6a2ab2cfdf0fb301fd77153d5b748baf796190856803d977ba5cc356e16eea587f2c74c5480c41fea01b45f55abc9722853f30d2a34e7fcdef062e69d6d26c6431c3423d2b0d2a02b3c609a623afba9b696964f282592e18d288d2f4abc47a142f485fc292e4226d3be64e816b77588ae0066dc5fbf6e76f7f0120c2f2ab1fe0b5fc135640ebbe62e186e301934d28ec69244ddedf049e8dc85fac9210117b99e93c91162bf8ad669b81760add2cfc59059279beb6e22f72e9038a3d6377f7595cd1cdf4600b546f4d6b01b8f8b87e6e0acbb53a47e8dac7f871b46c66b89b768c41885ae0197df8afe7ae79eb883e88ad08bf3f9fe3472253b97d2f1c59d05fe92449f0089486d958a8"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+      "name": "shake-1-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "a647437d8567b3c3bc38495faaa71603aefc4229138ae70fced37ecc72d502ee",
+      "name": "shake-31-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401",
+        "gallina": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401",
+        "hashlib": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "a647437d8567b3c3bc38495faaa71603aefc4229138ae70fced37ecc72d502ee",
+      "name": "shake-31-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401e3340f30a9090ac50a7a64c3a8e3b408f0c0b122e8e55285f111509d67f2999c65a85ec0cecf4e043d59d7f0e99fbd0fa8601e79dd095908f1cd33e8b2a613ea0df5f1ddd4c46e4addb07c86cf4e2112e37448e93eba7b6f5943e183cbe4cef01c7d58b48ea465ed0b",
+        "gallina": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401e3340f30a9090ac50a7a64c3a8e3b408f0c0b122e8e55285f111509d67f2999c65a85ec0cecf4e043d59d7f0e99fbd0fa8601e79dd095908f1cd33e8b2a613ea0df5f1ddd4c46e4addb07c86cf4e2112e37448e93eba7b6f5943e183cbe4cef01c7d58b48ea465ed0b",
+        "hashlib": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401e3340f30a9090ac50a7a64c3a8e3b408f0c0b122e8e55285f111509d67f2999c65a85ec0cecf4e043d59d7f0e99fbd0fa8601e79dd095908f1cd33e8b2a613ea0df5f1ddd4c46e4addb07c86cf4e2112e37448e93eba7b6f5943e183cbe4cef01c7d58b48ea465ed0b"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "a647437d8567b3c3bc38495faaa71603aefc4229138ae70fced37ecc72d502ee",
+      "name": "shake-31-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401e3340f30a9090ac50a7a64c3a8e3b408f0c0b122e8e55285f111509d67f2999c65a85ec0cecf4e043d59d7f0e99fbd0fa8601e79dd095908f1cd33e8b2a613ea0df5f1ddd4c46e4addb07c86cf4e2112e37448e93eba7b6f5943e183cbe4cef01c7d58b48ea465ed0b1e0584f7c5bc53ca8d5b20d49613a1babacfe3d7ce415bb0084753acab84cac47553bd31784970f3faee212b95f92208991996d80d3e5b7b31488484cdfbc64660f1d5ff3087a39a3f467d947448953f370613d7d2bfeea2db111c67477fac0635d88e5fa2a70bf2a9c9a0ff0c828d7d264cd10440bfe337c1659268a31f47f08d762edf27a3e42d",
+        "gallina": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401e3340f30a9090ac50a7a64c3a8e3b408f0c0b122e8e55285f111509d67f2999c65a85ec0cecf4e043d59d7f0e99fbd0fa8601e79dd095908f1cd33e8b2a613ea0df5f1ddd4c46e4addb07c86cf4e2112e37448e93eba7b6f5943e183cbe4cef01c7d58b48ea465ed0b1e0584f7c5bc53ca8d5b20d49613a1babacfe3d7ce415bb0084753acab84cac47553bd31784970f3faee212b95f92208991996d80d3e5b7b31488484cdfbc64660f1d5ff3087a39a3f467d947448953f370613d7d2bfeea2db111c67477fac0635d88e5fa2a70bf2a9c9a0ff0c828d7d264cd10440bfe337c1659268a31f47f08d762edf27a3e42d",
+        "hashlib": "cc0659916a221a8a7a99fe0917a94efbf57ec4945ea7ae6eaa6bc49eb864d401e3340f30a9090ac50a7a64c3a8e3b408f0c0b122e8e55285f111509d67f2999c65a85ec0cecf4e043d59d7f0e99fbd0fa8601e79dd095908f1cd33e8b2a613ea0df5f1ddd4c46e4addb07c86cf4e2112e37448e93eba7b6f5943e183cbe4cef01c7d58b48ea465ed0b1e0584f7c5bc53ca8d5b20d49613a1babacfe3d7ce415bb0084753acab84cac47553bd31784970f3faee212b95f92208991996d80d3e5b7b31488484cdfbc64660f1d5ff3087a39a3f467d947448953f370613d7d2bfeea2db111c67477fac0635d88e5fa2a70bf2a9c9a0ff0c828d7d264cd10440bfe337c1659268a31f47f08d762edf27a3e42d"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "a647437d8567b3c3bc38495faaa71603aefc4229138ae70fced37ecc72d502ee",
+      "name": "shake-31-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e263b1e32c3a72987b2fa228a74f784aba8d6010a798e0034a75e9c4e1aa147",
+      "name": "shake-32-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cb",
+        "gallina": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cb",
+        "hashlib": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cb"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e263b1e32c3a72987b2fa228a74f784aba8d6010a798e0034a75e9c4e1aa147",
+      "name": "shake-32-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cbbd5b3e49263fae9e25f6cc4d7adea7b8400f1f6d84523b13a680332f89bebb2c48622c2a5cdad163d60dfd10ff4e1ec6b0c92544043f87216cf8885f85ed43e466162ae4a83c32d11b62ee782459edf9a133fc38eed794ff45e8b0613e611edeb7a93af6cc8453d813",
+        "gallina": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cbbd5b3e49263fae9e25f6cc4d7adea7b8400f1f6d84523b13a680332f89bebb2c48622c2a5cdad163d60dfd10ff4e1ec6b0c92544043f87216cf8885f85ed43e466162ae4a83c32d11b62ee782459edf9a133fc38eed794ff45e8b0613e611edeb7a93af6cc8453d813",
+        "hashlib": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cbbd5b3e49263fae9e25f6cc4d7adea7b8400f1f6d84523b13a680332f89bebb2c48622c2a5cdad163d60dfd10ff4e1ec6b0c92544043f87216cf8885f85ed43e466162ae4a83c32d11b62ee782459edf9a133fc38eed794ff45e8b0613e611edeb7a93af6cc8453d813"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e263b1e32c3a72987b2fa228a74f784aba8d6010a798e0034a75e9c4e1aa147",
+      "name": "shake-32-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cbbd5b3e49263fae9e25f6cc4d7adea7b8400f1f6d84523b13a680332f89bebb2c48622c2a5cdad163d60dfd10ff4e1ec6b0c92544043f87216cf8885f85ed43e466162ae4a83c32d11b62ee782459edf9a133fc38eed794ff45e8b0613e611edeb7a93af6cc8453d813f1ac43afe3323f62f69e2156c09f705a12f6667ca8abb80182bf25e2df54a332ce7bdb5eab16beea2a08c0ec02a758b6b804bf79bbee52fe91efa42c3974917bb488dd101da5782279b0c95d4dc965fcdf1302761aeb7e61212083278d01b12ceb4f0ba3c2fbaa796319e59ef363c77ad938f4cf77118396b945b515d9e2cfa679a40819eab4b959",
+        "gallina": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cbbd5b3e49263fae9e25f6cc4d7adea7b8400f1f6d84523b13a680332f89bebb2c48622c2a5cdad163d60dfd10ff4e1ec6b0c92544043f87216cf8885f85ed43e466162ae4a83c32d11b62ee782459edf9a133fc38eed794ff45e8b0613e611edeb7a93af6cc8453d813f1ac43afe3323f62f69e2156c09f705a12f6667ca8abb80182bf25e2df54a332ce7bdb5eab16beea2a08c0ec02a758b6b804bf79bbee52fe91efa42c3974917bb488dd101da5782279b0c95d4dc965fcdf1302761aeb7e61212083278d01b12ceb4f0ba3c2fbaa796319e59ef363c77ad938f4cf77118396b945b515d9e2cfa679a40819eab4b959",
+        "hashlib": "525a86f49e721d021374e88994f375d81e4d391c0e2d4ad328429cdc909ce5cbbd5b3e49263fae9e25f6cc4d7adea7b8400f1f6d84523b13a680332f89bebb2c48622c2a5cdad163d60dfd10ff4e1ec6b0c92544043f87216cf8885f85ed43e466162ae4a83c32d11b62ee782459edf9a133fc38eed794ff45e8b0613e611edeb7a93af6cc8453d813f1ac43afe3323f62f69e2156c09f705a12f6667ca8abb80182bf25e2df54a332ce7bdb5eab16beea2a08c0ec02a758b6b804bf79bbee52fe91efa42c3974917bb488dd101da5782279b0c95d4dc965fcdf1302761aeb7e61212083278d01b12ceb4f0ba3c2fbaa796319e59ef363c77ad938f4cf77118396b945b515d9e2cfa679a40819eab4b959"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e263b1e32c3a72987b2fa228a74f784aba8d6010a798e0034a75e9c4e1aa147",
+      "name": "shake-32-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "561a26cb3323878bb74efbdde058f18f777e2ef0c2125deefddcf7a91c94d27e",
+      "name": "shake-135-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19c",
+        "gallina": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19c",
+        "hashlib": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19c"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "561a26cb3323878bb74efbdde058f18f777e2ef0c2125deefddcf7a91c94d27e",
+      "name": "shake-135-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19ca15a66eabee74b9c90e9a713009ced81a16cea05c95da0e88e1651d9b00e3fcda504081a2f8413e5b947c8c50677f311e4ffef3f6a9cb94d81434417cdfd8ae9dff74c38da8f54db91253ba09890fc46eced50e9bd2533b214239f41e2bc008412028527ef37f22805",
+        "gallina": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19ca15a66eabee74b9c90e9a713009ced81a16cea05c95da0e88e1651d9b00e3fcda504081a2f8413e5b947c8c50677f311e4ffef3f6a9cb94d81434417cdfd8ae9dff74c38da8f54db91253ba09890fc46eced50e9bd2533b214239f41e2bc008412028527ef37f22805",
+        "hashlib": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19ca15a66eabee74b9c90e9a713009ced81a16cea05c95da0e88e1651d9b00e3fcda504081a2f8413e5b947c8c50677f311e4ffef3f6a9cb94d81434417cdfd8ae9dff74c38da8f54db91253ba09890fc46eced50e9bd2533b214239f41e2bc008412028527ef37f22805"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "561a26cb3323878bb74efbdde058f18f777e2ef0c2125deefddcf7a91c94d27e",
+      "name": "shake-135-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19ca15a66eabee74b9c90e9a713009ced81a16cea05c95da0e88e1651d9b00e3fcda504081a2f8413e5b947c8c50677f311e4ffef3f6a9cb94d81434417cdfd8ae9dff74c38da8f54db91253ba09890fc46eced50e9bd2533b214239f41e2bc008412028527ef37f228052f318cbc4cc61eb9ac5819f1e6c7f5777909388aa6796f1ad07f38e1c635386be45a14f551e7b4c7fcb3bced0c656906f92b74415d33a270945acf3ac25650f0edd54254200b5c71c3a9df4512c51980118c5a901509ed754e99c8d2ac8761613191000be63022e60f586704452c836de19f2610de3ac9af57fe9e1dafe26ff61b6e279987f55d18",
+        "gallina": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19ca15a66eabee74b9c90e9a713009ced81a16cea05c95da0e88e1651d9b00e3fcda504081a2f8413e5b947c8c50677f311e4ffef3f6a9cb94d81434417cdfd8ae9dff74c38da8f54db91253ba09890fc46eced50e9bd2533b214239f41e2bc008412028527ef37f228052f318cbc4cc61eb9ac5819f1e6c7f5777909388aa6796f1ad07f38e1c635386be45a14f551e7b4c7fcb3bced0c656906f92b74415d33a270945acf3ac25650f0edd54254200b5c71c3a9df4512c51980118c5a901509ed754e99c8d2ac8761613191000be63022e60f586704452c836de19f2610de3ac9af57fe9e1dafe26ff61b6e279987f55d18",
+        "hashlib": "4c5580a8f03cb40ba6b30b8e073ade7bbaffcb6cfbb7ac0467b9d3ca6be3e19ca15a66eabee74b9c90e9a713009ced81a16cea05c95da0e88e1651d9b00e3fcda504081a2f8413e5b947c8c50677f311e4ffef3f6a9cb94d81434417cdfd8ae9dff74c38da8f54db91253ba09890fc46eced50e9bd2533b214239f41e2bc008412028527ef37f228052f318cbc4cc61eb9ac5819f1e6c7f5777909388aa6796f1ad07f38e1c635386be45a14f551e7b4c7fcb3bced0c656906f92b74415d33a270945acf3ac25650f0edd54254200b5c71c3a9df4512c51980118c5a901509ed754e99c8d2ac8761613191000be63022e60f586704452c836de19f2610de3ac9af57fe9e1dafe26ff61b6e279987f55d18"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "561a26cb3323878bb74efbdde058f18f777e2ef0c2125deefddcf7a91c94d27e",
+      "name": "shake-135-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e8957b2c4b46a282b4b10889e08cecf50a21ca736b934c89f86c2ea211f4100",
+      "name": "shake-136-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f5",
+        "gallina": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f5",
+        "hashlib": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f5"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e8957b2c4b46a282b4b10889e08cecf50a21ca736b934c89f86c2ea211f4100",
+      "name": "shake-136-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f51f102753c607744a017d21875d888e90a0a7c66d1d46579c9cb64407ee0f253eae7714ba192f4faa575f1636b3cd604b7825ce88298ca4123c71d4831f40a13e6b7decfb9dc0e04d3e37159bc2caac86c365e21093a75bcf55fd896a55b15b7489168fc61f0c78e0e9",
+        "gallina": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f51f102753c607744a017d21875d888e90a0a7c66d1d46579c9cb64407ee0f253eae7714ba192f4faa575f1636b3cd604b7825ce88298ca4123c71d4831f40a13e6b7decfb9dc0e04d3e37159bc2caac86c365e21093a75bcf55fd896a55b15b7489168fc61f0c78e0e9",
+        "hashlib": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f51f102753c607744a017d21875d888e90a0a7c66d1d46579c9cb64407ee0f253eae7714ba192f4faa575f1636b3cd604b7825ce88298ca4123c71d4831f40a13e6b7decfb9dc0e04d3e37159bc2caac86c365e21093a75bcf55fd896a55b15b7489168fc61f0c78e0e9"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e8957b2c4b46a282b4b10889e08cecf50a21ca736b934c89f86c2ea211f4100",
+      "name": "shake-136-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f51f102753c607744a017d21875d888e90a0a7c66d1d46579c9cb64407ee0f253eae7714ba192f4faa575f1636b3cd604b7825ce88298ca4123c71d4831f40a13e6b7decfb9dc0e04d3e37159bc2caac86c365e21093a75bcf55fd896a55b15b7489168fc61f0c78e0e929d0ceb8cde1c694ffde7d8abef79741602e45ee15a67c1b57aee8b1ccccbe71339982acb9aed7888d005393ff553a9b4c2be6bdf927633216700d5ece68b8efb442d7cc55aa53000acad7d7706fc5f494681df568d39ce61754b309054aadf4aabce44fe9c678da2123b570fc27eff6f1b8e1bf80dba77e86f805d9297d5d9d70300701fa8ec159",
+        "gallina": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f51f102753c607744a017d21875d888e90a0a7c66d1d46579c9cb64407ee0f253eae7714ba192f4faa575f1636b3cd604b7825ce88298ca4123c71d4831f40a13e6b7decfb9dc0e04d3e37159bc2caac86c365e21093a75bcf55fd896a55b15b7489168fc61f0c78e0e929d0ceb8cde1c694ffde7d8abef79741602e45ee15a67c1b57aee8b1ccccbe71339982acb9aed7888d005393ff553a9b4c2be6bdf927633216700d5ece68b8efb442d7cc55aa53000acad7d7706fc5f494681df568d39ce61754b309054aadf4aabce44fe9c678da2123b570fc27eff6f1b8e1bf80dba77e86f805d9297d5d9d70300701fa8ec159",
+        "hashlib": "303b34290ae1fb1d05eaa96df111eb007293f860a93bbbfb534b5bb4041e22f51f102753c607744a017d21875d888e90a0a7c66d1d46579c9cb64407ee0f253eae7714ba192f4faa575f1636b3cd604b7825ce88298ca4123c71d4831f40a13e6b7decfb9dc0e04d3e37159bc2caac86c365e21093a75bcf55fd896a55b15b7489168fc61f0c78e0e929d0ceb8cde1c694ffde7d8abef79741602e45ee15a67c1b57aee8b1ccccbe71339982acb9aed7888d005393ff553a9b4c2be6bdf927633216700d5ece68b8efb442d7cc55aa53000acad7d7706fc5f494681df568d39ce61754b309054aadf4aabce44fe9c678da2123b570fc27eff6f1b8e1bf80dba77e86f805d9297d5d9d70300701fa8ec159"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5e8957b2c4b46a282b4b10889e08cecf50a21ca736b934c89f86c2ea211f4100",
+      "name": "shake-136-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "696aca2de05e1b4f13aa03aaed424579ce6512edc369ea866b5fc5f181743e13",
+      "name": "shake-137-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18a",
+        "gallina": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18a",
+        "hashlib": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18a"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "696aca2de05e1b4f13aa03aaed424579ce6512edc369ea866b5fc5f181743e13",
+      "name": "shake-137-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18ab767660d841d20db23da97b5f96282402d8cbfdcda3dccd4027f57c438b02ccdbbde41f6fc6953db8d8274c3f655a34767ac2c16f66e59326bdd4278a1b837da79f88b2d3b7c214153ef6f5f0c2a9a87d0627f2b7ab642bfe2a19a4e157e1c651dae07b83fd74d98a0",
+        "gallina": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18ab767660d841d20db23da97b5f96282402d8cbfdcda3dccd4027f57c438b02ccdbbde41f6fc6953db8d8274c3f655a34767ac2c16f66e59326bdd4278a1b837da79f88b2d3b7c214153ef6f5f0c2a9a87d0627f2b7ab642bfe2a19a4e157e1c651dae07b83fd74d98a0",
+        "hashlib": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18ab767660d841d20db23da97b5f96282402d8cbfdcda3dccd4027f57c438b02ccdbbde41f6fc6953db8d8274c3f655a34767ac2c16f66e59326bdd4278a1b837da79f88b2d3b7c214153ef6f5f0c2a9a87d0627f2b7ab642bfe2a19a4e157e1c651dae07b83fd74d98a0"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "696aca2de05e1b4f13aa03aaed424579ce6512edc369ea866b5fc5f181743e13",
+      "name": "shake-137-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18ab767660d841d20db23da97b5f96282402d8cbfdcda3dccd4027f57c438b02ccdbbde41f6fc6953db8d8274c3f655a34767ac2c16f66e59326bdd4278a1b837da79f88b2d3b7c214153ef6f5f0c2a9a87d0627f2b7ab642bfe2a19a4e157e1c651dae07b83fd74d98a02303ecd614e7204cc570b6f83960da3bf9ebf427e02e9659329b962912c17cb602ee5db91deaf2fbf2566e6061743d681e822e16a951a4b6699e2800e833e1b974f15edafb927d5a39cba28b004fc8bb04a8e0ce446d6789e0b90a2c3f21c2235d6592608e7d9e90dbaf5763e8693a100714e39d596d450b84aa260f8c25244a525c0e12ff5e62e9",
+        "gallina": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18ab767660d841d20db23da97b5f96282402d8cbfdcda3dccd4027f57c438b02ccdbbde41f6fc6953db8d8274c3f655a34767ac2c16f66e59326bdd4278a1b837da79f88b2d3b7c214153ef6f5f0c2a9a87d0627f2b7ab642bfe2a19a4e157e1c651dae07b83fd74d98a02303ecd614e7204cc570b6f83960da3bf9ebf427e02e9659329b962912c17cb602ee5db91deaf2fbf2566e6061743d681e822e16a951a4b6699e2800e833e1b974f15edafb927d5a39cba28b004fc8bb04a8e0ce446d6789e0b90a2c3f21c2235d6592608e7d9e90dbaf5763e8693a100714e39d596d450b84aa260f8c25244a525c0e12ff5e62e9",
+        "hashlib": "70cb63f46c3492849d27cc830841d3834df7747ce9bd3e2eba3fbb09c05ba18ab767660d841d20db23da97b5f96282402d8cbfdcda3dccd4027f57c438b02ccdbbde41f6fc6953db8d8274c3f655a34767ac2c16f66e59326bdd4278a1b837da79f88b2d3b7c214153ef6f5f0c2a9a87d0627f2b7ab642bfe2a19a4e157e1c651dae07b83fd74d98a02303ecd614e7204cc570b6f83960da3bf9ebf427e02e9659329b962912c17cb602ee5db91deaf2fbf2566e6061743d681e822e16a951a4b6699e2800e833e1b974f15edafb927d5a39cba28b004fc8bb04a8e0ce446d6789e0b90a2c3f21c2235d6592608e7d9e90dbaf5763e8693a100714e39d596d450b84aa260f8c25244a525c0e12ff5e62e9"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "696aca2de05e1b4f13aa03aaed424579ce6512edc369ea866b5fc5f181743e13",
+      "name": "shake-137-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "b88d2c827e44b66ae958ed2fd71efc6d1ba6e623e47bbadbcba45d2fe477e13c",
+      "name": "shake-271-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e",
+        "gallina": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e",
+        "hashlib": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "b88d2c827e44b66ae958ed2fd71efc6d1ba6e623e47bbadbcba45d2fe477e13c",
+      "name": "shake-271-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e0c50610276395cff6044c474be860347d4e85b5ce533686f39a967c4781ef682dfad16fda6f1ce17192592374c541ff9a20972c2bf039063b7fd922739d28d8c9d21433250f0797c070b7c9ba4a35bb093db1176dbd2a2c3efc06550370b74e6057de543e58af25488",
+        "gallina": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e0c50610276395cff6044c474be860347d4e85b5ce533686f39a967c4781ef682dfad16fda6f1ce17192592374c541ff9a20972c2bf039063b7fd922739d28d8c9d21433250f0797c070b7c9ba4a35bb093db1176dbd2a2c3efc06550370b74e6057de543e58af25488",
+        "hashlib": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e0c50610276395cff6044c474be860347d4e85b5ce533686f39a967c4781ef682dfad16fda6f1ce17192592374c541ff9a20972c2bf039063b7fd922739d28d8c9d21433250f0797c070b7c9ba4a35bb093db1176dbd2a2c3efc06550370b74e6057de543e58af25488"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "b88d2c827e44b66ae958ed2fd71efc6d1ba6e623e47bbadbcba45d2fe477e13c",
+      "name": "shake-271-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e0c50610276395cff6044c474be860347d4e85b5ce533686f39a967c4781ef682dfad16fda6f1ce17192592374c541ff9a20972c2bf039063b7fd922739d28d8c9d21433250f0797c070b7c9ba4a35bb093db1176dbd2a2c3efc06550370b74e6057de543e58af25488daa2ac2977503cf887aa45f703f697c48dfadbc312eda0da9a0f2ea21f8311516f814c8583b05c48914bfb1a754cea8ecb12b0c6f5a391e1da07c0cadee8ddd4a06200ebc766ff68295187926226311e93590214bf99d8d3339001ee41f7b74ac70f895639ab9a54fcbc2158b3b017c1bb8e2da83f52fb7d925cc51f99a8f82b678c691dc1190687",
+        "gallina": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e0c50610276395cff6044c474be860347d4e85b5ce533686f39a967c4781ef682dfad16fda6f1ce17192592374c541ff9a20972c2bf039063b7fd922739d28d8c9d21433250f0797c070b7c9ba4a35bb093db1176dbd2a2c3efc06550370b74e6057de543e58af25488daa2ac2977503cf887aa45f703f697c48dfadbc312eda0da9a0f2ea21f8311516f814c8583b05c48914bfb1a754cea8ecb12b0c6f5a391e1da07c0cadee8ddd4a06200ebc766ff68295187926226311e93590214bf99d8d3339001ee41f7b74ac70f895639ab9a54fcbc2158b3b017c1bb8e2da83f52fb7d925cc51f99a8f82b678c691dc1190687",
+        "hashlib": "de30401e5699428d6272e9cea7f0261a01d3bcee96ad00c16e04feaa6dfcab7e0c50610276395cff6044c474be860347d4e85b5ce533686f39a967c4781ef682dfad16fda6f1ce17192592374c541ff9a20972c2bf039063b7fd922739d28d8c9d21433250f0797c070b7c9ba4a35bb093db1176dbd2a2c3efc06550370b74e6057de543e58af25488daa2ac2977503cf887aa45f703f697c48dfadbc312eda0da9a0f2ea21f8311516f814c8583b05c48914bfb1a754cea8ecb12b0c6f5a391e1da07c0cadee8ddd4a06200ebc766ff68295187926226311e93590214bf99d8d3339001ee41f7b74ac70f895639ab9a54fcbc2158b3b017c1bb8e2da83f52fb7d925cc51f99a8f82b678c691dc1190687"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "b88d2c827e44b66ae958ed2fd71efc6d1ba6e623e47bbadbcba45d2fe477e13c",
+      "name": "shake-271-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5c54197df2253b9ad304b1df9b65f059dec172b404067135fcf92b7902f84687",
+      "name": "shake-272-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b44",
+        "gallina": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b44",
+        "hashlib": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b44"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5c54197df2253b9ad304b1df9b65f059dec172b404067135fcf92b7902f84687",
+      "name": "shake-272-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b4496f1feb6885ca38a4fc2ea241628bf65ce01ca0f6202dd931e8502f4d37d94c02b15993d3778a23b75d968ec0b03d5d648b15612d401f064e5ac5cc199a1171dd9b42157e73471702f6a0890d45b3eb0b167ed1229bb1141f076a58d6571ec007a06df44dbda7ffb37",
+        "gallina": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b4496f1feb6885ca38a4fc2ea241628bf65ce01ca0f6202dd931e8502f4d37d94c02b15993d3778a23b75d968ec0b03d5d648b15612d401f064e5ac5cc199a1171dd9b42157e73471702f6a0890d45b3eb0b167ed1229bb1141f076a58d6571ec007a06df44dbda7ffb37",
+        "hashlib": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b4496f1feb6885ca38a4fc2ea241628bf65ce01ca0f6202dd931e8502f4d37d94c02b15993d3778a23b75d968ec0b03d5d648b15612d401f064e5ac5cc199a1171dd9b42157e73471702f6a0890d45b3eb0b167ed1229bb1141f076a58d6571ec007a06df44dbda7ffb37"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5c54197df2253b9ad304b1df9b65f059dec172b404067135fcf92b7902f84687",
+      "name": "shake-272-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b4496f1feb6885ca38a4fc2ea241628bf65ce01ca0f6202dd931e8502f4d37d94c02b15993d3778a23b75d968ec0b03d5d648b15612d401f064e5ac5cc199a1171dd9b42157e73471702f6a0890d45b3eb0b167ed1229bb1141f076a58d6571ec007a06df44dbda7ffb37b76675a484a4e0fadfb5a90fe7a50565a2d9a1c9cf0541be0b3a847c738d9a7f62ea57e5bfb49100b64ffc737d815e8d0bbb448a9f84944fd1300905e8a8398d7ad89af6ee77d5089592dd7db93ca9fb6036b996d6496d170eead6f97a583d0adc8b1c31f56626c95cefbcb8e78c9006eee62799172bf02b6e45bcf58b2b4acb443767156a5c958e",
+        "gallina": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b4496f1feb6885ca38a4fc2ea241628bf65ce01ca0f6202dd931e8502f4d37d94c02b15993d3778a23b75d968ec0b03d5d648b15612d401f064e5ac5cc199a1171dd9b42157e73471702f6a0890d45b3eb0b167ed1229bb1141f076a58d6571ec007a06df44dbda7ffb37b76675a484a4e0fadfb5a90fe7a50565a2d9a1c9cf0541be0b3a847c738d9a7f62ea57e5bfb49100b64ffc737d815e8d0bbb448a9f84944fd1300905e8a8398d7ad89af6ee77d5089592dd7db93ca9fb6036b996d6496d170eead6f97a583d0adc8b1c31f56626c95cefbcb8e78c9006eee62799172bf02b6e45bcf58b2b4acb443767156a5c958e",
+        "hashlib": "2012043fe4be474dcf8dce7b32e52deb3bef5b50158bd5140086cc8799a59b4496f1feb6885ca38a4fc2ea241628bf65ce01ca0f6202dd931e8502f4d37d94c02b15993d3778a23b75d968ec0b03d5d648b15612d401f064e5ac5cc199a1171dd9b42157e73471702f6a0890d45b3eb0b167ed1229bb1141f076a58d6571ec007a06df44dbda7ffb37b76675a484a4e0fadfb5a90fe7a50565a2d9a1c9cf0541be0b3a847c738d9a7f62ea57e5bfb49100b64ffc737d815e8d0bbb448a9f84944fd1300905e8a8398d7ad89af6ee77d5089592dd7db93ca9fb6036b996d6496d170eead6f97a583d0adc8b1c31f56626c95cefbcb8e78c9006eee62799172bf02b6e45bcf58b2b4acb443767156a5c958e"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "5c54197df2253b9ad304b1df9b65f059dec172b404067135fcf92b7902f84687",
+      "name": "shake-272-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "3343500744834d14afddd345b3da7af93a05773df135ae86a12efb43b24138b0",
+      "name": "shake-273-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e98758263401",
+        "gallina": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e98758263401",
+        "hashlib": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e98758263401"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "3343500744834d14afddd345b3da7af93a05773df135ae86a12efb43b24138b0",
+      "name": "shake-273-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e987582634011e8f03ad236597c51c2cfd417aa9f2307d77addb2fd661e12f9506a4663aa1fb414a1440a34a83d1469bec4ad16556f3841a3df54ab509ba8ecefe7cb1cbfdf2b78c0f455451a800df1332af0976af79e842e1b810464d37b54d8a48c84f72bc71a9c756e48e573f70",
+        "gallina": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e987582634011e8f03ad236597c51c2cfd417aa9f2307d77addb2fd661e12f9506a4663aa1fb414a1440a34a83d1469bec4ad16556f3841a3df54ab509ba8ecefe7cb1cbfdf2b78c0f455451a800df1332af0976af79e842e1b810464d37b54d8a48c84f72bc71a9c756e48e573f70",
+        "hashlib": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e987582634011e8f03ad236597c51c2cfd417aa9f2307d77addb2fd661e12f9506a4663aa1fb414a1440a34a83d1469bec4ad16556f3841a3df54ab509ba8ecefe7cb1cbfdf2b78c0f455451a800df1332af0976af79e842e1b810464d37b54d8a48c84f72bc71a9c756e48e573f70"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "3343500744834d14afddd345b3da7af93a05773df135ae86a12efb43b24138b0",
+      "name": "shake-273-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e987582634011e8f03ad236597c51c2cfd417aa9f2307d77addb2fd661e12f9506a4663aa1fb414a1440a34a83d1469bec4ad16556f3841a3df54ab509ba8ecefe7cb1cbfdf2b78c0f455451a800df1332af0976af79e842e1b810464d37b54d8a48c84f72bc71a9c756e48e573f701b50fcd6b86f6319eef0e5a5749e5cba66d7f5442e1e7add5f637e887f06c83de5c45b1e7d78179f5465a3cecb4e14a8427582374d98f7a1f5f7682ad7a0535b0c290bf61dc0a634551ff515bea526e914e674afe6de97e1fc52a7b5bcc2a9ef9bf7ea4565872642f98e33a14bf08d81060b7cf71202ae341d2ee5397b3bd9044b09d7f31ece9d41",
+        "gallina": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e987582634011e8f03ad236597c51c2cfd417aa9f2307d77addb2fd661e12f9506a4663aa1fb414a1440a34a83d1469bec4ad16556f3841a3df54ab509ba8ecefe7cb1cbfdf2b78c0f455451a800df1332af0976af79e842e1b810464d37b54d8a48c84f72bc71a9c756e48e573f701b50fcd6b86f6319eef0e5a5749e5cba66d7f5442e1e7add5f637e887f06c83de5c45b1e7d78179f5465a3cecb4e14a8427582374d98f7a1f5f7682ad7a0535b0c290bf61dc0a634551ff515bea526e914e674afe6de97e1fc52a7b5bcc2a9ef9bf7ea4565872642f98e33a14bf08d81060b7cf71202ae341d2ee5397b3bd9044b09d7f31ece9d41",
+        "hashlib": "62218642cdb3c24f5b7cbb93b44959f48bb7c217e84386ecf5d8e987582634011e8f03ad236597c51c2cfd417aa9f2307d77addb2fd661e12f9506a4663aa1fb414a1440a34a83d1469bec4ad16556f3841a3df54ab509ba8ecefe7cb1cbfdf2b78c0f455451a800df1332af0976af79e842e1b810464d37b54d8a48c84f72bc71a9c756e48e573f701b50fcd6b86f6319eef0e5a5749e5cba66d7f5442e1e7add5f637e887f06c83de5c45b1e7d78179f5465a3cecb4e14a8427582374d98f7a1f5f7682ad7a0535b0c290bf61dc0a634551ff515bea526e914e674afe6de97e1fc52a7b5bcc2a9ef9bf7ea4565872642f98e33a14bf08d81060b7cf71202ae341d2ee5397b3bd9044b09d7f31ece9d41"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "3343500744834d14afddd345b3da7af93a05773df135ae86a12efb43b24138b0",
+      "name": "shake-273-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "",
+        "gallina": "",
+        "hashlib": ""
+      },
+      "family": "SHAKE256",
+      "message_sha256": "35d51858ea967c4660bf068f085d6961c65a95e77da3071dc4eee89d2d7ded3d",
+      "name": "shake-512-0",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306",
+        "gallina": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306",
+        "hashlib": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "35d51858ea967c4660bf068f085d6961c65a95e77da3071dc4eee89d2d7ded3d",
+      "name": "shake-512-32",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306bf1016a4db7dd8be59c5bd07f7f21136149b9bdec4be446532dda034343f183230ebbc76afe60929eadc59a2ecf4a3f7e9b65555a35c7e189c68168989ccdd0cc3e11bee7200d94dcc7b812f7b575fe64b3f02df69fbd5729fce6494461541a0c612ab0efed2924d57",
+        "gallina": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306bf1016a4db7dd8be59c5bd07f7f21136149b9bdec4be446532dda034343f183230ebbc76afe60929eadc59a2ecf4a3f7e9b65555a35c7e189c68168989ccdd0cc3e11bee7200d94dcc7b812f7b575fe64b3f02df69fbd5729fce6494461541a0c612ab0efed2924d57",
+        "hashlib": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306bf1016a4db7dd8be59c5bd07f7f21136149b9bdec4be446532dda034343f183230ebbc76afe60929eadc59a2ecf4a3f7e9b65555a35c7e189c68168989ccdd0cc3e11bee7200d94dcc7b812f7b575fe64b3f02df69fbd5729fce6494461541a0c612ab0efed2924d57"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "35d51858ea967c4660bf068f085d6961c65a95e77da3071dc4eee89d2d7ded3d",
+      "name": "shake-512-137",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306bf1016a4db7dd8be59c5bd07f7f21136149b9bdec4be446532dda034343f183230ebbc76afe60929eadc59a2ecf4a3f7e9b65555a35c7e189c68168989ccdd0cc3e11bee7200d94dcc7b812f7b575fe64b3f02df69fbd5729fce6494461541a0c612ab0efed2924d57ba1b4c5dbf7ac8142b6da70d6727138ad893224776de611fa8730f2b3a51139e52a05a0ad9adeea41b0f1daea5b5169645a4f339a3c1c85d7739ac2ac8f26b8d2e8164677906b84a9d4b93b68ae744de147ab4d81bbf45707b69995190c1344e5ec0d6c04cb1a5de864301681bd2be8df6fdf1b59ed8988920d66eca36b72e1b7583e42511e669aa",
+        "gallina": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306bf1016a4db7dd8be59c5bd07f7f21136149b9bdec4be446532dda034343f183230ebbc76afe60929eadc59a2ecf4a3f7e9b65555a35c7e189c68168989ccdd0cc3e11bee7200d94dcc7b812f7b575fe64b3f02df69fbd5729fce6494461541a0c612ab0efed2924d57ba1b4c5dbf7ac8142b6da70d6727138ad893224776de611fa8730f2b3a51139e52a05a0ad9adeea41b0f1daea5b5169645a4f339a3c1c85d7739ac2ac8f26b8d2e8164677906b84a9d4b93b68ae744de147ab4d81bbf45707b69995190c1344e5ec0d6c04cb1a5de864301681bd2be8df6fdf1b59ed8988920d66eca36b72e1b7583e42511e669aa",
+        "hashlib": "dcd4781c6d138e047a12e1870f88bc02ba4ced8625735b27e57b37c682d52306bf1016a4db7dd8be59c5bd07f7f21136149b9bdec4be446532dda034343f183230ebbc76afe60929eadc59a2ecf4a3f7e9b65555a35c7e189c68168989ccdd0cc3e11bee7200d94dcc7b812f7b575fe64b3f02df69fbd5729fce6494461541a0c612ab0efed2924d57ba1b4c5dbf7ac8142b6da70d6727138ad893224776de611fa8730f2b3a51139e52a05a0ad9adeea41b0f1daea5b5169645a4f339a3c1c85d7739ac2ac8f26b8d2e8164677906b84a9d4b93b68ae744de147ab4d81bbf45707b69995190c1344e5ec0d6c04cb1a5de864301681bd2be8df6fdf1b59ed8988920d66eca36b72e1b7583e42511e669aa"
+      },
+      "family": "SHAKE256",
+      "message_sha256": "35d51858ea967c4660bf068f085d6961c65a95e77da3071dc4eee89d2d7ded3d",
+      "name": "shake-512-273",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "comparison",
+      "name": "slh-tg29-tc399",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-signature-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-wrong-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-message-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-short-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-long-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-short-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-long-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-context-changed",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-context-overlong",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg29-tc399-message-overlong",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "comparison",
+      "name": "slh-tg36-tc491",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-signature-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-wrong-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-message-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-short-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-long-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-short-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-long-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "slh-tg36-tc491-message-overlong",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "gallina": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-signature-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-wrong-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-message-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-short-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-long-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-short-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-long-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-context-changed",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-context-overlong",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-message-overlong",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-hint-end-overflow",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-positive-z-bound",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg5-tc63-negative-z-bound",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "gallina": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-signature-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-wrong-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-message-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-short-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-long-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-short-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-long-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-message-overlong",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-hint-end-overflow",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-positive-z-bound",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg12-tc168-negative-z-bound",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "gallina": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-signature-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-wrong-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-message-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-short-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-long-signature",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-short-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-long-root",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-hint-end-overflow",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-positive-z-bound",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "comparison",
+      "name": "mldsa-tg11-tc157-negative-z-bound",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "offline-fixture",
+      "name": "authored-offline-slh",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "offline-fixture",
+      "name": "authored-offline-slh-signature-flipped",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": true,
+        "gallina": true,
+        "openssl": true
+      },
+      "expected": true,
+      "family": "offline-fixture",
+      "name": "authored-offline-mldsa",
+      "passed": true
+    },
+    {
+      "answers": {
+        "c": false,
+        "gallina": false,
+        "openssl": false
+      },
+      "expected": false,
+      "family": "offline-fixture",
+      "name": "authored-offline-mldsa-signature-flipped",
+      "passed": true
+    },
+    {
+      "answer": [
+        "release",
+        "1",
+        "64",
+        "255",
+        "1",
+        "4"
+      ],
+      "family": "real-boot-binding",
+      "name": "boot-valid",
+      "passed": true
+    },
+    {
+      "answer": [
+        "refuse-signature",
+        "0",
+        "0",
+        "0",
+        "0",
+        "3"
+      ],
+      "family": "real-boot-binding",
+      "name": "boot-corrupt-signature",
+      "passed": true
+    },
+    {
+      "answer": [
+        "refuse-signature",
+        "0",
+        "0",
+        "0",
+        "0",
+        "3"
+      ],
+      "family": "real-boot-binding",
+      "name": "boot-wrong-root",
+      "passed": true
+    },
+    {
+      "answer": [
+        "refuse-length",
+        "0",
+        "0",
+        "0",
+        "1",
+        "3"
+      ],
+      "family": "real-boot-binding",
+      "name": "boot-overlength-field",
+      "passed": true
+    },
+    {
+      "answer": [
+        "refuse-digest",
+        "0",
+        "0",
+        "0",
+        "0",
+        "3"
+      ],
+      "family": "real-boot-binding",
+      "name": "boot-corrupt-payload",
+      "passed": true
+    }
+  ],
+  "seconds": 80.557,
+  "source_sha256": {
+    "firmware/crypto/check_signature.c": "02414d514a6f71c1c8d9a90fd607bc729b3b5ce4444168f70e5fa6d97cb84a05",
+    "firmware/crypto/fixtures.json": "b47c0e265f012325095f035ea405603594738cb88d44db1fb8fb787120662abb",
+    "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+    "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+    "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+    "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+    "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+    "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329",
+    "firmware/rot/boot_verify.c": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344",
+    "proofs/Keccak.v": "9e888f724eeaf31ca56e03e4147c73db9283418751dce116737e4ee7fc7ff3af",
+    "proofs/MlDsa.v": "70d8785b066fdee5fe5461885ee17c2006e87b268519488505b19dbd87facac2",
+    "proofs/PqArith.v": "d9ac52e57e2b17dc87ffc01f29f91ce78bf50fb8aad71e3644f86a23bc53d957",
+    "proofs/campaigns/mldsa_vectors.py": "85186db73e0e16546cf1134cfdd5d0a2925cdaa5b121338459de42bfadf733aa",
+    "tools/vos/boot_crypto.py": "9a474b1151f3953bafe5b71b83c779361c161caf7db9028e0214f3e494b50cdd",
+    "tools/vos/boot_handoff.py": "514af9d4a79bf90d1381cbb39fdb9ec5b14268702f81cd89b7a3cf7f43897d8b",
+    "tools/vos/cli/boot_crypto.py": "8890ac7fcc30e968bb7ef0ee67082fc87193adc3dd3eaee09a2870d9813bdb19",
+    "tools/vos/env.py": "3b01e2d8179b580b72c588c45c012388e4a223ea28a21adcf691ea8290c599f9",
+    "tools/vos/receipts.py": "0a1411e2df4b2baab21a897d82672b866ab1a82599f2fb9adc60dff5db79b9e0"
+  }
+}

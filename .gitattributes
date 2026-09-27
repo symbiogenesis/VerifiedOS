@@ -14,4 +14,9 @@ model/** -text -eol
 # thing an attribute should quietly normalize.
 rtl/**/*.sv text eol=lf
 
+# Retained evidence copies are the recorded bytes of native and out/ records, some
+# written with CRLF by Windows tools. Normalizing them would change the SHA-256 their
+# citations record, so they take model/'s verbatim rule.
+docs/implementation/retained-evidence/** -text -eol
+
 /tools/wasm-oracle/node.sh text eol=lf

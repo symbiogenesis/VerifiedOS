@@ -1,0 +1,295 @@
+{
+  "passed": true,
+  "compiler_sha256": "0c9e63e5fe6759852d2b533daf71f818b3b4288f91b9d811b8abced2a8459af3",
+  "model_sha256": "75a8f9df1efa40cd1a88a8ab7110882243dfe3af4f64b6231daab5fa84e37708",
+  "profile_sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+  "compiler_config_sha256": "a654a454e9d53d37217a223ecac5b1a0d016416b3a6f0aa817c996887eb31b0e",
+  "runner_sha256": "07e061e4ad0b18885664f44fb0c570ed15795f0cfbab89bf5df7e4cee2b587f1",
+  "producer_receipts": {
+    "primitives": {
+      "path": "/root/build/lane-unblock-20260921-lowering/primitives-final-d1d70bd-1/result.json",
+      "sha256": "c07601050cc0278cf0b3e460c617084b539102d0726ce579448489433b25569e"
+    },
+    "capability": {
+      "path": "/root/build/lane-unblock-20260921-lowering/capability-final-d1d70bd-1/result.json",
+      "sha256": "c27684eb2b21c3f9e7855cd758751402d1e77e579d0166e4d307447b472e109b"
+    },
+    "indirect": {
+      "path": "/root/build/lane-unblock-20260921-lowering/indirect-final-d1d70bd-1/result.json",
+      "sha256": "65f205352db8477c69de1bda6361ab6a6546654c78e4e8e7537c64cf1a54427b"
+    },
+    "large": {
+      "path": "/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/result.json",
+      "sha256": "d5e162ebe337c44f1446d79707a16418d2c36d75aa5a116b7ef12dcc49c474bb"
+    }
+  },
+  "cases": [
+    {
+      "name": "class-c",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/class-c/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/class-c/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.013761803002125816
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/primitives-final-d1d70bd-1/class-c/producer.s",
+      "producer_sha256": "3cc806537122e728bda447ae0dc565e87b2180b06cedcead728cef2f7317ef5f",
+      "retired": 62,
+      "files": {
+        "trace.log": "48b4cc2e607c4242743f730b028e828f37921bd25073bfc74a59da2ac5677e28",
+        "producer.s": "3cc806537122e728bda447ae0dc565e87b2180b06cedcead728cef2f7317ef5f",
+        "program.elf": "757f511afd0b9687b8ff7a8ee2d3cf8eaa42dd0a665f4f69ebc867c74464e770",
+        "program.s": "2f13448c6c413b636ed001c3db74cc7380547a312a64d4e267fa57fcddf2700e",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "capability",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/capability/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/capability/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.03398030099924654
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/capability-final-d1d70bd-1/primitive/producer.s",
+      "producer_sha256": "2e8c0de0b7b932422a086d207f6383a7f215099a58209c609c52de777a141b8d",
+      "retired": 1949,
+      "files": {
+        "trace.log": "573d32b13486b9dcd996c1a42fdc0f6ccc9aa7af0413ec7088975c328a846adb",
+        "producer.s": "2e8c0de0b7b932422a086d207f6383a7f215099a58209c609c52de777a141b8d",
+        "program.elf": "aee4dd4aaca57039e95b8ab013cabdcb6ce9b7aa347a36033415d9957864901b",
+        "program.s": "4b05fd6c772e55e51b52cf85ce4634d7f2a2efa292beb6696f542e97e90cf148",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "ordinary",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/ordinary/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/ordinary/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.023221701001602923
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/indirect-final-d1d70bd-1/ordinary/producer.s",
+      "producer_sha256": "9e64db2c821857e4b6c8d4d704f700fd74e341ae5fa5cd4f9f23ec1c9ae2bed4",
+      "retired": 829,
+      "files": {
+        "trace.log": "0d5f8491b713f169509606cc828eb130f4b4ea098a44a3e92a8c7c2e567c4906",
+        "producer.s": "9e64db2c821857e4b6c8d4d704f700fd74e341ae5fa5cd4f9f23ec1c9ae2bed4",
+        "program.elf": "35cccf40122496e256f1b72a69300c898958f183c2e81e02b24e6fca9fc01fdf",
+        "program.s": "b99edbbb4c3e85a8671c287e01f26e835f45690935f3d77eb650783b8c3d3311",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "sealed",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/sealed/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/sealed/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.022314701000141213
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/indirect-final-d1d70bd-1/sealed/producer.s",
+      "producer_sha256": "c859fc4eec06a72a68902303e7db761d03421885a1454005242126ceb0cc90b3",
+      "retired": 831,
+      "files": {
+        "trace.log": "36d2844438a93015332ac3e52588342d35586a9f3b5c253f9099c3ee33daa61b",
+        "producer.s": "c859fc4eec06a72a68902303e7db761d03421885a1454005242126ceb0cc90b3",
+        "program.elf": "6b5ea3610ffadad362d70fe3045e5df5b2cdde68cffd058808d6b711151bb7cd",
+        "program.s": "0cc3af045c7ca1c7e0f44b77c78da6351ea27e889edbac172a7c7b671beb0481",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "spilled",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/spilled/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/spilled/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.020497200999670895
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/indirect-final-d1d70bd-1/spilled/producer.s",
+      "producer_sha256": "31588098334b80c2532c59da44b1c772d5ed4e7f742eda58a235db7e3b76ec80",
+      "retired": 849,
+      "files": {
+        "trace.log": "d16ae240cc591f3b4bdca128ae5d5935eb6619f78ca8eac1009fdf850bfbe144",
+        "producer.s": "31588098334b80c2532c59da44b1c772d5ed4e7f742eda58a235db7e3b76ec80",
+        "program.elf": "8644482fd4175bcdd0e3a9e41c5889ff3f03064fb0a5adeeda5ed11fbcb4fa09",
+        "program.s": "f624d0bb3316b508317c2da5fd99f337578bbb54a1c68868467890f9c0d3c40b",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "large270",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/large270/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/large270/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.05963140200037742
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/large.s",
+      "producer_sha256": "dd4c82f4cd84435c6312b94c5a18c576325a8a6ccabab1f5c5d1c6c930a7bd47",
+      "retired": 2695,
+      "files": {
+        "trace.log": "31753bf5ad3bc27c3f3d1c0d3b182f5193635bd922c92840e44d8856cb1621a9",
+        "producer.s": "dd4c82f4cd84435c6312b94c5a18c576325a8a6ccabab1f5c5d1c6c930a7bd47",
+        "program.elf": "272ee132bfe720c939b9f1b2cf3088a72e7eb15896bd224733432991cfca82a6",
+        "program.s": "269cf193b295d6b3c3148ef976fb6846d33c827398395094e8d4ff5b26572bb3",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "copy",
+      "passed": true,
+      "execution": {
+        "argv": [
+          "/root/build/compiler-unblock-integration-20260921/model-sealing-2/sail_riscv_sim",
+          "--config",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+          "--trace-commit",
+          "--inst-limit",
+          "200000",
+          "--terminal-log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy/terminal.log",
+          "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy/program.elf"
+        ],
+        "exit": 0,
+        "seconds": 0.016492801001732005
+      },
+      "verdict": "pass",
+      "code": 0,
+      "detail": "HTIF 0",
+      "producer_path": "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy-producer/producer.s",
+      "producer_sha256": "e407a7673bc645b4acf4fca4ed49aa5a10c1e6418fc4d7067932bd73fd067ce9",
+      "retired": 113,
+      "files": {
+        "trace.log": "efcdfed8bf78b588220ded4b84ec51857c4d1ecbbd4946d1dcd8b0224899ffb8",
+        "producer.s": "e407a7673bc645b4acf4fca4ed49aa5a10c1e6418fc4d7067932bd73fd067ce9",
+        "program.elf": "ccba3ab2ef679ebc26a75c99daed3950ff8bb677c3e1b429683e10821468ecd3",
+        "program.s": "d9223d8f96538e042948dd19b99a30fc03ff89d3ebbb15dbb23009e47be8cdae",
+        "terminal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "copy_compile": {
+    "argv": [
+      "/root/build/compiler-unblock-integration-20260921/compiler-profile-d1d70bd/ccomp",
+      "-conf",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/compcert.ini",
+      "-fverifiedos-typed",
+      "-fverifiedos-profile",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/profile.json",
+      "-fverifiedos-composition",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy-producer/composition.json",
+      "-fverifiedos-typed-record",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy-producer/typed",
+      "-dprepro",
+      "-S",
+      "-o",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy-producer/producer.s",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy-producer/copy.c"
+    ],
+    "exit": 0,
+    "seconds": 0.44830474500122364
+  },
+  "copy_source_oracle": {
+    "argv": [
+      "/root/build/compiler-unblock-integration-20260921/compiler-profile-d1d70bd/ccomp",
+      "-conf",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/compcert.ini",
+      "-interp",
+      "/root/build/lane-unblock-20260921-lowering/target-final-d1d70bd-1/copy-producer/copy.i"
+    ],
+    "exit": 0,
+    "seconds": 0.008653903001686558
+  },
+  "copy_files": {
+    "producer.s": "e407a7673bc645b4acf4fca4ed49aa5a10c1e6418fc4d7067932bd73fd067ce9",
+    "source.log": "9b3e9b392620218682ddbd5630adba8f085579bc3fc8d7d9a1844c3880a39b26",
+    "typed.source.json": "f950068a60c6c92aaf3665d9bc9b7afa08f588dd77e5f67ad2c2fe40d21a9db5",
+    "composition.json": "cd033df4756a5c25d66ee9ceda60edf3f5cdb5ae5abe9127805576bbf34d0f4e",
+    "copy.i": "5cab393a08ac74cc536051ee137f964f7284f7956ac1d52e2c4ad8fddc385407",
+    "copy.c": "f538473a8302d47f3ccda4c297e8561774e722055663cc9ea1b3c45db675d1a6",
+    "typed.sites.json": "296616a4b9bc2d37d20a9488a30629c4c5d79a389ced41f4193f625ab2c21511",
+    "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "boundary": "Primitive externs have profile-modeled semantics; target-only cases are separate from ordinary C source oracles."
+}

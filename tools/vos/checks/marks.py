@@ -133,6 +133,8 @@ REFUSED: dict[str, str] = {
 REFUSED_TREES: dict[str, str] = {
     UNREAD_PREFIX: "vendored upstream, marked by its own project and left as it arrived",
     "upstream/": "a pinned submodule's own working tree, which is another project",
+    "docs/implementation/retained-evidence/": "verbatim copies of recorded native and out/ "
+                                              "records, whose citations hash their bytes",
 }
 
 

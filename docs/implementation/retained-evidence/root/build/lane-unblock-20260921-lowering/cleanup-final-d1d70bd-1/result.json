@@ -1,0 +1,224 @@
+{
+  "schema": "verifiedos-cleanup-evidence-v1",
+  "passed": true,
+  "output": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1",
+  "certificate_sha256": "5e6d889b488e9ef01e04b78299e56b0abe5a16cdfa8717be8e8118295aca04c0",
+  "generated_proof_sha256": "160f925f63b72437f85ec4949b30be0df242424fcc254c21479f98da15f79164",
+  "compiler_commit": "d1d70bd80a7d11841bab1dc87fd2a3a7b2efb063",
+  "compiler_sha256": "0c9e63e5fe6759852d2b533daf71f818b3b4288f91b9d811b8abced2a8459af3",
+  "model_sha256": "75a8f9df1efa40cd1a88a8ab7110882243dfe3af4f64b6231daab5fa84e37708",
+  "proof_dependencies": {
+    "source_snapshot_sha256": "4bd1165ee7f9b61774cea95912afc13ebccdb3d9c0762d3f76f3bb4fb91500b7",
+    "SourceValues_sha256": "58752d73c4959001387fe32930e62fa3ff0410b30a7f7483f8c472aabb8c353e",
+    "SourceMemory_sha256": "d4fd89e9dadb69e6d032378d10a33a88a4a1e5769bf3e47afaeb080695df7fcf"
+  },
+  "loop_count": 22,
+  "return_protocols": 2,
+  "failure_routes": 3,
+  "refusal_controls": 26,
+  "timer_cleanup_to_sample": 747,
+  "proof_results": [
+    {
+      "name": "SourceValues",
+      "exit_code": 0,
+      "elapsed_seconds": 3.38
+    },
+    {
+      "name": "SourceMemory",
+      "exit_code": 0,
+      "elapsed_seconds": 1.622
+    },
+    {
+      "name": "CleanupProof",
+      "exit_code": 0,
+      "elapsed_seconds": 1.976
+    },
+    {
+      "name": "CleanupReceipt",
+      "exit_code": 0,
+      "elapsed_seconds": 1.27
+    },
+    {
+      "name": "kernel",
+      "exit_code": 0,
+      "elapsed_seconds": 494.603
+    }
+  ],
+  "kernel_timing_note": "Wall time includes deliberate SIGSTOP while the independent Handle kernel ran; not a performance measurement.",
+  "assumptions": "Printed cleanup theorems closed under global context; conditional hardware/installation premises stated in certificate scope.",
+  "inputs": {
+    "SourceValues.v": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/riscV/SourceValues.v",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/SourceValues.v",
+      "sha256": "58752d73c4959001387fe32930e62fa3ff0410b30a7f7483f8c472aabb8c353e"
+    },
+    "SourceMemory.v": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/riscV/SourceMemory.v",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/SourceMemory.v",
+      "sha256": "d4fd89e9dadb69e6d032378d10a33a88a4a1e5769bf3e47afaeb080695df7fcf"
+    },
+    "CleanupProof.v": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/riscV/CleanupProof.v",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/CleanupProof.v",
+      "sha256": "73505622683fbf29479ad824b463e3aa4ca382e7aa70e7e6475a14ba52137aae"
+    },
+    "proof-result.json": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/result.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/proof-result.json",
+      "sha256": "a982a83e100c9c0459e5810688cdc7e015ad4b8df11530cd3ab5cc8a0fe05fbd"
+    },
+    "program.elf": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/baseline/program.elf",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.elf",
+      "sha256": "d2fff4b3dec1b08f5752fdc484b47550037943799329de073b340e6e5e3afce1"
+    },
+    "timer-result.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/result.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/timer-result.json",
+      "sha256": "328c7216d04259377fed0b4693d29c5194b5276a8f3e90830fa3f09463e90853"
+    },
+    "profile.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/instruction-clock-profile.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/profile.json",
+      "sha256": "436012195700d373a368a69f5cd4dc6e240b2146b787da0ad80e5b46e67e9a4c"
+    },
+    "compiler-source-receipt.json": {
+      "source": "/root/build/compiler-unblock-integration-20260921/compiler-profile-d1d70bd/source-receipt.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/compiler-source-receipt.json",
+      "sha256": "4bd1165ee7f9b61774cea95912afc13ebccdb3d9c0762d3f76f3bb4fb91500b7"
+    },
+    "compiler-build-result.json": {
+      "source": "/root/build/compiler-unblock-integration-20260921/compiler-profile-d1d70bd/build-result.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/compiler-build-result.json",
+      "sha256": "7389e584f802ad14820c9a756aa50ed8fb41e897627433ce5c54c68498899a1b"
+    },
+    "model-build.json": {
+      "source": "/root/build/compiler-unblock-integration-20260921/model-sealing-2/model-build.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/model-build.json",
+      "sha256": "26535b7dbaa41c6a1dbe848a945f6693d1e8795d14728b12706a9a0a4427122e"
+    },
+    "SourceValues.log": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/SourceValues.log",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/SourceValues.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "SourceMemory.log": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/SourceMemory.log",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/SourceMemory.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "CleanupProof.log": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/CleanupProof.log",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/CleanupProof.log",
+      "sha256": "f0532d0e8a885018e887fe9f2fc1415078fabe8f12825919a931ee3c625a3996"
+    },
+    "CleanupReceipt.log": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/CleanupReceipt.log",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/CleanupReceipt.log",
+      "sha256": "e48860f73316a42d574e923cda848bcb6d474abd18fef10499e88630d5a78335"
+    },
+    "kernel.log": {
+      "source": "/root/build/lane-unblock-20260921-lowering/cleanup-proof-final-d1d70bd-1/kernel.log",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/kernel.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "program.c": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.c",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.c",
+      "sha256": "14ec26906845e1dbee12a6a8afea84c2c2aa81a88d5de51a06fd6e1db4bdd71c"
+    },
+    "program.i": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.i",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.i",
+      "sha256": "06885e78c49f2be4cccf58b32141f1c628e966798e1aa3350328f02fb0ae9a96"
+    },
+    "program.s": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.s",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.s",
+      "sha256": "fdacc106539d05489904630f97918bf10cb7c197bf3459f401958e9137d81479"
+    },
+    "program.boundary.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.boundary.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.boundary.json",
+      "sha256": "c65fdc52d94a3b6dd2dc6a856bbe49258588ff2bed98016557d2ac820e93f2e2"
+    },
+    "program.layout.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.layout.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.layout.json",
+      "sha256": "b0e65e3badba765937232f45b7a348b60db14603414b3120f7d994dcd22eb7fe"
+    },
+    "program.light.c": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.light.c",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.light.c",
+      "sha256": "20e6eb52da939ffac375ac587f7f6fb352fd501f7ca9a4cb1f11f0d547ac54c9"
+    },
+    "program.cm": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.cm",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.cm",
+      "sha256": "cc0056d9f75e56a2b3f254720324bff3c7aee74201a2b5c43a7f415738533e52"
+    },
+    "program.ltl": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.ltl",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.ltl",
+      "sha256": "658702990754bd6d985a1bb9c6e7c771d5f6c410d6c29b9ca8835c20b6b4221a"
+    },
+    "program.mach": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/program.mach",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/program.mach",
+      "sha256": "de85b913e758582abaa8fdd215b44ea13acbf4f89091097a5c4564a519cc55a8"
+    },
+    "typed.source.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/typed.source.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/typed.source.json",
+      "sha256": "9b01c2554d81e47793c51bbc64e9d513ff63ec334c90ba558f58ec6107454fdd"
+    },
+    "typed.sites.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/typed.sites.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/typed.sites.json",
+      "sha256": "66c88d3eda9b30f00cef757d27ce3946604b5131150a54720f33694da3e6efc7"
+    },
+    "stdint.h": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/stdint.h",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/stdint.h",
+      "sha256": "65505e3f477d8035b7ca800eb3bb00f1853b675546e168f26fc2aeac51642126"
+    },
+    "compcert.ini": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/compcert.ini",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/compcert.ini",
+      "sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+    },
+    "composition.json": {
+      "source": "/root/build/lane-unblock-20260921-values/boundary-final-d1d70bd-c3/timer/composition.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/composition.json",
+      "sha256": "dd67f4f4073878e4ae4b9a1448a80f3ef9dc84a70454ebfbf28473903897e63d"
+    },
+    "plan.json": {
+      "source": "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/unblock-20260921-lowering/test/verifiedos-boundary/cleanup_nested2.json",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/plan.json",
+      "sha256": "6af52bda12982900840994d386c2534f3fdc9e052c4d42386fc39098192fc9be"
+    },
+    "checker.py": {
+      "source": "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/unblock-20260921-lowering/test/verifiedos-boundary/cleanup_proof.py",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/checker.py",
+      "sha256": "bb0faf048c6a882e40c9af98f26288f5de07aa55f271adae709314fa85388886"
+    },
+    "timer_checker.py": {
+      "source": "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/unblock-20260921-lowering/test/verifiedos-boundary/run_timer.py",
+      "retained": "/root/build/lane-unblock-20260921-lowering/cleanup-final-d1d70bd-1/inputs/timer_checker.py",
+      "sha256": "b9e322341b2bd44e1969e57b5a1491c7b4a6a9b114ae5bc9499bce6ca528cbbe"
+    }
+  },
+  "scope": [
+    "Arbitrary initial granule contents, tags, phase, depth and interrupted cleanup prefix.",
+    "Exact final-byte finite cleanup loops and return/restart/failure ordering.",
+    "Requires installed graph: MTDC table entries own these exact disjoint writable spans; no adversarial writer reaches private/table or unlisted local-capability storage.",
+    "Requires Sail scalar-store/cursor/counter semantics to simulate SourceMemory.physical_store and the four-step loop relation.",
+    "Requires model trap-live fail-stop on a second fault and non-resumption of an aborted continuation.",
+    "Instruction-clock timer bound only; no physical WCET or complete compiler simulation claim."
+  ],
+  "concrete_theorems": [
+    "selected_addresses_distinct",
+    "selected_cleanup_arbitrary_memory",
+    "selected_restart_after_any_cut"
+  ]
+}

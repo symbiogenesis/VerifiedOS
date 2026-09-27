@@ -202,29 +202,33 @@ RESIDUE: dict[str, str] = {
     "11007678": "the numeral of SECOMP's Zenodo DOI, which is not an object id",
 }
 
+# The gitlinks of September 2026's native receipts, which record the index they ran
+# against rather than restating the current pins.
+_CAPTURED_GITLINKS: dict[str, str] = {
+    "3243f93905c1de3504e910f76c07f96fef1394d7": "sail-riscv",
+    "90cebef1411617fc3eedd359bdf00cb44b1c2439": "llvm-project",
+    "5d37f8567667a3c699d2730574c35dfbe772dd67": "rupicola",
+    "e8bfad6ab11618d1a0a13cb5f47265cc98605636": "katamaran",
+    "b5973217f704923917e7761f73df7dfcb8d0c345": "mocha",
+    "36a1dc5cb8c2b17d519bdb9ebf7fa37e591f6e43": "cva6-cheri",
+    "24c6e2d8531e6a6d0a9e29bde2a109484099aec9": "axi-cheri-tagcontroller",
+    "629146ef7b3b0d74216b5cc94504ded082a85067": "opentitan",
+    "405c6d1d8220a18b2f9196141167a5875422dee4": "ibex",
+    "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
+}
+_CAPTURING_RECEIPTS: dict[str, str] = {
+    "docs/assurance/sail-assistance-evidence/modular.json":
+        "the historical modular Sail experiment",
+    "docs/implementation/retained-evidence/root/logs/model-build-block-integration-20260919.json":
+        "the retained block-integration model build receipt",
+}
+
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
-    ("docs/assurance/sail-assistance-evidence/modular.json", "3243f93905c1de3504e910f76c07f96fef1394d7"):
-        "the sail-riscv gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "90cebef1411617fc3eedd359bdf00cb44b1c2439"):
-        "the llvm-project gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "5d37f8567667a3c699d2730574c35dfbe772dd67"):
-        "the rupicola gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "e8bfad6ab11618d1a0a13cb5f47265cc98605636"):
-        "the katamaran gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "b5973217f704923917e7761f73df7dfcb8d0c345"):
-        "the mocha gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "36a1dc5cb8c2b17d519bdb9ebf7fa37e591f6e43"):
-        "the cva6-cheri gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "24c6e2d8531e6a6d0a9e29bde2a109484099aec9"):
-        "the axi-cheri-tagcontroller gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "629146ef7b3b0d74216b5cc94504ded082a85067"):
-        "the opentitan gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "405c6d1d8220a18b2f9196141167a5875422dee4"):
-        "the ibex gitlink captured by the historical modular Sail experiment",
-    ("docs/assurance/sail-assistance-evidence/modular.json", "930feb298af5bf7d9aa0baeaa21732ff84a2f066"):
-        "the cheriot-ibex gitlink captured by the historical modular Sail experiment",
+    **{(file, ident): f"the {name} gitlink captured by {receipt}"
+       for file, receipt in _CAPTURING_RECEIPTS.items()
+       for ident, name in _CAPTURED_GITLINKS.items()},
     ("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28"):
         "the optional libclang 21.1.8 license reading, independent of the compiler-development gitlink",
     ("THIRD-PARTY.md", "8890da780108672e05cf87b6d119bf6a76113fbf"):

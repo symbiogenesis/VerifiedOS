@@ -1,0 +1,59 @@
+{
+  "revision": "cab1edadaeac56313c803ae511b3b76d2886a543",
+  "uncommitted_inputs": {
+    "docs/assurance/proof-tooling-qualification.md": "960f86c5334f8267a5a36bd3e8395c893a28944200e4620964f5951aa5d3da00",
+    "docs/implementation/completion-log.md": "94848588f4f3f9d7f95a4e77d8aff19bb32e81b9b924bd44f88dc0f49188c38b",
+    "docs/implementation/implementation-checklist.md": "aedd55ef4f699e7ede3c63934528eadcc4e152036ff0835315b38ff969a27367",
+    "proofs/campaigns/q19a-render-cache.py": "7de444800811063b924313adafc41cffeb3efa6ae605d0235a17e22209976610"
+  },
+  "replay_command": "wsl -u root -e python3 /mnt/c/Users/symbi/source/repos/VerifiedOS/proofs/campaigns/q19a-render-cache.py --work /root/build/q19a-closeout-20260916-b --renderer /root/build/lane-recover-qualification-20260914/render-env/bin/alectryon --switch /root/.opam/verifiedos-q19-recovery-20260914",
+  "replay_result": "reproduced-candidate-rejection",
+  "host_command": "python tools/run.py --fix --tests --summary out/q19a-closeout-20260916/host-gate.json",
+  "host_result": {
+    "green": true,
+    "stopped": "",
+    "members": [
+      {
+        "name": "check",
+        "decides": "every derived fact against the artifact that owns it",
+        "code": 0,
+        "reached_verdict": true,
+        "clean": true
+      },
+      {
+        "name": "selftest",
+        "decides": "every rule the checker carries, against its mutant",
+        "code": 0,
+        "reached_verdict": true,
+        "clean": true
+      },
+      {
+        "name": "typecheck",
+        "decides": "the tools' own Python, under two pinned checkers",
+        "code": 0,
+        "reached_verdict": true,
+        "clean": true
+      },
+      {
+        "name": "test",
+        "decides": "the tools' own behavior, against the cases that hold it",
+        "code": 0,
+        "reached_verdict": true,
+        "clean": true
+      }
+    ]
+  },
+  "proof_command": "python tools/run.py proofs",
+  "proof_result": "passed: fresh compilation, native assumption audit and full rocqchk recheck",
+  "proof_input_changes": [],
+  "deferred": [
+    "No positive presentation workflow or human review-effort comparison is accepted; Q20b requires a retained environment."
+  ],
+  "proof_seconds": {
+    "compile_and_audit": 262.12,
+    "kernel_recheck": 2317.34,
+    "total": 2591.37
+  },
+  "proof_evidence_sha256": "c7ba1631b79e4488150d66708dcf4a0861b1b055069a0db650c9adebdbbb149d",
+  "final_verdict": "passed: rejected candidate qualification complete; no positive presentation integration adopted"
+}

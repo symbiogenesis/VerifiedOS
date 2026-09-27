@@ -1,0 +1,150 @@
+{
+  "tested_revision": "96190fcd5258f70761b70adcb95f82b05ac11f78",
+  "source_scope": "Clean committed checkout; no uncommitted inputs",
+  "completed_utc": "2026-09-19T20:44:31.3366256Z",
+  "integration_worktree": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\block-integration-20260919",
+  "integration_branch": "work/block-integration-20260919",
+  "completed_items": [
+    "M5.3a",
+    "M5.3b",
+    "M5.3c"
+  ],
+  "contract_base_revision": "6f51ac9a9b1121c3f08ee13252bfeb92ab48f0cb",
+  "host": {
+    "summary": {
+      "green": true,
+      "stopped": "",
+      "members": [
+        {
+          "name": "check",
+          "decides": "every derived fact against the artifact that owns it",
+          "code": 0,
+          "reached_verdict": true,
+          "clean": true
+        },
+        {
+          "name": "selftest",
+          "decides": "every rule the checker carries, against its mutant",
+          "code": 0,
+          "reached_verdict": true,
+          "clean": true
+        },
+        {
+          "name": "typecheck",
+          "decides": "the tools' own Python, under two pinned checkers",
+          "code": 0,
+          "reached_verdict": true,
+          "clean": true
+        },
+        {
+          "name": "test",
+          "decides": "the tools' own behavior, against the cases that hold it",
+          "code": 0,
+          "reached_verdict": true,
+          "clean": true
+        }
+      ]
+    },
+    "exit_code": 0,
+    "command": "python tools/run.py --check --tests --summary out/evidence/block-integration-host.json",
+    "log": "out/block-integration-host.log"
+  },
+  "model": {
+    "receipt": "/root/logs/model-build-block-integration-20260919.json",
+    "exit_code": 0,
+    "commands": [
+      "wsl -u root -e env VOS_JOBS=4 VOS_TEST_JOBS=3 python3 tools/run.py model build --background",
+      "python tools/run.py model wait"
+    ],
+    "identity_revision": "96190fcd",
+    "seconds": {
+      "build": 3.2,
+      "ctest": 76.0,
+      "configure": 12.2
+    },
+    "log": "/root/logs/model-build-block-integration-20260919.log",
+    "stages": {
+      "build": 0,
+      "configure": 0,
+      "ctest": 0
+    }
+  },
+  "corpus": {
+    "records": 11533,
+    "exit_code": 0,
+    "checks": 10,
+    "command": "python tools/run.py model corpus block-authority",
+    "digest": "14e25733a5e0ce2c"
+  },
+  "controls": {
+    "exit_code": 0,
+    "command": "wsl -u root -e env VOS_JOBS=4 VOS_TEST_JOBS=2 python3 tools/run.py test --only block_authority --slow --jobs 2",
+    "cases": 3,
+    "variants": [
+      "positive",
+      "wrong-byte",
+      "missing-refusal",
+      "wrong-cause"
+    ]
+  },
+  "composer_baseline": "out/evidence/block-authority-compose-baseline.json",
+  "lanes_before_cleanup": [
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS",
+      "head": "9434ce26287018aec4ed39ab99586e37bd88ad21",
+      "branch": "main",
+      "bare": false,
+      "locked": false,
+      "prunable": false,
+      "lane": "",
+      "lane_root": "/root/build"
+    },
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\block-authority-20260919",
+      "head": "00eec542eb221c2629ee865b50806b9b09a97b33",
+      "branch": "work/block-authority-20260919",
+      "bare": false,
+      "locked": false,
+      "prunable": false,
+      "lane": "block-authority-20260919",
+      "lane_root": "/root/build/lane-block-authority-20260919"
+    },
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\block-integration-20260919",
+      "head": "96190fcd5258f70761b70adcb95f82b05ac11f78",
+      "branch": "work/block-integration-20260919",
+      "bare": false,
+      "locked": false,
+      "prunable": false,
+      "lane": "block-integration-20260919",
+      "lane_root": "/root/build/lane-block-integration-20260919"
+    },
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\block-payload-20260919",
+      "head": "d9489c76055c356c2a5cc994fa5fc38e36f980f6",
+      "branch": "work/block-payload-20260919",
+      "bare": false,
+      "locked": false,
+      "prunable": false,
+      "lane": "block-payload-20260919",
+      "lane_root": "/root/build/lane-block-payload-20260919"
+    },
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\block-reset-20260919",
+      "head": "9b17f499bab24443b444e302c94ebc9ee616d26b",
+      "branch": "work/block-reset-20260919",
+      "bare": false,
+      "locked": false,
+      "prunable": false,
+      "lane": "block-reset-20260919",
+      "lane_root": "/root/build/lane-block-reset-20260919"
+    }
+  ],
+  "deferred": [
+    "M5.3d: host-image persistence, storage integration, remaining HTIF cases, and both target instances"
+  ],
+  "initial_findings": [
+    "Composer frozen-member fixture updated only after reproducing the prior 26-member hash.",
+    "Evidence corpus syntax corrected from --member to a positional argument; all final checks use the corrected command."
+  ]
+}

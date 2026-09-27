@@ -1,0 +1,695 @@
+{
+  "scope": "synthetic-finite-phase-service",
+  "target_comparison": "open",
+  "open_because": [
+    "first_class_qualified",
+    "second_class_qualified",
+    "timing_qualified",
+    "core_class_c_frozen",
+    "core_class_v_frozen",
+    "core_class_m_frozen",
+    "core_class_s_frozen",
+    "core_class_rot_frozen",
+    "schedule"
+  ],
+  "inputs": {
+    "first_class_qualified": false,
+    "second_class_qualified": false,
+    "timing_qualified": false,
+    "core_class_c_frozen": false,
+    "core_class_v_frozen": false,
+    "core_class_m_frozen": false,
+    "core_class_s_frozen": false,
+    "core_class_rot_frozen": false,
+    "schedule": null
+  },
+  "sources_sha256": {
+    "tools/vos/phase_service.py": "3cce64bd61f162706325283f48a75bdc45cda2b89e88e2796c91e428bd2e9811",
+    "tools/vos/cli/phase_service.py": "b2186c3ee410226a513dd600002a961fb51ba7a7c4e723d7f8026d49f1e74419",
+    "tools/tests/test_phase_service.py": "0eaf2f770c0fcad5a37f35254b7bd380b5d4af3a533d112d4607344a3f8ef9eb"
+  },
+  "passed": true,
+  "cases": {
+    "average-gap": {
+      "contract": {
+        "grants": [
+          2,
+          0
+        ],
+        "arrivals": [
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ],
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [],
+        "paths": []
+      },
+      "zero_wait": false,
+      "states": 2,
+      "trace": [
+        [],
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        1,
+        [
+          0
+        ],
+        []
+      ],
+      "reason": "arrival-blocked",
+      "drain": null
+    },
+    "joint-bank-conflict": {
+      "contract": {
+        "grants": [
+          2
+        ],
+        "arrivals": [
+          [
+            [
+              [
+                0,
+                1
+              ]
+            ],
+            [
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [],
+        "paths": []
+      },
+      "zero_wait": false,
+      "states": 1,
+      "trace": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        0,
+        [
+          0
+        ],
+        []
+      ],
+      "reason": "arrival-blocked",
+      "drain": null
+    },
+    "frame-wrap": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ],
+          [
+            [],
+            [
+              [
+                0,
+                2
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [],
+        "paths": []
+      },
+      "zero_wait": false,
+      "states": 3,
+      "trace": [
+        [],
+        [
+          [
+            0,
+            2
+          ]
+        ],
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        0,
+        [
+          1
+        ],
+        []
+      ],
+      "reason": "arrival-blocked",
+      "drain": null
+    },
+    "restricted-arrivals": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            []
+          ],
+          [
+            [],
+            [
+              [
+                0,
+                2
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [],
+        "paths": []
+      },
+      "zero_wait": true,
+      "states": 3,
+      "trace": [],
+      "failure": null,
+      "reason": null,
+      "drain": 0
+    },
+    "independent-banks": {
+      "contract": {
+        "grants": [
+          2
+        ],
+        "arrivals": [
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 2,
+        "refresh": [],
+        "paths": []
+      },
+      "zero_wait": true,
+      "states": 1,
+      "trace": [],
+      "failure": null,
+      "reason": null,
+      "drain": 0
+    },
+    "refresh-arrival": {
+      "contract": {
+        "grants": [
+          1
+        ],
+        "arrivals": [
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [
+          [
+            [
+              0,
+              1
+            ]
+          ]
+        ],
+        "paths": []
+      },
+      "zero_wait": false,
+      "states": 1,
+      "trace": [
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        0,
+        [
+          0
+        ],
+        []
+      ],
+      "reason": "arrival-blocked",
+      "drain": null
+    },
+    "refresh-write-overlap": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            []
+          ],
+          [
+            [],
+            [
+              [
+                0,
+                2
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [
+          [
+            [
+              0,
+              1
+            ]
+          ],
+          []
+        ],
+        "paths": []
+      },
+      "zero_wait": false,
+      "states": 3,
+      "trace": [
+        [],
+        [
+          [
+            0,
+            2
+          ]
+        ]
+      ],
+      "failure": [
+        0,
+        [
+          1
+        ],
+        []
+      ],
+      "reason": "refresh-overlap",
+      "drain": null
+    },
+    "refresh-wrap": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ],
+          [
+            []
+          ]
+        ],
+        "banks": 1,
+        "refresh": [
+          [],
+          [
+            [
+              0,
+              2
+            ]
+          ]
+        ],
+        "paths": []
+      },
+      "zero_wait": false,
+      "states": 3,
+      "trace": [
+        [],
+        [],
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        0,
+        [
+          1
+        ],
+        []
+      ],
+      "reason": "arrival-blocked",
+      "drain": null
+    },
+    "refresh-quiet-window": {
+      "contract": {
+        "grants": [
+          1,
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            []
+          ],
+          [
+            []
+          ],
+          [
+            [],
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [
+          [
+            [
+              0,
+              2
+            ]
+          ],
+          [],
+          []
+        ],
+        "paths": []
+      },
+      "zero_wait": true,
+      "states": 3,
+      "trace": [],
+      "failure": null,
+      "reason": null,
+      "drain": 0
+    },
+    "refresh-other-bank": {
+      "contract": {
+        "grants": [
+          1
+        ],
+        "arrivals": [
+          [
+            [],
+            [
+              [
+                1,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 2,
+        "refresh": [
+          [
+            [
+              0,
+              1
+            ]
+          ]
+        ],
+        "paths": []
+      },
+      "zero_wait": true,
+      "states": 1,
+      "trace": [],
+      "failure": null,
+      "reason": null,
+      "drain": 0
+    },
+    "path-order": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ],
+          [
+            [
+              [
+                1,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 2,
+        "refresh": [],
+        "paths": [
+          2,
+          0
+        ]
+      },
+      "zero_wait": false,
+      "states": 2,
+      "trace": [
+        [
+          [
+            0,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        1,
+        [
+          0,
+          0
+        ],
+        [
+          [
+            0,
+            2,
+            1,
+            0
+          ]
+        ]
+      ],
+      "reason": "order-inverted",
+      "drain": null
+    },
+    "path-equal": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ],
+          [
+            [
+              [
+                1,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 2,
+        "refresh": [],
+        "paths": [
+          1,
+          1
+        ]
+      },
+      "zero_wait": true,
+      "states": 3,
+      "trace": [],
+      "failure": null,
+      "reason": null,
+      "drain": 1
+    },
+    "path-other-hart": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            [
+              [
+                0,
+                1,
+                0
+              ]
+            ]
+          ],
+          [
+            [
+              [
+                1,
+                1,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 2,
+        "refresh": [],
+        "paths": [
+          2,
+          0
+        ]
+      },
+      "zero_wait": true,
+      "states": 3,
+      "trace": [],
+      "failure": null,
+      "reason": null,
+      "drain": 2
+    },
+    "path-bank-busy": {
+      "contract": {
+        "grants": [
+          1,
+          1
+        ],
+        "arrivals": [
+          [
+            [
+              [
+                0,
+                2
+              ]
+            ]
+          ],
+          [
+            [
+              [
+                0,
+                1
+              ]
+            ]
+          ]
+        ],
+        "banks": 1,
+        "refresh": [],
+        "paths": [
+          1
+        ]
+      },
+      "zero_wait": false,
+      "states": 3,
+      "trace": [
+        [
+          [
+            0,
+            2
+          ]
+        ],
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "failure": [
+        0,
+        [
+          1
+        ],
+        [
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ]
+      ],
+      "reason": "path-blocked",
+      "drain": null
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "green": true,
+  "stopped": "",
+  "members": [
+    {
+      "name": "check",
+      "decides": "every derived fact against the artifact that owns it",
+      "code": 0,
+      "reached_verdict": true,
+      "clean": true
+    },
+    {
+      "name": "selftest",
+      "decides": "every rule the checker carries, against its mutant",
+      "code": 0,
+      "reached_verdict": true,
+      "clean": true
+    },
+    {
+      "name": "typecheck",
+      "decides": "the tools' own Python, under two pinned checkers",
+      "code": 0,
+      "reached_verdict": true,
+      "clean": true
+    },
+    {
+      "name": "test",
+      "decides": "the tools' own behavior, against the cases that hold it",
+      "code": 0,
+      "reached_verdict": true,
+      "clean": true
+    }
+  ]
+}
