@@ -442,9 +442,13 @@ _PROVISION_DRIFTED = 'INTERPRETER_FLOOR = "3.13"\n'
 _FLOOR_SITE = "tools/vos/cli/provision.py's provisioned floor states "
 
 
+_CAMPAIGN_JOBS = '  a:\n    python-version: "3.14"\n  b:\n    python-version: "3.14"\n'
+
+
 def _k75(provision: str, project: str =
          '[project]\nrequires-python = ">=3.14,<3.15"\n',
-         readme: str = "# Tools\n\nUse `uv python install --no-config 3.14`.\n") -> Context:
+         readme: str = "# Tools\n\nUse `uv python install --no-config 3.14`.\n",
+         campaign: str = _CAMPAIGN_JOBS) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": readme,
              "tools/ty.toml": _TY_CONF,
@@ -452,6 +456,7 @@ def _k75(provision: str, project: str =
              "tools/pyproject.toml": project,
              ".github/workflows/host-gates.yml": 'python-version: "3.14"\n',
              ".github/workflows/guest-gates.yml": 'python-version: "3.14"\n',
+             ".github/workflows/boot-crypto-target.yml": campaign,
              "tools/vos/cli/provision.py": provision}
     with sandbox_tree(files) as root:
         ctx = _context(root)
@@ -495,6 +500,15 @@ def _k75_install_command_still_uses_supported_version() -> None:
         found = _findings_under(_k75(_PROVISION_AT, readme=command), "K-75")
         ensure(any("manual interpreter install" in item for item in found),
                f"an executable example must stay present and supported: {found!r}")
+
+
+def _k75_every_workflow_job_is_held() -> None:
+    # A site read only at its first match would pass the second job's interpreter.
+    drifted = _CAMPAIGN_JOBS.replace('b:\n    python-version: "3.14"', 'b:\n    python-version: "3.13"')
+    found = _findings_under(_k75(_PROVISION_AT, campaign=drifted), "K-75")
+    ensure(".github/workflows/boot-crypto-target.yml's workflow interpreter states 3.13, "
+           "tools/ty.toml fixes 3.14" in found,
+           f"a later job's interpreter below the floor must report: {found!r}")
 
 
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
@@ -800,6 +814,7 @@ def cases() -> list[Case]:
         Case("k75-project-floor-is-held", _k75_project_floor_is_held),
         Case("k75-install-command-still-uses-supported-version",
              _k75_install_command_still_uses_supported_version),
+        Case("k75-every-workflow-job-is-held", _k75_every_workflow_job_is_held),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),

@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -187,7 +188,18 @@ def _staged_root(root: Path) -> None:
         "schema": 1, "source": target.SOURCE, "stack_bytes": target.STACK_BYTES,
         "compiler_provenance": {"revision": "fixture"}, "compiler_inputs_sha256": {},
         "sources_sha256": {name: b.sha(data) for name, data in _SOURCES.items()},
+        "search_directories": {"firmware/crypto": ["signature_target.c"],
+                               "firmware/include": ["vos_fixture.h"]},
         "modes": modes}), encoding="utf-8")
+
+
+def _restream(root: Path, mode: str, stream: str, frames: int) -> None:
+    """Replace one staged stream and its manifest entry consistently, so that only the
+    stream-content checks can refuse it."""
+    raw = stream.encode("utf-8")
+    (root / target.STAGED / f"{mode}.s").write_bytes(target.HEADER.encode("utf-8") + raw)
+    _edit_json(root / target.MANIFEST, lambda data: data["modes"][mode].update(
+        assembly_sha256=b.sha(raw), sum_of_function_frames=frames))
 
 
 def _edit_json(path: Path, change: Callable[[dict[str, Any]], None]) -> None:
@@ -205,34 +217,150 @@ def staged_streams_bind_manifest_and_sources() -> None:
                and manifest["modes"]["slh"]["sum_of_function_frames"] == 16,
                "consistent staged streams refused")
     staged = Path(target.STAGED)
-    controls: list[tuple[str, Callable[[Path], object]]] = [
-        ("stale source", lambda root: (root / target.SOURCE).write_bytes(b"int changed;\n")),
-        ("stale header", lambda root: (root / "firmware/include/vos_fixture.h").unlink()),
+
+    def outside(root: Path) -> None:
+        # A real file with its true digest, so only containment can refuse it.
+        escaped = root.parent / f"{root.name}-outside.c"
+        escaped.write_bytes(b"int outside;\n")
+        _edit_json(root / target.MANIFEST, lambda data: data["sources_sha256"].update(
+            {f"../{escaped.name}": b.sha(escaped.read_bytes())}))
+
+    def inside(root: Path) -> None:
+        data = (root / staged / "slh.s").read_bytes()
+        _edit_json(root / target.MANIFEST, lambda manifest: manifest["sources_sha256"].update(
+            {f"{target.STAGED}/slh.s": b.sha(data)}))
+
+    unbound = _SOURCES["firmware/include/vos_fixture.h"]
+    controls: list[tuple[str, Callable[[Path], object], str]] = [
+        ("stale source", lambda root: (root / target.SOURCE).write_bytes(b"int changed;\n"),
+         f"{target.SOURCE} changed since staging"),
+        ("removed header", lambda root: (root / "firmware/include/vos_fixture.h").unlink(),
+         "vos_fixture.h changed since staging"),
+        ("a header shadowing one beside the source",
+         lambda root: (root / "firmware/crypto/vos_fixture.h").write_bytes(b"#error shadow\n"),
+         "the files in firmware/crypto changed"),
+        ("a system header shadowed in an include directory",
+         lambda root: (root / "firmware/include/stdint.h").write_bytes(b"#error shadow\n"),
+         "the files in firmware/include changed"),
+        ("no recorded search directories", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data.pop("search_directories")), "every include search directory"),
+        ("a bound source's directory left unsearched", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data["search_directories"].pop("firmware/include")),
+         "every include search directory"),
+        ("no bound sources", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data.update(sources_sha256={})), "binds no source"),
+        ("the source itself unbound", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data.update(sources_sha256={"firmware/include/vos_fixture.h": b.sha(unbound)})),
+         "binds no source"),
+        ("escaping source", outside, "invalid staged source"),
+        ("source inside the staged tree", inside, "invalid staged source"),
         ("changed stream", lambda root: (root / staged / "slh.s").write_bytes(
-            (root / staged / "slh.s").read_bytes().replace(b"x11", b"x12"))),
+            (root / staged / "slh.s").read_bytes().replace(b"x11", b"x12")), "differs from its manifest"),
         ("damaged header", lambda root: (root / staged / "mldsa.s").write_bytes(
-            (root / staged / "mldsa.s").read_bytes()[1:])),
-        ("unowned staged file", lambda root: (root / staged / "extra.s").write_bytes(b"")),
-        ("missing interface", lambda root: (root / staged / "mldsa-mu.s").unlink()),
+            (root / staged / "mldsa.s").read_bytes()[1:]), "lacks its generated header"),
+        ("unowned staged file", lambda root: (root / staged / "extra.s").write_bytes(b""), "must hold exactly"),
+        ("missing interface", lambda root: (root / staged / "mldsa-mu.s").unlink(), "must hold exactly"),
         ("misstated frame sum", lambda root: _edit_json(root / target.MANIFEST, lambda data:
-            data["modes"]["slh"].update(sum_of_function_frames=32))),
-        ("escaping source", lambda root: _edit_json(root / target.MANIFEST, lambda data:
-            data["sources_sha256"].update({"../outside.c": "0" * 64}))),
-        ("source inside the staged tree", lambda root: _edit_json(root / target.MANIFEST, lambda data:
-            data["sources_sha256"].update({f"{target.STAGED}/slh.s": "0" * 64}))),
+            data["modes"]["slh"].update(sum_of_function_frames=32)), "frame sum differs"),
+        ("an instruction outside the dialect", lambda root: _restream(
+            root, "slh", _STREAM.replace("\tsll\tx15, x15, x11\n", "\tfadd.d f0, f1, f2\n"), 16),
+         "outside the accepted dialect"),
+        ("a frame beyond the stack", lambda root: _restream(root, "mldsa", _STREAM.replace(
+            "\tcincoffsetimm c2, c2, -16\n", "\tli x5, -40000\n\tcincoffset c2, c2, x5\n"), 40000),
+         "exceeds stack"),
+        ("an entry without compile arguments", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data["modes"]["slh-internal"].pop("argv")), "records no compile arguments"),
         ("another campaign's stack", lambda root: _edit_json(root / target.MANIFEST, lambda data:
-            data.update(stack_bytes=16384))),
+            data.update(stack_bytes=16384)), "does not describe this campaign"),
     ]
-    for label, change in controls:
+    for label, change, reason in controls:
         with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
+            root = Path(name).resolve()
             _staged_root(root)
             change(root)
             try:
                 target.staged(root)
-            except (OSError, ValueError):
+            except ValueError as error:
+                ensure(reason in str(error), f"{label} refused for another reason: {error}")
                 continue
+            finally:
+                (root.parent / f"{root.name}-outside.c").unlink(missing_ok=True)
             raise AssertionError(f"{label} accepted as a staged stream")
+
+
+def _stage_fixture(root: Path, shift: str | None = None) -> Callable[..., object]:
+    """compile_mode's stand-in: it writes the stream and a unit whose markers name the
+    source and the header, and with `shift` edits the source before that interface."""
+    def compile_mode(root_: Path, out: Path, ccomp: Path, arguments: list[str],
+                     mode: str) -> tuple[object, str, int]:
+        if mode == shift:
+            (root / target.SOURCE).write_bytes(b"int shifted;\n")
+        compiled = out / mode / "compiled"
+        compiled.mkdir(parents=True, exist_ok=True)
+        (compiled / "signature_target.s").write_bytes(_STREAM.encode("utf-8"))
+        unit_path = compiled / "signature_target.i"
+        unit_path.write_text(f'# 1 "signature_target.c"\n'
+                             f'# 1 "{(root / "firmware/include/vos_fixture.h").as_posix()}" 1\n',
+                             encoding="utf-8")
+        unit = SimpleNamespace(stream_sha256=b.sha(_STREAM.encode("utf-8")),
+            argv=("/native/ccomp", "-I" + str(root / "firmware/include"), "-S", "signature_target.i"),
+            preprocessed=SimpleNamespace(sha256="unit", path=unit_path, cwd=str(root / "firmware/crypto")))
+        return unit, _STREAM, 16
+    return compile_mode
+
+
+def staging_writes_what_staged_accepts() -> None:
+    provenance = ({"revision": "fixture"}, {"/native/build-result.json": "r", "/native/build-inputs.json": "i"})
+    with tempfile.TemporaryDirectory() as name:
+        root = Path(name).resolve()
+        for source, data in _SOURCES.items():
+            (root / source).parent.mkdir(parents=True, exist_ok=True)
+            (root / source).write_bytes(data)
+        out = root.parent / f"{root.name}-out"
+
+        def staging(check: bool, shift: str | None = None,
+                    inputs: dict[str, str] | None = None) -> dict[str, Any]:
+            with (patch.object(target, "compile_mode", _stage_fixture(root, shift)),
+                  patch.object(target, "compiler_provenance", return_value=provenance),
+                  patch.object(target.boot_target, "compiler_inputs",
+                               return_value=inputs or {"/native/compcert.ini": "c"})):
+                return target.stage(root, out, Path("ccomp"), ["-conf", "/native/compcert.ini"], check)
+        try:
+            written = staging(check=False)
+            manifest, _ = target.staged(root)
+            ensure(written["passed"] and manifest == written["manifest"], "staging wrote an unaccepted manifest")
+            ensure(manifest["search_directories"] == {"firmware/crypto": ["signature_target.c"],
+                                                      "firmware/include": ["vos_fixture.h"]}
+                   and manifest["compiler_inputs_sha256"] == {"compcert.ini": "c"}
+                   and manifest["modes"]["slh"]["argv"] == ["ccomp", "-Ifirmware/include", "-S",
+                                                            "signature_target.i"],
+                   "staged manifest kept machine paths or missed a search directory")
+            ensure(staging(check=True)["differences"] == [], "an unchanged staging differs from itself")
+            (root / target.STAGED / "slh.s").write_bytes(b"# edited\n")
+            ensure(staging(check=True)["differences"] == ["slh.s"], "--check missed an edited stream")
+            (root / target.STAGED / "extra.s").write_bytes(b"")
+            try:
+                staging(check=False)
+            except ValueError as error:
+                ensure("does not own" in str(error), f"unowned file refused for another reason: {error}")
+            else:
+                raise AssertionError("staging wrote beside a file it does not own")
+            (root / target.STAGED / "extra.s").unlink()
+            refusals: list[tuple[str, Callable[[], object], str]] = [
+                ("a source edited between interfaces", lambda: staging(check=False, shift="mldsa"),
+                 "changed between interfaces"),
+                ("two compiler inputs with one name",
+                 lambda: staging(check=False, inputs={"/a/x.ini": "1", "/b/x.ini": "2"}), "distinct file names")]
+            for label, attempt, reason in refusals:
+                try:
+                    attempt()
+                except ValueError as error:
+                    ensure(reason in str(error), f"{label} refused for another reason: {error}")
+                    (root / target.SOURCE).write_bytes(_SOURCES[target.SOURCE])
+                    continue
+                raise AssertionError(f"staging accepted {label}")
+        finally:
+            shutil.rmtree(out, ignore_errors=True)
 
 
 def staging_reads_marked_sources() -> None:
@@ -319,25 +447,33 @@ def joined_campaigns_are_complete_and_consistent() -> None:
     wrong_mode["cases"][1] = {**wrong_mode["cases"][1], "mode": "mldsa"}
     misstated = _shard("slh")
     misstated["cases"][1] = {**misstated["cases"][1], "passed": False}
-    controls: list[tuple[str, dict[str, Any]]] = [
-        ("a missing interface", {mode: shards[mode] for mode in target.MODES[1:]}),
-        ("a repeated interface", {**shards, "again": _shard("slh")}),
-        ("different sources", {**shards, "slh": _shard("slh", source_sha256={"changed": "x"})}),
-        ("a different staged manifest", {**shards, "slh": _shard("slh", staged_manifest_sha256="other")}),
-        ("a positives-only shard", {**shards, "slh": _shard("slh", first_positive_only=True)}),
-        ("an incomplete shard", {**shards, "slh": _shard("slh", status="incomplete")}),
-        ("a shard that stopped", {**shards, "slh": {"passed": False, "status": "failed", "error": "no model"}}),
-        ("a duplicated case", {**shards, "slh": duplicate}),
-        ("a case outside the selection", {**shards, "slh": outside}),
-        ("a case under another interface", {**shards, "slh": wrong_mode}),
-        ("a success its cases contradict", {**shards, "slh": misstated}),
-        ("a misstated unexecuted list", {**shards, "slh": _shard("slh", unexecuted_cases=["slh-refusal"])}),
-        ("an empty selection", {**shards, "slh": _shard("slh", selection={"slh": []})}),
+    controls: list[tuple[str, dict[str, Any], str]] = [
+        ("a missing interface", {mode: shards[mode] for mode in target.MODES[1:]}, "no shard ran slh"),
+        ("a repeated interface", {**shards, "again": _shard("slh")}, "repeats or invents"),
+        ("different sources", {**shards, "slh": _shard("slh", source_sha256={"changed": "x"})},
+         "differs from the other shards in source_sha256"),
+        ("a different staged manifest", {**shards, "slh": _shard("slh", staged_manifest_sha256="other")},
+         "in staged_manifest_sha256"),
+        ("a positives-only shard", {**shards, "slh": _shard("slh", first_positive_only=True)},
+         "selected positives only"),
+        ("an incomplete shard", {**shards, "slh": _shard("slh", status="incomplete")},
+         "not a completed target report"),
+        ("a shard that stopped", {**shards, "slh": {"passed": False, "status": "failed", "error": "no model"}},
+         "stopped before its cases completed: no model"),
+        ("a duplicated case", {**shards, "slh": duplicate}, "executed a case twice"),
+        ("a case outside the selection", {**shards, "slh": outside}, "outside its selection"),
+        ("a case under another interface", {**shards, "slh": wrong_mode}, "outside its selection"),
+        ("a success its cases contradict", {**shards, "slh": misstated}, "verdict its cases do not support"),
+        ("a misstated unexecuted list", {**shards, "slh": _shard("slh", unexecuted_cases=["slh-refusal"])},
+         "misstates its unexecuted cases"),
+        ("an empty selection", {**shards, "slh": _shard("slh", selection={"slh": []}, cases=[])},
+         "selected nothing for slh"),
     ]
-    for label, reports in controls:
+    for label, reports, reason in controls:
         try:
             target.join(reports)
-        except ValueError:
+        except ValueError as error:
+            ensure(reason in str(error), f"{label} refused for another reason: {error}")
             continue
         raise AssertionError(f"{label} joined into a complete campaign")
 
@@ -353,6 +489,16 @@ def target_takes_one_stream_source() -> None:
             except SystemExit:
                 continue
         raise AssertionError(f"target accepted stream sources {extra}")
+    # An empty --ccomp names a compiler that does not exist; it never selects the streams.
+    chosen: list[object] = []
+    with tempfile.TemporaryDirectory() as name:
+        work = Path(name)
+        with (patch.object(cli.env, "load", return_value=SimpleNamespace(root=TOOLS.parent, lane_root=work)),
+              patch.object(cli.env, "hold_lock", return_value=nullcontext()),
+              patch.object(cli.boot_crypto_target, "run",
+                           side_effect=lambda *arguments: chosen.append(arguments[2]) or {"passed": False})):
+            cli.main([*required, "--ccomp", "", "--out", str(work)])
+    ensure(chosen == [Path()], f"an empty --ccomp selected {chosen!r}")
 
 
 def cases() -> list[Case]:
@@ -366,6 +512,7 @@ def cases() -> list[Case]:
             Case("target compiler source drift", compiler_source_drift_refuses),
             Case("staged streams bind their manifest and sources", staged_streams_bind_manifest_and_sources),
             Case("staging reads the preprocessor's checkout sources", staging_reads_marked_sources),
+            Case("staging writes what the staged check accepts", staging_writes_what_staged_accepts),
             Case("interfaces select their own population", interfaces_select_their_population),
             Case("joined shards form one consistent campaign", joined_campaigns_are_complete_and_consistent),
             Case("target takes exactly one stream source", target_takes_one_stream_source),

@@ -119,26 +119,32 @@ generated header followed by the compiler's exact bytes, and
 [manifest.json](target/manifest.json). The manifest binds each stream's SHA256,
 path-free compile arguments and frame sum, the compiler build's revision and
 executable and receipt digests, the configuration file's digest and every checkout
-file that the preprocessor's line markers name. `--check` recompiles and compares
-without writing. Staging runs only where the contained compiler is provisioned;
+file that the preprocessor's line markers name. It also lists by name every file in
+the checkout directories an include can search, each read file's own directory and
+each `-I` directory, so an added header that would shadow a read one also counts as
+a change. A source that changes between two interfaces' compilations refuses the
+staging. `--check` recompiles and compares without writing. Staging runs only where the contained compiler is provisioned;
 its native `stage.json` keeps the literal arguments and preprocessed-unit digests,
 which name that checkout's paths.
 
 `boot-crypto verify` holds the tracked files to their manifest and to this
 checkout's sources on either lane. `boot-crypto target --staged` executes them
 instead of compiling. It refuses compiler arguments, a changed bound source, an
-altered stream or header, a missing or unowned file and a frame sum that disagrees
-with the manifest, and it repeats the dialect and stack checks. Its receipt records
-`"compilation": "staged"` and the manifest's digest. The compiler's provenance is
-the staging record, not a check made where the streams execute. Editing a bound
-source makes the streams stale until they are staged again.
+added or removed file in a searched directory, an altered stream or header, a
+missing or unowned file and a frame sum that disagrees with the manifest, and it
+repeats the dialect and stack checks. Its receipt records `"compilation": "staged"`
+and the manifest's digest. The compiler's provenance is the staging record, not a
+check made where the streams execute. Editing a bound source, or adding, removing
+or renaming a file in a searched directory, makes the streams stale until they are
+staged again; editing an unread file there, such as this README, does not.
 
 ## Hosted target campaign
 
 [boot-crypto-target.yml](../../.github/workflows/boot-crypto-target.yml) executes
 the complete campaign from the staged streams on GitHub-hosted Linux. Pushes to
 `main` that change [target/](target/) or the workflow start it; manual dispatch
-accepts a revision already on `main` and a per-case timeout, 9,000 s by default.
+accepts a revision already on `main` and a per-case timeout of at most 9,600 s,
+9,000 s by default, so that a positive and its refusals fit the execution step.
 Each interface runs on its own runner with `--mode` and `--jobs 4`, so its positive
 still gates its refusals. Each runner verifies the streams, restores Guest CI's
 model-lane toolchains and Sail memo read-only, and builds the model for its

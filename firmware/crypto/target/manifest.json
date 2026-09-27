@@ -111,6 +111,22 @@
     }
   },
   "schema": 1,
+  "search_directories": {
+    "firmware/crypto": [
+      "README.md",
+      "check_signature.c",
+      "fixtures.json",
+      "keccak.c",
+      "mldsa87.c",
+      "signature_target.c",
+      "slh256s.c"
+    ],
+    "firmware/include": [
+      "vos_boot.h",
+      "vos_keccak.h",
+      "vos_signature.h"
+    ]
+  },
   "source": "firmware/crypto/signature_target.c",
   "sources_sha256": {
     "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
