@@ -30,7 +30,10 @@ static int context_ack_ok(const struct vos_supervisor_manifest *m,
          ack[VOS_CTX_ACK_REFUSED] != m->units))
         return 0;
     if (ack[VOS_CTX_ACK_SEQUENCE] != 0 &&
-        ack[VOS_CTX_ACK_OPERATION] == VOS_CTX_OP_NONE)
+        ack[VOS_CTX_ACK_OPERATION] == VOS_CTX_OP_NONE &&
+        (ack[VOS_CTX_ACK_STATUS] != VOS_CTX_STATUS_INVALID ||
+         ack[VOS_CTX_ACK_COUNT] != 0 ||
+         ack[VOS_CTX_ACK_REFUSED] != m->units))
         return 0;
     if (ack[VOS_CTX_ACK_STATUS] == VOS_CTX_STATUS_OK &&
         ack[VOS_CTX_ACK_PHASE] == VOS_CTX_PHASE_RETIRED &&

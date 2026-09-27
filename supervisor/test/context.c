@@ -50,6 +50,16 @@ int vos_supervisor_context_controls(void)
     uint32_t i, checks = 0;
 #define CHECK(c) do { ++checks; if (!(c)) return (int)(checks % 254U + 1U); } while (0)
 #define STEP(d) vos_supervisor_context_step(&m, &s, ack, (d), req, &seq)
+    /* The kernel consumes an invalid operation and acknowledges NONE/INVALID.
+     * Fresh entry must recover that watermark to make the next valid request. */
+    initial_ack(ack, 0x100000001ULL, m.units);
+    ack[VOS_CTX_ACK_SEQUENCE] = 1;
+    ack[VOS_CTX_ACK_STATUS] = VOS_CTX_STATUS_INVALID;
+    CHECK(vos_supervisor_context_recover(&m, ack, &s));
+    CHECK(STEP(VOS_SUPERVISOR_CONTEXT_INITIAL) == VOS_SUPERVISOR_CONTEXT_PUBLISH);
+    CHECK(seq == 2 && s.acknowledged_sequence == 1);
+    ack[VOS_CTX_ACK_STATUS] = VOS_CTX_STATUS_OK;
+    CHECK(!vos_supervisor_context_recover(&m, ack, &s));
     /* Definitive refusals consume their fresh sequence, never an effect. */
     for (i = VOS_CTX_STATUS_INVALID; i <= VOS_CTX_STATUS_EARLY; ++i) {
         initial_ack(ack, 0x100000001ULL, m.units);
