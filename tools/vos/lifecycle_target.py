@@ -11,10 +11,22 @@ import hashlib
 import json
 import re
 import subprocess
+from itertools import pairwise
 from pathlib import Path
 
-from vos import asm, boot_handoff, dialect, image, jsonc, kernel_effects, kernel_restore
-from vos import kernel_target, kernelrun, receipts, trace
+from vos import (
+    asm,
+    boot_handoff,
+    dialect,
+    image,
+    jsonc,
+    kernel_effects,
+    kernel_restore,
+    kernel_target,
+    kernelrun,
+    receipts,
+    trace,
+)
 from vos.cli import compiler_diff
 
 TEXT_BASE = 0x80200000
@@ -75,7 +87,7 @@ def source(kernel_stream: str, supervisor_stream: str,
     injected hook's finite work before supplying its admitted boundary_bound.
     """
     if defect not in {"none", "stale", "incomplete", "ack-write", "asr",
-                      "partial", "fault-before", "fault-after", "fault-backoff"}:
+                      "partial", "fault-before", "fault-after", "fault-backoff", "publication"}:
         raise ValueError("unknown lifecycle target control")
     if owned_bytes <= 0 or owned_bytes > 524288 or owned_bytes & (owned_bytes - 1):
         raise ValueError("owned span must be a bounded power of two")
@@ -161,9 +173,12 @@ def source(kernel_stream: str, supervisor_stream: str,
     lines += ["    call k_vos_join_resident", *_root()]
     for reg, label in ((10, "lifecycle"), (11, "effects"), (13, "fresh_roots"), (14, "fresh_masks")):
         lines += _address(reg, label)
-    lines += ["    ld x12, 80(c31)", "    lc c20, 24(c31)", "    ld x15, 0(c20)",
+    lines += ["    ld x12, 80(c31)"]
+    if defect == "publication":
+        lines += ["    li x12, 0"]
+    lines += ["    lc c20, 24(c31)", "    ld x15, 0(c20)",
               "    call k_vos_kernel_lifecycle_retire_finish", *_root(),
-              "    li x3, 3", ("    bnez x10, lifecycle_fail" if defect == "incomplete" else
+              "    li x3, 3", ("    bnez x10, lifecycle_fail" if defect in {"incomplete", "publication"} else
                                 "    beqz x10, lifecycle_fail"), "lifecycle_acknowledge:"]
     lines += _address(20, "acknowledgment")
     lines += ["    sd x0, 0(c20)"]
@@ -178,11 +193,11 @@ def source(kernel_stream: str, supervisor_stream: str,
               "    li x3, 4", "    beqz x10, lifecycle_fail"]
     lines += _address(20, "request")
     lines += ["    sd x0, 0(c20)", after_ack]
-    if defect in {"stale", "incomplete"}:
+    if defect in {"stale", "incomplete", "publication"}:
         lines += _address(20, "acknowledgment")
         lines += ["    ld x5, 8(c20)", f"    li x6, {2 if defect == 'stale' else 3}",
                   "    bne x5, x6, lifecycle_control_continue"]
-        if defect == "incomplete":
+        if defect in {"incomplete", "publication"}:
             lines += _call("vos_join_incomplete", ("effects", "lifecycle"))
             lines += ["    li x3, 11", "    beqz x10, lifecycle_fail"]
         lines += ["    j lifecycle_control_pass", "lifecycle_control_continue:"]
@@ -421,6 +436,9 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                  bitmap: tuple[int, int], bound: dict[str, object],
                  defect: str = "none") -> dict[str, object]:
     """Stream actual retire/effect records; do not infer success from HTIF alone."""
+    work_bound = bound["longest_path_steps"]
+    if not isinstance(work_bound, int) or work_bound <= 0:
+        raise ValueError("the declared finite work bound must be a positive integer")
     pc = previous_pc = order = 0
     count = 0
     digest = hashlib.sha256()
@@ -545,7 +563,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                     values[offset // 8] = (tag, value)
             for name, data in buffers.items():
                 offset = address - symbols[name]
-                if 0 <= offset and offset + width <= len(data):
+                if offset >= 0 and offset + width <= len(data):
                     data[offset:offset + width] = value.to_bytes(width, "little")
             if pc == symbols["seed_owned"]:
                 owned_seeded |= value == 0x777
@@ -574,8 +592,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         facts.update({
             "fixed_release_empty_and_occupied": len(releases) >= 4 and
                 all(item["expected"] == item["observed"] for item in releases) and
-                any(a[0] == b[0] == 2 for a, b in zip(acks, acks[1:])),
-            "work_within_account": bool(work_steps) and max(work_steps) <= bound["longest_path_steps"],
+                any(a[0] == b[0] == 2 for a, b in pairwise(acks)),
+            "work_within_account": bool(work_steps) and max(work_steps) <= work_bound,
             "timer_only_consumption": bool(timer_consumption) and all(timer_consumption),
             "exact_start_retire_start": [req[0:2] for req in reqs] == [[1, 2], [2, 1], [3, 2]] and
                 all(req[3] == 7 for req in reqs) and all(req[4] == 3 and req[6:12] == [0, 0, 1, 1, 2, 0]
@@ -598,8 +616,12 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                 facts["fault_after_sequence_invalidated"] = sum(item["invalidated"] for item in requests) == 1 and acks[0][0] == 0
     elif defect == "stale":
         facts["stale_definitive_refusal"] = bool(acknowledgments) and acknowledgments[-1]["words"][0:2] == [1, 2]
-    elif defect == "incomplete":
-        facts["incomplete_prevents_dispatch"] = bool(acknowledgments) and acknowledgments[-1]["words"][0:2] == [2, 3] and resident_tags == [1]
+    elif defect in {"incomplete", "publication"}:
+        facts["incomplete_prevents_dispatch"] = bool(acknowledgments) and acknowledgments[-1]["words"][0:2] == [2, 3]
+        if defect == "incomplete":
+            facts["resident_completion_refused"] = bool(acknowledgments) and resident_tags == [1] and acknowledgments[-1]["words"][6] == 0
+        else:
+            facts["old_running_state_is_not_dispatchable"] = bool(acknowledgments) and acknowledgments[-1]["words"][3] == 0x100000001 and acknowledgments[-1]["words"][6] == 7 and resident_tags == [0]
     else:
         facts["permission_fault_at_named_instruction"] = len(traps) == 1 and traps[0]["interrupt"] == 0 and traps[0]["pc"] == symbols["supervisor_permission_control"]
         facts["fault_invalidates_request"] = not any(buffers["request"][:8]) and not acknowledgments
@@ -631,22 +653,27 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
         raise ValueError(f"component compilation refused: {kernel.said}; {supervisor.said}")
     bound = longest_path(instruction_counts(kernel.stream))
     reaction = reaction_path(instruction_counts(supervisor.stream))
+    boundary_steps = bound["padded_boundary_steps"]
+    if not isinstance(boundary_steps, int):
+        raise TypeError("the finite composition account did not return an integer boundary")
     windows = boot_handoff.timer_windows(root)
-    assembly = source(kernel.stream, supervisor.stream, windows, (0, 1), int(bound["padded_boundary_steps"]))
+    assembly = source(kernel.stream, supervisor.stream, windows, (0, 1), boundary_steps)
     probe = asm.Assembler(assembly, "layout", text_base=TEXT_BASE, data_base=DATA_BASE)
     probe.assemble()
     bitmap = kernel_target.revocation_window(root, probe.symbols["grant_slots"])
     if bitmap[1] != 1:
         raise ValueError("six grant roots must begin in one aligned512-byte bitmap block")
     profile = jsonc.load(root / boot_handoff.MAIN_CONFIG)
-    profile["platform"]["instructions_per_tick"] = 1
+    if not isinstance(profile, dict) or not isinstance(platform := profile.get("platform"), dict):
+        raise TypeError("the selected profile lacks its platform object")
+    platform["instructions_per_tick"] = 1
     profile_path = out / "profile.json"
     receipts.write(profile_path, profile)
     cases = []
     for defect in ("none", "stale", "incomplete", "ack-write", "asr",
-                   "partial", "fault-before", "fault-after", "fault-backoff"):
+                   "partial", "fault-before", "fault-after", "fault-backoff", "publication"):
         text = source(kernel.stream, supervisor.stream, windows, bitmap,
-                      int(bound["padded_boundary_steps"]), defect=defect)
+                      boundary_steps, defect=defect)
         emitted = out / f"{defect}.s"
         emitted.write_text(text, encoding="utf-8", newline="\n")
         assembler = asm.Assembler(text, defect, text_base=TEXT_BASE, data_base=DATA_BASE)
@@ -664,6 +691,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
         verdict, code, detail = compiler_diff.htif_verdict(tail, done.returncode)
         observed = observations(log_path, assembler.symbols, windows, bitmap, bound, defect)
         cases.append({"name": defect, "htif": verdict, "code": code, "detail": detail,
+                      "ok": verdict == "pass" and bool(observed["ok"]),
                       "elf_sha256": receipts.digest(elf), "source_sha256": receipts.digest(emitted),
                       "trace_sha256": receipts.digest(log_path), "observations": observed})
         if verdict != "pass":
@@ -673,10 +701,11 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
                               "simulator": receipts.digest(simulator), "model_receipt": receipts.digest(build_receipt)})
     report = {"status": "complete", "milestone_acceptance": "open", "sources": inputs,
               "external": external, "model_sources": model, "bound": bound,
+              "profile": {"path": str(profile_path), "sha256": receipts.digest(profile_path)},
               "reaction_bound": reaction, "cases": cases,
               "kernel": compiler_diff._compiled_json(kernel), "supervisor": compiler_diff._compiled_json(supervisor),
-              "inputs_unchanged": unchanged, "ok": unchanged and len(cases) == 9 and
-              all(case["htif"] == "pass" and case["observations"]["ok"] for case in cases),
+              "inputs_unchanged": unchanged, "ok": unchanged and len(cases) == 10 and
+              all(case["ok"] for case in cases),
               "limits": ["explicit reset initialization, not firmware or boot",
                          "three service lifecycle states; service bodies not executed",
                          "one64-byte owned span; no copy ring teardown claim",

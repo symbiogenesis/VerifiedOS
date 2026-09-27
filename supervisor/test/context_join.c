@@ -64,8 +64,10 @@ uint64_t vos_join_epoch(const struct vos_kernel_effect_state *e)
 int vos_join_incomplete(const struct vos_kernel_effect_state *e,
                         const struct vos_kernel_lifecycle *l)
 {
-    return e->retirement_pending && e->needs_replenish == 7 &&
-           e->started == 0 && l->phase == VOS_CTX_PHASE_FAILED &&
+    return e->retirement_pending &&
+           ((e->needs_replenish == 7 && e->started == 0) ||
+            (e->needs_replenish == 0 && e->started == 7)) &&
+           l->phase == VOS_CTX_PHASE_FAILED &&
            l->status == VOS_CTX_STATUS_INCOMPLETE && !vos_join_dispatchable(e);
 }
 
