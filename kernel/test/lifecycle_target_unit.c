@@ -83,5 +83,65 @@ int main(void)
     if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 24) != VOS_LIFECYCLE_START ||
         !vos_kernel_lifecycle_start_finish(&lifecycle, &effect) ||
         !target_publish(&lifecycle, &effect, ack, 24) || effect.started != 7) return 9;
+
+    /* A replay changes neither the acknowledged watermark nor the live set. */
+    if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 25) != VOS_LIFECYCLE_NONE ||
+        !target_publish(&lifecycle, &effect, ack, 25) || lifecycle.last_sequence != 5 ||
+        lifecycle.prefix != 3 || effect.started != 7 || effect.locked ||
+        effect.epoch != UINT64_C(0x100000008)) return 10;
+
+    if (!vos_kernel_effect_init(&effect, &manifest, UINT64_C(0x100000007)) ||
+        !vos_kernel_effect_bind(&effect, roots, masks, &bitmap, &clock, 1) ||
+        !vos_kernel_lifecycle_init(&lifecycle, &effect, ack)) return 11;
+    /* Both swapped requests carry their own valid grant masks. Only their
+     * order is invalid, and the whole batch must refuse before any start. */
+    target_request(&lifecycle, &effect, request, VOS_CTX_OP_START, 1);
+    lifecycle_put(request, VOS_CTX_REQ_STARTS, 1);
+    lifecycle_put(request, VOS_CTX_REQ_STARTS + 1, 1);
+    lifecycle_put(request, VOS_CTX_REQ_STARTS + 2, 0);
+    lifecycle_put(request, VOS_CTX_REQ_STARTS + 3, 0);
+    if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 30) != VOS_LIFECYCLE_ACK ||
+        !target_publish(&lifecycle, &effect, ack, 30) || effect.started != 0 ||
+        lifecycle.status != VOS_CTX_STATUS_INVALID || lifecycle.initial_consumed ||
+        effect.locked) return 12;
+
+    /* The final admissible sequence succeeds; the reserved maximum neither
+     * wraps nor retires a unit nor advances the acknowledged watermark. */
+    lifecycle.last_sequence = UINT64_MAX - 2;
+    target_request(&lifecycle, &effect, request, VOS_CTX_OP_START, UINT64_MAX - 1);
+    if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 31) != VOS_LIFECYCLE_START ||
+        !vos_kernel_lifecycle_start_finish(&lifecycle, &effect) ||
+        !target_publish(&lifecycle, &effect, ack, 31) ||
+        lifecycle.last_sequence != UINT64_MAX - 1 || effect.started != 7) return 13;
+    target_request(&lifecycle, &effect, request, VOS_CTX_OP_RETIRE, UINT64_MAX);
+    if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 32) != VOS_LIFECYCLE_NONE ||
+        !target_publish(&lifecycle, &effect, ack, 32) ||
+        lifecycle.last_sequence != UINT64_MAX - 1 || effect.started != 7 ||
+        effect.retirement_pending || effect.needs_replenish ||
+        effect.epoch != UINT64_C(0x100000007)) return 14;
+
+    if (!vos_kernel_effect_init(&effect, &manifest, UINT64_C(0x100000007)) ||
+        !vos_kernel_effect_bind(&effect, roots, masks, &bitmap, &clock, 1) ||
+        !vos_kernel_lifecycle_init(&lifecycle, &effect, ack)) return 15;
+    target_request(&lifecycle, &effect, request, VOS_CTX_OP_START, 1);
+    if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 40) != VOS_LIFECYCLE_START)
+        return 16;
+    /* A bounded trusted effect failure at the second unit leaves the first
+     * acknowledged and performs no third start. It cannot authorize a retry. */
+    effect.unit[1].running = 1;
+    if (vos_kernel_lifecycle_start_finish(&lifecycle, &effect) ||
+        effect.started != 1 || !effect.unit[0].running || effect.unit[2].running ||
+        lifecycle.prefix != 1 || lifecycle.refused != 1 || !effect.locked ||
+        !target_publish(&lifecycle, &effect, ack, 41) || effect.locked ||
+        lifecycle_word(ack, VOS_CTX_ACK_STATUS) != VOS_CTX_STATUS_START_REFUSED ||
+        lifecycle_word(ack, VOS_CTX_ACK_COUNT) != 1 ||
+        lifecycle_word(ack, VOS_CTX_ACK_REFUSED) != 1 ||
+        lifecycle_word(ack, VOS_CTX_ACK_STARTED) != 1 ||
+        lifecycle_word(ack, VOS_CTX_ACK_PHASE) != VOS_CTX_PHASE_FAILED) return 16;
+    target_request(&lifecycle, &effect, request, VOS_CTX_OP_START, 2);
+    if (vos_kernel_lifecycle_prepare(&lifecycle, &effect, request, 42) != VOS_LIFECYCLE_ACK ||
+        !target_publish(&lifecycle, &effect, ack, 42) ||
+        lifecycle.status != VOS_CTX_STATUS_INVALID || effect.started != 1 ||
+        effect.unit[2].running || effect.epoch != UINT64_C(0x100000007)) return 17;
     return 0;
 }
