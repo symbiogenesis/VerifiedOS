@@ -213,7 +213,8 @@ def _target_release_composition() -> None:
         path.write_text("0706050403020100\n0f0e0d0c0b0a0908\n", encoding="utf-8")
         ensure(boot_release_target.read_output(path, 16) == bytes(range(16)),
                "target output was decoded with the wrong byte order")
-        for malformed in ("0\n", "0000000000000000\n", "xxxxxxxxxxxxxxxx\n" * 2):
+        for malformed in ("0\n", "0000000000000000\n", "xxxxxxxxxxxxxxxx\n" * 2,
+                           "-000000000000001\n" * 2, "+000000000000001\n" * 2):
             path.write_text(malformed, encoding="utf-8")
             try:
                 boot_release_target.read_output(path, 16)
@@ -221,6 +222,39 @@ def _target_release_composition() -> None:
                 pass
             else:
                 raise AssertionError("a malformed or truncated target capture was accepted")
+
+
+def _target_completion() -> None:
+    ensure(boot_release_target.completed_attempt("loaded image\nSUCCESS\n", 0),
+           "one successful target completion did not authorize capture")
+    for log, status in (("", 0), ("SUCCESS\n", 1), ("SUCCESS\n", -11),
+                         ("FAILURE: 4\n", 1), ("SUCCESS\nSUCCESS\n", 0),
+                         ("SUCCESS\nFAILURE: 4\n", 0), ("FAILURE: 4\nSUCCESS\n", 0),
+                         ("SUCCESS\n FAILURE: 4\n", 0), ("SUCCESS but cutoff\n", 0)):
+        ensure(not boot_release_target.completed_attempt(log, status),
+               f"invalid completion authorized capture: {log!r}, {status}")
+
+
+def _target_refusal_capture() -> None:
+    lay = bh.layout(ROOT)
+    output = bytearray(128 + lay["HANDOFF_BYTES"] + lay["BRINGUP_MMODE_REGION_BYTES"])
+    for offset, value in ((0, 4), (16, 3), (24, 1 << 32), (32, 2), (48, 1), (56, 3)):
+        output[offset:offset + 8] = value.to_bytes(8, "little")
+    output[64:67] = bytes((1, 2, 3))
+    output[128:128 + lay["HANDOFF_BYTES"]] = bytes([0x5a]) * lay["HANDOFF_BYTES"]
+    oracle = {"code": "4", "released": "0", "log": "1,2,3",
+              "image_window_zero": "1", "handoff_window_untouched": "1"}
+    ensure(boot_release_target.capture_findings(bytes(output), lay, 4, 2, oracle) == [],
+           "a refusal required nonexistent host release files")
+    for offset in (8, 56, 66, 128, len(output) - 1):
+        corrupt = bytearray(output)
+        corrupt[offset] ^= 1
+        ensure(bool(boot_release_target.capture_findings(bytes(corrupt), lay, 4, 2, oracle)),
+               f"corrupt release/refusal evidence at {offset} was accepted")
+    for name in ("code", "released", "log", "image_window_zero", "handoff_window_untouched"):
+        corrupt_oracle = {**oracle, name: "wrong"}
+        ensure(bool(boot_release_target.capture_findings(bytes(output), lay, 4, 2, corrupt_oracle)),
+               f"a wrong host {name} was accepted")
 
 
 def _emulator_process_verdict() -> None:
@@ -299,6 +333,8 @@ def cases() -> list[Case]:
             Case("the scheduled producer follows timer owners", _scheduled_producer),
             Case("the target stack budget includes large frames", _target_stack_budget),
             Case("the release target binds devices and exact output capture", _target_release_composition),
+            Case("target capture requires one completed attempt", _target_completion),
+            Case("target refusals require erased image and untouched handoff", _target_refusal_capture),
             Case("abnormal emulator exits provide no verdict", _emulator_process_verdict),
             Case("the model build receipt is mandatory", _receipt_required),
             Case("compiler configuration and headers are bound", _compiler_file_bindings),

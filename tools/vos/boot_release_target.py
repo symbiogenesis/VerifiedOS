@@ -3,8 +3,10 @@
 
 import hashlib
 import json
+import re
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from vos import asm, boot_target, config, image, kernel_restore, receipts
@@ -13,6 +15,7 @@ from vos.cli import compiler_diff as cd
 
 SOURCE = "firmware/harness/rot_release_target.c"
 METADATA_BYTES = 128
+SOURCE_INPUTS = ("firmware", "tools/vos", "tools/generated/dialect-table.json")
 
 
 def _word(data: bytes, at: int) -> int:
@@ -87,12 +90,50 @@ def compose(root: Path, stream: str, boot: bytes, public: bytes, floor: int) -> 
 def read_output(path: Path, expected_bytes: int) -> bytes:
     """Decode the emulator's eight-byte little-endian signature words strictly."""
     words = path.read_text(encoding="utf-8").split()
-    if len(words) * 8 != expected_bytes or any(len(word) != 16 for word in words):
+    if len(words) * 8 != expected_bytes or any(re.fullmatch(r"[0-9a-fA-F]{16}", word) is None for word in words):
         raise ValueError("target output has an incorrect signature extent")
     try:
         return b"".join(int(word, 16).to_bytes(8, "little") for word in words)
     except ValueError as exc:
         raise ValueError("target output contains an invalid signature word") from exc
+
+
+def completed_attempt(log: str, process_exit: int | None) -> bool:
+    """Only one exact HTIF completion authorizes reading the exported verdict."""
+    outcomes = [line.strip() for line in log.splitlines()
+                if line.strip().startswith(("SUCCESS", "FAILURE"))]
+    return process_exit == 0 and outcomes == ["SUCCESS"]
+
+
+def capture_findings(captured: bytes, lay: bh.Layout, expected: int, floor: int,
+                     oracle: dict[str, str], host_window: bytes | None = None,
+                     host_record: bytes | None = None) -> list[str]:
+    """Decide the target output independently of HTIF's completion status."""
+    problems: list[str] = []
+    released = int(expected == 0)
+    wanted_log = bytes((1, 2, 3, 5)) if released else bytes((1, 2, 3))
+    if oracle.get("code") != str(expected) or oracle.get("released") != str(released):
+        problems.append("host oracle verdict or release count disagrees")
+    if oracle.get("log") != ",".join(str(item) for item in wanted_log):
+        problems.append("host oracle measured-item order disagrees")
+    if _word(captured, 0) != expected or _word(captured, 8) != released:
+        problems.append("target verdict or release-hook count disagrees")
+    if _word(captured, 56) != len(wanted_log) or captured[64:64 + len(wanted_log)] != wanted_log:
+        problems.append("target measured-item order disagrees")
+    if ((_word(captured, 16), _word(captured, 32), _word(captured, 40)) != (3, floor, 0)
+            or (_word(captured, 24) >> 32) & 3 != 1
+            or not _word(captured, 48) or _word(captured, 88)):
+        problems.append("target device inputs or watchdog startup disagree")
+    record = captured[METADATA_BYTES:METADATA_BYTES + lay["HANDOFF_BYTES"]]
+    window = captured[METADATA_BYTES + lay["HANDOFF_BYTES"]:]
+    if not released:
+        if oracle.get("image_window_zero") != "1" or oracle.get("handoff_window_untouched") != "1":
+            problems.append("host refusal did not erase its image and preserve its handoff")
+        host_window = bytes(lay["BRINGUP_MMODE_REGION_BYTES"])
+        host_record = bytes([0x5a]) * lay["HANDOFF_BYTES"]
+    if host_window is None or host_record is None or record != host_record or window != host_window:
+        problems.append("target-written handoff or placed window differs from required output")
+    return problems
 
 
 def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Path,
@@ -103,7 +144,7 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
     paths = (root, out, ccomp, simulator, build_receipt, boot_image, public_key)
     root, out, ccomp, simulator, build_receipt, boot_image, public_key = (p.resolve() for p in paths)
     out.mkdir(parents=True, exist_ok=True)
-    sources = receipts.inputs(root, "firmware", "tools/vos")
+    sources = receipts.inputs(root, *SOURCE_INPUTS)
     model_sources = receipts.inputs(root, "model")
     identities = {str(p): receipts.digest(p) for p in (ccomp, simulator, build_receipt, boot_image, public_key)}
     compiler_files = boot_target.compiler_inputs(ccomp_args)
@@ -126,7 +167,8 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
                              "-I" + str(root / "firmware/include")], root / SOURCE, out / "compiled")
     if compiled.stream is None or compiled.exit_code or cd.refusals(compiled.stream):
         raise ValueError(f"RoT release target compilation refused: {compiled.said}")
-    frames = boot_target.stack_ceiling(compiled.stream)
+    stream = compiled.stream
+    frames = boot_target.stack_ceiling(stream)
     if frames > cd.STACK_BYTES:
         raise ValueError("release target frame sum exceeds its bounded stack")
     cases = (("valid", boot, public, 0),
@@ -137,14 +179,15 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
              ("corrupt-payload", bh.flip(boot, lay["BOOT_HEADER_BYTES"]), public, 12))
     rows: list[dict[str, object]] = []
     output_bytes = METADATA_BYTES + lay["HANDOFF_BYTES"] + lay["BRINGUP_MMODE_REGION_BYTES"]
-    for name, candidate, key, expected in cases:
+    def run_case(case: tuple[str, bytes, bytes, int]) -> dict[str, object]:
+        name, candidate, key, expected = case
         directory = out / name
         directory.mkdir(exist_ok=True)
         candidate_path = directory / "image.bin"
         candidate_path.write_bytes(candidate)
         oracle = bh.rot_stage(host, candidate_path, bh.RotInputs(3, 1, 0, floor), "slh256s",
                               directory, roots={"production": key})
-        composite = compose(root, compiled.stream, candidate, key, floor)
+        composite = compose(root, stream, candidate, key, floor)
         (directory / "target.s").write_text(composite, encoding="utf-8", newline="\n")
         sections, symbols, entry = asm.Assembler(composite, name).assemble()
         text = next(section for section in sections if section.name == ".text")
@@ -169,22 +212,21 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
         except subprocess.TimeoutExpired:
             verdict, code, diagnostic = "no-verdict", None, f"target exceeded {timeout}s"
         problems = []
-        if code != expected or verdict != ("pass" if expected == 0 else "fail") or process_exit != (0 if expected == 0 else 1):
-            problems.append(f"target did not supply expected HTIF verdict {expected}: {diagnostic}")
+        if not completed_attempt(log.read_text(encoding="utf-8"), process_exit):
+            problems.append(f"target attempt did not complete with one HTIF SUCCESS: {diagnostic}")
         row: dict[str, object] = {"case": name, "expected": expected, "verdict": verdict,
                                  "code": code, "process_exit": process_exit, "argv": argv,
-                                 "seconds": round(time.monotonic() - began, 3), "problems": problems}
+                                 "seconds": round(time.monotonic() - began, 3), "problems": problems,
+                                 "elf_sha256": receipts.digest(elf), "log_sha256": receipts.digest(log)}
         if not problems:
             captured = read_output(signature, output_bytes)
             record = captured[METADATA_BYTES:METADATA_BYTES + lay["HANDOFF_BYTES"]]
             window = captured[METADATA_BYTES + lay["HANDOFF_BYTES"]:]
-            if _word(captured, 0) != expected or _word(captured, 8) != (1 if expected == 0 else 0):
-                problems.append("target verdict or release-hook count disagrees")
-            if (_word(captured, 16), _word(captured, 32), _word(captured, 40)) != (3, floor, 0) or not _word(captured, 48) or _word(captured, 88):
-                problems.append("target device inputs or watchdog startup disagree")
-            if record != (directory / "handoff.bin").read_bytes() or window != (directory / "sram.bin").read_bytes():
-                problems.append("target-written handoff or placed window differs from host oracle")
+            host_window = (directory / "sram.bin").read_bytes() if expected == 0 else None
+            host_record = (directory / "handoff.bin").read_bytes() if expected == 0 else None
+            problems += capture_findings(captured, lay, expected, floor, oracle, host_window, host_record)
             row["target_output_sha256"] = hashlib.sha256(captured).hexdigest()
+            row["boot_verdict"] = _word(captured, 0)
             row["host_verdict"] = oracle.get("verdict")
             if expected == 0 and not problems:
                 placed = directory / "placed.elf"
@@ -196,11 +238,18 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
                 if main.verdict != "success" or main.first_pc != lay["BRINGUP_MMODE_LOAD_BASE"] or not main.reached.get("kernel_entry"):
                     problems.append("main die did not execute the released handoff through kernel entry")
         row["passed"] = not problems
-        rows.append(row)
-        receipts.write(out / "progress.json", {"status": "incomplete", "cases": rows})
-        if name == "valid" and problems:
-            break
-    if sources != receipts.inputs(root, "firmware", "tools/vos") or model_sources != receipts.inputs(root, "model"):
+        return row
+
+    rows.append(run_case(cases[0]))
+    receipts.write(out / "progress.json", {"status": "incomplete", "cases": rows})
+    if rows[0]["passed"]:
+        # Each case has private outputs and consumes the same frozen compiler
+        # stream. The real positive must complete before any negative starts.
+        with ThreadPoolExecutor(max_workers=3) as workers:
+            for row in workers.map(run_case, cases[1:]):
+                rows.append(row)
+                receipts.write(out / "progress.json", {"status": "incomplete", "cases": rows})
+    if sources != receipts.inputs(root, *SOURCE_INPUTS) or model_sources != receipts.inputs(root, "model"):
         raise ValueError("release target sources changed during execution")
     if any(receipts.digest(Path(path)) != digest for path, digest in identities.items()):
         raise ValueError("release target tool or input bytes changed")
@@ -215,4 +264,5 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
             "compiler_inputs_sha256": compiler_files, "compile_argv": list(compiled.argv),
             "preprocessed_sha256": compiled.preprocessed.sha256, "assembly_sha256": compiled.stream_sha256,
             "sum_of_function_frames": frames, "host_binary_sha256": host_digest,
+            "host_compiler": host_compiler,
             "seconds": round(time.monotonic() - started, 3)}

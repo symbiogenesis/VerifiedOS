@@ -128,6 +128,7 @@ def cmd_release_target(args: argparse.Namespace) -> int:
     with env.hold_lock(out, "boot release target"):
         receipts.write(out / "report.json", {"status": "incomplete", "passed": False,
                                               "milestone_acceptance": "open"})
+        receipts.write(out / "progress.json", {"status": "incomplete", "cases": []})
         try:
             result = boot_release_target.run(e.root, out, Path(args.ccomp), args.ccomp_arg, simulator,
                                               Path(args.build_receipt), Path(args.image),
