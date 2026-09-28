@@ -401,16 +401,16 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,079.9 |
-| Total estimate range h | 2,586.3–5,573.5 |
-| Completed scope h | 685.4 |
+| Total estimate midpoint h | 4,081.9 |
+| Total estimate range h | 2,588.3–5,575.5 |
+| Completed scope h | 687.4 |
 | Complete by estimate % | 16.8 |
 | Remaining h | 3,394.5 |
 | Open class I h | 703 |
 | Open class X h | 2,691.5 |
 | Retained completion estimate h | 162 |
 | Unmeasured completed items | 19 |
-| Calibrated total h | 5,006.5 |
+| Calibrated total h | 5,008.5 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,019.5 |
@@ -1029,7 +1029,7 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * R-05-001 puts the whole TCB on verified C compiled by CHERI-CompCert, R-07-051 keeps the kernel's cold paths there, and R-06-012, R-10-008 and R-18-026 name VST/Iris as that route's program logic. [Q35a's record](completion-log.md#q35a-record-the-verified-c-routes-blockers-and-assign-the-authored-c) finds no VST configuration qualified at the locked prover: the gate refuses the axioms and parameters a Clight development loads, VST's theorems are stated over another Clight than the one the contained compiler consumes, and the backend beneath it carries no correctness proof yet. R-07-050 and R-05-023a already require the other route, a proof over the emitted Sail term in the one Iris-over-Sail logic, for the fast path and for every post-CompCert step. This item commissions that route's canonical term and its logic's reviewed breakdown, trials it on two live cold executive functions whose Gallina counterparts are whole definitions, one loop-free and one whose nested loops call it, and qualifies a source-level foundation beside it. C stays the source language on both.
   * **No register entry moves here, and no single act chooses between the routes.** The review gate decides on measured routes entry by entry: adopting the binary-level route beyond the fast path is Q35d's act below; admitting the axioms either route's proofs load amends R-06-011, or the *Ax* ledger together with R-05-162a's class list, under R-05-164; admitting a source-level program logic over a chosen C semantics is an R-05-020 record (F-464); and a foundation over a C semantics other than the CHERI-C/CompCert anchor's one artifact also amends R-05-019's anchor list or is refused under R-05-019a. The checkers, L0, the filesystem and the firmware stay on the source-level route their entries and this plan name unless a register act names them. Neither route's trial substitutes for R-05-001's compiler certificate, which rests on the contained backend's deferred correctness proof, or for R-05-026's correspondence theorem, which [the proof map](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) places at entry after M1.4 and U-26 decide the instrument, as it places R-07-050's fast-path proof (F-466).
   * **The other authored C keeps its owners.** M6.1b owns the supervisor's Lustre producer under R-12-002, and M6.1b-iii repairs the exchange M6.1b-i refused. The copy service is contained code whose R-12-002 safe-Rust obligation stays with the deferred certifying Rust toolchain. The firmware's hash and signature verifiers are trusted C on the source-level route Q35e qualifies, unless a register act moves them to the binary route by name; Fiat-Crypto keeps the field arithmetic it derives.
-  * [x] **Q35a · Record the verified-C route's blockers and assign the authored C** · 3.5 h actual · agent-parallel
+  * [x] **Q35a · Record the verified-C route's blockers and assign the authored C** · 5.5 h actual · agent-parallel
     * The record reads the named C program logic's installability by solver simulation and its axioms and semantic subject from source, reads the binary-level route's inputs, assigns every authored C object an owner and commissions Q35b through Q35e without moving a register entry. ([note](completion-log.md#q35a-record-the-verified-c-routes-blockers-and-assign-the-authored-c))
   * [ ] **Q35b · Emit and identify the canonical machine term** · 12 h, range 7–17 · X
     * This cell owns [the proof map's](../assurance/unassigned-proof-map.md#7-the-next-slices) U-21, whose range moves here and is not counted twice.
@@ -1059,7 +1059,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,277.1 h · 56% · 98.1 h complete · open range 1,234–3,124 h.
+**Q subtotal:** 2,279.1 h · 56% · 100.1 h complete · open range 1,234–3,124 h.
 
 ### M0 · Hardware reference
 
