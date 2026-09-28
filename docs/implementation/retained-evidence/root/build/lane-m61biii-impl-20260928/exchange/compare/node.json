@@ -1,0 +1,77 @@
+{
+  "predicate": "step fun$step$start_restart",
+  "lexer": {
+    "path": "/usr/lib/llvm-21/bin/clang",
+    "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+    "bytes": 131832,
+    "version": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+    "argv": [
+      "/usr/bin/clang",
+      "-std=c11",
+      "-fsyntax-only",
+      "-Xclang",
+      "-dump-tokens",
+      "-x",
+      "c"
+    ]
+  },
+  "original": {
+    "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+    "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+    "bytes": 2329,
+    "tokens": 423
+  },
+  "normalized": {
+    "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+    "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+    "bytes": 2281,
+    "tokens": 407
+  },
+  "failures": [],
+  "deleted": 4,
+  "retained": 0,
+  "byte_spans_removed": 4,
+  "by_position": {
+    "deleted parameter:definition": 2,
+    "deleted parameter:prototype": 2
+  },
+  "groups": [
+    {
+      "line": 17,
+      "column": 133,
+      "position": "parameter:prototype",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 17,
+      "column": 165,
+      "position": "parameter:prototype",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 19,
+      "column": 179,
+      "position": "parameter:definition",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 19,
+      "column": 226,
+      "position": "parameter:definition",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    }
+  ],
+  "verdict": "pass"
+}

@@ -1,0 +1,962 @@
+{
+  "schema": 1,
+  "item": "M6.1b-iii",
+  "trial_verdict": "failed",
+  "first_failed_predicate": "check 4: the unchanged probe over the normalized start/restart node agrees with the oracle on all 576 rows natively, but the accepted purecap compiler refuses it before assembly (ccomp exit 2): typed scalar refusal [Clight]: switch table typing is not implemented. Velus prints the node's conditionals as six Clight switch statements; no alignment error remains.",
+  "decides": "The declared alignment erasure removes the accepted frontend's alignment refusal on the tested node and control program, but the normalized node does not reach the purecap target because the accepted typed route refuses Clight switch statements. No target agreement is established, the M8a route stays C, and nothing is re-selected.",
+  "source_revision": "d590c46386f047388d01107f72c3609fdf7da2ed",
+  "prior_result": {
+    "path": "supervisor/route/result.json",
+    "sha256": "1185fae5cf6179d8e6a8a5735baaacb49e8d072feca493bbff5902864cd5f388"
+  },
+  "frozen_inputs": {
+    "supervisor/route/start_restart.lus": "db96e2c055416f9bf9783e31346977bd590c4624632233f983876d74b57f35e9",
+    "supervisor/route/oracle.c": "bf3348d800fe947dfb5b88dd7a7882c1d4e7748c38aec45d72a940c6d45d84f4",
+    "supervisor/route/probe.py": "f101b76dba09220ee6cac323c788aae6b23f55e7c41768420918c9dbd0917a6b",
+    "supervisor/route/result.json": "1185fae5cf6179d8e6a8a5735baaacb49e8d072feca493bbff5902864cd5f388",
+    "supervisor/route/normalize.py": "ed8ad840ad23dbe2858a17bd0354db80c6b66948ab5193ea383542b46f893601",
+    "supervisor/route/token_compare.py": "ef86954923eccae82aecadbecb5993eeac4cddcc3e2ca1539e3bc5bcf1d1e0e5",
+    "supervisor/route/control.lus": "470bb7ff6d28059d2b42473f17b303a5a7e12a9088075c4f17434d0c88c70ee3",
+    "supervisor/route/control.py": "30314c0090aed494eb28d664dc350717a13fb47279d73965e61dcd731c4f32aa",
+    "supervisor/include/vos_supervisor.h": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28",
+    "supervisor/include/vos_supervisor_effects.h": "d4788e16aa95049351527f631b040f5dd5c97986d82a52ff075e19954b5ec1cd",
+    "supervisor/src/supervisor.c": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd",
+    "supervisor/src/effects.c": "1d4296de8664d5db017cc47c57fcf91506ee31904c20fe6a67f35c7c8d6f0715",
+    "supervisor/src/manifest.c": "825bf58cb0c62d82a4e56dcea8156ab65212dbeef41d7085751a47d08421630d",
+    "supervisor/test/host.c": "34b0413fb698f373b2f65ce34d1256892e45f4d8ad5e488558e9c43c9dfc4e29",
+    "supervisor/test/effects.c": "61797d6596626a07427ff7e0e7a766bb26d3dd83ccb75478fdbe9968e7d9e4da",
+    "proofs/SupervisionTree.v": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51",
+    "tools/vos/supervisor.py": "698c919f332ad50e5dc91643c9fc5580793b4fdaa4fcff9e34979cc12b3697c9",
+    "tools/vos/cli/supervisor.py": "102bb643228ae38bc3d959d4916848bee593e7e86ddaac49e6dc64ba217be7b2",
+    "tools/vos/cli/compiler_diff.py": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+    "tools/vos/asm.py": "e190290cbb2908b893a69fe6a32aba7867d8dfc15678c1a53b203b0f32a8db22",
+    "tools/vos/image.py": "4ad7bf934d8026e05080c9db55808a763d5eea0bf5e2cafd48c50d1c141c71fc",
+    "tools/generated/dialect-table.json": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+    "kernel/src/context.c": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7",
+    "kernel/include/vos_kernel.h": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301",
+    "kernel/include/vos_platform.h": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0",
+    "model/config/verifiedos.json": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+    "tools/tests/test_supervisor_route.py": "4b02bc0340a6a48f7320c25469a3d459fa40abad0fe0890f92b5264994c80069"
+  },
+  "changed_since_prior_freeze": {
+    "proofs/SupervisionTree.v": {
+      "prior": "cdf585372d0524e45c784aeb7a24077eabfa8310e373d0ffa2258f813fe48488",
+      "frozen": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51"
+    }
+  },
+  "tools": {
+    "velus": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/velus",
+      "sha256": "ca69a076e83891ced822802210df01ef740e7de597af3a7929f01f4e4b80a804",
+      "bytes": 15764256,
+      "resolved": "/root/build/lane-supervisor-velus-20260926/source/_build/src/velusmain.native"
+    },
+    "velus_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+      "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+      "bytes": 5884
+    },
+    "compcert_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+      "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+      "bytes": 43807
+    },
+    "ccomp": {
+      "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca",
+      "bytes": 15794520
+    },
+    "compiler_config": {
+      "path": "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+      "bytes": 389
+    },
+    "simulator": {
+      "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+      "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793",
+      "bytes": 6506592
+    },
+    "profile": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/model/config/verifiedos.json",
+      "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+      "bytes": 29781
+    },
+    "native_cc": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-15",
+      "sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+      "bytes": 1251912
+    },
+    "clang": {
+      "path": "/usr/bin/clang",
+      "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+      "bytes": 131832,
+      "resolved": "/usr/lib/llvm-21/bin/clang"
+    },
+    "python3": {
+      "path": "/usr/bin/python3",
+      "sha256": "d1b87c365d0cf5a985cfedfc227ff613a5bc6ff56e841202eb9330d263bbeee9",
+      "bytes": 7503184,
+      "resolved": "/usr/bin/python3.14"
+    },
+    "clang_version": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+    "native_cc_version": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "python3_version": "3.14.4",
+    "velus_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+    "velus_compcert_revision": "22c33b91d42c7df986c97b13b6cd630866a56494",
+    "compiler_arguments": [
+      "-conf",
+      "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "-fverifiedos-typed"
+    ],
+    "native_flags": [
+      "-std=c11",
+      "-O2",
+      "-fsanitize=undefined",
+      "-fno-sanitize-recover=undefined"
+    ]
+  },
+  "licence_reads": {
+    "read_utc": "after 2026-09-28T15:44:21+00:00 (provisioning) and before 2026-09-28T15:44:45+00:00 (check 1)",
+    "velus": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+      "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+      "bytes": 5884
+    },
+    "compcert": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+      "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+      "bytes": 43807
+    }
+  },
+  "erasure": {
+    "normalizer": "supervisor/route/normalize.py",
+    "rule": "Remove the printed ` _Alignas(8)` after `long long` or `unsigned long long` at parameter declarators in prototypes, definitions and extern prototypes, register temporaries, function return types and cast type names; keep structure members byte-identical; refuse every other alignment specifier and any input that is not -nomain printed Clight.",
+    "node": {
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+        "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+        "bytes": 2329
+      },
+      "output": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+        "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+        "bytes": 2281
+      },
+      "record": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/normalize.json",
+        "sha256": "c73e940b42853f7cfcb70c031295c5da2ca51471c1dd76bb67092b4765dc4fa3",
+        "bytes": 1380
+      },
+      "removed": 4,
+      "kept": 0,
+      "sites": [
+        "17:133 removed parameter (prototype) unsigned long long in fun$step$start_restart",
+        "17:165 removed parameter (prototype) unsigned long long in fun$step$start_restart",
+        "19:179 removed parameter (definition) unsigned long long in fun$step$start_restart",
+        "19:226 removed parameter (definition) unsigned long long in fun$step$start_restart"
+      ]
+    },
+    "control": {
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+        "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+        "bytes": 2032
+      },
+      "output": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+        "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+        "bytes": 1804
+      },
+      "record": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/normalize.json",
+        "sha256": "3dbd0a7794a534d6b3e3bd6752e70a63f439115a0be71b46de2116a374f0bc30",
+        "bytes": 5373
+      },
+      "removed": 19,
+      "kept": 5,
+      "sites": [
+        "8:22 kept member (struct) unsigned long long in struct control",
+        "13:22 kept member (struct) unsigned long long in struct fun$step$control",
+        "14:22 kept member (struct) unsigned long long in struct fun$step$control",
+        "15:22 kept member (struct) unsigned long long in struct fun$step$control",
+        "17:13 kept member (struct) long long in struct fun$step$control",
+        "21:27 removed return (extern) unsigned long long in mix64",
+        "21:64 removed parameter (extern) unsigned long long in mix64",
+        "21:96 removed parameter (extern) unsigned long long in mix64",
+        "22:20 removed return (prototype) unsigned long long in fun$step$widen",
+        "22:96 removed parameter (prototype) unsigned long long in fun$step$widen",
+        "24:87 removed parameter (prototype) unsigned long long in fun$step$control",
+        "24:119 removed parameter (prototype) unsigned long long in fun$step$control",
+        "24:156 removed parameter (prototype) long long in fun$step$control",
+        "26:20 removed return (definition) unsigned long long in fun$step$widen",
+        "26:109 removed parameter (definition) unsigned long long in fun$step$widen",
+        "28:31 removed register (body) unsigned long long in fun$step$widen",
+        "29:28 removed cast (body) unsigned long long in fun$step$widen",
+        "38:106 removed parameter (definition) unsigned long long in fun$step$control",
+        "38:140 removed parameter (definition) unsigned long long in fun$step$control",
+        "38:181 removed parameter (definition) long long in fun$step$control",
+        "40:31 removed register (body) unsigned long long in fun$step$control",
+        "41:31 removed register (body) unsigned long long in fun$step$control",
+        "42:31 removed register (body) unsigned long long in fun$step$control",
+        "43:36 removed cast (body) long long in fun$step$control"
+      ]
+    }
+  },
+  "checks": [
+    {
+      "check": 1,
+      "predicate": "After a fresh freeze at the trial revision, the recorded Velus, licence, compiler, simulator, configuration and profile hashes match, the node re-emits the recorded printed Clight and header, and the unnormalized driver is still refused.",
+      "start_utc": "2026-09-28T15:44:45+00:00",
+      "end_utc": "2026-09-28T15:44:46+00:00",
+      "verdict": "passed",
+      "failures": []
+    },
+    {
+      "check": 2,
+      "predicate": "An independent C-token comparison shows the normalized node differing only by removed alignment groups in the step function's parameter declarators, and the control node, carrying every removed position and 64-bit members, loses only enumerated positions and keeps its member alignment.",
+      "start_utc": "2026-09-28T15:44:52+00:00",
+      "end_utc": "2026-09-28T15:44:53+00:00",
+      "verdict": "passed",
+      "failures": []
+    },
+    {
+      "check": 3,
+      "predicate": "The normalizer refuses alignment 16 on a parameter, alignment on a 32-bit parameter and any file-scope alignment, and returns alignment-free input byte-identically.",
+      "start_utc": "2026-09-28T15:45:06+00:00",
+      "end_utc": "2026-09-28T15:45:08+00:00",
+      "verdict": "passed",
+      "failures": []
+    },
+    {
+      "check": 4,
+      "predicate": "The reference comparison passes; the regenerated fixtures reproduce the recorded digest; the unchanged probe over the normalized node agrees on every row natively and through compiler-diff program; its perturbed driver yields a failing comparison verdict; and the control driver agrees natively and on target on every row of its seeded generated set.",
+      "start_utc": "2026-09-28T15:45:16+00:00",
+      "end_utc": "2026-09-28T15:46:25+00:00",
+      "verdict": "failed",
+      "failures": [
+        "the normalized probe did not pass on target: ccomp-refused",
+        "the perturbed probe gave ccomp-refused, not a failing comparison verdict",
+        "the control driver did not pass on target: dialect-refused"
+      ]
+    },
+    {
+      "check": 5,
+      "predicate": "Every frozen input and tool identity rehashes unchanged after execution.",
+      "start_utc": null,
+      "end_utc": null,
+      "verdict": "not reached",
+      "failures": []
+    }
+  ],
+  "observations": [
+    "The accepted compiler's refusal is raised at cfrontend/TypedScalarFrontend.ml line 398 of its build tree /root/build/lane-backend-accept-20260925/compiler-final (sha256 da7352969a24a1e24d1ddbf77d9c2e76b28d49a69a394fdd450398a6b198667a, 35679 bytes), which refuses every Clight Sswitch.",
+    "The normalized control program has no conditional and compiles through the accepted typed route (ccomp exit 0, 52496 assembly lines) with every erased position and five retained 64-bit member alignments; compiler-diff then refuses its image at layout because 242568 bytes of text exceed the 32768-byte window between 0x80000000 and the data section at 0x80008000. No target run or comparison verdict exists for it.",
+    "The control driver agrees with the generator's expected answers natively on all 640 seeded rows under UBSan; its perturbed driver fails natively (exit 1) and meets the same layout refusal on target.",
+    "The perturbed probe fails natively (exit 1) and meets the same switch refusal on target, so its target leg is a refusal rather than a failing comparison verdict.",
+    "Velus warns that it could not check semantic existence (construction not supported) for the control program; the start/restart node compiles with an empty log.",
+    "Check 5 is not reached because check 4 failed; a post-verdict rehash found all 27 frozen inputs and 10 tool identities unchanged."
+  ],
+  "post_verdict_rehash": {
+    "stage": "rehash",
+    "start_utc": "2026-09-28T15:49:00+00:00",
+    "inputs_rehashed": 27,
+    "tools_rehashed": 10,
+    "changed": [],
+    "verdict": "unchanged",
+    "end_utc": "2026-09-28T15:49:00+00:00"
+  },
+  "evidence": {
+    "check1": {
+      "recorded_hashes_match": {
+        "velus": true,
+        "velus_license": true,
+        "compcert_license": true,
+        "ccomp": true,
+        "simulator": true,
+        "compiler_config": true,
+        "profile": true,
+        "native_cc": true
+      },
+      "velus_node": {
+        "argv": [
+          "/root/build/lane-supervisor-velus-20260926/source/velus",
+          "-nomain",
+          "-lib",
+          "-header",
+          "-dclight",
+          "-o",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.lus",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/start_restart.lus"
+        ],
+        "exit": 0,
+        "log": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.velus.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "clight": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+          "bytes": 2329
+        },
+        "header": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.h",
+          "sha256": "a8bf7abc5397a955cf6de4a069d9fc54cff105625e70617180fc01a8d5d59042",
+          "bytes": 575
+        },
+        "clight_matches_recorded": true,
+        "header_matches_recorded": true
+      },
+      "oracle": {
+        "build_argv": [
+          "/usr/bin/aarch64-linux-gnu-gcc-15",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-I",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/include",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/oracle.c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/src/supervisor.c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/src/manifest.c",
+          "-o",
+          "/root/build/lane-m61biii-impl-20260928/exchange/oracle/oracle"
+        ],
+        "fixtures": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/oracle/fixtures.txt",
+          "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+          "bytes": 24120
+        }
+      },
+      "unnormalized_driver": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/probe.c",
+        "sha256": "4f0b0a00acd7b0b54862d6aaa49f7300a638ee2334409deafbf914629efb4fbe",
+        "bytes": 196576
+      },
+      "unnormalized_target": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/tools/run.py",
+          "compiler-diff",
+          "program",
+          "--ccomp",
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "--ccomp-arg=-conf",
+          "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "--ccomp-arg=-fverifiedos-typed",
+          "--simulator",
+          "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+          "--profile",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/model/config/verifiedos.json",
+          "--keep",
+          "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/purecap",
+          "--timeout",
+          "900",
+          "--run-timeout",
+          "600",
+          "--json",
+          "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/probe.c"
+        ],
+        "exit": 1,
+        "report": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/purecap-report.json",
+          "sha256": "d1557aaf151c2a9b4a082eeec41013f6513114b2224a7d2d859414176e678a6f",
+          "bytes": 4762
+        },
+        "ccomp_exit": 2,
+        "stream_lines": 0,
+        "refusals": [],
+        "verdict": "ccomp-refused",
+        "green": false,
+        "stream_sha256": null,
+        "preprocessed_sha256": "8b207d778a2f98d1f232bb291752e3eda665cdedf5d5611c140c8aca4375d3ea",
+        "image_bytes": 0,
+        "run": {}
+      },
+      "unnormalized_target_diagnostic": "ccomp exited 2: /root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biii-impl-20260928/exchange/nod",
+      "unnormalized_native": {
+        "compile_argv": [
+          "/usr/bin/aarch64-linux-gnu-gcc-15",
+          "-std=c11",
+          "-O2",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/probe.c",
+          "-o",
+          "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/probe"
+        ],
+        "compile_exit": 1,
+        "compile_log": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/native.log",
+          "sha256": "3497bb1c3ace3742c64f51480fad6fd7835eb96d099881fd46294eeb1b926b0b",
+          "bytes": 2000
+        }
+      }
+    },
+    "check2": {
+      "node_comparison": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/token_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--original",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--normalized",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "--step",
+          "fun$step$start_restart",
+          "--out",
+          "/root/build/lane-m61biii-impl-20260928/exchange/compare/node.json"
+        ],
+        "report": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/compare/node.json",
+          "sha256": "0f7720d959bad09fe0ff4d20b59dacc8807deac73b20f87dd50ec4d17751bfb0",
+          "bytes": 1943
+        },
+        "verdict": "pass",
+        "deleted": 4,
+        "retained": 0,
+        "by_position": {
+          "deleted parameter:definition": 2,
+          "deleted parameter:prototype": 2
+        }
+      },
+      "control_comparison": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/token_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--original",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "--normalized",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--control",
+          "--out",
+          "/root/build/lane-m61biii-impl-20260928/exchange/compare/control.json"
+        ],
+        "report": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/compare/control.json",
+          "sha256": "6b0595c4081937e609dd41d3387399a86f0bded89406aacaa67a979d36d180e4",
+          "bytes": 5971
+        },
+        "verdict": "pass",
+        "deleted": 19,
+        "retained": 5,
+        "by_position": {
+          "deleted cast": 2,
+          "deleted parameter:definition": 4,
+          "deleted parameter:extern": 2,
+          "deleted parameter:prototype": 4,
+          "deleted register": 4,
+          "deleted return:definition": 1,
+          "deleted return:extern": 1,
+          "deleted return:prototype": 1,
+          "retained member": 5
+        }
+      },
+      "velus_control": {
+        "argv": [
+          "/root/build/lane-supervisor-velus-20260926/source/velus",
+          "-nomain",
+          "-lib",
+          "-header",
+          "-dclight",
+          "-o",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.lus",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/control.lus"
+        ],
+        "exit": 0,
+        "log": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.velus.log",
+          "sha256": "efa9df86033a5e7e0953458aead6a30a6c0da1cdb650dc16d664719a0fb819c9",
+          "bytes": 73
+        },
+        "clight": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+          "bytes": 2032
+        },
+        "header": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.h",
+          "sha256": "73da74fd9d38df67f52c0b18101f44842c89175736526991234915779c0a69fb",
+          "bytes": 841
+        }
+      }
+    },
+    "check3": {
+      "refusals": {
+        "alignment-16-parameter": {
+          "variant": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.c",
+            "sha256": "3c97ae50d9850c3316c9f212278e230086621c7fd0cbfe41cb26ebd67c75cc8a",
+            "bytes": 2330
+          },
+          "exit": 2,
+          "said": "line 19 column 179: alignment 16 on `unsigned long long` (parameter of fun$step$start_restart): only the 8 of V\u00e9lus's `Tlong` is erased",
+          "wrote_output": false
+        },
+        "alignment-4-on-32-bit-parameter": {
+          "variant": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.c",
+            "sha256": "3ca9d8e64838ac93ec165b29816ba06b0a94490b972eb837f113999f89a8fd8d",
+            "bytes": 2341
+          },
+          "exit": 2,
+          "said": "line 19 column 150: alignment specifier on `unsigned int` (parameter of fun$step$start_restart): only `long long` and `unsigned long long` carry V\u00e9lus's alignment",
+          "wrote_output": false
+        },
+        "alignment-8-on-32-bit-parameter": {
+          "variant": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.c",
+            "sha256": "7c34a48eacb223f57518c028f7ede2559cb70ab2011282b85bae243100ec50f1",
+            "bytes": 2341
+          },
+          "exit": 2,
+          "said": "line 19 column 150: alignment specifier on `unsigned int` (parameter of fun$step$start_restart): only `long long` and `unsigned long long` carry V\u00e9lus's alignment",
+          "wrote_output": false
+        },
+        "file-scope-object-alignment": {
+          "variant": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.c",
+            "sha256": "33a97c0e56b1613d024d6ca200dfcfdc01f7efba237fbdfaaa3dc9f57502f81b",
+            "bytes": 2371
+          },
+          "exit": 2,
+          "said": "line 85 column 1: file-scope alignment on `vos$epoch`: only main-node compilation prints one",
+          "wrote_output": false
+        },
+        "file-scope-structure-alignment": {
+          "variant": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.c",
+            "sha256": "049253f723acda5af0e03e3876a0c69bae7c66d690afa0569555679008db8021",
+            "bytes": 2341
+          },
+          "exit": 2,
+          "said": "line 3 column 22: file-scope alignment on `struct start_restart`",
+          "wrote_output": false
+        }
+      },
+      "identity": {
+        "node": {
+          "input": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+            "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+            "bytes": 2281
+          },
+          "exit": 0,
+          "byte_identical": true,
+          "alignment_free": true,
+          "removed": 0,
+          "kept": 0
+        },
+        "control": {
+          "input": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+            "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+            "bytes": 1804
+          },
+          "exit": 0,
+          "byte_identical": true,
+          "alignment_free": false,
+          "removed": 0,
+          "kept": 5
+        }
+      }
+    },
+    "check4": {
+      "reference": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/tools/run.py",
+          "supervisor",
+          "check"
+        ],
+        "exit": 0,
+        "report": {
+          "path": "/root/build/lane-m61biii-impl-20260928/supervisor/report.json",
+          "sha256": "c901ec07310e2a526fbdf29b3a4bdc110a429a2f06dc44c10c73d080444b3527",
+          "bytes": 2340
+        },
+        "comparison": "passed",
+        "cases": 656,
+        "equalities": 3088,
+        "effect_controls": "ok 31 fixed consumer controls (not Gallina comparisons)\nok 9249 generated effect executions (64340 checks; host bindings only)"
+      },
+      "fixtures": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/oracle/fixtures.txt",
+        "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+        "rows": 576,
+        "recorded_sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc"
+      },
+      "probe": {
+        "driver": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe.c",
+          "sha256": "31812edb41cc8c1a90b584cd98011fecbdeae564a786966af46397337f4ebccd",
+          "bytes": 196575
+        },
+        "native": {
+          "compile_argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe.c",
+            "-o",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe"
+          ],
+          "compile_exit": 0,
+          "compile_log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "binary": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe",
+            "sha256": "c28f53ada5f5988735e37f86370ff1191aa04d2f89bcb3551bcf3910ac10a672",
+            "bytes": 71064
+          },
+          "run_exit": 0
+        },
+        "target": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/tools/run.py",
+            "compiler-diff",
+            "program",
+            "--ccomp",
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "--ccomp-arg=-conf",
+            "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "--ccomp-arg=-fverifiedos-typed",
+            "--simulator",
+            "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+            "--profile",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/model/config/verifiedos.json",
+            "--keep",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe/purecap",
+            "--timeout",
+            "900",
+            "--run-timeout",
+            "600",
+            "--json",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe.c"
+          ],
+          "exit": 1,
+          "report": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/purecap-report.json",
+            "sha256": "e01c1ce19e922252a736f1602f8206f4d6d2ab9e9cf5f04b27b63ee14bc82362",
+            "bytes": 4028
+          },
+          "ccomp_exit": 2,
+          "stream_lines": 0,
+          "refusals": [],
+          "verdict": "ccomp-refused",
+          "green": false,
+          "stream_sha256": null,
+          "preprocessed_sha256": "ef12ad7f5e2c2eb1419eda86536d4f2f07e1d57ead776d82f333a2bbfb228cca",
+          "image_bytes": 0,
+          "run": {}
+        }
+      },
+      "probe_perturbed": {
+        "driver": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe.c",
+          "sha256": "7f17501001b2618669964afb0d1f001b5b6baa9aac81275fa97e016de0eabded",
+          "bytes": 196575
+        },
+        "native": {
+          "compile_argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe.c",
+            "-o",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe"
+          ],
+          "compile_exit": 0,
+          "compile_log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "binary": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe",
+            "sha256": "6ead9660f948379b1751cb8524137a39027e9b8e372c4a5be5b974f8e5421a4e",
+            "bytes": 71064
+          },
+          "run_exit": 1
+        },
+        "target": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/tools/run.py",
+            "compiler-diff",
+            "program",
+            "--ccomp",
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "--ccomp-arg=-conf",
+            "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "--ccomp-arg=-fverifiedos-typed",
+            "--simulator",
+            "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+            "--profile",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/model/config/verifiedos.json",
+            "--keep",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/purecap",
+            "--timeout",
+            "900",
+            "--run-timeout",
+            "600",
+            "--json",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe.c"
+          ],
+          "exit": 1,
+          "report": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/purecap-report.json",
+            "sha256": "8232455ff066bdfc87e48dc5758e4d396055ec6dbb38c811dac3bf881e87c138",
+            "bytes": 4048
+          },
+          "ccomp_exit": 2,
+          "stream_lines": 0,
+          "refusals": [],
+          "verdict": "ccomp-refused",
+          "green": false,
+          "stream_sha256": null,
+          "preprocessed_sha256": "080d0d34ec58f56ffd021e0f0c8fa757bfddabdc6a097f897a847d5e1efc52a8",
+          "image_bytes": 0,
+          "run": {}
+        }
+      },
+      "control": {
+        "generator": {
+          "generator": "supervisor/route/control.py",
+          "seed": 20260928,
+          "count": 640,
+          "edge_rows": 256,
+          "seeded_rows": 384,
+          "edges_64": {
+            "a": [
+              0,
+              1,
+              4294967296,
+              18446744073709551615
+            ],
+            "b": [
+              0,
+              1,
+              4294967296,
+              18446744073709551615
+            ],
+            "s": [
+              0,
+              1,
+              4294967296,
+              18446744073709551615
+            ]
+          },
+          "rows_sha256": "ead347492f76d483c3b57b576705f85e5b83e4ef9caa2c13ceef8aeaa4e7ad31",
+          "driver_sha256": "833574e0e940b092c3d5c95410cec3766a715d9106ea448c220c17a8aec3fbcf",
+          "perturb": false
+        },
+        "driver": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control.c",
+          "sha256": "833574e0e940b092c3d5c95410cec3766a715d9106ea448c220c17a8aec3fbcf",
+          "bytes": 210008
+        },
+        "native": {
+          "compile_argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control.c",
+            "-o",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control"
+          ],
+          "compile_exit": 0,
+          "compile_log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "binary": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control",
+            "sha256": "bde540be326995d44db5479250291f603c4d3cfc9824f69e56f3f613400a212b",
+            "bytes": 136656
+          },
+          "run_exit": 0
+        },
+        "target": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/tools/run.py",
+            "compiler-diff",
+            "program",
+            "--ccomp",
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "--ccomp-arg=-conf",
+            "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "--ccomp-arg=-fverifiedos-typed",
+            "--simulator",
+            "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+            "--profile",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/model/config/verifiedos.json",
+            "--keep",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/purecap",
+            "--timeout",
+            "900",
+            "--run-timeout",
+            "600",
+            "--json",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control.c"
+          ],
+          "exit": 1,
+          "report": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/purecap-report.json",
+            "sha256": "7a5d7ddb351a221d27784377d4bc75754b45a03ce71ab90a34aafcd5bf59954c",
+            "bytes": 4007
+          },
+          "ccomp_exit": 0,
+          "stream_lines": 52496,
+          "refusals": [
+            {
+              "kind": "layout",
+              "name": ".text",
+              "line": 0,
+              "detail": "242568 bytes of text reach the data section at 0x80008000"
+            }
+          ],
+          "verdict": "dialect-refused",
+          "green": false,
+          "stream_sha256": "cc9dbec512460b90f6462ff7fe98920761370201b69aeb9e79757b514c2a2fb6",
+          "preprocessed_sha256": "206ccada8da3f530b662379260a70d704d10c82d421ce4fc6b92d9c344a86bab",
+          "image_bytes": 0,
+          "run": {}
+        }
+      },
+      "control_perturbed_extra": {
+        "generator": {
+          "generator": "supervisor/route/control.py",
+          "seed": 20260928,
+          "count": 640,
+          "edge_rows": 256,
+          "seeded_rows": 384,
+          "edges_64": {
+            "a": [
+              0,
+              1,
+              4294967296,
+              18446744073709551615
+            ],
+            "b": [
+              0,
+              1,
+              4294967296,
+              18446744073709551615
+            ],
+            "s": [
+              0,
+              1,
+              4294967296,
+              18446744073709551615
+            ]
+          },
+          "rows_sha256": "ead347492f76d483c3b57b576705f85e5b83e4ef9caa2c13ceef8aeaa4e7ad31",
+          "driver_sha256": "fa3a9efed5605741fac574c956f22de03488366195b29a3f6c8c3071d10993b8",
+          "perturb": true
+        },
+        "native": {
+          "compile_argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control.c",
+            "-o",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control"
+          ],
+          "compile_exit": 0,
+          "compile_log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "binary": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control",
+            "sha256": "e332d90737b99db435e2f15023e3614a27ed2eb04196639bebf7214d30023b57",
+            "bytes": 136656
+          },
+          "run_exit": 1
+        },
+        "target": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/tools/run.py",
+            "compiler-diff",
+            "program",
+            "--ccomp",
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "--ccomp-arg=-conf",
+            "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "--ccomp-arg=-fverifiedos-typed",
+            "--simulator",
+            "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+            "--profile",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/model/config/verifiedos.json",
+            "--keep",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/purecap",
+            "--timeout",
+            "900",
+            "--run-timeout",
+            "600",
+            "--json",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control.c"
+          ],
+          "exit": 1,
+          "report": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/purecap-report.json",
+            "sha256": "b2fab6f0c9aca7cd7b79810fea27e598aad82f4ecf0b6ba358ca04cd6a28a7cf",
+            "bytes": 4013
+          },
+          "ccomp_exit": 0,
+          "stream_lines": 52496,
+          "refusals": [
+            {
+              "kind": "layout",
+              "name": ".text",
+              "line": 0,
+              "detail": "242568 bytes of text reach the data section at 0x80008000"
+            }
+          ],
+          "verdict": "dialect-refused",
+          "green": false,
+          "stream_sha256": "6f3f3bf26e528af4470c7c6210553aa73a5cba4755afc867cdd70552725930e7",
+          "preprocessed_sha256": "bec0df58337dd61891b145a240e9bf5fd3b95c705b5086584a68858f3403613a",
+          "image_bytes": 0,
+          "run": {}
+        }
+      }
+    }
+  },
+  "timing": {
+    "provisioned_utc": "2026-09-28T15:44:21+00:00",
+    "trial_finished_utc": "2026-09-28T15:46:25+00:00",
+    "provision_to_trial_end_seconds": 124,
+    "interval_kind": "attended agent-session provisioning-to-verdict interval; authoring before provisioning and documentation after the verdict are outside it",
+    "budget_seconds": 7200,
+    "budget_exhausted": false
+  },
+  "limits": [
+    "No Velus or purecap compiler theorem is composed; neither Velus theorem covers library-mode output (F-467), and the printed, normalized text stays outside every theorem",
+    "The erasure is validated on the start/restart node and the control program only",
+    "No complete supervisor, lifecycle, transport or roster result",
+    "The M8a route is not re-selected; a separately recorded route decision re-pricing M6.1b-ii and M7.1b would do that",
+    "Velus, its printer and the accepted compiler are unchanged; their products stay in the native lane"
+  ]
+}
