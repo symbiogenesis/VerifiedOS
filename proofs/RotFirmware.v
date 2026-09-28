@@ -1112,8 +1112,8 @@ Qed.
    the roster's order from d: one per item, the seed first, and never the
    digest the last extension reaches, which nothing extends from. *)
 Fixpoint extension_points (ext : nat -> nat -> nat) (code : Item -> nat)
-                          (d : nat) (is : list Item) : list nat :=
-  match is with
+                          (d : nat) (items : list Item) : list nat :=
+  match items with
   | nil => nil
   | cons i r => cons d (extension_points ext code (ext d (code i)) r)
   end.
