@@ -4,7 +4,9 @@
 Search runs in a fresh process with both search filters disabled. It includes local
 constants and generated Program obligations, which source declaration scans miss.
 Every returned symbol receives its own Print Assumptions query. No source-authored
-query contributes to this inventory or to the verdict.
+query contributes to this inventory or to the verdict. The kernel checker's own
+context summary is parsed here too, as a second enumeration that does not share the
+compiler's Print Assumptions.
 """
 
 import re
@@ -27,6 +29,28 @@ Set Printing All.
 Set Printing Depth 1000000.
 Set Printing Width 1000000.
 '''
+
+
+KERNEL_CONTEXT = ("CONTEXT SUMMARY", "===============")
+KERNEL_THEORY = ("Set is predicative", "Rewrite rules are not allowed")
+KERNEL_UNSAFE = ("Constants/Inductives relying on type-in-type",
+                 "Constants/Inductives relying on unsafe (co)fixpoints",
+                 "Inductives whose positivity is assumed")
+
+# Settings the compiler command line fixes, or whose default the audit relies on. A
+# source that sets one overrides that choice for itself, so the gate refuses it.
+PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
+                   "Nested Proofs Allowed", "Allow StrictProp", "Definitional UIP",
+                   "Guard Checking", "Positivity Checking", "Universe Checking",
+                   "Strict Universe Declaration", "Default Timeout")
+_PREFIXES = (r'(?:#\[[^\]]*\]\s*|(?:Local|Global|Export|Time|Fail|Succeed)\s+'
+             r'|Redirect\s+"[^"]*"\s+)*')
+_PINNED = re.compile(_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
+    r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
+# Attributes that relax the same settings for one declaration. A wall-clock Timeout
+# makes a verdict depend on the machine that ran it.
+_PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
+_TIMEOUT = re.compile(_PREFIXES + r"Timeout\s+\d")
 
 
 class AuditError(ValueError):
@@ -138,6 +162,50 @@ def assumptions(stdout: str, symbols: list[Symbol]) -> None:
         if not entries:
             raise AuditError(f"{symbol['name']} has an empty Axioms block")
         symbol["assumptions"] = entries
+
+
+def kernel_context(summary: str) -> list[str]:
+    """The axioms `rocqchk -o` names, refusing every other assumption it reports.
+
+    The summary covers the whole environment the checker loaded, admitted and `-norec`
+    modules included, so an axiom that is loaded but never used is named as well. Rocq
+    9.2's Print Assumptions misses an axiom that a definition reaches only through its
+    type; this enumeration does not. It does not report definitional UIP, which the
+    Print Assumptions audit does. rocqchk writes the summary to stderr, and nothing
+    else may appear there: an unrecognized line refuses the run.
+    """
+    lines = [line.rstrip() for line in summary.splitlines() if line.strip()]
+    if tuple(lines[:2]) != KERNEL_CONTEXT:
+        raise AuditError("rocqchk printed no context summary")
+    sections: list[tuple[str, str, list[str]]] = []
+    for line in lines[2:]:
+        if line.startswith("* ") and ":" in line:
+            key, _, value = line[2:].partition(":")
+            sections.append((key, value.strip(), []))
+        elif line[:1].isspace() and sections and not sections[-1][1]:
+            sections[-1][2].append(line.strip())
+        else:
+            raise AuditError(f"unrecognized kernel context line: {line}")
+    if [key for key, _, _ in sections] != ["Theory", "Theory", "Axioms", *KERNEL_UNSAFE]:
+        raise AuditError("unrecognized kernel context sections: "
+                         + ", ".join(key for key, _, _ in sections))
+    theory = tuple(value for key, value, _ in sections[:2])
+    if theory != KERNEL_THEORY:
+        raise AuditError("the kernel checked a non-default theory: " + "; ".join(theory))
+    for key, value, entries in sections[3:]:
+        if value != "<none>" or entries:
+            raise AuditError(f"{key}: {', '.join(entries) or value}")
+    _, value, axioms = sections[2]
+    if (value == "<none>") == bool(axioms) or value not in ("", "<none>"):
+        raise AuditError(f"malformed kernel axiom list: {value or 'empty'}")
+    return axioms
+
+
+def pinned_overrides(text: str) -> list[str]:
+    """Sentences that would change a gate-pinned setting for their own source."""
+    return [sentence for sentence in sentences(text)
+            if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
+            or _TIMEOUT.match(sentence)]
 
 
 def unsupported_abstractions(text: str) -> list[str]:

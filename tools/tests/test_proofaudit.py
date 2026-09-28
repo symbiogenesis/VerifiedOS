@@ -17,6 +17,16 @@ from vos import proofaudit, proofcites, proofs, receipts
 from vos.cli import evidence
 from vos.cli import proofs as gate
 
+# What `rocqchk -silent -o` writes to stderr for a clean environment, byte for byte as
+# the pinned Rocq 9.2 writes it.
+KERNEL_CLEAN = ("\nCONTEXT SUMMARY\n===============\n\n* Theory: Set is predicative\n  \n"
+                "* Theory: Rewrite rules are not allowed\n  \n* Axioms: <none>\n  \n"
+                "* Constants/Inductives relying on type-in-type: <none>\n  \n"
+                "* Constants/Inductives relying on unsafe (co)fixpoints: <none>\n  \n"
+                "* Inductives whose positivity is assumed: <none>\n  \n")
+_LOADED_AXIOM = KERNEL_CLEAN.replace(
+    "* Axioms: <none>\n", "* Axioms:\n    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq\n    M.a\n")
+
 
 def _inventory_filters_and_framing() -> None:
     valid = (proofaudit.EMPTY_BLACKLIST + "\nM.f: nat\n"
@@ -117,6 +127,64 @@ def _inaccessible_modules_fail_closed() -> None:
                "inaccessible module bodies cannot get partial evidence")
 
 
+def _kernel_context_is_exact() -> None:
+    ensure(proofaudit.kernel_context(KERNEL_CLEAN) == [], "a clean summary names no axiom")
+    ensure(proofaudit.kernel_context(_LOADED_AXIOM)
+           == ["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq", "M.a"], "every loaded axiom is named")
+    refused = [
+        "",
+        KERNEL_CLEAN.replace("unsafe (co)fixpoints: <none>", "unsafe (co)fixpoints:\n    M.f"),
+        KERNEL_CLEAN.replace("positivity is assumed: <none>", "positivity is assumed:\n    M.Bad"),
+        KERNEL_CLEAN.replace("type-in-type: <none>", "type-in-type:\n    M.U"),
+        KERNEL_CLEAN.replace("Rewrite rules are not allowed", "Rewrite rules are allowed"),
+        KERNEL_CLEAN.replace("Set is predicative", "Set is impredicative"),
+        KERNEL_CLEAN.replace("* Axioms: <none>\n", "* Axioms:\n"),
+        KERNEL_CLEAN.replace("* Axioms: <none>\n", ""),
+        KERNEL_CLEAN + "* Constants relying on a new assumption: <none>\n",
+        KERNEL_CLEAN + "Fatal Error: unexpected\n"]
+    for summary in refused:
+        try:
+            proofaudit.kernel_context(summary)
+        except proofaudit.AuditError:
+            continue
+        raise AssertionError(f"an unclean or unrecognized kernel summary passed: {summary!r}")
+
+
+def _kernel_verdict_needs_a_clean_summary() -> None:
+    def fault(code: int, stdout: str, stderr: str) -> str:
+        return gate._kernel_fault(subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr))
+
+    ensure(fault(0, "", KERNEL_CLEAN) == "", "a clean kernel run was refused")
+    ensure("eq_rect_eq" in fault(0, "", _LOADED_AXIOM), "a loaded but unused axiom passed")
+    for code, stdout, stderr in ((1, "", KERNEL_CLEAN), (0, "chatter", KERNEL_CLEAN),
+                                 (0, "", ""), (0, "", "Fatal Error: Type error")):
+        ensure(bool(fault(code, stdout, stderr)),
+               f"kernel run without a clean verdict passed: {code} {stdout!r} {stderr!r}")
+    with patch.object(gate, "DECLARED", {"Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq : Prop",
+                                         "M.a : False"}):
+        ensure(fault(0, "", _LOADED_AXIOM) == "", "a declared axiom was refused by name")
+
+
+def _pinned_settings_cannot_be_overridden() -> None:
+    refused = ('Set Warnings "-all".', 'Local Set Warnings "-notation-overridden".',
+               '#[local] Set Default Goal Selector "1".', 'Global Unset Guard Checking.',
+               "Unset Positivity Checking.", "Unset Universe Checking.",
+               "Set Definitional UIP.", "Set Allow StrictProp.", 'Set Bullet Behavior "None".',
+               "Set Nested Proofs Allowed.", "Unset Strict Universe Declaration.",
+               "Set Default Timeout 5.", "Fail Timeout 1 Check 0.",
+               "Proof. Unset Guard Checking. exact I. Qed.",
+               "#[bypass_check(guard)] Fixpoint f (n : nat) : nat := f n.",
+               '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.')
+    for text in refused:
+        ensure(bool(proofaudit.pinned_overrides(text)), f"a pinned-setting override passed: {text}")
+    allowed = ("Set Implicit Arguments.", "Local Open Scope nat_scope.", "Set Printing Width 80.",
+               '(* Set Warnings "-all". *) Definition x := 0.',
+               'Definition label := "Set Warnings".', "#[local] Arguments id {A} x.",
+               "Definition timeout_bound := 5.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text), f"an unpinned sentence was refused: {text}")
+
+
 def _nested_sources_cannot_be_omitted() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-nested-proof-") as temporary:
         root = Path(temporary)
@@ -213,7 +281,7 @@ def _staged_run_binds_original_inputs() -> None:
                     patch.object(gate.shutil, "copyfile", side_effect=copy), \
                     patch.object(gate, "_check_source", side_effect=check), \
                     patch.object(gate, "_recheck", return_value=subprocess.CompletedProcess(
-                        [], 0, stdout="", stderr="")), \
+                        [], 0, stdout="", stderr=KERNEL_CLEAN)), \
                     contextlib.redirect_stdout(io.StringIO()):
                 ensure(gate._run(root, 1) == 1, f"{phase} mutation produced successful evidence")
             ensure(not (work / gate.RECEIPT).exists(), "a failed run left a success receipt")
@@ -245,18 +313,35 @@ def _workspace_is_lane_native() -> None:
 
 
 def _native_gate_regressions() -> None:
-    """The actual compiler and kernel rechecker, in an isolated guest directory."""
-    positive = ("From Stdlib Require Import Program.\nModule N.\n"
+    """The actual compiler and kernel rechecker, in an isolated guest directory.
+
+    Program is Corelib's alone: Stdlib's Program closure declares three axioms, which
+    the kernel summary refuses even unused, so the obligation is discharged by hand.
+    """
+    positive = ("Module N.\n"
                 "Local Lemma hidden_subproof : True. Proof. exact I. Qed.\nEnd N.\n"
                 "Record Load := { level : nat }.\n"
-                "Program Definition bounded : { n : nat | n = 0 } := 0.\n")
-    bad = ["Theorem good : True. Proof. exact I. Qed.\nPrint Assumptions good.\n"
-           "Axiom injected : False. Theorem bad : False. Proof. exact injected. Qed.\n",
-           "Theorem unchecked : False. Admitted.\n",
-           "(*| discharges: R-05-163 |*)\nTheorem term : nat. Proof. exact 0. Qed.\n",
-           "From Stdlib Require Import Program.\n"
-           "Program Definition impossible : { n : nat | False } := 0.\n"
-           "Next Obligation. Admitted.\n"]
+                "Program Definition bounded : { n : nat | n = 0 } := 0.\n"
+                "Next Obligation. reflexivity. Qed.\n")
+    # Each refusal with the diagnostic that must carry it, so that none passes for
+    # another reason. Rocq 9.2's Print Assumptions misses the type-only axiom.
+    bad = [("Theorem good : True. Proof. exact I. Qed.\nPrint Assumptions good.\n"
+            "Axiom injected : False. Theorem bad : False. Proof. exact injected. Qed.\n",
+            "undeclared assumptions"),
+           ("Theorem unchecked : False. Admitted.\n", "undeclared assumptions"),
+           ("(*| discharges: R-05-163 |*)\nTheorem term : nat. Proof. exact 0. Qed.\n",
+            "Assumptions failed"),
+           ("Program Definition impossible : { n : nat | False } := 0.\n"
+            "Next Obligation. Admitted.\n", "undeclared assumptions"),
+           ("From Stdlib Require Import FunctionalExtensionality.\n"
+            "Definition t : (fun _ => True) (@functional_extensionality_dep) := I.\n",
+            "functional_extensionality_dep"),
+           ("Theorem both : True /\\ True.\nProof. split. exact I. exact I. Qed.\n",
+            "single focused goal"),
+           ("Fixpoint idle (n : nat) : nat := 0.\n", "non-recursive"),
+           ('Set Warnings "-non-recursive".\nFixpoint idle (n : nat) : nat := 0.\n',
+            "pinned settings"),
+           ("Inductive squashed : SProp := squash.\n", "StrictProp")]
     lane = gate.workspace(Path(__file__).resolve().parents[2])
     lane.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="native-test-", dir=lane) as temporary:
@@ -300,11 +385,12 @@ def _native_gate_regressions() -> None:
                 compiled.write_bytes(saved)
                 source.write_text(positive + "\n(* moved *)\n", encoding="utf-8")
                 ensure(gate._status(root) == 1, "source change must invalidate native evidence")
-            for text in bad:
+            for text, diagnostic in bad:
                 source.write_text(text, encoding="utf-8")
-                with contextlib.redirect_stdout(io.StringIO()):
-                    ensure(gate._run(root, 2) == 1,
-                           "an unqueried axiom, admitted obligation or non-Prop claim passed")
+                with contextlib.redirect_stdout(io.StringIO()) as said:
+                    ensure(gate._run(root, 2) == 1, f"a refused source passed: {text!r}")
+                ensure(diagnostic in said.getvalue(),
+                       f"{text!r} was refused without {diagnostic!r}: {said.getvalue()}")
 
 
 def _release_version_banner_is_exact() -> None:
@@ -339,6 +425,9 @@ def cases() -> list[Case]:
             Case("unqualified-native-names-cannot-bind", _unqualified_native_names_cannot_bind_claims),
             Case("requires-follow-vernacular", _requires_follow_vernacular),
             Case("inaccessible-modules-fail-closed", _inaccessible_modules_fail_closed),
+            Case("kernel-context-is-exact", _kernel_context_is_exact),
+            Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
+            Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),

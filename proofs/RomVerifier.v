@@ -251,16 +251,17 @@ Lemma leb_false_of_ltb : forall a b : nat, Nat.ltb a b = true -> Nat.leb b a = f
 Proof.
   unfold Nat.ltb.
   induction a as [| a IH]; intros b H.
-  - destruct b as [| b]. discriminate H. reflexivity.
-  - destruct b as [| b]. discriminate H.
-    simpl. apply IH. exact H.
+  - destruct b as [| b]; [discriminate H | reflexivity].
+  - destruct b as [| b].
+    + discriminate H.
+    + simpl. apply IH. exact H.
 Qed.
 
 Lemma andb_left : forall a b : bool, andb a b = true -> a = true.
-Proof. intros a b H. destruct a. reflexivity. discriminate H. Qed.
+Proof. intros a b H. destruct a; [reflexivity | discriminate H]. Qed.
 
 Lemma andb_right : forall a b : bool, andb a b = true -> b = true.
-Proof. intros a b H. destruct a. exact H. discriminate H. Qed.
+Proof. intros a b H. destruct a; [exact H | discriminate H]. Qed.
 
 (* -------------------------------------------------------------------------
    The parameter set: the seven quantities FIPS 205's Table 2 tabulates

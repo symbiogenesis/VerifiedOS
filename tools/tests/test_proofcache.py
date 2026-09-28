@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
+from tests.test_proofaudit import KERNEL_CLEAN
 from vos import receipts
 from vos.cli import proofs as gate
 
@@ -57,7 +58,7 @@ def _incremental_run() -> None:
                 patch.object(gate, "_cache_context", side_effect=lambda *_: dict(context)), \
                 patch.object(gate, "_check_source", side_effect=check), \
                 patch.object(gate, "_recheck", return_value=subprocess.CompletedProcess(
-                    [], 0, stdout="", stderr="")) as recheck, \
+                    [], 0, stdout="", stderr=KERNEL_CLEAN)) as recheck, \
                 contextlib.redirect_stdout(io.StringIO()):
 
             def run(expected: set[str], *, fresh: bool = False, result: int = 0,
@@ -190,7 +191,7 @@ def _incremental_run() -> None:
             run({"Consumer"}, result=1)
             ensure(not (work / gate.RECEIPT).exists(), "kernel failure published success")
             ensure(portable.read_bytes() == saved_portable, "kernel failure rewrote history")
-            recheck.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+            recheck.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr=KERNEL_CLEAN)
             run({"Consumer"})
 
             # A failed prerequisite cannot leave a dependent's stale object or receipt.
@@ -208,7 +209,7 @@ def _incremental_run() -> None:
                        _reused: frozenset[str], *, jobs: int) -> subprocess.CompletedProcess[str]:
                 ensure(jobs == 2, "kernel job limit was not forwarded")
                 sources[0].with_suffix(".vo").write_bytes(b"changed during kernel check")
-                return subprocess.CompletedProcess([], 0, stdout="", stderr="")
+                return subprocess.CompletedProcess([], 0, stdout="", stderr=KERNEL_CLEAN)
 
             recheck.side_effect = tamper
             run({"Base", "Consumer"}, result=1)
@@ -390,7 +391,7 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
                 if joint:
                     joint_finished.set()
                     return subprocess.CompletedProcess([], int(failure == "joint"),
-                                                       stdout="", stderr="")
+                                                       stdout="", stderr=KERNEL_CLEAN)
                 ensure(joint_finished.wait(timeout=5), "peer never observed joint worker completion")
                 if failure == "tamper":
                     (folder / "Base.vo").write_bytes(b"changed after the other worker read it")
@@ -399,7 +400,7 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
                 return subprocess.CompletedProcess(
                     [], int(failure == "exit"),
                     stdout="unexpected output" if failure == "stdout" else "",
-                    stderr="unexpected diagnostic" if failure == "stderr" else "")
+                    stderr=KERNEL_CLEAN + ("unexpected diagnostic" if failure == "stderr" else ""))
 
             with patch.object(gate, "_recheck_joint", side_effect=recheck):
                 try:
@@ -407,7 +408,7 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
                 except (OSError, ValueError):
                     ensure(failure in {"tamper", "exception"}, "unexpected kernel exception")
                 else:
-                    clean = not (result.returncode or result.stdout.strip() or result.stderr.strip())
+                    clean = not gate._kernel_fault(result)
                     ensure(clean == (failure == "none"), f"kernel lost {failure} verdict")
                     ensure(failure not in {"tamper", "exception"}, "kernel input failure was ignored")
             ensure(len(calls) == 2 and sum(names == stems for names, _ in calls) == 1,
@@ -479,10 +480,11 @@ def _joint_kernel_keeps_recursive_targets() -> None:
             ensure(gate._recheck_joint(root, sources, frozenset({"Cached"})) is answer,
                    "joint kernel verdict was lost")
             command = run.call_args.args[0]
-            ensure(command[:5] == ["rocqchk", "-silent", "-Q", "proofs", ""]
-                   and command[6:] == ["Changed", "VerifiedOSProofClosure", "-admit", "Cached"],
-                   "joint kernel changed explicit targets, admissions or default conversion")
-            ensure(Path(command[5]).stem == "VerifiedOSProofClosure_",
+            ensure(command[:6] == ["rocqchk", "-silent", "-o", "-Q", "proofs", ""]
+                   and command[7:] == ["Changed", "VerifiedOSProofClosure", "-admit", "Cached"],
+                   "joint kernel changed explicit targets, admissions, default conversion "
+                   "or its context summary")
+            ensure(Path(command[6]).stem == "VerifiedOSProofClosure_",
                    "joint environment was not an explicit kernel target")
 
 
@@ -616,7 +618,7 @@ def _native_incremental_kernel() -> None:
             for name in ("Left", "Right"):
                 accepted = recheck(joint, [joint / "proofs" / f"{stem}.v"
                                           for stem in ("SharedUniverses", name)])
-                ensure(not (accepted.returncode or accepted.stdout.strip() or accepted.stderr.strip()),
+                ensure(not gate._kernel_fault(accepted),
                        f"individually valid kernel batch failed: {name}")
             refused = recheck(joint, gate._sources(joint), frozenset({"SharedUniverses", "Left"}))
             ensure(refused.returncode != 0, "incremental join accepted contradictory universes")

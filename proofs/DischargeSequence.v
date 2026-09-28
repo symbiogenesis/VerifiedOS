@@ -447,7 +447,7 @@ Proof.
 Qed.
 
 Lemma negb_true : forall b : bool, negb b = true -> b = false.
-Proof. intros b H. destruct b. discriminate H. reflexivity. Qed.
+Proof. intros b H. destruct b; [discriminate H | reflexivity]. Qed.
 
 Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
@@ -506,7 +506,7 @@ Proof.
 Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. induction n as [ | k IH ]; simpl. reflexivity. exact IH. Qed.
+Proof. induction n as [ | k IH ]; simpl; [reflexivity | exact IH]. Qed.
 
 Lemma nat_eqb_true : forall i j : nat, Nat.eqb i j = true -> i = j.
 Proof.
@@ -530,7 +530,7 @@ Lemma nat_ltb_S : forall i j : nat, Nat.ltb i (S j) = orb (Nat.ltb i j) (Nat.eqb
 Proof. intros i j. exact (nat_leb_split i j). Qed.
 
 Lemma nat_ltb_irrefl : forall n : nat, Nat.ltb n n = false.
-Proof. unfold Nat.ltb. induction n as [ | k IH ]; simpl. reflexivity. exact IH. Qed.
+Proof. unfold Nat.ltb. induction n as [ | k IH ]; simpl; [reflexivity | exact IH]. Qed.
 
 Lemma mem_nat_app :
   forall (k : nat) (a b : list nat), mem_nat k (app a b) = orb (mem_nat k a) (mem_nat k b).
@@ -732,7 +732,7 @@ Lemma precedes_irrefl : forall (p : Step) (l : list Step), precedes p p l = fals
 Proof.
   intros p l. induction l as [ | x r IH ]; simpl.
   - reflexivity.
-  - destruct (step_eqb p x). reflexivity. exact IH.
+  - destruct (step_eqb p x); [reflexivity | exact IH].
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -1011,7 +1011,7 @@ Lemma occurs_latch_staggered :
 Proof.
   intros r ks tail. induction ks as [ | k rest IH ]; simpl.
   - reflexivity.
-  - destruct (r k); simpl. exact IH. reflexivity.
+  - destruct (r k); simpl; [exact IH | reflexivity].
 Qed.
 
 (* The same two facts at the sequence: an entry step stands on the

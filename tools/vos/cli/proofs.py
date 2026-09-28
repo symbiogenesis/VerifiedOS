@@ -6,6 +6,8 @@ The gate enumerates each module with Rocq Search after disabling both search fil
 then asks Print Assumptions about every returned symbol. This includes local lemmas,
 nested modules and generated obligations. Claims must resolve to compiled propositions.
 The existing record-witness check remains the decidable part of the non-vacuity gate.
+Sources compile under STRICT and must print no diagnostic; rocqchk's own context
+summary must name no undeclared axiom and no unsafe assumption anywhere it loaded.
 
 Independent dependency-wave members run concurrently under one directory lock. Unchanged
 compiled products are reused from successful receipts; changed dependencies invalidate
@@ -51,6 +53,15 @@ from vos.proofs import sentences as _sentences
 PROOFS = "proofs"
 RECEIPT = "proofs/proof-evidence.json"
 RECEIPT_SCHEMA = 2
+
+# Every default-enabled warning is an error. A nat literal above the parser's unary
+# threshold is exempt: it states a number, and changing the statement's type to
+# silence it would change the theorem. `!` refuses a tactic that would act on the
+# first of several unfocused goals. SProp is refused, which holds the M6.2b-0 profile's
+# exclusion of definitional proof irrelevance. proofaudit.pinned_overrides refuses a
+# source that resets any of these.
+STRICT = ("-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!",
+          "-disallow-sprop")
 
 
 def workspace(root: Path) -> Path:
@@ -337,7 +348,7 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
     # -Q roots the logical path so a companion's Require Import resolves to the .vo
     # built here, never to an installed one
     return subprocess.run(
-        [*env.rocq_command(), "-q", "-Q", PROOFS, "",
+        [*env.rocq_command(), "-q", "-Q", PROOFS, "", *STRICT,
          source.relative_to(root).as_posix()],
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
@@ -352,8 +363,9 @@ def _recheck_joint(root: Path, sources: list[Path],
     Admissions are either byte-validated prior evidence or provisional peer work
     whose success the caller MUST await. This result alone is not acceptance evidence.
     No -norec or VM trust is used. The caller binds all bytes before and after the run.
+    `-o` makes rocqchk report the environment's assumptions; `_kernel_fault` reads them.
     """
-    command = [*env.rocqchk_command(), "-silent", "-Q", PROOFS, ""]
+    command = [*env.rocqchk_command(), "-silent", "-o", "-Q", PROOFS, ""]
     changed = [source.stem for source in sources if source.stem not in admitted]
     if not admitted:
         return subprocess.run([*command, *changed], cwd=root, capture_output=True,
@@ -374,6 +386,24 @@ def _recheck_joint(root: Path, sources: list[Path],
             [*command, str(join.with_suffix(".vo")), *changed,
              *(arg for stem in sorted(admitted) for arg in ("-admit", stem))],
             cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
+
+
+def _kernel_fault(result: subprocess.CompletedProcess[str]) -> str:
+    """Why a kernel run supplies no verdict, or "" when its context summary is clean.
+
+    A clean run exits zero, prints nothing on stdout and writes only the context
+    summary to stderr. The summary must name no axiom outside DECLARED, used or not.
+    """
+    if result.returncode or result.stdout.strip():
+        return (result.stderr.strip() or result.stdout.strip()) or "no diagnostic"
+    try:
+        axioms = proofaudit.kernel_context(result.stderr)
+    except proofaudit.AuditError as err:
+        return f"{err}\n{result.stderr.strip()}"
+    declared = {entry.split(" : ", 1)[0] for entry in DECLARED}
+    undeclared = [axiom for axiom in axioms if axiom not in declared]
+    return ("the checked environment declares undeclared axioms: " + ", ".join(undeclared)
+            if undeclared else "")
 
 
 def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> list[list[Path]]:
@@ -462,11 +492,12 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     with ThreadPoolExecutor(max_workers=min(jobs, len(batches))) as pool:
         results = list(pool.map(check, enumerate(batches)))
     for batch, result in zip(batches, results, strict=True):
-        if result.returncode or result.stdout.strip() or result.stderr.strip():
+        fault = _kernel_fault(result)
+        if fault:
             names = ", ".join(source.stem for source in batch)
             return subprocess.CompletedProcess(
-                result.args, result.returncode, stdout=result.stdout,
-                stderr=f"kernel batch [{names}] failed:\n{result.stderr}")
+                result.args, result.returncode or 1, stdout=result.stdout,
+                stderr=f"kernel batch [{names}] failed:\n{fault}")
     if receipts.snapshot(root, products) != before:
         raise ValueError("compiled proof artifacts changed during parallel kernel checking")
     return results[joint]
@@ -564,9 +595,13 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
             raise proofaudit.AuditError(
                 "native inventory cannot enumerate inaccessible module bodies: "
                 + "; ".join(unsupported))
+        overrides = proofaudit.pinned_overrides(text)
+        if overrides:
+            raise proofaudit.AuditError(
+                "sources may not change the gate's pinned settings: " + "; ".join(overrides))
         if not compiled:
             done = _compile(root, source)
-            if done.returncode:
+            if done.returncode or done.stderr.strip():
                 raise proofaudit.AuditError(
                     f"compile exited {done.returncode}: "
                     f"{done.stderr.strip() or done.stdout.strip() or 'no diagnostic'}")
@@ -1020,10 +1055,9 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
           f"with worker limit {kernel_jobs}", flush=True)
     rechecked = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs)
     recheck_seconds = time.perf_counter() - recheck_started
-    said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
-    if rechecked.returncode or said:
-        print(f"FAIL: rocqchk recheck (exit {rechecked.returncode}): "
-              f"{said or 'no diagnostic'}")
+    fault = _kernel_fault(rechecked)
+    if fault:
+        print(f"FAIL: rocqchk recheck (exit {rechecked.returncode}): {fault}")
         return 1
     if (inputs != _inputs(root, _sources(root)) or toolchain != _toolchain()
             or context != _cache_context(work, sources)
@@ -1061,7 +1095,9 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
           f"total: {time.perf_counter() - started:.2f}s")
     print(f"ok: {total} constant(s), each enumerated by Rocq, closed under the "
           "global context and re-checked by rocqchk, which shares the kernel's "
-          f"lineage; {witnessed} witness(es); evidence: {root / RECEIPT}; "
+          "lineage and whose context summary names no undeclared axiom or unsafe "
+          "assumption; "
+          f"{witnessed} witness(es); evidence: {root / RECEIPT}; "
           f"full native receipt: {work / RECEIPT}")
     return 0
 
