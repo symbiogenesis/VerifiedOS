@@ -3604,8 +3604,8 @@ Proof.
       as [ [ nr0 ar2 ] | ]; [ | discriminate H ].
     destruct (andb (arena_ok ka g ar2) (admitted ka g ar2 (S fuel) lo hi nr0));
       [ | discriminate H ].
-    injection H as _ _ H. right. symmetry. exact H.
-  - injection H as _ _ H. left. symmetry. exact H.
+    right. congruence.
+  - left. congruence.
 Qed.
 
 Lemma insert_root_arena_ok :
@@ -3904,8 +3904,8 @@ Theorem the_gate_refuses_a_walk_bound_past_the_declared_depth :
     insert_gate ka g ar h lo hi root k v = None.
 Proof.
   intros ka g ar h lo hi root k v Hd. unfold insert_gate.
-  replace (Nat.leb h (depth g)) with false
-    by (symmetry; apply Nat.leb_gt; exact Hd).
+  replace -> (Nat.leb h (depth g)) with false
+    by (apply Nat.leb_gt; exact Hd).
   reflexivity.
 Qed.
 
@@ -4038,8 +4038,8 @@ Lemma a_gated_read_refuses_a_walk_bound_past_the_declared_depth :
     depth g < h -> read_gate ka g ar h root k = None.
 Proof.
   intros ka g ar h root k Hd. unfold read_gate.
-  replace (Nat.leb h (depth g)) with false
-    by (symmetry; apply Nat.leb_gt; exact Hd).
+  replace -> (Nat.leb h (depth g)) with false
+    by (apply Nat.leb_gt; exact Hd).
   reflexivity.
 Qed.
 
