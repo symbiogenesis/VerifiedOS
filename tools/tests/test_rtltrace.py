@@ -169,7 +169,13 @@ def _every_seed_is_reported() -> None:
             seeded = rtltrace.seed(retires, at, seed.name)
             if seeded is None or seeded == retires:
                 raise AssertionError(f"seed `{seed.name}` at {at} changes the frame")
-            decoded = rtltrace.decode(rtltrace.encode(seeded))
+            try:
+                decoded = rtltrace.decode(rtltrace.encode(seeded))
+            except rtltrace.FrameError as exc:
+                ensure(exc.kind == rtltrace.CONTINUITY,
+                       f"seed `{seed.name}` at retirement {at} is refused for its "
+                       f"continuity or not at all, got {exc}")
+                continue
             result = rtltrace.compare_decoded(golden, decoded, elided)
             ensure(not result.complete,
                    f"seed `{seed.name}` at retirement {at} ({seed.what}) must be "
@@ -206,7 +212,7 @@ def _incomplete_is_not_green() -> None:
     ensure(result.verdict.ok and not result.complete,
            f"a candidate that retires past the reference is incomplete, got {result.line()}")
     ahead = [rtltrace.Retire(rvfi.Execution(wire=rtltrace.WIRE, order=0, pc_rdata=0x1000,
-                                            insn=0x00000013))]
+                                            pc_wdata=0x80000000, insn=0x00000013))]
     ahead += [replace(r, packet=replace(r.packet, order=r.packet.order + 1))
               for r in _retires()]
     result = rtltrace.compare(_GOLDEN, rtltrace.encode(ahead))
@@ -250,6 +256,66 @@ def _protocol_refusals() -> None:
     _refused(_frame(lost), "order")
     repeated = [good[0], good[1], good[1], *good[2:-1], f"E {len(good) - 1}"]
     _refused(_frame(repeated), "order")
+
+
+def _renumbered(retires: list[rtltrace.Retire]) -> str:
+    """A frame of `retires` with the orders a writer that counts them assigns."""
+    return rtltrace.encode([replace(r, packet=replace(r.packet, order=i))
+                            for i, r in enumerate(retires)])
+
+
+def _continuity_is_held() -> None:
+    """A loss the writer's own count hides is refused at its successor."""
+    retires = _retires()
+    _refused(_renumbered(retires[:2] + retires[3:]), rtltrace.CONTINUITY)
+    _refused(_renumbered([*retires[:3], retires[2], *retires[3:]]), rtltrace.CONTINUITY)
+    misreported = _retires()
+    misreported[1] = replace(misreported[1], packet=replace(misreported[1].packet,
+                                                            pc_wdata=0x80000010))
+    _refused(rtltrace.encode(misreported), rtltrace.CONTINUITY)
+    for name, want in (("lost", {1, 2, 3, 4, 5}), ("pc", {1, 2, 3, 4, 5, 6})):
+        refused: set[int] = set()
+        for at in range(len(retires)):
+            seeded = rtltrace.seed(retires, at, name)
+            if seeded is None:
+                raise AssertionError(f"seed `{name}` has a witness at every retirement")
+            try:
+                rtltrace.decode(rtltrace.encode(seeded))
+            except rtltrace.FrameError as exc:
+                ensure(exc.kind == rtltrace.CONTINUITY, f"seed `{name}` at {at}: {exc}")
+                refused.add(at)
+        ensure(refused == want,
+               f"seed `{name}` is refused where the retirement before it did not trap and "
+               f"its frame goes on, at {sorted(want)}, got {sorted(refused)}")
+
+
+def _continuity_is_not_read_across_a_trap() -> None:
+    """A trap's next program counter is not read, and a loss there is the comparison's."""
+    golden = [*_GOLDEN, "I 7 0000000080000100 00000013", "I 8 0000000080000104 00000013"]
+    retires = [*_retires(),
+               rtltrace.Retire(replace(_BASE, order=7, pc_rdata=0x80000100,
+                                       pc_wdata=0x80000104, insn=0x00000013)),
+               rtltrace.Retire(replace(_BASE, order=8, pc_rdata=0x80000104,
+                                       pc_wdata=0x80000108, insn=0x00000013))]
+    ensure(retires[6].packet.trap == 1 and retires[6].packet.pc_wdata != 0x80000100,
+           "the fixture's trap names no handler as its next program counter")
+    result = rtltrace.compare(golden, rtltrace.encode(retires))
+    ensure(result.complete, f"a handler entered after a trap is not refused, got "
+                            f"{result.line()}")
+    result = rtltrace.compare(golden, _renumbered(retires[:7] + retires[8:]))
+    ensure(result.verdict.divergence is not None and not result.complete,
+           f"the handler's first retirement lost is a divergence, got {result.line()}")
+
+
+def _continuity_misses_a_jump_to_itself() -> None:
+    """The limit the contract states: a loss at its successor's own address."""
+    golden = [f"I {n} 0000000080000000 0000006F" for n in range(3)]     # j .
+    spin = [rtltrace.Retire(replace(_BASE, order=n, pc_rdata=0x80000000,
+                                    pc_wdata=0x80000000, insn=0x0000006F))
+            for n in range(3)]
+    result = rtltrace.compare(golden, _renumbered(spin[:1] + spin[2:]))
+    ensure(result.verdict.ok and not result.complete,
+           f"a lost jump to itself decodes and is incomplete, got {result.line()}")
 
 
 def _narrow_tag_is_refused() -> None:
@@ -467,6 +533,9 @@ def cases() -> list[Case]:
         Case("seeds-need-a-witness", _seeds_need_a_witness),
         Case("incomplete-is-not-green", _incomplete_is_not_green),
         Case("protocol-refusals", _protocol_refusals),
+        Case("continuity-is-held", _continuity_is_held),
+        Case("continuity-is-not-read-across-a-trap", _continuity_is_not_read_across_a_trap),
+        Case("continuity-misses-a-jump-to-itself", _continuity_misses_a_jump_to_itself),
         Case("narrow-tag-is-refused", _narrow_tag_is_refused),
         Case("packet-view-carries-only-what-it-is-told",
              _packet_view_carries_only_what_it_is_told),
