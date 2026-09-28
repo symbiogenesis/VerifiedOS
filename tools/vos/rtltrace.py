@@ -47,6 +47,18 @@ the kind, and `compare` reports completeness beside the verdict: a corpus-green
 comparison is one where the verdict agrees *and* both streams were consumed
 whole.
 
+**Continuity is held inside the frame.** A retirement that did not trap names,
+as `pc_wdata`, the address the next retirement was fetched from, and `decode`
+refuses a frame whose next `pc_rdata` is another. The writer counts `order`
+itself, so a retirement lost or repeated between the port and the writer leaves
+no gap in the orders, while the retirement before a lost one still names the
+lost one's address: the frame is refused at its successor rather than
+adjudicated as a divergence, unless the lost one was the first or the last,
+followed a trap, or stood at its successor's own address, which the comparison
+reports instead. A trap's `pc_wdata` is not read, the next retirement being the
+handler's first, and nothing else enters a handler, asynchronous interrupt
+delivery being removed (R-15-099).
+
 **What the frame carries beyond the packet is the trap cause**, so the `T`
 record is compared rather than elided; the `S` and `C` records have no field on
 either port and are elided and counted by `rvfi.packet_view`, exactly as for a
@@ -114,6 +126,10 @@ _WORD: Final = (1 << 64) - 1
 
 # The one record kind the frame carries beyond the packet's.
 CARRIED: Final = frozenset({"T"})
+
+# The refusal a retirement lost, repeated or misreported before the writer reaches,
+# which the writer's own `order` count cannot show.
+CONTINUITY: Final = "continuity"
 
 
 class FrameError(ValueError):
@@ -211,6 +227,16 @@ def _retire(values: dict[str, int], number: int, expected: int) -> Retire:
     return Retire(packet, values["cause"])
 
 
+def _continuous(before: rvfi.Execution, after: rvfi.Execution, number: int) -> None:
+    """A retirement that did not trap names the address the next one was fetched from."""
+    if not before.trap and before.pc_wdata != after.pc_rdata:
+        raise FrameError(number, CONTINUITY,
+                         f"retirement {after.order} was fetched from {after.pc_rdata:#x} "
+                         f"and the one before it, which did not trap, names "
+                         f"{before.pc_wdata:#x} as the next program counter: a retirement "
+                         f"was lost, repeated or misreported before the writer")
+
+
 def decode(text: str) -> list[Retire]:
     """Every retirement a whole frame carries, or the first way it is not whole."""
     if not text:
@@ -236,7 +262,10 @@ def decode(text: str) -> list[Retire]:
     retires: list[Retire] = []
     for number, line in enumerate(lines[1:], start=2):
         if line.startswith("P "):
-            retires.append(_retire(_parse(line, number), number, len(retires)))
+            retire = _retire(_parse(line, number), number, len(retires))
+            if retires:
+                _continuous(retires[-1].packet, retire.packet, number)
+            retires.append(retire)
         elif line.startswith("E"):
             trailer = _TRAILER_RE.fullmatch(line)
             if trailer is None:
@@ -488,9 +517,12 @@ class Seed:
 
 # Every seed moves a field the commit trace compares, so a seed that changes the
 # frame and leaves the projection unmoved is a finding about the adapter rather
-# than a mutant designed to survive. Bits above an access's width and `pc_wdata`
-# are outside the compared records by the schema's construction and are seeded by
-# nothing here.
+# than a mutant designed to survive. Bits above an access's width are outside the
+# compared records by the schema's construction, `pc_wdata` is read by the decoder's
+# continuity check alone, and neither is seeded here. A seed the decoder refuses for
+# its continuity was reported by the protocol, which is where a retirement
+# misreported or lost before the writer belongs; any other refusal is a seed that
+# broke the frame and decides nothing.
 SEEDS: Final = (
     Seed("pc", "the retirement reports the next instruction's program counter "
                "four bytes on"),
@@ -513,9 +545,12 @@ def seed(retires: list[Retire], at: int, name: str) -> list[Retire] | None:
     at an access narrower than a granule, a cause or trap-flag seed where nothing
     trapped.
 
-    The orders are rewritten after a loss, so a lost retirement arrives as a
-    well-formed frame one line shorter and is the comparison's to report rather
-    than the decoder's.
+    The orders are rewritten after a loss, as a writer that counts them does, so
+    the order check never sees one. The retirement before a lost one still names
+    the lost one's address, so the decoder refuses the frame for its continuity
+    where that retirement did not trap and another follows the lost one; the
+    comparison reports the rest. A `pc` seed is refused the same way wherever the
+    retirement before it did not trap.
     """
     retire = retires[at]
     packet = retire.packet
