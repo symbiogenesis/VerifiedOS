@@ -296,12 +296,14 @@ Wolf. The applicable Yosys/SymbiYosys/solver versions and proof depth are
 configuration-specific and not replayed here.
 
 **Reuse:** appropriate for R2's BMC smoke and retirement-interface obligations.
-Local RVFI-DII testing already has its own protocol provenance. Plain RVFI
-integer register/memory fields do not describe tags, local permissions,
-revocation or the canonical Sail semantics. A passing instruction check is not
-an unbounded complete processor theorem; extending the interface and proving
-state continuity remain work. Do not duplicate the existing harness merely to
-record this reference.
+At this revision the generated signed division and remainder models divide
+unsigned outside the alternative-operations mode (F-470) and no `czero` model
+exists, so the smoke's plan owes models in their place. Local RVFI-DII testing
+already has its own protocol provenance. Plain RVFI integer register/memory
+fields do not describe tags, local permissions, revocation or the canonical Sail
+semantics. A passing instruction check is not an unbounded complete processor
+theorem; extending the interface and proving state continuity remain work. Do
+not duplicate the existing harness merely to record this reference.
 
 ## ECC and interconnect
 

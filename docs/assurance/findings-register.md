@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 768 of them across 132 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 770 of them across 132 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2976,6 +2976,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-405** owed-act: the pinned CVA6-CHERI RVFI port cannot feed the frame as it stands, never assigning `order`, raising `valid` on few synchronous exceptions, truncating the destination's tag in its probes and reporting destination and masks on a trapping instruction
 · Raised: R2, in prose
 · Disposition: open, stated as obligations at the harness contract and owed by R1b's core-port contract
+
+**F-470** upstream-defect: riscv-formal's generated `div`, `divw`, `rem` and `remw` models compute the signed result inside a conditional whose other arms are unsigned, so outside its alternative-operations mode, which the curated core does not have, they divide unsigned, and `remw` tests all 64 bits of its divisor for zero
+· Raised: R2, in prose
+· Disposition: open, a riscv-formal pin whose models correct both or models the smoke's wrapper supplies, named in the smoke's plan
+
+**F-471** owed-act: the curated core refuses `pack`, `packh`, `packw`, `brev8`, `xperm4` and `xperm8`, which the profile keeps under `Zbkb` and `Zbkx` (R-15-042), because the imported decoder gates them on `ZKN` with the scalar AES and SHA-2 rounds R-15-041 excludes, and it decodes `clmulr` under `RVB`, which R-15-048a excludes
+· Raised: R2, in prose
+· Disposition: open, R1b's decoder curation decoding the `Zbkb` and `Zbkx` arms apart from `ZKN` and refusing `clmulr`
 
 ## Build-loop instruments
 
