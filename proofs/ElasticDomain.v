@@ -641,7 +641,7 @@ Proof.
            ++ subst x. exact (preferred_trans s i a j (Ha a eq_refl) Paj).
            ++ exact (Hr x Hx Ex).
         -- assert (Hj : forall b, Some j = Some b -> eligible d s b = true).
-           { intros b Hb. injection Hb as Hb. subst b. exact Ej. }
+           { intros b Hb. congruence. }
            destruct (IH (Some j) i H Hj) as [ Hi [ Hjp Hr ] ].
            split; [ exact Hi | split ].
            ++ intros b Hb. injection Hb as Hb. subst b.
@@ -650,7 +650,7 @@ Proof.
               ** subst x. exact (Hjp j eq_refl).
               ** exact (Hr x Hx Ex).
       * assert (Hj : forall b, Some j = Some b -> eligible d s b = true).
-        { intros b Hb. injection Hb as Hb. subst b. exact Ej. }
+        { intros b Hb. congruence. }
         destruct (IH (Some j) i H Hj) as [ Hi [ Hjp Hr ] ].
         split; [ exact Hi | split ].
         -- intros b Hb. discriminate Hb.
