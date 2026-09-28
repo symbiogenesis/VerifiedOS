@@ -6,8 +6,9 @@ admits over 1, 2, 4 and 8 information bits, for any code and for linear codes, a
 holds R-15-181a's DECTED width against it. A table is a hand-written fact, so every
 entry is proved twice over with no network and no library: a code reaching it is built
 and its minimum distance enumerated, and a closed-form bound refuses every length one
-check bit shorter. The SECDED count the ladder prices is held the same way, against
-the sphere-packing bound for distance 4.
+check bit shorter. The SECDED count the ladder prices is held against the
+sphere-packing bound for distance 4, which refuses one check bit fewer; a code reaching
+it is argued, by odd-weight columns, rather than built.
 """
 
 from itertools import combinations
@@ -65,7 +66,8 @@ def _upper(n: int, d: int) -> int:
         return 1
     bounds = [_hamming(n, d)]
     if d % 2 == 0:
-        # a word's parity bit adds one to every odd distance, so A(n, d) = A(n - 1, d - 1)
+        # deleting a coordinate lowers no distance by more than one, so
+        # A(n, d) <= A(n - 1, d - 1), equal at even d by a parity bit
         bounds.append(_hamming(n - 1, d - 1))
         if n < 2 * d:
             # Plotkin: for even d and n < 2d, A(n, d) <= 2 * floor(d / (2d - n))
@@ -139,6 +141,13 @@ def _nonlinear_entry_is_reached() -> None:
 
 
 def _every_shorter_length_is_refused() -> None:
+    # the bounds stay silent where a code is built, so a refusal below is theirs and not
+    # a bound that would refuse every length
+    for k in DECTED_FLOOR_ANY:
+        ensure(_upper(k + DECTED_FLOOR_ANY[k], DISTANCE) >= 2 ** k,
+               f"the bound admits the length-{k + DECTED_FLOOR_ANY[k]} code built at {k} bits")
+        ensure(not _linear_refused(k + DECTED_FLOOR_LINEAR[k], k, DISTANCE),
+               f"the residual argument admits the linear code built at {k} bits")
     for k, floor in DECTED_FLOOR_ANY.items():
         for n in range(k, k + floor):
             ensure(_upper(n, DISTANCE) < 2 ** k,

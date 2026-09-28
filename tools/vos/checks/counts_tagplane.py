@@ -63,8 +63,8 @@ DISTANCE = 6
 # table does not carry is a finding, never a guess.
 DECTED_FLOOR_ANY: dict[int, int] = {
     1: 5,   # [6,1,6], the repetition code; no two words of length 5 lie 6 apart
-    2: 7,   # [9,2,6]; Plotkin, A(8,6) = 2 < 4
-    4: 8,   # [12,4,6]; Plotkin, A(11,6) = 12 < 16
+    2: 7,   # [9,2,6]; Plotkin, A(8,6) <= 2 < 4
+    4: 8,   # [12,4,6]; Plotkin, A(11,6) <= 12 < 16
     8: 8,   # Nordstrom-Robinson (16,256,6); A(15,6) = A(14,5) <= 2^14 // 106 = 154 < 256
 }
 DECTED_FLOOR_LINEAR: dict[int, int] = {
@@ -82,9 +82,11 @@ DECTED_FLOOR_LINEAR: dict[int, int] = {
 SECDED_RE = re.compile(r"data payload is \d+ bits with (\d+) SECDED check bits")
 SHARE_RE = re.compile(r"DECTED code of (?:about )?(\d+) (?:check )?bits.*?tag plane with its "
                       r"own code is (\d+), some ([\d.]+)% of the payload")
-# optional: where the entry calls its width the fewest a code admits, that is a claim of
-# equality with the floor, and it is held as one
-FEWEST_RE = re.compile(r"the fewest any code of minimum distance (\d+) over (\d+) bits admits")
+# where the entry calls its width the fewest a code admits, that is a claim of equality
+# with the floor, and it is held as one; an entry saying "fewest" in a form this does not
+# read is a finding, so a reworded claim cannot step out from under the hold
+FEWEST_RE = re.compile(r"the fewest any code of minimum distance (\d+) over (\d+) "
+                       r"(?:tag )?bits admits")
 TOTAL_RE = re.compile(r"total metadata of some (\d+) bits per (\d+) data bits \(([\d.]+)%\)")
 # the fallback codeword states its totals and its plane, and so implies its code's width
 FALLBACK_RE = re.compile(r"(\d+) bits \((\d+) per \1, ([\d.]+)%, the tag plane with its code "
@@ -204,8 +206,11 @@ def _normative(body: str, g: int, p: int, missed: list[str]) -> Codeword | None:
                       f"bits, below the {floor} any code of minimum distance {DISTANCE} "
                       f"over {tags} bits needs")
     fewest = FEWEST_RE.search(body)
-    if fewest and (int(fewest.group(1)), int(fewest.group(2)), code) != (DISTANCE, tags,
-                                                                          floor):
+    if not fewest and re.search(r"\bfewest\b", body):
+        missed.append("R-15-181a calls its DECTED width the fewest in a form this rule does "
+                      "not read")
+    if fewest and floor is not None and (int(fewest.group(1)), int(fewest.group(2)),
+                                         code) != (DISTANCE, tags, floor):
         missed.append(f"R-15-181a calls its {code} check bits the fewest any code of "
                       f"minimum distance {fewest.group(1)} over {fewest.group(2)} bits "
                       f"admits, where {tags} tag bits at distance {DISTANCE} need {floor}")
@@ -402,15 +407,20 @@ def _spec_ladder(raw: str, g: int, missed: list[str]) -> None:
                           f"points, where the rungs give {figures.quantize(declined, 1)}")
 
 
-def _spec_plane(raw: str, owners: list[Codeword], missed: list[str]) -> None:
-    """The specification's restatement of R-15-181a's plane among its metadata."""
+def _spec_plane(raw: str, normative: Codeword | None, fallback: Codeword | None,
+                missed: list[str]) -> None:
+    """The specification's restatement of R-15-181a's plane among its metadata. A
+    codeword the entry could not be read for is already a finding, so a width is blamed
+    on the entry only when both codewords were read and neither is it."""
     m = _only(SPEC_PLANE_RE, raw, "the tag plane's bits among the codeword's metadata",
               missed)
     if not m:
         return
-    by = {c.payload: c for c in owners}
+    by = {c.payload: c for c in (normative, fallback) if c is not None}
     for plane, total, width in (m.group(1, 2, 3), m.group(4, 5, 6)):
         c = by.get(int(width))
+        if c is None and (normative is None or fallback is None):
+            continue
         if c is None:
             missed.append(f"{SPEC} prices the tag plane at a {width}-bit codeword R-15-181a "
                           "does not state")
@@ -539,7 +549,7 @@ def tag_plane(ctx: Context) -> None:
     if SPEC in ctx.corpus:
         raw = ctx.text(SPEC)
         _spec_ladder(raw, g, missed)
-        _spec_plane(raw, [c for c in (normative, fallback) if c is not None], missed)
+        _spec_plane(raw, normative, fallback, missed)
         m = _only(BAND_MB_RE, raw, "the DECTED-inclusive megabyte band", missed)
         if m:
             start, end = raw.rfind("\n", 0, m.start()) + 1, raw.find("\n", m.end())

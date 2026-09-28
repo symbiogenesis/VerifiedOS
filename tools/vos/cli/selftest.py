@@ -692,6 +692,7 @@ IDL_PROFILE = "docs/languages/idl-profile.md"
 THIRD_PARTY = "THIRD-PARTY.md"
 DELTA = "docs/hardware/rtl-reparameterization-delta.md"
 FINDINGS = "docs/assurance/findings-register.md"
+BANK_DSE = "docs/hardware/bank-count-dse-contract.md"
 RING_ARTIFACT = "proofs/RingContract.v"
 KECCAK_GALLINA = "proofs/Keccak.v"
 AESGCM_GALLINA = "proofs/AesGcm.v"
@@ -883,9 +884,9 @@ def _k82_figure(box: Sandbox) -> bool:
 
 # A DECTED width no code reaches, with every figure built on it moved to agree: the
 # normative code at about 7 check bits over 4 tag bits, the fallback's implied 6 over 2,
-# and the totals, shares, bands and the specification's copies all consistent with
-# them. The arithmetic holds throughout, so within K-54 only the distance-6 floor sees
-# that no code of that distance is so short.
+# and the totals, shares, bands and the specification's and bank-count contract's
+# copies all consistent with them. The arithmetic holds throughout, so K-69 agrees and
+# within K-54 only the distance-6 floor sees that no code of that distance is so short.
 _K54_BELOW_FLOOR: list[tuple[str, str, str]] = [
     (REGISTER,
      "under a DECTED code of 8 check bits, the fewest any code of minimum distance 6 over 4 "
@@ -901,6 +902,10 @@ _K54_BELOW_FLOOR: list[tuple[str, str, str]] = [
     (SPEC, "consume 188–560% of a", "consume 172–504% of a"),
     (SPEC, "12 of the 22 at 256 and 9 of the 18 at 128",
      "11 of the 21 at 256 and 8 of the 17 at 128"),
+    (REGISTER, "some 4.7–7.0% of the bulk array", "some 4.3–6.3% of the bulk array"),
+    (SPEC, "some 4.7–7.0% of the bulk array", "some 4.3–6.3% of the bulk array"),
+    (SPEC, "some 4.7% and 7.0% of the payload", "some 4.3% and 6.3% of the payload"),
+    (BANK_DSE, "some 4.7 to 7.0% of the bulk array", "some 4.3 to 6.3% of the bulk array"),
 ]
 
 

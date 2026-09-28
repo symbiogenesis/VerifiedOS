@@ -222,6 +222,16 @@ def _code_inclusive_figures_remain_guarded() -> None:
           ("some 22 bits per 256 data bits (8.6%)", "some 23 bits per 256 data bits (9.0%)")],
          "calls its 9 check bits the fewest",
          "a width above the floor may not be called the fewest"),
+        ([("DECTED code of 8 check bits", "DECTED code of 9 check bits"),
+          ("code is 12, some 4.7%", "code is 13, some 5.1%"),
+          ("some 22 bits per 256 data bits (8.6%)", "some 23 bits per 256 data bits (9.0%)"),
+          ("over 4 bits admits", "over 4 tag bits admits")],
+         "calls its 9 check bits the fewest",
+         "the fewest claim is read over tag bits as well"),
+        ([("the fewest any code of minimum distance 6 over 4 bits admits",
+           "the fewest any distance-6 code over 4 bits admits")],
+         "fewest in a form this rule does not read",
+         "a fewest claim reworded away from the hold fails closed"),
     ]
     for edits, needle, message in variants:
         found = _tag_findings(_edited(edits))
@@ -237,6 +247,14 @@ def _code_inclusive_figures_remain_guarded() -> None:
     found = _tag_findings(untabled)
     ensure(any("does not cover" in f for f in found),
            "a tag count outside the floor table fails closed: " + "\n".join(found))
+    ensure(not any("None" in f for f in found),
+           "an untabled floor is reported once, never compared: " + "\n".join(found))
+    unread = _tag_findings(_edited([("DECTED code of 8 check bits",
+                                     "DECTED code of eight check bits")]))
+    ensure(any("no longer states the tag plane's share" in f for f in unread)
+           and not any("does not state" in f for f in unread),
+           "an owner reading that fails is reported once, not blamed on the specification's "
+           "restatement: " + "\n".join(unread))
 
 
 def cases() -> list[Case]:

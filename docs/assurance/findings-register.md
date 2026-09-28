@@ -500,7 +500,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-325** owed-act: two derivations of the same quantity disagree by a third and no rule holds them together, the inspirations tree deriving about 2.6 MB/mm² usable per full-reticle tier, which is 54.7% of its own raw macro figure, where the register's band with the metadata above the payload gives 27.6 to 46.0 Mb/mm² of payload, so the same all-array half field is near a gigabyte under the one and 1.381 to 2.30 GB under the other
 · Raised: S27
-· Disposition: open, the site left unaligned on purpose because an unowned second derivation of a figure is a finding rather than something to overwrite, and what would close it is one owner for the quantity
+· Disposition: closed by c66c9421, which replaced the inspirations tree's derivation with a citation of R-15-170, R-15-173a and R-18-004b, leaving the register the one owner of the quantity
 
 **F-326** method: the next unallocated checker-rule id was named as unspent at two sites, a completion-log note recording what its own gate measured and an open finding's disposition beside it, so allocating that id falsifies a sentence in each, and only one of the two is a document an act may carry, gate-time evidence staying as written
 · Raised: S28
@@ -1336,7 +1336,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-107** method: one field read five ways is one rule rather than five claims, a moved field leaving every spelling individually plausible and jointly wrong
 · Raised: M0.15
-· Disposition: closed by K-54, which also holds the DECTED band's ends by arithmetic over R-15-181a's bits and holds that code's width above the distance-6 floor
+· Disposition: closed by K-54, which also holds the DECTED megabyte and sidecar bands' ends by arithmetic over R-15-181a's bits and holds that code's width at or above the distance-6 floor
 
 **F-108** measurement: the compound group stopped being about one document and only its name survived the widening, the two-class placement being the same defect at a different granularity
 · Raised: M0.15
