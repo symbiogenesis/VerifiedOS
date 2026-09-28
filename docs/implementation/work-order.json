@@ -69,7 +69,11 @@
       "M4.4b-ii",
       "M4.4b-iii",
       "M6.2b-0a",
-      "M6.1b-ii"
+      "M6.1b-ii",
+      "M6.1b-iii",
+      "Q35b",
+      "Q35c",
+      "Q35e"
     ],
     "conditional": [
       "Q2b",
@@ -87,7 +91,8 @@
       "Q30f",
       "M0.8c",
       "M6.2b-0b",
-      "M6.2b-ii"
+      "M6.2b-ii",
+      "Q35d"
     ],
     "option": [
       "Q23d",

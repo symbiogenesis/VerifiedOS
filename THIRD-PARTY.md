@@ -424,6 +424,8 @@ The decision records independent compatibility and proof-assumption findings:
 
 Authored specifications do not replace VST's refinement proof to C or the `hmacfcf/` security reduction required by R-05-077a. Both remain outstanding.
 
+**Installation reading of 2026-09-28.** Against opam metadata updated on 2026-09-27, `opam install coq-vst --dry-run --show-actions` in the proof switch selects `coq-vst` 2.17, VST's non-Iris line, and adds it with `coq-compcert` 3.18, removing nothing. That CompCert bounds Rocq below 9.3, the proof switch's recorded upgrade, and carries the INRIA non-commercial agreement into any switch that installs it. The Iris line still does not install beside the prover: `rocq-vst` 3.2beta needs OCaml below 5 through its CompCert range, and `coq-vst` 3.1beta replaces the prover as recorded above. These are solver simulations. CompCert's RISC-V `Archi.v` adds a `Parameter`, and the gate refuses a loaded axiom whether or not a theorem uses it. [Q35a's record](docs/implementation/completion-log.md#q35a-record-the-verified-c-routes-blockers-and-assign-the-authored-c) indexes these readings and [Q35e](docs/implementation/implementation-checklist.md#q-assessment-actions) owns qualification at the locked prover. The proof switch carries neither VST nor CompCert.
+
 #### Validation vectors and quoted literals
 
 **NIST ACVP.** `usnistgov/ACVP-Server` at `975de31e` states its terms in `README.md`, with no standalone license file. Its notice permits use, copying, modification, and distribution, subject to retaining the full notice, identifying the date and nature of changes, and acknowledging NIST. It states no field-of-use or non-commercial restriction.
