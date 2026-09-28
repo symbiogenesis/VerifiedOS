@@ -23,7 +23,8 @@ they are one tool:
     compounds     the synthesis       a statement over rows, against the rows it rests on
     estimates     the arithmetic      every checklist total and share against the item hours
     differential  the twin roster     the corpus manifest against its document, every member assembling
-    findings      the index           every finding a completion note counts, against its entry
+    findings      the index           every finding a completion note counts, against its entry,
+                                      and every landed item's one summary line and its link
     costated      the joint statement a fact stated in more than one pair, at each site stating it
     pins          the edition         every upstream pin against the gitlink the index carries
 

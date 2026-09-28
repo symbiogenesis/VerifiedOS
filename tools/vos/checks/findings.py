@@ -47,6 +47,14 @@ document citation and resolves or is a finding, which is what keeps the register
 answer to rediscovery from pointing at nothing. An absent register is one finding
 rather than one empty comparison per item.
 
+**K-113 holds the other half of the move: what the plan keeps.** The conventions leave
+a landed item its header line, one summary line and a link to its own log entry, and a
+note left standing under that line is evidence in two places, one of them unread by
+the rules that read the log. The shape is read by `vos.findings` from the same parse
+K-82 uses, and it is reported rather than repaired, because moving a note means
+deciding which of its lines are evidence the log already carries. Whether the summary
+says the right thing is a reading, and no rule makes it.
+
 **Two figures are arithmetic and are repaired.** The register states its own size and
 the number of items it indexes, both sums over its entries, so `--fix` rewrites them
 exactly as it rewrites a subtotal. Nothing else here is repairable: an entry is a
@@ -81,7 +89,7 @@ CLAIMS: list[tuple[str, str, str, str]] = [
 
 
 def run(ctx: Context) -> None:
-    """K-82, over the two sides `vos.findings` reads and this group decides about."""
+    """K-82 and K-113, over the sides `vos.findings` reads and this group decides about."""
     rep = ctx.rep
     rep.line(HEADING)
 
@@ -90,8 +98,8 @@ def run(ctx: Context) -> None:
     # a document this repository does not have
     index = findings.parse(ctx.text(findings.REGISTER)
                            if findings.REGISTER in ctx.corpus else "")
-    read = findings.plan(ctx.text(findings.PLAN)
-                         if findings.PLAN in ctx.corpus else "",
+    plan_text = ctx.text(findings.PLAN) if findings.PLAN in ctx.corpus else ""
+    read = findings.plan(plan_text,
                          ctx.text(findings.LOG)
                          if findings.LOG in ctx.corpus else "")
 
@@ -122,4 +130,8 @@ def run(ctx: Context) -> None:
                f"prose, the completion log carries an entry for each of the plan's "
                f"{len(read.done)} landed items, and {opened} open owed acts stand "
                "where S1 reads them")
+    rep.report("K-113", "landed item(s) keeping more than one summary line and the link "
+               "to its completion-log entry:", findings.shapes(plan_text, read),
+               f"each of the plan's {len(read.done)} landed items keeps its header, one "
+               "summary line and a link to its own completion-log entry")
     rep.line()

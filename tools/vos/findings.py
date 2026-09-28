@@ -34,6 +34,15 @@ documents, because an open item's note still lives in the plan, and a block ther
 attributed to the item it sits under exactly as one in the log is attributed to the
 heading it sits under.
 
+**A landed item keeps one summary line and its link, and nothing else.** The plan's
+checklist conventions move a landed item's note into the log, leaving its header line,
+one summary line and a link to its own log entry. What a move leaves behind is the
+note, or part of it, still standing under the item: a second summary bullet, a
+bullet nested under the summary, the summary wrapped onto another line, or the header
+continued onto one. Each is named with the lines to visit, and so is a summary whose
+link reaches another item's entry or none. A child item's lines are the child's, held
+when the child is landed and never when it is open.
+
 The register's own template is fenced, and a fence displays text rather than
 declaring anything, so the fenced spans are dropped before either pattern runs. That
 is the same rule `vos/corpus.py` states for every document the checker reads, applied
@@ -44,7 +53,8 @@ import re
 from dataclasses import dataclass, field
 
 from vos import figures
-from vos.corpus import fence_lines
+from vos.corpus import fence_lines, slug
+from vos.report import sites
 
 REGISTER = "docs/assurance/findings-register.md"
 PLAN = "docs/implementation/implementation-checklist.md"
@@ -89,6 +99,9 @@ _BLOCK_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}(?P<word>"
                        + r") findings\b")
 _SINGLE_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}Finding[,:]")
 _BULLET_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* ")
+# A link from a landed item's summary line into the log. The link text is the
+# author's: most cells write `note` and a few `completion evidence`.
+_LOG_LINK_RE = re.compile(r"\]\(completion-log\.md#(?P<anchor>[^()\s]+)\)")
 
 
 @dataclass(frozen=True)
@@ -130,14 +143,15 @@ class Block:
 @dataclass
 class Plan:
     """The notes' side: every item label the plan carries, the landed and struck ones
-    among them, the items the completion log carries an entry for, and every findings
-    block either document records."""
+    among them, the items the completion log carries an entry for with the fragment
+    each entry's heading declares, and every findings block either document records."""
 
     present: bool = False
     log_present: bool = False
     items: set[str] = field(default_factory=set)
     done: set[str] = field(default_factory=set)
     log_items: set[str] = field(default_factory=set)
+    log_anchors: dict[str, str] = field(default_factory=dict)
     blocks: list[Block] = field(default_factory=list)
 
 
@@ -300,8 +314,80 @@ def plan(text: str, log: str = "") -> Plan:
                 label = _head(head.group("label"))
                 log_at[i] = label
                 read.log_items.add(label)
+                read.log_anchors.setdefault(label, slug(head.group("label")))
         read.blocks.extend(_blocks(LOG, log_lines, log_at))
     return read
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
+
+
+def shapes(text: str, read: Plan) -> list[str]:
+    """Every landed or struck item keeping more than a header, one summary line and a
+    link to its own completion-log entry.
+
+    An item's span is every line indented deeper than its bullet, up to the first
+    non-blank line that is not. The span's first bullets are the item's direct
+    children: exactly one is the summary, and the rest must be child items, whose own
+    lines are skipped here and read at the child. Any other non-blank line in the span
+    is a finding. An absent plan, or one with no landed item this parse can read, is
+    one finding, so the rule cannot pass over nothing.
+    """
+    if not text:
+        return [f"{PLAN} is not in the checker's corpus, so no landed item's shape is "
+                "read"]
+    if not read.done:
+        return [f"{PLAN} carries no landed or struck item this rule can read, so the "
+                "one-line summary it keeps for each is held against nothing"]
+
+    found: list[str] = []
+    lines = _unfenced(text)
+    for i, line in enumerate(lines):
+        head = _ITEM_RE.match(line)
+        if head is None or (head.group("box") != "x" and head.group("struck") is None):
+            continue
+        label = _head(head.group("label"))
+        where = f"{PLAN}:{i + 1} {label}"
+        indent = _indent(line)
+        summaries: list[int] = []
+        extra: list[int] = []
+        depth = -1
+        in_child = False
+        for j in range(i + 1, len(lines)):
+            here = lines[j]
+            if not here.strip():
+                continue
+            lead = _indent(here)
+            if lead <= indent:
+                break
+            if _BULLET_RE.match(here) is not None and depth in (-1, lead):
+                depth = lead
+                in_child = _ITEM_RE.match(here) is not None
+                if not in_child:
+                    summaries.append(j)
+            elif not in_child:
+                extra.append(j + 1)
+
+        if not summaries:
+            found.append(f"{where} keeps no summary line; a landed item keeps one, "
+                         f"linking its entry in {LOG}")
+        elif len(summaries) > 1:
+            found.append(f"{where} keeps {len(summaries)} summary bullets, at lines "
+                         f"{', '.join(str(j + 1) for j in summaries)}; a landed item "
+                         f"keeps one, and the rest of its note belongs in {LOG}")
+        else:
+            anchors = [m.group("anchor") for m in _LOG_LINK_RE.finditer(lines[summaries[0]])]
+            own = read.log_anchors.get(label)
+            if not anchors:
+                found.append(f"{where} keeps a summary line linking no entry in {LOG}")
+            elif own is not None and own not in anchors:
+                found.append(f"{where} links {', '.join(anchors)} in {LOG} and not its "
+                             f"own entry, {own}")
+        if extra:
+            found.append(f"{sites(where, extra)}, kept beyond its header, one summary "
+                         f"line and its child items; that note belongs in {LOG}")
+    return found
 
 
 def counted(read: Plan) -> dict[str, int]:

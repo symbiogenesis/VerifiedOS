@@ -1728,6 +1728,22 @@ CASES: list[Case] = [
     ("K-82", "a register entry raised at an item the plan does not carry",
      _literal(FINDINGS, "· Raised: I11", "· Raised: I12")),
 
+    # The plan's side of the move K-82 holds from the log's: a landed item keeps one
+    # summary line and its link, so a line of the note left standing under it is the
+    # defect. Two cases, because the shape and the link fail apart: the first nests a
+    # note line under the summary, and the second points a summary at another item's
+    # entry, which K-12 still resolves and only this rule reads.
+    ("K-113", "a landed item keeping a note line under its summary",
+     _literal(PLAN, "is M0.8c's to close. ([note](completion-log.md#s1-discharge-the-owed-"
+                    "register-acts))\n",
+              "is M0.8c's to close. ([note](completion-log.md#s1-discharge-the-owed-"
+              "register-acts))\n    * Exit evidence left behind by the move.\n")),
+
+    ("K-113", "a landed item's summary linking another item's entry",
+     _literal(PLAN, "([note](completion-log.md#s2-adopt-the-two-tier-landing-rule-and-"
+                    "hold-it-by-rule))",
+              "([note](completion-log.md#s1-discharge-the-owed-register-acts))")),
+
     # The elision table is made to claim a kind the packet meets, which fires three of
     # the rule's readings at once: the moved kind is now in both §9 tables, the kind it
     # displaced is in neither, and the elision table no longer names the set the packet

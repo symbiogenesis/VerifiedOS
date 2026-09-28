@@ -310,6 +310,56 @@ def _in_prose_is_not_counted() -> None:
            "two counted entries and one prose entry must agree with a block of two")
 
 
+def _landed_shapes() -> None:
+    def shapes(text: str) -> list[str]:
+        return findings.shapes(text, findings.plan(text, _LOG))
+
+    ensure(not shapes(_PLAN), f"the fixture keeps one line per landed item: {shapes(_PLAN)}")
+
+    link = " ([note](completion-log.md#m016-refresh-and-discharge-sequencer))"
+    summary = f"  * The sequencer lands.{link}\n"
+    for what, edited in (
+            ("a bullet nested under the summary",
+             summary + "    * Exit evidence left behind.\n"),
+            ("a second summary bullet", summary + "  * A second line of the note.\n"),
+            ("the summary wrapped onto another line", summary + "    and a continuation.\n"),
+            ("the header continued onto another line", "  continued header\n" + summary)):
+        found = shapes(_PLAN.replace(summary, edited))
+        ensure(len(found) == 1 and "M0.16" in found[0], f"{what} is one finding: {found}")
+
+    unlinked = shapes(_PLAN.replace(link, ""))
+    ensure(len(unlinked) == 1 and "linking no entry" in unlinked[0],
+           f"a summary with no log link is one finding: {unlinked}")
+    wrong = shapes(_PLAN.replace("#m016-refresh-and-discharge-sequencer",
+                                 "#initial-checkemitfast-tooling"))
+    ensure(len(wrong) == 1 and "m016-refresh-and-discharge-sequencer" in wrong[0],
+           f"a summary linking another entry names its own: {wrong}")
+    other_text = _PLAN.replace("([note](completion-log.md#m016",
+                               "[completion evidence](completion-log.md#m016")
+    ensure(not shapes(other_text), "the link text is the author's to choose")
+
+    # An open item's note is not read, and a landed parent's child items are the
+    # children's: an open child's note stands under it, a landed child's does not.
+    open_note = _PLAN.replace("  * Fourteen acts", "  * A note.\n    * More.\n  * Fourteen acts")
+    ensure(not shapes(open_note), "an open item's note stays in the plan")
+    parent = summary + ("  * [ ] **M0.16a · An open child** · 1 h, range 1–2 · I\n"
+                        "    * Its own note.\n      * And more of it.\n")
+    ensure(not shapes(_PLAN.replace(summary, parent)),
+           f"an open child's note is the child's: {shapes(_PLAN.replace(summary, parent))}")
+    landed_child = summary + ("  * [x] **M0.16a · A landed child** · 1 h actual\n"
+                              "    * Its line. ([note](completion-log.md#m016a))\n"
+                              "      * Its note left behind.\n")
+    found = shapes(_PLAN.replace(summary, landed_child))
+    ensure(len(found) == 1 and "M0.16a" in found[0],
+           f"a landed child is held at itself, not at its parent: {found}")
+
+    # Fail-closed: nothing landed, or no plan at all, is one finding and not a pass.
+    ensure(len(shapes("* [ ] **S1 · Open** · 1 h, range 1–2 · I\n")) == 1,
+           "a plan with no landed item is one finding")
+    ensure(len(findings.shapes("", findings.plan("", _LOG))) == 1,
+           "an absent plan is one finding")
+
+
 def cases() -> list[Case]:
     return [
         Case("parse-entries", _parse_entries),
@@ -326,4 +376,5 @@ def cases() -> list[Case]:
         Case("log-totality", _log_totality),
         Case("nested-log-totality", _nested_log_totality),
         Case("in-prose-is-not-counted", _in_prose_is_not_counted),
+        Case("landed-shapes", _landed_shapes),
     ]
