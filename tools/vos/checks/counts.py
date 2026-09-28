@@ -12,9 +12,11 @@ here for the same reason the first is. The tag plane's cost is not a count of an
 it is one register field, the granule width, read as a ratio. Deliberately presented
 calculations remain registered; secondary prose cites them. None is a measurement,
 so a granule that moves has to move every one of them in the same edit, which is
-exactly what a claim is. The band beside it is the other half and is not arithmetic at
-all, the DECTED code over the plane being fixed at no width; that half is held by
-inequality against the bare figure and never rewritten.
+exactly what a claim is. The code over the plane is the other half: its width is
+R-15-181a's authored decision, held at or above the fewest check bits a code of
+minimum distance 6 admits over its tag count, and every total, share, ladder rung and
+band built on it is arithmetic held against the entry's own bit counts, reported and
+never rewritten.
 
 **The group is one heading and several files.** This module is the group's entry
 point and holds the claim table, the quantity table every claim is held against, and
