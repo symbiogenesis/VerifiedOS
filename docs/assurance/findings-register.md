@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 770 of them across 132 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 776 of them across 133 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -908,6 +908,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-433** owed-act: which members are live for the share bound is unstated
 · Raised: Q34a
 · Disposition: open, a register question, the reading taken being every enumerated member accruing entitlement only while it competes
+
+**F-462** owed-act: no VST configuration is qualified at the locked prover, the VST/Iris line three register entries name not installing beside the prover and VST's non-Iris line, which those entries do not name, installing only with a CompCert that bounds the prover below its motivated upgrade
+· Raised: Q35a
+· Disposition: open, Q35e qualifying a foundation or refusing one with a priced repair
+
+**F-463** owed-act: every VST or CompCert Clight development loads axioms and parameters outside R-05-164's empty declared set, and no entry decides whether they enter R-06-011 or the *Ax* ledger
+· Raised: Q35a
+· Disposition: open, a register act at the review gate with Q35e's measured summary as its input
+
+**F-464** owed-act: stock VST's theorems are stated over a host-configured stock Clight rather than the compartment-annotated Clight over a capability-widened value type the contained compiler consumes, and no entry decides whether VST enters as a program logic under R-05-020 or over which C semantics
+· Raised: Q35a
+· Disposition: open, a register act at the review gate with Q35e stating which C semantics each foundation covers and any bridge to the contained compiler's Clight
+
+**F-465** measurement: the package solver no longer selects the VST release the M3.4c-i reading recorded, a non-Iris release published after it installing beside the prover in simulation while the Iris line either replaces the prover or finds no solution
+· Raised: Q35a
+· Disposition: standing, the third-party record holding the current reading and M3.4c-i's note remaining the measurement of its day
+
+**F-466** owed-act: R-07-050's fast-path proof has no cell, and R-07-050's trap and context-switch scope makes the slot-boundary timer trap's executive calls plausibly part of it
+· Raised: Q35a
+· Disposition: open, the proof map placing the proof at entry after M1.4 and U-26 decide the instrument, and the scope reading a register question
+
+**F-467** owed-act: neither of Vélus's correctness theorems covers the library-mode product the supervisor route trial exchanged, both assuming a compiled main node and the assembly-level one also an axiom about builtins
+· Raised: Q35a
+· Disposition: open, M6.1b-ii's complete producer recording which Vélus theorem, if any, and in which mode, covers the Clight AST it generates and that the printed, normalized text the accepted compiler parses stays outside every theorem
 
 ## M0 · Hardware reference
 
