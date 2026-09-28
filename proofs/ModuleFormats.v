@@ -105,9 +105,6 @@ Lemma some_pair_eq : forall (A B : Type) (a c : A) (b d : B),
   Some (a, b) = Some (c, d) -> a = c /\ b = d.
 Proof. intros A B a c b d H. injection H as H1 H2. split; assumption. Qed.
 
-Lemma app_assoc_left : forall l m n : list nat, (l ++ m) ++ n = l ++ (m ++ n).
-Proof. intros l m n. symmetry. apply app_assoc. Qed.
-
 Lemma count_cons : forall (x : nat) (l : list nat), count (x :: l) = S (count l).
 Proof. intros x l. reflexivity. Qed.
 
@@ -500,7 +497,7 @@ Proof.
     destruct (write_numeral f n) as [head|] eqn:E1; [|discriminate].
     destruct (write_numerals f rest) as [tail|] eqn:E2; [|discriminate].
     injection Hw as Hw. rewrite <- Hw. rewrite count_cons.
-    cbn [read_numerals]. rewrite app_assoc_left.
+    cbn [read_numerals]. rewrite <- app_assoc.
     rewrite (read_write_numeral f n head (tail ++ back) Hwf E1).
     rewrite (IH tail back Hwf eq_refl). reflexivity.
 Qed.
@@ -520,7 +517,7 @@ Proof.
     destruct (write_read_numeral f bs n rest Hwf E1) as [e1 [Hb1 Hw1]].
     destruct (IH rest ns' back' Hwf E2) as [e2 [Hb2 [Hw2 Hc2]]].
     exists (e1 ++ e2). rewrite <- Hn. rewrite <- Hb. split.
-    + rewrite Hb1. rewrite Hb2. rewrite app_assoc_left. reflexivity.
+    + rewrite Hb1. rewrite Hb2. rewrite <- app_assoc. reflexivity.
     + split.
       * cbn [write_numerals]. rewrite Hw1. rewrite Hw2. reflexivity.
       * rewrite count_cons. rewrite Hc2. reflexivity.
@@ -559,7 +556,7 @@ Proof.
   destruct (write_numeral f (count xs)) as [head|] eqn:E1; [|discriminate].
   injection Hw as Hw. rewrite <- Hw.
   apply andb_split in EG. destruct EG as [EG1 EG2].
-  unfold read_blob. rewrite app_assoc_left.
+  unfold read_blob. rewrite <- app_assoc.
   rewrite (read_write_numeral f (count xs) head (xs ++ back) Hwf E1).
   rewrite EG1. rewrite take_exact. rewrite EG2. reflexivity.
 Qed.
@@ -577,7 +574,7 @@ Proof.
   destruct (write_read_numeral f bs n rest Hwf E1) as [e1 [Hb1 Hw1]].
   destruct (take_split n rest payload tail ET) as [Hr1 Hr2].
   exists (e1 ++ payload). rewrite <- Hp. rewrite <- Hb. split.
-  - rewrite Hb1. rewrite Hr1. rewrite app_assoc_left. reflexivity.
+  - rewrite Hb1. rewrite Hr1. rewrite <- app_assoc. reflexivity.
   - unfold write_blob. rewrite Hr2. rewrite EL. rewrite EB. cbn [andb].
     rewrite Hw1. reflexivity.
 Qed.
@@ -611,7 +608,7 @@ Proof.
   destruct (write_numeral f (count ns)) as [head|] eqn:E1; [|discriminate].
   destruct (write_numerals f ns) as [body|] eqn:E2; [|discriminate].
   injection Hw as Hw. rewrite <- Hw.
-  unfold read_entries. rewrite app_assoc_left.
+  unfold read_entries. rewrite <- app_assoc.
   rewrite (read_write_numeral f (count ns) head (body ++ back) Hwf E1).
   rewrite EL. exact (read_write_numerals f ns body back Hwf E2).
 Qed.
@@ -626,7 +623,7 @@ Proof.
   destruct (write_read_numeral f bs n rest Hwf E1) as [e1 [Hb1 Hw1]].
   destruct (write_read_numerals f n rest ns back Hwf H) as [e2 [Hb2 [Hw2 Hc2]]].
   exists (e1 ++ e2). split.
-  - rewrite Hb1. rewrite Hb2. rewrite app_assoc_left. reflexivity.
+  - rewrite Hb1. rewrite Hb2. rewrite <- app_assoc. reflexivity.
   - unfold write_entries. rewrite Hc2. rewrite EL. rewrite Hw1. rewrite Hw2.
     reflexivity.
 Qed.
@@ -994,7 +991,7 @@ Proof.
               (certificate_body subject checker profile evidence entries ++ extra)))
               (container_bytes_max f)) eqn:EC; [|reflexivity].
   rewrite eqb_self. unfold certificate_body.
-  repeat rewrite app_assoc_left.
+  repeat rewrite <- app_assoc.
   rewrite (read_write_manifest_body f (certificate_subject c) subject
              (checker ++ profile ++ evidence ++ entries ++ extra) Hwf E1).
   rewrite (read_write_numeral f (certificate_checker c) checker
