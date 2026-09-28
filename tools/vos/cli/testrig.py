@@ -770,16 +770,21 @@ def cmd_bmc(args: argparse.Namespace) -> int:
 
     covered = bmc.scope()
     _rule(f"the instruction scope, read out of the dialect table ({len(covered)} forms)")
-    print(f"  constructors {', '.join(sorted(bmc.SCOPE))}")
+    ctors = sorted(bmc.SCOPE)
+    for at in range(0, len(ctors), 7):
+        print(f"  {'constructors' if at == 0 else '':<12} {', '.join(ctors[at:at + 7])}")
     for at in range(0, len(covered), 10):
         print(f"  {' '.join(covered[at:at + 10])}")
+
+    _rule("in scope, and judged by a model owed in place of riscv-formal's")
+    for name, why in sorted(bmc.MODELS_OWED.items()):
+        print(f"  {name:<10} {why}")
 
     _rule("excluded, and why riscv-formal's model cannot judge it here")
     for ctor, why in sorted(bmc.EXCLUDED.items()):
         print(f"  {ctor:<10} {why}")
-    print("  and every constructor outside the base and M files: the capability, bit-")
-    print("  manipulation, conditional, CSR, atomic, vector and FEC forms, which the")
-    print("  RV64IM model the insn checks are scoped to does not judge")
+    print("  and every constructor outside the classified files: the capability, CSR,")
+    print("  atomic, vector and FEC forms, whose semantics here are not riscv-formal's")
 
     _rule("what it waits on")
     for name, what in bmc.INPUTS:
