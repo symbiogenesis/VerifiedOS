@@ -57,8 +57,7 @@ def _incremental_run() -> None:
                 patch.object(gate, "_toolchain", return_value=toolchain), \
                 patch.object(gate, "_cache_context", side_effect=lambda *_: dict(context)), \
                 patch.object(gate, "_check_source", side_effect=check), \
-                patch.object(gate, "_recheck", return_value=subprocess.CompletedProcess(
-                    [], 0, stdout="", stderr=KERNEL_CLEAN)) as recheck, \
+                patch.object(gate, "_recheck", return_value="") as recheck, \
                 contextlib.redirect_stdout(io.StringIO()):
 
             def run(expected: set[str], *, fresh: bool = False, result: int = 0,
@@ -187,11 +186,11 @@ def _incremental_run() -> None:
             saved_portable = portable.read_bytes()
             (folder / "Consumer.v").write_text(texts["Consumer"] + "\n(* kernel retry *)",
                                                encoding="utf-8")
-            recheck.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="refused")
+            recheck.return_value = "refused"
             run({"Consumer"}, result=1)
             ensure(not (work / gate.RECEIPT).exists(), "kernel failure published success")
             ensure(portable.read_bytes() == saved_portable, "kernel failure rewrote history")
-            recheck.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr=KERNEL_CLEAN)
+            recheck.return_value = ""
             run({"Consumer"})
 
             # A failed prerequisite cannot leave a dependent's stale object or receipt.
@@ -206,10 +205,10 @@ def _incremental_run() -> None:
             failing.clear()
 
             def tamper(_root: Path, sources: list[Path],
-                       _reused: frozenset[str], *, jobs: int) -> subprocess.CompletedProcess[str]:
+                       _reused: frozenset[str], *, jobs: int) -> str:
                 ensure(jobs == 2, "kernel job limit was not forwarded")
                 sources[0].with_suffix(".vo").write_bytes(b"changed during kernel check")
-                return subprocess.CompletedProcess([], 0, stdout="", stderr=KERNEL_CLEAN)
+                return ""
 
             recheck.side_effect = tamper
             run({"Base", "Consumer"}, result=1)
@@ -404,12 +403,11 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
 
             with patch.object(gate, "_recheck_joint", side_effect=recheck):
                 try:
-                    result = gate._recheck(root, sources, reused, jobs=2)
+                    fault = gate._recheck(root, sources, reused, jobs=2)
                 except (OSError, ValueError):
                     ensure(failure in {"tamper", "exception"}, "unexpected kernel exception")
                 else:
-                    clean = not gate._kernel_fault(result)
-                    ensure(clean == (failure == "none"), f"kernel lost {failure} verdict")
+                    ensure(bool(fault) == (failure != "none"), f"kernel lost {failure} verdict")
                     ensure(failure not in {"tamper", "exception"}, "kernel input failure was ignored")
             ensure(len(calls) == 2 and sum(names == stems for names, _ in calls) == 1,
                    "exactly one of the two workers must check the complete joint environment")
@@ -448,15 +446,16 @@ def _kernel_single_process_paths() -> None:
         for source, text in zip(sources, ("Definition value := 0.", "Require Base."), strict=True):
             source.write_text(text, encoding="utf-8")
             source.with_suffix(".vo").write_bytes(b"object")
-        answer = subprocess.CompletedProcess([], 0, stdout="", stderr="")
         samples: tuple[tuple[int, frozenset[str]], ...] = (
             (1, frozenset[str]()), (4, frozenset({"Base"})),
             (4, frozenset({"Base", "Consumer"})), (4, frozenset[str]()))
         for jobs, reused in samples:
-            with patch.object(gate, "_recheck_joint", return_value=answer) as joint:
-                ensure(gate._recheck(root, sources, reused, jobs=jobs) is answer,
-                       "serial kernel path lost its verdict")
-                joint.assert_called_once_with(root, sources, reused)
+            for stderr, accepted in ((KERNEL_CLEAN, True), ("", False)):
+                answer = subprocess.CompletedProcess([], 0, stdout="", stderr=stderr)
+                with patch.object(gate, "_recheck_joint", return_value=answer) as joint:
+                    ensure(bool(gate._recheck(root, sources, reused, jobs=jobs)) != accepted,
+                           "serial kernel path lost its verdict")
+                    joint.assert_called_once_with(root, sources, reused)
 
 
 def _joint_kernel_keeps_recursive_targets() -> None:
@@ -486,6 +485,72 @@ def _joint_kernel_keeps_recursive_targets() -> None:
                    "or its context summary")
             ensure(Path(command[6]).stem == "VerifiedOSProofClosure_",
                    "joint environment was not an explicit kernel target")
+
+
+def _admission_covers_only_the_installed_names_it_repeats() -> None:
+    """A load-only pass over admitted roots covers installed names, never a proof's own."""
+    sealed = "Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_odd_0"
+    loaded = "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep"
+
+    def summary(*axioms: str) -> str:
+        listed = "".join(f"    {axiom}\n" for axiom in axioms)
+        return KERNEL_CLEAN.replace("* Axioms: <none>\n", f"* Axioms:\n{listed}") if axioms \
+            else KERNEL_CLEAN
+
+    with tempfile.TemporaryDirectory(prefix="vos-kernel-admission-") as temporary:
+        root = Path(temporary)
+        folder = root / "proofs"
+        folder.mkdir()
+        texts = {"Cached": "Definition value := 0.", "Left": "Require Cached.",
+                 "Middle": "Require Cached.", "Right": "Definition value := 1."}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+            (folder / f"{name}.vo").write_bytes(b"object" * len(name))
+        sources = gate._sources(root)
+        stems = frozenset(texts)
+        reused = frozenset({"Cached"})
+        # Each worker's axioms, the load-only pass's (None when that pass fails) and the
+        # text a refusal must carry. `sealed` is never refused while that pass names it.
+        samples: tuple[tuple[tuple[str, ...], tuple[str, ...] | None, str], ...] = (
+            ((sealed,), (sealed,), ""),
+            ((sealed, loaded), (sealed,), loaded),
+            ((sealed, "Cached.a"), (sealed, "Cached.a"), "Cached.a"),
+            ((sealed,), None, "own context summary failed"),
+            ((), (sealed,), ""))
+        for worker, alone, refusal in samples:
+            for jobs in (1, 3):
+                passes: list[frozenset[str]] = []
+
+                def recheck(_base: Path, members: list[Path], admitted: frozenset[str],
+                            worker: tuple[str, ...] = worker, alone: tuple[str, ...] | None = alone,
+                            passes: list[frozenset[str]] = passes) -> subprocess.CompletedProcess[str]:
+                    if {member.stem for member in members} != admitted:
+                        return subprocess.CompletedProcess([], 0, stdout="", stderr=summary(*worker))
+                    passes.append(admitted)
+                    return subprocess.CompletedProcess(
+                        [], int(alone is None), stdout="",
+                        stderr="Error: unreadable" if alone is None else summary(*alone))
+
+                with patch.object(gate, "_recheck_joint", side_effect=recheck), \
+                        contextlib.redirect_stdout(io.StringIO()) as said:
+                    fault = gate._recheck(root, sources, reused, jobs=jobs)
+                ensure(bool(fault) == bool(refusal) and refusal in fault,
+                       f"wrong admission verdict for {worker} with {jobs} job(s): {fault!r}")
+                ensure(sealed not in fault, "a name the admitted roots repeat was refused")
+                ensure((sealed.rsplit(".", 1)[0] in said.getvalue()) == (bool(worker) and not fault),
+                       "an accepted run must report exactly the names its admissions covered")
+                # Only a worker naming an installed axiom pays for a load-only pass, and
+                # workers admitting the same roots share it.
+                expected = ([] if not worker else [reused] if jobs == 1
+                            else [reused, stems - {"Left"}])
+                ensure(sorted(passes, key=sorted) == sorted(expected, key=sorted),
+                       f"load-only passes {passes} differ from {expected}")
+        # With nothing admitted the worker checked every library it names.
+        with patch.object(gate, "_recheck_joint", side_effect=lambda *_: subprocess.CompletedProcess(
+                [], 0, stdout="", stderr=summary(sealed))) as run:
+            ensure(sealed in gate._recheck(root, sources, frozenset(), jobs=1),
+                   "an axiom of a checked installed library was covered")
+            ensure(run.call_count == 1, "a worker that admitted nothing ran a load-only pass")
 
 
 def _context_hashes_library_bytes() -> None:
@@ -600,8 +665,8 @@ def _native_incremental_kernel() -> None:
             base = work / "proofs" / "Base.v"
             base.write_text("Definition value := 1.\n", encoding="utf-8")
             ensure(gate._compile(work, base).returncode == 0, "mismatched fixture did not compile")
-            refused = recheck(work, gate._sources(work), frozenset(texts), jobs=2)
-            ensure(refused.returncode != 0, "joint check accepted incompatible cached modules")
+            ensure(bool(recheck(work, gate._sources(work), frozenset(texts), jobs=2)),
+                   "joint check accepted incompatible cached modules")
 
             # Separately valid libraries can impose contradictory constraints on
             # shared universes. A new root must join the cached roots, even when
@@ -619,16 +684,58 @@ def _native_incremental_kernel() -> None:
                 ensure(gate._compile(joint, path).returncode == 0,
                        f"individually valid universe fixture failed: {name}")
             for name in ("Left", "Right"):
-                accepted = recheck(joint, [joint / "proofs" / f"{stem}.v"
-                                          for stem in ("SharedUniverses", name)])
-                ensure(not gate._kernel_fault(accepted),
-                       f"individually valid kernel batch failed: {name}")
-            refused = recheck(joint, gate._sources(joint), frozenset({"SharedUniverses", "Left"}))
-            ensure(refused.returncode != 0, "incremental join accepted contradictory universes")
+                fault = recheck(joint, [joint / "proofs" / f"{stem}.v"
+                                       for stem in ("SharedUniverses", name)])
+                ensure(not fault, f"individually valid kernel batch failed: {name}: {fault}")
+            ensure(bool(recheck(joint, gate._sources(joint), frozenset({"SharedUniverses", "Left"}))),
+                   "incremental join accepted contradictory universes")
             # The two changed roots form separate batches once their shared base
             # is cached. Both can pass alone, but their joint environment cannot.
-            refused = recheck(joint, gate._sources(joint), frozenset({"SharedUniverses"}), jobs=2)
-            ensure(refused.returncode != 0, "parallel join accepted contradictory universes")
+            ensure(bool(recheck(joint, gate._sources(joint), frozenset({"SharedUniverses"}), jobs=2)),
+                   "parallel join accepted contradictory universes")
+
+
+def _native_admitted_installed_axioms() -> None:
+    """A root that loads a sealed installed module can be admitted without refusal.
+
+    Corelib's ssrunder seals Under_rel, whose fields rocqchk names as axioms wherever
+    the library is admitted rather than checked. An installed library's axiom in a
+    library the worker checks is refused beside them.
+    """
+    lane = gate.workspace(Path(__file__).resolve().parents[2])
+    lane.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="admission-test-", dir=lane) as temporary:
+        root = Path(temporary) / "source"
+        folder = root / "proofs"
+        folder.mkdir(parents=True)
+        work = Path(temporary) / "output"
+        apex = "Theorem sound : True. Proof. exact I. Qed.\n"
+        texts = {"ApexTheorem": apex,
+                 "Base": "Require Corelib.ssr.ssrunder.\nDefinition value := 0.\n",
+                 "Consumer": ("Require Base.\n"
+                              "Theorem same : Base.value = 0. Proof. reflexivity. Qed.\n")}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+        sealed = "Corelib.ssr.ssrunder.Under_rel"
+        steps = ((apex, 0, ""),
+                 (apex + "(* edit *)\n", 0, sealed),
+                 ("From Stdlib Require Import FunctionalExtensionality.\n" + apex, 1,
+                  "functional_extensionality_dep"))
+        with patch.object(gate, "workspace", return_value=work), \
+                patch.object(gate, "_inputs", side_effect=receipts.snapshot), \
+                patch.object(gate, "_recheck", wraps=gate._recheck) as kernel:
+            for text, verdict, said in steps:
+                (folder / "ApexTheorem.v").write_text(text, encoding="utf-8")
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    ensure(gate._run(root, 2) == verdict,
+                           f"wrong verdict {verdict} expected: {output.getvalue()}")
+                ensure(said in output.getvalue(), f"run did not report {said!r}: {output.getvalue()}")
+                if verdict:
+                    ensure(f"{sealed}." not in output.getvalue().split("FAIL", 1)[1],
+                           "an admitted sealed module's field was refused")
+                elif said:
+                    ensure(kernel.call_args.args[2] == frozenset({"Base", "Consumer"}),
+                           "the edit did not admit the root that loads the sealed module")
 
 
 def cases() -> list[Case]:
@@ -643,5 +750,9 @@ def cases() -> list[Case]:
                  _kernel_batches_cannot_omit_provisionally_admitted_work),
             Case("kernel-single-process-paths", _kernel_single_process_paths),
             Case("joint-kernel-recursive-targets", _joint_kernel_keeps_recursive_targets),
+            Case("kernel-admission-covers-installed-names",
+                 _admission_covers_only_the_installed_names_it_repeats),
             Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest"),
-            Case("native-incremental-kernel", _native_incremental_kernel, lane="toolchain")]
+            Case("native-incremental-kernel", _native_incremental_kernel, lane="toolchain"),
+            Case("native-admitted-installed-axioms", _native_admitted_installed_axioms,
+                 lane="toolchain")]

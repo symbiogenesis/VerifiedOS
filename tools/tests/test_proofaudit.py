@@ -181,7 +181,13 @@ def _audit_goals_open_with_proof() -> None:
 
 def _kernel_verdict_needs_a_clean_summary() -> None:
     def fault(code: int, stdout: str, stderr: str) -> str:
-        return gate._kernel_fault(subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr))
+        # With nothing admitted, a worker answers for every library it loaded.
+        def unreachable(*_: object) -> tuple[str, frozenset[str]]:
+            raise AssertionError("a worker that admitted nothing ran a load-only pass")
+        result = subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr)
+        verdict, covered = gate._worker_fault([Path("M.v")], frozenset(), result, unreachable)
+        ensure(not covered, "a worker that admitted nothing covered an axiom")
+        return verdict
 
     ensure(fault(0, "", KERNEL_CLEAN) == "", "a clean kernel run was refused")
     ensure(fault(0, "", KERNEL_CLEAN_93) == "", "a clean Rocq 9.3 kernel run was refused")
@@ -318,8 +324,7 @@ def _staged_run_binds_original_inputs() -> None:
                     patch.object(gate, "_hold", side_effect=lambda _: os.open(os.devnull, os.O_RDONLY)), \
                     patch.object(gate.shutil, "copyfile", side_effect=copy), \
                     patch.object(gate, "_check_source", side_effect=check), \
-                    patch.object(gate, "_recheck", return_value=subprocess.CompletedProcess(
-                        [], 0, stdout="", stderr=KERNEL_CLEAN)), \
+                    patch.object(gate, "_recheck", return_value=""), \
                     contextlib.redirect_stdout(io.StringIO()):
                 ensure(gate._run(root, 1) == 1, f"{phase} mutation produced successful evidence")
             ensure(not (work / gate.RECEIPT).exists(), "a failed run left a success receipt")

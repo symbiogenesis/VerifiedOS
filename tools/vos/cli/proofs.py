@@ -7,7 +7,8 @@ then asks Print Assumptions about every returned symbol. This includes local lem
 nested modules and generated obligations. Claims must resolve to compiled propositions.
 The existing record-witness check remains the decidable part of the non-vacuity gate.
 Sources compile under STRICT and must print no diagnostic; rocqchk's own context
-summary must name no undeclared axiom and no unsafe assumption anywhere it loaded.
+summary must name no undeclared axiom and no unsafe assumption anywhere it loaded,
+except an admitted installed library's axioms, which the admitting evidence covers.
 
 Independent dependency-wave members run concurrently under one directory lock. Unchanged
 compiled products are reused from successful receipts; changed dependencies invalidate
@@ -30,8 +31,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -362,7 +364,7 @@ def _recheck_joint(root: Path, sources: list[Path],
     Admissions are either byte-validated prior evidence or provisional peer work
     whose success the caller MUST await. This result alone is not acceptance evidence.
     No -norec or VM trust is used. The caller binds all bytes before and after the run.
-    `-o` makes rocqchk report the environment's assumptions; `_kernel_fault` reads them.
+    `-o` makes rocqchk report the environment's assumptions; `_worker_fault` reads them.
     """
     command = [*env.rocqchk_command(), "-silent", "-o", "-Q", PROOFS, ""]
     changed = [source.stem for source in sources if source.stem not in admitted]
@@ -387,22 +389,74 @@ def _recheck_joint(root: Path, sources: list[Path],
             cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
-def _kernel_fault(result: subprocess.CompletedProcess[str]) -> str:
-    """Why a kernel run supplies no verdict, or "" when its context summary is clean.
+def _kernel_axioms(result: subprocess.CompletedProcess[str]) -> tuple[str, list[str]]:
+    """Why a kernel run supplies no summary, or "" and the undeclared axioms it names.
 
     A clean run exits zero, prints nothing on stdout and writes only the context
-    summary to stderr. The summary must name no axiom outside DECLARED, used or not.
+    summary to stderr, which `proofaudit.kernel_context` reads exactly.
     """
     if result.returncode or result.stdout.strip():
-        return (result.stderr.strip() or result.stdout.strip()) or "no diagnostic"
+        diagnostic = (result.stderr.strip() or result.stdout.strip()) or "no diagnostic"
+        return (f"exit {result.returncode}: {diagnostic}" if result.returncode
+                else diagnostic), []
     try:
         axioms = proofaudit.kernel_context(result.stderr)
     except proofaudit.AuditError as err:
-        return f"{err}\n{result.stderr.strip()}"
+        return f"{err}\n{result.stderr.strip()}", []
     declared = {entry.split(" : ", 1)[0] for entry in DECLARED}
-    undeclared = [axiom for axiom in axioms if axiom not in declared]
-    return ("the checked environment declares undeclared axioms: " + ", ".join(undeclared)
-            if undeclared else "")
+    return "", [axiom for axiom in axioms if axiom not in declared]
+
+
+def _undeclared(axioms: list[str]) -> str:
+    return ("the checked environment declares undeclared axioms: " + ", ".join(axioms)
+            if axioms else "")
+
+
+# The undeclared axioms a closure of admitted roots names when loaded unchecked, or
+# why that run supplies no summary.
+AdmittedAxioms = Callable[[list[Path], frozenset[str]], tuple[str, frozenset[str]]]
+
+
+def _admitted_axioms(root: Path, roots: list[Path],
+                     admitted: frozenset[str]) -> tuple[str, frozenset[str]]:
+    """What rocqchk names for admitted roots' closure alone, loaded as a worker loads it.
+
+    The joining module is the only explicit target, so every root and every library
+    it reaches is admitted: nothing is type-checked.
+    """
+    fault, axioms = _kernel_axioms(_recheck_joint(root, roots, admitted))
+    return fault, frozenset(axioms)
+
+
+def _worker_fault(sources: list[Path], admitted: frozenset[str],
+                  result: subprocess.CompletedProcess[str],
+                  admitted_axioms: AdmittedAxioms) -> tuple[str, frozenset[str]]:
+    """One worker's verdict, and the axiom names its admissions answered for.
+
+    rocqchk records which axioms a sealed module's hidden bodies use only while it
+    checks them, so an admitted library names each field of such a module as an axiom:
+    Stdlib's Nat.PrivateImplementsBitwiseSpec and Corelib's Under_rel. A worker answers
+    for the libraries it checked. An installed library that an admitted root reaches is
+    admitted, whatever else reaches it, and answers through the evidence that admitted
+    the root: a peer's recursive check in this run or a prior accepted run of this gate,
+    whose summary named that library's axioms exactly where a worker checked it. So an
+    undeclared installed-library name is covered when the admitted roots' closure,
+    loaded alone, names it too. An installed library is never an explicit target, so
+    that closure admits exactly the installed libraries the worker admitted. Only a
+    worker whose summary names such an axiom pays for that load-only run. A proof
+    module's axiom is never covered.
+    """
+    fault, undeclared = _kernel_axioms(result)
+    stems = {source.stem for source in sources}
+    installed = frozenset(axiom for axiom in undeclared if axiom.split(".", 1)[0] not in stems)
+    if fault or not installed or not admitted:
+        return fault or _undeclared(undeclared), frozenset[str]()
+    fault, named = admitted_axioms([source for source in sources if source.stem in admitted],
+                                   admitted)
+    if fault:
+        return "the admitted roots' own context summary failed: " + fault, frozenset[str]()
+    covered = installed & named
+    return _undeclared([axiom for axiom in undeclared if axiom not in covered]), covered
 
 
 def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> list[list[Path]]:
@@ -444,15 +498,19 @@ def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> l
 
 
 def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset(), *,
-             jobs: int = 1) -> subprocess.CompletedProcess[str]:
-    """Check batches and their joint consistency in the same bounded worker pool.
+             jobs: int = 1) -> str:
+    """Why the kernel refuses the proof set, or "" when every worker accepts it.
 
+    Batches and their joint consistency are checked in the same bounded worker pool.
     Every changed module is an explicit check target in exactly one batch. The
     lightest batch also loads ALL roots, provisionally admitting peer targets so
     that their terms are not checked twice. The other workers recursively check
     those peer targets, admitting only the caller's byte-validated reusable roots.
     Thus every skipped dependency is covered by a peer's recursive check or prior
-    evidence. Explicit targets override admissions even through their closures.
+    evidence, and so are the installed-library axioms rocqchk names for it
+    (`_worker_fault`). An explicit target overrides only its own admission: a library
+    an admitted root reaches stays admitted inside a target's closure, so a component's
+    changed modules are targets together.
     The joint worker checks dependency identities and combined universe constraints;
     ALL workers must succeed silently before their combined verdict can be accepted.
 
@@ -466,11 +524,33 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     stems = frozenset(source.stem for source in sources)
     if not reused <= stems:
         raise ValueError("kernel reuse names modules outside the proof set")
+    lock = threading.Lock()
+    named: dict[frozenset[str], tuple[str, frozenset[str]]] = {}
+
+    def admitted_axioms(roots: list[Path], admitted: frozenset[str]) -> tuple[str, frozenset[str]]:
+        # Workers that admit the same roots share one load-only run.
+        with lock:
+            if admitted not in named:
+                named[admitted] = _admitted_axioms(root, roots, admitted)
+            return named[admitted]
+
+    def verdict(members: list[Path], admitted: frozenset[str]) -> tuple[str, frozenset[str]]:
+        return _worker_fault(members, admitted, _recheck_joint(root, members, admitted),
+                             admitted_axioms)
+
+    def report(fault: str, covered: frozenset[str]) -> str:
+        if not fault and covered:
+            modules = sorted({name.rsplit(".", 1)[0] for name in covered})
+            print(f"  kernel: {len(covered)} axiom name(s) from admitted installed libraries "
+                  f"are covered by the evidence that admitted them: {', '.join(modules)}",
+                  flush=True)
+        return fault
+
     if jobs == 1 or len(stems - reused) < 2:
-        return _recheck_joint(root, sources, reused)
+        return report(*verdict(sources, reused))
     batches = _kernel_batches(sources, reused, jobs)
     if len(batches) < 2:
-        return _recheck_joint(root, sources, reused)
+        return report(*verdict(sources, reused))
     assigned = [source for batch in batches for source in batch]
     if (any(not batch for batch in batches) or len(assigned) != len(set(assigned))
             or set(assigned) != {source for source in sources if source.stem not in reused}):
@@ -482,24 +562,21 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     joint = min(range(len(batches)), key=lambda index: sum(
         source.with_suffix(".vo").stat().st_size for source in batches[index]))
 
-    def check(item: tuple[int, list[Path]]) -> subprocess.CompletedProcess[str]:
+    def check(item: tuple[int, list[Path]]) -> tuple[str, frozenset[str]]:
         index, batch = item
         if index == joint:
-            return _recheck_joint(root, sources, stems - {source.stem for source in batch})
-        return _recheck_joint(root, sorted([*batch, *cached]), reused)
+            return verdict(sources, stems - {source.stem for source in batch})
+        return verdict(sorted([*batch, *cached]), reused)
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(batches))) as pool:
-        results = list(pool.map(check, enumerate(batches)))
-    for batch, result in zip(batches, results, strict=True):
-        fault = _kernel_fault(result)
+        verdicts = list(pool.map(check, enumerate(batches)))
+    for batch, (fault, _) in zip(batches, verdicts, strict=True):
         if fault:
             names = ", ".join(source.stem for source in batch)
-            return subprocess.CompletedProcess(
-                result.args, result.returncode or 1, stdout=result.stdout,
-                stderr=f"kernel batch [{names}] failed:\n{fault}")
+            return f"kernel batch [{names}] failed:\n{fault}"
     if receipts.snapshot(root, products) != before:
         raise ValueError("compiled proof artifacts changed during parallel kernel checking")
-    return results[joint]
+    return report("", frozenset[str]().union(*(covered for _, covered in verdicts)))
 
 
 def _gate_modules(root: Path) -> list[Path]:
@@ -1052,11 +1129,10 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
           f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
           f"starting {'incremental' if reusable else 'full'} kernel recheck "
           f"with worker limit {kernel_jobs}", flush=True)
-    rechecked = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs)
+    fault = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs)
     recheck_seconds = time.perf_counter() - recheck_started
-    fault = _kernel_fault(rechecked)
     if fault:
-        print(f"FAIL: rocqchk recheck (exit {rechecked.returncode}): {fault}")
+        print(f"FAIL: rocqchk recheck: {fault}")
         return 1
     if (inputs != _inputs(root, _sources(root)) or toolchain != _toolchain()
             or context != _cache_context(work, sources)
@@ -1094,8 +1170,8 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
           f"total: {time.perf_counter() - started:.2f}s")
     print(f"ok: {total} constant(s), each enumerated by Rocq, closed under the "
           "global context and re-checked by rocqchk, which shares the kernel's "
-          "lineage and whose context summary names no undeclared axiom or unsafe "
-          "assumption; "
+          "lineage and whose context summary names no unsafe assumption and no "
+          "undeclared axiom that an admission does not cover; "
           f"{witnessed} witness(es); evidence: {root / RECEIPT}; "
           f"full native receipt: {work / RECEIPT}")
     return 0

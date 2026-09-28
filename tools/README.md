@@ -144,7 +144,7 @@ caught by nothing, which is a residue the findings register carries.
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
 | `kernel` | wsl; `reader` on either lane | M4.4's host-side differential. `vectors` compiles [quickchick/KernelVectors.v](quickchick/KernelVectors.v) against its `Require` closure in the CertiRocq oracle's switch; `check` holds the [kernel C](../kernel/README.md) and [trace reader](vos/kernelrun.py) against the generated lines and separately reports fixed release/consumer controls. `mutants` attributes executed kills to their deciding oracle. `restore` executes exact scalar restoration; `effects` executes merged-register trap save, scrub, retirement and fresh-entry defects. Both require `--simulator PATH --build-receipt FILE`. `protected` additionally consumes the accepted contained compiler/configuration and boundary runner to observe real nested frames and timer cuts. `target` supplies M4.4a's signed handoff and finite compiled composition. Use each subcommand's `--help` for its private output and compiler arguments. Broader service, restart and ownership joins remain open. |
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. `adapt FRAME TRACE` answers on either lane: it decodes an RTL harness's retirement frame ([vos/rtltrace.py](vos/rtltrace.py)), refuses a malformed or partial one as a protocol failure, and adjudicates the rest against the golden commit trace through [trace.py](vos/trace.py), reporting agreement over a prefix as incomplete. `carry` runs the corpus on the golden emulator, re-encodes each trace as the frame an RTL would have to write, names the retirements no frame line holds, and requires every seeded field change to be reported; its producer is the golden model, so it measures the adapter and not a core. `framesim` builds the SystemVerilog frame writer under [rvfi-harness/](rvfi-harness/) behind its bench and requires its frames to decode as the stimulus stated, with `--controls` requiring that stimulus to report each seeded writer mutant and `--corpus` driving every member `carry` holds whole; the driver is a fixture. `bmc` prints the bounded model-checking smoke the harness owes, its instruction scope read out of the dialect table ([vos/bmc.py](vos/bmc.py)), and runs nothing. The [harness contract](../docs/assurance/rtl-cosimulation-harness.md) states the frame and what the co-simulation gate still owes. |
-| `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane under pinned strictness settings, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`, whose own context summary must name no undeclared axiom or unsafe assumption. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
+| `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane under pinned strictness settings, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`, whose own context summary must name no unsafe assumption and no undeclared axiom that an admission does not cover. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 | `cic-corpus` | wsl | Reads the objects `proofs` compiled in this lane and writes what the corpus asks a CIC checker to decide: per enumerated symbol, its transitive dependency closure from `Print All Dependencies`, its kind, opacity and universe status from `About`, and the term features a declared lexical predicate finds in the declaration `Print` wrote under `Set Printing All`. `report` writes the report to the ignored `out/` directory with its source, exporter and prover identities and a freshness verdict; `check` re-decides that verdict against the live checkout. The report is evidence for M6.2b-0's profile decision and holds no acceptance verdict; a stale report is a finding rather than a figure to quote. |
 
 `supervisor target` compiles separate contained supervisor and trusted consumer
@@ -986,8 +986,19 @@ The kernel recheck runs `rocqchk -o` and parses the context summary it writes to
 exactly. The summary covers the whole environment the checker loaded, admitted modules
 included, and must name no axiom outside the declared set and no type-in-type, unsafe
 (co)fixpoint or assumed-positivity entry. An axiom a library declares is therefore
-refused even when no proof uses it; Stdlib's `Program` and `FunctionalExtensionality`
-closures declare such axioms. This enumeration does not share the compiler's Print
+refused even when no proof uses it, wherever a worker checks that library; Stdlib's
+`Program` and `FunctionalExtensionality` closures declare such axioms.
+A worker answers for the libraries it checked. The checker records which axioms a
+sealed module's hidden proofs use only while it checks them, so an admitted installed
+library names each field of such a module as an axiom; Stdlib's `PeanoNat` and
+Corelib's `ssrunder` have such modules. When a worker that admitted roots names an
+undeclared installed-library axiom, the gate loads those admitted roots alone, all
+unchecked. A name that load also names is covered by the evidence that admitted the
+roots: a peer's recursive check in the same run or an earlier accepted run of the same
+gate, where a worker checked that library and named its axioms exactly. Only such a
+worker pays for the load-only pass, and workers admitting the same roots share one.
+A proof module's axiom is never covered, and the run prints the covered names.
+This enumeration does not share the compiler's Print
 Assumptions, which in Rocq 9.2 omits an axiom a definition reaches only through its
 type. It does not report definitional UIP, which the Print Assumptions audit does.
 Rocq 9.3 ends the summary with the inductives that rely on indices not mattering,
@@ -1042,7 +1053,10 @@ Changed runs use Rocq's documented
 [`-admit` incremental checking](https://rocq-prover.org/doc/V9.2.0/refman/practical-tools/coq-commands.html):
 byte-validated, previously kernel-checked modules and their unchanged dependency
 closures may skip repeated type checking. Every changed module must be an explicit
-check target in one worker, which overrides admission in that worker. A freshly
+check target in one worker, which overrides admission in that worker. A target
+overrides only its own admission: a library that an admitted root reaches stays
+admitted inside a target's closure, so a component's changed modules are targets
+together. A freshly
 compiled empty joining module requires every current module, including disconnected
 reused ones, so the checker still loads one joint environment and checks dependency
 consistency. New external dependencies
@@ -1055,8 +1069,9 @@ staged objects can be recovered on retry; no current receipt is published until 
 whole run succeeds.
 This follows the pinned checker's
 [selection algorithm](https://github.com/rocq-prover/rocq/blob/V9.2.0/checker/checkLibrary.ml);
-the native regressions exercise incremental success, incompatible objects and
-contradictory universe constraints across separately valid libraries.
+the native regressions exercise incremental success, incompatible objects,
+contradictory universe constraints across separately valid libraries, and an admitted
+root that loads a sealed installed module.
 
 The launcher groups changed modules by connected local dependency components and
 distributes them within the selected kernel-worker limit. Components stay
@@ -1069,9 +1084,9 @@ recursively checks its targets, admitting only previously validated reusable roo
 External dependencies can be checked by more than one worker.
 
 The launcher verifies complete, disjoint target coverage before any worker starts.
-A provisional admission supplies no reusable evidence: acceptance requires a clean
-context summary from every worker plus unchanged object, source, toolchain and library
-hashes.
+A provisional admission supplies no reusable evidence: acceptance requires every
+worker's context summary to pass the audit above plus unchanged object, source,
+toolchain and library hashes.
 The joint worker may finish first, but a peer failure still refuses the entire run.
 The pinned checker's admission path still checks dependency identities and inserts
 universe constraints through
