@@ -387,7 +387,7 @@ Proof.
   - destruct i; discriminate Hn.
   - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hy Hr ].
     destruct i as [ | k ].
-    + simpl in Hn. injection Hn as Hn. rewrite <- Hn. exact Hy.
+    + simpl in Hn. congruence.
     + simpl in Hn. exact (IH k x Hr Hn).
 Qed.
 
@@ -755,10 +755,9 @@ Proof.
   - discriminate H.
   - simpl in H. destruct (v x) eqn:Ex.
     + destruct (best_by v r) as [ b | ] eqn:Eb.
-      * destruct (Nat.ltb (sr_version b) (sr_version x)).
-        -- injection H as H. rewrite <- H. exact Ex.
-        -- injection H as H. rewrite <- H. exact (IH b eq_refl).
-      * injection H as H. rewrite <- H. exact Ex.
+      * pose proof (IH b eq_refl) as Hb.
+        destruct (Nat.ltb (sr_version b) (sr_version x)); congruence.
+      * congruence.
     + exact (IH c H).
 Qed.
 
@@ -773,7 +772,7 @@ Proof.
       * destruct (Nat.ltb (sr_version b) (sr_version x)); discriminate H.
       * discriminate H.
     + destruct i as [ | k ].
-      * simpl in Hn. injection Hn as Hn. rewrite <- Hn. exact Ex.
+      * simpl in Hn. congruence.
       * simpl in Hn. exact (IH k d H Hn).
 Qed.
 
@@ -803,8 +802,7 @@ Proof.
            exact (nat_leb_refl (sr_version x)).
         -- simpl in Hn. rewrite (best_by_none v r k d Eb Hn) in Hv. discriminate Hv.
     + destruct i as [ | k ].
-      * simpl in Hn. injection Hn as Hn. rewrite <- Hn in Hv. rewrite Ex in Hv.
-        discriminate Hv.
+      * simpl in Hn. congruence.
       * simpl in Hn. exact (IH c k d H Hn Hv).
 Qed.
 
@@ -815,7 +813,7 @@ Proof.
   intros v cs. induction cs as [ | x r IH ]; intros c H.
   - discriminate H.
   - simpl in H. destruct (v x) eqn:Ex.
-    + injection H as H. rewrite <- H. exact Ex.
+    + congruence.
     + exact (IH c H).
 Qed.
 
@@ -847,7 +845,7 @@ Proof.
   intros t cs ptr c H. unfold pointer_select in H.
   destruct (nth_opt cs ptr) as [ x | ]; [ | discriminate H ].
   destruct (root_verifies t x) eqn:E; [ | discriminate H ].
-  injection H as H. rewrite <- H. exact E.
+  congruence.
 Qed.
 
 Theorem the_first_verifying_select_still_takes_only_a_verifying_copy :
@@ -1580,7 +1578,7 @@ Proof.
   revert Hf. induction os as [ | x r IH ]; intros Hf.
   - discriminate Hf.
   - simpl in Hf. destruct (Nat.eqb (address t x) n) eqn:E.
-    + injection Hf as Hf. rewrite <- Hf. exact E.
+    + congruence.
     + exact (IH Hf).
 Qed.
 (* =========================================================================
