@@ -36,13 +36,18 @@ KERNEL_THEORY = ("Set is predicative", "Rewrite rules are not allowed")
 KERNEL_UNSAFE = ("Constants/Inductives relying on type-in-type",
                  "Constants/Inductives relying on unsafe (co)fixpoints",
                  "Inductives whose positivity is assumed")
+# Rocq 9.3 adds a final section naming the inductives whose elimination or universe
+# relies on indices not mattering, Corelib's `eq` among them. The CIC checker profile
+# fixes indices_matter=false, so the section describes that theory rather than an
+# assumption beyond it; Rocq 9.2 checks the same theory without printing the section.
+KERNEL_INDICES = "Inductives relying on indices not mattering"
 
 # Settings the compiler command line fixes, or whose default the audit relies on. A
 # source that sets one overrides that choice for itself, so the gate refuses it.
 PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
                    "Nested Proofs Allowed", "Allow StrictProp", "Definitional UIP",
                    "Guard Checking", "Positivity Checking", "Universe Checking",
-                   "Strict Universe Declaration", "Default Timeout")
+                   "Indices Matter", "Strict Universe Declaration", "Default Timeout")
 _PREFIXES = (r'(?:#\[[^\]]*\]\s*|(?:Local|Global|Export|Time|Fail|Succeed)\s+'
              r'|Redirect\s+"[^"]*"\s+)*')
 _PINNED = re.compile(_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
@@ -124,12 +129,14 @@ def assumption_query(module: str, symbols: list[Symbol]) -> str:
         name = symbol["name"]
         if not QUALIFIED.fullmatch(name):
             raise AuditError(f"invalid native symbol name {name!r}")
-        lines += [f'Goal True. idtac "{MARKER}{name}". Abort.\n',
+        # Each interactive proof opens with Proof: Rocq 9.3 warns by default otherwise,
+        # and the gate refuses any diagnostic.
+        lines += [f'Goal True. Proof. idtac "{MARKER}{name}". Abort.\n',
                   f"Print Assumptions {name}.\n"]
         if symbol["claims"]:
             # The source keyword Theorem can introduce a term of type nat. The
             # kernel, rather than that keyword, must decide that a claim is a Prop.
-            lines.append(f"Goal True. let T := type of (@{name}) in "
+            lines.append(f"Goal True. Proof. let T := type of (@{name}) in "
                          "let K := type of T in unify K Prop. exact I. Qed.\n")
     return "".join(lines)
 
@@ -172,7 +179,9 @@ def kernel_context(summary: str) -> list[str]:
     9.2's Print Assumptions misses an axiom that a definition reaches only through its
     type; this enumeration does not. It does not report definitional UIP, which the
     Print Assumptions audit does. rocqchk writes the summary to stderr, and nothing
-    else may appear there: an unrecognized line refuses the run.
+    else may appear there: an unrecognized line refuses the run. Rocq 9.3 ends the
+    summary with KERNEL_INDICES; its entries must be qualified names, and they are
+    accepted because they rely only on the theory the checker profile fixes.
     """
     lines = [line.rstrip() for line in summary.splitlines() if line.strip()]
     if tuple(lines[:2]) != KERNEL_CONTEXT:
@@ -186,18 +195,24 @@ def kernel_context(summary: str) -> list[str]:
             sections[-1][2].append(line.strip())
         else:
             raise AuditError(f"unrecognized kernel context line: {line}")
-    if [key for key, _, _ in sections] != ["Theory", "Theory", "Axioms", *KERNEL_UNSAFE]:
-        raise AuditError("unrecognized kernel context sections: "
-                         + ", ".join(key for key, _, _ in sections))
+    keys = [key for key, _, _ in sections]
+    expected = ["Theory", "Theory", "Axioms", *KERNEL_UNSAFE]
+    if keys not in (expected, [*expected, KERNEL_INDICES]):
+        raise AuditError("unrecognized kernel context sections: " + ", ".join(keys))
     theory = tuple(value for key, value, _ in sections[:2])
     if theory != KERNEL_THEORY:
         raise AuditError("the kernel checked a non-default theory: " + "; ".join(theory))
-    for key, value, entries in sections[3:]:
+    for key, value, entries in sections[3:len(expected)]:
         if value != "<none>" or entries:
             raise AuditError(f"{key}: {', '.join(entries) or value}")
     _, value, axioms = sections[2]
     if (value == "<none>") == bool(axioms) or value not in ("", "<none>"):
         raise AuditError(f"malformed kernel axiom list: {value or 'empty'}")
+    for _, value, inductives in sections[len(expected):]:
+        if ((value == "<none>") == bool(inductives) or value not in ("", "<none>")
+                or not all(QUALIFIED.fullmatch(name) for name in inductives)):
+            raise AuditError(f"malformed kernel indices list: "
+                             f"{', '.join(inductives) or value or 'empty'}")
     return axioms
 
 

@@ -551,7 +551,8 @@ def _native_incremental_kernel() -> None:
         work = Path(temporary) / "output"
         texts = {"ApexTheorem": "Theorem sound : True. Proof. exact I. Qed.\n",
                  "Base": "Definition value := 0.\n",
-                 "Consumer": "Require Base. Theorem same : Base.value = 0. reflexivity. Qed.\n"}
+                 "Consumer": ("Require Base. Theorem same : Base.value = 0. "
+                              "Proof. reflexivity. Qed.\n")}
         for name, text in texts.items():
             (folder / f"{name}.v").write_text(text, encoding="utf-8")
         recheck = gate._recheck
@@ -575,7 +576,7 @@ def _native_incremental_kernel() -> None:
                 ensure(kernel.call_args.args[2] == frozenset(expected),
                        "native gate reused the wrong dependency closure")
             added = folder / "Added.v"
-            added.write_text("Require Consumer. Lemma added : True. exact I. Qed.\n",
+            added.write_text("Require Consumer. Lemma added : True. Proof. exact I. Qed.\n",
                              encoding="utf-8")
             ensure(gate._run(root, 2) == 0, "native module addition failed")
             ensure(kernel.call_args.args[2] == frozenset(texts), "addition lost checked roots")

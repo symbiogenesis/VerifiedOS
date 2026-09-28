@@ -104,13 +104,14 @@ def _reading_query(module: str, names: list[str], *, bodies: bool) -> str:
     for name in names:
         if cic_corpus.QUALIFIED.fullmatch(name) is None:
             raise cic_corpus.ParseError(f"invalid symbol name {name!r}")
+        # Proof opens each marker goal, as in proofaudit: Rocq 9.3 warns otherwise.
         if bodies:
-            lines += [f'Goal True. idtac "{cic_corpus.MARKER}{name}". Abort.\n',
+            lines += [f'Goal True. Proof. idtac "{cic_corpus.MARKER}{name}". Abort.\n',
                       f"Print {name}.\n"]
         else:
-            lines += [f'Goal True. idtac "{cic_corpus.MARKER}{name}|deps". Abort.\n',
+            lines += [f'Goal True. Proof. idtac "{cic_corpus.MARKER}{name}|deps". Abort.\n',
                       f"Print All Dependencies {name}.\n",
-                      f'Goal True. idtac "{cic_corpus.MARKER}{name}|about". Abort.\n',
+                      f'Goal True. Proof. idtac "{cic_corpus.MARKER}{name}|about". Abort.\n',
                       f"About {name}.\n"]
     return "".join(lines)
 

@@ -976,8 +976,9 @@ statement's type. The `!` goal selector refuses a tactic that would act on the f
 several unfocused goals. SProp is refused, which holds the
 [checker profile's](../docs/assurance/cic-checker-qualification.md#the-published-profile-and-metatheory-decision)
 exclusion of definitional proof irrelevance. A source that configures warnings, resets
-a pinned setting or a kernel checking flag, enables definitional UIP or sets a
-wall-clock timeout is refused before compilation.
+a pinned setting or a kernel checking flag, sets `Indices Matter`, enables definitional
+UIP or sets a wall-clock timeout is refused before compilation. The gate's own generated
+queries open every interactive proof with `Proof`, which Rocq 9.3 warns about otherwise.
 
 The kernel recheck runs `rocqchk -o` and parses the context summary it writes to stderr
 exactly. The summary covers the whole environment the checker loaded, admitted modules
@@ -987,6 +988,10 @@ refused even when no proof uses it; Stdlib's `Program` and `FunctionalExtensiona
 closures declare such axioms. This enumeration does not share the compiler's Print
 Assumptions, which in Rocq 9.2 omits an axiom a definition reaches only through its
 type. It does not report definitional UIP, which the Print Assumptions audit does.
+Rocq 9.3 ends the summary with the inductives that rely on indices not mattering,
+Corelib's `eq` among them. The gate requires qualified names there and accepts them,
+because the checker profile fixes `indices_matter=false`; Rocq 9.2 checks the same
+theory without printing the section.
 The default run reuses compiled objects, native assumption audits and kernel verdicts
 only from a successful native receipt with matching source bytes, compiled-object
 hashes, dependency resolution, gate inputs and toolchain context. A changed source

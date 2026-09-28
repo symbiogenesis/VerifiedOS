@@ -26,6 +26,11 @@ KERNEL_CLEAN = ("\nCONTEXT SUMMARY\n===============\n\n* Theory: Set is predicat
                 "* Inductives whose positivity is assumed: <none>\n  \n")
 _LOADED_AXIOM = KERNEL_CLEAN.replace(
     "* Axioms: <none>\n", "* Axioms:\n    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq\n    M.a\n")
+# Rocq 9.3 appends one section, written here byte for byte as it follows the others for
+# a module whose environment is the prelude alone.
+_INDICES = ("* Inductives relying on indices not mattering:\n"
+            "    Corelib.Init.Datatypes.eq_true\n    Corelib.Init.Logic.eq\n  \n")
+KERNEL_CLEAN_93 = KERNEL_CLEAN + _INDICES
 
 
 def _inventory_filters_and_framing() -> None:
@@ -131,7 +136,21 @@ def _kernel_context_is_exact() -> None:
     ensure(proofaudit.kernel_context(KERNEL_CLEAN) == [], "a clean summary names no axiom")
     ensure(proofaudit.kernel_context(_LOADED_AXIOM)
            == ["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq", "M.a"], "every loaded axiom is named")
+    none = KERNEL_CLEAN + "* Inductives relying on indices not mattering: <none>\n  \n"
+    for summary in (KERNEL_CLEAN_93, none):
+        ensure(proofaudit.kernel_context(summary) == [],
+               "the indices section of the fixed theory refused a clean summary")
+    ensure(proofaudit.kernel_context(_LOADED_AXIOM + _INDICES)
+           == ["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq", "M.a"],
+           "the indices section hid a loaded axiom")
     refused = [
+        KERNEL_CLEAN_93.replace("not mattering:\n", "not mattering: <none>\n"),
+        KERNEL_CLEAN + "* Inductives relying on indices not mattering:\n  \n",
+        KERNEL_CLEAN_93.replace("    Corelib.Init.Logic.eq\n", "    Fatal Error: unexpected\n"),
+        KERNEL_CLEAN_93 + _INDICES,
+        KERNEL_CLEAN_93 + "* Constants relying on a new assumption: <none>\n",
+        KERNEL_CLEAN.replace("* Inductives whose positivity", _INDICES + "* Inductives whose positivity"),
+        KERNEL_CLEAN_93.replace("positivity is assumed: <none>", "positivity is assumed:\n    M.Bad"),
         "",
         KERNEL_CLEAN.replace("unsafe (co)fixpoints: <none>", "unsafe (co)fixpoints:\n    M.f"),
         KERNEL_CLEAN.replace("positivity is assumed: <none>", "positivity is assumed:\n    M.Bad"),
@@ -155,6 +174,7 @@ def _kernel_verdict_needs_a_clean_summary() -> None:
         return gate._kernel_fault(subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr))
 
     ensure(fault(0, "", KERNEL_CLEAN) == "", "a clean kernel run was refused")
+    ensure(fault(0, "", KERNEL_CLEAN_93) == "", "a clean Rocq 9.3 kernel run was refused")
     ensure("eq_rect_eq" in fault(0, "", _LOADED_AXIOM), "a loaded but unused axiom passed")
     for code, stdout, stderr in ((1, "", KERNEL_CLEAN), (0, "chatter", KERNEL_CLEAN),
                                  (0, "", ""), (0, "", "Fatal Error: Type error")):
@@ -172,6 +192,7 @@ def _pinned_settings_cannot_be_overridden() -> None:
                "Set Definitional UIP.", "Set Allow StrictProp.", 'Set Bullet Behavior "None".',
                "Set Nested Proofs Allowed.", "Unset Strict Universe Declaration.",
                "Set Default Timeout 5.", "Fail Timeout 1 Check 0.",
+               "Set Indices Matter.", "Local Unset Indices Matter.",
                "Proof. Unset Guard Checking. exact I. Qed.",
                "#[bypass_check(guard)] Fixpoint f (n : nat) : nat := f n.",
                '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.')
@@ -328,7 +349,7 @@ def _native_gate_regressions() -> None:
     bad = [("Theorem good : True. Proof. exact I. Qed.\nPrint Assumptions good.\n"
             "Axiom injected : False. Theorem bad : False. Proof. exact injected. Qed.\n",
             "undeclared assumptions"),
-           ("Theorem unchecked : False. Admitted.\n", "undeclared assumptions"),
+           ("Theorem unchecked : False. Proof. Admitted.\n", "undeclared assumptions"),
            ("(*| discharges: R-05-163 |*)\nTheorem term : nat. Proof. exact 0. Qed.\n",
             "Assumptions failed"),
            ("Program Definition impossible : { n : nat | False } := 0.\n"
