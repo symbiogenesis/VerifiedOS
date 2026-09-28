@@ -32,7 +32,7 @@ the shape and the characters, where a fault survives a rendered read because the
 render succeeds, and for every tracked file, the license mark its kind owes:
 
     tables     the shape         every row against the width its header declares
-    glyphs     the characters    punctuation the house style forbids, and encoding damage
+    glyphs     the characters    encoding damage, in every tracked file
     marks      the provenance    every markable file opens with the declared SPDX identifier
 
 Last, the tool checks itself the same way: every check carries a K-nn rule id,

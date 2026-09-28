@@ -518,7 +518,7 @@ Three things the register already fixes position this section, and it cites them
 | every link resolves to a file, and every fragment to a bookmark or heading | K-12 |
 | every section number a sentence names is carried by some heading | K-13 |
 | every table row is the width its header declares, in a table with a header rule | K-38, K-39 |
-| no em-dash, no mojibake, no replacement character | K-40, K-41 |
+| no mojibake, no replacement character | K-41 |
 | every entry this document names in another document is carried by a heading there | K-59 |
 | every finding the completion note counts has exactly one entry in the findings register | K-82 |
 | every tracked file kind is given a comment syntax or refused by name | K-53 |

@@ -996,7 +996,7 @@ def _keep_own_id(entry_line: str) -> str:
 
 CASES: list[Case] = [
     ("K-00", "a registered rule with its registry row retitled out of the table",
-     _literal(RULES, "| K-40 | glyphs", "| K-xx | glyphs")),
+     _literal(RULES, "| K-41 | glyphs", "| K-xx | glyphs")),
 
     ("K-01", "a trace's derived bookmark renamed in the prose",
      _literal(SPEC, '<a id="r-01-001">', '<a id="moved-away">')),
@@ -1244,9 +1244,6 @@ CASES: list[Case] = [
 
     ("K-39", "a run of table rows carrying no header rule",
      _seed_paragraph("| a stray row | pasted on its own |")),
-
-    ("K-40", "an em-dash, which the house style forbids",
-     _seed_paragraph("A clause " + chr(0x2014) + " and its aside.")),
 
     ("K-41", "UTF-8 read as a single-byte encoding",
      _seed_paragraph("The caf" + chr(0x00C3) + chr(0x00A9) + " problem.")),
