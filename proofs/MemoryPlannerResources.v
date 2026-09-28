@@ -146,7 +146,7 @@ Theorem credit_conservation : forall events initial final,
   final + taken events = initial + returned events.
 Proof.
   induction events as [| event rest IH]; intros initial final HR.
-  - simpl in HR. inversion HR. simpl. lia.
+  - simpl in HR |- *. congruence.
   - destruct event as [n | n]; cbn [run_credit] in HR.
     + destruct (n <=? initial) eqn:HC; try discriminate.
       apply Nat.leb_le in HC. apply IH in HR. cbn [taken returned]. lia.
@@ -214,7 +214,7 @@ Lemma run_credit_app : forall first second initial intermediate,
   run_credit (first ++ second) initial = run_credit second intermediate.
 Proof.
   induction first as [| event rest IH]; intros second initial intermediate HR.
-  - simpl in HR. inversion HR. reflexivity.
+  - simpl in HR |- *. congruence.
   - destruct event as [n | n]; cbn [run_credit] in HR; cbn [app run_credit].
     + destruct (n <=? initial) eqn:HC; try discriminate. apply IH. exact HR.
     + apply IH. exact HR.
