@@ -336,24 +336,9 @@ Proof.
   apply in_map. apply in_seq. lia.
 Qed.
 
-Lemma nodup_map_injective :
-  forall {A B : Type} (f : A -> B) (l : list A),
-    (forall x y : A, In x l -> In y l -> f x = f y -> x = y) ->
-    NoDup l -> NoDup (map f l).
-Proof.
-  intros A B f l. induction l as [ | x r IH ]; simpl; intros Hinj Hnd.
-  - constructor.
-  - inversion Hnd as [ | x' r' Hx Hr ]; subst. constructor.
-    + intros Hin. apply in_map_iff in Hin. destruct Hin as [ y [ Heq Hy ] ].
-      apply Hx.
-      rewrite (Hinj x y (or_introl eq_refl) (or_intror Hy) (eq_sym Heq)). exact Hy.
-    + apply IH; [ | exact Hr ]. intros u v Hu Hv He.
-      apply Hinj; [ right; exact Hu | right; exact Hv | exact He ].
-Qed.
-
 Lemma fp_enum_nodup : forall P : Modulus, NoDup (fp_enum P).
 Proof.
-  intros P. unfold fp_enum. apply nodup_map_injective; [ | apply seq_NoDup ].
+  intros P. unfold fp_enum. apply NoDup_map_NoDup_ForallPairs; [ | apply seq_NoDup ].
   intros x y Hx Hy H.
   apply in_seq in Hx. apply in_seq in Hy.
   apply (fp_of_injective_below P); [ lia | lia | exact H ].
@@ -410,7 +395,7 @@ Lemma fp_enum_shift :
 Proof.
   intros P k. rewrite map_over_is_map. apply perm_of_permutation.
   apply Permutation.NoDup_Permutation.
-  - apply nodup_map_injective; [ | apply fp_enum_nodup ].
+  - apply NoDup_map_NoDup_ForallPairs; [ | apply fp_enum_nodup ].
     intros x y _ _ H. exact (fp_add_injective P k x y H).
   - apply fp_enum_nodup.
   - intros x. split; intros _.
@@ -931,25 +916,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma length_flat_map_constant :
-  forall {A B : Type} (g : A -> list B) (l : list A) (c : nat),
-    (forall a : A, In a l -> length (g a) = c) ->
-    length (flat_map g l) = length l * c.
-Proof.
-  intros A B g l c. induction l as [ | x r IH ]; simpl; intros H; [ reflexivity | ].
-  rewrite length_app. rewrite (H x (or_introl eq_refl)).
-  rewrite IH; [ lia | intros a Ha; apply H; right; exact Ha ].
-Qed.
-
 Lemma mask_tuples_length_pow :
   forall (m : Sharing) (n : nat),
     length (mask_tuples m n) = (length (v_enum m)) ^ n.
 Proof.
   intros m n. induction n as [ | k IH ]; [ reflexivity | ].
   cbn [mask_tuples].
-  rewrite (length_flat_map_constant
-             (fun x => map (cons x) (mask_tuples m k)) (v_enum m)
-             ((length (v_enum m)) ^ k)).
+  rewrite (flat_map_constant_length (c := (length (v_enum m)) ^ k)
+             (fun x => map (cons x) (mask_tuples m k)) (v_enum m)).
   - rewrite Nat.pow_succ_r by lia. reflexivity.
   - intros x _. rewrite length_map. exact IH.
 Qed.
