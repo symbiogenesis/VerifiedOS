@@ -1013,19 +1013,19 @@ Definition reduced_poly (q : Z) (a : list Z) : Prop :=
   Forall (fun x => x mod q = x) a.
 
 Lemma vscale_length : forall q c a, length (vscale q c a) = length a.
-Proof. intros. unfold vscale. apply map_length. Qed.
+Proof. intros. unfold vscale. apply length_map. Qed.
 
 Lemma vadd_length : forall q a b, length a = length b ->
   length (vadd q a b) = length a.
 Proof.
-  intros q a b H. unfold vadd. rewrite map_length, combine_length, H.
+  intros q a b H. unfold vadd. rewrite length_map, length_combine, H.
   apply Nat.min_id.
 Qed.
 
 Lemma vsub_length : forall q a b, length a = length b ->
   length (vsub q a b) = length a.
 Proof.
-  intros q a b H. unfold vsub. rewrite map_length, combine_length, H.
+  intros q a b H. unfold vsub. rewrite length_map, length_combine, H.
   apply Nat.min_id.
 Qed.
 
@@ -1094,10 +1094,10 @@ Proof.
     replace (2 * 2 ^ k * leaf)%nat with ((2 ^ k * leaf) * 2)%nat by nia.
     apply Nat.div_mul. lia. }
   assert (Hlo : length (firstn (length a / 2) a) = (2 ^ k * leaf)%nat).
-  { rewrite firstn_length, Hm. apply Nat.min_l. simpl in H. lia. }
+  { rewrite length_firstn, Hm. apply Nat.min_l. simpl in H. lia. }
   assert (Hhi : length (skipn (length a / 2) a) = (2 ^ k * leaf)%nat).
-  { rewrite skipn_length, Hm. simpl in H. lia. }
-  cbn [ntt_go]. rewrite app_length.
+  { rewrite length_skipn, Hm. simpl in H. lia. }
+  cbn [ntt_go]. rewrite length_app.
   rewrite (IH _ _ leaf), (IH _ _ leaf).
   - rewrite vadd_length, vsub_length, Hlo; try (rewrite vscale_length, Hlo, Hhi; reflexivity).
     simpl in H. lia.
@@ -1125,9 +1125,9 @@ Proof.
     set (lo := firstn (length a / 2) a).
     set (hi := skipn (length a / 2) a).
     assert (Hlo : length lo = (2 ^ k * leaf)%nat).
-    { unfold lo. rewrite firstn_length, Hm. apply Nat.min_l. simpl in H. lia. }
+    { unfold lo. rewrite length_firstn, Hm. apply Nat.min_l. simpl in H. lia. }
     assert (Hhi : length hi = (2 ^ k * leaf)%nat).
-    { unfold hi. rewrite skipn_length, Hm. simpl in H. lia. }
+    { unfold hi. rewrite length_skipn, Hm. simpl in H. lia. }
     set (t := vscale q (pow_mod q psi (e/2)) hi).
     assert (Ht : length t = length lo) by (unfold t; rewrite vscale_length, Hlo, Hhi; reflexivity).
     assert (Ha : length (vadd q lo t) = (2 ^ k * leaf)%nat)
@@ -1136,7 +1136,7 @@ Proof.
       by (rewrite vsub_length, Hlo; congruence).
     cbn [ntt_go]. fold lo hi t.
     cbn [intt_go].
-    rewrite app_length, (ntt_length_general q psi split k _ _ leaf Ha),
+    rewrite length_app, (ntt_length_general q psi split k _ _ leaf Ha),
       (ntt_length_general q psi split k _ _ leaf Hb), Ha, Hb.
     replace ((2 ^ k * leaf + 2 ^ k * leaf) / 2)%nat with (2 ^ k * leaf)%nat
       by (replace (2 ^ k * leaf + 2 ^ k * leaf)%nat with ((2 ^ k * leaf)*2)%nat by lia;
@@ -1254,10 +1254,9 @@ Proof.
   - rewrite bits_le_succ. cbn [bits_value]. rewrite IHn.
     + replace (if Z.testbit x 0 then 1 else 0) with (Z.b2z (Z.testbit x 0))
         by (destruct (Z.testbit x 0); reflexivity).
-      rewrite Z.bit0_mod. pose proof (Z.div_mod x 2 (ltac:(lia))). lia.
-    + split; [apply Z.div_pos; lia|].
-      apply Z.div_lt_upper_bound; [lia|].
-      rewrite Nat2Z.inj_succ, Z.pow_succ_r in H by lia. nia.
+      rewrite Z.bit0_mod. Z.to_euclidean_division_equations. lia.
+    + rewrite Nat2Z.inj_succ, Z.pow_succ_r in H by lia.
+      Z.to_euclidean_division_equations. lia.
 Qed.
 
 Theorem bits_le_of_bits_value : forall bs,
@@ -1268,7 +1267,7 @@ Proof.
   replace (if b then 1 else 0) with (Z.b2z b) by (destruct b; reflexivity).
   rewrite Z.add_b2z_double_bit0.
   assert (Hdiv : (Z.b2z b + 2 * bits_value bs) / 2 = bits_value bs).
-  { symmetry. apply Z.div_unique with (r := Z.b2z b); destruct b; cbn [Z.b2z]; lia. }
+  { destruct b; cbn [Z.b2z]; Z.to_euclidean_division_equations; lia. }
   rewrite Hdiv, IH. reflexivity.
 Qed.
 
@@ -1300,7 +1299,7 @@ Proof.
   - destruct xs; [reflexivity|simpl in Hlen; lia].
   - destruct xs as [|x xs]; [reflexivity|].
     change (firstn width (x :: xs) ++ concat (chunk_of fuel width (skipn width (x :: xs))) = x :: xs).
-    rewrite IHfuel; [apply firstn_skipn|exact Hw|]. rewrite skipn_length.
+    rewrite IHfuel; [apply firstn_skipn|exact Hw|]. rewrite length_skipn.
     cbn [length] in *. simpl in Hlen. nia.
 Qed.
 
@@ -1315,12 +1314,12 @@ Proof.
   change (Forall (fun part => length part = width)
     (firstn width (x :: xs) :: chunk_of fuel width (skipn width (x :: xs)))).
   constructor.
-  - rewrite firstn_length. apply Nat.min_l. exact Hle.
-  - apply IHfuel; [exact Hw|]. rewrite skipn_length.
-    pose proof (Nat.div_mod (length (x :: xs)) width (ltac:(lia))) as Hd.
+  - rewrite length_firstn. apply Nat.min_l. exact Hle.
+  - apply IHfuel; [exact Hw|]. rewrite length_skipn.
+    pose proof (Nat.div_mod_eq (length (x :: xs)) width) as Hd.
     rewrite Hmod in Hd. replace (length (x :: xs) - width)%nat
       with ((length (x :: xs) / width - 1) * width)%nat by nia.
-    apply Nat.mod_mul. lia.
+    apply Nat.Div0.mod_mul.
 Qed.
 
 Lemma bit_codec_chunks : forall width chunks,
@@ -1335,7 +1334,7 @@ Lemma concat_bits_length : forall width xs,
   length (concat (map (bits_le width) xs)) = (length xs * width)%nat.
 Proof.
   intros width xs. induction xs; cbn [map concat length]; [reflexivity|].
-  rewrite app_length, bits_le_length, IHxs. lia.
+  rewrite length_app, bits_le_length, IHxs. lia.
 Qed.
 
 Theorem byte_codec_roundtrip : forall width xs,
@@ -1353,7 +1352,7 @@ Proof.
   - clear Halign. induction Hbounds; cbn [map]; [reflexivity|].
     rewrite bits_value_of_bits_le by exact H. rewrite IHHbounds. reflexivity.
   - exact Hw.
-  - rewrite map_length.
+  - rewrite length_map.
     (* Each coefficient requires width bits, and each output byte carries 8. *)
     assert (Htotal : length (concat (map (bits_le width) xs)) =
       (length (chunk_of (length xs * width) 8 (concat (map (bits_le width) xs))) * 8)%nat).
@@ -1361,8 +1360,8 @@ Proof.
         [|lia|rewrite concat_bits_length; nia].
       pose proof (chunk_of_lengths (length xs * width) 8
         (concat (map (bits_le width) xs)) (ltac:(lia)) (ltac:(rewrite concat_bits_length; exact Halign))) as Hparts.
-      induction Hparts; cbn [concat length]; [reflexivity|]. rewrite app_length, H, IHHparts. lia. }
-    rewrite concat_bits_length in Htotal. rewrite map_length. nia.
+      induction Hparts; cbn [concat length]; [reflexivity|]. rewrite length_app, H, IHHparts. lia. }
+    rewrite concat_bits_length in Htotal. rewrite length_map. nia.
   - apply Forall_forall. intros bs Hbs. apply in_map_iff in Hbs.
     destruct Hbs as [x [<- Hx]]. apply bits_le_length.
 Qed.

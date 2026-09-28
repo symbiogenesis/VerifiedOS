@@ -482,9 +482,6 @@ Proof.
     [ring | rewrite <- IH; ring].
 Qed.
 
-Lemma sq_nonneg : forall z : Z, 0 <= z * z.
-Proof. intro z. nia. Qed.
-
 Lemma weighted_shift_nonneg : forall {A} (l : list A) (wf f : A -> Z) (c : Z),
   (forall a, In a l -> 0 <= wf a) ->
   2 * c * sumZ l (fun a => wf a * f a)
@@ -496,7 +493,7 @@ Proof.
     by (intros b Hb; apply H; right; exact Hb).
   specialize (IH Hr).
   assert (Hsq : 0 <= wf a * ((f a - c) * (f a - c))).
-  { apply Z.mul_nonneg_nonneg; [exact Hw | apply sq_nonneg]. }
+  { apply Z.mul_nonneg_nonneg; [exact Hw | apply Z.square_nonneg]. }
   nia.
 Qed.
 
@@ -618,7 +615,7 @@ Proof.
   { apply Z.le_trans with (sumZ (strings n)
       (fun x => sumZ (strings n) w * (walsh n v x * walsh n v x))).
     - rewrite sumZ_mul_r. cbv beta. apply sumZ_le. intros x Hx.
-      pose proof (HkX x Hx). pose proof (sq_nonneg (walsh n v x)). nia.
+      pose proof (HkX x Hx). pose proof (Z.square_nonneg (walsh n v x)). nia.
     - rewrite sumZ_scale. lia. }
   assert (HP : sumZ (strings n) (fun x => walsh n v x * walsh n v x)
                = two_pow n * sumZ (strings n) (fun y => v y * v y))
@@ -653,7 +650,7 @@ Proof.
   assert (T4 : (W * W * two_pow n) * (Qv * two_pow kY)
                <= (W * W * two_pow n) * (V * V)).
   { apply Z.mul_le_mono_nonneg_l; [| exact HQv].
-    pose proof (sq_nonneg W). nia. }
+    pose proof (Z.square_nonneg W). nia. }
   replace (W * W * (V * V) * two_pow n) with ((W * W * two_pow n) * (V * V)) by ring.
   lia.
 Qed.
@@ -774,7 +771,7 @@ Corollary per_bit_squared_error : forall (s : TwoSource) (sec : nat),
 Proof.
   intros s sec Hp.
   pose proof (chor_goldreich_squared s) as Hmain.
-  pose proof (sq_nonneg (cg_bias s)) as Hb.
+  pose proof (Z.square_nonneg (cg_bias s)) as Hb.
   pose proof (two_pow_pos (ts_n s)) as Hn.
   assert (Hstep : cg_bias s * cg_bias s * two_pow (ts_n s + 2 * sec)
                   <= cg_bias s * cg_bias s * two_pow (ts_kX s + ts_kY s)).
@@ -804,9 +801,6 @@ Proof.
 Qed.
 
 (* ---- the same bound without the square, and the widths a record names ---- *)
-
-Lemma abs_sq : forall z : Z, Z.abs z * Z.abs z = z * z.
-Proof. intro z. rewrite <- Z.abs_mul. apply Z.abs_eq. apply sq_nonneg. Qed.
 
 Lemma two_pow_double : forall k, two_pow k * two_pow k = two_pow (2 * k).
 Proof.
@@ -841,7 +835,7 @@ Proof.
   - replace (Z.abs (cg_bias s) * two_pow sec * (Z.abs (cg_bias s) * two_pow sec))
       with (Z.abs (cg_bias s) * Z.abs (cg_bias s) * (two_pow sec * two_pow sec))
       by ring.
-    rewrite abs_sq, two_pow_double.
+    rewrite Z.abs_square, two_pow_double.
     replace (totX s * totY s * (totX s * totY s))
       with (totX s * totX s * (totY s * totY s)) by ring.
     exact Hsq.
