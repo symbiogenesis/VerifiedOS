@@ -931,7 +931,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-467** owed-act: neither of Vélus's correctness theorems covers the library-mode product the supervisor route trial exchanged, both assuming a compiled main node and the assembly-level one also an axiom about builtins
 · Raised: Q35a
-· Disposition: open, M6.1b-ii's complete producer recording which Vélus theorem, in which mode, covers the Clight AST it generates and that the printed, normalized text the accepted compiler parses stays outside every theorem
+· Disposition: open, M6.1b-ii's complete producer recording which Vélus theorem, if any, and in which mode, covers the Clight AST it generates and that the printed, normalized text the accepted compiler parses stays outside every theorem
 
 ## M0 · Hardware reference
 
