@@ -978,7 +978,8 @@ several unfocused goals. SProp is refused, which holds the
 exclusion of definitional proof irrelevance. A source that configures warnings, resets
 a pinned setting or a kernel checking flag, sets `Indices Matter`, enables definitional
 UIP or sets a wall-clock timeout is refused before compilation. The gate's own generated
-queries open every interactive proof with `Proof`, which Rocq 9.3 warns about otherwise.
+queries open every interactive proof with `Proof`, whose absence Rocq 9.3 reports by
+default as `missing-proof-command`.
 
 The kernel recheck runs `rocqchk -o` and parses the context summary it writes to stderr
 exactly. The summary covers the whole environment the checker loaded, admitted modules

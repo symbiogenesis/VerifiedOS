@@ -169,6 +169,16 @@ def _kernel_context_is_exact() -> None:
         raise AssertionError(f"an unclean or unrecognized kernel summary passed: {summary!r}")
 
 
+def _audit_goals_open_with_proof() -> None:
+    # Rocq 9.3 reports an interactive proof that Proof does not open, and the gate refuses
+    # any diagnostic; the pinned 9.2 is silent, so only the generated text can hold this.
+    claimed: proofaudit.Symbol = {"name": "M.a", "type": "True", "assumptions": [],
+                                  "claims": ["R-05-163"]}
+    query = proofaudit.assumption_query("M", [claimed])
+    ensure(query.count("Goal True.") == 2 and query.count("Goal True. Proof. ") == 2,
+           f"a generated audit goal opened without Proof: {query!r}")
+
+
 def _kernel_verdict_needs_a_clean_summary() -> None:
     def fault(code: int, stdout: str, stderr: str) -> str:
         return gate._kernel_fault(subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr))
@@ -447,6 +457,7 @@ def cases() -> list[Case]:
             Case("requires-follow-vernacular", _requires_follow_vernacular),
             Case("inaccessible-modules-fail-closed", _inaccessible_modules_fail_closed),
             Case("kernel-context-is-exact", _kernel_context_is_exact),
+            Case("audit-goals-open-with-proof", _audit_goals_open_with_proof),
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),

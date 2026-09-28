@@ -365,7 +365,9 @@ used as part of the aforementioned concurrency support via the RMEM
 tool.
 
 The files under [`handwritten_support`](./handwritten_support) provide the library
-definitions Rocq needs.
+definitions Rocq needs. Building the Rocq output also needs the `rocq-sail-stdpp`
+library, which the project's switches do not carry;
+[the opam guide](../tools/opam/README.md) says when to add it back.
 
 ## Directory Structure
 

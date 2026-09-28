@@ -12,6 +12,7 @@ from collections.abc import Callable
 
 from tests.harness import Case, ensure
 from vos import cic_corpus
+from vos.cli import cic_corpus as cic_cli
 
 # `Print All Dependencies usesax.` at Rocq 9.2.0, where the entry's type went to a line
 # of its own without indentation. Both entry shapes the command prints are here.
@@ -273,6 +274,15 @@ def _closure_names_split_by_ownership() -> None:
            f"an unqualified foreign name stays foreign: {short} {outside}")
 
 
+def _marker_goals_open_with_proof() -> None:
+    # Rocq 9.3 reports an interactive proof that Proof does not open, and _query refuses
+    # any diagnostic; the pinned 9.2 is silent, so only the generated text can hold this.
+    for bodies, count in ((True, 1), (False, 2)):
+        query = cic_cli._reading_query("M", ["M.a"], bodies=bodies)
+        ensure(query.count("Goal True.") == count and query.count("Goal True. Proof. ") == count,
+               f"a generated marker goal opened without Proof: {query!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("dependencies-read-both-entry-shapes", _dependencies_read_both_entry_shapes),
@@ -286,4 +296,5 @@ def cases() -> list[Case]:
         Case("blocks-refuse-missing-or-extra", _blocks_refuse_a_missing_or_extra_answer),
         Case("source-reading-counts-sentences", _source_reading_counts_sentences),
         Case("closure-names-split-by-ownership", _closure_names_split_by_ownership),
+        Case("marker-goals-open-with-proof", _marker_goals_open_with_proof),
     ]
