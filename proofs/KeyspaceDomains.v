@@ -782,7 +782,7 @@ Proof.
   assert (Hs : ksig a = ksig b) by exact (lex_eqb_true _ _ H).
   destruct a as [ ad asp ak ao aa av ]. destruct b as [ bd bsp bk bo ba bv ].
   unfold ksig in Hs. simpl in Hs.
-  injection Hs as H1 H2 H3 H4 H5 H6. subst. reflexivity.
+  congruence.
 Qed.
 
 (* R-10-003's record, discharged at this key type. This instance is the
