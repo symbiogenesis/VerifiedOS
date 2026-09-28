@@ -881,6 +881,41 @@ def _k82_figure(box: Sandbox) -> bool:
         text, m, f"The plan records {int(m.group('n')) - 1} of them"))
 
 
+# A DECTED width no code reaches, with every figure built on it moved to agree: the
+# normative code at about 7 check bits over 4 tag bits, the fallback's implied 6 over 2,
+# and the totals, shares, bands and the specification's copies all consistent with
+# them. The arithmetic holds throughout, so within K-54 only the distance-6 floor sees
+# that no code of that distance is so short.
+_K54_BELOW_FLOOR: list[tuple[str, str, str]] = [
+    (REGISTER,
+     "under a DECTED code of 8 check bits, the fewest any code of minimum distance 6 over 4 "
+     "bits admits, for total metadata of some 22 bits per 256 data bits (8.6%), of which "
+     "the tag plane with its own code is 12, some 4.7% of the payload; 128 bits (18 per "
+     "128, 14.1%, the tag plane with its code 9 of them at 7.0%)",
+     "under a DECTED code of about 7 bits, for total metadata of some 21 bits per 256 data "
+     "bits (8.2%), of which the tag plane with its own code is 11, some 4.3% of the "
+     "payload; 128 bits (17 per 128, 13.3%, the tag plane with its code 8 of them at 6.3%)"),
+    (REGISTER, "about 47–70 MB of SRAM per GB", "about 43–63 MB of SRAM per GB"),
+    (REGISTER, "consume 188–560% of a", "consume 172–504% of a"),
+    (SPEC, "about 47–70 MB of SRAM per GB", "about 43–63 MB of SRAM per GB"),
+    (SPEC, "consume 188–560% of a", "consume 172–504% of a"),
+    (SPEC, "12 of the 22 at 256 and 9 of the 18 at 128",
+     "11 of the 21 at 256 and 8 of the 17 at 128"),
+]
+
+
+def _k54_below_floor(box: Sandbox) -> bool:
+    texts: dict[str, str | None] = {}
+    for rel, find, repl in _K54_BELOW_FLOOR:
+        text = texts[rel] if rel in texts else box.read(rel)
+        texts[rel] = None if text is None else replace_once(text, find, repl)
+    if any(text is None for text in texts.values()):
+        return False
+    # every file is written before the verdict is read, so no write is short-circuited
+    written = [box.write(rel, text) for rel, text in texts.items()]
+    return all(written)
+
+
 def _k30(box: Sandbox) -> bool:
     text = box.read(PERF)
     m = re.search(r"(?m)^\|[^\r\n]*In-order issue[^\r\n]*", text)
@@ -1280,6 +1315,24 @@ CASES: list[Case] = [
     # why a moved owner cannot ride it.
     ("K-54", "the tag granule moved out from under every figure derived from it",
      _renumber(REGISTER, r"one validity tag per \*\*(\d+)-bit\*\* granule", 1, "128")),
+
+    # The granule case moves every figure at once and so cannot tell a rule holding the
+    # figures against each other from one holding them against coding theory. This one
+    # can: the width falls below the floor with everything built on it moved to agree,
+    # so a rule narrowed to consistency passes it.
+    ("K-54", "a DECTED width below the distance-6 floor under consistent figures",
+     _k54_below_floor),
+
+    # One end of one band, moved alone: the fallback codeword's arithmetic is what fixes
+    # it, and the low-end holds beside it cannot see it move.
+    ("K-54", "an upper band end the fallback codeword does not give",
+     _literal(REGISTER, "about 47–70 MB of SRAM per GB", "about 47–71 MB of SRAM per GB")),
+
+    # A rung of the ladder the width is chosen from, moved alone: every codeword figure
+    # still agrees, and only pricing the ladder at its floor sees the rung is wrong.
+    ("K-54", "a ladder rung extended Hamming, the tags and the linear floor do not give",
+     _literal(REGISTER, "full ladder is 21.9 / 14.1 / 8.6 / 5.5%",
+              "full ladder is 21.9 / 14.1 / 8.6 / 5.3%")),
 
     # The booking half rather than the capacity half: an owner that stops stating its
     # figure is the ordinary floor, where an artifact that stops booking the bank count
