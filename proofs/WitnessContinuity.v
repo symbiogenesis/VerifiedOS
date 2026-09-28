@@ -205,14 +205,11 @@ Proof.
       cbn [length]; rewrite IH; lia.
 Qed.
 
-Lemma ltb_negb : forall i b, negb (i <? b) = (b <=? i).
-Proof. intros i b. symmetry. apply Nat.leb_antisym. Qed.
-
 Lemma card_lt : forall n b, b <= n -> card n (fun i => i <? b) = b.
 Proof.
   intros n b Hb.
   assert (H : card n (fun i => i <? b) + card n (fun i => b <=? i) = n).
-  { apply card_complement. intros i _. symmetry. apply ltb_negb. }
+  { apply card_complement. intros i _. apply Nat.leb_antisym. }
   rewrite card_ge in H. lia.
 Qed.
 

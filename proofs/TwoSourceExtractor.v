@@ -808,12 +808,6 @@ Proof.
   rewrite two_pow_add. reflexivity.
 Qed.
 
-Lemma sq_le_nonneg : forall a b : Z, 0 <= a -> 0 <= b -> a * a <= b * b -> a <= b.
-Proof.
-  intros a b Ha Hb H.
-  destruct (Z.le_gt_cases a b) as [Hle | Hgt]; [exact Hle | exfalso]. nia.
-Qed.
-
 (* Both sides of the squared bound are squares of non-negative integers, so the
    bound also holds without the square: |B| * 2^s <= W * V, which is the
    total-variation reading 2 * Delta <= 2^(-s). No square root is taken and no
@@ -829,8 +823,7 @@ Proof.
   pose proof (two_pow_pos sec) as Hpow.
   assert (HX : 0 < totX s) by (unfold totX; apply ts_w_positive).
   assert (HY : 0 < totY s) by (unfold totY; apply ts_v_positive).
-  apply sq_le_nonneg.
-  - apply Z.mul_nonneg_nonneg; [apply Z.abs_nonneg | lia].
+  apply Z.square_le_simpl_nonneg.
   - apply Z.mul_nonneg_nonneg; lia.
   - replace (Z.abs (cg_bias s) * two_pow sec * (Z.abs (cg_bias s) * two_pow sec))
       with (Z.abs (cg_bias s) * Z.abs (cg_bias s) * (two_pow sec * two_pow sec))

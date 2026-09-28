@@ -1715,7 +1715,7 @@ Proof.
       assert (Hx : c' = x).
       { rewrite Hcat in Ex. rewrite <- Hlen in Ex.
         rewrite (nth_error_app_mid nat P Q c') in Ex.
-        injection Ex as Ex. exact Ex. }
+        congruence. }
       rewrite Hx in Hcat. rewrite Hx in Hadm'.
       assert (HIH : flatten_grown ka ar1 f (pair a0 sp0)
                     = ins ka k v (flatten ka ar f x))

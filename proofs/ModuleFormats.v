@@ -767,7 +767,7 @@ Proof.
   intros f bs1 bs2 m Hwf H1 H2.
   pose proof (manifest_serialize_of_parse f bs1 m Hwf H1) as A.
   pose proof (manifest_serialize_of_parse f bs2 m Hwf H2) as B.
-  rewrite A in B. injection B as B. exact B.
+  congruence.
 Qed.
 
 Theorem manifest_encoding_is_injective : forall f m1 m2 enc,
@@ -777,7 +777,7 @@ Proof.
   intros f m1 m2 enc Hwf H1 H2.
   pose proof (manifest_parse_of_serialize f m1 enc Hwf H1) as A.
   pose proof (manifest_parse_of_serialize f m2 enc Hwf H2) as B.
-  rewrite A in B. injection B as B. exact B.
+  congruence.
 Qed.
 
 (*| discharges: R-05-051b |*)
@@ -955,7 +955,7 @@ Proof.
   intros f bs1 bs2 c Hwf H1 H2.
   pose proof (certificate_serialize_of_parse f bs1 c Hwf H1) as A.
   pose proof (certificate_serialize_of_parse f bs2 c Hwf H2) as B.
-  rewrite A in B. injection B as B. exact B.
+  congruence.
 Qed.
 
 Theorem certificate_encoding_is_injective : forall f c1 c2 enc,
@@ -965,7 +965,7 @@ Proof.
   intros f c1 c2 enc Hwf H1 H2.
   pose proof (certificate_parse_of_serialize f c1 enc Hwf H1) as A.
   pose proof (certificate_parse_of_serialize f c2 enc Hwf H2) as B.
-  rewrite A in B. injection B as B. exact B.
+  congruence.
 Qed.
 
 (*| discharges: R-05-051b |*)

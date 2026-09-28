@@ -402,7 +402,7 @@ Proof.
     && forallb (fun f => (length f <=? frame_bytes l) && octets f)
          (seal_journal seal g 0 xs)); [|discriminate].
   destruct (medium_admissible l g (journal_medium l (seal_journal seal g 0 xs))) eqn:E;
-    [inversion H; subst; exact E|discriminate].
+    [congruence|discriminate].
 Qed.
 
 Definition DecodedTxn : Type := nat * list (nat * nat).
