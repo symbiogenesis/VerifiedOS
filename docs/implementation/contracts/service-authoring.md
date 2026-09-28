@@ -25,8 +25,9 @@ The intent variants and ambiguity policy remain owner decisions at R-12-013a and
 
 M6.3b's unimplemented namespace and query indexes may compare the survey's
 [dynamic ordered indexes](../../background/open-math-conjectures.md#compact-static-dictionaries-and-dynamic-ordered-indexes),
-[hashing](../../background/open-math-conjectures.md#hashing-beyond-the-uniform-probing-conjecture)
-and [BST optimality](../../background/open-math-conjectures.md#dynamic-optimality-of-binary-search-trees)
+[hashing](../../background/open-math-conjectures.md#hashing-beyond-the-uniform-probing-conjecture),
+[BST optimality](../../background/open-math-conjectures.md#dynamic-optimality-of-binary-search-trees)
+and [packed ordered arrays](../../background/open-math-conjectures.md#optimal-randomized-list-labeling)
 leads only after selecting an actual bounded workload. The
 [workload handoff](wasm-execution.md#mathematical-research-handoff) records their
 distinct models and cost limits; it does not choose this service's representation.

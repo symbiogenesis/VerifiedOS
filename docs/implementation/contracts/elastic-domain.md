@@ -102,7 +102,9 @@ is a non-normative lead for an explicitly movable representation inside one labe
 It does not replace Q34c's chunk-service or heap refinement. Its cost is one plus
 moved volume divided by update size, with a worst-case expected bound against an
 oblivious adversary; neither CPU time, adaptive-request behavior nor a per-yield
-deadline follows.
+deadline follows. The same entry's partial-compaction lower bounds show that a
+movement budget capped at a fraction of allocated volume leaves a constant-factor
+heap blowup in the worst case, so a per-yield copy budget inherits that space cost.
 
 If that branch is selected, its missing proof connects logical object identities
 and every reference to the relocated bytes, preserving `PoolGuarantees`,

@@ -194,6 +194,15 @@ the existing exact prefix contract, including a candidate that violates capacity
 despite acceptable final balance. Neither probability of success nor an
 oblivious-input theorem supplies deterministic admission for adaptive workloads.
 
+Two further survey results sharpen those premises. The prefix manuscript's
+sparse corollary gives `{0,1}` sequences with at most `s` nonzeros per vector,
+of length at least `2^(s-1)`, whose fixed-order prefix discrepancy exceeds `s/8`;
+an `O(sqrt(s))` bound therefore needs the July result's horizon condition or
+other structure. A separate July preprint reaches `O(sqrt(log T))` prefix
+discrepancy for arbitrary unit vectors in linear time, but only with high
+probability against a fixed sequence and with real-valued sampling. Neither
+supplies deterministic nonnegative inventory.
+
 The [Steinitz lead](../../background/open-math-conjectures.md#euclidean-steinitz-conjecture)
 belongs to an optional transformation before extraction: show the total-zero and
 norm premises, meet the announced dimension restriction when using that special
