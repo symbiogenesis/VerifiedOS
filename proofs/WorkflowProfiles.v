@@ -285,7 +285,7 @@ Theorem run_preserves_admission : forall es (c : Edge) (s t : State),
   state_ok c s = true -> run c s es = Some t -> state_ok c t = true.
 Proof.
   induction es as [|e es IH]; intros c s t HS H; simpl in H.
-  - inversion H; subst; assumption.
+  - congruence.
   - destruct (step c s e) as [u|] eqn:E; try discriminate.
     eapply IH; [exact (proj1 (step_preserves_admission c s u e E)) | exact H].
 Qed.
@@ -685,4 +685,3 @@ Proof.
   apply forallb_forall; intros es H. apply in_flat_map in H as [prefix [_ H]].
   apply negb_true_iff. now apply (generated_neighbor_is_refused prefix es).
 Qed.
-Compute (length generated_corpus, length generated_refusals).

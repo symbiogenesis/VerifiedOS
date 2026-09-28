@@ -1904,7 +1904,7 @@ Theorem a_leap_magnitude_never_exceeds_its_bound : forall bound reading amount,
 Proof.
   intros bound reading amount H; unfold leap_magnitude in H.
   destruct (Nat.leb reading bound) eqn:E; try discriminate.
-  injection H as H; subst; split; [reflexivity | exact E].
+  split; congruence.
 Qed.
 Example verified_unverified_and_excessive_magnitudes_are_distinguished :
   leap_magnitude 32 20 true = Some 20 /\
