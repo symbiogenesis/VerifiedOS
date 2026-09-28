@@ -463,8 +463,11 @@ class _Carry:
     `refused` is the frame's structural gap, a property of the port; `broken` is a
     carriable member whose own re-encoding did not come back whole, which is a defect
     in the adapter. The seed tallies use the mutation vocabulary: a stillborn seed
-    broke the frame's protocol and decided nothing about the comparison, a killed one
-    was reported, and a survivor is the finding.
+    broke the frame and decided nothing about the comparison, a killed one was
+    reported, and a survivor is the finding. A seed the decoder refuses for its
+    continuity is killed, that refusal being how the protocol reports a retirement
+    misreported or lost before the writer, and `by_refusal` counts those apart from
+    the ones the comparison reported; any other refusal is stillborn.
 
     `retirements`, `records` and `elided` count every member whose golden run was
     recorded, refused ones included, since they measure the frame's view of the
@@ -487,6 +490,7 @@ class _Carry:
     broken: list[str] = field(default_factory=list)
     golden: list[str] = field(default_factory=list)
     killed: dict[str, int] = field(default_factory=dict)
+    by_refusal: dict[str, int] = field(default_factory=dict)
     stillborn: dict[str, int] = field(default_factory=dict)
     survived: dict[str, list[str]] = field(default_factory=dict)
     silent: dict[str, int] = field(default_factory=dict)
@@ -587,8 +591,12 @@ def _seed_member(name: str, golden: list[str], retires: list[rtltrace.Retire],
                 continue
             try:
                 decoded = rtltrace.decode(rtltrace.encode(seeded))
-            except rtltrace.FrameError:
-                tally.stillborn[seed.name] = tally.stillborn.get(seed.name, 0) + 1
+            except rtltrace.FrameError as exc:
+                if exc.kind == rtltrace.CONTINUITY:
+                    tally.killed[seed.name] = tally.killed.get(seed.name, 0) + 1
+                    tally.by_refusal[seed.name] = tally.by_refusal.get(seed.name, 0) + 1
+                else:
+                    tally.stillborn[seed.name] = tally.stillborn.get(seed.name, 0) + 1
                 continue
             if rtltrace.compare_decoded(golden, decoded, elided).complete:
                 tally.survived.setdefault(seed.name, []).append(f"{name}@{at}")
@@ -716,7 +724,9 @@ def cmd_carry(args: argparse.Namespace) -> int:
         killed = tally.killed.get(seed.name, 0)
         stillborn = tally.stillborn.get(seed.name, 0)
         survived = tally.survived.get(seed.name, [])
-        print(f"seed {seed.name:<12} killed {killed}, stillborn {stillborn}, survived "
+        refusals = tally.by_refusal.get(seed.name, 0)
+        print(f"seed {seed.name:<12} killed {killed} ({refusals} by the continuity "
+              f"refusal), stillborn {stillborn}, survived "
               f"{len(survived)}, no witness in {tally.silent.get(seed.name, 0)} member(s)"
               f"{': ' + ', '.join(survived[:5]) if survived else ''}")
 
