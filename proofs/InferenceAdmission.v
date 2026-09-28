@@ -1203,7 +1203,7 @@ Theorem an_unqualified_route_reaches_no_other_destination :
   forall qual : Qualified, NoImplicitFallback (dispatch qual).
 Proof.
   intros qual rt served H. unfold dispatch in H.
-  destruct (qual rt); [ injection H as H; symmetry; exact H | discriminate ].
+  destruct (qual rt); congruence.
 Qed.
 
 (* =========================================================================

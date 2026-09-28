@@ -219,7 +219,7 @@ Lemma lookup_event_is_issued : forall events token e,
   lookup_event token events = Some e -> event_in e events.
 Proof.
   induction events as [|first rest IH]; intros token e H; simpl in *; try discriminate.
-  destruct (Nat.eqb token (event_token first)); [inversion H; subst; auto|].
+  destruct (Nat.eqb token (event_token first)); [left; congruence|].
   right. eapply IH. exact H.
 Qed.
 Theorem authenticated_insertion_agreement : forall events holds_key cache c token,
