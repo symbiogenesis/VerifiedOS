@@ -498,7 +498,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S27
 · Disposition: open, reported and not closed; every reading of it moves the budget down or leaves it alone and never up, so it does not block the alignment, and the act that would close it is the macro measurement R-15-247m already owns
 
-**F-325** owed-act: two derivations of the same quantity disagree by a third and no rule holds them together, the inspirations tree deriving about 2.6 MB/mm² usable per full-reticle tier, which is 54.7% of its own raw macro figure, where the register's band with the metadata above the payload gives 27.7 to 46.2 Mb/mm² of payload, so the same all-array half field is near a gigabyte under the one and 1.386 to 2.31 GB under the other
+**F-325** owed-act: two derivations of the same quantity disagree by a third and no rule holds them together, the inspirations tree deriving about 2.6 MB/mm² usable per full-reticle tier, which is 54.7% of its own raw macro figure, where the register's band with the metadata above the payload gives 27.6 to 46.0 Mb/mm² of payload, so the same all-array half field is near a gigabyte under the one and 1.381 to 2.30 GB under the other
 · Raised: S27
 · Disposition: open, the site left unaligned on purpose because an unowned second derivation of a figure is a finding rather than something to overwrite, and what would close it is one owner for the quantity
 
@@ -1336,7 +1336,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-107** method: one field read five ways is one rule rather than five claims, a moved field leaving every spelling individually plausible and jointly wrong
 · Raised: M0.15
-· Disposition: closed by K-54, with the band beside it held by inequality because its figures are nobody's arithmetic
+· Disposition: closed by K-54, which also holds the DECTED band's ends by arithmetic over R-15-181a's bits and holds that code's width above the distance-6 floor
 
 **F-108** measurement: the compound group stopped being about one document and only its name survived the widening, the two-class placement being the same defect at a different granularity
 · Raised: M0.15
