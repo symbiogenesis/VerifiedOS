@@ -297,7 +297,7 @@ def _continuity_is_not_read_across_a_trap() -> None:
                                        pc_wdata=0x80000104, insn=0x00000013)),
                rtltrace.Retire(replace(_BASE, order=8, pc_rdata=0x80000104,
                                        pc_wdata=0x80000108, insn=0x00000013))]
-    ensure(retires[6].packet.trap and retires[6].packet.pc_wdata != 0x80000100,
+    ensure(retires[6].packet.trap == 1 and retires[6].packet.pc_wdata != 0x80000100,
            "the fixture's trap names no handler as its next program counter")
     result = rtltrace.compare(golden, rtltrace.encode(retires))
     ensure(result.complete, f"a handler entered after a trap is not refused, got "
