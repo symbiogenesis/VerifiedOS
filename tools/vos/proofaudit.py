@@ -48,14 +48,19 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
                    "Nested Proofs Allowed", "Allow StrictProp", "Definitional UIP",
                    "Guard Checking", "Positivity Checking", "Universe Checking",
                    "Indices Matter", "Strict Universe Declaration", "Default Timeout")
-_PREFIXES = (r'(?:#\[[^\]]*\]\s*|(?:Local|Global|Export|Time|Fail|Succeed)\s+'
-             r'|Redirect\s+"[^"]*"\s+)*')
-_PINNED = re.compile(_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
+# Everything Rocq 9.3's vernac_control grammar lets precede a command: control flags,
+# quoted attributes and legacy attributes, plus the Export locality of option commands.
+# A lexical reading anchored after them sees the command however it is decorated.
+CONTROL_PREFIXES = (r'(?:(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
+                    r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
+                    r'|#\[[^\]]*\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic'
+                    r'|Cumulative|NonCumulative|Private)\s+)*')
+_PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
-# Attributes that relax the same settings for one declaration. A wall-clock Timeout
-# makes a verdict depend on the machine that ran it.
+# Attributes that relax the same settings for one declaration. A wall-clock Timeout or
+# an allocation limit makes a verdict depend on the machine that ran it.
 _PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
-_TIMEOUT = re.compile(_PREFIXES + r"Timeout\s+\d")
+_TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
 
 
 class AuditError(ValueError):

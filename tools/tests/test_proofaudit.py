@@ -203,6 +203,12 @@ def _pinned_settings_cannot_be_overridden() -> None:
                "Set Nested Proofs Allowed.", "Unset Strict Universe Declaration.",
                "Set Default Timeout 5.", "Fail Timeout 1 Check 0.",
                "Set Indices Matter.", "Local Unset Indices Matter.",
+               # Every control flag and legacy attribute Rocq 9.3 lets precede a command.
+               "Instructions Set Allow StrictProp.", 'Profile "p" Set Indices Matter.',
+               "Profile Unset Guard Checking.", "Fail Instructions Timeout 1 Check 0.",
+               "Time Instructions Local Unset Universe Checking.",
+               "Polymorphic Set Definitional UIP.", "Fail AllocLimit 1 kw Check 0.",
+               "Fail AllocLimit 9 Mw Timeout 1 Check 0.",
                "Proof. Unset Guard Checking. exact I. Qed.",
                "#[bypass_check(guard)] Fixpoint f (n : nat) : nat := f n.",
                '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.')
@@ -211,7 +217,8 @@ def _pinned_settings_cannot_be_overridden() -> None:
     allowed = ("Set Implicit Arguments.", "Local Open Scope nat_scope.", "Set Printing Width 80.",
                '(* Set Warnings "-all". *) Definition x := 0.',
                'Definition label := "Set Warnings".', "#[local] Arguments id {A} x.",
-               "Definition timeout_bound := 5.")
+               "Definition timeout_bound := 5.", "Time Instructions Check 0.",
+               'Profile "p" Set Printing Width 80.', "Polymorphic Definition pid := 0.")
     for text in allowed:
         ensure(not proofaudit.pinned_overrides(text), f"an unpinned sentence was refused: {text}")
 
@@ -371,6 +378,8 @@ def _native_gate_regressions() -> None:
             "single focused goal"),
            ("Fixpoint idle (n : nat) : nat := 0.\n", "non-recursive"),
            ('Set Warnings "-non-recursive".\nFixpoint idle (n : nat) : nat := 0.\n',
+            "pinned settings"),
+           ("Instructions Set Allow StrictProp.\nInductive squashed : SProp := squash.\n",
             "pinned settings"),
            ("Inductive squashed : SProp := squash.\n", "StrictProp")]
     lane = gate.workspace(Path(__file__).resolve().parents[2])

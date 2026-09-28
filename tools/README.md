@@ -977,7 +977,8 @@ several unfocused goals. SProp is refused, which holds the
 [checker profile's](../docs/assurance/cic-checker-qualification.md#the-published-profile-and-metatheory-decision)
 exclusion of definitional proof irrelevance. A source that configures warnings, resets
 a pinned setting or a kernel checking flag, sets `Indices Matter`, enables definitional
-UIP or sets a wall-clock timeout is refused before compilation. The gate's own generated
+UIP or sets a wall-clock timeout or allocation limit is refused before compilation,
+whatever control flags or attributes precede the command. The gate's own generated
 queries open every interactive proof with `Proof`, whose absence Rocq 9.3 reports by
 default as `missing-proof-command`.
 

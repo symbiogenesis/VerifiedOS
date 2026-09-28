@@ -534,7 +534,9 @@ def _context_hashes_library_bytes() -> None:
             ensure(before != gate._cache_context(work, [source]), "library bytes escaped identity")
             for command in ('Load "external.v".', 'Time Load "external.v".',
                             'Time Require Base.', 'Fail Require Base.',
-                            'Add ML Path "external".', 'Declare ML Module "external".'):
+                            'Add ML Path "external".', 'Declare ML Module "external".',
+                            'Instructions Load "external.v".',
+                            'Profile "p" Declare ML Module "external".'):
                 source.write_text(command, encoding="utf-8")
                 ensure(gate._cache_context(work, [source]) is None,
                        f"dynamic command reused evidence: {command}")

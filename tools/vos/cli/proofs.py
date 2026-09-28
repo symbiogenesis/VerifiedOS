@@ -119,9 +119,8 @@ _TOP_DELIMITERS = {mark: re.compile(r"[()\[\]{}]|" + re.escape(mark))
                    for mark in (":", ":=", "->")}
 _REQUIRE_TOKEN = re.compile(r"\bRequire\b")
 _DYNAMIC_SOURCE = re.compile(
-    r'^(?:(?:Local|Global|Time|Fail|Succeed)\s+|Timeout\s+\d+\s+'
-    r'|Redirect\s+"[^"]*"\s+|#\[[^\]]*\]\s*)*'
-    r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
+    "^" + proofaudit.CONTROL_PREFIXES
+    + r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
     r'|Declare\s+ML\s+Module)\b')
 
 
