@@ -820,7 +820,6 @@ Corollary bias_linear_bound : forall (s : TwoSource) (sec : nat),
 Proof.
   intros s sec Hp.
   pose proof (per_bit_squared_error s sec Hp) as Hsq.
-  pose proof (two_pow_pos sec) as Hpow.
   assert (HX : 0 < totX s) by (unfold totX; apply ts_w_positive).
   assert (HY : 0 < totY s) by (unfold totY; apply ts_v_positive).
   apply Z.square_le_simpl_nonneg.
