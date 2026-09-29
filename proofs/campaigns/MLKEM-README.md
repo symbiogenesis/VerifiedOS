@@ -8,7 +8,7 @@ Run the commands in the assigned WSL native lane. Sources stay in the verified W
 repo=/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/NAME
 lane_root=/root/build/lane-NAME
 build="$lane_root/scratch/pq-reference"
-opam_bin=/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/bin
+opam_bin=/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin
 export PATH="$opam_bin:$PATH"
 mkdir -p "$build/proofs"
 cp "$repo/proofs/PqArith.v" "$repo/proofs/Keccak.v" "$repo/proofs/MlKem.v" "$build/proofs/"

@@ -8,8 +8,8 @@ that report: every reading below is a stated predicate over text Rocq itself pri
 and nothing here guesses a feature a query did not show.
 
 **Three readings, and they decide different things.** The *kernel* reading is
-`Print All Dependencies`, which walks the compiled proof term, including the bodies of
-`Qed` constants, and names each dependency under one of four headings. The *declaration*
+`Print All Dependencies`, which walks each compiled global's body, the bodies of `Qed`
+constants included, and its type, and names each dependency under one of four headings. The *declaration*
 reading is `About`, which says whether a constant is universe polymorphic, whether it is
 opaque, and what kind of object it is. The *term* reading is `Print` under
 `Set Printing All`, whose notation-free output is where a `fix` binder, a mutual block

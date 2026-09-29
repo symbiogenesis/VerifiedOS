@@ -36,10 +36,10 @@ KERNEL_THEORY = ("Set is predicative", "Rewrite rules are not allowed")
 KERNEL_UNSAFE = ("Constants/Inductives relying on type-in-type",
                  "Constants/Inductives relying on unsafe (co)fixpoints",
                  "Inductives whose positivity is assumed")
-# Rocq 9.3 adds a final section naming the inductives whose elimination or universe
-# relies on indices not mattering, Corelib's `eq` among them. The CIC checker profile
-# fixes indices_matter=false, so the section describes that theory rather than an
-# assumption beyond it; Rocq 9.2 checks the same theory without printing the section.
+# The summary's final section names the inductives whose elimination or universe relies
+# on indices not mattering, Corelib's `eq` among them. The CIC checker profile fixes
+# indices_matter=false, so the section describes that theory rather than an assumption
+# beyond it. The pinned checker always writes it, `<none>` when it is empty.
 KERNEL_INDICES = "Inductives relying on indices not mattering"
 
 # Settings the compiler command line fixes, or whose default the audit relies on. A
@@ -180,12 +180,11 @@ def kernel_context(summary: str) -> list[str]:
     """The axioms `rocqchk -o` names, refusing every other assumption it reports.
 
     The summary covers the whole environment the checker loaded, admitted and `-norec`
-    modules included, so an axiom that is loaded but never used is named as well. Rocq
-    9.2's Print Assumptions misses an axiom that a definition reaches only through its
-    type; this enumeration does not. It does not report definitional UIP, which the
-    Print Assumptions audit does. rocqchk writes the summary to stderr, and nothing
-    else may appear there: an unrecognized line refuses the run. Rocq 9.3 ends the
-    summary with KERNEL_INDICES; its entries must be qualified names, and they are
+    modules included, so an axiom that is loaded but never used is named as well. It is
+    read independently of Print Assumptions, and it does not report definitional UIP,
+    which the Print Assumptions audit does. rocqchk writes the summary to stderr, and
+    nothing else may appear there: an unrecognized line refuses the run. The summary
+    must end with KERNEL_INDICES; its entries must be qualified names, and they are
     accepted because they rely only on the theory the checker profile fixes.
     """
     lines = [line.rstrip() for line in summary.splitlines() if line.strip()]
@@ -202,7 +201,7 @@ def kernel_context(summary: str) -> list[str]:
             raise AuditError(f"unrecognized kernel context line: {line}")
     keys = [key for key, _, _ in sections]
     expected = ["Theory", "Theory", "Axioms", *KERNEL_UNSAFE]
-    if keys not in (expected, [*expected, KERNEL_INDICES]):
+    if keys != [*expected, KERNEL_INDICES]:
         raise AuditError("unrecognized kernel context sections: " + ", ".join(keys))
     theory = tuple(value for key, value, _ in sections[:2])
     if theory != KERNEL_THEORY:

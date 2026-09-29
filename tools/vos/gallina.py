@@ -15,7 +15,7 @@ a later run believes, the tree is shared with whatever else is running, and a mu
 is by definition a file this repository must not carry. A run stages the proofs and
 the harness into the lane's own directory and compiles there.
 
-**Separate proof and oracle environments.** The proof gate uses Rocq 9.2, while
+**Separate proof and oracle environments.** The proof gate uses Rocq 9.3, while
 CertiRocq and QuickChick depend on packages that still require Rocq 9.1. The shipped
 proofs use the prelude alone and name no library: an assumption reachable through an
 import is an assumption inside R-05-163's gate. A vector harness has to render a number

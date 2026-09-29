@@ -50,7 +50,7 @@ from vos.corpus import find_root
 
 # QuickChick's latest release needs coq-simple-io, which caps Coq below 9.2~ and dune
 # below 3.22. Give it an independent Rocq 9.1 environment while the proof gate uses
-# Rocq 9.2 and the CertiRocq oracle uses dune 3.23.1. The explicit prover request also
+# Rocq 9.3 and the CertiRocq oracle uses dune 3.23.1. The explicit prover request also
 # prevents a solver from satisfying the package through an older Coq generation.
 #
 # Public and stated as argv rather than as a sentence, for the reason `env.ROCQ_INSTALL`

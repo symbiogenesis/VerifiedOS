@@ -1,8 +1,8 @@
 {
   "artifacts": {
     "AdmissionPath.v": {
-      "constants": 690,
-      "inventory_sha256": "315ebf26875828cc5b06edcd5b83755ea3b0162b7b5fa0a18e73a8bf11dd086b",
+      "constants": 682,
+      "inventory_sha256": "149a4e9cfa5e94f0943c3f795401eacac532088c99416f1a577d66ca8c35bbf4",
       "requires": [],
       "witnesses": {
         "Ambient": [
@@ -45,8 +45,8 @@
       "witnesses": {}
     },
     "ArithmeticComposition.v": {
-      "constants": 135,
-      "inventory_sha256": "9a7cd93176c2fa9f134cba5ac26686f437eee19577e80f3469096d1f50e7ecfb",
+      "constants": 133,
+      "inventory_sha256": "caca9db5b24d5f12486002f920d2d88851af800462376f18ed0fea0ba942b5c5",
       "requires": [
         "ProbingModel"
       ],
@@ -87,8 +87,8 @@
       }
     },
     "AttestedSession.v": {
-      "constants": 181,
-      "inventory_sha256": "1c40d140103bfc54e472b12e77228a0478cf0c185a7bc3f95e51f264cad1a18b",
+      "constants": 180,
+      "inventory_sha256": "7cd206381dc19ab9243188f80c516f2584bf34591062668779afbfb8bda7622b",
       "requires": [
         "CredentialHandles"
       ],
@@ -165,8 +165,8 @@
       }
     },
     "CopyRingService.v": {
-      "constants": 526,
-      "inventory_sha256": "a5d7cbd815b354c48ff6c4041e9fea3311035903faa841bb4b5d5037a4f4cb45",
+      "constants": 517,
+      "inventory_sha256": "e2b4df4590d2a81584eabde727677232651ab7688616cfa5b5df5e08024c61e4",
       "requires": [
         "RingContract"
       ],
@@ -189,8 +189,8 @@
       }
     },
     "CredentialHandles.v": {
-      "constants": 135,
-      "inventory_sha256": "a438cecb0bccaf5b64607c76be768daa074c7cf4bc61d8eaa961abfb5ba69e7f",
+      "constants": 133,
+      "inventory_sha256": "8607e1269a087570e73259a4dfedf7754a38884e7e24b88e6e00fb7c5087bf74",
       "requires": [],
       "witnesses": {
         "ClientRequest": [
@@ -211,8 +211,8 @@
       }
     },
     "CyclicExecutive.v": {
-      "constants": 176,
-      "inventory_sha256": "1a663255442ecb8e3cee3fbca924bd2e62fe0718b99e184bc0c77138585302cb",
+      "constants": 174,
+      "inventory_sha256": "665e4b8469d98aafd8cfccf8e403d8f52386e2e95b07b64c17a1a00c3a934637",
       "requires": [
         "BoundaryCost",
         "PartitionContext"
@@ -257,8 +257,8 @@
       "witnesses": {}
     },
     "DischargeSequence.v": {
-      "constants": 286,
-      "inventory_sha256": "fec0b3490aa537aaab3167c9cb3dfc6588a1d017fb45ef270f219d5332768d06",
+      "constants": 285,
+      "inventory_sha256": "d457a9b972f6848db6c65e464b6a7bddcdd1439069ad64af70b1e6a338579d2b",
       "requires": [],
       "witnesses": {
         "Machine": [
@@ -266,9 +266,304 @@
         ]
       }
     },
+    "ElasticDomain.v": {
+      "constants": 473,
+      "inventory_sha256": "26c5240ea3374f4a6523e479730bea93343afbe7900d60ee6fd22c3ec4663fce",
+      "requires": [
+        "CyclicExecutive",
+        "MemoryPlan",
+        "PartitionContext"
+      ],
+      "witnesses": {
+        "Arena": [
+          "witness_Arena"
+        ],
+        "Band": [
+          "witness_Band"
+        ],
+        "BoundaryInputs": [
+          "witness_BoundaryInputs"
+        ],
+        "Cap": [
+          "witness_Cap"
+        ],
+        "Cfg": [
+          "witness_Cfg"
+        ],
+        "Composition": [
+          "witness_Composition"
+        ],
+        "Config": [
+          "witness_Config"
+        ],
+        "Context": [
+          "witness_Context"
+        ],
+        "DState": [
+          "witness_DState"
+        ],
+        "Decl": [
+          "witness_Decl"
+        ],
+        "Distribution": [
+          "witness_Distribution"
+        ],
+        "Domain": [
+          "witness_Domain"
+        ],
+        "DomainHoldings": [
+          "witness_DomainHoldings"
+        ],
+        "Edge": [
+          "witness_Edge"
+        ],
+        "Frame": [
+          "witness_Frame"
+        ],
+        "Global": [
+          "witness_Global"
+        ],
+        "Ladder": [
+          "witness_Ladder"
+        ],
+        "Machine": [
+          "witness_Machine"
+        ],
+        "Manifest": [
+          "witness_Manifest"
+        ],
+        "Narrowing": [
+          "witness_Narrowing"
+        ],
+        "PcFields": [
+          "witness_PcFields"
+        ],
+        "Plan": [
+          "witness_Plan"
+        ],
+        "Population": [
+          "witness_Population"
+        ],
+        "PowerVector": [
+          "witness_PowerVector"
+        ],
+        "ResidencyCase": [
+          "witness_ResidencyCase"
+        ],
+        "Run": [
+          "witness_Run"
+        ],
+        "SizeClass": [
+          "witness_SizeClass"
+        ],
+        "Slot": [
+          "witness_Slot"
+        ],
+        "Stint": [
+          "witness_Stint"
+        ]
+      }
+    },
+    "ElasticPool.v": {
+      "constants": 26,
+      "inventory_sha256": "b6de7c9bbd5ae1e5683f620796d9c5a3869e0c63e108f44913513903d817db9b",
+      "requires": [
+        "CyclicExecutive",
+        "ElasticDomain",
+        "MemoryPlan"
+      ],
+      "witnesses": {
+        "Arena": [
+          "witness_Arena"
+        ],
+        "Band": [
+          "witness_Band"
+        ],
+        "BoundaryInputs": [
+          "witness_BoundaryInputs"
+        ],
+        "Cap": [
+          "witness_Cap"
+        ],
+        "Cfg": [
+          "witness_Cfg"
+        ],
+        "Composition": [
+          "witness_Composition"
+        ],
+        "Config": [
+          "witness_Config"
+        ],
+        "Context": [
+          "witness_Context"
+        ],
+        "DState": [
+          "witness_DState"
+        ],
+        "Decl": [
+          "witness_Decl"
+        ],
+        "Distribution": [
+          "witness_Distribution"
+        ],
+        "Domain": [
+          "witness_Domain"
+        ],
+        "DomainHoldings": [
+          "witness_DomainHoldings"
+        ],
+        "Edge": [
+          "witness_Edge"
+        ],
+        "Frame": [
+          "witness_Frame"
+        ],
+        "Global": [
+          "witness_Global"
+        ],
+        "Ladder": [
+          "witness_Ladder"
+        ],
+        "Machine": [
+          "witness_Machine"
+        ],
+        "Manifest": [
+          "witness_Manifest"
+        ],
+        "Narrowing": [
+          "witness_Narrowing"
+        ],
+        "PcFields": [
+          "witness_PcFields"
+        ],
+        "Plan": [
+          "witness_Plan"
+        ],
+        "Population": [
+          "witness_Population"
+        ],
+        "PowerVector": [
+          "witness_PowerVector"
+        ],
+        "ResidencyCase": [
+          "witness_ResidencyCase"
+        ],
+        "Run": [
+          "witness_Run"
+        ],
+        "SizeClass": [
+          "witness_SizeClass"
+        ],
+        "Slot": [
+          "witness_Slot"
+        ],
+        "Stint": [
+          "witness_Stint"
+        ]
+      }
+    },
+    "ElasticPoolCampaign.v": {
+      "constants": 108,
+      "inventory_sha256": "8dc78fbbf81710ee76e372345227abe04c40b18e89249cf5dedffbe739d674dd",
+      "requires": [
+        "CyclicExecutive",
+        "ElasticDomain",
+        "ElasticPool",
+        "MemoryPlan"
+      ],
+      "witnesses": {
+        "Arena": [
+          "witness_Arena"
+        ],
+        "Band": [
+          "witness_Band"
+        ],
+        "BoundaryInputs": [
+          "witness_BoundaryInputs"
+        ],
+        "Cap": [
+          "witness_Cap"
+        ],
+        "Cfg": [
+          "witness_Cfg"
+        ],
+        "Composition": [
+          "witness_Composition"
+        ],
+        "Config": [
+          "witness_Config"
+        ],
+        "Context": [
+          "witness_Context"
+        ],
+        "DState": [
+          "witness_DState"
+        ],
+        "Decl": [
+          "witness_Decl"
+        ],
+        "Distribution": [
+          "witness_Distribution"
+        ],
+        "Domain": [
+          "witness_Domain"
+        ],
+        "DomainHoldings": [
+          "witness_DomainHoldings"
+        ],
+        "Edge": [
+          "witness_Edge"
+        ],
+        "Frame": [
+          "witness_Frame"
+        ],
+        "Global": [
+          "witness_Global"
+        ],
+        "Ladder": [
+          "witness_Ladder"
+        ],
+        "Machine": [
+          "witness_Machine"
+        ],
+        "Manifest": [
+          "witness_Manifest"
+        ],
+        "Narrowing": [
+          "witness_Narrowing"
+        ],
+        "PcFields": [
+          "witness_PcFields"
+        ],
+        "Plan": [
+          "witness_Plan"
+        ],
+        "Population": [
+          "witness_Population"
+        ],
+        "PowerVector": [
+          "witness_PowerVector"
+        ],
+        "ResidencyCase": [
+          "witness_ResidencyCase"
+        ],
+        "Run": [
+          "witness_Run"
+        ],
+        "SizeClass": [
+          "witness_SizeClass"
+        ],
+        "Slot": [
+          "witness_Slot"
+        ],
+        "Stint": [
+          "witness_Stint"
+        ]
+      }
+    },
     "EndpointIPC.v": {
-      "constants": 602,
-      "inventory_sha256": "6a87be03fad57421515ad56dccd59c868c7b436ae3fdc67c21b3a39d68a715ee",
+      "constants": 594,
+      "inventory_sha256": "bdf389869543684341283e6c1b640951daace0dbb28399aecdfb2a7061a94706",
       "requires": [],
       "witnesses": {
         "Kernel": [
@@ -283,8 +578,8 @@
       }
     },
     "EnsembleSchedule.v": {
-      "constants": 248,
-      "inventory_sha256": "3913a3820ab9018fe6a636a97eaafd5539ebe076b26d592895f689e783283f34",
+      "constants": 245,
+      "inventory_sha256": "fba8a767724525b418bee068f6b32af2fe74ff184fe9ceaf2996d7fba9b266df",
       "requires": [
         "CyclicExecutive"
       ],
@@ -340,8 +635,8 @@
       }
     },
     "ExecutableIndex.v": {
-      "constants": 154,
-      "inventory_sha256": "d43cf41fb702ae3052a70fb928e9922d86959f87c3a694681e32e28fdd385dec",
+      "constants": 250,
+      "inventory_sha256": "bfc69c32d67adfd6e326c2faceb7bdb3d01ed1b99f90d7c8ecfaf4c519f124ae",
       "requires": [
         "JournalIndex"
       ],
@@ -370,8 +665,8 @@
       }
     },
     "HandlerGraph.v": {
-      "constants": 620,
-      "inventory_sha256": "d02e454f78083689afd5be8a9ca672ec0ddfa086e2b9ba9ab6f18a940bc653a7",
+      "constants": 612,
+      "inventory_sha256": "c374ac9893e709880018f3d45a4c646011eae10f2a1570cc85a061e2f40f7f82",
       "requires": [],
       "witnesses": {
         "Ambient": [
@@ -389,8 +684,8 @@
       }
     },
     "HmacDrbg.v": {
-      "constants": 192,
-      "inventory_sha256": "02bcae20c61656e374ffb6850246be759f6c1b7380603f12dbd68a0a2c29c4c4",
+      "constants": 188,
+      "inventory_sha256": "b60c9457552ad09893f8b0cb10740b27a908228abc378cc6ae9f09759538d4af",
       "requires": [
         "Sha256"
       ],
@@ -407,8 +702,8 @@
       }
     },
     "InferenceAdmission.v": {
-      "constants": 329,
-      "inventory_sha256": "75dd7a6950923f6469a4f9a273fe047ed9cdf708f0e35822ab8746336c7ee828",
+      "constants": 325,
+      "inventory_sha256": "90cfa4eba806a22aeaa973516a17f0e3610fdb1b9b9e3e940a606d338aef2461",
       "requires": [],
       "witnesses": {
         "Ceiling": [
@@ -478,8 +773,8 @@
       "witnesses": {}
     },
     "KernelInstance.v": {
-      "constants": 261,
-      "inventory_sha256": "a9ca3a3e946e3c6c2b65db6f3fb7fadefde252ea79371f0eb51b44ab0ed2107e",
+      "constants": 258,
+      "inventory_sha256": "0ae9b57df6ca6fb0ea7f76b6b57bae7e5e05cb55b936ae550b2eab78bc7c8873",
       "requires": [
         "CyclicExecutive",
         "PartitionContext"
@@ -530,8 +825,8 @@
       }
     },
     "KeyspaceDomains.v": {
-      "constants": 491,
-      "inventory_sha256": "ddf8fc9d260f27a1b9e0451b2ce5d31eef358881fc4fe6c8d598b8391ec2a530",
+      "constants": 490,
+      "inventory_sha256": "600883fd80b5b23e4ce3bb41bd86cddb19998dcd571753af3071c4ec039f3de2",
       "requires": [
         "JournalIndex"
       ],
@@ -581,8 +876,8 @@
       }
     },
     "MModeFirmware.v": {
-      "constants": 248,
-      "inventory_sha256": "1bb03ac9764aaed7d708e6cd37ff0f78f72d1ca0e7fda392bda00c7651399b42",
+      "constants": 244,
+      "inventory_sha256": "35800e0721de18071587d2cfcfa583c9ecb9139460033f10c7af7be870a1ffcf",
       "requires": [],
       "witnesses": {
         "Edge": [
@@ -597,8 +892,8 @@
       }
     },
     "MModeFirmwareSealing.v": {
-      "constants": 96,
-      "inventory_sha256": "dcd8e88e1d067ba336a96ef11d55c7d71d4018d1f494c2198f14f035caca013a",
+      "constants": 95,
+      "inventory_sha256": "b0c7312ee0c5e5bebed0b53ad99875f2581508442b82380dad88763a0a214efc",
       "requires": [
         "MModeFirmware"
       ],
@@ -621,8 +916,8 @@
       }
     },
     "MemoryPlan.v": {
-      "constants": 655,
-      "inventory_sha256": "edc5413b6ae9c18d9c3483c5680e96f54690d315af5c714ca70746f40e3d9d93",
+      "constants": 733,
+      "inventory_sha256": "2b7a2800804b5eea4724f329451be6911c1d306f596b64c183d774bae8a14367",
       "requires": [
         "CyclicExecutive"
       ],
@@ -638,6 +933,9 @@
         ],
         "Context": [
           "witness_Context"
+        ],
+        "DomainHoldings": [
+          "witness_DomainHoldings"
         ],
         "Frame": [
           "witness_Frame"
@@ -688,14 +986,14 @@
       }
     },
     "MemoryPlannerResources.v": {
-      "constants": 28,
-      "inventory_sha256": "8cf65ac50038ac13dac34fa9fe815e0556bfef2b150507d1b45ebd230c6a9754",
+      "constants": 41,
+      "inventory_sha256": "635c4a181c8336431b7f836d4dd90dd1f743dd6e1e6013ffa936c840f8952b32",
       "requires": [],
       "witnesses": {}
     },
     "MlDsa.v": {
-      "constants": 102,
-      "inventory_sha256": "ce257eb11fc27ccdd3c0290f3bc958d1d9868a395c90fab47bffebca0773b92c",
+      "constants": 101,
+      "inventory_sha256": "9f3666b83b9e8ebdb700f6500e69e020ca7a274bb65a05cce2605fc8475a1396",
       "requires": [
         "Keccak",
         "PqArith"
@@ -729,8 +1027,8 @@
       }
     },
     "ModuleAdmission.v": {
-      "constants": 325,
-      "inventory_sha256": "d0a7e3d66856378286a230c4dd39ae753bf66620a2af437886f68157a5103e8b",
+      "constants": 322,
+      "inventory_sha256": "ecabf93e68c3ab86ee16660caa10afd923f5fed042a4d04355c045cb3c78357e",
       "requires": [],
       "witnesses": {
         "AdmissionCache": [
@@ -772,8 +1070,8 @@
       }
     },
     "ModuleFormats.v": {
-      "constants": 139,
-      "inventory_sha256": "73316f814df47eefcbaefe859a21393796a826aacccf166b5e36cb74ce99f411",
+      "constants": 138,
+      "inventory_sha256": "511c6495f776692b31b72049e9f5a56db6cb94440548fc700165108cc72cca8c",
       "requires": [
         "ModuleAdmission"
       ],
@@ -823,8 +1121,8 @@
       }
     },
     "ObjectRouter.v": {
-      "constants": 430,
-      "inventory_sha256": "3a3e38d5c193905a6f0d9ac8d490eba94ca71add56b11c04d425fff472a39eb0",
+      "constants": 425,
+      "inventory_sha256": "2358b773621e6c04208a14cd1b3f875905b1537f10d18fe6e68fb127f2159a52",
       "requires": [
         "RingContract"
       ],
@@ -910,8 +1208,8 @@
       "witnesses": {}
     },
     "PartitionContext.v": {
-      "constants": 108,
-      "inventory_sha256": "c3342350eb0ec51bb31057e44132c68de98de35ccd107773a24b27a90a080e6c",
+      "constants": 107,
+      "inventory_sha256": "a653b35e34c552146ed3d04181abdefb318eeda1ebd7f726996f6337c6504b7b",
       "requires": [],
       "witnesses": {
         "Context": [
@@ -933,8 +1231,8 @@
       }
     },
     "ProbingModel.v": {
-      "constants": 318,
-      "inventory_sha256": "dee8ba89db7c81037ae57ee3f6d03294f5c7307ff5ee0c8e0f8146ac626fbf75",
+      "constants": 314,
+      "inventory_sha256": "235ddc8db114fc16fb45bea5540bf6f1c99b9bd0c13f83afe4cfc0bd99145849",
       "requires": [],
       "witnesses": {
         "Experiment": [
@@ -960,9 +1258,64 @@
         ]
       }
     },
+    "ResetTable.v": {
+      "constants": 117,
+      "inventory_sha256": "d786c0477f662631f911306c9c0ccc9a6f84396538b398134baacdaeaa2057c4",
+      "requires": [
+        "CyclicExecutive",
+        "MemoryPlan"
+      ],
+      "witnesses": {
+        "Band": [
+          "witness_Band"
+        ],
+        "BoundaryInputs": [
+          "witness_BoundaryInputs"
+        ],
+        "Composition": [
+          "witness_Composition"
+        ],
+        "Context": [
+          "witness_Context"
+        ],
+        "DomainHoldings": [
+          "witness_DomainHoldings"
+        ],
+        "Frame": [
+          "witness_Frame"
+        ],
+        "Ladder": [
+          "witness_Ladder"
+        ],
+        "Machine": [
+          "witness_Machine"
+        ],
+        "Narrowing": [
+          "witness_Narrowing"
+        ],
+        "Plan": [
+          "witness_Plan"
+        ],
+        "Population": [
+          "witness_Population"
+        ],
+        "PowerVector": [
+          "witness_PowerVector"
+        ],
+        "ResetTable": [
+          "witness_ResetTable"
+        ],
+        "ResidencyCase": [
+          "witness_ResidencyCase"
+        ],
+        "Slot": [
+          "witness_Slot"
+        ]
+      }
+    },
     "RingContract.v": {
-      "constants": 538,
-      "inventory_sha256": "fccdbea7fb87ece073f3cb4c009df8bd361b1d8b66082a47ac56e90912e5f6e4",
+      "constants": 517,
+      "inventory_sha256": "68e7fab5430726fb9f23cf2fb52742b514edb79848dc37f7eaa4b20890563275",
       "requires": [],
       "witnesses": {
         "dma_segment": [
@@ -971,8 +1324,8 @@
       }
     },
     "RomVerifier.v": {
-      "constants": 237,
-      "inventory_sha256": "1aadec4a58a8efd74c8f084fa09b00c260e069ef3fa1e3dd0f204128784b69dc",
+      "constants": 232,
+      "inventory_sha256": "9a125952368d3ef8b6aee0611a3ab8d133ca4d0b9b3e56f9aefeb814d7254362",
       "requires": [
         "Keccak"
       ],
@@ -986,8 +1339,8 @@
       }
     },
     "RotFirmware.v": {
-      "constants": 682,
-      "inventory_sha256": "ad09eb4a1b33edb28f762a8d420841e9864baa4257e66233c7c0744c1236ae41",
+      "constants": 667,
+      "inventory_sha256": "b87568e7b91a464c6d16d8cf3dbe4a7e99ad1105ef43204cde41ff15ae75e3c6",
       "requires": [],
       "witnesses": {
         "Machine": [
@@ -1090,8 +1443,8 @@
       "witnesses": {}
     },
     "SecurityPolicyModel.v": {
-      "constants": 223,
-      "inventory_sha256": "22025c711a2febf80bcd7e654e0e10e740a0dc153400a5810c6ea06b39c66f05",
+      "constants": 222,
+      "inventory_sha256": "b728448615a587e0f1f1c1f2381b1704906d20ca452d96e84134ed7590caa68b",
       "requires": [
         "ApexTheorem"
       ],
@@ -1141,6 +1494,9 @@
         "Context": [
           "witness_Context"
         ],
+        "DomainHoldings": [
+          "witness_DomainHoldings"
+        ],
         "Frame": [
           "witness_Frame"
         ],
@@ -1180,6 +1536,80 @@
       "witnesses": {
         "InPlaceState": [
           "witness_InPlaceState"
+        ]
+      }
+    },
+    "StorageBridge.v": {
+      "constants": 185,
+      "inventory_sha256": "e4e3eb0adb54ce34ff5a6018471c8172e1a7112a06509b81461040c666a48c2f",
+      "requires": [
+        "AesGcm",
+        "JournalIndex",
+        "StorageRecovery"
+      ],
+      "witnesses": {
+        "AeadParameters": [
+          "witness_AeadParameters"
+        ],
+        "Batch": [
+          "witness_Batch"
+        ],
+        "Blk": [
+          "witness_Blk"
+        ],
+        "Checkpoint": [
+          "witness_Checkpoint"
+        ],
+        "Commit": [
+          "witness_Commit"
+        ],
+        "Composition": [
+          "witness_Composition"
+        ],
+        "Entry": [
+          "witness_Entry"
+        ],
+        "Epoch": [
+          "witness_Epoch"
+        ],
+        "Ext": [
+          "witness_Ext"
+        ],
+        "K2": [
+          "witness_K2"
+        ],
+        "KeyAlgebra": [
+          "witness_KeyAlgebra"
+        ],
+        "Keyring": [
+          "witness_Keyring"
+        ],
+        "Layout": [
+          "witness_Layout"
+        ],
+        "Machine": [
+          "witness_Machine"
+        ],
+        "NsCap": [
+          "witness_NsCap"
+        ],
+        "Obs": [
+          "witness_Obs"
+        ],
+        "Pending": [
+          "witness_Pending"
+        ],
+        "Sealing": [
+          "witness_Sealing"
+        ],
+        "TransactionManifest": [
+          "witness_TransactionManifest"
+        ],
+        "Txn": [
+          "witness_Txn"
+        ],
+        "Write": [
+          "witness_Write"
         ]
       }
     },
@@ -1239,8 +1669,8 @@
       }
     },
     "SupervisionTree.v": {
-      "constants": 277,
-      "inventory_sha256": "78b53206889d4c8f7a72783d874588fed4fc27296eb07b74a6d5d4d2a1af0a51",
+      "constants": 274,
+      "inventory_sha256": "d98b901dacdce6095d6d6905978a44f0243ab746d8afcf8c3fdec1455c111e06",
       "requires": [],
       "witnesses": {
         "Machine": [
@@ -1249,8 +1679,8 @@
       }
     },
     "TwoSourceExtractor.v": {
-      "constants": 161,
-      "inventory_sha256": "1c1c186a45199f5f2d31ecc2de2251cd79d557f3071df9b28aa1e13b9ca756b3",
+      "constants": 171,
+      "inventory_sha256": "e0384bd1d890e32fab7c7864dd48bab79dd8872d6772c3160fda5cadb8ebc602",
       "requires": [],
       "witnesses": {
         "ConditionedFamily": [
@@ -1265,8 +1695,8 @@
       }
     },
     "WitnessContinuity.v": {
-      "constants": 278,
-      "inventory_sha256": "81aff5ed57307c05204dcb95564ce54fc68b083a42ec70cc9179fec0f589031f",
+      "constants": 276,
+      "inventory_sha256": "6a5b822a89e929feab8cc43c7f0ee40edc0561d7a4f4f708e6278edda61bafeb",
       "requires": [],
       "witnesses": {
         "Client": [
@@ -1299,8 +1729,8 @@
       }
     },
     "WorkflowProfiles.v": {
-      "constants": 252,
-      "inventory_sha256": "2d9acee5e9f6c3e25bfbd78ecfa7e64983c05ab9386eb3f7b130a1e2e6a36333",
+      "constants": 246,
+      "inventory_sha256": "0c32eab02078f2264d14402da86c61ef8b58d1595c67b06a44d5f13206989330",
       "requires": [],
       "witnesses": {
         "AppState": [
@@ -1324,77 +1754,79 @@
       }
     }
   },
-  "cache_context_sha256": "f41c5ce7328b0eebc8c71951acf304ad5f866702a692ee07ce1d3fb22bdffb49",
+  "cache_context_sha256": "59d4817627b7354743d394e132937408552eff7237d46f1872a9213d26091885",
   "declared_assumptions": [],
   "format": "verifiedos-portable-proof-receipt",
   "inputs": {
-    "docs/requirements-register.md": "2c41f573acdf9e16a8a94106de69eae963b1ad3683eaf6d51c52efd4308d0c6c",
-    "proofs/AdmissionPath.v": "75c9842796dad5652787edb32dae9ed17c075c3117d62c977018150f9e981e57",
-    "proofs/AesGcm.v": "95c4d44ec30a25daee0f8dc8f88c25ac349d53b96bfa3753862d56c0ef4ffa1e",
-    "proofs/ApexTheorem.v": "a1fc5d1dff460cbf26f9f2378805ec667eabca640f6f69932a0b7da5d595249b",
-    "proofs/ArithmeticComposition.v": "5fc982a31232a9591c0890682ee290cfe33ad226a0c09b924c1130fda2c0c534",
+    "docs/requirements-register.md": "3e6ca82ba05712047c8b3ba13d39d119b2dad47e7600e6f4cc3daf291981edf5",
+    "proofs/AdmissionPath.v": "53aff7b49d452f6d9e4629a9240caf1af12046f94e9bdbdc3cf8ee9ba6f44d00",
+    "proofs/AesGcm.v": "32bba02493a27b29690bc34eacda3d2da5995a1bb032c27906db2a6c4ecde36d",
+    "proofs/ApexTheorem.v": "7a7f509684b7d7042a6d2fdb3990edd6400b3f1e49e9ac150b75168cb7130668",
+    "proofs/ArithmeticComposition.v": "e882c949e4207e20bbd804b302798e96a38b610615fedea20974af440dec210e",
     "proofs/AttestedSession.v": "5de4430d2203d948ecf5ca4f07d16003fa2bf71942e79e18c3df215fdf87ced5",
-    "proofs/BoundaryCost.v": "4ee8f1b556294e3d2436db420b7d194ea52cd53843f42530918d1ebf6f060619",
-    "proofs/ComposedNonInterference.v": "71869abef9052ebee31a4bd1e7d71a74914e5e4c66060927f92ef977bab1754d",
-    "proofs/CopyRingService.v": "fbfc0a4d060f7dea885206801606e68b9092ae31f16ff082a5e7463e03230529",
-    "proofs/CredentialHandles.v": "cb1da2c3244a05d5314ecec7b9bdf19db7b61c795b7df65ae9e631c6d4d58939",
-    "proofs/CyclicExecutive.v": "907e5779a502dd2163e07b6d07ffcb5c34200e913870c4ed52d0d7ea4752ae65",
-    "proofs/DeviceRegisters.v": "dfe64f9471b7140106556c94ef4fca7f95a6c6be99159f257cca1c06324a59d6",
-    "proofs/DischargeSequence.v": "005361b5f0c86b79cb2b1bc3d9e0d0b06c0985a49e7a02278cddf6849a0e27fd",
-    "proofs/EndpointIPC.v": "f2d157af987b971ee68ed58a188de66780eb3ec3b024c300c71cb1eabf6af3be",
-    "proofs/EnsembleSchedule.v": "90ead03eb86f1cc1e52795bbf88ec6983c0dc27bd04b54192a24ba65592aa3d5",
-    "proofs/ExecutableIndex.v": "d234b96c0a3c53118268d58a28f518995498c0c6a2cc8e5d5eac970ea5568ca7",
-    "proofs/HandlerGraph.v": "b437862f0eb51a7cea8cb0eb04c4f84b2e574bb43c5cd48ab98193bf25c3ee5b",
-    "proofs/HmacDrbg.v": "1798c86b23db651f2a017109024f3c6da904724be31882fbb0e5a158091ff838",
-    "proofs/InferenceAdmission.v": "8dc0ef1064ec761009c0e29bfc92edd7a67b3004497874a43095c43b64d97b55",
-    "proofs/JournalIndex.v": "cdb662fe3166745a456a77522845cb810d677b6f52881f7c67146302b34f35d8",
-    "proofs/Keccak.v": "0429f322a53d71de56d703b772728590e661d98263c1d992189aec1c158bfd75",
-    "proofs/KernelInstance.v": "2a4ce216e55b60c2236e455046701932193735f8e42ea2901e379d0009a674ba",
-    "proofs/KeyspaceDomains.v": "0a16ced5622cdf01d7976de5e13bcc2f1941c68b0fe68fdb0aaa32d61182d8e3",
-    "proofs/MModeFirmware.v": "d02d90af68458e852405ff9e7e2a448e32d1fec1b103e5b9c0e5ee813186cd55",
-    "proofs/MModeFirmwareSealing.v": "1af54245e6db311b93d349240c58ad0c1ccf497b434a713335c6d2db4de43f11",
-    "proofs/MemoryPlan.v": "53b45221a190dae6963289042ff81622d2331d52d59c29ee1cb5fc69efd02e30",
-    "proofs/MemoryPlannerCertificates.v": "52d7ffec1d9b6489ede419d815f5e4d260161d68c1bfce01bf69c022e2d40f1a",
-    "proofs/MemoryPlannerContracts.v": "f6f0bb3037ce0ae91b973b525703503bff47284d029cf1d0307aff26749d8f0c",
-    "proofs/MemoryPlannerResources.v": "bf5e19ef683d7012e8e26b6ade5c941f0e6950b524553ea7f90d7eb3b5ae1470",
+    "proofs/BoundaryCost.v": "6a56a7c7374809092a12c01e574978b3219d7061c7ea120fded45e3f03853f45",
+    "proofs/ComposedNonInterference.v": "72cd08d66b54fe875513dbaa3a043d9cfbd4dd0e42454903d2e7501619ab54ff",
+    "proofs/CopyRingService.v": "c9d4ec8a9ab543a91f8965f302b0fbcc5a4719c6de58e68d86ac8cda10d4bf16",
+    "proofs/CredentialHandles.v": "2aa09cfb4e56430b59b1206a9d1c3f218a5e034fd0885ce09a51f8385048a4e3",
+    "proofs/CyclicExecutive.v": "58f43cdd1932ed35298a71944eca105787ab645b87721416ce58c13a9bfb000d",
+    "proofs/DeviceRegisters.v": "2a0cc273d743abe8f777d07a1722e6715fbdee2db563aa9aa4adcf80b2acd663",
+    "proofs/DischargeSequence.v": "222b6c97791f15a52a23786fa8ffde778f9610d06338ad971c6eb921cd20e293",
+    "proofs/ElasticDomain.v": "d706741f163714bb6a3423a531c0d35ac6e4df86d4c485d491f754e7c6bea65b",
+    "proofs/ElasticPool.v": "bd601b7819afd383b9d663465d119031dd62893428b448ecbd131d05abe4e46c",
+    "proofs/ElasticPoolCampaign.v": "d494d3a139d6ca1caa49ccaa6e7c9340c19a48e4738819ea8e51bdc38997dec0",
+    "proofs/EndpointIPC.v": "3b2a2f3a5ed8adf7bb28fc1ea921913061186923dccfeea74273b76f5fb7c7cc",
+    "proofs/EnsembleSchedule.v": "51437d3dfcad8aeff0e61cd8a3095841ad4505e89dc92c6aa381e0eca425c0b4",
+    "proofs/ExecutableIndex.v": "95c7b9a36536d9e982a3f83de2a0b4f8fd964dcb17cff799c71c197c3497d073",
+    "proofs/HandlerGraph.v": "c7911fcffbf46d8eaf4e657f4da4136b83fc96bd86528ff6ad606682fc05f3aa",
+    "proofs/HmacDrbg.v": "b2c9afbc3f632c3bf83fd6b7f5c1eb10d9647f0ae69e1c66de58dac46df2f1c5",
+    "proofs/InferenceAdmission.v": "9376cc0b319ef95daf8b7802ffb957923468c8d04ac15cc8a40c715128a8ca12",
+    "proofs/JournalIndex.v": "a17483fcf90aa849dd088d12a5dfbb4e302095e78a1e05500db29f215467dfa2",
+    "proofs/Keccak.v": "71310e36e1c001a22cb7df6361a79590dae23a0e17c9be9046f3bf63a5f740a7",
+    "proofs/KernelInstance.v": "0e47dc908eeecd4253b477eab4122087bb2b1e0c2b3de69ca6cae39102a47a09",
+    "proofs/KeyspaceDomains.v": "59b610ed7611e42e27a73d2d09ef75b3d3a80d54167fce980648cb83f174ac36",
+    "proofs/MModeFirmware.v": "69f6c59a4e8250805b5840c375deec88a8794a94b1d210c3a6338276e8444811",
+    "proofs/MModeFirmwareSealing.v": "487716b808b8ae724ffb3394ff62f3a95fd5370b430aedbb407ed2ec981ce3ff",
+    "proofs/MemoryPlan.v": "3583dc1779aea3b0d823f477d8fed4d930260a17c4eb4e7262ac104286d03023",
+    "proofs/MemoryPlannerCertificates.v": "50908a71ff9c6c8158ee066e5c8c257cc13753ad19f962fa63cac99885efa990",
+    "proofs/MemoryPlannerContracts.v": "41ed426308786d3855c3a4aa443b877a9e4375f36ac5b8778f7675ed99ff32a5",
+    "proofs/MemoryPlannerResources.v": "5a1b56ce98d6673f97f374fbe63f1166b6e05e0b8147f76e63d35ec4f69ee392",
     "proofs/MlDsa.v": "70d8785b066fdee5fe5461885ee17c2006e87b268519488505b19dbd87facac2",
-    "proofs/MlKem.v": "e70a36a772af3e58003cda2a2257207217bf88a3aeb3d36cfc06a4d393af64af",
-    "proofs/ModuleAdmission.v": "fdd50e4e26edda598f1d7e5bf28ad94a7e38dd9b2cfd6b15300b20fb16a66367",
-    "proofs/ModuleFormats.v": "e7d91736073d477afbf126bd7d505f673a6d2c7ec9d2b3f49aab19dfb260d4b3",
-    "proofs/ObjectRouter.v": "9a3ecfebfe39535dce973c344f306ae472b2c0821e93b2b93a9688067389c7c4",
-    "proofs/ObjectTransactor.v": "a6fbcc6fc4234136703945e8683f62a3d90272890f6f2fa73565a1cc04768ae4",
-    "proofs/OracleInstantiation.v": "421f015b9c46edb694cf4e643192e51e742ce1f4a64a41054c79b90fd32fbc56",
-    "proofs/PartitionContext.v": "59074387ad4fb550cdf7683660d5a6e32a7c78fab1b5b3dd897f2ba52d25f836",
-    "proofs/PqArith.v": "54fc9b41150e6135efb2411268217ae341f0a11bfe3acebc5ec4c92c03760ef5",
-    "proofs/ProbingModel.v": "6a00a6ac94bf5322234a7f9678739989fd2f33a986dbc81a840195700321a1bd",
-    "proofs/RingContract.v": "290483abdd8897fd4e7d51fcc5a70b0785f646db928658c94a39ce603b2c87d3",
-    "proofs/RomVerifier.v": "2e41cc2847d8b479cf8b5c4022d164d1c7512478cf8483f6b805746f985bcb08",
-    "proofs/RotFirmware.v": "c8348b2ed9d4f231d5185d9fab2a2f410f531ba79aecea2b247e38067dca33d0",
-    "proofs/ScheduleRecord.v": "29406b258d993ca3be6847ab70477d357020fcfaa95eb1399456e8ae33af2b71",
-    "proofs/SeamWitnesses.v": "bee4f28114c8192276ac1c6c1e5beb782a2b37f70a0da39d39ee3765d08d5187",
-    "proofs/SecurityPolicyModel.v": "5ae430511b7ba9c94a7f453bd6a7326f1c4f0c2549a5f88227ca5f22e5cdc617",
-    "proofs/Sha256.v": "cfb6efd9dbacac9c3892f567f79ec26f2ca2f554a16063c493e33944c1fb6868",
-    "proofs/StaticMemoryLaminar.v": "de0ce89b77c0532c3767a778fd01c8648f7db7d807c4bac9b9448734322a6a99",
-    "proofs/StaticMemoryService.v": "795434c27eb6d09b4df760a54cb110dc23f3f25a6e24488a8a5402ada3b101b1",
+    "proofs/MlKem.v": "e25b799c611cace5300177174c8ca51ec931b872c699d37ca01a5e4a8a5ade7e",
+    "proofs/ModuleAdmission.v": "0ad6264e12e01477761eccdce3a5a92d450e8d649bc914bf8e2b7912333838bc",
+    "proofs/ModuleFormats.v": "019d84a2298d93968e13107a75cc1ab7221374e8397c16772c126c762e80e54f",
+    "proofs/ObjectRouter.v": "6fd716a730b96c41edc5ae40034c9c203b83bd6b1c7b2482426b2b4c5be06012",
+    "proofs/ObjectTransactor.v": "fc358ff13b2ad4a20f006801a943e607a088ec3aa07bd8d4b685b6b305119083",
+    "proofs/OracleInstantiation.v": "8ee8100fcd57d0729c5ebcb4d69898ffb6b9ed0fee9d5f593636e126eb9600b2",
+    "proofs/PartitionContext.v": "f1279104e471b5ca09d44be68c69c5ce6221b0714a49e4ec0f1a58f7f0541c56",
+    "proofs/PqArith.v": "0489ce45c11eb06eb797e9d2bfc343a972302d3239d9ea59e78d8dd13f776b13",
+    "proofs/ProbingModel.v": "1aa4a24a22083c99c311d5adbf7feeb6b61f2a322bc569eaaeced3913f2f7223",
+    "proofs/ResetTable.v": "feef09712a6a52580599e9ae0cbad3ab8d7e57b67e7b6ad543784a4cb46309d3",
+    "proofs/RingContract.v": "b29c5da0e6e1608f7ed5b4c3be1f107679d405d16455ad73eedfa68e8f6913bc",
+    "proofs/RomVerifier.v": "f6e6a01a4842d6cd91a7cccc71db46f0fa99cc7c9a420c89a83d4c129f6f8233",
+    "proofs/RotFirmware.v": "42d35fcce61d621f932bb92e4840592c97f9c4c3f3d8063a75047ae47b1e2bcd",
+    "proofs/ScheduleRecord.v": "76f0fd3bc3ac1f3ea4d998dc2b645eedf401bc4383d839aba28096469c273a99",
+    "proofs/SeamWitnesses.v": "e3647a806578c51ebb681639f67649589fa7e7ff79c8f3f0a9ca481daf1645d0",
+    "proofs/SecurityPolicyModel.v": "df4f2e65af0732dbfe7b26ef76e4b3756c2f4de083601bc15890f7d708ce6973",
+    "proofs/Sha256.v": "ce4b6f482d7497d3beca0ae5511671412daae06c1d426ff2ef867640b082d1e5",
+    "proofs/StaticMemoryLaminar.v": "c4c67c5ea475af50e30de49f484e23e9a1fb252aa6a8b2511dcb4fccd47e0c5f",
+    "proofs/StaticMemoryService.v": "56bd33a32bbf4fe62db43ee09069a1a4b3f6bf45d4ad339b909a7f4c34a2cecf",
+    "proofs/StorageBridge.v": "803d1fa300a5832ad657222b53ceede6cf28e4f12740769b0973070665e8a579",
     "proofs/StorageRecovery.v": "789d4702371963d7bd079498438394c6f6e5c199ee0dee67578a5acf66fdd1a6",
-    "proofs/SupervisionTree.v": "65e0aa2ead86f4ba3bb9e03a3f4603a23a102bc0696f8d82dd7ad601dc5587ec",
-    "proofs/TwoSourceExtractor.v": "0867ee901bab266c1df832870d0c2442b13a8704bbe1026ab6b60587cb5c3ce1",
-    "proofs/WitnessContinuity.v": "f3f10a7575d5295401674bbd433021157fc98af878fb426c4f6ff2f62ebc3dcd",
-    "proofs/WorkflowProfiles.v": "6ad3c668d8c4d29b8a24cab94dad25e733c269887f4aa986e711598674a72f5c",
-    "tools/pyproject.toml": "23f38a43721ccac2dc5e5924cb6904c6d360b3f3efab3fa58fe42dec8cc9398e",
-    "tools/run.py": "1bbce5375d8cac09a3ff1479ef97c8d0d39b30f2024d2456a7ac9eb00995844e",
-    "tools/uv.lock": "aa45cb1462e2a5ddcbe7995135c4f2067bb8c10b53d7d20409ad0896ab5eca35",
+    "proofs/SupervisionTree.v": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51",
+    "proofs/TwoSourceExtractor.v": "e02942473e53a6040d9032c93aeaa81bc62fcba07747d5994e97527721d3cc1e",
+    "proofs/WitnessContinuity.v": "686f860152fa0732f1eb560c53698890858516d05efcb22fc8a310d3a8c19f98",
+    "proofs/WorkflowProfiles.v": "ee96622556ac251a49ba945981df3d1b1c92878ec5b1d4550a2539a9f79e5658",
     "tools/vos/__init__.py": "f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c",
-    "tools/vos/cli/__init__.py": "2ebd70bc9bead51cd0acb27c8287b9e2d000897b336daaa375472c28058f9514",
-    "tools/vos/cli/proofs.py": "23c00abeb3aec8f8d5c2e7fb259792e3841c0c7faf065b74788ecadc17d674fd",
+    "tools/vos/cli/__init__.py": "0030bdb6c07fd3b2c1f36cc0fc80ef428386e7f2c42fed4038d445614b59dd6b",
+    "tools/vos/cli/proofs.py": "c95d10306e982029011489b4f0701d8794441b46dc6958714ec831adcaa65f6d",
     "tools/vos/corpus.py": "c2ef8c8e5390185ab3e2f59991d53a9e055fc9a693441ee3bb13440742e4a5c5",
-    "tools/vos/env.py": "3b01e2d8179b580b72c588c45c012388e4a223ea28a21adcf691ea8290c599f9",
-    "tools/vos/proofaudit.py": "ed44065dea6641e890e12175dbaebee56f9a373232019b70876f990d30c70510",
+    "tools/vos/env.py": "da925ab90ca53795a2ab361fe8e10a4785595d5fb58bbbbd5b8b21422ff17552",
+    "tools/vos/proofaudit.py": "e0cb45eb0eea085af45d3085e0212b2330b53ef3759b5a3f0b228342c0438d97",
     "tools/vos/proofcites.py": "573590260469c021a585817f489d0b72b463ca7e07237fcd89ae8390b8caf5b2",
+    "tools/vos/proofheaders.py": "e2c278ebedb411aae7f07c653c5040beff50f853a9242f74e44d553f941bac1e",
     "tools/vos/proofs.py": "5a98d4435d0b241a998f37b45ece9ff9d33545d22a548723b85eb836e84799be",
     "tools/vos/receipts.py": "0a1411e2df4b2baab21a897d82672b866ab1a82599f2fb9adc60dff5db79b9e0",
-    "tools/vos/register.py": "d52066dfa142895870e1540f1786924d452f30bf4f54371af8ba39e91493c4bb",
-    "tools/vos/toolenv.py": "1a54d85eb5b00b74d4fe4e4ceb3fce78a929d41afaec230a96d37def0ce3f44a"
+    "tools/vos/register.py": "d52066dfa142895870e1540f1786924d452f30bf4f54371af8ba39e91493c4bb"
   },
   "kernel_evidence": {
     "basis_sha256": null,
@@ -1411,6 +1843,9 @@
       "CyclicExecutive",
       "DeviceRegisters",
       "DischargeSequence",
+      "ElasticDomain",
+      "ElasticPool",
+      "ElasticPoolCampaign",
       "EndpointIPC",
       "EnsembleSchedule",
       "ExecutableIndex",
@@ -1437,6 +1872,7 @@
       "PartitionContext",
       "PqArith",
       "ProbingModel",
+      "ResetTable",
       "RingContract",
       "RomVerifier",
       "RotFirmware",
@@ -1446,6 +1882,7 @@
       "Sha256",
       "StaticMemoryLaminar",
       "StaticMemoryService",
+      "StorageBridge",
       "StorageRecovery",
       "SupervisionTree",
       "TwoSourceExtractor",
@@ -1456,74 +1893,79 @@
     "reused": []
   },
   "kernel_recheck": "passed",
-  "native_receipt_sha256": "1fc050f4e8d7a52b035722a3f3c2ed8f7295bf2f569fb94dcfd18bceadc2d1e3",
+  "native_receipt_sha256": "9f6908fe56b591b7148c49489dc6c504a4a4ec2b48ee7866a06395d671004c27",
   "outputs": {
-    "proofs/AdmissionPath.vo": "d127e0c4ffe39c46f3e85e96b16dad1ca08e2d9461b93b2348b3806839cc89d6",
-    "proofs/AesGcm.vo": "ec11f824491d0590b05eb7ef106adb74af5ddaa02b023f573d00c112c399dcd1",
-    "proofs/ApexTheorem.vo": "5661ce61d308404a1125afd1e7a3a5ed36abd4ed34395e46ae3421b0c36bf31b",
-    "proofs/ArithmeticComposition.vo": "86ac5f8140b9a96efffbae54bdd40fe7eb147554b9fba33ab66d9c30ce8ef251",
-    "proofs/AttestedSession.vo": "41f5835da3c494d9d253ffb14082d2056d7e51403704401933d46b9ead2aa076",
-    "proofs/BoundaryCost.vo": "2dce558bda6bcb93058f3e72259efa37573f5e776ab908f851f1ec1db5bd7328",
-    "proofs/ComposedNonInterference.vo": "2c6984271cc0e545ebb233c4391695d45bb9400ebf0dccbf07e6891eebb1d273",
-    "proofs/CopyRingService.vo": "d771755c2c41c736ffb35dfe6cb9c79c12292acdf08aab6e4f322b1773b2d6f9",
-    "proofs/CredentialHandles.vo": "b593eb0d784d79fc195c5165e7a44f4c2db6ad05ce948de75941dd06b326ed98",
-    "proofs/CyclicExecutive.vo": "716908fd522e6757461622f78e741be3646933943ad41cf177b8c6b7eff92b9c",
-    "proofs/DeviceRegisters.vo": "b032e88f72b22d610cddd7003dc1e46c66cba01135cdbd5964f47da0e2e5c016",
-    "proofs/DischargeSequence.vo": "89bb2d9b5cdf3ccb6033cf5c1cca4604205d471e2035833611a49115148bfbb4",
-    "proofs/EndpointIPC.vo": "dde41ed0d8f1e08eb70e8916afe0ade1f1433e398c6030067a6fbcf7fad976d1",
-    "proofs/EnsembleSchedule.vo": "97f3adbb1011263bda989b23a95430081893b562e4b5833aeb38f2a4a4995f6e",
-    "proofs/ExecutableIndex.vo": "233053bc11d1ee15333a7a72acfaa213cd833eccb2e39e914cc6925012df7e6f",
-    "proofs/HandlerGraph.vo": "9caa8703825b81fcec87a0374234e5c609c1309e747801deadfcf25fddda5f70",
-    "proofs/HmacDrbg.vo": "57bdcc285f36df9b2ce7a524d4d89b74bdef390551bc78318d2c085973656f95",
-    "proofs/InferenceAdmission.vo": "844c25138ee6aa95fd276fa159d0685377302beedef7905beb8599226f48c936",
-    "proofs/JournalIndex.vo": "c3ba5f7b2e0bcd5dddccf4e807707a13b1dca743ecadab1d0ca87cbe710a85c4",
-    "proofs/Keccak.vo": "7a9724d7507fc12fb5eedab17706ae13ef3d30f522b4ba79317f8fc6c39ad8c7",
-    "proofs/KernelInstance.vo": "7460389797e43265c9c328e8a2bdaea2d9d38ba5aaa40f4a154a990039fef845",
-    "proofs/KeyspaceDomains.vo": "ba3efbd6d8ef8f940f4c3fa6163bc9d4ca4480c89337905ad05ff52cffa78ee3",
-    "proofs/MModeFirmware.vo": "cc665a41a30042be046ce4f534b2c570ec4f5d7aebca3558b78b41b3d0ea1185",
-    "proofs/MModeFirmwareSealing.vo": "87340d4057053ef7db630ee658b754399c5e4ab4f87ca04e94a1780e463399e4",
-    "proofs/MemoryPlan.vo": "5b01adeb67bb32b987ef166cdde67cd7bbb736b268452dfdf74df8072f08caaa",
-    "proofs/MemoryPlannerCertificates.vo": "c17438d82eb6281ad7e5c411268ad0248ad6a3f1c086baebb980a17b1beaa4de",
-    "proofs/MemoryPlannerContracts.vo": "1b13b3a9d961e567fc923219d3cd07634878e689e6d47e5d928aadd58a659135",
-    "proofs/MemoryPlannerResources.vo": "8e4fc8078db4b6759fa103abfc51c5c8199c3f85b7f9fd1062fca999d60a47e4",
-    "proofs/MlDsa.vo": "41052787a9c04877a73f2100175f49a3cba03939197c790be2f17f3bae0e5971",
-    "proofs/MlKem.vo": "fe88e26cf273da865245e3e8ad3bf2a2f247a902da30f3b93f3433f4fadeef19",
-    "proofs/ModuleAdmission.vo": "cbede5fda01970675a77ce22bb17348ba8f77ff01a993b3fbfa66e1afac1e1d7",
-    "proofs/ModuleFormats.vo": "5536d75d4fa67d7f1d27908472036eef091dc81c63574e3a3902b57e92f89fc6",
-    "proofs/ObjectRouter.vo": "923020e40fdd16b1804046e706aa143d77dabdcec639019d26661c6c9fbede57",
-    "proofs/ObjectTransactor.vo": "21d17b784532ac9bdc5b9024a3377f8feb05d408dbe17148e17a0ec115095761",
-    "proofs/OracleInstantiation.vo": "bf2811428c72e2b1b90a3b71af161003323bc9a3800b4ad8aadd8cd30da51a62",
-    "proofs/PartitionContext.vo": "94ca28c18b4e76b76b860c7c521f88ccda6921c4d92e31835e6556f58f523cf4",
-    "proofs/PqArith.vo": "fb79cfe72af7d7ca3a0f6ba73b8584c8d92a61e17db11859609f19bf51b3a21d",
-    "proofs/ProbingModel.vo": "7260b40c85670814f96561ea1486e3e407f6f00f8f42cfec0a9bbd3be75ad50e",
-    "proofs/RingContract.vo": "eb227b4955dfad6b199c6555dca138e79af8838b146168491a2d75498dc7a920",
-    "proofs/RomVerifier.vo": "9c6a073b8ce105a59f99b4c179399d2ea3ba04b52451d7ab5e78df9ce984f598",
-    "proofs/RotFirmware.vo": "6ce9ed692307eaf5cf9657fde46dfd179b330d04402bc7d777d6b76597552183",
-    "proofs/ScheduleRecord.vo": "c1810f1d9721e4bfaf83c5fd4bd3a9910ffa17864e7d5381c8daf15d0f668d6a",
-    "proofs/SeamWitnesses.vo": "eb460d710ee84422cb518af889d0189927e13fc213c65ff52c15fc0bee4e4214",
-    "proofs/SecurityPolicyModel.vo": "92736e9ec076b2d84f84d7e4692e5cc006646ed56d99a79da66d35102e5059e3",
-    "proofs/Sha256.vo": "265215be5f38ca7f381065bc0048262ac437fe3d2ab59038e9790bc8996c165c",
-    "proofs/StaticMemoryLaminar.vo": "82d0fa1f321976f924bc9469caee8daa9698103166802900968ac78786a7c773",
-    "proofs/StaticMemoryService.vo": "19b6300ea912884011081ee38d141b09243b2e7eee173d40d0fced78dff49f89",
-    "proofs/StorageRecovery.vo": "008823f4da273e6f57ec687b7d86e130786ad8930e994bb1767ac72635694afe",
-    "proofs/SupervisionTree.vo": "e5987115f5337367ba3b4f3ecaeafe63b4713e93e18ceac4be90cef2b348931c",
-    "proofs/TwoSourceExtractor.vo": "05ea5f8f7fd4162d39fc8103e901f16f30578cf91201bdefad347d3297b81c67",
-    "proofs/WitnessContinuity.vo": "0cf3109e1eec93b59b13dbf0df04415eb4796ddc7293c323af5c7517b7681625",
-    "proofs/WorkflowProfiles.vo": "627b321eb0fefd02bbf7e3c9a21fa4991b41381f7418422b2bfd49fc5392a40d"
+    "proofs/AdmissionPath.vo": "55b5500107fd7d48eb77817d40e51b86cb2fb3809e0bf28353148999f38ce521",
+    "proofs/AesGcm.vo": "4adca495b49a3afc83ff7ca2c21e615c68fdab7b61a69311c4da8c309cbbfbb6",
+    "proofs/ApexTheorem.vo": "dcad073563c0369e6b24f89ec010416e80b6286a1c4fb98a8c45337657c9c133",
+    "proofs/ArithmeticComposition.vo": "d14f24468c901203347126370ee22a7a424f9048c61c4e4a9f69b9c04d8ffb81",
+    "proofs/AttestedSession.vo": "36ccc5a4b8653e040c8c2e6a02ce2d7bf64ba97cdc2e6c014e0b12f97cad2d6b",
+    "proofs/BoundaryCost.vo": "b8ebf733409e332ed6140d19d29dd3ed0023ffbc724030438a0b5d4a25d1418a",
+    "proofs/ComposedNonInterference.vo": "ec60d122c996daa83a4ad4ec2ffd64d3ebbf0093fbf7e7968029bf53adc65798",
+    "proofs/CopyRingService.vo": "345716563354df7ce4fa9f85cbe2332b6c01611922bc9d2ffc9dc529a813b091",
+    "proofs/CredentialHandles.vo": "10a409fda2e44ad1d85635e1e0fca6bd4229ce21035fd1e78bdef3b8bdf6c934",
+    "proofs/CyclicExecutive.vo": "9aa869b67edd8ddb9bd0c387a635abe4e162780d619155309eec71c6bc9c840b",
+    "proofs/DeviceRegisters.vo": "9ff6a483a4bac8ec54b0cd05c9c44c2bb9456b828bc100a8f6053060bd27e599",
+    "proofs/DischargeSequence.vo": "32b16c83c40ccc0410343564c6469390b3e192de1b5b847c4135dd7eec11a430",
+    "proofs/ElasticDomain.vo": "ae07ab3df8f1b231ba517ea284534a96362b9e77fbb6525ebdfdff7c0e70a7cf",
+    "proofs/ElasticPool.vo": "215e32b80fb5ac0f10d0dc9b3d78912b839267cc3c910d9032e433624d830b06",
+    "proofs/ElasticPoolCampaign.vo": "6731d1043ced1da076dabbbd1696bb6febdd16e9d1a759ed852f99a03a723bd6",
+    "proofs/EndpointIPC.vo": "fa9cac5b5746fd6bb4e8a43e935c96042965df1d813dd3156dffc5ebf02e9b48",
+    "proofs/EnsembleSchedule.vo": "c74f0076c7dbd3bb2b724b9e1db8b8523d5db8c42a07d2e3057d6f1ade6b5f08",
+    "proofs/ExecutableIndex.vo": "2a35e39bba5fe11f808f3434a1201fbe93c1b18a91d537edd68e3a1461128163",
+    "proofs/HandlerGraph.vo": "f0ac852934ed6d96abd39a8c46545a6f1213cb448eae06a2af501711228ac281",
+    "proofs/HmacDrbg.vo": "2b6b4f64a4e8c4363c56a4d157b8ef256b7d6a55407c86cb0f16be4185b8a2ac",
+    "proofs/InferenceAdmission.vo": "bda787e8f375b499c5a2fc6ccaa0f6522794a390b6bf908f5bd227aa2eec63ef",
+    "proofs/JournalIndex.vo": "06f86eae882e08cf91b60db617799b2cb027142dd002c2ebd8f9dbc22315e6bc",
+    "proofs/Keccak.vo": "c318159a058fd4a437e6596157d1d68566367b4e9c4e7adc030d3d03e544333b",
+    "proofs/KernelInstance.vo": "3cd61271d464aa0373dd5da8616a2d18c02d2a5ac6f3dbacff83b279fbfb85de",
+    "proofs/KeyspaceDomains.vo": "1eab46ef8af0103a37944eda4823f0e859165a7fa4993037d4b5c1ae9ea46943",
+    "proofs/MModeFirmware.vo": "5e3ad1b7d9496bd61f72bc3f2c8c1d5a2eddbcb8d50e44d4b4866564748966bd",
+    "proofs/MModeFirmwareSealing.vo": "4261384f4dfb8285bafcff489b3c21cbe41c5ce38b9b663fa4f83974ec1e83e7",
+    "proofs/MemoryPlan.vo": "8cc5c3f03b84a0871856f0081ff19e204aab47d560ff08f8a7a5e3038fb2f9bd",
+    "proofs/MemoryPlannerCertificates.vo": "4f75bfa411539bd7258769b97386214134c83744f8fb6eb6c4e671a86ca2393b",
+    "proofs/MemoryPlannerContracts.vo": "eb82960afd5d2f8bf0161e70cb41c27f5116798be5a31cc4f39ac07f344e9fb5",
+    "proofs/MemoryPlannerResources.vo": "8ff44f09e3bd22edcbd5d9edd544cbdb06c8b467d381b13328f5028b077a38ff",
+    "proofs/MlDsa.vo": "66ce06340883055d96de00df10aafff2c5452e900233bdb06d1e0e683f7c1b4b",
+    "proofs/MlKem.vo": "f66e72450375078ff300102a3bc9222c9d5d2d40a05f26792b01aa1d74f9d6d8",
+    "proofs/ModuleAdmission.vo": "5825ac4281faa1564abe051cf1932becca86502c0731a81858330965a0c14227",
+    "proofs/ModuleFormats.vo": "5bba0de0906a007bd9371c4e85890b8c1e868b47eceadc7705fafbb8c875580c",
+    "proofs/ObjectRouter.vo": "5ab1ec0ea2fb3d56564f292e80ce62d0851460927c05dada0052f0abe45dbff4",
+    "proofs/ObjectTransactor.vo": "c28ef65733b8e4192a837465e68809d5f777be715bbf48f14b42a89a1d924d24",
+    "proofs/OracleInstantiation.vo": "fb734f15d63148a664b13be72f8941d4aca34ce83a851742dcda2f3e187df83e",
+    "proofs/PartitionContext.vo": "d4e0ad93321ba076719aa8b978b9108640a3356716d1aa79b215633c477252be",
+    "proofs/PqArith.vo": "d58069f9cc8a1e6846004347019214806a632e8fbe34acac5b17971abae112f6",
+    "proofs/ProbingModel.vo": "ad3b7a44deac1d61d3375d2f0a9665d0a8e5cdcbf86b8ebbe52a273af4d5f29d",
+    "proofs/ResetTable.vo": "ed4feebbaaa98c56327201e870c543efba1975eda61b1d99691ebfd3d0d6b524",
+    "proofs/RingContract.vo": "d2f9e877603942454e881a3d048769a9d6a015cc10438439617c7374874ef65c",
+    "proofs/RomVerifier.vo": "fb75917d861cfb2c4585ceedd561438903af3bab0d728c0d616310fb55e93729",
+    "proofs/RotFirmware.vo": "46975d38f6f6d55c4b866b56ecd5f4a639f16d77cfc82d636196877dc31de830",
+    "proofs/ScheduleRecord.vo": "acd2f0128870294531a13a2c1aea1ed616098aba732dbf17f021db5a1afa12f7",
+    "proofs/SeamWitnesses.vo": "8687d0cfae8b09e51216a72ee8994186df705f1d07784c49f3368ba456d23ab7",
+    "proofs/SecurityPolicyModel.vo": "323d8723a143f63904d0d637e251bf9dd9b37393fd3b08f7feb60b61e989658f",
+    "proofs/Sha256.vo": "9aed104bf422fd62c45d0c05dc08fee02d5c9abda2e57d13c67878dab03f68a3",
+    "proofs/StaticMemoryLaminar.vo": "92ee9fcee9c1bbe2245caa89734e6a7dd30b956865519bfe4ccab9d1c07887f7",
+    "proofs/StaticMemoryService.vo": "add70226dea0b77dba5511042ac8ec0733836d260a3799fac91093bf2cec27e3",
+    "proofs/StorageBridge.vo": "12b8de3e32415b285441020c214e7cd77758a408ae1ce6ac7895c57af5243eeb",
+    "proofs/StorageRecovery.vo": "791296943cab7a5dd30cb77f160c84e53579604659656dfe44b49f228c1ababc",
+    "proofs/SupervisionTree.vo": "6bfc138efc29cbe59287e47ffb485b1c4cb9766d9638f66b5035161ebcd51cce",
+    "proofs/TwoSourceExtractor.vo": "c160672dca0060a9dc94a7f04de35d9876a9ee2ad28e949143391704ace03927",
+    "proofs/WitnessContinuity.vo": "1a786bf30cf483d3d405137934ebfadd0fa04b12df84ea3222bafc620416079b",
+    "proofs/WorkflowProfiles.vo": "5b7755b2a1f44ddcc455f25dc9522db6dd669236c0f103ae28584751a498edff"
   },
   "reused_audits": 0,
   "reused_compilations": 0,
   "schema": 2,
   "status": "passed",
   "timings": {
-    "compile_audit_seconds": 301.7800617970024,
-    "kernel_recheck_seconds": 1990.2029487440013,
-    "total_seconds": 2299.2885908709977
+    "compile_audit_seconds": 159.44156447900014,
+    "kernel_recheck_seconds": 1420.6501139020002,
+    "total_seconds": 1583.2986706530005
   },
   "toolchain": {
-    "checker_sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",
-    "compiler_sha256": "8936a549ea82349011d5509429242e0d4e83fd2c5e9caff63008e206c188b6e5",
-    "pin": "9.2.0",
-    "version": "The Rocq Prover, version 9.2\ncompiled with OCaml 5.4.1"
+    "checker_sha256": "46aae2e2a655bec07928a94df91b028bf1eeb899b2df8d8e277d942e57ff5412",
+    "compiler_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "pin": "9.3.0",
+    "version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1"
   }
 }
