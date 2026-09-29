@@ -124,6 +124,8 @@ preceding pin, and the grants and the uses in the table remain as recorded:
 - Katamaran: `LICENSE`. The two added `Logic.v` files carry two-clause BSD
   notices.
 - libjade: `LICENSE` and the two texts under `LICENSES/`.
+- `cheri-compressed-cap`: `LICENSE` and the `test/FuzzedDataProvider.h`
+  header. The delta changes no notice in the files it modifies.
 
 Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The reviewed development tip requires Rocq 9.2 and changes proofs and nested
@@ -153,7 +155,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages and the assertion header under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
 | `upstream/ibex` | `lowRISC/ibex` | `4dd3932a` | `Apache-2.0` | RoT functional reference. | pinned to read later |
 | `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference. The profile does not adopt its RV32 capability encoding. | pinned to read later |
-| `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `78a34ba5` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository. No build or check here uses it. | pinned for a struck milestone |
+| `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `6a94fc12` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository, from the edition the completion log records. No build or check here uses it. | pinned for a struck milestone |
 | `upstream/qemu` | `CTSRD-CHERI/qemu` | `d0bb921c`, on `qemu-cheri` | `GPL-2.0`, with the [file-specific terms](#development-tools-contained-by-use) below | Base of the unpublished fast-emulator fork; its `VERSION` is 7.0.0. Nothing here runs or vendors the fork. | pinned for a struck milestone |
 | `upstream/rupicola` | `mit-plv/rupicola` | `d33f7024` | `MIT` | Relational-compilation toolkit for the GC-free lowering review, with Bedrock2 as a nested submodule. The lowering switch uses released opam packages. | pinned to read later |
 | `upstream/katamaran` | `katamaran-project/katamaran` | `aeb0620c` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail. | pinned to read later |

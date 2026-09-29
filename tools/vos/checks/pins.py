@@ -217,6 +217,7 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
     "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78": "SECOMP",
     "755c7eaa8f67328cbe1f1ab9080b70afb1772e84": "libjade",
+    "78a34ba5cdb853ba601a292bcdd4a780e6ae9c64": "cheri-compressed-cap",
 }
 _CAPTURING_RECEIPTS: dict[str, str] = {
     "docs/assurance/sail-assistance-evidence/modular.json":
@@ -249,6 +250,8 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the SECOMP edition M1.1 pinned and M1.1b measured",
     ("docs/implementation/completion-log.md", "fd327e8c"):
         "the Katamaran edition recorded by the 2026-09-24 reference refresh",
+    ("docs/implementation/completion-log.md", "78a34ba5"):
+        "the cheri-compressed-cap edition M2.1 narrowed in the unpublished repository",
     ("docs/hardware/rtl-reparameterization-delta.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):
