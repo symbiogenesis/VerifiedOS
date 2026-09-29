@@ -1116,7 +1116,7 @@ premise. The read covers ordinary exits, loop joins, captured reborrows, source
 correspondence, observations, intended negatives and missing-law pricing.
 Q20a's callback benchmark is unchanged.
 
-The actual bounds authoring from branch creation at 05:54:33 to commit at
+The closing-pass actual conservatively bounds authoring from branch creation at 05:54:33 to commit at
 06:07:58 UTC, plus that review, rounded upward to one decimal hour. Earlier
 design authoring is an existing input, not reconstructed effort, so the
 calibration row is n/a. Shared integration and the final host wave are recorded
@@ -1150,7 +1150,7 @@ links at their exact foundation passages. The read preserves Q19c's actual-law
 gate and R-05-019b, R-05-020, R-05-023a, R-05-024, R-05-026, R-05-032,
 R-13-017 and R-18-014; unavailable artifacts give neither route a victory.
 
-The actual bounds authoring from branch creation at 05:54:40 to handoff at
+The closing-pass actual conservatively bounds authoring from branch creation at 05:54:40 to handoff at
 06:04:31 UTC, plus that review, rounded upward to one decimal hour. This is
 rejection review over the existing contract, so the calibration row is n/a.
 Shared integration and the final host wave are recorded at Q2c without a second
@@ -1188,7 +1188,7 @@ three assessment lanes. The final integration gate is
 `python tools/run.py --check --tests`, bound to each lane's tested source bytes
 and the index tree identity. It checks the whole corpus, every checker mutant,
 both Python checkers and the behavioral suite, including repeated read-only CLI
-invocation. No model, RTL or Gallina source changes; no guest evidence is claimed.
+invocation. No model, RTL or Gallina source changes; no guest evidence is claimed or substituted by these host experiments.
 The co-read ledger is unchanged.
 
 The authoring interval is 14:29:12–14:57:50 UTC on 2026-09-11; independent review
@@ -1282,7 +1282,7 @@ Kami or Kôika block exists, route (a) opening after the co-simulation gate, so 
 is filled for the two blocks that do. The authored capability package has a correspondence
 instrument and no emitter, its evidence route-(c) shaped in the plan's §11 sense. The
 generated address map is the converse and is the instance R-15-092's ruling on generation
-names: its emitter is checked for byte identity by K-88 and for nothing else, the sense in
+names: its emitter is checked for byte identity by K-88 and for nothing else, in exactly the sense in
 which that ruling holds checking insufficient. Both stand at evidence tier, read as the
 ceiling R-01-002b sets over the unit, not as a reading taken over a block. Per candidate
 DSL no circuit theorem covers its own emitter: Kami's reaches the Kami term ahead of
@@ -1354,7 +1354,7 @@ Landed: Tier A. Behavioral checks hold the executable comparison; the finite exp
 
 ### Q22g · Price the unassigned proof and specification work
 
-The [reviewed map](../assurance/unassigned-proof-map.md) assigns numbered next slices with endpoints, local evidence, source gaps, shared prerequisites, ranges and acceptance predicates. Its `U-01` through `U-28` proposals distinguish statements, proofs, decisions and measurements. Owner acceptance is required before those proposals become implementation cells. No theorem is established, inventory status advanced or M8a dependency added.
+The [reviewed map](../assurance/unassigned-proof-map.md) assigns numbered next slices with endpoints, local evidence, source gaps, shared prerequisites, ranges and acceptance predicates. Its `U-01` through `U-28` proposals distinguish statements, proofs, decisions and measurements. The acceptance clause permits numbered next slices; owner acceptance is required before those proposals become implementation cells. No theorem is established, inventory status advanced or M8a dependency added.
 
 The review corrects claims about uninspected axiom closures and unverified prover compatibility, assigns Islaris qualification to the logic-route decision, and keeps a direct replacement for the mandated Katamaran route conditional on a register amendment. Bluetooth pairing leaves the remaining Bluetooth procedures explicitly unpriced. U-19 carries both statement and proof scope. Missing compiler, TAL and masked-datapath implementation obligations remain visible outside the priced proposals.
 
@@ -1423,7 +1423,7 @@ The completion audit limits this landing to the static calculation in [the traff
   * Net change: 2,626 lines added and one removed across four files, three of them new: the report, its `ensemble-sharding-traffic/` directory carrying [shard.py](../performance/ensemble-sharding-traffic/shard.py) and [traffic.json](../performance/ensemble-sharding-traffic/traffic.json), and the Performance row in [the documentation index](../README.md). No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit: the review gate is not re-entered and the co-read ledger is unmoved.
   * Exit evidence: `python tools/check.py` green from the lane, exit 0, every derived fact agreeing with its artifact over 104 registered rules with K-00 agreeing in both directions. The instrument reproduces its own output byte for byte at the recorded revision, 67,660 characters identical, and extends the inference-demand instrument, not a second harness, loading no weight file, running no model and taking no time. Its guards were exercised: a static file of another model is refused by name, and a ragged ring chunk and an inexact FFN-width division each raise. Both files read `i/lf w/lf`. **No guest run is in this evidence and none is owed**: every figure is arithmetic over one tracked JSON file, host bytes are target bytes for the partition, and no host time enters any figure. The host gate wave is the integrator's.
   * Four findings.
-    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, a lower bound on the one constant the same report says it cannot decide and which R-12-015d bounds above by an undeclared throughput. The repair is conditional phrasing and a named owner; the headline lost nothing, the ordering of the terms having always been the result. F-368.
+    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, a lower bound on the one constant the same report says it cannot decide and which R-12-015d bounds above by an undeclared throughput. The repair is conditional phrasing and a named owner; the headline lost nothing, the ordering of the terms having always been the result and the bandwidth claim decoration on it. F-368.
     * **A refusal derived over two declared parameters reads as a property of the shape unless the alternative is priced.** Above two members tensor-wise was refused on cadence; the refusal was the cycle's and the ring's, and a fully connected collective reverses it at 2.5 times the crypto charge. Pricing the alternative was fourteen lines of the instrument and moved a verdict. F-369.
     * **Three figures sat outside the file the report said every figure came from**, an FFN width no tracked artifact states, a head count owned by another report's section, and a cache constant hand-copied from it. All three are now derived in the instrument with predicates, and the derived cache bytes agree with their source section to the byte. The rule the miss breaks is the item's own Check clause. F-370.
     * **An entry that names three terms and no composition function invites the reader to supply one.** R-15-171a's rate was read as the minimum of three independent ceilings; R-11-017a's own text puts all three into one member's interval arithmetic as ordinary tasks and grants, so the independence was asserted against the entry the sentence relied on. Stated as an upper bound now, with the composition named as Q23d's. F-371.
