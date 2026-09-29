@@ -302,14 +302,15 @@ library, which the project's switches do not carry;
 ## Directory Structure
 
 ```
-sail-riscv
+model
 - model                   // Sail specification modules
 - handwritten_support     // prover support files
 - c_emulator              // supporting platform files for C emulator
 - cmake                   // extra build system modules
+- config                  // configuration template and profile configurations
 - dependencies            // external dependencies
 - sail_runtime            // build files for sail runtime
-- test                    // CMake test setup and URL references for RISC-V test suites
+- test                    // CMake test setup, native harnesses and URL references for RISC-V test suites
 ```
 
 ## Licence
