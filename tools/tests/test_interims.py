@@ -263,6 +263,32 @@ def _escaped_and_unescaped_fstar() -> None:
            "a word start in any case, with no longer word read as a lineage")
 
 
+_STAR = "⋆"
+
+# One spelling per lineage name the table must keep reading. The loop over TOKENS
+# holds each token to its own canonical spelling; this list is what fails when a token
+# is dropped, so it is the floor against the table narrowing.
+_READ = ("F*", "F\\*", f"F{_STAR}", "Low*", "Low\\*", f"Low{_STAR}", "FStar", "fstar.exe",
+         "FStarLang", "mitls-fstar", "F-star", "LowStar", "KaRaMeL", "krml", "HACL",
+         "hacl-star", "Hacl_Hash", "EverCrypt", "libcrux", "Cryspen", "hax", "EasyCrypt",
+         "Jasmin", "jasminc", "jasmin2ec", "jasmin-lang", "libjade", "formosa-crypto")
+_NOT_READ = ("jasmine", "Jasmine", "**F**", "*F*", "*Low*", "Vale", "Z3", "Why3",
+             "SHACL", "haxe")
+
+
+def _token_table_reads_every_name() -> None:
+    for tok in interims.TOKENS:
+        got = [t for _, t in interims.hits(tok.name.encode())]
+        ensure(got == [tok], f"token {tok.name!r} must read its own canonical spelling "
+                             f"and nothing else: {[t.name for t in got]!r}")
+    for spelling in _READ:
+        ensure(len(interims.hits(spelling.encode())) == 1,
+               f"{spelling!r} is a lineage name the table must read")
+    for spelling in _NOT_READ:
+        ensure(not interims.hits(spelling.encode()),
+               f"{spelling!r} is not a lineage name: {_names(spelling.encode())!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("empty-form-holds", _empty_form_holds),
@@ -277,4 +303,5 @@ def cases() -> list[Case]:
              _listed_consumer_citing_nothing_is_a_finding),
         Case("missing-governing-entry-fails-closed", _missing_governing_entry_fails_closed),
         Case("escaped-and-unescaped-fstar", _escaped_and_unescaped_fstar),
+        Case("token-table-reads-every-name", _token_table_reads_every_name),
     ]

@@ -30,15 +30,22 @@ states it: a pinned comparator read for its answers rides nothing, and a post-qu
 primitive imported so that its correctness rests on F\\* and Z3 is a consumer.
 
 **A lineage is found by its names, never by its solver.** `Z3` and `Why3` are not read:
-a solver also serves tools R-05-022 books as no interim, Cranelift/Crocus's SMT among
-them, so a bare solver name identifies no interim and reading one would turn every SMT
-mention into a classification. The names are the prover and its
-low-level fragment (`F*` and `Low*`, escaped or not), the libraries and the extractor
-that deliver its verdicts (HACL\\* with EverCrypt, libcrux, hax) and, for EasyCrypt, the
-prover with Jasmin, libjade and formosa-crypto. HACL is read as the start of a word in
-any case, so `hacl-star` and a generated `Hacl_` identifier are the same lineage as the
-prose's `HACL\\*`, and the library names likewise, since imported code spells them in
-lower case.
+Z3 is a solver and Why3 a verification platform, each also serving tools R-05-022 books
+as no interim, Cranelift/Crocus's SMT among them, so neither name identifies an interim
+and reading one would turn every SMT mention into a classification. The names are the
+prover and its low-level fragment (`F*` and `Low*`, escaped or not or with the
+typographic star, and `fstar`, `f-star` and `lowstar` as a repository or binary spells
+them), the libraries, extractor and vendor that deliver its verdicts (HACL\\* with
+EverCrypt, libcrux, hax, KaRaMeL and its `krml`, Cryspen) and, for EasyCrypt, the prover
+with Jasmin, libjade and formosa-crypto. Every name but the starred ones, hax and
+formosa is read as the start of a word in any case, so `hacl-star`, a generated `Hacl_`
+identifier, `fstar.exe` and `mitls-fstar` are the same lineage as the prose's names,
+and Jasmin's tools, `jasminc` and `jasmin2ec`, are read while the word *jasmine* is not.
+Vale is not read: it is a common word and the name of more than one language, and no
+surface cites the F\\* lineage's Vale today, so reading it would classify prose rather
+than find a lineage. The unit tests hold every token to its canonical spelling and a
+fixed list of spellings to their tokens, which is the floor against the table
+narrowing.
 
 **The surfaces are the index less declared exclusions, and not a list of places to
 look.** The corpus is what git tracks, read as the working tree holds it, so a file is
@@ -123,7 +130,10 @@ class Token:
     `folded` searches the ASCII case-folded bytes, for a name code spells as an
     identifier as well as prose does. `tail` is what may not follow the name: nothing
     for `prefix`, a letter or digit for `word`, and for `star` a word character or a
-    second star, which after an unescaped `F*` is Markdown's bold closing.
+    second star, which after an unescaped `F*` is Markdown's bold closing. `refuse`
+    names the letters, case-folded, that may not follow a `prefix` name, which is how
+    Jasmin's tools are read and the word *jasmine* is not. `name` is the canonical
+    spelling, which the unit tests hold each token to finding.
     """
 
     name: str
@@ -131,19 +141,30 @@ class Token:
     folded: bool
     interim: str
     tail: str
+    refuse: bytes = b""
 
+
+_STAR_GLYPH = "⋆"   # the typographic star the F* project writes its names with
 
 TOKENS: tuple[Token, ...] = (
     Token("F*", b"F*", False, FSTAR, "star"),
     Token("F\\*", b"F\\*", False, FSTAR, "word"),
+    Token(f"F{_STAR_GLYPH}", f"F{_STAR_GLYPH}".encode(), False, FSTAR, "word"),
     Token("Low*", b"Low*", False, FSTAR, "star"),
     Token("Low\\*", b"Low\\*", False, FSTAR, "word"),
+    Token(f"Low{_STAR_GLYPH}", f"Low{_STAR_GLYPH}".encode(), False, FSTAR, "word"),
+    Token("FStar", b"fstar", True, FSTAR, "prefix"),
+    Token("F-star", b"f-star", True, FSTAR, "prefix"),
+    Token("LowStar", b"lowstar", True, FSTAR, "prefix"),
+    Token("KaRaMeL", b"karamel", True, FSTAR, "prefix"),
+    Token("krml", b"krml", True, FSTAR, "prefix"),
     Token("HACL", b"hacl", True, FSTAR, "prefix"),
     Token("EverCrypt", b"evercrypt", True, FSTAR, "prefix"),
     Token("libcrux", b"libcrux", True, FSTAR, "prefix"),
+    Token("Cryspen", b"cryspen", True, FSTAR, "prefix"),
     Token("hax", b"hax", True, FSTAR, "word"),
     Token("EasyCrypt", b"easycrypt", True, EASYCRYPT, "prefix"),
-    Token("Jasmin", b"jasmin", True, EASYCRYPT, "word"),
+    Token("Jasmin", b"jasmin", True, EASYCRYPT, "prefix", refuse=b"e"),
     Token("libjade", b"libjade", True, EASYCRYPT, "prefix"),
     Token("formosa-crypto", b"formosa", True, EASYCRYPT, "word"),
 )
@@ -408,7 +429,7 @@ def _bounded(blob: bytes, at: int, tok: Token) -> bool:
         # A letter or a word emphasized, `*F*` or `*Low*`, is not the prover: its
         # opening star stands alone where a bold opening would be two.
         return not (at and blob[at - 1] == _STAR and (at < 2 or blob[at - 2] != _STAR))
-    return True
+    return after is None or bytes([after]).lower() not in tok.refuse
 
 
 def _heading(line: str, fenced: bool) -> str | None:
