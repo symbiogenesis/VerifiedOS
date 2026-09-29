@@ -1,10 +1,10 @@
 # Completion Log
 
-*The note each landed item recorded at its gate, moved out of [the implementation checklist](implementation-checklist.md) so that the checklist carries the open work and one line per landed item. The checklist owns every item, its estimate cell and its order; this file owns the evidence a landing wrote, verbatim, and is the artifact the findings register indexes.*
+*The note each landed item recorded at its gate, moved out of [the implementation checklist](implementation-checklist.md) so that the checklist carries the open work and one line per landed item. The checklist owns every item, its estimate cell and its order; this file owns the evidence each landing recorded and is the artifact the findings register indexes.*
 
 ## How to read this
 
-Each entry sits under a heading spelling the item's label as the checklist writes it, and the checklist's one-line cell for that item links here. The notes are gate-time measurements: a figure in one is what the item's gate measured at the revision it names, and it stays as written when the tree moves on, which is the exception the working rules make for completion evidence. A findings block here is counted by `tools/check.py` exactly as it was in the checklist, so the findings register's `Raised:` lines still name the item and every counted finding still has one entry. A `Landed:` line is read here too. Nothing in this file is an open obligation: an act a note reports as owed is indexed by the findings register, which is where its disposition lives.
+Each entry sits under a heading spelling the item's label as the checklist writes it, and the checklist's one-line cell for that item links here. The notes are gate-time evidence: a figure is what the item's gate measured at the revision it names, and it stays as written when the tree moves on, the exception the working rules make for completion evidence. A note's wording may be tightened, but no fact, finding or declaration it records is dropped or changed. `tools/check.py` counts each findings block and requires one findings-register entry, whose `Raised:` line names the item, per counted finding; it reads each `Landed:` line too. Nothing in this file is an open obligation: the findings register indexes each act a note reports as owed and holds its disposition.
 
 The sections follow the checklist's own order, and an entry's depth follows the item's: a child item of a split milestone sits one heading level below its parent.
 
