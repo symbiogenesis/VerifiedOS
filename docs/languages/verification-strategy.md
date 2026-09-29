@@ -90,7 +90,7 @@ The VerifiedOS realization lowers control transfers and cleanup to explicit boun
 
 ### Structured Async and Cancellation
 
-[A Design Space Exploration of Async/Await](https://arxiv.org/html/2608.20677v1), Gray, Krishnamurthi and Crichton, August 2026, separates async semantics along eagerness, suspension, extent, reference strength, destruction, propagation, cancellation awareness, direction and persistence. It supplies a design vocabulary and comparative semantics, not a recommended combination or a bounded CHERI runtime. Vela selects the following proposed contract using that vocabulary.
+[A Design Space Exploration of Async/Await](https://arxiv.org/html/2608.20677v1), Gray, Krishnamurthi and Crichton, OOPSLA 2026, read as its August 2026 arXiv version, separates async semantics along eagerness, suspension, extent, reference strength, destruction, propagation, cancellation awareness, direction and persistence, comparing JavaScript, C#, Swift's structured-concurrency subset, Python under asyncio and Trio, and Rust under Tokio and Smol. It supplies a design vocabulary and comparative semantics, not a recommended combination or a bounded CHERI runtime. That semantics is an executable Redex model which a fuzzer checks against the real runtimes by compiling random programs into each language and comparing outputs; the paper states no theorem, so its agreement with those runtimes is tested rather than proved. Vela selects the following proposed contract using that vocabulary.
 
 | Dimension | Vela design choice |
 | --- | --- |
