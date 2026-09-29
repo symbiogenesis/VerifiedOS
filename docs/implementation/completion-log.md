@@ -1442,7 +1442,7 @@ The contract names no magnitude. R-15-228g makes frame size, slot counts, ceilin
 
 Two things are composition choices, declared on [the modeled block-device contract](../../interfaces/block-device-contract.md)'s precedent. The operation set, the register set, the slot classes and the socket state that admits each operation are the first. The pre-establishment fill is the second: transfer and management slots are granted only from `authenticated` onward, and an unfilled reserved slot carries a declared fixed public padding constant that carries no opcode, reaches no parser and is eligible as neither application traffic nor a handshake input (R-15-228d's rule for the ensemble link, read onto this socket).
 
-Two claims were weakened at review to match their evidence. Exhaustiveness of the decision table is a drafting property, not a theorem; Q24d's generated frames would falsify it. Indistinguishability in slot occupancy is a statement about an idle established session against a loaded one, on R-15-228d's ground, not about presence: an absent module sends no frame and its absence is what the declared detection reports.
+Two claims were weakened at review to match their evidence. Exhaustiveness of the decision table is a drafting property, not a theorem, and the document says Q24d's generated frames would falsify it. Indistinguishability in slot occupancy is a statement about an idle established session against a loaded one, on R-15-228d's ground, not about presence: an absent module sends no frame and its absence is what the declared detection reports.
 
 * **Finding: the checklist's Owns clause for this item names two glosses as socket states and omits three states.** The cell writes "absent, present, admitted, active, quiescing and isolated"; R-15-228h fixes absent, isolated, detected, reset, authenticated, active and quiescing. *Present* is the condition a card is in from `detected` onward and *admitted* is a property of a unit and design pair, not of the socket; the contract records both as glosses with the state each produces. `detected`, `reset` and `authenticated` are the three the clause drops. F-372.
 
@@ -1515,7 +1515,7 @@ counts are experimental inputs: this is finite host evidence with ideal cryptogr
 frames, no key exchange, no computational reduction, no prover and no target execution.
 
 
-The measured intervals are 2026-09-14 06:46:47-07:03:26, 07:08:27-07:15:57, 13:01:26-13:07:32 UTC for the authoring, review and repair passes, 1815 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure.
+The measured intervals are 2026-09-14 06:46:47-07:03:26, 07:08:27-07:15:57, 13:01:26-13:07:32 UTC for the authoring, review and repair passes, 1815 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The three passes ran as separate agent sessions; the preceding survey pass is not in the figure.
 
 Landed: Tier A. This accepts a bounded symbolic qualification and its remaining owners;
 CJ-ATTEST's formal model, theorem and implementation connection remain open.
@@ -1547,7 +1547,7 @@ Landed: Tier A. No rule holds what this item created: K-109 binds the file's gen
 
 The completed work is design and qualification planning. The frontend remains uncommissioned under Q25d's admission decision; the interpretation commitment and required register acts remain prerequisites to dependent implementation. The bounded-pool amendment, concrete CHERI laws, mechanized metatheory, frontend/backend construction and target qualification remain owed at their named owners. This checkbox supplies no executed language or production binary.
 
-The child notes retain their evidence and actuals; this parent carries no estimate cell and no duplicate hours. The review uses recorded results; the settled integration batch supplies the host validation.
+The child notes retain their evidence and actuals; this parent carries no estimate cell and no duplicate completed hours. The review uses recorded results; the settled integration batch supplies the host validation.
 
 Landed: Tier A. The combined design and its recorded acceptance boundaries are read together, including the decisions that keep dependent implementation unopened.
 
@@ -1741,7 +1741,7 @@ Landed: Tier A. The review states new claims about which admission arm the combi
 
 [The toolchain residency report](../performance/toolchain-residency.md) and its [measurement artifacts](../performance/toolchain-residency/) carry the three quantities R-13-027's obligation and R-18-004e's release floor turn on. Each figure is stated with the act it was taken over, the instrument, the lane and the revision, and both instruments declare their own predicates: `git ls-tree -r -l` sizing tracked blobs by object id and counting a gitlink as neither a file nor a byte, and `store.py` sizing regular non-symlink files by `st_size` and naming them by the SHA-256 of their bytes.
 
-**Quantity 1, the working set, is what binds, and inside it the prover.** The heaviest of the 27 proof checks peaks at 725,676,032 bytes, 1.81 of the first-class payload floor at the pessimistic end of R-15-173a's ungraded-branch budget and 0.91 of it at the optimistic end, the median of the 27 being 0.86 and 0.43 of the same two. That is one activation of one of the four component classes R-13-027 names, measured on a host, with no roster, no composer, no package-construction passes and no Vélus beside it, and with R-18-004a's own eight members charged nothing. The compiler's peak is affine in unit size, at 233,525,248 bytes on a 1.18-megabyte unit, so a port can trade it against unit size; the prover's does not track size and cannot be traded that way.
+**Quantity 1, the working set, is what binds, and inside it the prover.** The heaviest of the 27 proof checks peaks at 725,676,032 bytes, 1.81 of the first-class payload floor at the pessimistic end of R-15-173a's ungraded-branch budget and 0.91 of it at the optimistic end, the median of the 27 being 0.86 and 0.43 of the same two. That is one activation of one of the four component classes R-13-027 names, measured on a host, with no roster, no composer, no package-construction passes and no Vélus beside it, and with R-18-004a's own eight members charged nothing. The compiler's peak is affine in unit size and modest at 233,525,248 bytes on a 1.18-megabyte unit, so a port can trade it against unit size; the prover's does not track size and cannot be traded that way.
 
 **Quantity 2, the store side, is 678,113,124 measured unique bytes and is declared unscorable.** R-18-004b prices two memory classes, bandwidth, area, yield and unit cost and names no storage capacity, and the product gate's declared parameters DP-1 through DP-5 carry no storage row, so the comparison this quantity is to be scored by is owed. [The store record](../performance/toolchain-residency/store.json) names the four closures absent from the figure, the base image's own source closure among them, so the total is a floor under an incomplete set, not the quantity R-13-027 obliges.
 
@@ -1759,8 +1759,9 @@ The measured intervals are 2026-09-14 13:02:57-15:46:49, 15:46:49-16:29:05, 16:2
     named", and quantity 2 lands on that disjunct. The disjunct is right and the
     report is not where it belonged: the conventions make an acceptance predicate
     the cell's to author before the lane opens, so that an instrument
-    does not arrive with its own acceptance criteria, and this one did. Recorded against the landing, not
-    repaired into the cell, the cell being closed by this entry. F-383.
+    does not arrive with its own acceptance criteria, and this one did.
+    Recorded against the landing, not repaired into the cell, the cell being
+    closed by this entry. F-383.
 
   * Finding: after this landing the host-run per-pass peak is owed by no item.
     This item asked for "a per-pass peak the port can be sized against, with the
