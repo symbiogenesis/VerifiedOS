@@ -58,14 +58,20 @@ def _incremental_run() -> None:
                 patch.object(gate, "_cache_context", side_effect=lambda *_: dict(context)), \
                 patch.object(gate, "_check_source", side_effect=check), \
                 patch.object(gate, "_recheck", return_value="") as recheck, \
-                contextlib.redirect_stdout(io.StringIO()):
+                contextlib.redirect_stdout(io.StringIO()) as output:
 
             def run(expected: set[str], *, fresh: bool = False, result: int = 0,
-                    kernel: bool = True, kernel_jobs: int = 2, jobs: int | None = 2) -> None:
+                    kernel: bool = True, kernel_jobs: int = 2, jobs: int | None = 2,
+                    refusal: str = "") -> None:
                 compiled_names.clear()
                 audited.clear()
                 recheck.reset_mock()
+                said = len(output.getvalue())
                 ensure(gate._run_locked(root, jobs, fresh) == result, "unexpected gate verdict")
+                reported = [line for line in output.getvalue()[said:].splitlines()
+                            if "reuse: no earlier evidence applies" in line]
+                ensure(bool(reported) == bool(refusal) and all(refusal in line for line in reported),
+                       f"reuse refusal {reported} does not name {refusal!r}")
                 ensure(set(compiled_names) == expected,
                        f"compiled {compiled_names}, expected {expected}")
                 ensure(recheck.call_count == int(kernel), "wrong kernel recheck reuse decision")
@@ -78,7 +84,7 @@ def _incremental_run() -> None:
                     ensure(recheck.call_args.kwargs["jobs"] == kernel_jobs,
                            "kernel workers require a bound installed-library context")
 
-            run(set(texts))
+            run(set(texts), refusal="no earlier successful run")
             receipt = (work / gate.RECEIPT).read_bytes()
             portable = root / gate.RECEIPT
             exported = json.loads(portable.read_text(encoding="utf-8"))
@@ -140,13 +146,15 @@ def _incremental_run() -> None:
             run({"Base", "Consumer"})
             (work / "proofs" / "Consumer.vo").unlink()
             run({"Consumer"})
+            # Each refusal names what differs, never its recorded value.
             context["library_hash"] = "changed-library"
-            run(set(texts))
+            run(set(texts), refusal="installed-library context differs (library_hash)")
             toolchain["compiler"] = {"path": "/native/bin/rocq", "sha256": "changed-compiler"}
-            run(set(texts))
+            run(set(texts), refusal="toolchain differs (compiler: sha256)")
             owner.write_text("changed gate input", encoding="utf-8")
-            run(set(texts))
-            run(set(texts), fresh=True)
+            run(set(texts), refusal="proof-gate implementation differs (gate-input.txt)")
+            ensure("changed-compiler" not in output.getvalue(), "a refusal printed a recorded value")
+            run(set(texts), fresh=True, refusal="--fresh was requested")
 
             # Independent additions/removals retain previously checked components.
             (folder / "Added.v").write_text("Definition value := 1.", encoding="utf-8")
@@ -177,9 +185,9 @@ def _incremental_run() -> None:
                 damaged = json.loads(saved)
                 damaged[field] = {}
                 (work / gate.RECEIPT).write_text(json.dumps(damaged), encoding="utf-8")
-                run(set(texts))
+                run(set(texts), refusal="the earlier receipt cannot authorize reuse")
             (work / gate.RECEIPT).write_text("{broken", encoding="utf-8")
-            run(set(texts))
+            run(set(texts), refusal="the earlier receipt is unreadable")
 
             # Kernel refusal must leave the earlier portable evidence intact and
             # retain only byte-matching prior successes for the next attempt.
@@ -230,16 +238,17 @@ def _incremental_run() -> None:
             with patch.object(gate, "_check_source", side_effect=corrupt_cached):
                 run({"Consumer"}, result=1, kernel=False)
             with patch.object(gate.env, "proof_jobs", side_effect=[8, 3]) as sizing:
-                run(set(texts), fresh=True, jobs=None, kernel_jobs=3)
+                run(set(texts), fresh=True, jobs=None, kernel_jobs=3, refusal="--fresh")
                 ensure([call.kwargs for call in sizing.call_args_list] == [{}, {"kernel": True}],
                        "automatic sizing must sample compilation and kernel phases separately")
             with patch.object(gate.env, "proof_jobs", side_effect=AssertionError("unexpected probe")):
                 run(set(), jobs=None, kernel=False)
-                run(set(texts), fresh=True)
+                run(set(texts), fresh=True, refusal="--fresh")
+            unbound = "this installed-library context cannot authorize reuse"
             with patch.object(gate, "_cache_context", return_value=None):
-                run(set(texts), kernel_jobs=1)
+                run(set(texts), kernel_jobs=1, refusal=unbound)
                 with patch.object(gate.env, "proof_jobs", return_value=8) as sizing:
-                    run(set(texts), jobs=None, kernel_jobs=1)
+                    run(set(texts), jobs=None, kernel_jobs=1, refusal=unbound)
                     sizing.assert_called_once_with()
 
 
@@ -299,12 +308,42 @@ def _gate_identity_follows_imports() -> None:
             raise AssertionError("a checkout without the gate module derived an identity")
 
 
+def _identity_binds_what_reuse_compares() -> None:
+    """A cache keyed by the identity offers only candidates whose context the gate accepts."""
+    with tempfile.TemporaryDirectory(prefix="vos-proof-identity-") as temporary:
+        root = Path(temporary)
+        context: dict[str, object] = {"files": {"/lib/Base.vo": "first"}}
+        toolchain: dict[str, object] = {"pin": gate.env.ROCQ_VERSION, "compiler": {"sha256": "first"}}
+
+        def identity(value: dict[str, object] | None) -> tuple[int, str, str]:
+            with patch.object(gate, "workspace", return_value=root / "work"), \
+                    patch.object(gate, "_sources", return_value=[]), \
+                    patch.object(gate, "_cache_context", return_value=value), \
+                    patch.object(gate, "_toolchain", return_value=toolchain), \
+                    contextlib.redirect_stdout(io.StringIO()) as printed, \
+                    contextlib.redirect_stderr(io.StringIO()) as said:
+                code = gate._identity(root)
+            return code, printed.getvalue(), said.getvalue()
+
+        code, digest, _ = identity(context)
+        ensure(code == 0 and digest == gate._json_digest(
+            {"toolchain": toolchain, "cache_context": context}) + "\n",
+            "the identity must digest exactly the toolchain and context reuse compares")
+        ensure(identity(dict(context))[1] == digest, "equal contexts must share one identity")
+        ensure(identity({"files": {"/lib/Base.vo": "second"}})[1] != digest,
+               "changed library bytes must change the identity")
+        code, digest, said = identity(None)
+        ensure(code == 1 and not digest and "FAIL" in said,
+               "an unsupported context must fail without printing a key")
+
+
 def _jobs_cli_defaults_to_auto_without_probing_metadata_commands() -> None:
     root = Path(__file__).resolve().parents[2]
     with patch.object(gate, "find_root", return_value=root), \
             patch.object(gate, "_run", return_value=0) as run, \
             patch.object(gate, "_status", return_value=0) as status, \
             patch.object(gate, "_export", return_value=0) as export, \
+            patch.object(gate, "_identity", return_value=0) as identity, \
             patch.object(gate.env, "proof_jobs", side_effect=AssertionError("premature probe")):
         ensure(gate.main([]) == 0, "automatic proof invocation failed")
         run.assert_called_once_with(root, None, False)
@@ -316,6 +355,8 @@ def _jobs_cli_defaults_to_auto_without_probing_metadata_commands() -> None:
         status.assert_called_once_with(root)
         ensure(gate.main(["export"]) == 0, "proof export failed")
         export.assert_called_once_with(root, check=False)
+        ensure(gate.main(["identity"]) == 0, "proof identity failed")
+        identity.assert_called_once_with(root)
         for args, code in ((["--help"], 0), (["--jobs", "0"], 2), (["--jobs", "-1"], 2)):
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 try:
@@ -567,12 +608,26 @@ def _context_hashes_library_bytes() -> None:
                           "Definition RequiresEveryQuantity := 0.\n"
                           "Inductive Phase := PhaseRescanRequired.\n"
                           "Theorem sound : True. Proof. exact I. Qed.", encoding="utf-8")
+        plugin = runtime / "plugin.cmxs"
+        plugin.write_bytes(b"plugin")
+        system = work / "libc.so.6"
+        system.write_bytes(b"c library")
         # Print LoadPath uses absolute POSIX paths in the guest.
         physical = library.as_posix()
         listing = f"Installed / Logical Path / Physical path:\ni Corelib\n  {physical}\n"
         config = f"COQLIB={library}\nCOQCORELIB={runtime}\n"
+        loaded = ("/native/bin/rocq:\n\tlinux-vdso.so.1 (0x0000f8674390e000)\n"
+                  f"\tlibc.so.6 => {system.as_posix()} (0x0000f867430e0000)\n"
+                  f"{plugin.as_posix()}:\n\tstatically linked\n")
+        # What `ldd` answers next, and every object list it was asked about.
+        linked: dict[str, tuple[int, str]] = {"answer": (0, loaded)}
+        objects: list[list[str]] = []
 
         def invoke(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            if command[0] == "ldd":
+                objects.append(command[1:])
+                code, stdout = linked["answer"]
+                return subprocess.CompletedProcess(command, code, stdout=stdout, stderr="")
             value = config if command[-1] == "-config" else (
                 str(library) if command[-1] == "-where" else listing)
             return subprocess.CompletedProcess(command, 0, stdout=value, stderr="")
@@ -586,13 +641,33 @@ def _context_hashes_library_bytes() -> None:
             before = gate._cache_context(work, [source])
             ensure(before is not None, "known load-path output must enable caching")
             ensure("do-not-record-this" not in json.dumps(before), "environment values leaked")
+            ensure(objects[-1] == ["rocq", "rocqchk", str(plugin.resolve())],
+                   "shared-library discovery must cover both executables and every plugin")
+            ensure(before is not None
+                   and before["shared_libraries"] == {system.as_posix(): receipts.digest(system)},
+                   "the loaded C library was not bound by its bytes")
             with patch.dict(os.environ, {"WSL_INTEROP": "/run/WSL/new_interop",
                                          "SHLVL": "9", "_": "different-launcher"}):
                 ensure(before == gate._cache_context(work, [source]),
                        "launch bookkeeping must not defeat reuse across WSL invocations")
             with patch.dict(os.environ, {"ROCQPATH": "/different/library"}):
-                ensure(before != gate._cache_context(work, [source]),
+                changed = gate._cache_context(work, [source])
+                ensure(before != changed,
                        "library environment changes must invalidate cached evidence")
+                ensure(before is not None and changed is not None
+                       and gate._changed(before, changed) == "environment: ROCQPATH",
+                       "a refusal must name the changed variable")
+            system.write_bytes(b"patched c library")
+            changed = gate._cache_context(work, [source])
+            ensure(before is not None and changed is not None
+                   and gate._changed(before, changed) == f"shared_libraries: {system.as_posix()}",
+                   "a changed system library escaped identity")
+            system.write_bytes(b"c library")
+            for answer in ((0, loaded + "\tlibgmp.so.10 => not found\n"), (1, loaded)):
+                linked["answer"] = answer
+                ensure(gate._cache_context(work, [source]) is None,
+                       f"unresolved shared libraries authorized reuse: {answer}")
+            linked["answer"] = (0, loaded)
             stamp = artifact.stat()
             artifact.write_bytes(b"other")
             os.utime(artifact, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
@@ -741,6 +816,7 @@ def _native_admitted_installed_axioms() -> None:
 def cases() -> list[Case]:
     return [Case("incremental-proof-cache-invalidation", _incremental_run),
             Case("gate-identity-follows-imports", _gate_identity_follows_imports),
+            Case("proof-identity-binds-reuse-context", _identity_binds_what_reuse_compares),
             Case("proof-jobs-cli-defaults-to-auto",
                  _jobs_cli_defaults_to_auto_without_probing_metadata_commands),
             Case("kernel-batches-preserve-dependencies", _kernel_batches_preserve_dependencies),
