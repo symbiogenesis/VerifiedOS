@@ -70,7 +70,7 @@ standalone language specification and its relationship to VerifiedOS's CHERI-TAL
 | Security models and qualification | [Revocation](assurance/revocation-qualification.md), [witness policy](assurance/witness-policy-qualification.md), [session binding](assurance/session-binding-qualification.md), [security policy](assurance/security-policy-model.md), [hardening obligations](assurance/hardening-opening-obligations.md) |
 | Cryptographic premises | [Post-quantum reference](assurance/pq-reference-contract.md), [probing model](assurance/probing-model-contract.md), [AES-GCM dossier](assurance/aes-gcm-premise-dossier.md) |
 | Formats | [Wire-format inventory](assurance/wire-format-inventory.md) |
-| Proof tools | [Qualification contract](assurance/proof-qualification-contract.md), [executed comparison](assurance/proof-tooling-qualification.md), [CIC checker qualification](assurance/cic-checker-qualification.md), [C-refinement foundation qualification](assurance/c-refinement-foundation-qualification.md), [bounded foundation route](assurance/cic-checker-qualification.md#bounded-foundation-execution-route), [CIC literature starting points](assurance/proof-reuse/languages.md#bounded-cic-starting-points) |
+| Proof tools | [Qualification contract](assurance/proof-qualification-contract.md), [executed comparison](assurance/proof-tooling-qualification.md), [CIC checker qualification](assurance/cic-checker-qualification.md), [bounded foundation route](assurance/cic-checker-qualification.md#bounded-foundation-execution-route), [CIC literature starting points](assurance/proof-reuse/languages.md#bounded-cic-starting-points), [C-refinement foundation qualification](assurance/c-refinement-foundation-qualification.md) |
 
 ## Implementation and qualification
 
