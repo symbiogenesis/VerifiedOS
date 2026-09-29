@@ -316,12 +316,20 @@ model
 ## Licence
 
 The model is made available under the BSD two-clause licence in [LICENCE](./LICENCE).
+The capability semantics transplanted from
+[sail-cheri-riscv](https://github.com/CTSRD-CHERI/sail-cheri-riscv) and the
+capability-helper properties transcribed from
+[sail-cheri-riscv-verif](https://github.com/CTSRD-CHERI/sail-cheri-riscv-verif)
+keep their BSD two-clause notices in [LICENCE.cheri](./LICENCE.cheri) and
+[LICENCE.cheri-verif](./LICENCE.cheri-verif).
 
 ## Authors
 
 Originally written by Prashanth Mundkur at SRI International, and further developed by others, especially researchers at the University of Cambridge.
 
-See [`LICENCE`](./LICENCE) and Git blame for a complete list of authors.
+See [`LICENCE`](./LICENCE), [`LICENCE.cheri`](./LICENCE.cheri),
+[`LICENCE.cheri-verif`](./LICENCE.cheri-verif) and the Git history of the
+upstream repositories and of this one for a complete list of authors.
 
 ## Funding
 
