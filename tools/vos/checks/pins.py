@@ -193,7 +193,8 @@ _VERILATOR_SITES: list[tuple[str, str, re.Pattern[str]]] = [
 # shape K-71 already declines to hold for the corpus manifest's edition, and the
 # precedent is followed rather than a second owner invented for it. What the pin
 # table records for `upstream/sail-riscv` is a different figure with a different
-# meaning, the edition the curation is reconciled *against*, and that one is held.
+# meaning, the comparison reference the curation is read against, whose last
+# semantic reconciliation the completion log records, and that one is held.
 RESIDUE: dict[str, str] = {
     "8f91355e": "the commit the curated model was vendored from, which no gitlink "
                 "owns because a vendored tree has none",

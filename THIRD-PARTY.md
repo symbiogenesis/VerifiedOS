@@ -113,14 +113,19 @@ and Mocha's UART register and status owners are byte-identical to the preceding
 readings.
 
 The development-branch review on 2026-09-29 read each advanced pin's own license
-instruments at its new revision. Each file is byte-identical to the file at the
-preceding pin, and the grants and the uses in the table remain as recorded:
+instruments at its new revision. Each instrument is byte-identical to the one at
+the preceding pin; the notices named below in added or moved files state the same
+terms, and the grants and the uses in the table remain as recorded:
 
-- Sail: `LICENCE`. The added `model/core/hpm.sail` states `BSD-2-Clause`.
+- Sail: `LICENCE`. The added `model/core/hpm.sail` states `BSD-2-Clause`. Its
+  `cmake/sail_required_version.txt` names Sail 0.20.3; the locked toolchain
+  remains 0.20.2 and does not build this reference.
 - LLVM: the root, `llvm/` and `lld/` `LICENSE.TXT`.
 - Ibex: `LICENSE`.
-- Katamaran: `LICENSE`. The two added `Logic.v` files carry two-clause BSD
-  notices.
+- Katamaran: `LICENSE`. The two added `Logic.v` files, and
+  `case_study/MinimalCaps/Logic.v`, moved from `theories/Specification.v` with its
+  notice restated as copyright 2026 Keuchel, Devriese and Huyghebaert, carry
+  two-clause BSD notices.
 - libjade: `LICENSE` and the two texts under `LICENSES/`.
 - `cheri-compressed-cap`: `LICENSE` and the `test/FuzzedDataProvider.h`
   header. The delta changes no notice in the files it modifies.
