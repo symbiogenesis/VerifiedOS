@@ -136,20 +136,29 @@ Ordinary weekly and manual runs restore a lane's installed
 toolchains: its opam root without downloads or logs, the Verilator prefix and the
 ownership marker. Bootstrap then runs unchanged: it imports each lock into its restored
 switch, installs the uncached solver, skips a Verilator prefix whose receipt matches
-and probes every tool. The key includes the lane, runner OS, architecture and image
-version, the Sail and Rocq snapshots and bootstrap. Switch names and the Verilator
-prefix carry their versions, so other tool edits need no key input. Only exact keys
-restore. A main-branch run that missed the key saves the lane's toolchains after its
+and probes every tool. The key includes the lane, runner OS, architecture, the Sail
+and Rocq snapshots and bootstrap, with the image version for the model lane and only
+the image's release (`ImageOS`) for the proofs lane. Rocq and its checker load only
+the C library, whose ABI a release keeps and whose bytes the proof gate binds. A
+rebuilt switch reproduces those executables but not every installed library file,
+so sharing one switch across a release's images is what lets proof evidence cross
+them. Switch names and the Verilator prefix carry their versions, so other tool
+edits need no key input. Only exact keys restore. A main-branch run that missed the key saves the lane's toolchains after its
 probes pass; a cold run checks the key without restoring it. The reporter records
 `cold` or `restored` in `results.json` and the job summary. Only a cold run is
 evidence that the toolchains install.
 
 The proof lane also restores the native proof receipt, staged `.v` sources and
 compiled `.vo` objects from a successful proof gate. Its cache is separate from
-the installed toolchains. Keys bind the runner image, architecture, Rocq snapshot,
-bootstrap, proof sources, tools, requirements register and workflow. A fallback
-within the same image and toolchain supplies older candidates for incremental
-checking. Only main saves candidates, and only after the proof gate succeeds.
+the installed toolchains. Before restoring, the lane runs `proofs identity` in the
+gate's explicit environment: the digest of the toolchain and installed-library
+context that an earlier receipt must match before any of its evidence is reused.
+Keys bind that identity, the runner OS, architecture, proof sources, tools,
+requirements register and workflow. A fallback within the same identity supplies
+older candidates for incremental checking, so runner images with one identity share
+one lineage and no other context's candidates are offered. Without an identity the
+gate runs without candidates. Only main saves candidates, and only after the proof
+gate succeeds.
 The monthly and manual cold modes do not restore them and pass `--fresh`.
 Cold results seed the proof cache only when the installed-toolchain key is also
 new: a rebuild need not match the bytes of an existing immutable toolchain cache.
@@ -159,13 +168,15 @@ Restoring candidates never skips the proof command. The existing
 checks source and object bytes, dependency closures, gate inputs, audited symbols,
 assumptions, tool executables, installed libraries and the actual process
 environment. Stale or unsupported candidates require compilation, auditing and
-kernel checking under that contract. The workflow starts both cold and ordinary
-proof commands with the same explicit environment: tool paths, native storage,
-home, locale and Python settings. GitHub's per-run IDs, temporary file-command
-paths and credentials never enter the proof process. This preserves the gate's
-complete environment comparison without teaching it to ignore CI variables.
+kernel checking under that contract. The identity step fixes one explicit
+environment, which the cold and ordinary proof commands reuse: tool paths, native
+storage, home, locale and Python settings. GitHub's per-run IDs, temporary
+file-command paths and credentials never enter the proof process. This preserves the
+gate's complete environment comparison without teaching it to ignore CI variables.
 
-The proof log states actual reuse; the summary states the selected proof policy.
+The proof log states actual reuse and, when an earlier receipt authorizes none, which
+toolchain part, context entries or gate modules differ; the summary states the
+selected proof policy.
 On an unchanged cache hit the retained receipt identifies the earlier checked
 bytes and their original timings, not a new kernel execution. Cold runs retain
 periodic installation and full recheck evidence. Model build trees and compiler
