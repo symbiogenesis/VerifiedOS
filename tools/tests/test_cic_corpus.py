@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The corpus reading's predicates, each against text Rocq actually prints.
 
-Every fixture here is a transcription of output the pinned Rocq 9.2.0 produced for a
+Every fixture here is a transcription of output the pinned Rocq 9.3.0 produced for a
 probe of the same shape, because a parse held against text nobody printed is a parse of
 an imagined format. Each case pairs the positive reading with the shape that must not
 satisfy it: a non-dependent `match` beside a dependent one, a single `fix` beside a
@@ -14,16 +14,18 @@ from tests.harness import Case, ensure
 from vos import cic_corpus
 from vos.cli import cic_corpus as cic_cli
 
-# `Print All Dependencies usesax.` at Rocq 9.2.0, where the entry's type went to a line
-# of its own without indentation. Both entry shapes the command prints are here.
+# `Print All Dependencies usesax.` in the module declaring `myax` and `usesax`, where
+# each entry's type goes to a line of its own without indentation, and a foreign member
+# prints by its shortest unambiguous name.
 _DEPENDENCIES = """\
+Transparent constants:
+Nat.add :
+forall (_ : nat) (_ : nat), nat
 Axioms:
 myax : nat
 Opaque constants:
 usesax :
 @eq nat myax myax
-Transparent constants:
-Corelib.Init.Nat.add : forall (_ : nat) (_ : nat), nat
 """
 
 _ABOUT_OPAQUE = """\
@@ -40,19 +42,38 @@ tree : Set
 
 tree is not universe polymorphic
 Expands to: Inductive AdmissionPath.tree
+Declared in library AdmissionPath, line 2, characters 10-14
 """
 
 # The third universe sentence, taken from `About AdmissionPath.Build_Generation` in this
 # lane's compiled corpus. It is a suffix of neither of the other two and must not read
 # as either.
 _ABOUT_TEMPLATE = """\
-AdmissionPath.Build_Generation :
-forall (D : Type) (_ : list (AdmissionPath.Package D)) (_ : list nat),
-AdmissionPath.Generation D
+AdmissionPath.Build_Generation : forall (D : Type) (_ : list (AdmissionPath.Package D)) \
+(_ : list nat), AdmissionPath.Generation D
 
 AdmissionPath.Build_Generation is template universe polymorphic
+Arguments AdmissionPath.Build_Generation D%_type_scope (gen_image gen_synthesized)%_list_scope
 Expands to: Constructor AdmissionPath.Build_Generation
+Declared in library AdmissionPath, line 2557, characters 7-17
 """
+
+# Two transparent members of `Print All Dependencies
+# AdmissionPath.every_refusal_rule_fires_on_a_witness.` in this lane's compiled corpus:
+# a type on one line of its own, and a type whose match arms wrap onto lines indented
+# under the match, none of which may become a dependency.
+_ARM = " " * 204
+_WRAPPED = (
+    "Transparent constants:\nAdmissionPath.rule_eqb :\n"
+    "forall (_ : AdmissionPath.RuleId) (_ : AdmissionPath.RuleId), bool\n"
+    "AdmissionPath.every_refusal_rule_fires_on_a_witness :\n"
+    "@eq bool (@AdmissionPath.all_of AdmissionPath.RuleId (fun r : AdmissionPath.RuleId => "
+    "@AdmissionPath.any_of (AdmissionPath.Package AdmissionPath.Cert) "
+    "(fun p : AdmissionPath.Package AdmissionPath.Cert => match AdmissionPath.rule_of "
+    "(AdmissionPath.demo_check p) return bool with\n"
+    f"{_ARM}| @Some _ r2 => AdmissionPath.rule_eqb r r2\n"
+    f"{_ARM}| @None _ => false\n"
+    f"{_ARM}end) AdmissionPath.refusal_witnesses) AdmissionPath.all_rules) true\n")
 
 # `Print ev.` for a mutual block, and `Print nested.` for a body carrying two binders.
 _MUTUAL = """\
@@ -66,16 +87,21 @@ ev = fix ev (n : nat) : bool := match n return bool with
                                  end
      for ev
      : forall _ : nat, bool
+
+Arguments ev n%_nat_scope
 """
 
 _NESTED = """\
 nested = fix nested (l : list nat) : nat := match l return nat with
-   | @nil _ => O
-   | @cons _ x r => (fix inner (k : nat) : nat := match k return nat with
-                                                  | O => nested r
-                                                  | S j => S (inner j)
-                                                  end) x
-   end
+                                            | @nil _ => O
+                                            | @cons _ x r => (fix inner (k : nat) : nat := match k return nat with
+                                                                                           | O => nested r
+                                                                                           | S j => S (inner j)
+                                                                                           end) x
+                                            end
+     : forall _ : list nat, nat
+
+Arguments nested l%_list_scope
 """
 
 _DEPENDENT = """\
@@ -86,6 +112,12 @@ dep = fun n : nat => match n as k return match k return Set with
                      | O => true
                      | S _ => O
                      end
+     : forall n : nat, match n return Set with
+                       | O => bool
+                       | S _ => nat
+                       end
+
+Arguments dep n%_nat_scope
 """
 
 _PLAIN = """\
@@ -93,6 +125,9 @@ plain = fun n : nat => match n return bool with
                        | O => true
                        | S _ => false
                        end
+     : forall _ : nat, bool
+
+Arguments plain n%_nat_scope
 """
 
 
@@ -109,18 +144,16 @@ def _dependencies_read_both_entry_shapes() -> None:
     ensure(found["axioms"] == ["myax"], f"the axiom heading's member: {found['axioms']}")
     ensure(found["opaque"] == ["usesax"],
            f"an entry whose type went to its own line: {found['opaque']}")
-    ensure(found["transparent"] == ["Corelib.Init.Nat.add"],
+    ensure(found["transparent"] == ["Nat.add"],
            f"a qualified foreign member: {found['transparent']}")
     ensure(found["variables"] == [], "an unprinted heading contributes nothing")
     closed = cic_corpus.parse_dependencies(cic_corpus.CLOSED)
     ensure(not any(closed.values()), "a closed constant has an empty closure")
     # A transparent constant's own type wraps, indented and not, and no line of it may
-    # become a dependency. Both shapes are taken from this lane's compiled corpus.
-    wrapped = cic_corpus.parse_dependencies(
-        "Transparent constants:\nAdmissionPath.rule_eqb :\n"
-        "forall (_ : AdmissionPath.Rule) (_ : AdmissionPath.Rule), bool\n"
-        "   | @Some _ r2 => AdmissionPath.rule_eqb r r2\n")
-    ensure(wrapped["transparent"] == ["AdmissionPath.rule_eqb"],
+    # become a dependency.
+    wrapped = cic_corpus.parse_dependencies(_WRAPPED)
+    ensure(wrapped["transparent"]
+           == ["AdmissionPath.rule_eqb", "AdmissionPath.every_refusal_rule_fires_on_a_witness"],
            f"a wrapped type contributes no dependency: {wrapped['transparent']}")
 
 
@@ -275,8 +308,8 @@ def _closure_names_split_by_ownership() -> None:
 
 
 def _marker_goals_open_with_proof() -> None:
-    # Rocq 9.3 reports an interactive proof that Proof does not open, and _query refuses
-    # any diagnostic; the pinned 9.2 is silent, so only the generated text can hold this.
+    # The pinned Rocq 9.3 reports an interactive proof that Proof does not open, and
+    # _query refuses any diagnostic, so a marker goal without Proof fails every query.
     for bodies, count in ((True, 1), (False, 2)):
         query = cic_cli._reading_query("M", ["M.a"], bodies=bodies)
         ensure(query.count("Goal True.") == count and query.count("Goal True. Proof. ") == count,

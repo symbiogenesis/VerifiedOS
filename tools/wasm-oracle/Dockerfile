@@ -4,7 +4,7 @@
 # image, no machine model. This container is that engine's pinned environment.
 #
 # CertiRocq and coq-wasm constrain this oracle to Rocq 9.1. The proof gate
-# independently uses Rocq 9.2. The image supplies a bootstrap environment;
+# independently uses Rocq 9.3. The image supplies a bootstrap environment;
 # the project switch below supplies the updated compiler and libraries.
 #
 # The image is published for linux/amd64 only, at every 9.1 tag, so on an arm64
