@@ -25,8 +25,8 @@ built for both architectures. This box is aarch64 and a hosted runner is amd64, 
 fact list serves both.
 
 **What it does not reach is named rather than absorbed.** I1's two standing clauses are
-`[wsl2] autoMemoryReclaim` in `%USERPROFILE%\\.wslconfig`, which is global to every
-distribution and permanent until a human deletes it, and the Remote-WSL working
+`[experimental] autoMemoryReclaim` in `%USERPROFILE%\\.wslconfig`, which is global to
+every distribution and permanent until a human deletes it, and the Remote-WSL working
 posture, which is a setting on a person's editor. Neither is in this tree and no
 provisioner reaches either, so both are printed as not reached and neither is counted
 into the verdict. It is the same boundary [vos/env.py](../env.py) already draws around
@@ -96,7 +96,7 @@ GROUPS: tuple[str, ...] = (GATE, TOOLCHAIN)
 
 # What no provisioner reaches, printed at the end of a run and counted into nothing.
 NOT_REACHED: tuple[tuple[str, str], ...] = (
-    ("[wsl2] autoMemoryReclaim in %USERPROFILE%\\.wslconfig",
+    ("[experimental] autoMemoryReclaim in %USERPROFILE%\\.wslconfig",
      "global to every distribution and permanent until a human deletes it, which is "
      "the boundary vos/env.py draws around the idle timer beside it"),
     ("the Remote-WSL working posture",
