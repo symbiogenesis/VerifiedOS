@@ -7,6 +7,10 @@ to the same program, so the oracle agrees and the run reports a survivor about
 nothing; a mutation landing in a Coq proof script breaks the proof and reports a kill
 that says nothing about whether the statement constrains the definition. Neither is
 visible in a run's output, which is why both are pinned here.
+
+A region is keyed by the command under its decorations, and that is pinned too: read
+as a line with no keyword, a `#[local] Definition` was the tail of the region above it,
+mutable under another name after a definition and not at all after a proof.
 """
 
 import re
@@ -75,6 +79,51 @@ def _a_region_can_be_named() -> None:
     found = _sites(text, mutate.COQ, "const-inc", named=("b",))
     ensure([m.before for m in found] == ["2"],
            f"naming one region reached {[m.before for m in found]}")
+
+
+def _a_decorated_command_opens_its_own_region() -> None:
+    """A region is keyed by the command under its decorations. Read as a line with no
+    keyword, `#[local] Definition` joined the proof above and lost its sites, and
+    `Local Definition` opened a region keyed `Local` that nothing mutates."""
+    for decoration in ("#[local] ", "#[local]\n", "Local ", "Global ", "Program ",
+                       "Polymorphic ", "Time ", '#[deprecated(note="a ] b")] Local '):
+        text = ("Lemma l : 1 = 1.\n"
+                "Proof. reflexivity. Qed.\n"
+                f"{decoration}Definition f (n : nat) : nat := n + 2.\n")
+        found = _sites(text, mutate.COQ, "const-inc", named=("f",))
+        ensure([m.before for m in found] == ["2"],
+               f"under {decoration!r} the definition's sites were {found}")
+
+
+def _a_decorated_proof_ends_the_definition_above() -> None:
+    # The other direction of the same defect: `#[local] Lemma` read as no keyword was
+    # the tail of the definition above it, and its statement's literals were mutable.
+    text = ("Definition f (n : nat) : nat := n + 2.\n"
+            "#[local] Lemma l : f 3 = 5.\n"
+            "Proof using. reflexivity. Qed.\n")
+    found = _sites(text, mutate.COQ, "const-inc")
+    ensure([m.before for m in found] == ["2"],
+           f"a decorated lemma's literals were mutable: {[m.before for m in found]}")
+
+
+def _a_void_command_defines_nothing_to_mutate() -> None:
+    """`Fail` and `Succeed` keep nothing the command defines, so a definition under
+    either opens a region no mutation lands in, and ends the region above it."""
+    for flag in ("Fail ", "Succeed ", "#[local] Fail "):
+        text = ("Definition f (n : nat) : nat := n + 1.\n"
+                f"{flag}Definition g (n : nat) : nat := n + 2.\n")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["1"],
+               f"under {flag!r} the sites were {[m.before for m in found]}")
+        keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+        ensure(keys == ["Definition", flag.split()[-1]], f"regions keyed {keys}")
+
+
+def _a_record_completed_from_a_base_is_mutable() -> None:
+    # 9.3's `{| r with f := v |}` is a definition's own text, so its literal is a site.
+    text = ("Definition g (r : R) : R := {| r with f := 3 |}.\n")
+    found = _sites(text, mutate.COQ, "const-inc")
+    ensure([m.before for m in found] == ["3"], f"the completed record's sites: {found}")
 
 
 def _hex_and_bit_literals_are_not_arithmetic() -> None:
@@ -209,6 +258,14 @@ def cases() -> list[Case]:
         Case("a Rocq proof script is outside the default region",
              _coq_proofs_are_outside_the_default_region),
         Case("a region can be named", _a_region_can_be_named),
+        Case("a decorated command opens its own region",
+             _a_decorated_command_opens_its_own_region),
+        Case("a decorated proof ends the definition above",
+             _a_decorated_proof_ends_the_definition_above),
+        Case("a void command defines nothing to mutate",
+             _a_void_command_defines_nothing_to_mutate),
+        Case("a record completed from a base is mutable",
+             _a_record_completed_from_a_base_is_mutable),
         Case("a hex or bit literal is one token", _hex_and_bit_literals_are_not_arithmetic),
         Case("a bit slice moves as a whole", _a_slice_moves_as_a_whole),
         Case("applying a mutant changes one span", _applying_a_mutant_changes_one_span),

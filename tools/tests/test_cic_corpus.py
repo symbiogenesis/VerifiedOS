@@ -294,6 +294,24 @@ def _source_reading_counts_sentences() -> None:
         "a vernacular named inside a sentence is not that sentence's head")
 
 
+def _source_reading_reads_past_decorations() -> None:
+    # Every decoration before a vernacular is read past, however many there are, and a
+    # counted modifier is counted however it is spelled: as a legacy attribute, or as the
+    # quoted attribute that replaces it.
+    text = ("#[local] #[program] Definition d := tt.\n"
+            "#[universes(polymorphic, cumulative)] Inductive I := C.\n"
+            "#[universes(polymorphic=no)]\nInductive J := D.\n"
+            "Polymorphic Cumulative Inductive K := E.\n"
+            "Local Program Fixpoint f (n : nat) : nat := n.\n"
+            '#[deprecated(note="program")] Fixpoint g (n : nat) : nat := n.\n'
+            "Time Fixpoint h (n : nat) : nat := n.\n")
+    counts = cic_corpus.source_declarations(text)
+    want = {"Inductive": 3, "Fixpoint": 3, "Program": 2, "Polymorphic": 2,
+            "Cumulative": 2, "Monomorphic": 1, "NonCumulative": 0}
+    ensure({key: counts[key] for key in want} == want,
+           f"the vernaculars under decorations and the modifiers they spell: {counts}")
+
+
 def _closure_names_split_by_ownership() -> None:
     local, foreign = cic_corpus.local_names(
         ["AdmissionPath.check_cert", "Corelib.Init.Nat.add"], {"AdmissionPath"})
@@ -328,6 +346,8 @@ def cases() -> list[Case]:
              _classification_states_the_conversion_reading),
         Case("blocks-refuse-missing-or-extra", _blocks_refuse_a_missing_or_extra_answer),
         Case("source-reading-counts-sentences", _source_reading_counts_sentences),
+        Case("source-reading-reads-past-decorations",
+             _source_reading_reads_past_decorations),
         Case("closure-names-split-by-ownership", _closure_names_split_by_ownership),
         Case("marker-goals-open-with-proof", _marker_goals_open_with_proof),
     ]

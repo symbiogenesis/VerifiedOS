@@ -9,7 +9,9 @@ Gallina that stopped matching would yield an empty roster and a green report abo
 nothing, so the first cases hand the reader the live file and hold the roster, the
 literals and the lists to what the `.v`'s own `the_demo_plan_declares` states, and then
 hand it shapes with a list missing, a chain malformed and a kind unknown and require
-`PlanError` each time.
+`PlanError` each time. Every head reads a declaration under an attribute or a locality
+as the bare one, while a variant or a list under `Fail`, indented or respaced, and a
+plan completed from a base with `with`, are refused by name.
 
 **The port agrees with the proof file on every plan the file decides.** The `.v` ships
 one admitted plan and fifteen variants each moving one declared quantity, and states in
@@ -183,6 +185,79 @@ def _a_shape_the_reader_does_not_read_is_refused() -> None:
     ensure(src.unread == ("joined",), f"an `app` list is named unread: {src.unread}")
 
 
+def _refused_saying(text: str, said: str, why: str) -> None:
+    try:
+        memplan.parse(text)
+    except memplan.PlanError as err:
+        ensure(said in str(err), f"{why}: refused for another reason: {err}")
+        return
+    raise AssertionError(why)
+
+
+# One variant beside the toy's standing plan, the shape every refusal below respells.
+_VARIANT = ("Definition dear_plan : Plan :=\n"
+            "  build_plan toy_lengths toy_bases toy_base_granules toy_length_granules\n"
+            "             toy_slots 13.\n")
+
+
+def _a_prefixed_declaration_is_read() -> None:
+    # An attribute or a locality moves no value, so every head the reader reads takes
+    # one, on its own line or the declaration's, and reads what the bare head would.
+    for prefix, inductive in (("#[local] ", "Polymorphic "),
+                              ("#[local]\n", "#[universes(polymorphic)]\n"),
+                              ("Local ", "Private "),
+                              ("Global ", "Cumulative Polymorphic "),
+                              ("Program ", "#[universes(cumulative)] Polymorphic "),
+                              ('#[program, deprecated(note="a ] b")] ', "")):
+        text = (_TOY.replace("Definition ", prefix + "Definition ")
+                .replace("Inductive ", inductive + "Inductive ") + prefix + _VARIANT)
+        src = memplan.parse(text)
+        ensure(src.plans.get("dear_plan") == (("toy_lengths", "toy_bases",
+                                               "toy_base_granules", "toy_length_granules",
+                                               "toy_slots"), 13)
+               and src.nat_lists.get("toy_lengths") == (16, 32),
+               f"under {prefix!r} a variant and a list are read as themselves: "
+               f"{src.plans} {src.nat_lists}")
+        ensure(src == memplan.parse(_TOY + _VARIANT),
+               f"under {prefix!r} the reading is the bare file's")
+
+
+def _a_declaration_the_reader_does_not_take_is_refused() -> None:
+    # A control prefix leaves nothing defined and an indented head is in a `Module` or
+    # a `Section` the reader does not follow; either would leave the export a variant or
+    # a list short with nothing to notice it, so each is refused by name.
+    for respelled in ("Fail " + _VARIANT, "  " + _VARIANT,
+                      _VARIANT.replace("dear_plan :", "dear_plan  :")):
+        _refused_saying(_TOY + respelled, "builds dear_plan from build_plan where this "
+                        "reader does not read it",
+                        f"a variant spelled {respelled.splitlines()[0]!r} was dropped")
+    _refused_saying(_TOY + "Fail Definition extra : list nat := cons 1 nil.\n",
+                    "spells extra as a typed list this reader does not read",
+                    "a list under a control prefix was dropped")
+    # the positive control: a plan value that is no application of build_plan was never
+    # a variant this reader carries, and it stays outside the export as it was
+    src = memplan.parse(_TOY + "Definition alias_plan : Plan := demo_plan.\n")
+    ensure(set(src.plans) == {"demo_plan"}, f"an alias is no variant: {src.plans}")
+
+
+def _a_plan_completed_from_a_base_is_refused() -> None:
+    # `{| demo_plan with second_fetch := 13 |}` is the variant above in 9.3's record
+    # syntax, and it names none of the fields it copies.
+    _refused_saying(_TOY + "Definition dear_plan : Plan :=\n"
+                           "  {| demo_plan with second_fetch := 13 |}.\n",
+                    "dear_plan completes a plan from a base with `with`",
+                    "a variant completed from a base was dropped")
+    _refused_saying(_TOY.replace("Plan := {|\n  region_count := 2;",
+                                 "Plan := {| base_plan with\n  region_count := 2;"),
+                    "build_plan completes its record from a base with `with`",
+                    "build_plan completed from a base was read field by field")
+    # a `match` accounts for its own `with`
+    src = memplan.parse(_TOY + "Definition picked_plan (b : bool) : Plan :=\n"
+                               "  match b with true => demo_plan\n"
+                               "  | false => demo_plan end.\n")
+    ensure(set(src.plans) == {"demo_plan"}, f"a match's `with` is read: {src.plans}")
+
+
 def _the_granule_port_is_the_entry_s_own_figures() -> None:
     for length, expected in _GRANULES:
         got = memplan.representable_granule(length)
@@ -314,6 +389,11 @@ def cases() -> list[Case]:
         Case("the-reader-reads-the-live-file", _the_reader_reads_the_live_file),
         Case("a-shape-the-reader-does-not-read-is-refused",
              _a_shape_the_reader_does_not_read_is_refused),
+        Case("a-prefixed-declaration-is-read", _a_prefixed_declaration_is_read),
+        Case("a-declaration-the-reader-does-not-take-is-refused",
+             _a_declaration_the_reader_does_not_take_is_refused),
+        Case("a-plan-completed-from-a-base-is-refused",
+             _a_plan_completed_from_a_base_is_refused),
         Case("the-granule-port-is-the-entrys-own-figures",
              _the_granule_port_is_the_entry_s_own_figures),
         Case("the-port-agrees-with-the-proof-file-on-every-plan",

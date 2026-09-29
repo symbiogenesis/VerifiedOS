@@ -81,6 +81,28 @@ COQ_TOP = re.compile(
 # a mutation inside a *definition* is the question this engine is asking.
 COQ_MUTABLE = ("Definition", "Fixpoint", "Inductive", "Record")
 
+# What may stand before a Rocq command's keyword: a quoted attribute, a legacy attribute,
+# or a control flag. A line opening with any of them opens a region keyed by the command
+# they decorate, so `#[local] Definition` is a definition rather than the tail of the
+# region above it and `Local Definition` is not a `Local` nobody mutates. `Fail` and
+# `Succeed` run the command and keep nothing it defines, so a region under either is
+# keyed by the flag and no mutation lands in it.
+COQ_DECORATION = re.compile(
+    r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
+    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
+    r"|Time|Instructions|Fail|Succeed)\s+"
+    r'|(Profile)\s+(?:"[^"]*"\s+)?|(Redirect)\s+"[^"]*"\s+|(Timeout)\s+\d+\s+'
+    r"|(AllocLimit)\s+\d+\s*(?:Mw|kw)\s+")
+COQ_VOID = ("Fail", "Succeed")
+
+# The characters a decoration can open with, so the undecorated line, which is nearly
+# every line, pays one membership test rather than a failed match.
+_DECORATION_OPENS = frozenset("#LGPMCNTIFSRA")
+
+# The command under a decoration where `COQ_TOP` does not name it, `Opaque` under
+# `Local` being one this repository's proofs write.
+_COMMAND_WORD = re.compile(r"(\w+)")
+
 
 @dataclass(frozen=True)
 class Region:
@@ -242,22 +264,54 @@ def mask(text: str, lane: str) -> list[bool]:
     return ok
 
 
+def _coq_head(line: str) -> tuple[str, str] | None:
+    """The keyword a Rocq line opens a region with and the rest of the line after it,
+    or None where it opens none.
+
+    A bare line opens a region exactly when it starts with a `COQ_TOP` keyword. A
+    decorated one always does, since a decoration only ever opens a command: keyed by
+    the `COQ_TOP` keyword under it, else by the word under it, else by the decoration
+    itself where the command continues on the next line, and by `Fail` or `Succeed`
+    wherever either is among the decorations.
+    """
+    at = 0
+    flags: list[str] = []
+    if line[:1] in _DECORATION_OPENS:
+        while (decoration := COQ_DECORATION.match(line, at)) is not None:
+            flags.append(next((g for g in decoration.groups() if g), "#["))
+            at = decoration.end()
+    rest = line[at:]
+    found = COQ_TOP.match(rest)
+    if not flags:
+        return (str(found.group(1)), rest[found.end():]) if found else None
+    if found is None:
+        found = _COMMAND_WORD.match(rest)
+    keyword, after = ((str(found.group(1)), rest[found.end():]) if found
+                      else (flags[0], rest))
+    void = next((flag for flag in flags if flag in COQ_VOID), None)
+    return (void or keyword), after
+
+
 def regions(text: str, lane: str) -> list[Region]:
     """The source's top-level blocks, each from its own keyword to the next one.
 
     A line-based reading rather than a parse, and it is enough for what it decides: a
     block's *extent* only has to be right about which command a character belongs to,
-    and both languages here put every top-level command at the start of a line.
+    and both languages here put every top-level command at the start of a line. A Rocq
+    command's decorations are read past, so the region is keyed by what they decorate.
     """
-    top = COQ_TOP if lane == COQ else SAIL_TOP
     starts: list[tuple[int, str, str]] = []
     offset = 0
     for line in text.splitlines(keepends=True):
-        found = top.match(line)
-        if found:
-            rest = line[found.end():].strip()
-            name = re.match(r"[\w'.{}]+", rest)
-            starts.append((offset, found.group(1), name.group() if name else ""))
+        if lane == COQ:
+            head = _coq_head(line)
+        else:
+            found = SAIL_TOP.match(line)
+            head = (found.group(1), line[found.end():]) if found else None
+        if head is not None:
+            keyword, after = head
+            name = re.match(r"[\w'.{}]+", after.strip())
+            starts.append((offset, keyword, name.group() if name else ""))
         offset += len(line)
     out: list[Region] = []
     for n, (start, keyword, name) in enumerate(starts):

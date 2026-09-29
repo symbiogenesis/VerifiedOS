@@ -73,7 +73,8 @@ that has stopped matching reports here, on the day it stops.
 Fail-closed in seven places on K-67's and K-75's ground. A file the index does not carry
 is outside this checker's corpus and every claim about it is vacuous; a file the index
 carries and the working tree does not has no bytes to read; a statement this module
-cannot locate by name on either side is a finding rather than a pair dropped out of the
+cannot locate by name on either side, or finds only under a `Fail` or a `Succeed` that
+keeps nothing it states, is a finding rather than a pair dropped out of the
 comparison; a side that does not decode to the row's own size is the same; a `match`
 whose arms are not the keys this module reads them by is a form it does not recognise
 and asks for a person about; a row naming no site or no values would decide nothing, so
@@ -189,12 +190,24 @@ _DEFINE_RE = re.compile(r":=")
 # a row's is not the statement the row names.
 _CONTINUES_RE = re.compile(r"[\w']")
 
-# Where a Gallina body stops. Every construct here opens at column zero in the artifacts
-# this rule reads, and the two endings both artifacts use, a `Proof.` block and a
-# trailing `:= eq_refl.`, are covered by the first and by the next construct.
-_BLOCK_END_RE = re.compile(
-    r"(?m)^(?:Proof\.|Qed\.|Example |Definition |Lemma |Theorem |Corollary |"
-    r"Fixpoint |Notation |Section |End |\(\*)")
+# Where a Gallina statement stops: its own full stop, the first period a space or the end
+# follows outside a comment and a string. A list of the constructs that may come next is
+# what this replaces, and it read a `Proof using` line or a declaration under `#[local]`
+# as more of the table, their numerals with it. The comments inside the statement are
+# cut out on the way, so a numeral in one is no value either.
+_STATEMENT_TOKEN_RE = re.compile(r'\(\*|\*\)|"|\.(?=\s|$)')
+
+# What may stand before a statement's keyword, on its line or on lines of their own
+# above it: quoted and legacy attributes, which leave the statement what it is, and the
+# control flags. `Fail` and `Succeed` keep nothing the statement states, so a row whose
+# statement stands under either is refused by name rather than read.
+_DECORATION_RE = re.compile(
+    r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
+    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
+    r"|Time|Instructions|Fail|Succeed)\s+"
+    r'|(Profile)\s+(?:"[^"]*"\s+)?|(Redirect)\s+"[^"]*"\s+|(Timeout)\s+\d+\s+'
+    r"|(AllocLimit)\s+\d+\s*(?:Mw|kw)\s+")
+_VOID = ("Fail", "Succeed")
 
 # One arm of a Sail `match` whose value is a literal, and one whose value is a nested
 # `match`. A wildcard arm is a key like any other here: the model writes the last arm of
@@ -249,6 +262,64 @@ def _only(pair: Pair) -> tuple[str | None, str]:
     return pair["sites"][0], ""
 
 
+def _decorations(lead: str) -> list[str] | None:
+    """The decorations `lead` is made of, by their keywords and `#[` for an attribute,
+    or None where it carries anything else. An empty lead is no decoration at all."""
+    flags: list[str] = []
+    at = 0
+    while at < len(lead):
+        found = _DECORATION_RE.match(lead, at)
+        if found is None:
+            return None
+        flags.append(next((str(g) for g in found.groups() if g), "#["))
+        at = found.end()
+    return flags
+
+
+def _lead(raw: str, opened: int) -> list[str] | None:
+    """The decorations before the statement whose keyword opens at `opened`, on its own
+    line and on lines of nothing else above it, or None where its line opens with
+    something else and the keyword begins no statement."""
+    start = raw.rfind("\n", 0, opened) + 1
+    flags = _decorations(raw[start:opened])
+    while flags is not None and start > 0:
+        above = raw.rfind("\n", 0, start - 1) + 1
+        more = _decorations(raw[above:start]) if raw[above:start].strip() else None
+        if not more:
+            break
+        flags = more + flags
+        start = above
+    return flags
+
+
+def _statement(raw: str, opened: int) -> str:
+    """The sentence opening at `opened`, through its own full stop, comments cut out. A
+    statement the file never ends runs to the end of the file."""
+    kept: list[str] = []
+    at = opened
+    depth = 0
+    quoted = False
+    for token in _STATEMENT_TOKEN_RE.finditer(raw, opened):
+        mark = token.group()
+        if quoted:
+            quoted = mark != '"'
+        elif depth:
+            depth += {"(*": 1, "*)": -1}.get(mark, 0)
+            if not depth:
+                at = token.end()
+        elif mark == '"':
+            quoted = True
+        elif mark == "(*":
+            kept.append(raw[at:token.start()])
+            depth = 1
+        elif mark == ".":
+            kept.append(raw[at:token.end()])
+            return "".join(kept)
+    if not depth:
+        kept.append(raw[at:])
+    return "".join(kept)
+
+
 def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
     """The text of one named Gallina statement, or why it could not be located.
 
@@ -258,16 +329,25 @@ def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
     off its replacement, which is the one thing this rule promises to report. The
     boundary is checked at each hit rather than written into a pattern, a `(?m)^` scan
     of these files costing more than the whole of the rest of the rule.
+
+    The keyword opens a statement at column zero or after decorations alone, which are
+    read past; under `Fail` or `Succeed` the file keeps nothing the statement states,
+    and that is refused by name rather than read as the table.
     """
-    head = f"\n{keyword} {pair['name']}"
+    head = f"{keyword} {pair['name']}"
     opened = raw.find(head)
-    while opened >= 0 and _CONTINUES_RE.match(raw, opened + len(head)):
+    while opened >= 0:
+        if not _CONTINUES_RE.match(raw, opened + len(head)):
+            flags = _lead(raw, opened)
+            if flags is not None:
+                void = next((flag for flag in flags if flag in _VOID), None)
+                if void is not None:
+                    return None, (f"{pair['gallina']} states {keyword} {pair['name']} "
+                                  f"under `{void}`, which keeps nothing it states, so "
+                                  "no table is read out of it")
+                return _statement(raw, opened), ""
         opened = raw.find(head, opened + 1)
-    if opened < 0:
-        return None, f"{pair['gallina']} states no {keyword} named {pair['name']}"
-    rest = raw[opened + 1:]
-    end = _BLOCK_END_RE.search(rest, 1)
-    return (rest[:end.start()] if end else rest), ""
+    return None, f"{pair['gallina']} states no {keyword} named {pair['name']}"
 
 
 def _gallina_values(raw: str, pair: Pair) -> tuple[list[int] | None, str]:
