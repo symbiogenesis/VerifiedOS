@@ -163,11 +163,24 @@ def compare_keys(left_path: Path, right_path: Path) -> tuple[int, list[str]]:
 
 
 def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
-    # Recurse only where the subschema plainly declares "properties"; anyOf/oneOf nodes
-    # are left alone.
+    # Recurse where the subschema plainly declares "properties", and into every allOf
+    # member, since each of them applies; anyOf/oneOf nodes are left alone, because
+    # either branch may be the one that owns a key. Sail 0.20.2 wraps a config struct
+    # read at two sites in an allOf and leaves its option values open (no
+    # `additionalProperties`), so `{"Sme": ...}` in place of `{"Some": ...}` passes
+    # plain validation; upstream sail-riscv #1850 is that defect.
     found: list[str] = []
+
+    def add(paths: list[str]) -> None:
+        # the allOf members restate one struct, so each stray key is named once
+        found.extend(p for p in paths if p not in found)
+
     if not (isinstance(config, dict) and isinstance(schema, dict)):
         return found
+    members = schema.get("allOf")
+    if isinstance(members, list):
+        for member in members:
+            add(_undeclared(config, member, path))
     # bound before the test rather than re-read after it, so that what was checked to
     # be a mapping is what gets indexed below
     props = schema.get("properties")
@@ -176,10 +189,7 @@ def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
 
     for key, value in config.items():
         here = f"{path}/{key}" if path else key
-        if key not in props:
-            found.append(here)
-        else:
-            found.extend(_undeclared(value, props[key], here))
+        add([here] if key not in props else _undeclared(value, props[key], here))
     return found
 
 
