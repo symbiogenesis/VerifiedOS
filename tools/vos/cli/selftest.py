@@ -2001,16 +2001,19 @@ CASES: list[Case] = [
     ("K-110", "the shared agent instructions deleted from the tracked source",
      lambda box: box.delete("AGENTS.md")),
     # A validation record resting a result on an interim's verdict, which is the consumer
-    # R-05-022 enters when it is admitted and a hand-kept list forgets. The campaign's
-    # anchor is the file itself and no declaration covers it, so the sentence is a
-    # citation nothing accounts for. The names are escaped as the prose writes them, so
-    # no Markdown or link rule reads the edit and the verdict is K-114's alone.
-    ("K-114", "a proof campaign resting a result on HACL*'s verified implementation",
-     _literal("proofs/campaigns/MLKEM-README.md",
-              "native theorem auditing and generated mutations are distinct evidence.",
-              "native theorem auditing and generated mutations are distinct evidence. "
-              "Functional correctness rests on HACL\\*'s verified ML-KEM, whose F\\* "
-              "proof this campaign takes as its premise.")),
+    # R-05-022 enters when it is admitted and a hand-kept list forgets. The campaign is
+    # an anchor the rule already declares no premise, for its two lines saying no libcrux
+    # or HACL* body is copied and the comparison runs against OpenSSL, and the sentence
+    # lands on a line no declared fragment names: a rule that classified by anchor
+    # rather than by line would pass it. The
+    # names are escaped as the prose writes them, so no Markdown or link rule reads the
+    # edit and the verdict is K-114's alone.
+    ("K-114", "a declared proof campaign resting a result on libcrux's F* proof",
+     _literal("proofs/campaigns/mldsa-reference.md",
+              "carries no authorization for deterministic production signing.",
+              "carries no authorization for deterministic production signing. Its "
+              "signing path's functional correctness rests on libcrux's verified "
+              "ML-DSA, whose F\\* proof this campaign takes as its premise.")),
     # A discharge annotation above a `Definition`, which is the one of this rule's four
     # refusals that renders perfectly and reads as correct: the annotation parses, its id
     # is live, and what it claims is that a *term* answers an obligation. The other three

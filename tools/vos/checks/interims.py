@@ -12,15 +12,22 @@ by hand grows silently the day a landing forgets to enter itself, which is the s
 extension R-05-022a refuses.
 
 **So the lists are closed in both directions over every file that can admit an
-artifact.** Each place such a file names a lineage of either interim is resolved by the
-anchor it sits under: to a consumer R-05-022 lists for that interim, or to a declaration
-in `NON_PREMISE` below that it cites no premise, with the reason. A citation resolving to
-neither is the finding the rule exists for; a declaration no citation answers, and a
-listed consumer whose anchor cites nothing of its interim, are the other direction.
-The distinction the declarations draw is R-05-061's own, as the completion log's M3.4a
-licence reading states it: a pinned comparator read for its answers rides nothing, and
-a post-quantum primitive imported so that its correctness rests on F\\* and Z3 is a
-consumer.
+artifact.** Each place such a file names a lineage of either interim is resolved to a
+consumer R-05-022 lists for that interim, by the anchor it sits under, or to a
+declaration in `NON_PREMISE` below that it cites no premise, by its line. A declaration
+names its anchor, the reason, and one literal fragment of each citing line it
+classifies, K-68's literal-per-site shape: a line under a declared anchor that carries
+none of the anchor's fragments is unresolved, so a premise written into an anchor
+already declared is a finding and not a citation the declaration swallows. A citation
+resolving to neither is the finding the rule exists for; a fragment naming no citing
+line or two, a declaration no citation answers, and a listed consumer whose anchor
+cites nothing of its interim are the other direction. The two sides are deliberately
+not the same size: a consumer is entered by the artifact R-05-022 names, a requirement,
+an item or a path, because the register lists artifacts and not sentences, while a
+declaration is the rule's own and so can afford to be exact. The distinction the
+declarations draw is R-05-061's own, as the completion log's M3.4a licence reading
+states it: a pinned comparator read for its answers rides nothing, and a post-quantum
+primitive imported so that its correctness rests on F\\* and Z3 is a consumer.
 
 **A lineage is found by its names, never by its solver.** `Z3` and `Why3` are not read:
 a solver also serves tools R-05-022 books as no interim, Cranelift/Crocus's SMT among
@@ -63,10 +70,11 @@ findings here: R-05-022 names both lineages itself, so a scan finding either abs
 stopped reading rather than found nothing. Reporting the empty reading itself is what
 lets the rule owe the floors group no count.
 
-**What this cannot decide is whether a declaration is right.** A citation is classified
-by its anchor, so a premise written under an anchor already declared no premise
-resolves with it; the declaration's reason is the reading a reviewer re-takes when that
-anchor's text moves. Whether a destination has advanced, the other half of R-05-022a's
+**What this cannot decide is whether a declaration is right.** A declared citation is
+classified by its line, so a premise written into a line a fragment already names
+resolves with it, and a citation under a listed consumer's anchor resolves with the
+consumer; the declaration's reason is the reading a reviewer re-takes when a named
+line's text moves. Whether a destination has advanced, the other half of R-05-022a's
 test, is not read here at all.
 Nothing is repaired: entering a consumer or declaring a non-premise is a judgment about
 what an admission rests on, and a `--fix` that wrote either would record one nobody took.
@@ -183,78 +191,101 @@ EXCLUDED: dict[str, str] = {
 
 @dataclass(frozen=True)
 class NonPremise:
-    """A declaration that an anchor's citations of these interims cite no premise."""
+    """A declaration that the named lines of an anchor cite no premise of these interims.
+
+    `fragments` holds one short verbatim substring of each citing line the declaration
+    classifies, unique among the anchor's citing lines; a citing line it does not name
+    stays unresolved.
+    """
 
     interims: tuple[str, ...]
     reason: str
+    fragments: tuple[str, ...]
 
 
 # Every anchor on an admission surface that cites a lineage and rides nothing, keyed by
-# path and anchor, "" being a file read as one anchor. Each reason says what the
-# anchor's citations are; none of them cites an interim's verdict as a premise.
+# path and anchor, "" being a file read as one anchor. Each reason says what the named
+# lines' citations are; none of them cites an interim's verdict as a premise.
 NON_PREMISE: dict[tuple[str, str], NonPremise] = {
     (REGISTER, "R-05-010"): NonPremise(
         (FSTAR, EASYCRYPT), "the prohibition keeping a contained component's "
-        "foreign-prover pedigree out of the trust base"),
+        "foreign-prover pedigree out of the trust base",
+        ("attributes no entry to a contained component's",)),
     (REGISTER, GOVERNING): NonPremise(
-        (FSTAR, EASYCRYPT), "the interims' own governing rule, which holds these lists"),
+        (FSTAR, EASYCRYPT), "the interims' own governing rule, which holds these lists",
+        ("each carry a destination and a consumer list, held here",)),
     (REGISTER, "R-05-044"): NonPremise(
         (FSTAR,), "EverParse's refusal: no shipped parser derives from an F*/Z3 "
-        "generator"),
+        "generator", ("no shipped parser derives from an",)),
     (REGISTER, "R-05-061"): NonPremise(
-        (FSTAR,), "the booking of libcrux/HACL* as the interim F*/Z3 widening"),
+        (FSTAR,), "the booking of libcrux/HACL* as the interim F*/Z3 widening",
+        ("widening with a named Coq-native destination, not an open-ended tolerance",)),
     (REGISTER, "R-05-075"): NonPremise(
-        (EASYCRYPT,), "EasyCrypt results as accelerators whose destination is SSProve"),
+        (EASYCRYPT,), "EasyCrypt results as accelerators whose destination is SSProve",
+        ("results are accelerators with SSProve as the stated destination",)),
     (REGISTER, "R-12-032"): NonPremise(
         (FSTAR,), "the TLS route ranking, whose protocol proof is bonus and never "
-        "trust base"),
+        "trust base", ("over the memory-safety floor and never trust base",)),
     (REGISTER, "R-18-023"): NonPremise(
         (FSTAR, EASYCRYPT), "the admission of an EasyCrypt reduction as interim "
-        "assurance beside libcrux/HACL*"),
+        "assurance beside libcrux/HACL*", ("is admissible interim assurance exactly as",)),
     (PLAN, "4. Verified crypto core (Coq)"): NonPremise(
         (FSTAR, EASYCRYPT), "libcrux/HACL* behaviour as the reference's oracle, no "
         "F*/Z3 dependency entering the golden model, and EasyCrypt gadget proofs "
-        "informing the masking half without discharging it"),
+        "informing the masking half without discharging it",
+        ("behavior as the oracle", "dependency enters the golden model",
+         "gadget proofs inform the Boolean half")),
     (PLAN, "Post-M10 · Author the Boolean composition half"): NonPremise(
         (EASYCRYPT,), "EasyCrypt's masking proofs as a source in the weakest sense, "
-        "credited with no reduction"),
+        "credited with no reduction", ("a source in the weakest of the three senses",)),
     (LOG, "M3.4a · The cryptography licence reads, and SHA-3 in Gallina"): NonPremise(
         (FSTAR, EASYCRYPT), "the licence reads of the pinned comparators, read for their "
-        "answers, with R-05-061's line between a comparison and a widening"),
+        "answers, with R-05-061's line between a comparison and a widening",
+        ("the Jasmin tree pinned here does state terms",
+         "takes here is the comparator's, not the interim anchor's")),
     (RECORD, "upstream/hacl-star"): NonPremise(
         (FSTAR,), "the pin row of a planned comparator, never built, copied or "
-        "extracted"),
+        "extracted", ("No differential run, build, copying, or extraction occurs here.",)),
     (RECORD, "upstream/libjade"): NonPremise(
         (EASYCRYPT,), "the pin row of a planned comparator, never built, copied or "
-        "extracted"),
+        "extracted", ("Planned independent comparator from the Jasmin/EasyCrypt lineage",)),
     (RECORD, "Pinned as submodules"): NonPremise(
-        (EASYCRYPT,), "the licence instruments re-read at an advanced pin"),
+        (EASYCRYPT,), "the licence instruments re-read at an advanced pin",
+        ("- libjade: `LICENSE` and the two texts under `LICENSES/`.",)),
     (RECORD, "Proof and lowering references"): NonPremise(
-        (FSTAR, EASYCRYPT), "where the comparators' licence terms were located"),
+        (FSTAR, EASYCRYPT), "where the comparators' licence terms were located",
+        ("**Cryptography references.** Reviews on",)),
     (RECORD, "The cryptography upstreams"): NonPremise(
         (FSTAR, EASYCRYPT), "the comparators' standing, unqualified, with nothing "
-        "copied"),
+        "copied", ("without claiming the unrun",)),
     (RECORD, "Behavioral oracles"): NonPremise(
         (FSTAR, EASYCRYPT), "the comparators' terms, and that the comparator role "
-        "supplies no proof assumption"),
+        "supplies no proof assumption",
+        ("No command builds them or computes a differential result",
+         "The comparator role does not supply a proof assumption",
+         "does not identify the licensed libjade tree")),
     ("docs/implementation/attested-tls-protocol.md", ""): NonPremise(
         (FSTAR, EASYCRYPT), "HACL* and libjade named as primitive comparators that are "
-        "not a TLS stack, with no source incorporated"),
+        "not a TLS stack, with no source incorporated",
+        ("a primitive pin is not a TLS stack",)),
     ("proofs/campaigns/mldsa-reference.md", ""): NonPremise(
         (FSTAR,), "no libcrux or HACL* body copied, and the independent comparison run "
-        "against OpenSSL instead"),
+        "against OpenSSL instead",
+        ("or Dilithium implementation body is copied",
+         "The independent implementation campaign uses OpenSSL rather than")),
 }
 
 
 @dataclass(frozen=True)
 class Citation:
-    """One lineage name on an admission surface, and the anchor it sits under."""
+    """One lineage name on an admission surface, its line and the anchor it sits under."""
 
     path: str
     line: int            # 1-based
     anchor: str          # "" where the file is read as one anchor
     token: str           # as the site spells it
     interim: str
+    text: str            # the whole line, which a declaration's fragment is sought in
 
 
 # A consumer entry: a requirement ID, a repository path in backticks, or a checklist
@@ -484,11 +515,15 @@ def scan(ctx: Context, excluded: dict[str, str]) -> Scan:
             continue
         for at, tok in sites:
             index = blob.count(b"\n", 0, at)
+            start = blob.rfind(b"\n", 0, at) + 1
+            end = blob.find(b"\n", at)
             read.citations.append(Citation(
                 path=rel, line=index + 1,
                 anchor=anchors[index] if index < len(anchors) else "",
                 token=blob[at:at + len(tok.needle)].decode("utf-8"),
-                interim=tok.interim))
+                interim=tok.interim,
+                text=blob[start:end if end >= 0 else len(blob)].decode("utf-8")
+                .rstrip("\r")))
     read.unmatched = [prefix for prefix in excluded if prefix not in used]
     return read
 
@@ -569,22 +604,71 @@ def decide(ctx: Context, excluded: dict[str, str],
                     "lineage; an artifact whose admission cites no verdict of the "
                     "interim does not ride it")
 
+    # every declared fragment, naming exactly one citing line of its anchor
+    citing: dict[tuple[str, str], dict[int, str]] = {}
+    for c in read.citations:
+        citing.setdefault((c.path, c.anchor), {})[c.line] = c.text
+    named: set[tuple[str, int]] = set()
+    for (path, anchor), declaration in declared.items():
+        lines = sorted(citing.get((path, anchor), {}).items())
+        if not declaration.fragments:
+            found.append(f"{_where(path, anchor)} is declared no premise and names no "
+                         "fragment of a line it classifies, so it classifies none")
+        by_line: dict[int, list[str]] = {}
+        for fragment in declaration.fragments:
+            if not fragment.strip():
+                found.append(f"{_where(path, anchor)} declares a blank fragment, which "
+                             "names every line and so none")
+                continue
+            on = [line for line, text in lines if fragment in text]
+            if not on:
+                found.append(
+                    f"{_where(path, anchor)} declares the fragment '{fragment}', and no "
+                    "line there citing an interim's lineage carries it; a fragment "
+                    "naming no citing line is a carve-out nobody audits")
+            elif len(on) > 1:
+                found.append(
+                    f"{_where(path, anchor)} declares the fragment '{fragment}', which "
+                    f"lines {', '.join(map(str, on))} there all carry, so it names none "
+                    "of them; a fragment is a substring of one citing line only")
+            else:
+                by_line.setdefault(on[0], []).append(fragment)
+        for line, fragments in by_line.items():
+            named.add((path, line))
+            if len(fragments) > 1:
+                found.append(
+                    f"{_where(path, anchor, line)} is named by {len(fragments)} declared "
+                    f"fragments ({'; '.join(fragments)}); one fragment names one line")
+
     # every citation, a consumer or a declared non-premise
     unresolved: dict[tuple[str, int, str, str], list[str]] = {}
+    unnamed: set[tuple[str, int, str, str]] = set()
     for c in read.citations:
         site = (c.path, c.anchor)
         if site in riding[c.interim]:
             continue
         declaration = declared.get(site)
+        key = (c.path, c.line, c.anchor, c.interim)
         if declaration is not None and c.interim in declaration.interims:
-            continue
-        unresolved.setdefault((c.path, c.line, c.anchor, c.interim), []).append(c.token)
-    found += [f"{_where(path, anchor, line)} cites {', '.join(dict.fromkeys(tokens))} of "
-              f"{interim}'s lineage and is neither a consumer {GOVERNING} lists for "
-              f"{interim} nor a non-premise {HOME} declares; an admission riding the "
-              f"interim is entered in that list, and one riding nothing is declared there "
-              "with its reason"
-              for (path, line, anchor, interim), tokens in unresolved.items()]
+            if (c.path, c.line) in named:
+                continue
+            unnamed.add(key)
+        unresolved.setdefault(key, []).append(c.token)
+    for key, tokens in unresolved.items():
+        path, line, anchor, interim = key
+        cites = (f"{_where(path, anchor, line)} cites {', '.join(dict.fromkeys(tokens))} "
+                 f"of {interim}'s lineage")
+        if key in unnamed:
+            found.append(
+                f"{cites} on a line none of the fragments {HOME} declares for its anchor "
+                f"names, so it is neither a consumer {GOVERNING} lists for {interim} nor "
+                "a declared non-premise; a declaration classifies the lines it names, and "
+                "a line resting on the interim is entered in that list")
+        else:
+            found.append(
+                f"{cites} and is neither a consumer {GOVERNING} lists for {interim} nor a "
+                f"non-premise {HOME} declares; an admission riding the interim is entered "
+                "in that list, and one riding nothing is declared there with its reason")
 
     # every declaration, answered by a citation and not also a consumer
     for (path, anchor), declaration in declared.items():
@@ -605,7 +689,9 @@ def decide(ctx: Context, excluded: dict[str, str],
     listed = sum(len(names) for names in lists.consumers.values())
     ok = (f"the {len(read.citations)} citations of {FSTAR}'s and {EASYCRYPT}'s lineages "
           f"on {read.surfaces} admission surfaces are each a consumer {GOVERNING} lists "
-          f"({listed} listed) or under one of {len(declared)} declared non-premises")
+          f"({listed} listed) or on a line one of {len(declared)} declared non-premises "
+          f"names by fragment ({sum(len(d.fragments) for d in declared.values())} "
+          "fragments)")
     return found, ok
 
 

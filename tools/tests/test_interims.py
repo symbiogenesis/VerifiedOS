@@ -15,7 +15,7 @@ the live run reads.
 
 from pathlib import Path
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos.checks import Context, interims
 from vos.register import REGISTER, read_artifacts, read_register
@@ -39,7 +39,14 @@ _LOG = "# Log\n\n## M3 · Boot chain\n\n### M3.4a · The licence reads\n\n  * Re
 _RECORD = "# Third-Party Components\n\n## Pinned as submodules\n\nNone.\n"
 _MLKEM = "/* Hacl_ ML-KEM arithmetic, whose correctness rides F* and Z3. */\nint x;\n"
 
-_DECLARED = {GOVERNED: interims.NonPremise((FSTAR, EASYCRYPT), "the governing rule")}
+_HELD_HERE = "each carry a destination and a consumer list, held here"
+_DECLARED = {GOVERNED: interims.NonPremise((FSTAR, EASYCRYPT), "the governing rule",
+                                           (_HELD_HERE,))}
+
+_MLDSA = "proofs/campaigns/mldsa-reference.md"
+_CORE = "4. Verified crypto core (Coq)"
+_PREMISE = ("Its decapsulation rests on HACL\\*'s verified ML-KEM, whose F\\* proof it "
+            "takes as its premise.")
 
 
 def _register(accept: str | None) -> str:
@@ -106,14 +113,69 @@ def _unlisted_consumer_is_a_finding() -> None:
     ensure(len(found) == 2, f"one finding per unaccounted line: {found!r}")
 
 
+def _live(path: str) -> str:
+    return (TOOLS.parent / path).read_text(encoding="utf-8")
+
+
+def _premise_in_declared_anchor_is_a_finding() -> None:
+    # The live files under the live declarations, so the fragments these cases hold are
+    # the ones the rule ships with rather than a fixture's copy of them.
+    for path, anchor, text, after in (
+            (_MLDSA, "", _live(_MLDSA),
+             "carries no authorization for deterministic production signing."),
+            (interims.PLAN, _CORE, _live(interims.PLAN),
+             "This module is a dependency of the RoT (§2), the object system (§6), "
+             "and the filesystem (§7).")):
+        declared = {**_DECLARED, **{site: np for site, np in interims.NON_PREMISE.items()
+                                    if site[0] == path}}
+        found, _ = _decide({path: text}, declared=declared)
+        ensure(not found, f"{path} under its live declarations must hold: {found!r}")
+        ensure(text.count(after) == 1, f"the seed point must be unique in {path}")
+        seeded = text.replace(after, f"{after} {_PREMISE}")
+        found, _ = _decide({path: seeded}, declared=declared)
+        line = seeded[:seeded.index(_PREMISE)].count("\n") + 1
+        where = f"{path}:{line} ({anchor})" if anchor else f"{path}:{line}"
+        ensure(any(f.startswith(f"{where} cites HACL, F\\* of F*/Z3") and
+                   "none of the fragments" in f for f in found),
+               f"a premise written into a declared anchor is unresolved: {found!r}")
+        ensure(len(found) == 1, f"only the seeded line is a finding: {found!r}")
+
+
+def _fragments_are_exact() -> None:
+    notes = "docs/notes.md"
+    text = ("HACL\\* is a comparator here.\n\nHACL\\* is a comparator there.\n\n"
+            "libcrux is read for its answers.\n")
+    declared = {**_DECLARED, (notes, ""): interims.NonPremise(
+        (FSTAR,), "comparator notes", ("is a comparator", "is read", "for its answers"))}
+    found, _ = _decide({notes: text}, declared=declared)
+    ensure(any("fragment 'is a comparator', which lines 1, 3" in f for f in found),
+           f"a fragment two citing lines carry names neither: {found!r}")
+    ensure(sum(" on a line none of the fragments" in f for f in found) == 2,
+           f"so both lines it would have named stay unresolved: {found!r}")
+    ensure(any(f.startswith(f"{notes}:5 is named by 2 declared fragments") for f in found),
+           f"a line two fragments name is a finding: {found!r}")
+    for fragments, want in (((), "names no fragment"), (("  ",), "a blank fragment")):
+        declared = {**_DECLARED, (notes, ""): interims.NonPremise(
+            (FSTAR,), "comparator notes", fragments)}
+        found, _ = _decide({notes: "libcrux is read for its answers.\n"}, declared=declared)
+        ensure(any(want in f for f in found), f"'{want}' must be a finding: {found!r}")
+        ensure(any(" on a line none of the fragments" in f for f in found),
+               f"and the line it would have named stays unresolved: {found!r}")
+
+
 def _stale_declaration_is_a_finding() -> None:
     declared = {**_DECLARED,
-                ("docs/notes.md", ""): interims.NonPremise((FSTAR,), "a comparator note"),
-                GOVERNED: interims.NonPremise((FSTAR, EASYCRYPT, "Lean"), "the rule")}
+                ("docs/notes.md", ""): interims.NonPremise((FSTAR,), "a comparator note",
+                                                           ("comparator",)),
+                GOVERNED: interims.NonPremise((FSTAR, EASYCRYPT, "Lean"), "the rule",
+                                              (_HELD_HERE,))}
     found, _ = _decide({"docs/notes.md": "No lineage is named here.\n"}, declared=declared)
     ensure(any(f.startswith("docs/notes.md is declared no premise of F*/Z3")
                and "classifies nothing" in f for f in found),
            f"a declaration no citation answers is a finding: {found!r}")
+    ensure(any(f.startswith("docs/notes.md declares the fragment 'comparator', and no "
+                            "line") for f in found),
+           f"a fragment naming no citing line is a finding: {found!r}")
     ensure(any("declared no premise of Lean" in f for f in found),
            f"each interim a declaration names must be cited there: {found!r}")
     unmatched, _ = _decide({}, excluded={"docs/gone/": "nothing lives here"})
@@ -174,6 +236,9 @@ def cases() -> list[Case]:
         Case("empty-form-holds", _empty_form_holds),
         Case("non-empty-form-is-read-and-resolved", _non_empty_form_is_read_and_resolved),
         Case("unlisted-consumer-is-a-finding", _unlisted_consumer_is_a_finding),
+        Case("premise-in-declared-anchor-is-a-finding",
+             _premise_in_declared_anchor_is_a_finding),
+        Case("fragments-are-exact", _fragments_are_exact),
         Case("stale-declaration-is-a-finding", _stale_declaration_is_a_finding),
         Case("listed-consumer-citing-nothing-is-a-finding",
              _listed_consumer_citing_nothing_is_a_finding),
