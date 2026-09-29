@@ -33,10 +33,11 @@ Implementation begins after this contract is committed. Its acceptance predicate
   JSON contract. Windows and Ubuntu Host CI validate the settled implementation.
   No Gallina, theorem statement, accepted assumption or acceptance policy is
   changed. The command's row sits in [commands.py](../../tools/vos/commands.py),
-  whose rows change no command's import closure and so leave the proof gate's
-  implementation identity unchanged. When this delivery landed, the command table
-  was part of the `vos.cli` package that identity recorded, so this predicate also
-  required the fresh proof run in Guest CI with `cold: true`.
+  outside the proof gate's import closure, which is that gate's implementation
+  identity, so registration leaves the identity unchanged. When this delivery
+  landed, the command table sat in `vos/cli/__init__.py`, a file the proof gate's
+  recorded inputs listed, so this predicate also required a fresh local guest
+  proof run.
 
 This delivery makes no proof-success-rate or time-saving claim. It does not reopen
 or complete Q19a, Q19b, Q19c or Q20b. A live protocol adapter, learned retrieval or
