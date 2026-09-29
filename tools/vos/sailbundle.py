@@ -30,8 +30,10 @@ whether the bundle still describes the sources in this checkout.
 ## Portable library locations
 
 Of the files the emitter hashes, most are keyed relative to `model/model/` and
-resolve in this checkout. The rest are the Sail library's own, keyed by the **absolute
-host path** they were read from, under the selected switch's `share/sail/lib/`.
+resolve in this checkout. Most of the rest are the Sail library's own, keyed by the
+**absolute host path** they were read from, under the selected switch's
+`share/sail/lib/`; the others, `COMPILER_FILES`, are compiled into Sail itself and
+keyed by bare name.
 `canonicalize_library` relocates only these hash keys from the selected switch to
 `LIBRARY_PREFIX`, retaining source text, locations and every digest. Both publication
 and guest comparison use this transformation and compact UTF-8 JSON with a final
@@ -77,6 +79,13 @@ type Location = tuple[int, int, int, int, int, int]
 # The tracked artifact uses the canonical guest root on both host and guest readers.
 # Its switch name comes from the same owner that selects the compiler for emission.
 LIBRARY_PREFIX = f"/root/.opam/{env.SAIL_SWITCH}/share/sail/"
+
+# The files the locked Sail compiles into itself rather than reads from a path. Its
+# implicit `corelib` project names one, `files __virtual corelib.sail`, and the emitter
+# hashes it under that bare name, which reads like a model source. Neither the checkout
+# nor the switch carries it, so no host reader resolves it; the guest half's byte
+# comparison still binds its digest, the emitter recording it afresh on every run.
+COMPILER_FILES = frozenset({"corelib.sail"})
 
 # The maps this reader knows how to open, and the key each one's members are indexed by
 # inside its own entry. `spans` and `anchors` are top-level too and nothing here reads
@@ -264,8 +273,12 @@ class Bundle:
         holding them against the working tree is asking whether the artifact still
         describes the model beside it, with no second list to maintain.
         """
-        return {f"{SOURCE_ROOT}/{key}": digest
-                for key, digest in self.hashes.items() if not key.startswith("/")}
+        return {f"{SOURCE_ROOT}/{key}": digest for key, digest in self.hashes.items()
+                if not key.startswith("/") and key not in COMPILER_FILES}
+
+    def compiler_owners(self) -> dict[str, str]:
+        """The files the compiler carries inside itself, keyed as the emitter names them."""
+        return {key: digest for key, digest in self.hashes.items() if key in COMPILER_FILES}
 
     def library_owners(self) -> dict[str, str]:
         """The Sail library files keyed by their canonical absolute locations.
