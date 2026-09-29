@@ -43,9 +43,13 @@ lower case.
 **The surfaces are the index less declared exclusions, and not a list of places to
 look.** The corpus is what git tracks, read as the working tree holds it, so a file is
 inside the rule the day it is tracked and escapes only by leaving the repository or by
-joining an exclusion row. Each row names a class that admits nothing, with the reason;
-a row that no longer matches any tracked file is a finding, as a residue that suppresses
-nothing is under K-81. A file that will not read as UTF-8 is skipped, the glyphs group
+joining an exclusion row. Each row names a class that admits nothing, with the reason,
+as a directory when it ends in `/` and as one exact path otherwise; a row that no
+longer matches any tracked file is a finding, as a residue that suppresses nothing is
+under K-81. Retained evidence is read, being a validation record; the one exclusion
+narrower than a path is the pin entry of a machine-written environment snapshot there,
+which records what was checked out and repeats verbatim wherever the snapshot was
+taken, and it too is a finding the day it passes over nothing. A file that will not read as UTF-8 is skipped, the glyphs group
 owning what every tracked file is made of.
 
 **An anchor is where an admission is recorded.** A register line belongs to the
@@ -148,11 +152,13 @@ _ALNUM = frozenset(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456
 _WORD = _ALNUM | frozenset(b"_")
 _STAR = ord("*")
 
-# The classes of tracked file that admit nothing, each with the reason. A path matching
-# none of these prefixes is an admission surface, so a new file is read by default.
+# The classes of tracked file that admit nothing, each with the reason. A row ending in
+# `/` is a directory and excludes every path under it; any other row is one exact path.
+# A path no row excludes is an admission surface, so a new file is read by default.
 _SURVEY = "a survey read ahead of any item; what it surveys is admitted at the item"
-_CHECKER = ("the checker, its registry and its tests, which spell the lineages to "
-            "classify or seed them and decide admission rather than carry it")
+_CHECKER = ("the checker, its selftest, its tests and its registry, which spell the "
+            "lineages to classify or seed them and decide admission rather than carry "
+            "it; the admission and evidence tooling beside them is read")
 EXCLUDED: dict[str, str] = {
     UNREAD_PREFIX: "the curated Sail model, the ISA anchor R-06-011 admits: a semantics "
                    "the proofs quantify over, never an artifact admitted on a prover's "
@@ -166,9 +172,14 @@ EXCLUDED: dict[str, str] = {
     "docs/implementation/static-memory/literature.md": _SURVEY,
     "docs/languages/": "language dossiers: design and verification-route surveys; a "
                        "component written in a language is admitted at its item",
-    "docs/assurance/proof-reuse": "proof-reuse candidate records, which price start-froms "
-                                  "from dated source and licence readings; a reused "
-                                  "source is admitted at the item reusing it",
+    "docs/assurance/proof-reuse/": "the proof-reuse subject records, which qualify "
+                                   "candidate sources from dated source and licence "
+                                   "readings; a reused source is admitted at the item "
+                                   "reusing it",
+    "docs/assurance/proof-reuse.md": "the proof-reuse inventory's index, stating what "
+                                     "qualifies a source and the dispositions its "
+                                     "records use; it names other provers as precedent "
+                                     "and admits nothing",
     "docs/assurance/unassigned-proof-map.md": "proof slices priced outside the plan until "
                                               "an item owns them, with a start-from "
                                               "column surveying candidate sources",
@@ -177,16 +188,35 @@ EXCLUDED: dict[str, str] = {
     "docs/implementation/userspace-porting.md": "the userland porting plan, ranking "
                                                 "start-froms per component; a component "
                                                 "is admitted at its item",
-    "docs/assurance/sail-assistance-evidence/": "frozen tool output of the Sail-assistance "
-                                                "experiments",
-    "docs/implementation/retained-evidence/": "frozen tool output retained at landings; "
-                                              "the acceptance resting on it is the "
-                                              "completion-log entry, which is read",
     "docs/performance/": "performance estimates, benchmarks and inference-demand inputs",
-    "tools/vos/": _CHECKER,
+    "tools/vos/checks/": _CHECKER,
+    "tools/vos/cli/selftest.py": _CHECKER,
     "tools/tests/": _CHECKER,
     "tools/check-rules.md": _CHECKER,
 }
+
+# The one exclusion narrower than a path: the pin entry of a machine-written environment
+# snapshot, in the JSON the two evidence directories retain. Retained evidence is a
+# validation record and is read, but a snapshot's digest map spells each gitlink as
+# `"upstream/<path>": "gitlink:<commit>"`, as many times as the snapshot was taken, so
+# no fragment could name one such line apart from its twin.
+SNAPSHOT_DIRS = ("docs/implementation/retained-evidence/",
+                 "docs/assurance/sail-assistance-evidence/")
+SNAPSHOT_PIN_RE = re.compile(r'\s*"upstream/[^"\s]+": "gitlink:[0-9a-f]{40}",?\s*')
+SNAPSHOT_PIN = ("an environment snapshot's pin entry, the path of a gitlink and the "
+                "commit the index held for it when the evidence was taken: it records "
+                "what was checked out, never what a result rests on, and the pin's "
+                "standing is its licence-record row, which is read")
+
+
+def _excludes(row: str, rel: str) -> bool:
+    """Whether an exclusion row excludes a path: a directory by prefix, a file exactly."""
+    return rel.startswith(row) if row.endswith("/") else rel == row
+
+
+def _snapshot_pin(rel: str, text: str) -> bool:
+    return (rel.endswith(".json") and rel.startswith(SNAPSHOT_DIRS)
+            and SNAPSHOT_PIN_RE.fullmatch(text) is not None)
 
 
 @dataclass(frozen=True)
@@ -268,6 +298,10 @@ NON_PREMISE: dict[tuple[str, str], NonPremise] = {
         (FSTAR, EASYCRYPT), "HACL* and libjade named as primitive comparators that are "
         "not a TLS stack, with no source incorporated",
         ("a primitive pin is not a TLS stack",)),
+    ("docs/assurance/proof-reuse-bearing.md", ""): NonPremise(
+        (EASYCRYPT,), "Jasmin's compiler theorem tabled as bearing on no consumer, on "
+        "the unaimed ground, with no source acquired",
+        ("it acquires no source and proposes no local consumer",)),
     ("proofs/campaigns/mldsa-reference.md", ""): NonPremise(
         (FSTAR,), "no libcrux or HACL* body copied, and the independent comparison run "
         "against OpenSSL instead",
@@ -480,14 +514,19 @@ class Scan:
     anchors: dict[str, set[str]] = field(default_factory=dict)
     surfaces: int = 0
     unmatched: list[str] = field(default_factory=list)
+    pins: int = 0        # snapshot pin entries passed over
 
 
-def scan(ctx: Context, excluded: dict[str, str]) -> Scan:
-    """Every citation on every tracked file outside the exclusions."""
+def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Scan:
+    """Every citation on every tracked file outside the exclusions.
+
+    With `snapshots`, a snapshot's pin entry is passed over and counted rather than
+    read as a citation.
+    """
     read = Scan()
     used: set[str] = set()
     for rel in ctx.corpus.tracked:
-        matched = {prefix for prefix in excluded if rel.startswith(prefix)}
+        matched = {row for row in excluded if _excludes(row, rel)}
         if matched:
             used |= matched
             continue
@@ -513,18 +552,22 @@ def scan(ctx: Context, excluded: dict[str, str]) -> Scan:
             blob.decode("utf-8")
         except UnicodeDecodeError:
             continue
+        passed: set[int] = set()
         for at, tok in sites:
             index = blob.count(b"\n", 0, at)
             start = blob.rfind(b"\n", 0, at) + 1
             end = blob.find(b"\n", at)
+            text = blob[start:end if end >= 0 else len(blob)].decode("utf-8").rstrip("\r")
+            if snapshots and _snapshot_pin(rel, text):
+                passed.add(index)
+                continue
             read.citations.append(Citation(
                 path=rel, line=index + 1,
                 anchor=anchors[index] if index < len(anchors) else "",
                 token=blob[at:at + len(tok.needle)].decode("utf-8"),
-                interim=tok.interim,
-                text=blob[start:end if end >= 0 else len(blob)].decode("utf-8")
-                .rstrip("\r")))
-    read.unmatched = [prefix for prefix in excluded if prefix not in used]
+                interim=tok.interim, text=text))
+        read.pins += len(passed)
+    read.unmatched = [row for row in excluded if row not in used]
     return read
 
 
@@ -551,8 +594,13 @@ def _resolve(name: str, ctx: Context, read: Scan) -> list[tuple[str, str]] | str
 
 
 def decide(ctx: Context, excluded: dict[str, str],
-           declared: dict[tuple[str, str], NonPremise]) -> tuple[list[str], str]:
-    """Every finding over the surfaces, and the sentence a clean run states."""
+           declared: dict[tuple[str, str], NonPremise],
+           snapshots: bool = False) -> tuple[list[str], str]:
+    """Every finding over the surfaces, and the sentence a clean run states.
+
+    `snapshots` applies the snapshot pin exclusion, which the live run does and a
+    fixture opts into.
+    """
     found: list[str] = []
 
     # the lists, fail-closed at every reading
@@ -570,15 +618,20 @@ def decide(ctx: Context, excluded: dict[str, str],
     # the surfaces, fail-closed at every reading
     found += [f"{name} is not in the checker's corpus, so the anchors it would carry "
               "go unread" for name in ANCHORED if name not in ctx.corpus]
-    read = scan(ctx, excluded)
+    read = scan(ctx, excluded, snapshots)
     if not read.surfaces:
         found.append("the index carries no file outside the declared exclusions, so no "
                      "admission surface is read")
-    found += [f"the exclusion of {prefix} ({excluded[prefix]}) matches no file the "
-              "index carries; an exclusion that excludes nothing is a carve-out nobody "
-              "audits" for prefix in read.unmatched]
-    found += [f"the exclusion of {prefix} carries no reason"
-              for prefix, why in excluded.items() if not why.strip()]
+    found += [f"the exclusion of {row} ({excluded[row]}) matches no file the index "
+              "carries; an exclusion that excludes nothing is a carve-out nobody audits"
+              for row in read.unmatched]
+    found += [f"the exclusion of {row} carries no reason"
+              for row, why in excluded.items() if not why.strip()]
+    if snapshots and not read.pins:
+        found.append(f"the exclusion of a snapshot's pin entry under "
+                     f"{' and '.join(SNAPSHOT_DIRS)} ({SNAPSHOT_PIN}) passes over no line "
+                     "citing a lineage; an exclusion that excludes nothing is a carve-out "
+                     "nobody audits")
     cited = {c.interim for c in read.citations}
     found += [f"no admission surface cites {interim}'s lineage at all, while "
               f"{GOVERNING} names it; the reading of the lineage names has moved"
@@ -691,14 +744,14 @@ def decide(ctx: Context, excluded: dict[str, str],
           f"on {read.surfaces} admission surfaces are each a consumer {GOVERNING} lists "
           f"({listed} listed) or on a line one of {len(declared)} declared non-premises "
           f"names by fragment ({sum(len(d.fragments) for d in declared.values())} "
-          "fragments)")
+          f"fragments), with {read.pins} snapshot pin entries passed over")
     return found, ok
 
 
 def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
-    found, ok = decide(ctx, EXCLUDED, NON_PREMISE)
+    found, ok = decide(ctx, EXCLUDED, NON_PREMISE, snapshots=True)
     rep.report("K-114", "citation(s) of an interim anchor's lineage that R-05-022's "
                "consumer lists do not account for:", found, ok)
     rep.line()

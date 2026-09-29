@@ -59,13 +59,14 @@ def _register(accept: str | None) -> str:
 
 def _decide(files: dict[str, str], accept: str | None = _EMPTY,
             declared: dict[tuple[str, str], interims.NonPremise] | None = None,
-            excluded: dict[str, str] | None = None) -> tuple[list[str], str]:
+            excluded: dict[str, str] | None = None,
+            snapshots: bool = False) -> tuple[list[str], str]:
     tree = {REGISTER: _register(accept), interims.PLAN: _PLAN, interims.LOG: _LOG,
             interims.RECORD: _RECORD, **files}
     with sandbox_tree(tree) as root:
         ctx = _context(root)
         return interims.decide(ctx, excluded or {},
-                               _DECLARED if declared is None else declared)
+                               _DECLARED if declared is None else declared, snapshots)
 
 
 def _context(root: Path) -> Context:
@@ -183,6 +184,37 @@ def _stale_declaration_is_a_finding() -> None:
            f"an exclusion matching no tracked file is a finding: {unmatched!r}")
 
 
+def _exclusions_are_exact() -> None:
+    files = {"docs/reuse.md": "HACL\\* is surveyed.\n",
+             "docs/reuse-bearing.md": "HACL\\* bears on nothing.\n",
+             "docs/reuse/crypto.md": "libcrux is surveyed.\n"}
+    found, _ = _decide(files, excluded={"docs/reuse": "a prefix with no slash",
+                                        "docs/reuse/": "the subject records"})
+    ensure(any(f.startswith("the exclusion of docs/reuse (") for f in found),
+           f"a row without a slash is one exact path, and none is tracked: {found!r}")
+    ensure(any(f.startswith("docs/reuse.md:1 cites") for f in found) and
+           any(f.startswith("docs/reuse-bearing.md:1 cites") for f in found),
+           f"so neither sibling file is excluded by it: {found!r}")
+    ensure(not any(f.startswith("docs/reuse/crypto.md") for f in found),
+           f"a row ending in a slash excludes the directory: {found!r}")
+
+    evidence = "docs/implementation/retained-evidence/run.json"
+    pin = '    "upstream/hacl-star": "gitlink:' + "0" * 40 + '",\n'
+    twice = "{\n" + pin + pin + "}\n"
+    found, ok = _decide({evidence: twice}, snapshots=True)
+    ensure(not found and "2 snapshot pin entries passed over" in ok,
+           f"a snapshot's pin entries are passed over, twins included: {found!r} {ok!r}")
+    found, _ = _decide({evidence: twice.replace("}", '"note": "rests on HACL*"\n}')},
+                       snapshots=True)
+    ensure(len(found) == 1 and found[0].startswith(f"{evidence}:4 cites HACL"),
+           f"any other line of retained evidence is read: {found!r}")
+    found, _ = _decide({"docs/run.json": twice}, snapshots=True)
+    ensure(any(f.startswith("docs/run.json:2 cites hacl") for f in found),
+           f"a pin entry outside the evidence directories is read: {found!r}")
+    ensure(any("passes over no line citing a lineage" in f for f in found),
+           f"and the pin exclusion passing over nothing is a finding: {found!r}")
+
+
 def _listed_consumer_citing_nothing_is_a_finding() -> None:
     accept = (_BOOKS + "F\\*/Z3's consumers are M9.9 and `kernel/src/mlkem.c`; "
               "EasyCrypt's consumers are R-05-022 and `proofs/Absent.v`.")
@@ -240,6 +272,7 @@ def cases() -> list[Case]:
              _premise_in_declared_anchor_is_a_finding),
         Case("fragments-are-exact", _fragments_are_exact),
         Case("stale-declaration-is-a-finding", _stale_declaration_is_a_finding),
+        Case("exclusions-are-exact", _exclusions_are_exact),
         Case("listed-consumer-citing-nothing-is-a-finding",
              _listed_consumer_citing_nothing_is_a_finding),
         Case("missing-governing-entry-fails-closed", _missing_governing_entry_fails_closed),
