@@ -873,7 +873,8 @@ switched off, and that is deliberate: the alternative is a list of opt-ins that 
 stops growing the day ty adds a rule nobody transcribed. What ruff is *not* asked is in
 [ruff.toml](ruff.toml): the excluded rules, each named on its own line and each for a reason
 that would hold in any project, and no group switched off to spare this code a rewrite. A
-single site that has to differ carries a `# noqa` and the sentence saying why.
+single site that has to differ carries a `# noqa` naming its rule and the sentence saying
+why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). In VS Code,
 select `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's

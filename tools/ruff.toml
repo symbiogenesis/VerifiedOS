@@ -48,6 +48,7 @@ select = [
     "SLOT",   # __slots__ on the classes that want them
     "INT",    # printf-string correctness
     "TID",    # tidy imports: absolute over relative-from-a-parent
+    "PGH",    # a blanket `# noqa` or `# type: ignore`: a suppression names its rule, as above
 ]
 
 ignore = [
