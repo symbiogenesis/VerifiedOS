@@ -393,9 +393,9 @@ The performance gap cannot be settled by compiler lineage: [CompCert's own descr
 
 **Representation and primitive contracts: VeriFFI.** [A Verified Foreign Function Interface between Coq and C](https://www.cs.princeton.edu/~appel/papers/VeriFFI.pdf), POPL 2025, generates VST function specifications from Gallina types and functional models, connecting high-level clients to proved C primitives with concrete representations. The checklist already names VeriFFI in its host-side checker fallback; Q2b additionally inspects its contract-generation mechanism alongside DeepSEA before inventing representation glue, and the frozen Q19c protocol reuses that comparison. The paper does not demonstrate the complete CertiCoq end-to-end theorem. More immediately, [the existing third-party audit](../../THIRD-PARTY.md) records a VST version and transitive-assumption mismatch with this repository. A design comparison is useful now; direct incorporation requires resolving those concrete blockers and reading the selected artifact's licence, not weakening the assumption audit.
 
-**Borrowing precision: Polonius Alpha.** The Rust project's post [Enabling the next iteration of the borrow checker on nightly](https://blog.rust-lang.org/2026/08/04/enabling-polonius-alpha-on-nightly/), August 2026, enables a flow-sensitive borrow analysis by default on nightly. A loan returned on one branch need not prevent mutation on the branch where it is absent. This is an appropriate ownership-UX comparator for returned loans and reborrowing, with a pinned version and the announcement's unsupported cases recorded. It is an announcement rather than a design document: its evidence is a test suite and a crate run, it claims no formal model or soundness proof, it is not stabilized, and Alpha is narrower than the original Polonius, with the post itself naming programs the earlier implementation accepted and this one does not. The post aims to stabilize before the end of 2026 and reports no known issue in the Alpha subset, while the project's [2026 goal](https://goals.rust-lang.org/2026/polonius.html) still lists a soundness issue with the liveness of captured regions for opaque types and commits to a model in a-mir-formality validated against rustc, not a proof-assistant mechanization. The program the post shows Alpha rejecting, `conditional()`, reborrows conditionally inside a loop over a linked list, which is the loop-carried loan [the synchronous slice excludes](core-design.md#loans-and-control-flow), so that restriction matches what Rust intends to stabilize. The [2026 borrow-checker roadmap](https://goals.rust-lang.org/2026/roadmap-borrow-checker-within.html) takes the next ergonomic steps as goals rather than features: a view-types experiment for partial borrows in signatures, place-named lifetimes such as `'map` and `'self.text`, and internal references formalized only for simplified Rust. The first two bear on [region naming](#an-ideal-surface) and on lending part of a record through a public signature, which the slice carries only as a loan record's footprint under an explicit call contract, with no surface spelling fixed. The library proposal's lexical scoped combinators are a bounded mechanism, not the eventual expressiveness ceiling, and the awkward rewrites their restrictions cause remain unmeasured, since the canceled Q20b trial would have recorded them; importing rustc's analysis would still require a sound interpretation over the admitted semantics.
+**Borrowing precision: Polonius Alpha.** The Rust project's post [Enabling the next iteration of the borrow checker on nightly](https://blog.rust-lang.org/2026/08/04/enabling-polonius-alpha-on-nightly/), August 2026, enables a flow-sensitive borrow analysis by default on nightly. A loan returned on one branch need not prevent mutation on the branch where it is absent. This is an appropriate ownership-UX comparator for returned loans and reborrowing, with a pinned version and the announcement's unsupported cases recorded. It is an announcement rather than a design document: its evidence is a test suite and a crate run, it claims no formal model or soundness proof, it is not stabilized, and Alpha is narrower than the original Polonius, with the post itself naming programs the earlier implementation accepted and this one does not. The post aims to stabilize before the end of 2026 and reports no known issue in the Alpha subset, while the project's [2026 goal](https://goals.rust-lang.org/2026/polonius.html) still lists a soundness issue with the liveness of captured regions for opaque types and commits to a model in a-mir-formality validated against rustc, not a proof-assistant mechanization. The program the post shows Alpha rejecting, `conditional()`, reborrows conditionally inside a loop over a linked list, which is the loop-carried loan [the synchronous slice excludes](core-design.md#loans-and-control-flow), so that restriction matches what Rust intends to stabilize. The [2026 borrow-checker roadmap](https://goals.rust-lang.org/2026/roadmap-borrow-checker-within.html) takes the next ergonomic steps as goals rather than features: a view-types experiment for partial borrows in signatures, place-named lifetimes such as `'map` and `'self.text`, and internal references formalized only for simplified Rust. The first two bear on [region naming](#surface-conventions) and on lending part of a record through a public signature, which the slice carries only as a loan record's footprint under an explicit call contract; the illustrative surface proposes [named views](#flow-sensitive-loans-and-restoration-contracts) as its spelling. The library proposal's lexical scoped combinators are a bounded mechanism, not the eventual expressiveness ceiling, and the awkward rewrites their restrictions cause remain unmeasured, since the canceled Q20b trial would have recorded them; importing rustc's analysis would still require a sound interpretation over the admitted semantics.
 
-**Lifetimes without annotations: Goose.** [Goose](https://github.com/aardappel/goose), van Oortmerssen's 2026 language, is read at `master` revision `49d42ee7` of 2026-09-18 as a repository specification and implementation notes, with no paper; it is distinct from Perennial's Goose translator in [the tooling map](#existing-tooling-and-implementation-owners). It compiles a whole program in call-graph order and specializes each function per distinct root, the variable bounding a reference's target, so every root is statically known and one decidable rule replaces lifetime syntax: a reference may be stored only where its root's scope contains the destination root's scope. There is no heap, each resizable value topping a compiler-assigned data stack so that growth is a bump and nothing moves, and a named-ancestor `return from` elaborates to a hidden return discriminant each intermediate frame checks, with no unwinder, tables or destructors. Its premises are ones this platform already pays for at platform level, whole-program composition, [no runtime allocator](../spec.md#r-08-010), [recursion depth as a static fact](../spec.md#r-05-116), [bounded recursive data](../spec.md#r-05-143) and [no unwinding](../spec.md#r-05-100), so it is evidence that those constraints yield an annotation-free lifetime discipline and not only a memory plan. Three mechanisms are ownership-UX comparators for the loan rules. Static roots under specialization admit a loan stored in a field, which [the synchronous slice](core-design.md#loans-and-control-flow) excludes and Rust prices with lifetime parameters; the price here is per-root code growth, which [the feature decisions](#feature-decisions) already gate for generic specialization, and a join over [the typed callee set](../spec.md#r-05-114) at indirect calls, since [closures and function pointers stay](../spec.md#r-05-115) where Goose forbids them. Append within capacity typed as a write at the current length, disjoint from the prefix, rather than a consume-and-return of the owner lets prefix loans survive a push; [the fixed-capacity write rule](core-design.md#dependency-and-joins) can already express it, and a surface that delivers it needs that case named. Named-ancestor return is an elaboration into [the existing `Result` propagation exit](core-design.md#loans-and-control-flow), where every intermediate frame still owes its restoration and cleanup predicate and each site adds a branch to the WCET path. No surface feature is scheduled by this reading.
+**Lifetimes without annotations: Goose.** [Goose](https://github.com/aardappel/goose), van Oortmerssen's 2026 language, is read at `master` revision `49d42ee7` of 2026-09-18 as a repository specification and implementation notes, with no paper; it is distinct from Perennial's Goose translator in [the tooling map](#existing-tooling-and-implementation-owners). It compiles a whole program in call-graph order and specializes each function per distinct root, the variable bounding a reference's target, so every root is statically known and one decidable rule replaces lifetime syntax: a reference may be stored only where its root's scope contains the destination root's scope. There is no heap, each resizable value topping a compiler-assigned data stack so that growth is a bump and nothing moves, and a named-ancestor `return from` elaborates to a hidden return discriminant each intermediate frame checks, with no unwinder, tables or destructors. Its premises are ones this platform already pays for at platform level, whole-program composition, [no runtime allocator](../spec.md#r-08-010), [recursion depth as a static fact](../spec.md#r-05-116), [bounded recursive data](../spec.md#r-05-143) and [no unwinding](../spec.md#r-05-100), so it is evidence that those constraints yield an annotation-free lifetime discipline and not only a memory plan. Three mechanisms are ownership-UX comparators for the loan rules. Static roots under specialization admit a loan stored in a field, which [the synchronous slice](core-design.md#loans-and-control-flow) excludes and Rust prices with lifetime parameters; the price here is per-root code growth, which [the feature decisions](#feature-decisions) already gate for generic specialization, and a join over [the typed callee set](../spec.md#r-05-114) at indirect calls, since [closures and function pointers stay](../spec.md#r-05-115) where Goose forbids them. Append within capacity typed as a write at the current length, disjoint from the prefix, rather than a consume-and-return of the owner lets prefix loans survive a push; [the fixed-capacity write rule](core-design.md#dependency-and-joins) can already express it, and the illustrative surface names it as [a tail view](#flow-sensitive-loans-and-restoration-contracts). Named-ancestor return is an elaboration into [the existing `Result` propagation exit](core-design.md#loans-and-control-flow), where every intermediate frame still owes its restoration and cleanup predicate and each site adds a branch to the WCET path. No surface feature is scheduled by this reading.
 
 **Goose's boundary is stated on the register's terms rather than inferred from its claims.** Its specification calls itself a working specification, argues soundness informally and carries no formal model; its benchmarks are author-reported on commodity hardware and establish nothing about this target; the forge reports Apache-2.0 and the licence file is unread here. Three of its choices are refused. Its data stacks are large virtual reservations committed on page fault, with guard pages aborting on overflow, which [no overcommit or demand growth](../spec.md#r-15-189b) excludes, so only its capacity-limited array class exists here and its no-heap claim is weaker than the platform's. Its pools call a stale reference reading a freed-then-reused slot's next same-typed tenant type-safe reuse, which is the event [the reuse gate](../spec.md#r-08-015) closes and, under a pool's [confidentiality label](../spec.md#r-08-046), a cross-tenant disclosure. Its absence of aliasing rules rests on no shared-memory concurrency, only reference-free values crossing its threads, where [the exclusive-access theorem](../spec.md#r-05-096a) and restoration contracts need exclusive loans, and [presets share construct meaning](#assurance-presets-over-one-surface), so no Safe-only relaxation is available. Its union dichotomy, replaceable in place or interior-referenceable but never both, adds no safety over the loan tree, which refuses variant replacement while a payload loan is live.
 
@@ -790,109 +790,164 @@ The [full-language contract](#full-language-design-commitments) adds suspension,
 
 ### An Ideal Surface
 
-Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name, or existing implementation. These examples are temporary pilot notation, not a frozen final language design. The straight-line loan below expresses the target UX; the callback combinator describes the narrower library mechanism the frozen pilot proposal would have qualified.
-Its surface borrows C#'s readable declarations and tool discoverability, Rust's ownership and representation control, and Idris's type-directed specification and proof construction.
-The examples use portable buffer contracts. A build selects a concrete semantic instance and required target profile separately; CHERI does not appear in an ordinary buffer function's signature.
-`byte` denotes an eight-bit value, while `usize` and represented lengths obey the selected target's explicit limits, never the build host's inferred word size.
+Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name or existing implementation. Every example below is original, unimplemented pseudocode: not valid C#, Rust or Idris, not checked Rocq, and not accepted by any parser or typechecker. The notation is a proposal rather than a frozen design. Together the examples show the intended end state on one grammar, from an ordinary loop to a cancellable task. The declarations and discoverability come from C#, ownership and representation control from Rust, and type-directed specification and proof construction from Idris. The examples are written against portable contracts, and the build selects the semantic instance and target profile. CHERI therefore appears in no ordinary signature, and `usize` and represented lengths obey the selected target's limits rather than the build host's word size.
 
-The examples share one grammar: type-first parameters, `let` for an inferred immutable local and `var` for an inferred mutable local, with typed literals such as `0usize` when representation needs stating. `ref` borrows exclusively, `in` borrows shared storage, and `owned` consumes a value supplied with `move`; call sites spell `ref`, `in` and `move` explicitly. These borrow spellings are familiar from C#, but their exclusive-storage interpretation is Vela's proposed rule. `union` declares a tagged union whose named cases carry their own fields, as `PublishResult` does below, and that is not C#'s meaning: C# 15, in preview with .NET 11 for a November 2026 release, makes `union` a [type union over existing case types](https://devblogs.microsoft.com/dotnet/csharp-15-union-types/), `union Pet(Cat, Dog, Bird)`, whose generated struct holds the value as one `object?` and so boxes value-type cases, and its other exhaustive sum, the [`closed` class hierarchy](https://devblogs.microsoft.com/dotnet/explore-csharp-15), is reference-typed. Neither representation fits the allocation-free subset, so what carries over is exhaustive matching without a default branch, and the keyword's different meaning is stated as the borrow spellings' is. `Buffer<T, count, State>` owns storage; `Span<T, count>` is a nonowning permission-backed view, not a freely copyable authority token. `Span<T>` hides an existential length while retaining a runtime `Length` and its proof relationship. Regions live on borrow modifiers: `in<'input> Span<byte, count>`, with `<region 'input, ghost Nat count>` declaring the parameters when a returned view needs that relationship. Call-local regions may be inferred; none is inferred to outlive its owner. [Swift 6.2](https://www.swift.org/blog/swift-6.2-released/), released in September 2025, ships the same view split: [`MutableSpan`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md) is noncopyable because "exclusive access cannot be modeled with a copyable type", while `Span` stays copyable for shared reads, and both are non-escaping. Its lifetime dependence is written against the source parameter, in a spelling the proposal itself calls a placeholder, and Rust's roadmap plans [lifetimes named by the borrowed place](#research-that-changes-the-experiments). A single-source returned view could likewise name `input` directly with the same meaning, leaving declared region parameters to generic and multi-source relationships.
+#### Surface Conventions
 
-All shown bounded operations must terminate on their stated entry conditions, including every error result. Every public operation exposes its effects and contract; an implementation may infer them locally, but they become a reviewed signature. `Nat(index)` in a contract embeds the machine value into mathematical naturals. `proof { ... }` encloses proof mode: assertions, calculational steps and named lemma calls elaborate to checked obligations there. A typed hole retains its expected proposition and local context but cannot enter an accepted build. Failure is neither an implicit runtime assertion nor an assumption; normal executable failure uses an explicit `Result` branch. These are proposed conventions for original, unimplemented pseudocode, not a claim that a parser or typechecker accepts these examples.
+| Spelling | Meaning |
+| --- | --- |
+| `let`, `var` | An inferred immutable or mutable local. A typed literal such as `0usize` states a representation. |
+| `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
+| `in T`, `ref T` | A shared or an exclusive loan, spelled again at the call site. Neither is a freely copyable authority token. |
+| `'input`, `'self.text` | The loan on a named place, either a parameter or a field of one. A view returned from one source names that source; `region 'r` declares a lifetime parameter only for generic or multi-source relationships. |
+| `view Tail = ...`, `ref self.Tail` | A named part of a record, which a public signature can lend while other parts stay borrowed elsewhere. |
+| `ghost T`, `tracked T` | Erased data. A ghost value is duplicable specification data with no computation use; tracked evidence is an erased resource that cannot be copied. |
+| `requires`, `ensures`, `old(e)` | Entry and exit contracts; `old` evaluates its argument at entry. |
+| `restores P`, `final(x)` | A contract holding of the lender when a returned loan ends, with `final(x)` the value the loan leaves behind. |
+| `effects ...` | A closed upper bound on reads, writes, calls and effect operations, including transitive callees and captures. The bounded profile's allocation bound is none, so signatures omit `allocates(none)`. |
+| `Fn`, `FnMut`, `FnOnce`, `captures C` | Shared-call, exclusive-call and consuming-call function types, and the transitive capture set a closure retains. A function type without its own `effects` is total and does nothing beyond reading its captures. |
+| `x @ q`, `grade q : D` | A use grade in a named lawful domain, and a grade variable over one. |
+| `union` | A tagged union whose named cases carry their own fields. |
+| `proof { ... }`, `?name` | Proof mode, whose assertions, calculations and lemma calls elaborate to checked obligations, and a named typed hole. |
+| `effect`, `handle`, `resume`, `dispose` | Effect declarations, handlers, and the two operations that consume a captured continuation. |
+| `async`, `scope`, `spawn`, `await`, `commit`, `on cancel` | Structured tasks: a dormant computation, its owning scope, its checkpoints, its commit point and its precommit cleanup. |
 
-#### A Small Example
+Two spellings deliberately differ from C#. The borrow modifiers are C#'s, but their exclusive-storage interpretation is Vela's proposed rule. `union` does not have C#'s meaning either: C# 15, in preview with .NET 11 for a November 2026 release, makes `union` a [type union over existing case types](https://devblogs.microsoft.com/dotnet/csharp-15-union-types/), `union Pet(Cat, Dog, Bird)`, whose generated struct holds the value as one `object?` and so boxes value-type cases, and its other exhaustive sum, the [`closed` class hierarchy](https://devblogs.microsoft.com/dotnet/explore-csharp-15), is reference-typed. Neither representation fits the allocation-free subset, so what carries over is exhaustive matching without a default branch. The loan split has a shipped precedent. [Swift 6.2](https://www.swift.org/blog/swift-6.2-released/), released in September 2025, divides views the way `in` and `ref` do: [`MutableSpan`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md) is noncopyable because "exclusive access cannot be modeled with a copyable type", while `Span` stays copyable for shared reads, and both are non-escaping. Swift writes lifetime dependence against the source parameter, in a spelling the proposal itself calls a placeholder, and Rust's roadmap plans [lifetimes named by the borrowed place](#research-that-changes-the-experiments). Vela's `'input` takes that shape.
 
-The following is original, unimplemented pseudocode, not valid C#, Rust, Idris, or a checked Rocq example.
-`Span<byte, count>` describes already initialized storage with an explicit runtime length; its model is an erased logical sequence.
+Every public operation exposes its effects and contract. An implementation may infer them locally, but the inferred result becomes a reviewed signature. Every bounded operation terminates on its stated entry conditions, including on every error result; a service loop carries a progress contract instead. `Nat(i)` embeds a machine value into the mathematical naturals. Executable failure takes an explicit `Result` or `union` branch, never an implicit assertion or an assumption.
+
+#### Contracts, Loops and Proof Mode
+
+`Span<byte, count>` views initialized storage with a runtime `Length` and an erased logical `Model`. `Span<byte>` hides `count` existentially while keeping `Length` and its relationship to the model.
 
 ```text
 module Buffers;
 
 public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
-	effects writes(target), allocates(none)
+	effects writes(target)
 	ensures target.Model == Seq.Repeat(value, count)
 {
-	var index = 0usize;
-	while (index < target.Length)
-		invariant Nat(index) <= count
+	for (let index in 0usize..target.Length)
 		invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
-		decreases count - Nat(index)
 	{
 		target[index] = value;
-		index = index + 1;
 	}
 }
 ```
 
-The mutable borrow supplies exclusive access for the call and returns that access on exit; its representation invariant relates runtime length to `count` and the concrete memory to `Model`.
-The call is `Fill(ref target, value)`; the ghost count is inferred from the view, never used as the executable loop bound.
-The inferred frame states that memory outside the borrow is unchanged.
-The loop guard establishes bounds and increment safety using the instance's representable-length and index laws; the natural-valued variant establishes termination.
-`Take` and `Repeat` compute in specifications, not on the deployed target.
-Ordinary filling of initialized public data is the example: it does not establish secure secret erasure, device-memory semantics, or resistance to dead-store elimination.
+The caller writes `Fill(ref target, value)`, and `count` is inferred from the view; it never serves as the executable bound. The range loop supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take` and `Repeat` compute in specifications, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
 
-At a failed proof, the editor displays the local store, available ownership, arithmetic facts, and remaining postcondition.
-An optional block such as `proof { Seq.RepeatExtend(); }` invokes a named lemma with arguments inferred from the proof context; its unresolved premises remain goals, and it cannot assert a fact without evidence.
-The same module/package system resolves executable definitions, specifications, lemmas, and source locations.
+When a step fails, the editor shows the local store, the live loans, the arithmetic facts and the remaining goal. Adding `proof { Seq.RepeatSnoc(value, Nat(index)); }` to the loop body invokes a named lemma with inferred arguments, and its unresolved premises stay goals. Writing `proof { ?extend; }` instead leaves a named typed hole that keeps its expected proposition, locals, loans and exit state. The build reports the hole, and nothing containing it enters an accepted package. One module system resolves executable definitions, specifications, lemmas and source locations.
 
-A parser interface illustrates the more dependent case:
+#### Dependent Results and Place-Named Loans
+
+A parser returns a runtime-discovered length paired with erased evidence, borrowed from its input:
 
 ```text
-public Result<PacketView<'input>, ParseError>
-	ParsePrefix<region 'input, ghost Nat count>(in<'input> Span<byte, count> input)
-	effects reads(input), allocates(none)
-	ensures result.Model == PacketFormat.ParsePrefix(old(input.Model));
+public record PacketView<region 'source>(
+	usize Consumed,                          // represented: the bytes the header occupied
+	in<'source> Span<byte> Payload,          // a subslice of the source, never outliving it
+	ghost PacketFormat.Header Header)        // erased
+	invariant PacketFormat.Encodes(Header, Payload.Model);
+
+public Result<PacketView<'input>, ParseError> ParsePrefix(in Span<byte> input)
+	effects reads(input)
+	ensures result.Model == PacketFormat.ParsePrefix(input.Model);
 ```
 
-Here `PacketFormat.ParsePrefix` is the full success/error result model supplied by the independently reviewed format descriptor, not a second handwritten specification. The name exposes prefix parsing; its contract fixes consumed bytes and trailing-input policy. An exact-input parser would have a separately named `ParseExact` contract.
-A successful `PacketView` packages runtime consumed and payload lengths, a borrowed subslice tied to `'input`, and erased bounds and format evidence. The shared loan keeps the relevant input stable while any returned view is live; it is stronger than read-only access through one variable.
-An error carries no valid packet view. Matching the retained runtime result tag reveals the branch's witnesses and evidence; neither that tag nor the runtime lengths can be supplied solely by erased proofs.
-This interface is a candidate surface over the existing [descriptor-to-implementation route](../spec.md#r-05-043), not a new handwritten parser specification.
+`PacketFormat.ParsePrefix` is the full success and error model supplied by the independently reviewed format descriptor, not a second handwritten specification. The name fixes prefix parsing and its trailing-input policy; an exact-input parser would be a separately named `ParseExact`. `'input` names the parameter's loan, so the signature declares no region or index parameter: the view borrows from `input`, and `Span<byte>` carries its own length. The record declares `region 'source` because it has no parameter to name. The shared loan keeps the input stable while any view is live, which is stronger than read-only access through one variable. An error carries no view, and the retained result tag, not an erased proof, selects the branch. This interface is a candidate surface over the existing [descriptor-to-implementation route](../spec.md#r-05-043).
 
-#### Borrowing With a Restoration Contract
+The caller's loan ends at the view's last use, branch by branch:
 
-The target borrowing surface is straight-line. This unimplemented example uses a local exclusive reference; elaboration must infer its end and reconstruct the container using the value left in the element:
+```text
+match (ParsePrefix(in frame))
+{
+	case Ok(let packet):
+		Forward(in packet.Payload);          // frame stays shared-borrowed until this last use
+	case Err(let error):
+		frame.Clear();                       // no view exists on this branch, so frame is writable
+		Report(error);
+}
+```
+
+#### Flow-Sensitive Loans and Restoration Contracts
+
+Restoration is inferred from control flow, and the author writes neither a callback nor a `restore` call. An element loan ends at its last use, and elaboration rebuilds the container from the value the element then holds:
 
 ```text
 public void SetFirst<ghost Nat count>(ref Span<byte, count> target, byte value)
 	requires target.Length > 0
-	effects writes(target), allocates(none)
+	effects writes(target)
 	ensures target.Model == old(target.Model).Update(0, value)
 {
-	ref byte selected = ref target[0usize];
-	selected = value;
+	ref byte first = ref target[0usize];
+	first = value;
 }
 ```
 
-For this bounded case, the proof can use `Build.with_element`, exposed in the pilot as `WithElement(ref target, 0, (scoped ref byte selected) => { selected = value; })`. Its rule introduces a fresh loan quantified inside the callback contract; the callback cannot place that loan in its result or a longer-lived capture. The parent is suspended while the loan is active. Given a total callback contract, the rule proves invocation once, termination and restoration; a once-callable type alone proves none of those facts about its caller. The environment has a known stack or static representation and no hidden allocation. A source frontend must prove this elaboration, not merely print the combinator call.
-
-`old` captures the entry model. The pilot callback may return a value such as `Result`, restoring the parent before the outer caller propagates an error. It supports neither a return jumping out of the caller nor suspension or unwinding. The target loan model must handle each supported control-flow exit explicitly, including branch-sensitive returned loans and loop edges; it cannot claim these features from the callback theorem. The pilot's rewriting cost and whether inferred restoration removes it without weakening the resource contract are the questions the canceled Q20b trial and Q21a's declined qualification would have answered; both remain open.
-
-#### Indexed Protocols and Erased Permissions
-
-An initialization operation should return a different state, not invite callers to assert that uninitialized memory is readable:
+A loan returned on one branch leaves the owner writable on the other, the conditional return [Polonius Alpha](#research-that-changes-the-experiments) accepts on nightly. A returned exclusive loan also needs a contract for the moment it ends, which [Creusot writes with a prophecy and Prusti with a pledge](#what-the-rust-verifiers-contribute). Vela states it with `restores`, where `final(slot)` is the value the caller leaves in the slot:
 
 ```text
-public owned Buffer<byte, count, Initialized> Initialize<ghost Nat count>(
-	owned Buffer<byte, count, Uninitialized> storage, byte value)
-	effects writes(storage), allocates(none)
-	ensures result.Model == Seq.Repeat(value, count);
-
-public owned Buffer<byte, count, Initialized> Prepare<ghost Nat count>(
-	owned Buffer<byte, count, Uninitialized> storage)
-	effects writes(storage), allocates(none)
-	ensures result.Model == Seq.Repeat(0, count)
+public Result<ref<'table> Value, TableFull> FindOrInsert<ghost Nat capacity>(
+	ref Table<Key, Value, capacity> table, Key key)
+	effects writes(table)
+	ensures result is Ok(let slot) ==> slot == old(table.Model).GetOr(key, Value.Default)
+	restores result is Ok(let slot) ==> table.Model == old(table.Model).Set(key, final(slot))
+	ensures result is Err ==> table.Model == old(table.Model) && table.Model.Count == capacity
 {
-	return Initialize(move storage, 0);
+	if (table.Find(key) is Some(let slot))
+		return Ok(slot);                           // the loan leaves with the result on this branch only
+	return table.TryInsert(key, Value.Default);    // no loan is live here, so the table is writable
 }
 ```
 
-The runtime length and storage handle remain real data; the state index and initialization proof are erased.
-For VerifiedOS the handle includes the applicable CHERI capability.
-The generic invariant relates initialized storage to readable values; the instance proves the concrete layout, alignment, and applicable capability-tag rules.
-Initializing byte storage is intentionally narrower than initializing arbitrary capability-bearing records.
-Every exit path must return or explicitly dispose of ownership according to a proved operation; an affine move rule alone does not guarantee completion of a resource protocol.
+One `restores` clause covers both ways to succeed, since `Set` replaces a found value and adds an inserted one. The [synchronous slice](core-design.md#loans-and-control-flow) admits only the shared form of this return, and it excludes the loop-carried variant, a conditional reborrow inside a loop, which is also the program the Polonius Alpha announcement shows it rejecting.
 
-Pure snapshots use type-first ghost declarations, for example `ghost Seq<byte> before = target.Model` where the current resource justifies that observation. A protocol exposes a different kind of erased evidence, with an explicit result branch for each resource state:
+A signature can also lend part of a record. `Log` names two views: its initialized entries, and a tail granting a write to the next slot and permission only to increase the length. Appending then needs only the tail, so loans on existing entries survive it. That is the case [Goose's append](#research-that-changes-the-experiments) types as a write at the current length:
+
+```text
+public struct Log<T, ghost Nat capacity>
+{
+	private usize length;
+	private Slots<T, capacity> slots;
+
+	public view Entries = slots[0..length];            // lowering length also needs this view
+	public view Tail = slots[length], length grows;    // the next slot, and raising length only
+
+	public void Push(ref self.Tail, T item)
+		requires self.Length < capacity
+		ensures self.Model == old(self.Model).Append(item);
+}
+
+public void AddEntry<ghost Nat capacity>(ref Log<Entry, capacity> log, Entry entry)
+	requires 0 < log.Length && log.Length < capacity
+{
+	let first = in log[0usize];      // a shared loan through Entries
+	log.Push(entry);                 // needs only Tail, which is disjoint from every Entries loan
+	Audit(in first);                 // still live, and its entry unchanged
+}
+```
+
+Every operation that lowers the length needs `Entries`, so while an entry loan lives its extent stays below the length, which is the disjointness `Push`'s footprint needs. A consume-and-return `Push` would instead end every loan on the log.
+
+In the bounded library proposal, `SetFirst`'s update comes from `Build.with_element`, exposed as `WithElement(ref target, 0, (scoped ref byte selected) => { selected = value; })`. Its rule introduces a fresh loan inside the callback contract, suspends the parent while it is active, and forbids placing the loan in the callback's result or a longer-lived capture. Given a total callback contract it proves invocation once, termination and restoration; a once-callable type alone proves none of those facts about its caller. The pilot callback may return a `Result`, restoring the parent before the caller propagates an error, but supports neither a return out of the caller nor suspension. The target loan model must handle each supported exit explicitly, including branch-sensitive returned loans, loop edges and `Result` propagation, and cannot claim them from the callback theorem. A source frontend must prove this elaboration, not merely print the combinator call. Whether inferred restoration removes the pilot's rewriting cost without weakening the resource contract is what the canceled Q20b trial and Q21a's declined qualification would have answered; both questions remain open.
+
+#### Typestate and Protocol Resources
+
+An initialization operation returns a different state rather than letting a caller assert that uninitialized memory is readable:
+
+```text
+public Buffer<byte, count, Initialized> Initialize<ghost Nat count>(
+	owned Buffer<byte, count, Uninitialized> storage, byte value)
+	effects writes(storage)
+	ensures result.Model == Seq.Repeat(value, count);
+
+let zeroed = Initialize(move storage, 0);   // storage is consumed; only the initialized buffer is readable
+```
+
+The runtime length and storage handle remain real data, and for VerifiedOS the handle includes the applicable CHERI capability; the state index and initialization proof are erased. The generic invariant relates initialized storage to readable values, and the instance proves the concrete layout, alignment and applicable capability-tag rules. Initializing byte storage is intentionally narrower than initializing arbitrary capability-bearing records.
+
+A protocol exposes a different kind of erased evidence, with an explicit result case for each resource state:
 
 ```text
 public union PublishResult<ghost Identity id>
@@ -904,55 +959,178 @@ public union PublishResult<ghost Identity id>
 public PublishResult<id> TryPublish<ghost Identity id>(
 	ref PublicationSlot<id> slot,
 	tracked PublishPermit<id, Populated> permit)
-	effects writes(slot), allocates(none)
+	effects writes(slot)
 	ensures PublicationProtocol.Step(old(slot.Model), slot.Model, result.Model);
 ```
 
-`PublicationSlot` supplies runtime storage; `PublishPermit` is a module-protected protocol resource tied to its stable identity. The caller writes `TryPublish(ref slot, move permit)` and matches the result. The retained runtime tag chooses a branch, whose erased evidence records the state it establishes. The protocol's explicit exit obligation returns a token on both paths; this is stronger than permission non-duplication and is not obtained from an affine logic's weakening rule. `Retry` requires restoration of the populated state; an operation that can partially publish needs a distinct recovery state and result branch.
+`PublicationSlot` supplies runtime storage, and `PublishPermit` is a module-protected protocol resource tied to its stable identity. The caller writes `TryPublish(ref slot, move permit)` and matches the result; the retained runtime tag selects a case, whose erased evidence records the state it establishes. Both cases return a token, an exit obligation stronger than non-duplication that an affine logic's weakening rule does not supply. `Retry` restores the populated state; an operation that can partially publish needs a distinct recovery state and case. Pure snapshots are copyable, as in `ghost Seq<byte> before = target.Model` where the current resource justifies the observation, but permission evidence cannot be duplicated or manufactured from an identifier. This sequential example claims no concurrency, eventual publication, crash recovery or device ordering. The lower-level split and restore mechanism stays inside the [resource-law explanation](#concrete-package-shape), so ordinary clients cannot inspect a parent whose permission is suspended.
 
-Snapshots can be copied; permission evidence cannot be duplicated or manufactured from an identifier. Hardware capabilities remain runtime values. This sequential example claims no concurrency, eventual publication, crash recovery or device ordering; a concrete publication operation must state and prove its actual effects and transition. The lower-level split/restore permission mechanism stays inside the [resource-law explanation](#concrete-package-shape), so ordinary clients cannot inspect a parent whose permission is suspended.
+#### Captures and Graded Use
 
-#### Graded Types With Explicit Meaning
-
-A higher-order operation can combine a functional specification with a use count:
+A library supplies a grade domain as a sealed record of carrier, operations, admission order, laws and interpretation, which [the graded foundation](graded-foundation.md#dimensions-and-lawful-domains) specifies. Its first exact domain reads:
 
 ```text
-public void MapInto<F, ghost Nat count>(
+public domain NatExact
+{
+	carrier Nat;
+	zero 0; one 1; add (+); mul (*);
+	admits (==);                // demand must equal the allowance: two uses never fit one
+	interpret Use.Exact;        // grade q means exactly q uses in the graded value semantics
+	laws NatExactLaws;          // semiring, congruence, monotonicity and interpretation proofs
+}
+
+public void MapInto<ghost Nat count, captures C>(
 	in Span<byte, count> input,
 	ref Span<byte, count> output,
-	in F transform)
-	where F : PureFn<byte, byte>
-	requires Disjoint(input, output)
-	effects reads(input, transform), writes(output), allocates(none)
-	ensures output.Model == old(input.Model).Map(transform.Model)
+	in Fn(byte) -> byte captures C transform @ NatExact(count))
+	requires Disjoint(output, C)
+	effects reads(input, C), writes(output)
+	ensures output.Model == input.Model.Map(transform.Model)
 	ensures CallCount(trace, transform) == count;
 ```
 
-The count is an ordinary postcondition over the library's proved observer of the source semantic trace. `trace` is an erased contract binder, and `transform` identifies this invocation role rather than a forgeable machine address; `CallCount` does not inspect runtime function-pointer equality. Exact counts use `==`, upper bounds use `<=`. Neither counts surviving machine calls after optimization. This avoids giving a parameter's use grade an unrelated second meaning as an execution trace count.
+`Fn(byte) -> byte captures C` is a total shared-call function whose whole transitive capture set is `C`, carried in the type as [Scala 3's capture checker](#type-theory-and-elaboration-reuse) carries it. `Disjoint(output, C)` refuses a transform retaining a loan that overlaps the output, and a consuming closure or hidden mutable capture fails the `Fn` mode. `C` and the closure's type specialize, so no boxing or dynamic dispatch is implied, and the `in` loan keeps the captures alive for the call.
 
-`PureFn` is a named library interface for a total shared-call function with no externally observable effects beyond reading its immutable environment. This bounded-library interface also excludes dynamic allocation and external/device effects through all transitive callees; ordinary observational purity alone would not exclude temporary allocation. It combines calling mode, effect and functional laws; generic `F` supplies a concrete specialization and does not imply boxing or dynamic dispatch. The `in` loan retains its captures' lifetime, and `reads(transform)` accounts for their footprint. A consuming closure, hidden mutable capture or a captured shared loan overlapping `output` fails the contract. The contents postcondition supplies elementwise meaning and the source trace supplies invocation count; neither alone proves the other. The represented length drives execution, while the erased count justifies its relation to the specification.
+`@ NatExact(count)` is a use grade that the typing rules account for: the body uses `transform` exactly `count` times, a demand that depends on the stable ghost index, and a body using it a different number of times fails the allowance's equality. A use grade is not a trace claim. It supplies no per-call event law, termination or order, so the call count is the separate `CallCount` postcondition, which names the invocation role over the erased source trace rather than comparing function pointers; neither counts machine calls surviving inlining. `NatBound`, the same carrier admitted by `<=`, turns the exact grade into a bound, and in an idempotent presence domain `1 + 1 = 1`, so grade one there says nothing about cardinality. The contents postcondition supplies elementwise meaning, and neither it nor the grade proves the other's claim.
 
-The full-language design permits a library to supply an algebra, its laws and a proved interpretation, for example `CallBudget`, subject to the [grade-domain obligations](#graded-dependent-foundation).
-Keep erasure decisions fixed at specialization/ABI boundaries: a generic grade must not ambiguously decide whether an argument exists in a register.
-Grade polymorphism belongs to the core design; public instantiation specializes at composition, and any unspecialized representation needs its own proved strategy.
-Use separate annotations such as `effects calls(endpoint)` and `requires Public(index)` where appropriate, rather than pretending usage counts, capability permissions, and security labels are the same analysis.
-An IFC checker must track control dependence as well as data dependence; a public return type alone does not exclude secret-dependent branches or addresses.
+`ghost Nat count` has computation use zero and a type use the checker computes, so an author never writes [Gerty's](#reading-the-graded-type-claims) `(.0, .2)` binder annotation. Grade variables are ordinary generic parameters, `grade q : NatExact`, fixed along with representation at specialization, so no grade leaves open whether an argument occupies a register; an unspecialized representation needs its own proved strategy. Use counts, capability permissions and security labels are separate analyses with separate annotations, such as `effects calls(endpoint)` and `requires Public(index)`. An information-flow checker tracks control dependence as well as data dependence; a public return type alone excludes neither secret-dependent branches nor secret-dependent addresses.
+
+#### Handlers With Accountable Continuations
+
+An effect declares each operation's reply and how many times a handler may resume it. A handler that resumes twice must be able to duplicate everything the continuation retains:
+
+```text
+public effect Choose
+{
+	bool Choose() resumes(0..2);
+}
+
+public usize BestScore<captures C>(in Fn() -> usize captures C effects(Choose) body)
+	where Duplicable(C)          // a second resumption copies everything the continuation retains
+	effects reads(C)
+{
+	return handle (body())
+	{
+		Choose() with k => Max(resume k(false), resume k(true)),   // deep: each resumption reinstalls this handler
+		return score => score,                                     // runs once per completed resumption
+	};
+}
+
+let header = packet.Header;                              // a value copy, so duplicable
+let best = BestScore(() => Score(header, Choose()));     // the continuation retains only header
+```
+
+`BestScore(() => Score(ref packet, Choose()))` is refused at `Duplicable(C)`, [the foundation's `Dup` obligation](graded-foundation.md#resource-and-computation-interface): the second resumption would duplicate an exclusive loan, and no grade on the closure repairs that. Every captured continuation is resumed, disposed or moved into the handler's result, and none is dropped. `dispose` runs the continuation's declared cleanup:
+
+```text
+public effect Reject
+{
+	never Reject(ParseError error);          // no reply exists, so a handler can only dispose
+}
+
+let checked = handle (Validate(ref packet))
+{
+	Reject(error) with k => { dispose k; return Err(error); },   // ends k's loans, erases, examines verdicts
+	return _ => Ok(),
+};
+```
+
+Disposal ends the captured loan on `packet` before the handler returns, erases must-erase contents and eliminates any mandatory verdict by its named outcome; affine discard would do none of that. Lookup selects the nearest enclosing handler by resolved operation identity, and `handle shallow` returns the raw body result from `resume` without reinstalling itself. Nesting, forwarding and resumption counts are bounded at specialization, and a capture site either has reserved continuation capacity or a branch receiving `CapacityExhausted`. Handlers lower to explicit bounded control flow with no unwinding, under [the handler rules](handlers-async.md#handler-lookup-capture-and-return).
+
+#### Structured Tasks, Cancellation and Cells
+
+The child below renders on the surface the combination [the composition review's client](full-language-review.md#composed-client-and-inhabited-entry) composes: a packet with a runtime length, a multi-shot handler over a duplicable copy, and a cancellable commit to a shared counter under a unique allowance.
+
+```text
+public union Delivery<ghost Nat n>
+{
+	Accepted(owned Packet<n> packet, Added<n> receipt);
+	Cancelled(owned Packet<n> packet);
+}
+
+public async Delivery<n> Accept<ghost Nat n>(
+	owned Packet<n> packet,
+	in CountCell counter,
+	tracked AddOnce<counter, n> allowance)
+	effects reads(packet), calls(Forward, counter.Add, counter.Retire)
+{
+	let header = packet.Header;
+	let best = BestScore(() => Score(header, Choose()));
+	await Forward(in packet, best);                                    // a checkpoint even when already complete
+	let receipt = commit counter.Add(move allowance, packet.Length);   // last checkpoint, then one AMOADD
+	return Accepted(move packet, receipt);                             // a later request is answered too_late
+}
+on cancel                                                              // a request accepted before the commit
+{
+	counter.Retire(move allowance);                                    // no addition; the allowance retires once
+	return Cancelled(move packet);
+}
+
+public async Result<Delivery<n>, Busy<n>> Serve<ghost Nat n>(
+	ref Frames frames, owned Packet<n> packet,
+	in CountCell counter, tracked AddOnce<counter, n> allowance)
+{
+	scope (ref frames)                                                 // no child outlives this block
+	{
+		let dormant = Accept(move packet, in counter, move allowance);   // constructed, not yet run
+		match (spawn dormant)                                          // binds a declared frame and completion record
+		{
+			case Spawned(let task):
+				return Ok(await task);                                 // a checkpoint, then the join
+			case Full(let unstarted, let verdict):
+				return Err(Busy(verdict, move unstarted));             // exhaustion returns every input
+		}
+	}                                                                  // an early exit cancels, then joins, every child
+}
+```
+
+Calling an async function constructs an owned dormant computation and runs none of it. `spawn` binds a preassigned frame from the scope's declared pool, or returns the unchanged computation with a typed capacity verdict. Every `await` is a checkpoint, even on a ready result, so a latched request is never skipped. A request accepted at a checkpoint before `commit` cancels and joins any awaited child, then enters `on cancel` with the resources live there. `commit` performs the last checkpoint and then a bounded region with no suspension, capture or fallible step, whose single aligned AMOADD is the linearization point; a request arriving afterwards is answered `too_late`, and the operation completes normally. A client wait timeout stops only the wait and leaves the task with its scope, while a scoped timeout requests cancellation and joins within the declared bound. The task lowers to a bounded reaction graph with syntactic poll sites and no inner scheduler, under [the async rules](handlers-async.md#frames-child-ownership-and-reaction-execution) and [the typed cancellation protocol](../spec.md#r-12-097).
+
+`Packet<n>` keeps its represented length equal to the ghost index `n`, so the allowance and the addition agree. `AddOnce` is a unique protocol resource, not a grade, and it also names the counter's generation and the request. The conserved total of outstanding allowances proves the counter cannot overflow, and the addition publishes nothing else. The only multi-shot continuation, inside `BestScore`, retains `header` alone, while `packet` and `allowance` stay outside it. Capturing `allowance` inside the handled body would fail `Duplicable`, and releasing `frames` on a `Cancelled` acknowledgement rather than at the join would fail the scope's terminal-ownership rule.
+
+Cells expose only their proved operations:
+
+```text
+stats.Update((ref Stats s) => { s.Accepted += 1; });       // local: the view cannot escape, suspend or reenter
+
+if (settings.TryWrite((ref Settings s) => { s.Retries = 3; }) is Err(BorrowConflict))
+	Defer();                                                // a live reader is an examined result, not a panic
+
+let seen = counter.Load();                                  // a historical sample, never a current fact
+```
+
+An `await` inside `Update` is refused because the invariant would stay open across suspension, and so is a getter that reenters `stats`. A test such as `counter.Load() + n <= U64.Max` cannot replace an allowance, since another child may add between the load and the addition. The shared counter holds only a scalar, never a capability, closure or frame, and the profile admits no compare-and-swap. [The mutability rules](interior-mutability.md) own these interfaces.
+
+#### Progressive Assurance on One Surface
+
+The same source builds under [every preset](#assurance-presets-over-one-surface), and the preset decides which exported claims must be established:
+
+```text
+public void Sort(ref Span<Key> keys)
+	effects writes(keys)
+	ensures IsSorted(keys.Model) && IsPermutation(keys.Model, old(keys.Model));
+
+public Result<SortedView<'keys>, Unsorted> CheckSorted(in Span<Key> keys)
+	effects reads(keys);
+```
+
+Under Safe, `Sort`'s postcondition may stay unestablished; the build reports it, and no caller, proof search or proof-based optimization may use it. Selecting Contracted for the module makes that postcondition an obligation on `Sort`'s implementation. `CheckSorted` is checked on success: a `SortedView` exists only on its `Ok` case, and its shared loan keeps the keys from changing under that fact. No preset changes what `Sort` does.
 
 #### Feature Decisions
 
 | Area | Proposed behavior |
 | --- | --- |
 | Everyday data | Value records, tagged unions, exhaustive patterns, generics, traits/interfaces, local inference, immutable bindings by default. No implicit object allocation. |
-| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans, explicit escaping regions and typestate transitions. Flow-sensitive restoration is the target; scoped callbacks are pilot proof infrastructure. Record copying cannot duplicate permission. |
+| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans, typestate transitions, place-named lifetimes and named views for partial loans. Restoration is inferred from control flow, and a returned loan states its `restores` contract; scoped callbacks are pilot proof infrastructure. Record copying cannot duplicate permission. |
 | Numeric behavior | Distinguish mathematical specification integers from fixed-width runtime integers. Overflow is proved absent or represented by explicit checked/wrapping operations under the platform's existing rules. |
 | Dependent contracts | Stable lengths, states, identities and justified snapshots index types; changing contents use spatial predicates. Runtime-discovered indices use dependent packages. Non-definitional equalities need checked transport. |
-| Effects and authority | Typed captures and required authorities explain operations; the full design includes effect polymorphism, scoped discharge and resource-safe handlers. FFI and assembly require actual operation contracts, never unchecked `extern` promises. |
+| Effects and authority | Typed captures and required authorities explain operations; the full design includes effect polymorphism, scoped discharge and handlers whose operations declare their resumption allowance. FFI and assembly require actual operation contracts, never unchecked `extern` promises. |
 | Error handling | Exhaustive `Result`/`Option` patterns preserve resource states on all branches; scoped restoration precedes propagation. Cancellation follows declared checkpoints, commit points and terminal cleanup. No hidden unwinding or ambient service access. |
-| Async and interior mutability | Structured tasks, explicit suspension and bounded frames; abstract cells expose proved local or concurrent operations. Invariants close before reentry or suspension, and concurrent sharing needs its own interpretation. |
+| Async and interior mutability | Dormant computations, structured scopes, a checkpoint at every `await`, one declared commit point and bounded frames; abstract cells expose proved local, dynamically borrowed or concurrent operations. Invariants close before reentry or suspension, and concurrent sharing needs its own interpretation. |
 | Code generation | Static target/module instantiation and ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
 | Target requirements | Select semantic instances and required guarantee theorems separately from ordinary source syntax. Reject unsupported requirements; never silently downgrade the contract. |
-| Proof interaction | Bidirectional checking and a declared refinement tier precede explicit proof; typed holes retain source and resource context, with stable goal identity and semantic invalidation. Distinguish disproved, unresolved, timed out and unsupported. |
-| Encapsulation | Clients use abstract contracts; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
+| Proof interaction | Bidirectional checking and a declared refinement tier precede explicit proof; named typed holes retain source and resource context, with stable goal identity and semantic invalidation. Distinguish disproved, unresolved, timed out and unsupported. |
+| Encapsulation | Clients use abstract contracts and named views; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
 
 The C# contribution is **ergonomics**, not the CLR: namespaces, precise completion, useful diagnostics, readable generic APIs, and direct navigation between code and proof.
 Properties cannot conceal unaccounted effects; query syntax needs a known allocation-free lowering before it belongs in the runtime subset.
