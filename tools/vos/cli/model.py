@@ -223,12 +223,19 @@ def _configure(e: env.Environment, build_dir: Path,
     constant: see `env.git_env`. It is scoped to this one child and no further.
     Passing the declared test release replaces an older CMake cache entry; direct
     CMake callers can still override the default in the model's declaration.
+
+    The Sail binary is passed the same way, as this environment's `sail`. The model's
+    `find_program` caches the absolute path it first found, and a Sail switch carries
+    its version in its name, so without it a tree configured before a lock change goes
+    on emitting with the earlier compiler while the build log and `build_identity`
+    read the one on `PATH`.
     """
     try:
         test_version = test_corpus_version(e.model)
     except ValueError as err:
         print(str(err), file=sys.stderr)
         return 1
+    sail = shutil.which("sail")
     return env.stage("configure", [
         "cmake", "-S", str(e.model), "-B", str(build_dir), "-GNinja",
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
@@ -236,6 +243,7 @@ def _configure(e: env.Environment, build_dir: Path,
         "-DENABLE_RISCV_TESTS=TRUE",
         *e.compilers, *e.ccache, *(extra or []),
         f"-DTEST_DOWNLOAD_VERSION={test_version}",
+        *([f"-DSAIL_BIN={sail}"] if sail else []),
     ], stdout=out, stderr=out, add_env=env.git_env(e.root) or None)
 
 
@@ -388,17 +396,20 @@ def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
     fresh schema and the frozen profile to the validator. No C++ is compiled.
 
     The tree is seeded first, and this is the loop that most wants it: the line below
-    configures a tree that does not exist yet, and the emission it then runs is exactly
-    the stage a cold memo cache turns from ~36 s into ~3.6 min (I3). A lane whose first
-    command was `emit` rather than `build` paid that until this call was here.
+    configures the tree, and the emission it then runs is exactly the stage a cold memo
+    cache turns from ~36 s into ~3.6 min (I3). A lane whose first command was `emit`
+    rather than `build` paid that until this call was here. An existing tree is
+    configured again, as `build` configures it, because the configure is what binds the
+    tree to this environment's Sail and the model's declared version floor.
     """
+    _require("sail", SAIL_HOW)
     build_dir = e.build_dir
     # The same tree `build` locks, held the same way: an emit over a live build, or a
     # second emit, would drive one cmake state in one tree from two runs.
     lock = env.build_lock(build_dir)
     try:
         _seed_tree(e, build_dir)
-        if not (build_dir / "build.ninja").exists() and _configure(e, build_dir):
+        if _configure(e, build_dir):
             return 1
         # a single-threaded stage; -j is passed for uniformity, not for speed
         if env.stage("emit", ["cmake", "--build", str(build_dir), "-j", str(e.jobs),

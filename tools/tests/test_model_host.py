@@ -277,6 +277,8 @@ def _record(name, argv, report_to=None, **kw):
 
 env.stage = _record
 root = Path(sys.argv[1])
+sail = sys.argv[2] or None
+model.shutil.which = lambda name: sail if name == "sail" else None
 e = env.Environment(root=root, model=root / "model", build_root=root / "build",
                     log_root=root / "log", lane="probe", cpus=1,
                     mem_available_mb=1024, jobs=1, test_jobs=1)
@@ -285,7 +287,7 @@ print(json.dumps({"code": code, "argv": seen["argv"], "add_env": seen["add_env"]
 """
 
 
-def _probe_configure(root: Path, admin: Path | None) -> dict[str, object]:
+def _probe_configure(root: Path, admin: Path | None, sail: str = "") -> dict[str, object]:
     declaration = root / "model/test/CMakeLists.txt"
     declaration.parent.mkdir(parents=True, exist_ok=True)
     declaration.write_text('set(TEST_DOWNLOAD_VERSION "2031-02-03" CACHE STRING "tests")\n',
@@ -295,7 +297,7 @@ def _probe_configure(root: Path, admin: Path | None) -> dict[str, object]:
         environment.pop("VOS_GIT_DIR", None)
     else:
         environment["VOS_GIT_DIR"] = str(admin)
-    done = subprocess.run([sys.executable, "-c", _CONFIGURE_PROBE, str(root)],
+    done = subprocess.run([sys.executable, "-c", _CONFIGURE_PROBE, str(root), sail],
                           capture_output=True, encoding="utf-8", errors="replace",
                           check=False, timeout=120, env=environment)
     ensure(done.returncode == 0,
@@ -337,6 +339,76 @@ def _configure_hands_the_child_the_work_tree() -> None:
         ensure(answered["add_env"] is None,
                f"a checkout needing no overlay must be handed none, got "
                f"{answered['add_env']}")
+
+
+def _configure_binds_the_environments_sail() -> None:
+    """A tree configured before a lock change keeps the compiler it first found.
+
+    The model's `find_program` caches `SAIL_BIN` as an absolute path inside the
+    switch, and each Sail switch is named by its version, so a configure that names no
+    binary leaves an existing tree emitting with the earlier compiler while the log
+    and the build identity read the one on `PATH`. Every configure names this
+    environment's `sail`, and names none where there is none to name.
+    """
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td).resolve()
+        switch = "/root/.opam/verifiedos-sail-9.9.9-ocaml-5.4.1/bin/sail"
+        argv = cast("list[str]", _probe_configure(root, None, switch)["argv"])
+        ensure(f"-DSAIL_BIN={switch}" in argv,
+               f"configure must bind the tree to the environment's sail, got {argv}")
+        argv = cast("list[str]", _probe_configure(root, None)["argv"])
+        ensure(not any(arg.startswith("-DSAIL_BIN=") for arg in argv),
+               f"with no sail on PATH configure must leave the binding to cmake, got {argv}")
+
+
+# `cmd_emit` in a child, with the lock, the seeding, the stages and the validator
+# standing in, over a tree that already has a `build.ninja`: an existing tree is what
+# the configure has to rebind.
+_EMIT_PROBE = """
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from vos import env
+from vos.cli import model
+
+stages = []
+env.stage = lambda name, argv, report_to=None, **kw: stages.append(name) or 0
+env.build_lock = lambda build_dir: None
+model._seed_tree = lambda e, build_dir: None
+model._require = lambda binary, how: None
+model.shutil.which = lambda name: "/opt/sail/bin/sail" if name == "sail" else None
+model.config.validate = lambda schema, profile: (0, [])
+root = Path(sys.argv[1])
+e = env.Environment(root=root, model=root / "model", build_root=root / "build",
+                    log_root=root / "log", lane="probe", cpus=1,
+                    mem_available_mb=1024, jobs=1, test_jobs=1)
+e.build_dir.mkdir(parents=True, exist_ok=True)
+(e.build_dir / "build.ninja").write_text("", encoding="utf-8")
+code = model.cmd_emit(e, argparse.Namespace())
+print(json.dumps({"code": code, "stages": stages}))
+"""
+
+
+def _emit_configures_an_existing_tree() -> None:
+    """`emit` configures as `build` does, so an existing tree is rebound too."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td).resolve()
+        declaration = root / "model/test/CMakeLists.txt"
+        declaration.parent.mkdir(parents=True, exist_ok=True)
+        declaration.write_text('set(TEST_DOWNLOAD_VERSION "2031-02-03" CACHE STRING "tests")\n',
+                               encoding="utf-8")
+        environment = {**os.environ, "PYTHONPATH": str(TOOLS)}
+        environment.pop("VOS_GIT_DIR", None)
+        done = subprocess.run([sys.executable, "-c", _EMIT_PROBE, str(root)],
+                              capture_output=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=120, env=environment)
+        ensure(done.returncode == 0,
+               f"the emit probe must answer, got {done.returncode} and {done.stderr[-400:]!r}")
+        answered = json.loads(done.stdout.strip().splitlines()[-1])
+        ensure(answered == {"code": 0, "stages": ["configure", "emit"]},
+               f"emit over an existing tree must configure before it emits, got {answered}")
 
 
 _PROPERTY_SOURCE = (
@@ -421,6 +493,8 @@ def cases() -> list[Case]:
         Case("solver-verdicts", _solver_verdicts),
         Case("auto-verdicts", _auto_verdicts),
         Case("configure-hands-the-work-tree", _configure_hands_the_child_the_work_tree),
+        Case("configure-binds-the-environments-sail", _configure_binds_the_environments_sail),
+        Case("emit-configures-an-existing-tree", _emit_configures_an_existing_tree),
         Case("stage-exit-spelling", _stage_exit_spelling),
         Case("report-build-verdict", _report_build_verdict),
         Case("report-build-unfinished", _report_build_unfinished),
