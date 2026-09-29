@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
-from vos.proofs import sentences
+from vos.proofs import SENTENCE_END, sentences, strip_comments
 
 MARKER = "VOS_PROOF_AUDIT|"
 EMPTY_BLACKLIST = "Current search blacklist :  is empty."
@@ -44,23 +44,45 @@ KERNEL_INDICES = "Inductives relying on indices not mattering"
 
 # Settings the compiler command line fixes, or whose default the audit relies on. A
 # source that sets one overrides that choice for itself, so the gate refuses it.
+# Kernel Conversion Dep Heuristic, which Rocq 9.3 adds, is a typing flag each
+# declaration records and the checker re-applies, and neither Print Assumptions nor the
+# kernel summary reports it. Default Proof Using annotates every unannotated section
+# lemma, and an annotation declaring more than the proof uses adds hypotheses to the
+# discharged statement.
 PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
                    "Nested Proofs Allowed", "Allow StrictProp", "Definitional UIP",
                    "Guard Checking", "Positivity Checking", "Universe Checking",
-                   "Indices Matter", "Strict Universe Declaration", "Default Timeout")
-# Everything Rocq 9.3's vernac_control grammar lets precede a command: control flags,
-# quoted attributes and legacy attributes, plus the Export locality of option commands.
+                   "Indices Matter", "Strict Universe Declaration", "Default Timeout",
+                   "Kernel Conversion Dep Heuristic", "Default Proof Using")
+# Everything that can precede a command within its sentence. Bullets, braces and a
+# focusing goal selector end without a full stop, so the sentence split leaves them at
+# the head of the next command, and the pinned Rocq 9.3.0 accepts a setting, a Timeout or
+# a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
+# vernac_control grammar lets precede a command: control flags, quoted attributes and
+# legacy attributes, Program among them, plus the Export locality of option commands.
 # A lexical reading anchored after them sees the command however it is decorated.
-CONTROL_PREFIXES = (r'(?:(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
+CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
+                    r'|(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
                     r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
                     r'|#\[[^\]]*\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic'
-                    r'|Cumulative|NonCumulative|Private)\s+)*')
+                    r'|Cumulative|NonCumulative|Private|Program)\s+)*')
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or
 # an allocation limit makes a verdict depend on the machine that ran it.
 _PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
+# The Ltac tactical `timeout` and Rocq 9.3's `alloc_limit` bind a verdict to the machine
+# in the same way, and stand anywhere in a sentence. Either word is refused before its
+# argument: a numeral, an identifier that a Tactic Notation's int_or_var or a `let`
+# binds, or the parenthesised term Ltac2's `Control.timeout` takes. A Gallina term that
+# applies an identifier named exactly `timeout` or `alloc_limit` is refused too, which is
+# loud and costs a rename; an identifier that only contains either word is read whole.
+_TACTICAL = re.compile(r"(?<![\w'])(?:timeout|alloc_limit)\s+[\w(]")
+# Once comments are blanked, every remaining quote opens or closes a string literal.
+_STRING = re.compile(r'"[^"]*"')
+# A module command's head: whether it declares a module, and whether it opens a signature.
+_MODULE = re.compile(CONTROL_PREFIXES + r"(Declare\s+)?Module\s+(Type\b)?")
 
 
 class AuditError(ValueError):
@@ -221,10 +243,18 @@ def kernel_context(summary: str) -> list[str]:
 
 
 def pinned_overrides(text: str) -> list[str]:
-    """Sentences that would change a gate-pinned setting for their own source."""
-    return [sentence for sentence in sentences(text)
-            if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
-            or _TIMEOUT.match(sentence)]
+    """Sentences that would change a gate-pinned setting for their own source.
+
+    The tactical reading empties string literals before it splits sentences, so neither
+    a quoted tactic nor a quoted full stop is read as code.
+    """
+    found = [sentence for sentence in sentences(text)
+             if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
+             or _TIMEOUT.match(sentence)]
+    if "timeout" in text or "alloc_limit" in text:
+        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(text)))
+        found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
+    return found
 
 
 def unsupported_abstractions(text: str) -> list[str]:
@@ -232,14 +262,18 @@ def unsupported_abstractions(text: str) -> list[str]:
 
     Ordinary nested modules and generated obligations are supported. Functors and
     sealed signatures need a module-body audit, since Search cannot enumerate their
-    inaccessible constants. They are not present in the shipped proof tree.
+    inaccessible constants. They are not present in the shipped proof tree. The head is
+    read after the control prefixes, whose own brackets and colons are not a functor's
+    parameters or a signature's ascription: the pinned Rocq 9.3.0 compiles
+    `Time Module Type` and `Time Declare Module`.
     """
     found: list[str] = []
     for sentence in sentences(text):
-        if re.match(r"^(?:Declare\s+)?Module\s+Type\b", sentence):
+        module = _MODULE.match(sentence)
+        if module is None:
+            continue
+        declared, signature = module.groups()
+        header = sentence[module.end():].split(":=", 1)[0]
+        if declared or signature or "(" in header or ":" in header:
             found.append(sentence)
-        elif re.match(r"^(?:Declare\s+)?Module\s+", sentence):
-            header = sentence.split(":=", 1)[0]
-            if "(" in header or ":" in header or sentence.startswith("Declare "):
-                found.append(sentence)
     return found

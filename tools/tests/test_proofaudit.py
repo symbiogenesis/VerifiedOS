@@ -132,6 +132,21 @@ def _inaccessible_modules_fail_closed() -> None:
                "inaccessible module bodies cannot get partial evidence")
 
 
+def _prefixed_abstractions_fail_closed() -> None:
+    # The pinned Rocq 9.3.0 compiles the Time forms; it refuses a local Module Type, which
+    # is refused here too, loudly either way.
+    for text in ("Time Module Type T.", "#[local] Module Type T.", "Local Module Type T.",
+                 "Time Declare Module M : T.", "Succeed Module F (X : T).",
+                 'Redirect "log" Module N : T.', "Time\n  Module Type T."):
+        ensure(proofaudit.unsupported_abstractions(text) == [text.removesuffix(".")],
+               f"a prefixed functor or signature escaped the refusal: {text!r}")
+    # A prefix's own brackets and colon belong to no functor or signature.
+    for text in ("#[universes(polymorphic)] Module N. End N.", 'Profile "a:b" Module N. End N.',
+                 "Time Module Import N. End N.", "Module Types. End Types."):
+        ensure(not proofaudit.unsupported_abstractions(text),
+               f"an ordinary prefixed module was refused: {text!r}")
+
+
 def _kernel_context_is_exact() -> None:
     ensure(proofaudit.kernel_context(KERNEL_CLEAN) == [], "a clean summary names no axiom")
     ensure(proofaudit.kernel_context(_LOADED_AXIOM)
@@ -222,6 +237,77 @@ def _pinned_settings_cannot_be_overridden() -> None:
                'Profile "p" Set Printing Width 80.', "Polymorphic Definition pid := 0.")
     for text in allowed:
         ensure(not proofaudit.pinned_overrides(text), f"an unpinned sentence was refused: {text}")
+
+
+def _rocq_93_settings_are_pinned() -> None:
+    # Each setting under a locality and under an attribute; printing it changes nothing.
+    refused = ("Set Kernel Conversion Dep Heuristic.",
+               "Local Set Kernel Conversion Dep Heuristic.",
+               "#[local] Unset Kernel Conversion Dep Heuristic.",
+               "Global Set Kernel\n  Conversion Dep Heuristic.",
+               'Set Default Proof Using "Type".', 'Local Set Default Proof Using "All".',
+               '#[export] Set Default Proof Using "Type".', "Export Unset Default Proof Using.")
+    for text in refused:
+        ensure(proofaudit.pinned_overrides(text) == [text.removesuffix(".")],
+               f"a Rocq 9.3 pinned-setting override passed: {text}")
+    allowed = ("Test Kernel Conversion Dep Heuristic.", "Test Default Proof Using.",
+               "Lemma kept : True. Proof using. exact I. Qed.",
+               "Definition Default_Proof_Using := 0.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text), f"reading a pinned setting was refused: {text}")
+
+
+def _settings_after_bullets_are_refused() -> None:
+    # The pinned Rocq 9.3.0 compiles a setting or a Timeout after a bullet, a brace or a
+    # focusing selector, and the setting outlives the proof. Program is a legacy attribute.
+    refused = ('Lemma a : True. Proof. - Set Warnings "-all". exact I. Qed.',
+               'Lemma a : True. Proof. { Set Warnings "-all". exact I. } Qed.',
+               "Lemma a : True. Proof. 1: { Set Kernel Conversion Dep Heuristic. exact I. } Qed.",
+               "Lemma a : True. Proof. [a]:{ Unset Guard Checking. exact I. } Qed.",
+               'Lemma a : True. Proof. -- Local Set Default Proof Using "Type". exact I. Qed.',
+               "Lemma a : True. Proof.\n  -\n  Timeout 5 exact I. Qed.",
+               "Lemma a : True /\\ True. Proof. split. { exact I. } * + Set Indices Matter. "
+               "exact I. Qed.",
+               'Program Set Warnings "-all".')
+    for text in refused:
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a pinned setting after a bullet or brace passed: {text!r}")
+    allowed = ("Lemma a : True. Proof. - exact I. Qed.",
+               "Lemma a : True. Proof. { idtac. exact I. } Qed.",
+               "Lemma a : True. Proof. 1: { exact I. } Qed.",
+               "Lemma a : True. Proof. - Set Printing Width 80. exact I. Qed.",
+               "Program Definition p : nat := 0.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text),
+               f"a bullet or brace alone was refused: {text!r}")
+
+
+def _machine_bound_tacticals_are_refused() -> None:
+    # Each tactic here compiles silently under the gate's flags in the pinned Rocq 9.3.0,
+    # the Ltac2 ones once Ltac2 is imported, except alloc_limit, which only this switch's
+    # missing memprof-limits refuses. The last is a Gallina application of an identifier
+    # named `timeout`: a deliberate, loud false refusal.
+    refused = ("Lemma a : True. Proof. timeout 5 (exact I). Qed.",
+               "Lemma a : True. Proof. alloc_limit 1 Mw (exact I). Qed.",
+               "Lemma a : True /\\ True. Proof. split; [timeout 5 auto | exact I]. Qed.",
+               "Lemma a : True. Proof. exact ltac:(timeout\n  5 (exact I)). Qed.",
+               'Tactic Notation "budget" int_or_var(n) tactic(t) := timeout n t.',
+               "Lemma a : True. Proof. let n := numgoals in timeout n (exact I). Qed.",
+               "Lemma a : True. Proof. Control.timeout 5 (fun () => exact I). Qed.",
+               "Lemma a : True. Proof. Control.timeout (Int.add 2 3) (fun () => exact I). Qed.",
+               "Definition wait := timeout 5.")
+    for text in refused:
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a machine-bound tactical passed: {text!r}")
+    allowed = ("Definition timeout_bound := 5.", "Definition wait := my_timeout 5.",
+               "Definition cap := alloc_limit_words 1.", "Definition wait' := timeout' 5.",
+               "Record Budget := { timeout : nat }.", "Definition get (b : Budget) := b.(timeout).",
+               "(* timeout 5 (exact I) *) Definition x := 0.",
+               'Definition label := "timeout 5".', 'Definition label := "a. timeout 5 b".',
+               "Lemma a : True. Proof. exact I. Qed. (* alloc_limit 1 Mw (exact I). *)")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text),
+               f"a sentence with no tactical was refused: {text!r}")
 
 
 def _nested_sources_cannot_be_omitted() -> None:
@@ -466,10 +552,14 @@ def cases() -> list[Case]:
             Case("unqualified-native-names-cannot-bind", _unqualified_native_names_cannot_bind_claims),
             Case("requires-follow-vernacular", _requires_follow_vernacular),
             Case("inaccessible-modules-fail-closed", _inaccessible_modules_fail_closed),
+            Case("prefixed-abstractions-fail-closed", _prefixed_abstractions_fail_closed),
             Case("kernel-context-is-exact", _kernel_context_is_exact),
             Case("audit-goals-open-with-proof", _audit_goals_open_with_proof),
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
+            Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
+            Case("settings-after-bullets-are-refused", _settings_after_bullets_are_refused),
+            Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),
