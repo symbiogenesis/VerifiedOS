@@ -242,6 +242,31 @@ def _rocq_93_settings_are_pinned() -> None:
         ensure(not proofaudit.pinned_overrides(text), f"reading a pinned setting was refused: {text}")
 
 
+def _settings_after_bullets_are_refused() -> None:
+    # The pinned Rocq 9.3.0 compiles a setting or a Timeout after a bullet, a brace or a
+    # focusing selector, and the setting outlives the proof. Program is a legacy attribute.
+    refused = ('Lemma a : True. Proof. - Set Warnings "-all". exact I. Qed.',
+               'Lemma a : True. Proof. { Set Warnings "-all". exact I. } Qed.',
+               "Lemma a : True. Proof. 1: { Set Kernel Conversion Dep Heuristic. exact I. } Qed.",
+               "Lemma a : True. Proof. [a]:{ Unset Guard Checking. exact I. } Qed.",
+               'Lemma a : True. Proof. -- Local Set Default Proof Using "Type". exact I. Qed.',
+               "Lemma a : True. Proof.\n  -\n  Timeout 5 exact I. Qed.",
+               "Lemma a : True /\\ True. Proof. split. { exact I. } * + Set Indices Matter. "
+               "exact I. Qed.",
+               'Program Set Warnings "-all".')
+    for text in refused:
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a pinned setting after a bullet or brace passed: {text!r}")
+    allowed = ("Lemma a : True. Proof. - exact I. Qed.",
+               "Lemma a : True. Proof. { idtac. exact I. } Qed.",
+               "Lemma a : True. Proof. 1: { exact I. } Qed.",
+               "Lemma a : True. Proof. - Set Printing Width 80. exact I. Qed.",
+               "Program Definition p : nat := 0.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text),
+               f"a bullet or brace alone was refused: {text!r}")
+
+
 def _machine_bound_tacticals_are_refused() -> None:
     # Each tactic here compiles silently under the gate's flags in the pinned Rocq 9.3.0,
     # the Ltac2 ones once Ltac2 is imported, except alloc_limit, which only this switch's
@@ -517,6 +542,7 @@ def cases() -> list[Case]:
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
+            Case("settings-after-bullets-are-refused", _settings_after_bullets_are_refused),
             Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),

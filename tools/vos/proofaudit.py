@@ -54,13 +54,18 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
                    "Guard Checking", "Positivity Checking", "Universe Checking",
                    "Indices Matter", "Strict Universe Declaration", "Default Timeout",
                    "Kernel Conversion Dep Heuristic", "Default Proof Using")
-# Everything Rocq 9.3's vernac_control grammar lets precede a command: control flags,
-# quoted attributes and legacy attributes, plus the Export locality of option commands.
+# Everything that can precede a command within its sentence. Bullets, braces and a
+# focusing goal selector end without a full stop, so the sentence split leaves them at
+# the head of the next command, and the pinned Rocq 9.3.0 accepts a setting, a Timeout or
+# a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
+# vernac_control grammar lets precede a command: control flags, quoted attributes and
+# legacy attributes, Program among them, plus the Export locality of option commands.
 # A lexical reading anchored after them sees the command however it is decorated.
-CONTROL_PREFIXES = (r'(?:(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
+CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
+                    r'|(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
                     r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
                     r'|#\[[^\]]*\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic'
-                    r'|Cumulative|NonCumulative|Private)\s+)*')
+                    r'|Cumulative|NonCumulative|Private|Program)\s+)*')
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or
