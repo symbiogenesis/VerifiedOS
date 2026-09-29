@@ -136,7 +136,7 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
                      "Why3/SMT)"),
         ("R-05-022", "aiT, Binsec/Rel and Cranelift/Crocus's SMT are not interim "
                      "anchors and carry no retirement rule"),
-        ("R-18-020", "and never an interim anchor, nothing riding it as its ground"),
+        ("R-18-020", "and never an interim anchor under R-05-022"),
         (SPEC, "aiT, Binsec/Rel and Cranelift/Crocus's SMT are on no book at all"),
         (SPEC, "aiT, Binsec/Rel and Cranelift/Crocus's SMT are bring-up gates, "
                "cross-checks and reference material that carry no claim"),
