@@ -242,6 +242,34 @@ def _rocq_93_settings_are_pinned() -> None:
         ensure(not proofaudit.pinned_overrides(text), f"reading a pinned setting was refused: {text}")
 
 
+def _machine_bound_tacticals_are_refused() -> None:
+    # Each tactic here compiles silently under the gate's flags in the pinned Rocq 9.3.0,
+    # the Ltac2 ones once Ltac2 is imported, except alloc_limit, which only this switch's
+    # missing memprof-limits refuses. The last is a Gallina application of an identifier
+    # named `timeout`: a deliberate, loud false refusal.
+    refused = ("Lemma a : True. Proof. timeout 5 (exact I). Qed.",
+               "Lemma a : True. Proof. alloc_limit 1 Mw (exact I). Qed.",
+               "Lemma a : True /\\ True. Proof. split; [timeout 5 auto | exact I]. Qed.",
+               "Lemma a : True. Proof. exact ltac:(timeout\n  5 (exact I)). Qed.",
+               'Tactic Notation "budget" int_or_var(n) tactic(t) := timeout n t.',
+               "Lemma a : True. Proof. let n := numgoals in timeout n (exact I). Qed.",
+               "Lemma a : True. Proof. Control.timeout 5 (fun () => exact I). Qed.",
+               "Lemma a : True. Proof. Control.timeout (Int.add 2 3) (fun () => exact I). Qed.",
+               "Definition wait := timeout 5.")
+    for text in refused:
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a machine-bound tactical passed: {text!r}")
+    allowed = ("Definition timeout_bound := 5.", "Definition wait := my_timeout 5.",
+               "Definition cap := alloc_limit_words 1.", "Definition wait' := timeout' 5.",
+               "Record Budget := { timeout : nat }.", "Definition get (b : Budget) := b.(timeout).",
+               "(* timeout 5 (exact I) *) Definition x := 0.",
+               'Definition label := "timeout 5".', 'Definition label := "a. timeout 5 b".',
+               "Lemma a : True. Proof. exact I. Qed. (* alloc_limit 1 Mw (exact I). *)")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text),
+               f"a sentence with no tactical was refused: {text!r}")
+
+
 def _nested_sources_cannot_be_omitted() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-nested-proof-") as temporary:
         root = Path(temporary)
@@ -489,6 +517,7 @@ def cases() -> list[Case]:
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
+            Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),

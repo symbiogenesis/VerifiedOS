@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
-from vos.proofs import sentences
+from vos.proofs import SENTENCE_END, sentences, strip_comments
 
 MARKER = "VOS_PROOF_AUDIT|"
 EMPTY_BLACKLIST = "Current search blacklist :  is empty."
@@ -67,6 +67,15 @@ _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
 # an allocation limit makes a verdict depend on the machine that ran it.
 _PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
+# The Ltac tactical `timeout` and Rocq 9.3's `alloc_limit` bind a verdict to the machine
+# in the same way, and stand anywhere in a sentence. Either word is refused before its
+# argument: a numeral, an identifier that a Tactic Notation's int_or_var or a `let`
+# binds, or the parenthesised term Ltac2's `Control.timeout` takes. A Gallina term that
+# applies an identifier named exactly `timeout` or `alloc_limit` is refused too, which is
+# loud and costs a rename; an identifier that only contains either word is read whole.
+_TACTICAL = re.compile(r"(?<![\w'])(?:timeout|alloc_limit)\s+[\w(]")
+# Once comments are blanked, every remaining quote opens or closes a string literal.
+_STRING = re.compile(r'"[^"]*"')
 
 
 class AuditError(ValueError):
@@ -227,10 +236,18 @@ def kernel_context(summary: str) -> list[str]:
 
 
 def pinned_overrides(text: str) -> list[str]:
-    """Sentences that would change a gate-pinned setting for their own source."""
-    return [sentence for sentence in sentences(text)
-            if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
-            or _TIMEOUT.match(sentence)]
+    """Sentences that would change a gate-pinned setting for their own source.
+
+    The tactical reading empties string literals before it splits sentences, so neither
+    a quoted tactic nor a quoted full stop is read as code.
+    """
+    found = [sentence for sentence in sentences(text)
+             if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
+             or _TIMEOUT.match(sentence)]
+    if "timeout" in text or "alloc_limit" in text:
+        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(text)))
+        found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
+    return found
 
 
 def unsupported_abstractions(text: str) -> list[str]:
