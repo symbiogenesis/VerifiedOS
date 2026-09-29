@@ -1055,7 +1055,7 @@ premise. The read covers ordinary exits, loop joins, captured reborrows, source
 correspondence, observations, intended negatives and missing-law pricing.
 Q20a's callback benchmark is unchanged.
 
-The closing-pass actual conservatively bounds authoring from branch creation at 05:54:33 to commit at
+The closing-pass actual conservatively bounds authoring from recorded branch creation at 05:54:33 to commit at
 06:07:58 UTC, plus that review, rounded upward to one decimal hour. Earlier
 design authoring is an existing input, not reconstructed effort, so the
 calibration row is n/a. Shared integration and the final host wave are recorded
@@ -1089,7 +1089,7 @@ links at their exact foundation passages. The read preserves Q19c's actual-law
 gate and R-05-019b, R-05-020, R-05-023a, R-05-024, R-05-026, R-05-032,
 R-13-017 and R-18-014; unavailable artifacts give neither route a victory.
 
-The closing-pass actual conservatively bounds authoring from branch creation at 05:54:40 to handoff at
+The closing-pass actual conservatively bounds authoring from recorded branch creation at 05:54:40 to handoff at
 06:04:31 UTC, plus that review, rounded upward to one decimal hour. This is
 rejection review over the existing contract, so the calibration row is n/a.
 Shared integration and the final host wave are recorded at Q2c without a second
@@ -1132,7 +1132,7 @@ The co-read ledger is unchanged.
 
 The authoring interval is 14:29:12–14:57:50 UTC on 2026-09-11; independent review
 starts at 14:58:02 and finishes before 15:00:36. The actual is a conservative
-rounded allowance for those lane intervals and the integrator's setup,
+rounded allowance for those measured lane intervals and the integrator's setup,
 source review, shared document work and final gate. Shared integration is charged
 once here, not at Q22b or Q22c.
 
@@ -1168,7 +1168,7 @@ state remain explicit premises, not verified primitives.
 
 The authoring interval is 14:29:15–14:53:07 UTC on 2026-09-11; independent review
 starts at 14:53:52 and finishes before 15:00:36. The actual rounds these
-intervals upward. Q22a charges the shared integration gate once.
+intervals upward. Q22a records and charges the shared integration gate once.
 
 Landed: Tier A. The read accepts the bounded model, counterexamples and downstream
 assignments. CJ-WITNESS's machine-checked model and theorem remain open at M5.5.
@@ -1205,7 +1205,7 @@ this scope.
 The provision-to-commit interval is 14:29:19–14:57:08 UTC on 2026-09-11 and includes
 the source/RFC reading outside the implementation timer. Independent review starts
 at 14:57:24 and finishes before 15:00:36. The actual rounds those intervals upward;
-Q22a charges shared integration. The JSON receipt binds the model,
+Q22a records and charges shared integration. The JSON receipt binds the model,
 CLI, tests and assessment bytes; normative source and co-read records are unchanged.
 
 Landed: Tier A. This accepts a bounded qualification and its remaining owners;
@@ -1334,7 +1334,7 @@ Two acts are reported and not taken: R-09-007's Accept clause for the link's per
 Exit evidence: source commit `cc321b0`, reviewed repair `be28779`. `python tools/check.py` from the lane exits 0 with every rule ok, and a corpus-membership probe confirms the document is inside the corpus those rules read: an appended undefined requirement id and section number are refused by K-11 and K-13 naming this file, and `git checkout --` restores the tree. `python tools/run.py coread` reports all 1452 pairs last read as they stand, no register prose having moved. `git ls-files --eol` reads `i/lf w/lf` on all three touched files. No guest command, proof or device measurement is claimed for this document item, and none of the other four artifacts R-02-003a gates on is claimed here.
 
   * Four findings.
-    * **A general clause is not a declaration.** Ten of §4's rows name the attested devicetree as carrier on R-02-003a's general clause alone, no entry naming any of them and R-09-007's list of what the static devicetree declares reaching none of the link's per-link constants, and the register shows the clause is not read as exhaustive, R-15-228d putting the frame size in a different artifact by name. Whether R-09-007 owes an Accept clause for this class, on the precedent R-15-228h earned, is a register act. F-364.
+    * **A general clause is not a declaration.** Ten of §4's rows name the attested devicetree as carrier on R-02-003a's general clause that every constant of an ensemble is carried there, and on that clause alone, no entry naming any of them and R-09-007's list of what the static devicetree declares reaching none of the link's per-link constants, and the register shows the clause is not read as exhaustive, R-15-228d putting the frame size in a different artifact by name. Whether R-09-007 owes an Accept clause for this class, on the precedent R-15-228h earned, is a register act. F-364.
     * **An inventory row's status is not lifted by a stated grammar.** Crown-jewel row 10 gains this descriptor set as a member and stays `not authored`; the descriptor, its Narcissus correctness pair and its canonicity theorem are all owed, and whether one stated grammar promotes the row is K-95's lift and its repairer's. F-365.
     * **A family chosen without its operand would rest on nothing.** The selection predicate admits both of R-15-119's families and no measurement in this tree separates them, the frame length being unfixed and the reach and raw error rate being physical quantities none of the five gating artifacts buys, so the family is recorded as owed. F-366.
     * **The endpoint's register offsets are declared by no entry.** R-15-002b makes an MMIO aperture's placement a stated constraint on the attested devicetree and no entry assigns an offset inside it to a register of §3.2's table, the same class of gap as the constants, recorded beside them and not filled. F-367.
@@ -1359,7 +1359,7 @@ The completion audit limits this landing to the static calculation in [the traff
   * Net change: 2,626 lines added and one removed across four files, three of them new: the report, its `ensemble-sharding-traffic/` directory carrying [shard.py](../performance/ensemble-sharding-traffic/shard.py) and [traffic.json](../performance/ensemble-sharding-traffic/traffic.json), and the Performance row in [the documentation index](../README.md). No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit: the review gate is not re-entered and the co-read ledger is unmoved.
   * Exit evidence: `python tools/check.py` green from the lane, exit 0, every derived fact agreeing with its artifact over 104 registered rules with K-00 agreeing in both directions. The instrument reproduces its own output byte for byte at the recorded revision, 67,660 characters identical, and extends the inference-demand instrument, not a second harness, loading no weight file, running no model and taking no time. Its guards were exercised: a static file of another model is refused by name, and a ragged ring chunk and an inexact FFN-width division each raise. Both files read `i/lf w/lf`. **No guest run is in this evidence and none is owed**: every figure is arithmetic over one tracked JSON file, host bytes are target bytes for the partition, and no host time enters any figure. The host gate wave is the integrator's.
   * Four findings.
-    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, a lower bound on the one constant the same report says it cannot decide and which R-12-015d bounds above by an undeclared throughput. The repair is conditional phrasing and a named owner; the headline lost nothing. F-368.
+    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, a lower bound on the one constant the same report says it cannot decide and which R-12-015d bounds above by an undeclared throughput. The repair is conditional phrasing and a named owner; the headline lost nothing, the ordering of the terms being the result and the bandwidth claim decoration on it. F-368.
     * **A refusal derived over two declared parameters reads as a property of the shape unless the alternative is priced.** Above two members tensor-wise was refused on cadence; the refusal was the cycle's and the ring's, and a fully connected collective reverses it at 2.5 times the crypto charge. Pricing the alternative was fourteen lines of the instrument and moved a verdict. F-369.
     * **Three figures sat outside the file the report said every figure came from**, an FFN width no tracked artifact states, a head count owned by another report's section, and a cache constant hand-copied from it. All three are now derived in the instrument with predicates, and the derived cache bytes agree with their source section to the byte. The rule the miss breaks is the item's own Check clause. F-370.
     * **An entry that names three terms and no composition function invites the reader to supply one.** R-15-171a's rate was read as the minimum of three independent ceilings; R-11-017a's own text puts all three into one member's R-11-006 interval arithmetic as ordinary tasks and grants, which is one schedulability analysis and not three independent ceilings, so the independence was asserted against the entry the sentence relied on. Stated as an upper bound now, with the composition named as Q23d's. F-371.
