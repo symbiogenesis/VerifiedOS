@@ -1,7 +1,8 @@
 # Formal Specification of the RISC-V ISA
 
-This repository contains a formal specification of the RISC-V architecture, written in
-[Sail](https://github.com/rems-project/sail). It has been adopted by RISC-V International.
+This tree is a curated derivative of [sail-riscv](https://github.com/riscv/sail-riscv),
+the formal specification of the RISC-V architecture written in
+[Sail](https://github.com/rems-project/sail) and adopted by RISC-V International.
 
 The model specifies assembly language formats of the instructions, the corresponding
 encoders and decoders, and the instruction semantics.
