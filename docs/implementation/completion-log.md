@@ -1194,7 +1194,7 @@ measured endpoint, accepted under software policy with its own quote, refused
 under the other unit's policy and unable to accept a substituted quote. Explicit
 compromise cases retain their accepted attacks; a transparent relay to the intended
 key holder is not misreported as endpoint substitution. Independent review accepts
-this scope.
+this scope and no protocol or implementation proof is claimed.
 
 * **Finding: a public exporter value is not evidence of local key custody.** A quote issuer
   that accepts a caller-provided exporter can attest a different endpoint's
