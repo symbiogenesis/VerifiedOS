@@ -178,7 +178,7 @@ Selecting Complete fills no absent requirement with a trivially satisfied proper
 
 ## Qualification protocol
 
-These stages are proposed qualification work under Q25's design gates. Each carries its one reviewed implementation owner, its one estimate and its one acceptance predicate in [the composition review's pricing table](full-language-review.md#reviewed-implementation-pricing), and each is held there on the same ground: every stage exercises a language whose frontend that review's [admission disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) does not commission. None is scheduled by this dossier.
+These stages are proposed qualification work under Q25's design gates. Each carries its one reviewed implementation owner, its one estimate and its one acceptance predicate in [the composition review's pricing table](full-language-review.md#reviewed-implementation-pricing). The policy-semantics, ordinary-application and systems-boundary stages are held there on one ground: each exercises a language whose frontend that review's [admission disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) does not commission. The complete-release and maintenance stages carry no range of their own; the table cites the existing production owners and the uncommissioned workflow comparison that would carry them. None is scheduled by this dossier.
 
 | Stage | What it exercises | What decides it |
 | --- | --- | --- |
