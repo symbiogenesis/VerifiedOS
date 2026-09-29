@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 790 of them across 135 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 800 of them across 136 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -911,7 +911,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-462** owed-act: no VST configuration is qualified at the locked prover, the VST/Iris line three register entries name not installing beside the prover and VST's non-Iris line, which those entries do not name, installing only with a CompCert that bounds the prover below its motivated upgrade
 · Raised: Q35a
-· Disposition: open, Q35e qualifying a foundation or refusing one with a priced repair
+· Disposition: open, a register question at the review gate on whether R-06-012, R-10-008 and R-18-026 keep naming VST/Iris, whose line Q35e found not building at the prover with its port unpriced (F-488); Q35e refused the non-Iris line with Q35h to Q35j as its priced repairs
 
 **F-463** owed-act: every VST or CompCert Clight development loads axioms and parameters outside R-05-164's empty declared set, and no entry decides whether they enter R-06-011 or the *Ax* ledger
 · Raised: Q35a
@@ -968,6 +968,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-485** owed-act: four called host-interface hooks, the block-device trace, input and persistence and the terminal write, are uninterpreted monadic axioms in the term, and removing them needs a decision on how the term models the host
 · Raised: Q35b
 · Disposition: open, Q35f taking the decision and comparing it with the emulator's observable behaviour, Q35c's breakdown reading what the logic observes
+
+**F-486** upstream-defect: `rocqchk` 9.2.0 raises an "Incompatible resolver roots" anomaly checking VST 2.17's `VST.floyd.SeparationLogicAsLogicSoundness`, which every Verifiable C client loads, so the gate reads no summary for any Floyd client over either CompCert route
+· Raised: Q35e
+· Disposition: open, Q35h reducing it to a standalone reproduction, reporting it upstream and reading which checker accepts VST 2.17
+
+**F-487** owed-act: the kernel checker's summary names checked fields of alias-sealed and functor-sealed modules as axioms, 204 fields of VST's `Share` and `R` in the recursively checked `SequentialClight` closure, and no rule decides whether the gate covers them by the same run's checking evidence or an R-05-164 amendment enumerates them
+· Raised: Q35e
+· Disposition: open, Q35i at the proof gate's owner
+
+**F-488** measurement: VST's Iris line does not build at the locked prover, the solver refusing `rocq-vst` 3.2beta, `coq-vst` 3.1beta and `coq-vst-iris` and the 3.2beta archive stopping at `shared/resource_map.v` line 611
+· Raised: Q35e
+· Disposition: standing, the qualification record holding the reading; a port is unpriced, its failure census unmeasured, and F-462 carries the register question
+
+**F-489** owed-act: VST's non-Iris libraries build at the locked prover without CompCert's non-commercial package from the 2.17 archive's bundled subset, whose 28 compiled CompCert sources are dual-licensed, but no route yet produces a Verifiable C client's input outside that term, `clightgen` carrying CompCert's terms
+· Raised: Q35e
+· Disposition: open, owed only if the review gate admits VST: a producer of Clight input outside the non-commercial term, a hand-authored AST, or a review-gate act admitting such input under R-05-020 with its tracking under the containment rules, and whether the build's reading of the unlisted `VERSION` engages that term; F-205a's owner reads the library route, which does not reach `sha/`, `hmacdrbg/` or `hmacfcf/`
+
+**F-490** owed-act: RefinedC at `2e89846b` builds at the locked prover only with `coq-lithium`'s `coq = 9.1.0` bound ignored, on development Iris and stdpp source pins that displace the lock's `rocq-stdpp` 1.13.0, and its theories install only with its frontend
+· Raised: Q35e
+· Disposition: open, owed only if the review gate admits RefinedC: an upstream bound or released packages, or the opam guide admitting source pins or a theories-only project package, with the lock act
+
+**F-491** owed-act: the gate's compile settings refuse both checked foundations' clients, RefinedC's typing import raising `notation-incompatible-prefix`, Floyd's import `mismatched-hint-db` and `clightgen`'s output `deprecated-from-Coq`, and the gate also refuses a source that configures warnings
+· Raised: Q35e
+· Disposition: open, the gate's warning policy or the upstream notations, priced with any admitted foundation's carriage
+
+**F-492** owed-act: RefinedC's closure loads two Lithium test parameters, `li_test.check_wp` and `li_test.get_tuple`, beside the axiom `Ax.eq_rect_eq`, and the gate refuses all three although `Print Assumptions` reports neither client theorem using them
+· Raised: Q35e
+· Disposition: open, the review gate's R-05-164 act on the proposed three-name amendment, or an upstream Lithium without `li_test` reducing it to one name
+
+**F-493** owed-act: CN-to-Coq is refused at the locked prover by `cn-coq`'s own `coq = 8.20.1` bound, and its `provable` relation is a placeholder holding of every constraint, so the closure does not close solver-discharged obligations foundationally as the specification's R-10-008 text says
+· Raised: Q35e
+· Disposition: open, a register question on R-10-008 and the specification's section 10 wording
+
+**F-494** upstream-defect: CompCert 3.18's release archive declares version 3.17 in its `VERSION` file, so `clightgen`'s banner and a generated Clight file's `Info.version` do not identify the producing release
+· Raised: Q35e
+· Disposition: standing, the release identified by its opam package version and archive hash instead
+
+**F-495** owed-act: every source-level foundation's theorem is about an input an unverified front end produced, over a C semantics the contained compiler does not consume, and no relation connects that input to the compartment-annotated, capability-widened Clight the contained compiler parses from the same C
+· Raised: Q35e
+· Disposition: open, Q35j and the review gate's F-464 act
 
 ## M0 · Hardware reference
 

@@ -57,6 +57,7 @@ The installed sets after the qualification, from each switch's own export:
   switch's export.
 - **cn** and **cnfix:** no package.
 
-Removing these switches belongs to the retirement of the lanes that made them.
+The switches outlive the lanes that made them, private to the guest, so Q35h can
+read VST 2.17 in vst2 and vst3; removing one is a guest act that this guide records.
 Recreating one follows the table and the qualification record's commands, and a
 recreated switch is a new measurement rather than this one.
