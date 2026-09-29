@@ -357,6 +357,25 @@ with added dependencies and all failures. Retain added machinery only when its
 measured benefit justifies its maintenance. Learned embeddings and planner debates
 remain optional experiments; this delivery claims no such benchmark result.
 
+Excluding a solution from retrieval does not hide it from an agent with repository
+access. Git history, other refs, the reflog and packed or unreachable objects still
+hold it. A linked worktree shares its repository's whole object store, and a clone
+from a local path copies every object file unless `--no-local` is given
+([git clone](https://git-scm.com/docs/git-clone)). A held-out trial therefore gives
+each agent a checkout that holds no target solution in its files or objects: a
+[git archive](https://git-scm.com/docs/git-archive) export of a revision predating
+every solution, which carries no object store, or a fresh
+`git clone --no-local --single-branch` of a branch whose tip predates them, with the
+clone's remote then removed. The agent has no access to the primary checkout, other
+worktrees, network remotes, hosted run artifacts or build lanes holding a solution.
+A tree without a linked-worktree pointer shares the primary checkout's guest lane
+([`lane_of`](../../tools/vos/env.py)), whose proof-gate workspace stages current
+proof sources, so run it with its own `VOS_LANE` or `VOS_BUILD_ROOT` in the guest.
+The trial record names the method, the exported or cloned revision and its relation
+to each solution commit, and the denied locations. It also records an absence check
+run inside the trial environment: a search of the tree for each solution's proof
+script and, where Git is present, a failed `git cat-file -e` for each solution blob.
+
 ## Research handoff for future proof producers
 
 The [mathematical survey](../background/open-math-conjectures.md) supplies
