@@ -98,13 +98,36 @@ SAIL_HOW = env.install_line(env.SAIL_INSTALL)
 # verdict back out of. One spelling, at both ends.
 STAGE_EXIT = re.compile(r"^\w+_EXIT=(\d+)$")
 
+# The M0.4 oracle's pinned source, and the only submodule any model command opens.
+ORACLE_SRC = "upstream/sail-cheri-riscv"
+
+# The gitlinks a model build and the evidence sweep bind, which are the ones a model
+# command opens and no others: a pin recorded to be read later changes nothing these
+# commands read, so advancing one must not stale a build receipt or the evidence
+# inputs. `build_inputs` refuses an identity missing any of them.
+BUILD_GITLINKS = (ORACLE_SRC,)
 BUILD_INPUTS = ("model", "tools/run.py", "tools/vos", "tools/generated", "interfaces", "corpus",
-                "upstream", ".gitmodules")
+                *BUILD_GITLINKS, ".gitmodules")
 BUILD_ARTIFACTS = ("c_emulator/sail_riscv_sim", "test/unit_tests/unit_tests",
                    "test/unit_tests/block_payload", "test/unit_tests/block_reset",
                    "test/unit_tests/block_image",
                    "test/unit_tests/block_receipt",
                    "CMakeCache.txt", "build.ninja")
+
+
+def build_inputs(root: Path, *extra: str) -> dict[str, str]:
+    """The model's source manifest, with `extra` pathspecs bound beside it.
+
+    Fail-closed on the gitlinks: each of `BUILD_GITLINKS` must be recorded as a pinned
+    commit, so a submodule removed, renamed or replaced by ordinary files is refused
+    rather than dropped from the identity.
+    """
+    manifest = receipts.inputs(root, *BUILD_INPUTS, *extra)
+    for gitlink in BUILD_GITLINKS:
+        if not manifest.get(gitlink, "").startswith("gitlink:"):
+            raise ValueError(f"{gitlink} is not a pinned gitlink in this checkout's index, "
+                             "and the model's build identity binds it")
+    return manifest
 
 
 def build_identity(e: env.Environment) -> dict[str, object]:
@@ -121,7 +144,7 @@ def build_identity(e: env.Environment) -> dict[str, object]:
         raise ValueError("git could not identify the model for its build receipt")
     compilers = [arg.split("=", 1)[1] for arg in e.compilers if "=" in arg]
     return {
-        "inputs": receipts.inputs(e.root, *BUILD_INPUTS),
+        "inputs": build_inputs(e.root),
         "tools": receipts.executables("sail", "z3", "cmake", "ctest", "ninja",
                                       *(compilers or ["cc", "c++"])),
         "compiler_options": e.compilers, "cache_options": e.ccache,
@@ -189,7 +212,6 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
         raise ValueError("the build receipt is stale: its test log changed")
     return record
 
-ORACLE_SRC = "upstream/sail-cheri-riscv"
 ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
 
 # The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an

@@ -135,10 +135,13 @@ def _proof_record(root: Path) -> dict[str, object]:
 
 
 def _inputs(root: Path) -> dict[str, str]:
-    """Bind proof sources without treating the receipt they publish as an input."""
-    return receipts.inputs(root, *model_cli.BUILD_INPUTS,
-                           "proofs", "docs/requirements-register.md",
-                           f":(exclude){proofs_cli.RECEIPT}")
+    """Bind proof sources without treating the receipt they publish as an input.
+
+    The model's manifest comes from the build's own reading, so the sweep binds the
+    gitlinks a model command opens and refuses a checkout missing one, as the build
+    identity does."""
+    return model_cli.build_inputs(root, "proofs", "docs/requirements-register.md",
+                                  f":(exclude){proofs_cli.RECEIPT}")
 
 
 def run(build: bool = True, out: Path | None = None, proofs: bool = True) -> Reporter:

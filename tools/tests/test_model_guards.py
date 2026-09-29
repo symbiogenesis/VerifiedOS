@@ -8,6 +8,7 @@ import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import Mock, patch
 
 from tests.harness import Case, ensure, sandbox_tree
@@ -135,12 +136,25 @@ def _stale_build() -> None:
         raise AssertionError("removing every sweep input must invalidate its receipt")
 
 
+def _git(root: Path, *argv: str) -> None:
+    subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture",
+                    "-c", "user.email=fixture@example.invalid", *argv],
+                   check=True, capture_output=True, timeout=60)
+
+
+def _pin(root: Path, path: str, commit: str) -> None:
+    """Record `path` as a submodule pinned at `commit`, as a gitlink bump leaves it."""
+    _git(root, "update-index", "--add", "--cacheinfo", f"160000,{commit},{path}")
+
+
+_ORACLE_PIN = "1" * 40
+
+
 def _proof_publication_keeps_build_identity() -> None:
     with sandbox_tree({"model/source.sail": "model bytes\n",
                        "proofs/proof-evidence.json": "old receipt\n"}) as root:
-        subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture",
-                        "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"],
-                       check=True, capture_output=True, timeout=60)
+        _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
+        _git(root, "commit", "-qm", "fixture")
         e = _environment(root)
         with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
             before = model.build_identity(e)
@@ -159,6 +173,46 @@ def _proof_publication_keeps_build_identity() -> None:
             (root / "model/new.sail").write_text("new model input\n", encoding="utf-8")
             ensure(model.build_identity(e) != before,
                    "new model inputs must still invalidate the build")
+
+
+def _identity_binds_only_opened_gitlinks() -> None:
+    """A pin recorded to be read later is not a model input; the oracle's pin is.
+
+    Tip-tracking an unread reference advances its gitlink without changing anything a
+    model command opens, so the build receipt and the evidence inputs must stay current
+    across it, while the oracle's own pin, the one submodule a model command reads,
+    still moves the identity. The binding stays fail-closed: an index that no longer
+    records the oracle as a gitlink is refused rather than dropped from the manifest.
+    """
+    with sandbox_tree({"model/source.sail": "model bytes\n",
+                       ".gitmodules": "[submodule \"upstream/sail-cheri-riscv\"]\n"}) as root:
+        _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
+        _pin(root, "upstream/llvm-project", "2" * 40)
+        _git(root, "commit", "-qm", "fixture")
+        e = _environment(root)
+        with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
+            before = model.build_identity(e)
+            inputs = cast("dict[str, str]", before["inputs"])
+            ensure(inputs.get(model.ORACLE_SRC) == f"gitlink:{_ORACLE_PIN}"
+                   and "upstream/llvm-project" not in inputs and ".gitmodules" in inputs,
+                   f"the identity binds the oracle's pin and .gitmodules alone, got {inputs}")
+            _pin(root, "upstream/llvm-project", "3" * 40)
+            ensure(model.build_identity(e) == before,
+                   "advancing a read-later gitlink must leave the build identity unchanged")
+            _pin(root, model.ORACLE_SRC, "4" * 40)
+            ensure(model.build_identity(e) != before,
+                   "advancing the oracle's gitlink must change the build identity")
+            _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
+            ensure(model.build_identity(e) == before, "restoring the pin restores the identity")
+            (root / ".gitmodules").write_text("[submodule \"moved\"]\n", encoding="utf-8")
+            ensure(model.build_identity(e) != before, ".gitmodules stays bound")
+            _git(root, "update-index", "--force-remove", model.ORACLE_SRC)
+            try:
+                model.build_identity(e)
+            except ValueError as err:
+                ensure(model.ORACLE_SRC in str(err), f"the refusal names the gitlink: {err}")
+            else:
+                raise AssertionError("an identity without the oracle's gitlink was accepted")
 
 
 def _empty_sweep_is_refused() -> None:
@@ -270,6 +324,7 @@ def cases() -> list[Case]:
     return [Case("solver-failure", _solver_failure), Case("detach-race", _detach_race),
             Case("reference-failure", _reference_failure), Case("stale-build", _stale_build),
             Case("proof-publication-keeps-build-identity", _proof_publication_keeps_build_identity),
+            Case("identity-binds-only-opened-gitlinks", _identity_binds_only_opened_gitlinks),
             Case("empty-sweep-refused", _empty_sweep_is_refused),
             Case("warm-test-corpus", _warm_test_corpus),
             Case("invalid-test-corpus-pin", _invalid_test_corpus_pin),
