@@ -1719,9 +1719,9 @@ The 2026-09-14 critique fan-out reviewed the disposition, source-bearing record
 and consumer terms from base `902ed8b09474a368eda1dbd1dcc103b6967d8dca` in
 dedicated worktrees. Item 11's placement-site documentation is in `a436c694`;
 item 12's decision is in `9b82fdae`. The integrated decision accepts inconclusive
-search diagnostics and declines new certificate machinery on present evidence,
-with a concrete composition case and reviewed acceptance contract required to
-reopen it. It distinguishes a new admission ground from another checking program
+search diagnostics and declines new certificate machinery on present evidence;
+reopening it needs a concrete composition case and a reviewed acceptance
+contract. It distinguishes a new admission ground from another checking program
 under R-05-011c, and runtime pool exhaustion from composition-time infeasibility.
 
 The Q27b audit found that its original note below reported consumer reuse notes
@@ -1729,8 +1729,8 @@ absent from the starting tree. Integration adds the missing notes at M4.4,
 M6.2b-i and U-10, and makes Q19c's existing Diaframe reuse boundary explicit.
 The source-bearing record and the graded-language review account for the
 remaining donors. No estimate or recorded child actual changes, no source is
-incorporated, and no implementation or proof obligation is discharged by the
-survey. This parent has no separate estimate or actual. Critique items 11, 12
+incorporated, and the survey discharges no implementation or proof obligation.
+This parent has no separate estimate or actual. Critique items 11, 12
 and 13 are removed, and their surviving references point to the owning records.
 
 Item 10 remains open. The existing `phase-service --json` assessment passes its
@@ -1744,21 +1744,21 @@ qualification remain deferred to Q22e's prerequisite owners.
 
 Landed: Tier A. The integrated read checks the decision against the current
 register and the source-to-consumer assignments against their actual cells;
-the children's historical landing evidence is preserved below.
+the children's landing evidence is preserved below.
 
 #### Q27a · Take the certified-search disposition and record its arms
 
 [The alternatives register](../background/architectural-alternatives.md#certified-placement-and-infeasibility-no-new-certificate-machinery) carries the three arms, each refusal cited to the rule that takes it.
 
-The admitted arm is the asymmetric-trust pattern R-05-066 states, and it imports nothing because it is running. The checker whose verdict admits a placement is two artifacts with two statuses: the on-device CHERI-TAL type-check R-08-014 states its decidable interference side condition for, which R-18-020 books as a hard prerequisite with no trusted-toolchain fallback and which is owed and unbuilt, and the host-side port of [the memory plan](../../proofs/MemoryPlan.v)'s own checks that decides candidates today under [the search contract](placement-search.md)'s PS-8. Its forfeits are recorded rather than absorbed: no optimality past the declared candidate set (PS-3); a gap between the best admitted span and the strongest stated lower bound that [the scaling experiment](static-memory/scaling.md), R-08-012 and R-08-012a each report and that no arm closes, no machine-checked theorem standing behind any of those bounds, so the gap is measured and never proved zero; and no power to tell a run cut short from infeasibility (PS-5).
+The admitted arm is the asymmetric-trust pattern R-05-066 states; it imports nothing because it is running. Its checker, whose verdict admits a placement, is two artifacts with two statuses: the on-device CHERI-TAL type-check R-08-014 states its decidable interference side condition for, which R-18-020 books as a hard prerequisite with no trusted-toolchain fallback and which is owed and unbuilt, and the host-side port of [the memory plan](../../proofs/MemoryPlan.v)'s own checks that decides candidates today under [the search contract](placement-search.md)'s PS-8. Its forfeits: no optimality past the declared candidate set (PS-3); a gap between the best admitted span and the strongest stated lower bound that [the scaling experiment](static-memory/scaling.md), R-08-012 and R-08-012a each report and that no arm closes, no machine-checked theorem standing behind any of those bounds, so the gap is measured and never proved zero; and no power to tell a run cut short from infeasibility (PS-5).
 
 The shipped certificate checker is refused on R-05-105 and R-05-106 for the yield it lacks, and independently on R-05-066's no-new-checker criterion, R-05-104's deletion of the ILP machinery a layout objective reaches for first, and R-05-020's first condition, which the HOL4 and Lean candidates do not meet until someone builds and shows the bridge. The forfeited span is accepted in R-05-105's and R-05-065's own words.
 
-The checked infeasibility certificate is the arm the yield rules leave standing and a different rule takes. Its yield is a changed verdict under R-15-171 and R-08-047 rather than a sharpened number, so R-05-105 and R-05-106 do not reach it. R-05-016 does, unconditionally on yield, glossed by R-05-016a and R-05-011b, and it is not alone: R-05-066's criterion and R-06-011's two-checker inventory reach the imported form independently of yield, as [the proof inventory](../assurance/proof-reuse/foundations.md#certified-search-and-the-registers-standing-refusals) already reads them. The rule is answered by R-05-015's route alone, a term the kernel re-checks. The arm is therefore refused in its imported form and left open as one question: whether an infeasibility verdict over a placement model could earn a term this repository authors and proves. It owes R-05-020 all three demonstrations and shows none. Its native half is in hand and unbridged, [the certificate model](../../proofs/MemoryPlannerCertificates.v) proving `finite_encoding_equivalent` and `unsat_excludes_every_legal_selection` over a generic finite one-hot model and naming the seams its header lists; non-duplication against the interference obligation R-08-014 supplies is unargued; and no interim rides placement, R-05-022's inventory carrying three. No cell prices the authoring and the question may close in the negative.
+The checked infeasibility certificate is the arm the yield rules leave standing and a different rule takes. Its yield is a changed verdict under R-15-171 and R-08-047, not a sharpened number, so R-05-105 and R-05-106 do not reach it. R-05-016 does, unconditionally on yield, glossed by R-05-016a and R-05-011b; R-05-066's criterion and R-06-011's two-checker inventory reach the imported form independently of yield, as [the proof inventory](../assurance/proof-reuse/foundations.md#certified-search-and-the-registers-standing-refusals) already reads them. The rule is answered by R-05-015's route alone, a term the kernel re-checks. The arm is therefore refused in its imported form and left open as one question: whether an infeasibility verdict over a placement model could earn a term this repository authors and proves. It owes R-05-020 all three demonstrations and shows none. Its native half is in hand and unbridged, [the certificate model](../../proofs/MemoryPlannerCertificates.v) proving `finite_encoding_equivalent` and `unsat_excludes_every_legal_selection` over a generic finite one-hot model and naming the seams its header lists; non-duplication against the interference obligation R-08-014 supplies is unargued; and no interim rides placement, R-05-022's inventory carrying three. No cell prices the authoring and the question may close in the negative.
 
 No candidate is a start-from for any cell. None was installed, built, pinned or benchmarked, and no figure from any candidate's own benchmark set entered this tree. `python tools/check.py` exits 0 in the lane at `a1064aa426ee399d7293a68dde7d8f346fc4711e`.
 
-The measured intervals are 2026-09-14 06:47:21-06:53:44, 07:03:59-07:13:46, 07:17:26-07:21:41 UTC for the authoring, review and repair passes, 1225 seconds summed, rounded upward to 0.4 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+The measured intervals are 2026-09-14 06:47:21-06:53:44, 07:03:59-07:13:46, 07:17:26-07:21:41 UTC for the authoring, review and repair passes, 1225 seconds summed, rounded upward to 0.4 h on the agent-parallel clock. The preceding survey pass is not in the figure: the convention's clock is these three passes.
 
   * Finding: the admitted arm's forfeit list closed on the clause "no lower-bound
     argument existing on either side of the port", which contradicts the clause it
@@ -1766,27 +1766,27 @@ The measured intervals are 2026-09-14 06:47:21-06:53:44, 07:03:59-07:13:46, 07:1
     lower-bounds section, R-08-012 states charged peak as a lower bound on legal
     span, R-08-012a defines the reservation above it, and the planner's own
     footprint is a fixed floor. The arm now reports the gap as measured and names
-    the absence that is real, a machine-checked theorem behind any of those bounds.
+    the real absence, a machine-checked theorem behind any of those bounds.
     F-358.
 
 Landed: Tier A. The act produces non-normative prose disposing of rules the register already carries, creating no declaration whose members a rule would count; K-12, K-13 and K-40 hold the entry's citations and its form, and no checker rule was added.
 
 #### Q27b · Record which existing cell each newly qualified source bears on
 
-  * **Every source the sweep added resolves to one consumer or to a named ground for none, and four of them reach a consumer that keeps its number.** [The bearing record](../assurance/proof-reuse-bearing.md) is keyed by source where [the inventory](../assurance/proof-reuse.md)'s subject records are keyed by obligation family and [the proof map](../assurance/unassigned-proof-map.md) is keyed by obligation, which is why it is a document rather than a column: the resolution runs the other way from both. Four sources reach a consumer, SYS-REFINEDPROSA to M4.4, Cogent and Dargent to U-10, Peregrine to M6.2b-i and Diaframe to Q19c, and each of the four cells now carries one reuse-note sentence naming its start-from. **No range, no midpoint, no subtotal and no total moves in this act**, which is the item's Execute clause and also its outcome rather than only its constraint: not one of the four removes a named sub-obligation, so there is nothing a re-price could read.
-  * **Which sources the sweep added is a measurement, and it is taken with a stated predicate at two named revisions rather than off the records' own dates.** The subject records' date sentences do not separate an added source from a re-read one, [systems](../assurance/proof-reuse/systems.md) listing three records among its 2026-09-13 readings that are present at the earlier revision and [languages](../assurance/proof-reuse/languages.md) carrying no per-entry date at all. The predicate used instead is that a source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `f528852` and absent at `e694a548`, the last revision at which that inventory changed before the sweep commit `2ea8d61`; the two commits touching it between the sweep and `f528852` add and remove no source record, so the interval's additions are the sweep's. A section heading is not a source record and carries no row. **The added-and-held partition is that measurement and not a standing property**, which the record says of itself: a later sweep re-takes it and every source tabled as added is held by the time that sweep runs.
-  * **A source that bears on nothing is the ordinary answer, and the ground is the whole of the row.** Thirty-one of the added sources reach no consumer, each on one of five grounds: **refused** where the register refuses the import at a cited entry, **uncelled** where the obligation is owned by no open cell and no slice, **unaimed** where the subject record proposes no local consumer, **unread** where the source's own terms are unread so no reuse may be proposed, and **taken** where the bearing is already in a landed artifact. Where more than one ground holds the row names the one the subject record's own disposition rests on, which is what decides SYS-LILO and SYS-IRON the same way rather than opposite ways: both records make the unread terms the thing that must be settled before any adaptation is proposed, and the landed adaptation is each row's second fact.
-  * **Every uncelled obligation is already booked, and reporting a gap in the map would have been the finding this item exists to avoid.** The four are the HAL's implementation in certifying Rust through R-18-018's manual-proof path, R-18-014's certifying Rust compiler, the full Iris refinement proofs for the kernel and the storage stack, and CHERI-TAL soundness, and [the proof map's mandatory work](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) books each. The fourth is the one worth stating: R-05-119 and R-05-121, the definite-initialization attribute the RustHornBelt row names, are booked in no bullet of that section by id and named by no cell and no slice, but the register's own trace lines put both at `CJ-TAL-SOUND`, which the same section books as carrying no cell. **What places them is their own trace line, so the map owes no act here.**
-  * Net change: one new tracked document, one pointer paragraph in the inventory's preamble, one index row in [the document index](../README.md), and one reuse-note sentence in each of M4.4, Q19c, M6.2b-i and U-10. No register, spec, coverage-matrix, crown-jewel or absence-contract edit, so the review gate is not re-entered and the co-read ledger is unmoved.
-  * Exit evidence: `python tools/check.py` green read-only, exiting 0, with K-12 resolving the new document's links and fragments and K-40 clean; `python tools/run.py coread` reporting all **1452** pairs last read as they stand. No guest measurement is owed: this item reads tracked text and writes tracked text, and nothing it changes reaches the model, the RTL or a toolchain.
+  * **Every source the sweep added resolves to one consumer or to a named ground for none, and four of them reach a consumer that keeps its number.** [The bearing record](../assurance/proof-reuse-bearing.md) is keyed by source where [the inventory](../assurance/proof-reuse.md)'s subject records are keyed by obligation family and [the proof map](../assurance/unassigned-proof-map.md) by obligation, so it is a document and not a column. Four sources reach a consumer, SYS-REFINEDPROSA to M4.4, Cogent and Dargent to U-10, Peregrine to M6.2b-i and Diaframe to Q19c, and each of the four cells now carries one reuse-note sentence naming its start-from. **No range, midpoint, subtotal or total moves in this act**: none of the four removes a named sub-obligation, so there is nothing a re-price could read.
+  * **Which sources the sweep added is a measurement, taken with a stated predicate at two named revisions, not off the records' own dates.** The subject records' date sentences do not separate an added source from a re-read one, [systems](../assurance/proof-reuse/systems.md) listing three records among its 2026-09-13 readings that are present at the earlier revision and [languages](../assurance/proof-reuse/languages.md) carrying no per-entry date at all. A source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `f528852` and absent at `e694a548`, the last revision at which that inventory changed before the sweep commit `2ea8d61`; the two commits touching it between the sweep and `f528852` add and remove no source record. A section heading is not a source record and carries no row. **The added-and-held partition is that measurement, not a standing property**: a later sweep re-takes it and every source tabled as added is held by the time that sweep runs.
+  * **A source that bears on nothing is the ordinary answer.** Thirty-one of the added sources reach no consumer, each on one of five grounds: **refused** where the register refuses the import at a cited entry, **uncelled** where the obligation is owned by no open cell and no slice, **unaimed** where the subject record proposes no local consumer, **unread** where the source's own terms are unread so no reuse may be proposed, and **taken** where the bearing is already in a landed artifact. Where more than one ground holds, the row names the one the subject record's own disposition rests on; that decides SYS-LILO and SYS-IRON the same way: both records make the unread terms the thing to settle before any adaptation is proposed, and the landed adaptation is each row's second fact.
+  * **Every uncelled obligation is already booked.** The four are the HAL's implementation in certifying Rust through R-18-018's manual-proof path, R-18-014's certifying Rust compiler, the full Iris refinement proofs for the kernel and the storage stack, and CHERI-TAL soundness, and [the proof map's mandatory work](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) books each. For the fourth, R-05-119 and R-05-121, the definite-initialization attribute the RustHornBelt row names, are booked in no bullet of that section by id and named by no cell and no slice, but the register's own trace lines put both at `CJ-TAL-SOUND`, which the same section books as carrying no cell. **Their own trace line places them, so the map owes no act here.**
+  * Net change: one new tracked document, one pointer paragraph in the inventory's preamble, one index row in [the document index](../README.md), and one reuse-note sentence in each of M4.4, Q19c, M6.2b-i and U-10. No register, spec, coverage-matrix, crown-jewel or absence-contract edit: the review gate is not re-entered and the co-read ledger is unmoved.
+  * Exit evidence: `python tools/check.py` green read-only, exiting 0, with K-12 resolving the new document's links and fragments and K-40 clean; `python tools/run.py coread` reporting all **1452** pairs last read as they stand. No guest measurement is owed: nothing the item changes reaches the model, the RTL or a toolchain.
   * Three findings.
-    * **The survey's strongest language sources point at obligations no cell prices.** RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified Rust and refinement results the sweep added, and every one of them resolves to an obligation booked outside the priced total. That is a finding about the survey and never a reason to open a cell: a source aimed at an unpriced obligation is a reading, and pricing a cell because a source now exists for it would be the survey opening a cell, which the plan refuses in as many words.
-    * **Two of the four consumers were holding their source already before this act ran.** R-18-018's fourth sub-deliverable names VerusBelt in the register itself, and Q19c's cell names Diaframe and states its terms at the PLDI 2022 deposit. The conventions give an existing start-from no second discount, so what the record adds at those two is the qualification standing behind a name the corpus already carried, which narrows what the cell may reach for and removes nothing.
-    * **A repair to this record's own overclaim is the reason the section-8 paragraph reads as it does.** An earlier draft reported R-05-119 and R-05-121 as an obligation the map books nowhere and left its placement to the map owner. The register's trace lines decide it, and a false gap reported against another artifact is worse than a gap left unreported, because the artifact is correct where it sits and nothing later contradicts it.
+    * **The survey's strongest language sources point at obligations no cell prices.** RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified Rust and refinement results the sweep added, and every one resolves to an obligation booked outside the priced total. That is a finding about the survey, not a reason to open a cell: the plan refuses to let the survey open one.
+    * **Two of the four consumers already held their source before this act ran.** R-18-018's fourth sub-deliverable names VerusBelt in the register itself, and Q19c's cell names Diaframe and states its terms at the PLDI 2022 deposit. The conventions give an existing start-from no second discount, so the record adds at those two the qualification behind a name the corpus already carried; it narrows what the cell may reach for and removes nothing.
+    * **A repair to this record's own overclaim is why the section-8 paragraph reads as it does.** An earlier draft reported R-05-119 and R-05-121 as an obligation the map books nowhere and left its placement to the map owner. The register's trace lines decide it, and a false gap reported against another artifact is worse than an unreported one, because the artifact is correct where it sits and nothing later contradicts it.
 
-The measured intervals are 2026-09-14 06:48:29-07:04:13, 07:15:32-07:24:39, 13:01:29-13:07:52 UTC for the authoring, review and repair passes, 1874 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
+The measured intervals are 2026-09-14 06:48:29-07:04:13, 07:15:32-07:24:39, 13:01:29-13:07:52 UTC for the authoring, review and repair passes, 1874 seconds summed, rounded upward to 0.6 h on the agent-parallel clock. The preceding survey pass is not in the figure: the convention's clock is these three passes.
 
-Landed: Tier A. The record states which open cell each newly qualified source bears on, which is a new claim per source rather than a derived figure another artifact owns, so it took a full attended read. K-12 holds only that its citations resolve and no rule reaches what it asserts about bearing, so the fourth Tier-B condition is unmet and no checker rule is added or owed.
+Landed: Tier A. The record states which open cell each newly qualified source bears on, a new claim per source, so it took a full attended read. K-12 holds only that its citations resolve and no rule reaches what it asserts about bearing, so the fourth Tier-B condition is unmet and no checker rule is added or owed.
 
 #### Q27c · Record which candidate's terms decide which consumer
 
@@ -1797,8 +1797,8 @@ SMTCoq's CeCILL-C reaches Q3b only to the extent Q3b takes the plugin rather tha
 the style, no landed artifact depending on it: `run.py model smt` puts the
 transcribed suite to a solver directly and imports no witness. DeepSEA and the
 CertiSuSLik backends are the two candidates with no licence file of their own, so
-each owes a first reading rather than a re-reading, and the backends sit in three
-trees separate from the synthesizer's whose BSD-2-Clause is therefore not theirs.
+each owes a first reading, and the backends sit in three trees separate from the
+synthesizer's, whose BSD-2-Clause is therefore not theirs.
 The CADE-26 line's Rocq checker is unread and names the archive that would be
 opened. No reading is performed in advance of its milestone, and no row of the
 tables above it moves.
@@ -1807,7 +1807,7 @@ Three shapes are carried with their consumers: a copyleft term on a proof-surfac
 dependency deciding that dependency's consumer, a non-commercial term foreclosing
 vendoring outright rather than pricing it, and an absent term not being a
 permissive one. The `GPL v2` reading of the older CompCert copy DeepSEA vendors
-is carried as the plan's Q27c cell's and not as a reading taken in this record.
+is carried as the plan's Q27c cell's, not as a reading taken in this record.
 
 Authoring commit `ebcbdfd` passes the focused document checker without drift.
 Independent review at that commit accepts the five surviving rows, the three
@@ -1821,20 +1821,19 @@ reports all pairs standing as they were.
 The measured intervals are 2026-09-14 06:42:40–06:48:01, 06:53:32–07:00:13 and
 07:07:13–07:12:59 UTC for the authoring, review and repair passes, 1068 seconds
 summed, rounded upward to 0.3 h on the agent-parallel clock. The preceding survey
-pass is not in the figure, the clock being the three passes the convention names.
-No pass of this item stalled, so the summed session wall-clock is its working
-time. The five rows' readings stay owed at the milestones their consumers sit in,
-and nothing is incorporated, pinned, vendored or fetched by this item.
+pass is not in the figure: the convention's clock is these three passes. No pass stalled, so the summed session wall-clock is
+its working time. The five rows' readings stay owed at the milestones their
+consumers sit in; this item incorporates, pins, vendors and fetches nothing.
 
   * Finding: the record gave CakePB and VeriPB a row deciding Q5b, splitting a
     class its own sources hold together. The plan's Q27a bullet, the static-memory
     research reading and the cited F07 all dispose of CakePB on its HOL4 prover
-    before any yield is weighed, which is the same ground the record's closing
+    before any yield is weighed, the same ground the record's closing
     paragraph uses to exclude the Lean checkers. Both names move to that paragraph
     with the ground named. F-357.
 
 Landed: Tier A. The record states new claims about which upstream's terms reach
-which open cell, so it took a full attended read rather than a spot read of its
+which open cell, so it took a full attended read, not a spot read of its
 findings.
 
 #### Q28a · Bind one cryptographic claim to its concrete premise dossier
@@ -1851,16 +1850,16 @@ no upstream code or proof.
 [OracleInstantiation.v](../../proofs/OracleInstantiation.v) supplies the
 required finite oracle case: the ideal fresh answer's prediction bound has
 no global axioms, while replacing its distribution by a constant oracle
-refutes the transferred conclusion. This is a model-boundary witness and
-not a GCM security proof. The dossier also records change-to-claim
+refutes the transferred conclusion. This is a model-boundary witness, not a
+GCM security proof. The dossier also records change-to-claim
 invalidation and a creation-based stored-secret horizon review covering
 captured ciphertext, controlled copies, key destruction, support and update
 budgets, and the immutable verifier. Other cryptographic consumers remain
-explicitly outside the pilot.
+outside the pilot.
 
 The Tier-A reading checks the dossier against R-05-162a, R-17-049e through
-R-17-049g and the three Q28a acceptance bullets at the input revision. The
-outcome accepts the dossier and refuses numerical/deployment qualification:
+R-17-049g and the three Q28a acceptance bullets at the input revision. It
+accepts the dossier and refuses numerical/deployment qualification:
 resource limits, production correspondence, cryptographic reductions and
 physical/support evidence remain with their existing owners. No requirement,
 coverage cell, crown-jewel status or co-read pair changes.
@@ -1873,8 +1872,7 @@ OracleInstantiation.v contributes nine enumerated constants, all closed
 under the global context, and the full kernel recheck passed. After generated
 repairs, `python tools/run.py --check --summary out/q28a-host-gate.json`
 passed the checker, mutation selftest and Python checks. Target execution and
-complete cryptographic reductions are outside the accepted dossier and remain
-deferred.
+complete cryptographic reductions are outside the accepted dossier and remain deferred.
 
 Accounting: the original estimate is 14 h, range 8–20. No complete session
 timer covers the initial candidate survey and source selection, so the
@@ -1907,7 +1905,7 @@ unchanged.
 
 The prerequisite ledger retains existing owners and estimates, and assigns
 conditional, separately priced browser packages outside the checklist totals.
-In particular U-15/U-16 supply the Wasm route and semantics, not its interpreter
+U-15/U-16 supply the Wasm route and semantics, not its interpreter
 or two required theorems; U-12/U-13/U-14 supply parser foundation work. The Rust
 route has its own opening decision because the C backend cannot supply it.
 These assignments release contract-based preparation only. Missing machine
@@ -1930,8 +1928,8 @@ the Q29b/Q29c corpus are deferred to their named owners.
 
 Accounting: the original estimate was 12 h, range 8–16. No reliable exclusive
 session duration was captured, so the cell retains that planning estimate with
-actual `n/a` and is excluded from the calibration fit. This is completion of the
-contract-authoring item, not a measured implementation saving.
+actual `n/a` and is excluded from the calibration fit. This completes a
+contract-authoring item and is not a measured implementation saving.
 
 Landed: Tier A. The full read accepts a bounded qualification contract and its
 opening assignments; it confers no browser implementation or admission proof.
@@ -1993,8 +1991,8 @@ contexts, ordinary capability-bearing memory inside and outside the retired
 interval, minting roots, loans, proxies and devices. Receipt correspondence and
 derivation closure remain implementation premises. Q32b and existing runtime
 owners retain the physical inventory, durable-byte, schedule and forward-simulation
-proofs; Q32c retains concrete presets and measurements. No application port,
-universal allocator or production checker is supplied by this landing.
+proofs; Q32c retains concrete presets and measurements. This landing supplies no
+application port, universal allocator or production checker.
 
 Exit evidence at `8e76b43b`: independent native compilation and `rocqchk` passed;
 the repository's native source audit enumerated this file's 252 constants with
@@ -2029,7 +2027,7 @@ interfaces, not the open operational pilot or measured reclamation economics.
 
 #### Q34a · Author the elastic-domain contract
 
-  * **The contract is a statement artifact that extends the tree's vocabularies rather than copying them.** [ElasticDomain.v](../../proofs/ElasticDomain.v) requires [PartitionContext.v](../../proofs/PartitionContext.v), [CyclicExecutive.v](../../proofs/CyclicExecutive.v) and [MemoryPlan.v](../../proofs/MemoryPlan.v):
+  * **The contract is a statement artifact that extends the tree's vocabularies.** [ElasticDomain.v](../../proofs/ElasticDomain.v) requires [PartitionContext.v](../../proofs/PartitionContext.v), [CyclicExecutive.v](../../proofs/CyclicExecutive.v) and [MemoryPlan.v](../../proofs/MemoryPlan.v):
     * PartitionContext.v's `Rotation`, `Action` and `constants_paid` are the intra-slot step and its price.
     * CyclicExecutive.v's `Slot`, `Frame` and `slot_index_at` are the envelope's geometry.
     * MemoryPlan.v's `MemClass` and `representable_granule` index the pool extents and decide whether a size class is exact.
@@ -2052,7 +2050,7 @@ interfaces, not the open operational pilot or measured reclamation economics.
     * a pool capability reaching a fixed-tier partition through a capability-slot endpoint or a store-permitted window.
 
     Each pool refutation breaks exactly one guarantee and is proved to keep the other three. R-07-037h's own refusals are exhibited as well: an unpolled back-edge, a reaction above the bound, a costly exit block, and a sink that loops back to a tentative poll site without yielding, which passes every other conjunct.
-  * **Independent review found two blocking defects, and both were repaired before landing:**
+  * **Independent review found two blocking defects, both repaired before landing:**
     * **The yield-bound statement counted no exit block**, so a graph with a poll-free path costing 101 was admitted at a yield bound of 1. A reaction that ends at an exit now counts the exit block.
     * **The third finding attributed a starvation to the register that follows from the statement's own leave accounting**, which applies no virtual-time adjustment at a leave. The accounting is now recorded as a departure from EEVDF's published leave rule, and the finding asks which lag the share bound quantifies.
 
@@ -2078,8 +2076,8 @@ Landed: Tier A. No checker rule was added, and none holds what this item created
 
 The record re-reads the source-level route R-06-012, R-10-008 and R-18-026 name, reads the inputs of the binary-level route R-07-050 and R-05-023a already require, and assigns every authored C object an owner. It moves no register entry. Its readings are guest commands, source reads and, for VST's `msl/Axioms.v` and the CHERI instantiation search, web reads, taken on 2026-09-28 by read-only lanes; an independent verifier repeated each except the two searches. The solver readings are simulations, and no build of VST or CompCert ran.
 
-* **Installation.** In the proof switch as `05e8be26`'s lock records it, with no Sail support library, against opam metadata last updated 2026-09-27, `opam install coq-vst --dry-run --show-actions` selects `coq-vst` 2.17 and installs 14 packages, `coq-compcert` 3.18 among them, removing and upgrading none. 2.17 is VST's non-Iris line, dated 2026-09-22 in its opam metadata, after the reading M3.4c-i records; that is why the solver's choice moved. The Iris line still does not install beside the prover: for `rocq-vst` 3.2beta the solver finds no solution, its CompCert range needing OCaml below 5, and an explicit `coq-vst` 3.1beta request still replaces the prover with Coq 8.20.1. `coq-compcert` 3.18 bounds Rocq below 9.3, the upgrade [the opam guide](../../tools/opam/README.md) records as motivated, and carries CompCert's non-commercial agreement into any switch that installs it.
-* **Assumptions.** VST 2.17's `msl/Axioms.v` declares `prop_ext` and re-exports functional extensionality. CompCert 3.18's `lib/Axioms.v`, which `common/Memory.v` requires, declares `proof_irr`; its `common/Events.v`, which `cfrontend/Clight.v` requires, declares the parameters `external_functions_sem` and `inline_assembly_sem` and the axioms `external_functions_properties` and `inline_assembly_properties`; and the `Archi.v` of each of three configurations adds a parameter, `abi` on the guest's aarch64, `win64` on x86_64 and `ptr64` on RISC-V. M1.2g-i's audit of the contained compiler's memory propositions also reached `Classical_Prop.classic`, `functional_extensionality_dep`, `sig_not_dec` and `sig_forall_dec`. These are source readings, not an exhaustive closure, which Q35e measures. The gate reads the kernel checker's whole-environment summary and refuses any loaded axiom or parameter outside R-05-164's declared set whether or not a theorem uses it, and that set is empty. R-05-162a's *Ax* classes carry no logical axiom.
+* **Installation.** In the proof switch as `05e8be26`'s lock records it, with no Sail support library, against opam metadata last updated 2026-09-27, `opam install coq-vst --dry-run --show-actions` selects `coq-vst` 2.17 and installs 14 packages, `coq-compcert` 3.18 among them, removing and upgrading none. 2.17 is VST's non-Iris line, dated 2026-09-22 in its opam metadata, after the reading M3.4c-i records, which is why the solver's choice moved. The Iris line still does not install beside the prover: for `rocq-vst` 3.2beta the solver finds no solution, its CompCert range needing OCaml below 5, and an explicit `coq-vst` 3.1beta request still replaces the prover with Coq 8.20.1. `coq-compcert` 3.18 bounds Rocq below 9.3, the upgrade [the opam guide](../../tools/opam/README.md) records as motivated, and carries CompCert's non-commercial agreement into any switch that installs it.
+* **Assumptions.** VST 2.17's `msl/Axioms.v` declares `prop_ext` and re-exports functional extensionality. CompCert 3.18's `lib/Axioms.v`, which `common/Memory.v` requires, declares `proof_irr`; its `common/Events.v`, which `cfrontend/Clight.v` requires, declares the parameters `external_functions_sem` and `inline_assembly_sem` and the axioms `external_functions_properties` and `inline_assembly_properties`; and the `Archi.v` of each of three configurations adds a parameter, `abi` on the guest's aarch64, `win64` on x86_64 and `ptr64` on RISC-V. M1.2g-i's audit of the contained compiler's memory propositions also reached `Classical_Prop.classic`, `functional_extensionality_dep`, `sig_not_dec` and `sig_forall_dec`. These are source readings, not an exhaustive closure, which Q35e measures. The gate reads the kernel checker's whole-environment summary and refuses any loaded axiom or parameter outside R-05-164's declared set, used or not, and that set is empty. R-05-162a's *Ax* classes carry no logical axiom.
 * **Semantic subject.** The opam CompCert is configured for its build host, aarch64 in the guest and amd64 on hosted runners, so a stock VST proof is stated over that host's Clight. The contained compiler's Clight is SECOMP's compartment-annotated one, with a compartment argument to allocation, over a value type M1.2g extended with a capability constructor; the two are different terms and nothing bridges them. Two web searches on 2026-09-28, `Verified Software Toolchain VST CHERI capability memory model Verifiable C` and `"VST" "CHERI" separation logic CompCert Clight capabilities Coq Rocq`, found no VST instantiation over a CHERI memory model; that bounds the search and does not establish absence. The contained backend's correctness proof is deferred hardening, so R-05-001's certificate is owed whichever program logic is chosen.
 * **The binary-level route's inputs.** Sail 0.20.2 carries its Rocq backend and the model defines a Rocq target, but no emitted term exists, the proof switch carries no Sail support library, no switch holds Iris, and Islaris and Isla have no pin. No proof relates an executive function or its binary to CyclicExecutive.v; the host differential and the target runs are the evidence. At `05e8be26`, counting non-blank non-label lines from each function's label to the next blank line in [the kernel corpus member](../../corpus/kernel-instance.s), `vos_slot_disjoint` is 40 instructions with no loop, call, CSR or MMIO access and `vos_frame_pairwise_disjoint` is 86 with nested loops calling it, both reached on the boot path; `vos_slot_index_at`, at 58, is referenced by no call in that member. Smaller live functions exist, the extent checks among them; Q35d takes these two as a loop-free executive function and the nested-loop function that calls it, each matching a whole definition in CyclicExecutive.v. The model's support library loads Stdlib axioms of its own, which Q35b classifies with the emitted ones.
 * **Assignment.** The kernel's shipped C is trusted and takes the route the review gate's register acts select from Q35d's and Q35e's results; the firmware's shipped C stays on the source-level route Q35e qualifies unless a register act names it. The supervisor's shipped C is M6.1b's comparison oracle and M8a route, with M6.1b-iii repairing the exchange to Vélus, and `supervisor/route/oracle.c` is the route trial's oracle. The copy service's shipped C is contained, its R-12-002 safe-Rust obligation staying with the deferred certifying Rust toolchain. The `test/` and `harness/` C under the kernel, the firmware, the supervisor and the copy service is harness code run on the host or the target, except `kernel/test/target_unit.c`, the translation unit that includes the shipped kernel sources the corpus member records; none of it ships otherwise. The C under `model/` is emulator support, and the authored C under `tools/`, M1.2f's IPC differential oracle and Q2a's Bedrock2 lowering harness, is test code; neither ships in an image.
