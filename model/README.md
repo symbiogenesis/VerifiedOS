@@ -117,101 +117,29 @@ information.
 
 ## Supported RISC-V ISA features
 
-### The Sail specification currently captures the following ISA extensions and features:
+The `enum clause extension` declarations in
+[`core/extensions.sail`](model/core/extensions.sail) are the extensions
+these sources capture, each followed by the `hartSupports` clause that
+decides whether a hart supports it. Some name a property of the
+implementation rather than instructions, and the shorthand extensions
+are supported exactly when their components are. The RV64I base, the
+CHERI capability extension and the platform's custom instructions have
+no entry there: the capability format, registers and checks are core
+([`core/cap_format.sail`](model/core/cap_format.sail)), the capability
+instructions are under [`extensions/CHERI`](model/extensions/CHERI), and
+[`riscv.sail_project`](model/riscv.sail_project) names every module.
 
-- RV32I and RV64I base ISAs, v2.1
-- RV32E and RV64E base ISAs, v2.0
-- Zifencei extension for instruction-fetch fence, v2.0
-- Zicsr extension for CSR instructions, v2.0
-- Zicntr and Zihpm extensions for counters, v2.0
-- Zicond extension for integer conditional operations, v1.0
-- Zic64b extension for Cache block size is 64 bytes, v1.0
-- Zicbom, Zicbop and Zicboz extensions for cache-block management, v1.0
-- Ziccamoa extension for Main memory supports all atomics in Zaamo, v1.0
-- Ziccamoc extension for Main memory supports atomics in Zacas, v1.0
-- Ziccif extension for Main memory supports instruction fetch with atomicity requirement, v1.0
-- Zicclsm extension for Main memory misaligned accesses, v1.0
-- Ziccrse extension for Main memory regions with both the cacheability and coherence PMAs must support RsrvEventual, v1.0
-- Zicfilp extension for Landing Pad Control Flow Integrity, v1.0
-- Zicfiss extension for Shadow Stack Control Flow Integrity, v1.0
-- Zimop extension for May-Be-Operations, v1.0
-- Zihintntl extension for Non-temporal Locality Hints, v1.0
-- Zihintpause extension for Pause Hint, v2.0
-- M extension for integer multiplication and division, v2.0
-- Zmmul extension for integer multiplication only, v1.0
-- A extension for atomic instructions, v2.1
-- Zalrsc extension for load-reserved and store-conditional operations, v1.0
-- Zaamo extension for atomic memory operations, v1.0
-- Za64rs extension for reservation sets that are contiguous, naturally aligned, and a maximum of 64 bytes, v1.0
-- Za128rs extension for reservation sets that are contiguous, naturally aligned, and at most 128 bytes in size, v1.0
-- Zama16b extension for 16-byte Misaligned Atomicity, v1.0
-- Zawrs extension for Wait-on-Reservation-Set instructions, v1.01
-- Zabha extension for byte and halfword atomic memory operations, v1.0
-- Zacas extension atomic Compare-and-Swap (CAS) instructions, v1.0.0
-- F and D extensions for single and double-precision floating-point, v2.2
-- Zfh and Zfhmin extensions for half-precision floating-point, v1.0
-- Zfa extension for additional floating-point instructions, v1.0
-- Zfbfmin extension for scalar bf16 converts, v1.0
-- Zfinx, Zdinx, Zhinx, and Zhinxmin extensions for floating-point in integer registers, v1.0
-- C extension for compressed instructions, v2.0
-- Zca, Zcf, Zcd, and Zcb extensions for code size reduction, v1.0
-- Zcmop extension for compressed May-Be-Operations, v1.0
-- B (Zba, Zbb, Zbs) and Zbc extensions for bit manipulation, v1.0
-- Zbkb, Zbkc, and Zbkx extensions for bit manipulation for cryptography, v1.0
-- Zkn (Zknd, Zkne, Zknh) and Zks (Zksed, Zksh) extensions for scalar cryptography, v1.0.1
-- Zkr extension for entropy source, v1.0
-- Zkt extension for data independent execution latency, v1.0 (no impact on model)
-- V extension for vector operations, v1.0
-- Zve32x, Zve32f, Zve64x, Zve64f, and Zve64d extensions for vector operations on embedded processors, v1.0
-- Zvl32b, Zvl64b, Zvl128b, Zvl256b, Zvl512b, and Zvl1024b extensions for minimum vector length, v1.0
-- Zvfbfmin extension for vector BF16 Converts, v1.0
-- Zvfbfwma extension for Vector BF16 widening mul-add, v1.0
-- Zvfh and Zvfhmin extensions for vector half-precision floating-point operations, v1.0
-- Zvbb extension for vector basic bit-manipulation, v1.0
-- Zvbc extension for vector carryless multiplication, v1.0
-- Zvkb extension for vector cryptography bit-manipulation, v1.0
-- Zvkg extension for vector GCM/GMAC, v1.0
-- Zvkn extension for vector cryptography NIST Algorithm Suite
-- Zvknc extension for vector cryptography NIST Algorithm Suite with carryless multiply
-- Zvkned extension for vector cryptography NIST Suite: Vector AES Block Cipher, v1.0
-- Zvkng extension for vector cryptography NIST Algorithm Suite with GCM
-- Zvknha and Zvknhb extensions for vector cryptography NIST Suite: Vector SHA-2 Secure Hash, v1.0
-- Zvks extension for vector cryptography ShangMi Algorithm Suite
-- Zvksc extension for vector cryptography ShangMi Algorithm Suite with carryless multiplication
-- Zvksed extension for vector cryptography ShangMi Suite: SM4 Block Cipher, v1.0
-- Zvksg extension for vector cryptography ShangMi Algorithm Suite with GCM
-- Zvksh extension for vector cryptography ShangMi Suite: SM3 Secure Hash, v1.0
-- Zvkt extension for vector data independent execution latency, v1.0 (no impact on model)
-- Machine, Supervisor, and User modes
-- Smcntrpmf extension for cycle and instret privilege mode filtering, v1.0
-- Smstateen/Ssstateen extensions for fine-grained privileged state access control, v1.0
-- Ssccptr extension for Main memory supports hardware page table reads, v1.0
-- Sscounterenw extension for writable enables for any supported counter, v1.0
-- Sscofpmf extension for Count Overflow and Mode-Based Filtering, v1.0
-- Ssqosid extension for Quality-of-Service (QoS) Identifiers, v1.0
-- Sstc extension for Supervisor-mode Timer Interrupts, v1.0
-- Sstvala extension for `stval` provides all needed values, v1.0
-- Sstvecd extension for Direct mode support in `stvec.MODE`, v1.0
-- Ssu64xl extension to ensure `sstatus.UXL` is capable of supporting UXLEN=64, v1.0
-- Sv32, Sv39, Sv48 and Sv57 page-based virtual-memory systems
-- Svadu extension for Hardware Updating of A/D Bits, Version 1.0
-- Svade extension for Raise exceptions on improper A/D bits, Version 1.0
-- Svbare extension for Bare mode virtual-memory translation
-- Svinval extension for fine-grained address-translation cache invalidation, v1.0
-- Svnapot extension for NAPOT Translation Contiguity, v1.0
-- Svpbmt extension for Page-Based Memory Types, v1.0
-- Svrsw60t59b extension for PTE reserved-for-software bits 60-59, v1.0
-- Svvptc extension for Obviating Memory-management Instructions after Marking PTEs valid, v1.0
-- Smmpm, Smnpm, Ssnpm, Sspm and Supm extensions for pointer masking, v1.0
-- Physical Memory Protection (PMP)
-- Static memory regions with some static PMAs (Physical Memory Attributes)
+The configurations under [`config`](config) choose among those
+extensions: [`verifiedos.json`](config/verifiedos.json) is the profile
+configuration, and [`verifiedos-v.json`](config/verifiedos-v.json) and
+[`verifiedos-rot.json`](config/verifiedos-rot.json) are its V-class and
+Root of Trust compositions. [The frozen instruction-set
+profile](../docs/hardware/isa-profile.md) is the admitted set the
+curation retains, including the base, the single Machine privilege mode
+and the untranslated physical address space.
 
-The following unratified extensions are supported and can be enabled using the `--enable-experimental-extensions` flag:
-
-- Zibi extension for conditional branches with immediate operands, v0.6
-- Zvabd extension for vector absolute difference, v0.7
-
-**For a list of unsupported extensions and features, see the [Extension Roadmap](https://github.com/riscv/sail-riscv/wiki/Extension-Roadmap).**
+The emulator keeps upstream's `--enable-experimental-extensions` flag,
+but no extension in these sources reads it.
 
 ## Example RISC-V instruction specifications
 
