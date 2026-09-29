@@ -163,20 +163,53 @@ personal skill installation.
   "rejected_strategies": [],
   "last_diagnostic": "",
   "next_action": "retrieve related local examples",
-  "batch_evidence": null
+  "batch_evidence": null,
+  "refutation_evidence": null
 }
 ```
 
 Each attempt records its ordinal, source hash, strategy, command arguments, exit
 code, elapsed seconds and diagnostic or durable log path. Status is `in-progress`,
-`candidate` or `stopped`; none means accepted. The frozen-reading field names the
-base reading's file and digest. The batch-evidence field may link an
+`candidate`, `refuted` or `stopped`; none means accepted. The frozen-reading field
+names the base reading's file and digest. The batch-evidence field may link an
 actual fresh gate receipt and revision after success, but the checkpoint itself
 never substitutes for that evidence. Statement or definition changes require the
 owner's contract review and a new checkpoint; they cannot turn a failed repair
 into a success. Import, configuration or toolchain changes invalidate old feedback
 and require a new environment identity and replay. Search hashes alone cannot
 establish this freshness.
+
+### Refuted statements
+
+A frozen statement can be false, and seeking a refutation is a materially different
+strategy under the same budget. Checked evidence of falsity is a closed declaration
+whose elaborated type is the negation of the frozen elaborated type, with every other
+entry of the [frozen reading](#statement-freeze) unchanged. A concrete counterexample
+counts only inside such a proof, which instantiates the frozen statement at the
+counterexample and derives `False`. A test run, a search result or a solver verdict
+without a checked reconstruction is not evidence. A failed search or an exhausted
+budget is `stopped`, which the
+[typed-hole status vocabulary](../languages/core-design.md#typed-holes-and-invalidation)
+calls unresolved or timed out, never `refuted`.
+
+Set status `refuted` when such a declaration closes, and link its revision and gate
+receipt in the refutation-evidence field. The declaration carries no discharge
+annotation. It replaces the unfinished target in the revision that carries it, since
+an unfinished target fails the gate, and it passes the same fresh gate as a
+candidate: Guest CI with `cold: true`, the exact assumption audit and a retained
+receipt matching the exact inputs. Like `candidate`, the status is a claim until that
+receipt exists; pending is not evidence. A proof of `False` would refute every
+statement, so review also rules out a negation resting on one of the kernel
+inconsistencies the [prover lock's record](../../tools/opam/README.md) names.
+
+A refutation ends the repair and is never a successful one. It leaves the target
+unproved and permits no weakened statement, changed definition or widened assumption.
+It returns to the requirement owner as a finding against the requirement the
+statement formalizes, under the
+[register's rules](../requirements-register.md#how-to-read-this). The owner decides
+whether the statement, an executable definition or the requirement is at fault. The
+review record cites requirement IDs (R-05-152), and any register amendment is decided
+at the review gate (R-05-150), never by the repairing agent.
 
 ## Statement freeze
 
@@ -251,8 +284,11 @@ predicate is:
   qualified name and writes that revision's frozen reading.
   `python tools/run.py proof-freeze compare` takes a recorded reading and exits 0
   only when the working tree's reading is byte-identical to it; otherwise it exits
-  nonzero and names each differing entry. Each entry names the query that produced
-  it, and no entry carries a source location or elapsed time.
+  nonzero and names each differing entry. Given a
+  [refutation's](#refuted-statements) declaration name, `compare` passes only when
+  that declaration's elaborated type is the negation of the recorded type and every
+  other entry matches. Each entry names the query that produced it, and no entry
+  carries a source location or elapsed time.
 - The command reads the named revision's proof sources through Git, or the working
   tree's for `compare`, without changing the checkout. It compiles them with the
   pinned prover and the proof gate's flags in its own directory of the lane's native
@@ -270,12 +306,13 @@ predicate is:
   type the statement names redefined in its module, a shadowing declaration placed
   before the statement, a changed body of a transparent definition in the statement's
   reach, a changed `Import`, notation or scope that re-elaborates the statement, a
-  changed implicit-argument or coercion declaration, and a proof body that adds a
-  constraint among the statement's universes. A changed opaque proof script, an added
-  helper outside the statement's reach and reformatted statement text pass. Each
-  refusal above has a case. Native cases run against the pinned prover in the
-  toolchain test lane, and Windows and Ubuntu Host CI validate the settled
-  implementation.
+  changed implicit-argument or coercion declaration, a proof body that adds a
+  constraint among the statement's universes, and a refutation whose type is not the
+  negation of the recorded type. A changed opaque proof script, an added helper
+  outside the statement's reach, reformatted statement text and a refutation of the
+  recorded type pass. Each refusal above has a case. Native cases run against the
+  pinned prover in the toolchain test lane, and Windows and Ubuntu Host CI validate
+  the settled implementation.
 - The delivery adds one guest row to the [command table](../../tools/vos/commands.py).
   By that module's own contract a row changes no command's import closure, so the row
   leaves the proof gate's implementation identity unchanged. An edit to any module
@@ -369,8 +406,8 @@ what a file discusses, not what a retrieved declaration discharges.
 Freeze the intended theorem statement, executable definitions and allowed
 assumptions before repairing a proof, and compare their
 [frozen reading](#statement-freeze) rather than their source text. A necessary
-contract change returns to its
-requirement owner for review; it is not a successful proof repair. R-05-166's
+contract change or a [checked refutation](#refuted-statements) returns to its
+requirement owner for review; neither is a successful proof repair. R-05-166's
 inhabitation and distinguishing rejected examples remain required, together with
 the requirement-to-contract review. Never use an upstream verifier's general
 allowlist of classical axioms in place of the repository's exact assumption audit.
