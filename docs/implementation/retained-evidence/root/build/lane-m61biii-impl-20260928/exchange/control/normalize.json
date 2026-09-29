@@ -1,0 +1,233 @@
+{
+  "normalizer": "supervisor/route/normalize.py",
+  "input": {
+    "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+    "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+    "bytes": 2032
+  },
+  "output": {
+    "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+    "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+    "bytes": 1804
+  },
+  "removed": 19,
+  "kept": 5,
+  "sites": [
+    {
+      "line": 8,
+      "column": 22,
+      "kind": "member",
+      "declaration": "struct",
+      "owner": "struct control",
+      "type": "unsigned long long",
+      "action": "kept"
+    },
+    {
+      "line": 13,
+      "column": 22,
+      "kind": "member",
+      "declaration": "struct",
+      "owner": "struct fun$step$control",
+      "type": "unsigned long long",
+      "action": "kept"
+    },
+    {
+      "line": 14,
+      "column": 22,
+      "kind": "member",
+      "declaration": "struct",
+      "owner": "struct fun$step$control",
+      "type": "unsigned long long",
+      "action": "kept"
+    },
+    {
+      "line": 15,
+      "column": 22,
+      "kind": "member",
+      "declaration": "struct",
+      "owner": "struct fun$step$control",
+      "type": "unsigned long long",
+      "action": "kept"
+    },
+    {
+      "line": 17,
+      "column": 13,
+      "kind": "member",
+      "declaration": "struct",
+      "owner": "struct fun$step$control",
+      "type": "long long",
+      "action": "kept"
+    },
+    {
+      "line": 21,
+      "column": 27,
+      "kind": "return",
+      "declaration": "extern",
+      "owner": "mix64",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 21,
+      "column": 64,
+      "kind": "parameter",
+      "declaration": "extern",
+      "owner": "mix64",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 21,
+      "column": 96,
+      "kind": "parameter",
+      "declaration": "extern",
+      "owner": "mix64",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 22,
+      "column": 20,
+      "kind": "return",
+      "declaration": "prototype",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 22,
+      "column": 96,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 24,
+      "column": 87,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 24,
+      "column": 119,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 24,
+      "column": 156,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "action": "removed"
+    },
+    {
+      "line": 26,
+      "column": 20,
+      "kind": "return",
+      "declaration": "definition",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 26,
+      "column": 109,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 28,
+      "column": 31,
+      "kind": "register",
+      "declaration": "body",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 29,
+      "column": 28,
+      "kind": "cast",
+      "declaration": "body",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 38,
+      "column": 106,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 38,
+      "column": 140,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 38,
+      "column": 181,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "action": "removed"
+    },
+    {
+      "line": 40,
+      "column": 31,
+      "kind": "register",
+      "declaration": "body",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 41,
+      "column": 31,
+      "kind": "register",
+      "declaration": "body",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 42,
+      "column": 31,
+      "kind": "register",
+      "declaration": "body",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 43,
+      "column": 36,
+      "kind": "cast",
+      "declaration": "body",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "action": "removed"
+    }
+  ]
+}

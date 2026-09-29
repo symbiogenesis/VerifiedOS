@@ -1,0 +1,689 @@
+{
+  "stage": "tool-equivalence",
+  "start_utc": "2026-09-29T03:15:13+00:00",
+  "repaired_revision": "a8f94e95a2a3ba76c74907afa08e40a70e887e6d",
+  "frozen_revision": "d590c46386f047388d01107f72c3609fdf7da2ed",
+  "tools": {
+    "supervisor/route/normalize.py": {
+      "frozen": "ed8ad840ad23dbe2858a17bd0354db80c6b66948ab5193ea383542b46f893601",
+      "repaired": "88f03c2d69e16057e8568b7f7b0909312995429b603e31d867cec1d1992b5af8"
+    },
+    "supervisor/route/token_compare.py": {
+      "frozen": "ef86954923eccae82aecadbecb5993eeac4cddcc3e2ca1539e3bc5bcf1d1e0e5",
+      "repaired": "580d377b8e94ff7a91f58d243236c157db482ebf5e1d8a850b45d20d56fc5b1f"
+    },
+    "supervisor/route/control.py": {
+      "frozen": "30314c0090aed494eb28d664dc350717a13fb47279d73965e61dcd731c4f32aa",
+      "repaired": "7d49edffbe2337675d1b742fb73fbba338d88b98fe60b1e71baa968d884b683a"
+    }
+  },
+  "python3": {
+    "path": "/usr/bin/python3.14",
+    "sha256": "d1b87c365d0cf5a985cfedfc227ff613a5bc6ff56e841202eb9330d263bbeee9",
+    "bytes": 7503184
+  },
+  "clang": {
+    "path": "/usr/bin/clang",
+    "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+    "bytes": 131832
+  },
+  "runs": [
+    {
+      "run": "node",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+        "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+        "bytes": 2329
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/node.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/node.json"
+        ],
+        "exit": 0,
+        "output_sha256": "ae7d825a615c309a0378d73d6339b5388a56fcfd5b38fc4623de4036a928352b",
+        "output_bytes": 40,
+        "wrote_output": true,
+        "written_sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/node.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/node.json"
+        ],
+        "exit": 0,
+        "output_sha256": "ae7d825a615c309a0378d73d6339b5388a56fcfd5b38fc4623de4036a928352b",
+        "output_bytes": 40,
+        "wrote_output": true,
+        "written_sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "ae7d825a615c309a0378d73d6339b5388a56fcfd5b38fc4623de4036a928352b",
+        "output_matches_log": true,
+        "written_sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+        "written_matches": true,
+        "record_matches": true
+      }
+    },
+    {
+      "run": "control",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+        "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+        "bytes": 2032
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/control.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/control.json"
+        ],
+        "exit": 0,
+        "output_sha256": "3e4cde0d50ff3986934f90218407403823b47d4bd501eef5371bf9b2342c57dc",
+        "output_bytes": 41,
+        "wrote_output": true,
+        "written_sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/control.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/control.json"
+        ],
+        "exit": 0,
+        "output_sha256": "3e4cde0d50ff3986934f90218407403823b47d4bd501eef5371bf9b2342c57dc",
+        "output_bytes": 41,
+        "wrote_output": true,
+        "written_sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "3e4cde0d50ff3986934f90218407403823b47d4bd501eef5371bf9b2342c57dc",
+        "output_matches_log": true,
+        "written_sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+        "written_matches": true,
+        "record_matches": true
+      }
+    },
+    {
+      "run": "alignment-16-parameter",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.c",
+        "sha256": "3c97ae50d9850c3316c9f212278e230086621c7fd0cbfe41cb26ebd67c75cc8a",
+        "bytes": 2330
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/alignment-16-parameter.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "34d27ef3cbd85e1c808bb860dc4e56944234707d75a1bf9526cd7a50ca89a9bb",
+        "output_bytes": 229,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/alignment-16-parameter.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "34d27ef3cbd85e1c808bb860dc4e56944234707d75a1bf9526cd7a50ca89a9bb",
+        "output_bytes": 229,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "34d27ef3cbd85e1c808bb860dc4e56944234707d75a1bf9526cd7a50ca89a9bb",
+        "output_matches_log": true,
+        "written_sha256": null,
+        "written_matches": true
+      }
+    },
+    {
+      "run": "alignment-4-on-32-bit-parameter",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.c",
+        "sha256": "3ca9d8e64838ac93ec165b29816ba06b0a94490b972eb837f113999f89a8fd8d",
+        "bytes": 2341
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/alignment-4-on-32-bit-parameter.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "83b48f3a044b4970ea6db9af9cd96adddb6a77a03812e841ffb7efed0117e84c",
+        "output_bytes": 265,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/alignment-4-on-32-bit-parameter.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "83b48f3a044b4970ea6db9af9cd96adddb6a77a03812e841ffb7efed0117e84c",
+        "output_bytes": 265,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "83b48f3a044b4970ea6db9af9cd96adddb6a77a03812e841ffb7efed0117e84c",
+        "output_matches_log": true,
+        "written_sha256": null,
+        "written_matches": true
+      }
+    },
+    {
+      "run": "alignment-8-on-32-bit-parameter",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.c",
+        "sha256": "7c34a48eacb223f57518c028f7ede2559cb70ab2011282b85bae243100ec50f1",
+        "bytes": 2341
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/alignment-8-on-32-bit-parameter.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "63f3e89f4978c7e6906fd9fe3bd3d89166d345a3508fa049550664799fb8c581",
+        "output_bytes": 265,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/alignment-8-on-32-bit-parameter.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "63f3e89f4978c7e6906fd9fe3bd3d89166d345a3508fa049550664799fb8c581",
+        "output_bytes": 265,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "63f3e89f4978c7e6906fd9fe3bd3d89166d345a3508fa049550664799fb8c581",
+        "output_matches_log": true,
+        "written_sha256": null,
+        "written_matches": true
+      }
+    },
+    {
+      "run": "file-scope-object-alignment",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.c",
+        "sha256": "33a97c0e56b1613d024d6ca200dfcfdc01f7efba237fbdfaaa3dc9f57502f81b",
+        "bytes": 2371
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/file-scope-object-alignment.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "9161e6e6c7ca3ef180b5f6e1fe0b99d74484dec6ebe0c4ce7480c6b3727cf9ec",
+        "output_bytes": 190,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/file-scope-object-alignment.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "9161e6e6c7ca3ef180b5f6e1fe0b99d74484dec6ebe0c4ce7480c6b3727cf9ec",
+        "output_bytes": 190,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "9161e6e6c7ca3ef180b5f6e1fe0b99d74484dec6ebe0c4ce7480c6b3727cf9ec",
+        "output_matches_log": true,
+        "written_sha256": null,
+        "written_matches": true
+      }
+    },
+    {
+      "run": "file-scope-structure-alignment",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.c",
+        "sha256": "049253f723acda5af0e03e3876a0c69bae7c66d690afa0569555679008db8021",
+        "bytes": 2341
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/file-scope-structure-alignment.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "ccd74e548a215678e0dce88bb8996d2ccd0f4403d695d799dabbfe1d75784b2e",
+        "output_bytes": 165,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/file-scope-structure-alignment.out.c"
+        ],
+        "exit": 2,
+        "output_sha256": "ccd74e548a215678e0dce88bb8996d2ccd0f4403d695d799dabbfe1d75784b2e",
+        "output_bytes": 165,
+        "wrote_output": false,
+        "written_sha256": null
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "ccd74e548a215678e0dce88bb8996d2ccd0f4403d695d799dabbfe1d75784b2e",
+        "output_matches_log": true,
+        "written_sha256": null,
+        "written_matches": true
+      }
+    },
+    {
+      "run": "node-identity",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+        "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+        "bytes": 2281
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/node-identity.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/node-identity.json"
+        ],
+        "exit": 0,
+        "output_sha256": "71fc416016e35e04443acf9a83798fc336f6a509afb25d48aa57db2e286baa0a",
+        "output_bytes": 40,
+        "wrote_output": true,
+        "written_sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/node-identity.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/node-identity.json"
+        ],
+        "exit": 0,
+        "output_sha256": "71fc416016e35e04443acf9a83798fc336f6a509afb25d48aa57db2e286baa0a",
+        "output_bytes": 40,
+        "wrote_output": true,
+        "written_sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "71fc416016e35e04443acf9a83798fc336f6a509afb25d48aa57db2e286baa0a",
+        "output_matches_log": true,
+        "written_sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+        "written_matches": true,
+        "record_matches": true
+      }
+    },
+    {
+      "run": "control-identity",
+      "tool": "normalize.py",
+      "input": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+        "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+        "bytes": 1804
+      },
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/control-identity.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/normalize/control-identity.json"
+        ],
+        "exit": 0,
+        "output_sha256": "9e3f187482b6a1518fa056682666161413a5601ffee7b4a04240245fc98cbf59",
+        "output_bytes": 40,
+        "wrote_output": true,
+        "written_sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/control-identity.out.c",
+          "--record",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/normalize/control-identity.json"
+        ],
+        "exit": 0,
+        "output_sha256": "9e3f187482b6a1518fa056682666161413a5601ffee7b4a04240245fc98cbf59",
+        "output_bytes": 40,
+        "wrote_output": true,
+        "written_sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "log_sha256": "9e3f187482b6a1518fa056682666161413a5601ffee7b4a04240245fc98cbf59",
+        "output_matches_log": true,
+        "written_sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+        "written_matches": true,
+        "record_matches": true
+      }
+    },
+    {
+      "run": "compare-node",
+      "tool": "token_compare.py",
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/token_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--original",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--normalized",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "--step",
+          "fun$step$start_restart",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/compare/node.json"
+        ],
+        "exit": 0,
+        "output_sha256": "9584fe431a43c2f90d549c29e2c36270670a1bf98f7d8169735c5a54c594e583",
+        "output_bytes": 30,
+        "report_sha256": "0f7720d959bad09fe0ff4d20b59dacc8807deac73b20f87dd50ec4d17751bfb0"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/token_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--original",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--normalized",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "--step",
+          "fun$step$start_restart",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/compare/node.json"
+        ],
+        "exit": 0,
+        "output_sha256": "9584fe431a43c2f90d549c29e2c36270670a1bf98f7d8169735c5a54c594e583",
+        "output_bytes": 30,
+        "report_sha256": "0f7720d959bad09fe0ff4d20b59dacc8807deac73b20f87dd50ec4d17751bfb0"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "report_sha256": "0f7720d959bad09fe0ff4d20b59dacc8807deac73b20f87dd50ec4d17751bfb0",
+        "report_matches": true
+      }
+    },
+    {
+      "run": "compare-control",
+      "tool": "token_compare.py",
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/token_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--original",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "--normalized",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--control",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/compare/control.json"
+        ],
+        "exit": 0,
+        "output_sha256": "574edc346097bc6f4b17ae184cf995a3f15cedd6a71a9d0e3fec16bdee3f88be",
+        "output_bytes": 31,
+        "report_sha256": "6b0595c4081937e609dd41d3387399a86f0bded89406aacaa67a979d36d180e4"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/token_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--original",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "--normalized",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--control",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/compare/control.json"
+        ],
+        "exit": 0,
+        "output_sha256": "574edc346097bc6f4b17ae184cf995a3f15cedd6a71a9d0e3fec16bdee3f88be",
+        "output_bytes": 31,
+        "report_sha256": "6b0595c4081937e609dd41d3387399a86f0bded89406aacaa67a979d36d180e4"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "report_sha256": "6b0595c4081937e609dd41d3387399a86f0bded89406aacaa67a979d36d180e4",
+        "report_matches": true
+      }
+    },
+    {
+      "run": "control-driver",
+      "tool": "control.py",
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/control.py",
+          "--seed",
+          "20260928",
+          "--count",
+          "640",
+          "--emitted",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--memory",
+          "control",
+          "--output",
+          "fun$step$control",
+          "--step",
+          "fun$step$control",
+          "--reset",
+          "fun$reset$control",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/control-driver/control.c",
+          "--summary",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/control-driver/summary.json"
+        ],
+        "exit": 0,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_bytes": 0,
+        "driver_sha256": "833574e0e940b092c3d5c95410cec3766a715d9106ea448c220c17a8aec3fbcf",
+        "summary_sha256": "c4e0e9f76808af458e4ca1581a5c514d66ffd1442baf6ea65b8adcaf60ca8a8c"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/control.py",
+          "--seed",
+          "20260928",
+          "--count",
+          "640",
+          "--emitted",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--memory",
+          "control",
+          "--output",
+          "fun$step$control",
+          "--step",
+          "fun$step$control",
+          "--reset",
+          "fun$reset$control",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/control-driver/control.c",
+          "--summary",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/control-driver/summary.json"
+        ],
+        "exit": 0,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_bytes": 0,
+        "driver_sha256": "833574e0e940b092c3d5c95410cec3766a715d9106ea448c220c17a8aec3fbcf",
+        "summary_sha256": "c4e0e9f76808af458e4ca1581a5c514d66ffd1442baf6ea65b8adcaf60ca8a8c"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "driver_sha256": "833574e0e940b092c3d5c95410cec3766a715d9106ea448c220c17a8aec3fbcf",
+        "driver_matches": true,
+        "summary_sha256": "c4e0e9f76808af458e4ca1581a5c514d66ffd1442baf6ea65b8adcaf60ca8a8c",
+        "summary_matches": true
+      }
+    },
+    {
+      "run": "control-perturbed",
+      "tool": "control.py",
+      "frozen": {
+        "argv": [
+          "/usr/bin/python3",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen-tools/control.py",
+          "--seed",
+          "20260928",
+          "--count",
+          "640",
+          "--emitted",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--memory",
+          "control",
+          "--output",
+          "fun$step$control",
+          "--step",
+          "fun$step$control",
+          "--reset",
+          "fun$reset$control",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/control-perturbed/control.c",
+          "--summary",
+          "/root/build/lane-m61biii-fix-20260928/equiv/frozen/control-perturbed/summary.json",
+          "--perturb"
+        ],
+        "exit": 0,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_bytes": 0,
+        "driver_sha256": "fa3a9efed5605741fac574c956f22de03488366195b29a3f6c8c3071d10993b8",
+        "summary_sha256": "8f9e590ab8ff0bb6460288ea13c59ec8c3dfb59b3dbdb69a9948c95d538de68b"
+      },
+      "repaired": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-fix-20260928/supervisor/route/control.py",
+          "--seed",
+          "20260928",
+          "--count",
+          "640",
+          "--emitted",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--memory",
+          "control",
+          "--output",
+          "fun$step$control",
+          "--step",
+          "fun$step$control",
+          "--reset",
+          "fun$reset$control",
+          "--out",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/control-perturbed/control.c",
+          "--summary",
+          "/root/build/lane-m61biii-fix-20260928/equiv/repaired/control-perturbed/summary.json",
+          "--perturb"
+        ],
+        "exit": 0,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_bytes": 0,
+        "driver_sha256": "fa3a9efed5605741fac574c956f22de03488366195b29a3f6c8c3071d10993b8",
+        "summary_sha256": "8f9e590ab8ff0bb6460288ea13c59ec8c3dfb59b3dbdb69a9948c95d538de68b"
+      },
+      "frozen_equals_repaired": true,
+      "trial": {
+        "driver_sha256": "fa3a9efed5605741fac574c956f22de03488366195b29a3f6c8c3071d10993b8",
+        "driver_matches": true,
+        "summary_sha256": "8f9e590ab8ff0bb6460288ea13c59ec8c3dfb59b3dbdb69a9948c95d538de68b",
+        "summary_matches": true
+      }
+    }
+  ],
+  "runs_compared": 13,
+  "frozen_equals_repaired": true,
+  "frozen_reproduces_trial": true,
+  "verdict": "identical",
+  "end_utc": "2026-09-29T03:15:17+00:00"
+}

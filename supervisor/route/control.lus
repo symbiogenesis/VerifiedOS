@@ -1,0 +1,29 @@
+-- SPDX-License-Identifier: Apache-2.0
+-- Control program for the bounded Clight exchange trial. Vélus gives every
+-- 64-bit integer an alignment specifier; this program places one at each
+-- position the exchange normalizer erases and in two structures it keeps:
+--   mix64    extern prototype parameters and return type;
+--   widen    a returned 64-bit value, its register temporary and a cast
+--            from a 32-bit input;
+--   control  64-bit parameters, a signed 64-bit cast, call and extern-call
+--            temporaries, and 64-bit members in its state (fby) and output.
+-- It exercises the exchange only; it is not a supervisor decision.
+external mix64(uint64, uint64) returns uint64
+
+node widen(lo : uint32; hi : uint64) returns (w : uint64)
+let
+  w = ((lo : uint64) lxor hi) + 1llu;
+tel
+
+node control(a, b : uint64; c : uint32; s : int64)
+returns (sum, mixed, held : uint64; low : uint32; sx : int64; wrapped : bool)
+var t : uint64;
+let
+  t = widen(c, a);
+  sum = t + b;
+  mixed = mix64(a, b lxor t);
+  held = 0llu fby a;
+  low = ((a lsr 32) : uint32) lxor c;
+  sx = s lxor (c : int64);
+  wrapped = sum < b;
+tel

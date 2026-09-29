@@ -10,6 +10,15 @@ node-versus-oracle comparison was reached. This decides this bounded exchange
 trial, not every possible Vélus route. No compiler port or printer rewrite was
 introduced, and final Vélus delivery stays after M8a.
 
+**Exchange repeat: refused at switch typing.** M6.1b-iii's
+[source-bound result](exchange-result.json) repeats the exchange with the
+[declared alignment erasure](#exchange-normalization-trial). The accepted
+frontend reports no alignment error for the normalized node, but refuses it
+before assembly: its typed scalar route does not implement Clight `switch`, and
+Vélus prints the node's conditionals as six `switch` statements (F-472). The
+probe still agrees with the C oracle on all 576 rows natively. No target image
+or target comparison verdict exists for the node, and the M8a route stays C.
+
 This is M6.1b-i's bounded experiment over the existing immutable M8a manifest,
 supervisor effect interface and lifecycle comparison fixtures. Its source node
 is a real start/restart planner for that manifest. It emits acceptance, the
@@ -61,6 +70,99 @@ compiler-diff program`, with `--ccomp-arg=-fverifiedos-typed`, its actual
 `-conf` configuration, the source-bound simulator and a native `--keep` directory.
 Retain the JSON report and every source/ELF/trace identity. Rehash all frozen
 inputs after execution; changed inputs need a fresh experiment.
+
+## Exchange normalization trial
+
+[normalize.py](normalize.py) is the exchange normalizer. Vélus types every
+64-bit integer with an explicit 8-byte alignment attribute, which the Clight
+printer writes as ` _Alignas(8)` after `long long` or `unsigned long long`. The
+normalizer removes that group, byte for byte, only where C11 forbids an
+alignment specifier and Vélus's generation places one: parameter declarators in
+prototypes, definitions and extern prototypes, `register` temporaries, function
+return types and cast type names. The RV64 natural alignment of both types is
+already 8. Structure members stay byte-identical. Every other alignment
+specifier is refused, as is another value or type, a group before a pointer
+declarator, a group outside the printer's byte form, and input outside the form
+`-nomain` printing takes: a file-scope object, a `main` function or `volatile`,
+which only main-node compilation prints. Vélus ignores `-lib` under `-nomain`,
+so no printed byte distinguishes `-nomain -lib` output and acceptance is
+decided from those markers (F-476). Alignment-free input comes back
+byte-identical, and a record lists every group removed or kept by line and
+column. Vélus, its printer and the accepted compiler are unchanged.
+
+[control.lus](control.lus) places a 64-bit alignment group at every erased
+position and keeps five as structure members, one in its `fby` state and four in
+its output. [control.py](control.py) generates its rows, 256 edge rows taking 0,
+1, 2^32 and 2^64-1 in each 64-bit input followed by seeded rows up to the
+requested count, computes their expected answers from its own reading of the
+program, and emits the driver compiled natively and on target.
+[token_compare.py](token_compare.py) checks a normalization through clang's
+lexer without reading the normalizer: the normalized stream must be the printed
+stream less whole `_Alignas ( 8 )` groups, and each group is placed by its own
+bracket context. The [route tests](../../tools/tests/test_supervisor_route.py)
+exercise all three on an authored fixture in the printer's layout.
+
+The result records each check's predicate, interval and evidence. Checks 1 to
+3 pass: every recorded tool and license hash matches, the node re-emits the
+recorded Clight and header, and the unnormalized driver is still refused for
+its alignment; the token comparison places the node's four removals in the step
+function's parameter declarators and the control program's nineteen at
+enumerated positions, with its five members kept; the normalizer refuses the
+five authored variants and returns alignment-free input unchanged. In check 4
+the reference comparison passes with 656 cases and 3,088 equalities and the
+regenerated fixtures reproduce the recorded digest, and the probe's target leg
+is the first failed clause. The perturbed probe's and the control driver's
+outcomes were collected after that failure and are recorded apart from it.
+Check 5 is not reached; a post-verdict rehash found every frozen identity
+unchanged.
+
+The switch-free control program compiles through the accepted typed route with
+every erased position and its member alignment, so on that program the erasure
+suffices for the frontend (F-474). Its 640-row driver agrees natively, but its
+straight-line `main` compiles to 242,568 bytes of text, beyond the 32,768-byte
+window below `compiler-diff`'s data section, and is refused at layout. The
+unchanged probe has the same one-`main` form, and its size is unmeasured because
+the switch refusal stops it first, so a repeat needs drivers that fit that
+window (F-473). Vélus reports that it could not check semantic existence for
+the control program; the node compiles without that warning (F-475).
+
+The normalizer and token comparison here differ from the frozen versions the
+result binds. They refuse a group before a pointer declarator at every
+position, where the frozen normalizer erased one at parameter and return
+positions, recording the pointee's type, and the frozen comparison placed the
+parameter form as a parameter. Neither trial program carries that form, and the
+route tests hold its refusal. The result's `post_trial` section binds the
+repaired tools and an equivalence run: on every trial input they write the
+frozen tools' products, reports and logs byte for byte, and the frozen tools
+reproduce the trial's recorded products, so `frozen_inputs` still names the
+tools the trial ran. The same section lists the result's review amendments,
+which add every run's argv from the trial's stage records and the oracle
+binary's identity, and state that the clang and native compiler identities bind
+their driver executables only and that the license reads rest on attestation.
+`python tools/run.py typecheck` holds `tools/` only; the route tools are clean
+under the repository's pinned ty and ruff configurations run directly over this
+directory.
+
+A pass would have decided only that the normalization carries the tested node
+through the accepted compiler to target agreement. The failure decides that it
+does not, at switch typing. Neither outcome composes a Vélus or purecap compiler
+theorem (F-467), supplies a complete supervisor, lifecycle, transport or roster
+result, or re-selects the M8a route.
+
+To reproduce, check out the result's source revision, confirm the listed input
+and tool hashes, and re-read both license files. Run the recorded Vélus
+commands, then `normalize.py INPUT --out OUTPUT --record RECORD` on each printed
+file and `token_compare.py` with `--step` for the node or `--control`. Emit the
+drivers with `probe.py` over the normalized node and with
+`control.py --seed 20260928 --count 640` over the normalized control program,
+whose memory type is `control`, whose output type and step function are both
+`fun$step$control`, and whose reset function is `fun$reset$control`. Compile
+each driver natively, and pass each to `python3 tools/run.py compiler-diff
+program` with M6.1b-i's compiler arguments, simulator and profile. The result
+records each run's argv. The orchestration script that ran them is untracked
+lane scratch, and its recorded hash postdates the verdict, so a reproduction is
+checked against the bound driver, variant and product hashes. Every product
+stays in the native lane.
 
 ## Integration boundary
 

@@ -1,0 +1,264 @@
+{
+  "predicate": "control",
+  "lexer": {
+    "path": "/usr/lib/llvm-21/bin/clang",
+    "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+    "bytes": 131832,
+    "version": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+    "argv": [
+      "/usr/bin/clang",
+      "-std=c11",
+      "-fsyntax-only",
+      "-Xclang",
+      "-dump-tokens",
+      "-x",
+      "c"
+    ]
+  },
+  "original": {
+    "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+    "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+    "bytes": 2032,
+    "tokens": 497
+  },
+  "normalized": {
+    "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+    "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+    "bytes": 1804,
+    "tokens": 421
+  },
+  "failures": [],
+  "deleted": 19,
+  "retained": 5,
+  "byte_spans_removed": 19,
+  "by_position": {
+    "deleted cast": 2,
+    "deleted parameter:definition": 4,
+    "deleted parameter:extern": 2,
+    "deleted parameter:prototype": 4,
+    "deleted register": 4,
+    "deleted return:definition": 1,
+    "deleted return:extern": 1,
+    "deleted return:prototype": 1,
+    "retained member": 5
+  },
+  "groups": [
+    {
+      "line": 8,
+      "column": 22,
+      "position": "member",
+      "owner": "control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": false
+    },
+    {
+      "line": 13,
+      "column": 22,
+      "position": "member",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": false
+    },
+    {
+      "line": 14,
+      "column": 22,
+      "position": "member",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": false
+    },
+    {
+      "line": 15,
+      "column": 22,
+      "position": "member",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": false
+    },
+    {
+      "line": 17,
+      "column": 13,
+      "position": "member",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "value": "8",
+      "deleted": false
+    },
+    {
+      "line": 21,
+      "column": 27,
+      "position": "return:extern",
+      "owner": "mix64",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 21,
+      "column": 64,
+      "position": "parameter:extern",
+      "owner": "mix64",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 21,
+      "column": 96,
+      "position": "parameter:extern",
+      "owner": "mix64",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 22,
+      "column": 20,
+      "position": "return:prototype",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 22,
+      "column": 96,
+      "position": "parameter:prototype",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 24,
+      "column": 87,
+      "position": "parameter:prototype",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 24,
+      "column": 119,
+      "position": "parameter:prototype",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 24,
+      "column": 156,
+      "position": "parameter:prototype",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 26,
+      "column": 20,
+      "position": "return:definition",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 26,
+      "column": 109,
+      "position": "parameter:definition",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 28,
+      "column": 31,
+      "position": "register",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 29,
+      "column": 28,
+      "position": "cast",
+      "owner": "fun$step$widen",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 38,
+      "column": 106,
+      "position": "parameter:definition",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 38,
+      "column": 140,
+      "position": "parameter:definition",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 38,
+      "column": 181,
+      "position": "parameter:definition",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 40,
+      "column": 31,
+      "position": "register",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 41,
+      "column": 31,
+      "position": "register",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 42,
+      "column": 31,
+      "position": "register",
+      "owner": "fun$step$control",
+      "type": "unsigned long long",
+      "value": "8",
+      "deleted": true
+    },
+    {
+      "line": 43,
+      "column": 36,
+      "position": "cast",
+      "owner": "fun$step$control",
+      "type": "long long",
+      "value": "8",
+      "deleted": true
+    }
+  ],
+  "verdict": "pass"
+}
