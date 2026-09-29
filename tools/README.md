@@ -851,6 +851,17 @@ To refresh resolution within the declared constraints, use
 `uv lock --project tools --upgrade`. Normal commands synchronize each checkout on
 its next invocation, so no manual reinstall window exists across worktrees or OSes.
 
+The manifest sets `no-build = true`, so uv installs published wheels only and
+refuses a package that would need a source build instead of running its build
+backend or requiring a compiler. The project itself is virtual and is never
+built. Each locked package therefore needs a pure-Python or CPython 3.14 wheel for
+every platform that synchronizes it: Windows ARM64 on the development host,
+Linux aarch64 in its WSL guest, and Windows x64 and Linux x86_64 on the CI runners.
+The x64 runners cannot reveal a missing Windows ARM64 wheel, so read a new
+dependency's wheel list in [uv.lock](uv.lock) before committing it. Only requested
+groups are installed, so a non-default group without one platform's wheel is
+refused on that platform alone and the default synchronization is unaffected.
+
 The optional `model` group pins the pre-commit runner used by the curated model's
 hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
 table above, then run `uv run --project tools --locked --group model pre-commit --version`.
