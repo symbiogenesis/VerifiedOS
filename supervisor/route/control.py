@@ -65,7 +65,7 @@ def rows(seed: int, count: int) -> list[Row]:
         raise ValueError(f"the trial needs at least {MINIMUM_ROWS} rows, not {count}")
     edge = [Row(a, b, c, s) for a, b, s, c in
             itertools.product(EDGES64, EDGES64, EDGES64, EDGES32)]
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - reproducible trial rows, no secrets
     seeded = [Row(_draw(rng, NEAR64, 64), _draw(rng, NEAR64, 64), _draw(rng, NEAR32, 32),
                   _draw(rng, NEAR64, 64)) for _ in range(count - len(edge))]
     return edge + seeded
@@ -73,8 +73,9 @@ def rows(seed: int, count: int) -> list[Row]:
 
 def coverage(table: list[Row]) -> dict[str, list[int]]:
     """Each 64-bit position's edge values, refusing a table that misses one."""
-    covered = {name: sorted({getattr(row, name) for row in table} & set(EDGES64))
-               for name in ("a", "b", "s")}
+    columns = {"a": [row.a for row in table], "b": [row.b for row in table],
+               "s": [row.s for row in table]}
+    covered = {name: sorted(set(values) & set(EDGES64)) for name, values in columns.items()}
     for name, values in covered.items():
         if values != sorted(EDGES64):
             raise ValueError(f"64-bit input {name} misses edge values")

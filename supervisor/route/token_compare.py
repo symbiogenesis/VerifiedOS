@@ -5,7 +5,8 @@ The token streams come from clang's lexer (`-Xclang -dump-tokens`), not from
 `normalize.py`, and this module neither imports nor repeats that module's parser. The
 normalized stream must equal the printed one with whole `_Alignas ( 8 )` groups deleted
 and nothing inserted; each group, deleted or retained, is then placed by its own
-bracket context in the printed stream. The bytes must also differ by exactly one
+bracket context in the printed stream, and a group before a pointer declarator is
+placed at no enumerated position. The bytes must also differ by exactly one
 ` _Alignas(8)` span per deleted group.
 
 `--step NAME` is the probe's predicate: every deleted group sits in a parameter
@@ -164,7 +165,8 @@ class _Context:
         if self.depth[k] == 0:
             opens = self.opens[k]
             if len(opens) == 1 and self.kind(opens[0] - 1) == "identifier" \
-                    and self.kind(start - 1) in ("l_paren", "comma"):
+                    and self.kind(start - 1) in ("l_paren", "comma") \
+                    and self.kind(k + 4) in ("identifier", "comma", "r_paren"):
                 name = spell[opens[0] - 1]
                 return f"parameter:{self.declared(opens[0], extern)}", name, typename
             if not opens and self.kind(k + 4) == "identifier" \
@@ -266,6 +268,9 @@ def main(argv: list[str] | None = None) -> int:
                              encoding="utf-8", check=False, timeout=60).stdout.splitlines()
     clang = Path(args.clang)
     result = compare(original, normalized, original_text, normalized_text, args.step)
+    failures = result["failures"]
+    if not isinstance(failures, list):
+        raise TypeError("the comparison's failures are not a list")
     report = {
         "predicate": f"step {args.step}" if args.step else "control",
         "lexer": {**_identity(clang.resolve()), "version": version[0] if version else "",
@@ -274,11 +279,11 @@ def main(argv: list[str] | None = None) -> int:
         "original": {**_identity(args.original), "tokens": len(original)},
         "normalized": {**_identity(args.normalized), "tokens": len(normalized)},
         **result,
-        "verdict": "pass" if not result["failures"] else "fail",
+        "verdict": "pass" if not failures else "fail",
     }
     args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"{report['verdict']}: {report.get('deleted', 0)} deleted, "
-          f"{report.get('retained', 0)} retained; " + "; ".join(map(str, result["failures"])))
+          f"{report.get('retained', 0)} retained; " + "; ".join(map(str, failures)))
     return 0 if report["verdict"] == "pass" else 1
 
 

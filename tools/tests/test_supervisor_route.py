@@ -95,7 +95,7 @@ CONTROL = _load("control")
 def _refused(text: str, words: str) -> None:
     try:
         NORMALIZE.normalize(text)
-    except NORMALIZE.Refusal as err:
+    except NORMALIZE.RefusalError as err:
         ensure(words in str(err), f"refusal {err} does not say {words!r}")
     else:
         raise AssertionError(f"accepted input that should mention {words!r}")
@@ -163,6 +163,21 @@ def _refusals() -> None:
     for words, text in cases.items():
         _refused(text, words)
     _refused("", "no function definition")
+    # A group before a pointer declarator qualifies a pointer, at every position.
+    pointers = {
+        "named parameter": ("unsigned long long _Alignas(8) u)",
+                            "unsigned long long _Alignas(8) *u)"),
+        "unnamed parameter": ("*, unsigned long long _Alignas(8));",
+                              "*, unsigned long long _Alignas(8) *);"),
+        "return": ("unsigned long long _Alignas(8) fun$step$gain(struct gain *obc2c$self",
+                   "unsigned long long _Alignas(8) *fun$step$gain(struct gain *obc2c$self"),
+        "member": ("unsigned long long _Alignas(8) last$m;",
+                   "unsigned long long _Alignas(8) *last$m;"),
+    }
+    for label, (printed, pointer) in pointers.items():
+        text = FIXTURE.replace(printed, pointer)
+        ensure(text != FIXTURE, f"the {label} pointer variant changed nothing")
+        _refused(text, "before a pointer declarator")
 
 
 def _cli() -> None:
@@ -232,6 +247,10 @@ def _token_comparison() -> None:
            f"a deleted member fails the control predicate: {failures}")
     failures, _ = _compare(FIXTURE, EXPECTED.replace("v = u + 1LLU;", "v = u + 2LLU;"), None)
     ensure(any("differ" in f for f in failures), "any other token change fails the comparison")
+    pointer = FIXTURE.replace("_Alignas(8) u)", "_Alignas(8) *u)")
+    failures, _ = _compare(pointer, EXPECTED.replace("long long u)", "long long *u)"), None)
+    ensure(pointer != FIXTURE and any(f.endswith("is other") for f in failures),
+           f"a deleted group before a pointer declarator is at no enumerated position: {failures}")
     ensure(COMPARE.byte_removals("a _Alignas(8) b _Alignas(8) c", "a b c") == 2,
            "byte spans are counted")
     for bad in ("a b  c", "a _Alignas(8) b c x"):

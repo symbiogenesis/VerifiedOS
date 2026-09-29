@@ -11,12 +11,14 @@ This removes those groups, byte for byte, only where C11 forbids the specifier a
 Vélus's generation places one: parameter declarators in prototypes, definitions and
 extern prototypes, `register` temporaries, function return types and cast type names.
 Structure members stay byte-identical. Every other alignment specifier is refused, as
-is any value other than 8, any other type, and a group not in the printer's exact
-` _Alignas(8)` byte form. Input is accepted only in the form `-nomain -lib` printing
-takes: a file-scope object, a `main` function or a `volatile` qualifier, which only
-main-node compilation prints, is refused, as is any construct outside the printer's
-declaration vocabulary. Under `-nomain`, `-lib` changes only the program's public
-symbol list, which the printer does not print, so no byte distinguishes it. Input
+is any value other than 8, any other type, a group before a pointer declarator, whose
+declared object is a pointer, and a group not in the printer's exact ` _Alignas(8)`
+byte form. Input is accepted only in the form `-nomain -lib` printing takes: a
+file-scope object, a `main` function or a `volatile` qualifier, which only main-node
+compilation prints, is refused, as is any construct outside the printer's declaration
+vocabulary. Under `-nomain`, Vélus ignores `-lib`: the no-main arm of its ObcToClight
+`Generation.translate` makes every generated function public either way, so no byte
+distinguishes `-nomain -lib` output and acceptance rests on those markers. Input
 without an alignment specifier is returned byte-identically.
 
 Nothing here reads or changes Vélus, its printer or the accepted compiler, and no
@@ -60,7 +62,7 @@ _LEX = re.compile(r"""
 """, re.VERBOSE | re.DOTALL)
 
 
-class Refusal(ValueError):
+class RefusalError(ValueError):
     """The input is not printed `-nomain -lib` Clight this normalizer may change."""
 
 
@@ -88,26 +90,27 @@ class Site:
 def lex(text: str) -> list[Token]:
     """The printer's tokens, refusing any byte its vocabulary does not contain."""
     if not text.isascii():
-        raise Refusal("non-ASCII input: the Clight printer writes ASCII")
+        raise RefusalError("non-ASCII input: the Clight printer writes ASCII")
     tokens: list[Token] = []
     at = 0
     while at < len(text):
         match = _LEX.match(text, at)
         if match is None:
-            raise Refusal(f"unexpected character {text[at]!r} at offset {at}")
+            raise RefusalError(f"unexpected character {text[at]!r} at offset {at}")
         kind = match.lastgroup or ""
         if kind == "line":
-            raise Refusal(f"line comment at offset {at}: the printer writes none")
+            raise RefusalError(f"line comment at offset {at}: the printer writes none")
         if kind == "open":
-            raise Refusal(f"unterminated comment at offset {at}")
+            raise RefusalError(f"unterminated comment at offset {at}")
         if kind in ("id", "num", "punct"):
             tokens.append(Token(match.group(), kind, match.start(), match.end()))
         at = match.end()
     for token in tokens:
         if token.text in FOREIGN:
-            raise Refusal(f"`{token.text}` at offset {token.start}: "
-                          + ("only main-node compilation prints it" if token.text == "volatile"
-                             else "the -nomain Clight printer writes none"))
+            raise RefusalError(f"`{token.text}` at offset {token.start}: "
+                               + ("only main-node compilation prints it"
+                                  if token.text == "volatile"
+                                  else "the -nomain Clight printer writes none"))
     return tokens
 
 
@@ -128,10 +131,10 @@ class _Parser:
         return (self.text.count("\n", 0, start) + 1,
                 start - self.text.rfind("\n", 0, start))
 
-    def fail(self, message: str, index: int | None = None) -> Refusal:
+    def fail(self, message: str, index: int | None = None) -> RefusalError:
         index = min(self.at if index is None else index, len(self.toks) - 1)
         line, column = self.where(index) if self.toks else (1, 1)
-        return Refusal(f"line {line} column {column}: {message}")
+        return RefusalError(f"line {line} column {column}: {message}")
 
     def expect(self, text: str) -> None:
         if self.peek() != text:
@@ -165,6 +168,10 @@ class _Parser:
             group = self.at
             self.group_tokens(group)
             self.at += 4
+            if self.peek() == "*":
+                raise self.fail(f"alignment specifier on `{typename}` before a pointer "
+                                "declarator: the declared object is a pointer, not an "
+                                "erased position", group)
         return typename, group
 
     def group_tokens(self, index: int) -> str:
@@ -330,7 +337,7 @@ class _Parser:
             else:
                 self.declaration()
         if not self.functions:
-            raise Refusal("no function definition: not a printed Vélus library")
+            raise RefusalError("no function definition: not a printed Vélus library")
         unhandled = [i for i, t in enumerate(self.toks)
                      if t.text == "_Alignas" and i not in self.sites]
         if unhandled:
@@ -367,7 +374,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         text = raw.decode("ascii")
         normalized, sites = normalize(text)
-    except (UnicodeDecodeError, Refusal) as err:
+    except (UnicodeDecodeError, RefusalError) as err:
         print(f"refused: {args.input}: {err}", file=sys.stderr)
         return 2
     data = normalized.encode("ascii")
