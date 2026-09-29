@@ -249,7 +249,7 @@ specification written in Bluespec SystemVerilog.
 
 ## Concurrent execution
 
-The ISA model is integrated with the operational model of the RISC-V
+Upstream's ISA model is integrated with the operational model of the RISC-V
 relaxed memory model, RVWMO (as described in an appendix of the [RISC-V
 user-level specification](https://docs.riscv.org/reference/isa/unpriv/mm-eplan.html))
 which is one of the reference models used
@@ -257,6 +257,8 @@ in the development of the RISC-V concurrency architecture; this is
 part of the [RMEM](http://www.cl.cam.ac.uk/users/pes20/rmem) tool.
 It is also integrated with the RISC-V axiomatic concurrency model
 as part of the [isla-axiomatic](https://isla-axiomatic.cl.cam.ac.uk/) tool.
+This tree's memory model is Ztso, adopted in place of RVWMO
+([`core/extensions.sail`](model/core/extensions.sail)).
 
 ### Concurrent testing
 
