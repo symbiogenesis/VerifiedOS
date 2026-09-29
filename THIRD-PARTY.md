@@ -543,21 +543,29 @@ CompCert agreements do not extend to Vélus. Any commercial route must address b
 The [trial receipt](supervisor/route/result.json) binds both license hashes and
 the private toolchain. This finite research/evaluation use emits printed Clight
 for the authored supervisor node; the accepted purecap frontend refuses that
-unchanged exchange. Upstream source, binaries and generated trial products remain in the
-contained worktrees and native output lanes. The tracked node, oracle and probe
-are authored here; no upstream implementation is incorporated or redistributed.
+unchanged exchange. Upstream source, binaries and generated trial products
+remain in the contained worktrees and native output lanes. The tracked node,
+oracle and probe are authored here; no upstream implementation is incorporated
+or redistributed.
 
 **Contained exchange normalization trial.** M6.1b-iii re-reads both selected
-license files before running the retained producer; Sections 2, 3, 4 and 7 read
-as recorded above, and the license and binary hashes match M6.1b-i's receipt.
-The [exchange result](supervisor/route/exchange-result.json) binds them. This
+license files before running the retained producer, by its implementer's
+attestation; Sections 2, 3, 4 and 7 read as recorded above, and the license and
+binary hashes match M6.1b-i's receipt. The
+[exchange result](supervisor/route/exchange-result.json) binds them. This
 finite research/evaluation use re-emits the node's printed Clight and emits an
 authored control program's. An authored normalizer removes the `_Alignas(8)`
-groups C11 forbids from that text, and the accepted purecap frontend then refuses
-the node at Clight `switch` typing, so the trial fails at its fourth check. The
-normalizer, control program, generator and comparison are authored here and copy
-no Vélus or CompCert source; printed Clight and every other product stay in the
-native output lane, and the checkout records their hashes.
+groups C11 forbids from that text, and the accepted purecap frontend then
+refuses the node at Clight `switch` typing, so the trial fails at its fourth
+check. The normalizer, control program, generator and comparison are authored
+here and copy no Vélus or CompCert source. Printed Clight, drivers and the
+other Vélus and compiler products stay in the native output lane, and the
+checkout records their hashes. It retains JSON receipts: the trial's
+`compiler-diff` reports, which quote the contained compiler's diagnostics as
+M6.1b-i's receipt does, and the records of the authored normalizer, token
+comparison, reference check and post-trial tool equivalence run. The reading
+behind F-476 took `-lib`'s handling from the retained source in place and
+copied none of it.
 
 #### seL4
 

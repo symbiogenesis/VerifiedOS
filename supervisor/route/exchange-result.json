@@ -44,6 +44,33 @@
       "frozen": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51"
     }
   },
+  "changed_since_prior_freeze_scope": "the fifteen inputs M6.1b-i's result froze; harness_sources_changed_since_prior_report lists the compiler-diff harness sources whose hashes differ between M6.1b-i's purecap report and this trial's five reports, which record one source set",
+  "harness_sources_changed_since_prior_report": {
+    "prior_report": {
+      "path": "/root/build/lane-supervisor-route-20260926/route/purecap-report.json",
+      "sha256": "8a67a03626ece2279cc255a7c7de397d7a14e42de7357f0fcb1537d64015626d",
+      "bytes": 4742
+    },
+    "trial_report": {
+      "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/purecap-report.json",
+      "sha256": "e01c1ce19e922252a736f1602f8206f4d6d2ab9e9cf5f04b27b63ee14bc82362",
+      "bytes": 4028
+    },
+    "changed": {
+      "tools/vos/cli/compiler_diff.py": {
+        "prior": "332a7e68df7006a07aa10b8b4834cd7030edbb48c4e94a29acf742ded1996f81",
+        "trial": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7"
+      },
+      "docs/assurance/differential-corpus.md": {
+        "prior": "be3f16f7a0a4dc07059bdb903741716f344f78355626eb198c0ee19c01e21480",
+        "trial": "dc19f187fdcb763970d3c73dbed57bd2ec6944ba65e1e143f721e5e790e17fec"
+      },
+      "model/model/core/cap_common.sail": {
+        "prior": "36405700c6d464141c91efc319217d42e22a4862843803aceedd3a0c39e652cd",
+        "trial": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773"
+      }
+    }
+  },
   "tools": {
     "velus": {
       "path": "/root/build/lane-supervisor-velus-20260926/source/velus",
@@ -113,10 +140,12 @@
       "-O2",
       "-fsanitize=undefined",
       "-fno-sanitize-recover=undefined"
-    ]
+    ],
+    "identity_scope": "clang and native_cc bind the driver executables only (the 131,832-byte /usr/lib/llvm-21/bin/clang and the 1,251,912-byte aarch64-linux-gnu-gcc-15); the lexer in libclang-cpp and gcc's cc1 are bound only by the recorded version strings"
   },
   "licence_reads": {
     "read_utc": "after 2026-09-28T15:44:21+00:00 (provisioning) and before 2026-09-28T15:44:45+00:00 (check 1)",
+    "basis": "the implementer's attestation; the freeze and rehash records hash both files, and no stage record captures the read itself",
     "velus": {
       "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
       "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
@@ -234,7 +263,9 @@
       "end_utc": "2026-09-28T15:46:25+00:00",
       "verdict": "failed",
       "failures": [
-        "the normalized probe did not pass on target: ccomp-refused",
+        "the normalized probe did not pass on target: ccomp-refused"
+      ],
+      "collected_after_first_failure": [
         "the perturbed probe gave ccomp-refused, not a failing comparison verdict",
         "the control driver did not pass on target: dialect-refused"
       ]
@@ -251,7 +282,7 @@
   "observations": [
     "The accepted compiler's refusal is raised at cfrontend/TypedScalarFrontend.ml line 398 of its build tree /root/build/lane-backend-accept-20260925/compiler-final (sha256 da7352969a24a1e24d1ddbf77d9c2e76b28d49a69a394fdd450398a6b198667a, 35679 bytes), which refuses every Clight Sswitch.",
     "The normalized control program has no conditional and compiles through the accepted typed route (ccomp exit 0, 52496 assembly lines) with every erased position and five retained 64-bit member alignments; compiler-diff then refuses its image at layout because 242568 bytes of text exceed the 32768-byte window between 0x80000000 and the data section at 0x80008000. No target run or comparison verdict exists for it.",
-    "The control driver agrees with the generator's expected answers natively on all 640 seeded rows under UBSan; its perturbed driver fails natively (exit 1) and meets the same layout refusal on target.",
+    "The control driver agrees with the generator's expected answers natively on all 640 generated rows (256 edge, 384 seeded) under UBSan; its perturbed driver fails natively (exit 1) and meets the same layout refusal on target.",
     "The perturbed probe fails natively (exit 1) and meets the same switch refusal on target, so its target leg is a refusal rather than a failing comparison verdict.",
     "Velus warns that it could not check semantic existence (construction not supported) for the control program; the start/restart node compiles with an empty log.",
     "Check 5 is not reached because check 4 failed; a post-verdict rehash found all 27 frozen inputs and 10 tool identities unchanged."
@@ -321,6 +352,18 @@
           "-o",
           "/root/build/lane-m61biii-impl-20260928/exchange/oracle/oracle"
         ],
+        "build_exit": 0,
+        "binary": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/oracle/oracle",
+          "sha256": "2bf5256fb5a9899ae7363958604922a96aa1042b3406383c90cef28b017f0e04",
+          "bytes": 71184,
+          "hashed_utc": "2026-09-29T03:17:13+00:00",
+          "note": "hashed after the trial; its modification time, 2026-09-28T15:44:45Z inside check 1, shows it unwritten since the build"
+        },
+        "run_argv": [
+          "/root/build/lane-m61biii-impl-20260928/exchange/oracle/oracle"
+        ],
+        "run_exit": 0,
         "fixtures": {
           "path": "/root/build/lane-m61biii-impl-20260928/exchange/oracle/fixtures.txt",
           "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
@@ -330,7 +373,24 @@
       "unnormalized_driver": {
         "path": "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/probe.c",
         "sha256": "4f0b0a00acd7b0b54862d6aaa49f7300a638ee2334409deafbf914629efb4fbe",
-        "bytes": 196576
+        "bytes": 196576,
+        "emit_argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/probe.py",
+          "--fixtures",
+          "/root/build/lane-m61biii-impl-20260928/exchange/oracle/fixtures.txt",
+          "--emitted",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--memory",
+          "start_restart",
+          "--output",
+          "fun$step$start_restart",
+          "--step",
+          "fun$step$start_restart",
+          "--out",
+          "/root/build/lane-m61biii-impl-20260928/exchange/unnormalized/probe.c"
+        ],
+        "emit_exit": 0
       },
       "unnormalized_target": {
         "argv": [
@@ -393,6 +453,60 @@
       }
     },
     "check2": {
+      "node_normalize": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.light.c",
+          "--out",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "--record",
+          "/root/build/lane-m61biii-impl-20260928/exchange/node/normalize.json"
+        ],
+        "exit": 0,
+        "log": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/normalize.log",
+          "sha256": "ae7d825a615c309a0378d73d6339b5388a56fcfd5b38fc4623de4036a928352b",
+          "bytes": 40
+        },
+        "output": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+          "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+          "bytes": 2281
+        },
+        "record": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/normalize.json",
+          "sha256": "c73e940b42853f7cfcb70c031295c5da2ca51471c1dd76bb67092b4765dc4fa3",
+          "bytes": 1380
+        }
+      },
+      "control_normalize": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.light.c",
+          "--out",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "--record",
+          "/root/build/lane-m61biii-impl-20260928/exchange/control/normalize.json"
+        ],
+        "exit": 0,
+        "log": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/normalize.log",
+          "sha256": "3e4cde0d50ff3986934f90218407403823b47d4bd501eef5371bf9b2342c57dc",
+          "bytes": 41
+        },
+        "output": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+          "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+          "bytes": 1804
+        },
+        "record": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/normalize.json",
+          "sha256": "3dbd0a7794a534d6b3e3bd6752e70a63f439115a0be71b46de2116a374f0bc30",
+          "bytes": 5373
+        }
+      },
       "node_comparison": {
         "argv": [
           "/usr/bin/python3",
@@ -487,6 +601,13 @@
     "check3": {
       "refusals": {
         "alignment-16-parameter": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.out.c"
+          ],
           "variant": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.c",
             "sha256": "3c97ae50d9850c3316c9f212278e230086621c7fd0cbfe41cb26ebd67c75cc8a",
@@ -494,9 +615,21 @@
           },
           "exit": 2,
           "said": "line 19 column 179: alignment 16 on `unsigned long long` (parameter of fun$step$start_restart): only the 8 of V\u00e9lus's `Tlong` is erased",
-          "wrote_output": false
+          "wrote_output": false,
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-16-parameter.log",
+            "sha256": "34d27ef3cbd85e1c808bb860dc4e56944234707d75a1bf9526cd7a50ca89a9bb",
+            "bytes": 229
+          }
         },
         "alignment-4-on-32-bit-parameter": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.out.c"
+          ],
           "variant": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.c",
             "sha256": "3ca9d8e64838ac93ec165b29816ba06b0a94490b972eb837f113999f89a8fd8d",
@@ -504,9 +637,21 @@
           },
           "exit": 2,
           "said": "line 19 column 150: alignment specifier on `unsigned int` (parameter of fun$step$start_restart): only `long long` and `unsigned long long` carry V\u00e9lus's alignment",
-          "wrote_output": false
+          "wrote_output": false,
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-4-on-32-bit-parameter.log",
+            "sha256": "83b48f3a044b4970ea6db9af9cd96adddb6a77a03812e841ffb7efed0117e84c",
+            "bytes": 265
+          }
         },
         "alignment-8-on-32-bit-parameter": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.out.c"
+          ],
           "variant": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.c",
             "sha256": "7c34a48eacb223f57518c028f7ede2559cb70ab2011282b85bae243100ec50f1",
@@ -514,9 +659,21 @@
           },
           "exit": 2,
           "said": "line 19 column 150: alignment specifier on `unsigned int` (parameter of fun$step$start_restart): only `long long` and `unsigned long long` carry V\u00e9lus's alignment",
-          "wrote_output": false
+          "wrote_output": false,
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/alignment-8-on-32-bit-parameter.log",
+            "sha256": "63f3e89f4978c7e6906fd9fe3bd3d89166d345a3508fa049550664799fb8c581",
+            "bytes": 265
+          }
         },
         "file-scope-object-alignment": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.out.c"
+          ],
           "variant": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.c",
             "sha256": "33a97c0e56b1613d024d6ca200dfcfdc01f7efba237fbdfaaa3dc9f57502f81b",
@@ -524,9 +681,21 @@
           },
           "exit": 2,
           "said": "line 85 column 1: file-scope alignment on `vos$epoch`: only main-node compilation prints one",
-          "wrote_output": false
+          "wrote_output": false,
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-object-alignment.log",
+            "sha256": "9161e6e6c7ca3ef180b5f6e1fe0b99d74484dec6ebe0c4ce7480c6b3727cf9ec",
+            "bytes": 190
+          }
         },
         "file-scope-structure-alignment": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.out.c"
+          ],
           "variant": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.c",
             "sha256": "049253f723acda5af0e03e3876a0c69bae7c66d690afa0569555679008db8021",
@@ -534,11 +703,25 @@
           },
           "exit": 2,
           "said": "line 3 column 22: file-scope alignment on `struct start_restart`",
-          "wrote_output": false
+          "wrote_output": false,
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/file-scope-structure-alignment.log",
+            "sha256": "ccd74e548a215678e0dce88bb8996d2ccd0f4403d695d799dabbfe1d75784b2e",
+            "bytes": 165
+          }
         }
       },
       "identity": {
         "node": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/node.identity.c",
+            "--record",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/node.identity.json"
+          ],
           "input": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
             "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
@@ -548,9 +731,33 @@
           "byte_identical": true,
           "alignment_free": true,
           "removed": 0,
-          "kept": 0
+          "kept": 0,
+          "output": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/node.identity.c",
+            "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+            "bytes": 2281
+          },
+          "record": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/node.identity.json",
+            "sha256": "7268b8c9f6dfb67b02103815940fa760ee1953a90c275dffcd598848a3c760ed",
+            "bytes": 510
+          },
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/node.identity.log",
+            "sha256": "71fc416016e35e04443acf9a83798fc336f6a509afb25d48aa57db2e286baa0a",
+            "bytes": 40
+          }
         },
         "control": {
+          "argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/normalize.py",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/control.identity.c",
+            "--record",
+            "/root/build/lane-m61biii-impl-20260928/exchange/refusals/control.identity.json"
+          ],
           "input": {
             "path": "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
             "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
@@ -560,7 +767,22 @@
           "byte_identical": true,
           "alignment_free": false,
           "removed": 0,
-          "kept": 5
+          "kept": 5,
+          "output": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/control.identity.c",
+            "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+            "bytes": 1804
+          },
+          "record": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/control.identity.json",
+            "sha256": "b525bd58c3d78d170dcf73210ceaf125370f160d62fbaaa159cbde447a615270",
+            "bytes": 1528
+          },
+          "log": {
+            "path": "/root/build/lane-m61biii-impl-20260928/exchange/refusals/control.identity.log",
+            "sha256": "9e3f187482b6a1518fa056682666161413a5601ffee7b4a04240245fc98cbf59",
+            "bytes": 40
+          }
         }
       }
     },
@@ -593,7 +815,24 @@
         "driver": {
           "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe.c",
           "sha256": "31812edb41cc8c1a90b584cd98011fecbdeae564a786966af46397337f4ebccd",
-          "bytes": 196575
+          "bytes": 196575,
+          "emit_argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/probe.py",
+            "--fixtures",
+            "/root/build/lane-m61biii-impl-20260928/exchange/oracle/fixtures.txt",
+            "--emitted",
+            "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+            "--memory",
+            "start_restart",
+            "--output",
+            "fun$step$start_restart",
+            "--step",
+            "fun$step$start_restart",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe.c"
+          ],
+          "emit_exit": 0
         },
         "native": {
           "compile_argv": [
@@ -617,7 +856,10 @@
             "sha256": "c28f53ada5f5988735e37f86370ff1191aa04d2f89bcb3551bcf3910ac10a672",
             "bytes": 71064
           },
-          "run_exit": 0
+          "run_exit": 0,
+          "run_argv": [
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe/probe"
+          ]
         },
         "target": {
           "argv": [
@@ -664,7 +906,25 @@
         "driver": {
           "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe.c",
           "sha256": "7f17501001b2618669964afb0d1f001b5b6baa9aac81275fa97e016de0eabded",
-          "bytes": 196575
+          "bytes": 196575,
+          "emit_argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/probe.py",
+            "--fixtures",
+            "/root/build/lane-m61biii-impl-20260928/exchange/oracle/fixtures.txt",
+            "--emitted",
+            "/root/build/lane-m61biii-impl-20260928/exchange/node/start_restart.norm.c",
+            "--memory",
+            "start_restart",
+            "--output",
+            "fun$step$start_restart",
+            "--step",
+            "fun$step$start_restart",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe.c",
+            "--perturb"
+          ],
+          "emit_exit": 0
         },
         "native": {
           "compile_argv": [
@@ -688,7 +948,10 @@
             "sha256": "6ead9660f948379b1751cb8524137a39027e9b8e372c4a5be5b974f8e5421a4e",
             "bytes": 71064
           },
-          "run_exit": 1
+          "run_exit": 1,
+          "run_argv": [
+            "/root/build/lane-m61biii-impl-20260928/exchange/probe-perturbed/probe"
+          ]
         },
         "target": {
           "argv": [
@@ -765,7 +1028,30 @@
         "driver": {
           "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control.c",
           "sha256": "833574e0e940b092c3d5c95410cec3766a715d9106ea448c220c17a8aec3fbcf",
-          "bytes": 210008
+          "bytes": 210008,
+          "emit_argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/control.py",
+            "--seed",
+            "20260928",
+            "--count",
+            "640",
+            "--emitted",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+            "--memory",
+            "control",
+            "--output",
+            "fun$step$control",
+            "--step",
+            "fun$step$control",
+            "--reset",
+            "fun$reset$control",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control.c",
+            "--summary",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/summary.json"
+          ],
+          "emit_exit": 0
         },
         "native": {
           "compile_argv": [
@@ -789,7 +1075,10 @@
             "sha256": "bde540be326995d44db5479250291f603c4d3cfc9824f69e56f3f613400a212b",
             "bytes": 136656
           },
-          "run_exit": 0
+          "run_exit": 0,
+          "run_argv": [
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-driver/control"
+          ]
         },
         "target": {
           "argv": [
@@ -870,6 +1159,35 @@
           "driver_sha256": "fa3a9efed5605741fac574c956f22de03488366195b29a3f6c8c3071d10993b8",
           "perturb": true
         },
+        "driver": {
+          "path": "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control.c",
+          "sha256": "fa3a9efed5605741fac574c956f22de03488366195b29a3f6c8c3071d10993b8",
+          "bytes": 210008,
+          "emit_argv": [
+            "/usr/bin/python3",
+            "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/supervisor/route/control.py",
+            "--seed",
+            "20260928",
+            "--count",
+            "640",
+            "--emitted",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control/control.norm.c",
+            "--memory",
+            "control",
+            "--output",
+            "fun$step$control",
+            "--step",
+            "fun$step$control",
+            "--reset",
+            "fun$reset$control",
+            "--out",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control.c",
+            "--summary",
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/summary.json",
+            "--perturb"
+          ],
+          "emit_exit": 0
+        },
         "native": {
           "compile_argv": [
             "/usr/bin/aarch64-linux-gnu-gcc-15",
@@ -892,7 +1210,10 @@
             "sha256": "e332d90737b99db435e2f15023e3614a27ed2eb04196639bebf7214d30023b57",
             "bytes": 136656
           },
-          "run_exit": 1
+          "run_exit": 1,
+          "run_argv": [
+            "/root/build/lane-m61biii-impl-20260928/exchange/control-perturbed/control"
+          ]
         },
         "target": {
           "argv": [
@@ -958,5 +1279,107 @@
     "No complete supervisor, lifecycle, transport or roster result",
     "The M8a route is not re-selected; a separately recorded route decision re-pricing M6.1b-ii and M7.1b would do that",
     "Velus, its printer and the accepted compiler are unchanged; their products stay in the native lane"
-  ]
+  ],
+  "post_trial": {
+    "recorded_utc": "2026-09-29T03:17:13+00:00",
+    "by": "M6.1b-iii's review repair, after the verdict; the trial's checks, verdict and native products are unchanged",
+    "native_original": {
+      "path": "/root/build/lane-m61biii-impl-20260928/exchange/exchange-result.json",
+      "sha256": "93c972a298aa6950734d667f2ce2b2f5a3d1fef5b4f166a8ba65dc0448739993",
+      "bytes": 44308
+    },
+    "amendments": [
+      "checks[3].failures keeps the first failed clause; the two failures the orchestration collected after it move to checks[3].collected_after_first_failure",
+      "changed_since_prior_freeze_scope states that changed_since_prior_freeze compares M6.1b-i's fifteen frozen inputs only, and harness_sources_changed_since_prior_report adds the three compiler-diff harness sources that differ from M6.1b-i's report",
+      "observations[2] calls the control driver's 640 rows generated, 256 edge and 384 seeded, where it had called all 640 seeded",
+      "tools.identity_scope states that the clang and native_cc identities bind driver executables only",
+      "licence_reads.basis states that the reads rest on the implementer's attestation",
+      "the evidence sections gain every probe.py, normalize.py, control.py, oracle and native run argv from the stage records, and check 1's oracle binary identity",
+      "post_trial records the tool repair and its equivalence run, the -lib reading behind F-476, and the stage records' and orchestration script's identities"
+    ],
+    "tool_repair": {
+      "revision": "a8f94e95a2a3ba76c74907afa08e40a70e887e6d",
+      "change": "normalize.py refuses an alignment group before a pointer declarator at every position (the frozen version erased it at parameter and return positions, recording the pointee type); token_compare.py places the parameter form at no enumerated position; the normalizer's docstring states that Velus ignores -lib under -nomain; RefusalError replaces Refusal; the four ty and ruff diagnostics the repository's pinned configurations report over supervisor/route are repaired; the route tests hold the pointer forms",
+      "files": {
+        "supervisor/route/normalize.py": {
+          "frozen": "ed8ad840ad23dbe2858a17bd0354db80c6b66948ab5193ea383542b46f893601",
+          "repaired": "88f03c2d69e16057e8568b7f7b0909312995429b603e31d867cec1d1992b5af8"
+        },
+        "supervisor/route/token_compare.py": {
+          "frozen": "ef86954923eccae82aecadbecb5993eeac4cddcc3e2ca1539e3bc5bcf1d1e0e5",
+          "repaired": "580d377b8e94ff7a91f58d243236c157db482ebf5e1d8a850b45d20d56fc5b1f"
+        },
+        "supervisor/route/control.py": {
+          "frozen": "30314c0090aed494eb28d664dc350717a13fb47279d73965e61dcd731c4f32aa",
+          "repaired": "7d49edffbe2337675d1b742fb73fbba338d88b98fe60b1e71baa968d884b683a"
+        },
+        "tools/tests/test_supervisor_route.py": {
+          "frozen": "4b02bc0340a6a48f7320c25469a3d459fa40abad0fe0890f92b5264994c80069",
+          "repaired": "ce5ccd213fbd2ec4fbbcf1d03cbb450db0c026b3b7cebfdc6b81457212f5fdd4"
+        }
+      },
+      "equivalence": {
+        "path": "/root/build/lane-m61biii-fix-20260928/equiv/equivalence.json",
+        "sha256": "1e899a91b32c3e3d4bb5d7c8bdd7bd28774e85c10ab33e383b9a2283bb4dcba8",
+        "bytes": 28299,
+        "start_utc": "2026-09-29T03:15:13+00:00",
+        "end_utc": "2026-09-29T03:15:17+00:00",
+        "runs_compared": 13,
+        "frozen_equals_repaired": true,
+        "frozen_reproduces_trial": true,
+        "runs": "normalize.py over the node, the control program, the five refusal variants and the two identity inputs; token_compare.py over the node and the control program; control.py for the plain and perturbed drivers; each with the trial's argv shape and input paths"
+      },
+      "decides": "On every trial input the repaired tools write the frozen tools' products, reports, logs and exit codes byte for byte, and the frozen tools reproduce the trial's recorded products, so the trial's evidence and verdict stand. frozen_inputs still names the tools the trial ran; reproducing the trial uses source_revision"
+    },
+    "lib_under_nomain": {
+      "reading": "Under -nomain, velusmain.ml's get_main_node returns None, and -lib only sets Veluslib.expose, which Velus.v passes as Generation.translate's all_public. translate's None arm builds the program with every generated function public and never reads all_public, so -lib changes nothing under -nomain (F-476). This is a source reading; no run with and without -lib was made",
+      "source_tree": "/root/build/lane-supervisor-velus-20260926/source",
+      "velus_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+      "files_sha256": {
+        "src/velusmain.ml": "0382764aec88e43524836a26051d515d221e3278feb437880297c71acbacdf91",
+        "src/veluslib.ml": "3ff63cf50cf8fa064f694d626af2b3023a1eb75f636693ab7ec023df197d4657",
+        "src/Velus.v": "813d5d8d563f0bebecc7058a8bde691475561a7ed2f5af8cd2935ffd207566fd",
+        "src/ObcToClight/Generation.v": "0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d"
+      }
+    },
+    "stage_records": {
+      "freeze": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/state/freeze.json",
+        "sha256": "43fea7edbfa9d21afd570eb7880eb508a51ce6fa79411375866d64106c61261d",
+        "bytes": 5510
+      },
+      "check1": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/state/check1.json",
+        "sha256": "6d45df509c44a62a13fc307f2fc1119775223dafaaccd634d91672ac43e0e423",
+        "bytes": 8966
+      },
+      "check2": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/state/check2.json",
+        "sha256": "3b383972cec882c3ab6ff32cd053b23c23028e4f601e14af672f86212ff66dc1",
+        "bytes": 6397
+      },
+      "check3": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/state/check3.json",
+        "sha256": "0f25012eeca327277d0eea197818ddb5e127f9c77bb12f4d838c4216965c94e4",
+        "bytes": 9230
+      },
+      "check4": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/state/check4.json",
+        "sha256": "81b60ef564f95f04a2d871a6d4d0105c48b721da8d95c8217a018c5e03548837",
+        "bytes": 22751
+      },
+      "rehash": {
+        "path": "/root/build/lane-m61biii-impl-20260928/exchange/state/rehash.json",
+        "sha256": "8fc94d48ede6e41a612e4b6465d0bd045add3b2db4dc7f280296b70dccda645f",
+        "bytes": 202
+      }
+    },
+    "orchestration": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biii-impl-20260928/out/m61biii/trial.py",
+      "sha256": "66d6fac209689dcd4bcb4f57ef69f44263de11bb02b069615c579c53a2dba669",
+      "bytes": 24440,
+      "tracked": false,
+      "note": "ignored lane scratch that ran freeze and checks 1 to 4; last written at 2026-09-28T15:48:59Z, after the 15:46:25Z verdict, when its post-verdict rehash stage was appended, so this hash is not the one that decided the checks. The argv above come from its stage records"
+    }
+  }
 }

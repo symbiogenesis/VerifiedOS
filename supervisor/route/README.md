@@ -81,12 +81,13 @@ alignment specifier and Vélus's generation places one: parameter declarators in
 prototypes, definitions and extern prototypes, `register` temporaries, function
 return types and cast type names. The RV64 natural alignment of both types is
 already 8. Structure members stay byte-identical. Every other alignment
-specifier is refused, as is another value or type, a group outside the
-printer's byte form, and input outside the form `-nomain` printing takes: a
-file-scope object, a `main` function or `volatile`, which only main-node
-compilation prints. Under `-nomain`, `-lib` changes no printed byte, so
-acceptance is decided from those markers (F-476). Alignment-free input comes
-back byte-identical, and a record lists every group removed or kept by line and
+specifier is refused, as is another value or type, a group before a pointer
+declarator, a group outside the printer's byte form, and input outside the form
+`-nomain` printing takes: a file-scope object, a `main` function or `volatile`,
+which only main-node compilation prints. Vélus ignores `-lib` under `-nomain`,
+so no printed byte distinguishes `-nomain -lib` output and acceptance is
+decided from those markers (F-476). Alignment-free input comes back
+byte-identical, and a record lists every group removed or kept by line and
 column. Vélus, its printer and the accepted compiler are unchanged.
 
 [control.lus](control.lus) places a 64-bit alignment group at every erased
@@ -102,25 +103,45 @@ bracket context. The [route tests](../../tools/tests/test_supervisor_route.py)
 exercise all three on an authored fixture in the printer's layout.
 
 The result records each check's predicate, interval and evidence. Checks 1 to
-3 pass: every recorded tool and licence hash matches, the node re-emits the
+3 pass: every recorded tool and license hash matches, the node re-emits the
 recorded Clight and header, and the unnormalized driver is still refused for
 its alignment; the token comparison places the node's four removals in the step
 function's parameter declarators and the control program's nineteen at
 enumerated positions, with its five members kept; the normalizer refuses the
-five seeded variants and returns alignment-free input unchanged. In check 4 the
-reference comparison passes with 656 cases and 3,088 equalities and the
+five authored variants and returns alignment-free input unchanged. In check 4
+the reference comparison passes with 656 cases and 3,088 equalities and the
 regenerated fixtures reproduce the recorded digest, and the probe's target leg
-is the first failed clause. Check 5 is not reached; a post-verdict rehash found
-every frozen identity unchanged.
+is the first failed clause. The perturbed probe's and the control driver's
+outcomes were collected after that failure and are recorded apart from it.
+Check 5 is not reached; a post-verdict rehash found every frozen identity
+unchanged.
 
 The switch-free control program compiles through the accepted typed route with
 every erased position and its member alignment, so on that program the erasure
 suffices for the frontend (F-474). Its 640-row driver agrees natively, but its
 straight-line `main` compiles to 242,568 bytes of text, beyond the 32,768-byte
 window below `compiler-diff`'s data section, and is refused at layout. The
-unchanged probe has the same one-`main` form, so a repeat needs drivers that fit
-that window (F-473). Vélus reports that it could not check semantic existence
-for the control program; the node compiles without that warning (F-475).
+unchanged probe has the same one-`main` form, and its size is unmeasured because
+the switch refusal stops it first, so a repeat needs drivers that fit that
+window (F-473). Vélus reports that it could not check semantic existence for
+the control program; the node compiles without that warning (F-475).
+
+The normalizer and token comparison here differ from the frozen versions the
+result binds. They refuse a group before a pointer declarator at every
+position, where the frozen normalizer erased one at parameter and return
+positions, recording the pointee's type, and the frozen comparison placed the
+parameter form as a parameter. Neither trial program carries that form, and the
+route tests hold its refusal. The result's `post_trial` section binds the
+repaired tools and an equivalence run: on every trial input they write the
+frozen tools' products, reports and logs byte for byte, and the frozen tools
+reproduce the trial's recorded products, so `frozen_inputs` still names the
+tools the trial ran. The same section lists the result's review amendments,
+which add every run's argv from the trial's stage records and the oracle
+binary's identity, and state that the clang and native compiler identities bind
+their driver executables only and that the license reads rest on attestation.
+`python tools/run.py typecheck` holds `tools/` only; the route tools are clean
+under the repository's pinned ty and ruff configurations run directly over this
+directory.
 
 A pass would have decided only that the normalization carries the tested node
 through the accepted compiler to target agreement. The failure decides that it
@@ -129,13 +150,18 @@ theorem (F-467), supplies a complete supervisor, lifecycle, transport or roster
 result, or re-selects the M8a route.
 
 To reproduce, check out the result's source revision, confirm the listed input
-and tool hashes, and re-read both licence files. Run the recorded Vélus
+and tool hashes, and re-read both license files. Run the recorded Vélus
 commands, then `normalize.py INPUT --out OUTPUT --record RECORD` on each printed
 file and `token_compare.py` with `--step` for the node or `--control`. Emit the
 drivers with `probe.py` over the normalized node and with
 `control.py --seed 20260928 --count 640` over the normalized control program,
-compile each natively, and pass each to `python3 tools/run.py compiler-diff
-program` with M6.1b-i's compiler arguments, simulator and profile. Every product
+whose memory type is `control`, whose output type and step function are both
+`fun$step$control`, and whose reset function is `fun$reset$control`. Compile
+each driver natively, and pass each to `python3 tools/run.py compiler-diff
+program` with M6.1b-i's compiler arguments, simulator and profile. The result
+records each run's argv. The orchestration script that ran them is untracked
+lane scratch, and its recorded hash postdates the verdict, so a reproduction is
+checked against the bound driver, variant and product hashes. Every product
 stays in the native lane.
 
 ## Integration boundary
