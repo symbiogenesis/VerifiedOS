@@ -215,6 +215,22 @@ def _exclusions_are_exact() -> None:
            f"and the pin exclusion passing over nothing is a finding: {found!r}")
 
 
+def _every_tracked_file_is_read_or_reported() -> None:
+    tree = {REGISTER: _register(_EMPTY), interims.PLAN: _PLAN, interims.LOG: _LOG,
+            interims.RECORD: _RECORD, "kernel/gone.c": "int x;\n",
+            "kernel/latin.c": "int x;\n"}
+    with sandbox_tree(tree) as root:
+        (root / "kernel/gone.c").unlink()
+        (root / "kernel/latin.c").write_bytes(b"/* caf\xe9 */\n/* Hacl_ caf\xe9 */\n")
+        found, _ = interims.decide(_context(root), {}, _DECLARED)
+    ensure(any(f.startswith("kernel/gone.c is in the index and not on disk") and
+               "undecided" in f for f in found),
+           f"a tracked file absent from disk is undecided, not skipped: {found!r}")
+    ensure(any(f.startswith("kernel/latin.c:2 cites Hacl of F*/Z3") for f in found),
+           f"a file that is not UTF-8 is still read: {found!r}")
+    ensure(len(found) == 2, f"and nothing else is reported: {found!r}")
+
+
 def _listed_consumer_citing_nothing_is_a_finding() -> None:
     accept = (_BOOKS + "F\\*/Z3's consumers are M9.9 and `kernel/src/mlkem.c`; "
               "EasyCrypt's consumers are R-05-022 and `proofs/Absent.v`.")
@@ -299,6 +315,8 @@ def cases() -> list[Case]:
         Case("fragments-are-exact", _fragments_are_exact),
         Case("stale-declaration-is-a-finding", _stale_declaration_is_a_finding),
         Case("exclusions-are-exact", _exclusions_are_exact),
+        Case("every-tracked-file-is-read-or-reported",
+             _every_tracked_file_is_read_or_reported),
         Case("listed-consumer-citing-nothing-is-a-finding",
              _listed_consumer_citing_nothing_is_a_finding),
         Case("missing-governing-entry-fails-closed", _missing_governing_entry_fails_closed),

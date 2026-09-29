@@ -56,8 +56,11 @@ longer matches any tracked file is a finding, as a residue that suppresses nothi
 under K-81. Retained evidence is read, being a validation record; the one exclusion
 narrower than a path is the pin entry of a machine-written environment snapshot there,
 which records what was checked out and repeats verbatim wherever the snapshot was
-taken, and it too is a finding the day it passes over nothing. A file that will not read as UTF-8 is skipped, the glyphs group
-owning what every tracked file is made of.
+taken, and it too is a finding the day it passes over nothing. A file that is not
+UTF-8 is read all the same, the line a citation quotes decoded with replacement, the
+glyphs group owning what every tracked file is made of; a tracked file absent from
+disk or refusing to read is a finding, whether it cites an interim being undecided,
+as K-83 treats a source it cannot read.
 
 **An anchor is where an admission is recorded.** A register line belongs to the
 requirement whose entry it is in, a plan line to the innermost checklist item whose span
@@ -536,6 +539,7 @@ class Scan:
     surfaces: int = 0
     unmatched: list[str] = field(default_factory=list)
     pins: int = 0        # snapshot pin entries passed over
+    undecided: list[str] = field(default_factory=list)
 
 
 def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Scan:
@@ -546,7 +550,9 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
     """
     read = Scan()
     used: set[str] = set()
-    for rel in ctx.corpus.tracked:
+    # `tracked` is what is on disk; `indexed` keeps a stage-zero file the working tree
+    # has lost, which is what lets that loss be reported rather than walked past
+    for rel in sorted(set(ctx.corpus.tracked) | ctx.corpus.indexed):
         matched = {row for row in excluded if _excludes(row, rel)}
         if matched:
             used |= matched
@@ -558,34 +564,35 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
             blob = text.encode("utf-8")
             if rel in _ANCHORED_SET:
                 doc = from_text(text, rel) if rel in ctx.fixed else ctx.corpus.get(rel)
+        elif not (ctx.root / rel).is_file():
+            read.undecided.append(f"{rel} is in the index and not on disk, so whether it "
+                                  "cites an interim's lineage is undecided")
+            continue
         else:
             try:
                 blob = (ctx.root / rel).read_bytes()
-            except OSError:
+            except OSError as err:
+                read.undecided.append(f"{rel} is in the index and will not read "
+                                      f"({err.strerror or err}), so whether it cites an "
+                                      "interim's lineage is undecided")
                 continue
         anchors = _ANCHORS[rel](doc) if doc is not None else []
         if doc is not None:
             read.anchors[rel] = set(anchors)
-        sites = hits(blob)
-        if not sites:
-            continue
-        try:
-            blob.decode("utf-8")
-        except UnicodeDecodeError:
-            continue
         passed: set[int] = set()
-        for at, tok in sites:
+        for at, tok in hits(blob):
             index = blob.count(b"\n", 0, at)
             start = blob.rfind(b"\n", 0, at) + 1
             end = blob.find(b"\n", at)
-            text = blob[start:end if end >= 0 else len(blob)].decode("utf-8").rstrip("\r")
+            line = blob[start:end if end >= 0 else len(blob)]
+            text = line.decode("utf-8", errors="replace").rstrip("\r")
             if snapshots and _snapshot_pin(rel, text):
                 passed.add(index)
                 continue
             read.citations.append(Citation(
                 path=rel, line=index + 1,
                 anchor=anchors[index] if index < len(anchors) else "",
-                token=blob[at:at + len(tok.needle)].decode("utf-8"),
+                token=blob[at:at + len(tok.needle)].decode("utf-8", errors="replace"),
                 interim=tok.interim, text=text))
         read.pins += len(passed)
     read.unmatched = [row for row in excluded if row not in used]
@@ -640,6 +647,7 @@ def decide(ctx: Context, excluded: dict[str, str],
     found += [f"{name} is not in the checker's corpus, so the anchors it would carry "
               "go unread" for name in ANCHORED if name not in ctx.corpus]
     read = scan(ctx, excluded, snapshots)
+    found += read.undecided
     if not read.surfaces:
         found.append("the index carries no file outside the declared exclusions, so no "
                      "admission surface is read")
