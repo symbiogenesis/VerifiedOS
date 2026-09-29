@@ -112,6 +112,12 @@ headers and three primitive packages
 and Mocha's UART register and status owners are byte-identical to the preceding
 readings.
 
+The development-branch review on 2026-09-29 read each advanced pin's own license
+instruments at its new revision. Each file is byte-identical to the file at the
+preceding pin, and the grants and the uses in the table remain as recorded:
+
+- Sail: `LICENCE`. The added `model/core/hpm.sail` states `BSD-2-Clause`.
+
 Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The reviewed development tip requires Rocq 9.2 and changes proofs and nested
 dependencies; no fix to the consumed field outputs was identified. Advancing it
@@ -130,7 +136,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 
 | Submodule | Upstream | Pin | License | Standing | Use |
 | --- | --- | --- | --- | --- | --- |
-| `upstream/sail-riscv` | `riscv/sail-riscv` | `5e2ebde0` | `BSD-2-Clause` | Comparison reference for the curated model. The completion log identifies the last semantic reconciliation; this pin does not replace the curated ISA. | read |
+| `upstream/sail-riscv` | `riscv/sail-riscv` | `b02e1597` | `BSD-2-Clause` | Comparison reference for the curated model. The completion log identifies the last semantic reconciliation; this pin does not replace the curated ISA. | read |
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
 | `upstream/llvm-project` | `llvm/llvm-project` | `3ab91ef2`, on `main` | `Apache-2.0 WITH LLVM-exception` | LLVM MC and `lld`, the untrusted assembler and linker to be adapted to the frozen dialect. | pinned to read later |
