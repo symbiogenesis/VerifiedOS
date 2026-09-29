@@ -81,6 +81,8 @@ _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
 _TACTICAL = re.compile(r"(?<![\w'])(?:timeout|alloc_limit)\s+[\w(]")
 # Once comments are blanked, every remaining quote opens or closes a string literal.
 _STRING = re.compile(r'"[^"]*"')
+# A module command's head: whether it declares a module, and whether it opens a signature.
+_MODULE = re.compile(CONTROL_PREFIXES + r"(Declare\s+)?Module\s+(Type\b)?")
 
 
 class AuditError(ValueError):
@@ -260,14 +262,18 @@ def unsupported_abstractions(text: str) -> list[str]:
 
     Ordinary nested modules and generated obligations are supported. Functors and
     sealed signatures need a module-body audit, since Search cannot enumerate their
-    inaccessible constants. They are not present in the shipped proof tree.
+    inaccessible constants. They are not present in the shipped proof tree. The head is
+    read after the control prefixes, whose own brackets and colons are not a functor's
+    parameters or a signature's ascription: the pinned Rocq 9.3.0 compiles
+    `Time Module Type` and `Time Declare Module`.
     """
     found: list[str] = []
     for sentence in sentences(text):
-        if re.match(r"^(?:Declare\s+)?Module\s+Type\b", sentence):
+        module = _MODULE.match(sentence)
+        if module is None:
+            continue
+        declared, signature = module.groups()
+        header = sentence[module.end():].split(":=", 1)[0]
+        if declared or signature or "(" in header or ":" in header:
             found.append(sentence)
-        elif re.match(r"^(?:Declare\s+)?Module\s+", sentence):
-            header = sentence.split(":=", 1)[0]
-            if "(" in header or ":" in header or sentence.startswith("Declare "):
-                found.append(sentence)
     return found

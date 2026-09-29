@@ -110,9 +110,17 @@ DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact", "I
 # A section binder quantifies every statement in its section, so it is a quantifier too.
 SECTION_BINDERS = ("Variable", "Variables", "Context", "Hypothesis", "Hypotheses")
 
-_RECORD = re.compile(r"^(?:Record|Structure)\s+([\w']+)")
-_DEFINER = re.compile(r"^(?:Program\s+)?(" + "|".join(DEFINERS) + r")\s+([\w']+)(.*)", re.DOTALL)
-_SECTION_BINDER = re.compile(r"^(" + "|".join(SECTION_BINDERS) + r")\s+(.*)", re.DOTALL)
+# Each head is read after the control prefixes the pinned-setting reading strips, because
+# a record, statement or section binder the scan misses is a demand that silently goes
+# away. Reading a decorated head as its plain form only demands more. The witness lookup
+# alone keeps requiring the head undecorated, `Program` aside as before, so the prefixes
+# widen no inhabitant either: `Fail Definition witness_R : R := t` compiles when t does
+# not inhabit R, and leaves no constant behind.
+_RECORD = re.compile("^" + proofaudit.CONTROL_PREFIXES + r"(?:Record|Structure)\s+([\w']+)")
+_DEFINER = re.compile("^(" + proofaudit.CONTROL_PREFIXES + ")(" + "|".join(DEFINERS)
+                      + r")\s+([\w']+)(.*)", re.DOTALL)
+_SECTION_BINDER = re.compile("^" + proofaudit.CONTROL_PREFIXES + "(" + "|".join(SECTION_BINDERS)
+                             + r")\s+(.*)", re.DOTALL)
 # `(x y : T)`, `{x : T}` and `forall x : T,` / `exists x : T,`: each names a type a
 # variable ranges over.
 _BINDER = re.compile(r"[({]\s*[\w']+(?:\s+[\w']+)*\s*:\s*([^)}]*)[)}]")
@@ -253,7 +261,7 @@ def _witness_facts(statements: tuple[str, ...]) -> _WitnessFacts:
         definer = _DEFINER.match(sentence)
         if not definer:
             continue
-        keyword, name, rest = definer.groups()
+        prefix, keyword, name, rest = definer.groups()
         split = _split_top(rest, ":")
         if split is None:
             continue
@@ -264,8 +272,9 @@ def _witness_facts(statements: tuple[str, ...]) -> _WitnessFacts:
         if keyword in STATEMENTS:
             for head in _quantified_heads(f"{binders} {typ}"):
                 quantified[head] = quantified.get(head, 0) + 1
-        # Only a closed, correctly ascribed Definition names a record witness.
-        if keyword != "Definition" or not name.startswith(WITNESS_PREFIX) or binders.strip():
+        # Only a closed, correctly ascribed, undecorated Definition names a record witness.
+        if (keyword != "Definition" or prefix.split() not in ([], ["Program"])
+                or not name.startswith(WITNESS_PREFIX) or binders.strip()):
             continue
         claimed = name[len(WITNESS_PREFIX):]
         if _instance_head(typ) == claimed and name not in witnesses.get(claimed, []):

@@ -132,6 +132,21 @@ def _inaccessible_modules_fail_closed() -> None:
                "inaccessible module bodies cannot get partial evidence")
 
 
+def _prefixed_abstractions_fail_closed() -> None:
+    # The pinned Rocq 9.3.0 compiles the Time forms; it refuses a local Module Type, which
+    # is refused here too, loudly either way.
+    for text in ("Time Module Type T.", "#[local] Module Type T.", "Local Module Type T.",
+                 "Time Declare Module M : T.", "Succeed Module F (X : T).",
+                 'Redirect "log" Module N : T.', "Time\n  Module Type T."):
+        ensure(proofaudit.unsupported_abstractions(text) == [text.removesuffix(".")],
+               f"a prefixed functor or signature escaped the refusal: {text!r}")
+    # A prefix's own brackets and colon belong to no functor or signature.
+    for text in ("#[universes(polymorphic)] Module N. End N.", 'Profile "a:b" Module N. End N.',
+                 "Time Module Import N. End N.", "Module Types. End Types."):
+        ensure(not proofaudit.unsupported_abstractions(text),
+               f"an ordinary prefixed module was refused: {text!r}")
+
+
 def _kernel_context_is_exact() -> None:
     ensure(proofaudit.kernel_context(KERNEL_CLEAN) == [], "a clean summary names no axiom")
     ensure(proofaudit.kernel_context(_LOADED_AXIOM)
@@ -537,6 +552,7 @@ def cases() -> list[Case]:
             Case("unqualified-native-names-cannot-bind", _unqualified_native_names_cannot_bind_claims),
             Case("requires-follow-vernacular", _requires_follow_vernacular),
             Case("inaccessible-modules-fail-closed", _inaccessible_modules_fail_closed),
+            Case("prefixed-abstractions-fail-closed", _prefixed_abstractions_fail_closed),
             Case("kernel-context-is-exact", _kernel_context_is_exact),
             Case("audit-goals-open-with-proof", _audit_goals_open_with_proof),
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),

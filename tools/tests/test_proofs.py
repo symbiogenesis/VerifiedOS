@@ -127,6 +127,15 @@ Section Over.
 End Over.
 """
 
+_MACHINE = "Record Machine : Type := { unit_count : nat }.\n"
+_COUNTED = ("Lemma counted : forall m : Machine, unit_count m = unit_count m.\n"
+            "Proof. reflexivity. Qed.\n")
+_WITNESSED = "Definition witness_Machine : Machine := {| unit_count := 2 |}.\n"
+# What may decorate a head: an attribute, a legacy attribute, a control flag, and a
+# bullet or brace, after which the pinned Rocq 9.3.0 compiles a declaration in a proof.
+_DECORATIONS = ("#[local]", "Local", "Polymorphic", "Cumulative Polymorphic",
+                "#[projections(primitive)]", "Time", "Fail", "- ", "{ ", "1: {")
+
 _COMPANION = """
 Require Import Apex.
 Lemma at_the_trivial_point : forall v : Vocabulary, v = v.
@@ -232,6 +241,53 @@ def _a_section_variable_quantifies() -> None:
     ensure(found.unbuilt == ["Plan"], f"and nothing witnesses one, got {found.unbuilt!r}")
 
 
+def _a_decorated_record_still_demands_its_witness() -> None:
+    """Missing a record removes every demand made over it, so a decoration the head
+    reading could not see was fail-open, and reading through it only demands more."""
+    for decoration in (*_DECORATIONS, "Program", "#[universes(polymorphic)]"):
+        text = f"{decoration} {_MACHINE}{_COUNTED}"
+        found = gate.scan_witnesses(text)
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a record under {decoration!r} demanded no witness, got {found!r}")
+        ensure(not gate.scan_witnesses(text + _WITNESSED).unbuilt,
+               f"the named witness did not inhabit a record under {decoration!r}")
+        structure = gate.scan_witnesses(text.replace("Record", "Structure"))
+        ensure(structure.unbuilt == ["Machine"],
+               f"a Structure under {decoration!r} demanded no witness, got {structure!r}")
+
+
+def _a_decorated_statement_still_quantifies() -> None:
+    for decoration in (*_DECORATIONS, "Program", "Program Local", "Local Program"):
+        for keyword in ("Lemma", "Theorem", "Example", "Corollary", "Fact"):
+            statement = _COUNTED.replace("Lemma", f"{decoration} {keyword}")
+            found = gate.scan_witnesses(_MACHINE + statement)
+            ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+                   f"a {keyword} under {decoration!r} quantified nothing, got {found!r}")
+    sectioned = _SECTIONED.replace("Variable", "Polymorphic Variable")
+    found = gate.scan_witnesses(sectioned)
+    ensure(found.quantified == {"Plan": 1} and found.unbuilt == ["Plan"],
+           f"a decorated section variable quantified nothing, got {found!r}")
+    found = gate.scan_witnesses(sectioned.replace("Polymorphic Variable p : Plan",
+                                                  "#[local] Context (p : Plan)"))
+    ensure(found.quantified == {"Plan": 1},
+           f"a decorated Context quantified nothing, got {found!r}")
+
+
+def _a_decorated_witness_is_no_witness() -> None:
+    """Reading decorated heads widens the demands and not the inhabitants: the witness
+    convention names an undecorated `Definition`, `Program` aside as it always was, and
+    `Fail Definition witness_Machine : Machine := tt` compiles because it inhabits nothing."""
+    for decoration in (*_DECORATIONS, "Succeed", "#[program]", "Program Local"):
+        text = _MACHINE + _COUNTED + f"{decoration} {_WITNESSED}"
+        found = gate.scan_witnesses(text)
+        ensure(found.unbuilt == ["Machine"] and found.witnesses == {},
+               f"a witness under {decoration!r} was accepted, got {found!r}")
+    for decoration in ("Program", "Program\n "):
+        found = gate.scan_witnesses(_MACHINE + _COUNTED + f"{decoration} {_WITNESSED}")
+        ensure(found.witnesses == {"Machine": ["witness_Machine"]} and not found.unbuilt,
+               f"a Program witness stopped counting under {decoration!r}, got {found!r}")
+
+
 def _a_companion_witness_inhabits_an_imported_record() -> None:
     alone = gate.scan_witnesses(_COMPANION)
     ensure(alone.quantified == {},
@@ -317,6 +373,9 @@ def cases() -> list[Case]:
         Case("unwitnessed-record-is-the-finding",
              _a_quantified_record_with_no_witness_is_the_finding),
         Case("section-variable-quantifies", _a_section_variable_quantifies),
+        Case("decorated-record-demands-a-witness", _a_decorated_record_still_demands_its_witness),
+        Case("decorated-statement-quantifies", _a_decorated_statement_still_quantifies),
+        Case("decorated-witness-is-no-witness", _a_decorated_witness_is_no_witness),
         Case("companion-witness-inhabits", _a_companion_witness_inhabits_an_imported_record),
         Case("comment-is-not-read", _a_comment_is_not_read),
         Case("commented-witness-witnesses-nothing", _a_witness_inside_a_comment_witnesses_nothing),
