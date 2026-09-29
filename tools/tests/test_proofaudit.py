@@ -295,11 +295,16 @@ def _machine_bound_tacticals_are_refused() -> None:
                "Lemma a : True. Proof. let n := numgoals in timeout n (exact I). Qed.",
                "Lemma a : True. Proof. Control.timeout 5 (fun () => exact I). Qed.",
                "Lemma a : True. Proof. Control.timeout (Int.add 2 3) (fun () => exact I). Qed.",
-               "Definition wait := timeout 5.")
+               "Definition wait := timeout 5.",
+               # Rocq's lexer reads a comment as a separator on either side of the word.
+               "Lemma a : True. Proof. timeout(* c *)5 (exact I). Qed.",
+               "Lemma a : True. Proof. try(* c *)timeout 5 (exact I). Qed.")
     for text in refused:
         ensure(len(proofaudit.pinned_overrides(text)) == 1,
                f"a machine-bound tactical passed: {text!r}")
     allowed = ("Definition timeout_bound := 5.", "Definition wait := my_timeout 5.",
+               "Definition time := 1. Definition out := 2. "
+               "Definition wait := Nat.add time(* c *)out.",
                "Definition cap := alloc_limit_words 1.", "Definition wait' := timeout' 5.",
                "Record Budget := { timeout : nat }.", "Definition get (b : Budget) := b.(timeout).",
                "(* timeout 5 (exact I) *) Definition x := 0.",
