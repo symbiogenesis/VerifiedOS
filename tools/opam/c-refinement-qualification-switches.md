@@ -17,7 +17,7 @@ leaving the active switch unchanged, against local metadata last written on
 2026-09-27, the `rocq-released` repository at 23:09:39 and `default` at 23:09:53
 -0500: `default` at stamp `bbc4314c37cbe5902ab659460c440b099fe729a3` and
 `rocq-released` at stamp `2026-09-26 16:46`. No `opam update` ran. The first three
-switches hold the locked prover, Rocq 9.2.0 on OCaml 5.4.1; the last two hold only
+switches hold the prover the lock named then, Rocq 9.2.0 on OCaml 5.4.1; the last two hold only
 pins and served the solver.
 
 | Switch | Seed | Added | Non-commercial term |

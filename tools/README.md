@@ -1005,13 +1005,12 @@ roots: a peer's recursive check in the same run or an earlier accepted run of th
 gate, where a worker checked that library and named its axioms exactly. Only such a
 worker pays for the load-only pass, and workers admitting the same roots share one.
 A proof module's axiom is never covered, and the run prints the covered names.
-This enumeration does not share the compiler's Print
-Assumptions, which in Rocq 9.2 omits an axiom a definition reaches only through its
-type. It does not report definitional UIP, which the Print Assumptions audit does.
-Rocq 9.3 ends the summary with the inductives that rely on indices not mattering,
-Corelib's `eq` among them. The gate requires qualified names there and accepts them,
-because the checker profile fixes `indices_matter=false`; Rocq 9.2 checks the same
-theory without printing the section.
+This enumeration is independent of the compiler's Print Assumptions, so neither
+reading's omission hides an axiom from the gate. It does not report definitional
+UIP, which the Print Assumptions audit does.
+The summary ends with the inductives that rely on indices not mattering, Corelib's
+`eq` among them. The gate requires that section with qualified names and accepts
+them, because the checker profile fixes `indices_matter=false`.
 The default run reuses compiled objects, native assumption audits and kernel verdicts
 only from a successful native receipt with matching source bytes, compiled-object
 hashes, dependency resolution, gate inputs and toolchain context. A changed source
@@ -1063,7 +1062,7 @@ fallback for an unknown library identity still applies.
 Help, status, export and whole-set cache hits do not sample worker capacity.
 
 Changed runs use Rocq's documented
-[`-admit` incremental checking](https://rocq-prover.org/doc/V9.2.0/refman/practical-tools/coq-commands.html):
+[`-admit` incremental checking](https://rocq-prover.org/doc/V9.3.0/refman/practical-tools/coq-commands.html):
 byte-validated, previously kernel-checked modules and their unchanged dependency
 closures may skip repeated type checking. Every changed module must be an explicit
 check target in one worker, which overrides admission in that worker. A target
@@ -1081,7 +1080,7 @@ the prior successful native receipt is retained only as private cache input. Unc
 staged objects can be recovered on retry; no current receipt is published until the
 whole run succeeds.
 This follows the pinned checker's
-[selection algorithm](https://github.com/rocq-prover/rocq/blob/V9.2.0/checker/checkLibrary.ml);
+[selection algorithm](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/checkLibrary.ml);
 the native regressions exercise incremental success, incompatible objects,
 contradictory universe constraints across separately valid libraries, and an admitted
 root that loads a sealed installed module.
@@ -1103,7 +1102,7 @@ toolchain and library hashes.
 The joint worker may finish first, but a peer failure still refuses the entire run.
 The pinned checker's admission path still checks dependency identities and inserts
 universe constraints through
-[`Safe_typing.import`](https://github.com/rocq-prover/rocq/blob/V9.2.0/kernel/safe_typing.ml).
+[`Safe_typing.import`](https://github.com/rocq-prover/rocq/blob/V9.3.0/kernel/safe_typing.ml).
 The launcher composes these verdicts over identical bytes; there is no separate
 consistency pass after the workers finish.
 
@@ -1111,7 +1110,8 @@ consistency pass after the workers finish.
 component or an unavailable installed-library identity keeps the single-process path.
 Whole-set cache hits still avoid invoking the kernel. The pinned tool's default kernel
 conversion remains in use: enabling its bytecode compiler would also trust the
-serialized bytecode and VM, so that option is left disabled. The launcher supplies
+bytecode it compiles from the checked declarations and the VM that runs it, so that
+option is left disabled. The pinned checker never reads the bytecode a `.vo` carries. The launcher supplies
 parallelism; the checker itself offers no parallel worker option.
 
 `placement consistency --plan demo_plan --max-candidates 64 --timeout 5` exercises

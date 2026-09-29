@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 800 of them across 136 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 804 of them across 137 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -957,13 +957,13 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q35b
 · Disposition: open, K-88's owner stating the residue or closing it
 
-**F-483** measurement: no `rocq-sail-stdpp` release admits Rocq 9.3, 0.20.3 having joined 0.20.2 with the same `rocq-core` bound and paired with the unlocked Sail 0.20.3, and the opam repository carrying no `rocq-core` 9.3.0
+**F-483** measurement: no `rocq-sail-stdpp` release admits Rocq 9.3, 0.20.3 having joined 0.20.2 with the same `rocq-core` bound and paired with the unlocked Sail 0.20.3, so neither installs beside the locked Rocq 9.3.0
 · Raised: Q35b
 · Disposition: standing, the blocking input of Q35b's owed compile, which the opam guide records
 
 **F-484** owed-act: most of the emitted term's interactive proofs open without `Proof`, which Rocq 9.3 reports by default and the gate's settings make an error
 · Raised: Q35b
-· Disposition: open, Q35b's owed compile reading them at whichever prover the opam guide's act selects
+· Disposition: open, Q35b's owed compile reading them at the locked Rocq 9.3.0
 
 **F-485** owed-act: four called host-interface hooks, the block-device trace, input and persistence and the terminal write, are uninterpreted monadic axioms in the term, and removing them needs a decision on how the term models the host
 · Raised: Q35b
@@ -1008,6 +1008,22 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-495** owed-act: every source-level foundation's theorem is about an input an unverified front end produced, over a C semantics the contained compiler does not consume, and no relation connects that input to the compartment-annotated, capability-widened Clight the contained compiler parses from the same C
 · Raised: Q35e
 · Disposition: open, Q35j and the review gate's F-464 act
+
+**F-496** owed-act: every project switch recipe creates its switch empty and imports its lock, and `opam switch import` records no switch invariant, so a provisioned switch's `opam switch export` omits the lock's `compiler:` section and a lock re-exported from it would drop that section
+· Raised: Q36
+· Disposition: open, the recipes in `env.py` and `quickchick.py` setting the invariant each lock's compiler section names, or the opam guide stating why each lock keeps a section its recipe does not reproduce
+
+**F-497** measurement: `rocqchk` 9.2.0 and 9.3.0 each refuse the compiled object of #22287's upstream reproducer with a type error, while both compilers report its proof of `False` closed under the global context
+· Raised: Q36
+· Disposition: standing, a reading of that one reproducer rather than of the defect, which the opam guide records beside the audit's lexical cover and its dependency-source residue
+
+**F-498** measurement: the CIC corpus exporter's test fixtures differed from what Rocq 9.2.0 and 9.3.0 print for probes of their shapes under the exporter's settings, dropping declaration, type and `Arguments` lines, wrapping a type those settings print on one line, and reordering or reindenting others
+· Raised: Q36
+· Disposition: closed at Q36, every fixture replaced by a verbatim block of Rocq 9.3.0's output, which prints each probe shape byte for byte as 9.2.0 does
+
+**F-499** owed-act: Rocq 9.2.0's `Print All Dependencies` walks bodies and not types, so the CIC qualification's count of symbols reaching no transparent constant, which it read as those that cannot require delta reduction, includes symbols whose type alone reaches one; over the current sources 155 of the 1,266 such symbols reach one at the locked Rocq 9.3.0, which walks types as well
+· Raised: Q36
+· Disposition: open, M6.2b-0b's corpus qualification re-reading that figure at the locked prover
 
 ## M0 · Hardware reference
 

@@ -257,7 +257,7 @@ def _hoisted_lane_constants() -> None:
         f"{env.Z3_PREFIX}"))
     ensure(env.SAIL_SWITCH == "verifiedos-sail-0.20.2-ocaml-5.4.1",
            f"the Sail switch is project-specific and versioned, got {env.SAIL_SWITCH!r}")
-    ensure(env.ROCQ_SWITCH == "verifiedos-rocq-9.2.0-ocaml-5.4.1",
+    ensure(env.ROCQ_SWITCH == "verifiedos-rocq-9.3.0-ocaml-5.4.1",
            f"the prover switch carries its pin in its name, got {env.ROCQ_SWITCH!r}")
     with_env("VOS_BUILD_ROOT", None, lambda: ensure(
         str(env.build_root()).replace("\\", "/") == "/root/build",

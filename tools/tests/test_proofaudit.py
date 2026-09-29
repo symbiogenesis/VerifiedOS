@@ -18,19 +18,19 @@ from vos.cli import evidence
 from vos.cli import proofs as gate
 
 # What `rocqchk -silent -o` writes to stderr for a clean environment, byte for byte as
-# the pinned Rocq 9.2 writes it.
-KERNEL_CLEAN = ("\nCONTEXT SUMMARY\n===============\n\n* Theory: Set is predicative\n  \n"
+# the pinned Rocq 9.3.0 writes it for a module whose environment is the prelude alone.
+# The head alone is a summary that stops before the indices section, which the gate
+# refuses.
+_KERNEL_HEAD = ("\nCONTEXT SUMMARY\n===============\n\n* Theory: Set is predicative\n  \n"
                 "* Theory: Rewrite rules are not allowed\n  \n* Axioms: <none>\n  \n"
                 "* Constants/Inductives relying on type-in-type: <none>\n  \n"
                 "* Constants/Inductives relying on unsafe (co)fixpoints: <none>\n  \n"
                 "* Inductives whose positivity is assumed: <none>\n  \n")
-_LOADED_AXIOM = KERNEL_CLEAN.replace(
-    "* Axioms: <none>\n", "* Axioms:\n    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq\n    M.a\n")
-# Rocq 9.3 appends one section, written here byte for byte as it follows the others for
-# a module whose environment is the prelude alone.
 _INDICES = ("* Inductives relying on indices not mattering:\n"
             "    Corelib.Init.Datatypes.eq_true\n    Corelib.Init.Logic.eq\n  \n")
-KERNEL_CLEAN_93 = KERNEL_CLEAN + _INDICES
+KERNEL_CLEAN = _KERNEL_HEAD + _INDICES
+_LOADED_AXIOM = KERNEL_CLEAN.replace(
+    "* Axioms: <none>\n", "* Axioms:\n    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq\n    M.a\n")
 
 
 def _inventory_filters_and_framing() -> None:
@@ -136,21 +136,16 @@ def _kernel_context_is_exact() -> None:
     ensure(proofaudit.kernel_context(KERNEL_CLEAN) == [], "a clean summary names no axiom")
     ensure(proofaudit.kernel_context(_LOADED_AXIOM)
            == ["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq", "M.a"], "every loaded axiom is named")
-    none = KERNEL_CLEAN + "* Inductives relying on indices not mattering: <none>\n  \n"
-    for summary in (KERNEL_CLEAN_93, none):
-        ensure(proofaudit.kernel_context(summary) == [],
-               "the indices section of the fixed theory refused a clean summary")
-    ensure(proofaudit.kernel_context(_LOADED_AXIOM + _INDICES)
-           == ["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq", "M.a"],
-           "the indices section hid a loaded axiom")
+    none = _KERNEL_HEAD + "* Inductives relying on indices not mattering: <none>\n  \n"
+    ensure(proofaudit.kernel_context(none) == [],
+           "an empty indices section of the fixed theory refused a clean summary")
     refused = [
-        KERNEL_CLEAN_93.replace("not mattering:\n", "not mattering: <none>\n"),
-        KERNEL_CLEAN + "* Inductives relying on indices not mattering:\n  \n",
-        KERNEL_CLEAN_93.replace("    Corelib.Init.Logic.eq\n", "    Fatal Error: unexpected\n"),
-        KERNEL_CLEAN_93 + _INDICES,
-        KERNEL_CLEAN_93 + "* Constants relying on a new assumption: <none>\n",
-        KERNEL_CLEAN.replace("* Inductives whose positivity", _INDICES + "* Inductives whose positivity"),
-        KERNEL_CLEAN_93.replace("positivity is assumed: <none>", "positivity is assumed:\n    M.Bad"),
+        _KERNEL_HEAD,
+        KERNEL_CLEAN.replace("not mattering:\n", "not mattering: <none>\n"),
+        _KERNEL_HEAD + "* Inductives relying on indices not mattering:\n  \n",
+        KERNEL_CLEAN.replace("    Corelib.Init.Logic.eq\n", "    Fatal Error: unexpected\n"),
+        KERNEL_CLEAN + _INDICES,
+        _KERNEL_HEAD.replace("* Inductives whose positivity", _INDICES + "* Inductives whose positivity"),
         "",
         KERNEL_CLEAN.replace("unsafe (co)fixpoints: <none>", "unsafe (co)fixpoints:\n    M.f"),
         KERNEL_CLEAN.replace("positivity is assumed: <none>", "positivity is assumed:\n    M.Bad"),
@@ -170,8 +165,8 @@ def _kernel_context_is_exact() -> None:
 
 
 def _audit_goals_open_with_proof() -> None:
-    # Rocq 9.3 reports an interactive proof that Proof does not open, and the gate refuses
-    # any diagnostic; the pinned 9.2 is silent, so only the generated text can hold this.
+    # The pinned Rocq 9.3 reports an interactive proof that Proof does not open, and the
+    # gate refuses any diagnostic, so a generated goal without Proof fails every audit.
     claimed: proofaudit.Symbol = {"name": "M.a", "type": "True", "assumptions": [],
                                   "claims": ["R-05-163"]}
     query = proofaudit.assumption_query("M", [claimed])
@@ -190,7 +185,7 @@ def _kernel_verdict_needs_a_clean_summary() -> None:
         return verdict
 
     ensure(fault(0, "", KERNEL_CLEAN) == "", "a clean kernel run was refused")
-    ensure(fault(0, "", KERNEL_CLEAN_93) == "", "a clean Rocq 9.3 kernel run was refused")
+    ensure(bool(fault(0, "", _KERNEL_HEAD)), "a summary without the indices section passed")
     ensure("eq_rect_eq" in fault(0, "", _LOADED_AXIOM), "a loaded but unused axiom passed")
     for code, stdout, stderr in ((1, "", KERNEL_CLEAN), (0, "chatter", KERNEL_CLEAN),
                                  (0, "", ""), (0, "", "Fatal Error: Type error")):
@@ -367,8 +362,9 @@ def _native_gate_regressions() -> None:
                 "Program Definition bounded : { n : nat | n = 0 } := 0.\n"
                 "Next Obligation. reflexivity. Qed.\n")
     # Each refusal with the diagnostic that must carry it, so that none passes for
-    # another reason. Rocq 9.2's Print Assumptions misses the type-only axiom.
-    bad = [("Theorem good : True. Proof. exact I. Qed.\nPrint Assumptions good.\n"
+    # another reason. The type-only axiom is named by both assumption readings.
+    bad = [("Theorem unopened : True.\nexact I.\nQed.\n", "missing-proof-command"),
+           ("Theorem good : True. Proof. exact I. Qed.\nPrint Assumptions good.\n"
             "Axiom injected : False. Theorem bad : False. Proof. exact injected. Qed.\n",
             "undeclared assumptions"),
            ("Theorem unchecked : False. Proof. Admitted.\n", "undeclared assumptions"),
@@ -440,10 +436,10 @@ def _native_gate_regressions() -> None:
 
 def _release_version_banner_is_exact() -> None:
     """A missing zero patch is a release spelling, not permission for version drift."""
-    samples = [("9.2.0", "9.2", True), ("9.2.0", "9.2.0", True),
-               ("9.2.0", "9.2.1", False), ("9.2.0", "9.2+dev", False),
-               ("9.2.0", "9.2~rc1", False), ("9.2.0", "9.1.1", False),
-               ("9.2.1", "9.2", False), ("9.2.1", "9.2.1", True)]
+    samples = [("9.3.0", "9.3.0", True), ("9.3.0", "9.3", True),
+               ("9.3.0", "9.3.1", False), ("9.3.0", "9.3+dev", False),
+               ("9.3.0", "9.3~rc1", False), ("9.3.0", "9.2.0", False),
+               ("9.3.1", "9.3", False), ("9.3.1", "9.3.1", True)]
     for pin, banner, accepted in samples:
         answer = subprocess.CompletedProcess(
             ["rocq", "c", "--version"], 0,

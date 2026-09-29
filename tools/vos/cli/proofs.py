@@ -714,8 +714,9 @@ def _toolchain() -> dict[str, object]:
     if done.returncode or not done.stdout.strip():
         raise proofaudit.AuditError("cannot identify the Rocq compiler version")
     version = re.search(r"\bversion\s+([^\s]+)", done.stdout)
-    # Rocq 9.2.0 prints "9.2". Only a zero patch may be omitted: accepting an
-    # arbitrary prefix would also admit prereleases or a different patch release.
+    # Rocq 9.2.0 printed "9.2" and 9.3.0 prints "9.3.0". Only a zero patch may be
+    # omitted: accepting an arbitrary prefix would also admit prereleases or a different
+    # patch release.
     releases = {env.ROCQ_VERSION}
     if env.ROCQ_VERSION.endswith(".0"):
         releases.add(env.ROCQ_VERSION.removesuffix(".0"))
