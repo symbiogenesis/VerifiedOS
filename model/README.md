@@ -157,10 +157,12 @@ mapping encdec_iop : iop <-> bits(3) = {
   XORI  <-> 0b100
 }
 
-mapping clause encdec = ITYPE(imm, rs1, rd, op) <-> imm @ encdec_reg(rs1) @ encdec_iop(op) @ encdec_reg(rd) @ 0b0010011
+mapping clause encdec = ITYPE(imm, rs1, rd, op)
+  <-> imm @ encdec_reg(rs1) @ encdec_iop(op) @ encdec_reg(rd) @ 0b0010011
 
 /* the execution semantics for the ITYPE instructions */
 
+$[split op]
 function clause execute ITYPE(imm, rs1, rd, op) = {
   let immext : xlenbits = sign_extend(imm);
   X(rd) = match op {
@@ -186,34 +188,38 @@ mapping itype_mnemonic : iop <-> string = {
 }
 
 mapping clause assembly = ITYPE(imm, rs1, rd, op)
-                      <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
+  <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
 ```
 
-### SRET
+### MRET
 
 ```
-union clause instruction = SRET : unit
+union clause instruction = MRET : unit
 
-mapping clause encdec = SRET()
-  <-> 0b0001000 @ 0b00010 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
+mapping clause encdec = MRET()
+  <-> 0b0011000 @ 0b00010 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
 
-function clause execute SRET() = {
-  let sret_illegal : bool = match cur_privilege {
-    User       => true,
-    Supervisor => not(currentlyEnabled(Ext_S)) | mstatus[TSR] == 0b1,
-    Machine    => not(currentlyEnabled(Ext_S))
-  };
-  if   sret_illegal
-  then Illegal_Instruction()
-  else if not(ext_check_xret_priv (Supervisor))
+// `mret` no longer transfers privilege: with one mode it restores the
+// interrupt-enable stack and returns to `mepc`. `sret` is deleted with
+// the mode there is no returning to (R-15-003).
+function clause execute MRET() = {
+  if   not(ext_check_xret_priv())
   then Ext_XRET_Priv_Failure()
   else {
-    set_next_pc(exception_handler(cur_privilege, CTL_SRET(), PC));
+    mstatus[MIE]  = mstatus[MPIE];
+    mstatus[MPIE] = 0b1;
+
+    long_csr_write_callback("mstatus", mstatus.bits);
+
+    set_next_pc(prepare_xret_target());
+    trap_path_live = false;
+
+    xret_callback(true);
     RETIRE_SUCCESS
   }
 }
 
-mapping clause assembly = SRET() <-> "sret"
+mapping clause assembly = MRET() <-> "mret"
 ```
 
 ## Sequential execution
