@@ -58,6 +58,15 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         shard: [1, 2, 3, 4]
     steps:
+      # Windows images keep the checkout and runner.temp on D: but TEMP on the slower
+      # C: drive; selftest sandboxes and test scratch trees follow TMP and TEMP.
+      - name: Keep temporary files on the checkout drive
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
+          "TEMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
+
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.revision || github.sha }}

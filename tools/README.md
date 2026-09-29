@@ -62,8 +62,12 @@ the complete suite.
 
 Shards cache uv downloads keyed by the manifest and lockfile, with only shard 1
 of each OS on pushes to `main` saving caches; other jobs restore them. Environments
-and gate results are rebuilt on every run. Per-member timing notices are also
-available through the public check-run annotations API.
+and gate results are rebuilt on every run. Windows shards set `TMP` and `TEMP` to
+`runner.temp`, on the checkout's drive, because the image's default temporary
+directory is on a
+[slower system drive](https://github.com/actions/runner-images/issues/8755).
+Per-member timing notices are also available through the public check-run
+annotations API.
 
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
