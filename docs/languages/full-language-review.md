@@ -315,7 +315,7 @@ three conditions then read:
 | --- | --- | --- |
 | Coq-native or mechanically bridged | The elaborator emits kernel terms the kernel re-checks and introduces no second checker; what would show it is the `SourcePackage` correspondence priced at the frontend rows above. | Satisfiable, and not yet shown. |
 | Non-duplicating of an existing anchor | An eighth anchor for a domain Gallina/CIC already covers is the duplication the entry names, and R-05-019a reaches the re-transcription beside it. | Refuted in this arm. |
-| Retires an interim it replaces | R-05-022 carries exactly three interims, F\*/Z3 for libcrux and HACL\*, EasyCrypt's Why3 and SMT route, and Cranelift and Crocus's SMT, each with a named Coq-native destination and a consumer list. A Vela anchor is none of those destinations and removes no consumer from any of those lists, so it stands beside the three rather than retiring one, which is the case the prose this entry is read with names in as many words. | Refuted. |
+| Retires an interim it replaces | Every interim R-05-022 carries has a named Coq-native destination and a consumer list. A Vela anchor is none of those destinations and removes no consumer from any of those lists, so it stands beside them rather than retiring one, which is the case the prose this entry is read with names in as many words. | Refuted. |
 
 **R-05-021 does not reach the case either.** It admits a verified compiler as
 proof transport between two existing anchors. In arm two the source end is an

@@ -128,16 +128,19 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
         (SPEC, "**riscv-formal/rvfi** (SVA + BMC) is the cheapest bring-up gate"),
         (SPEC, "**Isla** (symbolic Sail) generates the obligations"),
     ]),
-    # the ruling R-05-022 states and the prose used to contradict: three interims on
-    # the books, aiT and Binsec/Rel on none
+    # the ruling R-05-022 states and the prose used to contradict: two interims on the
+    # books, and aiT, Binsec/Rel and Cranelift/Crocus's SMT on none. The third is held
+    # at R-18-020 too, the entry whose reference-point standing is why it rides nothing
     ("the interim-anchor books", [
-        ("R-05-022", "The three entries (F\\*/Z3 for libcrux/HACL\\*, EasyCrypt's "
-                     "Why3/SMT, Cranelift/Crocus's SMT)"),
-        ("R-05-022", "aiT and Binsec/Rel are not interim anchors and carry no "
-                     "retirement rule"),
-        (SPEC, "aiT and Binsec/Rel are on no book at all"),
-        (SPEC, "aiT and Binsec/Rel are bring-up gates and cross-checks that carry "
-               "no claim"),
+        ("R-05-022", "The two entries (F\\*/Z3 for libcrux/HACL\\*, EasyCrypt's "
+                     "Why3/SMT)"),
+        ("R-05-022", "aiT, Binsec/Rel and Cranelift/Crocus's SMT are not interim "
+                     "anchors and carry no retirement rule"),
+        ("R-18-020", "and never an interim anchor under R-05-022"),
+        (SPEC, "aiT, Binsec/Rel and Cranelift/Crocus's SMT are on no book at all"),
+        (SPEC, "aiT, Binsec/Rel and Cranelift/Crocus's SMT are bring-up gates, "
+               "cross-checks and reference material that carry no claim"),
+        (SPEC, "never the shipped certifier, an admission path or an interim anchor"),
     ]),
     ("the WCET tooling disposition", [
         ("R-18-024", "retired as a workstream"),
