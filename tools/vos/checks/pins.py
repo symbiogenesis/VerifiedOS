@@ -215,6 +215,7 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "629146ef7b3b0d74216b5cc94504ded082a85067": "opentitan",
     "405c6d1d8220a18b2f9196141167a5875422dee4": "ibex",
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
+    "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78": "SECOMP",
 }
 _CAPTURING_RECEIPTS: dict[str, str] = {
     "docs/assurance/sail-assistance-evidence/modular.json":
@@ -243,6 +244,8 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the Rupicola edition recorded in the completed environment measurement",
     ("docs/implementation/completion-log.md", "beaf4499"):
         "the Sail reconciliation edition recorded at the completed M0 gate",
+    ("docs/implementation/completion-log.md", "5c20b839"):
+        "the SECOMP edition M1.1 pinned and M1.1b measured",
     ("docs/hardware/rtl-reparameterization-delta.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):
