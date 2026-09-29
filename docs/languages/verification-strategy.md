@@ -459,7 +459,7 @@ The closest project-compatible implementation of that interaction is a Rocq-nati
 ### Idris Flexibility Without an Idris Runtime
 
 Idris 2's [quantities](https://idris2.readthedocs.io/en/latest/tutorial/multiplicities.html) distinguish erased values, values used exactly once, and unrestricted values.
-That page is a rolling `latest` build of the tutorial rather than a versioned artifact, so an audited citation pins a release tag.
+That page is a rolling `latest` build of the tutorial rather than a versioned artifact, so an audited citation pins a release tag, currently [v0.8.0](https://github.com/idris-lang/Idris2/releases/tag/v0.8.0) of 31 October 2025.
 This is more useful than simply adding dependent array lengths: ownership protocols can evolve in types, and the type signature can state which indices are unavailable at runtime.
 However, linear use of a parameter is not the same as unique ownership of all reachable storage, and neither guarantees stack allocation or eliminates garbage collection.
 Rust borrowing also permits temporary aliases with lifetime constraints; an exact-use multiplicity is not a substitute for that discipline.
@@ -491,7 +491,7 @@ The theory is Atkey and McBride's, with [Idris 2: Quantitative Type Theory in Pr
 Comparisons below distinguish a calculus parameterized by an algebra, a prototype implementing particular grades, and an extensible production language.
 These are different levels of evidence.
 
-**Idris 2 offers useful libraries without arbitrary grades.** Its actual [linear IO library](https://github.com/idris-lang/Idris2/blob/main/libs/linear/Control/Linear/LIO.idr) indexes `L` by result usage and supplies `Pure0`, `Pure1`, `PureW`, and corresponding continuation types.
+**Idris 2 offers useful libraries without arbitrary grades.** Its actual [linear IO library](https://github.com/idris-lang/Idris2/blob/v0.8.0/libs/linear/Control/Linear/LIO.idr), read at that tag, indexes `L` by result usage and supplies `Pure0`, `Pure1`, `PureW`, and corresponding continuation types.
 It can require an action's result to be used linearly, which is useful for state-changing resource APIs.
 The implementation explicitly repeats definitions because multiplicity polymorphism is absent; its `Usage` datatype does not change the compiler's core quantity algebra.
 The immediate lesson is to build state-indexed operations and proved combinators now, not wait for a fully general graded compiler.
