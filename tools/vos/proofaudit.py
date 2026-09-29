@@ -72,13 +72,14 @@ _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
 # an allocation limit makes a verdict depend on the machine that ran it.
 _PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
-# The Ltac tactical `timeout` and Rocq 9.3's `alloc_limit` bind a verdict to the machine
-# in the same way, and stand anywhere in a sentence. Either word is refused before its
-# argument: a numeral, an identifier that a Tactic Notation's int_or_var or a `let`
-# binds, or the parenthesised term Ltac2's `Control.timeout` takes. A Gallina term that
-# applies an identifier named exactly `timeout` or `alloc_limit` is refused too, which is
-# loud and costs a rename; an identifier that only contains either word is read whole.
-_TACTICAL = re.compile(r"(?<![\w'])(?:timeout|alloc_limit)\s+[\w(]")
+# The Ltac tactical `timeout`, Rocq 9.3's `alloc_limit`, and Ltac2's `Control.timeout` and
+# its float twin `Control.timeoutf` bind a verdict to the machine in the same way, and
+# stand anywhere in a sentence. Ltac2's two are first-class values, which an alias, a
+# parenthesis or `Import Ltac2.Control` lets a proof apply with no argument beside the
+# word, so each word is refused wherever it stands as a whole identifier. A Gallina
+# identifier named exactly after one, a record field among them, is refused too, which is
+# loud and costs a rename; an identifier that only contains one is read whole.
+_TACTICAL = re.compile(r"(?<![\w'])(?:timeoutf?|alloc_limit)(?![\w'])")
 # Once comments are blanked, every remaining quote opens or closes a string literal.
 _STRING = re.compile(r'"[^"]*"')
 # A module command's head: whether it declares a module, and whether it opens a signature.
