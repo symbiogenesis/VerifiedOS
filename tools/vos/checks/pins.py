@@ -246,6 +246,8 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the Sail reconciliation edition recorded at the completed M0 gate",
     ("docs/implementation/completion-log.md", "5c20b839"):
         "the SECOMP edition M1.1 pinned and M1.1b measured",
+    ("docs/implementation/completion-log.md", "fd327e8c"):
+        "the Katamaran edition recorded by the 2026-09-24 reference refresh",
     ("docs/hardware/rtl-reparameterization-delta.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):

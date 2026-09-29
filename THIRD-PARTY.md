@@ -121,6 +121,8 @@ preceding pin, and the grants and the uses in the table remain as recorded:
   changes only `README.md`.
 - LLVM: the root, `llvm/` and `lld/` `LICENSE.TXT`.
 - Ibex: `LICENSE`.
+- Katamaran: `LICENSE`. The two added `Logic.v` files carry two-clause BSD
+  notices.
 
 Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The reviewed development tip requires Rocq 9.2 and changes proofs and nested
@@ -153,7 +155,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `78a34ba5` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository. No build or check here uses it. | pinned for a struck milestone |
 | `upstream/qemu` | `CTSRD-CHERI/qemu` | `d0bb921c`, on `qemu-cheri` | `GPL-2.0`, with the [file-specific terms](#development-tools-contained-by-use) below | Base of the unpublished fast-emulator fork; its `VERSION` is 7.0.0. Nothing here runs or vendors the fork. | pinned for a struck milestone |
 | `upstream/rupicola` | `mit-plv/rupicola` | `d33f7024` | `MIT` | Relational-compilation toolkit for the GC-free lowering review, with Bedrock2 as a nested submodule. The lowering switch uses released opam packages. | pinned to read later |
-| `upstream/katamaran` | `katamaran-project/katamaran` | `fd327e8c` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail. | pinned to read later |
+| `upstream/katamaran` | `katamaran-project/katamaran` | `aeb0620c` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail. | pinned to read later |
 | `upstream/sail-katamaran-backend` | `katamaran-project/sail-backend` | `c9b1cd02` | `BSD-2-Clause`, stated in packaging; see below | Translation backend for the Katamaran route. | pinned to read later |
 | `upstream/cerise` | `logsem/cerise` | `9eb72e67` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Capability-machine contract and sentry-reasoning reference for the kernel milestone. | pinned to read later |
 | `upstream/cerisier` | `logsem/cerisier` | `57ed584a` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Extension of that contract to local attestation. | pinned to read later |
