@@ -399,7 +399,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-COMPCERT, CJ-VELUS
 
 **R-05-022** MUST: Every interim non-Coq anchor carries a named Coq-native destination and is governed by one stated retirement rule: an interim retires when its destination has passed admission for every consumer that currently rides the interim, and is struck from the trust-base inventory in that same generation.
-· Accept: *retired* is decided by inspecting two lists (the interim's consumer set and the destination's admitted artifacts) rather than by judgment. The three entries (F\*/Z3 for libcrux/HACL\*, EasyCrypt's Why3/SMT, Cranelift/Crocus's SMT) each carry a destination and a consumer list. aiT and Binsec/Rel are not interim anchors and carry no retirement rule: nothing rides either as its ground (R-05-109, R-05-073), so neither is in the trust-base inventory to be struck from.
+· Accept: *retired* is decided by inspecting two lists (the interim's consumer set and the destination's admitted artifacts) rather than by judgment. The two entries (F\*/Z3 for libcrux/HACL\*, EasyCrypt's Why3/SMT) each carry a destination and a consumer list. aiT, Binsec/Rel and Cranelift/Crocus's SMT are not interim anchors and carry no retirement rule: nothing rides any of them as its ground (R-05-109, R-05-073, R-18-020), so none is in the trust-base inventory to be struck from.
 · Trace: CJ-T
 
 **R-05-022a** MUST: An interim whose consumer set grows without its destination advancing is a review-gate finding, not a silent extension.
@@ -6587,7 +6587,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-TAL-SOUND
 
 **R-18-020** IS: A producer of TAL derivations is a hard prerequisite with no trusted-toolchain fallback: no userspace app is built or admitted until the producer and the on-device checker exist, while the preservation proof is deliberately off that critical path.
-· Accept: Cranelift with Crocus-verified lowerings is an SMT-trust reference point informing the lowering proofs, never the shipped certifier and never an admission path, of which there is none.
+· Accept: Cranelift with Crocus-verified lowerings is an SMT-trust reference point informing the lowering proofs, never the shipped certifier, never an admission path, of which there is none, and never an interim anchor, nothing riding it as its ground (R-05-022).
+· Accept: a Crocus verdict discharges nothing: no certificate, R-05-023a validation record or lowering proof cites one as a premise, a lowering pattern taken from Cranelift owes the same kernel-checked obligations as one authored here, and a counterexample Crocus or Arrival reports against such a pattern is a finding against it. A pass is no evidence that the lowering is correct: Arrival (PACMPL 9, OOPSLA2, Article 418) and the Wasmtime repository's issue 9537, both read on 2026-09-29 under R-18-001a, record that Cranelift's AArch64 lowering of 8- and 16-bit `sdiv`, which Crocus had reported verified, silently computed a wrong result where the IR required an overflow trap, and Arrival attributes the miss to Crocus's specifications being purely functional, its rule-by-rule checking stopping short of the overflow-check helper's internals, and its hand-written trusted specification of that helper not accounting for the flaw. Arrival's own verdicts are cvc5 or Z3 answers over hand-written IR and external-term specifications it trusts, and take the same standing.
 · Trace: CJ-TAL-SOUND
 
 ### 18.4 Crypto, WCET, storage, radio, memory
