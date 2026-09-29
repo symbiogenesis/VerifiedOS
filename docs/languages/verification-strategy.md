@@ -4,7 +4,7 @@
 
 > Non-normative research and design proposal. Scheduled work belongs to the implementation checklist; this document supplies no admission rule, semantic anchor, or accepted trust assumption.
 > The [requirements register](../requirements-register.md) governs VerifiedOS; the [typed assembly language](typed-assembly-language.md) governs the certificate language.
-> Research snapshot: 2026-09-08, extended through 2026-09-19. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
+> Research snapshot: 2026-09-08, extended through 2026-09-29. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
 
 ## Recommendation
 
