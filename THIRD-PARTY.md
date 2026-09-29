@@ -123,6 +123,7 @@ preceding pin, and the grants and the uses in the table remain as recorded:
 - Ibex: `LICENSE`.
 - Katamaran: `LICENSE`. The two added `Logic.v` files carry two-clause BSD
   notices.
+- libjade: `LICENSE` and the two texts under `LICENSES/`.
 
 Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The reviewed development tip requires Rocq 9.2 and changes proofs and nested
@@ -163,7 +164,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/TestRIG` | `CTSRD-CHERI/TestRIG` | `70717956` | `BSD-2-Clause` | `LICENSE` reviewed at the pin. Its `RVFI-DII.md` informs [the local protocol codec](tools/vos/rvfi.py). The upstream engine is TestRIG's own submodule; no build here uses this pin. | read |
 | `upstream/fiat-crypto` | `mit-plv/fiat-crypto` | `e6946985` | `MIT OR Apache-2.0 OR BSD-1-Clause`; this project elects `Apache-2.0` under `COPYRIGHT` | Classical field-arithmetic generator. The recorded derivation at this pin emits the tracked 32-bit 25519 and P256 inclusion headers; the generator and its dependencies remain external build inputs. | generated field headers incorporated |
 | `upstream/hacl-star` | `hacl-star/hacl-star` | `504c2987` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage. No differential run, build, copying, or extraction occurs here. | pinned to read later |
-| `upstream/libjade` | `formosa-crypto/libjade` | `755c7eaa` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. | pinned to read later |
+| `upstream/libjade` | `formosa-crypto/libjade` | `60b9e9dd` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. | pinned to read later |
 
 ### RTL license scope
 
@@ -412,7 +413,7 @@ The cryptography milestone distinguishes generated arithmetic, authored specific
 | Fiat-Crypto | [Pinned as a submodule](#pinned-as-submodules). Recorded generation at `e6946985` emits `tools/generated/fiat-crypto/25519_32.h` and `p256_32.h`; the [emission record](docs/implementation/fiat-crypto-emission.md) and manifest bind source and output. Historical build measurements describe a different revision. | Required classical field arithmetic, admitted by a recorded derivation. |
 | VST's `sha/` and `hmacdrbg/` | Reviewed, not acquired. The directories use BSD-2-Clause through `LICENSE` and `LICENSE-OPAM`; the project authors its own specifications. | SHA-256 and HMAC-DRBG-SHA-256 specifications, refinement proofs, and an FCF security proof. |
 | FIPS 202/203/204/205 and NIST ACVP known-answer vectors | Publication and immutable ACVP-source license reviewed. The tracked ML-KEM/ML-DSA and boot-signature campaigns pin fetched source hashes and retain the NIST notice; downloaded data remain native build inputs. | Validation inputs for authored primitives. |
-| Behavioral oracles | HACL* at `504c2987` and libjade at `755c7eaa` remain [pinned leads](#pinned-as-submodules). The ML-KEM/ML-DSA independent campaigns execute installed OpenSSL 3.5.5; no upstream implementation is copied. | Independent functional comparisons, without claiming the unrun HACL*/libjade qualification. |
+| Behavioral oracles | HACL* at `504c2987` and libjade at `60b9e9dd` remain [pinned leads](#pinned-as-submodules). The ML-KEM/ML-DSA independent campaigns execute installed OpenSSL 3.5.5; no upstream implementation is copied. | Independent functional comparisons, without claiming the unrun HACL*/libjade qualification. |
 
 #### Fiat-Crypto
 

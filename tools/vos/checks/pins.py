@@ -216,6 +216,7 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "405c6d1d8220a18b2f9196141167a5875422dee4": "ibex",
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
     "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78": "SECOMP",
+    "755c7eaa8f67328cbe1f1ab9080b70afb1772e84": "libjade",
 }
 _CAPTURING_RECEIPTS: dict[str, str] = {
     "docs/assurance/sail-assistance-evidence/modular.json":
