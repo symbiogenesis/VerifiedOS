@@ -165,7 +165,7 @@ def _number(text: str) -> str:
     """The dotted version in a tool's own greeting, empty where it states none.
 
     `Z3 version 5.1.0 - 64 bit`, `Verilator 5.032 2025-01-01 rev (Debian 5.032-1)` and
-    a bare `0.20.2` from opam are the three shapes this reads, and `0.9.1+9.1` reduces
+    a bare `0.20.3` from opam are the three shapes this reads, and `0.9.1+9.1` reduces
     to the part before opam's own build suffix.
     """
     found = _NUMBER_RE.search(text)

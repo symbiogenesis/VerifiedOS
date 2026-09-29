@@ -382,7 +382,9 @@ def _owners(ctx: Context, row: Row, bundle: sailbundle.Bundle) -> tuple[int, lis
     different facts. The in-tree sources are here, so each is hashed and held against
     what the artifact says it was hashed at. The library's are not, so what is held is
     the precondition: `library_owners` raises on a key outside the canonical root, and that
-    raise is this rule's finding rather than this rule's crash.
+    raise is this rule's finding rather than this rule's crash. The files the compiler
+    carries inside itself are neither, and only the guest half's byte comparison holds
+    their digests.
     """
     findings: list[str] = []
     for rel, recorded in sorted(bundle.owners().items()):
@@ -400,7 +402,7 @@ def _owners(ctx: Context, row: Row, bundle: sailbundle.Bundle) -> tuple[int, lis
     except sailbundle.BundleError as err:
         findings.append(str(err))
         libraries = 0
-    return len(bundle.owners()) + libraries, findings
+    return len(bundle.owners()) + len(bundle.compiler_owners()) + libraries, findings
 
 
 def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Reading:

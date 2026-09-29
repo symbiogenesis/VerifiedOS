@@ -54,6 +54,27 @@ def _portable_library_metadata() -> None:
             raise AssertionError("a foreign or escaping library root must fail closed")
 
 
+def _compiler_files_own_no_checkout_path() -> None:
+    """The compiler's own files are neither model sources nor installed library files.
+
+    Sail 0.20.3 hashes its implicit corelib under a bare name, which reads like a file
+    under `model/model/`; a reader treating it so reports a source the checkout lacks.
+    A bare name that is not the compiler's still counts as a model source.
+    """
+    tracked = json.loads((TOOLS.parent / sailbundle.BUNDLE).read_bytes())
+    library =sailbundle.LIBRARY_PREFIX + "lib/flow.sail"
+    tracked["hashes"] = {"core/regs.sail": {"md5": "1" * 32}, "corelib.sail": {"md5": "2" * 32},
+                         "stray.sail": {"md5": "3" * 32}, library: {"md5": "4" * 32}}
+    bundle = sailbundle.Bundle(tracked)
+    ensure(bundle.owners() == {"model/model/core/regs.sail": "1" * 32,
+                               "model/model/stray.sail": "3" * 32},
+           f"model owners exclude only the compiler's files, got {bundle.owners()}")
+    ensure(bundle.compiler_owners() == {"corelib.sail": "2" * 32},
+           f"the compiler's files keep their emitted names, got {bundle.compiler_owners()}")
+    ensure(bundle.library_owners() == {library: "4" * 32},
+           f"library owners are unchanged, got {bundle.library_owners()}")
+
+
 def _bundle_publication_and_check() -> None:
     tracked = (TOOLS.parent / sailbundle.BUNDLE).read_bytes()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
@@ -114,5 +135,6 @@ def _real_relocated_library() -> None:
 
 def cases() -> list[Case]:
     return [Case("portable-library-metadata", _portable_library_metadata),
+            Case("compiler-files-own-no-checkout-path", _compiler_files_own_no_checkout_path),
             Case("bundle-publication-and-check", _bundle_publication_and_check),
             Case("real-relocated-library", _real_relocated_library, slow=True, lane="toolchain")]

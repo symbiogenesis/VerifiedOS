@@ -165,10 +165,11 @@ def compare_keys(left_path: Path, right_path: Path) -> tuple[int, list[str]]:
 def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
     # Recurse where the subschema plainly declares "properties", and into every allOf
     # member, since each of them applies; anyOf/oneOf nodes are left alone, because
-    # either branch may be the one that owns a key. Sail 0.20.2 wraps a config struct
-    # read at two sites in an allOf and leaves its option values open (no
-    # `additionalProperties`), so `{"Sme": ...}` in place of `{"Some": ...}` passes
-    # plain validation; upstream sail-riscv #1850 is that defect.
+    # either branch may be the one that owns a key. Sail wraps a config struct read at
+    # two sites in an allOf. Sail 0.20.2 left its option values open (no
+    # `additionalProperties`), so `{"Sme": ...}` in place of `{"Some": ...}` passed
+    # plain validation, upstream sail-riscv #1850; 0.20.3 closes them, and the walk
+    # still names such a key once.
     found: list[str] = []
 
     def add(paths: list[str]) -> None:
@@ -195,9 +196,10 @@ def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
 
 def validate(schema_path: Path, config_path: Path) -> tuple[int, list[str]]:
     """Two directions are checked, because the generated schema closes only its
-    bitvector-literal leaves (`additionalProperties: false`) and plain validation
-    therefore misses a config key whose schema entry a cut deleted. c1's verified state
-    is required-key set == config-key set, so an undeclared key is always drift."""
+    bitvector-literal leaves and option values (`additionalProperties: false`) and
+    plain validation therefore misses a config key whose schema entry a cut deleted.
+    c1's verified state is required-key set == config-key set, so an undeclared key is
+    always drift."""
     try:
         import jsonschema  # noqa: PLC0415
     except ModuleNotFoundError:

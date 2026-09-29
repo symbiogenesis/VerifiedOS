@@ -1,7 +1,7 @@
 # Optional generated Sail static libraries
 
 `python tools/run.py sail-modular qualify` derives four method translation units
-and a single shared owner from the full pinned Sail 0.20.2 C++ model, then builds
+and a single shared owner from the full C++ model the pinned Sail emits, then builds
 them as static libraries with an isolated CMake overlay. On Linux use `python3`.
 Run `model build` first to obtain the current lane's successful baseline receipt.
 `--partitions` accepts 2 through 16; `--json` prints the complete report conforming

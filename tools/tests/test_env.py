@@ -255,7 +255,7 @@ def _hoisted_lane_constants() -> None:
         str(env.Z3_PREFIX / "bin").replace("\\", "/") == "/root/z3-5.1.0/bin",
         f"the pinned solver's prefix must compose to the unpacked one, got "
         f"{env.Z3_PREFIX}"))
-    ensure(env.SAIL_SWITCH == "verifiedos-sail-0.20.2-ocaml-5.4.1",
+    ensure(env.SAIL_SWITCH == "verifiedos-sail-0.20.3-ocaml-5.4.1",
            f"the Sail switch is project-specific and versioned, got {env.SAIL_SWITCH!r}")
     ensure(env.ROCQ_SWITCH == "verifiedos-rocq-9.3.0-ocaml-5.4.1",
            f"the prover switch carries its pin in its name, got {env.ROCQ_SWITCH!r}")
