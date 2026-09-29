@@ -1,0 +1,790 @@
+{
+ "base_revision": "41fc2086850670eacae03c0f972c1233689ba9ba",
+ "emission_5_command_as_recorded": {
+  "Command being timed": "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/bin/sail --strict-var --strict-bitvector --strict-exponentials --require-version 0.20.2 --memo-z3-path /root/build/lane-q35b-impl-20260928/q35b/emit5-profile/sail_smt_cache --drocq-undef-axioms --rocq --rocq-lib riscv_extras --rocq-output-dir /root/build/lane-q35b-impl-20260928/q35b/emit5-profile/rocq -o rv64d --config /mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q35b-impl-20260928/model/config/verifiedos.json --all-modules riscv.sail_project",
+  "Elapsed (wall clock) time (h:mm:ss or m:ss)": "6:04.82",
+  "Exit status": "0",
+  "Maximum resident set size (kbytes)": "1121608",
+  "source": "/root/build/lane-q35b-impl-20260928/q35b/emit5-profile/time.txt",
+  "source_sha256": "dd974ab39c5c1888a7867281e3a7bf16c8a8f919242477b3d2d0a1f75b8114bc"
+ },
+ "emission_6_frozen_profile_repeat": {
+  "Command being timed": "/root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/bin/sail --strict-var --strict-bitvector --strict-exponentials --require-version 0.20.2 --memo-z3-path /root/build/lane-q35b-fix-20260928/emit5-repeat/sail_smt_cache --drocq-undef-axioms --rocq --rocq-lib riscv_extras --rocq-output-dir /root/build/lane-q35b-fix-20260928/emit5-repeat/rocq -o rv64d --config /mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q35b-fix-20260928/model/config/verifiedos.json --all-modules riscv.sail_project",
+  "Elapsed (wall clock) time (h:mm:ss or m:ss)": "9:29.82",
+  "Exit status": "0",
+  "Maximum resident set size (kbytes)": "1128840",
+  "axiom_names_equal_emission_1": true,
+  "byte_identical_to_emission_5": {
+   "rv64d.v": true,
+   "rv64d_types.v": true
+  },
+  "cwd": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q35b-fix-20260928/model/model",
+  "rv64d.v": {
+   "bytes": 3786165,
+   "lines": 71947,
+   "sha256": "60a280fb40d54f2343668a6f5f89bc174409bc19c229ac5d692acf5166b17384"
+  },
+  "rv64d_types.v": {
+   "bytes": 506944,
+   "lines": 12951,
+   "sha256": "d63859dfac552509553857de4e3c59b645e9d8cee630c5184a33fba97b39eb46"
+  }
+ },
+ "environment": [
+  "date_start 2026-09-29T03:18:51Z",
+  "uname_m aarch64",
+  "sail_version Sail 0.20.2 (sail @ opam-v2.5.0 0.20.2)",
+  "which_z3 /root/z3-5.1.0/bin/z3 Z3 version 5.1.0 - 64 bit",
+  "c3040b2464bccf4167ca21f9d74211bd087537c296ce27a302d941b9bc9b44b8  /root/.opam/verifiedos-sail-0.20.2-ocaml-5.4.1/bin/sail",
+  "f12647df960955e4484afcba8cd0ffa02a9fd5d73dd2429a07578600ab299969  /root/z3-5.1.0/bin/z3",
+  "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424  /mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q35b-fix-20260928/model/config/verifiedos.json"
+ ],
+ "item": "Q35b",
+ "lane": "q35b-fix-20260928",
+ "predicates": {
+  "file digests": "SHA-256 of the file bytes; lines are newline characters",
+  "proof_commands": "lines matching each pattern: Qed and Defined anywhere after whitespace or a period, Proof and Lemma as a line's first token (Lemma after an optional attribute), Admitted or admit as a word",
+  "references": "whole-word occurrences of each `Axiom` name, a word being bounded by characters outside [A-Za-z0-9_'], less the occurrences on its own `Axiom` line"
+ },
+ "proof_commands": {
+  "emission 1/rv64d.v": {
+   "Admitted or admit": 0,
+   "Defined": 2,
+   "Lemma": 0,
+   "Proof": 0,
+   "Qed": 0
+  },
+  "emission 1/rv64d_types.v": {
+   "Admitted or admit": 0,
+   "Defined": 322,
+   "Lemma": 586,
+   "Proof": 23,
+   "Qed": 587
+  },
+  "emission 5/rv64d.v": {
+   "Admitted or admit": 0,
+   "Defined": 2,
+   "Lemma": 0,
+   "Proof": 0,
+   "Qed": 0
+  },
+  "emission 5/rv64d_types.v": {
+   "Admitted or admit": 0,
+   "Defined": 322,
+   "Lemma": 586,
+   "Proof": 23,
+   "Qed": 587
+  }
+ },
+ "references": {
+  "emission 1": {
+   "__TraceMemoryRead": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "__TraceMemoryWrite": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "blkdev_host_input": {
+    "rv64d.v": 7,
+    "rv64d_types.v": 0
+   },
+   "blkdev_host_persist": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "blkdev_host_trace_enabled": {
+    "rv64d.v": 7,
+    "rv64d_types.v": 0
+   },
+   "plat_term_read": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "plat_term_write": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "quot_positive_round_zero": {
+    "rv64d.v": 58,
+    "rv64d_types.v": 0
+   },
+   "quot_round_zero": {
+    "rv64d.v": 7,
+    "rv64d_types.v": 0
+   },
+   "read_mem_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "read_mem_exclusive_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "read_mem_ifetch_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "rem_positive_round_zero": {
+    "rv64d.v": 36,
+    "rv64d_types.v": 0
+   },
+   "rem_round_zero": {
+    "rv64d.v": 6,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Add": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Div": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Eq": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Le": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Le_quiet": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Lt": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Lt_quiet": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Mul": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16MulAdd": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Sqrt": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Sub": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToF64": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToI32": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToI64": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToUi32": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToUi64": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16roundToInt": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Add": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Div": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Eq": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Le": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Le_quiet": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Lt": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Lt_quiet": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Mul": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32MulAdd": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Sqrt": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Sub": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToBF16": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToF16": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToF64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToI32": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToI64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToUi32": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToUi64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32roundToInt": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Add": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Div": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Eq": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Le": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Le_quiet": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Lt": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Lt_quiet": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Mul": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64MulAdd": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Sqrt": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Sub": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToF16": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToI32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToI64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToUi32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToUi64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64roundToInt": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_i32ToF16": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_i32ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_i32ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_i64ToF16": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_i64ToF32": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_i64ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui32ToF16": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui32ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui32ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui64ToF16": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui64ToF32": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui64ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "vtr_mnemonic_backwards": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "vtr_mnemonic_backwards_matches": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "write_mem_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "write_mem_exclusive_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   }
+  },
+  "emission 5": {
+   "__TraceMemoryRead": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "__TraceMemoryWrite": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "blkdev_host_input": {
+    "rv64d.v": 7,
+    "rv64d_types.v": 0
+   },
+   "blkdev_host_persist": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "blkdev_host_trace_enabled": {
+    "rv64d.v": 7,
+    "rv64d_types.v": 0
+   },
+   "plat_term_read": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "plat_term_write": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "quot_positive_round_zero": {
+    "rv64d.v": 58,
+    "rv64d_types.v": 0
+   },
+   "quot_round_zero": {
+    "rv64d.v": 7,
+    "rv64d_types.v": 0
+   },
+   "read_mem_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "read_mem_exclusive_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "read_mem_ifetch_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "rem_positive_round_zero": {
+    "rv64d.v": 36,
+    "rv64d_types.v": 0
+   },
+   "rem_round_zero": {
+    "rv64d.v": 6,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Add": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Div": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Eq": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Le": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Le_quiet": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Lt": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Lt_quiet": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Mul": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16MulAdd": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Sqrt": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16Sub": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToF64": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToI32": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToI64": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToUi32": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16ToUi64": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f16roundToInt": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Add": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Div": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Eq": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Le": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Le_quiet": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Lt": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Lt_quiet": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Mul": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32MulAdd": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Sqrt": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32Sub": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToBF16": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToF16": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToF64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToI32": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToI64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToUi32": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32ToUi64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f32roundToInt": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Add": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Div": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Eq": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Le": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Le_quiet": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Lt": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Lt_quiet": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Mul": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64MulAdd": {
+    "rv64d.v": 4,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Sqrt": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64Sub": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToF16": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToI32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToI64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToUi32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64ToUi64": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_f64roundToInt": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_i32ToF16": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_i32ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_i32ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_i64ToF16": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_i64ToF32": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_i64ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui32ToF16": {
+    "rv64d.v": 3,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui32ToF32": {
+    "rv64d.v": 2,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui32ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui64ToF16": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui64ToF32": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "riscv_ui64ToF64": {
+    "rv64d.v": 1,
+    "rv64d_types.v": 0
+   },
+   "vtr_mnemonic_backwards": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "vtr_mnemonic_backwards_matches": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "write_mem_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   },
+   "write_mem_exclusive_": {
+    "rv64d.v": 0,
+    "rv64d_types.v": 0
+   }
+  }
+ },
+ "schema": "q35b-repair-receipt/1",
+ "unreferenced_axioms": [
+  "__TraceMemoryRead",
+  "__TraceMemoryWrite",
+  "plat_term_read",
+  "read_mem_",
+  "read_mem_exclusive_",
+  "read_mem_ifetch_",
+  "riscv_f16Le_quiet",
+  "riscv_f16ToF64",
+  "riscv_f16ToI64",
+  "riscv_f16ToUi64",
+  "riscv_f16roundToInt",
+  "riscv_f32Le_quiet",
+  "riscv_f32roundToInt",
+  "riscv_f64Le_quiet",
+  "riscv_f64ToF16",
+  "riscv_f64roundToInt",
+  "riscv_i64ToF16",
+  "riscv_ui64ToF16",
+  "vtr_mnemonic_backwards",
+  "vtr_mnemonic_backwards_matches",
+  "write_mem_",
+  "write_mem_exclusive_"
+ ]
+}
