@@ -44,10 +44,16 @@ KERNEL_INDICES = "Inductives relying on indices not mattering"
 
 # Settings the compiler command line fixes, or whose default the audit relies on. A
 # source that sets one overrides that choice for itself, so the gate refuses it.
+# Kernel Conversion Dep Heuristic, which Rocq 9.3 adds, is a typing flag each
+# declaration records and the checker re-applies, and neither Print Assumptions nor the
+# kernel summary reports it. Default Proof Using annotates every unannotated section
+# lemma, and an annotation declaring more than the proof uses adds hypotheses to the
+# discharged statement.
 PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
                    "Nested Proofs Allowed", "Allow StrictProp", "Definitional UIP",
                    "Guard Checking", "Positivity Checking", "Universe Checking",
-                   "Indices Matter", "Strict Universe Declaration", "Default Timeout")
+                   "Indices Matter", "Strict Universe Declaration", "Default Timeout",
+                   "Kernel Conversion Dep Heuristic", "Default Proof Using")
 # Everything Rocq 9.3's vernac_control grammar lets precede a command: control flags,
 # quoted attributes and legacy attributes, plus the Export locality of option commands.
 # A lexical reading anchored after them sees the command however it is decorated.

@@ -224,6 +224,24 @@ def _pinned_settings_cannot_be_overridden() -> None:
         ensure(not proofaudit.pinned_overrides(text), f"an unpinned sentence was refused: {text}")
 
 
+def _rocq_93_settings_are_pinned() -> None:
+    # Each setting under a locality and under an attribute; printing it changes nothing.
+    refused = ("Set Kernel Conversion Dep Heuristic.",
+               "Local Set Kernel Conversion Dep Heuristic.",
+               "#[local] Unset Kernel Conversion Dep Heuristic.",
+               "Global Set Kernel\n  Conversion Dep Heuristic.",
+               'Set Default Proof Using "Type".', 'Local Set Default Proof Using "All".',
+               '#[export] Set Default Proof Using "Type".', "Export Unset Default Proof Using.")
+    for text in refused:
+        ensure(proofaudit.pinned_overrides(text) == [text.removesuffix(".")],
+               f"a Rocq 9.3 pinned-setting override passed: {text}")
+    allowed = ("Test Kernel Conversion Dep Heuristic.", "Test Default Proof Using.",
+               "Lemma kept : True. Proof using. exact I. Qed.",
+               "Definition Default_Proof_Using := 0.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text), f"reading a pinned setting was refused: {text}")
+
+
 def _nested_sources_cannot_be_omitted() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-nested-proof-") as temporary:
         root = Path(temporary)
@@ -470,6 +488,7 @@ def cases() -> list[Case]:
             Case("audit-goals-open-with-proof", _audit_goals_open_with_proof),
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
+            Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),
