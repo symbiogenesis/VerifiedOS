@@ -1295,7 +1295,8 @@
       "tools.identity_scope states that the clang and native_cc identities bind driver executables only",
       "licence_reads.basis states that the reads rest on the implementer's attestation",
       "the evidence sections gain every probe.py, normalize.py, control.py, oracle and native run argv from the stage records, and check 1's oracle binary identity",
-      "post_trial records the tool repair and its equivalence run, the -lib reading behind F-476, and the stage records' and orchestration script's identities"
+      "post_trial records the tool repair and its equivalence run, the -lib reading behind F-476, and the stage records' and orchestration script's identities",
+      "at integration, tool_repair.decides states that the normalizer's records were compared as parsed JSON less their output path rather than byte for byte"
     ],
     "tool_repair": {
       "revision": "a8f94e95a2a3ba76c74907afa08e40a70e887e6d",
@@ -1329,7 +1330,7 @@
         "frozen_reproduces_trial": true,
         "runs": "normalize.py over the node, the control program, the five refusal variants and the two identity inputs; token_compare.py over the node and the control program; control.py for the plain and perturbed drivers; each with the trial's argv shape and input paths"
       },
-      "decides": "On every trial input the repaired tools write the frozen tools' products, reports, logs and exit codes byte for byte, and the frozen tools reproduce the trial's recorded products, so the trial's evidence and verdict stand. frozen_inputs still names the tools the trial ran; reproducing the trial uses source_revision"
+      "decides": "On every trial input the repaired tools write the frozen tools' products, reports, logs and exit codes byte for byte, the normalizer's records compared as parsed JSON less the output path each run names, and the frozen tools reproduce the trial's recorded products, so the trial's evidence and verdict stand. frozen_inputs still names the tools the trial ran; reproducing the trial uses source_revision"
     },
     "lib_under_nomain": {
       "reading": "Under -nomain, velusmain.ml's get_main_node returns None, and -lib only sets Veluslib.expose, which Velus.v passes as Generation.translate's all_public. translate's None arm builds the program with every generated function public and never reads all_public, so -lib changes nothing under -nomain (F-476). This is a source reading; no run with and without -lib was made",

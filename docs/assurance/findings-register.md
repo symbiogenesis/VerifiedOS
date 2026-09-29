@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 776 of them across 133 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 781 of them across 134 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2510,6 +2510,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-186m** owed-act: a hysteresis band may be zero-width, both thresholds being required to be declared and nothing being said about the width between them, so a pair whose clear threshold equals its assertion threshold re-asserts the moment it clears
 · Raised: M6.1a
 · Disposition: open, the item taking the weaker reading because that is what the words carry; the oscillation admitted is the one the same entry's criterion is about
+
+**F-472** owed-act: the accepted typed purecap route refuses every Clight `switch`, and Vélus prints each Obc conditional as one, so no Vélus node with a conditional reaches the target through the normalized exchange
+· Raised: M6.1b-iii
+· Disposition: open, M6.1b-iv declaring a second exchange rewrite that lowers the printed `switch` shapes and repeating the target legs, a shape no declared rewrite carries being priced as a separate compiler-side cell
+
+**F-473** owed-act: the control driver's single straight-line `main` overflows `compiler-diff program`'s 32,768-byte text window, and the unchanged probe has the same form, unmeasured behind F-472
+· Raised: M6.1b-iii
+· Disposition: open, M6.1b-iv splitting both row sets into programs that fit the window, generated from the same rows, and recording the split
+
+**F-474** measurement: on the switch-free control program the alignment erasure suffices for the accepted typed frontend, and the normalized node's diagnostics carry no alignment error
+· Raised: M6.1b-iii
+· Disposition: standing, the exchange result recording both
+
+**F-475** measurement: Vélus could not check semantic existence for the control program, while the start/restart node compiles without that warning
+· Raised: M6.1b-iii
+· Disposition: standing, the exchange result recording it for M6.1b-ii's theorem-coverage record under F-467
+
+**F-476** measurement: under `-nomain`, Vélus's Clight generation ignores `-lib`, so no printed byte distinguishes `-nomain -lib` output and the normalizer decides acceptance from the main-node markers it refuses
+· Raised: M6.1b-iii
+· Disposition: standing, a reading of the pinned source that the exchange result binds by hash, stated in the normalizer and the route README
 
 **F-166** owed-act: whether a statically composed image re-admits on device or measured boot covers it is unruled, and the split of the admission-checker milestone rests on it
 · Raised: M6.2, in prose

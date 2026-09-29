@@ -2,8 +2,9 @@
 
 This directory keeps verbatim copies of the evidence records that tracked files cite
 by path, among them the [completion log](../completion-log.md), the
-[implementation checklist](../implementation-checklist.md) and the
-[supervisor route record](../../../supervisor/route/result.json).
+[implementation checklist](../implementation-checklist.md), the
+[supervisor route record](../../../supervisor/route/result.json) and its
+[exchange result](../../../supervisor/route/exchange-result.json).
 Those paths name working storage: the guest build and log roots, and a checkout's
 ignored `out/` directory. A clone carries neither, later runs overwrite the tools'
 fixed work directories, and lane cleanup removes native outputs. The copies keep each

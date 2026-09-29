@@ -3846,6 +3846,46 @@ duplicate target supervisor is opened by this decision.
   interface, provenance and unchanged downstream obligations. Hosted validation
   follows the batch handoff; component evidence does not assert a guest-gate verdict.
 
+##### M6.1b-iii · Normalize the Vélus Clight exchange and repeat its bounded exchange trial
+
+The repeated exchange trial fails at its fourth check. The declared alignment erasure clears the accepted frontend's alignment refusal, and the accepted typed purecap route then refuses the normalized node's Clight `switch` statements. C stays the M8a route and nothing is re-selected.
+
+* The authored [exchange normalizer](../../supervisor/route/normalize.py) removes Vélus's printed ` _Alignas(8)` only after `long long` or `unsigned long long`, at four kinds of position: parameter declarators in prototypes, definitions and extern prototypes, `register` temporaries, function return types and cast type names. It keeps structure members byte-identical. It refuses every other alignment specifier, including a group before a pointer declarator, and any input carrying a file-scope object, a `main` function or `volatile`. The [route tests](../../tools/tests/test_supervisor_route.py) exercise it on an authored fixture, together with the independent [token comparison](../../supervisor/route/token_compare.py) and the [control generator](../../supervisor/route/control.py). M6.1b-i's `result.json` is byte-identical.
+* The [source-bound result](../../supervisor/route/exchange-result.json) freezes its inputs and tool identities at `d590c463`. Checks 1 to 3 pass:
+  * the Vélus, license, compiler, simulator, configuration, profile and native-compiler hashes match M6.1b-i's receipt;
+  * the node re-emits the recorded Clight and header, and the unnormalized driver is still refused for its alignment;
+  * `token_compare.py`, over clang's token stream, places the node's four removals in the step function's parameter declarators, and the control program's nineteen at enumerated positions with its five 64-bit members kept;
+  * five authored variants are refused, and alignment-free input comes back byte-identical.
+* Check 4:
+  * The reference comparison passes with 656 cases and 3,088 equalities, and the regenerated fixtures reproduce the recorded digest.
+  * The unchanged probe over the normalized node agrees with the oracle on all 576 rows natively.
+  * Its target leg is the first failed predicate: ccomp exits 2 with `typed scalar refusal [Clight]: switch table typing is not implemented`.
+* Check 5 is not reached. A post-verdict rehash found every frozen identity unchanged.
+* Observations collected after the first failure: the perturbed probe meets the same switch refusal, and the switch-free control program compiles through the accepted typed route. Its 640 generated rows (256 edge, 384 seeded) agree natively under UBSan. But its straight-line driver compiles to 242,568 bytes of text, beyond `compiler-diff program`'s 32,768-byte window, and is refused at layout. Neither driver has a target run.
+* After review, the landed normalizer and token comparison refuse an alignment group before a pointer declarator at every position. The frozen versions accepted that form at parameter positions, and the frozen normalizer also accepted it at return positions and kept it as a structure member. Neither trial program carries the form. An equivalence run over every trial input finds that the repaired tools write the frozen tools' products, reports and logs byte for byte, the normalizer's records compared as parsed JSON less the output path each run names, and that the frozen tools reproduce the trial's recorded products ([`/root/build/lane-m61biii-fix-20260928/equiv/equivalence.json`](retained-evidence/root/build/lane-m61biii-fix-20260928/equiv/equivalence.json)).
+* The result's `post_trial` section binds the repaired tools and lists the result's own amendments:
+  * check 4's first failure is separated from the two failures collected after it;
+  * every run's argv and the oracle binary's identity come from the stage records;
+  * the prior-freeze comparison's scope is stated, with the three harness sources that changed since M6.1b-i;
+  * the clang and native-compiler identities are stated to bind their drivers only;
+  * the license reads are stated to rest on the implementer's attestation;
+  * the equivalence run's comparison of the normalizer's records is stated as parsed JSON less the output path.
+* `run.py typecheck` holds `tools/` only. The route tools are clean when the pinned ty and ruff configurations are run on them directly.
+* Five findings.
+  * **The accepted typed purecap route refuses every Clight `switch`, and Vélus prints each Obc conditional as one.** No Vélus node with a conditional reaches the target through the normalized exchange. Open: M6.1b-iv declares a second exchange rewrite that lowers the printed `switch` shapes and repeats the target legs; Clight `switch` typing in the contained compiler would change a build other products bind, so a shape no declared rewrite carries is priced as a separate compiler-side cell. F-472.
+  * **The control driver's single straight-line `main` does not fit `compiler-diff program`'s text window.** It compiles to 242,568 bytes against 32,768. The unchanged probe that check 4 names has the same form, and its size is unmeasured because of F-472. Open: M6.1b-iv splits both row sets into programs that fit, generated from the same rows. F-473.
+  * **On the switch-free control program the erasure suffices for the accepted frontend.** The program compiles with every erased position and its member alignment, and the normalized node's diagnostics carry no alignment error. Standing: the exchange result records both. F-474.
+  * **Vélus reports that it could not check semantic existence for the control program; the node compiles without that warning.** Standing: the result records it for M6.1b-ii's theorem-coverage record under F-467. F-475.
+  * **Under `-nomain`, Vélus's Clight generation ignores `-lib`.** The no-main arm of ObcToClight `Generation.translate` makes every generated function public whether or not `-lib` is given, so no byte distinguishes `-nomain -lib` output. The normalizer therefore decides acceptance from the main-node markers it refuses. This is a reading of the pinned source, whose files the result binds by hash. Standing: the normalizer and the route README state it. F-476.
+* Calibration: the original 2.5 h estimate, range 1.5–3.5, class X, is retained as planning weight, with agent-parallel actual `n/a` and exclusion from calibration. Two review passes were interrupted before returning a result and were restarted, and the interrupted passes' active intervals are not recoverable as exclusive bounds. The completed passes, in UTC:
+  * implementation, 2026-09-28 15:20:20–15:52:36, 32 min 16 s, in which provisioning to the check-4 verdict took 124 s, 15:44:21–15:46:25;
+  * the evidence and scope reviews, 2026-09-29 02:47:49–03:02:27 and 02:47:49–03:01:13;
+  * the repair, 03:03:24–03:20:58, 17 min 34 s;
+  * the recheck, 03:22:29–03:33:03.
+
+  The interrupted review passes ran from 2026-09-28 15:54 UTC until interruptions at 16:44 and 16:59 UTC. Integration review and hosted validation fall outside every interval.
+* Landed: Tier A. The integrator's read covers the normalizer's enumerated positions and refusals against the cell, the token comparison's independence from the normalizer, the result's first failed predicate, its retained evidence and its `post_trial` amendments, the tool repair's equivalence record, the five findings against the register, and M6.1b-iv's cell, which takes the rewrite route and leaves the contained compiler unchanged. No checker rule was added; `test_supervisor_route` and `test_retained_evidence` hold the tools and the retained copies.
+
 #### M6.2a · Specify the composition-time admission path
 
 The completion audit records specification completion only. M7.1 owns executable composition-time admission for its actual roster and must compare accepted/refused decisions and retain the image-bound admission record. This assignment does not close or replace M6.2b's separately deferred on-device CIC checker.

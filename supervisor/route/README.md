@@ -126,14 +126,17 @@ the switch refusal stops it first, so a repeat needs drivers that fit that
 window (F-473). Vélus reports that it could not check semantic existence for
 the control program; the node compiles without that warning (F-475).
 
-The normalizer and token comparison here differ from the frozen versions the
-result binds. They refuse a group before a pointer declarator at every
+The normalizer, token comparison and control generator here differ from the
+frozen versions the result binds, the generator only by its lint repair. The
+normalizer and comparison refuse a group before a pointer declarator at every
 position, where the frozen normalizer erased one at parameter and return
-positions, recording the pointee's type, and the frozen comparison placed the
-parameter form as a parameter. Neither trial program carries that form, and the
-route tests hold its refusal. The result's `post_trial` section binds the
-repaired tools and an equivalence run: on every trial input they write the
-frozen tools' products, reports and logs byte for byte, and the frozen tools
+positions, recording the pointee's type, and kept one as a structure member,
+and the frozen comparison placed the parameter form as a parameter. Neither
+trial program carries that form, and the route tests hold its refusal. The
+result's `post_trial` section binds the repaired tools and an equivalence run:
+on every trial input they write the frozen tools' products, reports and logs
+byte for byte, the normalizer's records compared less the output path each run
+names, and the frozen tools
 reproduce the trial's recorded products, so `frozen_inputs` still names the
 tools the trial ran. The same section lists the result's review amendments,
 which add every run's argv from the trial's stage records and the oracle
