@@ -1,0 +1,1755 @@
+{
+ "checker_binaries": [
+  {
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/bin/rocq",
+   "sha256": "9d2ea85559ec36f433303897af684f75111a6c01301db1c492e3bc960c3bec17",
+   "switch": "verifiedos-q35e-vst2-20260928",
+   "tool": "rocq"
+  },
+  {
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/bin/rocqchk",
+   "sha256": "2f48c34561aace15eea08dcab03f60a4a8a18eca0ffc2012638bf4e33367882e",
+   "switch": "verifiedos-q35e-vst2-20260928",
+   "tool": "rocqchk"
+  },
+  {
+   "path": "/root/.opam/verifiedos-q35e-vst3-20260928/bin/rocq",
+   "sha256": "bdd5ed39f6913123371509eae54331a44b75bcd206887309190eecc223eca1e5",
+   "switch": "verifiedos-q35e-vst3-20260928",
+   "tool": "rocq"
+  },
+  {
+   "path": "/root/.opam/verifiedos-q35e-vst3-20260928/bin/rocqchk",
+   "sha256": "513f387f14da87381a92cafad3480b0a92f2a8566788f5aba22cc34f8040b1ba",
+   "switch": "verifiedos-q35e-vst3-20260928",
+   "tool": "rocqchk"
+  },
+  {
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/bin/rocq",
+   "sha256": "5ef93cde51d31a3a5c0fc4e3685ae4d0a433bb8d47a0a739022463a9fb120a32",
+   "switch": "verifiedos-q35e-refinedc-20260928",
+   "tool": "rocq"
+  },
+  {
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/bin/rocqchk",
+   "sha256": "1a201967f6d401395ed5ec0d2619c6b379605c7c765c7ff56d8d9dacb112b454",
+   "switch": "verifiedos-q35e-refinedc-20260928",
+   "tool": "rocqchk"
+  },
+  {
+   "path": "/root/.opam/verifiedos-rocq-9.2.0-ocaml-5.4.1/bin/rocqchk",
+   "sha256": "dfac643c38c612ebe47646ad21a400bba255c5c0aa9e097fcf8326358f379707",
+   "switch": "verifiedos-rocq-9.2.0-ocaml-5.4.1",
+   "tool": "rocqchk"
+  }
+ ],
+ "clightgen": {
+  "bundled_route_check_script": {
+   "copies": [
+    {
+     "line": 18,
+     "text": "cp \"$L/clients/vst2/q35e_disjoint.c\" \"$L/clients/vst2/q35e_disjoint.v\" \"$L/clients/vst2/verif_q35e_disjoint.v\" \"$D/\""
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/vst2b-check.sh",
+   "sha256": "e6e1d9a57dedef97462a4b12ce1b07e1d6ebbb8f6be7e0560cf203c7b5924140"
+  },
+  "client_clight_bundled_route": {
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2b/q35e_disjoint.v",
+   "sha256": "81af8bd6660f50cd765f538238facd8a3ae1a30873818fcb4341d37ad9c9406c"
+  },
+  "client_clight_opam_route": {
+   "info": [
+    {
+     "line": 9,
+     "match": "Definition version := \"3.17\""
+    },
+    {
+     "line": 13,
+     "match": "Definition arch := \"aarch64\""
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2/q35e_disjoint.v",
+   "sha256": "81af8bd6660f50cd765f538238facd8a3ae1a30873818fcb4341d37ad9c9406c"
+  },
+  "exporter": {
+   "non_dual_modules": [
+    {
+     "line": 19,
+     "match": "open Clflags"
+    },
+    {
+     "line": 20,
+     "match": "open CommonOptions"
+    },
+    {
+     "line": 21,
+     "match": "open Driveraux"
+    },
+    {
+     "line": 22,
+     "match": "open Frontend"
+    },
+    {
+     "line": 46,
+     "match": "SimplExpr.transl_program"
+    },
+    {
+     "line": 48,
+     "match": "SimplLocals.transf_program"
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/CompCert-3.18/export/ExportDriver.ml",
+   "sha256": "0665ff5feef01e4ce08a03b3aa33e081b3a1d351ae073f783c841fd445abce97"
+  },
+  "refusal_case_script": {
+   "path": "/root/build/lane-q35e-impl-20260928/extra.sh",
+   "sha256": "2293896e0caad8b02cd1108b72c1028062200b71e7a4c8c8906b9bbca041039d",
+   "switches": [
+    {
+     "line": 18,
+     "text": "  eval \"$(opam env --switch=verifiedos-q35e-refinedc-20260928 --set-switch)\""
+    },
+    {
+     "line": 48,
+     "text": "  eval \"$(opam env --switch=verifiedos-q35e-vst2-20260928 --set-switch)\""
+    }
+   ]
+  }
+ },
+ "cn": {
+  "cn_coq_opam": {
+   "depends": [
+    {
+     "line": 20,
+     "match": "  \"cn\""
+    },
+    {
+     "line": 21,
+     "match": "  \"coq\" {= \"8.20.1\"}"
+    },
+    {
+     "line": 22,
+     "match": "  \"coq-ext-lib\""
+    },
+    {
+     "line": 23,
+     "match": "  \"coq-struct-tact\""
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/logs/refusals/cn-coq-pinned.opam",
+   "sha256": "527debf602ac999d1ab4e7255c774907d2f0ee9dba7d48d185c38646f5697a42"
+  },
+  "implementer_refusal_logs": [
+   {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/refusals/cn-free.log",
+    "sha256": "a5b61bcba4e40c31974fa495fd1d6ee4840e5a5167e491c4cf84fccc521c9c0f"
+   },
+   {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/refusals/cn-at-lock.log",
+    "sha256": "a5b61bcba4e40c31974fa495fd1d6ee4840e5a5167e491c4cf84fccc521c9c0f"
+   },
+   {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/refusals/cn-at-lock-coq-ignored.log",
+    "sha256": "a5b61bcba4e40c31974fa495fd1d6ee4840e5a5167e491c4cf84fccc521c9c0f"
+   },
+   {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/refusals/cn-at-prover.log",
+    "sha256": "a5b61bcba4e40c31974fa495fd1d6ee4840e5a5167e491c4cf84fccc521c9c0f"
+   }
+  ],
+  "probe": {
+   "exits": {
+    "at-prover": "20",
+    "at-prover coq-ignored": "0",
+    "coq deps at prover": "0",
+    "free": "0"
+   },
+   "export": {
+    "path": "/root/build/lane-q35e-fix-20260928/logs/cn/cnfix-after.lock",
+    "sha256": "d11a8b41c72fc91f7ef9f7d2e7eaa507f032b46d1723e9b1f115a481056d3c70"
+   },
+   "pins": {
+    "path": "/root/build/lane-q35e-fix-20260928/logs/cn/pin-list.txt",
+    "sha256": "e665fc2e12201a75817509947e860ccc4910820da62d3a17875ea65a39375172"
+   },
+   "readings": [
+    {
+     "outcome": "plans 57 packages",
+     "path": "/root/build/lane-q35e-fix-20260928/logs/cn/cn-free.log",
+     "request": "cn cn-coq, unconstrained",
+     "sha256": "cce972ae1f816532ee1d98d4d8abd1c57ccda5c5b9e3853693b10431084ab1e6",
+     "text": "[WARNING] Running as root is not recommended\n\n<><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>\n[cn.dev] synchronised (no changes)\n[cn-coq.dev] synchronised (no changes)\n\nThe following actions would be simulated:\n=== install 57 packages\n  - install base                    v0.17.3      [required by ppx_sexp_conv]\n  - install base-bigarray           base\n  - install base-domains            base\n  - install base-nnp                base\n  - install base-threads            base         [required by dune]\n  - install base-unix               base         [required by dune]\n  - install cerberus-lib            dev (pinned) [required by cn]\n  - install cmdliner                2.1.1        [required by cn]\n  - install cn                      dev (pinned)\n  - install cn-coq                  dev (pinned)\n  - install conf-findutils          1            [required by lem]\n  - install conf-gmp                5            [required by zarith]\n  - install conf-linux-libc-dev     0            [required by coq-core]\n  - install conf-pkg-config         5            [required by zarith]\n  - install coq                     8.20.1       [required by cn-coq]\n  - install coq-core                8.20.1       [required by coq]\n  - install coq-ext-lib             0.13.1       [required by cn-coq]\n  - install coq-stdlib              8.20.1       [required by coq]\n  - install coq-struct-tact         dev (pinned) [required by cn-coq]\n  - install coqide-server           8.20.1       [required by coq]\n  - install cppo                    1.8.0        [required by monomorphic]\n  - install csexp                   1.5.2        [required by dune-configurator]\n  - install dune                    3.23.1       [required by coq, ocamlgraph, cerberus-lib, etc.]\n  - install dune-configurator       3.23.1       [required by base]\n  - install lem                     2026-05-01   [required by cerberus-lib]\n  - install menhir                  20260209     [required by cerberus-lib]\n  - install menhirCST               20260209     [required by menhir]\n  - install menhirGLR               20260209     [required by menhir]\n  - install menhirLib               20260209     [required by menhir]\n  - install menhirSdk               20260209     [required by menhir]\n  - install monomorphic             2.1.0        [required by cn]\n  - install num                     1.6          [required by lem, sexplib]\n  - install ocaml                   5.2.1        [required by cn]\n  - install ocaml-base-compiler     5.2.1        [required by ocaml]\n  - install ocaml-compiler-libs     v0.17.0      [required by ppxlib]\n  - install ocaml-config            3            [required by ocaml]\n  - install ocaml-options-vanilla   1\n  - install ocaml_intrinsics_kernel v0.17.2      [required by base]\n  - install ocamlbuild              0.16.1       [required by lem]\n  - install ocamlfind               1.9.8        [required by ppx_deriving, lem, coq-core]\n  - install ocamlgraph              2.2.0        [required by cn]\n  - install parsexp                 v0.17.0      [required by sexplib]\n  - install pprint                  20230830     [required by cerberus-lib]\n  - install ppx_derivers            1.2.1        [required by ppx_deriving]\n  - install ppx_deriving            6.0.3        [required by cn]\n  - install ppx_deriving_yojson     3.9.1        [required by cn]\n  - install ppx_sexp_conv           v0.17.0      [required by cerberus-lib]\n  - install ppxlib                  0.35.0       [required by ppx_deriving_yojson]\n  - install ppxlib_jane             v0.17.0      [required by ppx_sexp_conv]\n  - install result                  1.5          [required by cerberus-lib]\n  - install seq                     base         [required by yojson]\n  - install sexplib                 v0.17.0      [required by cerberus-lib]\n  - install sexplib0                v0.17.0      [required by ppx_sexp_conv, sexplib]\n  - install sha                     1.15.4       [required by cerberus-lib]\n  - install stdlib-shims            0.3.0        [required by sha]\n  - install yojson                  2.2.2        [required by cn]\n  - install zarith                  1.14         [required by cn]\n"
+    },
+    {
+     "outcome": "refused: - cn-coq -> coq = 8.20.1 -> coq-core = 8.20.1 - rocq-runtime >= 9.2.0",
+     "path": "/root/build/lane-q35e-fix-20260928/logs/cn/cn-at-prover.log",
+     "request": "the prover packages with cn cn-coq",
+     "sha256": "b417ef31abfb2b0ad49c639329790b196d8aaceea5452b286df2b90a911ea4b1",
+     "text": "[WARNING] Running as root is not recommended\n\n<><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>\n[cn.dev] synchronised (no changes)\n[cn-coq.dev] synchronised (no changes)\n\n[ERROR] Package conflict!\n  * Incompatible packages:\n    - cn-coq -> coq = 8.20.1 -> coq-core = 8.20.1\n    - rocq-runtime >= 9.2.0\n\nNo solution found, exiting\n"
+    },
+    {
+     "outcome": "plans 61 packages",
+     "path": "/root/build/lane-q35e-fix-20260928/logs/cn/cn-at-prover-coq-ignored.log",
+     "request": "the same with --ignore-constraints-on=coq",
+     "sha256": "30a51cefd82a0b7f3aff971e64895b4b85eb07f329383db0bd2b77e3fc32adf5",
+     "text": "[WARNING] Running as root is not recommended\n\n<><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>\n[cn.dev] synchronised (no changes)\n[cn-coq.dev] synchronised (no changes)\n\nThe following actions would be simulated:\n=== install 61 packages\n  - install base                    v0.17.3      [required by ppx_sexp_conv]\n  - install base-bigarray           base\n  - install base-domains            base\n  - install base-effects            base\n  - install base-nnp                base\n  - install base-threads            base         [required by dune]\n  - install base-unix               base         [required by dune]\n  - install cerberus-lib            dev (pinned) [required by cn]\n  - install cmdliner                2.1.1        [required by cn]\n  - install cn                      dev (pinned)\n  - install cn-coq                  dev (pinned)\n  - install conf-findutils          1            [required by lem]\n  - install conf-gmp                5            [required by zarith]\n  - install conf-linux-libc-dev     0            [required by rocq-runtime]\n  - install conf-pkg-config         5            [required by zarith]\n  - install coq                     9.2.0        [required by cn-coq]\n  - install coq-core                9.2.0        [required by coq, coq-ext-lib]\n  - install coq-ext-lib             0.13.1       [required by cn-coq]\n  - install coq-struct-tact         dev (pinned) [required by cn-coq]\n  - install coqide-server           9.2.0        [required by coq]\n  - install cppo                    1.8.0        [required by monomorphic]\n  - install csexp                   1.5.2        [required by dune-configurator]\n  - install dune                    3.23.1       [required by rocq-core, rocq-runtime]\n  - install dune-configurator       3.23.1       [required by base]\n  - install lem                     2026-05-01   [required by cerberus-lib]\n  - install menhir                  20260209     [required by cerberus-lib]\n  - install menhirCST               20260209     [required by menhir]\n  - install menhirGLR               20260209     [required by menhir]\n  - install menhirLib               20260209     [required by menhir]\n  - install menhirSdk               20260209     [required by menhir]\n  - install monomorphic             2.1.0        [required by cn]\n  - install num                     1.6          [required by lem, sexplib]\n  - install ocaml                   5.4.1\n  - install ocaml-base-compiler     5.4.1\n  - install ocaml-compiler          5.4.1        [required by ocaml-base-compiler]\n  - install ocaml-compiler-libs     v0.17.0      [required by ppxlib]\n  - install ocaml-config            3            [required by ocaml]\n  - install ocaml-options-vanilla   1\n  - install ocaml_intrinsics_kernel v0.17.2      [required by base]\n  - install ocamlbuild              0.16.1       [required by lem]\n  - install ocamlfind               1.9.8        [required by rocq-runtime]\n  - install ocamlgraph              2.2.0        [required by cn]\n  - install parsexp                 v0.17.0      [required by sexplib]\n  - install pprint                  20230830     [required by cerberus-lib]\n  - install ppx_derivers            1.2.1        [required by ppx_deriving]\n  - install ppx_deriving            6.2.0        [required by cn]\n  - install ppx_deriving_yojson     3.10.0       [required by cn]\n  - install ppx_sexp_conv           v0.17.1      [required by cerberus-lib]\n  - install ppxlib                  0.38.0       [required by ppx_deriving_yojson]\n  - install ppxlib_jane             v0.17.4      [required by ppx_sexp_conv]\n  - install result                  1.5          [required by cerberus-lib]\n  - install rocq-core               9.2.0\n  - install rocq-runtime            9.2.0\n  - install rocq-stdlib             9.2.0        [required by coq, coq-ext-lib]\n  - install seq                     base         [required by yojson]\n  - install sexplib                 v0.17.0      [required by cerberus-lib]\n  - install sexplib0                v0.17.0      [required by ppx_sexp_conv, sexplib]\n  - install sha                     1.15.4       [required by cerberus-lib]\n  - install stdlib-shims            0.3.0        [required by sha]\n  - install yojson                  2.2.2        [required by cn]\n  - install zarith                  1.14         [required by cn, rocq-runtime]\n"
+    },
+    {
+     "outcome": "plans 25 packages",
+     "path": "/root/build/lane-q35e-fix-20260928/logs/cn/coq-deps-at-prover.log",
+     "request": "the prover packages with coq-struct-tact coq-ext-lib",
+     "sha256": "c40ff966622948d6149b1693fbd39d055c0f7707367c432ac06cfc0ed44088fa",
+     "text": "[WARNING] Running as root is not recommended\n\n<><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>\n[coq-struct-tact.dev] synchronised (no changes)\n\nThe following actions would be simulated:\n=== install 25 packages\n  - install base-bigarray         base\n  - install base-domains          base\n  - install base-effects          base\n  - install base-nnp              base\n  - install base-threads          base         [required by dune]\n  - install base-unix             base         [required by dune]\n  - install conf-gmp              5            [required by zarith]\n  - install conf-linux-libc-dev   0            [required by rocq-runtime]\n  - install conf-pkg-config       5            [required by zarith]\n  - install coq                   9.2.0        [required by coq-ext-lib, coq-struct-tact]\n  - install coq-core              9.2.0        [required by coq-ext-lib]\n  - install coq-ext-lib           0.13.1\n  - install coq-struct-tact       dev (pinned)\n  - install coqide-server         9.2.0        [required by coq]\n  - install dune                  3.23.1       [required by rocq-core, coq-struct-tact, rocq-runtime]\n  - install ocaml                 5.4.1\n  - install ocaml-base-compiler   5.4.1\n  - install ocaml-compiler        5.4.1        [required by ocaml-base-compiler]\n  - install ocaml-config          3            [required by ocaml]\n  - install ocaml-options-vanilla 1\n  - install ocamlfind             1.9.8        [required by rocq-runtime]\n  - install rocq-core             9.2.0\n  - install rocq-runtime          9.2.0\n  - install rocq-stdlib           9.2.0        [required by coq-ext-lib]\n  - install zarith                1.14         [required by rocq-runtime]\n"
+    }
+   ],
+   "script": {
+    "path": "/root/build/lane-q35e-fix-20260928/cn-probe.sh",
+    "sha256": "acc295cd9eaed40b203e09df9834598b054df332896a1e272a0f6eb1acfd4146"
+   },
+   "struct_tact_opam": {
+    "depends": [
+     {
+      "line": 31,
+      "match": "  \"dune\" {>= \"3.5\"}"
+     },
+     {
+      "line": 32,
+      "match": "  \"coq\" {>= \"8.10\"}"
+     }
+    ],
+    "path": "/root/build/lane-q35e-fix-20260928/logs/cn/coq-struct-tact-pinned.opam",
+    "sha256": "682dfda5efd223df54fa40b72fc29c418ef0e36857ff9357f0eb6f67ec0bdeb1"
+   },
+   "switch": "verifiedos-q35e-cnfix-20260928",
+   "timeline": {
+    "path": "/root/build/lane-q35e-fix-20260928/logs/cn/timeline.txt",
+    "sha256": "57ca8f4c284fd3cd0f0f9a123e77c4a7461fd44fb53924ea5d31eba1ffab9609"
+   }
+  },
+  "resource_inference": {
+   "lines": [
+    {
+     "line": 11,
+     "match": "placeholder"
+    },
+    {
+     "line": 13,
+     "match": "SMTCoq"
+    },
+    {
+     "line": 15,
+     "match": "Inductive provable"
+    },
+    {
+     "line": 16,
+     "match": "solvable_SMT"
+    }
+   ],
+   "path": "/root/.opam/verifiedos-q35e-cn-20260928/.opam-switch/sources/cn/coq/Reasoning/ResourceInference.v",
+   "sha256": "62993257c68a674c8ec5719ba6f4eb5fea9600caf47bebe548dcf17dd370aa2f"
+  }
+ },
+ "handoff_revision": "23a0b35d0fdff48c5e2957c83ac7fea243f7c5a8",
+ "implementer_receipt": {
+  "path": "/root/build/lane-q35e-impl-20260928/receipts/q35e-record.json",
+  "sha256": "e9950bb45911b979a3546de132bf2d777ecf05f7513e0f9948651df2fc6d3b5a"
+ },
+ "item": "Q35e",
+ "lane_root": "/root/build/lane-q35e-fix-20260928",
+ "licenses": [
+  {
+   "name": "VST 2.17 CLIGHTGEN-LICENSE",
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/CLIGHTGEN-LICENSE",
+   "sha256": "a5c96705dab66daa873e5693dacb4083030710456137620e707e0e33e9f2c682"
+  },
+  {
+   "name": "VST 3.2beta CLIGHTGEN-LICENSE",
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/CLIGHTGEN-LICENSE",
+   "sha256": "a5c96705dab66daa873e5693dacb4083030710456137620e707e0e33e9f2c682"
+  },
+  {
+   "name": "coq-flocq 4.2.2 COPYING",
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/.opam-switch/sources/coq-flocq.4.2.2/COPYING",
+   "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+   "header": [
+    {
+     "line": 10,
+     "match": "GNU Lesser General Public"
+    },
+    {
+     "line": 12,
+     "match": "version 3 of the License"
+    }
+   ],
+   "name": "coq-flocq 4.2.2 source header",
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/.opam-switch/sources/coq-flocq.4.2.2/src/Core/Zaux.v",
+   "sha256": "221a0748552d4800e0d52c14e30aa5bbee016674669c2370fd9bed52a57d4a7b"
+  },
+  {
+   "name": "coq-vst-zlist 2.13 LICENSE (VST v2.13 archive)",
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/.opam-switch/sources/coq-vst-zlist.2.13/LICENSE",
+   "sha256": "1681071efc9cb22a656dbbe7130327359b2f2e72ee0bb622ae24ff08522fcaed"
+  },
+  {
+   "name": "coq-vst-zlist 2.13 LICENSE-OPAM",
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/.opam-switch/sources/coq-vst-zlist.2.13/LICENSE-OPAM",
+   "sha256": "f56eb67b076a94bdebc3c7c9a9892326724b5104d3d9aaf9388473854751690f"
+  },
+  {
+   "license": "\"BSD-2-Clause\"",
+   "name": "coq-vst-zlist 2.13 opam metadata",
+   "path": "/root/.opam/verifiedos-q35e-vst2-20260928/.opam-switch/packages/coq-vst-zlist.2.13/opam",
+   "sha256": "55c6a5d4f4433920429dca8635ba2e7867957c8dc777c56f60ca4510ef7a6f3c"
+  },
+  {
+   "name": "Iris b3495ef9 LICENSE",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/rocq-iris/LICENSE",
+   "sha256": "b8db39b9a49ba7a283437f8b63d35903ad7169f824af10763e9b4cb6ddf70486"
+  },
+  {
+   "name": "Iris b3495ef9 LICENSE-CODE",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/rocq-iris/LICENSE-CODE",
+   "sha256": "33a506f1d35644a275cd3e04045d67e87087ae700a6ccd9e7d468f9525a38f71"
+  },
+  {
+   "name": "Iris b3495ef9 LICENSE-DOCS",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/rocq-iris/LICENSE-DOCS",
+   "sha256": "68391acad70d88fe498384dd67da5b07ad151ae45b496031daef5fcd9f3ed3bb"
+  },
+  {
+   "name": "coq-record-update 0.3.6 LICENSE",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/coq-record-update.0.3.6/LICENSE",
+   "sha256": "86bc18f7c5d1a7d65fc58b5cdbb31bd965f3815efe83e8556c1a875270678ae4"
+  },
+  {
+   "name": "rocq-elpi 3.5.1 LICENSE",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/rocq-elpi.3.5.1/LICENSE",
+   "sha256": "9b872a8a070b8ad329c4bd380fb1bf0000f564c75023ec8e1e6803f15364b9e9"
+  },
+  {
+   "name": "elpi 3.7.3 LICENSE",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/elpi.3.7.3/LICENSE",
+   "sha256": "1bfeed51073f60ff2c38d3a764134c16f53014c3812788c42f08f57fea7ee448"
+  },
+  {
+   "name": "Cerberus f11e6b33 THIRD_PARTY_FILES.md",
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/cerberus-lib/THIRD_PARTY_FILES.md",
+   "sha256": "4a0627e2790a72c0f749453b426253125ee09230131860fd1c3b61a3dfe67c09"
+  },
+  {
+   "name": "Cerberus c8c085d4 LICENSE",
+   "path": "/root/.opam/verifiedos-q35e-cn-20260928/.opam-switch/sources/cerberus-lib/LICENSE",
+   "sha256": "34bd71b8bf0195d11c52441ce31ba288e42772ad8ccbd5aa629d69239bab3cbb"
+  },
+  {
+   "name": "Cerberus c8c085d4 THIRD_PARTY_FILES.md",
+   "path": "/root/.opam/verifiedos-q35e-cn-20260928/.opam-switch/sources/cerberus-lib/THIRD_PARTY_FILES.md",
+   "sha256": "4a0627e2790a72c0f749453b426253125ee09230131860fd1c3b61a3dfe67c09"
+  },
+  {
+   "name": "CN 10c586ba THIRD_PARTY_FILES.md",
+   "path": "/root/.opam/verifiedos-q35e-cn-20260928/.opam-switch/sources/cn/THIRD_PARTY_FILES.md",
+   "sha256": "ea8ef089c33f8d5f9df0777a47d8408baaebef1ab6bf237834dbff2e47b2bd92"
+  },
+  {
+   "name": "StructTact 97268e11 LICENSE",
+   "path": "/root/build/lane-q35e-fix-20260928/src/StructTact/LICENSE",
+   "sha256": "328fb4340b467642dd615945147e53401f835dd2b19242cac9dfa59befbdde23"
+  },
+  {
+   "license": "\"BSD-2-Clause\"",
+   "name": "coq-ext-lib 0.13.1 opam metadata (rocq-released)",
+   "path": "/root/.opam/repo/rocq-released/packages/coq-ext-lib/coq-ext-lib.0.13.1/opam",
+   "sha256": "86e64a57dbc14447322005438770749f8f331825c3707a4b00b07b987982dc56"
+  }
+ ],
+ "metadata": {
+  "default_repo_mtime": "2026-09-27 23:09:53.746053411 -0500",
+  "opam_update_run": false,
+  "rocq_released_repo_mtime": "2026-09-27 23:09:39.178387941 -0500"
+ },
+ "peak_memory": [
+  {
+   "command": "timeout 150m opam install --switch=verifiedos-q35e-vst2-20260928 coq-vst.2.17 rocq-core.9.2.0 ocaml-base-compiler.5.4.1 -y",
+   "elapsed": "10:55.18",
+   "exit_status": 0,
+   "max_rss_gb": 2.26,
+   "max_rss_gib": 2.11,
+   "max_rss_kib": 2208552,
+   "path": "/root/build/lane-q35e-impl-20260928/logs/vst2/04-install.time",
+   "predicate": "GNU time -v maximum resident set size, which Linux reports in KiB for the largest single waited-for process, not the build's total",
+   "sha256": "13f9d7f23e8de470e9be41cf58cc85a2eac78de968529888f825cf87585ae1ae"
+  },
+  {
+   "command": "timeout 150m make -j3 vst COMPCERT=bundled ZLIST=platform BITSIZE=64 IGNORECOQVERSION=true",
+   "elapsed": "12:00.30",
+   "exit_status": 0,
+   "max_rss_gb": 2.26,
+   "max_rss_gib": 2.11,
+   "max_rss_kib": 2208560,
+   "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/06-vst-2.17.time",
+   "predicate": "GNU time -v maximum resident set size, which Linux reports in KiB for the largest single waited-for process, not the build's total",
+   "sha256": "92633f639d2b0b2ad983d4eeb121f918e41ce5f40e88189b33cdd1dd32f9d61f"
+  },
+  {
+   "command": "timeout 150m opam install --switch=verifiedos-q35e-refinedc-20260928 rocq-core.9.2.0 rocq-runtime.9.2.0 ocaml-base-compiler.5.4.1 ocaml.5.4.1 coq-lithium refinedc --ignore-constraints-on=coq -y",
+   "elapsed": "17:44.54",
+   "exit_status": 0,
+   "max_rss_gb": 1.56,
+   "max_rss_gib": 1.46,
+   "max_rss_kib": 1526880,
+   "path": "/root/build/lane-q35e-impl-20260928/logs/refinedc/01-install.time",
+   "predicate": "GNU time -v maximum resident set size, which Linux reports in KiB for the largest single waited-for process, not the build's total",
+   "sha256": "2e9ea0b869ad813e3333608118728bdaccc58ac9e4dacfd9304f3f3d60145953"
+  },
+  {
+   "command": "rocqchk -silent -o -Q /root/build/lane-q35e-impl-20260928/clients/refinedc/_build/default/src/proofs/q35e_disjoint Q35eRC.src.q35e_disjoint -Q /root/build/lane-q35e-impl-20260928/clients/refinedc/client Q35eRC.client Q35eRC.client.q35e_client",
+   "elapsed": "1:07.98",
+   "exit_status": 0,
+   "max_rss_gb": 1.72,
+   "max_rss_gib": 1.6,
+   "max_rss_kib": 1676624,
+   "path": "/root/build/lane-q35e-impl-20260928/clients/refinedc/check/rocqchk-client.time",
+   "predicate": "GNU time -v maximum resident set size, which Linux reports in KiB for the largest single waited-for process, not the build's total",
+   "sha256": "31d5b40680ad2fe2e0d208a6ef77819e595a2a8226ab5e68037dc79b732750ca"
+  }
+ ],
+ "proof_switch": {
+  "export_at_repair_end": {
+   "path": "/root/build/lane-q35e-fix-20260928/receipts/proof-switch-export-end.lock",
+   "sha256": "32da801c0f13fc47f0c8c85aa6d324eb209e789fec6beec14af9ce6e88d718fa"
+  },
+  "export_at_repair_start": {
+   "path": "/root/build/lane-q35e-fix-20260928/receipts/proof-switch-export-start.lock",
+   "sha256": "32da801c0f13fc47f0c8c85aa6d324eb209e789fec6beec14af9ce6e88d718fa"
+  }
+ },
+ "refinedc_packaging": {
+  "coq_lithium_opam": {
+   "lines": [
+    {
+     "line": 18,
+     "match": "\"coq\" { (= \"9.1.0\" ) }"
+    },
+    {
+     "line": 19,
+     "match": "\"rocq-iris\" { (= \"dev.2026-09-10.3.b3495ef9\") | (= \"dev\") }"
+    },
+    {
+     "line": 26,
+     "match": "[\"dune\" \"subst\"] {pinned}"
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/refinedc/coq-lithium.opam",
+   "sha256": "8739049e964f044c21e49ea7abad02a14c09aca8f51ecfb9325288717ff3541e"
+  },
+  "gen_version": {
+   "lines": [
+    {
+     "line": 3,
+     "match": "\"%%VERSION%%\""
+    },
+    {
+     "line": 5,
+     "match": "git describe --dirty --always"
+    },
+    {
+     "line": 8,
+     "match": "\"dev-%s\""
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/refinedc/frontend/tools/gen_version.ml",
+   "sha256": "ad06f8310827308459d7416a41c493ee7be5d9c8fb78d144d8c20db6abda85d4"
+  },
+  "install_manifest": {
+   "bin_refinedc": true,
+   "path": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/install/refinedc.changes",
+   "sha256": "aa16246ce9ad9f77a4d07ca3996b8736c454c6b080c93c7647c5c0a0c3b2bd19",
+   "user_contrib_caesium_entries": 62,
+   "user_contrib_refinedc_entries": 123
+  },
+  "refinedc_opam": {
+   "lines": [
+    {
+     "line": 19,
+     "match": "\"coq-lithium\""
+    },
+    {
+     "line": 20,
+     "match": "\"cerberus-lib\""
+    },
+    {
+     "line": 21,
+     "match": "\"cmdliner\""
+    },
+    {
+     "line": 22,
+     "match": "\"sexplib0\""
+    },
+    {
+     "line": 23,
+     "match": "\"earley\""
+    },
+    {
+     "line": 24,
+     "match": "\"toml\""
+    },
+    {
+     "line": 25,
+     "match": "\"ubase\""
+    },
+    {
+     "line": 36,
+     "match": "[\"dune\" \"subst\"] {pinned}"
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/refinedc/refinedc.opam",
+   "sha256": "20b5ffcd36c0c9818b1b7285472e9b7d93dfcaacc983fe1d62e0213694af81d6"
+  },
+  "switch_source_describe": "2e89846"
+ },
+ "revisions": [
+  {
+   "name": "Cerberus, cn.opam's pin",
+   "read_at": "/root/.opam/verifiedos-q35e-cn-20260928/.opam-switch/sources/cerberus-lib",
+   "revision": "c8c085d4714ae17095b2e1202fa33c5545d98df1"
+  },
+  {
+   "name": "Cerberus, RefinedC's pin",
+   "read_at": "/root/.opam/verifiedos-q35e-refinedc-20260928/.opam-switch/sources/cerberus-lib",
+   "revision": "f11e6b335a687c1b77539f7e5695607d09dfc3ea"
+  },
+  {
+   "name": "Iris development opam repository",
+   "read_at": "/root/build/lane-q35e-impl-20260928/src/iris-opam",
+   "revision": "6d518ba8346641684d9842fe4d1bba4d73293c93",
+   "rocq_iris_package": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/iris-opam/packages/rocq-iris/rocq-iris.dev.2026-09-10.3.b3495ef9/opam",
+    "sha256": "bec95f6c10b8cf47a989e1bf88e35dfe05e2e6979ab57c7c8360689534b2b9d0",
+    "stdpp": [
+     {
+      "line": 32,
+      "match": "\"rocq-stdpp\" { (= \"dev.2026-09-09.1.c3186aad\") | (= \"dev\") }"
+     }
+    ]
+   }
+  },
+  {
+   "name": "StructTact",
+   "read_at": "/root/build/lane-q35e-fix-20260928/src/StructTact",
+   "revision": "97268e11564c8fe59aa72b062478458d7aa53e9d"
+  }
+ ],
+ "role": "repair",
+ "sealed_field_scan": {
+  "pattern": "\\b(Admitted|admit|Axiom|Axioms|Parameter|Parameters|Conjecture|give_up)\\b",
+  "r_application": {
+   "application": [
+    {
+     "line": 72,
+     "match": "Module R := Rmaps (CompCert_AV)."
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/veric/compcert_rmaps.v",
+   "sha256": "26ed32376c0553e4ce078e32f4ae6c71a2780e1b50e07cb7d62507e4098971f8"
+  },
+  "rmaps_functor_body": {
+   "first_line": 804,
+   "hits": [],
+   "last_line": 1660,
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/veric/rmaps.v",
+   "sha256": "794f28d4ecb629d65e7bd97b0ebd8060e1e641e18fdb8ec6f603db2e61752f8c"
+  },
+  "share_alias": {
+   "alias": [
+    {
+     "line": 16,
+     "match": "Module Share : SHARE_MODEL := tree_shares.Share."
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/msl/shares.v",
+   "sha256": "3a2d1b5fde326bb7209cbc80ced23f37680c674e4d2c632346ce9610ab684e31"
+  },
+  "share_implementation": {
+   "hits": [
+    {
+     "line": 1525,
+     "match": "Axioms"
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/msl/tree_shares.v",
+   "sha256": "041cbe29919f400439055e4afbbe1051a8cf8a4fc36123037ad8afe82286cb5e"
+  }
+ },
+ "soundness_module_alone": {
+  "client_time": {
+   "command": "rocqchk -silent -o -Q . Q35eVST Q35eVST.verif_q35e_disjoint",
+   "elapsed": "2:28.21",
+   "exit_status": 129,
+   "max_rss_gb": 2.61,
+   "max_rss_gib": 2.43,
+   "max_rss_kib": 2548872,
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2/check/rocqchk-client.time",
+   "predicate": "GNU time -v maximum resident set size, which Linux reports in KiB for the largest single waited-for process, not the build's total",
+   "sha256": "8b0d2db1ac4d8f1cd9d29347d4d3e6f64885b71b201e5dceef872f286786e97b"
+  },
+  "concurrent_install": {
+   "mtime_utc": "2026-09-29T02:50:07Z",
+   "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/05-deps.log",
+   "sha256": "2816eeaf8ffe903ef6cb2bb715bd7fab3da28d9c423119c5001f7589b2da64f3",
+   "time_file": {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/05-deps.time",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "timeline": {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/timeline.txt",
+    "sha256": "b68466134458eb4add2a770aa5516276399b9341f2a36f6d431c98ba19445187"
+   }
+  },
+  "diagnose_timeline": {
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2/diagnose/timeline.txt",
+   "sha256": "93b456f1da8c23fdd5a5cf873c55efbf20f6ccdedface8133029a3c7a891d909"
+  },
+  "time": {
+   "command": "rocqchk -silent -o VST.floyd.SeparationLogicAsLogicSoundness",
+   "elapsed": "44:47.30",
+   "exit_status": 129,
+   "max_rss_gb": 2.34,
+   "max_rss_gib": 2.18,
+   "max_rss_kib": 2289660,
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2/diagnose/VST.floyd.SeparationLogicAsLogicSoundness.time",
+   "predicate": "GNU time -v maximum resident set size, which Linux reports in KiB for the largest single waited-for process, not the build's total",
+   "sha256": "36494cb2f8b73754316adb0108f0f25fea3f32ff108cd42b4bcef31ec49e66a3"
+  }
+ },
+ "tools_files": [
+  {
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2/check/tools.txt",
+   "sha256": "4af0dd6e4721a0b4bd0d4afc4e9d10d1d01ae3897005d572955c9f82072db6f0"
+  },
+  {
+   "path": "/root/build/lane-q35e-impl-20260928/clients/vst2b/check/tools.txt",
+   "sha256": "b5f3cba639d5e593e2b62a31606258c11f942b01dd755f7663d7429dade1bf39"
+  },
+  {
+   "path": "/root/build/lane-q35e-impl-20260928/clients/refinedc/check/tools.txt",
+   "sha256": "a3a86f9fe40a7601040ec6a2d40ce08c8f7713e90a2d6aa6ee2c1b3875097921"
+  }
+ ],
+ "vst_bundled": {
+  "2.17": {
+   "class_counts": {
+    "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed": 30,
+    "VST's own note, the one file FIRST_README says is not verbatim from CompCert": 1,
+    "dual-listed": 53,
+    "license": 1,
+    "not listed": 5
+   },
+   "clightgen_license": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/CLIGHTGEN-LICENSE",
+    "sha256": "a5c96705dab66daa873e5693dacb4083030710456137620e707e0e33e9f2c682"
+   },
+   "compcert_license": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/compcert/LICENSE",
+    "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648"
+   },
+   "compiled_classes": [
+    "dual-listed"
+   ],
+   "compiled_compcert_sources": [
+    "cfrontend/Clight.v",
+    "cfrontend/Cop.v",
+    "cfrontend/Ctypes.v",
+    "common/AST.v",
+    "common/Builtins.v",
+    "common/Builtins0.v",
+    "common/Errors.v",
+    "common/Events.v",
+    "common/Globalenvs.v",
+    "common/Linking.v",
+    "common/Memdata.v",
+    "common/Memory.v",
+    "common/Memtype.v",
+    "common/Smallstep.v",
+    "common/Values.v",
+    "export/Clightdefs.v",
+    "export/Ctypesdefs.v",
+    "lib/Axioms.v",
+    "lib/Coqlib.v",
+    "lib/Floats.v",
+    "lib/IEEE754_extra.v",
+    "lib/Integers.v",
+    "lib/Intv.v",
+    "lib/Iteration.v",
+    "lib/Maps.v",
+    "lib/Zbits.v",
+    "x86/Builtins1.v",
+    "x86_64/Archi.v"
+   ],
+   "files": [
+    {
+     "class": "VST's own note, the one file FIRST_README says is not verbatim from CompCert",
+     "rel": "FIRST_README",
+     "sha256": "343ae0d978f0e1050287f7ddf2365a163bc6685b17966a0a16286a65eb7f59fa"
+    },
+    {
+     "class": "license",
+     "rel": "LICENSE",
+     "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648"
+    },
+    {
+     "class": "not listed",
+     "rel": "Makefile.config",
+     "sha256": "7a830865b2a5e91c7263e44917d11345da99ae823564091ab7a50a386a067e2f"
+    },
+    {
+     "class": "not listed",
+     "rel": "README.md",
+     "sha256": "d4de43de3bbc7d304d73fc45b2cf76b40274626f8053f64f682d443141d045b1"
+    },
+    {
+     "class": "not listed",
+     "rel": "VERSION",
+     "sha256": "898b7421d46ab6e227ec05b419de51f9289bea14332a121e28b3f5aa7af519a9"
+    },
+    {
+     "class": "not listed",
+     "rel": "_CoqProject",
+     "sha256": "6788b168876d90883ab1ec948e886cd43b43fc0ab44549e502ffb9cb5aa5a3ea"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Clight.v",
+     "sha256": "53cef4b5c923084999949229c3fdb065a25833d7f3761a1285adbaeebaaf79d0"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/ClightBigstep.v",
+     "sha256": "6b991ab9c82496421166c7ed5a55c18c1e34cf8276be0edc4170023e03537cef"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Cop.v",
+     "sha256": "adac91162faf39ef65202b6d45a6c95326a293fd4dad481dd2c232abf9369805"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Csem.v",
+     "sha256": "900ff86e8dd857f41adb29d386fd270bc59c64a658854316bc79403ce84f0cb8"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Cstrategy.v",
+     "sha256": "63aaf077cf8878106a13a3baef9ebbe52a51752f0038378cbb404cc2e0e6dde9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Csyntax.v",
+     "sha256": "32ad66c15584c18df6ea337de6cbd44d775b3c7432cbeb19cd158aa6006a5fa1"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Ctypes.v",
+     "sha256": "de9e40088de754af9c69cc3a6f06deec72b9b30de685d67fde600ab4043eb251"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/AST.v",
+     "sha256": "058ade1ff1d409c5d556e3e7f5b6048492615036771886cfa121dc2dfdcde4c7"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Behaviors.v",
+     "sha256": "474bc162f3b5083f0f8aedd59ccaaeec49a7d7f8fa16105c8534924058a7cd17"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Builtins.v",
+     "sha256": "d2734040d13e67bbdde6d59e1557c59b3140ea825e6a00c800be4feabf2091ba"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Builtins0.v",
+     "sha256": "2aa57275f929fbd5c9e540b4cf72ee8c693abb959ba65a9142d7277d44df4e00"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Determinism.v",
+     "sha256": "2858dc085fcb3cf328994dc49cb3f6d1c428fc9b0ceacd1f71d0588a08be1a0d"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Errors.v",
+     "sha256": "a7b02cf217d7be2e95de63a49a7c76285e931c56ea7b18fd63da950c8c8bb516"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Events.v",
+     "sha256": "24a7c5c76b8e908654c11303af7f81666e0b00325e4ab78502a98c0cbe2c017f"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Globalenvs.v",
+     "sha256": "77b6de45501ae184f69bfa72a9439fee1a7b60b3ab4e77fcc4559c73db30d2e9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Linking.v",
+     "sha256": "229cf4eefae452d71a6d97315ff8bef00a77b1bca7b4d472bef3ccb6714a9851"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Memdata.v",
+     "sha256": "138921b4cea350422b2cc34be3d32d79b646f4793b8b3b0f16ccfa184870962b"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Memory.v",
+     "sha256": "759aae974cd85f7a35e8ed43780bc7826720f0064a35b972e864eb4aea496541"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Memtype.v",
+     "sha256": "37ac958027d09d1465d43590306e700f00b8bcd97da2bee8a042913c1837fd88"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Separation.v",
+     "sha256": "62c0bb1bb7eebf2c96b4c3a346cac675471970c355f3145aeb7a16baa42775de"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Smallstep.v",
+     "sha256": "3279079eafb097a919f1e774a44200a59017a7f7edc665cc708b30c026c3e1b3"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Subtyping.v",
+     "sha256": "fc0940eba87777fd800252c315c76fbdbad7e1c6f3c983af8d7ca2aab91d5ccb"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Switch.v",
+     "sha256": "5dea3883ef7bfdb8a3c4299a91ca9b73f2cedf1a0ac66c1fea62026a98decce2"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Unityping.v",
+     "sha256": "8fc4acdacb27ee1a1deee04b49541bdc822fa38e1f9bc794efe53b3a3a3fcafd"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Values.v",
+     "sha256": "da172d4ac0ae9524c545a8bb0ef3b3253e2d4fb49e5919b4dee2cbd38333fddc"
+    },
+    {
+     "class": "not listed",
+     "rel": "doc/README",
+     "sha256": "3fba66391926dd09de65991a5599226ced4f62f685c4ed7bddbb3d32cff90ce2"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "export/Clightdefs.v",
+     "sha256": "32cddfea5383e946d11b7e89ecbc675f1489f2765f388cf4de4a767636487c37"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "export/Csyntaxdefs.v",
+     "sha256": "dc05542d2a5a72077f2a88c2a63954845befbd00762e5df5953300354aa2ac83"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "export/Ctypesdefs.v",
+     "sha256": "43e3580414d6c2c631c92e009b87efb0a446d3cc05e9c2283f0a4532853776a1"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Bracket.v",
+     "sha256": "95a01123de7ef746178dd1bd37f660fd97ac441abc08783a201dbe7e019d19ff"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Div.v",
+     "sha256": "82cb7b29a7bf0268daca4b9fcdf7ffe776d99d6842f80af5198f473a5b2aa993"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Operations.v",
+     "sha256": "ba7e2569577dddfe8c70eb38a7e243fe3336afce0a97d7f0f56f390f3157e1b3"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Plus.v",
+     "sha256": "9b06f82a55ce2d79f0bfecc3fe29d84c0717ad26e179628a2ece6cc9017c6734"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Round.v",
+     "sha256": "1ea92cd46d101fbe456ceb146eaf943805df72bdb7b116500f73cb14ed1c1a52"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Sqrt.v",
+     "sha256": "d27c0e49f4ae00c7dee3f675f183582fdb6cca3e603052afb7e814e2dfa952a9"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Core.v",
+     "sha256": "867f8be3c2ef8ef7ca5e826dd009114afe7d55c0b3fdab32037eb709f7e41b1d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Defs.v",
+     "sha256": "2d2eed8f034f75468aa8c57278a6937e00f00e0b0688b5e8a717350e5b271a46"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Digits.v",
+     "sha256": "2e97d214bb11753a1634a9c951657a19adaf6e098825d9c77cc79cec7a0a5cbe"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FIX.v",
+     "sha256": "a960805b7d6d61358e4d6ba67c42b02f130b6d21201269162e084f566283292d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FLT.v",
+     "sha256": "8bd2bc57af6d4e3ca6913146d7635313cb9fdc1355a90c4896565a209145d887"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FLX.v",
+     "sha256": "6672b143085cf2c3fdd1a52908108f8ec57275f66948f40620b6f07790bc5709"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FTZ.v",
+     "sha256": "48bf914169abd734049a48e0605024334b9b31d016aef41788cc351964bca4e2"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Float_prop.v",
+     "sha256": "dfab5cda37807ae45ec1acb831b7f143742ce7cc3e86ef4f1eed8c5118002220"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Generic_fmt.v",
+     "sha256": "390ce43ae24a625d0c7cd3e2b09eb291f3e37e77bbd93f51cae0a3229721ee87"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Raux.v",
+     "sha256": "8ee90e224c39b7905181626e200354acceb0c894923186baaae53194b0f2b8be"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Round_NE.v",
+     "sha256": "6899d7d035131ccbe8959ba9cbc90a4b482752c4b5fd4519f1bbc1899d36218d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Round_pred.v",
+     "sha256": "c3241e55eea5bbd59331da82e022c9b0c0c69a15eeaf8543e6d7d0bafadd90d7"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Ulp.v",
+     "sha256": "e32b4276c9b3d653e9f941e80a13bde8300070691ca7c085c758c0e2f452f4f5"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Zaux.v",
+     "sha256": "221a0748552d4800e0d52c14e30aa5bbee016674669c2370fd9bed52a57d4a7b"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/IEEE754/Binary.v",
+     "sha256": "6e34147057b610b7347b4f5862aefdad926661854a4b4bb03420806c32598eba"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/IEEE754/BinarySingleNaN.v",
+     "sha256": "f65143523dea504b1a9124664b2564752fbdd185768b3bfdf86650e501cbfc05"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/IEEE754/Bits.v",
+     "sha256": "f79177786d8a9fb5a0d49cdb64752d280e596fd09d53665d8abe577b6d23f603"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Div_sqrt_error.v",
+     "sha256": "a0e0d892dd7ed76ebf2aa5aba4a8acd4b9b10affaad2269e1fef4d01fa3f35af"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Double_rounding.v",
+     "sha256": "a19bc80059be22ed9eac14f2641dcd282801541567bf9ba94724c68aa1d0d218"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Mult_error.v",
+     "sha256": "c47dacb50261e8ddcabea54fe9d948dbad882b81a04d6f6db12b6b4b2a815eaa"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Plus_error.v",
+     "sha256": "987f2ecf1a85e1ecb2d81cca15c14ff3ba9feb0911363c852031848b436bf6fd"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Relative.v",
+     "sha256": "b1874f1cddc1a2e45ffe0379657a784eb3ffc5d633230a0626751b73f983502a"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Round_odd.v",
+     "sha256": "e22fef0cee7be66696423c1d8007f42cd92e53bdd759829dfa5963aa9a083f68"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Sterbenz.v",
+     "sha256": "61833550cbd0fada27380b646bbc326bf81e842c4cda987807cb561558b84bbf"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Axioms.v",
+     "sha256": "8ac31ba2cb03c6c48de1981985ea6842bfbde3d80b8594b8154c18623ff68b4b"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/BoolEqual.v",
+     "sha256": "75ecd5eb2318592e9ff1f74fc37bb44946f69eee4bd4abe6e30a4915b0e8770e"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Camlcoq.ml",
+     "sha256": "da2a412135517270fdc51c252a0ed45dc512ab9b36ca2681874ed4884b91cd25"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Coqlib.v",
+     "sha256": "f54747d6500eb8d2b2fbce68f12f796510e410d1b0637f0f88728ab23e2a27c6"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Decidableplus.v",
+     "sha256": "d41bac5cf1b1897069efeac61d6cea12fe124dccf1a53cd2a5ab8d39dd961e15"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/FSetAVLplus.v",
+     "sha256": "5c99e93dfc1e8295c64e0cdf0f4893a13e125fe262764c2c776b79feec6ff43e"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Floats.v",
+     "sha256": "f8a891fe148786032b01725bf3760b4b1e4327d9321cdb20842c7d1093f84956"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Heaps.v",
+     "sha256": "83f048a9f6878dc4d7297bce418bcb4698009af605d666a2139d56e91afb38fc"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/IEEE754_extra.v",
+     "sha256": "1645b50f8227c03320064ef91217b5f5b33c9a93394307675fbe0715e65554a9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Integers.v",
+     "sha256": "0240ddc6b42cae50cc981ae415e301e378bd0a76d4a3e326ec29294ed860c8cb"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Intv.v",
+     "sha256": "1f35f6925d118bc5549575e9a9a15140bb101fa660663c19584d7d9fca22074c"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/IntvSets.v",
+     "sha256": "ef1af46bbfdc2b8fe0257c654edd5f962a89a505ae8fa3186b006a872151b1a0"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Iteration.v",
+     "sha256": "484448a2d1af544c73ee690e445a4e4c087d6097ca95a3bf7d9f2503526e2469"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Lattice.v",
+     "sha256": "4cd6822c49792b1c942f6b84cdab33c703c11825cd77be239fdbc3444cd7eaa6"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Maps.v",
+     "sha256": "4d317cef03ded5fc9003ba518b6339aaf09b05a3c2d965918827bd0c6c2b00c8"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Ordered.v",
+     "sha256": "d3395791cbde50ef867e73525623d02af8d0fb2b33008645416ae03f059bb4d6"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Parmov.v",
+     "sha256": "e501ea464c5af9619d6af88d88e26b0159a37519d0293480e5aaab824d3335d1"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Postorder.v",
+     "sha256": "0c640a0e596214d515cfbc35ab60231a1a79fcb2401cc83dd2bda03d6b8fbf6d"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Printlines.mli",
+     "sha256": "3f1f697d11eaeb5df58452902e464abd96a3578395769333e50bbb689d9f9aaf"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/UnionFind.v",
+     "sha256": "43202468394db313db0c2c2d050d7be2eb5c6ae6bfedb0392a3b1d09149c816c"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Wfsimpl.v",
+     "sha256": "cc3dd579e0c89a3214a1768e5f6ee4da32c700146d0a117a4527bf2d0736f4a9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Zbits.v",
+     "sha256": "fb7ea260eb4aafa1869826848ee9b6197d04b91f190ba812204db04a50e33191"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "x86/Builtins1.v",
+     "sha256": "e603f84e6849ce3779e76f7738a515e685b7ac4fc75861a0aa58dc39593057bb"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "x86_32/Archi.v",
+     "sha256": "acd8dd9d1f39db34bb47718cf6cff797f73da2db87a9c33f8668ca4594f52c84"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "x86_64/Archi.v",
+     "sha256": "d695b51ad6f25448c9ea4257cf6045f7d3356bcbdd1f213daea76258227c76e4"
+    }
+   ],
+   "first_readme": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/compcert/FIRST_README",
+    "sha256": "343ae0d978f0e1050287f7ddf2365a163bc6685b17966a0a16286a65eb7f59fa"
+   },
+   "flocq_zaux": {
+    "Z_modulo_lines": [
+     327,
+     361,
+     367,
+     855,
+     858
+    ],
+    "Zmod_references": [],
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/compcert/flocq/Core/Zaux.v",
+    "sha256": "221a0748552d4800e0d52c14e30aa5bbee016674669c2370fd9bed52a57d4a7b"
+   },
+   "not_listed": [
+    "Makefile.config",
+    "README.md",
+    "VERSION",
+    "_CoqProject",
+    "doc/README"
+   ],
+   "tree": "/root/build/lane-q35e-impl-20260928/src/VST-2.17",
+   "version_file": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/compcert/VERSION",
+    "sha256": "898b7421d46ab6e227ec05b419de51f9289bea14332a121e28b3f5aa7af519a9"
+   },
+   "vst_license": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/LICENSE",
+    "sha256": "1681071efc9cb22a656dbbe7130327359b2f2e72ee0bb622ae24ff08522fcaed"
+   }
+  },
+  "3.2beta": {
+   "class_counts": {
+    "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed": 30,
+    "VST's own note, the one file FIRST_README says is not verbatim from CompCert": 1,
+    "dual-listed": 53,
+    "license": 1,
+    "not listed": 5
+   },
+   "clightgen_license": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/CLIGHTGEN-LICENSE",
+    "sha256": "a5c96705dab66daa873e5693dacb4083030710456137620e707e0e33e9f2c682"
+   },
+   "compcert_license": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/compcert/LICENSE",
+    "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648"
+   },
+   "compiled_classes": [],
+   "compiled_compcert_sources": [],
+   "files": [
+    {
+     "class": "VST's own note, the one file FIRST_README says is not verbatim from CompCert",
+     "rel": "FIRST_README",
+     "sha256": "343ae0d978f0e1050287f7ddf2365a163bc6685b17966a0a16286a65eb7f59fa"
+    },
+    {
+     "class": "license",
+     "rel": "LICENSE",
+     "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648"
+    },
+    {
+     "class": "not listed",
+     "rel": "Makefile.config",
+     "sha256": "7c85ce40711e4312d1ecffaa0e1073a907a0dc5ffea550d2c980203da84ccc24"
+    },
+    {
+     "class": "not listed",
+     "rel": "README.md",
+     "sha256": "1f7dbea056e08cdae8915514fffbf7e60df8a9d107a86a5c709b78e3c52dad5a"
+    },
+    {
+     "class": "not listed",
+     "rel": "VERSION",
+     "sha256": "898b7421d46ab6e227ec05b419de51f9289bea14332a121e28b3f5aa7af519a9"
+    },
+    {
+     "class": "not listed",
+     "rel": "_CoqProject",
+     "sha256": "6788b168876d90883ab1ec948e886cd43b43fc0ab44549e502ffb9cb5aa5a3ea"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Clight.v",
+     "sha256": "53cef4b5c923084999949229c3fdb065a25833d7f3761a1285adbaeebaaf79d0"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/ClightBigstep.v",
+     "sha256": "6fc86a606b9ad741d8fde9dcee1fa5dc5cf0f44856d792604be98f4a36d68422"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Cop.v",
+     "sha256": "37a2aab743db99150766adb62cf9c402d0054e5df217de1d04f43690e580182f"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Csem.v",
+     "sha256": "900ff86e8dd857f41adb29d386fd270bc59c64a658854316bc79403ce84f0cb8"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Cstrategy.v",
+     "sha256": "1c9b72cef324b9831c3b27a5c4562e2591944e10e86c134576d0c18d5ef688e2"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Csyntax.v",
+     "sha256": "32ad66c15584c18df6ea337de6cbd44d775b3c7432cbeb19cd158aa6006a5fa1"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "cfrontend/Ctypes.v",
+     "sha256": "742e7354358ab0a107e7d2af20935cceaa9d0c6ca51f5eaa6199ab1ff8a628f9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/AST.v",
+     "sha256": "058ade1ff1d409c5d556e3e7f5b6048492615036771886cfa121dc2dfdcde4c7"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Behaviors.v",
+     "sha256": "474bc162f3b5083f0f8aedd59ccaaeec49a7d7f8fa16105c8534924058a7cd17"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Builtins.v",
+     "sha256": "d2734040d13e67bbdde6d59e1557c59b3140ea825e6a00c800be4feabf2091ba"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Builtins0.v",
+     "sha256": "2aa57275f929fbd5c9e540b4cf72ee8c693abb959ba65a9142d7277d44df4e00"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Determinism.v",
+     "sha256": "ad552f7031e9a87ba16bb1d1aa83b1430653ef4ce1f4370bfc4ef827ebf4447f"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Errors.v",
+     "sha256": "a7b02cf217d7be2e95de63a49a7c76285e931c56ea7b18fd63da950c8c8bb516"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Events.v",
+     "sha256": "0c062ef5b81ac7899c13b9dca4128e1c471830b9509d4ae9e6fed4a2f183b1ea"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Globalenvs.v",
+     "sha256": "e10873fece7057ed058d4cf6069a07d896638790f1134fd8ffd5bca009c4544a"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Linking.v",
+     "sha256": "229cf4eefae452d71a6d97315ff8bef00a77b1bca7b4d472bef3ccb6714a9851"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Memdata.v",
+     "sha256": "9dc2ebbe553627212dc8d34be00abd2aa4a3b716a2d9588b0acb53423984ea1b"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Memory.v",
+     "sha256": "466b0416abe24d24e4ccc63a9833e21770c664d53f4d0848a616f67b3e22db67"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Memtype.v",
+     "sha256": "cb826ed4b0ed15be4f1761469190da7d52de03003d251f4a89325d078434df63"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Separation.v",
+     "sha256": "48bcded8b3e815cc8222115fad82a9d2da42fd08fa0aa0a6606a7cd43daf4ca7"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Smallstep.v",
+     "sha256": "5b98c051f4b412f1f6cb2d7d3ca0dbf33b0db48f6e98a2f8698859f6b16db400"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Subtyping.v",
+     "sha256": "fc0940eba87777fd800252c315c76fbdbad7e1c6f3c983af8d7ca2aab91d5ccb"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Switch.v",
+     "sha256": "5dea3883ef7bfdb8a3c4299a91ca9b73f2cedf1a0ac66c1fea62026a98decce2"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Unityping.v",
+     "sha256": "cfa226d0e3c56ea21868b47e5c2b94e4bbe8d5c3c09f5dd4fab1587b8252bfee"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "common/Values.v",
+     "sha256": "da172d4ac0ae9524c545a8bb0ef3b3253e2d4fb49e5919b4dee2cbd38333fddc"
+    },
+    {
+     "class": "not listed",
+     "rel": "doc/README",
+     "sha256": "3fba66391926dd09de65991a5599226ced4f62f685c4ed7bddbb3d32cff90ce2"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "export/Clightdefs.v",
+     "sha256": "32cddfea5383e946d11b7e89ecbc675f1489f2765f388cf4de4a767636487c37"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "export/Csyntaxdefs.v",
+     "sha256": "dc05542d2a5a72077f2a88c2a63954845befbd00762e5df5953300354aa2ac83"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "export/Ctypesdefs.v",
+     "sha256": "43e3580414d6c2c631c92e009b87efb0a446d3cc05e9c2283f0a4532853776a1"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Bracket.v",
+     "sha256": "e29dc40bf042d071b5b3c83e2920586b762bd0295157c0ed2c7cd4f84d398433"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Div.v",
+     "sha256": "82cb7b29a7bf0268daca4b9fcdf7ffe776d99d6842f80af5198f473a5b2aa993"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Operations.v",
+     "sha256": "ba7e2569577dddfe8c70eb38a7e243fe3336afce0a97d7f0f56f390f3157e1b3"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Plus.v",
+     "sha256": "9b06f82a55ce2d79f0bfecc3fe29d84c0717ad26e179628a2ece6cc9017c6734"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Round.v",
+     "sha256": "bcda065441ce967447dab821c602677e2d54eafbbf359984be6015395731942a"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Calc/Sqrt.v",
+     "sha256": "d27c0e49f4ae00c7dee3f675f183582fdb6cca3e603052afb7e814e2dfa952a9"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Core.v",
+     "sha256": "867f8be3c2ef8ef7ca5e826dd009114afe7d55c0b3fdab32037eb709f7e41b1d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Defs.v",
+     "sha256": "2d2eed8f034f75468aa8c57278a6937e00f00e0b0688b5e8a717350e5b271a46"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Digits.v",
+     "sha256": "2e97d214bb11753a1634a9c951657a19adaf6e098825d9c77cc79cec7a0a5cbe"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FIX.v",
+     "sha256": "a960805b7d6d61358e4d6ba67c42b02f130b6d21201269162e084f566283292d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FLT.v",
+     "sha256": "8bd2bc57af6d4e3ca6913146d7635313cb9fdc1355a90c4896565a209145d887"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FLX.v",
+     "sha256": "6672b143085cf2c3fdd1a52908108f8ec57275f66948f40620b6f07790bc5709"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/FTZ.v",
+     "sha256": "48bf914169abd734049a48e0605024334b9b31d016aef41788cc351964bca4e2"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Float_prop.v",
+     "sha256": "dfab5cda37807ae45ec1acb831b7f143742ce7cc3e86ef4f1eed8c5118002220"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Generic_fmt.v",
+     "sha256": "390ce43ae24a625d0c7cd3e2b09eb291f3e37e77bbd93f51cae0a3229721ee87"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Raux.v",
+     "sha256": "8ee90e224c39b7905181626e200354acceb0c894923186baaae53194b0f2b8be"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Round_NE.v",
+     "sha256": "6899d7d035131ccbe8959ba9cbc90a4b482752c4b5fd4519f1bbc1899d36218d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Round_pred.v",
+     "sha256": "c3241e55eea5bbd59331da82e022c9b0c0c69a15eeaf8543e6d7d0bafadd90d7"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Ulp.v",
+     "sha256": "e32b4276c9b3d653e9f941e80a13bde8300070691ca7c085c758c0e2f452f4f5"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Core/Zaux.v",
+     "sha256": "f157f4a224b3f6de55d124d62dc1cd0d8eb07bd5a3163f39edeefeb1bbc5bb18"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/IEEE754/Binary.v",
+     "sha256": "6e34147057b610b7347b4f5862aefdad926661854a4b4bb03420806c32598eba"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/IEEE754/BinarySingleNaN.v",
+     "sha256": "f65143523dea504b1a9124664b2564752fbdd185768b3bfdf86650e501cbfc05"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/IEEE754/Bits.v",
+     "sha256": "fe8716a2e964ce385cfa9f561e590403fe7b658e4f45ee767272591ed4c2ad9d"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Div_sqrt_error.v",
+     "sha256": "a0e0d892dd7ed76ebf2aa5aba4a8acd4b9b10affaad2269e1fef4d01fa3f35af"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Double_rounding.v",
+     "sha256": "2519c0d2916d5dc2c348c1c6263205617d6b69e31e492b332b3d4a6833374196"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Mult_error.v",
+     "sha256": "c47dacb50261e8ddcabea54fe9d948dbad882b81a04d6f6db12b6b4b2a815eaa"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Plus_error.v",
+     "sha256": "987f2ecf1a85e1ecb2d81cca15c14ff3ba9feb0911363c852031848b436bf6fd"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Relative.v",
+     "sha256": "b1874f1cddc1a2e45ffe0379657a784eb3ffc5d633230a0626751b73f983502a"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Round_odd.v",
+     "sha256": "da0bd1a190924e943786f3a1ec1ca621f871189beb5cdffc30990fe21aa6cee1"
+    },
+    {
+     "class": "Flocq, LGPL-3.0-or-later under LICENSE's Flocq paragraph; not dual-listed",
+     "rel": "flocq/Prop/Sterbenz.v",
+     "sha256": "61833550cbd0fada27380b646bbc326bf81e842c4cda987807cb561558b84bbf"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Axioms.v",
+     "sha256": "b69dc6f50d76eb1858a8e83e0df52260650e26f3f470b4b20c0c53500dc31b6d"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/BoolEqual.v",
+     "sha256": "75ecd5eb2318592e9ff1f74fc37bb44946f69eee4bd4abe6e30a4915b0e8770e"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Camlcoq.ml",
+     "sha256": "da2a412135517270fdc51c252a0ed45dc512ab9b36ca2681874ed4884b91cd25"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Coqlib.v",
+     "sha256": "3a9ee03fdb26de8a932e7b0cbfb08f4827617b66f7855bfcc4d533910ddffbfe"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Decidableplus.v",
+     "sha256": "d41bac5cf1b1897069efeac61d6cea12fe124dccf1a53cd2a5ab8d39dd961e15"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/FSetAVLplus.v",
+     "sha256": "5c99e93dfc1e8295c64e0cdf0f4893a13e125fe262764c2c776b79feec6ff43e"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Floats.v",
+     "sha256": "f8a891fe148786032b01725bf3760b4b1e4327d9321cdb20842c7d1093f84956"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Heaps.v",
+     "sha256": "83f048a9f6878dc4d7297bce418bcb4698009af605d666a2139d56e91afb38fc"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/IEEE754_extra.v",
+     "sha256": "1645b50f8227c03320064ef91217b5f5b33c9a93394307675fbe0715e65554a9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Integers.v",
+     "sha256": "c0eec9e99de86765f62a2cd13902f62908f7c5fb199f5bc713c9fcb5e8924a02"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Intv.v",
+     "sha256": "e82eed97bd3140ea6292974b768fb716105178ac2ab67c04602455083b6a9cb7"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/IntvSets.v",
+     "sha256": "ef1af46bbfdc2b8fe0257c654edd5f962a89a505ae8fa3186b006a872151b1a0"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Iteration.v",
+     "sha256": "6235b42c6ea8714d70ddea685a0f15e8195d33fe2c1f4a4d279e0fd902e7b68e"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Lattice.v",
+     "sha256": "b1a8e523bd80ef44a4df0ea70e9f1051e7e7f2c2f30a6f831208d4159e9d31fa"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Maps.v",
+     "sha256": "31893a6188f05e510750257bc938a7e51d1a006acb645594702a4d51b276cdcd"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Ordered.v",
+     "sha256": "1d795ed5e27d3213163c5ca0cd77bb1f5820cbb6b9436fbd1d930df8124a161c"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Parmov.v",
+     "sha256": "a70569473c821641336bd4d01099494f726310f2bd4aff0e186da8fd0553a15e"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Postorder.v",
+     "sha256": "0c640a0e596214d515cfbc35ab60231a1a79fcb2401cc83dd2bda03d6b8fbf6d"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Printlines.mli",
+     "sha256": "3f1f697d11eaeb5df58452902e464abd96a3578395769333e50bbb689d9f9aaf"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/UnionFind.v",
+     "sha256": "43202468394db313db0c2c2d050d7be2eb5c6ae6bfedb0392a3b1d09149c816c"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Wfsimpl.v",
+     "sha256": "cc3dd579e0c89a3214a1768e5f6ee4da32c700146d0a117a4527bf2d0736f4a9"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "lib/Zbits.v",
+     "sha256": "c122e7fc8178a1c5bf463aaa5108bf4637633548bf1f13615c0ee2ddcb5a8ccb"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "x86/Builtins1.v",
+     "sha256": "e603f84e6849ce3779e76f7738a515e685b7ac4fc75861a0aa58dc39593057bb"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "x86_32/Archi.v",
+     "sha256": "acd8dd9d1f39db34bb47718cf6cff797f73da2db87a9c33f8668ca4594f52c84"
+    },
+    {
+     "class": "dual-listed",
+     "rel": "x86_64/Archi.v",
+     "sha256": "d695b51ad6f25448c9ea4257cf6045f7d3356bcbdd1f213daea76258227c76e4"
+    }
+   ],
+   "first_readme": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/compcert/FIRST_README",
+    "sha256": "343ae0d978f0e1050287f7ddf2365a163bc6685b17966a0a16286a65eb7f59fa"
+   },
+   "flocq_zaux": {
+    "Z_modulo_lines": [],
+    "Zmod_references": [
+     {
+      "line": 327,
+      "match": "Zmod"
+     },
+     {
+      "line": 361,
+      "match": "Zmod"
+     },
+     {
+      "line": 367,
+      "match": "Zmod"
+     },
+     {
+      "line": 855,
+      "match": "Zmod"
+     },
+     {
+      "line": 858,
+      "match": "Zmod"
+     }
+    ],
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/compcert/flocq/Core/Zaux.v",
+    "sha256": "f157f4a224b3f6de55d124d62dc1cd0d8eb07bd5a3163f39edeefeb1bbc5bb18"
+   },
+   "not_listed": [
+    "Makefile.config",
+    "README.md",
+    "VERSION",
+    "_CoqProject",
+    "doc/README"
+   ],
+   "tree": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta",
+   "version_file": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/compcert/VERSION",
+    "sha256": "898b7421d46ab6e227ec05b419de51f9289bea14332a121e28b3f5aa7af519a9"
+   },
+   "vst_license": {
+    "path": "/root/build/lane-q35e-impl-20260928/src/VST-3.2beta/LICENSE",
+    "sha256": "1681071efc9cb22a656dbbe7130327359b2f2e72ee0bb622ae24ff08522fcaed"
+   }
+  },
+  "bundled_flocq_attempts": {
+   "2.17": {
+    "errors": [],
+    "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/06a-vst-2.17-flocq-bundled-stopped.log",
+    "sha256": "5e0096410f8e01b2a329a23ad7c9192372a5a1bd23beb16df6c108692d4f2d80"
+   },
+   "3.2beta": {
+    "error": [
+     {
+      "line": 4801,
+      "text": "File \"./compcert/flocq/Core/Zaux.v\", line 327, characters 2-6:"
+     },
+     {
+      "line": 4802,
+      "text": "Error: The reference Zmod was not found in the current environment."
+     }
+    ],
+    "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/06a-vst-3.2beta-flocq-bundled.log",
+    "sha256": "d6d7395a955b0bec2d995147bf22378ddf7d80392f1f93ed18a44f14cdfc32a3"
+   },
+   "timeline": {
+    "path": "/root/build/lane-q35e-impl-20260928/logs/vst3/timeline.txt",
+    "sha256": "b68466134458eb4add2a770aa5516276399b9341f2a36f6d431c98ba19445187"
+   }
+  },
+  "flocq_files_differing_2.17_vs_3.2beta": [
+   "Calc/Bracket.v",
+   "Calc/Round.v",
+   "Core/Zaux.v",
+   "IEEE754/Bits.v",
+   "Prop/Double_rounding.v",
+   "Prop/Round_odd.v"
+  ],
+  "vst_makefile_reads_version": {
+   "lines": [
+    {
+     "line": 126,
+     "match": "$(COMPCERT_INFO_PATH_REF)/VERSION"
+    },
+    {
+     "line": 127,
+     "match": "$(COMPCERT_INST_DIR)/VERSION"
+    },
+    {
+     "line": 131,
+     "match": "$(COMPCERT_INST_DIR)/VERSION"
+    },
+    {
+     "line": 137,
+     "match": "$(COMPCERT_INFO_PATH_REF)/VERSION"
+    },
+    {
+     "line": 142,
+     "match": "$(COMPCERT_INFO_PATH_REF)/VERSION"
+    }
+   ],
+   "path": "/root/build/lane-q35e-impl-20260928/src/VST-2.17/Makefile",
+   "sha256": "98cfb09d4a5953328c0c918bf750aaea1d74f95209b64dc704e80f491a494cd1"
+  }
+ }
+}
