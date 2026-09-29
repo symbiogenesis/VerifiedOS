@@ -403,7 +403,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T
 
 **R-05-022a** MUST: An interim whose consumer set grows without its destination advancing is a review-gate finding, not a silent extension.
-· Accept: the *shrinking-interim* claim of §17 is measurable against the consumer lists rather than asserted.
+· Accept: the *shrinking-interim* claim of §17 is measurable against the consumer lists rather than asserted, and the lists are held closed: `tools/check.py` fails on a citation of either interim's lineage, in a file that can carry an artifact's certificate, validation record or acceptance, that is neither an entered consumer nor declared with its reason to cite no premise, and on an entered consumer citing nothing of its interim; whether a declared reason holds is read at the review gate.
 · Trace: CJ-T
 
 ### 5.5 Compilation guarantees
