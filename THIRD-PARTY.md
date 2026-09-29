@@ -120,6 +120,7 @@ preceding pin, and the grants and the uses in the table remain as recorded:
 - SECOMP: `LICENSE`, including its enumerated dual-licensed subset. The delta
   changes only `README.md`.
 - LLVM: the root, `llvm/` and `lld/` `LICENSE.TXT`.
+- Ibex: `LICENSE`.
 
 Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The reviewed development tip requires Rocq 9.2 and changes proofs and nested
@@ -147,7 +148,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
 | `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c8245850` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
 | `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages and the assertion header under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
-| `upstream/ibex` | `lowRISC/ibex` | `e1a6be2c` | `Apache-2.0` | RoT functional reference. | pinned to read later |
+| `upstream/ibex` | `lowRISC/ibex` | `4dd3932a` | `Apache-2.0` | RoT functional reference. | pinned to read later |
 | `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference. The profile does not adopt its RV32 capability encoding. | pinned to read later |
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `78a34ba5` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository. No build or check here uses it. | pinned for a struck milestone |
 | `upstream/qemu` | `CTSRD-CHERI/qemu` | `d0bb921c`, on `qemu-cheri` | `GPL-2.0`, with the [file-specific terms](#development-tools-contained-by-use) below | Base of the unpublished fast-emulator fork; its `VERSION` is 7.0.0. Nothing here runs or vendors the fork. | pinned for a struck milestone |
