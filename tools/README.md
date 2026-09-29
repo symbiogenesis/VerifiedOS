@@ -1022,7 +1022,7 @@ implementation is every checkout module Python runs to import
 [the gate](vos/cli/proofs.py), derived from their import statements, including imports
 inside functions and parent packages. The launcher, the [command table](vos/commands.py)
 and the Python lockfile choose and start the process without deciding anything in it;
-the environment digest below covers the process they start, including the token the
+the environment identity below covers the process they start, including the token the
 tool environment derives from its manifest and lockfile. Register prose is
 recorded in each receipt but does not invalidate native checks: annotations still
 bind the exact proof source, K-109 holds its reference manifest, and semantic
@@ -1033,11 +1033,17 @@ When the entire proof set is unchanged, the gate validates and reuses its previo
 kernel evidence without rewriting the native receipt, and republishes the portable
 receipt. The cache also hashes installed
 library and runtime files discovered through the compiler configuration and actual
-load paths, the checker library, and the environment (only its digest is recorded;
-shell launch bookkeeping and WSL's per-launch interop socket are excluded).
-Unknown load-path formats, directory symlinks, dynamic source/ML loading or unsupported
-wrapped Require commands disable reuse and parallel kernel checking. The first run
-after upgrading the gate needs a full check to establish this identity.
+load paths, the checker library, the system libraries that `ldd` resolves for both
+executables and every loadable plugin, and the environment (each variable's value
+is recorded only as a digest; shell launch bookkeeping and WSL's per-launch interop
+socket are excluded). Unknown load-path formats, directory symlinks, dynamic source/ML
+loading, unsupported wrapped Require commands or an unresolved system library disable
+reuse and parallel kernel checking. The first run after upgrading the gate needs a
+full check to establish this identity. When an earlier receipt authorizes no reuse at
+all, the gate prints why, naming the differing toolchain part, context entries or gate
+modules but never their values. `proofs identity` prints the digest of the toolchain
+and context that reuse requires, so a cache keyed by it offers only candidates with
+an acceptable context; it authorizes nothing.
 `proofs --fresh` forces all work; `--jobs N` bounds compilation, auditing and kernel
 workers. Per-phase wall times and reused-object/audit counts are recorded in the
 receipt and printed.

@@ -18,7 +18,8 @@ with one worker also checking the joint environment; --fresh disables reuse from
 Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and full receipt stay there. Successful
 runs also publish a portable receipt in the checkout. `proofs status` uses the guest
-hop to hash native outputs; `proofs export` preserves an existing run without Rocq.
+hop to hash native outputs; `proofs export` preserves an existing run without Rocq;
+`proofs identity` prints the toolchain and context digest that reuse requires.
 """
 
 import argparse
@@ -883,6 +884,55 @@ def _status(root: Path) -> int:
         return 0
 
 
+def _identity(root: Path) -> int:
+    """Print the digest of the toolchain and context that reusable evidence must match.
+
+    Equal digests are exactly the toolchain and installed-library context an earlier
+    receipt needs before any of its evidence can be reused, so a cache keyed by this
+    digest offers only candidates whose context the gate accepts. It authorizes
+    nothing: the gate still validates every candidate's bytes. Stdout carries only
+    the digest; a context that cannot authorize reuse fails.
+    """
+    try:
+        work = workspace(root)
+        work.mkdir(parents=True, exist_ok=True)
+        context = _cache_context(work, _sources(root))
+        toolchain = _toolchain()
+    except (OSError, ValueError) as err:
+        print(f"FAIL: proof identity: {err}", file=sys.stderr)
+        return 1
+    if context is None:
+        print("FAIL: proof identity: this installed-library context cannot authorize reuse",
+              file=sys.stderr)
+        return 1
+    print(_json_digest({"toolchain": toolchain, "cache_context": context}))
+    return 0
+
+
+# `ldd` names a loaded object `name => /path (0x...)`, or `/path (0x...)` for the loader.
+_LOADED = re.compile(r"(?:=>|^)\s*(/\S+) \(0x[0-9a-f]+\)$")
+
+
+def _shared_libraries(work: Path, objects: list[str]) -> dict[str, str] | None:
+    """The system libraries the executables and loadable plugins link, by content.
+
+    They live outside the hashed library trees, so without them evidence could cross
+    a C library no checked process loaded. An unresolved library or an object `ldd`
+    cannot read disables reuse. The vDSO has no path and so no bytes to bind.
+    """
+    listed = subprocess.run(["ldd", *objects], cwd=work, capture_output=True,
+                            text=True, encoding="utf-8", check=False)
+    if listed.returncode or "not found" in listed.stdout:
+        return None
+    libraries: dict[str, str] = {}
+    for line in listed.stdout.splitlines():
+        found = _LOADED.search(line.strip())
+        if found is not None:
+            path = str(found.group(1))
+            libraries[path] = receipts.digest(Path(path))
+    return libraries or None
+
+
 def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
     """Hash installed libraries and runtime files, including actual load paths.
 
@@ -890,7 +940,8 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
     loads can read undeclared inputs, so they cannot use this cache. File timestamps
     never stand in for bytes. Only shell launch bookkeeping and WSL's per-launch
     interop socket are excluded from the environment identity. Other irrelevant
-    environment changes may cause extra work, but cannot preserve a stale hit.
+    environment changes may cause extra work, but cannot preserve a stale hit. Each
+    variable is recorded by name and value digest, so a refusal can name it.
     """
     source_sentences = [sentence for source in sources
                         for sentence in _sentences(source.read_text(encoding="utf-8"))]
@@ -940,12 +991,17 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
                     files[str(path)] = receipts.digest(path)
         if not files:
             return None
-        return {"files": files, "config": config.stdout,
+        libraries = _shared_libraries(work, [command[0], env.rocqchk_command()[0],
+                                             *(path for path in files
+                                               if path.endswith((".so", ".cmxs")))])
+        if libraries is None:
+            return None
+        return {"files": files, "shared_libraries": libraries, "config": config.stdout,
                 "load_path": paths.stdout,
-                "environment_sha256": hashlib.sha256(
-                    json.dumps({key: value for key, value in os.environ.items()
-                                if key not in {"WSL_INTEROP", "SHLVL", "_"}},
-                               sort_keys=True).encode("utf-8")).hexdigest()}
+                "environment": {key: hashlib.sha256(
+                                    value.encode("utf-8", "surrogateescape")).hexdigest()
+                                for key, value in sorted(os.environ.items())
+                                if key not in {"WSL_INTEROP", "SHLVL", "_"}}}
     except (OSError, ValueError, KeyError):
         return None
 
@@ -961,33 +1017,59 @@ def _cache_receipt(work: Path) -> Path:
     return current if current.is_file() else work / "previous-proof-evidence.json"
 
 
+def _named(names: list[str], limit: int = 3) -> str:
+    shown = ", ".join(names[:limit])
+    return shown + (f" and {len(names) - limit} more" if len(names) > limit else "")
+
+
+def _changed(before: object, after: Mapping[str, object]) -> str:
+    """Which entries of two recorded identities differ, named but never valued."""
+    if not isinstance(before, dict):
+        return "no comparable record"
+    parts: list[str] = []
+    for key in sorted(before.keys() | after.keys()):
+        old, new = before.get(key), after.get(key)
+        if old == new:
+            continue
+        if isinstance(old, dict) and isinstance(new, dict):
+            parts.append(f"{key}: " + _named(sorted(
+                name for name in old.keys() | new.keys() if old.get(name) != new.get(name))))
+        else:
+            parts.append(str(key))
+    return "; ".join(parts)
+
+
 def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str],
-              toolchain: dict[str, object], context: dict[str, object] | None) -> dict[str, Cached]:
+              toolchain: dict[str, object],
+              context: dict[str, object] | None) -> tuple[dict[str, Cached], str]:
     """Reuse checked objects and audits only across identical prerequisite closures.
 
     Changes to the gate's own modules or toolchain invalidate all evidence. Register
     prose is recorded but is not a compiler or audit input: claims bind IDs from the
     source; their semantic agreement with requirements belongs to review and K-109.
     Adding/removing a source invalidates any changed local dependency resolution, not
-    unrelated components.
+    unrelated components. The second value says why an earlier receipt authorizes
+    no reuse at all; changed sources and their consumers need no explanation.
     """
+    if context is None:
+        return {}, "this installed-library context cannot authorize reuse"
     try:
-        if context is None:
-            return {}
         raw: object = json.loads(_cache_receipt(work).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}, "no earlier successful run in this workspace"
+    except (OSError, ValueError) as err:
+        return {}, f"the earlier receipt is unreadable: {err}"
+    try:
         if not isinstance(raw, dict):
-            return {}
+            return {}, "the earlier receipt is not an object"
         record = cast("dict[str, object]", raw)
         previous, outputs, artifacts = (record.get("inputs"), record.get("outputs"),
                                         record.get("artifacts"))
         if (record.get("schema") != RECEIPT_SCHEMA or record.get("status") != "passed"
                 or record.get("kernel_recheck") != "passed"
-                or record.get("toolchain") != toolchain
-                or record.get("cache_context") != context
-                or record.get("declared_assumptions") != sorted(DECLARED)
                 or not isinstance(previous, dict) or not isinstance(outputs, dict)
                 or not isinstance(artifacts, dict)):
-            return {}
+            return {}, "the earlier receipt records no supported successful run"
         _kernel_evidence(record, {Path(name).stem for name in artifacts})
 
         def gate_inputs(values: Mapping[str, object]) -> dict[str, object]:
@@ -995,8 +1077,15 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
                     if not name.startswith(PROOFS + "/")
                     and name != "docs/requirements-register.md"}
 
-        if gate_inputs(previous) != gate_inputs(inputs):
-            return {}
+        refusals = [f"{label} differs ({_changed(old, new)})" for label, old, new in (
+            ("toolchain", record.get("toolchain"), toolchain),
+            ("installed-library context", record.get("cache_context"), context),
+            ("proof-gate implementation", gate_inputs(previous), gate_inputs(inputs)))
+            if old != new]
+        if record.get("declared_assumptions") != sorted(DECLARED):
+            refusals.append("the declared assumption set differs")
+        if refusals:
+            return {}, "; ".join(refusals)
         reusable: dict[str, Cached] = {}
         index = proofs_mod.SourceIndex.read(sources)
         for wave in index.ordered:
@@ -1017,10 +1106,10 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
                         == outputs.get(product.relative_to(work).as_posix())):
                     reusable[source.stem] = Cached(product_hash,
                                                     _record_symbols(source.name, artifact))
-    except (OSError, ValueError, TypeError):
-        return {}
+    except (OSError, ValueError, TypeError) as err:
+        return {}, f"the earlier receipt cannot authorize reuse: {err}"
     else:
-        return reusable
+        return reusable, ""
 
 
 def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
@@ -1033,7 +1122,12 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     inputs = _inputs(root, sources)
     toolchain = _toolchain()
     context = _cache_context(work, sources)
-    reusable = {} if fresh else _reusable(root, work, sources, inputs, toolchain, context)
+    reusable: dict[str, Cached] = {}
+    refusal = "--fresh was requested"
+    if not fresh:
+        reusable, refusal = _reusable(root, work, sources, inputs, toolchain, context)
+    if refusal:
+        print(f"  reuse: no earlier evidence applies: {refusal}", flush=True)
     if sources and len(reusable) == len(sources):
         try:
             _validate_receipt(root)
@@ -1209,7 +1303,10 @@ def main(argv: list[str] | None = None) -> int:
                     "incrementally and concurrently; enumerate symbols, types "
                     "and assumptions through Rocq; validate claims and witnesses; "
                     "recheck with rocqchk and record content-bound evidence.")
-    parser.add_argument("command", nargs="?", choices=("run", "status", "export"), default="run")
+    parser.add_argument("command", nargs="?", choices=("run", "status", "export", "identity"),
+                        default="run",
+                        help="identity prints the toolchain and installed-library context "
+                             "digest that reusable evidence must match, for keying caches")
     parser.add_argument("--check", action="store_true",
                         help="with export, compare the portable receipt without writing")
     parser.add_argument("--jobs", type=int,
@@ -1228,4 +1325,6 @@ def main(argv: list[str] | None = None) -> int:
     root = find_root()
     if parsed.command == "export":
         return _export(root, check=parsed.check)
+    if parsed.command == "identity":
+        return _identity(root)
     return _status(root) if parsed.command == "status" else _run(root, parsed.jobs, parsed.fresh)
