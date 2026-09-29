@@ -142,6 +142,18 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
                "cross-checks and reference material that carry no claim"),
         (SPEC, "never the shipped certifier, an admission path or an interim anchor"),
     ]),
+    # the destinations R-05-022 holds with its consumer lists, which the crypto layers
+    # also name at their own entries and prose
+    ("the interim destinations", [
+        ("R-05-022", "F\\*/Z3's destination is the Gallina ML-KEM and ML-DSA with the "
+                     "CompCert C refined against them"),
+        ("R-05-022", "EasyCrypt's is each scheme's SSProve/FCF reduction"),
+        ("R-05-075", "EasyCrypt results are accelerators with SSProve as the stated "
+                     "destination"),
+        (SPEC, "Its Coq-native destination is the Gallina ML-KEM and ML-DSA authored "
+               "against FIPS 203 and FIPS 204, with the CompCert-C refined against them"),
+        (SPEC, "with the SSProve/FCF Coq-native statement as the destination"),
+    ]),
     ("the WCET tooling disposition", [
         ("R-18-024", "retired as a workstream"),
         ("R-18-025", "never the bound"),
