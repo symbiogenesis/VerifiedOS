@@ -104,6 +104,40 @@ SOURCE_VERNACULARS: tuple[str, ...] = (
     "Record", "Variant", "Axiom", "Parameter", "Primitive", "Polymorphic",
     "Monomorphic", "Cumulative", "NonCumulative", "Equations", "Program",
 )
+# One of them, as a whole word where a sentence's decorations end.
+_VERNACULAR = re.compile("(?:" + "|".join(SOURCE_VERNACULARS) + r")\b")
+
+# What may stand before a sentence's vernacular: quoted attributes, legacy attributes and
+# control flags, any number of each. Five of the legacy attributes are counted vernaculars
+# in their own right, and a quoted attribute can spell the same five, `#[program]` and
+# `#[universes(polymorphic)]` being two; each is counted wherever it stands, and so is
+# the vernacular it decorates, so `Polymorphic Inductive` is one of each rather than a
+# modifier standing for nothing.
+_DECORATION = re.compile(
+    r'#\[(?P<attributes>(?:[^\]"]|"[^"]*")*)\]\s*'
+    r"|(?P<legacy>Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative"
+    r"|Private|Time|Instructions|Fail|Succeed)\s+"
+    r'|Profile\s+(?:"[^"]*"\s+)?|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+'
+    r"|AllocLimit\s+\d+\s*(?:Mw|kw)\s+")
+_QUOTED = re.compile(r'"[^"]*"')
+_UNIVERSES = re.compile(r"\buniverses\s*\(([^()]*)\)")
+_SETTING = re.compile(r"\b(program|polymorphic|cumulative)\b(?:\s*=\s*(yes|no)\b)?")
+
+
+def _attribute_modifiers(attributes: str) -> list[str]:
+    """The counted modifiers one quoted attribute list spells: `program`, and
+    `polymorphic` and `cumulative` inside `universes(...)`, where `=no` spells the
+    opposite modifier. A string value is no setting, so strings are blanked first."""
+    bare = _QUOTED.sub('""', attributes)
+    found = ["Program" for setting in _SETTING.finditer(_UNIVERSES.sub("", bare))
+             if setting.group(1) == "program" and setting.group(2) != "no"]
+    for universes in _UNIVERSES.finditer(bare):
+        for setting in _SETTING.finditer(universes.group(1)):
+            if setting.group(1) == "polymorphic":
+                found.append("Monomorphic" if setting.group(2) == "no" else "Polymorphic")
+            elif setting.group(1) == "cumulative":
+                found.append("NonCumulative" if setting.group(2) == "no" else "Cumulative")
+    return found
 
 
 class ParseError(ValueError):
@@ -350,18 +384,26 @@ def source_declarations(text: str) -> dict[str, int]:
     a profile decision can see the distance between what an author wrote and what the
     kernel reading above found a proof to use.
 
-    It counts the vernacular a sentence opens with and nothing inside the sentence.
-    Mutual recursion is deliberately absent from this reading and is left to the term
-    reading's `for` selector: a `Fixpoint` block's own `with` and a `match`'s are the
-    same token at this level, and a count that reads every `Fixpoint` as mutual is a
-    figure with no predicate behind it.
+    It counts the vernacular a sentence opens with and nothing inside the sentence,
+    after every decoration standing before it, and the counted modifiers among those
+    decorations. Mutual recursion is deliberately absent from this reading and is left
+    to the term reading's `for` selector: a `Fixpoint` block's own `with` and a
+    `match`'s are the same token at this level, and a count that reads every `Fixpoint`
+    as mutual is a figure with no predicate behind it.
     """
     counts = dict.fromkeys(SOURCE_VERNACULARS, 0)
     for sentence in sentences(text):
-        for vernacular in SOURCE_VERNACULARS:
-            if re.match(rf"^(?:#\[[^\]]*\]\s*)?(?:Local\s+|Global\s+)?{vernacular}\b",
-                        sentence):
-                counts[vernacular] += 1
+        at = 0
+        while (decoration := _DECORATION.match(sentence, at)) is not None:
+            if decoration.group("attributes") is not None:
+                for modifier in _attribute_modifiers(decoration.group("attributes")):
+                    counts[modifier] += 1
+            elif decoration.group("legacy") in counts:
+                counts[decoration.group("legacy")] += 1
+            at = decoration.end()
+        head = _VERNACULAR.match(sentence, at)
+        if head is not None:
+            counts[head.group()] += 1
     return counts
 
 
