@@ -2247,24 +2247,6 @@ def _verdict(case: Case, box: Sandbox) -> Verdict:
 
 def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
          repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None) -> int:
-    # Nothing below means anything against a sandbox that was already failing: a mutant
-    # would be reported killed by whatever was broken before it was introduced.
-    code, out, _ = first.check()
-    if code != 0:
-        print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
-        showing = False
-        for line in out:
-            if line.lstrip().startswith("FAIL"):
-                showing = True
-            elif not line.startswith("       "):
-                showing = False
-            if showing:
-                print(f"  {line}")
-        return 1
-    print("ok: the unmutated sandbox passes, so every finding below is the mutant")
-    print()
-    boxes.put(first)
-
     def one(case: Case) -> Verdict:
         box = boxes.get()
         try:
@@ -2273,15 +2255,37 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
             box.reset()
             boxes.put(box)
 
-    # The repair path is five more whole runs of the checker and depends on nothing a
-    # case does, so it goes in beside them on the sandbox held back for it, and reports
-    # where it has always reported: after the cases. Under --rule it runs only when a
-    # selected rule carries a --fix branch, because for any other rule it is most of
-    # the iteration path's cost and proves nothing about the rule being iterated on.
+    # The repair path is five more whole runs of the checker in sequence, the longest
+    # chain its shard holds, and depends on nothing the baseline or a case does, so it
+    # starts first, beside both, on the sandbox held back for it, and reports where it
+    # has always reported: after the cases. Under --rule it runs only when a selected
+    # rule carries a --fix branch, because for any other rule it is most of the
+    # iteration path's cost and proves nothing about the rule being iterated on.
     if repairable is None:
         repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
         repairing = pool.submit(_repair_path, repair_ready) if repairable else None
+
+        # Nothing below means anything against a sandbox that was already failing: a
+        # mutant would be reported killed by whatever was broken before it was
+        # introduced. That verdict discards the repair path's report, and leaving the
+        # pool still waits for it, so no checker is running when the estate is removed.
+        code, out, _ = first.check()
+        if code != 0:
+            print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
+            showing = False
+            for line in out:
+                if line.lstrip().startswith("FAIL"):
+                    showing = True
+                elif not line.startswith("       "):
+                    showing = False
+                if showing:
+                    print(f"  {line}")
+            return 1
+        print("ok: the unmutated sandbox passes, so every finding below is the mutant")
+        print()
+        boxes.put(first)
+
         verdicts = list(pool.map(one, selected))
         repair: list[str] = []
         repair_out = ["--- the repair path ---",
