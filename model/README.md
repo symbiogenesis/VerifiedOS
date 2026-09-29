@@ -225,8 +225,7 @@ mapping clause assembly = MRET() <-> "mret"
 ## Sequential execution
 
 The model builds a C++ emulator that can execute RISC-V ELF
-files and provides platform support sufficient to boot
-Linux, FreeBSD and seL4.
+files on the platform its configuration describes.
 
 The files in the [`c_emulator`](c_emulator) directory implement ELF
 loading, the platform devices, and the physical memory map, and
