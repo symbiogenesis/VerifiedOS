@@ -193,7 +193,8 @@ _VERILATOR_SITES: list[tuple[str, str, re.Pattern[str]]] = [
 # shape K-71 already declines to hold for the corpus manifest's edition, and the
 # precedent is followed rather than a second owner invented for it. What the pin
 # table records for `upstream/sail-riscv` is a different figure with a different
-# meaning, the edition the curation is reconciled *against*, and that one is held.
+# meaning, the comparison reference the curation is read against, whose last
+# semantic reconciliation the completion log records, and that one is held.
 RESIDUE: dict[str, str] = {
     "8f91355e": "the commit the curated model was vendored from, which no gitlink "
                 "owns because a vendored tree has none",
@@ -215,6 +216,8 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "629146ef7b3b0d74216b5cc94504ded082a85067": "opentitan",
     "405c6d1d8220a18b2f9196141167a5875422dee4": "ibex",
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
+    "755c7eaa8f67328cbe1f1ab9080b70afb1772e84": "libjade",
+    "78a34ba5cdb853ba601a292bcdd4a780e6ae9c64": "cheri-compressed-cap",
 }
 _CAPTURING_RECEIPTS: dict[str, str] = {
     "docs/assurance/sail-assistance-evidence/modular.json":
@@ -243,6 +246,10 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the Rupicola edition recorded in the completed environment measurement",
     ("docs/implementation/completion-log.md", "beaf4499"):
         "the Sail reconciliation edition recorded at the completed M0 gate",
+    ("docs/implementation/completion-log.md", "fd327e8c"):
+        "the Katamaran edition recorded by the 2026-09-24 reference refresh",
+    ("docs/implementation/completion-log.md", "78a34ba5"):
+        "the cheri-compressed-cap edition M2.1 narrowed in the unpublished repository",
     ("docs/hardware/rtl-reparameterization-delta.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):
