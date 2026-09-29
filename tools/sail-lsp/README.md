@@ -26,7 +26,8 @@ inventory and refuses drift. It builds the SHA-256-pinned archives in
 [sources.lock.json](sources.lock.json) into the checkout's native
 `sail-lsp/prefix`. It writes no opam switch and does not replace `sail`. New
 Libsail and the LSP server come from the same immutable Sail revision; the
-server's `0.20.2` package label is not the locked compiler's source revision.
+server's `0.20.2` package label names neither the locked compiler's edition nor
+its source revision.
 The dependency closure adds the LSP/JSON-RPC runtime, its JSON conversion and
 UTF library, and the UTF library's build helper. Compiler, dune, Yojson, and
 other build dependencies come from the existing exact lock without solving
@@ -55,7 +56,7 @@ native `patch` utility and refuses mismatched context (`--fuzz=0`).
 source. It exercises initialization, diagnostics, hover, definition navigation,
 an unsaved edit, a saved dependency edit, request cancellation, and a fresh
 server process. Dependency regression also checks restoration, deletion, and
-preservation of an unsaved dependent buffer. Its batch comparisons use the unchanged Sail 0.20.2 with strict
+preservation of an unsaved dependent buffer. Its batch comparisons use the unchanged locked Sail with strict
 flags on the same saved candidate bytes. Unsaved-buffer comparison materializes
 the candidate only in its private native fixture. The default response budget
 is 90 seconds per operation; `--timeout` accepts 1 through 600. Reports preserve

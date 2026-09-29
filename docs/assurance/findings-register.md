@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 804 of them across 137 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 808 of them across 138 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -941,7 +941,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q35b
 · Disposition: open, Q35f binding the target to the primary composition's configuration, consumers citing the frozen-profile identity until then
 
-**F-479** upstream-defect: the vendored prelude's four integer quotient and remainder declarations carry `rocq:` extern keys that Sail 0.20.2's Rocq backend does not read, so each is emitted as an axiom
+**F-479** upstream-defect: the vendored prelude's four integer quotient and remainder declarations carry `rocq:` extern keys that the Rocq backend of Sail 0.20.2 and 0.20.3 does not read, so each is emitted as an axiom
 · Raised: Q35b
 · Disposition: open, Q35f spelling the keys `coq:`, which a measured emission shows removing all four, and checking `Z.quot` and `Z.rem` against the prelude's round-toward-zero contract
 
@@ -949,7 +949,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q35b
 · Disposition: open, a review-gate act under R-05-164 admitting them by name or commissioning a semantics with its agreement to SoftFloat 3e shown
 
-**F-481** upstream-defect: `rocq-sail-stdpp` 0.20.2 requires Stdlib's Reals and `Eqdep` in the modules the canonical term loads, loading five Stdlib axioms the term does not use, outside R-05-164's empty declared set
+**F-481** upstream-defect: `rocq-sail-stdpp` 0.20.2 and 0.20.3 require Stdlib's Reals and `Eqdep` in the modules the canonical term loads, loading five Stdlib axioms the term does not use, outside R-05-164's empty declared set
 · Raised: Q35b
 · Disposition: open, Q35g's upstream change, or else a review-gate act under R-05-164
 
@@ -957,7 +957,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q35b
 · Disposition: open, K-88's owner stating the residue or closing it
 
-**F-483** measurement: no `rocq-sail-stdpp` release admits Rocq 9.3, 0.20.3 having joined 0.20.2 with the same `rocq-core` bound and paired with the unlocked Sail 0.20.3, so neither installs beside the locked Rocq 9.3.0
+**F-483** measurement: no `rocq-sail-stdpp` release admits Rocq 9.3, 0.20.3 having joined 0.20.2 with the same published `rocq-core` bound and paired with the locked Sail 0.20.3, so neither installs beside the locked Rocq 9.3.0
 · Raised: Q35b
 · Disposition: standing, the blocking input of Q35b's owed compile, which the opam guide records
 
@@ -1024,6 +1024,22 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-499** owed-act: Rocq 9.2.0's `Print All Dependencies` walks bodies and not types, so the CIC qualification's count of symbols reaching no transparent constant, which it read as those that cannot require delta reduction, includes symbols whose type alone reaches one; over the current sources 155 of the 1,266 such symbols reach one at the locked Rocq 9.3.0, which walks types as well
 · Raised: Q36
 · Disposition: open, M6.2b-0b's corpus qualification re-reading that figure at the locked prover
+
+**F-500** measurement: every model build tree kept the Sail binary its first configure found, the model's `find_program` caching an absolute path inside a switch named by its version, so a lock change left an existing tree emitting with the earlier compiler while its log and build receipt named the new one, and `emit` configured only a tree without `build.ninja`
+· Raised: Q37
+· Disposition: closed at Q37, the configure binding `SAIL_BIN` to the environment's `sail` and `emit` configuring every tree, each held by a `model_host` case
+
+**F-501** measurement: Sail 0.20.3 hashes its compiler-carried `corelib.sail` in the model bundle under that bare name, which K-88's host half and the Sail context tool read as a model source the checkout lacks
+· Raised: Q37
+· Disposition: closed at Q37, `sailbundle.COMPILER_FILES` naming it apart from the model's and the library's owners, held by a `model_bundle` case
+
+**F-502** measurement: at Sail 0.20.2 the constant folder evaluated six `$[test]` functions' calls at compile time, so the emulator's unit tests did not execute `fence_drains`, `setCapAddrChecked` or `capToMemBits` there; Sail 0.20.3 emits the calls
+· Raised: Q37
+· Disposition: standing
+
+**F-503** measurement: Q36's restatement left the canonical-term record calling Rocq 9.2.0 the locked prover, inside both support-library releases' bound
+· Raised: Q37
+· Disposition: closed at Q37, the record's blocking-input bullet restated at Rocq 9.3.0
 
 ## M0 · Hardware reference
 

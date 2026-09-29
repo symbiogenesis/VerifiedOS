@@ -584,9 +584,10 @@ def _seed_smt_cache(donors: list[Path], target: Path) -> None:
 
     Sail's cache is one flat file of fixed records, a 16-byte digest of the SMT query
     and one byte of verdict, read whole into a map at startup by `load_digests` and
-    rewritten whole from that map at exit by `save_digests` (libsail 0.20.2,
-    `constraint.ml`). There is no lock, no atomic rename, and `open_out_bin` truncates
-    in place. A tree's cache here measures 1,418,412 bytes, which is 83,436 records
+    rewritten whole from that map at exit by `save_digests` (libsail's `constraint.ml`,
+    alike at 0.20.2 and 0.20.3, whose parallel checking runs in domains of the one
+    process). There is no lock, no atomic rename, and `open_out_bin` truncates in
+    place. A tree's cache here measures 1,418,412 bytes, which is 83,436 records
     with no remainder.
 
     Three things follow, and each alone is enough to refuse a shared path. Concurrent
@@ -776,7 +777,8 @@ SOLVER_VERDICTS: dict[str, str] = {
 }
 
 # What Sail's own auto mode prints per property, which `--auto` reads. The three
-# shapes are Sail 0.20.2's (`Smt_exp.Counterexample.check`), pinned by the test.
+# shapes are the locked Sail's (`Smt_exp.Counterexample.check`, alike at 0.20.2 and
+# 0.20.3), pinned by the test.
 AUTO_CHECKING = re.compile(r"^Checking counterexample: (.+)$")
 AUTO_FOUND = "Solver found counterexample:"
 AUTO_NOT_FOUND = "Solver could not find counterexample"

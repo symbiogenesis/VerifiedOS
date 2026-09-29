@@ -34,7 +34,7 @@ These licenses are permissive. Redistribution must retain the applicable notices
 
 The curated model is a modified derivative: curation removes upstream features and incorporates capability semantics. Its upstream notices remain applicable, and project modifications use the same terms, as recorded in [COPYRIGHT.md](COPYRIGHT.md).
 
-[model/LICENCE](model/LICENCE) governs the curated tree under BSD-2-Clause and excludes third-party code in `dependencies/`, where ELFIO and SoftFloat retain their own licenses. The capability-helper properties are transcribed for Sail 0.20.2 and the frozen capability widths because the upstream file does not load unchanged. Their separate notice preserves the upstream holders and funding acknowledgements. K-80 checks the tracked license paths in the table.
+[model/LICENCE](model/LICENCE) governs the curated tree under BSD-2-Clause and excludes third-party code in `dependencies/`, where ELFIO and SoftFloat retain their own licenses. The capability-helper properties are transcribed for Sail 0.20.2 and the frozen capability widths because the upstream file does not load unchanged; the transcription loads unchanged at the locked 0.20.3. Their separate notice preserves the upstream holders and funding acknowledgements. K-80 checks the tracked license paths in the table.
 
 ## Fetched at build time
 
@@ -118,8 +118,8 @@ the preceding pin; the notices named below in added or moved files state the sam
 terms, and the grants and the uses in the table remain as recorded:
 
 - Sail: `LICENCE`. The added `model/core/hpm.sail` states `BSD-2-Clause`. Its
-  `cmake/sail_required_version.txt` names Sail 0.20.3; the locked toolchain
-  remains 0.20.2 and does not build this reference.
+  `cmake/sail_required_version.txt` names Sail 0.20.3, the edition Q37 locked
+  later that day; the locked toolchain does not build this reference.
 - LLVM: the root, `llvm/` and `lld/` `LICENSE.TXT`.
 - Ibex: `LICENSE`.
 - Katamaran: `LICENSE`. The two added `Logic.v` files, and
@@ -252,7 +252,7 @@ The generation build reviewed on 2026-09-14 uses the current parent `e6946985c91
 
 **Rocq Stdlib.** [MemoryPlan.v](proofs/MemoryPlan.v) references separately installed `PeanoNat.Nat` theorems. The reviewed V9.2.0 edition is `8dd155bc10529814202f8f4c643e5ae6c2c88fa6`. Its [LICENSE](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/LICENSE) and [PeanoNat header](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/theories/Arith/PeanoNat.v) state LGPL version 2.1 and credit the Rocq Development Team, INRIA, CNRS, contributors, and Evgeny Makarov. The proof-switch lock fixes the installed version. Project adapters copy no upstream proof scripts, and neither Stdlib nor compiled proof objects are distributed here. Distribution of the library or a combined artifact would require review of the LGPL source, notice, and modification or relinking obligations. [The reuse record](docs/assurance/proof-reuse/foundations.md#f01-rocq-stdlib-arithmetic-integrated-by-reference) identifies theorem references and transitive assumptions.
 
-**Sail's Rocq support library.** [The model's Rocq support file](model/handwritten_support/riscv_extras.v) and the Rocq definitions Sail emits from the model require `rocq-sail-stdpp`, which `rems-project/coq-sail` publishes paired with Sail releases, each release conflicting with every Sail but its own version. The reviewed 0.20.2 release is the tag `0.20.2-rocq`, fetched as [its release archive](https://github.com/rems-project/coq-sail/archive/refs/tags/0.20.2-rocq.tar.gz) under the opam checksum. Its [LICENSE](https://github.com/rems-project/coq-sail/blob/0.20.2-rocq/LICENSE), SHA-256 `9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0` and read on 2026-09-28, states BSD-2-Clause and credits the Sail authors. The package's dependency `rocq-stdpp-bitvector` 1.13.0 is the std++ tag `stdpp-1.13.0`, whose [LICENSE](https://github.com/rocq-iris/stdpp/blob/stdpp-1.13.0/LICENSE), SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`, states BSD-3-Clause and credits the std++ developers and contributors. [The canonical-term record](docs/assurance/canonical-machine-term.md) reads both sources for the assumptions they load. Neither is installed in a project switch: [the opam guide](tools/opam/README.md) owns their return to the proof switch, and no source or compiled object from either is tracked or distributed here.
+**Sail's Rocq support library.** [The model's Rocq support file](model/handwritten_support/riscv_extras.v) and the Rocq definitions Sail emits from the model require `rocq-sail-stdpp`, which `rems-project/coq-sail` publishes paired with Sail releases, each release conflicting with every Sail but its own version. The reviewed release is 0.20.3, the one paired with the locked Sail: the tag `0.20.3`, fetched as [its release archive](https://github.com/rems-project/coq-sail/archive/refs/tags/0.20.3.tar.gz) under the opam checksum. Its [LICENSE](https://github.com/rems-project/coq-sail/blob/0.20.3/LICENSE), SHA-256 `9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0` and read on 2026-09-29, byte-identical to the 0.20.2 release's read on 2026-09-28, states BSD-2-Clause and credits the Sail authors. The package's dependency `rocq-stdpp-bitvector` 1.13.0 is the std++ tag `stdpp-1.13.0`, whose [LICENSE](https://github.com/rocq-iris/stdpp/blob/stdpp-1.13.0/LICENSE), SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`, states BSD-3-Clause and credits the std++ developers and contributors. [The canonical-term record](docs/assurance/canonical-machine-term.md) reads both sources for the assumptions they load. Neither is installed in a project switch: [the opam guide](tools/opam/README.md) owns their return to the proof switch, and no source or compiled object from either is tracked or distributed here.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 
@@ -666,13 +666,14 @@ path-based licenses. Context, journals and MCP use the existing Python environme
 Explicit optional commands fetch/build native tools into an isolated lane; no new
 gitlink, agent SDK or model account is introduced. The acceptance compiler and
 curated model retain their existing pins. Selected licenses and notices below were
-read on 2026-09-21 before incorporation. The tracked Sail dependency-refresh patch
+read on 2026-09-21 before incorporation, and the locked Sail's again at 0.20.3 on
+2026-09-29, byte-identical to 0.20.2's. The tracked Sail dependency-refresh patch
 and its verbatim notice have an explicit BSD-2-Clause entry in the
 [copyright map](COPYRIGHT.md#the-map).
 
 | Reference | Selected reading and license instrument | Disposition |
 | --- | --- | --- |
-| Locked Sail 0.20.2 | [3b7af38d LICENSE](https://github.com/rems-project/sail/blob/3b7af38d66466ecadad563158b07ce2f82fe05da/LICENSE), BSD-2-Clause with its stated third-party exceptions | Consume the already tracked documentation bundle through the existing reader; no emitter code is copied. |
+| Locked Sail 0.20.3 | [3df54034 LICENSE](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/LICENSE), BSD-2-Clause with its stated third-party exceptions | Consume the already tracked documentation bundle through the existing reader; no emitter code is copied. |
 | Development Sail and native LSP | [ce60ba57 LICENSE](https://github.com/rems-project/sail/blob/ce60ba570b4402a42431bc5033145d9aeb327f20/LICENSE), BSD-2-Clause; `THIRD_PARTY_FILES` BSD-3-Clause/MIT exceptions and server source headers also read | Optional isolated LSP/Libsail and Isla-plugin builds. The tracked `tools/sail-lsp/dependency-refresh.patch` retains BSD-2-Clause context and offers its modifications on the same terms, with upstream notice beside it. Acceptance Sail is unchanged. |
 | Current RISC-V model | [8890da78 LICENCE](https://github.com/riscv/sail-riscv/blob/8890da780108672e05cf87b6d119bf6a76113fbf/LICENCE), BSD-2-Clause with its dependency exclusions | Read source modules and the C++ generation recipe; no code or pin change. |
 | Modular SAIL experiment | [aa8cb46a LICENCE](https://github.com/imec-csa/sail-riscv/blob/aa8cb46a9284b30b537bcd803cd163d5517f2e2e/LICENCE), BSD-2-Clause with its stated exclusions; [paper v1](https://arxiv.org/abs/2507.12471v1) | Adapt the separate-compilation concept to generated C++ using libclang ranges and authored CMake/static-library tooling. The paper is a research reference, not a software license. No fork scripts, patches or loader code are copied. |

@@ -144,7 +144,7 @@ ORACLE_TREE = "sail-cheri-riscv-bb07488d"
 OCAML_VERSION = "5.4.1"
 OCAMLFIND_VERSION = "1.9.8"
 OPAM_LOCKS = Path(__file__).resolve().parents[1] / "opam"
-SAIL_VERSION = "0.20.2"
+SAIL_VERSION = "0.20.3"
 SAIL_SWITCH = f"verifiedos-sail-{SAIL_VERSION}-ocaml-{OCAML_VERSION}"
 SAIL_INSTALL: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", SAIL_SWITCH, "--empty", "--no-switch", "-y"),

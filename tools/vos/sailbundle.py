@@ -22,8 +22,9 @@ top level, and under `--doc-embed plain --doc-embed-with-location` every source 
 Sail writes, whose first element is the 1-based line a finding sends a person to.
 
 The one thing a reader must not assume is provenance. **The bundle carries no `git`
-key**: Sail 0.20.2 emits none, so the artifact does not record the commit it came from,
-and nothing here may say which revision it describes. What it does record is the md5 of
+key**: the locked Sail emits none where `git` fails, which the bundle command
+arranges, so the artifact does not record the commit it came from, and nothing here
+may say which revision it describes. What it does record is the md5 of
 every file it read, which is the stronger fact for the question actually being asked:
 whether the bundle still describes the sources in this checkout.
 
