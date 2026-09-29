@@ -40,8 +40,8 @@ The Sail compiler also generates a JSON schema
 (`sail_riscv_config_schema.json`) for the configuration file from the
 Sail sources; every configuration file is validated against this
 schema before use. This file will be in the directory containing the
-build artifacts after a build of the model, and is also available in
-the [binary releases](#using-the-binary-releases) of the model.
+build artifacts after a build of the model, and the emulator prints it
+with the `--print-config-schema` option.
 
 More information on using the emulator is available using its `-h`
 help command-line option.
@@ -53,20 +53,11 @@ unprivileged volume of the RISC-V specification is available
 
 ## Getting started
 
-### Using the binary releases
-
-Recent released versions of the model have binaries for the `x86_64`
-and ARM `aarch64` Linux platforms, available
-[here](https://github.com/riscv/sail-riscv/releases). The executable
-model is at `bin/sail_riscv_sim`. Sample model configurations are
-under the `share/sail-riscv/config` directory, and the configuration
-schema is available under
-`share/sail-riscv/sail_riscv_config_schema.json`. A custom
-configuration can be created by copying one of the sample
-configurations and editing it as needed (see also
-[below](#configuring-platform-options)).
-
 ### Building the model from source
+
+Upstream's [binary releases](https://github.com/riscv/sail-riscv/releases)
+build upstream's model rather than this curated one, so this tree is
+built from source.
 
 Install [Sail](https://github.com/rems-project/sail/). On Linux you can download a [binary release](https://github.com/rems-project/sail/releases) (strongly recommended), or you can install from source [using opam](https://github.com/rems-project/sail/blob/sail2/INSTALL.md). Then:
 
