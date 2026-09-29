@@ -49,8 +49,10 @@ section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrentl
 so these durations overlap and must not be added to obtain the wave's duration.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
-keeps its own run. Each OS runs four independent shards. Mutation cases and sorted
-behavioral test modules are partitioned by position, with every item assigned once.
+keeps its own run. Ubuntu runs four independent shards and Windows eight, because a
+shard's members are CPU-bound and run the same work more slowly on the Windows
+runner. Mutation cases and sorted behavioral test modules are partitioned by
+position within each OS, with every item assigned once.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
@@ -807,8 +809,9 @@ A bare `run.py` first validates the shared instructions and restores a missing
 import, then runs `check`, `selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
 is the same complete validation without tracked writes. CI partitions that work
-with `--shard INDEX/4` and requires all four shards on each OS. `--rule` and `--only`
-cannot narrow a shard, and a partition count larger than its population is refused.
+with `--shard INDEX/TOTAL`, four shards on Ubuntu and eight on Windows, and requires
+every shard on each OS. `--rule` and `--only` cannot narrow a shard, and a
+partition count larger than its population is refused.
 
 `--fix` validates instructions, restores a missing import and repairs derived
 artifacts before starting the readers. The checker runs again afterward, so a
