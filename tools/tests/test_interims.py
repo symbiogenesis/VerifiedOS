@@ -97,6 +97,13 @@ def _non_empty_form_is_read_and_resolved() -> None:
                         accept=_LISTED)
     ensure(not found, f"both listed consumers cite F*/Z3 where they are anchored: {found!r}")
     ensure("(2 listed)" in ok, f"the clean line counts the entries: {ok!r}")
+    item = (interims.PLAN, "M3.4x · Import a post-quantum primitive")
+    both, _ = _decide({interims.PLAN: _PLAN_RIDING, "kernel/src/mlkem.c": _MLKEM},
+                      accept=_LISTED, declared={**_DECLARED, item: interims.NonPremise(
+                          (FSTAR,), "a comparator", ("its correctness rests on",))})
+    ensure(len(both) == 1 and "is both a consumer R-05-022 lists for F*/Z3 and a "
+           "non-premise" in both[0],
+           f"an anchor both listed and declared is a finding: {both!r}")
     single = interims.read_lists(_BOOKS + "F\\*/Z3's consumer is R-05-061. EasyCrypt's "
                                           "consumers are M3.4b, `proofs/X.v`, and Q2a.")
     ensure(single.consumers == {FSTAR: ["R-05-061"],
