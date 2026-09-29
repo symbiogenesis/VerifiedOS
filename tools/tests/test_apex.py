@@ -15,6 +15,11 @@ seam written `f v` rather than `v.(f)`; and the record absent altogether. The fi
 case is the other direction and is why the discount is positional: a record update
 written `f := v.(f)` genuinely consumes the field, and refusing it would be this parse
 inventing a residue rather than reporting one.
+
+Three more hold the spellings Rocq admits around a definition: one under an attribute
+or a locality is read as itself, one under `Fail` defines nothing and is a residue, and
+a record value completed from a base with `with` is a residue while a `match`'s own
+`with` is read.
 """
 
 import tempfile
@@ -140,6 +145,47 @@ def _brace_inside_the_body_does_not_truncate() -> None:
            f"{rec.declarations} declarations, {rec.fields!r}, {rec.unread!r}")
 
 
+def _prefixed_definition_is_read() -> None:
+    # An attribute or a locality leaves the body what it was, so each is read as the
+    # bare definition would be, on its own line or the definition's, and the sentence
+    # above it ends where the prefix opens rather than swallowing it.
+    for prefix in ("#[local] ", "#[local]\n", "Local ", "Global ", "Program ",
+                   "Polymorphic ", '#[deprecated(note="a ] b")] #[local] '):
+        rec = _read(_APEX + f"\n{prefix}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(rec.unread == [], f"{prefix!r} leaves a residue: {rec.unread!r}")
+        ensure(rec.def_fields.get("inner") == ["gamma"]
+               and rec.def_fields["seam_one"] == ["beta", "gamma"]
+               and rec.consumers["gamma"] == ["seam_one", "inner"],
+               f"under {prefix!r} the definition is read as itself and the one above "
+               f"keeps its own reads: {rec.def_fields!r}")
+
+
+def _control_prefixed_definition_is_a_residue() -> None:
+    # `Fail` leaves nothing defined, so its sentence is counted and read by nothing, and
+    # the count names the difference rather than the reading narrowing past it.
+    rec = _read(_APEX + "\nFail Definition inner (v : Vocabulary) : Prop := v.(gamma).\n")
+    ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+               for said in rec.unread),
+           f"a definition under a control prefix is a residue, got {rec.unread!r}")
+
+
+def _record_completed_from_a_base_is_a_residue() -> None:
+    # `{| v with alpha := True |}` projects beta and gamma out of v and spells neither,
+    # so both readings agree on consuming nothing; the `with` is what refuses it.
+    rec = _read(_APEX + "\nDefinition relax (v : Vocabulary) : Vocabulary := "
+                        "{| v with alpha := True |}.\n")
+    ensure(any("'relax' writes 1 `with` where its `match` account for 0" in said
+               for said in rec.unread),
+           f"a record completed from a base is a residue, got {rec.unread!r}")
+    ensure("relax" not in rec.def_fields, "and the parse states no reading of it")
+    # the same token under a `match` is the match's own and is read
+    rec = _read(_APEX + "\nDefinition pick (v : Vocabulary) (b : bool) : Prop :=\n"
+                        "  match b with true => v.(alpha) | false => v.(beta) end.\n")
+    ensure(rec.unread == [] and rec.def_fields.get("pick") == ["alpha", "beta"],
+           f"a match's `with` is not a completed record: {rec.unread!r}")
+
+
 def _missing_record_is_a_residue() -> None:
     # The floor: the subject absent entirely is a worded finding, not an empty field
     # list that every pairing then passes over.
@@ -161,4 +207,9 @@ def cases() -> list[Case]:
         Case("brace-inside-the-body-does-not-truncate",
              _brace_inside_the_body_does_not_truncate),
         Case("missing-record-is-a-residue", _missing_record_is_a_residue),
+        Case("prefixed-definition-is-read", _prefixed_definition_is_read),
+        Case("control-prefixed-definition-is-a-residue",
+             _control_prefixed_definition_is_a_residue),
+        Case("record-completed-from-a-base-is-a-residue",
+             _record_completed_from_a_base_is_a_residue),
     ]

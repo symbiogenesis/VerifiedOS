@@ -44,6 +44,13 @@ assignment, and a body whose two readings differ is `unread` rather than answere
 whichever is longer. Both callers refuse on a non-empty `unread`, which is the only
 answer available: a parse that cannot say what a body consumes cannot narrow the
 answer to what it happened to see.
+
+**Two spellings Rocq admits are read or refused, never skipped.** A definition under an
+attribute or a locality, `#[local] Definition`, is the same body and is read as one; a
+count taken wider than the reading makes any other decoration a residue rather than a
+definition nobody saw. A record value completed from a base, `{| v with f := x |}`,
+consumes by projection every field it does not assign and names none of them, so a body
+that may carry one is `unread` rather than answered from the fields it happens to spell.
 """
 
 import re
@@ -79,22 +86,41 @@ _DECL_RE = re.compile(r"(?s)^\s*(\w+)\s*:\s*(\S.*?)\s*$")
 # it carries.
 _WORD_RE = re.compile(r"\w+")
 
+# What may stand before a `Definition` and leave it the definition it decorates: quoted
+# attributes, `#[local]` and the rest, and the legacy attributes Rocq's grammar admits in
+# their place. None of them moves a token of the body, so a definition under one is read
+# as if it stood bare. A control prefix is not among them: `Fail` and `Succeed` leave
+# nothing defined, so a sentence under one is counted below and read by nothing.
+_PREFIX = (r'(?:#\[(?:[^\]"]|"[^"]*")*\]\s*|(?:Local|Global|Program|Polymorphic'
+           r'|Monomorphic|Cumulative|NonCumulative|Private)\s+)*')
+
 # A `Definition` sentence and its body. The body ends at a period that a sentence head
 # follows, which is what a Gallina sentence boundary is, so no list of vernacular
 # keywords stands between this and a file that grows one: the terminator this replaces
 # named four of them, and a `Theorem` written between two definitions was swallowed by
-# the definition above it and reported as that definition's own field reads.
-_DEFINITION_RE = re.compile(r"(?sm)^Definition (\w+)(.*?\.)\s*(?=^[A-Z]\w*\b|\Z)")
+# the definition above it and reported as that definition's own field reads. An
+# attribute opens a sentence as a capital does, or the definition under it would be
+# swallowed the same way.
+_DEFINITION_RE = re.compile(
+    r"(?sm)^" + _PREFIX + r"Definition\s+(\w+)(.*?\.)\s*(?=^(?:#\[|[A-Z]\w*\b)|\Z)")
 
-# What a `Definition` sentence looks like from outside, for the count that says whether
-# the pattern above read all of them. Indentation is admitted here and refused there on
-# purpose, and that difference is the whole of what makes this a count rather than a
-# restatement: a definition inside a `Module` or a `Section` is indented, the pattern
-# above anchors at column 0, and a count anchored at column 0 too would have been the
-# audited pattern spelling its own answer, unable to report the one shape it exists to
-# catch. Counted wider than it is read, so an indented sentence is a residue and not a
-# consumer nobody saw.
-_DEFINITION_HEAD_RE = re.compile(r"(?m)^[ \t]*Definition\s")
+# Every `Definition` the file spells, for the count that says whether the pattern above
+# read all of them. The keyword is counted wherever it stands and read only at column 0
+# under a prefix the reading takes, and that difference is the whole of what makes this
+# a count rather than a restatement: a definition inside a `Module` or a `Section` is
+# indented and one under `Fail` defines nothing, and a count anchored where the reading
+# is anchored would have been the audited pattern spelling its own answer, unable to
+# report the one shape it exists to catch. Counted wider than it is read, so either is a
+# residue and not a consumer nobody saw.
+_DEFINITION_HEAD_RE = re.compile(r"(?<![\w'])Definition(?![\w'])")
+
+# A record value completed from a base, `{| v with f := x |}`, copies every field it does
+# not assign as a projection of the base and names none of them, so the fields it
+# consumes are in neither reading below. Its `with` is the one token that says so, and a
+# `match` accounts for every other `with` a definition body writes; a body carrying more
+# of the first than of the second is handed back rather than read.
+_WITH_RE = re.compile(r"(?<![\w'])with(?![\w'])")
+_MATCH_RE = re.compile(r"(?<![\w'])match(?![\w'])")
 
 # A field read through a record value, at whatever the definition calls its argument,
 # and the second reading that holds the first honest. `v.(f)` is an abbreviation: `f v`
@@ -229,6 +255,14 @@ def read(path: Path) -> ApexRecord:
             f"the file spells {spelled} `Definition` sentences and this parse reads "
             f"{len(definitions)}, so what the rest consume is counted nowhere")
     for name, body in definitions:
+        withs, matches = len(_WITH_RE.findall(body)), len(_MATCH_RE.findall(body))
+        if withs > matches:
+            rec.unread.append(
+                f"the definition '{name}' writes {withs} `with` where its `match` "
+                f"account for {matches}, so a record value in it may be completed from "
+                "a base, which copies fields it never names, and this parse states no "
+                "reading of what it consumes")
+            continue
         reads: list[str] = []
         for f in _FIELD_READ_RE.findall(body):
             if f in rec.field_set and f not in reads:
