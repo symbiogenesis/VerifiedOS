@@ -1049,17 +1049,17 @@ returned-loan, disjoint-field and cleanup predicates. Diagnostic results carry
 their generation so a late success cannot accept changed source.
 
 Independent compiler-lane review runs 06:08:36–06:10:15 UTC on 2026-09-10.
-Integration explicitly classifies `keep_view` and admitted callback captures as
+Integration classifies `keep_view` and admitted callback captures as
 public and completes the inclusive-guard diagnostic with the source-extent
 premise. The read covers ordinary exits, loop joins, captured reborrows, source
 correspondence, observations, intended negatives and missing-law pricing.
-Q20a's callback benchmark remains unchanged.
+Q20a's callback benchmark is unchanged.
 
-The closing-pass actual conservatively bounds authoring from recorded branch
-creation at 05:54:33 to commit at 06:07:58 UTC, plus that independent review,
-rounded upward to one decimal hour. Earlier design authoring is an existing
-input, not reconstructed effort, so the calibration row is n/a. Shared
-integration and the final host wave are recorded at Q2c without a second charge.
+The closing-pass actual conservatively bounds authoring from branch creation at 05:54:33 to commit at
+06:07:58 UTC, plus that review, rounded upward to one decimal hour. Earlier
+design authoring is an existing input, not reconstructed effort, so the
+calibration row is n/a. Shared integration and the final host wave are recorded
+at Q2c without a second charge.
 
 Landed: Tier A. The reasoned rejection closes this decision while preserving
 its conditional contract and reopening evidence. No metatheory, frontend
@@ -1089,11 +1089,11 @@ links at their exact foundation passages. The read preserves Q19c's actual-law
 gate and R-05-019b, R-05-020, R-05-023a, R-05-024, R-05-026, R-05-032,
 R-13-017 and R-18-014; unavailable artifacts give neither route a victory.
 
-The closing-pass actual conservatively bounds authoring from recorded branch
-creation at 05:54:40 to handoff at 06:04:31 UTC, plus that independent review,
-rounded upward to one decimal hour. This is rejection review over the existing
-contract, so the calibration row is n/a. Shared integration and the final host
-wave are recorded at Q2c without a second charge.
+The closing-pass actual conservatively bounds authoring from branch creation at 05:54:40 to handoff at
+06:04:31 UTC, plus that review, rounded upward to one decimal hour. This is
+rejection review over the existing contract, so the calibration row is n/a.
+Shared integration and the final host wave are recorded at Q2c without a second
+charge.
 
 Landed: Tier A. The read accepts this commissioning rejection and reopening
 contract. It establishes no performance comparison, route infeasibility, licence
@@ -1127,14 +1127,14 @@ three assessment lanes. The final integration gate is
 `python tools/run.py --check --tests`, bound to each lane's tested source bytes
 and the index tree identity. It checks the whole corpus, every checker mutant,
 both Python checkers and the behavioral suite, including repeated read-only CLI
-invocation. No model, RTL or Gallina source changes; no guest evidence is claimed
-or substituted by these host experiments. The co-read ledger is unchanged.
+invocation. No model, RTL or Gallina source changes; no guest evidence is claimed or substituted by these host experiments.
+The co-read ledger is unchanged.
 
 The authoring interval is 14:29:12–14:57:50 UTC on 2026-09-11; independent review
 starts at 14:58:02 and finishes before 15:00:36. The actual is a conservative
-rounded allowance for those measured lane intervals and the integrator's setup,
+rounded allowance for those lane intervals and the integrator's setup,
 source review, shared document work and final gate. Shared integration is charged
-once here, with no duplicate charge at Q22b or Q22c.
+once here, not at Q22b or Q22c.
 
 Landed: Tier A. The attended read covers the source/model relation, the admission
 and scheduling premises and the bounded result's limits; behavioral tests do not
@@ -1156,8 +1156,8 @@ Authoring revision `720ab3dcbaca85c795b3e2b2abe774c377b9d7ff` passes 13 focused
 behavioral cases, including every length-seven sequence over the signing/crash
 test's five actions, 78,125 schedules. The integrated
 `python tools/run.py witness qualify --json` compares 91 policies and 199,753
-quorum/fault assignments with the policy's actual acceptance predicate, rather
-than a second copy of its formula. Independent review accepts the scope and
+quorum/fault assignments with the policy's actual acceptance predicate, not a
+second copy of its formula. Independent review accepts the scope and
 supplies that last strengthening. Ideal authentication and protected antirollback
 state remain explicit premises, not verified primitives.
 
@@ -1167,8 +1167,8 @@ state remain explicit premises, not verified primitives.
   with a replaced trust scope, is required by the qualified interface.
 
 The authoring interval is 14:29:15–14:53:07 UTC on 2026-09-11; independent review
-starts at 14:53:52 and finishes before 15:00:36. The actual rounds these recorded
-intervals upward. Q22a records and charges the shared integration gate once.
+starts at 14:53:52 and finishes before 15:00:36. The actual rounds these
+intervals upward. Q22a charges the shared integration gate once.
 
 Landed: Tier A. The read accepts the bounded model, counterexamples and downstream
 assignments. CJ-WITNESS's machine-checked model and theorem remain open at M5.5.
@@ -1205,7 +1205,7 @@ this scope and no protocol or implementation proof is claimed.
 The provision-to-commit interval is 14:29:19–14:57:08 UTC on 2026-09-11 and includes
 the source/RFC reading outside the implementation timer. Independent review starts
 at 14:57:24 and finishes before 15:00:36. The actual rounds those intervals upward;
-Q22a records and charges shared integration. The JSON receipt binds the model,
+Q22a charges shared integration. The JSON receipt binds the model,
 CLI, tests and assessment bytes; normative source and co-read records are unchanged.
 
 Landed: Tier A. This accepts a bounded qualification and its remaining owners;
@@ -1214,21 +1214,21 @@ CJ-ATTEST's formal model, theorem and implementation connection remain open.
 ### Q22d · Qualify the generated RTL correspondence boundary
 
 The [boundary qualification](../assurance/rtl-correspondence-boundary.md) fixes the six
-fields a block's correspondence record carries, source semantics, theorem endpoint,
-emitter identity and revision, emitted bytes, synthesis input and tier reached, and keeps
+fields a block's correspondence record carries (source semantics, theorem endpoint,
+emitter identity and revision, emitted bytes, synthesis input and tier reached) and keeps
 three kinds of `n/a` apart so that a field bound to nothing cannot read as discharged. No
 Kami or Kôika block exists, route (a) opening after the co-simulation gate, so the record
 is filled for the two blocks that do. The authored capability package has a correspondence
 instrument and no emitter, its evidence route-(c) shaped in the plan's §11 sense. The
 generated address map is the converse and is the instance R-15-092's ruling on generation
-names: its emitter is checked for byte identity by K-88 and for nothing else, so it is
-checked in exactly the sense that ruling holds insufficient. Both stand at evidence tier,
-which is read as the ceiling R-01-002b sets over the unit rather than as a reading taken
-over a block. Per candidate DSL no circuit theorem covers its own emitter: Kami's reaches
-the Kami term ahead of Bluespec extraction, Kôika's `compiler_correct` reaches the
-compiled register-output circuits ahead of an unverified emission layer, and Silver Oak
-excludes its SystemVerilog compiler from what it verifies. The licence-based Kami default
-is untouched, and no candidate's row moves it.
+names: its emitter is checked for byte identity by K-88 and for nothing else, in exactly the sense in
+which that ruling holds checking insufficient. Both stand at evidence tier, read as the
+ceiling R-01-002b sets over the unit, not as a reading taken over a block. Per candidate
+DSL no circuit theorem covers its own emitter: Kami's reaches the Kami term ahead of
+Bluespec extraction, Kôika's `compiler_correct` reaches the compiled register-output
+circuits ahead of an unverified emission layer, and Silver Oak excludes its SystemVerilog
+compiler from what it verifies. The licence-based Kami default is untouched, and no
+candidate's row moves it.
 
 Figures taken 2026-09-14 at `9e2b56ab` in lane `q22d-rtlbound-20260914` under Verilator
 5.052, the pin. `python tools/run.py rtl crosscheck` is green over the model's own
@@ -1239,32 +1239,30 @@ in `enc_to_capability` differs on 545,921 lines, decrementing `CapResetE` on 4,0
 making `clear_tag_if` ignore its condition on 9,645. Making the exported `clear_tag`
 wrapper a no-op differs on none. All four perturbed packages lint clean at exit zero under
 the flags `run.py rtl lint` uses, including the two the cross-check rejects on half a
-million lines, which is the lint-versus-correspondence boundary measured rather than
-asserted.
+million lines: the lint-versus-correspondence boundary, measured.
 
 The Done-when is read per limb, as the qualification states it. The slice's independence
-has two axes and sits differently on each: the replayed answers are the model's own and
-cross as text with no adapter between the two implementations, so the mux, reset and
-reached-tag limbs take the predicate's first disjunct; the function selection is authored
-here, so the exported `clear_tag` wrapper takes the second, a precisely recorded seam at a
-block already at evidence tier and below every rung of R-18-010. The seam's statement is
-narrower than the limb's name: not that tag paths are uncovered, but that an exported
-entry point outside the harness's authored selection is held by nothing. Source-level
-correctness alone did not pass, and the fourth trial is the witness, the model's own
-`clear_tag` being correct and unperturbed throughout while reaching nothing about a
-SystemVerilog function no vector drives.
+has two axes: the replayed answers are the model's own and cross as text with no adapter
+between the two implementations, so the mux, reset and reached-tag limbs take the
+predicate's first disjunct; the function selection is authored here, so the exported
+`clear_tag` wrapper takes the second, a precisely recorded seam at a block already at
+evidence tier and below every rung of R-18-010. The seam is not that tag paths are
+uncovered but that an exported entry point outside the harness's authored selection is
+held by nothing. Source-level correctness alone did not pass; the fourth trial is the
+witness, the model's own `clear_tag` being correct and unperturbed throughout while
+reaching nothing about a SystemVerilog function no vector drives.
 
 * **Finding: no register entry requires this record.** R-15-092's Accept states the fields
   for an elected version, and no entry makes the record a required artifact the way
   R-15-100a makes the absence contract required. Making it one is a register act, a new
   entry or an amendment to that Accept, and belongs to the register's owner. F-359.
 * **Finding: R-18-010's rungs are stated per core and no rung admits a package.** Both
-  worked examples are packages, which is why both rung lists are empty rather than short
-  and why the tier cells read R-01-002b as a ceiling over the unit. Extending the ladder to
+  worked examples are packages, so both rung lists are empty rather than short
+  and the tier cells read R-01-002b as a ceiling over the unit. Extending the ladder to
   non-core blocks, or ruling that it deliberately does not reach them, is the register's. F-360.
 * **Finding: the register states no tier below evidence tier.** The predicate's *lower
   evidence tier* is therefore read on R-01-002b's own two-list test, as a shorter rung list
-  and a weaker claim, rather than as a third tier this work would be inventing. A sub-tier
+  and a weaker claim, not as a third tier this work would be inventing. A sub-tier
   is a register act. F-361.
 * **Finding: no artifact owes the address map a theorem endpoint.** Its meaning is
   agreement with the model's `pmaCheck` in `model/model/sys/mem.sail` and no artifact
@@ -1277,15 +1275,15 @@ SystemVerilog function no vector drives.
 
 The measured intervals are 2026-09-14 07:01:30-07:11:33, 07:14:42-07:25:20, 08:13:51-08:31:45 UTC for the authoring, review and repair passes, 2315 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names.
 
-Landed: Tier A. No checker rule was added and no artifact of the checker's is created, so
+Landed: Tier A. No checker rule was added and no checker artifact is created, so
 nothing here is held by a rule of this landing's own making; the qualification adds no
-obligation and the two register acts it names are reported rather than taken.
+obligation and the two register acts it names are reported, not taken.
 
 ### Q22f · Compare the storage index under one contract
 
 The [comparison predicate](comparisons/storage-index.md) is committed at `38cebaa` before either executable arm. A height-two buffered index and plain CoW B+ candidate share useful capacity, block size, authenticated-prefix redo policy, retained snapshot and conservative device/RAM reservations. Both pay journal, commit, home and checkpoint writes, persistence barriers and final drain. This conditional policy neither chooses production recovery nor executes `JournalIndex.v`.
 
-At authoring head `130b58c`, `python tools/run.py storage-index --json` emits 66 measurement rows, 1,092 exhaustive small-key streams and 3,119 crash/recovery checks. Direct ordered-map replay checks lookups and drains independently. Crash cases include every redo length through seventeen changed nodes, interrupted full drains and replay, and corrupted, truncated or misdirected committed payloads. Five focused behavioral cases and both type checkers pass. Independent read-only review at that exact head accepts the map oracle, shared accounting and refusal boundaries without rerunning gates; final integration validation is recorded with Q14.
+At authoring head `130b58c`, `python tools/run.py storage-index --json` emits 66 measurement rows, 1,092 exhaustive small-key streams and 3,119 crash/recovery checks. Direct ordered-map replay checks lookups and drains independently. Crash cases include every redo length through seventeen changed nodes, interrupted full drains and replay, and corrupted, truncated or misdirected committed payloads. Five focused behavioral cases and both type checkers pass. Independent read-only review at that head accepts the map oracle, shared accounting and refusal boundaries without rerunning gates; final integration validation is recorded with Q14.
 
 At the four-program endurance budget, singleton-update cases reject both arms; at five they admit only the buffered arm; at six both pass. Larger transaction widths admit both throughout the sweep. Retain Bε provisionally: B+ removes message-refinement obligations in this fixture but does not meet the central singleton envelope. No target composition is admitted. Integrity equality, fresh-block ownership and fixed reservations are assumptions; NAND amplification, target service/crypto costs, final geometry and batching, multilevel operations and implementation/refinement remain M5.3's inputs. Its production recovery decision remains open. The source-bound JSON receipt owns the measurements; no end-to-end proof or target WCET is claimed.
 
@@ -1317,7 +1315,7 @@ Calibration: no original estimate was recorded; excluded from the fit.
 
 R-02-003a takes the ensemble arm: a server instantiation is a composition of whole machines, each one die with its own address space, memory classes, root of trust, kernel instances, clock spine and signed generation, sharing nothing, joined by ensemble links that are a network-class boundary and never a memory hop. R-15-228b defines the link, R-15-228c its endpoint as matter under R-04-010a with the storage path's fixed-function ECC engine as the decoder's precedent, R-15-228d the non-work-conserving table with an authenticated idle frame in every unfilled established-session slot, and R-15-228e the frame's code and the established session's integrity tag; R-12-007a keeps application payloads to ring descriptors meaningful on the receiving member alone; R-12-015d makes the link a mutually attested session appraised on both registers with the keys in the crypto core and the schedule's own slot count as anti-replay state; R-13-001d composes an ensemble as one act carrying an ensemble identity, a hash over the manifest and never over any image, in every member's generation register; R-11-017a adds the link slot tables and the leap slot as the admission artifact's fourth output; R-15-196a makes alignment across members a scheduled leap of the follower's origin along a composition-fixed leader tree under a skew bound; and R-15-171a shards a model per member with every shard resident and the per-step frames fixed. Every single-die commitment stands under the reading that the machine is one die and an ensemble is several: R-15-002a, R-15-002c, R-15-111, R-15-162, R-15-170, R-15-173 and R-15-176 gain the reconciling clause, R-15-111's citation of R-15-146 for the die-to-die absence is repaired to R-15-162, and R-17-008 is restated at the scope where it holds, per machine, its criterion now forbidding the design to be named by a count of what runs on it.
 
-The residuals are booked rather than absorbed: the isolation model's fourth spatial case across a wire (R-17-003d), the composed non-interference statement's freshness (R-17-014a), the link's four seam meetings (R-17-025a), the fail-closed seam collecting the link's refusals (R-17-030z, the last one-letter id the series admits), the session's ceiling with no upstream analysis to curate (R-17-049d), the wire's physical exposure (R-17-058h) and the two-machine attestation relation as N copies of one mask set (R-17-061b). The coverage matrix gains boundary B-10 with its seven cells, the crown-jewel inventory's rows 8, 11, 17 and 27 gain the ensemble's members with no new row and no new target, and the absence contract gains A-18 through A-21 with provenance bindings of the third kind on A-12a's precedent. The README's product paragraph no longer names the design by a slogan and no longer says the browser does not run on it: the browser is R-14-008's fixed design and R-18-004's deferred port. [The inspirations record](../background/inspirations.md#groqs-tensor-streaming-processor-static-scheduling-carried-across-chips-and-the-shared-address-space-an-ensemble-does-not-take) carries the Groq reading, the TSP's statically scheduled links, scheduled deskew and compile-time partition transferring as evidence and its shared global memory across chips, published link descriptions with no cryptographic protection, and replay recovery named as the divergence; [the alternatives record](../background/architectural-alternatives.md#a-second-die-radio-bifurcation-sram-chiplets-and-bonded-stacking-declined-once-at-the-trust-structure-they-share) distinguishes an ensemble from the second die it declines. The link's authenticated encryption is computed in the crypto core under R-05-070 and R-15-202 as they stand, so a link's rate is a composition constant bounded by that core's slot share, stated as a cost; the first release is unmoved, and R-02-003a names the five gating artifacts Q23b, Q23c, Q23d, Q23f and Q23g price, with Q23e supplying the traffic table Q23d reads.
+The residuals are booked: the isolation model's fourth spatial case across a wire (R-17-003d), the composed non-interference statement's freshness (R-17-014a), the link's four seam meetings (R-17-025a), the fail-closed seam collecting the link's refusals (R-17-030z, the last one-letter id the series admits), the session's ceiling with no upstream analysis to curate (R-17-049d), the wire's physical exposure (R-17-058h) and the two-machine attestation relation as N copies of one mask set (R-17-061b). The coverage matrix gains boundary B-10 with its seven cells, the crown-jewel inventory's rows 8, 11, 17 and 27 gain the ensemble's members with no new row and no new target, and the absence contract gains A-18 through A-21 with provenance bindings of the third kind on A-12a's precedent. The README's product paragraph no longer names the design by a slogan and no longer says the browser does not run on it: the browser is R-14-008's fixed design and R-18-004's deferred port. [The inspirations record](../background/inspirations.md#groqs-tensor-streaming-processor-static-scheduling-carried-across-chips-and-the-shared-address-space-an-ensemble-does-not-take) carries the Groq reading, the TSP's statically scheduled links, scheduled deskew and compile-time partition transferring as evidence and its shared global memory across chips, published link descriptions with no cryptographic protection, and replay recovery named as the divergence; [the alternatives record](../background/architectural-alternatives.md#a-second-die-radio-bifurcation-sram-chiplets-and-bonded-stacking-declined-once-at-the-trust-structure-they-share) distinguishes an ensemble from the second die it declines. The link's authenticated encryption is computed in the crypto core under R-05-070 and R-15-202 as they stand, so a link's rate is a composition constant bounded by that core's slot share, stated as a cost; the first release is unmoved, and R-02-003a names the five gating artifacts Q23b, Q23c, Q23d, Q23f and Q23g price, with Q23e supplying the traffic table Q23d reads.
 
 Authoring merge `74cec1e` and fixup `6ed2b5b` supply the decision at base `78c499a068cae841d8a52dcc83ee2b2c3e4b23ca`. The source readings bind the Groq claims to the ISCA 2020 and ISCA 2022 papers, the RealScale technical document, the GroqCard and GroqNode briefs at v1.5, Groq's newsroom notice of 2025-12-24 and NVIDIA's technical blog of 2026-03-16, each read on 2026-09-12; later revisions receive no verdict. The initial authoring interval is bounded by provisioning at 14:06:32 UTC and fixup commit at 16:13:43 UTC on 2026-09-12. The actual sums the prior root and subagent session bounds and the closeout authoring/review bounds through 18:07:08 UTC, rounded upward to the checklist's tenths. The timestamp receipts include idle gaps and exclude subsequent unattended host-gate waiting and output cleanup; they are session wall-clock bounds, not CPU time. The open children Q23b through Q23g receive no completion credit. Integrated validation uses `python tools/check.py --fix`, explicit `python tools/run.py coread --bless` readings and `python tools/run.py --check --tests`. No model, proof or device execution is claimed.
 
@@ -1330,48 +1328,48 @@ Landed: Tier A. The register/prose read covers every new entry and every amended
 
 ### Q23b · Author the ensemble link contract
 
-[The ensemble link contract](../hardware/ensemble-link-contract.md) is the first of the five artifacts R-02-003a admits an ensemble only when they exist, and three entries delegate to it by name rather than by description. It states the four frame forms as one descriptor over the decoded message block, with the wire selecting no regime, no handler and no key; the code's selection predicate as the clauses R-15-228e, R-15-119, R-15-119c and R-12-043a decide between them; the endpoint's registers with the party each belongs to and the absences that are as much of the description as the rows; the two window contracts and the one clause on which they differ; the FIFO's admissibility predicate and the line rate's two binding ceilings; the one-sided arrival-phase reading and which of the landing and the leap verification gates; the slot-table register format; R-04-010a's three conditions decided clause by clause with a falsifying structure named for each; the correspondence between A-18 through A-21 and the structures of this block whose presence in a netlist or a Coq term is the finding; and the link server's IDL interface with the two session tables that are not one table. It is listed under Hardware and ISA in [the documentation index](../README.md), and [crown-jewel](../assurance/crown-jewels.md) row 10 gains the frame descriptor set as a member.
+[The ensemble link contract](../hardware/ensemble-link-contract.md) is the first of the five artifacts R-02-003a admits an ensemble only when they exist, and three entries delegate to it by name. It states the four frame forms as one descriptor over the decoded message block, with the wire selecting no regime, no handler and no key; the code's selection predicate as the clauses R-15-228e, R-15-119, R-15-119c and R-12-043a decide between them; the endpoint's registers with the party each belongs to and the absences that are as much of the description as the rows; the two window contracts and the one clause on which they differ; the FIFO's admissibility predicate and the line rate's two binding ceilings; the one-sided arrival-phase reading and which of the landing and the leap verification gates; the slot-table register format; R-04-010a's three conditions decided clause by clause with a falsifying structure named for each; the correspondence between A-18 through A-21 and the structures of this block whose presence in a netlist or a Coq term is the finding; and the link server's IDL interface with the two session tables that are not one table. It is listed under Hardware and ISA in [the documentation index](../README.md), and [crown-jewel](../assurance/crown-jewels.md) row 10 gains the frame descriptor set as a member.
 
-**The document refuses every magnitude, and the refusal is the deliverable's shape rather than a gap in it.** No composition in this tree fixes a frame size, an encode or decode latency or a skew bound, so §4 carries one row per constant with its unit, its admissibility predicate, what decides it and the artifact that carries and emits it, and carries no number; a figure written there would be the placeholder the document's own EL-2 refuses, and §4.1 hands a sibling item the arithmetic and the parameter names instead. The code's family is recorded as owed with its operand named, the wire's raw error rate at the declared reach and frame length, and its first measurement named at Q23g, so the measurement decides it mechanically rather than confirming a choice written here. The R-05-051a canonicity theorem is recorded OWED against crown-jewel row 10, whose status stays `not authored` because no Narcissus descriptor is authored anywhere in this repository for a Coq-checked injectivity theorem to be stated against.
+**The document refuses every magnitude.** No composition in this tree fixes a frame size, an encode or decode latency or a skew bound, so §4 carries one row per constant with its unit, its admissibility predicate, what decides it and the artifact that carries and emits it, and no number; a figure written there would be the placeholder the document's own EL-2 refuses, and §4.1 hands a sibling item the arithmetic and the parameter names. The code's family is recorded as owed with its operand named, the wire's raw error rate at the declared reach and frame length, and its first measurement named at Q23g, so the measurement decides it mechanically. The R-05-051a canonicity theorem is recorded OWED against crown-jewel row 10, whose status stays `not authored` because no Narcissus descriptor is authored anywhere in this repository for a Coq-checked injectivity theorem to be stated against.
 
 Two acts are reported and not taken. R-09-007's list of what the static devicetree declares reaches none of the link's per-link constants, and ten rows of §4 name that tree as their carrier on R-02-003a's general clause that every constant of an ensemble is carried there, a clause naming none of them; whether R-09-007 owes an Accept clause for this class, on the precedent R-15-228h earned, is a register act. The endpoint's register offsets are in the same position: R-15-002b makes an MMIO aperture's placement a stated constraint on the attested devicetree and no entry assigns an offset inside it to a register of §3.2's table.
 
-Exit evidence: source commit `cc321b0`, reviewed repair `be28779`. `python tools/check.py` from the lane exits 0 with every rule ok, and a corpus-membership probe confirms the document is inside the corpus those rules read: an appended undefined requirement id and section number are refused by K-11 and K-13 naming this file, and `git checkout --` restores the tree. `python tools/run.py coread` reports all 1452 pairs last read as they stand, no register prose having moved. `git ls-files --eol` reads `i/lf w/lf` on all three touched files. No guest command, no proof and no device measurement is claimed for this document item, and none of the other four artifacts R-02-003a gates on is claimed here.
+Exit evidence: source commit `cc321b0`, reviewed repair `be28779`. `python tools/check.py` from the lane exits 0 with every rule ok, and a corpus-membership probe confirms the document is inside the corpus those rules read: an appended undefined requirement id and section number are refused by K-11 and K-13 naming this file, and `git checkout --` restores the tree. `python tools/run.py coread` reports all 1452 pairs last read as they stand, no register prose having moved. `git ls-files --eol` reads `i/lf w/lf` on all three touched files. No guest command, proof or device measurement is claimed for this document item, and none of the other four artifacts R-02-003a gates on is claimed here.
 
   * Four findings.
-    * **A general clause is not a declaration.** Ten of §4's rows name the attested devicetree as carrier on R-02-003a's general clause alone, no entry naming any of them and R-09-007's enumeration reaching none; that the clause is not read as exhaustive is visible in the register, R-15-228d putting the frame size in a different artifact by name. F-364.
+    * **A general clause is not a declaration.** Ten of §4's rows name the attested devicetree as carrier on R-02-003a's general clause alone, no entry naming any of them and R-09-007's enumeration reaching none; the register shows the clause is not read as exhaustive, R-15-228d putting the frame size in a different artifact by name. F-364.
     * **An inventory row's status is not lifted by a stated grammar.** Crown-jewel row 10 gains this descriptor set as a member and stays `not authored`; the descriptor, its Narcissus correctness pair and its canonicity theorem are all owed, and whether one stated grammar promotes the row is K-95's lift and its repairer's. F-365.
-    * **A family chosen without its operand would rest on nothing.** The selection predicate admits both of R-15-119's families and no measurement in this tree separates them, the frame length being unfixed and the reach and raw error rate being physical quantities none of the five gating artifacts buys, so the family is recorded as owed rather than written. F-366.
-    * **The endpoint's register offsets are declared by no entry.** R-15-002b constrains where the aperture sits and nothing assigns an offset inside it, which is the same class of gap as the constants and is recorded beside them rather than filled. F-367.
+    * **A family chosen without its operand would rest on nothing.** The selection predicate admits both of R-15-119's families and no measurement in this tree separates them, the frame length being unfixed and the reach and raw error rate being physical quantities none of the five gating artifacts buys, so the family is recorded as owed. F-366.
+    * **The endpoint's register offsets are declared by no entry.** R-15-002b constrains where the aperture sits and nothing assigns an offset inside it, the same class of gap as the constants, recorded beside them and not filled. F-367.
 
 
 The measured intervals are 2026-09-14 06:45:29-07:03:45, 07:14:09-07:25:27, 08:15:47-13:02:34 UTC for the authoring, review and repair passes, 3425 seconds summed, rounded upward to 1.0 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Its repair pass stalled for 15556 s inside that window on no work of its own, which is the whole of the difference between the session bracket and the figure, and the stall is out of it.
 
-Landed: Tier A. The item creates a contract whose content no rule in the registry holds: what the gates decide about it is id, link, section and glyph resolution and the crown-jewel row's membership, and not what it says about frames, registers or R-04-010a's conditions, so the fourth Tier-B condition, a named rule holding a fact the landing created, is unmet and a green `check.py` is not a reading of the text. Independent review at `cc321b0` identifies an epoch register deciding against §5.3's own falsifying column, a §4.2 paragraph declaring closed the gap it had reported two clauses earlier, a frame-size carrier naming the wrong artifact, and five sentences claiming more than their evidence establishes; the repair at `be28779` deletes the epoch register in favour of the equalization freeze's own validity, sorts §4's rows by the authority their carrier rests on, moves the frame size to the attested schedule artifact, and rewrites the five sentences to what their entries decide. Q23c through Q23g remain open and no ensemble is composed.
+Landed: Tier A. The item creates a contract whose content no rule in the registry holds: the gates decide id, link, section and glyph resolution and the crown-jewel row's membership, not what it says about frames, registers or R-04-010a's conditions, so the fourth Tier-B condition, a named rule holding a fact the landing created, is unmet and a green `check.py` is not a reading of the text. Independent review at `cc321b0` identifies an epoch register deciding against §5.3's own falsifying column, a §4.2 paragraph declaring closed the gap it had reported two clauses earlier, a frame-size carrier naming the wrong artifact, and five sentences claiming more than their evidence establishes; the repair at `be28779` deletes the epoch register in favour of the equalization freeze's own validity, sorts §4's rows by the authority their carrier rests on, moves the frame size to the attested schedule artifact, and rewrites the five sentences to what their entries decide. Q23c through Q23g remain open and no ensemble is composed.
 
 ### Q23e · Compute ensemble traffic and frame demand
 
-The completion audit limits this landing to the static calculation in [the traffic report](../performance/ensemble-sharding-traffic.md). It measured neither crypto throughput nor an admitted token rate. The recorded 0.9 h remains the calculation's actual; open Q23h owns the missing measured crypto costs and their admission against a concrete composition, consuming Q23d's schedule, Q23g's endpoint evidence and M6.8's bank grants. The symbolic terms and missing operands recorded below remain limitations, not completed measurements.
+The completion audit limits this landing to the static calculation in [the traffic report](../performance/ensemble-sharding-traffic.md). It measured neither crypto throughput nor an admitted token rate. The recorded 0.9 h remains the calculation's actual; open Q23h owns the missing measured crypto costs and their admission against a concrete composition, consuming Q23d's schedule, Q23g's endpoint evidence and M6.8's bank grants. The symbolic terms and missing operands below remain limitations, not completed measurements.
 
-  * **What the arithmetic decides is the ordering of two terms and not the bandwidth question, and saying only that is the whole of the result.** At the floor's rate the busiest of the six shapes moves 6.45 MB/s on its busiest link, so at any line rate above that figure the exchange count and not the byte count binds; whether a link clears it is not decidable here, R-12-015d bounding the line rate above by the crypto core's authenticated-encryption throughput that nothing declares and Q23b's contract owing the line-rate bound. What separates the shapes by two orders of magnitude is the serial exchanges one decode step contains, 2 to 8 under a layer-wise split against 72 to 1,008 under a tensor-wise one, which is why the tables are slot-table demands rather than bandwidth demands.
-  * **The layer-wise crypto charge per member is independent of the member count at every payload**, a member sending one exchange and receiving one whatever the ensemble's size, which is the single most useful fact here for a schedule emitter: layer-wise sharding scales the ensemble without scaling any member's crypto slot.
+  * **The arithmetic decides the ordering of two terms, not the bandwidth question.** At the floor's rate the busiest of the six shapes moves 6.45 MB/s on its busiest link, so at any line rate above that figure the exchange count and not the byte count binds; whether a link clears it is not decidable here, R-12-015d bounding the line rate above by the crypto core's authenticated-encryption throughput that nothing declares and Q23b's contract owing the line-rate bound. What separates the shapes by two orders of magnitude is the serial exchanges one decode step contains, 2 to 8 under a layer-wise split against 72 to 1,008 under a tensor-wise one, so the tables are slot-table demands, not bandwidth demands.
+  * **The layer-wise crypto charge per member is independent of the member count at every payload**, a member sending one exchange and receiving one whatever the ensemble's size: layer-wise sharding scales the ensemble without scaling any member's crypto slot.
   * **Two members admit layer-wise on every term this tree can decide and put tensor-wise's whole verdict on one undeclared constant.** Layer-wise at two members holds a 100 ms cadence bound and 50 crypto operations per second at a 2,048-byte payload, its only tension the head holder's 1.08 grant floors with a `q8_0` cache, which R-18-004b meets by a composition declaring above its minimum as the single machine's 1.56 must be. Tensor-wise fits the grant at 0.98 and needs 3,600 authenticated frames per second per member under a 2.78 ms cadence, so `t_aead` alone decides it and R-12-015d owes that figure.
-  * **The refusal above two members belongs to the declared cycle and ring collective and not to tensor-wise sharding, and pricing the alternative is what showed it.** No entry fixes a topology or a collective. Over the declared cycle, eight members cost 1,008 serial exchanges and a 198 us bound that must contain a guard band, a skew bound and both endpoint constants, none of which has a magnitude. Fully connected, the same shape reduces in one serial position per all-reduce: 72 serial exchanges, 2.78 ms, the two-member row exactly, bought with `M-1` endpoint blocks per member instead of two, 25,200 crypto operations per second per member against 10,080, and four times the per-member bytes. Both sides are emitted rather than argued. So what this tree decides is that above two members the cadence term and the crypto term cannot both be relaxed, and which binds is the topology's to choose.
+  * **The refusal above two members belongs to the declared cycle and ring collective, not to tensor-wise sharding; pricing the alternative showed it.** No entry fixes a topology or a collective. Over the declared cycle, eight members cost 1,008 serial exchanges and a 198 us bound that must contain a guard band, a skew bound and both endpoint constants, none of which has a magnitude. Fully connected, the same shape reduces in one serial position per all-reduce: 72 serial exchanges, 2.78 ms, the two-member row exactly, bought with `M-1` endpoint blocks per member instead of two, 25,200 crypto operations per second per member against 10,080, and four times the per-member bytes. Both sides are emitted. Above two members the cadence term and the crypto term cannot both be relaxed, and which binds is the topology's to choose.
   * **The admitted rate is at most the minimum of R-15-171a's three terms and the composition is somebody else's.** That entry calls the rate a constant of the bank grant, the link slots and the crypto core's per-frame share and supplies no composition function; R-11-017a puts all three into one member's R-11-006 interval arithmetic as ordinary tasks and grants, which is one schedulability analysis and not three independent ceilings, and Q23d's emission decides it. This report supplies `W`, `K`, `E` and `F` for six shapes and none of `G`, `phi`, `t_aead`, the slot period or the guard band, so **no token rate is stated as a number anywhere in it**.
-  * **Five terms are refused by name rather than filled in**: the frame payload (Q23b, under R-15-228d; the sweep is this report's declared convention and every frame figure is a function of the payload the reader substitutes), the encode and decode constants (R-17-041 over the timing-annotated model, whose table carries core operation classes and no device row and whose `qualified` field is false in the shipped configuration), the crypto core's throughput (R-12-015d), the per-island bank grant (R-15-247p, M6.8 unrun), and the slot period and guard band (R-11-017a's fourth output). The floor's own model's shape is refused with them: R-18-004a(vii) declares no hidden width and no layer count, so no per-token link byte figure for that model is stated.
-  * **No mixture-of-experts shard set is stated.** R-15-171 and R-15-171a admit one only with every expert resident on a named member and top-k fixed, R-12-085 makes the expert count and top-k terms of the declared ceiling, and no artifact in this tree declares either. What carries over is the arithmetic: with every expert resident and top-k fixed, work per token is a constant, so the exchange counts hold unchanged over the resident set and only `W` moves.
-  * **Three readings are declared as readings rather than attributed to entries**, which is the discipline this item's subject most invites breaking. That the link's latency bound is the endpoint's encode and decode constants is this report's, R-02-003a and R-15-196a calling them the link's latency constants and Q23g owning their two-member measurement. That R-18-004a(vii)'s rate and context may be read on an ensemble member is this report's, licensed by R-02-003a's *every member of an ensemble meets every entry of this register alone* and not by R-18-004a, which R-02-003a puts the ensemble later than. And which member a shard sits on is R-15-171a's composition act, R-08-012a placing the object only once the composition has named the member.
-  * Net change: 2,626 lines added and one removed across four files, three of them new: the report, its `ensemble-sharding-traffic/` directory carrying [shard.py](../performance/ensemble-sharding-traffic/shard.py) and [traffic.json](../performance/ensemble-sharding-traffic/traffic.json), and the Performance row in [the documentation index](../README.md). No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit, so the review gate is not re-entered and the co-read ledger is unmoved.
-  * Exit evidence: `python tools/check.py` green from the lane, exit 0, every derived fact agreeing with its artifact over 104 registered rules with K-00 agreeing in both directions. The instrument reproduces its own output byte for byte at the recorded revision, 67,660 characters identical, and it is an extension of the inference-demand instrument rather than a second harness, loading no weight file, running no model and taking no time. Its guards were exercised rather than asserted: a static file of another model is refused by name, and a ragged ring chunk and an inexact FFN-width division each raise. Both files read `i/lf w/lf`. **No guest run is in this evidence and none is owed**: every figure is arithmetic over one tracked JSON file, host bytes are target bytes for the partition, and no host time enters any figure. The host gate wave is the integrator's.
+  * **Five terms are refused by name**: the frame payload (Q23b, under R-15-228d; the sweep is this report's declared convention and every frame figure is a function of the payload the reader substitutes), the encode and decode constants (R-17-041 over the timing-annotated model, whose table carries core operation classes and no device row and whose `qualified` field is false in the shipped configuration), the crypto core's throughput (R-12-015d), the per-island bank grant (R-15-247p, M6.8 unrun), and the slot period and guard band (R-11-017a's fourth output). The floor's own model's shape is refused with them: R-18-004a(vii) declares no hidden width and no layer count, so no per-token link byte figure for that model is stated.
+  * **No mixture-of-experts shard set is stated.** R-15-171 and R-15-171a admit one only with every expert resident on a named member and top-k fixed, R-12-085 makes the expert count and top-k terms of the declared ceiling, and no artifact in this tree declares either. With every expert resident and top-k fixed, work per token is a constant, so the exchange counts hold unchanged over the resident set and only `W` moves.
+  * **Three readings are declared as readings, not attributed to entries.** That the link's latency bound is the endpoint's encode and decode constants is this report's, R-02-003a and R-15-196a calling them the link's latency constants and Q23g owning their two-member measurement. That R-18-004a(vii)'s rate and context may be read on an ensemble member is this report's, licensed by R-02-003a's *every member of an ensemble meets every entry of this register alone* and not by R-18-004a, which R-02-003a puts the ensemble later than. And which member a shard sits on is R-15-171a's composition act, R-08-012a placing the object only once the composition has named the member.
+  * Net change: 2,626 lines added and one removed across four files, three of them new: the report, its `ensemble-sharding-traffic/` directory carrying [shard.py](../performance/ensemble-sharding-traffic/shard.py) and [traffic.json](../performance/ensemble-sharding-traffic/traffic.json), and the Performance row in [the documentation index](../README.md). No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit: the review gate is not re-entered and the co-read ledger is unmoved.
+  * Exit evidence: `python tools/check.py` green from the lane, exit 0, every derived fact agreeing with its artifact over 104 registered rules with K-00 agreeing in both directions. The instrument reproduces its own output byte for byte at the recorded revision, 67,660 characters identical, and extends the inference-demand instrument, not a second harness, loading no weight file, running no model and taking no time. Its guards were exercised: a static file of another model is refused by name, and a ragged ring chunk and an inexact FFN-width division each raise. Both files read `i/lf w/lf`. **No guest run is in this evidence and none is owed**: every figure is arithmetic over one tracked JSON file, host bytes are target bytes for the partition, and no host time enters any figure. The host gate wave is the integrator's.
   * Four findings.
-    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, which is a lower bound on the one constant the same report says it cannot decide and which R-12-015d makes bounded above by an undeclared throughput. The repair is conditional phrasing and a named owner, and it cost the headline nothing: the ordering of the terms was always the result, and the bandwidth claim was decoration on it. F-368.
-    * **A refusal derived over two declared parameters reads as a property of the shape unless the alternative is priced.** Above two members tensor-wise was refused on cadence; the refusal was the cycle's and the ring's, and a fully connected collective reverses it at 2.5 times the crypto charge. Pricing the alternative was fourteen lines of the instrument and it moved a verdict, which is the argument for emitting a rejected option rather than dismissing it in prose. F-369.
-    * **Three figures sat outside the file the report said every figure came from**, an FFN width no tracked artifact states, a head count owned by another report's section, and a cache constant hand-copied from it. All three are now derived in the instrument with predicates, and the derived cache bytes agree with their source section to the byte, which turns a transcription into a check. The rule the miss breaks is the item's own Check clause. F-370.
+    * **A report whose subject is undeclared magnitudes will state a bound on one of them if nobody is counting.** The lead sentence asserted that no plausible link is short of 6.45 MB/s, a lower bound on the one constant the same report says it cannot decide and which R-12-015d bounds above by an undeclared throughput. The repair is conditional phrasing and a named owner; the headline lost nothing, the ordering of the terms having always been the result and the bandwidth claim decoration on it. F-368.
+    * **A refusal derived over two declared parameters reads as a property of the shape unless the alternative is priced.** Above two members tensor-wise was refused on cadence; the refusal was the cycle's and the ring's, and a fully connected collective reverses it at 2.5 times the crypto charge. Pricing the alternative was fourteen lines of the instrument and moved a verdict. F-369.
+    * **Three figures sat outside the file the report said every figure came from**, an FFN width no tracked artifact states, a head count owned by another report's section, and a cache constant hand-copied from it. All three are now derived in the instrument with predicates, and the derived cache bytes agree with their source section to the byte. The rule the miss breaks is the item's own Check clause. F-370.
     * **An entry that names three terms and no composition function invites the reader to supply one.** R-15-171a's rate was read as the minimum of three independent ceilings; R-11-017a's own text puts all three into one member's interval arithmetic as ordinary tasks and grants, so the independence was asserted against the entry the sentence relied on. Stated as an upper bound now, with the composition named as Q23d's. F-371.
 
 The measured intervals are 2026-09-14 06:42:43-06:59:50, 07:07:14-07:21:51, 07:24:14-08:36:10 UTC for the authoring, review and repair passes, 3085 seconds summed, rounded upward to 0.9 h on the agent-parallel clock. The preceding survey pass is not in the figure, the clock being the three passes the convention names. Its repair pass stalled for 3135 s inside that window on no work of its own, and the stall is out of the figure.
 
-Landed: Tier A. No rule in [the rule registry](../../tools/check-rules.md) holds any fact this landing created: the traffic tables, the exchange counts and the restatement of inference-demand's 12.46 GB/s are all unheld, and a rule over a derived traffic table would hold one script's output against the same script's accounting of it, which is the pattern S14 and I15 both declined. Saying so is cheaper than three edits and a mutant for a table no other document wants.
+Landed: Tier A. No rule in [the rule registry](../../tools/check-rules.md) holds any fact this landing created: the traffic tables, the exchange counts and the restatement of inference-demand's 12.46 GB/s are all unheld, and a rule over a derived traffic table would hold one script's output against the same script's accounting of it, the pattern S14 and I15 both declined. No rule is added: that costs three edits and a mutant for a table no other document wants.
 
 ### Q24a · Author the immutable module contract
 
