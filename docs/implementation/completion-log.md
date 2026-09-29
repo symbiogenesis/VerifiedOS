@@ -1388,9 +1388,9 @@ Authoring revision `5afea3b`; repair revisions `7affae9` and `057ec35` after ind
 
 The measured intervals are 2026-09-14 06:42:44-06:56:10, 07:05:35-07:15:05, 07:18:00-08:18:56 UTC for the authoring, review and repair passes, 2260 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure. The repair pass stalled for 2772 s inside that window on no work of its own, and the stall is out of the figure.
 
-Landed: Tier A. The read accepts the boundary, the grammar's exhaustiveness as a drafting property, not a theorem, and the claim-scope separation. Every theorem the claim table names stays open at Q24c through Q24f, and the crown-jewel row stays `partial` on its remaining specification parts.
+Landed: Tier A. The read accepts the boundary, the grammar's exhaustiveness at its drafting-property standing, and the claim-scope separation. Every theorem the claim table names stays open at Q24c through Q24f, and the crown-jewel row stays `partial` on its remaining specification parts.
 
-WHY TIER A AND NOT TIER B: the checker is not green at this head (six `--fix`-owned counts are outstanding for the integrator), the act edits crown-jewels.md prose, and no rule in the registry holds the fact this landing created, so there is nothing to name in a "Tier B under" line.
+WHY TIER A AND NOT TIER B: the checker is not green at this head (K-24's six counts are outstanding for the integrator), the act edits crown-jewels.md prose, and no rule in the registry holds the fact this landing created, so there is nothing to name in a "Tier B under" line.
 
 ### Q23c · Author the ensemble link session reference model
 
@@ -1427,9 +1427,8 @@ typecheck` are green.
   alone, both public composition constants, so the appraisal and the key holder were
   unrelated: an honest establishment and one admitting a substituted die produced the
   same core, and a party that appraised nothing sealed frames the session delivered. The
-  relay and key-exposure rows rested on a stipulated string, not a decision. Keying the
-  secret on both accepted signing identities and both challenges, with possession as a
-  holder set as in the TLS part, makes them decide.
+  relay and key-exposure rows rested on a stipulated string, not a decision. The keying
+  above, with possession as a holder set as in the TLS part, makes them decide.
 * **Finding: an event-level oracle that reads a verifier's own predicate off the claim is
   not independent along that dimension.** Two of the ensemble oracle's seven conjuncts
   compared the appraiser's freshness and configuration checks against the claim, not
@@ -1459,17 +1458,17 @@ CJ-ATTEST's formal model, theorem and implementation connection remain open.
 
 ### Q23f · State the composed non-interference obligation beside T
 
-  * **The obligation is stated beside T, not inside it.** [ComposedNonInterference.v](../../proofs/ComposedNonInterference.v) imports [ApexTheorem.v](../../proofs/ApexTheorem.v) and adds no field to the Vocabulary record, no tenth conjunct to R-05-160's closed seam list, no obligation inside T, and no axiom, so T's statement, crown-jewel row 1 and the field bindings it publishes are unmoved and the proof manifest moves only for the new file. It adds one record, `Ensemble`, and one Prop over it, `composed_noninterference`, a theorem *target*: nothing here proves it or claims to discharge R-17-014a, whose record stays open until a proof lands (R-18-031).
-  * **R-17-014a's own sentence is machine-checked.** `composition_is_carried_by_no_per_member_theorem` refutes the uniform implication from the N member instances of T to the composed conclusion, so the gap the entry names is exhibited in the prover, and an edit that closes it by definition breaks that lemma here, not at the capstone. The refuting instance is R-05-166's distinguishing instance: every member's own T holds at `leaky_ensemble`, each link's two conjuncts hold, the adversary is admissible at both members and covers the link, the exogenous inputs are indistinguishable to it, and the composed conclusion fails all the same because the wire carried the near member's own quantity into the far member's observable slot. Its two endpoints sit at different labels, which is the instance the plan's Execute clause asks for and which R-05-166, not R-05-157, asks of a policy statement.
+  * **The obligation is stated beside T, not inside it.** [ComposedNonInterference.v](../../proofs/ComposedNonInterference.v) imports [ApexTheorem.v](../../proofs/ApexTheorem.v) and adds no field to the Vocabulary record, no tenth conjunct to R-05-160's closed seam list and no obligation inside T, so T's statement, crown-jewel row 1 and the field bindings it publishes are unmoved and the proof manifest moves only for the new file. It adds one record, `Ensemble`, and one Prop over it, `composed_noninterference`, a theorem *target*: nothing here proves it or claims to discharge R-17-014a, whose record stays open until a proof lands (R-18-031).
+  * **R-17-014a's own sentence is machine-checked.** `composition_is_carried_by_no_per_member_theorem` refutes the uniform implication from the N member instances of T to the composed conclusion, so the gap the entry names is exhibited in the prover, and an edit that closes it by definition breaks that lemma here, not at the capstone. The refuting instance is R-05-166's distinguishing instance: every member's own T holds at `leaky_ensemble`, each link's two conjuncts hold, the adversary is admissible at both members and covers the link, the exogenous inputs are indistinguishable to it, and the composed conclusion fails all the same because the wire carried the near member's own quantity into the far member's observable slot. Its two endpoints sit at different labels, which is the instance the plan's Execute clause asks for.
   * **Each link's two endpoints are one boundary, and the wire is an adversary the policy permits.** `wire_boundary` is a single predicate over a single link naming both endpoint compartments as one boundary of R-17-003d's untrusted-wire class, and *permits* is ApexTheorem's own `admissible`: the target quantifies only over adversary sets graph-permitted and outside the TCB at every member (R-01-002) that also contain each link's endpoint compartment, the ring proof's Byzantine peer (R-12-008) being the wire's peer. R-12-007a bounds what a peer compromised inside an accepted session reaches, and the file states that bound as a bound: the converse containment is stated by neither entry and is not claimed.
   * **The two-machine attestation relation is the session, not a third field.** R-17-061b states that the relation "is stated at R-12-015d", so `link_session` carries it and a separate field would be a second owner of one fact. Q23c's reference model is unlanded, so the relation is read from R-12-015d in the register, and R-17-049d's standing for an unauthored model is why both link fields are opaque Props here.
-  * **The two conjuncts R-17-014a names as the link's contribution are inert as stated.** `link_schedule` and `link_session` occur in the record declaration, in `link_contribution` and in the instance literals, and in no definition the target's conclusion mentions. `link_premise_carries_vacuity_and_not_contribution` machine-checks this: an ensemble differing from `leaky_ensemble` in one field, its session made unsatisfiable, satisfies the target outright while its wire still carries the near member's own quantity into the far member's observable slot. The statement therefore meets the entry's "and nothing more" as an upper bound by making the named contribution empty, which is R-05-165's second mode standing in the target's own premise. Closing it is a register act, not a Gallina one, and the file names the act.
-  * **Nothing is decided here that the register has not decided.** `endpoints_share_a_label` is defined, holds at one instance and fails at the other, and is deliberately not a premise: no entry states what relation a link's two endpoint labels must stand in. The record's `exogenous` and `delivered` fields are deliberately unrelated: relating them by projection would make the target follow from the member theorems in one line, which is R-05-165's second vacuity mode wearing a composition.
+  * **The two conjuncts R-17-014a names as the link's contribution are inert as stated.** `link_schedule` and `link_session` occur in the record declaration, in `link_contribution` and in the instance literals, and in no definition the target's conclusion mentions. `link_premise_carries_vacuity_and_not_contribution` machine-checks this: an ensemble differing from `leaky_ensemble` in one field, its session made unsatisfiable, satisfies the target outright while its wire still carries the near member's own quantity into the far member's observable slot. The statement therefore meets the entry's "and nothing more" as an upper bound by making the named contribution empty, which is R-05-165's second mode standing in the target's own premise. The file names the act that closes it (first finding).
+  * **Nothing is decided here that the register has not decided.** `endpoints_share_a_label` is deliberately not a premise (second finding). The record's `exogenous` and `delivered` fields are deliberately unrelated: relating them by projection would make the target follow from the member theorems in one line, which is R-05-165's second vacuity mode wearing a composition.
   * Net change: one new file, 608 lines and 43 constants, and no other tracked file touched.
   * Exit evidence: `python tools/check.py` from the lane reports one finding, `FAIL K-106` on `tools/generated/proof-ledger.md` at line 40, which only the integrator's `--fix` writes; K-40, K-41, K-52, K-103 at **3,844** citations over 28 proof artifacts, K-105 at **369** annotations, K-108 and K-109 at **27** generated headers are ok. `python tools/run.py proofs headers --write` wrote 0 of 27, the authored citation set being unchanged. The file compiles under the pinned prover, `The Rocq Prover, version 9.2` on OCaml 5.4.1, ApexTheorem.v then ComposedNonInterference.v both exiting 0 in this lane's own guest directory, and its ten `Print Assumptions` commands print ten `Closed under the global context` lines and nothing else, so **no new axiom** enters. Its constant count is **43**, taken with the gate's own query, `Search _ inside ComposedNonInterference` with both search filters removed and the empty blacklist confirmed. **The whole `run.py proofs` gate is not re-run at the landing revision**: it ran when the statement was authored, and the repair adds three constants, so that run's per-file figure of 40 and its global totals are stale by exactly those three; the integration wave owes a fresh one. No register, spec, coverage-matrix, crown-jewel, absence-contract or profile edit: the review gate is not re-entered and the co-read ledger is unmoved.
   * Three findings.
-    * **The link's named contribution cannot bear on the conclusion, and no entry lets it.** R-17-014a calls R-15-228d's schedule and R-12-015d's session the link's *contribution*, which asserts they do work; as predicates over a link alone they reach nothing the target concludes, and the wire's semantic content sits in the `delivered` field the entry does not name. What is missing is the transfer: R-15-228b fixes what a frame is, R-15-228d the slot it occupies, R-12-007a the indices it names and R-12-015d the session that authenticates it, and none of the four relates what a link delivers to a member to what the sending member's execution placed on the wire in that slot. Open, and the act is a register act: an Accept clause at R-17-003d, or an entry beside R-12-007a. A field asserting the relation in the proof file would decide by fiat what the register has not, which is decision 8's own ground met a second time.
-    * **No entry decides what relation a link's two endpoint labels must stand in.** R-15-228b, R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame grammar, the slot table, the index-only payload and the session, and none states a label relation across the wire. `endpoints_share_a_label` gives the question a name and two instances and is left out of the target. Open, owed by row 2's compose-time policy model (R-08-028), which is unauthored (R-15-211).
+    * **The link's named contribution cannot bear on the conclusion, and no entry lets it.** R-17-014a calls R-15-228d's schedule and R-12-015d's session the link's *contribution*, which asserts they do work; they reach nothing the target concludes (fifth bullet), the wire's semantic content sitting in the `delivered` field the entry does not name. What is missing is the transfer: R-15-228b fixes what a frame is, R-15-228d the slot it occupies, R-12-007a the indices it names and R-12-015d the session that authenticates it, and none of the four relates what a link delivers to a member to what the sending member's execution placed on the wire in that slot. Open, and the act is a register act: an Accept clause at R-17-003d, or an entry beside R-12-007a. A field asserting the relation in the proof file would decide by fiat what the register has not, which is decision 8's own ground met a second time.
+    * **No entry decides what relation a link's two endpoint labels must stand in.** R-15-228b, R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame grammar, the slot table, the index-only payload and the session, and none states a label relation across the wire. `endpoints_share_a_label` gives the question a name and two instances, holding at one and failing at the other, and is left out of the target. Open, owed by row 2's compose-time policy model (R-08-028), which is unauthored (R-15-211).
     * **This item's own cell mis-cited the entry it leans on.** The Execute clause asked for the rejected instance "as R-05-157 asks of every claim"; R-05-157 says only that T is the formal reading of *hyper-secure* and of G2, and the entry asking for "a distinguishing instance its specification rejects" is R-05-166, which the same cell's Owns clause already names. No rule holds a cited id against what the sentence attributes to it, so every gate stayed green.
 
 The measured intervals are 2026-09-14 07:01:28-13:02:51, 13:06:48-13:14:09, 13:15:39-13:31:09 UTC for the authoring, review and repair passes, 2426 seconds summed, rounded upward to 0.7 h on the agent-parallel clock. The preceding survey pass is not in the figure. Stages stalled inside their own session brackets on no work of their own (impl -20314s, repair -314s), and those stalls are out of the figure.
@@ -1529,8 +1528,7 @@ distinct; complete suffix bounds include child-result collection.
 Authoring commit `9503081` carries the dossier. Its focused checker reports only
 the sibling links unavailable in its isolated base; the integrated files resolve
 them. Independent review at `1faa273` checks its resource and cell join and finds
-the cancellation-bound defect below. Integration adds decision delay before both
-cancelled and committed suffixes, independently bounds ordinary completion, and
+the cancellation-bound defect below. Integration also independently bounds ordinary completion and
 makes ready-result collection precede the selected cleanup/continuation dispatch.
 Positive traces and invalid neighbors remain conditional source derivations;
 the `HA-*` laws, target bounds and frontend admission remain unimplemented.
@@ -1545,7 +1543,8 @@ The measured author/check interval is 2026-09-12 22:52:43–23:03:20 UTC,
       runtime implementation opens. F-354.
     * **Cancellation delay can precede committed work on one path.** A maximum
       between those terms omits that path; integration composes the decision
-      prefix with the complete selected suffix in one elapsed-time unit. F-355.
+      prefix with the complete selected suffix, cancelled or committed, in one
+      elapsed-time unit. F-355.
 
 Landed: Tier A. The full and independent reads accept the lifecycle design after
 the bound and checkpoint-order corrections, with all target laws still explicit.
@@ -1562,7 +1561,7 @@ theorems have separate premises and missing `MUT-*` laws.
 Authoring commit `1f2d633` passes the focused document checker without drift.
 Independent review at `1faa273` checks the atomic history, conservation,
 publication and cancellation join and finds the frame-release wording below.
-Integration retains the registered frame through terminal collection, aligns the
+Integration also aligns the
 initialized backing with the combined witness and distinguishes cancellation
 observation from arrival during the bounded commit region. Concrete CHERI entry
 witnesses and source-to-Sail correspondence remain owed; a source wrapper or
@@ -1664,9 +1663,9 @@ statements in five dossiers that still recorded it as owed. `python
 tools/check.py` is green at `2468545`, K-61 owing no reading.
 
 (Findings block, for the integrator to number and register, both `Raised:` at
-Q25d: the arm-one interpretation commitment owed across graded-foundation.md,
+Q25d: the arm-one interpretation commitment, owed across graded-foundation.md,
 handlers-async.md and interior-mutability.md before any frontend row opens; and
-the R-08-046 inventory amendment owed before dependent runtime implementation
+the R-08-046 inventory amendment, owed before dependent runtime implementation
 opens. F-354's existing disposition needs the split recorded, not a new
 entry. The `Landed:` tier line is the integrator's.)
 
@@ -1711,7 +1710,7 @@ The measured intervals are 2026-09-14 13:02:57-15:46:49, 15:46:49-16:29:05, 16:2
     carries it, and naming M1.10 would attribute to that item a measurement its
     own text excludes. F-384.
 
-Landed: Tier A. The report states new claims about whether R-18-004e closes on the floors R-18-004b declares, which is a decision for the register's owner and the class the conventions send to a full attended read. No checker rule was added and none holds what this landing created: nothing in [the checker](../../tools/vos/checks/) reads this report's figures against its own JSON artifacts, which is the state [the inference demand](../performance/inference-demand.md) is already in, so the fourth Tier-B condition is unmet and a green wave is not a reading of the report.
+Landed: Tier A. The report states new claims about whether R-18-004e closes on the floors R-18-004b declares, which is a decision for the register's owner and the class the conventions send to a full attended read. No checker rule was added and none holds what this landing created: nothing in [the checker](../../tools/vos/checks/) reads this report's figures against its own JSON artifacts, which is the state [the inference demand](../performance/inference-demand.md) is already in, so the fourth Tier-B condition is unmet.
 
 ### Q27 · Settle the certified-search question and record what a qualified-source survey supplies
 
