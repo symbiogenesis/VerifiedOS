@@ -174,15 +174,22 @@ def _memo_sees_changes_with_preserved_mtime() -> None:
 
 
 def _undeclared_walk() -> None:
-    # The back-direction of validate: recurse only under a literal "properties",
-    # leave anyOf/oneOf combinators alone, and name every config key the schema
-    # does not declare.
+    # The back-direction of validate: recurse under a literal "properties" and into
+    # every allOf member, leave anyOf/oneOf combinators alone, and name every config
+    # key the schema does not declare, once. "e" is Sail 0.20.2's shape for a struct
+    # read at two sites: an allOf whose option values carry no additionalProperties,
+    # so a misspelt "Some" passes plain validation (sail-riscv #1850).
+    option: Json = {"type": "object", "properties": {"Some": {}, "None": {}},
+                    "minProperties": 1, "maxProperties": 1}
+    site: Json = {"properties": {"f": option}, "additionalProperties": False}
     schema: Json = {"properties": {"a": {"properties": {"b": {}}},
-                                   "c": {"anyOf": [{"properties": {"x": {}}}]}}}
-    cfg: Json = {"a": {"b": 1, "z": 2}, "c": {"x": 1}, "d": 3}
-    ensure(config._undeclared(cfg, schema) == ["a/z", "d"],
+                                   "c": {"anyOf": [{"properties": {"x": {}}}]},
+                                   "e": {"allOf": [site, site]}}}
+    cfg: Json = {"a": {"b": 1, "z": 2}, "c": {"x": 1}, "e": {"f": {"Sme": 1}}, "d": 3}
+    ensure(config._undeclared(cfg, schema) == ["a/z", "e/f/Sme", "d"],
            f"_undeclared found {config._undeclared(cfg, schema)}: it must descend "
-           f"declared properties, skip combinators, and name the two stray keys")
+           f"declared properties and allOf members, skip anyOf/oneOf, and name the "
+           f"three stray keys once each")
 
 
 def cases() -> list[Case]:
