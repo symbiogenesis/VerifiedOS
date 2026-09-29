@@ -2,7 +2,10 @@
 
 This tree is a curated derivative of [sail-riscv](https://github.com/riscv/sail-riscv),
 the formal specification of the RISC-V architecture written in
-[Sail](https://github.com/rems-project/sail) and adopted by RISC-V International.
+[Sail](https://github.com/rems-project/sail) and adopted by RISC-V International,
+with capability semantics transplanted from
+[sail-cheri-riscv](https://github.com/CTSRD-CHERI/sail-cheri-riscv) for a
+purecap-only machine.
 
 The model specifies assembly language formats of the instructions, the corresponding
 encoders and decoders, and the instruction semantics.
@@ -29,7 +32,7 @@ executable binary to give an RISC-V emulator.
 
 When running this emulator on a RISC-V ELF binary (`test.elf`), the
 emulator can also be a provided a configuration file in JSON format
-(named `dut_config.json` above). If no configuration file is
+(for example `dut_config.json`, passed with `--config`). If no configuration file is
 provided, a default RV64 configuration is assumed; this default
 configuration can be printed using the `--print-default-config` option
 to the `sail_riscv_sim` emulator. A _template_ for the configuration
@@ -67,6 +70,8 @@ $ ./build_simulator.sh
 ```
 
 will build the simulator at `build/c_emulator/sail_riscv_sim`.
+Within this repository the model is built with `python tools/run.py model build`
+against the locked Sail switch that [the opam guide](../tools/opam/README.md) names.
 
 If you get an error message saying `sail: unknown option '--require-version'.` it's because your Sail compiler is too old. You need the version in [`cmake/sail_required_version.txt`](cmake/sail_required_version.txt) or later.
 
@@ -83,9 +88,12 @@ $ build/c_emulator/sail_riscv_sim <elf-file>
 
 Test suites targeting RV64 and RVV (RISC-V Vector Extension) are downloaded automatically when enabled.
 `build_simulator.sh` downloads the standard `riscv-tests` suite but registers none of its tests:
-each addresses memory through integer base registers, which fault on this purecap machine
-(see [`test/CMakeLists.txt`](test/CMakeLists.txt)). Vector extension tests
-can be enabled via CMake options such as `-DENABLE_RISCV_VECTOR_TESTS_V256_E64=ON`.
+each addresses memory through an integer written into a base register, which on this purecap
+machine is an untagged capability, so its first load or store faults
+(see [`test/CMakeLists.txt`](test/CMakeLists.txt)). The vector and architectural
+test options, such as `-DENABLE_RISCV_VECTOR_TESTS_V256_E64=ON`, register stock
+programs without that exclusion, so they are not a passing suite on this machine;
+no project tool enables them.
 All enabled test suites, the Sail unit tests and the native harnesses can be executed using
 `make test` or `ctest` in the build directory
 (see [`test/unit_tests/README.md`](test/unit_tests/README.md) for more information).
@@ -114,7 +122,7 @@ information.
 
 The `enum clause extension` declarations in
 [`core/extensions.sail`](model/core/extensions.sail) are the extensions
-these sources capture, each followed by the `hartSupports` clause that
+these sources capture, each with the `hartSupports` clause that
 decides whether a hart supports it. Some name a property of the
 implementation rather than instructions, and the shorthand extensions
 are supported exactly when their components are. The RV64I base, the
@@ -258,8 +266,10 @@ in the development of the RISC-V concurrency architecture; this is
 part of the [RMEM](http://www.cl.cam.ac.uk/users/pes20/rmem) tool.
 It is also integrated with the RISC-V axiomatic concurrency model
 as part of the [isla-axiomatic](https://isla-axiomatic.cl.cam.ac.uk/) tool.
-This tree's memory model is Ztso, adopted in place of RVWMO
-([`core/extensions.sail`](model/core/extensions.sail)).
+This tree names Ztso, the architecture's memory model in place of RVWMO, as a
+hardwired extension ([`core/extensions.sail`](model/core/extensions.sail)); its
+single-hart model has no execution that separates TSO from sequential
+consistency, and no RMEM or isla-axiomatic target builds from it.
 
 ### Concurrent testing
 
@@ -291,7 +301,7 @@ exclusive access to the state.
 For reasoning about concurrency, where instructions execute
 out-of-order, speculatively, and non-atomically, there is a free
 monad over an effect datatype of memory actions. This monad is also
-used as part of the aforementioned concurrency support via the RMEM
+used as part of upstream's concurrency support via the RMEM
 tool.
 
 The files under [`handwritten_support`](./handwritten_support) provide the library
