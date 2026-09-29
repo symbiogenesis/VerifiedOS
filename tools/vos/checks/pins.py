@@ -215,7 +215,6 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "629146ef7b3b0d74216b5cc94504ded082a85067": "opentitan",
     "405c6d1d8220a18b2f9196141167a5875422dee4": "ibex",
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
-    "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78": "SECOMP",
     "755c7eaa8f67328cbe1f1ab9080b70afb1772e84": "libjade",
     "78a34ba5cdb853ba601a292bcdd4a780e6ae9c64": "cheri-compressed-cap",
 }
@@ -246,8 +245,6 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the Rupicola edition recorded in the completed environment measurement",
     ("docs/implementation/completion-log.md", "beaf4499"):
         "the Sail reconciliation edition recorded at the completed M0 gate",
-    ("docs/implementation/completion-log.md", "5c20b839"):
-        "the SECOMP edition M1.1 pinned and M1.1b measured",
     ("docs/implementation/completion-log.md", "fd327e8c"):
         "the Katamaran edition recorded by the 2026-09-24 reference refresh",
     ("docs/implementation/completion-log.md", "78a34ba5"):
