@@ -776,7 +776,19 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
               # a double-quoted key spelled with an escape
               ('  - "u\\x73es": {ref} # v1.2.3\n', 0),
               # an explicit key inside a flow mapping, two census hits on one line
-              ("  - {{? uses : {ref}}}\n", 0))
+              ("  - {{? uses : {ref}}}\n", 0),
+              # an explicit key flush against its `?` in a flow collection, which PyYAML
+              # reads as a key's indicator whatever follows it: after `{`, a blank, an
+              # entry's `,` or `[`, quoted, escaped or an alias, and opening a line that
+              # continues a flow mapping
+              ("  - {{?uses: {ref}}}\n", 0),
+              ("  - {{ ?uses : {ref}}}\n", 0),
+              ("  - [?uses: {ref}]\n", 0),
+              ("  - {{name: a, ?uses: {ref}}}\n", 0),
+              ('  - {{?"uses": {ref}}}\n', 0),
+              ('  - {{?"u\\x73es": {ref}}}\n', 0),
+              ("  - name: step\n    id: &k uses\n  - {{?*k : {ref}}}\n", 2),
+              ("  - {{name: step,\n    ?uses : {ref}}}\n", 1))
     refs = (f"example/action@{_K115_SHA}",   # the reviewed commit
             f"other/action@{_K115_SHA}",     # an action with no row
             f"example/action@{'f' * 40}")    # a commit the row never reviewed
@@ -806,6 +818,11 @@ def _k115_census_counts_the_read_key_once() -> None:
                "  - run: echo reuses: nothing\n")
     found = _k115({".github/workflows/a.yml": control})
     ensure(not found, f"comments and other words are not keys: {found!r}")
+    # After a block indicator, a `?` flush against what follows opens a plain scalar,
+    # `?uses`, which PyYAML reads as no `uses` key.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
+                   + f"  - ?uses: other/action@{_K115_SHA}\n"})
+    ensure(not found, f"a block plain scalar opening with ? is not a key: {found!r}")
     flow = (_K115_WORKFLOW + "  - {\n      name: step,\n"
             f"      uses: example/action@{'f' * 40} # v1.2.3\n    }}\n")
     found = _k115({".github/workflows/a.yml": flow})

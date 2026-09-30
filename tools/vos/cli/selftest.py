@@ -1646,6 +1646,13 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f"{m[1]}- ? uses # the action\n{m[1]}  :{m[2]}")),
+    # The same line as a flow mapping whose explicit key stands flush against its `?`:
+    # PyYAML reads every `?` inside a flow collection as a key's indicator, so the step
+    # is unchanged, and only a census counting a flow `?` whatever follows it sees it.
+    ("K-115", "a workflow action stated as a flow mapping's unspaced explicit key",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
+                  lambda m: f"{m[1]}- {{?uses: {m[2]}}}{m[3]}")),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
     ("K-115", "an action row that names no action a workflow runs",

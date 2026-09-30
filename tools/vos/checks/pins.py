@@ -176,17 +176,22 @@ opened by an explicit `?` indicator. So the census splits each file at every YAM
 break, 1.1's included, and on each non-comment line counts a `uses` key, bare or
 quoted, followed by its `:`; a double-quoted key holding an escape and an alias used as
 a key, whatever they spell; and every explicit-key `?` indicator, whatever key it
-opens. A line carrying any of them other than the key the reading took is one finding
-naming that line; otherwise a reference in another shape would run code the rule
-reported agreement about without having read it. The census errs toward a finding,
-counting a key inside a trailing comment or a block scalar's text and an escaped, alias
-or explicit key that names something else. The one shape it does not count is a flow
-mapping's key whose `:` stands on a later line, which the YAML 1.2.2 grammar admits and
-PyYAML refuses. While a reference stands unread, a row is not also reported as run by
-nothing, the unread line being what may run it. What it does not decide is whether the
-commit is the release the comment names; the row's reviewer read that, and zizmor's
-online audits are the instrument that asks GitHub. **Reported and never repaired**, on
-K-97's ground: moving a row's commit would claim a licence reading nobody took.
+opens. PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
+follows it, and a line does not say whether it stands in one, so a `?` opening its line
+after indentation alone or following `{`, `,` or `[` is counted whatever follows it,
+while one after a block indicator and a blank is counted only before a blank, as a
+block key's indicator is. A line carrying any of them other than the key the reading
+took is one finding naming that line; otherwise a reference in another shape would run
+code the rule reported agreement about without having read it. The census errs toward
+a finding, counting a key or a `?` inside a trailing comment or a scalar's text, and an
+escaped, alias or explicit key that names something else. The one shape it does not
+count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
+grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
+reported as run by nothing, the unread line being what may run it. What it does not
+decide is whether the commit is the release the comment names; the row's reviewer read
+that, and zizmor's online audits are the instrument that asks GitHub.
+**Reported and never repaired**, on K-97's ground: moving a row's commit would claim a
+licence reading nobody took.
 
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
 The width-transform registry binds the imported core's gitlink it was derived through,
@@ -293,15 +298,19 @@ _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
 # Every key on a line that can be `uses`, wider than the reading on purpose: a `uses`
 # key, bare or quoted, followed by its `:`; a double-quoted key holding an escape and
 # an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
-# opening its line after indentation and block indicators or following `{`, `,` or
-# `[`, whatever key it opens. Each stands after a blank, a flow indicator or the line's
-# start, so a tag or an anchor before the key does not hide it. A key it finds that the
-# reading did not take is a finding rather than a reference nobody held against the
-# record.
+# whatever key it opens. Each key stands after a blank, a flow indicator or the line's
+# start, so a tag or an anchor before the key does not hide it. A `?` is counted where
+# PyYAML may read one: after a block indicator and a blank only when a blank or the
+# line's end follows, as a block key's indicator is, since a `?` flush against what
+# follows it there opens a plain scalar, and one in a flow collection there is a parse
+# error; and opening its line after indentation alone or following `{`, `,` or `[`
+# whatever follows it, since such a line may stand in a flow collection, where PyYAML
+# reads every `?` as a key's. A key it finds that the reading did not take is a finding
+# rather than a reference nobody held against the record.
 _USES_KEY_RE = re.compile(
     r"""(?:(?<=[\s{,\[])|^)"""
     r"""(?:(?P<q>["']?)uses(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:[-?:][ \t]+)*\?(?=[ \t]|$)|(?<=[{,\[])[ \t]*\?(?=[ \t]|$)""")
+    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
 # The line breaks YAML reads, 1.1's included, so a line here is a line to the parser.
 _YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
 _PINNED_USE_RE = re.compile(
