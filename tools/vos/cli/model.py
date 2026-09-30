@@ -279,11 +279,14 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
 
 # How a corpus file is opened for reading once its name has been found to be a regular
 # file: without waiting, without following a final link and without taking a terminal
-# as the controlling one, so an entry replaced by another kind since is opened without
-# effect and then refused by its descriptor. Opening a FIFO for reading otherwise waits
-# for a writer that never comes, and a character device such as `/dev/zero`, or a link
-# to one, is read without end. win32 has none of these flags, so there the name's and
-# the opened descriptor's kinds decide alone; `O_BINARY` keeps its reads byte-exact.
+# as the controlling one, so an entry replaced by another kind since is neither waited
+# on nor followed nor made this process's terminal, and its descriptor refuses it.
+# Opening a FIFO for reading otherwise waits for a writer that never comes, and a
+# character device such as `/dev/zero`, or a link to one, is read without end. What
+# opening a device node does to the device the flags do not prevent, so the name is
+# asked first, and only a device put in its place between that answer and the open is
+# opened at all. win32 has none of these flags, so there the name's and the opened
+# descriptor's kinds decide alone; `O_BINARY` keeps its reads byte-exact.
 _REGULAR_ONLY = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
                  | getattr(os, "O_NOCTTY", 0) | getattr(os, "O_BINARY", 0))
 
@@ -320,8 +323,8 @@ def _open_regular(path: Path | str) -> int | None:
 
 def _regular_digest(path: Path) -> str | None:
     """The SHA-256 of `path`, read through a descriptor that is a regular file, and None
-    when it does not open as one: the listing's check by name comes first, and an entry
-    replaced after it is listed unhashed rather than waited on or read without end."""
+    when `_open_regular` finds it is not one: an entry replaced after the listing's
+    check by name is listed unhashed rather than waited on or read without end."""
     fd = _open_regular(path)
     if fd is None:
         return None
