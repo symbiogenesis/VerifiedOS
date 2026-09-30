@@ -1658,6 +1658,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2
 · Disposition: open, the SECOMP proof-reuse record restating its use and limits, and R-05-024's deferred proof taking none of those axioms or that lemma as a start-from
 
+**F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, no manifest binding the compiler records those identities, and its source's only copy has no remote
+· Raised: M1.2
+· Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user
+
 **F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
 · Raised: M1.2a
 · Disposition: closed, the start-from ruled as the pin's own `riscV/` as the contained repository carries it, compartment layer and all, because it alone composes with the `Mach` layer and the security layer M1.1b keeps for robust preservation, and a stock tree would be a new pin, a new licence read and a backend that no longer composes
