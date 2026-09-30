@@ -312,6 +312,17 @@ def _source_reading_reads_past_decorations() -> None:
             "Cumulative": 2, "Monomorphic": 1, "NonCumulative": 1}
     ensure({key: counts[key] for key in want} == want,
            f"the vernaculars under decorations and the modifiers they spell: {counts}")
+    # the shared lexer's grammar, spelled as Rocq's lexer reads it: no blank after a word
+    # or a string, a doubled quote in a quoted target, and a bullet inside a proof
+    tight = cic_corpus.source_declarations(
+        "Time#[universes(polymorphic)]Inductive I := C.\n"
+        'Redirect "a""b" Program Fixpoint f (n : nat) : nat := n.\n'
+        'Profile"p"Local Fixpoint g (n : nat) : nat := n.\n'
+        "Lemma l : True.\nProof.\n- Fixpoint h (n : nat) : nat := n.\n  exact I.\nQed.\n"
+        "Succeed#[program]Inductive J := D.\n")
+    want = {"Inductive": 1, "Fixpoint": 3, "Program": 1, "Polymorphic": 1}
+    ensure({key: tight[key] for key in want} == want,
+           f"the vernaculars under the shared decorations: {tight}")
     # `Fail` and `Succeed` keep nothing a sentence declares, on its line or the line
     # above, so neither its vernacular nor any modifier around the flag is counted
     void = cic_corpus.source_declarations(
