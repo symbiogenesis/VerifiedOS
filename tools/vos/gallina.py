@@ -149,6 +149,12 @@ def prover(switch: str) -> Prover | None:
     return Prover(switch=switch, argv=(str(binary), "c"))
 
 
+def vector_prover() -> Prover | None:
+    """The prover `emit` compiles with, asked here once, so a run's report names the
+    switch its vectors came from rather than restating the choice."""
+    return prover(VECTOR_SWITCH)
+
+
 def version(found: Prover) -> str:
     """What the resolved prover calls itself, for the run that has to record it."""
     done = subprocess.run([found.argv[0], "--version"], capture_output=True,
@@ -373,7 +379,7 @@ def emit(root: Path, work: Path, out: list[str],
     `Require`, so a proof the staged tree cannot build is reported as what it is
     instead of as a load-path failure several files away inside the harness.
     """
-    found = prover(VECTOR_SWITCH)
+    found = vector_prover()
     if found is None:
         out.append(f"FAIL no prover in the {VECTOR_SWITCH} switch, the proof gate's; "
                    "`run.py provision --apply` imports it")

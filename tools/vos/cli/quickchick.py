@@ -143,10 +143,10 @@ def _vectors(args: argparse.Namespace, e: env.Environment, root: Path, work: Pat
         print("\n".join(out))
         return 1
     target = gallina.write(lines, work / gallina.VECTORS)
-    found = gallina.prover(gallina.VECTOR_SWITCH)
+    found = gallina.vector_prover()
     out.append(f"== {target} (lane {e.lane or 'primary'})")
     out.append(f"   {gallina.version(found) if found else 'unknown prover'} in the "
-               f"{gallina.VECTOR_SWITCH} switch")
+               f"{found.switch if found else gallina.VECTOR_SWITCH} switch")
     out.append(f"   {len(lines)} vector(s) over the admission algebra")
     out.extend(f"     {line}" for line in lines[:args.show])
     out.append(f"ok the Gallina front answered {len(lines)} generated inputs")
@@ -258,11 +258,11 @@ def _freeze(args: argparse.Namespace, e: env.Environment, root: Path, work: Path
         return 1
 
     vector_file = gallina.write(theirs, work / gallina.FREEZE_VECTORS)
-    found = gallina.prover(gallina.VECTOR_SWITCH)
+    found = gallina.vector_prover()
     out.append(f"   {freezemodel.HARNESS:<32} {len(theirs):>4} vector(s)  "
                f"{vector_file}")
     out.append(f"   {gallina.version(found) if found else 'unknown prover'} in the "
-               f"{gallina.VECTOR_SWITCH} switch")
+               f"{found.switch if found else gallina.VECTOR_SWITCH} switch")
     out.append("   " + "  ".join(f"{name} {count}" for name, count
                                  in freezemodel.family_counts(theirs).items()))
     out.extend(f"     {line}" for line in ours[:args.show])

@@ -202,6 +202,53 @@ def _an_unlisted_prover_caller_is_a_finding() -> None:
     unread, _ = _decide({**files, "tools/vos/bad.py": b"x = '\xff'\n"}, [named])
     ensure(len(unread) == 1 and unread[0].startswith("tools/vos/bad.py cannot be read"),
            f"a module the scan cannot read is undecided, not skipped: {unread}")
+    spelled: dict[str, str | bytes] = {
+        "tools/vos/alias.py": "from vos.gallina import prover as locate\nfound = locate('s')\n",
+        "tools/vos/spaced.py": "from vos import gallina as g\nfound = g.prover ('s')\n",
+        "tools/vos/relative.py": "from .. import gallina\nfound = gallina.prover('s')\n"}
+    other, _ = _decide(spelled, [_row(release="9.3.0")])
+    ensure(sorted(f.split(" ")[0] for f in other) == sorted(spelled),
+           f"a call under another name or spacing is a call: {other}")
+
+
+def _each_rig_module_asks_for_its_rows_switches() -> None:
+    oracle, quickchick = gallina.ORACLE_SWITCH, gallina.QUICKCHICK_SWITCH
+
+    def row(switch: str) -> k117.Instrument:
+        return k117.Instrument(switch, "tools/vos/m.py", switch, "9.3.0")
+
+    sources = {
+        "the constant": ("from vos import gallina\nfound = gallina.prover(gallina.ORACLE_SWITCH)\n",
+                         {oracle}),
+        "a loop's tuple": ("from vos import gallina\n"
+                           "def f():\n    for s in (gallina.ORACLE_SWITCH, "
+                           "gallina.QUICKCHICK_SWITCH):\n        gallina.prover(s)\n",
+                           {oracle, quickchick}),
+        "a choice": ("from vos import gallina\n"
+                     "def f(a):\n    s = gallina.QUICKCHICK_SWITCH if a else "
+                     "gallina.ORACLE_SWITCH\n    return gallina.prover(s)\n",
+                     {oracle, quickchick}),
+        "a name bound through another": (
+            "from vos import gallina\nPAIR = (gallina.ORACLE_SWITCH,)\n"
+            "def f():\n    got = {s: 1 for s in PAIR}\n"
+            "    s = next(k for k, v in got.items() if v)\n    return gallina.prover(s)\n",
+            {oracle}),
+    }
+    for label, (source, asks) in sources.items():
+        rows = [row(s) for s in sorted(asks)]
+        quiet, _ = _decide({"tools/vos/m.py": source}, rows)
+        ensure(not quiet, f"{label}: the rows state what the module asks for: {quiet}")
+        moved, _ = _decide({"tools/vos/m.py": source}, [row(gallina.VECTOR_SWITCH)])
+        ensure(len(moved) == 1 and "can ask gallina.prover for" in moved[0],
+               f"{label}: a row stating another switch is a finding: {moved}")
+    loose, _ = _decide({"tools/vos/m.py": "from vos import gallina\n"
+                                          "def f(switch):\n    return gallina.prover(switch)\n"},
+                       [row(oracle)])
+    ensure(len(loose) == 1 and loose[0].startswith("tools/vos/m.py:3 passes gallina.prover"),
+           f"an argument naming no switch constant is undecided: {loose}")
+    idle, _ = _decide({"tools/vos/m.py": "found = None\n"}, [row(oracle)])
+    ensure(len(idle) == 1 and "resolves no prover" in idle[0],
+           f"a row naming a module that asks for nothing is a finding: {idle}")
 
 
 def _the_live_rows_read_their_instruments() -> None:
@@ -228,6 +275,10 @@ def _the_live_rows_read_their_instruments() -> None:
     named = {row.selects for row in k117.INSTRUMENTS}
     ensure({"tools/vos/copy_service.py", "tools/vos/supervisor.py"} <= named,
            "every rig caller the tree carries is a row")
+    properties = {row.switch for row in k117.INSTRUMENTS
+                  if row.selects == "tools/vos/cli/quickchick.py"}
+    ensure(properties == {gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH},
+           f"quickchick properties runs in either switch holding QuickChick: {properties}")
 
 
 def cases() -> list[Case]:
@@ -239,5 +290,6 @@ def cases() -> list[Case]:
         _readings_fail_closed,
         _an_option_default_is_read,
         _an_unlisted_prover_caller_is_a_finding,
+        _each_rig_module_asks_for_its_rows_switches,
         _the_live_rows_read_their_instruments,
     )]

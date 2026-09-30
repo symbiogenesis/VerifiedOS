@@ -28,10 +28,14 @@ nobody can say admits the forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
-to the rig is inside the rule the day it chooses a switch. The instruments outside the rig
-are rows by name and have no such check, and the compilers that resolve the gate's own
-prover through `env.rocq_command` are outside the table by construction: they compile at
-the gate's release.
+to the rig is inside the rule the day it chooses a switch. And the switches its calls can
+ask for have to be the switches its rows state, so a row cannot keep a release its module
+has moved away from. A call's argument is read out of the module's syntax tree: a literal,
+or every `_SWITCH` constant of the rig or of `vos.env` it names, following each local name
+back through the statements that bind it; an argument that reaches none is a finding. The
+instruments outside the rig are rows by name and have no such check, and the compilers
+that resolve the gate's own prover through `env.rocq_command` are outside the table by
+construction: they compile at the gate's release.
 
 **The reading is lexical, over the shared lexer's text.** `proofs.strip_comments` blanks
 the comments and each string literal is blanked here, so neither can trigger a form.
@@ -44,11 +48,12 @@ term or `exists2`'s after its binders, and even then where a `forall`, `fun`, `e
 `{x : A & P}` and `exists2 x, P & Q` pass, and a field's binder written directly inside
 a record's, a class's or an instance's braces is refused, as are the intro pattern
 `(p & q)` and a notation token such as `&=`, which the reading cannot tell from the
-binder. What the reading cannot see
-is stated rather than left to be met: a form a notation or a loaded library supplies,
-text a source reaches otherwise than by a `Require` it spells, a subject a caller names
-beyond a row's defaults, a string inside a comment that the shared lexer reads as closing
-the comment early, and an instrument that compiles Gallina outside the table.
+binder. What the reading cannot see is stated rather than left to be met: a form a
+notation or a loaded library supplies, text a source reaches otherwise than by a
+`Require` it spells, a subject a caller names beyond a row's defaults, a string inside a
+comment that the shared lexer reads as closing the comment early, and an instrument that
+compiles Gallina outside the table, or reaches the rig's prover otherwise than by calling
+`gallina.prover` under some name.
 
 Fail-closed at every reading. An empty table, a switch or release that cannot be read or
 is not a release, a harness the index does not carry, a directory of harnesses holding
@@ -135,6 +140,10 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     Instrument("quickchick properties", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}",)),
+    # The same run where QuickChick is installed in the CertiRocq switch instead.
+    Instrument("quickchick properties in the oracle's switch", "tools/vos/cli/quickchick.py",
+               gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}",)),
     Instrument("seed coq --quickchick", "tools/vos/cli/seed.py", gallina.QUICKCHICK_SWITCH,
                gallina.QUICKCHICK_ROCQ_VERSION, (f"{RIG}/{gallina.RANDOMIZED}",),
                support=True, whole=True),
@@ -190,8 +199,13 @@ _FIELD_LIST_RE = re.compile(r"(?::=|\|)\s*(?:[^\W\d][\w']*\s*)?\Z")
 _SCOPE_RE = re.compile(r"\{\||\|\}|[()\[\]{}]|,|=>|:=|(?<!&)&(?!&)|"
                        + _WORD.format("(?:forall|fun|exists2?|let|fix|cofix)"))
 
-# A caller of the rig's prover lookup, and the definition that is not one.
-_PROVER_CALL_RE = re.compile(r"(?<![\w.])gallina\.prover\(|(?<![\w.])(?<!def )prover\(")
+# The rig's prover lookup, the modules whose `_SWITCH` constants a call's argument is read
+# back to, and where the scan for its callers runs.
+_PROVER = "prover"
+_MODULES = {"gallina": gallina, "env": env}
+_SWITCH_SUFFIX = "_SWITCH"
+_SCANNED = "tools/vos/"
+_RIG_FILE = f"{_SCANNED}gallina.py"
 
 FORM_IF = "`if … is`"
 FORM_WITH = "a record value completed with `with`"
@@ -399,14 +413,17 @@ def decide(root: Path, index: Iterable[str],
     if not rows:
         findings.append("the instrument table is empty, so nothing an older Rocq compiles "
                         "is decided about")
-    findings += _unlisted(root, tracked, rows)
 
     older: list[tuple[Instrument, str, str]] = []
+    switches: dict[str, set[str] | None] = {row.selects: set() for row in rows}
     for row in rows:
         switch, why = _entry(root, row.switch)
         if switch is None or not switch.strip():
             findings.append(why or f"the row for {row.name} names no switch")
+            switches[row.selects] = None
             continue
+        if (chosen := switches[row.selects]) is not None:
+            chosen.add(switch)
         stated, why = _entry(root, row.release)
         if why:
             findings.append(why)
@@ -420,6 +437,7 @@ def decide(root: Path, index: Iterable[str],
                             "not a release")
         elif number < SINCE:
             older.append((row, switch, f"Rocq {stated}"))
+    findings += _selections(root, tracked, switches)
 
     proof_sources = sorted(rel for rel in tracked if rel.startswith(f"{PROOFS}/")
                            and rel.endswith(SUFFIX) and rel.count("/") == 1)
@@ -463,7 +481,8 @@ def decide(root: Path, index: Iterable[str],
     ok = (f"no {FORM_IF}, record value completed with `with`, `&` or `of` binder in the "
           f"{decided} file(s) compiled by the {len(starts)} of the table's {len(rows)} "
           f"instruments older than Rocq 9.3.0, each switch and release read from the "
-          f"instrument itself: {names}")
+          f"constant or literal stating it and each rig module held to the switches its "
+          f"calls ask for: {names}")
     return findings, ok
 
 
@@ -558,26 +577,141 @@ def _index(root: Path, rels: list[str],
     return None
 
 
-def _unlisted(root: Path, tracked: set[str], rows: Sequence[Instrument]) -> list[str]:
-    """Every module under tools/vos/ that resolves a prover through the rig and is no
-    row's `selects`: an instrument that chose a switch the table does not know."""
-    named = {row.selects for row in rows}
+def _selections(root: Path, tracked: set[str],
+                switches: dict[str, set[str] | None]) -> list[str]:
+    """Every module under tools/vos/ that resolves a prover through the rig, held to the
+    rows naming it as their `selects`, whose switches are `switches[module]`, or None
+    where one of them could not be read.
+
+    A module no row names chose a switch the table does not know; one whose calls can
+    ask for other switches than its rows state has moved away from them; and a row naming
+    a module that asks for none states a choice nothing makes."""
     found: list[str] = []
     for rel in sorted(tracked):
-        if (not rel.startswith("tools/vos/") or not rel.endswith(".py")
-                or rel.startswith("tools/vos/checks/") or rel in named):
+        if (not rel.startswith(_SCANNED) or not rel.endswith(".py")
+                or rel.startswith(f"{_SCANNED}checks/")):
             continue
         try:
             text = (root / rel).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError) as err:
+            tree = ast.parse(text, filename=rel) if _PROVER in text else None
+        except (OSError, UnicodeDecodeError, SyntaxError) as err:
             found.append(f"{rel} cannot be read, so whether it resolves a prover through "
                          f"gallina.prover is undecided ({err})")
             continue
-        if "prover(" in text and _PROVER_CALL_RE.search(text):
+        asks, unread = _asks(tree, rel == _RIG_FILE) if tree else (None, [])
+        stated = switches.get(rel, set())
+        if asks is None:
+            if stated:
+                found.append(f"the table names {rel} as choosing {sorted(stated)}, and it "
+                             "resolves no prover through gallina.prover")
+        elif rel not in switches:
             found.append(f"{rel} resolves a prover through gallina.prover and no row of "
                          "the instrument table names it, so what it compiles and at which "
                          "release is undecided")
+        elif unread:
+            found += [f"{rel}:{line} passes gallina.prover an argument that names no "
+                      "switch constant, so which switch it asks for is undecided"
+                      for line in unread]
+        elif stated is not None and asks != stated:
+            found.append(f"{rel} can ask gallina.prover for {sorted(asks)} and the rows "
+                         f"naming it state {sorted(stated)}, so what it compiles at which "
+                         "release is undecided")
     return found
+
+
+def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
+    """The switches one module's calls of `gallina.prover` can ask for, None where it
+    makes none, and the lines of the calls whose argument names no switch.
+
+    A call is `gallina.prover` under whatever name the module binds the rig or the
+    function to, or a bare `prover` in the rig itself. Its argument is a literal, or the
+    `_SWITCH` constants of the rig and of `vos.env` it names, each local name followed
+    back through the statements binding it in the call's function, then the module's."""
+    modules: dict[str, object] = {}
+    callees = {_PROVER} if own else set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            source = node.module or ""
+            if source == "vos" or (node.level and not source):
+                modules |= {a.asname or a.name: _MODULES[a.name] for a in node.names
+                            if a.name in _MODULES}
+            elif source == "vos.gallina" or (node.level and source == "gallina"):
+                callees |= {a.asname or a.name for a in node.names if a.name == _PROVER}
+        elif isinstance(node, ast.Import):
+            modules |= {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
+                        if a.asname and a.name.removeprefix("vos.") in _MODULES
+                        and a.name.startswith("vos.")}
+    bare = gallina if own else None
+
+    # Each node's innermost function, or the module: the walk reaches an outer scope
+    # before any scope inside it, so the last assignment is the innermost.
+    scopes: dict[ast.AST, ast.AST] = {}
+    for scope in ast.walk(tree):
+        if isinstance(scope, ast.Module | ast.FunctionDef | ast.AsyncFunctionDef):
+            scopes |= dict.fromkeys(ast.walk(scope), scope)
+    bindings: dict[ast.AST, dict[str, list[ast.expr]]] = {}
+    for node, scope in scopes.items():
+        for name, value in _binds(node):
+            bindings.setdefault(scope, {}).setdefault(name, []).append(value)
+
+    def named(expr: ast.expr, scope: ast.AST, seen: set[str]) -> set[str]:
+        out: set[str] = set()
+        for sub in ast.walk(expr):
+            if isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name):
+                out |= _constant(modules.get(sub.value.id), sub.attr)
+            elif isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Load):
+                found = _constant(bare, sub.id)
+                if not found and sub.id not in seen:
+                    seen.add(sub.id)
+                    for where in (scope, tree):
+                        for value in bindings.get(where, {}).get(sub.id, []):
+                            found |= named(value, where, seen)
+                out |= found
+        return out
+
+    asked: set[str] | None = None
+    unread: list[int] = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and _calls_prover(node.func, callees, modules)):
+            continue
+        argument = (node.args[0] if node.args
+                    else next((k.value for k in node.keywords), None))
+        got: set[str] = set()
+        if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+            got.add(argument.value)
+        elif argument is not None:
+            got = named(argument, scopes.get(node, tree), set())
+        asked = got if asked is None else asked | got
+        if not got:
+            unread.append(node.lineno)
+    return asked, unread
+
+
+def _calls_prover(func: ast.expr, callees: set[str], modules: dict[str, object]) -> bool:
+    if isinstance(func, ast.Name):
+        return func.id in callees
+    return (isinstance(func, ast.Attribute) and func.attr == _PROVER
+            and isinstance(func.value, ast.Name) and modules.get(func.value.id) is gallina)
+
+
+def _constant(module: object, name: str) -> set[str]:
+    """The switch one of the rig's or env's `_SWITCH` constants holds, or nothing."""
+    value = getattr(module, name, None) if module and name.endswith(_SWITCH_SUFFIX) else None
+    return {value} if isinstance(value, str) else set()
+
+
+def _binds(node: ast.AST) -> list[tuple[str, ast.expr]]:
+    """The names one statement or clause binds, each with the expression it binds from."""
+    if isinstance(node, ast.Assign):
+        pairs = [(target, node.value) for target in node.targets]
+    elif isinstance(node, ast.AnnAssign | ast.NamedExpr) and node.value is not None:
+        pairs = [(node.target, node.value)]
+    elif isinstance(node, ast.For | ast.AsyncFor | ast.comprehension):
+        pairs = [(node.target, node.iter)]
+    else:
+        return []
+    return [(name.id, value) for target, value in pairs for name in ast.walk(target)
+            if isinstance(name, ast.Name)]
 
 
 def run(ctx: Context) -> None:

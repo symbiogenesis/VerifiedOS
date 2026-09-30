@@ -2075,6 +2075,14 @@ CASES: list[Case] = [
               "  if l is cons x _ then x else d.")),
     ("K-117", "the Rupicola lowering's switch constant renamed out from under the "
               "instrument table", _k117_switch),
+    # An instrument moved to an older switch while its row still states the gate's: the
+    # kernel's vectors asked of the CertiRocq switch at Rocq 9.1.1. Nothing its harness
+    # compiles writes a 9.3 form today, so only the reading of what kernel.py asks for
+    # can see that the set no longer follows the instrument.
+    ("K-117", "the kernel's vector harness moved to the CertiRocq switch under a row "
+              "stating the gate's",
+     _literal("tools/vos/cli/kernel.py", "found = gallina.prover(gallina.VECTOR_SWITCH)",
+              "found = gallina.prover(gallina.ORACLE_SWITCH)")),
     # A discharge annotation above a `Definition`, which is the one of this rule's four
     # refusals that renders perfectly and reads as correct: the annotation parses, its id
     # is live, and what it claims is that a *term* answers an obligation. The other three
