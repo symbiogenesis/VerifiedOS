@@ -60,17 +60,20 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
 # a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
 # vernac_control grammar lets precede a command: control flags, quoted attributes and
 # legacy attributes, Program among them, plus the Export locality of option commands.
-# A lexical reading anchored after them sees the command however it is decorated.
+# A lexical reading anchored after them sees the command however it is decorated. An
+# attribute's quoted value is read whole, since a bracket inside it closes nothing; an
+# unquoted bracket is Rocq's syntax error, and stopping there keeps each read linear.
+_ATTRIBUTE = r'#\[(?:[^\[\]"]|"[^"]*")*'
 CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
                     r'|(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
                     r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
-                    r'|#\[[^\]]*\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic'
-                    r'|Cumulative|NonCumulative|Private|Program)\s+)*')
+                    r"|" + _ATTRIBUTE + r"\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic"
+                    r"|Cumulative|NonCumulative|Private|Program)\s+)*")
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or
 # an allocation limit makes a verdict depend on the machine that ran it.
-_PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
+_PINNED_ATTRIBUTE = re.compile(_ATTRIBUTE + r"\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
 # The Ltac tactical `timeout`, Rocq 9.3's `alloc_limit`, and Ltac2's `Control.timeout` and
 # its float twin `Control.timeoutf` bind a verdict to the machine in the same way, and

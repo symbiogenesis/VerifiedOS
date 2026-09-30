@@ -227,11 +227,17 @@ def _pinned_settings_cannot_be_overridden() -> None:
                "Fail AllocLimit 9 Mw Timeout 1 Check 0.",
                "Proof. Unset Guard Checking. exact I. Qed.",
                "#[bypass_check(guard)] Fixpoint f (n : nat) : nat := f n.",
-               '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.')
+               '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.',
+               # A quoted bracket does not close the attribute that holds it.
+               '#[deprecated(since="2", note="see [old]"), warnings="-all"] '
+               "Definition use := old.",
+               '#[deprecated(since="2", note="]"), bypass_check(guard)] Fixpoint f (n : nat) '
+               ': nat := f n.')
     for text in refused:
         ensure(bool(proofaudit.pinned_overrides(text)), f"a pinned-setting override passed: {text}")
     allowed = ("Set Implicit Arguments.", "Local Open Scope nat_scope.", "Set Printing Width 80.",
                '(* Set Warnings "-all". *) Definition x := 0.',
+               '#[deprecated(since="2", note="see warnings [x]")] Definition old := 0.',
                'Definition label := "Set Warnings".', "#[local] Arguments id {A} x.",
                "Definition timeout_bound := 5.", "Time Instructions Check 0.",
                'Profile "p" Set Printing Width 80.', "Polymorphic Definition pid := 0.")
