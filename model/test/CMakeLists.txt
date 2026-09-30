@@ -16,16 +16,25 @@ set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v512x64 "a968025ffd35fa9c
 # The listing an extracted suite is held to, which download_riscv_tests records
 # as <suite>.manifest beside a suite it has just extracted from a verified
 # tarball: the tarball's recorded SHA-256, then the SHA-256 and relative path of
-# every file in the suite, sorted by path. A symbolic link or other non-regular
-# entry is listed unhashed, and no manifest is written holding one.
-# tools/vos/cli/model.py renders the same listing for the readers that do not
-# configure.
+# every file in the suite, sorted by path. A symbolic link, or a name holding ";"
+# or "\" that the glob cannot hand back intact, is listed unhashed, and no
+# manifest is written holding one. Configure does not tell a FIFO or device node
+# from a file, and reading one can stall it, nor see a name holding "\" whose "/"
+# spelling names a file, since the glob folds the two together. The verified
+# riscv-tests tarball contains none of these, and the listing
+# tools/vos/cli/model.py renders for the readers that do not configure refuses
+# each.
 function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
     set(listing "tarball ${TARBALL_NAME}.tar.gz sha256 ${EXPECTED_SHA256}\n")
     file(GLOB_RECURSE entries LIST_DIRECTORIES false RELATIVE "${SUITE}" "${SUITE}/*")
     list(SORT entries)
     foreach(entry IN LISTS entries)
-        if(IS_SYMLINK "${SUITE}/${entry}" OR IS_DIRECTORY "${SUITE}/${entry}")
+        # A name holding ";" arrives split at it, or whole where brackets
+        # enclose it, and one holding "\" arrives with "/" in its place, so an
+        # entry naming no file, or holding either character, is listed unhashed
+        # rather than read.
+        if(IS_SYMLINK "${SUITE}/${entry}" OR IS_DIRECTORY "${SUITE}/${entry}"
+                OR NOT EXISTS "${SUITE}/${entry}" OR entry MATCHES "[;\\]")
             string(APPEND listing "unhashed ${entry}\n")
         else()
             file(SHA256 "${SUITE}/${entry}" digest)
@@ -47,6 +56,16 @@ function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
             "${TEST_DOWNLOAD_VERSION}: record the release asset's digest as "
             "TEST_DOWNLOAD_SHA256_${TEST_DOWNLOAD_VERSION}_${TARBALL_NAME} in "
             "${CMAKE_CURRENT_FUNCTION_LIST_FILE}")
+    endif()
+
+    # riscv_tests_listing finds the suite's files with a glob, which would read
+    # these characters in the suite's own path as a pattern and list files of
+    # another tree, or none.
+    if(DOWNLOAD_PATH MATCHES "[][*?]")
+        message(FATAL_ERROR
+            "The test download path ${DOWNLOAD_PATH} holds [, ], * or ?, which "
+            "the glob listing its suites would read as a pattern: configure in a "
+            "build directory whose path has none of them")
     endif()
 
     # An extracted suite is kept only while its files are the ones its manifest
@@ -106,8 +125,8 @@ function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
         string(FIND "${listing}" "\nunhashed " unhashed)
         if(NOT unhashed EQUAL -1)
             message(FATAL_ERROR
-                "${TARBALL_NAME}.tar.gz extracted a symbolic link or other "
-                "non-regular file, which ${TARBALL_NAME}.manifest cannot record")
+                "${TARBALL_NAME}.tar.gz extracted a symbolic link or a name the "
+                "listing cannot hash, which ${TARBALL_NAME}.manifest cannot record")
         endif()
         file(WRITE "${manifest}.partial" "${listing}")
         file(RENAME "${manifest}.partial" "${manifest}")

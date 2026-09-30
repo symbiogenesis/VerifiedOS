@@ -968,8 +968,12 @@ or with `--all-files`, which selects the tracked files under `model/` outside
 `model/dependencies/` and nothing else. The fixing hooks (trailing-whitespace,
 end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
 `git diff -- model` after a run, and markdown-link-check fetches every external link
-it finds. No gate runs these hooks. Never run `pre-commit install`: it writes the hook
-into the Git directory every worktree shares, so every session's commits would run it.
+it finds. No gate runs these hooks. The curated tree is not held to them: a run over
+it reports findings and rewrites local files, including the JSON under `model/config/`,
+so revert what a run rewrites unless the change is a deliberate formatting change.
+The advice in [model/CONTRIBUTING.md](../model/CONTRIBUTING.md) to run
+`pre-commit install` is upstream's and does not apply here. Never run it: it writes the
+hook into the Git directory every worktree shares, so every session's commits would run it.
 The hook calls the installing environment's interpreter, which a commit from the
 other side of the WSL boundary cannot execute, so that side's commits are refused
 unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook

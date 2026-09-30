@@ -196,12 +196,17 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
 # suite to on every configure, downloading again a suite that disagrees. The listing is
 # the tarball's recorded digest, then each file's SHA-256 and path relative to the
-# suite, sorted by the path's bytes; a symbolic link or other non-regular entry is
-# listed unhashed, and no written manifest holds one. `corpus_listing` renders the same
-# bytes for the readers that do not configure: the seeding that copies a suite into a
-# new lane, and the sweep and trace-diff that read one. A build's receipt reads the
-# corpus through `_test_corpus` too, so a disagreement between the two renderings
-# fails the first build that records its evidence rather than passing unseen.
+# suite, sorted by the path's bytes; a symbolic link, or a name a CMake list cannot
+# carry, is listed unhashed, and no written manifest holds one. `corpus_listing`
+# renders that listing for the readers that do not configure: the seeding that copies a
+# suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
+# rather than globbing it and lists every non-regular entry unhashed without reading
+# it, so the sweep and trace-diff also refuse what configure does not tell apart: a FIFO
+# or device node, which the verified tarball does not contain, and a name holding `\`
+# beside the file its `/` spelling names, which configure's glob folds into that file.
+# A build's receipt reads the corpus through `_test_corpus` too, so a disagreement
+# between the two renderings fails the first build that records its evidence rather
+# than passing unseen.
 CORPUS_MANIFEST_SUFFIX = ".manifest"
 
 
@@ -309,7 +314,9 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
     record = cast("dict[str, object]", raw)
     if (record.get("schema") != 1 or record.get("exit_code") != 0
             or record.get("stages") != {"configure": 0, "build": 0, "ctest": 0}):
-        raise ValueError("the build receipt does not record a successful complete build")
+        refusal = record.get("refusal")
+        raise ValueError("the build receipt does not record a successful complete build"
+                         + (f": {refusal}" if isinstance(refusal, str) and refusal else ""))
     if record.get("identity") != build_identity(e):
         raise ValueError("the build receipt is stale: sources, tools or options changed")
     if record.get("artifacts") != build_artifacts(
@@ -327,8 +334,12 @@ ORACLE_NESTED = "sail-riscv"
 ORACLE_INIT = f"git submodule update --init --recursive {ORACLE_SRC}"
 
 # Written into a synced tree once its files are shown to be the pinned commits', and
-# read back before a tree already standing is reused.
+# read back before a tree already standing is reused. The stamp is both commits and
+# then `ORACLE_STAMP_CLAIM`, which says what it vouches for: the tree's files are those
+# commits' blobs byte for byte. A stamp that does not end in it vouches for less, and
+# is refused like a stamp naming other commits.
 ORACLE_STAMP = ".verifiedos-oracle-source"
+ORACLE_STAMP_CLAIM = "bytes"
 
 # The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an
 # empty parameter list declares *no* parameters rather than an unspecified one; Sail's
@@ -637,22 +648,28 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                 break
         handle.write("ALL_DONE\n")
 
+    # A build whose stages passed can still be refused its evidence. The reason is kept
+    # in the receipt as well as printed, because a background build's stderr goes
+    # nowhere, and `verified_build`, which `model wait` reports through, names it.
+    refusal = ""
     if code == 0 and build_identity(e) != identity:
-        print("the inputs changed during the build; its evidence is stale", file=sys.stderr)
-        code = 1
+        refusal = "the inputs changed during the build; its evidence is stale"
     artifacts: dict[str, str] = {}
-    if code == 0:
+    if code == 0 and not refusal:
         # The sweep's inputs are read through `_test_corpus`, which holds the suite to
         # the manifest configure wrote, so an unverified corpus fails the build here.
         try:
             artifacts = build_artifacts(build_dir, e.model)
         except ValueError as err:
-            print(f"the build's evidence cannot be recorded: {err}", file=sys.stderr)
-            code = 1
+            refusal = f"the build's evidence cannot be recorded: {err}"
+    if refusal:
+        print(refusal, file=sys.stderr)
+        code = 1
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
         "identity": identity, "artifacts": artifacts,
         "log_sha256": receipts.digest(log), "extra_options": extra,
+        **({"refusal": refusal} if refusal else {}),
     })
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")
@@ -1206,7 +1223,8 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     It builds from a copy on ext4 rather than in place. The build writes generated C
     into its own source tree, and a pinned submodule working tree is not somewhere a
-    build may write; the copy is also where CRLF is normalized out.
+    build may write; the copy is also where a Windows checkout's line endings are put
+    back to the pinned blobs'.
 
     The suite it then runs is the oracle's own acceptance and not the transplant's: it
     says the reference is a working machine before `trace-diff` is allowed to treat it
@@ -1222,8 +1240,9 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     The source is bound as well. The tree's name asserts the pin, so the checkout it
     is copied from has to be that pin: both submodules at their recorded commits
     (`_oracle_pins`), and the copy holding those commits' files and no others
-    (`_verify_oracle_copy`). A tree that passes carries a stamp naming both commits,
-    and a standing tree is reused only while its stamp names the current pins.
+    (`_verify_oracle_copy`). A tree that passes carries a stamp naming both commits
+    and vouching for their bytes, and a standing tree is reused only while its stamp
+    says exactly that of the current pins.
     """
     _require("sail", SAIL_HOW)
     sail = shutil.which("sail") or "sail"
@@ -1279,17 +1298,19 @@ def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[
                        resync: bool) -> str:
     """Leave `tree` holding the pinned source, or say why it cannot; "" is success.
 
-    A tree already standing is reused only when its stamp names these pins, so one
-    synced from another checkout or before the stamp existed is refused rather than
-    built as though it were this pin. A fresh copy is verified before it is stamped,
-    and a copy that fails is removed, so no unverified tree is left to be reused.
+    A tree already standing is reused only when its stamp names these pins and vouches
+    for their bytes, so one synced from another checkout, before the stamp existed, or
+    under a stamp that claims less is refused rather than built as though it were this
+    pin. A fresh copy is verified before it is stamped, and a copy that fails is
+    removed, so no unverified tree is left to be reused.
     """
     stamp = tree / ORACLE_STAMP
+    claim = [*pins, ORACLE_STAMP_CLAIM]
     if not resync and (tree / "Makefile").is_file():
         recorded = stamp.read_text(encoding="utf-8").split() if stamp.is_file() else []
-        if recorded != list(pins):
-            return (f"{tree} records {' and '.join(recorded) or 'no source commits'}, "
-                    f"not these pins; rerun with --resync")
+        if recorded != claim:
+            return (f"{tree} is stamped {' '.join(recorded) or 'with nothing'}, not "
+                    f"{' '.join(claim)}: not these pins; rerun with --resync")
         handle.write("SYNC skipped: the tree is already present at these pins\n")
         return ""
     handle.write(f"SYNC from {src}\n")
@@ -1300,7 +1321,7 @@ def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[
     except ValueError as err:
         shutil.rmtree(tree, ignore_errors=True)
         return str(err)
-    stamp.write_text(f"{pins[0]}\n{pins[1]}\n", encoding="utf-8", newline="")
+    stamp.write_text("".join(f"{line}\n" for line in claim), encoding="utf-8", newline="")
     handle.write("SYNC verified: the copy is the pinned commits' files\n")
     return ""
 
