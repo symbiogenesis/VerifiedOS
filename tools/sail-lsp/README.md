@@ -26,17 +26,22 @@ The optional install reads the complete existing `tools/opam/sail.lock` package
 inventory and refuses drift. It builds the SHA-256-pinned archives in
 [sources.lock.json](sources.lock.json) into the checkout's native
 `sail-lsp/prefix`. It writes no opam switch and does not replace `sail`. The
-private Libsail and the LSP server are built from the Sail 0.20.3 release
-archive, the same SHA-256-identified archive the locked compiler's opam package
-builds from. Upstream's `sail_lsp.opam` in that archive still carries a `0.20.2`
-package label; the archive, not that label, identifies the server's source.
+private Libsail and the LSP server are built from the Sail release archive that
+lock pins, the same SHA-256-identified archive the locked compiler's opam
+package builds from. `install` refuses a Sail pin whose version is not the Sail
+release `tools/opam/sail.lock` installs, and a test holds the pin equal to the
+[Isla tools' Sail pin](../sail-isla/lock.json). The `sail_lsp.opam` package
+label inside an archive can lag its release; the archive, not that label,
+identifies the server's source.
 The dependency closure adds the LSP/JSON-RPC runtime, its JSON conversion and
 UTF library, and the UTF library's build helper. Compiler, dune, Yojson, and
 other build dependencies come from the existing exact lock without solving
 another package graph. Sources and license notices remain in the native lane.
 
 `status` checks the recipe identity and SHA-256 of installed artifacts.
-`install` rebuilds when the tracked recipe changes. Native install and
+`install` rebuilds when the tracked recipe changes. It downloads again any
+source archive that is missing or differs from its pin, keeps a download only
+once its SHA-256 matches, and extracts each source into a fresh tree. Native install and
 qualification outputs remain in the assigned build lane; build logs use its
 assigned native log location. Installation receipts retain source hashes,
 license-file hashes, the complete inherited package inventory, and artifact

@@ -2,7 +2,7 @@
 
 Copyright 2026 Edward Miller.
 
-*Three licenses govern this repository, one per kind of content, and every tracked path falls under exactly one of them. Where this document and a license file disagree, the license file wins. [THIRD-PARTY.md](THIRD-PARTY.md) carries everything somebody else wrote and the terms it arrives under.*
+*Three licenses govern this repository, one per kind of content, and every original tracked path falls under exactly one of them. Where this document and a license file disagree, the license file wins. [THIRD-PARTY.md](THIRD-PARTY.md) carries everything somebody else wrote and the terms it arrives under.*
 
 ## The map
 
@@ -19,6 +19,12 @@ Copyright 2026 Edward Miller.
 
 The split is decidable by path and extension alone. The named upstream patch and
 license instruments take precedence over the general original-file rows.
+Resolver-generated lock data, every `.lock` file, is dependency metadata rather
+than authored or upstream source, so neither original-file row reaches it: it
+records the package names, versions, sources and checksums a resolver chose,
+each package keeping its own terms. That includes
+[tools/sail-isla/isla.Cargo.lock](tools/sail-isla/isla.Cargo.lock), upstream
+Isla's Cargo-generated lock with two package entries changed.
 
 ## Marking a new file
 

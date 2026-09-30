@@ -6,7 +6,8 @@ The complete five-bit input roster is required; duplicate/missing witnesses fail
 isla-testgen executes those concrete witnesses through its helper-function API.
 This does not implement an RV64 instruction Target, instruction generation, memory
 or concurrency testing. Narrowing is checked only on the 32 expanded permission
-masks. The primary Sail C oracle remains separate from the development compiler.
+masks. The primary Sail C oracle is the locked compiler, separate from the Sail
+this lane builds from the same release archive to emit Isla IR.
 """
 
 import hashlib
@@ -24,7 +25,7 @@ from contextlib import chdir
 from pathlib import Path
 from typing import Literal, TypedDict, cast
 
-from vos import env, oracle, sailrig
+from vos import env, oracle, rust_toolchain, sailrig
 
 ASSETS = Path("tools/sail-isla")
 NOTICE = ("Finite advisory differential campaign, not a proof. Scope: perms_expand "
@@ -53,17 +54,11 @@ class SailPin(SourcePin):
     directory: str
 
 
-class RustPin(TypedDict):
-    version: str
-    components: dict[str, dict[str, str]]
-
-
 class Lock(TypedDict):
     version: int
     isla: IslaPin
     testgen: TestgenPin
     sail: SailPin
-    rust: RustPin
 
 
 class Stamp(TypedDict):
@@ -120,8 +115,11 @@ def sha(path: Path) -> str:
 
 
 def asset_digest(root: Path) -> str:
+    """Every tracked build input: this tool's assets, the baseline lock, the shared
+    Rust pin and the recipes that read them."""
     paths = sorted(p for p in (root / ASSETS).rglob("*") if p.is_file())
-    paths += [root / "tools/opam/sail.lock", Path(__file__)]
+    paths += [root / "tools/opam/sail.lock", root / rust_toolchain.PATH, Path(__file__),
+              Path(rust_toolchain.__file__)]
     digest = hashlib.sha256()
     for path in paths:
         digest.update(path.relative_to(root).as_posix().encode())
@@ -168,7 +166,8 @@ class Runner:
 
 def _load_lock(root: Path) -> Lock:
     lock = cast(Lock, json.loads((root / ASSETS / "lock.json").read_text(encoding="utf-8")))
-    if lock["version"] != 1:
+    # Version 2 moved the Rust pin to the shared rust_toolchain owner.
+    if lock["version"] != 2 or "rust" in lock:
         raise IslaError("unsupported optional tool lock version")
     return lock
 
@@ -203,17 +202,30 @@ def _fetch(pin: SourcePin, destination: Path, runner: Runner) -> None:
         raise IslaError(f"optional source checkout has wrong revision or edits: {destination}")
 
 
+_RELEASE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
+
+
+def _release(version: object, what: str) -> tuple[int, int, int]:
+    """A plain major.minor.patch release; pre-release and build suffixes are refused."""
+    match = _RELEASE.fullmatch(version) if isinstance(version, str) else None
+    if match is None:
+        raise IslaError(f"{what} is not a plain major.minor.patch release: {version!r}")
+    return int(match[1]), int(match[2]), int(match[3])
+
+
 def check_lock_override(upstream: str, override: str, versions: dict[str, str]) -> None:
     """Refuse an override differing from upstream's lock beyond the declared versions.
 
-    A declared package keeps its source and dependencies and changes only its
-    version and checksum; every other package entry must be identical.
+    A declared package keeps every other field, including its source and
+    dependencies, and changes only its version and checksum, to a release later
+    than upstream's. Every other package entry and top-level key must be identical.
     """
     try:
         before, after = tomllib.loads(upstream), tomllib.loads(override)
     except tomllib.TOMLDecodeError as exc:
         raise IslaError("an Isla Cargo.lock is not TOML") from exc
-    if set(before) != set(after) or before.get("version") != after.get("version"):
+    if ({key: value for key, value in before.items() if key != "package"}
+            != {key: value for key, value in after.items() if key != "package"}):
         raise IslaError("the Isla lock override changes the lock format")
 
     def split(lock: dict[str, object]) -> tuple[list[str], dict[str, dict[str, object]]]:
@@ -236,20 +248,38 @@ def check_lock_override(upstream: str, override: str, versions: dict[str, str]) 
         raise IslaError("a declared Isla lock override names no locked package")
     for name, version in versions.items():
         old, new = moved_before[name], moved_after[name]
-        if (new["version"] != version or old.get("source") != new.get("source")
-                or old.get("dependencies") != new.get("dependencies")):
+        changing = ("version", "checksum")
+        if (new["version"] != version or set(old) != set(new)
+                or {k: v for k, v in old.items() if k not in changing}
+                != {k: v for k, v in new.items() if k not in changing}):
             raise IslaError(f"the Isla lock override for {name} is not the declared version alone")
+        if _release(old["version"], f"upstream's {name}") >= _release(version, f"the declared {name}"):
+            raise IslaError(f"upstream already carries {name} {old['version']}; "
+                            "retire or regenerate the override")
 
 
-def _prerequisites(e: env.Environment, runner: Runner) -> Path:
-    for tool in ("opam", "git", "cc", "ar"):
-        if shutil.which(tool) is None:
-            raise IslaError(f"missing {tool}; provision the repository's baseline Sail toolchain")
-    lock_text = (e.root / "tools/opam/sail.lock").read_text(encoding="utf-8")
+def baseline_packages(root: Path, sail: SailPin) -> set[str]:
+    """The locked baseline opam inventory, which must install the lane's Sail release.
+
+    The lane builds Sail from the release archive of that same version, so a Sail
+    pin the locked compiler does not install is refused before anything is built.
+    """
+    lock_text = (root / "tools/opam/sail.lock").read_text(encoding="utf-8")
     block = re.search(r"installed:\s*\[(.*?)\]", lock_text, re.DOTALL)
     if block is None:
         raise IslaError("cannot read baseline opam inventory")
-    expected = set(re.findall(r'"([^"]+)"', block[1]))
+    expected = {str(name) for name in re.findall(r'"([^"]+)"', block[1])}
+    if f"sail.{sail['version']}" not in expected:
+        raise IslaError(f"the Isla lock's Sail {sail['version']} archive is not the Sail "
+                        "release tools/opam/sail.lock installs")
+    return expected
+
+
+def _prerequisites(e: env.Environment, runner: Runner, sail: SailPin) -> Path:
+    expected = baseline_packages(e.root, sail)
+    for tool in ("opam", "git", "cc", "ar"):
+        if shutil.which(tool) is None:
+            raise IslaError(f"missing {tool}; provision the repository's baseline Sail toolchain")
     listing = runner.run(["opam", "list", f"--switch={env.SAIL_SWITCH}", "--installed",
                           "--short", "--columns=name,version", "--color=never"], e.root)
     actual = {".".join(line.split()) for line in listing.splitlines() if line.strip()}
@@ -291,6 +321,17 @@ def _binaries(base: Path, lane: Path, z3_lib: Path) -> list[Path]:
             *sorted(runtime.glob("*.h"))]
 
 
+def _install_rust(root: Path, base: Path, triple: str, runner: Runner) -> None:
+    """Install the shared pinned Rust components; each archive is verified first."""
+    for name, url, expected in rust_toolchain.archives(rust_toolchain.load(root), triple):
+        archive = base / f"{name}.tar.xz"
+        _download(url, expected, archive)
+        with tarfile.open(archive) as compressed:
+            compressed.extractall(base, filter="data")
+        runner.run(["sh", str(base / name / "install.sh"), f"--prefix={base / 'rust'}",
+                    "--disable-ldconfig"], base)
+
+
 def provision(e: env.Environment, jobs: int = 2) -> Stamp:
     """Explicit downloads and builds; never installs into the baseline opam switch."""
     if not 1 <= jobs <= 16:
@@ -299,24 +340,26 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
     base.mkdir(parents=True, exist_ok=True)
     with env.hold_lock(base, "optional Isla provisioning"):
         runner = Runner(e, "provision")
-        z3_lib = _prerequisites(e, runner)
         lock = _load_lock(e.root)
+        z3_lib = _prerequisites(e, runner, lock["sail"])
         triple = {"aarch64": "aarch64-unknown-linux-gnu",
                   "x86_64": "x86_64-unknown-linux-gnu"}.get(platform.machine())
         if platform.system() != "Linux" or triple is None:
             raise IslaError("optional native tools support Linux aarch64 and x86_64")
-        for component, expected in lock["rust"]["components"][triple].items():
-            name = f"{component}-{lock['rust']['version']}-{triple}"
-            archive = base / f"{name}.tar.xz"
-            _download(f"https://static.rust-lang.org/dist/{name}.tar.xz", expected, archive)
-            with tarfile.open(archive) as compressed:
-                compressed.extractall(base, filter="data")
-            runner.run(["sh", str(base / name / "install.sh"), f"--prefix={base / 'rust'}",
-                        "--disable-ldconfig"], base)
-        process = _process_env(base, z3_lib)
         sources = e.lane_root / "sources"
         isla, testgen = sources / "isla", sources / "isla-testgen"
         _fetch(lock["isla"], isla, runner)
+        # The fetched checkout stays pristine; a build copy carries the tracked
+        # lock override, which may differ from upstream only as declared. Check it
+        # before the Rust download and Sail build so a stale override fails first.
+        override_name = lock["isla"]["cargo_lock"]
+        if Path(override_name).name != override_name or override_name in ("", ".", ".."):
+            raise IslaError("the Isla lock override must be a file beside lock.json")
+        override = (e.root / ASSETS / override_name).read_text(encoding="utf-8")
+        check_lock_override((isla / "Cargo.lock").read_text(encoding="utf-8"), override,
+                            lock["isla"]["cargo_lock_overrides"])
+        _install_rust(e.root, base, triple, runner)
+        process = _process_env(base, z3_lib)
         _fetch(lock["testgen"], testgen, runner)
         runner.run(["git", "-C", str(testgen), "submodule", "update", "--init", "--depth=1",
                     "isla"], testgen)
@@ -327,9 +370,12 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
             raise IslaError("the Sail source directory must be one archive member name")
         archive = base / "sail.archive"
         _download(lock["sail"]["url"], lock["sail"]["sha256"], archive)
+        sail_source = base / directory
+        # A fresh tree: no member of an earlier archive survives into the dune build.
+        if sail_source.exists():
+            shutil.rmtree(sail_source)
         with tarfile.open(archive) as compressed:
             compressed.extractall(base, filter="data")
-        sail_source = base / directory
         prefix = base / "sail-prefix"
         opam = ["opam", "exec", f"--switch={env.SAIL_SWITCH}", "--"]
         runner.run([*opam, "dune", "build", "-p", "sail,sail_maker,libsail", "@install",
@@ -342,14 +388,6 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
         plugin_env = {**process, "OCAMLPATH": f"{prefix / 'lib'}:{switch}/lib"}
         runner.run([*opam, "dune", "build", "--release", "-j", str(jobs)],
                    isla / "isla-sail", plugin_env)
-        # The fetched checkout stays pristine; a build copy carries the tracked
-        # lock override, which may differ from upstream only as declared.
-        override_name = lock["isla"]["cargo_lock"]
-        if Path(override_name).name != override_name or override_name in ("", ".", ".."):
-            raise IslaError("the Isla lock override must be a file beside lock.json")
-        override = (e.root / ASSETS / override_name).read_text(encoding="utf-8")
-        check_lock_override((isla / "Cargo.lock").read_text(encoding="utf-8"), override,
-                            lock["isla"]["cargo_lock_overrides"])
         isla_build = base / "build/isla"
         if isla_build.exists():
             shutil.rmtree(isla_build)
@@ -467,7 +505,7 @@ def qualify(e: env.Environment) -> Report:
         report_path = work / "report.json"
         report_path.unlink(missing_ok=True)
         runner = Runner(e, "qualify")
-        z3_lib = _prerequisites(e, runner)
+        z3_lib = _prerequisites(e, runner, _load_lock(e.root)["sail"])
         stamp_path = base / "provision.json"
         if not stamp_path.is_file():
             raise IslaError("optional tools are absent; run sail-isla provision")
