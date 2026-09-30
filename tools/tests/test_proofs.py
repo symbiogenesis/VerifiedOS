@@ -135,6 +135,11 @@ _WITNESSED = "Definition witness_Machine : Machine := {| unit_count := 2 |}.\n"
 # bullet or brace, after which the pinned Rocq 9.3.0 compiles a declaration in a proof.
 _DECORATIONS = ("#[local]", "Local", "Polymorphic", "Cumulative Polymorphic",
                 "#[projections(primitive)]", "Time", "Fail", "- ", "{ ", "1: {")
+# Every keyword the pinned Rocq 9.3.0 states a theorem with, its grammar's `thm_token`,
+# spelled here rather than read from the gate's table, and `Example`; each compiles
+# under the gate's flags over a record.
+_THEOREMS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
+             "Example")
 
 _COMPANION = """
 Require Import Apex.
@@ -257,10 +262,13 @@ def _a_decorated_record_still_demands_its_witness() -> None:
 
 
 def _a_decorated_statement_still_quantifies() -> None:
-    # An attribute's quoted value may hold a bracket, which does not close the attribute.
+    # An attribute's quoted value may hold a bracket, which does not close the attribute,
+    # or a full stop, which does not end the sentence, a line break after it or not.
     for decoration in (*_DECORATIONS, "Program", "Program Local", "Local Program",
-                       '#[deprecated(since="1", note="see [x]")]'):
-        for keyword in ("Lemma", "Theorem", "Example", "Corollary", "Fact"):
+                       '#[deprecated(since="1", note="see [x]")]',
+                       '#[deprecated(since="1", note="see x. y")]',
+                       '#[deprecated(since="1", note="see x.\ny")]'):
+        for keyword in _THEOREMS:
             statement = _COUNTED.replace("Lemma", f"{decoration} {keyword}")
             found = gate.scan_witnesses(_MACHINE + statement)
             ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
@@ -273,6 +281,67 @@ def _a_decorated_statement_still_quantifies() -> None:
                                                   "#[local] Context (p : Plan)"))
     ensure(found.quantified == {"Plan": 1},
            f"a decorated Context quantified nothing, got {found!r}")
+
+
+def _every_theorem_keyword_quantifies() -> None:
+    """A statement under a keyword the definer table lacked never quantified, so its
+    record's witness demand went away; a definition over the record still demands none."""
+    for keyword in _THEOREMS:
+        found = gate.scan_witnesses(_MACHINE + _COUNTED.replace("Lemma", keyword))
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a {keyword} quantified nothing, got {found!r}")
+    ensure(set(gate.STATEMENTS) <= set(gate.DEFINERS),
+           "a statement keyword is missing from the definer table")
+    for keyword in ("Definition", "Instance"):
+        found = gate.scan_witnesses(_MACHINE + _COUNTED.replace("Lemma", keyword))
+        ensure(found.quantified == {}, f"a {keyword} quantified over its binders: {found!r}")
+
+
+def _a_comment_separates_a_decoration_from_its_head() -> None:
+    """Rocq's lexer reads a comment as a separator, and the pinned Rocq 9.3.0 compiles
+    `Local(* c *)Lemma`, so a comment with no space beside it joins nothing."""
+    for decoration in ("Local(* c *)", "Time(* c *)", "Local(* a *)Program(* b *)",
+                       '(* "(*" *)'):
+        statement = _COUNTED.replace("Lemma", f"{decoration}Lemma")
+        found = gate.scan_witnesses(_MACHINE + statement)
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a statement after {decoration!r} quantified nothing, got {found!r}")
+        found = gate.scan_witnesses(f"{decoration}{_MACHINE}{_COUNTED}")
+        ensure(found.unbuilt == ["Machine"],
+               f"a record after {decoration!r} demanded no witness, got {found!r}")
+    found = gate.scan_witnesses(_SECTIONED.replace("Variable", "Polymorphic(* c *)Variable"))
+    ensure(found.unbuilt == ["Plan"], f"a section variable after a comment was lost: {found!r}")
+
+
+def _a_token_ending_in_two_full_stops_ends_no_statement() -> None:
+    """stdpp's telescope binder `∀..` is one token to Rocq's lexer, and `..` ends no
+    sentence there; the pinned Rocq 9.3.0 compiles this statement under the gate's flags
+    with stdpp's telescopes imported and its scope open, so the Machine after the binder
+    is quantified."""
+    statement = ("Lemma counted : (∀.. (x : TeleO), True) -> forall m : Machine, "
+                 "unit_count m = unit_count m.\nProof. intros _ m. reflexivity. Qed.\n")
+    found = gate.scan_witnesses(_MACHINE + statement)
+    ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+           f"a statement after a telescope binder quantified nothing, got {found!r}")
+
+
+def _a_tight_control_prefix_still_decorates() -> None:
+    """Rocq's lexer needs no blank after a control word before `#[`, nor around a quoted
+    Redirect or Profile target: the pinned Rocq 9.3.0 compiles `Time#[local]Lemma` and,
+    once its output warning is silenced, `Redirect"o"Record`. So a head after one is
+    read, still demands a witness, and still names none."""
+    for decoration in ("Time#[local]", "Instructions#[local]", "Succeed#[local]",
+                       'Redirect"o"', 'Redirect "a""b" ', 'Profile"p"', "Timeout 5"):
+        statement = _COUNTED.replace("Lemma", f"{decoration}Lemma")
+        found = gate.scan_witnesses(_MACHINE + statement)
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a statement after {decoration!r} quantified nothing, got {found!r}")
+        found = gate.scan_witnesses(f"{decoration}{_MACHINE}{_COUNTED}")
+        ensure(found.unbuilt == ["Machine"],
+               f"a record after {decoration!r} demanded no witness, got {found!r}")
+        found = gate.scan_witnesses(_MACHINE + _COUNTED + f"{decoration}{_WITNESSED}")
+        ensure(found.unbuilt == ["Machine"],
+               f"a witness after {decoration!r} inhabited the record, got {found!r}")
 
 
 def _a_decorated_witness_is_no_witness() -> None:
@@ -377,6 +446,12 @@ def cases() -> list[Case]:
         Case("section-variable-quantifies", _a_section_variable_quantifies),
         Case("decorated-record-demands-a-witness", _a_decorated_record_still_demands_its_witness),
         Case("decorated-statement-quantifies", _a_decorated_statement_still_quantifies),
+        Case("every-theorem-keyword-quantifies", _every_theorem_keyword_quantifies),
+        Case("comment-separates-decoration-from-head",
+             _a_comment_separates_a_decoration_from_its_head),
+        Case("tight-control-prefix-still-decorates", _a_tight_control_prefix_still_decorates),
+        Case("two-full-stops-end-no-statement",
+             _a_token_ending_in_two_full_stops_ends_no_statement),
         Case("decorated-witness-is-no-witness", _a_decorated_witness_is_no_witness),
         Case("companion-witness-inhabits", _a_companion_witness_inhabits_an_imported_record),
         Case("comment-is-not-read", _a_comment_is_not_read),
