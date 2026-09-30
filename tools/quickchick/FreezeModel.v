@@ -56,10 +56,9 @@
    renderer cannot move the other file's answer; a shared renderer would make
    every vector in this tree one artifact.
 
-   It is compiled by tools/vos/gallina.py in the CertiRocq oracle's own
-   switch, which is where the standard library is; the shipped proofs use the
-   prelude alone and are compiled in the proof gate's switch, which carries no
-   library at all.
+   It is compiled by tools/vos/gallina.py in the proof gate's own switch,
+   which carries the standard library it loads, so it compiles at the release
+   the gate compiles the shipped proofs at.
    ========================================================================= *)
 
 From Stdlib Require Import String List Ascii ZArith.
