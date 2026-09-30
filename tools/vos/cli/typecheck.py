@@ -37,15 +37,25 @@ setting takes away:
                    suppress diagnostics, for the files it matches
     [analysis]     a key outside the ones that suppress nothing, which refuses
                    `allowed-unresolved-imports` and `replace-imports-with-any`
-    [src]          a table other than exactly `exclude = ["**/__pycache__/**"]`,
-                   since an `include`, a further `exclude` or `exclude-scripts`
-                   takes files out of the run
+    [environment]  a key other than `python-version`, `python-platform` and
+                   `extra-paths`, or either of the last two at a value other than
+                   `"linux"` and `["."]`, since the platform decides which branches
+                   ty checks and `python`, `root`, `typeshed` or another search path
+                   changes where it resolves imports; K-75 holds `python-version`
+    [src]          a table other than exactly `exclude = ["**/__pycache__/**"]` and
+                   `respect-ignore-files = false`, since an `include`, a further
+                   `exclude`, `exclude-scripts` or honoring ignore files takes
+                   files out of the run
+
+A user-level ty configuration is a ty finding too: ty merges it beneath `ty.toml`
+even beside `--config-file`, so a setting `ty.toml` leaves out would come from it.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import sysconfig
@@ -67,8 +77,11 @@ RUFF_VERSION = _PINS["ruff"]
 TY_RULES = {"all": "error"}
 
 # The one `[src]` table ty.toml may carry. `include`, a further `exclude` glob and
-# `exclude-scripts` each take files out of the run, where no severity reaches them.
-TY_SRC = {"exclude": ["**/__pycache__/**"]}
+# `exclude-scripts` each take files out of the run, where no severity reaches them,
+# and so does `respect-ignore-files`, which defaults to true: a `.gitignore`,
+# `.ignore`, `.git/info/exclude` or global gitignore pattern matching a tracked
+# module would otherwise drop it.
+TY_SRC = {"exclude": ["**/__pycache__/**"], "respect-ignore-files": False}
 
 # The keys an `[[overrides]]` entry may carry: which files it matches, and nothing
 # it does to them. ty also accepts `rules`, which can lower `--error all` for those
@@ -82,6 +95,17 @@ TY_OVERRIDE_KEYS = frozenset({"include", "exclude"})
 # `strict-equality-semantics`.
 TY_ANALYSIS_KEYS = frozenset({"respect-type-ignore-comments", "strict-equality-semantics",
                               "strict-literal-narrowing", "strict-generic-narrowing"})
+
+# The `[environment]` values the gate holds, and the keys it admits beside them. ty
+# reports nothing in a branch `python-platform` makes unreachable, so the platform
+# decides which `sys.platform` branches are checked at all, and an `extra-paths`
+# entry comes first in resolving every import. ty's other three keys each move a
+# resolution: `python` another environment's packages for an editor, the gate's
+# `--python` overriding it, `root` the first-party modules, and `typeshed` the
+# standard library. A key the gate has not read is refused with them.
+# `python-version` is admitted and K-75 holds its value.
+TY_ENVIRONMENT = {"python-platform": "linux", "extra-paths": ["."]}
+TY_ENVIRONMENT_KEYS = frozenset({"python-version", *TY_ENVIRONMENT})
 
 # How many findings of one rule are printed before the rest are counted. A run that
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
@@ -240,20 +264,29 @@ def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
 
 
 def _ty_settings(config: Path) -> list[str]:
-    """Whatever in `ty.toml` would split the editor from the gate or narrow the gate.
+    """The `ty.toml` settings the gate refuses, as findings.
 
-    `--error all` overrides the `[rules]` table, so the gate's own run cannot see a
-    lowered entry there; an editor's language server reads the table without the
-    flag, which is why the table is held exactly rather than by what it means. The
-    flag does not reach the rest, so it is held by shape: an `[[overrides]]` entry
-    carries only `TY_OVERRIDE_KEYS`, `[analysis]` only `TY_ANALYSIS_KEYS`, and
-    `[src]` is exactly `TY_SRC`. The shape is held rather than the values, so an
-    override restating `all = "error"` and an empty suppression list are refused too.
+    What is held, and nothing else: `[rules]` is exactly `TY_RULES` and `[src]`
+    exactly `TY_SRC`; `[analysis]` carries only `TY_ANALYSIS_KEYS` and each
+    `[[overrides]]` entry only `TY_OVERRIDE_KEYS`; `[environment]` carries only
+    `TY_ENVIRONMENT_KEYS`, with the two names `TY_ENVIRONMENT` gives at exactly its
+    values. `--error all` overrides the `[rules]` table, so the gate's own run cannot
+    see a lowered entry there; an editor's language server reads the table without
+    the flag, which is why the table is held exactly rather than by what it means.
+    The flag does not reach the rest, so the keys are held by shape rather than by
+    what they say, and an override restating `all = "error"` and an empty
+    suppression list are refused too.
+
+    Not held here: the value of `python-version`, which K-75 holds against the
+    project's interpreter constraint; `[terminal]`, whose `output-format` the gate's
+    own flag overrides and whose `error-on-warning` cannot clear a warning the gate
+    reads from the output; and a table or key ty does not accept, which ty refuses
+    as an invalid `ty.toml`, exiting 2, before it checks anything.
 
     Fail-closed: a file that cannot be read or parsed, an `overrides` value that is
-    not an array of tables, or an `analysis` value that is not a table is a finding,
-    never a pass, and a key the gate has not admitted is refused, never assumed
-    harmless.
+    not an array of tables, or an `analysis` or `environment` value that is not a
+    table is a finding, never a pass, and a key the gate has not admitted is
+    refused, never assumed harmless.
     """
     name = f"tools/{config.name}"
     try:
@@ -271,8 +304,8 @@ def _ty_settings(config: Path) -> list[str]:
     if src != TY_SRC:
         found = "carries no [src] table" if src is None else f"sets [src] to {src!r}"
         findings.append(f"{name} {found}; the gate holds it to exactly {TY_SRC!r}, "
-                        "because an include, a further exclude or exclude-scripts takes "
-                        "files out of the run")
+                        "because an include, a further exclude, exclude-scripts or "
+                        "honoring ignore files takes files out of the run")
     analysis = settings.get("analysis", {})
     if not isinstance(analysis, dict):
         findings.append(f"{name}'s analysis must be a table, found {analysis!r}")
@@ -282,6 +315,28 @@ def _ty_settings(config: Path) -> list[str]:
             + ", ".join(f"{key} {analysis[key]!r}" for key in refused)
             + f"; the gate admits only {', '.join(sorted(TY_ANALYSIS_KEYS))}, "
             "the settings that suppress no diagnostic the defaults report")
+    held = " and ".join(f"{key} to {value!r}" for key, value in TY_ENVIRONMENT.items())
+    why = ("because the platform decides which sys.platform branches ty checks and "
+           "extra-paths comes first in resolving every import")
+    environment = settings.get("environment")
+    if environment is None:
+        findings.append(f"{name} carries no [environment] table; the gate holds {held}, {why}")
+    elif not isinstance(environment, dict):
+        findings.append(f"{name}'s environment must be a table, found {environment!r}")
+    else:
+        if refused := sorted(set(environment) - TY_ENVIRONMENT_KEYS):
+            findings.append(
+                f"{name}'s [environment] carries "
+                + ", ".join(f"{key} {environment[key]!r}" for key in refused)
+                + f"; the gate admits only {', '.join(sorted(TY_ENVIRONMENT_KEYS))}, "
+                "because python, root and typeshed each move where ty resolves imports")
+        if changed := [key for key, want in TY_ENVIRONMENT.items()
+                       if environment.get(key) != want]:
+            findings.append(
+                f"{name}'s [environment] "
+                + ", ".join(f"sets {key} to {environment[key]!r}" if key in environment
+                            else f"carries no {key}" for key in changed)
+                + f"; the gate holds {held}, {why}")
     overrides = settings.get("overrides", [])
     if not isinstance(overrides, list) or not all(isinstance(o, dict) for o in overrides):
         findings.append(f"{name}'s overrides must be an array of tables, found {overrides!r}")
@@ -297,16 +352,49 @@ def _ty_settings(config: Path) -> list[str]:
     return findings
 
 
+def _user_config() -> Path | None:
+    """The user-level `ty.toml` ty merges beneath the one it is given, if one exists.
+
+    ty reads `ty/ty.toml` under the user configuration directory: `%APPDATA%` on
+    Windows, or the roaming application-data folder when that is unset or empty,
+    which this reads as `AppData\\Roaming` under the home directory; and
+    `$XDG_CONFIG_HOME` on Linux and macOS when it is an absolute path, else
+    `~/.config`. The environment is the one the gate's own ty inherits.
+    """
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", "")
+        fallback = ("AppData", "Roaming")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME", "")
+        base = base if Path(base).is_absolute() else ""
+        fallback = (".config",)
+    if base:
+        directory = Path(base)
+    else:
+        try:
+            directory = Path.home().joinpath(*fallback)
+        except RuntimeError:
+            return None
+    candidate = directory / "ty" / "ty.toml"
+    return candidate if candidate.is_file() else None
+
+
 def _run_ty(rep: Reporter, root: Path) -> None:
     """Every expression in the directory, against the types ty can infer for it.
 
     The settings are held first and the checker runs regardless: a refused setting
     stands beside the checker's verdict rather than hiding the findings it would
-    still report, and that verdict then claims no more than the run showed."""
+    still report, and that verdict then claims no more than the run showed. A
+    user-level configuration is reported rather than redirected away from, because
+    ty merges it into this run and the finding is what tells its owner so."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _ty_settings(tools / "ty.toml"):
         rep.report("ty", "ty.toml setting(s) the gate refuses:", refused)
+        held = " under the settings refused above"
+    if (user := _user_config()) is not None:
+        rep.report("ty", "user-level configuration(s) the gate refuses:",
+                   [f"a user-level ty configuration at {user} merges into the gate's run"])
         held = " under the settings refused above"
     _run_checker(
         rep, "ty", TY_VERSION,

@@ -416,12 +416,14 @@ microsecond precision, and a cutoff copied from uv.lock's millisecond `upload-ti
 excludes a file uploaded within that millisecond and silently drops it from the lock.
 An entry can be deleted once three days have passed since its cutoff, when its
 release has aged past the cooldown; the comment on each manifest line gives that
-moment. After deleting one from the manifest, `uv lock --project tools` should remove
+moment, and no rule checks that comment against its cutoff, because the entries are
+transient. After deleting one from the manifest, `uv lock --project tools` should remove
 only that package's line from uv.lock's `[options.exclude-newer-package]`, and the
 table's header with its last line, leaving every `[[package]]` entry byte-identical.
 A changed version of the deleted entry's own package means the entry went before its
-date; any other `[[package]]` change is index drift from the re-resolution and is
-reviewed on its own.
+date, and any other change then follows from it; when that package keeps its version,
+any other `[[package]]` change is index drift from the re-resolution and is reviewed
+on its own.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
@@ -581,7 +583,7 @@ A build **holds its lane** for exactly as long as it runs, so a second build ove
 
 A build is not the only holder of state, and every holder refuses a concurrent run by naming the one that holds it. `emit` takes the same lock as `build`, because both drive the one cmake tree; `typecheck` holds a lock beside its lane's SMT memo cache, which Sail rewrites whole at exit; and `oracle` holds the one tree every lane shares. `corpus` writes its images into the lane's own directory, so two lanes' runs cannot land one ELF path.
 
-A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the two Sail SMT memo caches a lane keeps, the build tree's and the typecheck loop's, and a cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other. Every command that can stand a tree up seeds it before it configures one, `build`, `emit` and `bundle`, so which command a lane is opened with does not decide what that lane pays.
+A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests, only as a copy that matches the manifest configure wrote when it verified the download ([THIRD-PARTY.md](../THIRD-PARTY.md#fetched-at-build-time)), and the two Sail SMT memo caches a lane keeps, the build tree's and the typecheck loop's, and a cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other. Every command that can stand a tree up seeds it before it configures one, `build`, `emit` and `bundle`, so which command a lane is opened with does not decide what that lane pays.
 
 ## Where a file lives, and which lane touches it
 
@@ -954,24 +956,25 @@ The optional `workflows` group pins zizmor, which Host CI syncs alone into an
 environment of its own; [workflow analysis](#workflow-analysis) gives the command.
 PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
-[model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) keeps upstream's
-paths, which assume a repository root at `model/`. pre-commit changes directory to
-the Git top level before it reads a configuration, so here they resolve against this
-repository's root: the `^(dependencies/)` exclusion never matches
-`model/dependencies/`, codespell does not find `model/.codespellrc`, and
-markdown-link-check looks for `.markdown-link-check.config` at the root, where there
-is none. Run the hooks only on named model files, from the checkout root and with
-the environment above:
+pre-commit changes directory to the Git top level before it reads a configuration,
+so [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) states its paths
+from this repository's root: the top-level `files: "^model/"` confines every hook to
+paths under `model/`, the exclusion names `model/dependencies/`, and codespell and
+markdown-link-check are handed `model/.codespellrc` and
+`model/.markdown-link-check.config`. Run the hooks from the checkout root with the
+environment above:
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --files <paths>`,
-listing paths under `model/` outside `model/dependencies/`. That repairs the
-exclusion only: codespell still runs without `model/.codespellrc`, and
-markdown-link-check reports its configuration file inaccessible on every Markdown
-path, so set `SKIP=codespell,markdown-link-check` for such a run and read neither
-hook's result as upstream's verdict. The fixing hooks
-(trailing-whitespace, end-of-file-fixer, clang-format and prettier) rewrite the
-files they are given. Never pass `--all-files`, which selects every tracked file in
-the repository, and never run `pre-commit install`, which would run these hooks on
-every commit to the repository.
+or with `--all-files`, which selects the tracked files under `model/` outside
+`model/dependencies/` and nothing else. The fixing hooks (trailing-whitespace,
+end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
+`git diff -- model` after a run, and markdown-link-check fetches every external link
+it finds. No gate runs these hooks. Never run `pre-commit install`: it writes the hook
+into the Git directory every worktree shares, so every session's commits would run it.
+The hook calls the installing environment's interpreter, which a commit from the
+other side of the WSL boundary cannot execute, so that side's commits are refused
+unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook
+that rewrites a staged file fails the commit, and markdown-link-check fetches the
+links of every staged Markdown file.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
@@ -983,10 +986,22 @@ an editor's ty server reads that table without the flag; an `[[overrides]]` entr
 carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
 severities and its `analysis` can suppress diagnostics for the files it matches; an
 `[analysis]` key outside the ones the gate admits as suppressing nothing, which
-refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
-table other than exactly `exclude = ["**/__pycache__/**"]`, because an `include`, a
-further `exclude` or `exclude-scripts` takes files out of the run. An unreadable
-ty.toml is a finding too. What ruff is *not*
+refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
+`[environment]` key other than `python-version`, `python-platform` and
+`extra-paths`, or `python-platform` other than `"linux"` or `extra-paths` other than
+`["."]`, because the platform decides which `sys.platform` branches ty checks and
+`python`, `root`, `typeshed` or another search path moves where it resolves imports
+(K-75 holds `python-version`); and a `[src]`
+table other than exactly `exclude = ["**/__pycache__/**"]` and
+`respect-ignore-files = false`, because an `include`, a further `exclude`,
+`exclude-scripts` or honoring ignore files takes files out of the run: ty honors
+`.gitignore`, `.ignore`, `.git/info/exclude` and the global gitignore by default,
+so a pattern in one of them matching a tracked module would drop it. An unreadable
+ty.toml is a finding too, and so is a user-level ty configuration: ty merges
+`%APPDATA%\ty\ty.toml` on Windows, or `$XDG_CONFIG_HOME/ty/ty.toml` (by default
+`~/.config/ty/ty.toml`) on Linux and macOS, beneath ty.toml even when the gate names
+ty.toml with `--config-file`, so a setting ty.toml leaves out would come from it. The
+gate reports such a file rather than steering ty away from it. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
@@ -999,7 +1014,9 @@ editor's ty server to read ty.toml and share the gate's severities. In VS Code, 
 the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules
-use POSIX APIs, even when the host checks them. It does not move execution into Linux.
+use POSIX APIs, even when the host checks them. It does not move execution into Linux,
+and ty reports nothing in a branch the target makes unreachable, so the branches taken
+only when `sys.platform` is `win32` go unchecked.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
