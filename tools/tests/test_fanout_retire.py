@@ -846,7 +846,7 @@ def _producer_lock_inventory() -> None:
         if _FLOCK.search(text) is not None:
             counts[path.relative_to(TOOLS.parent).as_posix()] = _c_flock_calls(text)
     ensure({name: count for name, count in counts.items() if count != 0} == native,
-           f"unclassified native flock sites (file: calls, None where unreadable): {counts}")
+           f"unclassified native flock sites (file: calls, None where one is not a call): {counts}")
     launchers = {path.relative_to(TOOLS).as_posix() for path in sources
                  if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
                         and node.value.startswith("--blkdev-image")
