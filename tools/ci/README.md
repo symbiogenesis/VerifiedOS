@@ -53,12 +53,14 @@ tuple owns that list. One package-database query checks all prerequisites; a fat
 query error stops installation. Python must satisfy [the manifest](../pyproject.toml),
 and uv must match its exact pin before bootstrap starts. The script checks the downloaded
 opam executable, imports the [package snapshots](../opam/README.md), and calls the
-existing pinned Verilator installer. It installs and probes Z3 first, prepending its
-private binary directory to `PATH` before Sail starts: Sail initializes its solver
+existing pinned Verilator installer. It installs Z3 first, only from the wheels whose SHA-256
+values [the solver's requirements](../z3-requirements.txt) record and never from source,
+and probes it, prepending its private binary directory to `PATH` before Sail starts: Sail initializes its solver
 even for `--version`. Each tool is probed immediately after installation, so a failed
 Sail probe stops before building Rocq or Verilator. A repeatable `--toolchain` option
 selects `sail` (with its solver), `rocq` or `rtl`. The default installs all three in
-that order, and `bootstrap.json` records the selection. Bootstrap failures print the last
+that order, and `bootstrap.json` records the selection and each opam repository's URL and
+metadata stamp. Bootstrap failures print the last
 40 log lines in the Actions console as well as retaining the complete log.
 Bootstrap and the Verilator installer share verified-download and atomic-publication
 helpers in [vos/receipts.py](../vos/receipts.py); the reporter and JSON writers use
@@ -127,7 +129,8 @@ uv downloads, opam's source download cache and verified Verilator source archive
 are restored between runs; model evidence is always rebuilt. The source
 cache includes bootstrap's ownership marker so the restored private root can resume.
 Each lane has its own source cache. Its key includes the lane, runner OS and architecture,
-Sail and Rocq snapshots, bootstrap, the Verilator installer and shared download helper.
+Sail and Rocq snapshots, bootstrap, [the opam client's owner](../vos/opam_client.py), the
+Verilator installer and shared download helper.
 A prefix fallback reuses the lane's older source downloads, with the installers' checksum
 verification still required. Cache eviction simply means a cold installation. Only the
 model lane saves the uv cache; both lanes restore it. Its `guest-gates` key suffix keeps
@@ -140,7 +143,7 @@ toolchains: its opam root without downloads or logs, the Verilator prefix and th
 ownership marker. Bootstrap then runs unchanged: it imports each lock into its restored
 switch, installs the uncached solver, skips a Verilator prefix whose receipt matches
 and probes every tool. The key includes the lane, runner OS, architecture, the Sail
-and Rocq snapshots and bootstrap, with the image version for the model lane and only
+and Rocq snapshots, bootstrap and [the opam client's owner](../vos/opam_client.py), with the image version for the model lane and only
 the image's release (`ImageOS`) for the proofs lane. Rocq and its checker load only
 the C library, whose ABI a release keeps and whose bytes the proof gate binds. A
 rebuilt switch reproduces those executables but not every installed library file,
