@@ -106,7 +106,7 @@ def _tree_safe(path: Path, *, checkout: bool = False) -> list[Path]:
                         or not child.resolve(strict=True).is_relative_to(path)):
                     raise RetirementError(f"output directory redirects outside its tree: {child}")
                 # Python venv lib64 -> lib is retained by the enclosing rename.
-                # Its real target is traversed and locked independently below.
+                # Its real target is traversed, and its locks held, independently below.
                 dirs.remove(name)
                 continue
             found.append(child)
@@ -312,16 +312,30 @@ def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], li
     return sorted(wanted - ambiguous), deferred
 
 
+# The directories a producer flocks through their own descriptor, relative to the lane
+# root: the proof workspace (`vos.cli.proofs._hold`). Every other producer lock is a
+# `*.lock` file: `env.hold_lock` and `env.build_lock` lock `<target>.lock` beside their
+# target, and the toolchain installer scripts `.<name>.lock`. The tests hold this list
+# against every `flock` call site in the tools' Python and shell sources.
+_DIRECTORY_LOCKS = ("proof-gate",)
+
+
 def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
                   peers: list[str] | None = None) -> dict[str, object]:
     """Run only on the native guest; retain outputs while holding their live locks.
 
     Symlink files are renamed as links, never followed. Relative internal directory
     links are retained with their targets; external links and mounted subtrees
-    refuse. All existing directory locks (including the proof workspace)
-    and *.lock files in both build and log outputs are held non-blockingly through
-    the move. Exact peer-colliding and unknown log layouts remain in place with
-    explicit deferred evidence. No source path is recursively deleted.
+    refuse. The locks held non-blockingly through the move are exactly those a
+    producer can hold: each moved root's own descriptor and its `<name>.lock` beside it,
+    every `*.lock` entry beneath a moved directory, the lane's `_DIRECTORY_LOCKS`,
+    and the oracle family's tree locks when this lane's oracle log moves. No other
+    directory is opened, so the size of a tree (a private opam root holds tens of
+    thousands of directories) never meets the descriptor limit. A lock that cannot be
+    opened or taken, including for want of descriptors, and a move the filesystem
+    rejects refuse naming the path. Exact peer-colliding and unknown log layouts
+    remain in place with explicit deferred evidence. No source path is recursively
+    deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
@@ -354,13 +368,11 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
         _plain(before)
         if before.is_mount() or after.exists() or after.is_symlink():
             raise RetirementError(f"native output or retained destination needs review: {before}, {after}")
+        # A root's own descriptor: the lane root, a log directory, or a log file.
+        lock_paths.add(before)
         if before.is_dir():
-            lock_paths.add(before)
-            lock_paths.update(path for path in _tree_safe(before)
-                              if path.is_dir() or path.name.endswith(".lock"))
-        else:
-            # Holds a log's own descriptor as well as any producer's sidecar lock.
-            lock_paths.add(before)
+            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock") or (
+                path.parent == source and path.name in _DIRECTORY_LOCKS))
         adjacent = env._lock_path(before)
         if adjacent.exists() or adjacent.is_symlink():
             lock_paths.add(adjacent)
@@ -383,17 +395,24 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
                 raise RetirementError(f"lock redirects: {path}")
             if not path.is_file() and not path.is_dir():
                 raise RetirementError(f"native output is not a regular file or directory: {path}")
-            fd = os.open(path, os.O_RDONLY)
-            stack.callback(os.close, fd)
             try:
+                fd = os.open(path, os.O_RDONLY)
+                stack.callback(os.close, fd)
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
                 raise RetirementError(f"native output lock is active: {path}") from exc
+            except OSError as exc:
+                raise RetirementError(f"native output lock cannot be taken: {path} "
+                                      f"({exc.strerror or exc}; {len(lock_paths)} locks needed)") from exc
         for before, after in targets:
             _plain(before)
             _plain(after)
-            after.parent.mkdir(parents=True, exist_ok=True)
-            before.rename(after)
+            try:
+                after.parent.mkdir(parents=True, exist_ok=True)
+                before.rename(after)
+            except OSError as exc:
+                raise RetirementError(f"native output cannot be moved: {before} -> {after} "
+                                      f"({exc.strerror or exc})") from exc
     return {"archive": str(destination), "retained": [str(after) for _, after in targets],
             "deferred": deferred}
 
