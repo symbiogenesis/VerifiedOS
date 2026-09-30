@@ -559,7 +559,7 @@ def outcome(name, batch):
     return "retired"
 
 
-# Positive control: the selection that held every directory, opened as it opened it.
+# Positive control: a descriptor held on every directory of this lane exceeds the lowered limit.
 held = []
 try:
     for path in [lane, *(path for path in retire._tree_safe(lane)
@@ -590,10 +590,10 @@ print(json.dumps(found))
 
 
 def _native_locks_fit_descriptor_limit() -> None:
-    """Retirement opens only the locks a producer can hold, so a lane with more
-    directories than descriptors retires, a held nested lock still refuses it, and
-    more lock files than descriptors refuse as a verdict naming the path, never as an
-    uncaught OSError."""
+    """Retirement opens only the locks it selects, never every directory, so a lane
+    with more directories than descriptors retires, a held nested lock still refuses
+    it, and more lock files than descriptors refuse as a verdict naming the path,
+    never as an uncaught OSError."""
     limit = 64
     with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
         done = subprocess.run([sys.executable, "-c", _DESCRIPTOR_PROBE, work, str(limit)],

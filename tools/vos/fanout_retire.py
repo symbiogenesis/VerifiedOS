@@ -313,10 +313,16 @@ def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], li
 
 
 # The directories a producer flocks through their own descriptor, relative to the lane
-# root: the proof workspace (`vos.cli.proofs._hold`). Every other producer lock is a
-# `*.lock` file: `env.hold_lock` and `env.build_lock` lock `<target>.lock` beside their
-# target, and the toolchain installer scripts `.<name>.lock`. The tests hold this list
-# against every `flock` call site in the tools' Python and shell sources.
+# root: the proof workspace (`vos.cli.proofs._hold`). The other locks the tools' own
+# Python and shell producers take are `*.lock` files: `env.hold_lock` and
+# `env.build_lock` lock `<target>.lock` beside their target, and the toolchain
+# installer scripts `.<name>.lock`. A producer the tools run can lock files of its own
+# inside its output, and those are covered only through the `*.lock` held beside that
+# output: the curated emulator's block-image lock through the block persistence
+# campaign's, or under ctest through the lock its caller holds beside the build tree
+# or a directory containing it, and Cargo's `.cargo-lock` and `.package-cache` through
+# the idealloc build's and Isla provisioning's. The tests hold this list against every
+# `flock` call site in the tools' Python and shell sources.
 _DIRECTORY_LOCKS = ("proof-gate",)
 
 
@@ -357,21 +363,25 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     """Run only on the native guest; retain outputs while holding their live locks.
 
     Symlink files are renamed as links, never followed. Relative internal directory
-    links are retained with their targets; external links and mounted subtrees
-    refuse. The locks held non-blockingly through the move are exactly those a
-    producer can hold: each moved root's own descriptor and its `<name>.lock` beside it,
-    every `*.lock` entry beneath a moved directory, the lane's `_DIRECTORY_LOCKS`,
-    and the oracle family's tree locks when this lane's oracle log moves. No other
-    directory is opened, so the size of a tree (a private opam root holds tens of
-    thousands of directories) never meets the descriptor limit. A lock that cannot be
-    opened or taken, including for want of descriptors, and a move the filesystem
-    rejects refuse naming the path. With every selected lock held the selection is
-    repeated, and a lock that appeared or vanished since refuses. Residual: a producer
-    that takes a new lock after that repetition and before the rename is not seen,
-    and one that opens its lock after the rename recreates the lane root, because
-    `env._open_lock` and `proofs._hold` create missing parents. Exact peer-colliding
-    and unknown log layouts remain in place with explicit deferred evidence. No
-    source path is recursively deleted.
+    links are retained with their targets; external links, mounted subtrees and a
+    `_DIRECTORY_LOCKS` entry that is a link refuse. The locks held non-blockingly
+    through the move are the locks the tools' own Python and shell producers take and
+    the `*.lock` held beside each tool-run producer's output: each moved root's own
+    descriptor and its `<name>.lock` beside it, every `*.lock` entry beneath a moved
+    directory, the lane's `_DIRECTORY_LOCKS`, and the oracle family's tree locks when
+    this lane's oracle log moves. A tool-run producer's own locks inside its output,
+    such as the curated emulator's block-image lock and Cargo's `.cargo-lock` and
+    `.package-cache`, are covered only through those wrapping locks. No other
+    directory is opened, so the number of directories in a tree (a private opam root
+    holds tens of thousands) never meets the descriptor limit; more `*.lock` entries
+    than descriptors refuse, naming the path. Any other lock that cannot be opened or
+    taken, and a move the filesystem rejects, refuse naming the path. With every
+    selected lock held the selection is repeated, and a lock that appeared or vanished
+    since refuses. Residual: a producer that takes a new lock after that repetition
+    and before the rename is not seen, and one that opens its lock after the rename
+    recreates the lane root, because `env._open_lock` and `proofs._hold` create
+    missing parents. Exact peer-colliding and unknown log layouts remain in place with
+    explicit deferred evidence. No source path is recursively deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
