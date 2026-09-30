@@ -885,9 +885,28 @@ Proof. vm_reflexivity. Qed.
 
 Example the_layout_fits_the_encoding : layout_fits bridge_layout = true := eq_refl.
 
+(* The written journal decoded under its own key and generation, which two
+   examples below read at different checkpoints, walked once into a literal
+   and equated to its source. The walk is the part of a decode that opens the
+   frames and reads no checkpoint. The kernel's recheck keeps no value from
+   one example to the next, so each example rewritten through this lemma
+   reads the literal where it would otherwise open every frame again. The
+   lemma unfolds its literal before the cast: the recheck compares the walk
+   with an unfolded literal several times faster than with the constant that
+   names it. *)
+Definition bridge_medium_walk_literal : Walked :=
+  Eval vm_compute in
+    walk bridge_layout bridge_open bridge_generation bridge_medium
+         (journal_frames bridge_layout) 0 [] [].
+
+Lemma bridge_medium_walk_is_its_literal :
+  walk bridge_layout bridge_open bridge_generation bridge_medium
+       (journal_frames bridge_layout) 0 [] [] = bridge_medium_walk_literal.
+Proof. unfold bridge_medium_walk_literal. vm_reflexivity. Qed.
+
 Example the_written_journal_recovers_both_transactions :
   decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 2) bridge_medium = Recovered bridge_recovered.
-Proof. vm_reflexivity. Qed.
+Proof. unfold decode. rewrite bridge_medium_walk_is_its_literal. vm_reflexivity. Qed.
 
 (* What those transactions replay to, block by block, under either raw arm. *)
 Example the_recovered_transactions_replay_every_write :
@@ -1139,7 +1158,7 @@ Example equal_counts_cannot_hide_acknowledged_substitutions :
      [(8, [(2,22); (1,21)]); (7, [(3,11)])];
      rev bridge_recovered]
   = repeat RefusedAcknowledgedMismatch 5.
-Proof. vm_reflexivity. Qed.
+Proof. unfold decode. rewrite bridge_medium_walk_is_its_literal. vm_reflexivity. Qed.
 
 Example a_generation_bound_to_its_checkpoint_still_needs_authentication :
   decode bridge_layout bridge_open bridge_journal 2
