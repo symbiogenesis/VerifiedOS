@@ -479,8 +479,60 @@ _JSON_INVENTORY = """{
 def _json_inventory_preserves_hierarchy_and_declarations() -> None:
     with sandbox_tree({"inventory.json": _JSON_INVENTORY}) as root:
         actual = rtl._inventory(root / "inventory.json")
-    ensure(actual == ({"top", "middle", "leaf"}, 7, 5),
+    ensure((actual.kinds, actual.cells, actual.variables) == ({"top", "middle", "leaf"}, 7, 5),
            f"module kinds, expanded cells and declaration counts differ: {actual!r}")
+    none = (0,) * len(rtl.ARRAY_KINDS)
+    ensure(actual.arrays == ((rtl.WHOLE_CORE, none),
+                             *((scope, none) for scope in rtl.ARRAY_SCOPES)),
+           f"a netlist without memory arrays counts none in every scope: {actual.arrays!r}")
+
+
+# A netlist with both caches and one array outside either. The data cache's memory holds
+# two cache-SRAM wrappers and one SRAM wrapper, each over one RAM primitive; the
+# instruction cache holds two SRAM wrappers over one each; the top holds a spare SRAM.
+# The two templates of one kind are one kind, and a template reached from two parents
+# is counted at each instance. `nested` puts a second data cache inside the first, over
+# one more SRAM wrapper, which is counted once.
+def _array_netlist(*, nested: bool = False) -> str:
+    def module(name: str, level: int, *cells: str) -> dict[str, object]:
+        return {"type": "MODULE", "name": name, "level": level,
+                "stmtsp": [{"type": "CELL", "name": f"u{i}", "modName": target}
+                           for i, target in enumerate(cells)]}
+
+    inner = [module("wt_dcache__N", 3, "sram__D")] if nested else []
+    return json.dumps({"type": "NETLIST", "modulesp": [
+        module("cva6", 1, "wt_dcache", "cva6_icache", "sram__S"),
+        module("wt_dcache", 2, "wt_dcache_mem", *(["wt_dcache__N"] if nested else [])),
+        *inner,
+        module("wt_dcache_mem", 3, "sram_cache__T", "sram_cache__T", "sram__D"),
+        module("sram_cache__T", 4, "prim_ram_1p__W"),
+        module("sram__D", 4, "prim_ram_1p__W"),
+        module("cva6_icache", 2, "sram__I", "sram__I"),
+        module("sram__I", 3, "prim_ram_1p__W"),
+        module("sram__S", 2, "prim_ram_1p__W"),
+        module("prim_ram_1p__W", 5)]})
+
+
+def _json_inventory_counts_memory_arrays_per_cache() -> None:
+    with sandbox_tree({"inventory.json": _array_netlist()}) as root:
+        actual = rtl._inventory(root / "inventory.json")
+    ensure(rtl.ARRAY_KINDS == ("prim_ram_1p", "sram_cache", "sram")
+           and rtl.ARRAY_SCOPES == ("wt_dcache", "cva6_icache"),
+           "the fixture's expectations are in the inventory's own order")
+    expected = ((rtl.WHOLE_CORE, (6, 2, 4)), ("wt_dcache", (3, 2, 1)),
+                ("cva6_icache", (2, 0, 2)))
+    ensure(actual.arrays == expected,
+           f"expanded array instances per scope differ: {actual.arrays!r}")
+    ensure(actual.cells == 16, f"the arrays are part of the expanded cells: {actual.cells}")
+    lines = rtl._array_lines({"curated": actual, "baseline": actual})
+    ensure(len(lines) == 2 + 2 * len(expected)
+           and lines[2].split() == ["baseline", "whole", "core", "6", "2", "4"]
+           and lines[-1].split() == ["curated", "under", "cva6_icache", "2", "0", "2"],
+           f"the report is one row per arm and scope, baseline first: {lines!r}")
+    with sandbox_tree({"inventory.json": _array_netlist(nested=True)}) as root:
+        nested = rtl._inventory(root / "inventory.json")
+    ensure(nested.arrays[:2] == ((rtl.WHOLE_CORE, (7, 2, 5)), ("wt_dcache", (4, 2, 2))),
+           f"an array inside two data-cache instances is counted once: {nested.arrays!r}")
 
 
 def _json_inventory_rejects_unresolved_hierarchy() -> None:
@@ -613,6 +665,8 @@ def cases() -> list[Case]:
              _primitives_are_the_integrators_and_sram_is_imported_unmodified),
         Case("json-inventory-preserves-hierarchy-and-declarations",
              _json_inventory_preserves_hierarchy_and_declarations),
+        Case("json-inventory-counts-memory-arrays-per-cache",
+             _json_inventory_counts_memory_arrays_per_cache),
         Case("json-inventory-rejects-unresolved-hierarchy",
              _json_inventory_rejects_unresolved_hierarchy),
         Case("json-inventory-rejects-absent-netlist",
