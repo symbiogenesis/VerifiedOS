@@ -40,6 +40,7 @@ into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 
 import argparse
 import errno
+import hashlib
 import json
 import os
 import re
@@ -203,9 +204,10 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # renders that listing for the readers that do not configure: the seeding that copies a
 # suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
 # rather than globbing it and lists every non-regular entry unhashed without reading
-# it, so the sweep and trace-diff also refuse what configure does not tell apart: a FIFO
-# or device node, which the verified tarball does not contain, and a name holding `\`
-# beside the file its `/` spelling names, which configure's glob folds into that file.
+# it, hashing a file only through a descriptor that is a regular file, so the sweep and
+# trace-diff also refuse what configure does not tell apart: a FIFO or device node,
+# which the verified tarball does not contain, and a name holding `\` beside the file
+# its `/` spelling names, which configure's glob folds into that file.
 # A build's receipt reads the corpus through `_test_corpus` too, so a disagreement
 # between the two renderings fails the first build that records its evidence rather
 # than passing unseen.
@@ -234,10 +236,9 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
             relative = path.relative_to(suite).as_posix()
             if "\n" in relative or "\r" in relative:
                 raise ValueError(f"{path}: a path a manifest line cannot hold")
-            if path.is_symlink() or not path.is_file():
-                line = f"unhashed {relative}\n"
-            else:
-                line = f"{receipts.digest(path)}  {relative}\n"
+            hashed = (None if path.is_symlink() or not path.is_file()
+                      else _regular_digest(path))
+            line = f"unhashed {relative}\n" if hashed is None else f"{hashed}  {relative}\n"
             entries.append((relative.encode("utf-8", "surrogateescape"), line))
     head = f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
     return (head + "".join(line for _, line in sorted(entries))).encode(
@@ -276,6 +277,17 @@ def _open_regular(path: Path | str) -> int | None:
         os.close(fd)
         return None
     return fd
+
+
+def _regular_digest(path: Path) -> str | None:
+    """The SHA-256 of `path`, read through a descriptor that is a regular file, and None
+    when it does not open as one: the listing's check by name comes first, and an entry
+    replaced after it is listed unhashed rather than waited on or read without end."""
+    fd = _open_regular(path)
+    if fd is None:
+        return None
+    with os.fdopen(fd, "rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:

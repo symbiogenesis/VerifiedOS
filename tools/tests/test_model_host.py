@@ -452,8 +452,8 @@ def _seed_refuses_a_device_donor() -> None:
     """A character device such as a `/dev/zero` node is read without end, so a donor
     holding one would stall the lane's first build if it were read, and the donor is
     refused before the copy. A device node cannot be made unprivileged, so one is
-    simulated: a regular stand-in that `Path.is_file`, the one question the listing asks
-    of an entry that is not a link, answers as not a regular file."""
+    simulated: a regular stand-in that `Path.is_file`, the first question the listing
+    asks of an entry that is not a link, answers as not a regular file."""
     real = Path.is_file
 
     def is_file(self: Path, *, follow_symlinks: bool = True) -> bool:
@@ -724,6 +724,46 @@ def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
                "nothing is seeded, and no staging copy is left behind")
 
 
+def _listing_hashes_only_regular_descriptors() -> None:
+    """An entry the listing's check by name passes but that does not open as a regular
+    file, which is an entry replaced between that check and the read, is listed unhashed
+    rather than read, and the suite is refused as holding a non-regular entry. The
+    device is simulated by `_os_with_a_device`; the positive control is the same suite
+    read as it is, which verifies."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        entry = suite / "rv64ui-p-add"
+        with patch.object(_MODEL, "os", _os_with_a_device(lambda path: path == str(entry))):
+            listed = cast("bytes", _MODEL.corpus_listing(suite, _CORPUS_DIGEST))
+            said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+        ensure(b"\nunhashed rv64ui-p-add\n" in listed,
+               f"the entry is listed unhashed, got {listed!r}")
+        ensure("non-regular" in said, f"and the suite is refused, got {said!r}")
+        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+
+
+def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
+    """A FIFO that the listing's check by name answers as a regular file, which is a
+    file replaced by a FIFO between that check and the read, is listed unhashed rather
+    than waited on, and the suite is refused. POSIX-only, so the case is the guest's and
+    win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO listing case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        fifo = suite / "rv64ui-p-fifo"
+        os.mkfifo(fifo)
+        real = Path.is_file
+
+        def is_file(self: Path, *, follow_symlinks: bool = True) -> bool:
+            return self == fifo or real(self, follow_symlinks=follow_symlinks)
+
+        with patch.object(Path, "is_file", is_file):
+            said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST),
+                            partial(_end_of_file, fifo))
+        ensure("non-regular" in said, f"the suite is refused, got {said!r}")
+
+
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
 # reasons for the child and neither is style: the environment that names a checkout's
 # administrative directory is process-global and the runner runs modules in a pool, so
@@ -992,4 +1032,8 @@ def cases() -> list[Case]:
              _copy_regular_file_refuses_a_fifo_and_a_link, lane="guest"),
         Case("seed-refuses-an-entry-replaced-during-the-copy",
              _seed_refuses_an_entry_replaced_during_the_copy, lane="guest"),
+        Case("listing-hashes-only-regular-descriptors",
+             _listing_hashes_only_regular_descriptors),
+        Case("listing-refuses-a-fifo-its-check-by-name-missed",
+             _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
     ]
