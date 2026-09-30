@@ -473,11 +473,11 @@ def cmd_coq(args: argparse.Namespace) -> int:
         print(f"FAIL {rel} is not in this checkout")
         return 1
 
-    switch = gallina.QUICKCHICK_SWITCH if args.quickchick else gallina.ORACLE_SWITCH
+    switch = gallina.QUICKCHICK_SWITCH if args.quickchick else gallina.VECTOR_SWITCH
     found = gallina.prover(switch)
     if found is None:
         print(f"FAIL no prover in the {switch} switch; "
-              "`run.py quickchick check` says which switch holds what")
+              "`run.py provision` says which switches this lane holds")
         return 1
 
     name = "quickchick" if args.quickchick else "coq"

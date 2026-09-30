@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 837 of them across 145 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 843 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -626,7 +626,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-303** owed-act: the proof gate's switch carries four Rocq libraries beside its prover today, installed by other work, where two tracked sites state that emptiness as a deliberate property of the gate's reach, the licence page's QuickChick paragraph and the comment restating it in the QuickChick command's own source
 · Raised: Q2a
-· Disposition: open at those two sites, the third instance, inside the lowering paragraph this landing rewrote, being narrowed here to what the switch holds
+· Disposition: closed at Q38e, neither named site stating the emptiness any longer and the four that still did, gallina.py's docstring and the Vectors.v, FreezeModel.v and Properties.v headers, placing the Stdlib-only harnesses in the proof switch, which carries the standard library they load
 
 **F-304** owed-act: R-18-004a(vii)'s inference member and R-18-004b's bandwidth line are jointly satisfiable only at an M-class grant well above the 8 GB/s that entry states as its minimum, and the 20 GB/s aggregate floor is where the room for it has to be found, that aggregate being required to carry scanout, the compositor, the decode pool and the camera ring concurrently with the grant; the floor's own three-billion-parameter model at a real four-bit density demands 9.29 GB/s on its weight stream alone and 12.50 GB/s with the cheaper cache, 62% of the aggregate
 · Raised: Q4a
@@ -1124,6 +1124,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-564** measurement: two compiles of identical sources with identical flags gave different `ElasticDomain.vo` and `MemoryPlan.vo`, so an object digest is no reproducibility identity for those modules
 · Raised: Q38c
 · Disposition: standing
+
+**F-567** measurement: K-117's first head passed 16 `&` binders that Rocq 9.3.0 compiles and 9.1.1 rejects, inside record, class and instance braces and sigma bodies, and paired each rig module with its switch by hand
+· Raised: Q38e
+· Disposition: closed at Q38e, the brace and binder-list reading checked against 63 probes compiled under both releases, and each module's prover calls read from its syntax tree
+
+**F-568** measurement: K-117 opened a sentence at the second dot of `..`, so an `if` before a recursive notation's `..` left its `is` unrefused
+· Raised: Q38e
+· Disposition: closed at Q38e, the backward reading asking the shared sentence end
+
+**F-569** owed-act: `compare_component.py` names its switch but states no Rocq release, so K-117 holds its row older than 9.3.0 by its fail-closed default rather than by a release it reads
+· Raised: Q38e
+· Disposition: open, Q38g
+
+**F-570** owed-act: `quickchick properties` and `quickchick check` fall back to the CertiRocq switch at Rocq 9.1.1, so K-117 carries a second 9.1.1 row over Properties.v's closure that Q38f's Check does not expect, and `seed coq --quickchick` still compiles every proof source at 9.1.1
+· Raised: Q38e
+· Disposition: open, Q38f
+
+**F-571** owed-act: Vectors.v's header says Properties.v needs an install this repository has not made, and Properties.v's header names the undeclared switch `quickchick-9.1.1`
+· Raised: Q38e
+· Disposition: open, Q38f
+
+**F-572** measurement: K-117's lexical reading refuses the intro patterns `(H & H')` and `as (a & b)` and a `&=` notation token, which Rocq 9.1.1 and 9.3.0 both compile
+· Raised: Q38e
+· Disposition: standing, the live set holding none and the rule's docstring and registry row stating them
 
 **F-566** owed-act: no register entry owns the response to a known inconsistency of the locked prover; the lexical refusals covering #22287, #22387 and #22510, and Q38k's for #22386 and #22389, stand on the lock guide's prose and the audit's code, while R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects
 · Raised: Q38k

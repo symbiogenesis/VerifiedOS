@@ -15,7 +15,7 @@
 [KernelVectors.v](../../quickchick/KernelVectors.v) walks generated domains over those
 statements' definitions and prints each point's inputs beside the definitions' answers.
 
-`vectors` compiles that harness in the CertiRocq oracle's switch against its `Require`
+`vectors` compiles that harness in the proof gate's switch against its `Require`
 closure only, not the whole proof tree. `check` compiles the kernel C in its host model
 with the lane's C compiler and holds every `kx`, `kc`, `kr`, `kq` and `ke` line against
 it, then holds every `kt` line against [vos/kernelrun.py](../kernelrun.py), the reader
@@ -67,7 +67,6 @@ from vos import (
     kernel_restore,
     kernel_target,
     kernelrun,
-    proofs,
     receipts,
     seeded,
 )
@@ -91,29 +90,19 @@ WAITS: Final = ("target evidence waits on M1.2f's accepted backend, M1.7's targe
 # =====================================================================================
 
 
-def closure(work: Path, harness: Path) -> list[list[Path]]:
-    """The harness's `Require` closure over the staged tree, in dependency order."""
-    sources = sorted((work / gallina.PROOFS).glob("*.v"))
-    sources += sorted((work / "harness").glob("*.v"))
-    index = proofs.SourceIndex.read(sources)
-    wanted = set(index.imports[harness]) | {harness}
-    return [[s for s in wave if s in wanted] for wave in index.ordered
-            if any(s in wanted for s in wave)]
-
-
 def emit(root: Path, work: Path, out: list[str]) -> list[str] | None:
     """Stage, compile the harness's closure, and read the vectors it prints."""
-    found = gallina.prover(gallina.ORACLE_SWITCH)
+    found = gallina.prover(gallina.VECTOR_SWITCH)
     if found is None:
-        out.append(f"FAIL no prover in the {gallina.ORACLE_SWITCH} switch; "
-                   "tools/wasm-oracle/README.md states how it is created")
+        out.append(f"FAIL no prover in the {gallina.VECTOR_SWITCH} switch, the proof "
+                   "gate's; `run.py provision --apply` imports it")
         return None
     gallina.stage(root, work)
     harness = work / "harness" / HARNESS
     if not harness.is_file():
         out.append(f"FAIL there is no harness at {gallina.HARNESS_DIR}/{HARNESS}")
         return None
-    for wave in closure(work, harness):
+    for wave in gallina.closure(work, harness):
         for source in wave:
             if source == harness:
                 continue
@@ -126,7 +115,7 @@ def emit(root: Path, work: Path, out: list[str]) -> list[str] | None:
     if said:
         out.append(f"FAIL {HARNESS} did not run:\n{said}")
         return None
-    out.append(f"   {gallina.version(found)} in the {gallina.ORACLE_SWITCH} switch")
+    out.append(f"   {gallina.version(found)} in the {gallina.VECTOR_SWITCH} switch")
     return lines
 
 

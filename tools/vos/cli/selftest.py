@@ -982,6 +982,23 @@ def _k109(box: Sandbox) -> bool:
     return box.write(SEAM_WITNESSES, text[:a] + changed + text[b:])
 
 
+def _k117_switch(box: Sandbox) -> bool:
+    """The Rupicola lowering's switch constant renamed wherever it is spelled.
+
+    The driver and its one importer move together, so the lowering still runs and only
+    the instrument table's reading of the driver's own literal finds nothing, which is
+    to be a finding rather than a row falling out of the set unremarked.
+    """
+    driver = "tools/bedrock2-lowering/regenerate.py"
+    importer = "tools/bedrock2-lowering/hello.py"
+    text = box.read(driver)
+    renamed = re.sub(r"\bSWITCH\b", "LOWERING_SWITCH", text)
+    if renamed == text:
+        return False
+    return box.write(driver, renamed) and box.write(importer, replace_once(
+        box.read(importer), "regenerate.SWITCH", "regenerate.LOWERING_SWITCH"))
+
+
 def _keep_own_id(entry_line: str) -> str:
     head = re.match(rf"^\*\*{REQ_ID_PATTERN}\*\* ", entry_line)
     if head is None:
@@ -2160,6 +2177,24 @@ CASES: list[Case] = [
               "carries no authorization for deterministic production signing. Its "
               "signing path's functional correctness rests on libcrux's verified "
               "ML-DSA, whose F\\* proof this campaign takes as its premise.")),
+    # The rewrite a modernizing lane makes: a two-branch match in a proof source turned
+    # into Rocq 9.3's `if … is`, which the gate accepts and the Wasm oracle's Rocq 9.1.1
+    # cannot parse. EndpointIPC.v is the source that stays compiled at an older release
+    # whichever other instruments move, so the case outlives them.
+    ("K-117", "a proof source the Wasm oracle compiles rewritten into Rocq 9.3's "
+              "`if … is`",
+     _literal("proofs/EndpointIPC.v", "  match l with nil => d | cons x _ => x end.",
+              "  if l is cons x _ then x else d.")),
+    ("K-117", "the Rupicola lowering's switch constant renamed out from under the "
+              "instrument table", _k117_switch),
+    # An instrument moved to an older switch while its row still states the gate's: the
+    # kernel's vectors asked of the CertiRocq switch at Rocq 9.1.1. Nothing its harness
+    # compiles writes a 9.3 form today, so only the reading of what kernel.py asks for
+    # can see that the set no longer follows the instrument.
+    ("K-117", "the kernel's vector harness moved to the CertiRocq switch under a row "
+              "stating the gate's",
+     _literal("tools/vos/cli/kernel.py", "found = gallina.prover(gallina.VECTOR_SWITCH)",
+              "found = gallina.prover(gallina.ORACLE_SWITCH)")),
     # A discharge annotation above a `Definition`, which is the one of this rule's four
     # refusals that renders perfectly and reads as correct: the annotation parses, its id
     # is live, and what it claims is that a *term* answers an obligation. The other three

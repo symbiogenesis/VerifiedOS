@@ -11,7 +11,7 @@ This is the inner loop of the three-loop discipline ([implementation-checklist Â
 
 ## Build and run
 
-The CertiRocq bootstrap in the 5.1.1 switch remains incomplete, so `tools/opam/certirocq.lock` is not present. The wrapper compilation and Gallina vectors pass; they do not establish a working Wasm compiler. The recipes below require the snapshot exported after the compiler build, positive smoke checks and seeded negative check pass. Until then, both snapshot imports and the Docker build are unavailable.
+The CertiRocq bootstrap in the 5.1.1 switch remains incomplete, so `tools/opam/certirocq.lock` is not present. The wrapper compilation passes; it does not establish a working Wasm compiler. The Gallina vector harnesses compile in the proof gate's switch and exercise nothing in this one. The recipes below require the snapshot exported after the compiler build, positive smoke checks and seeded negative check pass. Until then, both snapshot imports and the Docker build are unavailable.
 
 Two environments install the same opam package. The container is the portable one and the opam switch is the one that runs on an arm64 host, because `rocq/rocq-prover` publishes `linux/amd64` alone at every 9.1 tag.
 

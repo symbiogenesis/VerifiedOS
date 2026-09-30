@@ -22,7 +22,7 @@ The proof switch locks Rocq 9.3.0 because Rocq 9.2.0's kernel accepts proofs of 
 
 The CertiRocq oracle switch selects OCaml 5.1.1 and ocamlfind 1.9.8. The unmodified CertiRocq 0.9.1+9.1 release fails its native bootstrap with OCaml 5.4.1: its runtime's `Hd_val` macro collides with the inline function in OCaml's runtime header. OCaml [5.1.1 still defines that name as a macro](https://github.com/ocaml/ocaml/blob/5.1.1/runtime/caml/mlvalues.h), while [5.2.0 defines an inline function](https://github.com/ocaml/ocaml/blob/5.2.0/runtime/caml/mlvalues.h). This compatibility boundary keeps the oracle on 5.1.1 without patching its release. The installed dependencies retain `ocaml-compiler-libs` v0.12.4.
 
-The 5.1.1 wrapper compilation and Gallina vector checks pass, but the full CertiRocq bootstrap and Wasm smoke checks remain incomplete. No `certirocq.lock` is exported until that compiler build and the positive and negative Wasm checks pass. The Docker and native import recipes require that pending snapshot.
+The 5.1.1 wrapper compilation passes, but the full CertiRocq bootstrap and Wasm smoke checks remain incomplete. The Gallina vector harnesses load Stdlib alone and compile in the proof switch, so they exercise nothing in this one. No `certirocq.lock` is exported until that compiler build and the positive and negative Wasm checks pass. The Docker and native import recipes require that pending snapshot.
 
 CertiRocq and its Wasm library require Rocq below 9.2. QuickChick independently requires `coq-simple-io`, which caps Coq below 9.2 and dune below 3.22. Their Coq 9.1.1 compatibility package fixes the standard library at 9.0.0. Those library constraints do not limit the proof gate or Rupicola switch.
 
