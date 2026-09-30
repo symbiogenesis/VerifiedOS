@@ -817,11 +817,12 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
     `CMakeFiles` under it is being configured against a state it did not produce.
     Another release's suites stay behind, since nothing reads them.
 
-    The copy is made beside its destination and held to the manifest copied with it
-    before it is moved into place, so a donor whose suite has no manifest, disagrees
-    with it, or changes during the copy seeds nothing, and configure downloads that
-    suite instead. A suite the target already holds is left to configure, which keeps
-    it only if it matches its manifest.
+    The donor's suite is held to its manifest before it is copied, and the copy, made
+    beside its destination, is held to the manifest copied with it before it is moved
+    into place, so a donor whose suite has no manifest, disagrees with it, holds an
+    entry that is not a regular file, or changes during the copy seeds nothing, and
+    configure downloads that suite instead. A suite the target already holds is left
+    to configure, which keeps it only if it matches its manifest.
     """
     try:
         version = test_corpus_version(model_root)
@@ -847,9 +848,16 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
 
 
 def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
-    """Copy `suite` and its manifest to `into`, publishing only a copy that verifies."""
-    if not corpus_manifest(suite).is_file():
-        raise ValueError(f"{suite} has no {corpus_manifest(suite).name}")
+    """Copy `suite` and its manifest to `into`, publishing only a copy that verifies.
+
+    The donor is verified before it is copied as well as after. `copytree` reads every
+    entry it copies, and `shutil.copyfile` refuses only a FIFO: a character device such
+    as a `/dev/zero` node is read without end, so a donor holding one would stall the
+    command standing the lane up. The listing the verification renders reads no
+    non-regular entry and refuses a suite holding one. The check on the copy stays,
+    because the donor can change while it is copied.
+    """
+    verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
     try:
