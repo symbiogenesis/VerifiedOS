@@ -146,10 +146,16 @@ Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The development tip read on 2026-09-29 needs Stdlib 9.1 or later, the first
 release carrying the `Zmod` library its arithmetic now uses. Its version-pinned
 CI jobs build it with Rocq 9.2.0 and its Docker job with Rocq master; a build
-with the locked Rocq 9.3.0 and Stdlib 9.2.0 is unmeasured. The tip changes
-proofs and nested dependencies, restating the Montgomery arithmetic and the
-operation specifications over `Zmod`, and leaves `fiat-c/` and the synthesis
-and printing sources unchanged. No fix to the consumed field outputs was
+with Rocq 9.3.0 and Stdlib 9.2.0, the editions
+[the Rocq lock](tools/opam/rocq.lock) fixed when the tip was read, is
+unmeasured. The tip changes proofs and nested dependencies, restating the
+Montgomery arithmetic and the operation specifications over `Zmod`. It leaves
+`fiat-c/`, `src/PushButtonSynthesis/` and `src/Stringification/` unchanged. It
+does modify the bedrock2 backend's synthesis and printing sources under
+`src/Bedrock/Field/`, namely `Synthesis/New/`, `Synthesis/Examples/` and
+`Stringification/Stringification.v`, all in paths the
+[recorded emission](docs/implementation/fiat-crypto-emission.md) skips by
+building with `SKIP_BEDROCK2=1`. No fix to the consumed field outputs was
 identified, and whether the tip emits the same raw bytes is unmeasured.
 Advancing the pin requires a separate isolated generator build, repeated
 emissions, vector checks and independent replay with regenerated provenance.
