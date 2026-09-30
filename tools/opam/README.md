@@ -33,9 +33,10 @@ architecture-specific SHA-256 hashes and the package repositories. The
 [guest bootstrap](../ci/bootstrap_guest.py) downloads that client, initializes an isolated
 root on those repositories, records each repository's URL and metadata stamp in
 `bootstrap.json`, and imports the Sail and proof snapshots without changing the developer's
-active switch. `run.py provision` holds a developer's client to the same release and reports
-its root's format and repository stamps; moving an existing root to a newer client upgrades
-its format one way, so it is a deliberate, recorded step. See [the CI guide](../ci/README.md)
+active switch. `run.py provision` holds a developer's client to the same release, installs it
+where no client is on `PATH`, and reports its root's format and repository stamps. A client
+rewrites a root older than its own format one way, and the owner records the reviewed
+client's format as `OPAM_ROOT_FORMAT`, so moving an existing root is a deliberate, recorded step. See [the CI guide](../ci/README.md)
 for invocation, placement and environment setup. The remaining experimental switches are installed
 separately into an initialized root.
 
