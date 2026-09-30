@@ -1298,7 +1298,7 @@ The [document-count maintenance contract](../docs/implementation/contracts/docum
 The required edits are:
 
 1. The check itself, in the [vos/checks/](vos/checks/) module for its group.
-2. Its row in [check-rules.md](check-rules.md). The meta group fails on a rule with no row and a row with no rule.
+2. Its row in [check-rules.md](check-rules.md), and its id in the membership list of the one [reach class](check-rules.md#what-a-passing-run-does-not-decide) it belongs to. The meta group fails on a rule with no row, a row with no rule, and a rule named under no reach class or under two.
 3. Its mutant in [run.py selftest](vos/cli/selftest.py). The selftest fails on a registered rule with no case, and on a case whose mutation no longer applies.
 
 A rule that reads an enumeration supplies a member count to the floors group, unless it reports unreadable or missing sites itself. State that treatment in its [registry row](check-rules.md). A rule with several readers accounts for each separately; a fail-closed path lookup does not protect an unrelated symbol or command enumeration.

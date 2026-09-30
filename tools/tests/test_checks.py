@@ -511,6 +511,123 @@ def _k75_every_workflow_job_is_held() -> None:
            f"a later job's interpreter below the floor must report: {found!r}")
 
 
+# K-119's fixture: seven active rules and one struck row inside the name class's range,
+# so the passing page already exercises a range skipping a struck id. A membership
+# sentence in the section after the reach section must not be read as a class.
+_K119_ROWS = ("# Rules\n\n| Rule | Group | Passing means | Ground |\n| --- | --- | --- | --- |\n"
+              "| K-00 | meta | a | b |\n| K-01 | traces | a | b |\n| K-02 | traces | a | b |\n"
+              "| ~~K-03~~ | retired | n/a | gone |\n| K-04 | traces | a | b |\n"
+              "| K-05 | counts | a | b |\n| K-06 | floors | a | b |\n| K-07 | tables | a | b |\n")
+_K119_NAME = ("Where the set is found by **name**, it resolves, which is what K-01 through "
+              "K-04 are.")
+_K119_COMPUTED = ("Where the set is a **computed value**, it is recomputed, which is what "
+                  "K-05 are.")
+_K119_PATTERN = ("Where the set is found by **pattern**, a regex, which is what K-06 are, "
+                 "and it matches less.")
+_K119_TOTAL = ("Where the set is **total**, nothing narrows. That is what K-00 and K-07 are: "
+               "the registry.")
+
+
+def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
+          pattern: str = _K119_PATTERN, total: str = _K119_TOTAL,
+          heading: str = meta.REACH_HEADING,
+          quarantined: str | None = None) -> tuple[list[str], list[str]]:
+    page = (f"{_K119_ROWS}\n{heading}\n\n{name} {computed} {pattern}\n\n{total}\n\n"
+            "## After\n\nA stray list, which is what K-09 are.\n")
+    files = {"docs/requirements-register.md": _REGISTER_MIN, meta.RULES: page}
+    if quarantined is not None:
+        files[meta.Q_RULES] = quarantined
+    with sandbox_tree(files) as root:
+        ctx = _context(root)
+        meta.run(ctx)
+        return _findings_under(ctx, "K-119"), ctx.rep.out
+
+
+def _k119_each_rule_in_one_class_passes() -> None:
+    found, out = _k119()
+    ensure(not found, f"every active rule named once is clean: {found!r}")
+    ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the four "
+           "reach classes (name 3, computed value 1, pattern 1, total 2)" in out,
+           f"the range places K-01, K-02 and K-04 and skips the struck row: {out!r}")
+
+
+def _k119_unnamed_and_doubly_named_rules_are_findings() -> None:
+    for kwargs, want in (
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00")},
+             "K-07 is registered and named under no reach class"),
+            ({"pattern": _K119_PATTERN.replace("K-06 are", "K-05 and K-06 are")},
+             "K-05 is named under two reach classes, computed value and pattern, where the "
+             "page says one"),
+            ({"name": _K119_NAME.replace("K-01 through", "K-01, K-01 through")},
+             "the 'name' class names K-01 more than once")):
+        found, _ = _k119(**kwargs)
+        ensure(want in found, f"{want!r} must be reported: {found!r}")
+
+
+def _k119_ids_a_class_names_must_be_active_rules() -> None:
+    held_apart = ("# Held apart\n\n| Rule | Group | Passing means | Ground |\n"
+                  "| --- | --- | --- | --- |\n| K-58 | banks | a | b |\n")
+    for kwargs, wants in (
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00, K-07 and K-09")},
+             ["the 'total' class names K-09, which the registry does not carry"]),
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00, K-03 and K-07")},
+             ["the 'total' class names K-03, which the registry carries struck, so no run "
+              "reports it"]),
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00, K-07 and K-58"),
+              "quarantined": held_apart},
+             ["the 'total' class names K-58, which the quarantine's registry carries and "
+              "its own gate runs"]),
+            ({"pattern": _K119_PATTERN.replace("K-06 are", "K-09 are")},
+             ["the 'pattern' class names K-09, which the registry does not carry",
+              "the 'pattern' class names no rule the registry carries",
+              "K-06 is registered and named under no reach class"])):
+        found, _ = _k119(**kwargs)
+        for want in wants:
+            ensure(want in found, f"{want!r} must be reported: {found!r}")
+
+
+def _k119_ranges_expand_over_active_rows() -> None:
+    for kwargs, wants in (
+            # the range reaches K-02, so naming it again elsewhere is a second class
+            ({"computed": _K119_COMPUTED.replace("K-05 are", "K-02 and K-05 are")},
+             ["K-02 is named under two reach classes, name and computed value, where the "
+              "page says one"]),
+            # an end on a struck row cannot stand in for the active rule past it
+            ({"name": _K119_NAME.replace("K-01 through K-04", "K-01 through K-03")},
+             ["the 'name' class closes a range at K-03, which the registry carries struck, "
+              "so no run reports it"]),
+            ({"name": _K119_NAME.replace("K-01 through K-04", "K-04 through K-01")},
+             ["the 'name' class names the range K-04 through K-01, which runs backwards or "
+              "spans one rule"])):
+        found, _ = _k119(**kwargs)
+        for want in wants:
+            ensure(want in found, f"{want!r} must be reported: {found!r}")
+
+
+def _k119_unreadable_class_sentences_fail_closed() -> None:
+    for kwargs, want in (
+            ({"name": _K119_NAME.replace("K-04 are", "K-04 and the rest are")},
+             "the 'name' class lists 'K-01 through K-04 and the rest', which is not a list "
+             "of rule ids and ranges this rule reads"),
+            ({"computed": "Where the set is a **computed value**, it is recomputed."},
+             "the 'computed value' class states no membership sentence(s) this rule reads"),
+            ({"computed": _K119_COMPUTED + " That is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s) this rule reads"),
+            ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
+             "opens a reach class '**whole**' that is not one of the four this rule reads"),
+            ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
+             "tools/check-rules.md opens no 'total' class in a form this rule reads"),
+            ({"heading": "## What a run decides"},
+             "tools/check-rules.md carries no '## What a passing run does not decide' "
+             "section")):
+        found, out = _k119(**kwargs)
+        ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
+        ensure(not any("named under no reach class" in item for item in found),
+               f"an unread class is one finding, not one per rule it held: {found!r}")
+        ensure(not any(line.startswith("ok K-119:") for line in out),
+               "fail-closed: no ok line stands beside an unread class")
+
+
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
     source = 'VERILATOR_PIN = "9.999"\n'
     record = ("# Components\n\n| Tool | License | Standing |\n| --- | --- | --- |\n"
@@ -1238,6 +1355,14 @@ def cases() -> list[Case]:
         Case("k75-install-command-still-uses-supported-version",
              _k75_install_command_still_uses_supported_version),
         Case("k75-every-workflow-job-is-held", _k75_every_workflow_job_is_held),
+        Case("k119-each-rule-in-one-class-passes", _k119_each_rule_in_one_class_passes),
+        Case("k119-unnamed-and-doubly-named-rules-are-findings",
+             _k119_unnamed_and_doubly_named_rules_are_findings),
+        Case("k119-ids-a-class-names-must-be-active-rules",
+             _k119_ids_a_class_names_must_be_active_rules),
+        Case("k119-ranges-expand-over-active-rows", _k119_ranges_expand_over_active_rows),
+        Case("k119-unreadable-class-sentences-fail-closed",
+             _k119_unreadable_class_sentences_fail_closed),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
