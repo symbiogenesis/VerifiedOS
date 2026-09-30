@@ -48,9 +48,9 @@ stands, so the switch recipes planned after it in one pass find a root. The rows
 of it probe and install the distribution packages that route needs,
 `opam_client.ROOT_PREREQUISITES`, and the command refuses, naming each one absent,
 rather than start a root `opam init` would refuse to create. It alters
-nothing that exists but a root that route stopped partway through, which
-`opam_client.root_resumable` recognizes and the route run again finishes by adding
-the owner's remaining repositories unselected. Replacing a developer's client can
+nothing that exists but a root in the shape that route leaves after its leading steps,
+which `opam_client.root_resumable` recognizes and the route run again completes by
+adding the owner's remaining repositories unselected. Replacing a developer's client can
 upgrade that root's format one way, which is a recorded step rather than a repair, so
 a client at another release is reported and never planned, and neither is any other
 standing root with a gap `opam_client.root_gaps` names: no stated format or one newer
@@ -138,7 +138,8 @@ class Found:
 
     `repairable` is false where the row's command must not run over what the probe
     found, as the opam row's installs a client only where none is on PATH and creates
-    a root only where none stands or finishes one its route stopped partway through.
+    a root only where none stands or completes one in the shape its route leaves after
+    its leading steps.
     """
 
     present: bool
@@ -327,8 +328,9 @@ def _opam_client() -> Found:
     root's format upgrades the root to answer.
 
     Repairable only where `install_opam` can make the row hold without altering what
-    exists: no client or the reviewed one, and no root, a complete one, or one the
-    root-creation route stopped partway through, which running it again finishes.
+    exists: no client or the reviewed one, and no root, a complete one, or one in the
+    shape the root-creation route leaves after its leading steps, which running that
+    route again completes.
     Moving a developer's root to another client can rewrite its format one way, which
     the report says where the root's format is not the reviewed client's, so replacing
     a client is a recorded step and not a repair; any other standing root the command
@@ -363,27 +365,27 @@ def _listing(root: Path) -> str:
 
 
 def _standing(resumable: bool) -> str:
-    """What becomes of a standing root with gaps, as a clause: finished where the
-    root-creation route stopped partway through it, and otherwise left as it is."""
+    """What becomes of a standing root with gaps, as a clause: completed where it is in
+    the shape the root-creation route leaves after its leading steps, and otherwise left
+    as it is."""
     if resumable:
-        return ("where the root-creation route stopped partway through it, and running "
-                "that route again finishes it")
-    return ("and a standing root is left as it is unless the root-creation route stopped "
-            "partway through it")
+        return ("in the shape the root-creation route leaves after its leading steps, "
+                "which running that route again completes")
+    return ("and a standing root is left as it is unless it is in the shape the "
+            "root-creation route leaves after its leading steps")
 
 
 def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     """The opam row's command: the reviewed client where no client is on PATH, and a
-    root by `opam_client.CREATE_ROOT` where none stands or where that route stopped
-    partway through one.
+    root by `opam_client.CREATE_ROOT` where none stands or where one stands in the shape
+    that route leaves after its leading steps.
 
-    It installs only what is absent and alters nothing that exists but a root its
-    route left unfinished, and it decides every refusal about the root before it
-    installs anything, so a run it refuses leaves the machine as it found it. A
-    standing root is held to what the row reads: a complete one is left as it is, one
-    `opam_client.root_resumable` reads as the route's unfinished root is finished by
-    running the route again, and any other the row reads as incomplete is refused
-    whatever the client. Where it would run the route, it first holds the machine to
+    It installs only what is absent and alters nothing that exists but a root in that
+    shape, and it decides every refusal about the root before it installs anything, so
+    a run it refuses leaves the machine as it found it. A standing root is held to what
+    the row reads: a complete one is left as it is, one `opam_client.root_resumable`
+    reads in that shape is completed by running the route again, and any other the row
+    reads as incomplete is refused whatever the client. Where it would run the route, it first holds the machine to
     `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and refuses,
     naming each package absent, because `opam init` refuses to create a root without
     them. A client on PATH at another release is refused, because replacing one is the
@@ -442,19 +444,19 @@ def _missing_root_prerequisites() -> list[str]:
 
 
 def _create_root(root: Path, *, resuming: bool = False) -> int:
-    """Create the root at `root` by the owner's route, or finish one it stopped partway
-    through, streamed to the caller's terminal as `_apply` streams a switch, and hold
-    it to the reviewed client's format and the owner's repositories as guest bootstrap
-    holds its own.
+    """Create the root at `root` by the owner's route, or complete one in the shape the
+    route leaves after its leading steps, streamed to the caller's terminal as `_apply`
+    streams a switch, and hold it to the reviewed client's format and the owner's
+    repositories as guest bootstrap holds its own.
 
     A step that fails stops the route, and the report says what then stands at `root`
     and what remains of the route: the first step can leave a root behind it, which a
-    later run finishes where `opam_client.root_resumable` reads it as the route's and
+    later run completes where `opam_client.root_resumable` reads it in that shape and
     otherwise leaves as it is.
     """
     if resuming:
-        print(f"the opam root at {root} is one the root-creation route stopped partway "
-              "through; running the route again finishes it")
+        print(f"the opam root at {root} is in the shape the root-creation route leaves "
+              "after its leading steps; running the route again completes it")
     for index, argv in enumerate(opam_client.CREATE_ROOT):
         print(f"   {' '.join(argv)}", flush=True)
         try:
@@ -862,8 +864,9 @@ def main(argv: list[str] | None = None) -> int:
                       help="install every absent fact this tree states a command for")
     what.add_argument("--install-opam", action="store_true",
                       help="install the reviewed opam client where no client is on PATH "
-                           "and create its root where none stands, or finish one its "
-                           "route stopped partway through, the opam row's command")
+                           "and create its root where none stands, or complete one in "
+                           "the shape its route leaves after its leading steps, the opam "
+                           "row's command")
     parser.add_argument("--only", choices=GROUPS, default="", metavar="GROUP",
                         help=f"narrow to one group of rows: {' or '.join(GROUPS)}")
     args = parser.parse_args(argv)

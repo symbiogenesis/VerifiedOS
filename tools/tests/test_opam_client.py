@@ -218,9 +218,10 @@ def _root_gaps_name_what_a_root_lacks() -> None:
 
 
 def _resumable_roots_are_the_routes_own() -> None:
-    """A root reads as one `CREATE_ROOT` stopped partway through only where running the
-    route again finishes it: the reviewed client's format, the route's leading
-    repositories and no other, each at its owned URL with its stamp read."""
+    """A root reads as in the shape `CREATE_ROOT` leaves after its leading steps only
+    where running the route again completes it: the reviewed client's format, the
+    route's leading repositories and no other, each at its owned URL with its stamp
+    read."""
     (default, url), *others = opam_client.OPAM_REPOSITORIES
     leading = opam_client.OPAM_REPOSITORIES[:1]
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
