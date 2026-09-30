@@ -19,13 +19,14 @@ harnesses or a directory of its own, whether it compiles every proof source, as
 vector harnesses, and the proof sources it names itself, as the Rupicola lowering names
 its default owner. Each switch and release is the instrument's own constant, imported,
 or, where it has none to import, the literal in its own file, read by name out of that
-file's syntax tree, and so is a proof source the instrument names. The rows older than 9.3.0 decide the set, and each harness brings its
-`Require` closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs
-directory and the harness's directory as one namespace, because that is how every row
-stages them: the rig roots both at the empty logical path, and the recipes copy the proof
-beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A row
-that states no release is held older than 9.3.0, since a release nobody states is one
-nobody can say admits the forms.
+file's syntax tree, and so is a proof source the instrument names. The rows older than
+9.3.0 decide the set, and each harness or named source brings its `Require` closure,
+read by [vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the
+harness's directory as one namespace, because that is how every row stages them: the rig
+roots both at the empty logical path, and the recipes copy the proof beside the harness.
+The dated campaigns under `proofs/campaigns/` are not rows. A row that states no release
+is held older than 9.3.0, since a release nobody states is one nobody can say admits the
+forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
@@ -57,10 +58,11 @@ compiles Gallina outside the table, or reaches the rig's prover otherwise than b
 `gallina.prover` under some name.
 
 Fail-closed at every reading. An empty table, a switch or release that cannot be read or
-is not a release, a harness the index does not carry, a directory of harnesses holding
-none, a row older than 9.3.0 that derives no file, a stem one namespace holds twice, a
-`Require` cycle and a file that cannot be read are each a finding, so the rule owes the
-floors group no member.
+is not a release, a harness or named source the index does not carry, a named path that
+leaves the checkout, a directory of harnesses holding none, a row older than 9.3.0 that
+derives no file, a stem one namespace holds twice, a `Require` cycle, a prover call whose
+argument names no switch and a file that cannot be read are each a finding, so the rule
+owes the floors group no member.
 """
 
 import ast
