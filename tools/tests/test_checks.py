@@ -544,11 +544,14 @@ def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
 
 
 def _k119_each_rule_in_one_class_passes() -> None:
-    found, out = _k119()
-    ensure(not found, f"every active rule named once is clean: {found!r}")
-    ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the four "
-           "reach classes (name 3, computed value 1, pattern 1, total 2)" in out,
-           f"the range places K-01, K-02 and K-04 and skips the struck row: {out!r}")
+    # an italic word between the lead and the bold name is crossed rather than read as
+    # the end of the lead's reach
+    for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**")):
+        found, out = _k119(name=name)
+        ensure(not found, f"every active rule named once is clean: {found!r}")
+        ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the "
+               "four reach classes (name 3, computed value 1, pattern 1, total 2)" in out,
+               f"the range places K-01, K-02 and K-04 and skips the struck row: {out!r}")
 
 
 def _k119_unnamed_and_doubly_named_rules_are_findings() -> None:
@@ -619,7 +622,13 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
              "tools/check-rules.md opens no 'total' class in a form this rule reads"),
             ({"heading": "## What a run decides"},
              "tools/check-rules.md carries no '## What a passing run does not decide' "
-             "section")):
+             "section"),
+            # ahead of the first class no class's region reaches, so a class introduced
+            # there in other words is caught by its membership sentence alone
+            ({"heading": meta.REACH_HEADING
+              + "\n\nWhen the set is found by **marker**, which is what K-05 are."},
+             "states a membership sentence ahead of the first reach class, so no class "
+             "reads it")):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any("named under no reach class" in item for item in found),
@@ -635,10 +644,20 @@ def _k119_every_class_lead_is_read() -> None:
             ({"total": "Where the set is located by **marker**, nothing narrows. "
                        + _K119_TOTAL},
              "opens a reach class '**marker**' that is not one of the four this rule reads"),
+            # the lead is read in any letter case, so a class opened mid-sentence is read
+            ({"computed": _K119_COMPUTED
+              + " Past it, where the set is located by **marker**, nothing narrows."},
+             "opens a reach class '**marker**' that is not one of the four this rule reads"),
             ({"computed": _K119_COMPUTED
               + " Where the set is located by a marker, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before its sentence "
-             "ends")):
+             "states 'Where the set is' and names no class in bold before a full stop or "
+             "the line's end"),
+            # any `.` ends the lead's reach, a code span's included, so the bold name past
+            # it opens nothing
+            ({"computed": _K119_COMPUTED
+              + " Where the set is located by `a.b` **marker**, nothing narrows."},
+             "states 'Where the set is' and names no class in bold before a full stop or "
+             "the line's end")):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
