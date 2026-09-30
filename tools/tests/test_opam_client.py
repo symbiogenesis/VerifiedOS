@@ -11,6 +11,7 @@ of the archive, as the 2.6 format rewrites it.
 """
 
 import io
+import re
 import sys
 import tarfile
 import tempfile
@@ -148,6 +149,16 @@ def _root_creation_is_the_owners_route() -> None:
            f"the route is derived from OPAM_REPOSITORIES, got {opam_client.CREATE_ROOT}")
 
 
+def _root_prerequisites_are_packages() -> None:
+    """The route's system prerequisites are distribution package names, each once, so
+    guest bootstrap's query and provision's rows can take them as they stand."""
+    packages = opam_client.ROOT_PREREQUISITES
+    ensure(bool(packages) and len(set(packages)) == len(packages),
+           f"the prerequisites are a nonempty list without repeats: {packages}")
+    ensure(all(re.fullmatch(r"[a-z0-9][a-z0-9+.-]+", package) for package in packages),
+           f"each prerequisite is a Debian package name: {packages}")
+
+
 def _root_gaps_name_what_a_root_lacks() -> None:
     """A root stands where its `config` does, and one that stands is complete only when
     it states a format and carries every owned repository at its URL."""
@@ -185,6 +196,71 @@ def _root_gaps_name_what_a_root_lacks() -> None:
                    "lacks " + ", ".join(f"{name} {address}"
                                         for name, address in opam_client.OPAM_REPOSITORIES)],
                f"an empty root lacks everything: {opam_client.root_gaps(bare)}")
+        newer = Path(td) / "newer"
+        opam_root(newer, "flat")
+        (newer / "config").write_bytes(b'opam-version: "2.0"\nopam-root-version: "99.0"\n')
+        ensure(opam_client.root_gaps(newer) == [
+                   f"is in format 99.0, newer than the reviewed client's "
+                   f"{opam_client.OPAM_ROOT_FORMAT}, which refuses to write to it"],
+               f"a format newer than the reviewed client's is a gap: "
+               f"{opam_client.root_gaps(newer)}")
+        unstamped = Path(td) / "unstamped"
+        opam_root(unstamped, "flat", stamps={name: "s" for name, _ in others})
+        ensure(opam_client.root_gaps(unstamped) == [f"records no metadata stamp for {default}"],
+               f"an owned repository whose stamp is unread is a gap: "
+               f"{opam_client.root_gaps(unstamped)}")
+        foreign = Path(td) / "foreign"
+        opam_root(foreign, "flat", stamps={name: "s" for name, _ in opam_client.OPAM_REPOSITORIES},
+                  configured=(*opam_client.OPAM_REPOSITORIES, ("mine", "https://example.invalid")))
+        ensure(opam_client.root_gaps(foreign) == [],
+               f"a repository the owner does not name is the developer's, stamped or not: "
+               f"{opam_client.root_gaps(foreign)}")
+
+
+def _resumable_roots_are_the_routes_own() -> None:
+    """A root reads as one `CREATE_ROOT` stopped partway through only where running the
+    route again finishes it: the reviewed client's format, the route's leading
+    repositories and no other, each at its owned URL with its stamp read."""
+    (default, url), *others = opam_client.OPAM_REPOSITORIES
+    leading = opam_client.OPAM_REPOSITORIES[:1]
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        roots: dict[str, bool] = {}
+
+        def root(name: str, resumable: bool, layout: str = "flat",
+                 stamps: dict[str, str] | None = None,
+                 configured: tuple[tuple[str, str], ...] = leading) -> Path:
+            at = Path(td) / name
+            opam_root(at, layout, stamps, configured)
+            roots[name] = resumable
+            return at
+
+        root("first-step", True)
+        root("complete", False, configured=opam_client.OPAM_REPOSITORIES)
+        root("older", False, layout="nested")
+        root("unstamped", False, stamps={})
+        root("not-leading", False, configured=tuple(others))
+        root("moved", False, configured=((default, url + "/elsewhere"),))
+        root("foreign", False, configured=(*leading, ("mine", "https://example.invalid")))
+        newer = root("newer", False)
+        (newer / "config").write_bytes(b'opam-root-version: "99.0"\n')
+        roots["absent"] = False
+        for name, resumable in roots.items():
+            ensure(opam_client.root_resumable(Path(td) / name) is resumable,
+                   f"the {name} root reads resumable={not resumable}")
+
+
+def _newer_formats_are_ordered() -> None:
+    """A stated format is newer than the reviewed client's only by its release numbers:
+    an older format, the reviewed one and a prerelease of it are not, and none stated
+    is not a newer one."""
+    reviewed = opam_client.OPAM_ROOT_FORMAT
+    for fmt, newer in (("99.0", True), (f"{reviewed}.1", True), (reviewed, False),
+                       (f"{reviewed}~alpha1", False), ("2.2", False), ("2.0", False),
+                       ("", False)):
+        ensure(opam_client.newer_than_reviewed(fmt) is newer,
+               f"format {fmt!r} reads newer={opam_client.newer_than_reviewed(fmt)}")
+    ensure(opam_client.format_key("2.10") > opam_client.format_key("2.9"),
+           "formats are ordered by number, not by text")
 
 
 def _install_verifies_and_never_replaces() -> None:
@@ -233,6 +309,9 @@ def cases() -> list[Case]:
         Case("initialized-root-is-complete", _initialized_root_is_complete),
         Case("initialized-format-is-the-clients", _initialized_format_is_the_clients),
         Case("root-creation-is-the-owners-route", _root_creation_is_the_owners_route),
+        Case("root-prerequisites-are-packages", _root_prerequisites_are_packages),
         Case("root-gaps-name-what-a-root-lacks", _root_gaps_name_what_a_root_lacks),
+        Case("newer-formats-are-ordered", _newer_formats_are_ordered),
+        Case("resumable-roots-are-the-routes-own", _resumable_roots_are_the_routes_own),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]

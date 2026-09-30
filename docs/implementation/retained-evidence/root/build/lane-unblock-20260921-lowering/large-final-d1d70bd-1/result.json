@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "compiler_sha256": "0c9e63e5fe6759852d2b533daf71f818b3b4288f91b9d811b8abced2a8459af3",
+  "argument_count": 270,
+  "commands": [
+    {
+      "argv": [
+        "/root/build/compiler-unblock-integration-20260921/compiler-profile-d1d70bd/ccomp",
+        "-S",
+        "-fverifiedos-typed",
+        "-o",
+        "/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/large.s",
+        "/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/large.i"
+      ],
+      "exit": 0,
+      "source_oracle_zero": false
+    },
+    {
+      "argv": [
+        "/root/build/compiler-unblock-integration-20260921/compiler-profile-d1d70bd/ccomp",
+        "-interp",
+        "/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/large.i"
+      ],
+      "exit": 0,
+      "source_oracle_zero": true
+    }
+  ],
+  "files": {
+    "command-1.log": "6ba618eeab95d571995fcaef904052835f08067bbdf7a9759381a560e00c3493",
+    "large.s": "dd4c82f4cd84435c6312b94c5a18c576325a8a6ccabab1f5c5d1c6c930a7bd47",
+    "command-0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "large.i": "8b012cac95ec3706dce4ebafdfa59c6736cf650c80fdc939ec6983de18886e31"
+  },
+  "boundary": "compiler emission plus source interpreter only; actual Sail run is required"
+}

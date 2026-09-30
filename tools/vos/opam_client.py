@@ -21,6 +21,10 @@ repositories' URLs and the `stamp` each one's `repo` file carries, and both read
 record them. They are read from the root's own files rather than by running opam,
 because a client newer than the root's format would upgrade the root to answer.
 
+The route has system prerequisites of its own, which this module also owns, because
+`opam init` refuses to create a root without them and every switch recipe then fails
+in a root that does not stand.
+
 Guest CI's download and installed-toolchain caches must hash this file, because an
 opam root restored under another client is another root.
 """
@@ -58,14 +62,27 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # on the first repository, with no shell setup and no opamrc, then every other
 # repository added unselected, each switch naming the repositories it resolves from.
 # Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
-# where no root stands. A resumed bootstrap repeats it over the root it created, where
-# `opam init` reports the root already initialized and adding a repository the root
-# already carries at that URL succeeds.
+# where no root stands or where `root_resumable` reads one the route stopped partway
+# through. Repeating it over a root it made finishes that root and changes a finished
+# one in nothing: `opam init` reports the root already initialized and exits 0, and
+# adding a repository the root already carries at that URL reports no changes and
+# exits 0, as the reviewed client did over a private root on the guest.
 CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
       for name, url in OPAM_REPOSITORIES[1:]),
 )
+
+# The Debian and Ubuntu packages `CREATE_ROOT` needs on the machine it runs on. The
+# reviewed client's `opam init` refuses to create a root, exiting 50 before it writes
+# one, unless curl or wget, tar, unzip and bwrap are on PATH: bwrap because the root it
+# creates sandboxes package builds. curl is the download tool here, and it fetches the
+# HTTPS repositories against the certificate store `ca-certificates` carries, which the
+# distribution's curl library only recommends. GNU patch, diff and getconf are not
+# among them, because this client computes and applies patches itself and no longer
+# requires getconf. Guest bootstrap installs these, and `run.py provision` probes and
+# installs each ahead of the opam row.
+ROOT_PREREQUISITES: tuple[str, ...] = ("bubblewrap", "ca-certificates", "curl", "tar", "unzip")
 
 _CONFIGURED_RE = re.compile(r'"([^"\r\n]+)"\s*\{\s*"([^"\r\n]+)"')
 _STAMP_RE = re.compile(r'(?m)^stamp:\s*"([^"\r\n]*)"')
@@ -110,16 +127,62 @@ def root_exists(root: Path) -> bool:
     return (root / "config").is_file()
 
 
+def format_key(fmt: str) -> tuple[int, ...]:
+    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
+    2.6, which is as near as a report needs to come to opam's own ordering."""
+    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
+
+
+def newer_than_reviewed(fmt: str) -> bool:
+    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT`. The reviewed
+    client still reads such a root, but refuses every command that takes its write lock
+    as "more recent than this version of opam", a switch creation among them."""
+    return bool(fmt) and format_key(fmt) > format_key(OPAM_ROOT_FORMAT)
+
+
 def root_gaps(root: Path) -> list[str]:
-    """What a root that stands lacks of one `CREATE_ROOT` makes, as clauses: a stated
-    format, and each of `OPAM_REPOSITORIES` at its URL. Empty for a complete root."""
-    gaps = [] if root_format(root) else ["states no format"]
-    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
+    """What a root that stands lacks of one the reviewed client can use as `CREATE_ROOT`
+    makes it, as clauses: a stated format no newer than `OPAM_ROOT_FORMAT`, each of
+    `OPAM_REPOSITORIES` at its URL, and each of those with its metadata stamp read, as
+    `initialized_repositories` holds a root just created. Empty for a complete root."""
+    fmt = root_format(root)
+    gaps: list[str] = []
+    if not fmt:
+        gaps.append("states no format")
+    elif newer_than_reviewed(fmt):
+        gaps.append(f"is in format {fmt}, newer than the reviewed client's "
+                    f"{OPAM_ROOT_FORMAT}, which refuses to write to it")
+    found = repositories(root)
+    configured = {(repo["name"], repo["url"]) for repo in found}
     missing = [f"{name} {url}" for name, url in OPAM_REPOSITORIES
                if (name, url) not in configured]
     if missing:
         gaps.append(f"lacks {', '.join(missing)}")
+    unstamped = [repo["name"] for repo in found
+                 if (repo["name"], repo["url"]) in OPAM_REPOSITORIES and not repo["stamp"]]
+    if unstamped:
+        gaps.append(f"records no metadata stamp for {', '.join(unstamped)}")
     return gaps
+
+
+def root_resumable(root: Path) -> bool:
+    """Whether a standing root is one `CREATE_ROOT` stopped partway through, which
+    running the route again finishes: in `OPAM_ROOT_FORMAT`, configured with exactly the
+    route's leading repositories, at least the one `opam init` fetched and not every
+    one, each at its owned URL and with its stamp read.
+
+    A root whose first repository's stamp is unread is not one: `opam init` over a
+    root that stands reports it initialized without fetching anything, so the route run
+    again would leave that repository unread and the root as incomplete as it found it.
+    """
+    if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
+        return False
+    found = repositories(root)
+    if any(not repo["stamp"] for repo in found):
+        return False
+    configured = {(repo["name"], repo["url"]) for repo in found}
+    return any(configured == set(OPAM_REPOSITORIES[:count])
+               for count in range(1, len(OPAM_REPOSITORIES)))
 
 
 def initialized_format(root: Path) -> str:

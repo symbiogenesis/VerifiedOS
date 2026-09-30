@@ -189,7 +189,7 @@ def _hold(fd: int) -> None:
     guest's and win32 is refused before the deferred import."""
     if sys.platform == "win32":
         raise AssertionError("flock is POSIX-only; the native lock cases run in the guest")
-    import fcntl  # noqa: PLC0415
+    import fcntl
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
 

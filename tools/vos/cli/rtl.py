@@ -81,6 +81,7 @@ import re
 import shutil
 import subprocess
 import tarfile
+from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -1003,9 +1004,32 @@ def _json_nodes(value: object) -> Iterator[dict[str, object]]:
             yield from _json_nodes(child)
 
 
-def _inventory(ast: Path) -> tuple[set[str], int, int]:
-    """What one elaboration instantiated: its module kinds, its cells, and its
-    declared variables.
+# The memory arrays the provenance record's cache rows, A-09 and A-10, are stated over,
+# and the two caches that hold them. Each arm's inventory counts every one of these kinds'
+# expanded instances in the whole core and under each cache, so the record cites this
+# count rather than restating it.
+ARRAY_KINDS: tuple[str, ...] = ("prim_ram_1p", "sram_cache", "sram")
+ARRAY_SCOPES: tuple[str, ...] = ("wt_dcache", "cva6_icache")
+WHOLE_CORE = "whole core"
+
+
+@dataclass(frozen=True)
+class Inventory:
+    """What one elaboration instantiated: its module kinds, its cells, its declared
+    variables, and its memory arrays.
+
+    `arrays` holds one row per scope, the whole core first and then each of
+    `ARRAY_SCOPES`, each row the expanded instance counts of `ARRAY_KINDS` in order.
+    """
+
+    kinds: set[str]
+    cells: int
+    variables: int
+    arrays: tuple[tuple[str, tuple[int, ...]], ...]
+
+
+def _inventory(ast: Path) -> Inventory:
+    """What one elaboration instantiated, read out of its JSON netlist.
 
     The module *kind* is the name with its parameter hash removed, because two
     elaborations of one module at different parameters are one structure and the
@@ -1014,6 +1038,9 @@ def _inventory(ast: Path) -> tuple[set[str], int, int]:
     CELL nodes describe module templates, whereas the former XML cells section
     expanded the hierarchy. Count each instantiation recursively, including the top,
     to retain that meaning when one module template is instantiated more than once.
+    The same expansion, kept per kind, gives the memory arrays: an instance is under a
+    cache where it or an enclosing instance is of that cache's kind, and is counted
+    once however many such instances enclose it.
     Variables are declarations, counted once per emitted module or package template.
     The internal constant-pool module under miscsp is not part of either inventory.
     """
@@ -1051,18 +1078,55 @@ def _inventory(ast: Path) -> tuple[set[str], int, int]:
             if not isinstance(target, str) or target not in modules:
                 raise ValueError(f"{ast}: unresolved module {target!r} in {name!r}")
             children[name].append(target)
-    counts: dict[str, int] = {}
+    below: dict[str, Counter[str]] = {}
 
-    def cells(name: str, ancestors: frozenset[str]) -> int:
+    def expand(name: str, ancestors: frozenset[str]) -> Counter[str]:
+        """Each kind's instances in one template's expanded subtree, itself included."""
         if name in ancestors or name not in modules:
             raise ValueError(f"{ast}: recursive or unresolved module {name!r}")
-        if name not in counts:
-            counts[name] = 1 + sum(cells(child, ancestors | {name}) for child in children[name])
-        return counts[name]
+        if name not in below:
+            found = Counter({_kind(name): 1})
+            for child in children[name]:
+                found.update(expand(child, ancestors | {name}))
+            below[name] = found
+        return below[name]
 
     for name in modules:
-        cells(name, frozenset())
-    return kinds, cells(roots[0], frozenset()), variables
+        expand(name, frozenset())
+    top = roots[0]
+
+    def within(scope: str) -> Counter[str]:
+        """Each kind's instances at or below an instance of `scope`, each once."""
+        seen: dict[str, Counter[str]] = {}
+
+        def walk(name: str) -> Counter[str]:
+            if name not in seen:
+                found: Counter[str] = Counter()
+                if _kind(name) == scope:
+                    found.update(below[name])
+                else:
+                    for child in children[name]:
+                        found.update(walk(child))
+                seen[name] = found
+            return seen[name]
+
+        return walk(top)
+
+    scopes = ((WHOLE_CORE, below[top]), *((scope, within(scope)) for scope in ARRAY_SCOPES))
+    arrays = tuple((scope, tuple(found[kind] for kind in ARRAY_KINDS))
+                   for scope, found in scopes)
+    return Inventory(kinds, sum(below[top].values()), variables, arrays)
+
+
+def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
+    """Each arm's memory-array instances, in the whole core and under each cache."""
+    lines = ["   memory-array instances, expanded, per arm and scope:",
+             f"     {'arm':<9} {'scope':<18}" + "".join(f"{kind:>13}" for kind in ARRAY_KINDS)]
+    for arm in sorted(inventories):
+        for scope, found in inventories[arm].arrays:
+            label = scope if scope == WHOLE_CORE else f"under {scope}"
+            lines.append(f"     {arm:<9} {label:<18}" + "".join(f"{n:>13}" for n in found))
+    return lines
 
 
 def prim_inputs() -> tuple[str, ...]:
@@ -1164,7 +1228,9 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
     curated configuration does not instantiate that the stock one does, which is the
     state-enumeration half. What it deliberately does not do is decide that the result
     is *right*: an absence is claimed by the contract and bound by the record, and this
-    says what the elaborator built.
+    says what the elaborator built. That includes, per arm, the expanded instances of
+    each memory-array kind in the whole core and under each cache, which is the count
+    the record's cache rows cite.
 
     Every row of the difference is a deletion **or an authored replacement**, and the
     report is partitioned so that the two are never one figure. A module the curated
@@ -1221,7 +1287,7 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
         print("\n".join(out))
         return 1
 
-    inventories: dict[str, tuple[set[str], int, int]] = {}
+    inventories: dict[str, Inventory] = {}
     for name, files in arms.items():
         ast = work / f"{name}.json"
         code, text = _elaborate(binary, root, files, ast, curated=name == "curated")
@@ -1236,10 +1302,9 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
             print(f"FAIL the {name} elaboration inventory could not be read: {error}")
             return 1
 
-    curated_kinds, curated_cells, curated_vars = inventories["curated"]
-    stock_kinds, stock_cells, stock_vars = inventories["baseline"]
+    curated, stock = inventories["curated"], inventories["baseline"]
     introduced_by, displaced_by = _substitution_modules(root, arms["curated"].taken)
-    diff = _diff(curated_kinds, stock_kinds, introduced_by, displaced_by)
+    diff = _diff(curated.kinds, stock.kinds, introduced_by, displaced_by)
 
     out.append(f"== elaborated under verilator {VERILATOR_PIN}, lane "
                f"{e.lane or 'primary'}")
@@ -1251,10 +1316,12 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
         out.append(f"   the curated arm stands {len(arms['curated'].taken)} authored "
                    "source(s) in the imported manifest's place and the baseline "
                    "stands none")
-    out.append(f"   baseline: {len(stock_kinds)} module kinds, {stock_cells} cells, "
-               f"{stock_vars} declared variables")
-    out.append(f"   curated: {len(curated_kinds)} module kinds, {curated_cells} cells, "
-               f"{curated_vars} declared variables")
+    out.append(f"   baseline: {len(stock.kinds)} module kinds, {stock.cells} cells, "
+               f"{stock.variables} declared variables")
+    out.append(f"   curated: {len(curated.kinds)} module kinds, {curated.cells} cells, "
+               f"{curated.variables} declared variables")
+    out.append("")
+    out.extend(_array_lines(inventories))
     out.append("")
     out.append(f"   {len(diff.removed)} structure(s) the disabling parameters remove:")
     out.extend(f"     {kind}" for kind in diff.removed)

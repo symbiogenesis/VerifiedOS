@@ -45,10 +45,11 @@ on 2026-09-30: rand 0.7.3
 fixed in 0.8.6) through the isla crate that provides isla-execute-function, and
 the unmaintained bincode 1.3.3
 ([RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141.html),
-no fixed release) through isla and isla-lib. They stay because Isla e9b5d945
-requires rand `0.7.3`, which admits no 0.8 release, and bincode `1.2.1`, and a
-lock override cannot carry a version outside the semver-compatible range its
-manifests admit.
+no fixed release) through isla and isla-lib. rand stays because Isla e9b5d945
+requires rand `0.7.3`, which admits no fixed release, and a lock override cannot
+carry a version outside the semver-compatible range its manifests admit. The
+bincode advisory's OSV range covers every bincode release, so only replacing
+the crate upstream would clear it.
 
 The driver's Cargo.lock carries four RustSec advisories, as OSV listed them on
 2026-09-30, each reached only through isla-testgen and its nested Isla
@@ -62,10 +63,12 @@ reads uninitialized memory, fixed in 0.6.2). rand 0.7.3
 unsound with a custom logger, fixed in 0.8.6) comes from both, and the
 unmaintained bincode 1.3.3
 ([RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141.html),
-no fixed release) from the nested Isla's isla and isla-lib. They stay because
-isla-testgen requires crossbeam and rand `0.7.3` and the nested Isla requires
-rand `0.7.3` and bincode `1.2.1`: no release those requirements admit carries a
-fix, so moving them means changing upstream manifests rather than this lock.
+no fixed release) from the nested Isla's isla and isla-lib. crossbeam-utils,
+memoffset and rand stay because isla-testgen requires crossbeam and rand `0.7.3`
+and the nested Isla requires rand `0.7.3`: no release those requirements admit
+carries a fix, so moving them needs upstream manifest changes rather than a
+change to this lock. The bincode advisory covers every bincode release, so
+clearing it needs the crate replaced upstream.
 The driver builds only for the 64-bit Linux targets the Rust pin names.
 
 The report checks the provisioned binaries and build-input digest before use.

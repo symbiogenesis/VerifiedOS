@@ -44,11 +44,18 @@ invariant, whose repair is to give a lane a copy rather than to delete somebody'
 cache. The `opam` row's command installs the reviewed client by the route guest
 bootstrap takes, only on a machine with no client on PATH, and creates a root by the
 root-creation route bootstrap runs, `opam_client.CREATE_ROOT`, only where no root
-stands, so the switch recipes planned after it in one pass find a root. It alters
-nothing that exists: replacing a developer's client can upgrade that root's format one
-way, which is a recorded step rather than a repair, so a client at another release is
-reported and never planned, and neither is a standing root that states no format or
-lacks one of the owner's repositories. Every figure any document states about this
+stands, so the switch recipes planned after it in one pass find a root. The rows ahead
+of it probe and install the distribution packages that route needs,
+`opam_client.ROOT_PREREQUISITES`, and the command refuses, naming each one absent,
+rather than start a root `opam init` would refuse to create. It alters
+nothing that exists but a root that route stopped partway through, which
+`opam_client.root_resumable` recognizes and the route run again finishes by adding
+the owner's remaining repositories unselected. Replacing a developer's client can
+upgrade that root's format one way, which is a recorded step rather than a repair, so
+a client at another release is reported and never planned, and neither is any other
+standing root with a gap `opam_client.root_gaps` names: no stated format or one newer
+than the reviewed client writes, or an owned repository absent, at another URL or with
+its stamp unread. Every figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision                # what is here and what is not
@@ -131,7 +138,7 @@ class Found:
 
     `repairable` is false where the row's command must not run over what the probe
     found, as the opam row's installs a client only where none is on PATH and creates
-    a root only where none stands.
+    a root only where none stands or finishes one its route stopped partway through.
     """
 
     present: bool
@@ -294,20 +301,13 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
-def _format_key(fmt: str) -> tuple[int, ...]:
-    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
-    2.6, which is as near as a report needs to come to opam's own ordering."""
-    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
-
-
 def _moving_the_root(fmt: str) -> str:
     """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
-    empty where the root is already in that client's format or states none."""
+    empty where the root is already in that client's format, states none, or states a
+    newer one, which the root's gaps already report."""
     want = opam_client.OPAM_ROOT_FORMAT
-    if not fmt or fmt == want:
+    if not fmt or fmt == want or opam_client.newer_than_reviewed(fmt):
         return ""
-    if _format_key(fmt) > _format_key(want):
-        return f", which cannot read this root's format {fmt}"
     return f", and moving to it upgrades this root's format from {fmt} to {want} one way"
 
 
@@ -316,20 +316,23 @@ def _opam_client() -> Found:
     one the owner's root-creation route makes.
 
     The fact is the client's release and the root's completeness: a root stands where
-    its `config` does, and is complete where it states a format and carries each of
-    `OPAM_REPOSITORIES` at its URL, because every switch recipe fails in a root that
-    does not stand and the prover's fails without its repository. The rest is what a
+    its `config` does, and is complete where `opam_client.root_gaps` names nothing, a
+    format stated and no newer than the reviewed client writes and each of
+    `OPAM_REPOSITORIES` at its URL with its stamp read, because every switch recipe
+    fails in a root that does not stand or that the client refuses to write to, and the
+    prover's fails without its repository. The rest is what a
     reader needs to act on it: where the client and its root are, the root's format,
     and each repository's URL and metadata stamp, which the locks do not fix. The root
     is read from its files rather than through opam, because a client newer than the
     root's format upgrades the root to answer.
 
     Repairable only where `install_opam` can make the row hold without altering what
-    exists: no client or the reviewed one, and no root or a complete one. Moving a
-    developer's root to another client can rewrite its format one way, which the
-    report says where the root's format is not the reviewed client's, so replacing a
-    client is a recorded step and not a repair; a standing root the command would leave
-    incomplete is reported rather than planned.
+    exists: no client or the reviewed one, and no root, a complete one, or one the
+    root-creation route stopped partway through, which running it again finishes.
+    Moving a developer's root to another client can rewrite its format one way, which
+    the report says where the root's format is not the reviewed client's, so replacing
+    a client is a recorded step and not a repair; any other standing root the command
+    would leave incomplete is reported rather than planned.
     """
     where = shutil.which("opam")
     found = _number(_say(("opam", "--version"))) if where else ""
@@ -339,35 +342,72 @@ def _opam_client() -> Found:
     fmt = opam_client.root_format(root)
     stands = opam_client.root_exists(root)
     gaps = opam_client.root_gaps(root) if stands else []
+    resumable = opam_client.root_resumable(root)
     if stands:
-        repositories = ", ".join(
-            f"{repo['name']} {repo['url']} at stamp {repo['stamp'] or 'unrecorded'}"
-            for repo in opam_client.repositories(root)) or "no repositories"
-        saw = f"{client} over {root} (format {fmt or 'unread'}; {repositories})"
+        saw = f"{client} over {root} (format {fmt or 'unread'}; {_listing(root)})"
     else:
         saw = f"{client}; no opam root at {root}"
     if gaps:
-        saw += f"; the root {' and '.join(gaps)}, and no command here alters a standing root"
+        saw += f"; the root {' and '.join(gaps)}, {_standing(resumable)}"
     if not reviewed:
         saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
     return Found(reviewed and stands and not gaps, saw,
-                 repairable=(where is None or reviewed) and not gaps)
+                 repairable=(where is None or reviewed) and (not gaps or resumable))
+
+
+def _listing(root: Path) -> str:
+    """Each repository a root configures with its URL and metadata stamp, as a report
+    names them."""
+    return ", ".join(f"{repo['name']} {repo['url']} at stamp {repo['stamp'] or 'unrecorded'}"
+                     for repo in opam_client.repositories(root)) or "no repositories"
+
+
+def _standing(resumable: bool) -> str:
+    """What becomes of a standing root with gaps, as a clause: finished where the
+    root-creation route stopped partway through it, and otherwise left as it is."""
+    if resumable:
+        return ("where the root-creation route stopped partway through it, and running "
+                "that route again finishes it")
+    return ("and a standing root is left as it is unless the root-creation route stopped "
+            "partway through it")
 
 
 def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     """The opam row's command: the reviewed client where no client is on PATH, and a
-    root by `opam_client.CREATE_ROOT` where none stands.
+    root by `opam_client.CREATE_ROOT` where none stands or where that route stopped
+    partway through one.
 
-    It installs only what is absent and alters nothing that exists. A client on PATH
-    at another release is refused, because replacing one is the recorded step
-    `_opam_client` describes; a client is installed by `opam_client.install`, which
-    verifies the download before publishing it and refuses to replace a different file
-    at the destination. Every switch recipe runs `opam` by name, so a destination this
-    PATH does not reach is reported rather than left to fail at the first switch. A
-    standing root is left as it is and held to what the row reads; a root this command
-    creates is held to what guest bootstrap holds its own to, the reviewed client's
-    format and exactly the owner's repositories with every stamp read.
+    It installs only what is absent and alters nothing that exists but a root its
+    route left unfinished, and it decides every refusal about the root before it
+    installs anything, so a run it refuses leaves the machine as it found it. A
+    standing root is held to what the row reads: a complete one is left as it is, one
+    `opam_client.root_resumable` reads as the route's unfinished root is finished by
+    running the route again, and any other the row reads as incomplete is refused
+    whatever the client. Where it would run the route, it first holds the machine to
+    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and refuses,
+    naming each package absent, because `opam init` refuses to create a root without
+    them. A client on PATH at another release is refused, because replacing one is the
+    recorded step `_opam_client` describes; a client is installed by
+    `opam_client.install`, which verifies the download before publishing it and refuses
+    to replace a different file at the destination. Every switch recipe runs `opam` by
+    name, so a destination this PATH does not reach is reported rather than left to
+    fail at the first switch. A root this command creates or finishes is held to what
+    guest bootstrap holds its own to, the reviewed client's format and exactly the
+    owner's repositories with every stamp read.
     """
+    root = env.opam_root()
+    stands = opam_client.root_exists(root)
+    resuming = opam_client.root_resumable(root)
+    if stands and not resuming and (gaps := opam_client.root_gaps(root)):
+        print(f"the opam root at {root} {' and '.join(gaps)}, {_standing(resuming)}",
+              file=sys.stderr)
+        return 1
+    creating = resuming or not stands
+    if creating and (missing := _missing_root_prerequisites()):
+        print(f"the root-creation route cannot run at {root} without {', '.join(missing)}, "
+              "which dpkg reports absent, since opam init refuses to create a root without "
+              "them; the rows ahead of the opam row install them", file=sys.stderr)
+        return 1
     present = shutil.which("opam")
     if present is None:
         try:
@@ -388,41 +428,68 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
                   f"{present}; the reviewed client {opam_client.OPAM_VERSION} is "
                   "installed only where there is none", file=sys.stderr)
             return 1
-    root = env.opam_root()
-    if opam_client.root_exists(root):
-        if gaps := opam_client.root_gaps(root):
-            print(f"the opam root at {root} {' and '.join(gaps)}; a standing root is left "
-                  "as it is", file=sys.stderr)
-            return 1
+    if not creating:
         print(f"the opam root at {root} already stands complete")
         return 0
-    return _create_root(root)
+    return _create_root(root, resuming=resuming)
 
 
-def _create_root(root: Path) -> int:
-    """Create the root at `root` by the owner's route, streamed to the caller's
-    terminal as `_apply` streams a switch, and hold it to the reviewed client's format
-    and the owner's repositories as guest bootstrap holds its own."""
-    for argv in opam_client.CREATE_ROOT:
+def _missing_root_prerequisites() -> list[str]:
+    """Each of `opam_client.ROOT_PREREQUISITES` dpkg does not report installed, read by
+    the probe the rows ahead of the opam row take, so the command and the table agree."""
+    return [package for package in opam_client.ROOT_PREREQUISITES
+            if not _dpkg(package).present]
+
+
+def _create_root(root: Path, *, resuming: bool = False) -> int:
+    """Create the root at `root` by the owner's route, or finish one it stopped partway
+    through, streamed to the caller's terminal as `_apply` streams a switch, and hold
+    it to the reviewed client's format and the owner's repositories as guest bootstrap
+    holds its own.
+
+    A step that fails stops the route, and the report says what then stands at `root`
+    and what remains of the route: the first step can leave a root behind it, which a
+    later run finishes where `opam_client.root_resumable` reads it as the route's and
+    otherwise leaves as it is.
+    """
+    if resuming:
+        print(f"the opam root at {root} is one the root-creation route stopped partway "
+              "through; running the route again finishes it")
+    for index, argv in enumerate(opam_client.CREATE_ROOT):
         print(f"   {' '.join(argv)}", flush=True)
         try:
             code = subprocess.run(list(argv), check=False,
                                   env=os.environ | {"OPAMROOT": str(root)}).returncode
         except OSError as err:
-            print(f"{argv[0]} could not be run: {err}", file=sys.stderr)
-            return 1
-        if code != 0:
-            print(f"`{' '.join(argv)}` exited {code}, so the opam root at {root} was not "
-                  "created", file=sys.stderr)
-            return 1
+            failed = f"`{' '.join(argv)}` could not be run: {err}"
+        else:
+            if code == 0:
+                continue
+            failed = f"`{' '.join(argv)}` exited {code}"
+        print(f"{failed}, {_stopped(root, opam_client.CREATE_ROOT[index:])}",
+              file=sys.stderr)
+        return 1
     try:
         fmt = opam_client.initialized_format(root)
         opam_client.initialized_repositories(root)
     except ValueError as err:
         print(f"the opam root created at {root} is not the owner's: {err}", file=sys.stderr)
         return 1
-    print(f"created the opam root at {root} in format {fmt}")
+    print(f"{'finished' if resuming else 'created'} the opam root at {root} in format {fmt}")
     return 0
+
+
+def _stopped(root: Path, remaining: Sequence[Sequence[str]]) -> str:
+    """What stands at `root` once the root-creation route stopped, with what remains of
+    the route from the step that failed, as the clause a failure report ends in."""
+    left = "; ".join(" ".join(argv) for argv in remaining)
+    if not opam_client.root_exists(root):
+        return f"so no opam root stands at {root}; what remains of the route is {left}"
+    then = ("a later run of this command finishes it" if opam_client.root_resumable(root)
+            else "a standing root in this state is left as it is")
+    return (f"so the opam root at {root} stands in format "
+            f"{opam_client.root_format(root) or 'unread'} with {_listing(root)}; what "
+            f"remains of the route is {left}, and {then}")
 
 
 def _pinned_z3() -> Found:
@@ -527,7 +594,8 @@ def _outputs_on_the_guest() -> Found:
 # The lane, row by row. Each row names the loop that wants the fact and the artifact
 # that fixes it, and every version in it is read from that artifact rather than typed
 # here. The order is the order a machine is built in and the order a report reads in:
-# the gate's five, then the toolchain from opam outward.
+# the gate's five, then the toolchain from the opam root's system packages outward, so
+# `--apply` installs what `opam init` needs before the opam row's command runs it.
 FACTS: tuple[Fact, ...] = (
     Fact("the interpreter floor", GATE,
          "every command here, on both lanes",
@@ -549,6 +617,13 @@ FACTS: tuple[Fact, ...] = (
          "run.py model validate-config, and ty on every lane",
             "tools/pyproject.toml's project.dependencies; synchronized by run.py",
             partial(_importable, "jsonschema", "jsonschema")),
+    *(Fact(package, TOOLCHAIN,
+           "the opam row's root creation, whose opam init refuses to create a root "
+           "without it",
+           "tools/vos/opam_client.py's ROOT_PREREQUISITES",
+           partial(_dpkg, package),
+           ((*APT, package),))
+      for package in opam_client.ROOT_PREREQUISITES),
     Fact("opam", TOOLCHAIN,
          "every switch below, and vos/env.py's _apply_opam_env",
          "tools/vos/opam_client.py's OPAM_VERSION and OPAM_REPOSITORIES",
@@ -787,7 +862,8 @@ def main(argv: list[str] | None = None) -> int:
                       help="install every absent fact this tree states a command for")
     what.add_argument("--install-opam", action="store_true",
                       help="install the reviewed opam client where no client is on PATH "
-                           "and create its root where none stands, the opam row's command")
+                           "and create its root where none stands, or finish one its "
+                           "route stopped partway through, the opam row's command")
     parser.add_argument("--only", choices=GROUPS, default="", metavar="GROUP",
                         help=f"narrow to one group of rows: {' or '.join(GROUPS)}")
     args = parser.parse_args(argv)

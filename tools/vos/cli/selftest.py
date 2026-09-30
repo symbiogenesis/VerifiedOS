@@ -1995,6 +1995,14 @@ CASES: list[Case] = [
              "device-register package",
      _literal("interfaces/block-device-contract.md", "| `0x38` | `ACK` |",
               "| `0x40` | `ACK` |")),
+    # The same row's bytes outside every constant, seeded at the generator: its header
+    # comment changes while the package still agrees with its index, its gitlink and its
+    # block owners, so only the host's rendering of the whole package can see it.
+    ("K-88", "the device-register generator's header changed without regenerating "
+             "the package",
+     _literal("tools/vos/device_regs.py",
+              "from the owners below; rtl devicescheck checks it.",
+              "from the owners below.")),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written

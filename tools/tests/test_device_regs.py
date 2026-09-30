@@ -10,7 +10,7 @@ from collections.abc import Callable
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import device_regs as regs
 
 _REV = "4b9bec92" + "0" * 32
@@ -63,8 +63,6 @@ def _block_half_needs_no_mocha_owner() -> None:
         uart, block = regs.uart_lines(root), regs.block_lines(root)
         ensure(lines[8:8 + len(uart) + len(block)] == uart + block,
                "the package is the UART half followed by the block half")
-        ensure(regs.emitted_block_lines(text) == block,
-               "the package's BLK_ lines read back as the block half")
     tree = _tree()
     del tree[regs.UART], tree[regs.UART_SPEC]
     with sandbox_tree(tree) as root:
@@ -76,6 +74,43 @@ def _block_half_needs_no_mocha_owner() -> None:
             pass
         else:
             raise AssertionError("the UART half was derived with no Mocha owner")
+
+
+def _package_renders_from_its_own_uart_lines() -> None:
+    # The host renders the package without the Mocha owners: the UART lines it reads
+    # back are the emitted ones, and rendering around them reproduces every byte.
+    with sandbox_tree(_tree()) as root:
+        text = regs.emit(root, _REV)
+        uart, block = regs.uart_lines(root), regs.block_lines(root)
+    ensure(regs.emitted_uart_lines(text) == uart,
+           "the package's UART lines read back in generator order")
+    ensure(regs.render(uart, block, _REV) == text,
+           "emit is render over the owners' lines and the stamp")
+    moved = text.replace("UART_WDATA = 64'h1c", "UART_WDATA = 64'h2c")
+    ensure(regs.render(regs.emitted_uart_lines(moved), block, _REV) == moved,
+           "a UART value is left open to the guest command")
+    _refused(regs.render, uart, block, "4b9bec92")
+
+
+def _uart_lines_outside_the_generators_form_refuse() -> None:
+    with sandbox_tree(_tree()) as root:
+        text = regs.emit(root, _REV)
+    status = "  localparam logic [63:0] UART_STATUS = 64'h14;"
+    for changed in (
+            text.replace(status + "\n", ""),                         # missing
+            text.replace(status, f"{status}\n{status}"),              # declared twice
+            text.replace(status, f"{status}\n/*\n{status}\n*/"),      # commented copy
+            text.replace("64'h14;", "64'h014;"),                      # another spelling
+            text.replace("64'h14;", "64'h14;  // status")):           # trailing text
+        _refused(regs.emitted_uart_lines, changed)
+
+
+def _tracked_package_renders_from_this_checkout() -> None:
+    root = TOOLS.parent
+    text = (root / regs.ARTIFACT).read_text(encoding="utf-8")
+    ensure(regs.render(regs.emitted_uart_lines(text), regs.block_lines(root),
+                       regs.recorded_revision(text)) == text,
+           f"{regs.ARTIFACT} is what the generator renders around its own UART values")
 
 
 def _refused(read: Callable[..., object], *args: object) -> None:
@@ -117,6 +152,12 @@ def cases() -> list[Case]:
     return [Case("owners-drive-offsets-and-fields", _owners_drive_offsets_and_fields),
             Case("missing-or-duplicate-owners-refuse", _missing_or_duplicate_owners_refuse),
             Case("block-half-needs-no-mocha-owner", _block_half_needs_no_mocha_owner),
+            Case("package-renders-from-its-own-uart-lines",
+                 _package_renders_from_its_own_uart_lines),
+            Case("uart-lines-outside-the-generators-form-refuse",
+                 _uart_lines_outside_the_generators_form_refuse),
+            Case("tracked-package-renders-from-this-checkout",
+                 _tracked_package_renders_from_this_checkout),
             Case("stamp-records-the-owner-revision", _stamp_records_the_owner_revision),
             Case("stamp-is-taken-from-the-owner-checkout-itself",
                  _stamp_is_taken_from_the_owner_checkout_itself)]

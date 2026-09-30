@@ -3,6 +3,7 @@
 
 import io
 import json
+import shutil
 import tarfile
 import tomllib
 from collections.abc import Callable
@@ -193,10 +194,12 @@ def _provision_uses_fresh_prefix() -> None:
         base = environment.lane_root / "sail-isla"
         stale = base / "sail-prefix/lib/superseded/META"
         stale_plugin = base / "sail-prefix/share/libsail/plugins/superseded.cmxs"
+        stale_driver = base / "build/driver/build.rs"
+        stale_config = base / "build/driver/.cargo/config.toml"
         stamp = base / "provision.json"
 
         def plant() -> None:
-            for path in (stale, stale_plugin, stamp):
+            for path in (stale, stale_plugin, stale_driver, stale_config, stamp):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("superseded", encoding="utf-8")
 
@@ -239,6 +242,11 @@ def _provision_uses_fresh_prefix() -> None:
                "provisioning must install the current Sail into its prefix")
         ensure(not stale.exists() and not stale_plugin.exists(),
                "nothing a superseded build installed may stay on OCAMLPATH or in the plugin site")
+        driver = base / "build/driver"
+        ensure(sorted(path.relative_to(driver).as_posix() for path in driver.rglob("*")
+                      if path.is_file()) == ["Cargo.toml"],
+               "the driver build directory must hold exactly the tracked driver recipe, "
+               "no build script or Cargo configuration a superseded recipe had")
         ensure(json.loads(stamp.read_text(encoding="utf-8"))["assets_sha256"] == "a" * 64,
                "the stamp must describe the rebuilt prefix")
         plant()
@@ -257,6 +265,26 @@ def _provision_uses_fresh_prefix() -> None:
         _reject(lambda: provision(interrupted))
         ensure(not stamp.exists() and not stale.exists(),
                "an interrupted provisioning must leave no stamp describing a removed prefix")
+
+        # The stamp hashes only the prefix's sail executable, so a stamp left beside a
+        # prefix whose removal stopped partway could pass qualification's stamp check.
+        remove = shutil.rmtree
+
+        def removal_interrupted(path: Path) -> None:
+            if Path(path).name == "sail-prefix":
+                raise OSError("removal interrupted")
+            remove(path)
+
+        plant()
+        try:
+            with patch.object(sailisla.shutil, "rmtree", side_effect=removal_interrupted):
+                provision()
+        except OSError:
+            pass
+        else:
+            raise AssertionError("an interrupted prefix removal must fail provisioning")
+        ensure(not stamp.exists() and stale.exists(),
+               "the stamp must be gone before the prefix's removal starts")
 
 
 def _report() -> dict[str, Any]:

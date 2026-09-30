@@ -489,10 +489,19 @@ def _workflow_host_job_names() -> None:
 
 
 # The shard gate's command, and its two platform branches as the workflow spells them:
-# PowerShell on Windows and bash on every other runner, so each runner takes one.
+# PowerShell on Windows and bash on every other runner, so each runner takes one, each
+# with the exact line its shell runs. A run that merely starts with the command could
+# append `|| true` and finish green without the gate's verdict.
 _GATE = "python tools/run.py --check --tests --shard"
-_GATE_BRANCHES = sorted((("${{ runner.os == 'Windows' }}", "pwsh"),
-                         ("${{ runner.os != 'Windows' }}", "bash")))
+_GATE_COMMANDS = {
+    ("${{ runner.os == 'Windows' }}", "pwsh"):
+        f'{_GATE} "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"',
+    ("${{ runner.os != 'Windows' }}", "bash"):
+        f'{_GATE} "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"',
+}
+_GATE_BRANCHES = sorted(_GATE_COMMANDS)
+# A job-level key of the shard job, whose keys sit at four spaces, bare or quoted.
+_JOB_CONTINUE_RE = re.compile(r"""(?m)^    (["']?)continue-on-error\1[ \t]*:""")
 
 
 def _step_texts(job: str) -> list[str]:
@@ -516,14 +525,32 @@ def _step_values(step: str, key: str) -> list[str]:
     return [m[1] for m in re.finditer(pattern, step)]
 
 
+def _continued(step: str) -> bool:
+    """Whether a line follows a step's `run:` line more deeply indented than the step's
+    own keys, before the next of them, which YAML folds into a plain scalar's value."""
+    lines = step.split("\n")
+    start = next((n for n, line in enumerate(lines)
+                  if re.match(r"(?:      - |        )run:", line)), None)
+    for line in lines[start + 1:] if start is not None else []:
+        if not line.strip():
+            continue
+        return len(line) - len(line.lstrip()) > 8
+    return False
+
+
 def _gate_faults(contents: str) -> list[str]:
-    """Why the host workflow's shard job does not run its gate exactly once per runner.
+    """Why the host workflow's shard job does not run its gate exactly once per runner,
+    with the gate's exit as the step's verdict.
 
     The gate is two steps, and a step whose `if:` is false is skipped with its job still
     green, so a shard on which neither condition held would pass having run nothing.
     Each gate step is a block step whose own single-line `run:` starts with the gate
     command, the command standing anywhere else in the job is refused rather than read,
-    and the two steps' `if:` and `shell:` must be exactly the complementary pair.
+    and the two steps' `if:` and `shell:` must be exactly the complementary pair. A gate
+    that runs can still finish green without its verdict, so each step's `run:` must be
+    exactly its branch's command with no continuation line folded into it, and neither a
+    gate step nor the shard job may state `continue-on-error`. Steps other than the
+    gate's are not read.
     """
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
     gates = [step for step in _step_texts(shards)
@@ -534,14 +561,28 @@ def _gate_faults(contents: str) -> list[str]:
         faults.append("the gate command stands outside a step's own single-line run")
     if len(gates) != 2:
         faults.append(f"the shard job runs the gate in {len(gates)} step(s), not two")
+    if _JOB_CONTINUE_RE.search(text):
+        faults.append("the shard job states continue-on-error, so a failed gate can leave "
+                      "it green")
     branches: list[tuple[str, str]] = []
     for step in gates:
+        if "continue-on-error" in step:
+            faults.append("a gate step states continue-on-error, so its failure can leave "
+                          "the job green")
+        if _continued(step):
+            faults.append("a gate step's run continues past its line, so the command it "
+                          "runs is not the line read")
         conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
-        if len(conditions) != 1 or len(shells) != 1:
-            faults.append(f"a gate step states {len(conditions)} if and {len(shells)} "
-                          "shell keys, not one of each")
+        runs = _step_values(step, "run")
+        if len(conditions) != 1 or len(shells) != 1 or len(runs) != 1:
+            faults.append(f"a gate step states {len(conditions)} if, {len(shells)} shell "
+                          f"and {len(runs)} run keys, not one of each")
             continue
         branches.append((conditions[0], shells[0]))
+        wanted = _GATE_COMMANDS.get(branches[-1])
+        if wanted is not None and runs[0] != wanted:
+            faults.append(f"the {shells[0]} gate step runs {runs[0]!r}, not exactly "
+                          f"{wanted!r}, so its exit need not be the gate's")
     if len(gates) == 2 and sorted(branches) != _GATE_BRANCHES:
         faults.append(f"the gate steps' conditions and shells are {sorted(branches)!r}, "
                       f"not the complementary {_GATE_BRANCHES!r}")
@@ -562,12 +603,14 @@ _GATE_JOB = """jobs:
       - name: Host gates and behavioral tests (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
-        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS"
+        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
         if: ${{ runner.os != 'Windows' }}
         shell: bash
-        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS"
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       - name: Report gate results
         if: ${{ !cancelled() }}
@@ -580,11 +623,14 @@ _GATE_JOB = """jobs:
 
 def _workflow_gate_on_every_runner() -> None:
     # The reading is held to fixtures of its own: the complementary pair passes, and a
-    # pair that leaves some runner without a gate, or a gate it cannot read, is refused.
+    # pair that leaves some runner without a gate, a gate it cannot read, or a gate
+    # that can finish green without its verdict, is refused.
     found = _gate_faults(_GATE_JOB)
     ensure(not found, f"the complementary pair passes: {found!r}")
     ubuntu = _GATE_JOB.split("      - name: Host gates and behavioral tests (Ubuntu)\n", 1)
     missing = ubuntu[0] + "      - name: Report" + ubuntu[1].split("      - name: Report", 1)[1]
+    verdict = '--summary "$RUNNER_TEMP/$VERDICT_FILE"'
+    report = "\n      - name: Report gate results\n"
     for workflow, fragment in (
             (_GATE_JOB.replace("runner.os != 'Windows'", "runner.os == 'Linux'"),
              "not the complementary"),
@@ -597,10 +643,40 @@ def _workflow_gate_on_every_runner() -> None:
                                '--shard "$SHARD'), "outside a step's own single-line run"),
             (_GATE_JOB.replace("        shell: bash\n",
                                "        shell: bash\n        if: ${{ false }}\n"),
-             "states 2 if and 1 shell keys")):
+             "states 2 if, 1 shell and 1 run keys"),
+            # A gate that runs and finishes green without its verdict: continuing on its
+            # error, at the step or the job, or a run that swallows the exit.
+            (_GATE_JOB.replace("        shell: bash\n",
+                               "        shell: bash\n        continue-on-error: true\n"),
+             "a gate step states continue-on-error"),
+            (_GATE_JOB.replace("    runs-on: ${{ matrix.runner }}\n",
+                               "    runs-on: ${{ matrix.runner }}\n"
+                               "    continue-on-error: true\n"),
+             "the shard job states continue-on-error"),
+            (_GATE_JOB.replace("    runs-on: ${{ matrix.runner }}\n",
+                               "    runs-on: ${{ matrix.runner }}\n"
+                               "    'continue-on-error': ${{ matrix.shard > 1 }}\n"),
+             "the shard job states continue-on-error"),
+            (_GATE_JOB.replace(verdict, f"{verdict} || true"),
+             "the bash gate step runs"),
+            (_GATE_JOB.replace(f"{verdict}\n", f"{verdict}\n          || exit 0\n"),
+             "continues past its line"),
+            (_GATE_JOB.replace(f"{verdict}\n", f"{verdict}\n\n          || exit 0\n"),
+             "continues past its line"),
+            (_GATE_JOB.replace(f"{verdict}\n{report}",
+                               f"{verdict}\n        continue-on-error: true\n{report}"),
+             "a gate step states continue-on-error")):
+        ensure(workflow != _GATE_JOB, f"the fixture for {fragment!r} changed nothing")
         found = _gate_faults(workflow)
         ensure(any(fragment in fault for fault in found),
-               f"a gate some runner would skip must be refused ({fragment!r}): {found!r}")
+               f"a gate some runner would skip, or one that can pass without its verdict, "
+               f"must be refused ({fragment!r}): {found!r}")
+    # A step other than the gate's is not read: one more step anywhere passes.
+    extra = _GATE_JOB.replace(report, "\n      - name: Another step\n        if: ${{ "
+                                      "runner.os != 'Windows' }}\n        continue-on-error: "
+                                      f"true\n        run: echo other\n{report}")
+    ensure(extra != _GATE_JOB and not _gate_faults(extra),
+           f"a step outside the gate's is not read: {_gate_faults(extra)!r}")
 
 
 def _key_values(text: str, key: str) -> list[str]:

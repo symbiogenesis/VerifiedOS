@@ -349,7 +349,7 @@ def _hold(proofs: Path) -> int:
     """
     if sys.platform == "win32":
         raise RuntimeError("the proof workspace is held in the guest")
-    import fcntl  # noqa: PLC0415
+    import fcntl
     proofs.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(proofs), os.O_RDONLY)
     fcntl.flock(fd, fcntl.LOCK_EX)
