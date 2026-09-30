@@ -9,7 +9,7 @@
 // `cbo.scrub`, the synchronous block verify-and-correct (R-15-177a).
 //
 // Every codeword in one naturally aligned CBO block is read through the
-// error-detecting check, a correctably erroneous codeword is rewritten
+// error-detecting check, a codeword with a correctable error is rewritten
 // corrected, data plane and tag plane alike, and a detected-but-uncorrectable
 // error in either plane is a fail-stop, at one fixed per-block latency whether
 // anything was corrected or not (R-15-179).
