@@ -235,6 +235,18 @@ def _a_declaration_the_reader_does_not_take_is_refused() -> None:
     _refused_saying(_TOY + "Fail Definition extra : list nat := cons 1 nil.\n",
                     "spells extra as a typed list this reader does not read",
                     "a list under a control prefix was dropped")
+    # a control flag on a line above the head, however much blank space, comment or
+    # attribute stands between them, leaves the head reading a declaration the file
+    # does not keep, and the head refuses it by the flag
+    for lead, flag in (("Fail\n", "Fail"), ("Succeed\n", "Succeed"),
+                       ("#[local]\nFail\n", "Fail"), ("Fail (* why. *)\n\n", "Fail")):
+        _refused_saying(_TOY + lead + _VARIANT, f"states dear_plan under `{flag}`",
+                        f"a variant under {lead!r} was carried")
+        _refused_saying(_TOY + lead + "Definition extra : list nat := cons 1 nil.\n",
+                        f"states extra under `{flag}`", f"a list under {lead!r} was read")
+    # `Time` keeps what it times, so a variant under it is carried as itself
+    src = memplan.parse(_TOY + "Time\n" + _VARIANT)
+    ensure("dear_plan" in src.plans, f"a timed variant is a variant: {src.plans}")
     # the positive control: a plan value that is no application of build_plan was never
     # a variant this reader carries, and it stays outside the export as it was
     src = memplan.parse(_TOY + "Definition alias_plan : Plan := demo_plan.\n")
