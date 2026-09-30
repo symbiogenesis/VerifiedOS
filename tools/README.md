@@ -354,6 +354,17 @@ at the version declared by [pyproject.toml](pyproject.toml)'s
 Windows installations do not supply WSL's prerequisites. No activation, global
 package installation, or separate checker installation is needed.
 
+`required-version` is an exact pin, not a floor. A uv patch release can change how
+the lockfile is written, CI's `setup-uv` would resolve a range in the manifest to
+the highest release it admits, and [guest bootstrap](ci/bootstrap_guest.py)
+requires the installed uv to equal the pin. Move the pin when a release fixes
+something these tools exercise, or together with other tool refreshes, rather than
+for every patch release. A move is one coordinated switch: uv refuses a project
+whose `required-version` it does not satisfy, and every checkout on the machine
+shares the host's uv and the WSL guest's uv, so both binaries change with the
+manifest, and a checkout whose manifest still names the old pin stops until it
+takes the move.
+
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
 configuration for the manual install. The project keeps `python-downloads = "never"`,
