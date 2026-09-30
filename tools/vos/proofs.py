@@ -14,8 +14,9 @@ way. They were the proof gate's own, private to [run.py proofs](cli/proofs.py), 
 [proofcites.py](proofcites.py) needed the second half of a `.v` the gate already reads: what
 the file *defines*, which is a sentence's opening vernacular and so is decided by where
 the comments end. Both are lexical and neither knows any Gallina: a comment nests,
-separates the tokens beside it and reads a string literal inside it whole, and a string
-literal outside one is kept whole, and that is the whole of what they are for.
+separates the tokens beside it and reads a string literal inside it whole, a string
+literal outside one is kept whole, and a sentence ends at a full stop outside both, and
+that is the whole of what they are for.
 """
 
 import re
@@ -31,8 +32,12 @@ from types import MappingProxyType
 REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(.+)$")
 
 # A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
-# `m.(field)` and `Nat.add` inside their sentence.
+# `m.(field)` and `Nat.add` inside their sentence. A full stop inside a string literal
+# ends nothing, so the sentence split reads each string whole first, an unterminated one
+# to the end as strip_comments reads it; a doubled quote inside one is two adjacent
+# strings to this reading and one string to Rocq's, which covers the same characters.
 SENTENCE_END = re.compile(r"\.(?=\s|$)")
+_SENTENCE_TOKEN = re.compile(r'"[^"]*(?:"|\Z)|' + SENTENCE_END.pattern)
 _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
 
@@ -76,8 +81,18 @@ def _separator(text: str, start: int, end: int) -> str:
 
 
 def sentences(text: str) -> list[str]:
-    """Every sentence the source states, comments gone and whitespace trimmed."""
-    return [trimmed for s in SENTENCE_END.split(strip_comments(text)) if (trimmed := s.strip())]
+    """Every sentence the source states, comments gone and whitespace trimmed. Only a
+    full stop outside a string literal ends one, so an attribute's quoted note keeps
+    its declaration."""
+    code = strip_comments(text)
+    found: list[str] = []
+    start = 0
+    for token in _SENTENCE_TOKEN.finditer(code):
+        if token.group() == ".":
+            found.append(code[start:token.start()])
+            start = token.end()
+    found.append(code[start:])
+    return [trimmed for s in found if (trimmed := s.strip())]
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:

@@ -265,17 +265,26 @@ def _rocq_93_settings_are_pinned() -> None:
 
 def _settings_read_as_the_lexer_reads_them() -> None:
     # Each compiles under the gate's flags in the pinned Rocq 9.3.0 with the setting in
-    # effect: a comment is a separator, and a `(*` quoted inside a comment opens nothing.
+    # effect: a comment is a separator, a `(*` quoted inside a comment opens nothing, and
+    # a full stop quoted in an attribute ends no sentence, so the `warnings` attribute
+    # after it silences the deprecation that refuses the same declaration without it.
     refused = ("Set(* c *)Kernel Conversion Dep Heuristic.",
                "Local(* c *)Set(* c *)Kernel(* c *)Conversion Dep Heuristic.",
                '(* "(*" *) Set Kernel Conversion Dep Heuristic. (* c *)',
-               '(* "x" *)Set(* "y" *)Kernel Conversion Dep Heuristic.')
+               '(* "x" *)Set(* "y" *)Kernel Conversion Dep Heuristic.',
+               '#[deprecated(since="1", note="old")] Definition old := 0.\n'
+               '#[deprecated(since="2", note="see x. y"), warnings="-all"] '
+               "Definition use := old.",
+               'Lemma a : True. Proof. idtac "a"". b"; timeout 5 (exact I). Qed.')
     for text in refused:
         ensure(len(proofaudit.pinned_overrides(text)) == 1,
                f"a pinned setting the lexer reads passed: {text!r}")
     allowed = ("Test(* c *)Kernel Conversion Dep Heuristic.",
                '(* "x" Set Kernel Conversion Dep Heuristic. *) Definition x := 0.',
-               "(* (* Set Guard Checking. *) Unset Guard Checking. *) Definition x := 0.")
+               "(* (* Set Guard Checking. *) Unset Guard Checking. *) Definition x := 0.",
+               'Definition label := "a. Set Warnings ""-all"" b".',
+               '#[deprecated(since="2", note="see x. Set Guard Checking. y")] '
+               "Definition old := 0.")
     for text in allowed:
         ensure(not proofaudit.pinned_overrides(text),
                f"a setting inside a comment was refused: {text!r}")

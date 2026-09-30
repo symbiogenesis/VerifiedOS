@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
-from vos.proofs import SENTENCE_END, sentences, strip_comments
+from vos.proofs import sentences
 
 MARKER = "VOS_PROOF_AUDIT|"
 EMPTY_BLACKLIST = "Current search blacklist :  is empty."
@@ -249,18 +249,17 @@ def kernel_context(summary: str) -> list[str]:
 def pinned_overrides(text: str) -> list[str]:
     """Sentences that would change a gate-pinned setting for their own source.
 
-    The tactical reading empties string literals before it splits sentences, so neither
-    a quoted tactic nor a quoted full stop is read as code. strip_comments reads a
-    comment as the separator Rocq's lexer reads it as, so `timeout(* c *)5` is the word
-    and its argument.
+    The shared lexer reads a comment as the separator Rocq's lexer reads it as, so
+    `timeout(* c *)5` is the word and its argument, and ends a sentence only outside a
+    string literal, so a quoted full stop hides no command. The tactical reading empties
+    each sentence's string literals, so a quoted tactic is not read as code. Each
+    sentence is reported once, as written.
     """
-    found = [sentence for sentence in sentences(text)
-             if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
-             or _TIMEOUT.match(sentence)]
-    if "timeout" in text or "alloc_limit" in text:
-        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(text)))
-        found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
-    return found
+    tactical = "timeout" in text or "alloc_limit" in text
+    return [sentence for sentence in sentences(text)
+            if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
+            or _TIMEOUT.match(sentence)
+            or (tactical and _TACTICAL.search(_STRING.sub('""', sentence)))]
 
 
 def unsupported_abstractions(text: str) -> list[str]:

@@ -257,9 +257,11 @@ def _a_decorated_record_still_demands_its_witness() -> None:
 
 
 def _a_decorated_statement_still_quantifies() -> None:
-    # An attribute's quoted value may hold a bracket, which does not close the attribute.
+    # An attribute's quoted value may hold a bracket, which does not close the attribute,
+    # or a full stop, which does not end the sentence.
     for decoration in (*_DECORATIONS, "Program", "Program Local", "Local Program",
-                       '#[deprecated(since="1", note="see [x]")]'):
+                       '#[deprecated(since="1", note="see [x]")]',
+                       '#[deprecated(since="1", note="see x. y")]'):
         for keyword in ("Lemma", "Theorem", "Example", "Corollary", "Fact"):
             statement = _COUNTED.replace("Lemma", f"{decoration} {keyword}")
             found = gate.scan_witnesses(_MACHINE + statement)

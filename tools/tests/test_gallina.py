@@ -194,6 +194,25 @@ def _comment_lexing_preserves_source_and_newlines() -> None:
                f"comment boundaries changed for {source!r}")
 
 
+def _sentences_end_outside_strings() -> None:
+    # A full stop followed by whitespace ends a sentence only outside a string literal,
+    # whose doubled quote Rocq reads as one quote inside it.
+    fixtures = {
+        'Definition a := "x. y". Definition b := 0.': ['Definition a := "x. y"',
+                                                       "Definition b := 0"],
+        '#[deprecated(note="see x. y")] Lemma l : True.': [
+            '#[deprecated(note="see x. y")] Lemma l : True'],
+        'Goal True. idtac "a"". b". exact I.': ["Goal True", 'idtac "a"". b"', "exact I"],
+        'Definition s := "unterminated. x': ['Definition s := "unterminated. x'],
+        "Check m.(f). Check Nat.add.\nQed.": ["Check m.(f)", "Check Nat.add", "Qed"],
+        "a(* . *)b. c": ["a b", "c"],
+        '(* "x. y" *) Lemma l : True.': ["Lemma l : True"],
+    }
+    for source, expected in fixtures.items():
+        got = proofs.sentences(source)
+        ensure(got == expected, f"sentence boundaries changed for {source!r}: {got!r}")
+
+
 def _a_library_require_is_not_ordered() -> None:
     """What a library provides is not this module's to order, so `From Stdlib Require
     Import String` names no local dependency and opens no wave of its own."""
@@ -297,6 +316,7 @@ def cases() -> list[Case]:
         Case("cycle refusals include only blocked sources", _cycle_refusals_include_only_blocked_sources),
         Case("source index is one immutable snapshot", _source_index_is_one_immutable_snapshot),
         Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
+        Case("sentences end outside strings", _sentences_end_outside_strings),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),
