@@ -669,7 +669,8 @@ _K115_SHA = "0123456789abcdef0123456789abcdef01234567"
 _K115_RECORD = (
     "# Components\n\n### Development tools, contained by use\n\n"
     "| Tool | License | Standing |\n| --- | --- | --- |\n"
-    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has terms. |\n"
+    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has "
+    f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE). |\n"
     "| zizmor | `MIT` | The reviewed **9.8.7** release's terms. |\n"
     "| actionlint | `MIT` | The reviewed **6.5.4** release's terms. |\n\n## Next\n")
 _K115_WORKFLOW = (f"steps:\n  - uses: example/action@{_K115_SHA} # v1.2.3\n"
@@ -719,6 +720,34 @@ def _k115_membership_is_held_both_ways() -> None:
                                      f"`{_K115_SHA}`. |\n| zizmor |")})
     ensure(any("reviews example/action, which no workflow runs" in item for item in found),
            f"a row no workflow runs must report: {found!r}")
+
+
+def _k115_licence_link_names_the_reviewed_commit() -> None:
+    # The row's licence link is the edition its terms were read at: every link into the
+    # action's own repository, whatever the case of its owner and name, names the
+    # reviewed commit, and one at another commit, a tag or a branch is one finding. The
+    # finding quotes both at twelve digits, or as far as they must run to differ.
+    link = f"example/action/blob/{_K115_SHA}/LICENSE"
+    last = f"{_K115_SHA[:-1]}8"
+    moved = f"example/action/blob/{last}/LICENSE"
+    for edit, quoted in (
+            (moved, f"{last}, the row reviewed {_K115_SHA}"),
+            (f"example/action/blob/{_K115_SHA[:12]}/LICENSE",
+             f"{_K115_SHA[:12]}, the row reviewed {_K115_SHA[:13]}"),
+            ("example/action/blob/v1.2.3/LICENSE", "v1.2.3, the row reviewed 0123456789ab"),
+            ("example/action/blob/main/LICENSE", "main, the row reviewed 0123456789ab"),
+            (f"Example/Action/blob/{'f' * 40}/LICENSE",
+             "ffffffffffff, the row reviewed 0123456789ab"),
+            (f"{link}) and [a copy](https://github.com/{moved}",
+             f"{last}, the row reviewed {_K115_SHA}")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
+        ensure(len(found) == 1
+               and f"THIRD-PARTY.md:7 links example/action's licence at {quoted}" in found[0],
+               f"a licence link off the reviewed commit is one finding ({edit}): {found!r}")
+    # A link into another repository states no revision of this action.
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+        link, f"{link}) and [its dependency](https://github.com/other/dep/blob/{'f' * 40}/LICENSE")})
+    ensure(not found, f"another repository's link is not this row's revision: {found!r}")
 
 
 def _k115_leaves_the_analyzer_rows_to_k118() -> None:
@@ -1630,6 +1659,8 @@ def cases() -> list[Case]:
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
+        Case("k115-licence-link-names-the-reviewed-commit",
+             _k115_licence_link_names_the_reviewed_commit),
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),

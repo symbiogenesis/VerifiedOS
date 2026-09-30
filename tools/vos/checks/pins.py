@@ -157,11 +157,14 @@ runs with, and the record's development-tools table carries one row per action
 stating the release and the full commit its terms were read at. A tag moves under that
 row without any file here changing, so the rule first holds each line to the one form
 that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
-commit and release to the action's own row. Membership is total in both directions: a
-line naming an action with no row runs code whose terms nobody read, and a row naming
-an action no workflow runs is a review of nothing. The two workflow analyzers Host CI
-runs are installed from a lock and a script rather than named by a workflow line, so
-K-118 holds their rows with the rest of the section's.
+commit and release to the action's own row. The row's licence link names the edition
+its terms were read at, so every link the row makes into the action's own repository
+is held to name the reviewed commit, never another commit, a tag or a branch that
+could move under it. Membership is total in both directions: a line naming an action
+with no row runs code whose terms nobody read, and a row naming an action no workflow
+runs is a review of nothing. The two workflow analyzers Host CI runs are installed from
+a lock and a script rather than named by a workflow line, so K-118 holds their rows
+with the rest of the section's.
 
 **The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
 file under `.github/workflows/`, and each reading fails closed: no workflow, no
@@ -836,7 +839,22 @@ def _workflow_pins(ctx: Context) -> None:
                             "`<full commit>`` is read")
             actions[tool] = ("", "", where)
             continue
-        actions[tool] = (stated[0][0], stated[0][1], where)
+        release, commit = stated[0]
+        actions[tool] = (release, commit, where)
+        # The row's licence link names the edition its terms were read at, so every link
+        # into the action's own repository, owner and name in any case, names the
+        # reviewed commit rather than another commit, a tag or a branch.
+        for link in re.finditer(rf"https://github\.com/(?i:{re.escape(tool)})/blob/"
+                                r"([^/\s)\]>]+)/", row):
+            ref = link.group(1)
+            if ref != commit:
+                # quoted at twelve digits, or as far as they must run to tell the two apart
+                shown = max(12, next((i + 1 for i, (a, b) in
+                                      enumerate(zip(ref, commit, strict=False)) if a != b),
+                                     min(len(ref), len(commit)) + 1))
+                findings.append(f"{where} links {tool}'s licence at {ref[:shown]}, the row "
+                                f"reviewed {commit[:shown]}; the link names the edition the "
+                                "terms were read at, so the edit is a person's")
     if rows and not actions:
         findings.append(f"{record}'s development-tools table carries no action row, so the "
                         "workflows would be held against nothing")
