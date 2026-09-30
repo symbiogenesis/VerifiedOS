@@ -126,8 +126,20 @@ jobs:
             tools/pyproject.toml
             tools/uv.lock
 
-      # bash on both platforms reads the shard and verdict path from the environment.
-      - name: Host gates and behavioral tests
+      # Each platform's native shell runs the gate, PowerShell on Windows and bash on
+      # Ubuntu, as a developer there runs it; Git Bash would put its own tools ahead of
+      # the runner's PATH for the whole Windows suite. Both read the shard and the
+      # verdict path from the environment rather than from expressions in the body.
+      - name: Host gates and behavioral tests (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
+
+      - name: Host gates and behavioral tests (Ubuntu)
+        if: ${{ runner.os != 'Windows' }}
         shell: bash
         env:
           SHARD: ${{ matrix.shard }}

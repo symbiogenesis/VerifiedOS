@@ -482,9 +482,121 @@ def _workflow_host_job_names() -> None:
     sharded = platform_list.search(shards)
     ensure(named is not None and sharded is not None and sharded[1] == named[1],
            "every aggregate platform runs the shards it requires")
-    labels = re.findall(r"(?m)^\s*(?:runs-on|- \{platform: \w+, runner): ([^\s,}]+)", contents)
-    ensure(bool(labels) and not any("latest" in label for label in labels),
-           f"{ci.HOST} names explicit runner images: {labels!r}")
+    faults = _runner_faults(contents)
+    ensure(not faults, f"{ci.HOST} names an explicit runner image per platform: {faults!r}")
+
+
+def _key_values(text: str, key: str) -> list[str]:
+    """A key's values in any mapping style, block or flow, with the key bare or quoted."""
+    pattern = (r"""(?:^|(?<=[\s{,]))(["']?)""" + re.escape(key)
+               + r"""\1[ \t]*:[ \t]*["']?([^\s,{}\[\]"'#]*)""")
+    return [m[2] for m in re.finditer(pattern, text, re.MULTILINE)]
+
+
+def _include_entries(lines: list[str]) -> list[str]:
+    """The text of each entry of the first `include:` list, as a flow or block sequence."""
+    start = next((n for n, line in enumerate(lines)
+                  if re.match(r"[ \t]*include:", line)), None)
+    if start is None:
+        return []
+    indent = len(lines[start]) - len(lines[start].lstrip())
+    body = [lines[start].split(":", 1)[1]]
+    for line in lines[start + 1:]:
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break
+        body.append(line)
+    if "\n".join(body).strip().startswith("["):
+        return [m[0] for m in re.finditer(r"\{[^{}]*\}", "\n".join(body))]
+    dashes = [len(line) - len(line.lstrip()) for line in body if line.lstrip().startswith("- ")]
+    entries: list[list[str]] = []
+    for line in body:
+        if dashes and line.startswith(" " * min(dashes) + "- "):
+            entries.append([])
+        if entries:
+            entries[-1].append(line)
+    return ["\n".join(entry) for entry in entries]
+
+
+def _runner_faults(contents: str) -> list[str]:
+    """Why the host workflow's shard runners are not explicit images per platform.
+
+    Every `runner` key the shard job states, in any mapping style, must belong to an
+    include entry naming one platform, every platform of the matrix must have one, and
+    no label may be a moving `-latest` alias; every `runs-on` is held to the same.
+    """
+    faults: list[str] = []
+    shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
+    lines = [line for line in shards.split("\n") if not line.lstrip().startswith("#")]
+    text = "\n".join(lines)
+    listed = re.search(r"(?m)^        platform: \[([^\]\n]*)\]$", text)
+    platforms = {name.strip() for name in listed[1].split(",")} if listed else set()
+    if not platforms:
+        faults.append("the shard matrix lists no platform")
+    runners: dict[str, list[str]] = {}
+    for entry in _include_entries(lines):
+        named, labels = _key_values(entry, "platform"), _key_values(entry, "runner")
+        if len(named) == 1 and labels:
+            runners.setdefault(named[0], []).extend(labels)
+    stated = _key_values(text, "runner")
+    if len(stated) != sum(len(labels) for labels in runners.values()):
+        faults.append(f"a runner key stands outside a one-platform include entry: {stated!r}")
+    faults += [f"{name} names no runner image" for name in sorted(platforms - set(runners))]
+    faults += [f"{label!r} is not an explicit image label" for label in stated
+               if "latest" in label or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", label)]
+    workflow = "\n".join(line for line in contents.split("\n")
+                         if not line.lstrip().startswith("#"))
+    runs_on = re.findall(r"(?m)^[ \t]*runs-on:[ \t]*(.+?)[ \t]*$", workflow)
+    if len(runs_on) != len(_key_values(workflow, "runs-on")):
+        faults.append("a runs-on key is not a block line this reading takes")
+    faults += [f"runs-on {label!r} names a moving alias" for label in runs_on if "latest" in label]
+    if not re.search(r"(?m)^    runs-on: \$\{\{ matrix\.runner \}\}$", shards):
+        faults.append("the shard job does not run on its matrix's runner")
+    return faults
+
+
+_SHARD_JOB = """jobs:
+  host-gates-shard:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        platform: [Ubuntu, Windows]
+        include:
+INCLUDE
+  host-gates:
+    runs-on: ubuntu-26.04
+"""
+
+
+def _workflow_runner_labels_any_style() -> None:
+    # The reading is held to fixtures of its own, so a block-style include or a quoted
+    # key cannot pass the host workflow's check by escaping it.
+    flow = ("          - {platform: Ubuntu, runner: ubuntu-26.04, shards: 4}\n"
+            "          - {platform: Windows, runner: windows-2025, shards: 8}")
+    block = ("          - platform: Ubuntu\n            runner: ubuntu-26.04\n"
+             "          - platform: Windows\n            runner: windows-2025")
+    for include in (flow, block):
+        found = _runner_faults(_SHARD_JOB.replace("INCLUDE", include))
+        ensure(not found, f"explicit labels pass in either style: {found!r}")
+    for include, fragment in (
+            (block.replace("ubuntu-26.04", "ubuntu-latest"), "'ubuntu-latest' is not"),
+            (flow.replace("runner: windows", '"runner": windows-latest-'), "not an explicit"),
+            (block.rsplit("\n", 1)[0], "Windows names no runner image"),
+            (flow + "\n        runner: [ubuntu-26.04]", "outside a one-platform include")):
+        found = _runner_faults(_SHARD_JOB.replace("INCLUDE", include))
+        ensure(any(fragment in fault for fault in found),
+               f"a moving or missing runner must be refused ({fragment!r}): {found!r}")
+    inline = _SHARD_JOB.replace("include:\nINCLUDE", (
+        "include: [{platform: Ubuntu, runner: ubuntu-26.04},\n"
+        "                  {platform: Windows, runner: windows-2025}]"))
+    found = _runner_faults(inline)
+    ensure(not found, f"a flow-sequence include is read: {found!r}")
+    found = _runner_faults(inline.replace("windows-2025", "windows-latest"))
+    ensure(any("'windows-latest' is not" in fault for fault in found),
+           f"a flow-sequence alias must be refused: {found!r}")
+    found = _runner_faults(_SHARD_JOB.replace("INCLUDE", flow).replace(
+        "runs-on: ubuntu-26.04", "runs-on: ubuntu-latest"))
+    ensure(any("moving alias" in fault for fault in found),
+           f"a runs-on alias must be refused: {found!r}")
 
 
 def _workflow_checkout_validation() -> None:
@@ -541,4 +653,5 @@ def cases() -> list[Case]:
             Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),
             Case("workflow-host-job-names", _workflow_host_job_names),
+            Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
             Case("workflow-checkout-validation", _workflow_checkout_validation)]

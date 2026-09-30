@@ -3,9 +3,13 @@
 
 The ML-KEM and ML-DSA campaigns under `proofs/campaigns/` and the boot-signature
 comparison fetch official inputs from one immutable commit of `usnistgov/ACVP-Server`.
-This module is the one place that commit and each fetched file's SHA-256 are written,
-so a revision advance or a re-measured file is one edit here and every consumer moves
-with it. The campaigns import it and restate neither.
+This module owns that commit and each fetched file's SHA-256. Every Python consumer
+imports them and reaches a file only through `fetch` or `read`, restating neither and
+building no address of its own, so a revision advance or a re-measured file is one
+edit here for the code. Documents that record the revision or the README digest beside
+a licence reading or a reproduction recipe restate them by hand;
+`tools/tests/test_acvp.py` holds each such site it can attribute to ACVP against this
+module, so the same edit is refused until those sites move with it.
 
 A fetch goes through `receipts.download`, which refuses a cached copy whose bytes are
 not the pinned ones and publishes a new download only after verifying it, so an

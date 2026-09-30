@@ -61,10 +61,7 @@ def compiler_provenance(ccomp: Path) -> tuple[dict[str, object], dict[str, str]]
 def population(work: Path) -> list[boot_crypto.Case]:
     """Pinned ACVP positives with every applicable authored refusal family."""
     result: list[boot_crypto.Case] = []
-    boot_crypto.fetch(boot_crypto.BASE + "README.md", work / "NIST-NOTICE.md", boot_crypto.NOTICE_SHA)
-    for scheme, (directory, digest) in boot_crypto.SOURCES.items():
-        data = boot_crypto.fetch(boot_crypto.BASE +
-            f"gen-val/json-files/{directory}/internalProjection.json", work / (scheme + ".json"), digest)
+    for scheme, data in boot_crypto.official(work, "NIST-NOTICE.md").items():
         selected, _ = boot_crypto.cases(json.loads(data), scheme)
         for mode in MODES:
             if not mode.startswith(scheme):
