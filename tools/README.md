@@ -200,7 +200,8 @@ refusals, and the declared padded logical boundary. The complete boot roster,
 external-client transport and physical WCET retain their separate acceptance.
 
 `rtl widthcheck` checks frozen transport widths and every store-rotation bit/lane.
-`rtl device-regs` emits register constants from their pinned owner and stamps the
+`rtl device-regs` emits the UART constants from their pinned owner and the block
+constants from the block contract and the model's bounds, and stamps the
 commit the populated `upstream/mocha` checkout stands at, read with the guest's Git; it
 refuses a Mocha directory that is not the top of its own repository.
 `rtl devicescheck` regenerates the package and fails on any byte difference, an owner

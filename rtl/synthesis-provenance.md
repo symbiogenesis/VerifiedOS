@@ -74,9 +74,9 @@ The curated scalar build also applies [the guarded width transformations](../doc
 to exact pinned inputs in its native build directory. The registry checks source
 and output identities and replacement counts, retains notices and emits diffs.
 This staging is distinct from the module-substitution/absence mechanism above.
-The frozen transport/store probe and standalone package checks pass; complete
-curated-core elaboration still fails at the remaining permission, root, sentry
-and exception interfaces. No whole-core absence or correspondence receipt follows.
+The frozen transport/store probe and standalone package checks pass, and the
+curated arm elaborates; that settles names, members and widths, and no
+whole-core absence or correspondence receipt follows.
 
 **The capability- and tag-carrying interconnect is curated here as a functional reference and authored under route (a) afterwards**, and that disposition is written down because both readings are otherwise equally available from the artifacts. R-15-092 requires the net-new blocks authored in a formal-semantics HDL and proven, and names the DMA fabric among them; the pinned `axi-cheri-tagcontroller` is described in [THIRD-PARTY.md](../THIRD-PARTY.md) as the functional reference for exactly that block. Whether elaborating the pinned tree is the act R-15-092 forbids is a question neither artifact answers.
 
