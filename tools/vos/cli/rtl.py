@@ -107,9 +107,12 @@ VERILATOR_URL = ("https://github.com/verilator/verilator/archive/refs/tags/"
 VERILATOR_SHA256 = "8c8d2e11e6ad32f641dd250742a94195ddecb912e2e2dabe2f42ddbbb99c1092"
 # GitHub generates the tag archive, so the hash above authenticates GitHub's bytes.
 # The tag's own identity lets a regenerated archive be re-authenticated against the
-# tagged Git content instead of being trusted anew.
-VERILATOR_TAG_OBJECT = "efa4927be48e75c3cd08fc848b198d1d9d237f00"
-VERILATOR_COMMIT = "ea338be98e1e838d3518809ce8899f85a009963c"
+# tagged Git content instead of being trusted anew. Each row is a release's annotated
+# tag object and the commit it tags, keyed by version; a test holds the pin to a row.
+VERILATOR_TAGS: dict[str, tuple[str, str]] = {
+    "5.052": ("efa4927be48e75c3cd08fc848b198d1d9d237f00",
+              "ea338be98e1e838d3518809ce8899f85a009963c"),
+}
 VERILATOR_HOW = "python tools/run.py rtl install"
 VERILATOR_PREREQUISITES = ("autoconf", "bison", "flex", "g++", "make", "help2man")
 VERILATOR_PACKAGES = (*VERILATOR_PREREQUISITES, "libfl-dev")
@@ -271,6 +274,10 @@ PRIM_PACKAGES: tuple[str, ...] = (
     "prim/rtl/prim_cipher_pkg.sv",
     "prim/rtl/prim_util_pkg.sv",
 )
+
+# The primitive libraries the elaborator searches for the modules those sources
+# instantiate; the assertion header's own directory is also the include directory.
+PRIM_LIBRARIES: tuple[str, ...] = ("prim/rtl", "prim_generic/rtl")
 
 # The imported manifest names two trees this configuration does not reach: the
 # floating-point unit, which A-15 deletes, and the high-performance data cache, which
@@ -973,8 +980,8 @@ def _elaborate(binary: str, root: Path, files: FileList, ast: Path,
         return 1, f"FAIL RTL source staging: {error}"
     listing.write_text("\n".join(lines) + "\n", encoding="utf-8")
     argv = [binary, "--json-only", "--timescale", "1ns/1ps", "-Wno-fatal",
-            "-y", str(prim / "prim/rtl"), "-y", str(prim / "prim_generic/rtl"),
-            f"+incdir+{prim / 'prim/rtl'}",
+            *(arg for rel in PRIM_LIBRARIES for arg in ("-y", str(prim / rel))),
+            f"+incdir+{(prim / PRIM_ASSERTIONS).parent}",
             "+define+PRIM_DEFAULT_IMPL=prim_pkg::ImplGeneric",
             "--top-module", "cva6", "--json-only-output", str(ast),
             "--json-only-meta-output", str(ast.with_suffix(".meta.json")),
@@ -1058,6 +1065,43 @@ def _inventory(ast: Path) -> tuple[set[str], int, int]:
     return kinds, cells(roots[0], frozenset()), variables
 
 
+def prim_inputs() -> tuple[str, ...]:
+    """Every primitive path an elaboration reads, relative to the checkout root."""
+    return tuple(f"{PRIM}/{rel}" for rel in (PRIM_ASSERTIONS, *PRIM_PACKAGES,
+                                             *PRIM_LIBRARIES))
+
+
+def _absent_inputs(root: Path) -> tuple[list[str], list[str]]:
+    """What an elaboration reads that this checkout lacks, and how to obtain it.
+
+    Each primitive path is checked rather than the vendored tree's root. A Mocha
+    checkout narrowed to the UART cone `devicescheck` reads carries that root and none of
+    the primitives, and the elaborator would then fail on a missing header, several files
+    away from the cause. A populated Mocha checkout is widened; an uninitialized gitlink
+    is initialized.
+    """
+    manifest = f"{CORE}/{CORE_FLIST}"
+    absent = [rel for rel in (manifest, *prim_inputs()) if not (root / rel).exists()]
+    init = [CORE] if manifest in absent else []
+    hints: list[str] = []
+    if any(rel.startswith(f"{PRIM}/") for rel in absent):
+        if (root / PRIM_UPSTREAM / ".git").exists():
+            cones = sorted({rel.split("/", 1)[0] for rel in (
+                PRIM_ASSERTIONS, *PRIM_PACKAGES, *PRIM_LIBRARIES)})
+            within = PRIM.removeprefix(f"{PRIM_UPSTREAM}/")
+            hints.append(f"     {PRIM_UPSTREAM} is populated without these primitives, as a "
+                         "cone-sparse checkout for devicescheck is: `git -C "
+                         f"{PRIM_UPSTREAM} sparse-checkout add "
+                         f"{' '.join(f'{within}/{cone}' for cone in cones)}`, or check "
+                         "it out in full")
+        else:
+            init.append(PRIM_UPSTREAM)
+    if init:
+        hints.insert(0, "     the imported cores are gitlinks and this elaboration reads "
+                        f"them: `git submodule update --init {' '.join(init)}`")
+    return absent, hints
+
+
 def cmd_filelist(args: argparse.Namespace) -> int:
     """The curated arm's file list, and the verdict on every substitution in it.
 
@@ -1097,10 +1141,13 @@ def cmd_filelist(args: argparse.Namespace) -> int:
         # that rather than left reading silence as an unprinted line.
         out.append(f"   {len(introduced_by)} module kind(s) the authored sources "
                    f"declare, against {len(displaced_by)} the imported ones did")
-    if not (root / PRIM).exists():
-        out.append(f"   {PRIM} is not in this checkout, so the entries this composes "
-                   "for its primitive packages name files an elaboration would refuse "
-                   "by name")
+    absent, hints = _absent_inputs(root)
+    absent = [rel for rel in absent if rel.startswith(f"{PRIM}/")]
+    if absent:
+        out.append(f"   {len(absent)} primitive input(s) an elaboration reads are not in "
+                   "this checkout, so it would refuse them by name:")
+        out.extend(f"     {rel}" for rel in absent)
+        out.extend(hints)
     if args.show:
         out.append("")
         out.extend(f"   {line}" for line in files.lines)
@@ -1140,15 +1187,14 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
 
     root = find_root()
     # Refused by name rather than raising three calls in, which is what an absent
-    # gitlink used to do: a submodule this checkout has not initialized is an
-    # ordinary state of the tree and not a defect in this tool, and the message a
-    # person needs is which one and how to get it.
-    absent = [rel for rel in (f"{CORE}/{CORE_FLIST}", PRIM)
-              if not (root / rel).exists()]
+    # gitlink used to do: a submodule this checkout has not initialized, or a Mocha
+    # checkout narrowed to other cones, is an ordinary state of the tree and not a
+    # defect in this tool, and the message a person needs is which paths and how to
+    # get them.
+    absent, hints = _absent_inputs(root)
     if absent:
         out.extend(f"FAIL {rel} is not in this checkout" for rel in absent)
-        out.append("     the imported cores are gitlinks and this elaboration reads "
-                   f"them: `git submodule update --init {CORE} {PRIM_UPSTREAM}`")
+        out.extend(hints)
         print("\n".join(out))
         return 1
 

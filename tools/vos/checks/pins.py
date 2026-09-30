@@ -186,20 +186,19 @@ audits are the instrument that asks GitHub. **Reported and never repaired**, on 
 ground: moving a row's commit would claim a licence reading nobody took.
 
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
-Two tracked artifacts bind the gitlinks they were derived through, and K-81 reads
-neither. The width-transform registry's `"pin"` names no upstream on its line, and
-`rtl_width.stage` compares it with the populated imported core only when a guest
-elaboration runs. The device-register package records the Mocha commit its UART owners
-were read at, and `rtl devicescheck` regenerates it only where the submodule is
-populated, which no hosted gate does. So a gitlink moved without re-deriving either
-artifact passed every hosted gate. This rule holds each recorded commit, whole, against
-the index's gitlink, which every checkout carries populated or not. **The sites are
-enumerated in code and read fail-closed**: an artifact missing from the index, a record
-its owner's own reader refuses, and a gitlink the index does not carry are each a
-finding, so the rule owes the floors group no member. **Reported and never repaired**:
-the repair is a regeneration from a checkout at the gitlink, which re-derives the
-registry's source identities or the package's constants and is never a token
-substitution.
+The width-transform registry binds the imported core's gitlink it was derived through,
+and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
+line. `rtl_width.stage` compares it with the populated imported core only when a guest
+elaboration runs, which no hosted gate does, so a gitlink moved without re-deriving the
+registry passed every hosted gate. This rule holds the recorded commit, whole, against
+the index's gitlink, which every checkout carries populated or not. The device-register
+package's recorded Mocha revision is the same kind of binding inside a generated
+artifact, so K-88's row for that package holds it, and the row keeps the package out of
+K-81's window. **The sites are enumerated in code and read fail-closed**: an artifact
+missing from the index, a record its owner's own reader refuses, and a gitlink the
+index does not carry are each a finding, so the rule owes the floors group no member.
+**Reported and never repaired**: the repair re-derives the registry's source identities
+from a checkout at the gitlink and is never a token substitution.
 """
 
 import re
@@ -208,8 +207,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
-from vos import device_regs, rtl_width
 from vos import pins as pins_mod
+from vos import rtl_width
 from vos.checks import generated
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -350,12 +349,11 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
 
 
 # K-116's sites: what each binding is, the tracked artifact carrying it, the owner's
-# own reader of the commit it records, and the gitlink that commit must be.
+# own reader of the commit it records, and the gitlink that commit must be. A binding
+# inside a generated artifact is held by that artifact's K-88 row instead.
 BINDINGS: list[tuple[str, str, Callable[[str], str], str]] = [
     ("width-transform registry pin", rtl_width.REGISTRY, rtl_width.recorded_pin,
      rtl_width.CORE),
-    ("device-register owner revision", device_regs.ARTIFACT,
-     device_regs.recorded_revision, device_regs.UPSTREAM),
 ]
 
 
@@ -393,7 +391,7 @@ def _bindings(ctx: Context) -> None:
                 "re-derives what was read there and is never a token repair")
     ctx.rep.report("K-116", "tool-consumed RTL binding(s) that disagree with the gitlink "
                    "they were derived through:", findings,
-                   f"the {len(BINDINGS)} tool-consumed RTL bindings record the commits "
+                   f"the {len(BINDINGS)} tool-consumed RTL binding(s) record the commits "
                    "the index carries for their gitlinks")
 
 

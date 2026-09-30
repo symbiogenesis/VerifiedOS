@@ -223,7 +223,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 
 ### RTL license scope
 
-The recorded RTL reviews date to 2026-08-23, except Mocha's `v0.1.1` review on 2026-08-31 and the header review below. The [Solderpad review](#the-rtl-substrate) covers the hardware-license family.
+The recorded RTL reviews date to 2026-08-23, except Mocha's `v0.1.1` review on 2026-08-31, the header review below, the reviews on 2026-09-24 and 2026-09-29 under [Pinned as submodules](#pinned-as-submodules), and the reading on 2026-09-29 of the primitive files elaboration takes from Mocha's vendored OpenTitan tree. The [Solderpad review](#the-rtl-substrate) covers the hardware-license family.
 
 **Mocha.** The root has no `LICENSE`. Its `REUSE.toml` assigns `Apache-2.0` to `path = ["*", "doc/**"]` for lowRISC Contributors (COSMIC project); `LICENSES/` supplies the applicable texts. The separate `hw/vendor/REUSE.toml` assigns:
 

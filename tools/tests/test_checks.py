@@ -678,27 +678,72 @@ def _k116(files: dict[str, str], gitlinks: dict[str, str]) -> list[str]:
 
 
 def _k116_consumed_bindings_are_held_whole_and_fail_closed() -> None:
-    core, mocha = "c" * 40, "d" * 40
+    core = "c" * 40
     registry = json.dumps({"schema": "vos.rtl-width-transforms/1", "pin": core})
-    header = f"// generated\n{device_regs.STAMP}{mocha}\npackage p;\nendpackage\n"
-    files = {rtl_width.REGISTRY: registry, device_regs.ARTIFACT: header}
-    links = {rtl_width.CORE: core, device_regs.UPSTREAM: mocha}
-    ensure(not _k116(files, links), "bindings recording their gitlinks' commits pass")
+    files = {rtl_width.REGISTRY: registry}
+    links = {rtl_width.CORE: core}
+    ensure(not _k116(files, links), "a binding recording its gitlink's commit passes")
     for changed, gitlinks, needle in (
-            # a moved gitlink with neither artifact re-derived
-            (files, {**links, rtl_width.CORE: "e" * 40}, "carries upstream/cva6-cheri at eeee"),
+            # a moved gitlink with the registry not re-derived
+            (files, {rtl_width.CORE: "e" * 40}, "carries upstream/cva6-cheri at eeee"),
             # the whole id is held, not the abbreviation a finding quotes
-            (files, {**links, device_regs.UPSTREAM: mocha[:39] + "e"},
-             "carries upstream/mocha at dddd"),
-            ({**files, device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")},
-             links, "owner revision cannot be read"),
-            ({**files, rtl_width.REGISTRY: json.dumps({"pin": core[:8]})},
+            (files, {rtl_width.CORE: core[:39] + "e"}, "carries upstream/cva6-cheri at cccc"),
+            ({rtl_width.REGISTRY: json.dumps({"pin": core[:8]})},
              links, "registry pin cannot be read"),
-            ({rtl_width.REGISTRY: registry}, links, "is not in the repository"),
-            (files, {rtl_width.CORE: core}, "carries no gitlink")):
+            ({}, links, "is not in the repository"),
+            (files, {}, "carries no gitlink")):
         found = _k116(changed, gitlinks)
         ensure(len(found) == 1 and needle in found[0],
                f"each broken binding is one finding naming it: {found!r}")
+    # The device-register stamp is a generated artifact's binding, held by its K-88
+    # row; holding it here too would price one moved gitlink as two findings.
+    ensure(all(file not in generated.paths() for _, file, _, _ in pins.BINDINGS),
+           "K-116 holds no binding inside an artifact K-88 already holds")
+
+
+def _k88_device_regs(files: dict[str, str], gitlinks: dict[str, str],
+                     edit: str | None = None) -> list[str]:
+    """The device-register row's findings, its header edited after staging if asked."""
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN, **files}) as root:
+        if edit is not None:
+            (root / device_regs.ARTIFACT).write_text(edit, encoding="utf-8", newline="")
+        ctx = _context(root, fix=True)
+        ctx.corpus.gitlinks.clear()
+        ctx.corpus.gitlinks.update(gitlinks)
+        row = next(row for row in generated.GENERATED if row.path == device_regs.ARTIFACT)
+        staged = corpus_mod.staged_blobs(root, [row.path])[row.path]
+        if row.inspect is None or row.lane != "guest":
+            raise AssertionError("the device-register package is a guest row with a host "
+                                 "inspector")
+        reading = row.inspect(ctx, row, staged)
+        ensure(not ctx.fixed and not reading.fixed,
+               "a device-register finding is a regeneration, never a rewrite")
+        return reading.findings
+
+
+def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
+    mocha = "d" * 40
+    header = f"// generated\n{device_regs.STAMP}{mocha}\npackage p;\nendpackage\n"
+    files = {device_regs.ARTIFACT: header}
+    links = {device_regs.UPSTREAM: mocha}
+    ensure(not _k88_device_regs(files, links),
+           "an indexed header recording its gitlink's commit passes")
+    cases: tuple[tuple[dict[str, str], dict[str, str], str | None, str], ...] = (
+        # the gitlink moved and the header, still what the index holds, was not
+        # regenerated: the whole id is held, not the abbreviation a finding quotes
+        (files, {device_regs.UPSTREAM: mocha[:39] + "e"}, None,
+         "carries upstream/mocha at dddd"),
+        # a hand edit leaves the stamp agreeing and the bytes off the index
+        (files, links, header.replace("package p;", "package q;"),
+         "differs from its indexed emission"),
+        ({device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")}, links, None,
+         "records no readable owner revision"),
+        ({}, links, None, "the git index does not carry it"),
+        (files, {}, None, "carries no gitlink"))
+    for changed, gitlinks, edit, needle in cases:
+        found = _k88_device_regs(changed, gitlinks, edit)
+        ensure(len(found) == 1 and needle in found[0],
+               f"each broken reading is one finding naming it: {found!r}")
 
 
 def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
@@ -751,6 +796,16 @@ def _k81_historical_residue_cannot_exempt_table() -> None:
            f"the current table is unconditionally held against the index: {found!r}")
     ensure(any("no site outside the pin table states it" in item for item in found),
            f"a table row cannot exercise a historical exception: {found!r}")
+
+
+def _k81_generated_device_package_is_outside_the_window() -> None:
+    # The same line in a tracked document is a restatement; in the generated device
+    # package it is the generator's record, held by K-88 and read by nothing here.
+    line = "// UART owner revision: example-core at deadbeef\n"
+    ctx = _k81({device_regs.ARTIFACT: line, "docs/current.md": line}, {})
+    found = _findings_under(ctx, "K-81")
+    ensure(len(found) == 1 and "docs/current.md:1 states" in found[0],
+           f"only the tracked document's restatement is read: {found!r}")
 
 
 def _k81_historical_residue_requires_reason() -> None:
@@ -999,8 +1054,12 @@ def cases() -> list[Case]:
         Case("k81-historical-residue-cannot-exempt-table",
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
+        Case("k81-generated-device-package-is-outside-the-window",
+             _k81_generated_device_package_is_outside_the_window),
         Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
+        Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
+             _k88_device_register_stamp_is_held_whole_and_fail_closed),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
         Case("k84-retired-holders-are-historical-only", _k84_retired_holders_are_historical_only),
         Case("k84-retirement-needs-an-unfenced-registry-row",
