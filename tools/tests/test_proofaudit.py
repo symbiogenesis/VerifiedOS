@@ -263,6 +263,33 @@ def _rocq_93_settings_are_pinned() -> None:
         ensure(not proofaudit.pinned_overrides(text), f"reading a pinned setting was refused: {text}")
 
 
+def _settings_read_as_the_lexer_reads_them() -> None:
+    # Each compiles under the gate's flags in the pinned Rocq 9.3.0 with the setting or
+    # tactical in effect: a comment is a separator, a `(*` quoted inside a comment opens
+    # nothing, and a full stop quoted in an attribute ends no sentence, so the `warnings`
+    # attribute after it silences the deprecation that refuses the declaration without it.
+    refused = ("Set(* c *)Kernel Conversion Dep Heuristic.",
+               "Local(* c *)Set(* c *)Kernel(* c *)Conversion Dep Heuristic.",
+               '(* "(*" *) Set Kernel Conversion Dep Heuristic. (* c *)',
+               '(* "x" *)Set(* "y" *)Kernel Conversion Dep Heuristic.',
+               '#[deprecated(since="1", note="old")] Definition old := 0.\n'
+               '#[deprecated(since="2", note="see x. y"), warnings="-all"] '
+               "Definition use := old.",
+               'Lemma a : True. Proof. idtac "a"". b"; timeout 5 (exact I). Qed.')
+    for text in refused:
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a pinned setting the lexer reads passed: {text!r}")
+    allowed = ("Test(* c *)Kernel Conversion Dep Heuristic.",
+               '(* "x" Set Kernel Conversion Dep Heuristic. *) Definition x := 0.',
+               "(* (* Set Guard Checking. *) Unset Guard Checking. *) Definition x := 0.",
+               'Definition label := "a. Set Warnings ""-all"" b".',
+               '#[deprecated(since="2", note="see x. Set Guard Checking. y")] '
+               "Definition old := 0.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text),
+               f"a setting inside a comment was refused: {text!r}")
+
+
 def _settings_after_bullets_are_refused() -> None:
     # The pinned Rocq 9.3.0 compiles a setting or a Timeout after a bullet, a brace or a
     # focusing selector, and the setting outlives the proof. Program is a legacy attribute.
@@ -286,6 +313,33 @@ def _settings_after_bullets_are_refused() -> None:
     for text in allowed:
         ensure(not proofaudit.pinned_overrides(text),
                f"a bullet or brace alone was refused: {text!r}")
+
+
+def _control_prefixes_need_no_blank() -> None:
+    # Rocq's lexer ends a word where an attribute or a string begins, and a string where it
+    # closes, doubled quotes inside it. The pinned Rocq 9.3.0 compiles `Time#[local]Set`,
+    # `Instructions#[export]Set` and `Timeout 5Set` with the setting in effect, and
+    # `Redirect"out"Load` and `Profile "a""b" Set` once their output warning is silenced.
+    setting = "Set Kernel Conversion Dep Heuristic."
+    for prefix in ("Time#[local]", "Instructions#[export]", "Succeed#[local]", "Fail#[local]",
+                   'Redirect"out"', 'Redirect "a""b" ', 'Profile"p"', 'Profile "a""b" ',
+                   'Time Redirect"o"Local ', "Timeout 5", "AllocLimit 1 Mw#[local]", "-#[local]",
+                   "Time(* c *)#[local]"):
+        text = prefix + setting
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a pinned setting after a tight prefix passed: {text!r}")
+        text = prefix + 'Load "/elsewhere/hidden.v".'
+        ensure(len(proofaudit.dynamic_sources(text)) == 1,
+               f"a Load after a tight prefix passed: {text!r}")
+        text = prefix + "Module Type T. End T."
+        ensure(len(proofaudit.unsupported_abstractions(text)) == 1,
+               f"a signature after a tight prefix passed: {text!r}")
+    # A prefix word is a whole word: an identifier that only begins with one is the head.
+    for text in ("TimeSet Kernel Conversion Dep Heuristic.", "Local'Set Warnings \"-all\".",
+                 "Fail_Set Guard Checking."):
+        ensure(not proofaudit.pinned_overrides(text), f"a longer identifier was a prefix: {text!r}")
+    for text in ('Timeloaded "x".', "ProgramLoad.", "Fail'Load x."):
+        ensure(not proofaudit.dynamic_sources(text), f"a longer identifier was a prefix: {text!r}")
 
 
 def _machine_bound_tacticals_are_refused() -> None:
@@ -327,6 +381,116 @@ def _machine_bound_tacticals_are_refused() -> None:
     for text in allowed:
         ensure(not proofaudit.pinned_overrides(text),
                f"a sentence with no tactical was refused: {text!r}")
+
+
+def _dynamic_sources_are_refused_before_compiling() -> None:
+    # Under the gate's flags the pinned Rocq 9.3.0 compiles Load of a path or a name, Time
+    # Load, Declare ML Module, Time Declare ML Module across lines and every Ltac2 external
+    # spelling here, a loaded file's setting staying in effect. It refuses Cd as deprecated,
+    # which Fail absorbs, the load-path commands as option tables it lacks and a Load
+    # inside an open proof; they are refused here too, a control prefix or a line break
+    # before any of them.
+    external = " budget : int -> (unit -> 'a) -> 'a := \"rocq-runtime.plugins.ltac2\" \"timeout\"."
+    refused = ('Load "/elsewhere/hidden.v".', 'Load Verbose "/elsewhere/hidden.v".',
+               "Load hidden.", 'Time Load "hidden.v".', 'Fail Load "hidden.v".',
+               'Lemma a : True. Proof. - Load "hidden.v". exact I. Qed.',
+               'Cd "/elsewhere".', "Cd.", 'Add LoadPath "/elsewhere" as Elsewhere.',
+               'Add Rec LoadPath "/elsewhere" as Elsewhere.', 'Remove LoadPath "/elsewhere".',
+               'Add ML Path "/elsewhere".', 'Declare ML Module "rocq-runtime.plugins.ltac2".',
+               'Time Declare\nML\nModule "rocq-runtime.plugins.ltac2".', 'Fail Cd "/elsewhere".',
+               'Time Add Rec\nLoadPath "/elsewhere" as Elsewhere.',
+               f"Ltac2 @ external{external}", f"Ltac2@external{external}",
+               f"Ltac2(* c *)@(* c *)external{external}", f"#[local] Ltac2 @ external{external}",
+               f"Local Ltac2 @\n  external{external}")
+    for text in refused:
+        ensure(len(proofaudit.dynamic_sources(text)) == 1,
+               f"a source loading what the gate cannot read passed: {text!r}")
+    allowed = ("Record Load := { level : nat }.", "Definition Loaded := 0.",
+               "Ltac Loaded := idtac. Lemma a : True. Proof. Loaded. exact I. Qed.",
+               "Ltac Load' := idtac. Lemma a : True. Proof. Load'. exact I. Qed.",
+               "Definition Cd := 0.", "Ltac2 external := 0.", "Print LoadPath.",
+               "Print ML Path.", "Pwd.", '(* Load "hidden.v". *) Definition x := 0.',
+               'Definition label := "a. Declare ML Module ""p"". b".')
+    for text in allowed:
+        ensure(not proofaudit.dynamic_sources(text),
+               f"a source that loads nothing was refused: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-dynamic-source-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in ('Load "hidden.v".', f"Ltac2 @ external{external}"):
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith("sources may not load files, plugins or plugin "
+                                            "primitives the gate cannot read: "),
+                   f"a dynamic source was not refused by name: {checked.error!r}")
+
+
+def _unreadable_tokens_are_refused_before_compiling() -> None:
+    # Under the gate's flags the pinned Rocq 9.3.0 compiles each declaration here and then
+    # reads its token whole: after `^"` or `*(*` a Set or a Load compiles with the setting
+    # on, and after `^.` or `...` a statement's later binder quantifies unread. The shared
+    # lexer would open a string, open a comment, or end the sentence there. A `.` infix
+    # makes Rocq read every later full stop in a term as the infix.
+    add = "(Nat.add a b) (at level 50)."
+    refused = (f'Notation "a ^"" b" := {add}',
+               'Notation "x a"" y" := (Nat.add x y) (at level 50).',
+               'Infix "^""" := Nat.add (at level 50).', 'Reserved Notation "a ^"" b" (at level 50).',
+               f'Time Notation "a ^"" b" := {add}', 'Tactic Notation "foo" "a""" := idtac.',
+               'Ltac2 Notation "foo" "a""" := ().',
+               "Ltac2 Notation \"foo\" l(list1(constr, \"a\"\"\")) := let _ := l in ().",
+               f'Notation "a *(* b" := {add}', f'Local Notation "a ^. b" := {add}',
+               f'#[local] Notation "a ^. b" := {add}', f'Notation "a x. b" := {add}',
+               f"Notation \"a '^.' b\" := {add}",
+               'Notation "a .\u00a0b c" := (Nat.add a c) (at level 50).',
+               f'Notation "a ... b" := {add}', f'Notation "a . b" := {add}',
+               f"Notation \"a '.' b\" := {add}")
+    for text in refused:
+        ensure(proofaudit.unreadable_tokens(text) == [text.removesuffix(".")],
+               f"a token the lexer cannot follow was declared: {text!r}")
+    # Rocq's own `..` and `...`, a full stop inside a token, a quote or a full stop in a
+    # notation's body or an attribute, and the same words in a comment all read alike.
+    allowed = (f'Notation "a ^^ b" := {add}', f'Notation "a ^.^ b" := {add}',
+               'Notation "[: x ; .. ; y :]" := (cons x .. (cons y nil) ..).',
+               f'#[deprecated(since="1", note="Use a ^^ b instead.")] Notation "a ^^^ b" := {add}',
+               'Tactic Notation "finish" := idtac "done.".',
+               'Tactic Notation "quote" := idtac "a""b"; idtac "(*".',
+               'Lemma a : True. Proof. idtac "a""b"; idtac "(*". exact I. Qed.',
+               'Check myNotation "a""b".',
+               '(* Notation "a ^"" b" := x. *) Definition x := 0.',
+               'Lemma a : True. Proof. idtac "Notation ""a. b"" c". exact I. Qed.')
+    for text in allowed:
+        ensure(not proofaudit.unreadable_tokens(text),
+               f"a declaration the lexer follows was refused: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-unreadable-token-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        hidden = ('Definition x := 1 ^" 2.\nSet Kernel Conversion Dep Heuristic.\n'
+                  'Definition y := 3 ^" 4.\n')
+        machine = "Record Machine : Type := { unit_count : nat }.\n"
+        for text in (f'Notation "a ^"" b" := {add}\n{hidden}',
+                     'Notation "x a"" y" := (Nat.add x y) (at level 50).\n'
+                     + hidden.replace("^", "a"),
+                     f'Notation "a *(* b" := {add}\nDefinition x := 1 *(* 2.\n'
+                     'Load "/elsewhere/hidden.v".\n',
+                     f'{machine}Notation "a ^. b" := {add}\nLemma counted : 1 ^. 2 = 3 -> '
+                     "forall m : Machine, unit_count m = unit_count m.\n"
+                     "Proof. intros _ m. reflexivity. Qed.\n"):
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith("sources may not declare tokens the gate's "
+                                            "lexer cannot follow: "),
+                   f"an unreadable token was not refused by name: {checked.error!r}")
+        # The control: with a token the lexer follows, the Set after it is read and refused.
+        source.write_text(f'Notation "a ^^ b" := {add}\n' + hidden.replace('^"', "^^"),
+                          encoding="utf-8")
+        with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+            checked = gate._check_source(root, source, [source])
+        ensure(checked.error.startswith("sources may not change the gate's pinned settings: "),
+               f"the setting after a readable token was not refused: {checked.error!r}")
 
 
 def _nested_sources_cannot_be_omitted() -> None:
@@ -577,8 +741,14 @@ def cases() -> list[Case]:
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
+            Case("settings-read-as-the-lexer-reads-them", _settings_read_as_the_lexer_reads_them),
             Case("settings-after-bullets-are-refused", _settings_after_bullets_are_refused),
+            Case("control-prefixes-need-no-blank", _control_prefixes_need_no_blank),
             Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
+            Case("dynamic-sources-are-refused-before-compiling",
+                 _dynamic_sources_are_refused_before_compiling),
+            Case("unreadable-tokens-are-refused-before-compiling",
+                 _unreadable_tokens_are_refused_before_compiling),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),

@@ -100,13 +100,16 @@ WITNESS_CONVENTION = (f"a closed top-level `Definition {WITNESS_PREFIX}<Record> 
                       "term is the artifact's own reference instance where it has one")
 
 # The vernaculars whose sentence states a theorem, and so whose binders are the
-# quantifiers this gate reads; and, beside them, every vernacular whose sentence carries
-# a name and an ascription at all, which is the shape this parse walks. `Example` is on
-# both lists on purpose: it states and it defines. Only `Definition` can be a witness,
-# which the witness lookup requires of the keyword rather than of this table, so that
+# quantifiers this gate reads: Rocq 9.3's seven theorem keywords, its grammar's
+# `thm_token`, and `Example`, which states and defines. Beside them, every vernacular
+# whose sentence carries a name and an ascription at all, which is the shape this parse
+# walks. Every statement is a definer, so the second list is built from the first and
+# cannot again lack a keyword the first reads. Only `Definition` can be a witness, which
+# the witness lookup requires of the keyword rather than of this table, so that
 # widening the parse cannot widen what counts as an inhabitant.
-STATEMENTS = ("Theorem", "Lemma", "Example", "Corollary", "Fact", "Remark", "Proposition")
-DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact", "Instance")
+STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
+              "Example")
+DEFINERS = ("Definition", *STATEMENTS, "Instance")
 # A section binder quantifies every statement in its section, so it is a quantifier too.
 SECTION_BINDERS = ("Variable", "Variables", "Context", "Hypothesis", "Hypotheses")
 
@@ -129,10 +132,6 @@ _HEAD = re.compile(r"^([\w']+)")
 _TOP_DELIMITERS = {mark: re.compile(r"[()\[\]{}]|" + re.escape(mark))
                    for mark in (":", ":=", "->")}
 _REQUIRE_TOKEN = re.compile(r"\bRequire\b")
-_DYNAMIC_SOURCE = re.compile(
-    "^" + proofaudit.CONTROL_PREFIXES
-    + r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
-    r'|Declare\s+ML\s+Module)\b')
 
 
 @dataclass(frozen=True)
@@ -676,6 +675,16 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
     try:
         text = (sources.index.texts[source] if isinstance(sources, ProofAnalysis)
                 else source.read_text(encoding="utf-8"))
+        tokens = proofaudit.unreadable_tokens(text)
+        if tokens:
+            raise proofaudit.AuditError(
+                "sources may not declare tokens the gate's lexer cannot follow: "
+                + "; ".join(tokens))
+        loads = proofaudit.dynamic_sources(text)
+        if loads:
+            raise proofaudit.AuditError(
+                "sources may not load files, plugins or plugin primitives the gate "
+                "cannot read: " + "; ".join(loads))
         unsupported = proofaudit.unsupported_abstractions(text)
         if unsupported:
             raise proofaudit.AuditError(
@@ -961,7 +970,7 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
            and not proofs_mod.REQUIRE.fullmatch(sentence)
            for sentence in source_sentences):
         return None
-    if any(_DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
+    if any(proofaudit.DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
         return None
     try:
         command = env.rocq_command()
