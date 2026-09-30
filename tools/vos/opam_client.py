@@ -142,6 +142,14 @@ def newer_than_reviewed(fmt: str) -> bool:
     return bool(fmt) and format_key(fmt) > format_key(OPAM_ROOT_FORMAT)
 
 
+def older_than_reviewed(fmt: str) -> bool:
+    """Whether a stated root format is older than `OPAM_ROOT_FORMAT`: any stated format
+    other than it that is not newer, a prerelease of it among them, since opam orders a
+    prerelease before its release. The reviewed client rewrites such a root to its own
+    format, one way, so moving the root to it is a deliberate, recorded step."""
+    return bool(fmt) and fmt != OPAM_ROOT_FORMAT and not newer_than_reviewed(fmt)
+
+
 def root_gaps(root: Path) -> list[str]:
     """What a root that stands lacks of one the reviewed client can use as `CREATE_ROOT`
     makes it, as clauses: a stated format no newer than `OPAM_ROOT_FORMAT`, each of

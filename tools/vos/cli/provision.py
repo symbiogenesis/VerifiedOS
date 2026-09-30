@@ -50,12 +50,14 @@ of it probe and install the distribution packages that route needs,
 rather than start a root `opam init` would refuse to create. It alters
 nothing that exists but a root in the shape that route leaves after its leading steps,
 which `opam_client.root_resumable` recognizes and the route run again completes by
-adding the owner's remaining repositories unselected. Replacing a developer's client can
-upgrade that root's format one way, which is a recorded step rather than a repair, so
-a client at another release is reported and never planned, and neither is any other
-standing root with a gap `opam_client.root_gaps` names: no stated format or one newer
-than the reviewed client writes, or an owned repository absent, at another URL or with
-its stamp unread. Every figure any document states about this
+adding the owner's remaining repositories unselected. Replacing a developer's client,
+or installing one where none stands over a root in a format older than the reviewed
+client writes, can upgrade that root's format one way, which is a recorded step rather
+than a repair, so a client at another release and a missing client over an older root
+are reported and never planned, and neither is any other standing root with a gap
+`opam_client.root_gaps` names: no stated format or one newer than the reviewed client
+writes, or an owned repository absent, at another URL or with its stamp unread. Every
+figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision                # what is here and what is not
@@ -137,9 +139,9 @@ class Found:
     probe that reports *present* on a wrong version is the other half of it.
 
     `repairable` is false where the row's command must not run over what the probe
-    found, as the opam row's installs a client only where none is on PATH and creates
-    a root only where none stands or completes one in the shape its route leaves after
-    its leading steps.
+    found, as the opam row's installs a client only where none is on PATH and no root
+    stands in a format older than that client's, and creates a root only where none
+    stands or completes one in the shape its route leaves after its leading steps.
     """
 
     present: bool
@@ -306,10 +308,11 @@ def _moving_the_root(fmt: str) -> str:
     """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
     empty where the root is already in that client's format, states none, or states a
     newer one, which the root's gaps already report."""
-    want = opam_client.OPAM_ROOT_FORMAT
-    if not fmt or fmt == want or opam_client.newer_than_reviewed(fmt):
+    if not opam_client.older_than_reviewed(fmt):
         return ""
-    return f", and moving to it upgrades this root's format from {fmt} to {want} one way"
+    return (f", and moving to it upgrades this root's format from {fmt} to "
+            f"{opam_client.OPAM_ROOT_FORMAT} one way, a deliberate, recorded step rather "
+            "than a repair")
 
 
 def _opam_client() -> Found:
@@ -328,13 +331,14 @@ def _opam_client() -> Found:
     root's format upgrades the root to answer.
 
     Repairable only where `install_opam` can make the row hold without altering what
-    exists: no client or the reviewed one, and no root, a complete one, or one in the
-    shape the root-creation route leaves after its leading steps, which running that
-    route again completes.
-    Moving a developer's root to another client can rewrite its format one way, which
-    the report says where the root's format is not the reviewed client's, so replacing
-    a client is a recorded step and not a repair; any other standing root the command
-    would leave incomplete is reported rather than planned.
+    exists: the reviewed client, or no client over no root or a root in a format no
+    older than the reviewed client's, and no root, a complete one, or one in the shape
+    the root-creation route leaves after its leading steps, which running that route
+    again completes. Moving a developer's root to another client can rewrite its format
+    one way, which the report says where the root's format is older than the reviewed
+    client's, so replacing a client, or installing one where none stands over a root in
+    an older format, is a recorded step and not a repair; any other standing root the
+    command would leave incomplete is reported rather than planned.
     """
     where = shutil.which("opam")
     found = _number(_say(("opam", "--version"))) if where else ""
@@ -353,8 +357,10 @@ def _opam_client() -> Found:
         saw += f"; the root {' and '.join(gaps)}, {_standing(resumable)}"
     if not reviewed:
         saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
+    older = stands and opam_client.older_than_reviewed(fmt)
     return Found(reviewed and stands and not gaps, saw,
-                 repairable=(where is None or reviewed) and (not gaps or resumable))
+                 repairable=(reviewed or (where is None and not older))
+                 and (not gaps or resumable))
 
 
 def _listing(root: Path) -> str:
@@ -390,7 +396,9 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     machine to `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and
     refuses, naming each package absent, because `opam init` refuses to create a root
     without them. A client on PATH at another release is refused, because replacing one
-    is the recorded step `_opam_client` describes; a client is installed by
+    is the recorded step `_opam_client` describes, and so is installing a client where
+    none stands over a root in a format older than the reviewed client's, which that
+    client would rewrite one way; a client is installed by
     `opam_client.install`, which verifies the download before publishing it and refuses
     to replace a different file at the destination. Every switch recipe runs `opam` by
     name, so a destination whose directory this PATH does not search is refused before
@@ -414,6 +422,14 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
               "them; the rows ahead of the opam row install them", file=sys.stderr)
         return 1
     present = shutil.which("opam")
+    fmt = opam_client.root_format(root)
+    if present is None and stands and opam_client.older_than_reviewed(fmt):
+        print(f"the opam root at {root} is in format {fmt}, which the reviewed client "
+              f"{opam_client.OPAM_VERSION} rewrites to {opam_client.OPAM_ROOT_FORMAT} one "
+              "way, after which an earlier client cannot read it; moving this root to the "
+              "reviewed client is a deliberate, recorded step, so this command installs no "
+              "client over it", file=sys.stderr)
+        return 1
     if present is None:
         if not _searched(destination.parent):
             print(f"opam {opam_client.OPAM_VERSION} would be at {destination}, which is not "

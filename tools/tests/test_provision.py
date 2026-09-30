@@ -315,32 +315,46 @@ def _opam_probe_holds_the_root() -> None:
                        f"an incomplete root is reported and never planned, with the client "
                        f"at {where}: {found.saw}")
         complete = Path(td) / "complete"
-        opam_root(complete, "nested")
+        opam_root(complete, "flat")
         found = _opam_probe(complete, None)
-        ensure(not found.present and found.repairable
-               and f"from 2.2 to {opam_client.OPAM_ROOT_FORMAT} one way" in found.saw,
-               f"a complete root needs only the client, with the cost of moving: {found.saw}")
-        found = _opam_probe(complete, "/usr/bin/opam", reviewed)
-        ensure(found.present, f"the reviewed client over a complete root holds: {found.saw}")
+        ensure(not found.present and found.repairable and "one way" not in found.saw,
+               f"a complete root in the reviewed format needs only the client: {found.saw}")
+        # Installing the reviewed client over a complete root in an older format
+        # rewrites that root one way, which is a recorded step rather than a repair.
+        older_complete = Path(td) / "older-complete"
+        opam_root(older_complete, "nested")
+        found = _opam_probe(older_complete, None)
+        ensure(not found.present and not found.repairable
+               and f"from 2.2 to {opam_client.OPAM_ROOT_FORMAT} one way, a deliberate, "
+                   "recorded step rather than a repair" in found.saw,
+               f"no client over a complete older root is reported, never planned: {found.saw}")
+        for held in (complete, older_complete):
+            found = _opam_probe(held, "/usr/bin/opam", reviewed)
+            ensure(found.present,
+                   f"the reviewed client over a complete {held.name} root holds: {found.saw}")
 
 
 def _opam_row_plans_only_what_is_absent() -> None:
     """The opam row's command runs where a client or a root is absent, or the root is
     in the shape the root-creation route leaves after its leading steps, and nothing
-    that stands is other than the lane's: a client at another release and any other
-    incomplete root are findings the run reports and plans nothing for."""
+    that stands is other than the lane's: a client at another release, no client over
+    a complete root in an older format, and any other incomplete root are findings the
+    run reports and plans nothing for."""
     reviewed = opam_client.OPAM_VERSION
     row = next(fact for fact in provision.FACTS if fact.name == "opam")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         complete, partial = Path(td) / "complete", Path(td) / "partial"
         older, newer = Path(td) / "older", Path(td) / "newer"
+        older_complete = Path(td) / "older-complete"
         opam_root(complete, "flat")
+        opam_root(older_complete, "nested")
         opam_root(partial, "flat", configured=opam_client.OPAM_REPOSITORIES[:1])
         opam_root(older, "nested", configured=opam_client.OPAM_REPOSITORIES[:1])
         opam_root(newer, "flat")
         (newer / "config").write_text('opam-root-version: "99.0"\n', encoding="utf-8")
         for where, version, root, planned in (
                 (None, "", Path(td) / "absent", True), (None, "", complete, True),
+                (None, "", older_complete, False),
                 ("/usr/bin/opam", reviewed, Path(td) / "absent", True),
                 ("/usr/bin/opam", "2.5.0", Path(td) / "absent", False),
                 ("/usr/bin/opam", "2.5.0", complete, False),
@@ -513,6 +527,38 @@ def _install_opam_installs_only_what_is_absent() -> None:
                        and not installer.called and not launched.called,
                        f"no client over the incomplete root {incomplete.name} installs "
                        f"nothing: {said.getvalue()}")
+        # With no client, a complete root in an older format is refused before the
+        # client is installed, because the reviewed client would rewrite it one way;
+        # the reviewed client already on PATH over it leaves it as it is.
+        older_complete = Path(td) / "older-complete"
+        opam_root(older_complete, "nested")
+        before = (older_complete / "config").read_bytes()
+        with (patch.dict(os.environ, searched),
+              patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: older_complete)),
+              patch.object(provision.opam_client, "install") as installer,
+              patch.object(provision.subprocess, "run") as launched,
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as said):
+            ensure(provision.install_opam(target) == 1
+                   and f"is in format 2.2, which the reviewed client "
+                       f"{opam_client.OPAM_VERSION} rewrites to "
+                       f"{opam_client.OPAM_ROOT_FORMAT} one way" in said.getvalue()
+                   and "deliberate, recorded step" in said.getvalue()
+                   and not installer.called and not launched.called
+                   and (older_complete / "config").read_bytes() == before,
+                   f"no client over a complete older root installs nothing: {said.getvalue()}")
+        with (patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: older_complete)),
+              patch.object(provision, "_say", return_value=opam_client.OPAM_VERSION),
+              patch.object(provision.opam_client, "install") as installer,
+              patch.object(provision.subprocess, "run") as launched,
+              redirect_stdout(io.StringIO()) as out):
+            ensure(provision.install_opam(target) == 0
+                   and "already stands complete" in out.getvalue()
+                   and not installer.called and not launched.called,
+                   f"the reviewed client over a complete older root is left alone: "
+                   f"{out.getvalue()}")
         _creation_failures(Path(td), target)
         selected[0] = None
         absent = SimpleNamespace(opam_root=lambda: Path(td) / "absent")

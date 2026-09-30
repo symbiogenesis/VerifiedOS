@@ -37,7 +37,7 @@ root by that route, records each repository's URL and metadata stamp in
 active switch. `run.py provision` holds a developer's client to the same release and their
 root to one stating a format no newer than that client writes and carrying each of those
 repositories at its URL with its metadata stamp read. It installs
-the client where no client is on `PATH`, creates a root by the same route where none stands
+the client where no client is on `PATH` and no root stands in a format older than that client writes, creates a root by the same route where none stands
 or completes one in the shape that route leaves after its leading steps, and reports the root's format and
 repository stamps; it replaces no client and alters no other standing root. A client
 rewrites a root older than its own format one way, and the owner records the reviewed
