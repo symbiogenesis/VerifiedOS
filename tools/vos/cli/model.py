@@ -196,12 +196,17 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
 # suite to on every configure, downloading again a suite that disagrees. The listing is
 # the tarball's recorded digest, then each file's SHA-256 and path relative to the
-# suite, sorted by the path's bytes; a symbolic link or other non-regular entry is
-# listed unhashed, and no written manifest holds one. `corpus_listing` renders the same
-# bytes for the readers that do not configure: the seeding that copies a suite into a
-# new lane, and the sweep and trace-diff that read one. A build's receipt reads the
-# corpus through `_test_corpus` too, so a disagreement between the two renderings
-# fails the first build that records its evidence rather than passing unseen.
+# suite, sorted by the path's bytes; a symbolic link, or a name a CMake list cannot
+# carry, is listed unhashed, and no written manifest holds one. `corpus_listing`
+# renders that listing for the readers that do not configure: the seeding that copies a
+# suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
+# rather than globbing it and lists every non-regular entry unhashed without reading
+# it, so the sweep and trace-diff also refuse what configure does not tell apart: a FIFO
+# or device node, which the verified tarball does not contain, and a name holding `\`
+# beside the file its `/` spelling names, which configure's glob folds into that file.
+# A build's receipt reads the corpus through `_test_corpus` too, so a disagreement
+# between the two renderings fails the first build that records its evidence rather
+# than passing unseen.
 CORPUS_MANIFEST_SUFFIX = ".manifest"
 
 
