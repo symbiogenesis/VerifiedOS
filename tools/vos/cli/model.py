@@ -817,11 +817,12 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
     `CMakeFiles` under it is being configured against a state it did not produce.
     Another release's suites stay behind, since nothing reads them.
 
-    The copy is made beside its destination and held to the manifest copied with it
-    before it is moved into place, so a donor whose suite has no manifest, disagrees
-    with it, or changes during the copy seeds nothing, and configure downloads that
-    suite instead. A suite the target already holds is left to configure, which keeps
-    it only if it matches its manifest.
+    The donor's suite is held to its manifest before it is copied, and the copy, made
+    beside its destination, is held to the manifest copied with it before it is moved
+    into place, so a donor whose suite has no manifest, disagrees with it, holds an
+    entry that is not a regular file, or changes during the copy seeds nothing, and
+    configure downloads that suite instead. A suite the target already holds is left
+    to configure, which keeps it only if it matches its manifest.
     """
     try:
         version = test_corpus_version(model_root)
@@ -847,9 +848,16 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
 
 
 def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
-    """Copy `suite` and its manifest to `into`, publishing only a copy that verifies."""
-    if not corpus_manifest(suite).is_file():
-        raise ValueError(f"{suite} has no {corpus_manifest(suite).name}")
+    """Copy `suite` and its manifest to `into`, publishing only a copy that verifies.
+
+    The donor is verified before it is copied as well as after. `copytree` reads every
+    entry it copies, and `shutil.copyfile` refuses only a FIFO: a character device such
+    as a `/dev/zero` node is read without end, so a donor holding one would stall the
+    command standing the lane up. The listing the verification renders reads no
+    non-regular entry and refuses a suite holding one. The check on the copy stays,
+    because the donor can change while it is copied.
+    """
+    verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
     try:
@@ -868,9 +876,13 @@ def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
 
     The wait is on the lane's lock rather than on the log, because the lock is released
     by the kernel when the builder exits however it exits, where a marker is only
-    written by a build that got as far as writing one. The log carries the verdict, and
-    it is read while the lock is still held: read after releasing, a build started in
-    that window truncates the log first and the report is about the wrong run.
+    written by a build that got as far as writing one. The log carries the stages'
+    verdict and the receipt the evidence's: a log whose stages passed is then held to
+    `verified_build`, which fails the wait on a receipt that is missing, malformed or
+    records no successful complete build, naming the refusal it records when it records
+    one, or on one gone stale since. Both are read while the lock is still held: read after
+    releasing, a build started in that window truncates the log first and the report is
+    about the wrong run.
     """
     log = e.log("model-build-fast" if args.fast else "model-build")
     lock = env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
@@ -1264,8 +1276,10 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     # The one tree every lane shares, so the lock sits beside it rather than in any
     # lane, and a second run, from this checkout or another, is refused rather than
-    # left to rmtree the tree out from under the first's make. Taken before the log is
-    # opened, so a refused run cannot truncate the log of the one it lost to.
+    # left to rmtree the tree out from under the first's make. A `trace-diff` holds the
+    # same lock shared while it runs the simulator, so this run is refused, naming it,
+    # rather than deleting the executor under a live comparison. Taken before the log
+    # is opened, so a refused run cannot truncate the log of the one it lost to.
     with env.hold_lock(tree, "an oracle build"):
         print(f"== log: {log}", flush=True)
         with log.open("w", encoding="utf-8") as handle:
@@ -1576,13 +1590,18 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     capability and faults on; the prefix is therefore bounded by the corpus rather than
     by either model. The regression is that the prefix must not *shorten*, which
     --floor enforces.
+
+    The oracle's tree is every lane's, and `oracle` deletes it on a first sync or a
+    `--resync` and can relink its simulator on any build, so the comparison holds the
+    tree shared for as long as it runs the oracle: such a run from any lane is refused
+    rather than removing the executor under a live comparison, and a comparison is
+    refused while such a run holds the tree.
     """
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
         return 1
-    if not e.oracle.exists():
-        print(f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first",
-              file=sys.stderr)
+    if (missing := _missing_oracle(e)) is not None:
+        print(missing, file=sys.stderr)
         return 1
 
     elves = [Path(p) for p in args.elf]
@@ -1598,6 +1617,25 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
         print("nothing to compare: pass one or more ELFs, or --corpus", file=sys.stderr)
         return 1
 
+    with env.hold_lock(e.oracle_root, "a trace-diff", shared=True):
+        # Asked again under the lock: a sync that ran after the first asking and failed
+        # its verification or its build left no simulator behind.
+        if (missing := _missing_oracle(e)) is not None:
+            print(missing, file=sys.stderr)
+            return 1
+        return _adjudicate(e, args, elves)
+
+
+def _missing_oracle(e: env.Environment) -> str | None:
+    """`trace-diff`'s refusal when there is no oracle simulator to compare against."""
+    if e.oracle.exists():
+        return None
+    return f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first"
+
+
+def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path]) -> int:
+    """Run both executors over `elves` and report each verdict, while `cmd_trace_diff`
+    holds the oracle's tree."""
     profile = e.profile
     tally = {"AGREE": 0, "PREFIX": 0, "SHORT": 0, "SKIP": 0}
     shortest = None

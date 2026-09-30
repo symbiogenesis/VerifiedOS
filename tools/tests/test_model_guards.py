@@ -4,13 +4,14 @@
 import argparse
 import io
 import json
+import os
 import subprocess
 import tempfile
 from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import env, receipts
@@ -294,17 +295,23 @@ def _copy_stub() -> Mock:
     return Mock(side_effect=copy)
 
 
+def _unlocked(*args: object, **kwargs: object) -> io.StringIO:
+    """A stand-in for `env.hold_lock`, whose `flock` a Windows host does not have."""
+    return io.StringIO()
+
+
 def _run_oracle(e: env.Environment, sail: str | None = _SAIL, *, resync: bool = False,
-                **stubs: object) -> tuple[int, list[list[str]], str]:
-    """`cmd_oracle` with its lock, stages, source reading, copy and suite standing in,
-    so what is held is the command line, the tree it builds in and what it refuses."""
+                real_lock: bool = False, **stubs: object) -> tuple[int, list[list[str]], str]:
+    """`cmd_oracle` with its stages, source reading, copy and suite standing in, and
+    its lock too unless `real_lock`, so what is held is the command line, the tree it
+    builds in and what it refuses."""
     staged: list[list[str]] = []
 
     def stage(name: str, argv: list[str], report_to: object = None, **kwargs: object) -> int:
         staged.append(argv)
         return 0
 
-    fake_env = SimpleNamespace(stage=stage, hold_lock=lambda target, what: io.StringIO(),
+    fake_env = SimpleNamespace(stage=stage, hold_lock=env.hold_lock if real_lock else _unlocked,
                                git_env=env.git_env)
     version = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
     fake_shutil = SimpleNamespace(which=lambda name: sail if name == "sail" else None,
@@ -416,6 +423,90 @@ def _oracle_reuses_only_a_stamped_tree() -> None:
         code, staged, said = _run_oracle(e, resync=True, _verify_oracle_copy=rejected)
         ensure(code == 1 and not staged and "the copy differs" in said,
                "a copy that fails verification is not built")
+
+
+def _standing_oracle(e: env.Environment) -> None:
+    """A simulator standing in the fixture's edition-keyed oracle tree."""
+    e.oracle.parent.mkdir(parents=True, exist_ok=True)
+    e.oracle.write_bytes(b"live simulator")
+
+
+def _oracle_sync_refuses_a_live_trace_diff() -> None:
+    """A trace-diff holds the oracle's tree shared, so neither a first sync nor a
+    `--resync`, from any lane, deletes it under a live comparison: each is refused
+    before the copy, naming the reader, and two comparisons read side by side. The
+    positive control is the same run with no reader holding the tree, which is every
+    run while trace-diff held nothing: it syncs and builds."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        e = _environment(root)
+        _oracle_fixture(root)
+        _standing_oracle(e)
+        for resync in (False, True):
+            synced = _copy_stub()
+            with (env.hold_lock(e.oracle_root, "a trace-diff", shared=True),
+                  env.hold_lock(e.oracle_root, "a trace-diff", shared=True)):
+                code, staged, said = _run_oracle(e, resync=resync, real_lock=True,
+                                                 _sync_oracle_tree=synced)
+            ensure(code == 1 and not staged and not synced.called
+                   and e.oracle.read_bytes() == b"live simulator",
+                   f"a sync (resync={resync}) under a live trace-diff must be refused "
+                   f"before it touches the tree, got {code} and {staged}")
+            ensure(f"while a trace-diff reads it (pid {os.getpid()})" in said,
+                   f"the refusal names the reader, said {said!r}")
+        synced = _copy_stub()
+        code, staged, _ = _run_oracle(e, resync=True, real_lock=True, _sync_oracle_tree=synced)
+        ensure(code == 0 and synced.called and bool(staged),
+               "control: with no reader holding the tree the same --resync syncs and builds")
+
+
+def _trace_diff_holds_the_oracle_tree() -> None:
+    """A trace-diff is refused before it runs either executor while an oracle build or
+    sync holds the tree, and holds the tree shared while it runs them, so a build
+    arriving mid-comparison is refused naming it, and the tree is free once it returns.
+    The positive control is the same comparison with nothing holding the tree, which
+    runs, as every comparison did whatever held the tree before it took the lock."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        e = _environment(Path(td))
+        _standing_oracle(e)
+        elf = _corpus_fixture(e) / "rv64ui-p-add"
+        elf.write_bytes(b"program")
+        _seal(elf.parent)
+        args = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
+        said = ""
+        with (env.hold_lock(e.oracle_root, "an oracle build"),
+              patch.object(model, "_missing_simulator", return_value=None),
+              patch.object(model, "_run_trace") as runner, redirect_stdout(io.StringIO())):
+            try:
+                model.cmd_trace_diff(e, args)
+            except SystemExit as err:
+                said = str(err)
+        ensure(not runner.called and "a trace-diff cannot read" in said
+               and f"(pid {os.getpid()})" in said,
+               f"a comparison under an oracle build is refused before it runs, naming the "
+               f"holder, said {said!r}")
+
+        arrivals: list[str] = []
+
+        def run(argv: list[str], timeout: int) -> list[str]:
+            try:
+                env.hold_lock(e.oracle_root, "an oracle build").close()
+            except SystemExit as err:
+                arrivals.append(str(err))
+            else:
+                arrivals.append("admitted")
+            return []
+
+        with (patch.object(model, "_missing_simulator", return_value=None),
+              patch.object(model, "_run_trace", side_effect=run) as runner,
+              redirect_stdout(io.StringIO())):
+            code = model.cmd_trace_diff(e, args)
+        ensure(code == 0 and runner.call_count == 1,
+               f"control: with nothing holding the tree the comparison runs, got {code}")
+        ensure(len(arrivals) == 1 and "while a trace-diff reads it" in arrivals[0],
+               f"an oracle build arriving mid-comparison is refused naming the reader, "
+               f"got {arrivals}")
+        env.hold_lock(e.oracle_root, "an oracle build").close()
 
 
 def _head(repo: Path) -> str:
@@ -571,10 +662,13 @@ def _warm_test_corpus() -> None:
         args = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
         with (patch.object(model, "_missing_simulator", return_value=None),
               patch.object(model, "_run_trace", return_value=[]) as runner,
+              patch.object(env, "hold_lock", side_effect=_unlocked) as lock,
               redirect_stdout(io.StringIO())):
             ensure(model.cmd_trace_diff(e, args) == 0, "empty traces are skipped")
             ensure(runner.call_count == 1 and runner.call_args.args[0][-1] == str(current),
                    "trace-diff must use the same declared release as sweep")
+            ensure(lock.call_args_list == [call(e.oracle_root, "a trace-diff", shared=True)],
+                   f"trace-diff holds the oracle's tree shared, got {lock.call_args_list}")
         current.unlink()
         current.parent.rmdir()
         try:
@@ -676,6 +770,10 @@ def cases() -> list[Case]:
             Case("oracle-binds-the-environments-sail", _oracle_binds_the_environments_sail),
             Case("oracle-refuses-an-unpopulated-source", _oracle_refuses_an_unpopulated_source),
             Case("oracle-reuses-only-a-stamped-tree", _oracle_reuses_only_a_stamped_tree),
+            Case("oracle-sync-refuses-a-live-trace-diff", _oracle_sync_refuses_a_live_trace_diff,
+                 lane="guest"),
+            Case("trace-diff-holds-the-oracle-tree", _trace_diff_holds_the_oracle_tree,
+                 lane="guest"),
             Case("oracle-pins-hold-both-checkouts", _oracle_pins_hold_both_checkouts),
             Case("oracle-copy-is-the-pinned-commits", _oracle_copy_is_the_pinned_commits),
             Case("empty-sweep-refused", _empty_sweep_is_refused),
