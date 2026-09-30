@@ -69,9 +69,9 @@ def no_consumer_restates_a_pin() -> None:
     sources = [*CAMPAIGNS.glob("*.py"), *(TOOLS / "vos").rglob("*.py"), *(TOOLS / "tests").glob("*.py")]
     owner = (TOOLS / "vos" / "acvp.py").resolve()
     ensure(any(path.name == "mlkem_vectors.py" for path in sources), "campaigns not scanned")
+    texts = {path: path.read_text(encoding="utf-8") for path in sources if path.resolve() != owner}
     restated = sorted(f"{path.relative_to(ROOT).as_posix()}: {literal[:8]}"
-                      for path in sources if path.resolve() != owner
-                      for literal in literals if literal in path.read_text(encoding="utf-8"))
+                      for path, text in texts.items() for literal in literals if literal in text)
     ensure(not restated, f"ACVP identities restated outside acvp.py: {restated}")
 
 
