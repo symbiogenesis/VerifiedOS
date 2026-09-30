@@ -58,7 +58,10 @@ group that decides its rule (`check.py --through`); a survivor runs the whole ch
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
 the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
 analyzes the workflows with the tools the [Guest CI contract](ci/README.md#acceptance-and-handoff)
-describes. Members within a shard run concurrently. Each platform runs on an explicit
+describes. Members within a shard run concurrently. The gate runs under each
+platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
+there runs `run.py`, and reads its shard and verdict path from the step's environment
+rather than from expressions written into the command. Each platform runs on an explicit
 runner image label, and its `host-gates (Ubuntu)` or `host-gates (Windows)` check,
 named for the platform so that an image move renames nothing, is the name
 `fanout_ci.HOST_JOBS` accepts. The two checks require every shard
