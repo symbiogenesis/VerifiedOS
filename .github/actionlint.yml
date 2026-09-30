@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# actionlint configuration; tools/ci/actionlint.sh pins the release that reads it.
+self-hosted-runner:
+  # GitHub-hosted labels newer than the pinned release's own label table. Each is
+  # a hosted image, not a self-hosted runner; listing it only stops the unknown-label
+  # error.
+  labels:
+    - ubuntu-26.04

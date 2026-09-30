@@ -17,7 +17,7 @@ from vos import receipts  # noqa: E402  (standalone reporting needs no locked en
 
 # Each lane's workflow step ids, in execution order.
 LANES: dict[str, tuple[str, ...]] = {
-    "model": ("bootstrap", "evidence", "bundle", "lint", "crosscheck"),
+    "model": ("bootstrap", "evidence", "bundle", "lint", "widthcheck", "crosscheck"),
     "proofs": ("bootstrap", "proofs"),
 }
 # How bootstrap found the lane's toolchains; only a cold run shows that they install.

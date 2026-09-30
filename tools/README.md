@@ -56,14 +56,19 @@ position within each OS, with every item assigned once.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
-the complete repair path, the ordinary checker and typecheck. Members within a
-shard run concurrently. Both existing `host-gates (OS)` checks require every shard
+the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
+analyzes the workflows with the tools the [Guest CI contract](ci/README.md#acceptance-and-handoff)
+describes. Members within a shard run concurrently. Each platform runs on an explicit
+runner image label, and its `host-gates (Ubuntu)` or `host-gates (Windows)` check,
+named for the platform so that an image move renames nothing, is the name
+`fanout_ci.HOST_JOBS` accepts. The two checks require every shard
 on both platforms to succeed, including refusal after a skipped or cancelled shard.
 One shard alone supplies only a partial verdict. The unsharded local command retains
 the complete suite.
 
-Shards cache uv downloads keyed by the manifest and lockfile, with only shard 1
-of each OS on pushes to `main` saving caches; other jobs restore them. Environments
+Shards cache uv downloads keyed by the manifest and lockfile under Host CI's own key
+suffix, with only shard 1 of each OS on pushes to `main` saving caches; other jobs
+restore them. Environments
 and gate results are rebuilt on every run. Windows shards set `TMP` and `TEMP` to
 `runner.temp`, on the checkout's drive, because the image's default temporary
 directory is on a
@@ -885,6 +890,10 @@ refuses a lockfile the manifest would change. No gate installs or runs the group
 so whether it installs on each platform and how it behaves are unchecked.
 `uv sync --project tools --locked --group model --dry-run` lists what a
 synchronization would install without installing it.
+
+The optional `workflows` group pins zizmor, which Host CI syncs alone into an
+environment of its own; the [Guest CI contract](ci/README.md#acceptance-and-handoff)
+gives the command. PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
 [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) keeps upstream's
 paths, which assume a repository root at `model/`. pre-commit changes directory to

@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
-      actions: read
+      actions: read # the previous run's conclusion and artifact names
     outputs:
       unchanged: ${{ steps.previous.outputs.unchanged }}
     steps:
@@ -132,7 +132,7 @@ jobs:
         ~/verifiedos-guest/build/proof-gate/proofs/*.vo
         ~/verifiedos-guest/build/proof-gate/proofs/proof-evidence.json
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.revision || github.sha }}
           fetch-depth: 0
@@ -161,16 +161,20 @@ jobs:
           subprocess.run(["git", "merge-base", "--is-ancestor", revision,
                           os.environ["DISPATCH_MAIN_SHA"]], check=True)
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.14"
 
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
           # Both lanes resolve the same lockfile; one saver avoids a racing upload.
           save-cache: ${{ github.ref == 'refs/heads/main' && matrix.lane == 'model' }}
+          # The key names the runner image but no workflow; the suffix keeps Host CI's
+          # smaller download set from claiming it on a shared image. The boot
+          # signature campaign restores this cache under the same suffix.
+          cache-suffix: guest-gates
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
@@ -220,9 +224,12 @@ jobs:
       - name: Bootstrap guest toolchains
         id: bootstrap
         timeout-minutes: 120
+        env:
+          GUEST_TOOLCHAIN_OPTIONS: ${{ matrix.toolchains }}
         run: |
+          read -r -a toolchain_options <<< "$GUEST_TOOLCHAIN_OPTIONS"
           /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system ${{ matrix.toolchains }} \
+            --root "$HOME/verifiedos-guest" --install-system "${toolchain_options[@]}" \
             --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
 
@@ -362,6 +369,14 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl lint \
             2>&1 | tee "$VOS_LOG_DIR/rtl-lint.log"
 
+      - name: Check frozen RTL widths and store lanes
+        id: widthcheck
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 15
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl widthcheck \
+            2>&1 | tee "$VOS_LOG_DIR/rtl-widthcheck.log"
+
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
@@ -383,7 +398,7 @@ jobs:
 
       - name: Preserve guest logs and receipts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: guest-${{ matrix.lane }}-${{ env.GUEST_REVISION }}-${{ github.run_attempt }}
           path: ~/verifiedos-guest/logs/

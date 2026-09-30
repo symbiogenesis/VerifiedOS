@@ -41,7 +41,7 @@ so a smaller runner needs a separate resource measurement.
 
 The gate job is a two-lane matrix, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
-RTL lint and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
+RTL lint, width check and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
 Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
 longer lane. One lane's failure does not cancel the other. Both lanes must pass to
 establish complete guest evidence; Host CI supplies no model, RTL or proof verdict.
@@ -79,6 +79,7 @@ python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --install-syst
 python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json"
 python3 tools/run.py model bundle --check
 python3 tools/run.py rtl lint
+python3 tools/run.py rtl widthcheck
 python3 tools/run.py rtl crosscheck
 ```
 
@@ -129,7 +130,9 @@ Each lane has its own source cache. Its key includes the lane, runner OS and arc
 Sail and Rocq snapshots, bootstrap, the Verilator installer and shared download helper.
 A prefix fallback reuses the lane's older source downloads, with the installers' checksum
 verification still required. Cache eviction simply means a cold installation. Only the
-model lane saves the uv cache; both lanes restore it. Each lane's commands stay
+model lane saves the uv cache; both lanes restore it. Its `guest-gates` key suffix keeps
+Host CI's smaller download set, saved under Host CI's own suffix, from claiming the key
+when both workflows run on one runner image. Each lane's commands stay
 sequential within its runner's memory budget.
 
 Ordinary weekly and manual runs restore a lane's installed
@@ -234,6 +237,10 @@ The pipeline runs the existing commands. In the model lane:
   from this generated multi-process campaign.
 - `python3 tools/run.py model bundle --check` compares the emitted model bundle.
 - `python3 tools/run.py rtl lint` checks the standalone authored and generated RTL.
+- `python3 tools/run.py rtl widthcheck` builds the scalar-width testbench from the
+  tracked `rtl/` packages and checks the frozen transport widths and every
+  store-rotation bit and lane. It reads no gitlink, so the lane still initializes no
+  submodule; the checks that read imported cores stay outside this pipeline.
 - `python3 tools/run.py rtl crosscheck` regenerates model vectors and compares RTL
   answers. Reusing old vectors is not part of this gate.
 
@@ -271,7 +278,18 @@ objects, dependencies, toolchain context and failed runs.
 
 Focused tests must cover installation planning and failure propagation, including
 unavailable dependencies and corrupt downloads where the installer owns download
-verification. Workflow syntax is checked with actionlint. Use the repository's
+verification. Host CI's Ubuntu shard 1 analyzes every workflow. zizmor, pinned in
+[the manifest](../pyproject.toml)'s `workflows` group and locked outside the gate's
+environment, runs its offline security audits, including the one requiring every
+action to be pinned by commit. [actionlint.sh](actionlint.sh) runs actionlint from a
+release archive verified against its pinned SHA-256, reading
+[.github/actionlint.yml](../../.github/actionlint.yml) for hosted runner labels newer
+than that release's own table. It checks workflow syntax, expressions and contexts but
+not shell bodies, because no pinned shellcheck or pyflakes is provisioned. To run both
+in WSL, set `UV_PROJECT_ENVIRONMENT` and `ACTIONLINT_ROOT` to directories under the
+lane root, then run
+`uv run --project tools --locked --exact --only-group workflows zizmor --offline .github/workflows`
+and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=`. Use the repository's
 [validation handoff](../../AGENTS.md#tool-execution-and-validation) for the settled
 revision. Select `cold: true` when proof freshness or cold installation is required.
 Dispatch alone does not establish proof correctness, cold installation or cache

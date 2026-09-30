@@ -132,5 +132,6 @@ GitHub responses: successful integration and retirement, dirty and escaping path
 unmerged or moved branches, retained outputs, host-managed preservation, wrong
 revision or incomplete Host CI evidence, failed dispatch and interrupted resume.
 Run focused tests and typecheck during implementation, then require hosted Host CI
-and dispatch both Guest CI lanes for the settled revision. Workflow edits require
-actionlint. No local model or proof gate is needed for this orchestration tool.
+and dispatch both Guest CI lanes for the settled revision. Host CI analyzes workflow
+edits with zizmor and actionlint, as the [Guest CI contract](ci/README.md#acceptance-and-handoff)
+describes. No local model or proof gate is needed for this orchestration tool.
