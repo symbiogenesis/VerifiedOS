@@ -9,10 +9,10 @@ Gallina that stopped matching would yield an empty roster and a green report abo
 nothing, so the first cases hand the reader the live file and hold the roster, the
 literals and the lists to what the `.v`'s own `the_demo_plan_declares` states, and then
 hand it shapes with a list missing, a chain malformed and a kind unknown and require
-`PlanError` each time. Every head reads a declaration under an attribute or a locality
-as the bare one, while a variant or a list under `Fail`, indented, respaced, untyped or
-commented apart from its head, and a value completed from a base with `with` that
-assigns a field of `Plan`, are refused by name.
+`PlanError` each time. Every head reads a declaration under a decoration of the shared
+lexer's grammar as the bare one, while a variant or a list under `Fail`, indented,
+respaced, untyped or commented apart from its head, and a value completed from a base
+with `with` that assigns a field of `Plan`, are refused by name.
 
 **The port agrees with the proof file on every plan the file decides.** The `.v` ships
 one admitted plan and fifteen variants each moving one declared quantity, and states in
@@ -223,22 +223,37 @@ def _a_prefixed_declaration_is_read() -> None:
                f"under {prefix!r} the reading is the bare file's")
 
 
+def _a_declaration_under_the_shared_grammar_is_read() -> None:
+    # The decorations are the shared lexer's, spelled as Rocq's lexer reads them: no
+    # blank after a word or a string, a doubled quote in a quoted target, and a bullet
+    # before a declaration inside a proof. Each moves no value.
+    variant = (("toy_lengths", "toy_bases", "toy_base_granules", "toy_length_granules",
+                "toy_slots"), 13)
+    for prefix in ("Time#[local]", "Instructions\n", 'Redirect "a""b" ', 'Profile"p"',
+                   "Timeout 5Local "):
+        src = memplan.parse(_TOY + prefix + _VARIANT + prefix
+                            + "Definition extra : list nat := cons 1 nil.\n")
+        ensure(src.plans.get("dear_plan") == variant and src.nat_lists.get("extra") == (1,),
+               f"under {prefix!r} a variant and a list are read as themselves: "
+               f"{src.plans} {src.nat_lists}")
+    src = memplan.parse(_TOY + "Lemma l : True.\nProof.\n- " + _VARIANT + "  exact I.\nQed.\n")
+    ensure(src.plans.get("dear_plan") == variant,
+           f"a variant after a bullet is read as itself: {src.plans}")
+
+
 def _a_declaration_the_reader_does_not_take_is_refused() -> None:
-    # A control prefix leaves nothing defined and an indented head is in a `Module` or
-    # a `Section` the reader does not follow; either would leave the export a variant or
-    # a list short with nothing to notice it, so each is refused by name.
-    for respelled in ("Fail " + _VARIANT, "  " + _VARIANT,
-                      _VARIANT.replace("dear_plan :", "dear_plan  :")):
+    # An indented head is in a `Module` or a `Section` the reader does not follow, and it
+    # would leave the export a variant or a list short with nothing to notice it, so it
+    # is refused by name.
+    for respelled in ("  " + _VARIANT, _VARIANT.replace("dear_plan :", "dear_plan  :")):
         _refused_saying(_TOY + respelled, "builds dear_plan from build_plan where this "
                         "reader does not read it",
                         f"a variant spelled {respelled.splitlines()[0]!r} was dropped")
-    _refused_saying(_TOY + "Fail Definition extra : list nat := cons 1 nil.\n",
-                    "spells extra as a typed list this reader does not read",
-                    "a list under a control prefix was dropped")
-    # a control flag on a line above the head, however much blank space, comment or
-    # attribute stands between them, leaves the head reading a declaration the file
+    # a control flag on the head's line or above it, however much blank space, comment
+    # or attribute stands between them, leaves the head reading a declaration the file
     # does not keep, and the head refuses it by the flag
-    for lead, flag in (("Fail\n", "Fail"), ("Succeed\n", "Succeed"),
+    for lead, flag in (("Fail ", "Fail"), ("Succeed#[local]", "Succeed"),
+                       ("Time Fail ", "Fail"), ("Fail\n", "Fail"), ("Succeed\n", "Succeed"),
                        ("#[local]\nFail\n", "Fail"), ("Fail (* why. *)\n\n", "Fail")):
         _refused_saying(_TOY + lead + _VARIANT, f"states dear_plan under `{flag}`",
                         f"a variant under {lead!r} was carried")
@@ -436,6 +451,8 @@ def cases() -> list[Case]:
         Case("a-shape-the-reader-does-not-read-is-refused",
              _a_shape_the_reader_does_not_read_is_refused),
         Case("a-prefixed-declaration-is-read", _a_prefixed_declaration_is_read),
+        Case("a-declaration-under-the-shared-grammar-is-read",
+             _a_declaration_under_the_shared_grammar_is_read),
         Case("a-declaration-the-reader-does-not-take-is-refused",
              _a_declaration_the_reader_does_not_take_is_refused),
         Case("a-plan-completed-from-a-base-is-refused",

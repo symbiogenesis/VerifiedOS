@@ -14,14 +14,15 @@ on two rules the plan states.
 the `RegionKind` constructors. A list this reader cannot find or cannot read is
 `PlanError` and never an empty roster, on the fail-closed ground the generated group
 states (K-67, K-75): a regex that stops matching would otherwise yield zero regions and
-a green report about nothing. A declaration under an attribute or a locality is read as
-the bare one, and a list or an application of `build_plan` to bare words spelled where
-no head reads it, or a value of any written type completed from a base with `with` that
-assigns a field of `Plan`, is `PlanError` too, since the export would otherwise lack it
-with only a floor on its plan count to notice. So is a declaration a head reads under
-`Fail` or `Succeed` written on a line above it, the file keeping nothing it states.
-Those audits read the file with its comments blanked, so a comment's `match` or full
-stop hides nothing from them.
+a green report about nothing. A declaration under a decoration, in the grammar the
+shared lexer writes once for every reader ([proofs.py](proofs.py)), is read as the bare
+one, and a list or an application of `build_plan` to bare words spelled where no head
+reads it, or a value of any written type completed from a base with `with` that assigns
+a field of `Plan`, is `PlanError` too, since the export would otherwise lack it with only
+a floor on its plan count to notice. So is a declaration a head reads under `Fail` or
+`Succeed`, on its line or above it, the file keeping nothing it states. Those audits read
+the file with its comments blanked, so a comment's `match` or full stop hides nothing
+from them.
 
 **What the export does not carry, knowingly.** A variant is carried by the lists it
 names, so an application of `build_plan` to an inline term names no list to carry it
@@ -69,7 +70,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from vos.proofs import sentence_ends, void_flag
+from vos.proofs import CONTROL_PREFIXES, sentence_ends, void_flag
 
 # The one owner, the artifact it is exported to, and the command that rewrites it.
 SOURCE = "proofs/MemoryPlan.v"
@@ -136,49 +137,44 @@ class PlanError(ValueError):
 # the reader
 # ---------------------------------------------------------------------------------
 
-# What may stand before a declaration this reader reads and leave it the declaration it
-# decorates: quoted attributes, `#[local]` and the rest, and the legacy attributes Rocq's
-# grammar admits in their place. None of them moves a value, so each head below reads a
-# declaration under one as if it stood bare. A control prefix is not among them, `Fail`
-# and `Succeed` leaving nothing defined; the audits below refuse what that leaves out.
-_PREFIX = (r'(?:#\[(?:[^\]"]|"[^"]*")*\]\s*|(?:Local|Global|Program|Polymorphic'
-           r'|Monomorphic|Cumulative|NonCumulative|Private)\s+)*')
-
-# A head standing under `Fail` or `Succeed`, on its line or on a line of its own above
-# it, reads a declaration the file keeps nothing of, and it is refused rather than
-# carried. Which flag a head stands under is the shared lexer's look-back
-# (proofs.void_flag), over the decoration grammar written there and back to the full stop
-# the sentence split ends the sentence before at, outside every string.
+# What may stand before a declaration this reader reads is the shared lexer's decoration
+# grammar: bullets and goal selectors, control flags, and quoted and legacy attributes.
+# None of them moves a value, so each head below reads a declaration under one as if it
+# stood bare. A head standing under `Fail` or `Succeed`, on its line or on a line of its
+# own above it, reads a declaration the file keeps nothing of, and it is refused rather
+# than carried: which flag a head stands under is the shared lexer's look-back
+# (proofs.void_flag), over the same grammar and back to the full stop the sentence split
+# ends the sentence before at, outside every string.
 
 _LIST_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) : "
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) : "
     r"list (?P<kind>nat|bool|RegionKind) :=\s*(?P<body>[^.]*)\.", re.MULTILINE)
 _INDUCTIVE_RE = re.compile(
-    r"^" + _PREFIX + r"Inductive RegionKind : Type :=\s*(?P<body>.*?)\.\s*$",
+    r"^" + CONTROL_PREFIXES + r"Inductive RegionKind : Type :=\s*(?P<body>.*?)\.\s*$",
     re.MULTILINE | re.DOTALL)
 _ARM_RE = re.compile(r"^\| (\w+)", re.MULTILINE)
 _PLACED_RE = re.compile(
-    r"^" + _PREFIX + r"Definition placed_by_name \(k : RegionKind\) : "
+    r"^" + CONTROL_PREFIXES + r"Definition placed_by_name \(k : RegionKind\) : "
     r"option MemClass :=\s*match k with\s*(?P<body>.*?)\s*end\.", re.MULTILINE | re.DOTALL)
 _PLACED_ARM_RE = re.compile(r"\| (\w+) => (Some (\w+)|None)")
 _CRITERION_RE = re.compile(
-    r"^" + _PREFIX + r"Definition criterion_class \(critical : bool\) : MemClass :=\s*"
-    r"if critical then (\w+) else (\w+)\.", re.MULTILINE)
+    r"^" + CONTROL_PREFIXES + r"Definition criterion_class \(critical : bool\) : "
+    r"MemClass :=\s*if critical then (\w+) else (\w+)\.", re.MULTILINE)
 _BUILD_RE = re.compile(
-    r"^" + _PREFIX + r"Definition build_plan \((?P<params>[\w ]+) : list nat\)\s*"
-    r"\((?P<second>\w+) : nat\) : Plan := \{\|(?P<body>.*?)\|\}\.",
+    r"^" + CONTROL_PREFIXES + r"Definition build_plan \((?P<params>[\w ]+) : list nat\)"
+    r"\s*\((?P<second>\w+) : nat\) : Plan := \{\|(?P<body>.*?)\|\}\.",
     re.MULTILINE | re.DOTALL)
 _FIELD_RE = re.compile(r"(\w+) := ([^;]+?)\s*(?:;|$)", re.DOTALL)
 _AT_LIST_RE = re.compile(r"^fun (\w+) => at_list (\w+) \1 (\w+)$")
 _OF_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) \(r : nat\) : (?P<kind>\w+) := "
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) \(r : nat\) : (?P<kind>\w+) := "
     r"at_list (?P<list>\w+) r (?P<default>\w+)\.", re.MULTILINE)
 _CLASS_OF_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) \(r : nat\) : MemClass :=\s*"
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) \(r : nat\) : MemClass :=\s*"
     r"match placed_by_name \((?P<kind>\w+) r\) with\s*\| Some c => c\s*"
     r"\| None => criterion_class \((?P<critical>\w+) r\)\s*end\.", re.MULTILINE)
 _PLAN_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) : Plan :=\s*"
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) : Plan :=\s*"
     r"build_plan (?P<args>[\w\s]+?)\.", re.MULTILINE)
 
 # The typed lists and the values as the file spells them, at any column, under any
