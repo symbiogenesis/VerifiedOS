@@ -328,4 +328,3 @@ function clause read_CSR(0xF15) = zeros()
 // Upstream's `tselect` read the ones-complement of what was written to
 // advertise no trigger support; the four addresses now name no CSR at
 // all, so they trap like any other unallocated address (R-15-014).
-

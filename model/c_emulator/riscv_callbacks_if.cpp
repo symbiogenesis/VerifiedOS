@@ -13,9 +13,11 @@ void callbacks_if::post_step_callback([[maybe_unused]] ModelImpl &model, [[maybe
 void callbacks_if::fetch_callback([[maybe_unused]] ModelImpl &model, [[maybe_unused]] sbits opcode) {
 }
 
-void callbacks_if::entropy_draw_callback([[maybe_unused]] ModelImpl &model,
-                                        [[maybe_unused]] bool available,
-                                        [[maybe_unused]] uint64_t value) {
+void callbacks_if::entropy_draw_callback(
+  [[maybe_unused]] ModelImpl &model,
+  [[maybe_unused]] bool available,
+  [[maybe_unused]] uint64_t value
+) {
 }
 
 void callbacks_if::mem_write_callback(
@@ -63,7 +65,6 @@ void callbacks_if::scr_full_write_callback(
 ) {
 }
 
-
 void callbacks_if::csr_full_write_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const_sail_string csr_name,
@@ -105,4 +106,3 @@ void callbacks_if::xret_callback([[maybe_unused]] ModelImpl &model, [[maybe_unus
 
 void callbacks_if::instret_callback([[maybe_unused]] ModelImpl &model) {
 }
-

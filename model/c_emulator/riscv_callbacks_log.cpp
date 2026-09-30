@@ -84,25 +84,12 @@ void log_callbacks::xreg_full_write_callback(
     if (config_use_abi_names) {
       fprintf(trace_log, "%s <- t:%d 0x%0*" PRIX64 "\n", abi_name, tag ? 1 : 0, 16 /* XLEN=64 */, value);
     } else {
-      fprintf(
-        trace_log,
-        "x%" PRIu64 " <- t:%d 0x%0*" PRIX64 "\n",
-        reg.bits,
-        tag ? 1 : 0,
-        16 /* XLEN=64 */,
-        value
-      );
+      fprintf(trace_log, "x%" PRIu64 " <- t:%d 0x%0*" PRIX64 "\n", reg.bits, tag ? 1 : 0, 16 /* XLEN=64 */, value);
     }
   }
 }
 
-void log_callbacks::scr_full_write_callback(
-  ModelImpl &,
-  const_sail_string name,
-  fbits scr,
-  uint64_t value,
-  bool tag
-) {
+void log_callbacks::scr_full_write_callback(ModelImpl &, const_sail_string name, fbits scr, uint64_t value, bool tag) {
   if (trace_log != nullptr && config_print_csr) {
     fprintf(
       trace_log,
@@ -116,30 +103,15 @@ void log_callbacks::scr_full_write_callback(
   }
 }
 
-
 void log_callbacks::csr_full_write_callback(ModelImpl &, const_sail_string csr_name, unsigned reg, uint64_t value) {
   if (trace_log != nullptr && config_print_csr) {
-    fprintf(
-      trace_log,
-      "CSR %s (0x%03X) <- 0x%0*" PRIX64 "\n",
-      csr_name,
-      reg,
-      16 /* XLEN=64 */,
-      value
-    );
+    fprintf(trace_log, "CSR %s (0x%03X) <- 0x%0*" PRIX64 "\n", csr_name, reg, 16 /* XLEN=64 */, value);
   }
 }
 
 void log_callbacks::csr_full_read_callback(ModelImpl &, const_sail_string csr_name, unsigned reg, uint64_t value) {
   if (trace_log != nullptr && config_print_csr) {
-    fprintf(
-      trace_log,
-      "CSR %s (0x%03X) -> 0x%0*" PRIX64 "\n",
-      csr_name,
-      reg,
-      16 /* XLEN=64 */,
-      value
-    );
+    fprintf(trace_log, "CSR %s (0x%03X) -> 0x%0*" PRIX64 "\n", csr_name, reg, 16 /* XLEN=64 */, value);
   }
 }
 
@@ -149,4 +121,3 @@ void log_callbacks::vreg_write_callback(ModelImpl &, unsigned reg, lbits value) 
     gmp_fprintf(trace_log, "0x%0*ZX\n", value.len / 4, *value.bits);
   }
 }
-

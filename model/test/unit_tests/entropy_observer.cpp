@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // Execute the actual generated Sail root and watchdog tests through an observer.
-#include <sail_config.h>
 #include "config_utils.h"
 #include "sail_riscv_model.h"
 #include <cstdio>
 #include <cstdlib>
+#include <sail_config.h>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 static void require(bool condition) {
-  if (!condition) std::abort();
+  if (!condition) {
+    std::abort();
+  }
 }
 
 class ObservedModel final : public hart::Model {
@@ -19,7 +21,9 @@ public:
   bool refuse = false;
 
   unit entropy_draw_callback(bool available, uint64_t value) override {
-    if (refuse) throw std::runtime_error("capture refused");
+    if (refuse) {
+      throw std::runtime_error("capture refused");
+    }
     require(available || value == 0);
     draws.emplace_back(available, value);
     return UNIT;
@@ -65,8 +69,11 @@ int main() {
   require(model.draws.size() == 1 && model.draws[0] == first);
   model.refuse = true;
   bool caught = false;
-  try { model.zwatchdog_arm(UNIT); }
-  catch (const std::runtime_error &) { caught = true; }
+  try {
+    model.zwatchdog_arm(UNIT);
+  } catch (const std::runtime_error &) {
+    caught = true;
+  }
   require(caught && model.draws.size() == 1);
   model.model_fini();
   hart::Model unobserved;

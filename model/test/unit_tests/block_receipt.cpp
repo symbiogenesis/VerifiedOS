@@ -21,7 +21,7 @@ void require(bool condition, const char *message) {
 }
 
 void cap_file_size(rlim_t size) {
-  const struct rlimit cap {size, size};
+  const struct rlimit cap{size, size};
   require(setrlimit(RLIMIT_FSIZE, &cap) == 0, "cannot limit receipt size");
 }
 
@@ -40,7 +40,7 @@ void child_case(const std::string &image_path, const std::string &receipt_path, 
   }
 
   blkdev::image image(image_path, blkdev::image::mode::open, {64, 2}, {}, receipt_path);
-  struct stat st {};
+  struct stat st{};
   require(stat(receipt_path.c_str(), &st) == 0 && st.st_size > 0, "missing opening receipt");
   cap_file_size(static_cast<rlim_t>(st.st_size));
   if (which == 1) {

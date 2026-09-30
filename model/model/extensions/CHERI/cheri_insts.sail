@@ -304,7 +304,7 @@ mapping clause assembly = CSealEntry(cd, cs1) <-> "csealentry" ^ spc() ^ cap_reg
 // `funct7` values are the first pair above ISAv9's highest three-operand
 // allocation, which is where a bespoke row belongs: membership is by
 // enumeration and never by inheritance, so a reader checking this against
-// ISAv9 finds free space rather than a re-used opcode (R-15-007j).
+// ISAv9 finds free space rather than a reused opcode (R-15-007j).
 
 // The two polarities are two clauses rather than one clause over a polarity
 // enumeration, because the `instruction` union is scattered and declared before
@@ -788,7 +788,7 @@ union clause instruction = CReclaim : (regidx, regidx)
 // The encoding is the dialect's own beside `cloadtags`, at the first sub-opcode
 // of this two-operand group that ISAv9 never allocated, so it contends for no
 // custom opcode space and a reader checking it against ISAv9 finds free space
-// rather than a re-used opcode (R-15-007j, R-15-014a).
+// rather than a reused opcode (R-15-007j, R-15-014a).
 function clause execute CReclaim(rd, cs1) = {
   let cs1_val = C(cs1);
   let idx = capreg_idx_of_regidx(cs1);

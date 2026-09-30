@@ -184,6 +184,7 @@ MODEL_FACTS = (
     "model/config/verifiedos-v.json",
     "model/config/verifiedos-rot.json",
     "model/config/config.json.in",
+    "model/.pre-commit-config.yaml",
 )
 
 # The second window into the same tree, declared separately because it is narrow for

@@ -9,8 +9,9 @@
 #
 # Shards partition mutation cases and behavioral test modules: four on Ubuntu and
 # eight on Windows, whose CPU-bound shards run the same work more slowly. Shard 1
-# also runs the checker, typecheck and mutation repair path, and Ubuntu's shard 1
-# analyzes the workflows with zizmor and actionlint. All shards must pass.
+# also runs the checker, typecheck and mutation repair path, Ubuntu's shard 1
+# analyzes the workflows with zizmor and actionlint, and Ubuntu's last shard runs the
+# curated model's pre-commit hooks. All shards must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
@@ -162,6 +163,25 @@ jobs:
             zizmor --offline .github/workflows || status=1
           sh tools/ci/actionlint.sh -shellcheck= -pyflakes= || status=1
           exit "$status"
+
+      # The curated model's pre-commit hooks, as model/.pre-commit-config.yaml pins them
+      # by commit, run over model/ with the pre-commit tools/uv.lock's model group locks,
+      # in an environment of their own; any finding or rewrite fails the job.
+      # markdown-link-check is skipped because it fetches every external link the
+      # model's Markdown names. Hook code and its unlocked dependencies install at run
+      # time, so the step runs on the last shard rather than shard 1, whose uv cache a
+      # push saves.
+      - name: Model hooks
+        if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == matrix.shards }}
+        shell: bash
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-model
+          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit
+          SKIP: markdown-link-check
+        run: |
+          uv run --project tools --locked --exact --only-group model --no-python-downloads \
+            pre-commit run --config model/.pre-commit-config.yaml --all-files \
+            --show-diff-on-failure --color=always
 
       - name: Report gate results
         if: ${{ !cancelled() }}

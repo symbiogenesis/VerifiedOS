@@ -81,7 +81,6 @@ unit ModelImpl::scr_full_write_callback(const_sail_string name, fbits scr, uint6
   return UNIT;
 }
 
-
 unit ModelImpl::csr_full_write_callback(const_sail_string csr_name, unsigned reg, uint64_t value) {
   for (auto c : m_callbacks) {
     c->csr_full_write_callback(*this, csr_name, reg, value);
@@ -454,7 +453,6 @@ int64_t ModelImpl::xlen() const {
   return zxlen;
 }
 
-
 int64_t ModelImpl::physaddrbits_len() const {
   return zphysaddrbits_len;
 }
@@ -471,7 +469,6 @@ uint64_t ModelImpl::pc() const {
 uint64_t ModelImpl::mepc() const {
   return zMEPCC.zaddress;
 }
-
 
 uint64_t ModelImpl::htif_exit_code() const {
   return zhtif_exit_code;
@@ -491,15 +488,12 @@ uint64_t ModelImpl::xreg(int64_t reg) {
   return zrX(reg);
 }
 
-
 void ModelImpl::set_xreg(int64_t reg, uint64_t val) {
   // For the E base ISA, this assert should use 16.
   assert(0 <= reg && reg < 32);
   (void)zwX(reg, val);
 }
 
-
 void ModelImpl::set_pc(uint64_t val) {
   (void)zset_next_pc(val);
 }
-

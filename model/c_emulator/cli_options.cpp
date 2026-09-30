@@ -40,9 +40,7 @@ CLIOptions parse_cli(int argc, char **argv) {
     ->option_text("<file>");
   app.add_option("--terminal-log", opts.term_log, "Terminal log output file")->option_text("<file>");
   app.add_option("--test-signature", opts.sig_file, "Test signature file")->option_text("<file>");
-  app.add_option("--config", opts.config_file, "Configuration file")
-    ->check(CLI::ExistingFile)
-    ->option_text("<file>");
+  app.add_option("--config", opts.config_file, "Configuration file")->check(CLI::ExistingFile)->option_text("<file>");
   app
     .add_option(
       "--config-override",
@@ -72,14 +70,15 @@ CLIOptions parse_cli(int argc, char **argv) {
       "reports)"
     )
     ->option_text("<uint>");
-  auto *blkdev_image = app
-    .add_option(
-      "--blkdev-image",
-      opts.blkdev_image,
-      "Bind the block device's persistent medium to this existing host image, which must record the "
-      "composition's block geometry; completed writes, tears and media faults are written through to it"
-    )
-    ->option_text("<file>");
+  auto *blkdev_image =
+    app
+      .add_option(
+        "--blkdev-image",
+        opts.blkdev_image,
+        "Bind the block device's persistent medium to this existing host image, which must record the "
+        "composition's block geometry; completed writes, tears and media faults are written through to it"
+      )
+      ->option_text("<file>");
   app
     .add_option(
       "--blkdev-image-create",

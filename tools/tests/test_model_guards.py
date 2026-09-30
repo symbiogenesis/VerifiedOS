@@ -435,8 +435,8 @@ def _oracle_sync_refuses_a_live_trace_diff() -> None:
     """A trace-diff holds the oracle's tree shared, so neither a first sync nor a
     `--resync`, from any lane, deletes it under a live comparison: each is refused
     before the copy, naming the reader, and two comparisons read side by side. The
-    positive control is the same run with no reader holding the tree, which is every
-    run while trace-diff held nothing: it syncs and builds."""
+    positive control is the same run with no reader holding the tree: it syncs and
+    builds."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         e = _environment(root)
@@ -465,7 +465,7 @@ def _trace_diff_holds_the_oracle_tree() -> None:
     sync holds the tree, and holds the tree shared while it runs them, so a build
     arriving mid-comparison is refused naming it, and the tree is free once it returns.
     The positive control is the same comparison with nothing holding the tree, which
-    runs, as every comparison did whatever held the tree before it took the lock."""
+    runs."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         e = _environment(Path(td))
         _standing_oracle(e)

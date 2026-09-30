@@ -1697,6 +1697,16 @@ CASES: list[Case] = [
     ("K-118", "a declared development-tool row stating two releases",
      _first_match(THIRD_PARTY, r"\[v(\d[^ \]]*)( LICENSE\]\(https://github\.com/cli/cli/)",
                   lambda m: f"[v{m[1]}.1{m[2]}")),
+    # The same direction through the model's hook configuration, whose rev pins a
+    # commit and whose `# frozen:` comment names the tag that commit was read at: each
+    # half moves alone while the hook's row stays, the release extended rather than
+    # spelled and the commit's first digit changed, so a reviewed bump leaves both seeded.
+    ("K-118", "a hook release the model's hook configuration pins and its row does not state",
+     _first_match("model/.pre-commit-config.yaml", r"# frozen: v(\d\S*)",
+                  lambda m: f"# frozen: v{m[1]}.1")),
+    ("K-118", "a hook commit the model's hook configuration pins and its row does not state",
+     _first_match("model/.pre-commit-config.yaml", r"^([ \t]+rev: \"?)([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row

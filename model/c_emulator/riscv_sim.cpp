@@ -577,11 +577,7 @@ void run_sail(
     }
 
     if (loop_detector->loop_detected()) {
-      fprintf(
-        stdout,
-        "FAILURE: possible trap loop detected with MEPC=0x%" PRIx64 "\n",
-        loop_detector->mepc()
-      );
+      fprintf(stdout, "FAILURE: possible trap loop detected with MEPC=0x%" PRIx64 "\n", loop_detector->mepc());
       exit(EXIT_FAILURE);
     }
   }

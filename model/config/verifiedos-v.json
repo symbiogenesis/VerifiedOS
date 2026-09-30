@@ -371,26 +371,122 @@
     // sentinel is one entry, its lockstep partner being a field of its
     // class rather than a second hart (R-16-008d, R-16-008e).
     "core_roster": [
-      { "hartid": 0,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
-      { "hartid": 1,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
-      { "hartid": 2,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
-      { "hartid": 3,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
-      { "hartid": 4,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
-      { "hartid": 5,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
-      { "hartid": 6,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
-      { "hartid": 7,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
-      { "hartid": 8,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
-      { "hartid": 9,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
-      { "hartid": 10, "class": "CoreClass_V",   "island": 2, "pinned": true,  "fec_units": true  },
-      { "hartid": 11, "class": "CoreClass_V",   "island": 2, "pinned": true,  "fec_units": true  },
-      { "hartid": 12, "class": "CoreClass_M",   "island": 3, "pinned": false, "fec_units": false },
-      { "hartid": 13, "class": "CoreClass_M",   "island": 3, "pinned": false, "fec_units": false },
-      { "hartid": 14, "class": "CoreClass_S",   "island": 4, "pinned": true,  "fec_units": false },
+      {
+        "hartid": 0,
+        "class": "CoreClass_C",
+        "island": 0,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 1,
+        "class": "CoreClass_C",
+        "island": 0,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 2,
+        "class": "CoreClass_C",
+        "island": 0,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 3,
+        "class": "CoreClass_C",
+        "island": 0,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 4,
+        "class": "CoreClass_C",
+        "island": 0,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 5,
+        "class": "CoreClass_C",
+        "island": 0,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 6,
+        "class": "CoreClass_V",
+        "island": 1,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 7,
+        "class": "CoreClass_V",
+        "island": 1,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 8,
+        "class": "CoreClass_V",
+        "island": 1,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 9,
+        "class": "CoreClass_V",
+        "island": 1,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 10,
+        "class": "CoreClass_V",
+        "island": 2,
+        "pinned": true,
+        "fec_units": true
+      },
+      {
+        "hartid": 11,
+        "class": "CoreClass_V",
+        "island": 2,
+        "pinned": true,
+        "fec_units": true
+      },
+      {
+        "hartid": 12,
+        "class": "CoreClass_M",
+        "island": 3,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 13,
+        "class": "CoreClass_M",
+        "island": 3,
+        "pinned": false,
+        "fec_units": false
+      },
+      {
+        "hartid": 14,
+        "class": "CoreClass_S",
+        "island": 4,
+        "pinned": true,
+        "fec_units": false
+      },
       // The RoT is not pinned because it is not slotted: it is the platform's
       // only management processor, in its own clock and power island and
       // outside the die's cyclic executive, so R-11-011's switch-duty rule
       // does not reach it and there is no slot for pinning to delete.
-      { "hartid": 15, "class": "CoreClass_RoT", "island": 5, "pinned": false, "fec_units": false }
+      {
+        "hartid": 15,
+        "class": "CoreClass_RoT",
+        "island": 5,
+        "pinned": false,
+        "fec_units": false
+      }
     ],
     // The channel codes the FEC decoders are written over (R-15-119a). Empty
     // here and in every shipped composition: a row names which of TS 38.212's
@@ -531,11 +627,25 @@
     },
     "uart": { "supported": true, "base": 41943040, "size": 4096 },
     "blkdev": {
-      "supported": true, "base": 42991616, "size": 4096,
-      "block_bytes": 64, "block_count": 2,
-      "read_steps": 3, "write_steps": 4, "flush_steps": 2,
+      "supported": true,
+      "base": 42991616,
+      "size": 4096,
+      "block_bytes": 64,
+      "block_count": 2,
+      "read_steps": 3,
+      "write_steps": 4,
+      "flush_steps": 2,
       // Explicit bounded bring-up fixture, replaced by the harness on restart.
-      "backing": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127]
+      "backing": [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+        20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37,
+        38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+        56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73,
+        74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91,
+        92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107,
+        108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+        122, 123, 124, 125, 126, 127
+      ]
     },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
@@ -610,13 +720,14 @@
     // being core surface everywhere and completing at its padded bound rather
     // than early (R-15-218).
     "switch": {
-      "c":   { "vmclear_cycles": 64,   "fence_t_cycles": 32 },
-      "v":   { "vmclear_cycles": 1024, "fence_t_cycles": 32 },
-      "m":   { "vmclear_cycles": 2048, "fence_t_cycles": 32 },
-      "s":   { "vmclear_cycles": 0,    "fence_t_cycles": 32 },
-      "rot": { "vmclear_cycles": 0,    "fence_t_cycles": 32 }
+      "c": { "vmclear_cycles": 64, "fence_t_cycles": 32 },
+      "v": { "vmclear_cycles": 1024, "fence_t_cycles": 32 },
+      "m": { "vmclear_cycles": 2048, "fence_t_cycles": 32 },
+      "s": { "vmclear_cycles": 0, "fence_t_cycles": 32 },
+      "rot": { "vmclear_cycles": 0, "fence_t_cycles": 32 }
     }
-  },  "extensions": {
+  },
+  "extensions": {
     "M": { "supported": true },
     // A narrowed to Zaamo + Zabha (R-15-024): the umbrella is off, the parts are on.
     "A": { "supported": false },

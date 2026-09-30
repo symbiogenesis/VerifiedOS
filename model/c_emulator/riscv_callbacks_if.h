@@ -47,14 +47,7 @@ public:
   );
 
   // The four capability registers outside the merged file (core/cap_regs.sail).
-  virtual void scr_full_write_callback(
-    ModelImpl &model,
-    const_sail_string name,
-    fbits scr,
-    uint64_t value,
-    bool tag
-  );
-
+  virtual void scr_full_write_callback(ModelImpl &model, const_sail_string name, fbits scr, uint64_t value, bool tag);
 
   virtual void csr_full_write_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value);
 
@@ -71,5 +64,4 @@ public:
   virtual void xret_callback(ModelImpl &model, bool is_mret);
 
   virtual void instret_callback(ModelImpl &model);
-
 };

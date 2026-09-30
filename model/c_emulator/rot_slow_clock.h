@@ -72,7 +72,8 @@ public:
 // The generated model behind that interface.
 class model_watchdog final : public watchdog_device {
 public:
-  explicit model_watchdog(hart::Model &model) : m_model(model) {}
+  explicit model_watchdog(hart::Model &model) : m_model(model) {
+  }
 
   bool watchdog_present() override;
   void watchdog_advance(uint64_t ticks) override;
@@ -98,8 +99,12 @@ public:
 class injected_slow_clock final : public slow_clock_source {
 public:
   // One external event.
-  void fire(uint64_t ticks) { m_total += ticks; }
-  uint64_t ticks_elapsed() override { return m_total; }
+  void fire(uint64_t ticks) {
+    m_total += ticks;
+  }
+  uint64_t ticks_elapsed() override {
+    return m_total;
+  }
 
 private:
   uint64_t m_total = 0;
@@ -122,7 +127,8 @@ private:
 // assert the die reset on the edge.
 class watchdog_join {
 public:
-  watchdog_join(watchdog_device &device, slow_clock_source &source) : m_device(device), m_source(source) {}
+  watchdog_join(watchdog_device &device, slow_clock_source &source) : m_device(device), m_source(source) {
+  }
 
   // Deliver the ticks the external clock has produced since the last delivery,
   // then sample the latch. Returns true on the one pump that asserted the die
@@ -132,11 +138,15 @@ public:
   bool pump();
 
   // Total external ticks handed to the model.
-  uint64_t delivered() const { return m_delivered; }
+  uint64_t delivered() const {
+    return m_delivered;
+  }
 
   // How many times the die reset was asserted. The latch is absorbing and
   // nothing clears it, so this saturates at one.
-  uint64_t die_resets() const { return m_die_resets; }
+  uint64_t die_resets() const {
+    return m_die_resets;
+  }
 
 private:
   watchdog_device &m_device;

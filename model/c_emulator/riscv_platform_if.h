@@ -37,7 +37,6 @@ public:
 
   virtual unit scr_full_write_callback(const_sail_string name, fbits scr, uint64_t value, bool tag);
 
-
   virtual unit csr_full_write_callback(const_sail_string csr_name, unsigned reg, uint64_t value);
 
   virtual unit csr_full_read_callback(const_sail_string csr_name, unsigned reg, uint64_t value);
