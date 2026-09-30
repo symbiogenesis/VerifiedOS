@@ -21,12 +21,16 @@ import io
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+import threading
+from collections.abc import Callable
+from contextlib import redirect_stderr, redirect_stdout, suppress
+from functools import partial
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import cast
 from unittest.mock import patch
 
@@ -480,6 +484,130 @@ def _seed_refuses_a_fifo_donor() -> None:
         _seeded_without_copying(donor, model_root)
 
 
+def _returns(call: Callable[[], None], unblock: Callable[[], None] | None = None,
+             within: float = 15.0) -> None:
+    """Run `call` on a thread of its own and fail, rather than hang the suite, when it
+    has not returned within `within` seconds; what it raises is raised here. `unblock`
+    releases a call still waiting at the deadline, so that its thread ends as well."""
+    raised: list[BaseException] = []
+
+    def run() -> None:
+        try:
+            call()
+        except BaseException as err:  # raised again on the case's own thread below
+            raised.append(err)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(within)
+    if worker.is_alive():
+        if unblock is not None:
+            unblock()
+            worker.join(within)
+        raise AssertionError(f"the call had not returned after {within:g} s")
+    if raised:
+        raise raised[0]
+
+
+def _end_of_file(fifo: Path) -> None:
+    """Open and close `fifo`'s write end, which releases a reader waiting to open it and
+    hands that reader end of file. With no reader waiting the open is refused, and there
+    is nothing to release."""
+    with suppress(OSError):
+        os.close(os.open(fifo, os.O_WRONLY | getattr(os, "O_NONBLOCK", 0)))
+
+
+def _manifest_refused(donor: Path, model_root: Path,
+                      unblock: Callable[[], None] | None = None) -> None:
+    """Seed from `donor`, whose manifest is not a regular file, and hold that the seeding
+    returns, names the donor and the manifest's kind, never calls `copytree`, and seeds
+    nothing."""
+    manifest = _MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests")
+    target = donor.parent / f"target-{donor.name}"
+    with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
+          redirect_stderr(io.StringIO()) as err):
+        _returns(lambda: _MODEL._seed_test_data([donor], target, model_root), unblock)
+    said = err.getvalue()
+    ensure(f"{manifest} is not a regular file" in said and str(donor) in said,
+           f"the refusal names the donor and the manifest's kind, got {said!r}")
+    ensure(not copied.called,
+           f"a donor whose manifest is not a regular file is refused before copytree, "
+           f"got {copied.call_args_list}")
+    release = target / "test" / _RELEASE
+    ensure(not release.exists() or not any(release.iterdir()), "and nothing is seeded")
+
+
+def _seed_refuses_a_device_manifest() -> None:
+    """A donor whose manifest is a device node is refused by the kind its opened
+    descriptor reports, which is the one question the reader asks of it before reading.
+    A device node cannot be made unprivileged, so one is simulated: `os` as model.py
+    sees it reports the manifest's descriptor as a character device. The positive
+    control is the same donor read with the descriptor's own kind, which seeds."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "device-manifest"
+        _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
+        manifests: set[int] = set()
+
+        def opened(path: str | Path, flags: int, mode: int = 0o777) -> int:
+            fd = os.open(path, flags, mode)
+            if str(path).endswith(_MODEL.CORPUS_MANIFEST_SUFFIX):
+                manifests.add(fd)
+            return fd
+
+        def described(fd: int) -> os.stat_result:
+            held = os.fstat(fd)
+            if fd not in manifests:
+                return held
+            manifests.discard(fd)
+            return os.stat_result((stat.S_IFCHR | 0o666, *tuple(held)[1:]))
+
+        device = SimpleNamespace(**{**vars(os), "open": opened, "fstat": described})
+        with patch.object(_MODEL, "os", device):
+            _manifest_refused(donor, model_root)
+        target = root / "target-control"
+        with patch.object(shutil, "copytree", wraps=shutil.copytree) as copied:
+            _returns(lambda: _MODEL._seed_test_data([donor], target, model_root))
+        ensure(copied.call_count == 1
+               and (target / "test" / _RELEASE / "riscv-tests/rv64ui-p-add").is_file(),
+               f"control: the same donor read as it is seeds, got {copied.call_args_list}")
+
+
+def _seed_refuses_a_fifo_manifest() -> None:
+    """A donor whose manifest is a FIFO is refused rather than waited on: opening a FIFO
+    for reading waits for a writer, and none comes. POSIX-only, so the case is the
+    guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO manifest case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "fifo-manifest"
+        manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        manifest.unlink()
+        os.mkfifo(manifest)
+        _manifest_refused(donor, model_root, partial(_end_of_file, manifest))
+
+
+def _seed_refuses_a_manifest_linked_to_dev_zero() -> None:
+    """A donor whose manifest is a symbolic link to `/dev/zero` is refused before a byte
+    of it is read: followed, the link names a device read without end, until the
+    `MemoryError` that ends the read, which no refusal of `_seed_test_data` catches.
+    POSIX-only, so the case is the guest's."""
+    if sys.platform == "win32":
+        raise AssertionError("/dev/zero is POSIX-only; the linked manifest case runs in "
+                             "the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "linked-manifest"
+        manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        manifest.unlink()
+        manifest.symlink_to("/dev/zero")
+        _manifest_refused(donor, model_root)
+
+
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
 # reasons for the child and neither is style: the environment that names a checkout's
 # administrative directory is process-global and the runner runs modules in a pool, so
@@ -739,4 +867,8 @@ def cases() -> list[Case]:
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
         Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
+        Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
+        Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
+        Case("seed-refuses-a-manifest-linked-to-dev-zero",
+             _seed_refuses_a_manifest_linked_to_dev_zero, lane="guest"),
     ]
