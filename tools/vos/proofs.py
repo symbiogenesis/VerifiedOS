@@ -16,7 +16,9 @@ the file *defines*, which is a sentence's opening vernacular and so is decided b
 the comments end. Both are lexical and neither knows any Gallina: a comment nests,
 separates the tokens beside it and reads a string literal inside it whole, a string
 literal outside one is kept whole, and a sentence ends at a full stop outside both, and
-that is the whole of what they are for.
+that is the whole of what they are for. Nor do they know the tokens a source declares,
+which Rocq's lexer reads whole, so the proof gate refuses a declared token they would
+read as a string, a comment or a sentence end ([proofaudit.py](proofaudit.py)).
 """
 
 import re
@@ -46,7 +48,9 @@ _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
 
 def strip_comments(text: str) -> str:
-    """The source with its comments blanked, read as Rocq 9.3's lexer reads them.
+    """The source with its comments blanked, where Rocq 9.3's lexer finds them in a source
+    declaring no token that holds a quote or a comment opener. Rocq reads such a token
+    whole, and the proof gate refuses its declaration (proofaudit.unreadable_tokens).
 
     Comments nest. A string literal is read whole inside a comment as well as outside
     one, so a `(*` or `*)` quoted in either opens or closes nothing: the lexer reads a

@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
-from vos.proofs import sentences
+from vos.proofs import SENTENCE_END, sentences
 
 MARKER = "VOS_PROOF_AUDIT|"
 EMPTY_BLACKLIST = "Current search blacklist :  is empty."
@@ -89,7 +89,8 @@ _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
 # identifier named exactly after one, a record field among them, is refused too, which is
 # loud and costs a rename; an identifier that only contains one is read whole.
 _TACTICAL = re.compile(r"(?<![\w'])(?:timeoutf?|alloc_limit)(?![\w'])")
-# Once comments are blanked, every remaining quote opens or closes a string literal.
+# Once comments are blanked, every remaining quote opens or closes a string literal, in
+# a source that declares no token holding one, which unreadable_tokens refuses.
 _STRING = re.compile(r'"[^"]*"')
 # A module command's head: whether it declares a module, and whether it opens a signature.
 _MODULE = re.compile(CONTROL_PREFIXES + r"(Declare\s+)?Module\s+(Type\b)?")
@@ -104,6 +105,20 @@ _MODULE = re.compile(CONTROL_PREFIXES + r"(Declare\s+)?Module\s+(Type\b)?")
 DYNAMIC_SOURCE = re.compile(
     CONTROL_PREFIXES + r"(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)"
     r"|Declare\s+ML\s+Module|Ltac2\s*@\s*external)(?![\w'])")
+# Where a declared token comes from. Rocq's lexer matches the longest declared token
+# before it looks for a string, a comment or a full stop inside one (find_keyword and
+# process_chars in the pinned 9.3.0's cLexer.ml), so once a notation declares `^"`, `a"`,
+# `*(*` or `^.`, each is one token wherever it stands. The shared lexer knows no declared
+# token. It would open a string at the quote or a comment at the opener, hiding every
+# sentence up to the close, or end a sentence at the full stop, cutting the statement it
+# is in. Tokens come from the strings a Notation, Reserved Notation, Infix, Reserved Infix,
+# Tactic Notation or Ltac2 Notation writes before its `:=`, a Tactic or Ltac2 Notation's
+# separators among them. An attribute's strings declare none, and neither does a `where`
+# clause: the pinned Rocq 9.3.0 refuses one whose parsing rule no earlier Reserved
+# Notation declared.
+_DECLARES_TOKENS = re.compile(r"(?<![\w'])(?:Notation|Infix)(?![\w'])")
+_TOKEN_SOURCE = re.compile(_ATTRIBUTE + r'\]|"((?:[^"]|"")*)"|:=')
+_BLANKS = re.compile(r"[ \t\n\r]+")
 
 
 class AuditError(ValueError):
@@ -290,6 +305,38 @@ def dynamic_sources(text: str) -> list[str]:
     here is.
     """
     return [sentence for sentence in sentences(text) if DYNAMIC_SOURCE.match(sentence)]
+
+
+def unreadable_tokens(text: str) -> list[str]:
+    """Sentences declaring a token the shared lexer would not read as Rocq's lexer does.
+
+    Such a token holds a quote or a comment opener, or a full stop at which the sentence
+    split would end a sentence Rocq continues; Rocq's own `.` and `...` end one for both.
+    Until one is declared, the shared lexer finds every string, comment and sentence end
+    Rocq's does, the installed libraries declaring no such token, so it reads the
+    declaring sentence as Rocq does. Refusing that sentence before compilation keeps
+    every other lexical reading here sound. A declaration's tokens are its strings'
+    blank-separated parts, a quoted part's quotes aside.
+    """
+    found: list[str] = []
+    for sentence in sentences(text):
+        if not _DECLARES_TOKENS.search(_STRING.sub('""', sentence)):
+            continue
+        for part in _TOKEN_SOURCE.finditer(sentence):
+            if part.group() == ":=":
+                break
+            if part.group(1) is not None and _unreadable(part.group(1)):
+                found.append(sentence)
+                break
+    return found
+
+
+def _unreadable(literal: str) -> bool:
+    """Whether a declaring string literal, doubled quotes as written, holds such a token."""
+    if '"' in literal or "(*" in literal:
+        return True
+    return any(SENTENCE_END.search(token) and token not in (".", "...")
+               for token in (part.strip("'") for part in _BLANKS.split(literal)))
 
 
 def unsupported_abstractions(text: str) -> list[str]:

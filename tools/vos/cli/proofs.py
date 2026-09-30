@@ -675,6 +675,11 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
     try:
         text = (sources.index.texts[source] if isinstance(sources, ProofAnalysis)
                 else source.read_text(encoding="utf-8"))
+        tokens = proofaudit.unreadable_tokens(text)
+        if tokens:
+            raise proofaudit.AuditError(
+                "sources may not declare tokens the gate's lexer cannot follow: "
+                + "; ".join(tokens))
         loads = proofaudit.dynamic_sources(text)
         if loads:
             raise proofaudit.AuditError(

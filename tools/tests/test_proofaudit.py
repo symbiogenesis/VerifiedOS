@@ -421,6 +421,68 @@ def _dynamic_sources_are_refused_before_compiling() -> None:
                    f"a dynamic source was not refused by name: {checked.error!r}")
 
 
+def _unreadable_tokens_are_refused_before_compiling() -> None:
+    # Under the gate's flags the pinned Rocq 9.3.0 compiles each declaration here and then
+    # reads its token whole: after `^"` or `*(*` a Set or a Load compiles with the setting
+    # on, and after `^.` a statement's later binder quantifies unread. The shared lexer
+    # would open a string, open a comment, or end the sentence there.
+    add = "(Nat.add a b) (at level 50)."
+    refused = (f'Notation "a ^"" b" := {add}',
+               'Notation "x a"" y" := (Nat.add x y) (at level 50).',
+               'Infix "^""" := Nat.add (at level 50).', 'Reserved Notation "a ^"" b" (at level 50).',
+               f'Time Notation "a ^"" b" := {add}', 'Tactic Notation "foo" "a""" := idtac.',
+               'Ltac2 Notation "foo" "a""" := ().',
+               "Ltac2 Notation \"foo\" l(list1(constr, \"a\"\"\")) := let _ := l in ().",
+               f'Notation "a *(* b" := {add}', f'Local Notation "a ^. b" := {add}',
+               f'#[local] Notation "a ^. b" := {add}', f'Notation "a x. b" := {add}',
+               f"Notation \"a '^.' b\" := {add}",
+               'Notation "a .\u00a0b c" := (Nat.add a c) (at level 50).')
+    for text in refused:
+        ensure(proofaudit.unreadable_tokens(text) == [text.removesuffix(".")],
+               f"a token the lexer cannot follow was declared: {text!r}")
+    # Rocq's own `..` and `...`, a full stop inside a token, a quote or a full stop in a
+    # notation's body or an attribute, and the same words in a comment all read alike.
+    allowed = (f'Notation "a ^^ b" := {add}', f'Notation "a ^.^ b" := {add}',
+               'Notation "[: x ; .. ; y :]" := (cons x .. (cons y nil) ..).',
+               f'#[deprecated(since="1", note="Use a ^^ b instead.")] Notation "a ^^^ b" := {add}',
+               'Tactic Notation "finish" := idtac "done.".',
+               'Tactic Notation "quote" := idtac "a""b"; idtac "(*".',
+               'Lemma a : True. Proof. idtac "a""b"; idtac "(*". exact I. Qed.',
+               '(* Notation "a ^"" b" := x. *) Definition x := 0.',
+               'Lemma a : True. Proof. idtac "Notation ""a. b"" c". exact I. Qed.')
+    for text in allowed:
+        ensure(not proofaudit.unreadable_tokens(text),
+               f"a declaration the lexer follows was refused: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-unreadable-token-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        hidden = ('Definition x := 1 ^" 2.\nSet Kernel Conversion Dep Heuristic.\n'
+                  'Definition y := 3 ^" 4.\n')
+        machine = "Record Machine : Type := { unit_count : nat }.\n"
+        for text in (f'Notation "a ^"" b" := {add}\n{hidden}',
+                     'Notation "x a"" y" := (Nat.add x y) (at level 50).\n'
+                     + hidden.replace("^", "a"),
+                     f'Notation "a *(* b" := {add}\nDefinition x := 1 *(* 2.\n'
+                     'Load "/elsewhere/hidden.v".\n',
+                     f'{machine}Notation "a ^. b" := {add}\nLemma counted : 1 ^. 2 = 3 -> '
+                     "forall m : Machine, unit_count m = unit_count m.\n"
+                     "Proof. intros _ m. reflexivity. Qed.\n"):
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith("sources may not declare tokens the gate's "
+                                            "lexer cannot follow: "),
+                   f"an unreadable token was not refused by name: {checked.error!r}")
+        # The control: with a token the lexer follows, the Set after it is read and refused.
+        source.write_text(f'Notation "a ^^ b" := {add}\n' + hidden.replace('^"', "^^"),
+                          encoding="utf-8")
+        with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+            checked = gate._check_source(root, source, [source])
+        ensure(checked.error.startswith("sources may not change the gate's pinned settings: "),
+               f"the setting after a readable token was not refused: {checked.error!r}")
+
+
 def _nested_sources_cannot_be_omitted() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-nested-proof-") as temporary:
         root = Path(temporary)
@@ -675,6 +737,8 @@ def cases() -> list[Case]:
             Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
             Case("dynamic-sources-are-refused-before-compiling",
                  _dynamic_sources_are_refused_before_compiling),
+            Case("unreadable-tokens-are-refused-before-compiling",
+                 _unreadable_tokens_are_refused_before_compiling),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),
