@@ -47,6 +47,8 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from vos.proofs import VOID, decorations, strip_comments
+
 # The lanes this engine carries. Named rather than passed as free strings, because the
 # comment syntax, the region keywords and the operator table are three facts that have
 # to agree about which language is being mutated.
@@ -81,26 +83,17 @@ COQ_TOP = re.compile(
 # a mutation inside a *definition* is the question this engine is asking.
 COQ_MUTABLE = ("Definition", "Fixpoint", "Inductive", "Record")
 
-# What may stand before a Rocq command's keyword: a quoted attribute, a legacy attribute,
-# or a control flag. A line opening with any of them opens a region keyed by the command
-# they decorate, so `#[local] Definition` is a definition rather than the tail of the
-# region above it and `Local Definition` is not a `Local` nobody mutates; written on lines
-# of their own, they wait for the command under them and the region opens where they do.
-# `Fail` and `Succeed` run the command and keep nothing it defines, so a region under
-# either, on the command's line or above it, is keyed by the flag and no mutation lands
-# in it.
-COQ_DECORATION = re.compile(
-    r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
-    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
-    r"|Time|Instructions|Fail|Succeed)\s+"
-    r'|(Profile)\s+(?:"[^"]*"\s+)?|(Redirect)\s+"[^"]*"\s+|(Timeout)\s+\d+\s+'
-    r"|(AllocLimit)\s+\d+\s*(?:Mw|kw)\s+")
-COQ_VOID = ("Fail", "Succeed")
-
-# The characters a decoration can open with, so the undecorated line, which is nearly
-# every line, pays one membership test rather than a failed match.
-_DECORATION_OPENS = frozenset("#LGPMCNTIFSRA")
-
+# What may stand before a Rocq command's keyword is the shared lexer's decoration grammar
+# ([proofs.py](proofs.py)): quoted and legacy attributes, control flags, and the bullets,
+# braces and goal selectors of a proof, read over the line with its comments blanked, so
+# a comment is the separator Rocq's lexer reads. A line opening with them opens a region
+# keyed by the command they decorate, so `#[local] Definition` is a definition rather
+# than the tail of the region above it and `Local Definition` is not a `Local` nobody
+# mutates; written on lines of their own, they wait for the command under them and the
+# region opens where they do. `Fail` and `Succeed` run the command and keep nothing it
+# defines, so a region under either, on the command's line or above it, is keyed by the
+# flag and no mutation lands in it.
+#
 # The command under a decoration where `COQ_TOP` does not name it, `Opaque` under
 # `Local` being one this repository's proofs write. A command is capitalised, so a word
 # under a flag that is not is a tactic's, `Time lia` in a proof script, and no command.
@@ -268,8 +261,9 @@ def mask(text: str, lane: str) -> list[bool]:
 
 
 def _coq_head(line: str) -> tuple[list[str], str, str] | None:
-    """The decorations a Rocq line opens with, the command keyword under them and the
-    rest of the line after it, or None where the line opens with neither.
+    """The decorations a Rocq line opens with, each as its word or `#[` for an attribute,
+    the command keyword under them and the rest of the line after it, or None where the
+    line opens with neither. `line` is the line with its comments blanked.
 
     A bare line names a command exactly when it starts with a `COQ_TOP` keyword. A
     decorated one names the `COQ_TOP` keyword under it, else the capitalised command
@@ -277,19 +271,27 @@ def _coq_head(line: str) -> tuple[list[str], str, str] | None:
     command is on a later line where only comments follow them and as a tactic's flag
     otherwise. Whether the line is code at all is the caller's to decide too, a line
     inside a comment reading the same.
+
+    Two decorations name a command only where a `COQ_TOP` keyword follows them, and the
+    line is otherwise read bare. At a line's start `-`, `+`, `*` and `{` continue a term
+    as often as they open a proof step, and a capitalised word after one is as often a
+    constructor as a command. `Export` decorates an option command, `Set` or `Unset`, and
+    is otherwise the command that exports a module.
     """
-    at = 0
-    flags: list[str] = []
-    if line[:1] in _DECORATION_OPENS:
-        while (decoration := COQ_DECORATION.match(line, at)) is not None:
-            flags.append(next((g for g in decoration.groups() if g), "#["))
-            at = decoration.end()
+    found, at = decorations(line) if line[:1] and not line[:1].isspace() else ([], 0)
     rest = line[at:]
-    found = COQ_TOP.match(rest)
-    if found is None and flags:
-        found = _COMMAND_WORD.match(rest)
-    if found is not None:
-        return flags, str(found.group(1)), rest[found.end():]
+    command = COQ_TOP.match(rest)
+    if command is None and found:
+        if any(decoration.group("bullet") is not None or decoration.group("word") == "Export"
+               for decoration in found):
+            found, rest = [], line
+            command = COQ_TOP.match(rest)
+        else:
+            command = _COMMAND_WORD.match(rest)
+    flags = [str(decoration.group("word") or (decoration.group("bullet") or "#[").strip())
+             for decoration in found]
+    if command is not None:
+        return flags, str(command.group(1)), rest[command.end():]
     return (flags, "", rest) if flags else None
 
 
@@ -306,10 +308,11 @@ def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Reg
     and both languages here put every top-level command at the start of a line. A Rocq
     command's decorations are read past, so the region is keyed by what they decorate,
     and opens at the first of them where they stand on lines of their own above it,
-    blank lines and comments between them. A Rocq line whose first character lies inside
-    a comment or a string is prose that opens nothing, whatever word it starts with, its
-    lines staying in the region above. `lexical` is `mask(text, lane)` where the caller
-    holds it already.
+    blank lines and comments between them. A Rocq line is read with its comments blanked
+    at their own offsets, each the separator Rocq's lexer reads it as, and one whose first
+    character lies inside a comment or a string is prose that opens nothing, whatever
+    word it starts with, its lines staying in the region above. `lexical` is
+    `mask(text, lane)` where the caller holds it already.
     """
     starts: list[tuple[int, str, str]] = []
     # a Rocq command's decorations on lines of their own, waiting for the command they
@@ -317,20 +320,21 @@ def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Reg
     waiting = -1
     waited: list[str] = []
     offset = 0
+    code = strip_comments(text, keep_offsets=True) if lane == COQ else text
     for line in text.splitlines(keepends=True):
         head: tuple[str, str] | None = None
         start = offset
         if lane == COQ:
-            found = _coq_head(line)
+            end = offset + len(line)
+            found = _coq_head(code[offset:end])
             if lexical is None and (found is not None or waiting >= 0):
                 lexical = mask(text, lane)
-            end = offset + len(line)
             if found is not None and lexical is not None and lexical[offset]:
                 flags, keyword, after = found
                 waited.extend(flags)
                 if keyword:
                     start = offset if waiting < 0 else waiting
-                    void = next((flag for flag in waited if flag in COQ_VOID), None)
+                    void = next((flag for flag in waited if flag in VOID), None)
                     head = (keyword if void is None else void, after)
                     waiting = -1
                     waited.clear()
