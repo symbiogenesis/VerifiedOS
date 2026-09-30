@@ -20,13 +20,14 @@ beside the run, and the real ruff keeping a module an ignore file matches.
 The coverage cases hold the floor under both checkers: the log read out of stderr
 and the files it names, each tracked module a run's log does not name reported
 under its checker and a crash not held to it, the real ruff and ty each reporting a
-module a default exclusion or a ruff.toml exclusion drops, the index read for the
-tracked modules, and the live tree reaching every module it tracks. The import cases
-hold the scan beside the checkers: an import of a module ruff.toml bans at module level
-refused outside a function body, in a class body, a module-level block or the main
-guard, and admitted in a function body or behind a `sys.platform` check, a ruff.toml or
-module the scan cannot read refused, and the real ruff leaving open what the scan
-refuses.
+module a default exclusion or a ruff.toml exclusion drops, the real ty reaching every
+module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, the index read
+for the tracked modules, and the live tree reaching every module it tracks. The
+import cases hold the scan beside the checkers: an import of a module ruff.toml bans
+at module level refused outside a function body, in a class body, a module-level block
+or the main guard, and admitted in a function body or behind a `sys.platform` check, a
+ruff.toml or module the scan cannot read refused, and the real ruff leaving open what
+the scan refuses.
 """
 
 import os
@@ -559,11 +560,14 @@ def _ty_runs_every_platform() -> None:
                and run.label == f"type error(s) under python-platform {platform}:"
                and run.who == f"ty under python-platform {platform}",
                f"the {platform} pass must name its platform: {run!r}")
-        # Each pass turns its log on and is held to the tracked modules.
+        # Each pass turns its log on and is held to the tracked modules, and is made
+        # without the variables that would replace its log filter or write a profile.
         ensure(run.coverage == typecheck.Coverage(typecheck.TY_LOG, typecheck.TY_CHECKED,
                                                   frozenset({"kept.py"}))
                and run.args[-1 - len(typecheck.TY_VERBOSE):-1] == typecheck.TY_VERBOSE,
                f"the {platform} pass must log what it checks and be held to it: {run!r}")
+        ensure(run.unset == {"TY_LOG", "TY_LOG_PROFILE"},
+               f"the {platform} pass must be made without TY_LOG and TY_LOG_PROFILE: {run!r}")
 
 
 def _win32_pass_types_host_branches() -> None:
@@ -923,6 +927,41 @@ def _ty_coverage_floor() -> None:
            f"only the skipped modules may be findings: {rep.out!r}")
 
 
+def _ty_log_variables_removed() -> None:
+    # The real ty with TY_LOG and TY_LOG_PROFILE set in the gate's environment. ty takes
+    # TY_LOG ahead of -vv, so a run inheriting TY_LOG=info logs no checked file and every
+    # tracked module reads as unchecked, which the control shows by running with the
+    # removal switched off; the gate's own runs reach every module and leave no profile.
+    modules = ["kept.py", "sub/stub.pyi"]
+    for removed in (True, False):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            _module_tree(root / "tools", modules)
+            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            with patch.dict(os.environ, {"TY_LOG": "info", "TY_LOG_PROFILE": "1"}), \
+                    patch.object(typecheck, "_user_config", return_value=None), \
+                    patch.object(typecheck, "TY_UNSET",
+                                 typecheck.TY_UNSET if removed else frozenset()):
+                os.environ.pop("PYTHONPATH", None)
+                typecheck._run_ty(rep, root, frozenset(modules))
+            profiled = sorted(path.name for path in (root / "tools").iterdir()
+                              if path.name not in {"ty.toml", "kept.py", "sub"})
+        unchecked = [line for line in rep.out if "did not check" in line]
+        if removed:
+            ensure(rep.findings == 0 and not unchecked and not profiled
+                   and rep.out == [f"ok ty: every expression reachable under python-platform "
+                                   f"{platform} typechecks under ty {typecheck.TY_VERSION}, "
+                                   "all rules at error" for platform in typecheck.TY_PLATFORMS],
+                   f"a run under TY_LOG must still reach every module: {rep.out!r} {profiled!r}")
+        else:
+            ensure(len(unchecked) == len(typecheck.TY_PLATFORMS)
+                   and rep.findings == len(modules) * len(typecheck.TY_PLATFORMS)
+                   and profiled == ["tracing.folded"],
+                   f"the control must show TY_LOG hiding the log and TY_LOG_PROFILE "
+                   f"writing a profile: {rep.out!r} {profiled!r}")
+
+
 # A ruff.toml banning two modules at module level, one of them dotted.
 _BANNING = ('[lint.flake8-tidy-imports]\n'
             'banned-module-level-imports = ["fcntl", "asyncio.unix_events"]\n')
@@ -1148,6 +1187,7 @@ def cases() -> list[Case]:
         Case("coverage-read-from-the-run", _coverage_read_from_the_run, lane="host"),
         Case("ruff-coverage-floor", _ruff_coverage_floor),
         Case("ty-coverage-floor", _ty_coverage_floor),
+        Case("ty-log-variables-removed", _ty_log_variables_removed),
         Case("imports-refused-outside-functions", _imports_refused_outside_functions),
         Case("imports-admitted-in-functions-and-platform-blocks",
              _imports_admitted_in_functions_and_platform_blocks),

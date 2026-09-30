@@ -69,7 +69,10 @@ directories such as `dist/` and `venv/` by default, and `ruff.toml`'s `exclude`,
 run logs each file it checks, and each module the index tracks under `tools/` that
 a run's log does not name is a finding under that run's checker. The log is the
 pinned version's verbose output: a log of another shape names no file, and every
-tracked module then reads as unchecked.
+tracked module then reads as unchecked. ty takes its log filter from `TY_LOG` ahead of
+its verbosity flag, so each ty run is made without that variable, and without
+`TY_LOG_PROFILE`, which has it write a profile into `tools/`; neither changes what ty
+checks or reports.
 
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
@@ -160,6 +163,12 @@ TIMEOUT = 120
 # matches the one line naming a file the run checked, with its path in group 1. A
 # warning or an error the log carries stays with the checker's output.
 TY_VERBOSE = ["-vv"]
+# The variables every ty run is made without. ty takes its log filter from `TY_LOG` ahead
+# of `-vv`, so under `TY_LOG=info` a run logs no checked file and every tracked module
+# reads as unchecked, and `TY_LOG_PROFILE` has a run write a profile into its working
+# directory, `tools/`. Neither changes what ty checks or reports, so they are removed
+# rather than reported as `PYTHONPATH` is.
+TY_UNSET = frozenset({"TY_LOG", "TY_LOG_PROFILE"})
 TY_LOG = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)? +(?:TRACE|DEBUG|INFO) ")
 TY_CHECKED = re.compile(r" DEBUG Checking file '(.+)'$")
 RUFF_VERBOSE = ["--verbose"]
@@ -291,13 +300,15 @@ class Coverage(NamedTuple):
 
 class Pass(NamedTuple):
     """One run of a pinned checker: its arguments, the name its failures are reported
-    under, the verdict its findings or its clean exit read as, and, for a run whose
-    arguments turn its log on, the modules that log must name."""
+    under, the verdict its findings or its clean exit read as, for a run whose
+    arguments turn its log on, the modules that log must name, and the environment
+    variables the run is made without."""
     args: list[str]
     who: str
     label: str
     ok: str
     coverage: Coverage | None = None
+    unset: frozenset[str] = frozenset[str]()
 
 
 def _read_log(stderr: str, coverage: Coverage, cwd: Path) -> tuple[str, set[str]]:
@@ -375,10 +386,16 @@ def _run_pass(rep: Reporter, name: str, exe: str, run: Pass, cwd: Path,
     else reads it, and once the run has given its verdict, each tracked module the
     log does not name is a finding beside that verdict. A crash is not held to it,
     having already been reported as not clearing what it never reached.
+
+    A pass naming variables in `unset` runs in this process's environment without
+    them, and otherwise inherits it whole.
     """
+    env = None if not run.unset else {
+        key: value for key, value in os.environ.items() if key not in run.unset}
     try:
         done = subprocess.run([exe, *run.args], capture_output=True, encoding="utf-8",
-                              errors="replace", cwd=cwd, check=False, timeout=TIMEOUT)
+                              errors="replace", cwd=cwd, env=env, check=False,
+                              timeout=TIMEOUT)
     except subprocess.TimeoutExpired:
         rep.report(name, "checker error(s):",
                    [f"{run.who} gave no verdict within {TIMEOUT}s"])
@@ -559,7 +576,8 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     `extra-paths` entry are refused for; an editor's ty server inherits the variable
     as this run does, so removing it here alone would pass what the editor resolves
     differently. The variable is reported whenever it is present, an empty value
-    included, because ty reads it whenever it is present."""
+    included, because ty reads it whenever it is present. `TY_UNSET` is removed
+    instead, since neither of its variables changes what ty checks or reports."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _ty_settings(tools / "ty.toml"):
@@ -584,7 +602,7 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
               f"ty under python-platform {platform}",
               f"type error(s) under python-platform {platform}:",
               f"every expression reachable under python-platform {platform} typechecks "
-              f"under ty {TY_VERSION}{held}", coverage)
+              f"under ty {TY_VERSION}{held}", coverage, TY_UNSET)
          for platform in TY_PLATFORMS],
         tools, with_stderr=True, parse=_parse_ty)
 

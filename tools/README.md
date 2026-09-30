@@ -1025,7 +1025,9 @@ the gate reports each module the index tracks under `tools/` that a run's log do
 name as a finding under that run's checker. It reads ruff's log rather than
 `ruff check --show-files`, which still lists what `lint.exclude` drops. The log is the
 pinned version's verbose output, so a version whose log has another shape reports
-every tracked module as unchecked.
+every tracked module as unchecked. ty takes its log filter from `TY_LOG` ahead of `-vv`,
+so the gate runs ty without that variable, and without `TY_LOG_PROFILE`, which has ty
+write a profile into `tools/`; neither changes what ty checks or reports.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
 from each checked path, but the ty CLI discovers configuration from its working directory
