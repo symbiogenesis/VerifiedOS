@@ -17,9 +17,9 @@ written `f := v.(f)` genuinely consumes the field, and refusing it would be this
 inventing a residue rather than reporting one.
 
 Three more hold the spellings Rocq admits around a definition: one under an attribute
-or a locality is read as itself, one under `Fail` defines nothing and is a residue, and
-a record value completed from a base with `with` is a residue while a `match`'s own
-`with` is read.
+or a locality is read as itself, one under `Fail`, on its line or a line above it,
+defines nothing and is a residue, and a record value completed from a base with `with`
+is a residue while a `match`'s own `with` is read.
 """
 
 import tempfile
@@ -163,22 +163,36 @@ def _prefixed_definition_is_read() -> None:
 
 def _control_prefixed_definition_is_a_residue() -> None:
     # `Fail` leaves nothing defined, so its sentence is counted and read by nothing, and
-    # the count names the difference rather than the reading narrowing past it.
-    rec = _read(_APEX + "\nFail Definition inner (v : Vocabulary) : Prop := v.(gamma).\n")
-    ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
-               for said in rec.unread),
-           f"a definition under a control prefix is a residue, got {rec.unread!r}")
+    # the count names the difference rather than the reading narrowing past it. Written
+    # on a line of its own above the definition, with anything a sentence's lead may
+    # carry between them, it is the same flag and the same residue.
+    for flag in ("Fail ", "Fail\n", "Succeed\n", "#[local]\nFail\n", "Fail\n\n",
+                 "Fail (* why. *)\n#[local] "):
+        rec = _read(_APEX + f"\n{flag}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+                   for said in rec.unread),
+               f"a definition under {flag!r} is a residue, got {rec.unread!r}")
+        ensure("inner" not in rec.def_fields and rec.consumers["gamma"] == ["seam_one"],
+               f"and under {flag!r} it consumes nothing: {rec.consumers['gamma']!r}")
+    # `Time` keeps what it times, so a definition under it is read as itself
+    rec = _read(_APEX + "\nTime\nDefinition inner (v : Vocabulary) : Prop := v.(gamma).\n")
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
+           f"a timed definition is read: {rec.unread!r} {rec.def_fields!r}")
 
 
 def _record_completed_from_a_base_is_a_residue() -> None:
-    # `{| v with alpha := True |}` projects beta and gamma out of v and spells neither,
-    # so both readings agree on consuming nothing; the `with` is what refuses it.
+    # `{| v with alpha := v.(beta) |}` projects gamma out of v and spells it nowhere, so
+    # both readings agree on beta alone; the `with` is what refuses it, and the beta it
+    # does spell is no consumer the refused body is answered with.
     rec = _read(_APEX + "\nDefinition relax (v : Vocabulary) : Vocabulary := "
-                        "{| v with alpha := True |}.\n")
+                        "{| v with alpha := v.(beta) |}.\n")
     ensure(any("'relax' writes 1 `with` where its `match` account for 0" in said
                for said in rec.unread),
            f"a record completed from a base is a residue, got {rec.unread!r}")
-    ensure("relax" not in rec.def_fields, "and the parse states no reading of it")
+    ensure("relax" not in rec.def_fields
+           and rec.consumers["beta"] == ["witness", "seam_one"],
+           f"and the parse states no reading of it: {rec.consumers['beta']!r}")
     # the same token under a `match` is the match's own and is read
     rec = _read(_APEX + "\nDefinition pick (v : Vocabulary) (b : bool) : Prop :=\n"
                         "  match b with true => v.(alpha) | false => v.(beta) end.\n")

@@ -84,9 +84,11 @@ COQ_MUTABLE = ("Definition", "Fixpoint", "Inductive", "Record")
 # What may stand before a Rocq command's keyword: a quoted attribute, a legacy attribute,
 # or a control flag. A line opening with any of them opens a region keyed by the command
 # they decorate, so `#[local] Definition` is a definition rather than the tail of the
-# region above it and `Local Definition` is not a `Local` nobody mutates. `Fail` and
-# `Succeed` run the command and keep nothing it defines, so a region under either is
-# keyed by the flag and no mutation lands in it.
+# region above it and `Local Definition` is not a `Local` nobody mutates; written on lines
+# of their own, they wait for the command under them and the region opens where they do.
+# `Fail` and `Succeed` run the command and keep nothing it defines, so a region under
+# either, on the command's line or above it, is keyed by the flag and no mutation lands
+# in it.
 COQ_DECORATION = re.compile(
     r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
     r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
@@ -100,8 +102,9 @@ COQ_VOID = ("Fail", "Succeed")
 _DECORATION_OPENS = frozenset("#LGPMCNTIFSRA")
 
 # The command under a decoration where `COQ_TOP` does not name it, `Opaque` under
-# `Local` being one this repository's proofs write.
-_COMMAND_WORD = re.compile(r"(\w+)")
+# `Local` being one this repository's proofs write. A command is capitalised, so a word
+# under a flag that is not is a tactic's, `Time lia` in a proof script, and no command.
+_COMMAND_WORD = re.compile(r"([A-Z]\w*)")
 
 
 @dataclass(frozen=True)
@@ -264,15 +267,16 @@ def mask(text: str, lane: str) -> list[bool]:
     return ok
 
 
-def _coq_head(line: str) -> tuple[str, str] | None:
-    """The keyword a Rocq line opens a region with and the rest of the line after it,
-    or None where it opens none.
+def _coq_head(line: str) -> tuple[list[str], str, str] | None:
+    """The decorations a Rocq line opens with, the command keyword under them and the
+    rest of the line after it, or None where the line opens with neither.
 
-    A bare line opens a region exactly when it starts with a `COQ_TOP` keyword. A
-    decorated one always does, since a decoration only ever opens a command: keyed by
-    the `COQ_TOP` keyword under it, else by the word under it, else by the decoration
-    itself where the command continues on the next line, and by `Fail` or `Succeed`
-    wherever either is among the decorations.
+    A bare line names a command exactly when it starts with a `COQ_TOP` keyword. A
+    decorated one names the `COQ_TOP` keyword under it, else the capitalised command
+    word under it, else the empty keyword, which the caller reads as decorations whose
+    command is on a later line where only comments follow them and as a tactic's flag
+    otherwise. Whether the line is code at all is the caller's to decide too, a line
+    inside a comment reading the same.
     """
     at = 0
     flags: list[str] = []
@@ -282,36 +286,70 @@ def _coq_head(line: str) -> tuple[str, str] | None:
             at = decoration.end()
     rest = line[at:]
     found = COQ_TOP.match(rest)
-    if not flags:
-        return (str(found.group(1)), rest[found.end():]) if found else None
-    if found is None:
+    if found is None and flags:
         found = _COMMAND_WORD.match(rest)
-    keyword, after = ((str(found.group(1)), rest[found.end():]) if found
-                      else (flags[0], rest))
-    void = next((flag for flag in flags if flag in COQ_VOID), None)
-    return (void or keyword), after
+    if found is not None:
+        return flags, str(found.group(1)), rest[found.end():]
+    return (flags, "", rest) if flags else None
 
 
-def regions(text: str, lane: str) -> list[Region]:
+def _prose(text: str, start: int, end: int, lexical: list[bool]) -> bool:
+    """Whether `text[start:end]` carries nothing but blank space, comments and strings."""
+    return all(not lexical[at] or text[at].isspace() for at in range(start, end))
+
+
+def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Region]:
     """The source's top-level blocks, each from its own keyword to the next one.
 
     A line-based reading rather than a parse, and it is enough for what it decides: a
     block's *extent* only has to be right about which command a character belongs to,
     and both languages here put every top-level command at the start of a line. A Rocq
-    command's decorations are read past, so the region is keyed by what they decorate.
+    command's decorations are read past, so the region is keyed by what they decorate,
+    and opens at the first of them where they stand on lines of their own above it,
+    blank lines and comments between them. A Rocq line whose first character lies inside
+    a comment or a string is prose that opens nothing, whatever word it starts with, its
+    lines staying in the region above. `lexical` is `mask(text, lane)` where the caller
+    holds it already.
     """
     starts: list[tuple[int, str, str]] = []
+    # a Rocq command's decorations on lines of their own, waiting for the command they
+    # decorate: where the first of them stands, or -1 where none waits, and every flag
+    waiting = -1
+    waited: list[str] = []
     offset = 0
     for line in text.splitlines(keepends=True):
+        head: tuple[str, str] | None = None
+        start = offset
         if lane == COQ:
-            head = _coq_head(line)
+            found = _coq_head(line)
+            if lexical is None and (found is not None or waiting >= 0):
+                lexical = mask(text, lane)
+            end = offset + len(line)
+            if found is not None and lexical is not None and lexical[offset]:
+                flags, keyword, after = found
+                waited.extend(flags)
+                if keyword:
+                    start = offset if waiting < 0 else waiting
+                    void = next((flag for flag in waited if flag in COQ_VOID), None)
+                    head = (keyword if void is None else void, after)
+                    waiting = -1
+                    waited.clear()
+                elif _prose(text, end - len(after), end, lexical):
+                    waiting = offset if waiting < 0 else waiting
+                else:
+                    waiting = -1
+                    waited.clear()
+            elif waiting >= 0 and lexical is not None \
+                    and not _prose(text, offset, end, lexical):
+                waiting = -1
+                waited.clear()
         else:
-            found = SAIL_TOP.match(line)
-            head = (found.group(1), line[found.end():]) if found else None
+            sail = SAIL_TOP.match(line)
+            head = (str(sail.group(1)), line[sail.end():]) if sail else None
         if head is not None:
             keyword, after = head
             name = re.match(r"[\w'.{}]+", after.strip())
-            starts.append((offset, keyword, name.group() if name else ""))
+            starts.append((start, keyword, name.group() if name else ""))
         offset += len(line)
     out: list[Region] = []
     for n, (start, keyword, name) in enumerate(starts):
@@ -333,7 +371,7 @@ def mutable_mask(text: str, lane: str, only: tuple[str, ...] | None = None,
         COQ_MUTABLE if lane == COQ else SAIL_MUTABLE)
     ok = mask(text, lane)
     inside = [False] * len(text)
-    for region in regions(text, lane):
+    for region in regions(text, lane, ok):
         if region.keyword not in admitted:
             continue
         if named and region.name not in named:

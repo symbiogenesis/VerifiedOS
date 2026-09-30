@@ -15,12 +15,23 @@ the `RegionKind` constructors. A list this reader cannot find or cannot read is
 `PlanError` and never an empty roster, on the fail-closed ground the generated group
 states (K-67, K-75): a regex that stops matching would otherwise yield zero regions and
 a green report about nothing. A declaration under an attribute or a locality is read as
-the bare one, and a list or a `build_plan` variant spelled where no head reads it, or a
-plan completed from a base with `with`, is `PlanError` too, since the export would
-otherwise lack it with only a floor on its plan count to notice. `emit` writes the
-export K-88 holds byte-identical to what this reader writes, so a hand edit of the
-artifact is a finding at the next gate and an edit of the `.v` that this reader no
-longer follows is a raise at the same gate.
+the bare one, and a list or an application of `build_plan` to bare words spelled where
+no head reads it, or a value of any written type completed from a base with `with` that
+assigns a field of `Plan`, is `PlanError` too, since the export would otherwise lack it
+with only a floor on its plan count to notice. So is a declaration a head reads under
+`Fail` or `Succeed` written on a line above it, the file keeping nothing it states.
+Those audits read the file with its comments blanked, so a comment's `match` or full
+stop hides nothing from them.
+
+**What the export does not carry, knowingly.** A variant is carried by the lists it
+names, so an application of `build_plan` to an inline term names no list to carry it
+by and is neither read nor refused: `interior_empty_region_plan` applies it to two
+`cons` chains, and the export lacks it without a finding. The audits above hold every
+other spelling of a variant.
+
+`emit` writes the export K-88 holds byte-identical to what this reader writes, so a
+hand edit of the artifact is a finding at the next gate and an edit of the `.v` that
+this reader no longer follows is a raise at the same gate.
 
 **The check is a port and it admits nothing.** Each predicate below is one Gallina
 definition of the `.v`, named in its docstring, re-implemented over Python integers so
@@ -63,8 +74,9 @@ ARTIFACT = "tools/generated/memory-plan.json"
 REPAIR = "python tools/run.py placement export"
 
 # The plan the `.v` names as the specification's own instance, and the one this export
-# carries whole. Every other `: Plan :=` definition is a variant moving one declared
-# quantity and is carried by name and by the lists it is built from.
+# carries whole. Every other `: Plan :=` definition applying `build_plan` to bare words
+# is a variant moving one declared quantity and is carried by name and by the lists it
+# is built from.
 STANDING = "demo_plan"
 
 # The two class constructors, spelled as the `.v` spells them. They are the register's
@@ -129,6 +141,18 @@ class PlanError(ValueError):
 _PREFIX = (r'(?:#\[(?:[^\]"]|"[^"]*")*\]\s*|(?:Local|Global|Program|Polymorphic'
            r'|Monomorphic|Cumulative|NonCumulative|Private)\s+)*')
 
+# What may stand between one sentence's full stop and the next sentence's head besides
+# blank space: the attributes above and the control flags, on the head's line or on lines
+# of their own. A head standing under `Fail` or `Succeed` so written reads a declaration
+# the file keeps nothing of, and it is refused rather than carried.
+_LEAD_RE = re.compile(
+    r'\s*(?:#\[(?:[^\]"]|"[^"]*")*\]'
+    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
+    r"|Time|Instructions|Fail|Succeed)(?![\w'])"
+    r'|Profile(?:\s+"[^"]*")?(?![\w\'])|Redirect\s+"[^"]*"|Timeout\s+\d+'
+    r"|AllocLimit\s+\d+\s*(?:Mw|kw))")
+_VOID = ("Fail", "Succeed")
+
 _LIST_RE = re.compile(
     r"^" + _PREFIX + r"Definition (?P<name>\w+) : "
     r"list (?P<kind>nat|bool|RegionKind) :=\s*(?P<body>[^.]*)\.", re.MULTILINE)
@@ -160,26 +184,36 @@ _PLAN_RE = re.compile(
     r"^" + _PREFIX + r"Definition (?P<name>\w+) : Plan :=\s*"
     r"build_plan (?P<args>[\w\s]+?)\.", re.MULTILINE)
 
-# The typed lists and the plan values as the file spells them, at any column, under any
-# prefix and at any spacing. A list or a `build_plan` application found here and not by
-# the heads above is one the export would silently lack, so it is `PlanError` rather than
-# a shorter `lists_read` or one variant fewer, which only a floor on the plan count would
-# notice. `Example` is `Definition` by another name and is counted as one. The keyword's
-# own boundary is checked on the hits rather than written into the pattern, a leading
-# lookbehind being re-decided at every position of a file this size.
+# The typed lists and the values as the file spells them, at any column, under any
+# prefix, at any spacing and with any binders or none, read over the file with its
+# comments blanked. A list, or an application of `build_plan` to bare words, found here
+# and not by the heads above is one the export would silently lack, so it is `PlanError`
+# rather than a shorter `lists_read` or one variant fewer, which only a floor on the plan
+# count would notice. An application to an inline term is no variant the export can
+# name by its lists, and `_APPLIED_RE` leaves it outside the audit as it is outside the
+# export. `Example` is `Definition` by another name and `Let` is one inside a section, so
+# each is read as one. The keyword's own boundary is checked on the hits rather than
+# written into the pattern, a leading lookbehind being re-decided at every position of a
+# file this size.
 _LIST_SPELLED_RE = re.compile(
     r"(?:Definition|Example)\s+(\w+)\s*:\s*list\s+(?:nat|bool|RegionKind)\s*:=")
-_PLAN_SPELLED_RE = re.compile(r"(?:Definition|Example)\s+(\w+)\s*:\s*Plan\s*:=")
+_VALUE_SPELLED_RE = re.compile(r"(?:Definition|Example|Let)\s+(\w+)")
 _CONTINUES_RE = re.compile(r"[\w']")
 _SENTENCE_END_RE = re.compile(r"\.(?=\s|$)")
 _APPLIED_RE = re.compile(r"\s*build_plan\s+[\w\s]+")
 
+# A comment's delimiters and a string's, for the blanked text the audits read.
+_LEXEME_RE = re.compile(r'\(\*|\*\)|"')
+
 # A record value completed from a base, `{| demo_plan with second_fetch := 16 |}`, copies
 # every field it does not assign and names none of them, so a plan spelled that way is
 # no application of `build_plan` and no literal this reader can carry. Its `with` is the
-# token that says so, a `match` accounting for every other one a plan's body writes.
+# token that says so, a `match` accounting for every other one a value's body writes, and
+# a field of `Plan` among the names it assigns is what makes the record a plan, whether
+# or not the value's type is written.
 _WITH_RE = re.compile(r"(?<![\w'])with(?![\w'])")
 _MATCH_RE = re.compile(r"(?<![\w'])match(?![\w'])")
+_ASSIGNED_RE = re.compile(r"(?<![\w'])(\w+)\s*:=")
 
 
 def _spelled(head: re.Pattern[str], text: str) -> Iterator[re.Match[str]]:
@@ -192,7 +226,74 @@ def _spelled(head: re.Pattern[str], text: str) -> Iterator[re.Match[str]]:
 def _completed(body: str) -> bool:
     """Whether a body writes a `with` no `match` accounts for: a record completed from a
     base, or some other shape this reader does not read as a literal."""
-    return len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
+    return "with" in body and len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
+
+
+def _blanked(text: str) -> str:
+    """The text with every comment blanked to spaces, nesting and all, its line breaks
+    and so its offsets kept, so an audit reads no word, `with` or full stop a comment
+    spells. A string is read whole, inside a comment as outside one, as Rocq's lexer
+    reads it, so a delimiter inside one opens or closes nothing."""
+    pieces: list[str] = []
+    at = depth = 0
+    quoted = False
+    for token in _LEXEME_RE.finditer(text):
+        mark = token.group()
+        if quoted:
+            quoted = mark != '"'
+        elif mark == '"':
+            quoted = True
+        elif mark == "(*":
+            if not depth:
+                pieces.append(text[at:token.start()])
+                at = token.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if not depth:
+                pieces.append(_spaces(text[at:token.end()]))
+                at = token.end()
+    pieces.append(_spaces(text[at:]) if depth else text[at:])
+    return "".join(pieces)
+
+
+def _spaces(span: str) -> str:
+    """A span as blank space of its own length, its line breaks kept."""
+    return "\n".join(" " * len(line) for line in span.split("\n"))
+
+
+def _void(blank: str, opened: int) -> str | None:
+    """The control flag, `Fail` or `Succeed`, among the decorations standing between the
+    previous sentence's full stop and the head opening at `opened`, or None where there
+    is none or something other than a decoration stands there."""
+    stop = blank.rfind(".", 0, opened)
+    while stop >= 0 and not blank[stop + 1:stop + 2].isspace():
+        stop = blank.rfind(".", 0, stop)
+    lead = blank[stop + 1:opened]
+    at = 0
+    flags: list[str] = []
+    while (found := _LEAD_RE.match(lead, at)) is not None:
+        flags.append(found.group(1) or "")
+        at = found.end()
+    if lead[at:].strip():
+        return None
+    return next((flag for flag in flags if flag in _VOID), None)
+
+
+def _kept(found: re.Match[str] | None, blank: str, what: str) -> re.Match[str] | None:
+    """A head's match, refused where the declaration it reads stands under a control flag
+    that keeps nothing it states."""
+    if found is not None and (flag := _void(blank, found.start())) is not None:
+        raise PlanError(f"{SOURCE} states {what} under `{flag}`, which keeps nothing it "
+                        f"states, so it is no declaration the export can carry")
+    return found
+
+
+def _heads(head: re.Pattern[str], text: str, blank: str) -> Iterator[re.Match[str]]:
+    """Every match of a head over the text, each held to `_kept`."""
+    for found in head.finditer(text):
+        _kept(found, blank, found.group("name"))
+        yield found
 
 
 def _cons(body: str, name: str) -> list[str] | None:
@@ -267,7 +368,8 @@ def read(root: Path) -> Source:
 def parse(text: str, md5: str = "") -> Source:
     """`read` over text already in hand, so a test can hand it a shape and watch it
     refuse."""
-    inductive = _INDUCTIVE_RE.search(text)
+    blank = _blanked(text)
+    inductive = _kept(_INDUCTIVE_RE.search(text), blank, "`RegionKind`")
     if inductive is None:
         raise PlanError(f"{SOURCE} no longer states `RegionKind` as an inductive this "
                         f"reader can read")
@@ -275,7 +377,7 @@ def parse(text: str, md5: str = "") -> Source:
     if not kinds:
         raise PlanError(f"{SOURCE}'s `RegionKind` carries no constructor")
 
-    placed = _PLACED_RE.search(text)
+    placed = _kept(_PLACED_RE.search(text), blank, "`placed_by_name`")
     if placed is None:
         raise PlanError(f"{SOURCE} no longer states `placed_by_name` as a match over "
                         f"`RegionKind`")
@@ -292,7 +394,7 @@ def parse(text: str, md5: str = "") -> Source:
         raise PlanError(f"{SOURCE}'s `placed_by_name` decides "
                         f"{len(placement)} of {len(kinds)} region kinds")
 
-    criterion = _CRITERION_RE.search(text)
+    criterion = _kept(_CRITERION_RE.search(text), blank, "`criterion_class`")
     if criterion is None:
         raise PlanError(f"{SOURCE} no longer states `criterion_class` as one `if`")
     if {criterion.group(1), criterion.group(2)} != {FIRST, SECOND}:
@@ -303,7 +405,7 @@ def parse(text: str, md5: str = "") -> Source:
     bool_lists: dict[str, tuple[bool, ...]] = {}
     kind_lists: dict[str, tuple[str, ...]] = {}
     unread: list[str] = []
-    for m in _LIST_RE.finditer(text):
+    for m in _heads(_LIST_RE, text, blank):
         name, kind = m.group("name"), m.group("kind")
         members = _cons(m.group("body"), name)
         if members is None:
@@ -319,14 +421,15 @@ def parse(text: str, md5: str = "") -> Source:
                     raise PlanError(f"{SOURCE}'s {name} carries `{t}`, which is no "
                                     f"`RegionKind` constructor")
             kind_lists[name] = tuple(members)
-    skipped = {m.group(1) for m in _spelled(_LIST_SPELLED_RE, text)} - {
+    skipped = {m.group(1) for m in _spelled(_LIST_SPELLED_RE, blank)} - {
         *nat_lists, *bool_lists, *kind_lists, *unread}
     if skipped:
         raise PlanError(f"{SOURCE} spells {', '.join(sorted(skipped))} as a typed list "
                         f"this reader does not read, being under a prefix it does not "
-                        f"take, indented or spaced apart from the head it reads")
+                        f"take, indented, or spaced or commented apart from the head it "
+                        f"reads")
 
-    build = _BUILD_RE.search(text)
+    build = _kept(_BUILD_RE.search(text), blank, "build_plan")
     if build is None:
         raise PlanError(f"{SOURCE} no longer states `build_plan` as a record literal "
                         f"over list parameters and one constant")
@@ -336,9 +439,9 @@ def parse(text: str, md5: str = "") -> Source:
     params = tuple(build.group("params").split())
     second = build.group("second")
     ofs = {m.group("name"): (m.group("kind"), m.group("list"), m.group("default"))
-           for m in _OF_RE.finditer(text)}
+           for m in _heads(_OF_RE, text, blank)}
     class_ofs = {m.group("name"): (m.group("kind"), m.group("critical"))
-                 for m in _CLASS_OF_RE.finditer(text)}
+                 for m in _heads(_CLASS_OF_RE, text, blank)}
 
     literals: dict[str, int] = {}
     fields: dict[str, tuple[str, str, str]] = {}
@@ -382,7 +485,7 @@ def parse(text: str, md5: str = "") -> Source:
                             f"which is neither a parameter nor a list this reader found")
 
     plans: dict[str, tuple[tuple[str, ...], int]] = {}
-    for m in _PLAN_RE.finditer(text):
+    for m in _heads(_PLAN_RE, text, blank):
         args = m.group("args").split()
         if len(args) != len(params) + 1:
             raise PlanError(f"{SOURCE}'s {m.group('name')} applies build_plan to "
@@ -392,14 +495,19 @@ def parse(text: str, md5: str = "") -> Source:
                 raise PlanError(f"{SOURCE}'s {m.group('name')} names `{arg}`, which is "
                                 f"no `list nat` this reader found")
         plans[m.group("name")] = (tuple(args[:-1]), _nat(args[-1], m.group("name")))
-    # every plan value the file spells, each up to its sentence's full stop: one
-    # completed from a base is refused, and an application of build_plan is a variant
-    # the reading above has to have carried
+    # every value the file spells, its body read from its own `:=` to its sentence's
+    # full stop with its comments blanked: a record completed from a base that assigns a
+    # field of `Plan` is refused, and an application of build_plan is a variant the
+    # reading above has to have carried
+    record = {name for name, _ in _FIELD_RE.findall(build.group("body"))}
     unbuilt: set[str] = set()
-    for m in _spelled(_PLAN_SPELLED_RE, text):
-        end = _SENTENCE_END_RE.search(text, m.end())
-        body = text[m.end():end.start() if end else len(text)]
-        if _completed(body):
+    for m in _spelled(_VALUE_SPELLED_RE, blank):
+        end = _SENTENCE_END_RE.search(blank, m.end())
+        sentence = blank[m.end():end.start() if end else len(blank)]
+        _, defined, body = sentence.partition(":=")
+        if not defined:
+            continue
+        if _completed(body) and record.intersection(_ASSIGNED_RE.findall(body)):
             raise PlanError(f"{SOURCE}'s {m.group(1)} completes a plan from a base with "
                             f"`with`, which copies fields it never names, so it is no "
                             f"variant this reader can carry")
@@ -408,7 +516,8 @@ def parse(text: str, md5: str = "") -> Source:
     if unbuilt:
         raise PlanError(f"{SOURCE} builds {', '.join(sorted(unbuilt))} from build_plan "
                         f"where this reader does not read it, being under a prefix it "
-                        f"does not take, indented or spaced apart from the head it reads")
+                        f"does not take, indented, untyped, given binders, or spaced or "
+                        f"commented apart from the head it reads")
     if STANDING not in plans:
         raise PlanError(f"{SOURCE} no longer builds `{STANDING}` from build_plan")
 
