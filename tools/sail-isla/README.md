@@ -13,7 +13,8 @@ pinned Z3 shared library, Git, a C compiler and binutils. Provisioning checks th
 opam package inventory and Z3 version. It reads the baseline switch without
 installing into it. A separate Sail executable and the Isla plugin are built in
 the lane from the release archive the locked compiler's opam package also builds
-from. The primary compiler is unchanged.
+from, extracted into a fresh tree on each provisioning. The primary compiler is
+unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
 different Isla submodule revision, Sail release archive digest, and the Rust

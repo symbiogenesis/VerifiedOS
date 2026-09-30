@@ -354,9 +354,12 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
             raise IslaError("the Sail source directory must be one archive member name")
         archive = base / "sail.archive"
         _download(lock["sail"]["url"], lock["sail"]["sha256"], archive)
+        sail_source = base / directory
+        # A fresh tree: no member of an earlier archive survives into the dune build.
+        if sail_source.exists():
+            shutil.rmtree(sail_source)
         with tarfile.open(archive) as compressed:
             compressed.extractall(base, filter="data")
-        sail_source = base / directory
         prefix = base / "sail-prefix"
         opam = ["opam", "exec", f"--switch={env.SAIL_SWITCH}", "--"]
         runner.run([*opam, "dune", "build", "-p", "sail,sail_maker,libsail", "@install",
