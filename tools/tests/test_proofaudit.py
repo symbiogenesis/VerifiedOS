@@ -323,7 +323,8 @@ def _control_prefixes_need_no_blank() -> None:
     setting = "Set Kernel Conversion Dep Heuristic."
     for prefix in ("Time#[local]", "Instructions#[export]", "Succeed#[local]", "Fail#[local]",
                    'Redirect"out"', 'Redirect "a""b" ', 'Profile"p"', 'Profile "a""b" ',
-                   'Time Redirect"o"Local ', "Timeout 5", "-#[local]", "Time(* c *)#[local]"):
+                   'Time Redirect"o"Local ', "Timeout 5", "AllocLimit 1 Mw#[local]", "-#[local]",
+                   "Time(* c *)#[local]"):
         text = prefix + setting
         ensure(len(proofaudit.pinned_overrides(text)) == 1,
                f"a pinned setting after a tight prefix passed: {text!r}")
@@ -456,6 +457,7 @@ def _unreadable_tokens_are_refused_before_compiling() -> None:
                'Tactic Notation "finish" := idtac "done.".',
                'Tactic Notation "quote" := idtac "a""b"; idtac "(*".',
                'Lemma a : True. Proof. idtac "a""b"; idtac "(*". exact I. Qed.',
+               'Check myNotation "a""b".',
                '(* Notation "a ^"" b" := x. *) Definition x := 0.',
                'Lemma a : True. Proof. idtac "Notation ""a. b"" c". exact I. Qed.')
     for text in allowed:
