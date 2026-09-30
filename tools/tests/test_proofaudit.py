@@ -375,6 +375,7 @@ def _dynamic_sources_are_refused_before_compiling() -> None:
         ensure(len(proofaudit.dynamic_sources(text)) == 1,
                f"a source loading what the gate cannot read passed: {text!r}")
     allowed = ("Record Load := { level : nat }.", "Definition Loaded := 0.",
+               "Ltac Loaded := idtac. Lemma a : True. Proof. Loaded. exact I. Qed.",
                "Definition Cd := 0.", "Ltac2 external := 0.", "Print LoadPath.",
                "Print ML Path.", "Pwd.", '(* Load "hidden.v". *) Definition x := 0.',
                'Definition label := "a. Declare ML Module ""p"". b".')
