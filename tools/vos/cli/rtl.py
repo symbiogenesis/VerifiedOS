@@ -1019,13 +1019,16 @@ class Inventory:
     variables, and its memory arrays.
 
     `arrays` holds one row per scope, the whole core first and then each of
-    `ARRAY_SCOPES`, each row the expanded instance counts of `ARRAY_KINDS` in order.
+    `ARRAY_SCOPES`: the scope, how many instances of it the top reaches (one for the
+    whole core), and the expanded instance counts of `ARRAY_KINDS` in order. The reach
+    is what tells a cache present with no arrays from a cache the netlist lacks, whose
+    counts are zero too.
     """
 
     kinds: set[str]
     cells: int
     variables: int
-    arrays: tuple[tuple[str, tuple[int, ...]], ...]
+    arrays: tuple[tuple[str, int, tuple[int, ...]], ...]
 
 
 def _inventory(ast: Path) -> Inventory:
@@ -1112,20 +1115,34 @@ def _inventory(ast: Path) -> Inventory:
 
         return walk(top)
 
-    scopes = ((WHOLE_CORE, below[top]), *((scope, within(scope)) for scope in ARRAY_SCOPES))
-    arrays = tuple((scope, tuple(found[kind] for kind in ARRAY_KINDS))
-                   for scope, found in scopes)
+    scopes = ((WHOLE_CORE, 1, below[top]),
+              *((scope, below[top][scope], within(scope)) for scope in ARRAY_SCOPES))
+    arrays = tuple((scope, reached, tuple(found[kind] for kind in ARRAY_KINDS))
+                   for scope, reached, found in scopes)
     return Inventory(kinds, sum(below[top].values()), variables, arrays)
 
 
 def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
-    """Each arm's memory-array instances, in the whole core and under each cache."""
-    lines = ["   memory-array instances, expanded, per arm and scope:",
-             f"     {'arm':<9} {'scope':<18}" + "".join(f"{kind:>13}" for kind in ARRAY_KINDS)]
+    """Each arm's memory-array instances, in the whole core and under each cache.
+
+    A cache's label carries how many instances of it the top reaches, and a cache it
+    reaches none of is reported absent rather than as a row of zeros, which would read
+    as the cache present with no arrays.
+    """
+    rows: list[tuple[str, str, str]] = []
     for arm in sorted(inventories):
-        for scope, found in inventories[arm].arrays:
-            label = scope if scope == WHOLE_CORE else f"under {scope}"
-            lines.append(f"     {arm:<9} {label:<18}" + "".join(f"{n:>13}" for n in found))
+        for scope, reached, found in inventories[arm].arrays:
+            if scope == WHOLE_CORE:
+                label = scope
+            else:
+                label = f"under {scope} ({reached})" if reached else f"under {scope}"
+            counts = "".join(f"{n:>13}" for n in found) if reached else f"{'absent':>13}"
+            rows.append((arm, label, counts))
+    width = max([len("scope"), *(len(label) for _, label, _ in rows)])
+    lines = ["   memory-array instances, expanded, per arm and scope:",
+             f"     {'arm':<9} {'scope':<{width}}"
+             + "".join(f"{kind:>13}" for kind in ARRAY_KINDS)]
+    lines.extend(f"     {arm:<9} {label:<{width}}{counts}" for arm, label, counts in rows)
     return lines
 
 
