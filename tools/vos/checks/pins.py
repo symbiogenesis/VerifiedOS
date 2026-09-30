@@ -231,7 +231,9 @@ its declaration rather than a site: it states one distinct dotted release, the o
 terms were read at however often it names it, or none where it is declared to. A numeral
 that states no release of the tool, a licence's own version or a bound another package
 sets, is a residue declared by a literal fragment with its reason, and a residue that
-no longer stands or covers no numeral is a finding. The window ends at the next
+no longer stands or covers no numeral is a finding. A residue whose release no exported
+snapshot fixes yet names that owner, as its declared row does, and becomes a finding
+the day the index carries it. The window ends at the next
 heading, so the inference benchmark's subsection, the dependency review of a measured
 run, is outside it. A release is read whole, an opam identifier's after its name's dot
 and with any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word
@@ -372,14 +374,24 @@ class Site:
 
 
 @dataclass(frozen=True)
+class Residue:
+    """A numeral no site holds, named by a literal fragment around it with the reason;
+    `pending` is an owner whose arrival in the index ends the declaration."""
+
+    fragment: str
+    why: str
+    pending: str = ""
+
+
+@dataclass(frozen=True)
 class DevTool:
-    """A row held here, by its tool cell: its sites, and its numerals that are not
-    releases of the tool, each a literal fragment with the reason. `cell_re` names a
-    row whose cell itself states a release, so the row stays one row when it moves."""
+    """A row held here, by its tool cell: its sites, and its residues, the numerals
+    that are no release a site holds. `cell_re` names a row whose cell itself states a
+    release, so the row stays one row when it moves."""
 
     cell: str
     sites: tuple[Site, ...] = ()
-    residues: tuple[tuple[str, str], ...] = ()
+    residues: tuple[Residue, ...] = ()
     cell_re: str = ""
 
     def names(self, tool: str) -> bool:
@@ -480,15 +492,15 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
              (_snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"), _ORACLE_ROCQ)),
         Site("the tags read", _TAGS_READ, (Owner("opam-any", SNAPSHOTS, "rocq-core"), _ORACLE_ROCQ),
              each=_TAG)),
-        residues=(("the LGPL version 2.1 text", "the licence's own version"),)),
+        residues=(Residue("the LGPL version 2.1 text", "the licence's own version"),)),
     DevTool("OCaml compiler", (
         Site("the exported snapshots' compiler", rf"{_V} in the exported snapshots",
              (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"),)),
         Site("the oracle switch's compiler", rf"{_V} in the CertiRocq oracle switch", (_ORACLE_OCAML,)),
         Site("the tags read", _TAGS_READ,
              (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG)),
-        residues=(("under LGPL version 2.1", "the licence's own version"),
-                  ("headers name version 2.1", "the licence version the headers name"))),
+        residues=(Residue("under LGPL version 2.1", "the licence's own version"),
+                  Residue("headers name version 2.1", "the licence version the headers name"))),
     DevTool("dune", (
         Site("the Sail and proof snapshots' release", rf"{_V} in the Sail and proof snapshots",
              (_snap("sail", "dune"), _snap("rocq", "dune"))),
@@ -508,6 +520,10 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         Site("the Sail snapshot's release", rf"{_V} in \[the Sail snapshot\]", (_snap("sail", "sail"),)),)),
 )
 
+# The oracle switch's snapshot, whose export would own the CompCert release its row and
+# the paragraphs state.
+_ORACLE_SNAPSHOT = f"{SNAPSHOTS}certirocq.lock"
+
 # The rows K-118 does not hold, each with why; an action row, `owner/repo`, is K-115's
 # by its shape and needs no entry.
 DEV_TOOL_DECLARED: dict[str, Declared] = {
@@ -518,7 +534,7 @@ DEV_TOOL_DECLARED: dict[str, Declared] = {
                            "release; the row names the reading a later image is compared with"),
     "CompCert, in the oracle's switch": Declared(
         "the oracle switch's snapshot is not exported, so no artifact here fixes the "
-        "release its solver chose", pending=f"{SNAPSHOTS}certirocq.lock"),
+        "release its solver chose", pending=_ORACLE_SNAPSHOT),
     "`ccache`": Declared("a distribution's build accelerator, stated with no release",
                          releases=False),
     "llama.cpp and `llama-bench`": Declared(
@@ -551,16 +567,21 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
     Site("lowering snapshot's prover", rf"fixes OCaml [^,]+, Rocq {_V}, and",
          (_snap("rupicola", "rocq-core"),))),
     residues=(
-        ("state LGPL version 2.1", "Stdlib's licence version"),
-        ("the 0.20.2 release's read on", "the earlier reading the current one is compared with"),
-        ("`rocq-stdpp-bitvector` 1.13.0",
-         "the release coq-sail's metadata requires, which no project switch installs"),
-        ("requires Coq below 9.2", "coq-simple-io's upper bound, a constraint and not a release"),
-        ("`coq-compcert >= 3.17`", "CertiRocq's lower bound, a constraint and not a release"),
-        ("the current resolution installs 3.18",
-         "the release the oracle switch's solver chose, which no exported snapshot fixes yet"),
-        ("The reviewed 3.18 `LICENSE` is byte-identical to 3.17",
-         "that same unowned release's reading and the edition it was compared with"),
+        Residue("state LGPL version 2.1", "Stdlib's licence version"),
+        Residue("the 0.20.2 release's read on",
+                "the earlier reading the current one is compared with"),
+        Residue("`rocq-stdpp-bitvector` 1.13.0",
+                "the release coq-sail's metadata requires, which no project switch installs"),
+        Residue("requires Coq below 9.2",
+                "coq-simple-io's upper bound, a constraint and not a release"),
+        Residue("`coq-compcert >= 3.17`",
+                "CertiRocq's lower bound, a constraint and not a release"),
+        Residue("the current resolution installs 3.18",
+                "the release the oracle switch's solver chose, which no exported snapshot "
+                "fixes yet", pending=_ORACLE_SNAPSHOT),
+        Residue("The reviewed 3.18 `LICENSE` is byte-identical to 3.17",
+                "that same unowned release's reading and the edition it was compared with",
+                pending=_ORACLE_SNAPSHOT),
     ))
 
 # Every id this repository writes beside an upstream's name that is not that
@@ -1112,9 +1133,13 @@ def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
                 f"{', '.join(sorted(stated))}, where {fixers} {verb} "
                 f"{', '.join(sorted(fixed))}; the terms were read at the release stated, so "
                 "the edit is a licence read and never a token repair")
-    for fragment, why in tool.residues:
+    for residue in tool.residues:
+        fragment = residue.fragment
         start, count = text.find(fragment), text.count(fragment)
-        declared = f"the residue `{fragment}` ({why}) declared for {subject}"
+        declared = f"the residue `{fragment}` ({residue.why}) declared for {subject}"
+        if residue.pending and residue.pending in owners.ctx.corpus.indexed:
+            findings.append(f"{declared} is unowned until {residue.pending} is carried, and "
+                            "the index now carries it; hold the numeral against it")
         if count != 1:
             findings.append(f"{declared} stands in it {count} times; a residue names one "
                             "place, and one suppressing nothing is a carve-out nobody audits")

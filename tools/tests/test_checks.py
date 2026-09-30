@@ -699,7 +699,7 @@ _K118_OWNERS = {
 _K118_ROWS = (
     pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
                                      (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
-                 residues=(("licence version 2.1", "the licence's own version"),)),
+                 residues=(pins.Residue("licence version 2.1", "the licence's own version"),)),
     pins.DevTool("beta", (
         pins.Site("the snapshot release", rf"\*\*{pins._V}\*\*",
                   (pins.Owner("opam", "tools/opam/x.lock", "beta"),)),
@@ -862,8 +862,9 @@ def _k118_census_reads_every_numeral() -> None:
     ensure(any("residue `licence version 2.1`" in item and "stands in it 0 times" in item
                for item in found), f"a residue whose fragment left must report: {found!r}")
     covered = (pins.DevTool("alpha", _K118_ROWS[0].sites,
-                            residues=(("The reviewed", "covers nothing"),
-                                      ("licence version 2.1", "the licence's own version"))),
+                            residues=(pins.Residue("The reviewed", "covers nothing"),
+                                      pins.Residue("licence version 2.1",
+                                                   "the licence's own version"))),
                _K118_ROWS[1])
     found, _ = _k118({}, rows=covered)
     ensure(any("residue `The reviewed` (covers nothing) declared for alpha's row covers no "
@@ -933,6 +934,14 @@ def _k118_declarations_are_held() -> None:
     found, _ = _k118({"tools/opam/z.lock": 'installed: ["delta.3.3.3"]\n'}, declared=pending)
     ensure(any("until tools/opam/z.lock is carried, and the index now carries it" in item
                for item in found), f"an arrived owner must end the declaration: {found!r}")
+    # a residue unowned until an owner arrives is held the same way
+    rows = (pins.DevTool("alpha", _K118_ROWS[0].sites, residues=(pins.Residue(
+        "licence version 2.1", "no snapshot yet", pending="tools/opam/z.lock"),)), _K118_ROWS[1])
+    ensure(not _k118({}, rows=rows)[0], "a residue whose owner is still absent stands")
+    found, _ = _k118({"tools/opam/z.lock": 'installed: ["lib.2.0.0"]\n'}, rows=rows)
+    ensure(len(found) == 1 and "residue `licence version 2.1` (no snapshot yet) declared for "
+           "alpha's row is unowned until tools/opam/z.lock is carried, and the index now "
+           "carries it" in found[0], f"an arrived owner must end the residue: {found!r}")
 
 
 # One owner of each kind K-118 reads, fixing kappa's release: its owner, the files
