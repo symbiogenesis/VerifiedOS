@@ -135,6 +135,11 @@ _WITNESSED = "Definition witness_Machine : Machine := {| unit_count := 2 |}.\n"
 # bullet or brace, after which the pinned Rocq 9.3.0 compiles a declaration in a proof.
 _DECORATIONS = ("#[local]", "Local", "Polymorphic", "Cumulative Polymorphic",
                 "#[projections(primitive)]", "Time", "Fail", "- ", "{ ", "1: {")
+# Every keyword the pinned Rocq 9.3.0 states a theorem with, its grammar's `thm_token`,
+# spelled here rather than read from the gate's table, and `Example`; each compiles
+# under the gate's flags over a record.
+_THEOREMS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
+             "Example")
 
 _COMPANION = """
 Require Import Apex.
@@ -262,7 +267,7 @@ def _a_decorated_statement_still_quantifies() -> None:
     for decoration in (*_DECORATIONS, "Program", "Program Local", "Local Program",
                        '#[deprecated(since="1", note="see [x]")]',
                        '#[deprecated(since="1", note="see x. y")]'):
-        for keyword in ("Lemma", "Theorem", "Example", "Corollary", "Fact"):
+        for keyword in _THEOREMS:
             statement = _COUNTED.replace("Lemma", f"{decoration} {keyword}")
             found = gate.scan_witnesses(_MACHINE + statement)
             ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
@@ -275,6 +280,20 @@ def _a_decorated_statement_still_quantifies() -> None:
                                                   "#[local] Context (p : Plan)"))
     ensure(found.quantified == {"Plan": 1},
            f"a decorated Context quantified nothing, got {found!r}")
+
+
+def _every_theorem_keyword_quantifies() -> None:
+    """A statement under a keyword the definer table lacked never quantified, so its
+    record's witness demand went away; a definition over the record still demands none."""
+    for keyword in _THEOREMS:
+        found = gate.scan_witnesses(_MACHINE + _COUNTED.replace("Lemma", keyword))
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a {keyword} quantified nothing, got {found!r}")
+    ensure(set(gate.STATEMENTS) <= set(gate.DEFINERS),
+           "a statement keyword is missing from the definer table")
+    for keyword in ("Definition", "Instance"):
+        found = gate.scan_witnesses(_MACHINE + _COUNTED.replace("Lemma", keyword))
+        ensure(found.quantified == {}, f"a {keyword} quantified over its binders: {found!r}")
 
 
 def _a_comment_separates_a_decoration_from_its_head() -> None:
@@ -395,6 +414,7 @@ def cases() -> list[Case]:
         Case("section-variable-quantifies", _a_section_variable_quantifies),
         Case("decorated-record-demands-a-witness", _a_decorated_record_still_demands_its_witness),
         Case("decorated-statement-quantifies", _a_decorated_statement_still_quantifies),
+        Case("every-theorem-keyword-quantifies", _every_theorem_keyword_quantifies),
         Case("comment-separates-decoration-from-head",
              _a_comment_separates_a_decoration_from_its_head),
         Case("decorated-witness-is-no-witness", _a_decorated_witness_is_no_witness),
