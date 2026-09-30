@@ -466,7 +466,10 @@ def _seed_refuses_a_device_donor() -> None:
 
 
 def _seed_refuses_a_fifo_donor() -> None:
-    """A real FIFO in a donor is refused before the copy as well."""
+    """A real FIFO in a donor is refused before the copy as well. POSIX-only, so the
+    case is the guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO donor case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         model_root = _corpus_model(root)
