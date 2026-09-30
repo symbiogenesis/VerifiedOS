@@ -608,7 +608,8 @@ def oracle_tree(root: Path) -> Path:
     after a lock change. A parent directory, and not a suffix, because the pin's
     spelling has to end the tree's name for the pin checks to read it; and one tree per
     edition, because a checkout on an earlier lock still builds its own oracle beside
-    this one's. `Environment.oracle_root` and the lane retirement's lock read it here.
+    this one's. `Environment.oracle_root` reads it here; the lane retirement holds the
+    lock of every tree named for `ORACLE_TREE`'s family, whichever edition or pin.
     """
     return root / f"sail-{SAIL_VERSION}" / ORACLE_TREE
 
