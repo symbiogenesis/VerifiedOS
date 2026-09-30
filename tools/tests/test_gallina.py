@@ -202,6 +202,9 @@ def _sentences_end_outside_strings() -> None:
                                                        "Definition b := 0"],
         '#[deprecated(note="see x. y")] Lemma l : True.': [
             '#[deprecated(note="see x. y")] Lemma l : True'],
+        # A string spans lines as Rocq reads it, a full stop before its line break too.
+        '#[deprecated(note="see x.\ny")] Lemma l : True.': [
+            '#[deprecated(note="see x.\ny")] Lemma l : True'],
         'Goal True. idtac "a"". b". exact I.': ["Goal True", 'idtac "a"". b"', "exact I"],
         'Definition s := "unterminated. x': ['Definition s := "unterminated. x'],
         "Check m.(f). Check Nat.add.\nQed.": ["Check m.(f)", "Check Nat.add", "Qed"],
