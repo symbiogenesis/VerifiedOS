@@ -74,6 +74,14 @@ its verbosity flag, so each ty run is made without that variable, and without
 `TY_LOG_PROFILE`, which has it write a profile into `tools/`; neither changes what ty
 checks or reports.
 
+ruff's log names a file whose rules are switched off as checked, so the floor cannot
+see a suppression reaching a whole file, and the gate refuses each as a ruff finding: a
+`per-file-ignores` or `extend-per-file-ignores` key in `ruff.toml`, in `[lint]` or at
+the top level; an `extend` key, which merges another file's settings beneath it; and a
+comment anywhere in a tracked module carrying ruff's file-level suppression,
+`# ruff: noqa` or `# flake8: noqa`, unless it names N999 and no other rule, since ruff
+reports N999 against the file's name rather than a line of it.
+
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
 level; with the module listed, PLC0415 no longer reports it in a class body. So the
@@ -87,11 +95,13 @@ found from this file, never from the working directory.
 
 import argparse
 import ast
+import io
 import os
 import re
 import subprocess
 import sys
 import sysconfig
+import tokenize
 import tomllib
 from collections import defaultdict
 from collections.abc import Callable
@@ -184,6 +194,20 @@ MODULE_SUFFIXES = (".py", ".pyi")
 # Where `ruff.toml` lists the modules TID253 refuses an unnested module-level import of,
 # the list the gate holds every import outside a function body to.
 BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
+
+# The `ruff.toml` keys that switch rules off for the files a pattern matches, which ruff
+# reads in `[lint]` and, deprecated, at the top level. ruff's log still names a file
+# whose rules are off as checked, so the coverage floor cannot see what they take away.
+RUFF_PER_FILE = ("per-file-ignores", "extend-per-file-ignores")
+
+# A comment ruff reads as a file-level suppression, matched as ruff's lexer matches it:
+# `ruff` or `flake8`, a colon and `noqa` in any case, after any `#` in the comment. It
+# switches off the rules it names, or every rule, for the whole file.
+FILE_NOQA = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*(?i:noqa)")
+# The rules a file-level suppression may name. ruff reports N999 against the file's name
+# rather than any line of it, so exempting a file from it leaves every line of the file
+# under every rule.
+FILE_SCOPED = frozenset({"N999"})
 
 
 def _tool(name: str) -> str | None:
@@ -607,6 +631,73 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
         tools, with_stderr=True, parse=_parse_ty)
 
 
+def _ruff_settings(config: Path) -> list[str]:
+    """The `ruff.toml` settings the gate refuses, as findings: a `RUFF_PER_FILE` key in
+    `[lint]` or at the top level, and an `extend` key, which merges the settings of a
+    file the gate does not read beneath this one's. Each is refused whatever it says, an
+    empty table included, as ty.toml's `[src]` is held by shape.
+
+    Fail-closed: a file that cannot be read or parsed is a finding. A `lint` value that
+    is not a table is ruff's to refuse, which it does as an invalid configuration before
+    it checks anything, and the gate's run reports as a checker error."""
+    name = f"tools/{config.name}"
+    try:
+        settings = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
+        return [f"{name} cannot be read: {err}"]
+    lint = settings.get("lint")
+    tables = [("", settings), *([("lint.", lint)] if isinstance(lint, dict) else [])]
+    findings = [f"{name} sets {prefix}{key} to {table[key]!r}; a rule switched off for the "
+                "files a pattern matches is refused, since ruff's log names a file whose "
+                "rules are off as checked"
+                for prefix, table in tables for key in RUFF_PER_FILE if key in table]
+    if "extend" in settings:
+        findings.append(f"{name} sets extend to {settings['extend']!r}; the gate reads only "
+                        "this file, and extend merges another file's settings beneath it")
+    return findings
+
+
+def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
+    """Each comment in a tracked module that ruff would read as a file-level suppression
+    naming a rule outside `FILE_SCOPED`, or naming none, which suppresses every rule.
+
+    Comments are read with the tokenizer, so a string that spells a directive is not
+    one, and only a module whose text matches `FILE_NOQA` is tokenized. A directive
+    ruff would ignore for trailing code on its line is refused all the same.
+    Fail-closed: a module that cannot be read or tokenized is a finding."""
+    findings: list[str] = []
+    for module in sorted(tracked):
+        try:
+            text = (tools / module).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as err:
+            findings.append(f"{module} cannot be read: {err}")
+            continue
+        if not FILE_NOQA.search(text):
+            continue
+        try:
+            comments = [(token.start[0], token.string)
+                        for token in tokenize.generate_tokens(io.StringIO(text).readline)
+                        if token.type == tokenize.COMMENT]
+        except (tokenize.TokenError, SyntaxError) as err:
+            findings.append(f"{module} cannot be tokenized: {err}")
+            continue
+        findings.extend(f"{module}:{line} {comment}" for line, comment in comments
+                        if any(not _names_file_scoped(comment[found.end():])
+                               for found in FILE_NOQA.finditer(comment)))
+    return findings
+
+
+def _names_file_scoped(rest: str) -> bool:
+    """Whether the text after a directive's `noqa` names rules, each in `FILE_SCOPED`.
+
+    Every code in the run of capitals, digits, commas and whitespace after the colon is
+    read, which is each code ruff reads and possibly more; a directive naming none
+    suppresses every rule."""
+    named = re.match(r"\s*:([A-Z0-9,\s]*)", rest)
+    codes = set(re.findall(r"[A-Z]+[0-9]+", named.group(1))) if named else set()
+    return bool(codes) and codes <= FILE_SCOPED
+
+
 def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     """Every function, against whether it is annotated, and the correctness rules
     `ruff.toml` admits besides, with the run held to reaching every module in
@@ -616,8 +707,21 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
     this run: ruff otherwise skips whatever an ignore file matches, and a tracked
     module an ignore pattern matched would leave the run with nothing reported. The
     run's log is what holds the rest, `lint.exclude` among them, which drops a file
-    from the lint but not from what `--show-files` lists."""
+    from the lint but not from what `--show-files` lists.
+
+    The log still names a file whose rules are switched off, so the suppressions that
+    switch rules off for a whole file are held first: the `ruff.toml` keys
+    `_ruff_settings` refuses, and the file-level directives `_file_suppressions` finds
+    in the tracked modules. The checker runs regardless, and a clean run beside a
+    refused suppression claims no more than the run showed."""
     tools = root / "tools"
+    held = ""
+    if refused := _ruff_settings(tools / "ruff.toml"):
+        rep.report("ruff", "ruff.toml setting(s) the gate refuses:", refused)
+        held = " under the suppressions refused above"
+    if tracked is not None and (suppressed := _file_suppressions(tools, tracked)):
+        rep.report("ruff", "file-level suppression(s) the gate refuses:", suppressed)
+        held = " under the suppressions refused above"
     coverage = None if tracked is None else Coverage(RUFF_LOG, RUFF_CHECKED, tracked)
     verbose = [] if coverage is None else RUFF_VERBOSE
     _run_checker(
@@ -626,7 +730,8 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
                "--no-respect-gitignore",
                "--output-format", "concise", "--no-fix", *verbose, "."],
               "ruff", "lint finding(s):",
-              f"every function is annotated and ruff {RUFF_VERSION} is clean", coverage)],
+              f"every function is annotated and ruff {RUFF_VERSION} is clean{held}",
+              coverage)],
         tools, with_stderr=False, parse=_parse_ruff)
 
 

@@ -21,12 +21,14 @@ The coverage cases hold the floor under both checkers: the log read out of stder
 and the files it names, each tracked module a run's log does not name reported
 under its checker and a crash not held to it, the real ruff and ty each reporting a
 module a default exclusion or a ruff.toml exclusion drops, the real ty reaching every
-module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, the index read
-for the tracked modules, and each live-tree run giving a verdict and reaching every
-module the tree tracks, a missing or another installed checker refused. The import
-cases hold the scan beside the checkers: an import of a module ruff.toml bans
-at module level refused outside a function body, in a class body, a module-level block
-or the main guard, and admitted in a function body or behind a `sys.platform` check, a
+module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, a ruff.toml
+per-file suppression or `extend` and a file-level `noqa` directive naming anything but
+N999 alone each refused, the real ruff showing the floor alone passes both, the index
+read for the tracked modules, and each live-tree run giving a verdict and reaching
+every module the tree tracks, a missing or another installed checker refused. The
+import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
+module level refused outside a function body, in a class body, a module-level block or
+the main guard, and admitted in a function body or behind a `sys.platform` check, a
 ruff.toml or module the scan cannot read refused, and the real ruff leaving open what
 the scan refuses.
 """
@@ -928,6 +930,127 @@ def _ty_coverage_floor() -> None:
            f"only the skipped modules may be findings: {rep.out!r}")
 
 
+def _ruff_settings(text: str | None) -> list[str]:
+    """`_ruff_settings` over a ruff.toml holding `text`, or over none at all."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        config = Path(td) / "ruff.toml"
+        if text is not None:
+            config.write_text(text, encoding="utf-8", newline="")
+        return typecheck._ruff_settings(config)
+
+
+def _ruff_settings_refuse_per_file_suppressions() -> None:
+    # Each key that switches rules off for the files a pattern matches is refused in
+    # [lint] and at the top level, as a table or inline, empty or not, and so is an
+    # extend, which merges a file the gate does not read; one key is one finding.
+    committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
+    ensure(typecheck._ruff_settings(committed) == [],
+           f"the committed ruff.toml must pass: {typecheck._ruff_settings(committed)!r}")
+    lint = '[lint]\nselect = ["ANN"]\n'
+    ensure(_ruff_settings(lint) == [], "a ruff.toml without per-file suppressions must pass")
+    for text, expected in (
+            (lint + 'per-file-ignores = {"x.py" = ["ALL"]}\n',
+             "sets lint.per-file-ignores to {'x.py': ['ALL']};"),
+            (lint + '[lint.per-file-ignores]\n"x.py" = ["ANN"]\n',
+             "sets lint.per-file-ignores to {'x.py': ['ANN']};"),
+            (lint + 'extend-per-file-ignores = {}\n',
+             "sets lint.extend-per-file-ignores to {};"),
+            ('per-file-ignores = {"x.py" = ["ANN"]}\n' + lint,
+             "sets per-file-ignores to {'x.py': ['ANN']};"),
+            ('extend-per-file-ignores = {"x.py" = ["ANN"]}\n' + lint,
+             "sets extend-per-file-ignores to {'x.py': ['ANN']};")):
+        found = _ruff_settings(text)
+        ensure(len(found) == 1 and expected in found[0]
+               and "since ruff's log names a file whose rules are off as checked" in found[0],
+               f"a per-file suppression must be one finding: {found!r}")
+    extended = _ruff_settings('extend = "other.toml"\n' + lint)
+    ensure(len(extended) == 1 and "sets extend to 'other.toml';" in extended[0],
+           f"an extend must be refused: {extended!r}")
+    both = _ruff_settings('per-file-ignores = {}\n' + lint + 'per-file-ignores = {}\n')
+    ensure(len(both) == 2, f"each table's key must be its own finding: {both!r}")
+    for text in (None, "[lint\n"):
+        unread = _ruff_settings(text)
+        ensure(len(unread) == 1 and "cannot be read" in unread[0],
+               f"an absent or malformed ruff.toml must be a finding: {unread!r}")
+
+
+def _file_suppressions_refused() -> None:
+    # Each comment ruff reads as a file-level suppression, in any of ruff's spellings
+    # and wherever it sits, is refused unless it names only N999, and so is one after
+    # trailing code, which ruff ignores; a string spelling one, and a spelling ruff
+    # does not read, are not comments ruff reads.
+    refused = {
+        "codes.py": "# ruff: noqa: ANN001\n",
+        "flake8.py": "# flake8: noqa: ANN001,ANN201\n",
+        "cased.py": "#ruff:NOQA:ANN001 ANN201\n",
+        "blanket.py": "x = 1\n# ruff: noqa\n",
+        "second.py": "# a note # ruff: noqa: ANN001\n",
+        "indented.py": "if True:\n    pass\n    # ruff: noqa: ANN001\n",
+        "trailing.py": "x = 1  # ruff: noqa: ANN001\n",
+        "beside.py": "# ruff: noqa: N999, ANN001\n",
+        "joined.py": "# ruff: noqa:N999ANN001\n",
+        "twice.py": "# ruff: noqa: N999 # ruff: noqa: ANN001\n",
+    }
+    admitted = {
+        "named.py": "#!/usr/bin/env python3\n# ruff: noqa: N999\n# the name has a hyphen\n",
+        "reason.py": "# ruff: noqa: N999 because the command's name has a hyphen\n",
+        "string.py": 'TEXT = "# ruff: noqa: ANN001"\n',
+        "docstring.py": '"""The gate refuses\n# ruff: noqa: ANN001\n"""\n',
+        "upper.py": "# RUFF: noqa: ANN001\n",
+        "line.py": "x = 1  # noqa: ANN001\n",
+    }
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {**refused, **admitted}, None)
+        found = typecheck._file_suppressions(Path(td) / "tools",
+                                             frozenset({**refused, **admitted}))
+    ensure(found == ["beside.py:1 # ruff: noqa: N999, ANN001", "blanket.py:2 # ruff: noqa",
+                     "cased.py:1 #ruff:NOQA:ANN001 ANN201", "codes.py:1 # ruff: noqa: ANN001",
+                     "flake8.py:1 # flake8: noqa: ANN001,ANN201",
+                     "indented.py:3 # ruff: noqa: ANN001", "joined.py:1 # ruff: noqa:N999ANN001",
+                     "second.py:1 # a note # ruff: noqa: ANN001",
+                     "trailing.py:1 # ruff: noqa: ANN001",
+                     "twice.py:1 # ruff: noqa: N999 # ruff: noqa: ANN001"],
+           f"each file-level suppression but N999 must be refused: {found!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {"open.py": '# ruff: noqa: ANN001\nTEXT = """\n'}, None)
+        (Path(td) / "tools" / "latin.py").write_bytes(b"# \xe9\n")
+        failed = typecheck._file_suppressions(Path(td) / "tools",
+                                              frozenset({"open.py", "latin.py"}))
+    ensure(len(failed) == 2 and failed[0].startswith("latin.py cannot be read: ")
+           and failed[1].startswith("open.py cannot be tokenized: "),
+           f"a module that cannot be read or tokenized must be refused: {failed!r}")
+
+
+def _suppressions_reported_beside_the_run() -> None:
+    # The real ruff under a per-file-ignores entry and under a file-level directive, each
+    # switching ANN off for a module with an unannotated function: ruff reports nothing
+    # and its log names the module as checked, so the floor alone passes, and the
+    # refusal is what fails the gate; the run's verdict then claims no more than it
+    # showed. Without either suppression ruff reports the function.
+    body = "def f(x):\n    return x\n"
+    lint = '[lint]\nselect = ["ANN"]\n'
+    for config, text, refusal in (
+            (lint, body, None),
+            (lint + 'per-file-ignores = {"x.py" = ["ANN"]}\n', body,
+             "FAIL ruff: 1 ruff.toml setting(s) the gate refuses:"),
+            (lint, "# ruff: noqa: ANN001, ANN201\n" + body,
+             "FAIL ruff: 1 file-level suppression(s) the gate refuses:")):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            _write_tools(Path(td), {"x.py": text}, config)
+            typecheck._run_ruff(rep, Path(td), frozenset({"x.py"}))
+        if refusal is None:
+            ensure(rep.findings == 2 and "ANN001: 1" in "\n".join(rep.out),
+                   f"without a suppression ruff must report the function: {rep.out!r}")
+            continue
+        ensure(rep.findings == 1 and rep.out[0] == refusal
+               and rep.out[2] == (f"ok ruff: every function is annotated and ruff "
+                                  f"{typecheck.RUFF_VERSION} is clean under the "
+                                  "suppressions refused above")
+               and not any("did not check" in line for line in rep.out),
+               f"a suppression must be the one finding beside a clean run: {rep.out!r}")
+
+
 def _ty_log_variables_removed() -> None:
     # The real ty with TY_LOG and TY_LOG_PROFILE set in the gate's environment. ty takes
     # TY_LOG ahead of -vv, so a run inheriting TY_LOG=info logs no checked file and every
@@ -1230,6 +1353,10 @@ def cases() -> list[Case]:
         Case("coverage-read-from-the-run", _coverage_read_from_the_run, lane="host"),
         Case("ruff-coverage-floor", _ruff_coverage_floor),
         Case("ty-coverage-floor", _ty_coverage_floor),
+        Case("ruff-settings-refuse-per-file-suppressions",
+             _ruff_settings_refuse_per_file_suppressions),
+        Case("file-suppressions-refused", _file_suppressions_refused),
+        Case("suppressions-reported-beside-the-run", _suppressions_reported_beside_the_run),
         Case("ty-log-variables-removed", _ty_log_variables_removed),
         Case("imports-refused-outside-functions", _imports_refused_outside_functions),
         Case("imports-admitted-in-functions-and-platform-blocks",

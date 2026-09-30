@@ -1015,6 +1015,14 @@ asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own li
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
+A suppression reaching a whole file is a ruff finding: a `per-file-ignores` or
+`extend-per-file-ignores` key in ruff.toml, in `[lint]` or at the top level; an `extend`
+key, which merges another file's settings beneath ruff.toml's; and a comment anywhere in
+a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
+against the file's name rather than a line of it. ruff's log names a file whose rules
+are switched off as checked, so the coverage floor below cannot see what such a
+suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
 otherwise take it out of the lint and annotation run with nothing reported. The settings
