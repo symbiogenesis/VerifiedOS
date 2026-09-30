@@ -402,14 +402,16 @@ def _oracle_reuses_only_a_stamped_tree() -> None:
                "a tree stamped with the current pins is reused")
         moved = Mock(return_value=("c" * 40, _PINS[1]))
         code, staged, said = _run_oracle(e, _oracle_pins=moved, _sync_oracle_tree=synced)
-        ensure(code == 1 and not staged and not synced.called and "--resync" in said,
+        ensure(code == 1 and not staged and not synced.called
+               and "not these pins; rerun with --resync" in said,
                f"a tree stamped with other pins is refused, said {said!r}")
         stamp.write_text(f"{_PINS[0]}\n{_PINS[1]}\n", encoding="utf-8", newline="")
         code, staged, said = _run_oracle(e, _sync_oracle_tree=synced)
         ensure(code == 1 and not staged and not synced.called
-               and "not these pins; rerun with --resync" in said,
-               f"a stamp naming the pins without vouching for their bytes is refused, "
-               f"said {said!r}")
+               and "is stamped with these pins by a sync that did not restore their bytes; "
+                   "rerun with --resync" in said and "not these pins" not in said,
+               f"a stamp naming the pins without vouching for their bytes is refused as "
+               f"the pins' own stamp, said {said!r}")
         stamp.unlink()
         code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
         ensure(code == 1 and not staged, "an unstamped standing tree is refused")

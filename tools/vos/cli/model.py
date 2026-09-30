@@ -1324,6 +1324,9 @@ def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[
     if not resync and (tree / "Makefile").is_file():
         recorded = stamp.read_text(encoding="utf-8").split() if stamp.is_file() else []
         if recorded != claim:
+            if recorded[:2] == list(pins):
+                return (f"{tree} is stamped with these pins by a sync that did not "
+                        "restore their bytes; rerun with --resync")
             return (f"{tree} is stamped {' '.join(recorded) or 'with nothing'}, not "
                     f"{' '.join(claim)}: not these pins; rerun with --resync")
         handle.write("SYNC skipped: the tree is already present at these pins\n")
