@@ -502,4 +502,3 @@ void ModelImpl::set_xreg(int64_t reg, uint64_t val) {
 void ModelImpl::set_pc(uint64_t val) {
   (void)zset_next_pc(val);
 }
-

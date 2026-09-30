@@ -149,4 +149,3 @@ void log_callbacks::vreg_write_callback(ModelImpl &, unsigned reg, lbits value) 
     gmp_fprintf(trace_log, "0x%0*ZX\n", value.len / 4, *value.bits);
   }
 }
-

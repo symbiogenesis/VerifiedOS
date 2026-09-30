@@ -105,4 +105,3 @@ void callbacks_if::xret_callback([[maybe_unused]] ModelImpl &model, [[maybe_unus
 
 void callbacks_if::instret_callback([[maybe_unused]] ModelImpl &model) {
 }
-
