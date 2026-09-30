@@ -948,11 +948,25 @@ Definition pr_true_run : option Run :=
   run_from demo_pr pr_true_entropy pr_true_nonce nil
            (pr_true_first_reseed_entropy :: pr_true_second_reseed_entropy :: nil) two_draws.
 
+(* The first family's run, whose draws six examples below read, evaluated
+   once into a literal and equated to its source. The compiling machine keeps
+   a constant's value from one example to the next, and the kernel's recheck
+   does not: each example rewritten through this lemma reads the literal
+   where it would otherwise run the family again. The lemma unfolds its
+   literal before the cast: the recheck compares a computation with an
+   unfolded literal several times faster than with the constant that names
+   it. The other two families' draws are each read by one example, which is
+   no sharing, so they keep no literal. *)
+Definition no_reseed_run_literal : option Run := Eval vm_compute in no_reseed_run.
+
+Lemma no_reseed_run_is_its_literal : no_reseed_run = no_reseed_run_literal.
+Proof. unfold no_reseed_run_literal. vm_reflexivity. Qed.
+
 Example the_three_families_complete_and_use_their_whole_pool :
   andb (andb (completed no_reseed_run) (Nat.eqb (pool_left no_reseed_run) 0))
   (andb (andb (completed pr_false_run) (Nat.eqb (pool_left pr_false_run) 0))
         (andb (completed pr_true_run) (Nat.eqb (pool_left pr_true_run) 0))) = true.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 Example the_three_families_are_disciplined_runs :
   andb (disciplined_run_b demo nil two_draws)
@@ -979,7 +993,7 @@ Example the_second_draw_without_a_reseed :
   0x7E :: 0xD6 :: 0xD5 :: 0xC0 :: 0xBB :: 0x8D :: 0x50 :: 0xCF ::
   0x1F :: 0x50 :: 0xD4 :: 0x76 :: 0xAA :: 0x04 :: 0x58 :: 0xBD ::
   0xAB :: 0xA8 :: 0x06 :: 0xF4 :: 0x8B :: 0xE9 :: 0xDC :: 0xB8 :: nil.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 Example the_second_draw_after_one_reseed :
   bytes_of (output_at pr_false_run 1) =
@@ -1023,7 +1037,7 @@ Proof. vm_reflexivity. Qed.
 
 Example the_two_draws_of_a_run_differ :
   bits_eqb (output_at no_reseed_run 0) (output_at no_reseed_run 1) = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* The algorithm alone, without the envelope, reaches the same first family:
    two calls of generate under the corpus's interval and none refused. *)
@@ -1036,7 +1050,7 @@ Example the_algorithm_alone_reaches_the_first_family :
                | Some r2 => bits_eqb (fst r2) (output_at no_reseed_run 1)
                end
   end = true.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    Backtracking resistance across a draw, as a computed property: no block
@@ -1073,7 +1087,7 @@ Proof. vm_reflexivity. Qed.
 
 Example the_draw_that_updates_first_misses_the_published_answer :
   bits_eqb (fst first_draw_updating_first) (output_at no_reseed_run 0) = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    Prediction resistance across a reseed, as a computed property: two
@@ -1194,7 +1208,7 @@ Proof. vm_reflexivity. Qed.
 Example the_counter_at_zero_agrees_with_the_standard_on_the_outputs_it_shares :
   bits_eqb (output_at (run demo two_draws witness_run_counting_from_zero) 1)
            (output_at no_reseed_run 1) = true.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* A halted run reports nothing rather than the last thing it held, which is
    R-15-241b's fail-stop read at the reader: no pool, no counter, no output,
@@ -1214,7 +1228,7 @@ Proof. vm_reflexivity. Qed.
 Example the_inverted_update_misses_the_published_answer :
   let s0 := instantiate_with_the_inverted_update no_reseed_entropy no_reseed_nonce nil in
   bits_eqb (fst (generate_core s0 corpus_draw_bits nil)) (output_at no_reseed_run 0) = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* Both alternative instantiations start their counter where the standard's
    does, except the one whose whole point is that it does not, so the update
