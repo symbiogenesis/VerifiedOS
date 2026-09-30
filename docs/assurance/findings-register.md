@@ -1710,7 +1710,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2
 · Disposition: open, owned by the proof map's U-25, whose clause-by-clause comparison with `RSC.v` refuses each axiom SECOMP#21 shows inconsistent and takes nothing resting on `step_fix_fix` as a start-from; the SECOMP proof-reuse record states both defects
 
-**F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, the tracked manifest binding the compiler stating none of those identities and the retained kernel receipts naming the prover and checker by command, one adding the Coq and OCaml versions and none a Menhir identity or a prover digest, and its source's only copy has no remote
+**F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, the tracked manifest binding the compiler records none of those identities, and its source's only copy has no remote
 · Raised: M1.2
 · Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user; if Q39 locks a kernel before Rocq 9.3, the kernel half stays open under the named follow-up item Q39 commissions and prices from its port census
 
@@ -1994,7 +1994,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-522** upstream-defect: the pin's `common/Events.v` declares an unused axiom that implies `False`, which `Print Assumptions` on the compiler's theorems cannot report and only a whole-environment summary names
 · Raised: M1.2g
-· Disposition: open, Q39 reading the contained file, removing the axiom where it stands and stating each contained proof receipt's audit scope; the retained receipts do not read the whole environment, none running `coqchk -o` (`rocqchk -o` from Rocq 9)
+· Disposition: open, Q39 reading the contained file, removing the axiom where it stands and stating each contained proof receipt's audit scope
 
 **F-523** upstream-defect: the pin's `riscV/TargetPrinter.ml` has no arm for the load that reads a stack-passed parameter, so `ccomp` fails on any function reading an argument past the eighth, and M1.2b's float deletion edited that file
 · Raised: M1.2d
