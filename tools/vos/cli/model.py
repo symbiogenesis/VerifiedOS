@@ -196,8 +196,9 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
 # suite to on every configure, downloading again a suite that disagrees. The listing is
 # the tarball's recorded digest, then each file's SHA-256 and path relative to the
-# suite, sorted by the path's bytes; a symbolic link, or a name a CMake list cannot
-# carry, is listed unhashed, and no written manifest holds one. `corpus_listing`
+# suite, sorted by the path's bytes; a symbolic link is listed unhashed, every name
+# holding `;` and one holding `\` whose `/` spelling names no file leave at least one
+# unhashed line, and no written manifest holds an unhashed line. `corpus_listing`
 # renders that listing for the readers that do not configure: the seeding that copies a
 # suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
 # rather than globbing it and lists every non-regular entry unhashed without reading
