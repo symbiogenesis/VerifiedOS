@@ -112,9 +112,12 @@ def _fresh(directory: Path) -> Path:
 
     A rebuild installs into a fresh prefix and configuration, so nothing an earlier
     source installed stays on OCAMLPATH or CAML_LD_LIBRARY_PATH or among the
-    artifacts the receipt hashes. dune install records the prefix in the executables
-    it installs as libsail's site location (a move needs `--relocatable`), so the
-    build cannot happen in a sibling renamed into place afterwards.
+    artifacts the receipt hashes. dune install records its prefix in the executables
+    it installs as libsail's site location, so a sibling prefix renamed into place
+    would need `--relocatable` or a `--destdir` staging tree. Neither is worth it:
+    install proceeds only when the receipt is absent or from another recipe, which
+    status never reports as installed, so there is no usable installation to
+    preserve and the build happens in place.
     """
     if directory.exists():
         shutil.rmtree(directory)
