@@ -270,7 +270,11 @@ no constant body or inductive declaration. The tracked portable receipt keeps on
 digest of each module's whole symbol inventory, which an added helper changes. The
 [CIC corpus exporter](../../tools/vos/cli/cic_corpus.py) prints bodies and
 dependency closures over a passing compile but retains only features derived from
-them. Until the command in the
+them. [`run.py proof-reading`](../../tools/vos/cli/proof_reading.py) reads every
+constant of a passing compile of the whole corpus with the queries above and compares
+two such readings entry by entry, which serves an edit across many sources; it reads
+no target's closure and records no checkpoint, so it implements no part of the
+statement-freeze contract. Until the command in the
 [statement-freeze delivery contract](#statement-freeze-delivery-contract) lands, an
 agent that can run the pinned prover takes the reading with the queries above and
 records its digest. Otherwise step 6's inspection checks each hazard named above by
