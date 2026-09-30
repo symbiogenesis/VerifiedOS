@@ -310,6 +310,13 @@ def _source_reading_reads_past_decorations() -> None:
             "Cumulative": 2, "Monomorphic": 1, "NonCumulative": 0}
     ensure({key: counts[key] for key in want} == want,
            f"the vernaculars under decorations and the modifiers they spell: {counts}")
+    # `Fail` and `Succeed` keep nothing a sentence declares, on its line or the line
+    # above, so neither its vernacular nor any modifier around the flag is counted
+    void = cic_corpus.source_declarations(
+        "Fail Inductive I := C.\nSucceed\nFixpoint f (n : nat) : nat := n.\n"
+        "#[local] Fail Polymorphic Inductive J := D.\n"
+        "#[program]\nSucceed Cumulative Inductive K := E.\n")
+    ensure(not any(void.values()), f"a sentence under a void flag was counted: {void}")
 
 
 def _closure_names_split_by_ownership() -> None:

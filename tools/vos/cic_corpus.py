@@ -112,13 +112,16 @@ _VERNACULAR = re.compile("(?:" + "|".join(SOURCE_VERNACULARS) + r")\b")
 # in their own right, and a quoted attribute can spell the same five, `#[program]` and
 # `#[universes(polymorphic)]` being two; each is counted wherever it stands, and so is
 # the vernacular it decorates, so `Polymorphic Inductive` is one of each rather than a
-# modifier standing for nothing.
+# modifier standing for nothing. `Fail` and `Succeed` keep nothing the sentence declares,
+# so a sentence under either counts neither its vernacular nor its modifiers, as no
+# kernel reading could find a declaration it never kept.
 _DECORATION = re.compile(
     r'#\[(?P<attributes>(?:[^\]"]|"[^"]*")*)\]\s*'
     r"|(?P<legacy>Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative"
     r"|Private|Time|Instructions|Fail|Succeed)\s+"
     r'|Profile\s+(?:"[^"]*"\s+)?|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+'
     r"|AllocLimit\s+\d+\s*(?:Mw|kw)\s+")
+_VOID = ("Fail", "Succeed")
 _QUOTED = re.compile(r'"[^"]*"')
 _UNIVERSES = re.compile(r"\buniverses\s*\(([^()]*)\)")
 _SETTING = re.compile(r"\b(program|polymorphic|cumulative)\b(?:\s*=\s*(yes|no)\b)?")
@@ -386,7 +389,8 @@ def source_declarations(text: str) -> dict[str, int]:
 
     It counts the vernacular a sentence opens with and nothing inside the sentence,
     after every decoration standing before it, and the counted modifiers among those
-    decorations. Mutual recursion is deliberately absent from this reading and is left
+    decorations; a sentence under `Fail` or `Succeed` keeps nothing it declares and
+    counts nothing. Mutual recursion is deliberately absent from this reading and is left
     to the term reading's `for` selector: a `Fixpoint` block's own `with` and a
     `match`'s are the same token at this level, and a count that reads every `Fixpoint`
     as mutual is a figure with no predicate behind it.
@@ -394,16 +398,21 @@ def source_declarations(text: str) -> dict[str, int]:
     counts = dict.fromkeys(SOURCE_VERNACULARS, 0)
     for sentence in sentences(text):
         at = 0
+        spelled: list[str] = []
+        void = False
         while (decoration := _DECORATION.match(sentence, at)) is not None:
             if decoration.group("attributes") is not None:
-                for modifier in _attribute_modifiers(decoration.group("attributes")):
-                    counts[modifier] += 1
+                spelled += _attribute_modifiers(decoration.group("attributes"))
             elif decoration.group("legacy") in counts:
-                counts[decoration.group("legacy")] += 1
+                spelled.append(decoration.group("legacy"))
+            void = void or decoration.group("legacy") in _VOID
             at = decoration.end()
         head = _VERNACULAR.match(sentence, at)
         if head is not None:
-            counts[head.group()] += 1
+            spelled.append(head.group())
+        if not void:
+            for counted in spelled:
+                counts[counted] += 1
     return counts
 
 
