@@ -21,9 +21,10 @@ Stdlib and nothing else, and the proof gate's switch carries Stdlib, so
 mode compile in that switch, at the gate's release and under their own flags: a proof
 source that compiles under the gate compiles under them. The randomized harness loads
 QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
-newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1, and K-117 holds what
-those two compile free of the syntax only Rocq 9.3 reads. Every switch is **read** here
-and never written.
+newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1. K-117 holds what each
+instrument older than Rocq 9.3.0 compiles, these two and the Rupicola lowering among
+them, free of the syntax only Rocq 9.3 reads. Every switch is **read** here and never
+written.
 """
 
 import os
@@ -47,7 +48,7 @@ VECTOR_ROCQ_VERSION = env.ROCQ_VERSION
 ORACLE_ROCQ_VERSION = "9.1.1"
 CERTIROCQ_VERSION = "0.9.1+9.1"
 # CertiRocq's bootstrap C wrapper collides with the inline Hd_val introduced in
-# OCaml 5.2; the wrapper and Gallina vectors pass with the 5.1.1 headers.
+# OCaml 5.2; the wrapper compiles with the 5.1.1 headers.
 # The full CertiRocq bootstrap and Wasm smoke checks remain pending.
 ORACLE_OCAML_VERSION = "5.1.1"
 ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
