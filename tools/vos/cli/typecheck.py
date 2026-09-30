@@ -63,12 +63,21 @@ So is a set `PYTHONPATH`, whose directories ty searches just after `extra-paths`
 ahead of the standard library, which is what `typeshed` and a further `extra-paths`
 entry are refused for.
 
+Holding the settings does not hold what each run reaches. Both checkers skip
+directories such as `dist/` and `venv/` by default, and `ruff.toml`'s `exclude`,
+`extend-exclude` and `lint.exclude` each drop files with nothing reported. So every
+run logs each file it checks, and each module the index tracks under `tools/` that
+a run's log does not name is a finding under that run's checker. The log is the
+pinned version's verbose output: a log of another shape names no file, and every
+tracked module then reads as unchecked.
+
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 import sysconfig
@@ -136,6 +145,24 @@ PER_RULE = 8
 # checkers finish in about a second on this tree, so a run that reaches it is hung,
 # and a hung checker must become a finding rather than a gate that never returns.
 TIMEOUT = 120
+
+# Each checker's verbose log, in the pinned version's shape: `LOG` matches every
+# line of it below warning level, which is what tells the log from the checker's own
+# output and keeps it out of the parse and out of a crash's message, and `CHECKED`
+# matches the one line naming a file the run checked, with its path in group 1. A
+# warning or an error the log carries stays with the checker's output.
+TY_VERBOSE = ["-vv"]
+TY_LOG = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)? +(?:TRACE|DEBUG|INFO) ")
+TY_CHECKED = re.compile(r" DEBUG Checking file '(.+)'$")
+RUFF_VERBOSE = ["--verbose"]
+RUFF_LOG = re.compile(r"^\[\d{4}-\d{2}-\d{2}\]\[\d{2}:\d{2}:\d{2}\]\[[^\]]+\]"
+                      r"\[(?:TRACE|DEBUG|INFO)\] ")
+RUFF_CHECKED = re.compile(r"\[ruff::diagnostics\]\[DEBUG\] Checking: (.+)$")
+
+# The tracked modules the gate's runs must reach: the index's Python sources and stubs
+# under `tools/`, where both checkers run.
+TOOLS = "tools/"
+MODULE_SUFFIXES = (".py", ".pyi")
 
 
 def _tool(name: str) -> str | None:
@@ -241,13 +268,71 @@ def _parse_ruff(text: str) -> list[tuple[str, str]]:
     return findings
 
 
+class Coverage(NamedTuple):
+    """What a run must reach, and how its verbose log says what it did: the `LOG` and
+    `CHECKED` patterns of its checker, and the tracked modules, each relative to the
+    directory the run checks."""
+    log: re.Pattern[str]
+    checked: re.Pattern[str]
+    tracked: frozenset[str]
+
+
 class Pass(NamedTuple):
     """One run of a pinned checker: its arguments, the name its failures are reported
-    under, and the verdict its findings or its clean exit read as."""
+    under, the verdict its findings or its clean exit read as, and, for a run whose
+    arguments turn its log on, the modules that log must name."""
     args: list[str]
     who: str
     label: str
     ok: str
+    coverage: Coverage | None = None
+
+
+def _read_log(stderr: str, coverage: Coverage, cwd: Path) -> tuple[str, set[str]]:
+    """A run's stderr without its log, and the files the log names as checked, each
+    relative to `cwd` where it lies under it.
+
+    A path is read against `cwd` as printed, and against both resolved only where it
+    does not lie under `cwd` as printed, which is what a shortened or linked spelling
+    of the same directory needs. A path outside `cwd` either way stays absolute, and
+    so names no tracked module.
+    """
+    kept: list[str] = []
+    checked: set[str] = set()
+    for line in stderr.splitlines():
+        if not coverage.log.match(line):
+            kept.append(line)
+        elif found := coverage.checked.search(line):
+            path = cwd / found.group(1)
+            try:
+                checked.add(path.relative_to(cwd).as_posix())
+            except ValueError:
+                try:
+                    checked.add(path.resolve().relative_to(cwd.resolve()).as_posix())
+                except (ValueError, OSError):
+                    checked.add(path.as_posix())
+    return "\n".join(kept), checked
+
+
+def _cover(rep: Reporter, name: str, run: Pass, coverage: Coverage,
+           checked: set[str]) -> None:
+    """Each tracked module the run's log does not name, as a finding under `name`.
+
+    Nothing is reported for a run that reached every one: the pass's own verdict is
+    the line that says what it checked. A log naming no file at all says so first,
+    since a changed log shape reads as exactly that.
+    """
+    missing = sorted(coverage.tracked - checked)
+    if not missing:
+        return
+    lines = [] if checked else [
+        f"{run.who} logged no checked file at all, as a log in a shape other than "
+        "the pinned version's would"]
+    lines.extend(missing[:PER_RULE])
+    if len(missing) > PER_RULE:
+        lines.append(f"... and {len(missing) - PER_RULE} more")
+    rep.report(name, f"tracked module(s) {run.who} did not check:", lines,
+               count=len(missing))
 
 
 def _run_checker(rep: Reporter, name: str, pin: str, passes: list[Pass], cwd: Path,
@@ -273,6 +358,11 @@ def _run_pass(rep: Reporter, name: str, exe: str, run: Pass, cwd: Path,
     has not cleared the files it never reached, and its partial list must not read as
     the whole verdict. A checker that hangs or cannot be executed is a finding for
     the same reason the version probe's failures are.
+
+    A pass carrying a `Coverage` has its log taken out of stderr before anything
+    else reads it, and once the run has given its verdict, each tracked module the
+    log does not name is a finding beside that verdict. A crash is not held to it,
+    having already been reported as not clearing what it never reached.
     """
     try:
         done = subprocess.run([exe, *run.args], capture_output=True, encoding="utf-8",
@@ -285,20 +375,26 @@ def _run_pass(rep: Reporter, name: str, exe: str, run: Pass, cwd: Path,
         rep.report(name, "checker error(s):", [f"{exe} could not be run: {err}"])
         return
 
-    findings = parse(done.stdout + done.stderr if with_stderr else done.stdout)
+    stderr = done.stderr
+    checked: set[str] = set()
+    if run.coverage is not None:
+        stderr, checked = _read_log(done.stderr, run.coverage, cwd)
+    findings = parse(done.stdout + stderr if with_stderr else done.stdout)
 
     if done.returncode == 1 and not findings:
         rep.report(name, "checker error(s):",
                    [f"{run.who} exited 1 but no diagnostic was recognized: "
-                    f"{(done.stdout + done.stderr).strip()[:400] or '(no output)'}"])
+                    f"{(done.stdout + stderr).strip()[:400] or '(no output)'}"])
         return
     if done.returncode not in (0, 1):
         rep.report(name, "checker error(s):",
                    [f"{run.who} exited {done.returncode}: "
-                    f"{(done.stderr or done.stdout).strip()[:400]}"])
+                    f"{(stderr or done.stdout).strip()[:400]}"])
         if not findings:
             return
     _summarize(rep, name, run.label, findings, run.ok)
+    if run.coverage is not None and done.returncode in (0, 1):
+        _cover(rep, name, run, run.coverage, checked)
 
 
 def _ty_settings(config: Path) -> list[str]:
@@ -421,9 +517,23 @@ def _user_config() -> Path | None:
     return candidate if candidate.is_file() else None
 
 
-def _run_ty(rep: Reporter, root: Path) -> None:
+def _tracked(root: Path) -> frozenset[str]:
+    """The modules the index tracks under `tools/` that the working tree holds, each
+    relative to `tools/`.
+
+    A tracked module deleted from the working tree is left out, since no run can
+    check it and the deletion is the index's to record. A module a run reaches that
+    the index does not track is held to nothing: this is a floor, not a ceiling.
+    """
+    return frozenset(path.removeprefix(TOOLS) for path in corpus_mod.read_index(root).files
+                     if path.startswith(TOOLS) and path.endswith(MODULE_SUFFIXES)
+                     and (root / path).is_file())
+
+
+def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     """Every expression in the directory reachable under each of `TY_PLATFORMS`,
-    against the types ty can infer for it, one run and one verdict per platform.
+    against the types ty can infer for it, one run and one verdict per platform, and
+    each run held to reaching every module in `tracked` unless that is `None`.
 
     The settings are held first and the checker runs regardless: a refused setting
     stands beside the checker's verdict rather than hiding the findings it would
@@ -452,34 +562,41 @@ def _run_ty(rep: Reporter, root: Path) -> None:
                    [f"PYTHONPATH is set to {search!r}, and ty searches each directory it "
                     "names ahead of the standard library in the gate's run"])
         held = " under the settings refused above"
+    coverage = None if tracked is None else Coverage(TY_LOG, TY_CHECKED, tracked)
+    verbose = [] if coverage is None else TY_VERBOSE
     _run_checker(
         rep, "ty", TY_VERSION,
         [Pass(["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
                "--python", sys.executable, "--python-platform", platform,
-               "--output-format", "concise", "--color", "never", "."],
+               "--output-format", "concise", "--color", "never", *verbose, "."],
               f"ty under python-platform {platform}",
               f"type error(s) under python-platform {platform}:",
               f"every expression reachable under python-platform {platform} typechecks "
-              f"under ty {TY_VERSION}{held}")
+              f"under ty {TY_VERSION}{held}", coverage)
          for platform in TY_PLATFORMS],
         tools, with_stderr=True, parse=_parse_ty)
 
 
-def _run_ruff(rep: Reporter, root: Path) -> None:
+def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     """Every function, against whether it is annotated, and the correctness rules
-    `ruff.toml` admits besides.
+    `ruff.toml` admits besides, with the run held to reaching every module in
+    `tracked` unless that is `None`.
 
     `--no-respect-gitignore` restates `ruff.toml`'s `respect-gitignore = false` for
     this run: ruff otherwise skips whatever an ignore file matches, and a tracked
-    module an ignore pattern matched would leave the run with nothing reported."""
+    module an ignore pattern matched would leave the run with nothing reported. The
+    run's log is what holds the rest, `lint.exclude` among them, which drops a file
+    from the lint but not from what `--show-files` lists."""
     tools = root / "tools"
+    coverage = None if tracked is None else Coverage(RUFF_LOG, RUFF_CHECKED, tracked)
+    verbose = [] if coverage is None else RUFF_VERBOSE
     _run_checker(
         rep, "ruff", RUFF_VERSION,
         [Pass(["check", "--config", str(tools / "ruff.toml"), "--no-cache",
                "--no-respect-gitignore",
-               "--output-format", "concise", "--no-fix", "."],
+               "--output-format", "concise", "--no-fix", *verbose, "."],
               "ruff", "lint finding(s):",
-              f"every function is annotated and ruff {RUFF_VERSION} is clean")],
+              f"every function is annotated and ruff {RUFF_VERSION} is clean", coverage)],
         tools, with_stderr=False, parse=_parse_ruff)
 
 
@@ -490,14 +607,26 @@ def run(root: Path) -> Reporter:
     The two checkers are separate processes over the same tree and neither reads the
     other's result, so they run concurrently. Each accumulates onto its own slate and
     the slates are merged ty-then-ruff, so the report reads the same however the two
-    finished."""
+    finished.
+
+    The tracked modules are read once for both. An index that cannot be read is a
+    finding, and the runs then go ahead held to nothing, since no floor can be
+    decided without it."""
     rep = Reporter()
     rep.line("=== tools ===")
 
+    tracked: frozenset[str] | None = None
+    try:
+        tracked = _tracked(root)
+    except (RuntimeError, OSError, ValueError) as err:
+        rep.report("coverage", "tracked module listing error(s):",
+                   [f"the index cannot be read, so no run is held to the modules it "
+                    f"tracks: {err}"])
+
     ty_rep, ruff_rep = Reporter(), Reporter()
     with ThreadPoolExecutor(max_workers=2) as pool:
-        for done in (pool.submit(_run_ty, ty_rep, root),
-                     pool.submit(_run_ruff, ruff_rep, root)):
+        for done in (pool.submit(_run_ty, ty_rep, root, tracked),
+                     pool.submit(_run_ruff, ruff_rep, root, tracked)):
             done.result()
     for part in (ty_rep, ruff_rep):
         rep.out.extend(part.out)

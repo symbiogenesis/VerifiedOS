@@ -1017,7 +1017,15 @@ code a rewrite. A single site that has to differ carries a `# noqa` naming its r
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
-otherwise take it out of the lint and annotation run with nothing reported.
+otherwise take it out of the lint and annotation run with nothing reported. The settings
+the gate holds do not settle which files a run reaches: both checkers skip directories
+such as `dist/` and `venv/` by default, and ruff.toml's `exclude`, `extend-exclude` and
+`lint.exclude` each drop files. So every ty and ruff run logs each file it checks, and
+the gate reports each module the index tracks under `tools/` that a run's log does not
+name as a finding under that run's checker. It reads ruff's log rather than
+`ruff check --show-files`, which still lists what `lint.exclude` drops. The log is the
+pinned version's verbose output, so a version whose log has another shape reports
+every tracked module as unchecked.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
 from each checked path, but the ty CLI discovers configuration from its working directory
