@@ -389,13 +389,12 @@ the entry is deleted. An entry's cutoff is the first whole second after the uplo
 its release's last file: uv compares each file's upload time at the index's
 microsecond precision, and a cutoff copied from uv.lock's millisecond `upload-time`
 excludes a file uploaded within that millisecond and silently drops it from the lock.
-An entry can be deleted once its release has aged past the cooldown, three days after
-its cutoff: filelock's after 2026-10-02T23:04:06Z, platformdirs's after
-2026-10-02T18:27:57Z and virtualenv's after 2026-10-02T20:25:32Z. After deleting one
-from the manifest, `uv lock --project tools` must remove only that package's line
-from uv.lock's `[options.exclude-newer-package]`, and the table's header with its
-last line, leaving every `[[package]]` entry byte-identical; a changed package means
-the entry went before its date.
+An entry can be deleted once three days have passed since its cutoff, when its
+release has aged past the cooldown; the comment on each manifest line gives that
+moment. After deleting one from the manifest, `uv lock --project tools` must remove
+only that package's line from uv.lock's `[options.exclude-newer-package]`, and the
+table's header with its last line, leaving every `[[package]]` entry byte-identical;
+a changed package means the entry went before its date.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
