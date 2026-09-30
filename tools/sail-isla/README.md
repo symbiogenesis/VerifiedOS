@@ -18,10 +18,11 @@ opam package also builds from, extracted into a fresh tree on each
 provisioning. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
-different Isla submodule revision, Sail release archive digest, and the Rust
-version with its component digests for Linux aarch64 and x86_64. Standalone Isla
-builds in a copy of its pristine checkout with the tracked
-[isla.Cargo.lock](isla.Cargo.lock), which raises crossbeam-channel and
+different Isla submodule revision, and Sail release archive digest. The shared
+[Rust toolchain pin](../rust-toolchain.json), which the idealloc candidate build
+also reads, fixes the Rust version with its component digests for Linux aarch64
+and x86_64. Standalone Isla builds in a copy of its pristine checkout with the
+tracked [isla.Cargo.lock](isla.Cargo.lock), which raises crossbeam-channel and
 crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Right after
 fetching Isla, before the Rust download and Sail build, provisioning refuses the
 override unless it equals upstream's Cargo.lock apart from the versions and
@@ -36,8 +37,9 @@ optional web or litmus executables, LLVM, or a new opam solution. Cargo still
 builds transitive libraries required by the two selected crate graphs.
 
 The report checks the provisioned binaries and build-input digest before use.
-Changing a recipe or asset requires provisioning again. The report also records
-current curated source hashes, generated IR hash, baseline compiler/runtime
+Changing a recipe, an asset or the shared Rust pin requires provisioning again.
+The report also records current curated source hashes, generated IR hash,
+baseline compiler/runtime
 inputs, optional binary hashes, invocation arguments, logs, and control outcomes.
 The baseline's dynamic system libraries remain prerequisites; these checks are
 input identification, not a hermetic-build or authenticity guarantee.

@@ -42,12 +42,14 @@ byte-identical to upstream's so the build reproduces the published
 implementation; the executable is an untrusted candidate producer, and the
 portable checker decides every placement it returns.
 
-The pin manifest fixes the Rust version and each compiler component archive's
-SHA-256, the same set the [optional Isla tools](../../../tools/sail-isla/lock.json)
-pin. Each archive is checked before its installer runs into the lane; no rustup,
-shell profile or global toolchain is involved. The build checks every downloaded
-upstream file, checks Cargo dependency archives against the pinned lock, and
-checks unpacked dependency files against those archives. Archive members are
+The shared [Rust toolchain pin](../../../tools/rust-toolchain.json), which the
+[optional Isla tools](../../../tools/sail-isla/README.md) also read, fixes the
+Rust version and each compiler component archive's SHA-256; the build receipt
+records that pin's digest. Each archive is checked before its installer runs
+into the lane; no rustup, shell profile or global toolchain is involved. The
+build checks every downloaded upstream file, checks Cargo dependency archives
+against the pinned lock, and checks unpacked dependency files against those
+archives. Archive members are
 inspected without extraction by this adapter, with traversal and special-entry
 refusal. The Rust component installers and Cargo own their installation and
 extraction steps. The candidate executable is hashed before and after each

@@ -153,14 +153,13 @@ def dependency_archive_and_source_identity() -> None:
         raise AssertionError("archive traversal was accepted")
 
 
-def rust_pin_is_the_project_toolchain() -> None:
-    pin = json.loads((TOOLS / "memory-planner/idealloc.json").read_text(encoding="utf-8"))["rust"]
-    isla = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))["rust"]
-    ensure(pin == isla, "idealloc and the optional Isla tools must pin one Rust version and component set")
+def pin_manifest_schema_is_current() -> None:
+    pin = json.loads((TOOLS / "memory-planner/idealloc.json").read_text(encoding="utf-8"))
+    ensure(pin["schema"] == candidates.PIN_SCHEMA and "rust" not in pin,
+           "the idealloc manifest must be the schema whose Rust pin lives in the shared owner")
 
 
 def rust_component_digest_mismatch_is_refused() -> None:
-    pin = json.loads((TOOLS / "memory-planner/idealloc.json").read_text(encoding="utf-8"))["rust"]
     with tempfile.TemporaryDirectory() as temporary:
         output = Path(temporary)
         with (patch.object(candidates.platform, "system", return_value="Linux"),
@@ -168,7 +167,7 @@ def rust_component_digest_mismatch_is_refused() -> None:
               patch.object(candidates, "urlopen", return_value=io.BytesIO(b"not the pinned archive")),
               patch.object(candidates.subprocess, "run") as run):
             try:
-                candidates.rust_environment(output, pin)
+                candidates.rust_environment(TOOLS.parent, output)
             except ValueError:
                 pass
             else:
@@ -200,6 +199,6 @@ def cases() -> list[Case]:
             Case("invalid baseline blocks optional work", invalid_baseline_stops_optional_work),
             Case("comparison corpus local candidates checked", corpus_candidates_are_checked_and_repeatable),
             Case("dependency archive and unpacked-source tampering refused", dependency_archive_and_source_identity),
-            Case("idealloc and Isla pin one Rust toolchain", rust_pin_is_the_project_toolchain),
+            Case("idealloc pin manifest schema leaves Rust to its owner", pin_manifest_schema_is_current),
             Case("Rust component digest mismatch refused before install", rust_component_digest_mismatch_is_refused),
             Case("optional setup failure preserves CLI baseline", setup_failure_preserves_cli_baseline)]

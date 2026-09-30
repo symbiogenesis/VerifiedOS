@@ -25,7 +25,7 @@ from contextlib import chdir
 from pathlib import Path
 from typing import Literal, TypedDict, cast
 
-from vos import env, oracle, sailrig
+from vos import env, oracle, rust_toolchain, sailrig
 
 ASSETS = Path("tools/sail-isla")
 NOTICE = ("Finite advisory differential campaign, not a proof. Scope: perms_expand "
@@ -54,17 +54,11 @@ class SailPin(SourcePin):
     directory: str
 
 
-class RustPin(TypedDict):
-    version: str
-    components: dict[str, dict[str, str]]
-
-
 class Lock(TypedDict):
     version: int
     isla: IslaPin
     testgen: TestgenPin
     sail: SailPin
-    rust: RustPin
 
 
 class Stamp(TypedDict):
@@ -121,8 +115,11 @@ def sha(path: Path) -> str:
 
 
 def asset_digest(root: Path) -> str:
+    """Every tracked build input: this tool's assets, the baseline lock, the shared
+    Rust pin and the recipes that read them."""
     paths = sorted(p for p in (root / ASSETS).rglob("*") if p.is_file())
-    paths += [root / "tools/opam/sail.lock", Path(__file__)]
+    paths += [root / "tools/opam/sail.lock", root / rust_toolchain.PATH, Path(__file__),
+              Path(rust_toolchain.__file__)]
     digest = hashlib.sha256()
     for path in paths:
         digest.update(path.relative_to(root).as_posix().encode())
@@ -169,7 +166,8 @@ class Runner:
 
 def _load_lock(root: Path) -> Lock:
     lock = cast(Lock, json.loads((root / ASSETS / "lock.json").read_text(encoding="utf-8")))
-    if lock["version"] != 1:
+    # Version 2 moved the Rust pin to the shared rust_toolchain owner.
+    if lock["version"] != 2 or "rust" in lock:
         raise IslaError("unsupported optional tool lock version")
     return lock
 
@@ -323,6 +321,17 @@ def _binaries(base: Path, lane: Path, z3_lib: Path) -> list[Path]:
             *sorted(runtime.glob("*.h"))]
 
 
+def _install_rust(root: Path, base: Path, triple: str, runner: Runner) -> None:
+    """Install the shared pinned Rust components; each archive is verified first."""
+    for name, url, expected in rust_toolchain.archives(rust_toolchain.load(root), triple):
+        archive = base / f"{name}.tar.xz"
+        _download(url, expected, archive)
+        with tarfile.open(archive) as compressed:
+            compressed.extractall(base, filter="data")
+        runner.run(["sh", str(base / name / "install.sh"), f"--prefix={base / 'rust'}",
+                    "--disable-ldconfig"], base)
+
+
 def provision(e: env.Environment, jobs: int = 2) -> Stamp:
     """Explicit downloads and builds; never installs into the baseline opam switch."""
     if not 1 <= jobs <= 16:
@@ -349,14 +358,7 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
         override = (e.root / ASSETS / override_name).read_text(encoding="utf-8")
         check_lock_override((isla / "Cargo.lock").read_text(encoding="utf-8"), override,
                             lock["isla"]["cargo_lock_overrides"])
-        for component, expected in lock["rust"]["components"][triple].items():
-            name = f"{component}-{lock['rust']['version']}-{triple}"
-            archive = base / f"{name}.tar.xz"
-            _download(f"https://static.rust-lang.org/dist/{name}.tar.xz", expected, archive)
-            with tarfile.open(archive) as compressed:
-                compressed.extractall(base, filter="data")
-            runner.run(["sh", str(base / name / "install.sh"), f"--prefix={base / 'rust'}",
-                        "--disable-ldconfig"], base)
+        _install_rust(e.root, base, triple, runner)
         process = _process_env(base, z3_lib)
         _fetch(lock["testgen"], testgen, runner)
         runner.run(["git", "-C", str(testgen), "submodule", "update", "--init", "--depth=1",
