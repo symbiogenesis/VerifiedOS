@@ -60,6 +60,8 @@ opam exec --switch=verifiedos-rocq-9.2.0-ocaml-5.4.1 -- make -j2 SKIP_BEDROCK2=1
 
 The explicit `COQC` also applies to recursive Coqprime builds. An initial recursive build used the ambient 8.20 compiler and was correctly refused when its objects reached Rocq 9.2; the affected native build objects were removed and rebuilt with the explicit compiler. The successful resumed build took 681.59 s after the earlier partial build. This is an external build, not an installation into the proof switch. Its before/after package exports are byte-identical.
 
+The switch that command names is recreated by [the opam guide](../../tools/opam/README.md)'s import from `tools/opam/rocq.lock` as committed at `162bff3b`, read with `git show 162bff3b:tools/opam/rocq.lock`: Rocq 9.2.0 on OCaml 5.4.1. That snapshot was the lock from 2026-09-10 until `05e8be26` removed `rocq-sail-stdpp` and its `rocq-stdpp-bitvector` dependency from the switch on 2026-09-28 without renaming it, so the switch name alone does not identify the build environment, and the current lock describes the Rocq 9.3.0 proof switch. The generator's proofs were checked by the Rocq 9.2.0 kernel, the edition the opam guide records the proof switch leaving because its kernel accepts proofs of `False`, and not by the locked one.
+
 The build consumed Fiat, Rewriter, Coqprime and Coqutil proofs and the nested build scripts. The following own license files were read at the manifest's revisions. These libraries and generator binaries remain external build inputs; only the two Fiat-generated field headers are incorporated.
 
 | Nested input | Own license reading and use |
