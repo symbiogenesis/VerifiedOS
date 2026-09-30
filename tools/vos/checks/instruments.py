@@ -512,7 +512,9 @@ def _unlisted(root: Path, tracked: set[str], rows: Sequence[Instrument]) -> list
             continue
         try:
             text = (root / rel).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        except (OSError, UnicodeDecodeError) as err:
+            found.append(f"{rel} cannot be read, so whether it resolves a prover through "
+                         f"gallina.prover is undecided ({err})")
             continue
         if "prover(" in text and _PROVER_CALL_RE.search(text):
             found.append(f"{rel} resolves a prover through gallina.prover and no row of "

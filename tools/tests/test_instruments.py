@@ -175,6 +175,9 @@ def _an_unlisted_prover_caller_is_a_finding() -> None:
     named = k117.Instrument("new", "tools/vos/new.py", "s", "9.3.0")
     quiet, _ = _decide(files, [named])
     ensure(not quiet, f"a caller a row names is the table's: {quiet}")
+    unread, _ = _decide({**files, "tools/vos/bad.py": b"x = '\xff'\n"}, [named])
+    ensure(len(unread) == 1 and unread[0].startswith("tools/vos/bad.py cannot be read"),
+           f"a module the scan cannot read is undecided, not skipped: {unread}")
 
 
 def _the_live_rows_read_their_instruments() -> None:
