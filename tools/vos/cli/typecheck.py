@@ -280,8 +280,11 @@ def _ty_settings(config: Path) -> list[str]:
     Not held here: the value of `python-version`, which K-75 holds against the
     project's interpreter constraint; `[terminal]`, whose `output-format` the gate's
     own flag overrides and whose `error-on-warning` cannot clear a warning the gate
-    reads from the output; and a table or key ty does not accept, which ty refuses
-    as an invalid `ty.toml`, exiting 2, before it checks anything.
+    reads from the output; and a top-level table or key, or a `[terminal]` key, that
+    ty does not accept, which ty refuses as an invalid `ty.toml`, exiting 2 before it
+    checks anything, and the gate's run reports as a checker error. A key ty does not
+    accept inside `[rules]`, `[src]`, `[analysis]`, `[environment]` or an
+    `[[overrides]]` entry is refused here as well, being outside what each admits.
 
     Fail-closed: a file that cannot be read or parsed, an `overrides` value that is
     not an array of tables, or an `analysis` or `environment` value that is not a
@@ -329,7 +332,8 @@ def _ty_settings(config: Path) -> list[str]:
                 f"{name}'s [environment] carries "
                 + ", ".join(f"{key} {environment[key]!r}" for key in refused)
                 + f"; the gate admits only {', '.join(sorted(TY_ENVIRONMENT_KEYS))}, "
-                "because python, root and typeshed each move where ty resolves imports")
+                "because python, root and typeshed each move where ty resolves imports, "
+                "and a key the gate has not read is refused with them")
         if changed := [key for key, want in TY_ENVIRONMENT.items()
                        if environment.get(key) != want]:
             findings.append(

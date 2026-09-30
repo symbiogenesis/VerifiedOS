@@ -387,7 +387,8 @@ def _ty_settings_refuse_environment() -> None:
                       ('future-setting = 1\n', "future-setting 1")):
         found = _settings(_ALL_ERROR + _ENV + line + _SRC)
         ensure(len(found) == 1 and f"[environment] carries {key};" in found[0]
-               and "admits only extra-paths, python-platform, python-version" in found[0],
+               and "admits only extra-paths, python-platform, python-version" in found[0]
+               and "a key the gate has not read is refused with them" in found[0],
                f"an [environment] key outside the admitted ones must be refused: {found!r}")
     # The two held values are held exactly: another platform, an added or a missing
     # search path, and an absent key are each named, and one table is one finding.
