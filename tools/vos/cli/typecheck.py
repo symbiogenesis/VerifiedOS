@@ -27,8 +27,10 @@ Every rule ty carries runs at error, including the ones it ships as warnings or
 switched off. `ty.toml` states that in its `[rules]` table, and it and `ruff.toml`
 hold the rest of the settings, so an editor's language server decides what this
 decides. The gate also passes ty `--error all`, which overrides the `[rules]`
-table, so lowering an entry of that table cannot lower what this enforces; an
-`[[overrides]]` table would, and none is carried.
+table, and it reads `ty.toml` itself: a `[rules]` table other than exactly
+`all = "error"` is a ty finding, because an editor reads the table without the flag,
+and so is an `[[overrides]]` entry carrying `rules`, because such an entry would
+lower the flag's severities for the files it matches.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -38,6 +40,7 @@ import argparse
 import subprocess
 import sys
 import sysconfig
+import tomllib
 from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -50,6 +53,9 @@ from vos.report import Reporter
 _PINS = toolenv.checker_pins(Path(__file__).resolve().parents[3])
 TY_VERSION = _PINS["ty"]
 RUFF_VERSION = _PINS["ruff"]
+
+# The one `[rules]` table ty.toml may carry: every rule at error, and nothing else.
+TY_RULES = {"all": "error"}
 
 # How many findings of one rule are printed before the rest are counted. A run that
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
@@ -207,16 +213,60 @@ def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
     _summarize(rep, name, label, findings, ok)
 
 
+def _ty_settings(config: Path) -> list[str]:
+    """Whatever in `ty.toml` would split the editor from the gate or lower the gate.
+
+    `--error all` overrides the `[rules]` table, so the gate's own run cannot see a
+    lowered entry there; an editor's language server reads the table without the
+    flag, which is why the table is held exactly rather than by what it means. An
+    `[[overrides]]` entry carrying `rules` would lower the flag itself for the files it
+    matches; one carrying only other settings changes no severity and is admitted.
+
+    Fail-closed: a file that cannot be read or parsed, or an `overrides` value that is
+    not an array of tables, is a finding, never a pass.
+    """
+    name = f"tools/{config.name}"
+    try:
+        settings = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
+        return [f"{name} cannot be read: {err}"]
+
+    findings: list[str] = []
+    rules = settings.get("rules")
+    if rules != TY_RULES:
+        found = "carries no [rules] table" if rules is None else f"sets [rules] to {rules!r}"
+        findings.append(f"{name} {found}; the gate holds it to exactly {TY_RULES!r}, "
+                        "the table an editor's ty server reads without --error all")
+    overrides = settings.get("overrides", [])
+    if not isinstance(overrides, list) or not all(isinstance(o, dict) for o in overrides):
+        findings.append(f"{name}'s overrides must be an array of tables, found {overrides!r}")
+    else:
+        findings.extend(
+            f"{name}'s [[overrides]] entry {index} (include {entry.get('include')!r}) "
+            f"carries rules {entry['rules']!r}, which would lower --error all for the "
+            "files it matches"
+            for index, entry in enumerate(overrides, start=1) if "rules" in entry)
+    return findings
+
+
 def _run_ty(rep: Reporter, root: Path) -> None:
-    """Every expression in the directory, against the types ty can infer for it."""
+    """Every expression in the directory, against the types ty can infer for it.
+
+    The settings are held first and the checker runs regardless: a refused setting
+    stands beside the checker's verdict rather than hiding the findings it would
+    still report, and that verdict then claims no more than the run showed."""
     tools = root / "tools"
+    held = ", all rules at error"
+    if refused := _ty_settings(tools / "ty.toml"):
+        rep.report("ty", "ty.toml setting(s) the gate refuses:", refused)
+        held = " under the settings refused above"
     _run_checker(
         rep, "ty", TY_VERSION,
         ["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
          "--python", sys.executable,
          "--output-format", "concise", "--color", "never", "."],
         tools, with_stderr=True, parse=_parse_ty, label="type error(s):",
-        ok=f"every expression typechecks under ty {TY_VERSION}, all rules at error")
+        ok=f"every expression typechecks under ty {TY_VERSION}{held}")
 
 
 def _run_ruff(rep: Reporter, root: Path) -> None:

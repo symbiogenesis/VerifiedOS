@@ -370,6 +370,33 @@ shares the host's uv and the WSL guest's uv, so both binaries change with the
 manifest, and a checkout whose manifest still names the old pin stops until it
 takes the move.
 
+The manifest's `exclude-newer = "3 days"` is a release cooldown: a resolution admits
+only files uploaded more than three days before it runs, so a release has that long
+to be reported or yanked before the lock can take it. [uv.lock](uv.lock)'s
+`[options]` records the span as `exclude-newer-span = "P3D"`, beside a placeholder
+timestamp uv marks as having no effect, and never a date taken from the clock.
+`uv lock --check` and each bootstrap's `uv run --locked` compare that span with the
+manifest's and do not hold locked releases against the current date, so the
+lockfile does not churn as days pass, and `uv lock` without `--upgrade` leaves it
+byte-identical. The cooldown acts when uv resolves again, after an upgrade, a changed
+pin or dependency, or a changed cooldown setting: a locked release the cutoff excludes
+is then replaced by the newest release it admits, even an older one.
+
+`[tool.uv.exclude-newer-package]` grandfathers the locked releases that were younger
+than the cooldown when it was adopted. Its entries exist only to keep that lock valid
+under such a resolution, and each also holds its package at the locked release until
+the entry is deleted. An entry's cutoff is the first whole second after the upload of
+its release's last file: uv compares each file's upload time at the index's
+microsecond precision, and a cutoff copied from uv.lock's millisecond `upload-time`
+excludes a file uploaded within that millisecond and silently drops it from the lock.
+An entry can be deleted once its release has aged past the cooldown, three days after
+its cutoff: filelock's after 2026-10-02T23:04:06Z, platformdirs's after
+2026-10-02T18:27:57Z and virtualenv's after 2026-10-02T20:25:32Z. After deleting one
+from the manifest, `uv lock --project tools` must remove only that package's line
+from uv.lock's `[options.exclude-newer-package]`, and the table's header with its
+last line, leaving every `[[package]]` entry byte-identical; a changed package means
+the entry went before its date.
+
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
 configuration for the manual install. The project keeps `python-downloads = "never"`,
@@ -863,9 +890,10 @@ The Python project lives in `tools/`. From the repository root, add a dependency
 with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run
 `uv lock --project tools`. After changing pins, run
 the Windows and Linux gates. Review and commit the manifest and lockfile together.
-To refresh resolution within the declared constraints, use
-`uv lock --project tools --upgrade`. Normal commands synchronize each checkout on
-its next invocation, so no manual reinstall window exists across worktrees or OSes.
+To refresh resolution within the declared constraints and the
+[release cooldown](#running-them), use `uv lock --project tools --upgrade`. Normal
+commands synchronize each checkout on its next invocation, so no manual reinstall
+window exists across worktrees or OSes.
 
 The manifest sets `no-build = true`, so uv installs published wheels only and
 refuses a package that would need a source build instead of running its build
@@ -918,8 +946,11 @@ every commit to the repository.
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
 the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
 nobody transcribed. The gate also passes `--error all`, which overrides the `[rules]`
-table, so lowering an entry of that table cannot lower what the gate enforces; an
-`[[overrides]]` table would, and none is carried. What ruff is *not*
+table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself: a `[rules]`
+table other than exactly `all = "error"` is a ty finding, because an editor's ty
+server reads that table without the flag, and so is an `[[overrides]]` entry carrying
+`rules`, because such an entry would lower the flag's severities for the files it
+matches. An unreadable ty.toml is a finding too. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The type gate's own seams: the parses, the version probe, and the crash contract.
+"""The type gate's own seams: the parses, the version probe, the crash contract, and
+the gate's reading of ty.toml.
 
 `typecheck.py` runs two pinned checkers and reduces their output to one verdict per
 tool. What is held here is everything that can be decided without the real checkers:
@@ -7,7 +8,9 @@ both concise-line parses against canned output, the per-rule summary's ordering 
 truncation, and, through a stub executable, the unified runner's wave-1 contract
 that a returncode outside (0, 1) is reported as a checker error even when findings
 parsed, because a checker that died partway has not cleared the files it never
-reached.
+reached. The ty.toml cases hold the settings the gate refuses: a `[rules]` table
+other than exactly `all = "error"`, an `[[overrides]]` entry carrying rules, and a
+file it cannot read.
 """
 
 import tempfile
@@ -240,6 +243,100 @@ def _pin_gate_refusals() -> None:
            f"an absent tool must name the uv remedy, got {absent.out!r}")
 
 
+# The ty.toml this tree carries, which the gate reads from the same place.
+_TY_TOML = Path(typecheck.__file__).resolve().parents[2] / "ty.toml"
+_ALL_ERROR = '[rules]\nall = "error"\n'
+
+
+def _settings(text: str | None) -> list[str]:
+    """`_ty_settings` over a ty.toml holding `text`, or over none at all."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        config = Path(td) / "ty.toml"
+        if text is not None:
+            config.write_text(text, encoding="utf-8", newline="")
+        return typecheck._ty_settings(config)
+
+
+def _ty_settings_admitted() -> None:
+    ensure(typecheck._ty_settings(_TY_TOML) == [],
+           f"the committed ty.toml must pass its own gate: {typecheck._ty_settings(_TY_TOML)!r}")
+    for text in (_ALL_ERROR,
+                 # An override that changes no severity is admitted.
+                 _ALL_ERROR + '\n[[overrides]]\ninclude = ["tests/**"]\n'):
+        ensure(_settings(text) == [], f"an admissible ty.toml was refused: {text!r}")
+
+
+def _ty_settings_refuse_rules() -> None:
+    # The table is held exactly: a lowered `all`, an entry beside it, and no table are
+    # each one finding, even the entry that restates what `all` already says.
+    for text, expected in (
+            ('[rules]\nall = "warn"\n', "sets [rules] to {'all': 'warn'}"),
+            (_ALL_ERROR + 'unresolved-import = "ignore"\n',
+             "'unresolved-import': 'ignore'"),
+            (_ALL_ERROR + 'unresolved-import = "error"\n',
+             "'unresolved-import': 'error'"),
+            ('[environment]\npython-version = "3.14"\n', "carries no [rules] table")):
+        found = _settings(text)
+        ensure(len(found) == 1 and expected in found[0]
+               and "exactly {'all': 'error'}" in found[0],
+               f"a [rules] table other than all = error must be one finding: {found!r}")
+
+
+def _ty_settings_refuse_overrides() -> None:
+    carrying = ('\n[[overrides]]\ninclude = ["vos/**"]\n'
+                '\n[[overrides]]\ninclude = ["tests/**"]\n'
+                '\n[overrides.rules]\nunresolved-import = "ignore"\n')
+    found = _settings(_ALL_ERROR + carrying)
+    ensure(len(found) == 1 and "[[overrides]] entry 2" in found[0]
+           and "unresolved-import" in found[0] and "tests/**" in found[0],
+           f"an override carrying rules must be named by its entry: {found!r}")
+    # The gate holds the shape, not the severity: an override carrying rules is
+    # refused even when every rule it names stays at error.
+    raised = _settings(_ALL_ERROR + '\n[[overrides]]\ninclude = ["x/**"]\n'
+                       '\n[overrides.rules]\nall = "error"\n')
+    ensure(len(raised) == 1 and "entry 1" in raised[0],
+           f"any override carrying rules must be refused: {raised!r}")
+    for text in ('overrides = "tests"\n' + _ALL_ERROR,
+                 _ALL_ERROR + '\n[overrides]\ninclude = ["tests/**"]\n'):
+        shaped = _settings(text)
+        ensure(len(shaped) == 1 and "must be an array of tables" in shaped[0],
+               f"an overrides value of another shape must be refused: {shaped!r}")
+    both = _settings('[rules]\nall = "warn"\n' + carrying)
+    ensure(len(both) == 2, f"each refused half must be its own finding: {both!r}")
+
+
+def _ty_settings_fail_closed() -> None:
+    for text in (None, "[rules\nall = \"error\"\n"):
+        found = _settings(text)
+        ensure(len(found) == 1 and "cannot be read" in found[0],
+               f"an absent or malformed ty.toml must be a finding: {found!r}")
+
+
+def _ty_settings_reported_beside_the_run() -> None:
+    # The refusal is a ty finding in the gate's own report, and the checker still runs.
+    for text, refused in ((_ALL_ERROR, False), ('[rules]\nall = "warn"\n', True)):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "ty.toml").write_text(text, encoding="utf-8", newline="")
+            with patch.object(typecheck, "_run_checker") as checker:
+                typecheck._run_ty(rep, root)
+        ensure(checker.call_count == 1, "the checker must run whatever the settings say")
+        joined = "\n".join(rep.out)
+        claims = str(checker.call_args.kwargs["ok"]).endswith("all rules at error")
+        if refused:
+            ensure(rep.findings == 1
+                   and "FAIL ty: 1 ty.toml setting(s) the gate refuses:" in joined,
+                   f"a refused setting must fail the gate under ty: {rep.out!r}")
+            ensure(not claims, "a clean run beside refused settings must not claim "
+                               "every rule ran at error")
+        else:
+            ensure(rep.findings == 0 and rep.out == [],
+                   f"an admitted ty.toml must add nothing to the report: {rep.out!r}")
+            ensure(claims, "a clean run under admitted settings claims every rule at error")
+
+
 def cases() -> list[Case]:
     return [
         Case("parse-ty", _parse_ty),
@@ -256,4 +353,9 @@ def cases() -> list[Case]:
         Case("failed-check-requires-a-diagnostic",
              _failed_check_requires_a_diagnostic, lane="host"),
         Case("pin-gate-refusals", _pin_gate_refusals, lane="host"),
+        Case("ty-settings-admitted", _ty_settings_admitted),
+        Case("ty-settings-refuse-rules", _ty_settings_refuse_rules),
+        Case("ty-settings-refuse-overrides", _ty_settings_refuse_overrides),
+        Case("ty-settings-fail-closed", _ty_settings_fail_closed),
+        Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
     ]
