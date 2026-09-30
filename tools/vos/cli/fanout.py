@@ -78,14 +78,14 @@ def _exclusive(root: Path) -> Iterator[None]:
             stream.flush()
         stream.seek(0)
         if sys.platform == "win32":
-            import msvcrt  # noqa: PLC0415 (platform-specific lock)
+            import msvcrt
 
             try:
                 msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
             except OSError as err:
                 raise ValueError("another fanout command owns this integration checkout") from err
         else:
-            import fcntl  # noqa: PLC0415 (platform-specific lock)
+            import fcntl
 
             try:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
