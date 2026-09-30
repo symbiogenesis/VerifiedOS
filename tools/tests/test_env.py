@@ -267,6 +267,32 @@ def _hoisted_lane_constants() -> None:
         "VOS_BUILD_ROOT set after import must win, like every other override here"))
 
 
+def _oracle_tree_keys_the_edition() -> None:
+    """The shared oracle tree is named for its pin and filed under the Sail edition.
+
+    The upstream Makefile regenerates C only when the Sail sources change, so a tree
+    kept across a lock change would answer with the earlier compiler's emulator. The
+    edition sits in a parent directory, and the tree's own name still ends in the pin,
+    which is where the pin checks read it.
+    """
+    build = Path("/root/build")
+    e = env.Environment(Path("/repo"), Path("/repo/model"), build, Path("/root/logs"),
+                        "lanex", 4, 4096, 2, 2)
+    edition = build / f"sail-{env.SAIL_VERSION}"
+    ensure(env.oracle_tree(build) == edition / env.ORACLE_TREE,
+           f"the tree sits under its edition, got {env.oracle_tree(build)}")
+    with_env("VOS_ORACLE_ROOT", None, lambda: with_env("VOS_ORACLE", None, lambda: ensure(
+        e.oracle_root == edition / env.ORACLE_TREE
+        and e.oracle == edition / env.ORACLE_TREE / "c_emulator" / "cheri_riscv_sim_RV64",
+        f"every lane reads the one edition-keyed tree, got {e.oracle_root}")))
+    with_env("VOS_ORACLE_ROOT", "/elsewhere/tree", lambda: with_env("VOS_ORACLE", None,
+        lambda: ensure(e.oracle_root == Path("/elsewhere/tree")
+                       and e.oracle.parent.parent == Path("/elsewhere/tree"),
+                       "VOS_ORACLE_ROOT still names the tree outright")))
+    with_env("VOS_ORACLE", "/elsewhere/sim", lambda: ensure(
+        e.oracle == Path("/elsewhere/sim"), "VOS_ORACLE still names the simulator outright"))
+
+
 def _install_recipes_compose() -> None:
     """A recipe is argv and the sentence is composed from it, never the other way.
 
@@ -452,6 +478,7 @@ def cases() -> list[Case]:
         Case("refuses-win32", _refuses_win32, lane="host"),
         Case("hoisted-lane-constants", _hoisted_lane_constants),
         Case("install-recipes-compose", _install_recipes_compose),
+        Case("oracle-tree-keys-the-edition", _oracle_tree_keys_the_edition),
         Case("lane-shapes", _lane_shapes),
         Case("lane-override", _lane_override),
         Case("lane-roots-compose", _lane_roots_compose),

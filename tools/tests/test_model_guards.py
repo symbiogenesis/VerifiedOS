@@ -5,7 +5,7 @@ import argparse
 import io
 import subprocess
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -215,6 +215,67 @@ def _identity_binds_only_opened_gitlinks() -> None:
                 raise AssertionError("an identity without the oracle's gitlink was accepted")
 
 
+def _oracle_fixture(root: Path) -> Path:
+    """An oracle source with the two paths `cmd_oracle` requires before it builds."""
+    src = root / model.ORACLE_SRC
+    (src / "sail-riscv" / "model").mkdir(parents=True)
+    (src / "Makefile").write_text("all:\n", encoding="utf-8")
+    return src
+
+
+def _run_oracle(e: env.Environment, sail: str | None, **stubs: object) -> tuple[int, list[list[str]]]:
+    """`cmd_oracle` with its lock, stages, copy and suite standing in, so what is held
+    is the command line and the tree it builds in rather than an upstream build."""
+    staged: list[list[str]] = []
+
+    def stage(name: str, argv: list[str], report_to: object = None, **kwargs: object) -> int:
+        staged.append(argv)
+        return 0
+
+    fake_env = SimpleNamespace(stage=stage, hold_lock=lambda target, what: io.StringIO(),
+                               git_env=env.git_env)
+    version = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
+    fake_shutil = SimpleNamespace(which=lambda name: sail if name == "sail" else None)
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(model, "env", fake_env))
+        stack.enter_context(patch.object(model, "shutil", fake_shutil))
+        stack.enter_context(patch.object(
+            model, "subprocess", SimpleNamespace(run=Mock(return_value=version))))
+        stack.enter_context(patch.object(model, "_oracle_suite", return_value=0))
+        for name, value in stubs.items():
+            stack.enter_context(patch.object(model, name, value))
+        stack.enter_context(redirect_stdout(io.StringIO()))
+        stack.enter_context(redirect_stderr(io.StringIO()))
+        try:
+            code = model.cmd_oracle(e, argparse.Namespace(resync=False, timeout=1))
+        except SystemExit:
+            code = 1
+    return code, staged
+
+
+def _oracle_binds_the_environments_sail() -> None:
+    """The oracle is built by the compiler the environment selects, into a tree filed
+    under that compiler's edition, and the log says which binary it was."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        e = _environment(root)
+        _oracle_fixture(root)
+        sail = "/root/.opam/verifiedos-sail-9.9.9-ocaml-5.4.1/bin/sail"
+        synced = Mock()
+        code, staged = _run_oracle(e, sail, _sync_oracle_tree=synced)
+        ensure(code == 0 and len(staged) == 1, f"the fixture build is green, got {code}")
+        ensure(f"SAIL={sail}" in staged[0],
+               f"make must be handed the environment's sail, got {staged[0]}")
+        ensure(synced.call_args.args[1] == e.oracle_root
+               and e.oracle_root.parent.name == f"sail-{env.SAIL_VERSION}",
+               f"the tree is the edition-keyed one, got {synced.call_args.args[1]}")
+        log = e.log("oracle-build").read_text(encoding="utf-8")
+        ensure(f"== sail: Sail 9.9.9 (fixture) at {sail}" in log,
+               f"the log names the version and the binary that built it, got {log!r}")
+        code, staged = _run_oracle(e, None, _sync_oracle_tree=synced)
+        ensure(code == 1 and not staged, "with no sail on PATH nothing is built")
+
+
 def _empty_sweep_is_refused() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         e = _environment(Path(td))
@@ -325,6 +386,7 @@ def cases() -> list[Case]:
             Case("reference-failure", _reference_failure), Case("stale-build", _stale_build),
             Case("proof-publication-keeps-build-identity", _proof_publication_keeps_build_identity),
             Case("identity-binds-only-opened-gitlinks", _identity_binds_only_opened_gitlinks),
+            Case("oracle-binds-the-environments-sail", _oracle_binds_the_environments_sail),
             Case("empty-sweep-refused", _empty_sweep_is_refused),
             Case("warm-test-corpus", _warm_test_corpus),
             Case("invalid-test-corpus-pin", _invalid_test_corpus_pin),

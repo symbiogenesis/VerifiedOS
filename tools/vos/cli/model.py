@@ -1052,8 +1052,16 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     The suite it then runs is the oracle's own acceptance and not the transplant's: it
     says the reference is a working machine before `trace-diff` is allowed to treat it
     as evidence.
+
+    The compiler is this environment's `sail`, bound twice. The tree sits under the
+    edition that builds it (`env.Environment.oracle_root`), because the Makefile's
+    generated C depends on the sources and not on the compiler; and `make` is handed
+    `SAIL` on its command line, which overrides the Makefile's own reading of opam's
+    current switch and with it the runtime library it compiles against, so the build
+    uses the compiler the log names.
     """
     _require("sail", SAIL_HOW)
+    sail = shutil.which("sail") or "sail"
     src = e.root / ORACLE_SRC
     if not (src / "Makefile").is_file():
         print(f"no oracle source at {src}; the submodule is not checked out",
@@ -1063,7 +1071,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     tree = e.oracle_root
     e.log_dir.mkdir(parents=True, exist_ok=True)
     log = e.log("oracle-build")
-    version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
+    version = subprocess.run([sail, "--version"], capture_output=True, text=True, check=False)
 
     # The one tree every lane shares, so the lock sits beside it rather than in any
     # lane, and a second run, from this checkout or another, is refused rather than
@@ -1072,7 +1080,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     with env.hold_lock(tree, "an oracle build"):
         print(f"== log: {log}", flush=True)
         with log.open("w", encoding="utf-8") as handle:
-            handle.write(f"== sail: {version.stdout.strip()}\n")
+            handle.write(f"== sail: {version.stdout.strip()} at {sail}\n")
             handle.write(f"== tree: {tree}\n")
             if args.resync or not (tree / "Makefile").is_file():
                 handle.write(f"SYNC from {src}\n")
@@ -1082,7 +1090,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
                 handle.write("SYNC skipped: the tree is already present\n")
             handle.flush()
 
-            code = env.stage("oracle", ["make", "-j", str(e.jobs),
+            code = env.stage("oracle", ["make", "-j", str(e.jobs), f"SAIL={sail}",
                                         f"C_WARNINGS={ORACLE_CSTD}", ORACLE_TARGET],
                              cwd=tree, stdout=handle, stderr=handle)
             handle.write(f"BUILD_EXIT={code}\n")
