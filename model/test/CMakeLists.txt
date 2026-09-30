@@ -16,30 +16,38 @@ set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v512x64 "a968025ffd35fa9c
 # The listing an extracted suite is held to, which download_riscv_tests records
 # as <suite>.manifest beside a suite it has just extracted from a verified
 # tarball: the tarball's recorded SHA-256, then the SHA-256 and relative path of
-# every file in the suite, sorted by path. A symbolic link, or a name holding ";"
-# or "\" that the glob cannot hand back intact, is listed unhashed, and no
-# manifest is written holding one. Configure does not tell a FIFO or device node
-# from a file, and reading one can stall it, nor see a name holding "\" whose "/"
-# spelling names a file, since the glob folds the two together. The verified
-# riscv-tests tarball contains none of these, and the listing
-# tools/vos/cli/model.py renders for the readers that do not configure refuses
-# each.
+# every file in the suite, sorted by path. A symbolic link is listed unhashed,
+# and a name the glob cannot hand back intact leaves at least one unhashed line:
+# every name holding ";", and one holding "\" whose "/" spelling names no file
+# (see the loop below). No manifest is written holding an unhashed line.
+# Configure does not tell a FIFO or device node from a file, and reading one can
+# stall it, nor see a name holding "\" whose "/" spelling names a file, since
+# the glob folds the two into one entry. The verified riscv-tests tarball
+# contains none of these, and the listing tools/vos/cli/model.py renders for the
+# readers that do not configure refuses each.
 function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
     set(listing "tarball ${TARBALL_NAME}.tar.gz sha256 ${EXPECTED_SHA256}\n")
     file(GLOB_RECURSE entries LIST_DIRECTORIES false RELATIVE "${SUITE}" "${SUITE}/*")
     list(SORT entries)
+    set(previous "")
     foreach(entry IN LISTS entries)
         # A name holding ";" arrives split at it, or whole where brackets
-        # enclose it, and one holding "\" arrives with "/" in its place, so an
-        # entry naming no file, or holding either character, is listed unhashed
-        # rather than read.
+        # enclose it, and one holding "\" arrives with "/" in its place. The
+        # piece before a name's first ";" is cut from a path under directories
+        # the glob walked, so it names nothing, a directory, or an entry the
+        # glob also lists, which sorting puts beside it. An entry naming no
+        # file, holding either character, or repeating the one before it is
+        # therefore listed unhashed rather than read, and every split name
+        # leaves at least one such line.
         if(IS_SYMLINK "${SUITE}/${entry}" OR IS_DIRECTORY "${SUITE}/${entry}"
-                OR NOT EXISTS "${SUITE}/${entry}" OR entry MATCHES "[;\\]")
+                OR NOT EXISTS "${SUITE}/${entry}" OR entry MATCHES "[;\\]"
+                OR entry STREQUAL previous)
             string(APPEND listing "unhashed ${entry}\n")
         else()
             file(SHA256 "${SUITE}/${entry}" digest)
             string(APPEND listing "${digest}  ${entry}\n")
         endif()
+        set(previous "${entry}")
     endforeach()
     set(${OUT_VAR} "${listing}" PARENT_SCOPE)
 endfunction()

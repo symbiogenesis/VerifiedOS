@@ -20,10 +20,12 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 import threading
 from collections.abc import Callable
@@ -763,6 +765,132 @@ def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
                             partial(_end_of_file, fifo))
         ensure("non-regular" in said, f"the suite is refused, got {said!r}")
 
+# The model's own declaration, whose two suite functions the case below cuts out and runs
+# under cmake, so what it holds is what configure runs rather than a copy of it.
+_SUITE_CMAKE = TOOLS.parent / "model/test/CMakeLists.txt"
+_SPLIT = {"a;b": b"split", "a": b"A", "b": b"B"}
+
+
+def _cmake(work: Path, body: str, digest: str = _CORPUS_DIGEST) -> subprocess.CompletedProcess[str]:
+    """`body` under `cmake -P`, after `riscv_tests_listing` and `download_riscv_tests`
+    and with `digest` recorded for riscv-tests at the fixture release."""
+    text = _SUITE_CMAKE.read_text(encoding="utf-8")
+    functions = [re.search(rf"^function\({name} .*?^endfunction\(\)\n", text,
+                           re.MULTILINE | re.DOTALL)
+                 for name in ("riscv_tests_listing", "download_riscv_tests")]
+    ensure(all(functions), f"{_SUITE_CMAKE} must define both suite functions")
+    script = work / "suite.cmake"
+    script.write_text(f'set(TEST_DOWNLOAD_VERSION "{_RELEASE}")\n'
+                      f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-tests "{digest}")\n'
+                      + "".join(found.group(0) for found in functions if found) + body,
+                      encoding="utf-8", newline="")
+    return subprocess.run(["cmake", "-P", str(script)], capture_output=True, text=True,
+                          errors="replace", check=False, timeout=300)
+
+
+def _cmake_listing(work: Path, suite: Path) -> bytes:
+    """The listing `riscv_tests_listing` renders for `suite`."""
+    out = work / "listing.out"
+    done = _cmake(work, f'riscv_tests_listing("{suite}" "riscv-tests" "{_CORPUS_DIGEST}" '
+                        f'listing)\nfile(WRITE "{out}" "${{listing}}")\n')
+    ensure(done.returncode == 0, f"the listing runs, said {done.stderr[-400:]!r}")
+    return out.read_bytes()
+
+
+def _suite_of(where: Path, files: dict[str, bytes]) -> Path:
+    suite = where / "riscv-tests"
+    for name, data in files.items():
+        (suite / name).parent.mkdir(parents=True, exist_ok=True)
+        (suite / name).write_bytes(data)
+    return suite
+
+
+def _cmake_suite_listing() -> None:
+    """The suite functions configure runs, run by cmake. A clean suite lists the bytes
+    `corpus_listing` renders. A name holding ";" leaves an unhashed line however the
+    list splits it: whole inside brackets, into pieces naming nothing, or into pieces
+    that are themselves listed files. Configure keeps a clean suite beside its manifest
+    and removes one holding a split name even beside a manifest recording its listing
+    exactly; a verified tarball extracting a clean suite writes the manifest
+    `corpus_listing` renders, and one extracting a split name writes none; and a
+    download path the glob would read as a pattern is refused before anything in it is
+    touched. The download URL of a suite already standing is never fetched, so it is a
+    `file://` path that does not exist."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        work = Path(td).resolve()
+        clean = {"rv64ui-p-add": b"\x7fELF", "a0": b"zero", "a/b": b"nested",
+                 "a.c": b"dot", "a-b": b"dash", "k[1]": b"bracketed", "with space": b"sp"}
+        suite = _suite_of(work / "clean", clean)
+        ensure(_cmake_listing(work, suite) == _MODEL.corpus_listing(suite, _CORPUS_DIGEST),
+               "cmake lists a clean suite in the bytes corpus_listing renders")
+
+        def hashed(data: bytes, name: str) -> str:
+            return f"{hashlib.sha256(data).hexdigest()}  {name}\n"
+
+        head = f"tarball riscv-tests.tar.gz sha256 {_CORPUS_DIGEST}\n"
+        for name, files, want in (
+                ("bracketed", {"[;]": b"whole", "z": b"z"}, "unhashed [;]\n" + hashed(b"z", "z")),
+                ("absent-pieces", {"x;y": b"split", "z": b"z"},
+                 "unhashed x\nunhashed y\n" + hashed(b"z", "z")),
+                ("listed-pieces", _SPLIT,
+                 hashed(b"A", "a") + "unhashed a\n" + hashed(b"B", "b") + "unhashed b\n")):
+            got = _cmake_listing(work, _suite_of(work / name, files))
+            ensure(got == (head + want).encode(),
+                   f"the {name} name leaves its unhashed lines, got {got!r}")
+
+        absent = (work / "nowhere" / "riscv-tests.tar.gz").as_uri()
+        for name, files, kept in (("kept", clean, True), ("removed", _SPLIT, False)):
+            suite = _suite_of(work / name, files)
+            manifest = _MODEL.corpus_manifest(suite)
+            manifest.write_bytes(_cmake_listing(work, suite))
+            done = _cmake(work, f'download_riscv_tests("{suite.parent}" "riscv-tests" '
+                                f'"{absent}")\n')
+            said = " ".join((done.stdout + done.stderr).split())
+            again = "riscv-tests has no matching riscv-tests.manifest, downloading again"
+            if kept:
+                ensure(done.returncode == 0 and again not in said and suite.is_dir()
+                       and manifest.is_file(),
+                       f"control: configure keeps a clean suite beside its manifest, got "
+                       f"{done.returncode} and {said[-400:]!r}")
+            else:
+                ensure(done.returncode != 0 and again in said and absent in said
+                       and not suite.exists() and not manifest.exists(),
+                       f"configure removes a suite holding a split name and downloads it "
+                       f"again, got {done.returncode} and {said[-400:]!r}")
+
+        for name, files, extracts in (("fresh", clean, True), ("split", _SPLIT, False)):
+            tarball = work / f"{name}.tar.gz"
+            with tarfile.open(tarball, "w:gz") as archive:
+                for member, data in files.items():
+                    info = tarfile.TarInfo(member)
+                    info.size = len(data)
+                    archive.addfile(info, io.BytesIO(data))
+            digest = hashlib.sha256(tarball.read_bytes()).hexdigest()
+            (work / name).mkdir()
+            done = _cmake(work, f'download_riscv_tests("{work / name}" "riscv-tests" '
+                                f'"{tarball.as_uri()}")\n', digest)
+            said = " ".join(done.stderr.split())
+            manifest = _MODEL.corpus_manifest(work / name / "riscv-tests")
+            if extracts:
+                ensure(done.returncode == 0 and manifest.read_bytes()
+                       == _MODEL.corpus_listing(work / name / "riscv-tests", digest),
+                       f"a verified tarball's suite is recorded as corpus_listing renders "
+                       f"it, got {done.returncode} and {said[-400:]!r}")
+            else:
+                ensure(done.returncode != 0 and "a name the listing cannot hash" in said
+                       and not manifest.exists(),
+                       f"a tarball extracting a split name writes no manifest, got "
+                       f"{done.returncode} and {said[-400:]!r}")
+
+        suite = _suite_of(work / "dl[x]", {"rv64ui-p-add": b"\x7fELF"})
+        done = _cmake(work, f'download_riscv_tests("{suite.parent}" "riscv-tests" '
+                            f'"{absent}")\n')
+        said = " ".join(done.stderr.split())
+        ensure(done.returncode != 0 and "holds [, ], * or ?" in said
+               and (suite / "rv64ui-p-add").is_file(),
+               f"a download path holding a glob character is refused before its suite is "
+               f"touched, got {done.returncode} and {said[-400:]!r}")
+
 
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
 # reasons for the child and neither is style: the environment that names a checkout's
@@ -1036,4 +1164,9 @@ def cases() -> list[Case]:
              _listing_hashes_only_regular_descriptors),
         Case("listing-refuses-a-fifo-its-check-by-name-missed",
              _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
+
+        # Only where cmake is on PATH: the runner has no skipped verdict, and a case
+        # that returned without cmake would pass having decided nothing.
+        *([Case("cmake-suite-listing", _cmake_suite_listing, lane="guest")]
+          if shutil.which("cmake") else []),
     ]
