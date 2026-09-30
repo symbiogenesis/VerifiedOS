@@ -41,7 +41,7 @@ so a smaller runner needs a separate resource measurement.
 
 The gate job is a two-lane matrix, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
-RTL lint and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
+RTL lint, width check and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
 Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
 longer lane. One lane's failure does not cancel the other. Both lanes must pass to
 establish complete guest evidence; Host CI supplies no model, RTL or proof verdict.
@@ -79,6 +79,7 @@ python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --install-syst
 python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json"
 python3 tools/run.py model bundle --check
 python3 tools/run.py rtl lint
+python3 tools/run.py rtl widthcheck
 python3 tools/run.py rtl crosscheck
 ```
 
@@ -236,6 +237,10 @@ The pipeline runs the existing commands. In the model lane:
   from this generated multi-process campaign.
 - `python3 tools/run.py model bundle --check` compares the emitted model bundle.
 - `python3 tools/run.py rtl lint` checks the standalone authored and generated RTL.
+- `python3 tools/run.py rtl widthcheck` builds the scalar-width testbench from the
+  tracked `rtl/` packages and checks the frozen transport widths and every
+  store-rotation bit and lane. It reads no gitlink, so the lane still initializes no
+  submodule; the checks that read imported cores stay outside this pipeline.
 - `python3 tools/run.py rtl crosscheck` regenerates model vectors and compares RTL
   answers. Reusing old vectors is not part of this gate.
 

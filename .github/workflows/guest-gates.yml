@@ -369,6 +369,14 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl lint \
             2>&1 | tee "$VOS_LOG_DIR/rtl-lint.log"
 
+      - name: Check frozen RTL widths and store lanes
+        id: widthcheck
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 15
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl widthcheck \
+            2>&1 | tee "$VOS_LOG_DIR/rtl-widthcheck.log"
+
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
