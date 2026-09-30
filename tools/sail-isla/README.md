@@ -97,4 +97,6 @@ are advisory evidence, never a universal proof or a substitute for normal gates.
 No upstream source is vendored here. The optional fetched tools retain their own
 license files. See the repository's THIRD-PARTY.md for incorporation and license
 details. The local Rust driver, configuration, Sail wrappers and Python recipe are
-authored under the repository's Apache-2.0 terms.
+authored under the repository's Apache-2.0 terms. The Isla lock override and the
+driver's Cargo.lock are resolver-generated dependency metadata, neither authored
+nor upstream source, as the [copyright map](../../COPYRIGHT.md#the-map) states.
