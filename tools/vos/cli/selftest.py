@@ -1639,6 +1639,13 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- )uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f'{m[1]}"uses":{m[2]}')),
+    # The same line as an explicit key carrying a comment, the key on one line and the
+    # reference on the next: YAML reads the step unchanged, and only a census counting
+    # every explicit-key indicator, whatever follows it, sees the reference at all.
+    ("K-115", "a workflow action stated as an explicit key with a trailing comment",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^([ \t]*)- uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
+                  lambda m: f"{m[1]}- ? uses # the action\n{m[1]}  :{m[2]}")),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
     ("K-115", "an action row that names no action a workflow runs",
@@ -1653,9 +1660,9 @@ CASES: list[Case] = [
      _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
 
-    # A development-tool row moved to a release its lock does not fix, the drift that
-    # once left filelock's row a release behind: the release is extended rather than
-    # spelled, so the case survives every reviewed bump.
+    # A development-tool row moved to a release its lock does not fix, the drift a row
+    # edited without its owner leaves: the release is extended rather than spelled, so
+    # the case survives every reviewed bump.
     ("K-118", "a development-tool row stating a release its lock does not fix",
      _first_match(THIRD_PARTY, r"filelock `(\d[^`]*)`", lambda m: f"filelock `{m[1]}.1`")),
     # The other direction, which no reader of the record can see: the lock moves and
@@ -1668,6 +1675,28 @@ CASES: list[Case] = [
     ("K-118", "an opam snapshot release its development-tool row does not state",
      _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
                   lambda m: f'"zarith.{m[1]}.1"')),
+    # A licence reading's tag list gains a tag in a form the list's reading cannot take:
+    # every other tag still agrees with the switches, so only a list read item by item,
+    # with an unreadable item a finding, keeps the row from passing over it unread.
+    ("K-118", "a development-tool tag list naming a tag its reading cannot take",
+     _first_match(THIRD_PARTY, r"byte-identical at the `", lambda m: f"{m[0]}rocq-9.0.0`, `")),
+    # A workflow analyzer's licence link moved to a tag the lock does not install while
+    # its bold release stays: the release the terms were read at and the link to them
+    # now disagree, and only a site reading the tag holds the link at all.
+    ("K-118", "a workflow analyzer's licence tag its lock does not install",
+     _first_match(THIRD_PARTY, r"(zizmorcore/zizmor/blob/v)(\d[^/]*)(/LICENSE)",
+                  lambda m: f"{m[1]}{m[2]}.1{m[3]}")),
+    # A held row gains a release in an opam identifier's spelling, which no site reads:
+    # only a census reading a release after its package name's dot sees it at all.
+    ("K-118", "a development-tool row stating an opam identifier's release no site reads",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `coq-simple-io.1.10.0`.")),
+    # A declared row nothing here owns gains a second release in its licence link text,
+    # so the row no longer says which release its terms were read at.
+    ("K-118", "a declared development-tool row stating two releases",
+     _first_match(THIRD_PARTY, r"\[v(\d[^ \]]*)( LICENSE\]\(https://github\.com/cli/cli/)",
+                  lambda m: f"[v{m[1]}.1{m[2]}")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
