@@ -56,18 +56,19 @@ Hashes identify the downloaded bytes; the licenses govern their use. Dependency 
 
 ### Post-quantum validation inputs
 
-The authored [ML-KEM](proofs/campaigns/mlkem_vectors.py) and [ML-DSA](proofs/campaigns/mldsa_vectors.py) campaigns pin official NIST ACVP inputs at revision `975de31eb83d87039ec88934fdc47d8c312b892d` and individual file hashes. They verify cached and downloaded bytes and retain the complete notice described under [validation vectors](#validation-vectors-and-quoted-literals). The selected source's own README grants use, copying and distribution with notice and attribution. Only campaign code and the notice are tracked; no NIST implementation is incorporated.
+The authored [ML-KEM](proofs/campaigns/mlkem_vectors.py) and [ML-DSA](proofs/campaigns/mldsa_vectors.py) campaigns fetch official NIST ACVP inputs at revision `975de31eb83d87039ec88934fdc47d8c312b892d` through [the pin owner](tools/vos/acvp.py), which holds that revision and each file's SHA-256 and refuses cached or downloaded bytes that differ. The campaigns retain the complete notice described under [validation vectors](#validation-vectors-and-quoted-literals). The selected source's own README grants use, copying and distribution with notice and attribution. Only campaign code and the notice are tracked; no NIST implementation is incorporated.
 
 The [boot-signature C campaign](firmware/crypto/README.md) uses the same ACVP
 revision's SLH-DSA-FIPS205 and ML-DSA-FIPS204 verification inputs. Its selected
-README notice was re-read on 2026-09-25 before use. The driver pins each file's
-SHA-256, retains the complete notice and acknowledges NIST. Test data remain
-unmodified native build inputs. The C verifiers are authored separately from
-the FIPS algorithms and local Gallina reference; no upstream implementation is
-copied. The independent comparison also uses the installed OpenSSL oracle below.
-The tracked offline positive fixtures contain public keys and signatures generated
-for authored messages with that oracle, with their recipe and producer identities;
-they contain neither private keys nor downloaded ACVP data.
+README notice was re-read on 2026-09-25 before use. The driver fetches each file
+through the same pin owner, retains the complete notice and acknowledges NIST.
+Test data remain unmodified native build inputs. The C verifiers are authored
+separately from the FIPS algorithms and local Gallina reference; no upstream
+implementation is copied. The independent comparison also uses the installed
+OpenSSL oracle below. The tracked offline positive fixtures contain public keys
+and signatures generated for authored messages with that oracle, with their
+recipe and producer identities; they contain neither private keys nor downloaded
+ACVP data.
 
 The separate OpenSSL 3.5.5 comparisons use the installed Ubuntu `3.5.5-1ubuntu3.5` ARM64 default provider. The release's own LICENSE.txt at tag-resolved commit `67b5686b4419b4cb8caa502711c41815f5279751` and installed package copyright were read. Application and package terms are Apache-2.0; an unused bundled Perl template entry has its own Artistic/GPL alternatives. Receipts hash the actual executable, libraries and package notice rather than asserting that the distribution binary equals an upstream build. No OpenSSL implementation or binary is copied or distributed here. These are functional comparisons, not admission of another proof foundation.
 
@@ -145,10 +146,16 @@ Fiat-Crypto retains the edition used to generate the incorporated field headers.
 The development tip read on 2026-09-29 needs Stdlib 9.1 or later, the first
 release carrying the `Zmod` library its arithmetic now uses. Its version-pinned
 CI jobs build it with Rocq 9.2.0 and its Docker job with Rocq master; a build
-with the locked Rocq 9.3.0 and Stdlib 9.2.0 is unmeasured. The tip changes
-proofs and nested dependencies, restating the Montgomery arithmetic and the
-operation specifications over `Zmod`, and leaves `fiat-c/` and the synthesis
-and printing sources unchanged. No fix to the consumed field outputs was
+with Rocq 9.3.0 and Stdlib 9.2.0, the editions
+[the Rocq lock](tools/opam/rocq.lock) fixed when the tip was read, is
+unmeasured. The tip changes proofs and nested dependencies, restating the
+Montgomery arithmetic and the operation specifications over `Zmod`. It leaves
+`fiat-c/`, `src/PushButtonSynthesis/` and `src/Stringification/` unchanged. It
+does modify the bedrock2 backend's synthesis and printing sources under
+`src/Bedrock/Field/`, namely `Synthesis/New/`, `Synthesis/Examples/` and
+`Stringification/Stringification.v`, all in paths the
+[recorded emission](docs/implementation/fiat-crypto-emission.md) skips by
+building with `SKIP_BEDROCK2=1`. No fix to the consumed field outputs was
 identified, and whether the tip emits the same raw bytes is unmeasured.
 Advancing the pin requires a separate isolated generator build, repeated
 emissions, vector checks and independent replay with regenerated provenance.
@@ -211,8 +218,8 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/sail-cheri-riscv-verif` | `CTSRD-CHERI/sail-cheri-riscv-verif` | `4da8fd10` | `BSD-2-Clause` | Source of [the transcribed property suite](model/model/unit_tests/cap_properties.sail), checked by `run.py model smt` at the frozen widths. No tool opens this pin; Isla is not installed. | read |
 | `upstream/TestRIG` | `CTSRD-CHERI/TestRIG` | `70717956` | `BSD-2-Clause` | `LICENSE` reviewed at the pin. Its `RVFI-DII.md` informs [the local protocol codec](tools/vos/rvfi.py). The upstream engine is TestRIG's own submodule; no build here uses this pin. | read |
 | `upstream/fiat-crypto` | `mit-plv/fiat-crypto` | `e6946985` | `MIT OR Apache-2.0 OR BSD-1-Clause`; this project elects `Apache-2.0` under `COPYRIGHT` | Classical field-arithmetic generator. The recorded derivation at this pin emits the tracked 32-bit 25519 and P256 inclusion headers; the generator and its dependencies remain external build inputs. | generated field headers incorporated |
-| `upstream/hacl-star` | `hacl-star/hacl-star` | `504c2987` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage for classical primitives, among them SHA-2, SHA-3, HMAC, HKDF, ChaCha20-Poly1305, AES-GCM and the Curve25519, Ed25519, P256 and secp256k1 curves. Its only post-quantum code is FrodoKEM; it carries no ML-KEM, ML-DSA or SLH-DSA. No differential run, build, copying, or extraction occurs here. | pinned to read later |
-| `upstream/libjade` | `formosa-crypto/libjade` | `60b9e9dd` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. Its primitives sit under `oldsrc-should-delete/`: SHA-2, SHA-3, SHAKE, ChaCha, Salsa20, Poly1305, Kyber512, Kyber768, ML-KEM-768, X-Wing, round-3 Dilithium and Falcon-512 verification, with Curve25519 in the nested `formosa-25519`; none is ML-KEM-1024 or ML-DSA-87. Every implementation targets AMD64 only, so a differential run needs an x86-64 machine, not the aarch64 guest. The nested `formosa-mlkem` submodule has an SSH URL: initialize this pin non-recursively, or pass `-c url.https://github.com/.insteadOf=git@github.com:` to a recursive fetch without SSH credentials. | pinned to read later |
+| `upstream/hacl-star` | `hacl-star/hacl-star` | `504c2987` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage for classical primitives, among them SHA-2, SHA-3, HMAC, HKDF, ChaCha20-Poly1305, AES-GCM, X25519, Ed25519 signatures, P256 ECDSA and ECDH, and secp256k1 ECDSA. Its AES-GCM exists only as Vale assembly for x86-64 and ppc64le (`dist/gcc-compatible/aesgcm-*`), so the aarch64 guest cannot run that comparison. Its only post-quantum code is FrodoKEM; it carries no ML-KEM, ML-DSA or SLH-DSA. No differential run, build, copying, or extraction occurs here. | pinned to read later |
+| `upstream/libjade` | `formosa-crypto/libjade` | `60b9e9dd` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. Its primitives sit under `oldsrc-should-delete/`: SHA-2, SHA-3, SHAKE, ChaCha, Salsa20, Poly1305, Kyber512, Kyber768, ML-KEM-768, X-Wing, round-3 Dilithium and Falcon-512 verification, with Curve25519 in the nested `formosa-25519`. None is a conforming ML-KEM-1024 or an ML-DSA-87: the nested `formosa-mlkem` this pin selects carries `code/jasmin/1024/{ref,avx2,avx2_stack}` with `MLKEM_K = 4`, an unfinished port from K=3 whose key generation and encapsulation hash 1,184 of the 1,568 public-key bytes. Neither that repository's root nor those sources state a licence, and libjade's terms are not read as covering it, as [the reading of a later revision](docs/assurance/proof-reuse/crypto.md#formosa-ml-kem-correctness-and-ind-cca) also records. Every implementation targets AMD64 only, so a differential run needs an x86-64 machine, not the aarch64 guest. The nested `formosa-mlkem` submodule has an SSH URL: initialize this pin non-recursively, or pass `-c url.https://github.com/.insteadOf=git@github.com:` to a recursive fetch without SSH credentials. | pinned to read later |
 
 ### RTL license scope
 
@@ -480,8 +487,8 @@ The cryptography milestone distinguishes generated arithmetic, authored specific
 | --- | --- | --- |
 | Fiat-Crypto | [Pinned as a submodule](#pinned-as-submodules). Recorded generation at `e6946985` emits `tools/generated/fiat-crypto/25519_32.h` and `p256_32.h`; the [emission record](docs/implementation/fiat-crypto-emission.md) and manifest bind source and output. Historical build measurements describe a different revision. | Required classical field arithmetic, admitted by a recorded derivation. |
 | VST's `sha/` and `hmacdrbg/` | Reviewed, not acquired. The directories use BSD-2-Clause through `LICENSE` and `LICENSE-OPAM`; the project authors its own specifications. | SHA-256 and HMAC-DRBG-SHA-256 specifications, refinement proofs, and an FCF security proof. |
-| FIPS 202/203/204/205 and NIST ACVP known-answer vectors | Publication and immutable ACVP-source license reviewed. The tracked ML-KEM/ML-DSA and boot-signature campaigns pin fetched source hashes and retain the NIST notice; downloaded data remain native build inputs. | Validation inputs for authored primitives. |
-| Behavioral oracles | HACL* at `504c2987` and libjade at `60b9e9dd` remain [pinned leads](#pinned-as-submodules) for the primitives their rows list; neither carries ML-KEM-1024 or ML-DSA-87. The ML-KEM/ML-DSA independent campaigns execute installed OpenSSL 3.5.5; no upstream implementation is copied. | Independent functional comparisons, without claiming the unrun HACL*/libjade qualification. |
+| FIPS 202/203/204/205 and NIST ACVP known-answer vectors | Publication and immutable ACVP-source license reviewed. The tracked ML-KEM/ML-DSA and boot-signature campaigns fetch through [one pin owner](tools/vos/acvp.py) holding each source hash and retain the NIST notice; downloaded data remain native build inputs. | Validation inputs for authored primitives. |
+| Behavioral oracles | HACL* at `504c2987` and libjade at `60b9e9dd` remain [pinned leads](#pinned-as-submodules) for the primitives their rows list; neither carries a conforming ML-KEM-1024 or an ML-DSA-87, libjade's nested K=4 port being unfinished. The ML-KEM/ML-DSA independent campaigns execute installed OpenSSL 3.5.5; no upstream implementation is copied. | Independent functional comparisons, without claiming the unrun HACL*/libjade qualification. |
 
 #### Fiat-Crypto
 
@@ -515,7 +522,7 @@ Authored specifications do not replace VST's refinement proof to C or the `hmacf
 
 **NIST ACVP.** `usnistgov/ACVP-Server` at `975de31e` states its terms in `README.md`, with no standalone license file. Its notice permits use, copying, modification, and distribution, subject to retaining the full notice, identifying the date and nature of changes, and acknowledging NIST. It states no field-of-use or non-commercial restriction.
 
-The corpus is under `gen-val/json-files/`. The [ML-KEM campaign](proofs/campaigns/MLKEM-README.md) and [ML-DSA campaign](proofs/campaigns/mldsa-reference.md) fetch only their pinned official files at `975de31eb83d87039ec88934fdc47d8c312b892d`, verify each SHA-256 before use and retain the complete README notice. The [quoted NIST notice](proofs/campaigns/mldsa-reference.md#nist-vector-notice) governs this test data; original campaign code is authored separately. NIST is acknowledged and test values are unmodified. Downloads, extracted implementations and generated test keys remain ignored native outputs, not redistributed source.
+The corpus is under `gen-val/json-files/`. The [ML-KEM campaign](proofs/campaigns/MLKEM-README.md) and [ML-DSA campaign](proofs/campaigns/mldsa-reference.md) fetch only the official files [the pin owner](tools/vos/acvp.py) holds at that revision, verify each SHA-256 before use and retain the complete README notice. The [quoted NIST notice](proofs/campaigns/mldsa-reference.md#nist-vector-notice) governs this test data; original campaign code is authored separately. NIST is acknowledged and test values are unmodified. Downloads, extracted implementations and generated test keys remain ignored native outputs, not redistributed source.
 
 **FIPS 202.** [Keccak.v](proofs/Keccak.v) records known answers and intermediate values from `XKCP/XKCP` at `eb5244d6`, reviewed on 2026-08-31 under `tests/TestVectors/`. [The XKCP review](#xkcp) below records the scope question for those literals. The NIST genKAT harness's authorship does not establish terms for its output.
 

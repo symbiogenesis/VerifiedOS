@@ -81,10 +81,11 @@ do not execute the RoT hart or the main-die handoff.
 
 Downloads stay in the native lane with pinned hashes and complete source
 notices. The NIST ACVP source is revision
-`975de31eb83d87039ec88934fdc47d8c312b892d`; its README notice grants use and
-copying with attribution and the notice retained. No NIST or OpenSSL
-implementation is incorporated. [THIRD-PARTY.md](../../THIRD-PARTY.md) records
-the source/license boundary. The receipt binds source bytes before and after
+`975de31eb83d87039ec88934fdc47d8c312b892d`, which
+[the pin owner](../../tools/vos/acvp.py) holds with each fetched file's SHA-256;
+its README notice grants use and copying with attribution and the notice
+retained. No NIST or OpenSSL implementation is incorporated.
+[THIRD-PARTY.md](../../THIRD-PARTY.md) records the source/license boundary. The receipt binds source bytes before and after
 the run, the C compiler and executable, OpenSSL and its libraries, vector
 revision/digests and optional Gallina extraction. A workspace lock protects
 shared campaign files. Starting or failing a rerun replaces a previous passing
