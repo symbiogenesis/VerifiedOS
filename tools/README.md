@@ -865,10 +865,11 @@ its next invocation, so no manual reinstall window exists across worktrees or OS
 The manifest sets `no-build = true`, so uv installs published wheels only and
 refuses a package that would need a source build instead of running its build
 backend or requiring a compiler. The project itself is virtual and is never
-built. Each locked package therefore needs a pure-Python or CPython 3.14 wheel for
-every platform that synchronizes it: Windows ARM64 on the development host,
-Linux aarch64 in its WSL guest, and Windows x64 and Linux x86_64 on the CI runners.
-The x64 runners cannot reveal a missing Windows ARM64 wheel, so read a new
+built. Each locked package therefore needs a wheel CPython 3.14 can install
+(pure-Python, `py3-none` for the platform, or `cp314`) on every platform that
+synchronizes it: Windows ARM64 on the development host, Linux aarch64 in its WSL
+guest, and Windows x64 and Linux x86_64 on the CI runners.
+The x64 runners cannot reveal a missing ARM64 wheel, Windows or Linux, so read a new
 dependency's wheel list in [uv.lock](uv.lock) before committing it. Only requested
 groups are installed, so a non-default group without one platform's wheel is
 refused on that platform alone and the default synchronization is unaffected.
@@ -894,7 +895,11 @@ markdown-link-check looks for `.markdown-link-check.config` at the root, where t
 is none. Run the hooks only on named model files, from the checkout root and with
 the environment above:
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --files <paths>`,
-listing paths under `model/` outside `model/dependencies/`. The fixing hooks
+listing paths under `model/` outside `model/dependencies/`. That repairs the
+exclusion only: codespell still runs without `model/.codespellrc`, and
+markdown-link-check reports its configuration file inaccessible on every Markdown
+path, so set `SKIP=codespell,markdown-link-check` for such a run and read neither
+hook's result as upstream's verdict. The fixing hooks
 (trailing-whitespace, end-of-file-fixer, clang-format and prettier) rewrite the
 files they are given. Never pass `--all-files`, which selects every tracked file in
 the repository, and never run `pre-commit install`, which would run these hooks on
@@ -903,17 +908,18 @@ every commit to the repository.
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
 the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
-nobody transcribed. The gate also passes `--error all`, which overrides the table, so an
-edit that lowers an entry there cannot lower what the gate enforces. What ruff is *not*
+nobody transcribed. The gate also passes `--error all`, which overrides the `[rules]`
+table, so lowering an entry of that table cannot lower what the gate enforces; an
+`[[overrides]]` table would, and none is carried. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
-from each checked path, but ty discovers configuration from its working directory upward
-and the repository root carries none, so an editor's ty server reads ty.toml, and reaches
-the gate's severities, only with `tools/` open as a workspace folder. In VS Code, select
+from each checked path, but the ty CLI discovers configuration from its working directory
+upward and the repository root carries none, so open `tools/` as a workspace folder for an
+editor's ty server to read ty.toml and share the gate's severities. In VS Code, select
 the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules

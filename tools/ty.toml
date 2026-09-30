@@ -11,8 +11,9 @@
 # warnings or off by default. That is deliberate and it is what a pinned version
 # buys: the alternative is a list of opt-ins that silently stops growing the day
 # ty adds a rule nobody transcribed. The gate also passes `--error all`, which
-# overrides this table, so an edit that lowers or drops an entry here cannot lower
-# what the gate enforces. `tools/README.md` records the pin.
+# overrides this table, so lowering or dropping an entry here cannot lower what the
+# gate enforces; an `[[overrides]]` table would, and none is carried.
+# `tools/README.md` records the pin.
 
 [rules]
 all = "error"

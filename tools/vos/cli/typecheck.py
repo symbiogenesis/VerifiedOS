@@ -26,8 +26,9 @@ deciding it. A version other than the pinned one is a finding, not a warning.
 Every rule ty carries runs at error, including the ones it ships as warnings or
 switched off. `ty.toml` states that in its `[rules]` table, and it and `ruff.toml`
 hold the rest of the settings, so an editor's language server decides what this
-decides. The gate also passes ty `--error all`, which overrides the table, so an
-edit that lowers an entry there cannot lower what this enforces.
+decides. The gate also passes ty `--error all`, which overrides the `[rules]`
+table, so lowering an entry of that table cannot lower what this enforces; an
+`[[overrides]]` table would, and none is carried.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
