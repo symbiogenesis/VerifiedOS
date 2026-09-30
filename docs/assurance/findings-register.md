@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 824 of them across 140 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 829 of them across 141 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1104,6 +1104,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-519** owed-act: K-91's reader ends an `Example` at the next column-0 `Proof.`, so a `Proof using` line or a decorated `Example` fails K-91 for a wrong stated reason
 · Raised: Q38b
 · Disposition: open, Q38d
+
+**F-560** measurement: the proof reading's first `--objects` route certified an object older than a changed source as that source's meaning
+· Raised: Q38c
+· Disposition: closed at Q38c, only a passing compile read: the gate's, bound to its receipt's digests, or one the command makes
+
+**F-561** measurement: Rocq 9.3 names a universe-polymorphic constant's fresh `Check` levels after the query file and a process-wide counter, so a batched reading renames them
+· Raised: Q38c
+· Disposition: standing
+
+**F-562** measurement: under `Set Printing Universes`, About states template polymorphism with its levels and a Prop note, a sentence the CIC corpus exporter, which does not set the flag, never reads
+· Raised: Q38c
+· Disposition: standing
+
+**F-563** measurement: the proof reading's identity does not bind the installed library set, so two readings compare only when taken against one install
+· Raised: Q38c
+· Disposition: standing
+
+**F-564** measurement: two compiles of identical sources with identical flags gave different `ElasticDomain.vo` and `MemoryPlan.vo`, so an object digest is no reproducibility identity for those modules
+· Raised: Q38c
+· Disposition: standing
 
 ## M0 · Hardware reference
 

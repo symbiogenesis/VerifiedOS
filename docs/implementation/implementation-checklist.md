@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,151 |
-| Total estimate range h | 2,633.9–5,668.1 |
-| Completed scope h | 701.5 |
-| Complete by estimate % | 16.9 |
-| Remaining h | 3,449.5 |
-| Open class I h | 735.5 |
+| Total estimate midpoint h | 4,146.7 |
+| Total estimate range h | 2,632.6–5,660.8 |
+| Completed scope h | 705.2 |
+| Complete by estimate % | 17.0 |
+| Remaining h | 3,441.5 |
+| Open class I h | 727.5 |
 | Open class X h | 2,714 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,077.6 |
+| Calibrated total h | 5,075.6 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,039 |
+| Other committed open h | 2,031 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1093,9 +1093,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * The gate pins Rocq 9.3's unreported conversion flag and `Default Proof Using`, refuses the machine-bound tactical identifiers, and reads every head after the prefixes a sentence can carry, bullets, braces and quoted attributes among them. ([note](completion-log.md#q38a-close-the-gates-rocq-93-setting-gaps-and-its-prefix-blind-spots))
   * [x] **Q38b · Make the proof-source readers outside the gate refuse what they cannot read** · 3.3 h actual · agent-parallel
     * The apex, memory-plan, mutation, constant-table and corpus readers each read a declaration under an attribute, a locality or a control flag, or refuse it by name, and refuse a record completed from a base where they cannot read one; each one's reading of the live tree is unchanged. ([note](completion-log.md#q38b-make-the-proof-source-readers-outside-the-gate-refuse-what-they-cannot-read))
-  * [ ] **Q38c · Read the whole corpus's elaborated meaning for comparison** · 8 h, range 5–11 · I
-    * **Dispatch. Start:** the native receipt's inventory, the [statement freeze's](../assurance/proof-assistance.md#statement-freeze) query settings, and the CIC corpus exporter's query framing. The native receipt holds each constant's `Search` type and assumptions but no transparent body, opacity, universe or inductive declaration. The corpus exporter deletes the bodies it prints, and `proof-freeze` reads one target. So no instrument can show that an edit across many sources changed no elaborated meaning. **Owns:** a guest command outside the gate's import closure that, over a lane's passing compile, writes per module a reading of every constant the native inventory names, under `Set Printing All`, `Set Printing Universes` and the audit's depth and width: its `Check` type, its opacity and universe lines from `About` without locations, and `Print` output for each transparent constant and inductive, each query framed by a marker; a compare mode that exits nonzero and names every differing entry between two readings, set differences included; JSON output with a tracked schema; and tests with native controls. It implements no part of `proof-freeze`, whose contract stays open, and owns no proof source. **Check:** in the toolchain test lane, one leaf-module control each for a changed statement, a convertible and a non-convertible change to a transparent body, `Defined` turned into `Qed`, a removed symbol, a universe-polymorphic definition and swapped constructors: compare names each and nothing else. A comment edit, a changed opaque script and each 9.3 syntax rewrite of a transparent body show no difference. Two readings of the base compile are byte-identical; `run.py test --only` passes for the command's module on the host and in the guest; and Host CI passes. **Join:** every later source child, whose landing carries a base reading, a candidate reading and their comparison.
-    * **Estimate basis:** queries and framing 2–3 h, compare and schema 1–2 h, native controls 1.5–3 h, the base reading and review 0.5–3 h.
+  * [x] **Q38c · Read the whole corpus's elaborated meaning for comparison** · 3.7 h actual · agent-parallel
+    * `run.py proof-reading` reads every constant of a passing compile of the corpus, its type, its About less locations and each transparent body and inductive under `Set Printing All`, and compares two readings entry by entry. ([note](completion-log.md#q38c-read-the-whole-corpuss-elaborated-meaning-for-comparison))
   * [ ] **Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed** · 6.5 h, range 4–9 · I
     * **Dispatch. Start:** F-507 to F-511 and their probes in [Q38a's note](completion-log.md#q38a-close-the-gates-rocq-93-setting-gaps-and-its-prefix-blind-spots), and F-516 to F-519 in [Q38b's note](completion-log.md#q38b-make-the-proof-source-readers-outside-the-gate-refuse-what-they-cannot-read); the shared lexer in [proofs.py](../../tools/vos/proofs.py), the witness scan's keyword tables in [cli/proofs.py](../../tools/vos/cli/proofs.py), the pinned reading in [proofaudit.py](../../tools/vos/proofaudit.py), the readers Q38b changed, and K-91's Example reader in [keccak.py](../../tools/vos/checks/keccak.py). **Owns:** `strip_comments` reading a comment that holds no newline as one separator, as Rocq's lexer does; sentences split only outside string literals; `Remark`, `Proposition` and `Property` read as statements that quantify; `Load`, `Cd`, `Add LoadPath`, `Add Rec LoadPath`, `Declare ML Module` and `Ltac2 @ external` refused in proof sources before compilation; the decoration grammar that apex, memplan, mutate, consttab and the corpus exporter each spell beside `CONTROL_PREFIXES` read from one owner, with each reader's look-back for a decoration blanking strings as well as comments; mutate's region keywords covering `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`; K-91's reader ending an `Example` at its own full stop; the pinned lexing fixture in `test_gallina` restated at the new lexing; and host tests for each. It owns no proof source. **Check:** each finding's probe is refused or demanded, with a positive control; every consumer of the shared lexer reads the live tree exactly as at the base, among them the gate, `proofcites`, `proofsearch`, the corpus exporter, `admission`, `composer`, `wire_formats` and Q38b's readers; `run.py test --only` passes for those modules; `run.py selftest --rule` passes for each rule whose reader moves, with none survived or unseeded; Host CI passes; and Guest CI runs both lanes, its proofs lane taking the full recheck a change to the gate's identity forces. **Join:** every later source child.
     * **Estimate basis:** the lexer changes with the fixture 1–1.5 h, keyword tables and refusals with tests 1–2 h, the shared decoration grammar with its readers and K-91's reader 1–3 h, the consumer comparison and selftest runs 1–2 h, hosted dispatch 0–0.5 h.
@@ -1108,7 +1107,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,344.7 h · 56% · 111.7 h complete · open range 1,265–3,201 h.
+**Q subtotal:** 2,340.4 h · 56% · 115.4 h complete · open range 1,260–3,190 h.
 
 ### M0 · Hardware reference
 
@@ -1987,10 +1986,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 29 | 239 | 70.1 | 0.29 |
+| agent-parallel | I | 30 | 247 | 73.8 | 0.30 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 61 | 607.5 | 144.4 | 0.24 |
+| agent-parallel | All | 62 | 615.5 | 148.1 | 0.24 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2161,6 +2160,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q35e | X-read | 14 |
 | Q38a | I | 3 |
 | Q38b | I | 5 |
+| Q38c | I | 8 |
 | M0.20 | n/a | n/a |
 | M1.2a | X-read | 4 |
 | M1.2b | n/a | n/a |

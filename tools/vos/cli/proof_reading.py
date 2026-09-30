@@ -2,14 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """Read what every compiled proof constant elaborates to, and compare two readings.
 
-`record` reads a directory of compiled proof objects: by default the proof gate's
-staged compile in this lane, which must be the one its native receipt records as
-passed, or `--objects DIR` for a compile made elsewhere, such as a base revision's or
-a candidate's copied into a scratch directory of this lane and compiled with the
-gate's flags. For each module it enumerates the constants with the audit's own
-`Search`, then asks `Check` and `About` of every one and `Print` of each transparent
-constant and inductive, three prover processes per module, and writes one JSON
-reading that [proof-reading.schema.json](../../proof-reading.schema.json) describes.
+`record` reads a passing compile of the proof sources, and only one. By default it is
+the proof gate's staged compile in this lane, whose native receipt must record a
+passing run and names every staged source and object by digest. `--sources DIR`
+instead copies the proof sources in DIR, such as a base revision's or a candidate's,
+into a scratch directory of this lane and compiles them there as the gate does, so an
+object compiled anywhere else, stale or current, is never read as a source's meaning.
+For each module it enumerates the constants with the audit's own `Search`, then asks
+`Check` and `About` of every one and `Print` of each transparent constant and
+inductive, three prover processes per module, and writes one JSON reading that
+[proof-reading.schema.json](../../proof-reading.schema.json) describes.
 [vos/proofreading.py](../proofreading.py) states what the reading holds and the two
 normalizations it makes.
 
@@ -22,15 +24,17 @@ the set of modules `run.py proofs` imports, and none of them imports this one, s
 command can change without invalidating a cached proof object. It imports the audit's
 inventory and the gate's flags and workspace rather than restating them.
 
-**It changes nothing it reads.** Queries compile in a scratch directory of this lane,
-removed afterwards; the objects' and sources' digests are taken before and after and a
-change between the two refuses the reading, as does any prover diagnostic, a query
-answer larger than `--max-bytes` and anything the parse cannot place. A refused
-reading writes nothing.
+**It reads only what the compile made, and changes nothing it reads.** Every source
+and object in the directory must carry the digest the receipt, or the compile this
+command ran, recorded for it, when the read begins and again when it ends. Queries
+compile in a scratch directory of this lane, removed afterwards. Any prover diagnostic,
+a query answer larger than `--max-bytes` and anything the parse cannot place each
+refuse the reading, and a refused reading writes nothing.
 """
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -39,7 +43,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import cast
 
-from vos import env, proofaudit, proofreading, receipts
+from vos import env, proofaudit, proofreading, proofs, receipts
 from vos.cli import Table, dispatch, positive_int
 from vos.cli import proofs as proofs_cli
 from vos.corpus import find_root
@@ -119,11 +123,7 @@ def _prover() -> tuple[str, str]:
 
 
 def modules_in(objects: Path, named: list[str] | None = None) -> list[str]:
-    """The modules to read: every source the directory holds, or the ones named.
-
-    Each needs an object at least as new as its source, since an older one describes
-    a source this directory no longer holds.
-    """
+    """The modules to read: every source the directory holds, or the ones named."""
     present = sorted(path.stem for path in objects.glob("*.v"))
     chosen = sorted(set(named)) if named else present
     missing = sorted(set(chosen) - set(present))
@@ -133,11 +133,8 @@ def modules_in(objects: Path, named: list[str] | None = None) -> list[str]:
         raise proofreading.ReadingError(f"{objects} holds no proof source to read")
     for module in chosen:
         proofreading.check_module(module)
-        source, compiled = objects / f"{module}.v", objects / f"{module}.vo"
-        if not compiled.is_file():
+        if not (objects / f"{module}.vo").is_file():
             raise proofreading.ReadingError(f"{module}.v has no compiled object in {objects}")
-        if compiled.stat().st_mtime < source.stat().st_mtime:
-            raise proofreading.ReadingError(f"{module}.vo is older than {module}.v")
     return chosen
 
 
@@ -146,15 +143,22 @@ def _snapshot(objects: Path) -> dict[str, str]:
     return receipts.snapshot(objects, [*objects.glob("*.v"), *objects.glob("*.vo")])
 
 
-def gate_objects(root: Path) -> Path:
-    """The proof gate's staged compile, refused unless its native receipt passed it.
+def _scratch(root: Path, prefix: str) -> tempfile.TemporaryDirectory[str]:
+    """A directory of this lane's native build area, removed when it is closed."""
+    lane = env.lane_root(env.lane_of(root)) / "proof-reading"
+    lane.mkdir(parents=True, exist_ok=True)
+    return tempfile.TemporaryDirectory(prefix=prefix, dir=lane)
 
-    The receipt binds each staged source and object by digest, so the reading is
-    taken from exactly the compile the gate checked, and a lane whose last run failed
-    or whose objects have since moved has nothing this command may read by default.
+
+def gate_objects(root: Path) -> tuple[Path, dict[str, str]]:
+    """The proof gate's staged compile, and the digests its native receipt passed.
+
+    The receipt names each staged source among its inputs and each object among its
+    outputs, relative to the gate's workspace; they are returned relative to the staged
+    directory, where `record` holds the files to them. A lane whose last run failed, or
+    whose staged files have moved since the run that passed, has nothing to read.
     """
     work = proofs_cli.workspace(root)
-    objects = work / proofs_cli.PROOFS
     native = work / proofs_cli.RECEIPT
     try:
         loaded: object = json.loads(native.read_text(encoding="utf-8"))
@@ -166,32 +170,83 @@ def gate_objects(root: Path) -> Path:
     receipt = cast("dict[str, object]", loaded)
     if receipt.get("status") != "passed" or receipt.get("kernel_recheck") != "passed":
         raise proofreading.ReadingError(f"{native} records no passing proof run")
-    staged = sorted(objects.glob("*.v"))
-    inputs = receipt.get("inputs")
-    recorded = ({name: digest for name, digest in cast("dict[str, str]", inputs).items()
-                 if name.startswith(f"{proofs_cli.PROOFS}/")}
-                if isinstance(inputs, dict) else None)
-    if not staged or receipts.snapshot(work, staged) != recorded:
-        raise proofreading.ReadingError("the staged proof sources are not the ones the "
-                                        "native receipt passed")
-    compiled = receipts.snapshot(work, [path.with_suffix(".vo") for path in staged])
-    if compiled != receipt.get("outputs"):
-        raise proofreading.ReadingError("the staged proof objects are not the ones the "
-                                        "native receipt passed")
-    return objects
+    inputs, outputs = receipt.get("inputs"), receipt.get("outputs")
+    if not isinstance(inputs, dict) or not isinstance(outputs, dict):
+        raise proofreading.ReadingError(f"{native} names no inputs and outputs")
+    # The gate's own reading of its receipt: every input under the staged directory is
+    # a staged source, and every output is its object.
+    prefix = f"{proofs_cli.PROOFS}/"
+    recorded = {**cast("dict[str, str]", inputs), **cast("dict[str, str]", outputs)}
+    passed = {name.removeprefix(prefix): digest for name, digest in recorded.items()
+              if name.startswith(prefix)}
+    if not passed:
+        raise proofreading.ReadingError(f"{native} names no staged proof source")
+    return work / proofs_cli.PROOFS, passed
 
 
-def record(root: Path, objects: Path, named: list[str] | None, jobs: int,
-           bound: int = MAX_QUERY_BYTES) -> proofreading.Reading:
-    """One complete reading of the directory's modules, or a refusal."""
+def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
+    """Copy a directory's proof sources into `objects` and compile them as the gate does.
+
+    Only the sources are copied, so an object beside them is never read. A copy that
+    resets a setting the gate pins, or holds a module body the native inventory cannot
+    enumerate, refuses before anything compiles, as it does in the gate. The copies
+    then compile under the gate's flags in its dependency waves, and a compile that
+    exits nonzero or prints anything refuses. The result is the digest of every copy
+    and object, which is the compile `record` may read.
+    """
+    found = sorted(sources.glob("*.v"))
+    if not found:
+        raise proofreading.ReadingError(f"{sources} holds no proof source to compile")
+    for source in found:
+        proofreading.check_module(source.stem)
+        shutil.copyfile(source, objects / source.name)
+    copies = sorted(objects.glob("*.v"))
+    for copy in copies:
+        text = copy.read_text(encoding="utf-8")
+        refused = [*proofaudit.unsupported_abstractions(text), *proofaudit.pinned_overrides(text)]
+        if refused:
+            raise proofreading.ReadingError(
+                f"{copy.name} holds what the proof gate refuses before compiling: "
+                + "; ".join(refused)[:2000])
+    try:
+        ordered = proofs.waves(copies)
+    except SystemExit as error:  # the gate's own refusal of a Require cycle
+        raise proofreading.ReadingError(str(error)) from error
+
+    def one(source: Path) -> str:
+        done = subprocess.run(
+            [*env.rocq_command(), "-q", "-Q", str(objects), "", *proofs_cli.STRICT,
+             source.name], cwd=objects, capture_output=True, text=True, encoding="utf-8",
+            check=False)
+        said = (done.stderr + done.stdout).strip()
+        return (f"{source.name} exited {done.returncode}: {said[:2000] or 'no diagnostic'}"
+                if done.returncode or said else "")
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        for wave in ordered:
+            failed = [failure for failure in pool.map(one, wave) if failure]
+            if failed:
+                raise proofreading.ReadingError("; ".join(failed))
+    return _snapshot(objects)
+
+
+def record(root: Path, objects: Path, passed: dict[str, str], named: list[str] | None,
+           jobs: int, bound: int = MAX_QUERY_BYTES) -> proofreading.Reading:
+    """One complete reading of a passing compile's modules, or a refusal.
+
+    `passed` is the digest of every source and object the compile made, as its receipt
+    or its own run recorded them, relative to `objects`. The directory must hold
+    exactly those files when the read begins and again when it ends.
+    """
     modules = modules_in(objects, named)
     before = _snapshot(objects)
+    if before != passed:
+        raise proofreading.ReadingError(f"the sources and objects in {objects} are not "
+                                        "the ones a passing compile made")
     prover, prover_sha256 = _prover()
-    lane = env.lane_root(env.lane_of(root)) / "proof-reading"
-    lane.mkdir(parents=True, exist_ok=True)
     read: dict[str, dict[str, proofreading.Entry]] = {}
     failed: dict[str, str] = {}
-    with tempfile.TemporaryDirectory(prefix="record-", dir=lane) as temporary:
+    with _scratch(root, "record-") as temporary:
         scratch = Path(temporary)
 
         def one(module: str) -> None:
@@ -210,7 +265,7 @@ def record(root: Path, objects: Path, named: list[str] | None, jobs: int,
         raise proofreading.ReadingError("; ".join(
             f"{module}: {failed[module]}" for module in sorted(failed)))
     if _snapshot(objects) != before:
-        raise proofreading.ReadingError(f"the sources or objects in {objects} changed "
+        raise proofreading.ReadingError(f"the sources and objects in {objects} changed "
                                         "while they were read")
     return proofreading.validate({
         "format": proofreading.FORMAT, "schema": proofreading.SCHEMA,
@@ -224,14 +279,27 @@ def record(root: Path, objects: Path, named: list[str] | None, jobs: int,
             "objects": {f"{module}.vo": before[f"{module}.vo"] for module in modules}}})
 
 
+def record_sources(root: Path, sources: Path, named: list[str] | None, jobs: int,
+                   bound: int = MAX_QUERY_BYTES) -> proofreading.Reading:
+    """A reading of a directory's proof sources, which it compiles first as the gate does."""
+    with _scratch(root, "compile-") as temporary:
+        objects = Path(temporary)
+        return record(root, objects, compile_sources(sources, objects, jobs), named, jobs,
+                      bound)
+
+
 def _record(args: argparse.Namespace) -> int:
     root = find_root()
     target = Path(args.out) if args.out else root / READING
     started = time.perf_counter()
     try:
-        objects = Path(args.objects).resolve() if args.objects else gate_objects(root)
-        reading = record(root, objects, args.module, args.jobs or env.proof_jobs(),
-                         args.max_bytes)
+        jobs = args.jobs or env.proof_jobs()
+        if args.sources:
+            reading = record_sources(root, Path(args.sources).resolve(), args.module, jobs,
+                                     args.max_bytes)
+        else:
+            objects, passed = gate_objects(root)
+            reading = record(root, objects, passed, args.module, jobs, args.max_bytes)
     except (OSError, ValueError) as error:
         print(f"FAIL proof-reading: {error}")
         return 1
@@ -266,23 +334,24 @@ def _compare(args: argparse.Namespace) -> int:
 
 
 TABLE: Table = {
-    "record": (_record, "read every constant of a compiled proof directory into JSON"),
+    "record": (_record, "read every constant of a passing proof compile into JSON"),
     "compare": (_compare, "name every entry two readings disagree about"),
 }
 
 
 def _flags(name: str, parser: argparse.ArgumentParser) -> None:
     if name == "record":
-        parser.add_argument("--objects", metavar="DIR",
-                            help="a directory of compiled proofs (default: the proof "
+        parser.add_argument("--sources", metavar="DIR",
+                            help="compile the proof sources in DIR here, as the gate "
+                                 "does, and read that compile (default: the proof "
                                  "gate's passing compile in this lane)")
         parser.add_argument("--module", action="append", metavar="NAME",
                             help="read only this module (repeatable; default: every "
-                                 "source in the directory)")
+                                 "source compiled)")
         parser.add_argument("--out", help=f"where to write the reading (default {READING})")
         parser.add_argument("--jobs", type=positive_int,
-                            help="modules read at once (default: the proof gate's "
-                                 "compile limit)")
+                            help="modules compiled or read at once (default: the proof "
+                                 "gate's compile limit)")
         parser.add_argument("--max-bytes", type=positive_int, default=MAX_QUERY_BYTES,
                             help="bound on one query's answer; beyond it the reading "
                                  "is refused")
