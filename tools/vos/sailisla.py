@@ -260,15 +260,28 @@ def check_lock_override(upstream: str, override: str, versions: dict[str, str]) 
                             "retire or regenerate the override")
 
 
-def _prerequisites(e: env.Environment, runner: Runner) -> Path:
-    for tool in ("opam", "git", "cc", "ar"):
-        if shutil.which(tool) is None:
-            raise IslaError(f"missing {tool}; provision the repository's baseline Sail toolchain")
-    lock_text = (e.root / "tools/opam/sail.lock").read_text(encoding="utf-8")
+def baseline_packages(root: Path, sail: SailPin) -> set[str]:
+    """The locked baseline opam inventory, which must install the lane's Sail release.
+
+    The lane builds Sail from the release archive of that same version, so a Sail
+    pin the locked compiler does not install is refused before anything is built.
+    """
+    lock_text = (root / "tools/opam/sail.lock").read_text(encoding="utf-8")
     block = re.search(r"installed:\s*\[(.*?)\]", lock_text, re.DOTALL)
     if block is None:
         raise IslaError("cannot read baseline opam inventory")
-    expected = set(re.findall(r'"([^"]+)"', block[1]))
+    expected = {str(name) for name in re.findall(r'"([^"]+)"', block[1])}
+    if f"sail.{sail['version']}" not in expected:
+        raise IslaError(f"the Isla lock's Sail {sail['version']} archive is not the Sail "
+                        "release tools/opam/sail.lock installs")
+    return expected
+
+
+def _prerequisites(e: env.Environment, runner: Runner, sail: SailPin) -> Path:
+    expected = baseline_packages(e.root, sail)
+    for tool in ("opam", "git", "cc", "ar"):
+        if shutil.which(tool) is None:
+            raise IslaError(f"missing {tool}; provision the repository's baseline Sail toolchain")
     listing = runner.run(["opam", "list", f"--switch={env.SAIL_SWITCH}", "--installed",
                           "--short", "--columns=name,version", "--color=never"], e.root)
     actual = {".".join(line.split()) for line in listing.splitlines() if line.strip()}
@@ -318,8 +331,8 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
     base.mkdir(parents=True, exist_ok=True)
     with env.hold_lock(base, "optional Isla provisioning"):
         runner = Runner(e, "provision")
-        z3_lib = _prerequisites(e, runner)
         lock = _load_lock(e.root)
+        z3_lib = _prerequisites(e, runner, lock["sail"])
         triple = {"aarch64": "aarch64-unknown-linux-gnu",
                   "x86_64": "x86_64-unknown-linux-gnu"}.get(platform.machine())
         if platform.system() != "Linux" or triple is None:
@@ -490,7 +503,7 @@ def qualify(e: env.Environment) -> Report:
         report_path = work / "report.json"
         report_path.unlink(missing_ok=True)
         runner = Runner(e, "qualify")
-        z3_lib = _prerequisites(e, runner)
+        z3_lib = _prerequisites(e, runner, _load_lock(e.root)["sail"])
         stamp_path = base / "provision.json"
         if not stamp_path.is_file():
             raise IslaError("optional tools are absent; run sail-isla provision")

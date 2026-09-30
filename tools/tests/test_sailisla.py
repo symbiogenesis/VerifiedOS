@@ -7,13 +7,13 @@ import tomllib
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
-from vos import sailisla
+from vos import env, sailisla
 from vos.cli import sail_isla
 
 
@@ -159,6 +159,28 @@ def _tracked_lock_override() -> None:
            "the tracked Isla lock override must carry every declared version")
 
 
+def _sail_pin_is_locked_release() -> None:
+    lock = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))
+
+    def pin(version: str) -> sailisla.SailPin:
+        return cast(sailisla.SailPin, {**lock["sail"], "version": version})
+
+    installed = 'installed: [\n  "ocaml.5.4.1"\n  "sail.0.20.3"\n  "sail_maker.0.20.3"\n]\n'
+    with sandbox_tree({"tools/opam/sail.lock": installed}) as root:
+        ensure(sailisla.baseline_packages(root, pin("0.20.3"))
+               == {"ocaml.5.4.1", "sail.0.20.3", "sail_maker.0.20.3"},
+               "the complete locked inventory must be returned")
+        for version in ("0.20.4", "0.20", "maker.0.20.3"):
+            _reject(lambda v=version: sailisla.baseline_packages(root, pin(v)))
+        environment = env.Environment(root=root, model=root / "model", build_root=root / "native",
+                                      log_root=root / "logs", lane="", cpus=1, mem_available_mb=1024,
+                                      jobs=1, test_jobs=1)
+        runner = sailisla.Runner(environment, "test")
+        with patch.object(sailisla.Runner, "run") as run:
+            _reject(lambda: sailisla._prerequisites(environment, runner, pin("0.20.4")))
+        ensure(not run.called, "the Sail pin must be refused before the baseline switch is inspected")
+
+
 def _report() -> dict[str, Any]:
     return {
         "version": 1, "advisory_only": True, "notice": sailisla.NOTICE, "passed": True,
@@ -227,6 +249,7 @@ def cases() -> list[Case]:
             Case("lock-override-declared-versions-only", _lock_override),
             Case("lock-override-refuses-upstream-equal-or-newer", _lock_override_upstream_caught_up),
             Case("tracked-lock-override-carries-declared-versions", _tracked_lock_override),
+            Case("sail-pin-is-the-locked-release", _sail_pin_is_locked_release),
             Case("versioned-json-schema", _schema),
             Case("cli-refuses-partial-verdict", _cli),
             Case("oracle-replays-generated-inputs", _harness_uses_model)]

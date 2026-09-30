@@ -45,12 +45,21 @@ def lock_identity(root: Path) -> str:
 
 
 def _base_inventory(root: Path) -> list[str]:
-    """Refuse drift in every package of the existing compiler's transitive lock."""
+    """Refuse drift in every package of the existing compiler's transitive lock.
+
+    The private Libsail and server build from the pinned Sail release archive, so
+    that pin must be the Sail release the locked compiler installs.
+    """
     lock = (root / "tools/opam/sail.lock").read_text(encoding="utf-8")
     match = re.search(r"installed:\s*\[(.*?)\]", lock, re.DOTALL)
     if match is None:
         raise ValueError("the base Sail lock has no installed package closure")
     expected = sorted(re.findall(r'"([^"\n]+)"', match.group(1)))
+    sail = [spec for spec in json.loads((root / LOCK).read_text(encoding="utf-8"))["sources"]
+            if spec["name"] == "sail"]
+    if len(sail) != 1 or f"sail.{sail[0]['version']}" not in expected:
+        raise ValueError("the LSP lock's Sail archive is not the Sail release "
+                         "tools/opam/sail.lock installs")
     done = subprocess.run(["opam", "list", f"--switch={env.SAIL_SWITCH}", "--installed",
                            "--columns=name,version", "--short"], capture_output=True,
                           text=True, check=True)

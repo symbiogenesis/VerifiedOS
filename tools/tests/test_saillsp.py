@@ -4,6 +4,7 @@
 import hashlib
 import io
 import json
+import re
 import subprocess
 import tarfile
 from pathlib import Path
@@ -155,16 +156,44 @@ def _superseded_archive() -> None:
 
 
 def _base_lock() -> None:
-    with sandbox_tree({"tools/opam/sail.lock": 'installed: ["ocaml.5.4.1" "dune.3.24.2"]'}) as root:
-        with patch.object(saillsp.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "dune 3.24.2\nocaml 5.4.1\n")):
-            ensure(saillsp._base_inventory(root) == ["dune.3.24.2", "ocaml.5.4.1"], "the complete base lock must match")
-        with patch.object(saillsp.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "dune 3.24.2\nocaml 5.5.0\n")):
+    files = {"tools/opam/sail.lock": 'installed: ["ocaml.5.4.1" "dune.3.24.2" "sail.0.20.3"]',
+             saillsp.LOCK: json.dumps({"sources": [{"name": "lsp", "version": "1.27.0"},
+                                                   {"name": "sail", "version": "0.20.3"}]})}
+    listing = "dune 3.24.2\nocaml 5.4.1\nsail 0.20.3\n"
+    with sandbox_tree(files) as root:
+        with patch.object(saillsp.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, listing)):
+            ensure(saillsp._base_inventory(root) == ["dune.3.24.2", "ocaml.5.4.1", "sail.0.20.3"],
+                   "the complete base lock must match")
+        with patch.object(saillsp.subprocess, "run", return_value=subprocess.CompletedProcess(
+                [], 0, listing.replace("5.4.1", "5.5.0"))):
             try:
                 saillsp._base_inventory(root)
             except ValueError:
                 pass
             else:
                 raise AssertionError("compiler drift was accepted")
+        (root / saillsp.LOCK).write_text(files[saillsp.LOCK].replace("0.20.3", "0.20.4"), encoding="utf-8")
+        with patch.object(saillsp.subprocess, "run") as run:
+            try:
+                saillsp._base_inventory(root)
+            except ValueError as exc:
+                ensure("not the Sail release" in str(exc), "a foreign Sail pin needs a concrete error")
+            else:
+                raise AssertionError("a Sail archive pin the locked compiler does not install was accepted")
+            ensure(not run.called, "the Sail pin must be refused before the switch is inspected")
+
+
+def _tool_sail_pins_agree() -> None:
+    lsp = next(spec for spec in json.loads((TOOLS / "sail-lsp/sources.lock.json").read_text(encoding="utf-8"))
+               ["sources"] if spec["name"] == "sail")
+    isla = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))["sail"]
+    fields = ("version", "revision", "url", "sha256", "directory")
+    ensure({key: lsp[key] for key in fields} == {key: isla[key] for key in fields},
+           "the LSP and Isla tools must pin one Sail release archive")
+    locked = (TOOLS / "opam/sail.lock").read_text(encoding="utf-8")
+    block = re.search(r"installed:\s*\[(.*?)\]", locked, re.DOTALL)
+    ensure(block is not None and f'"sail.{lsp["version"]}"' in block[1],
+           "the tools' Sail archive must be the release the locked compiler installs")
 
 
 def cases() -> list[Case]:
@@ -173,4 +202,5 @@ def cases() -> list[Case]:
             Case("optional-installation-provenance", _provenance),
             Case("archive-extraction-confinement", _archive_confinement),
             Case("superseded-archive-fetched-verified-and-replaced", _superseded_archive),
-            Case("locked-base-dependency-closure", _base_lock)]
+            Case("locked-base-dependency-closure", _base_lock),
+            Case("tool-sail-pins-are-the-locked-release", _tool_sail_pins_agree)]
