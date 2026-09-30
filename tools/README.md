@@ -62,9 +62,11 @@ describes. Members within a shard run concurrently. The gate runs under each
 platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
 there runs `run.py`, and reads its shard and verdict path from the step's environment
 rather than from expressions written into the command. Each platform runs on an explicit
-runner image label, and its `host-gates (Ubuntu)` or `host-gates (Windows)` check,
-named for the platform so that an image move renames nothing, is the name
-`fanout_ci.HOST_JOBS` accepts. The two checks require every shard
+runner image label, and its aggregate check is named for the platform rather than the
+image, so that an image move renames nothing. `HOST_JOBS` in
+[vos/fanout_ci.py](vos/fanout_ci.py) owns those names as the Host CI evidence fanout
+accepts, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
+aggregate jobs to them. The aggregate checks require every shard
 on both platforms to succeed, including refusal after a skipped or cancelled shard.
 One shard alone supplies only a partial verdict. The unsharded local command retains
 the complete suite.
