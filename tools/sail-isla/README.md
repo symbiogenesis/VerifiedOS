@@ -16,8 +16,8 @@ the lane from the release archive the locked compiler's opam package also builds
 from. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
-different Isla submodule revision, Sail release archive digest, and Rust
-1.90.0 component digests for Linux aarch64 and x86_64. Standalone Isla uses its
+different Isla submodule revision, Sail release archive digest, and the Rust
+version with its component digests for Linux aarch64 and x86_64. Standalone Isla uses its
 tracked upstream Cargo.lock. The authored driver's Cargo.lock fixes the testgen
 dependency graph; ordinary builds use `--locked`. The explicit
 lalrpop-util lexer feature supplies a feature required by upstream's generated
