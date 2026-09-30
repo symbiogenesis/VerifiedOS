@@ -26,7 +26,14 @@ constexpr uint32_t round_constants[64] = {
 };
 
 constexpr uint32_t initial_hash[8] = {
-  0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+  0x6a09e667,
+  0xbb67ae85,
+  0x3c6ef372,
+  0xa54ff53a,
+  0x510e527f,
+  0x9b05688c,
+  0x1f83d9ab,
+  0x5be0cd19,
 };
 
 uint32_t rotr(uint32_t x, unsigned n) {
@@ -36,8 +43,8 @@ uint32_t rotr(uint32_t x, unsigned n) {
 void compress(uint32_t h[8], const uint8_t *block) {
   uint32_t w[64];
   for (unsigned t = 0; t < 16; ++t) {
-    w[t] = (uint32_t{block[4 * t]} << 24) | (uint32_t{block[4 * t + 1]} << 16) |
-           (uint32_t{block[4 * t + 2]} << 8) | uint32_t{block[4 * t + 3]};
+    w[t] = (uint32_t{block[4 * t]} << 24) | (uint32_t{block[4 * t + 1]} << 16) | (uint32_t{block[4 * t + 2]} << 8) |
+           uint32_t{block[4 * t + 3]};
   }
   for (unsigned t = 16; t < 64; ++t) {
     const uint32_t s0 = rotr(w[t - 15], 7) ^ rotr(w[t - 15], 18) ^ (w[t - 15] >> 3);
@@ -46,8 +53,7 @@ void compress(uint32_t h[8], const uint8_t *block) {
   }
   uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], k = h[7];
   for (unsigned t = 0; t < 64; ++t) {
-    const uint32_t t1 = k + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) +
-                        round_constants[t] + w[t];
+    const uint32_t t1 = k + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + round_constants[t] + w[t];
     const uint32_t t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
     k = g;
     g = f;
@@ -215,9 +221,15 @@ std::vector<uint8_t> image_header(geometry g) {
   return out;
 }
 
-image::image(const std::string &path, mode how, geometry g, const std::vector<uint8_t> &fixture,
-             const std::string &receipt)
-    : m_path(path), m_geometry(g) {
+image::image(
+  const std::string &path,
+  mode how,
+  geometry g,
+  const std::vector<uint8_t> &fixture,
+  const std::string &receipt
+) :
+    m_path(path),
+    m_geometry(g) {
   try {
     if (!receipt.empty()) {
       // "x": an existing receipt is evidence of another run and is not replaced.
@@ -284,7 +296,7 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
   const uint64_t file_bytes = header_bytes + medium_bytes;
 
   if (how == mode::create) {
-    struct stat existing {};
+    struct stat existing{};
     if (lstat(m_path.c_str(), &existing) == 0) {
       refuse("an image already exists at " + m_path + "; creation never replaces one");
     }
@@ -292,8 +304,7 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
       refuse("cannot inspect " + m_path + ": " + error_text());
     }
     if (fixture.size() != medium_bytes) {
-      refuse("the fixture holds " + number(fixture.size()) + " bytes and the geometry needs " +
-             number(medium_bytes));
+      refuse("the fixture holds " + number(fixture.size()) + " bytes and the geometry needs " + number(medium_bytes));
     }
     // Written beside the destination and linked into place: link() refuses an
     // existing destination, and a crash leaves no partial image at the path.
@@ -332,10 +343,12 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
   }
   // One run owns an image: two writers would interleave their persistence.
   if (flock(m_fd, LOCK_EX | LOCK_NB) != 0) {
-    refuse(errno == EWOULDBLOCK ? "image " + m_path + " is held by another run"
-                                : "image " + m_path + " cannot be locked: " + error_text());
+    refuse(
+      errno == EWOULDBLOCK ? "image " + m_path + " is held by another run"
+                           : "image " + m_path + " cannot be locked: " + error_text()
+    );
   }
-  struct stat st {};
+  struct stat st{};
   if (fstat(m_fd, &st) != 0) {
     refuse("cannot inspect image " + m_path + ": " + error_text());
   }
@@ -356,44 +369,48 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
   const uint64_t b = get_u64(header, 8);
   const uint64_t n = get_u64(header, 16);
   if (b != g.block_bytes || n != g.block_count) {
-    refuse("image " + m_path + " records geometry B=" + number(b) + " N=" + number(n) +
-           " and the composition declares B=" + number(g.block_bytes) + " N=" + number(g.block_count));
+    refuse(
+      "image " + m_path + " records geometry B=" + number(b) + " N=" + number(n) +
+      " and the composition declares B=" + number(g.block_bytes) + " N=" + number(g.block_count)
+    );
   }
   if (get_u64(header, 24) != 0) {
     refuse("image " + m_path + " has nonzero reserved header bytes");
   }
   if (size != file_bytes) {
-    refuse("image " + m_path + " holds " + number(size) + " bytes and its geometry needs exactly " +
-           number(file_bytes));
+    refuse(
+      "image " + m_path + " holds " + number(size) + " bytes and its geometry needs exactly " + number(file_bytes)
+    );
   }
   std::vector<uint8_t> whole;
   if (!read_all(m_fd, whole, file_bytes)) {
     refuse("cannot read image " + m_path + ": " + error_text());
   }
   m_opened.assign(whole.begin() + static_cast<std::ptrdiff_t>(header_bytes), whole.end());
-  if (!note("{\"schema\":\"verifiedos-blkdev-receipt-2\",\"event\":\"open\",\"mode\":" +
-       quoted(how == mode::create ? "create" : "open") + ",\"image\":" + quoted(m_path) +
-       ",\"block_bytes\":" + number(g.block_bytes) + ",\"block_count\":" + number(g.block_count) +
-       ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}")) {
+  if (!note(
+        "{\"schema\":\"verifiedos-blkdev-receipt-2\",\"event\":\"open\",\"mode\":" +
+        quoted(how == mode::create ? "create" : "open") + ",\"image\":" + quoted(m_path) +
+        ",\"block_bytes\":" + number(g.block_bytes) + ",\"block_count\":" + number(g.block_count) +
+        ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}"
+      )) {
     refuse("cannot record the opened image's identity");
   }
 }
 
 void image::load(uint64_t *medium, size_t medium_len) {
   if (m_opened.size() > medium_len) {
-    refuse("the model's medium register holds " + number(medium_len) + " bytes and the image " +
-           number(m_opened.size()));
+    refuse(
+      "the model's medium register holds " + number(medium_len) + " bytes and the image " + number(m_opened.size())
+    );
   }
   for (size_t i = 0; i < medium_len; ++i) {
     medium[i] = i < m_opened.size() ? m_opened[i] : 0;
   }
 }
 
-bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint64_t *medium,
-                    size_t medium_len) {
+bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint64_t *medium, size_t medium_len) {
   const uint64_t medium_bytes = m_geometry.block_bytes * m_geometry.block_count;
-  const bool known = kind >= static_cast<uint64_t>(event::read) &&
-                     kind <= static_cast<uint64_t>(event::media_fault);
+  const bool known = kind >= static_cast<uint64_t>(event::read) && kind <= static_cast<uint64_t>(event::media_fault);
   bool durable = m_fd >= 0 && !m_failed && known;
   std::string failure;
   if (!known) {
@@ -428,9 +445,8 @@ bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint6
   if (!durable) {
     m_failed = true;
   }
-  std::string record = "{\"event\":\"persist\",\"kind\":" + quoted(event_name(kind)) +
-                       ",\"offset\":" + number(offset) + ",\"length\":" + number(length) +
-                       ",\"durable\":" + (durable ? "true" : "false");
+  std::string record = "{\"event\":\"persist\",\"kind\":" + quoted(event_name(kind)) + ",\"offset\":" + number(offset) +
+                       ",\"length\":" + number(length) + ",\"durable\":" + (durable ? "true" : "false");
   if (!failure.empty()) {
     record += ",\"error\":" + quoted(failure);
   }
@@ -440,11 +456,13 @@ bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint6
 
 bool image::close() {
   if (m_fd >= 0 && m_receipt != nullptr) {
-    struct stat st {};
+    struct stat st{};
     std::vector<uint8_t> whole;
     if (fstat(m_fd, &st) == 0 && read_all(m_fd, whole, static_cast<uint64_t>(st.st_size))) {
-      note("{\"event\":\"close\",\"healthy\":" + std::string(m_failed ? "false" : "true") +
-           ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}");
+      note(
+        "{\"event\":\"close\",\"healthy\":" + std::string(m_failed ? "false" : "true") +
+        ",\"sha256\":" + quoted(sha256_hex(whole.data(), whole.size())) + "}"
+      );
     } else {
       const std::string failure = error_text();
       note("{\"event\":\"close\",\"healthy\":false,\"error\":" + quoted(failure) + "}");

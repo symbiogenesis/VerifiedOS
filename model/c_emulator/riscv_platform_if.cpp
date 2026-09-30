@@ -12,8 +12,7 @@ unit PlatformInterface::fetch_callback([[maybe_unused]] sbits opcode) {
   return UNIT;
 }
 
-unit PlatformInterface::entropy_draw_callback([[maybe_unused]] bool available,
-                                              [[maybe_unused]] uint64_t value) {
+unit PlatformInterface::entropy_draw_callback([[maybe_unused]] bool available, [[maybe_unused]] uint64_t value) {
   return UNIT;
 }
 
@@ -61,7 +60,6 @@ unit PlatformInterface::scr_full_write_callback(
 ) {
   return UNIT;
 }
-
 
 unit PlatformInterface::csr_full_write_callback(
   [[maybe_unused]] const_sail_string csr_name,
@@ -124,7 +122,8 @@ bool PlatformInterface::blkdev_host_trace_enabled(unit) {
 }
 
 unit PlatformInterface::blkdev_host_input(
-  [[maybe_unused]] const_sail_string kind, [[maybe_unused]] const_sail_string fields
+  [[maybe_unused]] const_sail_string kind,
+  [[maybe_unused]] const_sail_string fields
 ) {
   return UNIT;
 }

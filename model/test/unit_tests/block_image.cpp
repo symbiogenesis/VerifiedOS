@@ -9,7 +9,6 @@
 // The parent then reads the image file itself and reopens it in a fresh
 // process. Expected bytes are computed in the parent from the fixture, the
 // payloads and the masks, never read back from the image under test.
-#include <sail_config.h>
 #include "blkdev_image.h"
 #include "config_utils.h"
 #include "sail_riscv_model.h"
@@ -21,6 +20,7 @@
 #include <fcntl.h>
 #include <functional>
 #include <memory>
+#include <sail_config.h>
 #include <stdexcept>
 #include <string>
 #include <sys/file.h>
@@ -49,13 +49,19 @@ void require(bool condition, const std::string &message) {
 class ImageModel final : public hart::Model {
 public:
   blkdev::image *bound = nullptr;
-  bool dispatch() { return zplat_have_blkdev && !get_config_rvfi(UNIT); }
+  bool dispatch() {
+    return zplat_have_blkdev && !get_config_rvfi(UNIT);
+  }
   bool blkdev_host_persist(uint64_t kind, uint64_t offset, uint64_t length) override {
     return bound == nullptr || bound->persist(kind, offset, length, zblkdev_medium.data, zblkdev_medium.len);
   }
-  bool blkdev_host_trace_enabled(unit) override { return bound != nullptr && bound->tracing(); }
+  bool blkdev_host_trace_enabled(unit) override {
+    return bound != nullptr && bound->tracing();
+  }
   unit blkdev_host_input(const_sail_string kind, const_sail_string fields) override {
-    if (bound != nullptr) bound->input(kind, fields);
+    if (bound != nullptr) {
+      bound->input(kind, fields);
+    }
     return UNIT;
   }
 };
@@ -70,7 +76,9 @@ struct Shape {
   size_t block_bytes = 0, blocks = 0, register_bytes = 0, max_block = 0;
   size_t steps[4] = {0, 0, 0, 0};
   Bytes fixture;
-  size_t medium_bytes() const { return block_bytes * blocks; }
+  size_t medium_bytes() const {
+    return block_bytes * blocks;
+  }
 };
 
 class Device {
@@ -91,15 +99,19 @@ public:
     shape.steps[1] = quantity(m.zplat_blkdev_read_steps);
     shape.steps[2] = quantity(m.zplat_blkdev_write_steps);
     shape.steps[3] = quantity(m.zplat_blkdev_flush_steps);
-    require(shape.block_bytes > 0 && shape.block_bytes % 8 == 0 && shape.blocks >= 2 &&
-            shape.medium_bytes() <= shape.register_bytes && shape.block_bytes <= shape.max_block,
-            "fixture geometry is inadmissible");
+    require(
+      shape.block_bytes > 0 && shape.block_bytes % 8 == 0 && shape.blocks >= 2 &&
+        shape.medium_bytes() <= shape.register_bytes && shape.block_bytes <= shape.max_block,
+      "fixture geometry is inadmissible"
+    );
     for (size_t i = 0; i < shape.medium_bytes(); ++i) {
       shape.fixture.push_back(static_cast<uint8_t>(m.zblkdev_medium.data[i]));
     }
   }
 
-  blkdev::geometry geometry() const { return {shape.block_bytes, shape.blocks}; }
+  blkdev::geometry geometry() const {
+    return {shape.block_bytes, shape.blocks};
+  }
 
   // As the emulator binds: open or create, then load unless the negative
   // control asks for the startup that recreates the fixture.
@@ -134,8 +146,12 @@ public:
     return value;
   }
 
-  uint64_t status() { return load(24); }
-  uint64_t result() { return load(32); }
+  uint64_t status() {
+    return load(24);
+  }
+  uint64_t result() {
+    return load(32);
+  }
 
   void stage(size_t block, const Bytes &payload) {
     store(40, block);
@@ -192,10 +208,11 @@ public:
     store(48, opcode);
     require(status() == 1, "an accepted command must be busy");
     steps(shape.steps[opcode]);
-    require(status() == expect_status && result() == expect_result,
-            "command " + std::to_string(opcode) + " ended " + std::to_string(status()) + "/" +
-              std::to_string(result()) + ", expected " + std::to_string(expect_status) + "/" +
-              std::to_string(expect_result));
+    require(
+      status() == expect_status && result() == expect_result,
+      "command " + std::to_string(opcode) + " ended " + std::to_string(status()) + "/" + std::to_string(result()) +
+        ", expected " + std::to_string(expect_status) + "/" + std::to_string(expect_result)
+    );
     store(56, 1);
   }
 
@@ -218,8 +235,8 @@ public:
   // Reset volatile state: nothing but the medium survives a process.
   void require_clean() {
     bool clean = m.zblkdev_status == 0 && m.zblkdev_result == 0 && m.zblkdev_block == 0 &&
-                 m.zblkdev_pending_block == 0 && m.zblkdev_command == 0 &&
-                 mpz_sgn(m.zblkdev_remaining) == 0 && mpz_sgn(*m.zblkdev_written.bits) == 0;
+                 m.zblkdev_pending_block == 0 && m.zblkdev_command == 0 && mpz_sgn(m.zblkdev_remaining) == 0 &&
+                 mpz_sgn(*m.zblkdev_written.bits) == 0;
     for (const auto *v : {&m.zblkdev_staging, &m.zblkdev_payload}) {
       for (size_t i = 0; i < v->len; ++i) {
         clean = clean && v->data[i] == 0;
@@ -263,7 +280,7 @@ int run_child(const std::function<void()> &body) {
 }
 
 bool exists(const std::string &path) {
-  struct stat st {};
+  struct stat st{};
   return lstat(path.c_str(), &st) == 0;
 }
 
@@ -312,11 +329,16 @@ std::string hex(const Bytes &bytes) {
 }
 
 void compare(const Bytes &actual, const Bytes &expected, const std::string &what) {
-  require(actual.size() == expected.size(), what + ": length " + std::to_string(actual.size()) +
-                                              ", expected " + std::to_string(expected.size()));
+  require(
+    actual.size() == expected.size(),
+    what + ": length " + std::to_string(actual.size()) + ", expected " + std::to_string(expected.size())
+  );
   for (size_t i = 0; i < actual.size(); ++i) {
-    require(actual[i] == expected[i], what + " byte " + std::to_string(i) + " expected " +
-                                        std::to_string(expected[i]) + " got " + std::to_string(actual[i]));
+    require(
+      actual[i] == expected[i],
+      what + " byte " + std::to_string(i) + " expected " + std::to_string(expected[i]) + " got " +
+        std::to_string(actual[i])
+    );
   }
 }
 
@@ -334,7 +356,9 @@ class Campaign {
     return full;
   }
 
-  Bytes header() const { return blkdev::image_header({shape.block_bytes, shape.blocks}); }
+  Bytes header() const {
+    return blkdev::image_header({shape.block_bytes, shape.blocks});
+  }
 
   // The image a medium is expected to leave: the header, then the medium.
   Bytes image_of(const Bytes &medium) const {
@@ -402,8 +426,15 @@ class Campaign {
         d.bind(image, Mode::open);
       } catch (const blkdev::refusal &refused) {
         // Refused before the register was replaced: the startup fixture copy stands.
-        compare(d.medium(), [&] { Bytes w = fixture; w.resize(d.shape.register_bytes, 0); return w; }(),
-                "medium after a refused bind");
+        compare(
+          d.medium(),
+          [&] {
+            Bytes w = fixture;
+            w.resize(d.shape.register_bytes, 0);
+            return w;
+          }(),
+          "medium after a refused bind"
+        );
         std::fprintf(stderr, "block image: expected refusal (%s): %s\n", why.c_str(), refused.what());
         std::fflush(stderr);
         _exit(3);
@@ -453,25 +484,35 @@ class Campaign {
   }
 
 public:
-  Campaign(std::string directory, std::string sim, bool bad_byte, bool bad_reload)
-      : dir(std::move(directory)), emulator(std::move(sim)), negative_byte(bad_byte),
-        negative_reload(bad_reload) {
+  Campaign(std::string directory, std::string sim, bool bad_byte, bool bad_reload) :
+      dir(std::move(directory)),
+      emulator(std::move(sim)),
+      negative_byte(bad_byte),
+      negative_reload(bad_reload) {
     // The geometry and fixture come from a model in its own process, like
     // every phase; the parent holds no model instance.
     const std::string probe = path("probe.fixture");
-    require(run_child([&] {
-              Device d;
-              Bytes out;
-              for (size_t v : {d.shape.block_bytes, d.shape.blocks, d.shape.register_bytes, d.shape.max_block,
-                               d.shape.steps[1], d.shape.steps[2], d.shape.steps[3]}) {
-                for (unsigned i = 0; i < 8; ++i) {
-                  out.push_back(static_cast<uint8_t>(uint64_t{v} >> (8 * i)));
-                }
-              }
-              out.insert(out.end(), d.shape.fixture.begin(), d.shape.fixture.end());
-              write_file(probe, out);
-            }) == 0,
-            "the fixture probe failed");
+    require(
+      run_child([&] {
+        Device d;
+        Bytes out;
+        for (size_t v :
+             {d.shape.block_bytes,
+              d.shape.blocks,
+              d.shape.register_bytes,
+              d.shape.max_block,
+              d.shape.steps[1],
+              d.shape.steps[2],
+              d.shape.steps[3]}) {
+          for (unsigned i = 0; i < 8; ++i) {
+            out.push_back(static_cast<uint8_t>(uint64_t{v} >> (8 * i)));
+          }
+        }
+        out.insert(out.end(), d.shape.fixture.begin(), d.shape.fixture.end());
+        write_file(probe, out);
+      }) == 0,
+      "the fixture probe failed"
+    );
     const Bytes raw = file_bytes(probe);
     auto field = [&](unsigned index) {
       uint64_t v = 0;
@@ -504,11 +545,15 @@ public:
     };
     require(of("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "SHA-256 of empty");
     require(of("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "SHA-256 of abc");
-    require(of("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq") ==
-              "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
-            "SHA-256 of the two-block message");
-    require(of(std::string(1000000, 'a')) == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0",
-            "SHA-256 of one million a");
+    require(
+      of("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq") ==
+        "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
+      "SHA-256 of the two-block message"
+    );
+    require(
+      of(std::string(1000000, 'a')) == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0",
+      "SHA-256 of one million a"
+    );
   }
 
   void run() {
@@ -519,30 +564,36 @@ public:
     const std::string create_receipt = path("create.receipt");
 
     // Creation from the fixture, exclusive and complete.
-    require(run_child([&] {
-              Device d;
-              d.bind(image, Mode::create, create_receipt);
-              d.image->close();
-            }) == 0,
-            "creating the image failed");
+    require(
+      run_child([&] {
+        Device d;
+        d.bind(image, Mode::create, create_receipt);
+        d.image->close();
+      }) == 0,
+      "creating the image failed"
+    );
     Bytes medium = shape.fixture;
     compare(file_bytes(image), image_of(medium), "created image");
     {
       const auto records = lines(create_receipt);
-      require(records.size() == 2 && contains(records[0], "\"event\":\"open\"") &&
-                contains(records[0], "\"mode\":\"create\"") &&
-                contains(records[0], "\"sha256\":\"" + hex(image_of(medium)) + "\"") &&
-                contains(records[1], "\"event\":\"close\"") &&
-                contains(records[1], "\"sha256\":\"" + hex(image_of(medium)) + "\""),
-              "the creation receipt must name the created image");
+      require(
+        records.size() == 2 && contains(records[0], "\"event\":\"open\"") &&
+          contains(records[0], "\"mode\":\"create\"") &&
+          contains(records[0], "\"sha256\":\"" + hex(image_of(medium)) + "\"") &&
+          contains(records[1], "\"event\":\"close\"") &&
+          contains(records[1], "\"sha256\":\"" + hex(image_of(medium)) + "\""),
+        "the creation receipt must name the created image"
+      );
     }
     {
       const Bytes before = file_bytes(image);
-      require(run_child([&] {
-                Device d;
-                d.bind(image, Mode::create);
-              }) == 3,
-              "creating over an existing image must be refused");
+      require(
+        run_child([&] {
+          Device d;
+          d.bind(image, Mode::create);
+        }) == 3,
+        "creating over an existing image must be refused"
+      );
       compare(file_bytes(image), before, "image after a refused creation");
       ++refusals;
     }
@@ -552,16 +603,18 @@ public:
     // out-of-range BLOCK, and vanish. The receipt names both events.
     const Bytes p = payload(1);
     const std::string write_receipt = path("write.receipt");
-    require(run_child([&] {
-              Device d;
-              d.bind(image, Mode::open, write_receipt);
-              d.stage(last, p);
-              d.command(2, 2, 0);
-              d.store(40, n);
-              d.command(3, 2, 0);
-              vanish();
-            }) == 0,
-            "the write/flush phase failed");
+    require(
+      run_child([&] {
+        Device d;
+        d.bind(image, Mode::open, write_receipt);
+        d.stage(last, p);
+        d.command(2, 2, 0);
+        d.store(40, n);
+        d.command(3, 2, 0);
+        vanish();
+      }) == 0,
+      "the write/flush phase failed"
+    );
     ++process_exits;
     put_block(medium, last, p);
     compare(file_bytes(image), image_of(medium), "image after WRITE and FLUSH");
@@ -569,13 +622,17 @@ public:
       const auto all = lines(write_receipt);
       std::vector<std::string> records;
       for (const auto &record : all) {
-        if (!contains(record, "\"event\":\"input\"")) records.push_back(record);
+        if (!contains(record, "\"event\":\"input\"")) {
+          records.push_back(record);
+        }
       }
-      require(records.size() == 3 && contains(records[1], "\"kind\":\"write\"") &&
-                contains(records[1], "\"offset\":" + std::to_string(last * shape.block_bytes)) &&
-                contains(records[1], "\"durable\":true") && contains(records[2], "\"kind\":\"flush\"") &&
-                contains(records[2], "\"durable\":true"),
-              "the write receipt must record the durable WRITE and FLUSH");
+      require(
+        records.size() == 3 && contains(records[1], "\"kind\":\"write\"") &&
+          contains(records[1], "\"offset\":" + std::to_string(last * shape.block_bytes)) &&
+          contains(records[1], "\"durable\":true") && contains(records[2], "\"kind\":\"flush\"") &&
+          contains(records[2], "\"durable\":true"),
+        "the write receipt must record the durable WRITE and FLUSH"
+      );
       require(all.size() > records.size(), "the bound model omitted its input entries");
     }
     const std::string read_receipt = path("read.receipt");
@@ -584,24 +641,30 @@ public:
       const auto records = lines(read_receipt);
       size_t reads = 0;
       for (const auto &record : records) {
-        if (contains(record, "\"event\":\"persist\"") && contains(record, "\"kind\":\"read\"")) ++reads;
+        if (contains(record, "\"event\":\"persist\"") && contains(record, "\"kind\":\"read\"")) {
+          ++reads;
+        }
       }
-      require(reads == n && contains(records.back(), "\"event\":\"close\"") &&
-                contains(records.back(), "\"sha256\":\"" + hex(image_of(medium)) + "\""),
-              "the reopen receipt must record each READ and the unchanged image");
+      require(
+        reads == n && contains(records.back(), "\"event\":\"close\"") &&
+          contains(records.back(), "\"sha256\":\"" + hex(image_of(medium)) + "\""),
+        "the reopen receipt must record each READ and the unchanged image"
+      );
     }
 
     // C-durable: completion is durable before STATUS is loaded or ACK written.
     const Bytes q = payload(2);
-    require(run_child([&] {
-              Device d;
-              d.bind(image, Mode::open);
-              d.stage(0, q);
-              d.store(48, 2);
-              d.steps(d.shape.steps[2]);
-              vanish();
-            }) == 0,
-            "the unobserved-completion phase failed");
+    require(
+      run_child([&] {
+        Device d;
+        d.bind(image, Mode::open);
+        d.stage(0, q);
+        d.store(48, 2);
+        d.steps(d.shape.steps[2]);
+        vanish();
+      }) == 0,
+      "the unobserved-completion phase failed"
+    );
     ++process_exits;
     put_block(medium, 0, q);
     compare(file_bytes(image), image_of(medium), "image after an unobserved completion");
@@ -610,26 +673,30 @@ public:
     // Incomplete work does not survive a process: staging alone, then a WRITE
     // at every nonfinal progress boundary. Nothing reaches the image.
     const Bytes r = payload(3);
-    require(run_child([&] {
-              Device d;
-              d.bind(image, Mode::open);
-              d.stage(last, r);
-              vanish();
-            }) == 0,
-            "the staging-only phase failed");
+    require(
+      run_child([&] {
+        Device d;
+        d.bind(image, Mode::open);
+        d.stage(last, r);
+        vanish();
+      }) == 0,
+      "the staging-only phase failed"
+    );
     ++process_exits;
     compare(file_bytes(image), image_of(medium), "image after staging alone");
     for (size_t done = 0; done < shape.steps[2]; ++done) {
-      require(run_child([&] {
-                Device d;
-                d.bind(image, Mode::open);
-                d.stage(last, r);
-                d.store(48, 2);
-                d.steps(done);
-                require(d.status() == 1, "the write must still be pending");
-                vanish();
-              }) == 0,
-              "the pending-write phase failed");
+      require(
+        run_child([&] {
+          Device d;
+          d.bind(image, Mode::open);
+          d.stage(last, r);
+          d.store(48, 2);
+          d.steps(done);
+          require(d.status() == 1, "the write must still be pending");
+          vanish();
+        }) == 0,
+        "the pending-write phase failed"
+      );
       ++process_exits;
       compare(file_bytes(image), image_of(medium), "image after a pending write at boundary " + std::to_string(done));
     }
@@ -645,17 +712,19 @@ public:
           b = static_cast<uint8_t>(b ^ 0xff);
         }
         const Bytes tear = *mask;
-        require(run_child([&] {
-                  Device d;
-                  d.bind(image, Mode::open);
-                  d.stage(block, fresh);
-                  d.store(48, 2);
-                  d.steps(d.shape.steps[2] - 1);
-                  d.reset_with(tear);
-                  d.require_clean();
-                  vanish();
-                }) == 0,
-                "the reset-tear phase failed");
+        require(
+          run_child([&] {
+            Device d;
+            d.bind(image, Mode::open);
+            d.stage(block, fresh);
+            d.store(48, 2);
+            d.steps(d.shape.steps[2] - 1);
+            d.reset_with(tear);
+            d.require_clean();
+            vanish();
+          }) == 0,
+          "the reset-tear phase failed"
+        );
         ++process_exits;
         mix(medium, block, fresh, tear);
         compare(file_bytes(image), image_of(medium), "image after a reset tear of block " + std::to_string(block));
@@ -669,17 +738,19 @@ public:
       for (size_t i = 0; i < fault.size(); ++i) {
         fault[i] = static_cast<uint8_t>(medium[i] ^ 0x3c);
       }
-      require(run_child([&] {
-                Device d;
-                d.bind(image, Mode::open);
-                d.stage(0, fresh);
-                d.store(48, 2);
-                d.corrupt(0, fault);
-                d.steps(d.shape.steps[2] - 1);
-                d.reset_with(split_mask);
-                vanish();
-              }) == 0,
-              "the fault-then-tear phase failed");
+      require(
+        run_child([&] {
+          Device d;
+          d.bind(image, Mode::open);
+          d.stage(0, fresh);
+          d.store(48, 2);
+          d.corrupt(0, fault);
+          d.steps(d.shape.steps[2] - 1);
+          d.reset_with(split_mask);
+          vanish();
+        }) == 0,
+        "the fault-then-tear phase failed"
+      );
       ++process_exits;
       put_block(medium, 0, fault);
       mix(medium, 0, fresh, split_mask);
@@ -690,30 +761,34 @@ public:
     // A WRITE error's tear, and a media fault alone.
     {
       const Bytes fresh = payload(5);
-      require(run_child([&] {
-                Device d;
-                d.bind(image, Mode::open);
-                d.stage(last, fresh);
-                d.store(48, 2);
-                d.steps(d.shape.steps[2] - 1);
-                d.step(true, split_mask);
-                require(d.status() == 3 && d.result() == 4, "an injected write error must be ERROR/IO");
-                vanish();
-              }) == 0,
-              "the write-error phase failed");
+      require(
+        run_child([&] {
+          Device d;
+          d.bind(image, Mode::open);
+          d.stage(last, fresh);
+          d.store(48, 2);
+          d.steps(d.shape.steps[2] - 1);
+          d.step(true, split_mask);
+          require(d.status() == 3 && d.result() == 4, "an injected write error must be ERROR/IO");
+          vanish();
+        }) == 0,
+        "the write-error phase failed"
+      );
       ++process_exits;
       mix(medium, last, fresh, split_mask);
       compare(file_bytes(image), image_of(medium), "image after a write error's tear");
       reopen(image, medium);
       ++tears;
       const Bytes fault = payload(6);
-      require(run_child([&] {
-                Device d;
-                d.bind(image, Mode::open);
-                d.corrupt(last, fault);
-                vanish();
-              }) == 0,
-              "the media-fault phase failed");
+      require(
+        run_child([&] {
+          Device d;
+          d.bind(image, Mode::open);
+          d.corrupt(last, fault);
+          vanish();
+        }) == 0,
+        "the media-fault phase failed"
+      );
       ++process_exits;
       put_block(medium, last, fault);
       compare(file_bytes(image), image_of(medium), "image after a media fault");
@@ -727,22 +802,24 @@ public:
       const Bytes s = payload(7);
       const Bytes t = payload(8);
       const size_t limit = blkdev::header_bytes + shape.block_bytes;
-      require(run_child([&] {
-                std::signal(SIGXFSZ, SIG_IGN);
-                Device d;
-                d.bind(image, Mode::open);
-                struct rlimit cap {limit, limit};
-                require(setrlimit(RLIMIT_FSIZE, &cap) == 0, "setrlimit failed");
-                d.stage(0, s);
-                d.command(2, 2, 0);
-                d.stage(1, t);
-                d.command(2, 3, 4);
-                d.command(1, 3, 4);
-                d.command(3, 3, 4);
-                require(!d.image->healthy(), "the adapter must record its failure");
-                vanish();
-              }) == 0,
-              "the host-failure phase failed");
+      require(
+        run_child([&] {
+          std::signal(SIGXFSZ, SIG_IGN);
+          Device d;
+          d.bind(image, Mode::open);
+          struct rlimit cap{limit, limit};
+          require(setrlimit(RLIMIT_FSIZE, &cap) == 0, "setrlimit failed");
+          d.stage(0, s);
+          d.command(2, 2, 0);
+          d.stage(1, t);
+          d.command(2, 3, 4);
+          d.command(1, 3, 4);
+          d.command(3, 3, 4);
+          require(!d.image->healthy(), "the adapter must record its failure");
+          vanish();
+        }) == 0,
+        "the host-failure phase failed"
+      );
       ++process_exits;
       put_block(medium, 0, s);
       compare(file_bytes(image), image_of(medium), "image after a host write failure");
@@ -751,8 +828,14 @@ public:
 
     // Startup refusals: the file and the register are unchanged.
     const Bytes body = medium;
-    auto crafted = [&](const std::string &name, uint64_t b, uint64_t count, const Bytes &payload_bytes,
-                       size_t magic_flip, uint8_t reserved) {
+    auto crafted = [&](
+                     const std::string &name,
+                     uint64_t b,
+                     uint64_t count,
+                     const Bytes &payload_bytes,
+                     size_t magic_flip,
+                     uint8_t reserved
+                   ) {
       Bytes out = blkdev::image_header({b, count});
       if (magic_flip < 8) {
         out[magic_flip] ^= 0x20;
@@ -763,12 +846,17 @@ public:
       write_file(file, out);
       return file;
     };
-    expect_refusal(crafted("half-blocks.img", shape.block_bytes / 2, n * 2, body, 8, 0), "half-length blocks, same total");
+    expect_refusal(
+      crafted("half-blocks.img", shape.block_bytes / 2, n * 2, body, 8, 0),
+      "half-length blocks, same total"
+    );
     Bytes longer = body;
     longer.resize(body.size() + shape.block_bytes, 0);
     expect_refusal(crafted("extra-block.img", shape.block_bytes, n + 1, longer, 8, 0), "one block too many");
-    expect_refusal(crafted("short.img", shape.block_bytes, n, Bytes(body.begin(), body.end() - 1), 8, 0),
-                   "a medium one byte short");
+    expect_refusal(
+      crafted("short.img", shape.block_bytes, n, Bytes(body.begin(), body.end() - 1), 8, 0),
+      "a medium one byte short"
+    );
     Bytes plus = body;
     plus.push_back(0);
     expect_refusal(crafted("long.img", shape.block_bytes, n, plus, 8, 0), "a medium one byte long");
@@ -797,9 +885,17 @@ public:
     if (!emulator.empty()) {
       emulator_cases();
     }
-    std::printf("block image: B=%zu N=%zu reopens=%zu process_exits=%zu tears=%zu refusals=%zu "
-                "emulator_runs=%zu PASS\n",
-                shape.block_bytes, shape.blocks, reopens, process_exits, tears, refusals, emulator_runs);
+    std::printf(
+      "block image: B=%zu N=%zu reopens=%zu process_exits=%zu tears=%zu refusals=%zu "
+      "emulator_runs=%zu PASS\n",
+      shape.block_bytes,
+      shape.blocks,
+      reopens,
+      process_exits,
+      tears,
+      refusals,
+      emulator_runs
+    );
   }
 
   // The emulator's own option surface: refusal, creation and opening happen
@@ -810,22 +906,29 @@ public:
     const std::string wrong = dir + "/half-blocks.img";
     const Bytes before = file_bytes(wrong);
     require(emulate({"--blkdev-image", wrong}, log) != 0, "the emulator must refuse a wrong-geometry image");
-    require(contains(text(log), "Block device image refused:") && contains(text(log), "records geometry") &&
-              !contains(text(log), "No elf file provided."),
-            "the emulator's refusal must name the geometry and precede ELF handling");
+    require(
+      contains(text(log), "Block device image refused:") && contains(text(log), "records geometry") &&
+        !contains(text(log), "No elf file provided."),
+      "the emulator's refusal must name the geometry and precede ELF handling"
+    );
     compare(file_bytes(wrong), before, "image the emulator refused");
     ++refusals;
 
     const std::string made_image = path("emulator.img");
     const std::string receipt = path("emulator.receipt");
-    require(emulate({"--blkdev-image-create", made_image, "--blkdev-receipt", receipt}, log) != 0,
-            "an emulator run without an ELF still fails");
-    require(contains(text(log), "Block device image created: " + made_image) &&
-              contains(text(log), "No elf file provided."),
-            "the emulator must create the image before ELF handling");
+    require(
+      emulate({"--blkdev-image-create", made_image, "--blkdev-receipt", receipt}, log) != 0,
+      "an emulator run without an ELF still fails"
+    );
+    require(
+      contains(text(log), "Block device image created: " + made_image) && contains(text(log), "No elf file provided."),
+      "the emulator must create the image before ELF handling"
+    );
     compare(file_bytes(made_image), image_of(shape.fixture), "image the emulator created");
-    require(contains(lines(receipt).at(0), "\"sha256\":\"" + hex(image_of(shape.fixture)) + "\""),
-            "the emulator's receipt must name the created image");
+    require(
+      contains(lines(receipt).at(0), "\"sha256\":\"" + hex(image_of(shape.fixture)) + "\""),
+      "the emulator's receipt must name the created image"
+    );
 
     require(emulate({"--blkdev-image", made_image}, log) != 0, "an emulator run without an ELF still fails");
     require(contains(text(log), "Block device image opened: " + made_image), "the emulator must open the image");
@@ -833,35 +936,42 @@ public:
     // GDB can reinitialize the model and does not use the checked image-close
     // path. Refuse the combination before opening either image or receipt.
     const std::string gdb_receipt = path("gdb.receipt");
-    require(emulate({"--gdb-server-port", "1234", "--blkdev-image", made_image,
-                     "--blkdev-receipt", gdb_receipt}, log) != 0 &&
-              contains(text(log), "Block device image refused:") &&
-              contains(text(log), "unavailable in GDB server mode") &&
-              !contains(text(log), "Block device image opened:") &&
-              !contains(text(log), "No elf file provided."),
-            "a bound image must refuse GDB mode before binding or ELF handling");
+    require(
+      emulate({"--gdb-server-port", "1234", "--blkdev-image", made_image, "--blkdev-receipt", gdb_receipt}, log) != 0 &&
+        contains(text(log), "Block device image refused:") && contains(text(log), "unavailable in GDB server mode") &&
+        !contains(text(log), "Block device image opened:") && !contains(text(log), "No elf file provided."),
+      "a bound image must refuse GDB mode before binding or ELF handling"
+    );
     compare(file_bytes(made_image), image_of(shape.fixture), "image after the refused GDB open");
     require(!exists(gdb_receipt), "the refused GDB open must create no receipt");
     ++refusals;
 
     const std::string gdb_image = path("gdb.img");
-    require(emulate({"--gdb-server-port", "1234", "--blkdev-image-create", gdb_image,
-                     "--blkdev-receipt", gdb_receipt}, log) != 0 &&
-              contains(text(log), "Block device image refused:") &&
-              contains(text(log), "unavailable in GDB server mode"),
-            "image creation must refuse GDB mode");
-    require(!exists(gdb_image) && !exists(gdb_receipt),
-            "the refused GDB creation must create neither image nor receipt");
+    require(
+      emulate(
+        {"--gdb-server-port", "1234", "--blkdev-image-create", gdb_image, "--blkdev-receipt", gdb_receipt},
+        log
+      ) != 0 &&
+        contains(text(log), "Block device image refused:") && contains(text(log), "unavailable in GDB server mode"),
+      "image creation must refuse GDB mode"
+    );
+    require(
+      !exists(gdb_image) && !exists(gdb_receipt),
+      "the refused GDB creation must create neither image nor receipt"
+    );
     ++refusals;
 
-    require(emulate({"--blkdev-image-create", made_image}, log) != 0 &&
-              contains(text(log), "Block device image refused:") && contains(text(log), "already exists"),
-            "the emulator must refuse to create over an image");
+    require(
+      emulate({"--blkdev-image-create", made_image}, log) != 0 && contains(text(log), "Block device image refused:") &&
+        contains(text(log), "already exists"),
+      "the emulator must refuse to create over an image"
+    );
     compare(file_bytes(made_image), image_of(shape.fixture), "image after the emulator's refused creation");
     ++refusals;
-    require(emulate({"--blkdev-receipt", path("orphan.receipt")}, log) != 0 &&
-              contains(text(log), "--blkdev-receipt needs"),
-            "a receipt without an image must be refused");
+    require(
+      emulate({"--blkdev-receipt", path("orphan.receipt")}, log) != 0 && contains(text(log), "--blkdev-receipt needs"),
+      "a receipt without an image must be refused"
+    );
   }
 
   void clean() {
@@ -910,8 +1020,13 @@ int main(int argc, char **argv) {
     if (inverted && campaign) {
       campaign->clean();
     }
-    std::fprintf(stderr, "block image: FAIL %s%s%s\n", error.what(), inverted ? "" : " (scratch kept at ",
-                 inverted ? "" : (std::string(scratch) + ")").c_str());
+    std::fprintf(
+      stderr,
+      "block image: FAIL %s%s%s\n",
+      error.what(),
+      inverted ? "" : " (scratch kept at ",
+      inverted ? "" : (std::string(scratch) + ")").c_str()
+    );
     return 1;
   }
   return 0;
