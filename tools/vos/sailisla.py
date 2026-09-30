@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tarfile
 import time
+import tomllib
 import urllib.request
 from contextlib import chdir
 from pathlib import Path
@@ -37,6 +38,11 @@ class SourcePin(TypedDict):
     revision: str
 
 
+class IslaPin(SourcePin):
+    cargo_lock: str
+    cargo_lock_overrides: dict[str, str]
+
+
 class TestgenPin(SourcePin):
     isla_revision: str
 
@@ -54,7 +60,7 @@ class RustPin(TypedDict):
 
 class Lock(TypedDict):
     version: int
-    isla: SourcePin
+    isla: IslaPin
     testgen: TestgenPin
     sail: SailPin
     rust: RustPin
@@ -197,6 +203,44 @@ def _fetch(pin: SourcePin, destination: Path, runner: Runner) -> None:
         raise IslaError(f"optional source checkout has wrong revision or edits: {destination}")
 
 
+def check_lock_override(upstream: str, override: str, versions: dict[str, str]) -> None:
+    """Refuse an override differing from upstream's lock beyond the declared versions.
+
+    A declared package keeps its source and dependencies and changes only its
+    version and checksum; every other package entry must be identical.
+    """
+    try:
+        before, after = tomllib.loads(upstream), tomllib.loads(override)
+    except tomllib.TOMLDecodeError as exc:
+        raise IslaError("an Isla Cargo.lock is not TOML") from exc
+    if set(before) != set(after) or before.get("version") != after.get("version"):
+        raise IslaError("the Isla lock override changes the lock format")
+
+    def split(lock: dict[str, object]) -> tuple[list[str], dict[str, dict[str, object]]]:
+        rows = cast(list[dict[str, object]], lock.get("package", []))
+        kept = sorted(json.dumps(row, sort_keys=True) for row in rows if row["name"] not in versions)
+        moved: dict[str, dict[str, object]] = {}
+        for row in rows:
+            name = cast(str, row["name"])
+            if name in versions:
+                if name in moved:
+                    raise IslaError(f"overridden Isla lock package is not unique: {name}")
+                moved[name] = row
+        return kept, moved
+
+    kept_before, moved_before = split(before)
+    kept_after, moved_after = split(after)
+    if kept_before != kept_after:
+        raise IslaError("the Isla lock override changes an undeclared package")
+    if set(moved_before) != set(versions) or set(moved_after) != set(versions):
+        raise IslaError("a declared Isla lock override names no locked package")
+    for name, version in versions.items():
+        old, new = moved_before[name], moved_after[name]
+        if (new["version"] != version or old.get("source") != new.get("source")
+                or old.get("dependencies") != new.get("dependencies")):
+            raise IslaError(f"the Isla lock override for {name} is not the declared version alone")
+
+
 def _prerequisites(e: env.Environment, runner: Runner) -> Path:
     for tool in ("opam", "git", "cc", "ar"):
         if shutil.which(tool) is None:
@@ -298,8 +342,21 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
         plugin_env = {**process, "OCAMLPATH": f"{prefix / 'lib'}:{switch}/lib"}
         runner.run([*opam, "dune", "build", "--release", "-j", str(jobs)],
                    isla / "isla-sail", plugin_env)
+        # The fetched checkout stays pristine; a build copy carries the tracked
+        # lock override, which may differ from upstream only as declared.
+        override_name = lock["isla"]["cargo_lock"]
+        if Path(override_name).name != override_name or override_name in ("", ".", ".."):
+            raise IslaError("the Isla lock override must be a file beside lock.json")
+        override = (e.root / ASSETS / override_name).read_text(encoding="utf-8")
+        check_lock_override((isla / "Cargo.lock").read_text(encoding="utf-8"), override,
+                            lock["isla"]["cargo_lock_overrides"])
+        isla_build = base / "build/isla"
+        if isla_build.exists():
+            shutil.rmtree(isla_build)
+        shutil.copytree(isla, isla_build, ignore=shutil.ignore_patterns(".git", "_build"))
+        _write(isla_build / "Cargo.lock", override)
         runner.run(["cargo", "build", "--release", "--locked", "--bin",
-                    "isla-execute-function", "-j", str(jobs)], isla,
+                    "isla-execute-function", "-j", str(jobs)], isla_build,
                    {**process, "CARGO_TARGET_DIR": str(base / "target-isla")})
         driver = base / "build/driver"
         shutil.copytree(e.root / ASSETS / "driver", driver, dirs_exist_ok=True)

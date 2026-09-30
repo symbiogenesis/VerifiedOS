@@ -17,9 +17,14 @@ from. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
 different Isla submodule revision, Sail release archive digest, and the Rust
-version with its component digests for Linux aarch64 and x86_64. Standalone Isla uses its
-tracked upstream Cargo.lock. The authored driver's Cargo.lock fixes the testgen
-dependency graph; ordinary builds use `--locked`. The explicit
+version with its component digests for Linux aarch64 and x86_64. Standalone Isla
+builds in a copy of its pristine checkout with the tracked
+[isla.Cargo.lock](isla.Cargo.lock), which raises crossbeam-channel and
+crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Provisioning
+refuses the override unless it equals upstream's Cargo.lock apart from the
+package versions `lock.json` declares for it, so an Isla repin with a changed
+upstream lock needs the override regenerated. The authored driver's Cargo.lock
+fixes the testgen dependency graph; ordinary builds use `--locked`. The explicit
 lalrpop-util lexer feature supplies a feature required by upstream's generated
 ACL2 parser without editing upstream source. The build does not request the
 optional web or litmus executables, LLVM, or a new opam solution. Cargo still
