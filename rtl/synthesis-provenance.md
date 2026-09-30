@@ -30,7 +30,7 @@ A row whose binding is neither is a finding, because an absence bound to nothing
 | A-07 | Prefetch engine | n/a: the imported core issues no fetch a prior execution's data selects, so there is no request generator to disable | no prefetch module elaborates |
 | A-08 | SMT / second hardware thread context | n/a: the imported core is single-threaded by construction | no duplicated architectural register file and no thread-identifier field elaborate |
 | A-09 | Instruction cache | n/a **and this one is authoring work**: no parameter deletes the fetch-path cache, which elaborates at every configuration the imported core admits | `cva6_icache` present, over its own tag, data and valid arrays |
-| A-10 | Data cache | n/a, on the same ground as A-09 | the five write-through modules present, over 84 RAM, 18 cache-SRAM and 18 SRAM instances |
+| A-10 | Data cache | n/a, on the same ground as A-09 | the five write-through modules present, over 72 `prim_ram_1p`, 12 `sram_cache` and 12 `sram` instances of the curated arm's 84, 20 and 20; A-09's arrays are the rest |
 | A-11 | Tag cache | n/a: the structure is in the imported tag controller rather than in the core, so it is outside the netlist this record is taken over and outside any parameter this package carries | no tag-cache module elaborates in the core |
 | A-12 | DVFS / frequency control | n/a: the imported core carries no PLL, no frequency-scaling state machine and no rail control | none elaborates |
 | A-12a | Activity-driven memory power gating | n/a: the structure would sit in the memory controller, which is not this core and not this package | none elaborates |
