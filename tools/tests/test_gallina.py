@@ -13,6 +13,7 @@ last entry would compare two files that agree on everything they carry.
 import argparse
 import io
 import os
+import re
 import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -222,6 +223,34 @@ def _sentences_end_outside_strings() -> None:
         ensure(got == expected, f"sentence boundaries changed for {source!r}: {got!r}")
 
 
+def _the_decoration_grammar_is_one_reading() -> None:
+    # The run a head pattern opens with and the walk a reader takes one decoration at a
+    # time are one grammar: each stops where the other does, a comment already read as a
+    # separator, and the walk says which decoration it read.
+    fixtures = {
+        "Time#[local]Lemma l": [("word", "Time"), ("attributes", "local")],
+        'Redirect"a""b"Succeed Lemma l': [("word", "Redirect"), ("word", "Succeed")],
+        'Profile "p" Fail\n#[deprecated(note="x. ] y")]\nLocal Program Definition d': [
+            ("word", "Profile"), ("word", "Fail"),
+            ("attributes", 'deprecated(note="x. ] y")'), ("word", "Local"),
+            ("word", "Program")],
+        "- { 2: { [x]: { !: { Timeout 5AllocLimit 3 Mw Instructions Lemma l": [
+            ("bullet", "-"), ("bullet", "{"), ("bullet", "2: {"), ("bullet", "[x]: {"),
+            ("bullet", "!: {"), ("word", "Timeout"), ("word", "AllocLimit"),
+            ("word", "Instructions")],
+        "Export Set Printing All": [("word", "Export")],
+        "TimeLemma l": [], "Local' l": [], "Timeout l": [], "Lemma l": [],
+    }
+    for source, expected in fixtures.items():
+        found, at = proofs.decorations(source)
+        got = [next((kind, (value or "").strip()) for kind, value in decoration.groupdict()
+                    .items() if value is not None) for decoration in found]
+        ensure(got == expected, f"the walk read {source!r} as {got!r}")
+        run = re.match(proofs.CONTROL_PREFIXES, source)
+        ensure(run is not None and run.end() == at,
+               f"the run and the walk stop apart over {source!r}")
+
+
 def _a_library_require_is_not_ordered() -> None:
     """What a library provides is not this module's to order, so `From Stdlib Require
     Import String` names no local dependency and opens no wave of its own."""
@@ -326,6 +355,7 @@ def cases() -> list[Case]:
         Case("source index is one immutable snapshot", _source_index_is_one_immutable_snapshot),
         Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
         Case("sentences end outside strings", _sentences_end_outside_strings),
+        Case("the decoration grammar is one reading", _the_decoration_grammar_is_one_reading),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),

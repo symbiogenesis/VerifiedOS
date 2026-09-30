@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
-from vos.proofs import SENTENCE_END, sentences
+from vos.proofs import ATTRIBUTE_OPEN, CONTROL_PREFIXES, SENTENCE_END, sentences
 
 MARKER = "VOS_PROOF_AUDIT|"
 EMPTY_BLACKLIST = "Current search blacklist :  is empty."
@@ -54,32 +54,16 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
                    "Guard Checking", "Positivity Checking", "Universe Checking",
                    "Indices Matter", "Strict Universe Declaration", "Default Timeout",
                    "Kernel Conversion Dep Heuristic", "Default Proof Using")
-# Everything that can precede a command within its sentence. Bullets, braces and a
-# focusing goal selector end without a full stop, so the sentence split leaves them at
-# the head of the next command, and the pinned Rocq 9.3.0 accepts a setting, a Timeout or
-# a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
-# vernac_control grammar lets precede a command: control flags, quoted attributes and
-# legacy attributes, Program among them, plus the Export locality of option commands.
-# A lexical reading anchored after them sees the command however it is decorated. Rocq's
-# lexer needs no blank after a word before `#[` or a string, nor after a string: the
-# pinned Rocq 9.3.0 compiles `Time#[local]Set` and, once its output warning is silenced,
-# `Redirect"out"Load`. So a word prefix ends where its word does, and a quoted one where
-# its string does, doubled quotes inside it. An attribute's quoted value is read whole,
-# since a bracket inside it closes nothing; an unquoted bracket is Rocq's syntax error,
-# and stopping there keeps each read linear.
-_ATTRIBUTE = r'#\[(?:[^\[\]"]|"[^"]*")*'
-_QUOTED = r'"(?:[^"]|"")*"\s*'
-CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
-                    r"|(?:Time|Instructions|Fail|Succeed)(?![\w'])\s*"
-                    r"|Profile(?![\w'])\s*(?:" + _QUOTED + r")?|Redirect\s*" + _QUOTED
-                    + r"|Timeout\s+\d+\s*|AllocLimit\s+\d+\s*(?:Mw|kw)(?![\w'])\s*"
-                    r"|" + _ATTRIBUTE + r"\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic"
-                    r"|Cumulative|NonCumulative|Private|Program)(?![\w'])\s*)*")
+# Everything that can precede a command within its sentence, bullets, braces, goal
+# selectors, control flags and quoted and legacy attributes, is the shared lexer's
+# decoration grammar ([proofs.py](proofs.py)), written there once for every head reading
+# here and every reader outside the gate. A lexical reading anchored after it sees the
+# command however it is decorated.
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or
 # an allocation limit makes a verdict depend on the machine that ran it.
-_PINNED_ATTRIBUTE = re.compile(_ATTRIBUTE + r"\b(?:warnings?|bypass_check)\b")
+_PINNED_ATTRIBUTE = re.compile(ATTRIBUTE_OPEN + r"\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
 # The Ltac tactical `timeout`, Rocq 9.3's `alloc_limit`, and Ltac2's `Control.timeout` and
 # its float twin `Control.timeoutf` bind a verdict to the machine in the same way, and
@@ -119,7 +103,7 @@ DYNAMIC_SOURCE = re.compile(
 # neither does a `where` clause: the pinned Rocq 9.3.0 refuses one whose parsing rule no
 # earlier Reserved Notation declared.
 _DECLARES_TOKENS = re.compile(r"(?<![\w'])(?:Notation|Infix)(?![\w'])")
-_TOKEN_SOURCE = re.compile(_ATTRIBUTE + r'\]|"((?:[^"]|"")*)"|:=')
+_TOKEN_SOURCE = re.compile(ATTRIBUTE_OPEN + r'\]|"((?:[^"]|"")*)"|:=')
 
 
 class AuditError(ValueError):

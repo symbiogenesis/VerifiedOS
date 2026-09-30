@@ -19,6 +19,14 @@ literal outside one is kept whole, and a sentence ends at a full stop outside bo
 that is the whole of what they are for. Nor do they know the tokens a source declares,
 which Rocq's lexer reads whole, so the proof gate refuses a declared token they would
 read as a string, a comment or a sentence end ([proofaudit.py](proofaudit.py)).
+
+The decoration grammar, what may stand before a command within its sentence, and the
+keywords whose sentence states a theorem are here on the same convention. The gate
+reads a head after the decorations in its pinned-setting, dynamic-source and witness
+readings, and the readers outside it, the apex, memory-plan, mutation, constant-table,
+corpus, citation and known-answer readers, each read one too; spelled beside each other
+they drifted, one reader missing a form another read, so each composes its anchor,
+capture or look-back from the pieces here.
 """
 
 import re
@@ -45,6 +53,44 @@ REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(
 SENTENCE_END = re.compile(r"(?<!(?<!\.)\.)\.(?=\s|$)")
 _SENTENCE_TOKEN = re.compile(r'"[^"]*(?:"|\Z)|' + SENTENCE_END.pattern)
 _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
+
+# Everything that can precede a command within its sentence, each piece with the blank
+# after it. Bullets, braces and a focusing goal selector end without a full stop, so the
+# sentence split leaves them at the head of the next command, and the pinned Rocq 9.3.0
+# accepts a setting, a Timeout or a declaration after them, in effect beyond the proof.
+# Then everything Rocq 9.3's vernac_control grammar lets precede a command: control
+# flags, quoted attributes and legacy attributes, Program among them, plus the Export
+# locality of option commands. Rocq's lexer needs no blank after a word before `#[` or a
+# string, nor after a string: the pinned Rocq 9.3.0 compiles `Time#[local]Set` and, once
+# its output warning is silenced, `Redirect"out"Load`. So a word prefix ends where its
+# word does, and a quoted one where its string does, doubled quotes inside it. An
+# attribute's quoted value is read whole, since a bracket inside it closes nothing; an
+# unquoted bracket is Rocq's syntax error, and stopping there keeps each read linear.
+_QUOTED = r'"(?:[^"]|"")*"\s*'
+_ATTRIBUTE_VALUES = r'(?:[^\[\]"]|"[^"]*")*'
+BULLETS = r"[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
+CONTROL_FLAGS = (r"(?:Time|Instructions|Fail|Succeed)(?![\w'])\s*"
+                 r"|Profile(?![\w'])\s*(?:" + _QUOTED + r")?|Redirect\s*" + _QUOTED
+                 + r"|Timeout\s+\d+\s*|AllocLimit\s+\d+\s*(?:Mw|kw)(?![\w'])\s*")
+# An attribute up to its closing bracket, for a reading that looks inside one.
+ATTRIBUTE_OPEN = r"#\[" + _ATTRIBUTE_VALUES
+LEGACY_ATTRIBUTES = (r"(?:Local|Global|Export|Polymorphic|Monomorphic|Cumulative"
+                     r"|NonCumulative|Private|Program)(?![\w'])\s*")
+# Any run of them, capturing nothing, for a head pattern to open with.
+CONTROL_PREFIXES = ("(?:" + BULLETS + "|" + CONTROL_FLAGS + "|" + ATTRIBUTE_OPEN + r"\]\s*|"
+                    + LEGACY_ATTRIBUTES + ")*")
+# One of them, saying which: `bullet` a bullet, brace or goal selector, `word` a control
+# flag's or a legacy attribute's word, `attributes` what a quoted attribute holds.
+DECORATION = re.compile("(?P<bullet>" + BULLETS + r")|(?=(?P<word>[A-Za-z]+))(?:"
+                        + CONTROL_FLAGS + "|" + LEGACY_ATTRIBUTES + r")|#\[(?P<attributes>"
+                        + _ATTRIBUTE_VALUES + r")\]\s*")
+# The control flags that run their command and keep nothing it states.
+VOID = ("Fail", "Succeed")
+
+# The vernaculars whose sentence states a theorem: Rocq 9.3's seven theorem keywords, its
+# grammar's `thm_token`, and `Example`, which states and defines.
+STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
+              "Example")
 
 
 def strip_comments(text: str) -> str:
@@ -105,6 +151,16 @@ def sentences(text: str) -> list[str]:
             start = token.end()
     found.append(code[start:])
     return [trimmed for s in found if (trimmed := s.strip())]
+
+
+def decorations(code: str, at: int = 0) -> tuple[list[re.Match[str]], int]:
+    """Every decoration standing at `at` in comment-free code, in order, and where the
+    command under them opens."""
+    found: list[re.Match[str]] = []
+    while (decoration := DECORATION.match(code, at)) is not None:
+        found.append(decoration)
+        at = decoration.end()
+    return found, at
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:
