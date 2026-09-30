@@ -217,6 +217,38 @@ def _root_gaps_name_what_a_root_lacks() -> None:
                f"{opam_client.root_gaps(foreign)}")
 
 
+def _resumable_roots_are_the_routes_own() -> None:
+    """A root reads as one `CREATE_ROOT` stopped partway through only where running the
+    route again finishes it: the reviewed client's format, the route's leading
+    repositories and no other, each at its owned URL with its stamp read."""
+    (default, url), *others = opam_client.OPAM_REPOSITORIES
+    leading = opam_client.OPAM_REPOSITORIES[:1]
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        roots: dict[str, bool] = {}
+
+        def root(name: str, resumable: bool, layout: str = "flat",
+                 stamps: dict[str, str] | None = None,
+                 configured: tuple[tuple[str, str], ...] = leading) -> Path:
+            at = Path(td) / name
+            opam_root(at, layout, stamps, configured)
+            roots[name] = resumable
+            return at
+
+        root("first-step", True)
+        root("complete", False, configured=opam_client.OPAM_REPOSITORIES)
+        root("older", False, layout="nested")
+        root("unstamped", False, stamps={})
+        root("not-leading", False, configured=tuple(others))
+        root("moved", False, configured=((default, url + "/elsewhere"),))
+        root("foreign", False, configured=(*leading, ("mine", "https://example.invalid")))
+        newer = root("newer", False)
+        (newer / "config").write_bytes(b'opam-root-version: "99.0"\n')
+        roots["absent"] = False
+        for name, resumable in roots.items():
+            ensure(opam_client.root_resumable(Path(td) / name) is resumable,
+                   f"the {name} root reads resumable={not resumable}")
+
+
 def _newer_formats_are_ordered() -> None:
     """A stated format is newer than the reviewed client's only by its release numbers:
     an older format, the reviewed one and a prerelease of it are not, and none stated
@@ -280,5 +312,6 @@ def cases() -> list[Case]:
         Case("root-prerequisites-are-packages", _root_prerequisites_are_packages),
         Case("root-gaps-name-what-a-root-lacks", _root_gaps_name_what_a_root_lacks),
         Case("newer-formats-are-ordered", _newer_formats_are_ordered),
+        Case("resumable-roots-are-the-routes-own", _resumable_roots_are_the_routes_own),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]

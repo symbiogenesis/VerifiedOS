@@ -20,12 +20,13 @@ exactly the defect this tool exists not to be.
 
 import io
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 from collections.abc import Callable
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -262,38 +263,54 @@ def _opam_probe_holds_the_reviewed_client() -> None:
 def _opam_probe_holds_the_root() -> None:
     """The row holds only where a root stands complete: stating a format no newer than
     the reviewed client's and carrying each owned repository at its URL with its stamp
-    read. An absent root is repairable, since the command creates one; a standing root
-    it would leave incomplete is reported, never planned, whether or not a client is on
-    PATH, and so is one in a format the reviewed client refuses to write to."""
+    read. An absent root is repairable, since the command creates one, and so is one
+    the root-creation route stopped partway through, which running it again finishes;
+    any other standing root it would leave incomplete is reported, never planned,
+    whether or not a client is on PATH, and so is one in a format the reviewed client
+    refuses to write to."""
     (default, url), *others = opam_client.OPAM_REPOSITORIES
     reviewed = opam_client.OPAM_VERSION
+    missing = ", ".join(f"{name} {address}" for name, address in others)
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         absent = Path(td) / "absent"
         found = _opam_probe(absent, "/usr/bin/opam", reviewed)
         ensure(not found.present and found.repairable
                and f"no opam root at {absent}" in found.saw,
                f"the reviewed client with no root is absent and repairable: {found.saw}")
+        partial = Path(td) / "partial"
+        opam_root(partial, "flat", configured=((default, url),))
+        for where, version in (("/usr/bin/opam", reviewed), (None, "")):
+            found = _opam_probe(partial, where, version)
+            ensure(not found.present and found.repairable
+                   and f"the root lacks {missing}, where the root-creation route stopped "
+                       "partway through it, and running that route again finishes it"
+                   in found.saw,
+                   f"a root the route stopped partway through is repairable, with the "
+                   f"client at {where}: {found.saw}")
         unformatted = Path(td) / "unformatted"
         opam_root(unformatted, "flat")
         (unformatted / "config").write_text('opam-version: "2.0"\n', encoding="utf-8")
-        partial = Path(td) / "partial"
-        opam_root(partial, "flat", configured=((default, url),))
+        older = Path(td) / "older"
+        opam_root(older, "nested", configured=((default, url),))
+        lacking = Path(td) / "lacking"
+        opam_root(lacking, "flat", configured=tuple(others))
         newer = Path(td) / "newer"
         opam_root(newer, "flat")
         (newer / "config").write_text('opam-root-version: "99.0"\n', encoding="utf-8")
         unstamped = Path(td) / "unstamped"
         opam_root(unstamped, "flat", stamps={name: "s" for name, _ in others})
-        missing = ", ".join(f"{name} {address}" for name, address in others)
         for incomplete, fragment in (
                 (unformatted, "the root states no format"),
-                (partial, f"the root lacks {missing}"),
+                (older, f"the root lacks {missing}"),
+                (lacking, f"the root lacks {default} {url}"),
                 (newer, "the root is in format 99.0, newer than the reviewed client's "
                         f"{opam_client.OPAM_ROOT_FORMAT}, which refuses to write to it"),
                 (unstamped, f"the root records no metadata stamp for {default}")):
             for where, version in (("/usr/bin/opam", reviewed), (None, "")):
                 found = _opam_probe(incomplete, where, version)
                 ensure(not found.present and not found.repairable and fragment in found.saw
-                       and "no command here alters a standing root" in found.saw,
+                       and "a standing root is left as it is unless the root-creation "
+                           "route stopped partway through it" in found.saw,
                        f"an incomplete root is reported and never planned, with the client "
                        f"at {where}: {found.saw}")
         complete = Path(td) / "complete"
@@ -307,16 +324,18 @@ def _opam_probe_holds_the_root() -> None:
 
 
 def _opam_row_plans_only_what_is_absent() -> None:
-    """The opam row's command runs where a client or a root is absent and nothing that
-    stands is other than the lane's: a client at another release and an incomplete
-    root are findings the run reports and plans nothing for."""
+    """The opam row's command runs where a client or a root is absent, or the root is
+    one the root-creation route stopped partway through, and nothing that stands is
+    other than the lane's: a client at another release and any other incomplete root
+    are findings the run reports and plans nothing for."""
     reviewed = opam_client.OPAM_VERSION
     row = next(fact for fact in provision.FACTS if fact.name == "opam")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         complete, partial = Path(td) / "complete", Path(td) / "partial"
-        newer = Path(td) / "newer"
+        older, newer = Path(td) / "older", Path(td) / "newer"
         opam_root(complete, "flat")
         opam_root(partial, "flat", configured=opam_client.OPAM_REPOSITORIES[:1])
+        opam_root(older, "nested", configured=opam_client.OPAM_REPOSITORIES[:1])
         opam_root(newer, "flat")
         (newer / "config").write_text('opam-root-version: "99.0"\n', encoding="utf-8")
         for where, version, root, planned in (
@@ -324,7 +343,9 @@ def _opam_row_plans_only_what_is_absent() -> None:
                 ("/usr/bin/opam", reviewed, Path(td) / "absent", True),
                 ("/usr/bin/opam", "2.5.0", Path(td) / "absent", False),
                 ("/usr/bin/opam", "2.5.0", complete, False),
-                ("/usr/bin/opam", reviewed, partial, False), (None, "", partial, False),
+                ("/usr/bin/opam", reviewed, partial, True), (None, "", partial, True),
+                ("/usr/bin/opam", "2.5.0", partial, False),
+                ("/usr/bin/opam", reviewed, older, False), (None, "", older, False),
                 ("/usr/bin/opam", reviewed, newer, False), (None, "", newer, False)):
             with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name, at=where: at)),
                   patch.object(provision.env, "opam_root", return_value=root),
@@ -452,8 +473,10 @@ def _install_opam_installs_only_what_is_absent() -> None:
             ensure(provision.install_opam(target) == 1 and "already on PATH" in said.getvalue()
                    and not installer.called and not launched.called,
                    f"a client at another release is never replaced: {said.getvalue()}")
+        # A root lacking the repository `opam init` fetches is not one the route
+        # stopped partway through, so running the route again would not finish it.
         partial = Path(td) / "partial"
-        opam_root(partial, "flat", configured=opam_client.OPAM_REPOSITORIES[:1])
+        opam_root(partial, "flat", configured=opam_client.OPAM_REPOSITORIES[1:])
         before = (partial / "repo" / "repos-config").read_bytes()
         with (patch.object(provision, "shutil",
                            SimpleNamespace(which=lambda name: "/usr/bin/opam")),
@@ -531,6 +554,74 @@ def _creation_failures(scratch: Path, target: Path) -> None:
                    f"a {name} root creation fails the command: {said.getvalue()}")
         ensure(ran == list(opam_client.CREATE_ROOT[:1] if code else opam_client.CREATE_ROOT),
                f"a failed step stops the route, ran {ran}")
+
+
+def _stopped_route_is_finished() -> None:
+    """A route that fails after `opam init` made the root reports what stands and what
+    remains of the route, and the next run finishes that root by running the route
+    again over it, as the reviewed client did on the guest: `opam init` finds the root
+    initialized and exits 0, and the remaining repositories are added."""
+    (default, url), *_ = opam_client.OPAM_REPOSITORIES
+    reviewed = opam_client.OPAM_VERSION
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        target, root = Path(td) / "bin" / "opam", Path(td) / "opam"
+        ran: list[tuple[str, ...]] = []
+
+        def failing(argv: list[str], *, check: bool,
+                    env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+            del check, env
+            ran.append(tuple(argv))
+            if tuple(argv) != opam_client.CREATE_ROOT[0]:
+                return subprocess.CompletedProcess(argv, 2)
+            opam_root(root, "flat", configured=opam_client.OPAM_REPOSITORIES[:1])
+            return subprocess.CompletedProcess(argv, 0)
+
+        def finishing(argv: list[str], *, check: bool,
+                      env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+            del check, env
+            ran.append(tuple(argv))
+            if tuple(argv) == opam_client.CREATE_ROOT[-1]:
+                shutil.rmtree(root)
+                opam_root(root, "flat")
+            return subprocess.CompletedProcess(argv, 0)
+
+        def machine(run: Callable[..., subprocess.CompletedProcess[str]]) -> ExitStack:
+            stack = ExitStack()
+            stack.enter_context(patch.object(
+                provision, "shutil", SimpleNamespace(which=lambda name: "/usr/bin/opam")))
+            stack.enter_context(patch.object(
+                provision, "env", SimpleNamespace(opam_root=lambda: root)))
+            stack.enter_context(patch.object(provision, "_say", return_value=reviewed))
+            stack.enter_context(patch.object(provision, "_dpkg",
+                                             side_effect=_dpkg_reports()))
+            stack.enter_context(patch.object(provision.subprocess, "run", side_effect=run))
+            return stack
+
+        with (machine(failing), redirect_stdout(io.StringIO()),
+              redirect_stderr(io.StringIO()) as said):
+            code = provision.install_opam(target)
+        remaining = "; ".join(" ".join(argv) for argv in opam_client.CREATE_ROOT[1:])
+        for fragment in (f"`{' '.join(opam_client.CREATE_ROOT[1])}` exited 2",
+                         f"so the opam root at {root} stands in format "
+                         f"{opam_client.OPAM_ROOT_FORMAT} with {default} {url} at stamp "
+                         f"{default}-stamp",
+                         f"what remains of the route is {remaining}, and a later run of this "
+                         "command finishes it"):
+            ensure(code == 1 and fragment in said.getvalue(),
+                   f"a failure at the second step says {fragment!r}: {said.getvalue()}")
+        ensure(ran == list(opam_client.CREATE_ROOT[:2]), f"the route stopped there: {ran}")
+        found = _opam_probe(root, "/usr/bin/opam", reviewed)
+        ensure(not found.present and found.repairable,
+               f"the row plans the command over what the route left: {found.saw}")
+        ran.clear()
+        with machine(finishing), redirect_stdout(io.StringIO()) as out:
+            code = provision.install_opam(target)
+        ensure(code == 0 and ran == list(opam_client.CREATE_ROOT)
+               and f"finished the opam root at {root} in format "
+                   f"{opam_client.OPAM_ROOT_FORMAT}" in out.getvalue(),
+               f"the next run finishes the root by the whole route: {ran} {out.getvalue()}")
+        ensure(_opam_probe(root, "/usr/bin/opam", reviewed).present,
+               "the finished root holds the row")
 
 
 def _failed_import_can_retry() -> None:
@@ -682,6 +773,7 @@ def cases() -> list[Case]:
              _install_opam_refuses_without_root_prerequisites),
         Case("install-opam-installs-only-what-is-absent",
              _install_opam_installs_only_what_is_absent),
+        Case("stopped-route-is-finished", _stopped_route_is_finished),
         Case("failed-import-can-retry", _failed_import_can_retry),
         Case("placement-probe-decides-by-filesystem",
              _placement_probe_decides_by_filesystem),

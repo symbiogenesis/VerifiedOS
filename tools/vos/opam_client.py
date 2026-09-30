@@ -62,9 +62,11 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # on the first repository, with no shell setup and no opamrc, then every other
 # repository added unselected, each switch naming the repositories it resolves from.
 # Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
-# where no root stands. A resumed bootstrap repeats it over the root it created, where
-# `opam init` reports the root already initialized and adding a repository the root
-# already carries at that URL succeeds.
+# where no root stands or where `root_resumable` reads one the route stopped partway
+# through. Repeating it over a root it made finishes that root and changes a finished
+# one in nothing: `opam init` reports the root already initialized and exits 0, and
+# adding a repository the root already carries at that URL reports no changes and
+# exits 0, as the reviewed client did over a private root on the guest.
 CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
@@ -161,6 +163,26 @@ def root_gaps(root: Path) -> list[str]:
     if unstamped:
         gaps.append(f"records no metadata stamp for {', '.join(unstamped)}")
     return gaps
+
+
+def root_resumable(root: Path) -> bool:
+    """Whether a standing root is one `CREATE_ROOT` stopped partway through, which
+    running the route again finishes: in `OPAM_ROOT_FORMAT`, configured with exactly the
+    route's leading repositories, at least the one `opam init` fetched and not every
+    one, each at its owned URL and with its stamp read.
+
+    A root whose first repository's stamp is unread is not one: `opam init` over a
+    root that stands reports it initialized without fetching anything, so the route run
+    again would leave that repository unread and the root as incomplete as it found it.
+    """
+    if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
+        return False
+    found = repositories(root)
+    if any(not repo["stamp"] for repo in found):
+        return False
+    configured = {(repo["name"], repo["url"]) for repo in found}
+    return any(configured == set(OPAM_REPOSITORIES[:count])
+               for count in range(1, len(OPAM_REPOSITORIES)))
 
 
 def initialized_format(root: Path) -> str:
