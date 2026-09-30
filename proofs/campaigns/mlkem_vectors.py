@@ -5,9 +5,10 @@
 Run in the lane's native WSL build directory, with --repo naming the source
 checkout and --build naming an existing native directory containing proofs/
 and matching compiled PqArith, Keccak and MlKem modules. Generated OCaml and
-downloaded vector data stay in that native build directory. This campaign
-tests an extracted executable; it does not prove extraction or compiler
-correctness and does not replace the native Rocq assumption/kernel audit.
+downloaded vector data stay in that native build directory; tools/vos/acvp.py
+pins the revision and every fetched file's SHA-256. This campaign tests an
+extracted executable; it does not prove extraction or compiler correctness and
+does not replace the native Rocq assumption/kernel audit.
 """
 
 from __future__ import annotations
@@ -20,25 +21,23 @@ from pathlib import Path
 import selectors
 import shutil
 import subprocess
+import sys
 import time
-import urllib.request
 
-REVISION = "975de31eb83d87039ec88934fdc47d8c312b892d"
-BASE = f"https://raw.githubusercontent.com/usnistgov/ACVP-Server/{REVISION}"
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from vos import acvp  # noqa: E402
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def download(build: Path, relative: str) -> tuple[Path, dict[str, str]]:
-    target = build / "vectors" / relative
-    target.parent.mkdir(parents=True, exist_ok=True)
-    url = f"{BASE}/{relative}"
-    if not target.exists():
-        with urllib.request.urlopen(url, timeout=60) as response:
-            target.write_bytes(response.read())
-    return target, {"url": url, "revision": REVISION, "sha256": digest(target)}
+def download(build: Path, relative: str) -> tuple[bytes, dict[str, str]]:
+    """A pinned file's bytes, verified whether cached or newly downloaded, and its identity."""
+    data = acvp.fetch(relative, build / "vectors" / relative)
+    return data, {"url": acvp.url(relative), "revision": acvp.REVISION,
+                  "sha256": hashlib.sha256(data).hexdigest()}
 
 
 def main() -> int:
@@ -77,16 +76,15 @@ def main() -> int:
         if result.returncode:
             raise RuntimeError(f"build command {index} exited {result.returncode}; see campaign-build-{index}.log")
     provenance = []
-    notice, record = download(build, "README.md")
+    # Retain the complete upstream notice, the reviewed instrument's exact bytes,
+    # alongside the downloaded inputs.
+    _, record = download(build, acvp.NOTICE)
     provenance.append(record)
-    # Retain the complete upstream notice alongside the downloaded inputs.
-    if "NIST-developed software" not in notice.read_text(encoding="utf-8"):
-        raise ValueError("upstream notice differs from reviewed instrument")
     vector_files = []
     for family in ["ML-KEM-keyGen-FIPS203", "ML-KEM-encapDecap-FIPS203"]:
-        path, record = download(build, f"gen-val/json-files/{family}/internalProjection.json")
+        data, record = download(build, acvp.vector_path(family))
         provenance.append(record)
-        vector_files.append(json.loads(path.read_text(encoding="utf-8")))
+        vector_files.append(json.loads(data.decode("utf-8")))
     rows = []
     start = time.monotonic()
     with (build / "campaign-driver.stderr").open("w") as errors:

@@ -26,6 +26,16 @@ slice: retain every applicable addition, assign its proof and resource work,
 and explain any rejection against a requirement or measured limit. The pilot
 does not establish a reason to cap eventual support at 3.0 or at C 1.2.
 
+The HIP and BLAS inputs stay frozen at `rocm-6.3.0`, whose tagged commits still
+resolve, but their maintained homes have moved. HIP is developed in
+[ROCm/rocm-systems](https://github.com/ROCm/rocm-systems) under `projects/hip`,
+whose pull requests the `ROCm/hip` commits cite, and hipBLAS in
+[ROCm/rocm-libraries](https://github.com/ROCm/rocm-libraries) under
+`projects/hipblas`; `ROCm/hipBLAS` is retired, its README directing readers to
+`ROCm/rocm-libraries`. These homes were read on 2026-09-29. A later
+re-selection, including Q30g's next-slice selection, starts from those
+repositories at a current ROCm tag rather than from the retired one.
+
 ## Reading the dispositions
 
 `U(d)`, `U(e)`, `U(f)` and `U(g)` mean unimplemented, owned respectively by

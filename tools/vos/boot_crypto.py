@@ -13,15 +13,15 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from vos import boot_handoff, receipts
+from vos import acvp, boot_handoff, receipts
 
-REVISION = "975de31eb83d87039ec88934fdc47d8c312b892d"
-BASE = f"https://raw.githubusercontent.com/usnistgov/ACVP-Server/{REVISION}/"
+# The ACVP identities are acvp.py's; these names keep the receipts' fields and readers.
+REVISION = acvp.REVISION
+BASE = acvp.BASE
 SOURCES: dict[str, tuple[str, str]] = {
-    "slh": ("SLH-DSA-sigVer-FIPS205", "a013fc2104f4ed4799d96d51141f65b965969b2cf10646626a021b6d456ce792"),
-    "mldsa": ("ML-DSA-sigVer-FIPS204", "47cdd6314c7f746d02421ffcba89d4dbc7bb875ac49e07a029fdfc26fba55437"),
-}
-NOTICE_SHA = "d5a569884ee83bd1c4737042d0a2cc7d68c6950690f75a73ef14f505a9aa3555"
+    scheme: (family, acvp.VECTORS[family])
+    for scheme, family in (("slh", "SLH-DSA-sigVer-FIPS205"), ("mldsa", "ML-DSA-sigVer-FIPS204"))}
+NOTICE_SHA = acvp.NOTICE_SHA
 OPENSSL_REVISION = "67b5686b4419b4cb8caa502711c41815f5279751"
 OPENSSL_LICENSE_SHA = "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
 SOURCE_FILES = ("firmware/crypto/keccak.c", "firmware/crypto/slh256s.c",
@@ -29,7 +29,7 @@ SOURCE_FILES = ("firmware/crypto/keccak.c", "firmware/crypto/slh256s.c",
                 "firmware/rot/boot_verify.c", "firmware/include/vos_signature.h",
                 "firmware/include/vos_keccak.h", "firmware/include/vos_boot.h")
 EVIDENCE_FILES = (*SOURCE_FILES, "tools/vos/boot_crypto.py", "tools/vos/cli/boot_crypto.py",
-    "tools/vos/boot_handoff.py", "tools/vos/receipts.py", "tools/vos/env.py",
+    "tools/vos/boot_handoff.py", "tools/vos/acvp.py", "tools/vos/receipts.py", "tools/vos/env.py",
     "proofs/campaigns/mldsa_vectors.py", "proofs/MlDsa.v", "proofs/PqArith.v", "proofs/Keccak.v",
     "firmware/crypto/fixtures.json")
 

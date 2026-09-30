@@ -1,22 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 """The corpus assembler: dialect source in, position-fixed ELF out.
 
-Sized to hand-written test programs and to nothing else. The frozen dialect has
-no assembler, because no toolchain has one: LLVM's MC layer and `lld` are
-re-homed to it at M1.4, which is downstream of every milestone the differential
-corpus gates, so the corpus would otherwise have to wait on the toolchain that
-waits on it (M0.12). What lands here instead is small enough to read: the
-encoder is [dialect.py](dialect.py), the container is [image.py](image.py), and
-this module is the parser, the layout, and the seven pseudo-instructions between
-them.
+No upstream toolchain assembles the frozen dialect, so this one is the tree's own.
+M0.12 wrote it for the differential corpus, which could not wait on a toolchain
+that waits on it, and M1.4-prime extended it to the mix the purecap backend emits, so
+downstream executables are assembled here too. M1.4 re-homes LLVM's disassembly
+and object tooling beside it rather than its assembler or linker; another
+assembler or composer needs a reviewed replacement contract. What lands here is
+small enough to read: the encoder is [dialect.py](dialect.py), the container is
+[image.py](image.py), and this module is the parser, the layout, and the seven
+pseudo-instructions between them.
 
-**Three things it deliberately does not do**, each because the program that
-needs it is not a hand-written test. There is no relocation output and no object
-file: layout is absolute at assembly time, which is the position-fixed image the
-profile already assumes (R-15-002b, R-15-036l). There is no linker script: two
-sections at two composed addresses is the whole model. And there is no macro
-processor, no `.if`, and no expression over a forward-declared external, because
-a program that wants those is M1.4's rather than this corpus's.
+**Three things it deliberately does not do.** There is no relocation output and
+no object file: layout is absolute at assembly time, which is the position-fixed
+image the profile already assumes (R-15-002b, R-15-036l). There is no linker
+script: two sections at two composed addresses is the whole model. And there is
+no macro processor, no `.if`, and no expression over a forward-declared external:
+a program that wants those needs that replacement contract rather than this
+assembler.
 
 **Purecap is the shape of the source, not a mode of it.** A load or store takes
 its authority from the base register it names (core/addr_checks.sail), so a test
