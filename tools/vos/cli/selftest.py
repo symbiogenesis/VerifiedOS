@@ -1653,6 +1653,14 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
                   lambda m: f"{m[1]}- {{?uses: {m[2]}}}{m[3]}")),
+    # The same line as a flow mapping whose `uses` key follows a quoted name continued
+    # onto a line opening with `#`: that line is the scalar's text rather than a comment,
+    # so only a census reading every line, a comment's included, counts the key.
+    ("K-115", "a workflow action stated after a quoted scalar's line opening with #",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
+                  lambda m: f'{m[1]}- {{name: "the action\n{m[1]}  # pinned", '
+                            f"uses: {m[2]}}}{m[3]}")),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
     ("K-115", "an action row that names no action a workflow runs",

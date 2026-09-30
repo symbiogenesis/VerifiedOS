@@ -173,17 +173,19 @@ reference is read only as a block mapping's bare `uses:` key opening its line, a
 after a sequence dash, while YAML also lets that key be quoted, tagged, anchored,
 written in a flow collection, spelled with an escape, reached through an alias or
 opened by an explicit `?` indicator. So the census splits each file at every YAML line
-break, 1.1's included, and on each non-comment line counts a `uses` key, bare or
-quoted, followed by its `:`; a double-quoted key holding an escape and an alias used as
-a key, whatever they spell; and every explicit-key `?` indicator, whatever key it
-opens. PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
+break, 1.1's included, and on every line counts a `uses` key, bare or quoted, followed
+by its `:`; a double-quoted key holding an escape and an alias used as a key, whatever
+they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
+line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
+after a no-break space, which YAML reads as content, opens no comment at all.
+PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
 follows it, and a line does not say whether it stands in one, so a `?` opening its line
 after indentation alone or following `{`, `,` or `[` is counted whatever follows it,
 while one after a block indicator and a blank is counted only before a blank, as a
 block key's indicator is. A line carrying any of them other than the key the reading
 took is one finding naming that line; otherwise a reference in another shape would run
 code the rule reported agreement about without having read it. The census errs toward
-a finding, counting a key or a `?` inside a trailing comment or a scalar's text, and an
+a finding, counting a key or a `?` inside a comment or a scalar's text, and an
 escaped, alias or explicit key that names something else. The one shape it does not
 count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
 grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
@@ -855,13 +857,15 @@ def _workflow_pins(ctx: Context) -> None:
                             "unread")
             continue
         for number, text_line in enumerate(_YAML_BREAK_RE.split(source), start=1):
-            if text_line.lstrip().startswith("#"):
-                continue
             where = f"{rel}:{number}"
+            # The reading's shape never takes a comment line, `#` being no `uses` key.
             m = _USES_RE.match(text_line)
             # The census: a line carrying any key the reading did not take is one
             # finding, so a reference in a shape the reading does not parse is a finding
             # rather than one the rule reports agreement about without having read it.
+            # It reads every line, a comment's included: a line opening with `#` may
+            # continue a quoted scalar, and a `#` after a no-break space, which YAML
+            # reads as content rather than a blank, opens no comment at all.
             taken = m.start("key") if m else -1
             if any(key.start() != taken for key in _USES_KEY_RE.finditer(text_line)):
                 unread += 1

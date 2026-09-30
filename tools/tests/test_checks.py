@@ -788,7 +788,13 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
               ('  - {{?"uses": {ref}}}\n', 0),
               ('  - {{?"u\\x73es": {ref}}}\n', 0),
               ("  - name: step\n    id: &k uses\n  - {{?*k : {ref}}}\n", 2),
-              ("  - {{name: step,\n    ?uses : {ref}}}\n", 1))
+              ("  - {{name: step,\n    ?uses : {ref}}}\n", 1),
+              # a key on a line opening with `#` that continues a quoted scalar, and on
+              # one whose `#` follows a no-break or ideographic space, which YAML reads
+              # as content rather than a blank
+              ('  - {{name: "a\n    # b", uses: {ref}}}\n', 1),
+              ("  - {{name: x,\n  \u00a0#x, uses: {ref}}}\n", 1),
+              ("  - {{name: x,\n  \u3000#x, uses: {ref}}}\n", 1))
     refs = (f"example/action@{_K115_SHA}",   # the reviewed commit
             f"other/action@{_K115_SHA}",     # an action with no row
             f"example/action@{'f' * 40}")    # a commit the row never reviewed
@@ -812,12 +818,17 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
 
 def _k115_census_counts_the_read_key_once() -> None:
     # The controls: a key the reading took is not counted again, a flow mapping whose
-    # `uses:` opens its own line is read and held, and neither a comment nor a word
-    # ending in the key's letters is a key.
-    control = (_K115_WORKFLOW + "  # - {uses: other/action@v1}\n"
+    # `uses:` opens its own line is read and held, and neither a comment's prose nor a
+    # word ending in the key's letters is a key.
+    control = (_K115_WORKFLOW + "  # every step uses a reviewed action\n"
                "  - run: echo reuses: nothing\n")
     found = _k115({".github/workflows/a.yml": control})
-    ensure(not found, f"comments and other words are not keys: {found!r}")
+    ensure(not found, f"prose and other words are not keys: {found!r}")
+    # A comment line is read like any other, so a key's shape in one is counted, as one
+    # in a trailing comment is: the census errs toward a finding.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + "  # - {uses: other/action@v1}\n"})
+    ensure(len(found) == 1 and f"a.yml:4 {_K115_UNREAD}" in found[0],
+           f"a key's shape in a comment line is counted: {found!r}")
     # After a block indicator, a `?` flush against what follows opens a plain scalar,
     # `?uses`, which PyYAML reads as no `uses` key.
     found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
@@ -828,6 +839,8 @@ def _k115_census_counts_the_read_key_once() -> None:
     found = _k115({".github/workflows/a.yml": flow})
     ensure(len(found) == 1 and "a.yml:6 runs example/action at ffffffffffff" in found[0],
            f"a read key is held against its row and not also counted unread: {found!r}")
+
+
 # K-118's fixture: a section with a paragraph, a table of five rows, and a later
 # subsection whose numerals lie outside the window. Each held release has an owner of
 # its own kind: a uv lock package, one snapshot's package, the snapshots every lock
