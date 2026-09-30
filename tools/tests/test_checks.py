@@ -619,6 +619,54 @@ def _k115_unreadable_readings_fail_closed() -> None:
         found = _k115(files)
         ensure(any(fragment in item for item in found),
                f"an unreadable reading must report ({fragment!r}): {found!r}")
+
+
+_K115_UNREAD = "states an action reference in a form K-115 does not read"
+
+
+def _k115_every_uses_key_is_read_or_reported() -> None:
+    # GitHub runs a reference written in a flow mapping, under a quoted key or as an
+    # explicit key, and the block reading takes none of them. Each shape stands beside
+    # the agreeing block lines, so a census that missed it would leave the rule reporting
+    # agreement over an action with no row or a commit nobody reviewed.
+    shapes = ("  - {{name: step, uses: {ref}}}\n",
+              "  - {{uses: {ref}, with: {{a: b}}}}\n",
+              '  - "uses": {ref} # v1.2.3\n',
+              "  - 'uses': {ref} # v1.2.3\n",
+              '  - name: step\n    "uses": {ref} # v1.2.3\n',
+              "  - ? uses\n    : {ref} # v1.2.3\n",
+              "  - uses : {ref} # v1.2.3\n")
+    refs = (f"example/action@{_K115_SHA}",   # the reviewed commit
+            f"other/action@{_K115_SHA}",     # an action with no row
+            f"example/action@{'f' * 40}")    # a commit the row never reviewed
+    for shape in shapes:
+        offset = next(n for n, text in enumerate(shape.split("\n")) if "uses" in text)
+        for ref in refs:
+            found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + shape.format(ref=ref)})
+            ensure(len(found) == 1 and f"a.yml:{4 + offset} {_K115_UNREAD}" in found[0],
+                   f"an unread shape is one finding at its line ({shape!r}, {ref}): {found!r}")
+    # The only reference unread: its line is the finding, and neither the empty-subject
+    # nor the row-runs-nothing direction speaks about a reference it could not read.
+    found = _k115({".github/workflows/a.yml": f"steps:\n  - {{uses: example/action@{_K115_SHA}}}\n"})
+    ensure(len(found) == 1 and f"a.yml:2 {_K115_UNREAD}" in found[0],
+           f"an unread sole reference is one finding: {found!r}")
+
+
+def _k115_census_counts_the_read_key_once() -> None:
+    # The controls: a key the reading took is not counted again, a flow mapping whose
+    # `uses:` opens its own line is read and held, and neither a comment nor a word
+    # ending in the key's letters is a key.
+    control = (_K115_WORKFLOW + "  # - {uses: other/action@v1}\n"
+               "  - run: echo reuses: nothing\n")
+    found = _k115({".github/workflows/a.yml": control})
+    ensure(not found, f"comments and other words are not keys: {found!r}")
+    flow = (_K115_WORKFLOW + "  - {\n      name: step,\n"
+            f"      uses: example/action@{'f' * 40} # v1.2.3\n    }}\n")
+    found = _k115({".github/workflows/a.yml": flow})
+    ensure(len(found) == 1 and "a.yml:6 runs example/action at ffffffffffff" in found[0],
+           f"a read key is held against its row and not also counted unread: {found!r}")
+
+
 def _k116(files: dict[str, str], gitlinks: dict[str, str]) -> list[str]:
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN, **files}) as root:
         ctx = _context(root, fix=True)
@@ -944,6 +992,8 @@ def cases() -> list[Case]:
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
         Case("k115-analyzer-rows-follow-their-owners", _k115_analyzer_rows_follow_their_owners),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
+        Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
+        Case("k115-census-counts-the-read-key-once", _k115_census_counts_the_read_key_once),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
         Case("k81-historical-residue-cannot-exempt-table",
