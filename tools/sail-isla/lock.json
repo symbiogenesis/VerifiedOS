@@ -10,9 +10,11 @@
     "isla_revision": "bcc7ee8463a8fed5911ccf7167da5a82f7b5e4db"
   },
   "sail": {
-    "revision": "ce60ba570b4402a42431bc5033145d9aeb327f20",
-    "url": "https://codeload.github.com/rems-project/sail/tar.gz/ce60ba570b4402a42431bc5033145d9aeb327f20",
-    "sha256": "a561fd10fb4c95562b043f93fd751a2bc41644b2f37393eae0e7b13bbb88173a"
+    "version": "0.20.3",
+    "revision": "3df54034910b31a1e00d948ee965b2e9603d68e0",
+    "url": "https://github.com/rems-project/sail/releases/download/0.20.3/sail-0.20.3.tbz",
+    "sha256": "0b223ed83f521ad87eaacd88186390fbaf0b944f63c6a04a3ebdf96a1ff5a60c",
+    "directory": "sail-0.20.3"
   },
   "rust": {
     "version": "1.90.0",

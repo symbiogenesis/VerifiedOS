@@ -11,11 +11,12 @@ command and oracle logs use the lane's standard log names.
 The prerequisites are the repository's locked baseline Sail opam inventory,
 pinned Z3 shared library, Git, a C compiler and binutils. Provisioning checks the
 opam package inventory and Z3 version. It reads the baseline switch without
-installing into it. A separate development Sail executable and Isla plugin are
-built in the lane. The primary compiler is unchanged.
+installing into it. A separate Sail executable and the Isla plugin are built in
+the lane from the release archive the locked compiler's opam package also builds
+from. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
-different Isla submodule revision, development Sail archive digest, and Rust
+different Isla submodule revision, Sail release archive digest, and Rust
 1.90.0 component digests for Linux aarch64 and x86_64. Standalone Isla uses its
 tracked upstream Cargo.lock. The authored driver's Cargo.lock fixes the testgen
 dependency graph; ordinary builds use `--locked`. The explicit

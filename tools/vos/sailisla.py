@@ -42,7 +42,9 @@ class TestgenPin(SourcePin):
 
 
 class SailPin(SourcePin):
+    version: str
     sha256: str
+    directory: str
 
 
 class RustPin(TypedDict):
@@ -276,11 +278,14 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
                     "isla"], testgen)
         _fetch({"url": lock["isla"]["url"], "revision": lock["testgen"]["isla_revision"]},
                testgen / "isla", runner)
-        archive = base / "sail.tar.gz"
+        directory = lock["sail"]["directory"]
+        if Path(directory).name != directory or directory in ("", ".", ".."):
+            raise IslaError("the Sail source directory must be one archive member name")
+        archive = base / "sail.archive"
         _download(lock["sail"]["url"], lock["sail"]["sha256"], archive)
         with tarfile.open(archive) as compressed:
             compressed.extractall(base, filter="data")
-        sail_source = base / f"sail-{lock['sail']['revision']}"
+        sail_source = base / directory
         prefix = base / "sail-prefix"
         opam = ["opam", "exec", f"--switch={env.SAIL_SWITCH}", "--"]
         runner.run([*opam, "dune", "build", "-p", "sail,sail_maker,libsail", "@install",
