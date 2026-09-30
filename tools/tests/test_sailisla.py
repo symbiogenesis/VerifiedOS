@@ -3,6 +3,7 @@
 
 import io
 import json
+import shutil
 import tarfile
 import tomllib
 from collections.abc import Callable
@@ -260,6 +261,26 @@ def _provision_uses_fresh_prefix() -> None:
         _reject(lambda: provision(interrupted))
         ensure(not stamp.exists() and not stale.exists(),
                "an interrupted provisioning must leave no stamp describing a removed prefix")
+
+        # The stamp hashes only the prefix's sail executable, so a stamp left beside a
+        # prefix whose removal stopped partway could still pass qualification.
+        remove = shutil.rmtree
+
+        def removal_interrupted(path: Path) -> None:
+            if Path(path).name == "sail-prefix":
+                raise OSError("removal interrupted")
+            remove(path)
+
+        plant()
+        try:
+            with patch.object(sailisla.shutil, "rmtree", side_effect=removal_interrupted):
+                provision()
+        except OSError:
+            pass
+        else:
+            raise AssertionError("an interrupted prefix removal must fail provisioning")
+        ensure(not stamp.exists() and stale.exists(),
+               "the stamp must be gone before the prefix's removal starts")
 
 
 def _report() -> dict[str, Any]:
