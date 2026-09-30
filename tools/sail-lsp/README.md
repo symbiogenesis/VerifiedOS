@@ -12,8 +12,9 @@ python tools/run.py sail-lsp qualify --json
 
 Use `python3` on Linux. `serve` accepts standard LSP over JSON-RPC 2.0 with
 Content-Length framing on stdin/stdout. Configure any LSP client to launch that
-command from the checkout. The upstream server otherwise writes its own log to
-stdout, so this launcher always supplies its separate native `--log-file`.
+command from the checkout. This launcher always supplies a separate native
+`--log-file`, so the server's own log stays in the lane's log location rather
+than on the client's streams.
 Configure the client to send `workspace/didChangeWatchedFiles` for
 `**/*.sail` and `**/*.sail_project` in its workspace. This server does not request
 dynamic watcher registration. The dependency-refresh patch handles these
@@ -24,10 +25,11 @@ incremental or full-buffer changes follow the server's advertised capabilities.
 The optional install reads the complete existing `tools/opam/sail.lock` package
 inventory and refuses drift. It builds the SHA-256-pinned archives in
 [sources.lock.json](sources.lock.json) into the checkout's native
-`sail-lsp/prefix`. It writes no opam switch and does not replace `sail`. New
-Libsail and the LSP server come from the same immutable Sail revision; the
-server's `0.20.2` package label names neither the locked compiler's edition nor
-its source revision.
+`sail-lsp/prefix`. It writes no opam switch and does not replace `sail`. The
+private Libsail and the LSP server are built from the Sail 0.20.3 release
+archive, the same SHA-256-identified archive the locked compiler's opam package
+builds from. Upstream's `sail_lsp.opam` in that archive still carries a `0.20.2`
+package label; the archive, not that label, identifies the server's source.
 The dependency closure adds the LSP/JSON-RPC runtime, its JSON conversion and
 UTF library, and the UTF library's build helper. Compiler, dune, Yojson, and
 other build dependencies come from the existing exact lock without solving
@@ -42,7 +44,7 @@ hashes. These detect accidental changes, not malicious substitution of both
 artifacts and receipts.
 
 [dependency-refresh.patch](dependency-refresh.patch) is the maintained local
-change to [upstream handler.ml at the source pin](https://github.com/rems-project/sail/blob/ce60ba570b4402a42431bc5033145d9aeb327f20/src/sail_lsp/handler.ml).
+change to [upstream handler.ml at the source pin](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/sail_lsp/handler.ml).
 It reloads changed compiler-owned file contents, preserves editor-owned unsaved
 buffers, rebuilds project checking state, and publishes diagnostics for every
 open document. Missing or unreadable dependencies clear typed state and produce

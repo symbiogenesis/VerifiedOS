@@ -20,7 +20,10 @@ from urllib.request import urlopen
 from vos.memory_planner import Instance, Placement, parse_instance, plan, pool_heights
 
 MINIMALLOC_COMMIT = "9f5cf810fec4494df473c23cffd0567989e81b69"
-EXECUTORCH_COMMIT = "420948be0b6895244a7f63742222d2d72d84a31c"
+# Tag v1.5.1. PyPI executorch 1.5.1's Linux and macOS wheels ship these exact
+# exir/memory_planning.py bytes; its win_amd64 wheel stores them with CRLF line
+# endings, so the byte identity deliberately refuses that installation.
+EXECUTORCH_COMMIT = "3b60683923245cf472b7323426920e15623ba361"
 EXECUTORCH_SHA256 = "f141012f46c9a2d409fe22d1629b6bede532fcbc4f6405e0dfef6178c8a32550"
 INT64_MAX = (1 << 63) - 1
 INT64_MIN = -(1 << 63)
@@ -530,7 +533,8 @@ def executorch_algorithm(*, work_budget: int = 0) -> ExecuTorchAlgorithm:
         raise UnsupportedAdapterError("ExecuTorch interface has no inspectable source")
     actual = hashlib.sha256(Path(upstream.__file__).read_bytes()).hexdigest()
     if actual != EXECUTORCH_SHA256:
-        raise UnsupportedAdapterError(f"ExecuTorch memory_planning.py must match {EXECUTORCH_COMMIT}")
+        raise UnsupportedAdapterError(f"ExecuTorch memory_planning.py must match {EXECUTORCH_COMMIT} "
+                                      "(executorch 1.5.1's Linux or macOS wheel bytes)")
     return ExecuTorchAlgorithm(cast(ExecuTorchModule, cast(object, upstream)),
                               work_budget=work_budget)
 
