@@ -7,8 +7,9 @@ client that built it in its version string, `sail @ opam-v<client> <release>`, s
 lock built under two clients yields two identities. This module is the one owner of
 the client's reviewed release and its per-architecture SHA-256 values, which
 [guest bootstrap](../ci/bootstrap_guest.py) verifies its download against and
-[`run.py provision`](cli/provision.py) holds the installed client to, and of the one
-route both take to install it. A client is
+[`run.py provision`](cli/provision.py) holds the installed client to, of the one
+route both take to install it, and of the one route both take to create a root on the
+package repositories. A client is
 replaced deliberately rather than repaired: a client rewrites a root whose format is
 older than its own to its own format, one way, after which an earlier client cannot
 read it. Not every release raises the format, so the reviewed client's is recorded
@@ -53,6 +54,19 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
     ("rocq-released", "https://rocq-prover.org/opam/released"),
 )
 
+# The one route that creates a root, in the root `OPAMROOT` names: a bare `opam init`
+# on the first repository, with no shell setup and no opamrc, then every other
+# repository added unselected, each switch naming the repositories it resolves from.
+# Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
+# where no root stands. A resumed bootstrap repeats it over the root it created, where
+# `opam init` reports the root already initialized and adding a repository the root
+# already carries at that URL succeeds.
+CREATE_ROOT: tuple[tuple[str, ...], ...] = (
+    ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
+    *(("opam", "repository", "add", name, url, "--dont-select", "-y")
+      for name, url in OPAM_REPOSITORIES[1:]),
+)
+
 _CONFIGURED_RE = re.compile(r'"([^"\r\n]+)"\s*\{\s*"([^"\r\n]+)"')
 _STAMP_RE = re.compile(r'(?m)^stamp:\s*"([^"\r\n]*)"')
 _FORMAT_RE = re.compile(r'(?m)^opam-root-version:\s*"([^"\r\n]*)"')
@@ -87,6 +101,25 @@ def root_format(root: Path) -> str:
     except OSError:
         return ""
     return str(found.group(1)) if found else ""
+
+
+def root_exists(root: Path) -> bool:
+    """Whether a root stands at `root`, which opam marks by the root's `config` file:
+    `opam init` initializes a directory without one, and every other command refuses it
+    as no root."""
+    return (root / "config").is_file()
+
+
+def root_gaps(root: Path) -> list[str]:
+    """What a root that stands lacks of one `CREATE_ROOT` makes, as clauses: a stated
+    format, and each of `OPAM_REPOSITORIES` at its URL. Empty for a complete root."""
+    gaps = [] if root_format(root) else ["states no format"]
+    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
+    missing = [f"{name} {url}" for name, url in OPAM_REPOSITORIES
+               if (name, url) not in configured]
+    if missing:
+        gaps.append(f"lacks {', '.join(missing)}")
+    return gaps
 
 
 def initialized_format(root: Path) -> str:

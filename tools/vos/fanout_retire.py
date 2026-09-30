@@ -365,14 +365,15 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
         if adjacent.exists() or adjacent.is_symlink():
             lock_paths.add(adjacent)
     # The oracle is shared across lanes; its owner locks the shared build tree,
-    # whereas its lane-specific log must travel with this lane. The tree is keyed by
-    # the Sail edition, and the log's name is not, so a log another edition's checkout
-    # wrote is covered only by holding every edition's lock; the unkeyed spelling is
-    # the one earlier checkouts locked.
+    # whereas its lane-specific log must travel with this lane. The tree is named for
+    # the oracle pin under a directory keyed by the Sail edition, and the log's name
+    # carries neither, so a log another checkout wrote is covered only by holding the
+    # lock of every tree of the family, under every edition and at the unkeyed
+    # spelling earlier checkouts locked, whichever pin it names.
     if logs / f"oracle-build-{lane}.log" in selected_logs:
-        unkeyed = env._lock_path(source.parent / env.ORACLE_TREE)
-        for oracle_lock in (*source.parent.glob(f"sail-*/{unkeyed.name}"),
-                            env._lock_path(env.oracle_tree(source.parent)), unkeyed):
+        family = env.ORACLE_TREE.rsplit("-", 1)[0]
+        for oracle_lock in (*source.parent.glob(f"sail-*/{family}-*.lock"),
+                            *source.parent.glob(f"{family}-*.lock")):
             if oracle_lock.exists() or oracle_lock.is_symlink():
                 lock_paths.add(oracle_lock)
     with contextlib.ExitStack() as stack:

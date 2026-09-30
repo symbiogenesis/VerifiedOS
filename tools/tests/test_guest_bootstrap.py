@@ -336,10 +336,16 @@ def _opam_client_has_one_owner() -> None:
 
 
 def _repositories_come_from_the_owner() -> None:
-    """The root is initialized on the owner's repositories, the first as the default."""
+    """The root is created by the owner's one route, on the owner's repositories, the
+    first as the default; bootstrap spells no opam command of its own for it."""
     launched: list[tuple[str, ...]] = []
     with patch.object(bootstrap, "run", side_effect=lambda argv, log: launched.append(argv)):
         bootstrap.initialize_repositories(io.StringIO())
+    ensure(launched == list(bootstrap.opam_client.CREATE_ROOT),
+           f"bootstrap runs the owner's root-creation route, ran {launched}")
+    source = Path(bootstrap.__file__).read_text(encoding="utf-8")
+    ensure('"init"' not in source and '"repository"' not in source,
+           "bootstrap must run the owner's route, not restate its commands")
     (default, url), *others = bootstrap.opam_client.OPAM_REPOSITORIES
     ensure(launched[0][:2] == ("opam", "init") and launched[0][-2:] == (default, url),
            f"the root is initialized on the default repository, ran {launched[0]}")

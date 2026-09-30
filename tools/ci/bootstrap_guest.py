@@ -147,13 +147,11 @@ def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
 
 
 def initialize_repositories(log: IO[str]) -> None:
-    """Initialize the private root on its default repository and add the rest unselected,
-    each switch naming the repositories it resolves from."""
-    (default, default_url), *others = opam_client.OPAM_REPOSITORIES
-    run(("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", default, default_url),
-        log)
-    for name, url in others:
-        run(("opam", "repository", "add", name, url, "--dont-select", "-y"), log)
+    """Create the private root by the opam client owner's one route, `CREATE_ROOT`:
+    initialized on its default repository with the rest added unselected, each switch
+    naming the repositories it resolves from."""
+    for argv in opam_client.CREATE_ROOT:
+        run(argv, log)
 
 
 def install_toolchains(root: Path, jobs: int, log: IO[str],
