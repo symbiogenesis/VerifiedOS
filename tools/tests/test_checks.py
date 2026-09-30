@@ -1036,10 +1036,27 @@ def _k88_device_regs(files: dict[str, str], gitlinks: dict[str, str],
         return reading.findings
 
 
+_K88_BLOCK = "\n".join(
+    f"| `0x{8 * i:02x}` | `{name}` | RO | value |" for i, name in enumerate(
+        ("VERSION", "BLOCK_BYTES", "BLOCK_COUNT", "STATUS", "RESULT", "BLOCK", "COMMAND",
+         "ACK"))) + "\n| `0x100 + 8*i`, `0 <= i < B/8` | `DATA[i]` | RW | staging |\n"
+_K88_MODEL = ("let blkdev_max_bytes : int(8192) = 8192\n"
+              "let blkdev_max_block_bytes : int(4096) = 4096\n")
+_K88_OWNERS = {device_regs.BLOCK: _K88_BLOCK, device_regs.BLOCK_MODEL: _K88_MODEL}
+
+
+def _k88_device_header(mocha: str) -> str:
+    """A package stamped at `mocha`, carrying what the fixture's block owners emit."""
+    with sandbox_tree(_K88_OWNERS) as root:
+        block = device_regs.block_lines(root)
+    return "\n".join((f"// generated\n{device_regs.STAMP}{mocha}\npackage p;", *block,
+                      "endpackage\n"))
+
+
 def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
     mocha = "d" * 40
-    header = f"// generated\n{device_regs.STAMP}{mocha}\npackage p;\nendpackage\n"
-    files = {device_regs.ARTIFACT: header}
+    header = _k88_device_header(mocha)
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: header}
     links = {device_regs.UPSTREAM: mocha}
     ensure(not _k88_device_regs(files, links),
            "an indexed header recording its gitlink's commit passes")
@@ -1051,14 +1068,42 @@ def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
         # a hand edit leaves the stamp agreeing and the bytes off the index
         (files, links, header.replace("package p;", "package q;"),
          "differs from its indexed emission"),
-        ({device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")}, links, None,
-         "records no readable owner revision"),
-        ({}, links, None, "the git index does not carry it"),
+        ({**files, device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")}, links,
+         None, "records no readable owner revision"),
+        (_K88_OWNERS, links, None, "the git index does not carry it"),
         (files, {}, None, "carries no gitlink"))
     for changed, gitlinks, edit, needle in cases:
         found = _k88_device_regs(changed, gitlinks, edit)
         ensure(len(found) == 1 and needle in found[0],
                f"each broken reading is one finding naming it: {found!r}")
+
+
+def _k88_device_register_block_half_is_decided_on_the_host() -> None:
+    mocha = "d" * 40
+    header = _k88_device_header(mocha)
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: header}
+    links = {device_regs.UPSTREAM: mocha}
+    moved = "BLK_ constants differ"
+    cases: tuple[tuple[dict[str, str], str], ...] = (
+        # a block-contract offset moved and the package, still what the index holds,
+        # was not regenerated: no Mocha checkout is needed to see it
+        ({**files, device_regs.BLOCK: _K88_BLOCK.replace("`0x38` | `ACK`",
+                                                         "`0x40` | `ACK`")}, moved),
+        ({**files, device_regs.BLOCK_MODEL: _K88_MODEL.replace("= 4096", "= 2048")}, moved),
+        # a constant edited in the tracked package itself agrees with its index
+        ({**files, device_regs.ARTIFACT: header.replace("BLK_ACK = 64'h38",
+                                                        "BLK_ACK = 64'h40")}, moved),
+        ({**files, device_regs.ARTIFACT: "\n".join(
+            line for line in header.split("\n") if "BLK_DATA" not in line)}, moved),
+        # an owner the block half reads is gone or ambiguous: refused, never passed
+        ({device_regs.ARTIFACT: header, device_regs.BLOCK_MODEL: _K88_MODEL},
+         "block constants cannot be derived"),
+        ({**files, device_regs.BLOCK: _K88_BLOCK + _K88_BLOCK},
+         "block constants cannot be derived"))
+    for changed, needle in cases:
+        found = _k88_device_regs(changed, links)
+        ensure(len(found) == 1 and needle in found[0],
+               f"each block-half defect is one finding naming it: {found!r}")
 
 
 def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
@@ -1391,6 +1436,8 @@ def cases() -> list[Case]:
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
         Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
              _k88_device_register_stamp_is_held_whole_and_fail_closed),
+        Case("k88-device-register-block-half-is-decided-on-the-host",
+             _k88_device_register_block_half_is_decided_on_the_host),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
         Case("k84-retired-holders-are-historical-only", _k84_retired_holders_are_historical_only),
         Case("k84-retirement-needs-an-unfenced-registry-row",

@@ -1944,6 +1944,13 @@ CASES: list[Case] = [
      _first_match("rtl/vos_device_regs_pkg.sv",
                   r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    # The same row's block half, seeded at its owner rather than at the package: the
+    # contract's ACK offset moves and the package still agrees with its index and its
+    # gitlink, so only the host's re-derivation of the BLK_ lines can see it.
+    ("K-88", "a block-contract register offset moved without regenerating the "
+             "device-register package",
+     _literal("interfaces/block-device-contract.md", "| `0x38` | `ACK` |",
+              "| `0x40` | `ACK` |")),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written
