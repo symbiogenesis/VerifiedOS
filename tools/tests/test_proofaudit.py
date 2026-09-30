@@ -227,11 +227,17 @@ def _pinned_settings_cannot_be_overridden() -> None:
                "Fail AllocLimit 9 Mw Timeout 1 Check 0.",
                "Proof. Unset Guard Checking. exact I. Qed.",
                "#[bypass_check(guard)] Fixpoint f (n : nat) : nat := f n.",
-               '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.')
+               '#[warnings="-non-recursive"] Fixpoint f (n : nat) : nat := 0.',
+               # A quoted bracket does not close the attribute that holds it.
+               '#[deprecated(since="2", note="see [old]"), warnings="-all"] '
+               "Definition use := old.",
+               '#[deprecated(since="2", note="]"), bypass_check(guard)] Fixpoint f (n : nat) '
+               ': nat := f n.')
     for text in refused:
         ensure(bool(proofaudit.pinned_overrides(text)), f"a pinned-setting override passed: {text}")
     allowed = ("Set Implicit Arguments.", "Local Open Scope nat_scope.", "Set Printing Width 80.",
                '(* Set Warnings "-all". *) Definition x := 0.',
+               '#[deprecated(since="2", note="see warnings [x]")] Definition old := 0.',
                'Definition label := "Set Warnings".', "#[local] Arguments id {A} x.",
                "Definition timeout_bound := 5.", "Time Instructions Check 0.",
                'Profile "p" Set Printing Width 80.', "Polymorphic Definition pid := 0.")
@@ -285,8 +291,8 @@ def _settings_after_bullets_are_refused() -> None:
 def _machine_bound_tacticals_are_refused() -> None:
     # Each tactic here compiles silently under the gate's flags in the pinned Rocq 9.3.0,
     # the Ltac2 ones once Ltac2 is imported, except alloc_limit, which only this switch's
-    # missing memprof-limits refuses. The last is a Gallina application of an identifier
-    # named `timeout`: a deliberate, loud false refusal.
+    # missing memprof-limits refuses. Ltac2 applies its first-class primitives through an
+    # alias, a parenthesis or an imported short name, with no argument beside the word.
     refused = ("Lemma a : True. Proof. timeout 5 (exact I). Qed.",
                "Lemma a : True. Proof. alloc_limit 1 Mw (exact I). Qed.",
                "Lemma a : True /\\ True. Proof. split; [timeout 5 auto | exact I]. Qed.",
@@ -295,13 +301,26 @@ def _machine_bound_tacticals_are_refused() -> None:
                "Lemma a : True. Proof. let n := numgoals in timeout n (exact I). Qed.",
                "Lemma a : True. Proof. Control.timeout 5 (fun () => exact I). Qed.",
                "Lemma a : True. Proof. Control.timeout (Int.add 2 3) (fun () => exact I). Qed.",
-               "Definition wait := timeout 5.")
+               "Lemma a : True. Proof. Control.timeout(5) (fun () => exact I). Qed.",
+               "Lemma a : True. Proof. (Control.timeout) 5 (fun () => exact I). Qed.",
+               "Ltac2 budget := Control.timeout.", "Ltac2 budget := Control.timeoutf.",
+               "Import Ltac2.Control. Ltac2 budget := timeout.",
+               "Import Ltac2.Control. Lemma a : True. "
+               "Proof. (timeout) 5 (fun () => exact I). Qed.",
+               # Rocq's lexer reads a comment as a separator on either side of the word.
+               "Lemma a : True. Proof. timeout(* c *)5 (exact I). Qed.",
+               "Lemma a : True. Proof. try(* c *)timeout 5 (exact I). Qed.",
+               # Gallina identifiers named exactly after a primitive: loud false refusals.
+               "Definition wait := timeout 5.", "Record Budget := { timeout : nat }.",
+               "Definition get (b : Budget) := b.(timeout).")
     for text in refused:
         ensure(len(proofaudit.pinned_overrides(text)) == 1,
                f"a machine-bound tactical passed: {text!r}")
     allowed = ("Definition timeout_bound := 5.", "Definition wait := my_timeout 5.",
+               "Definition time := 1. Definition out := 2. "
+               "Definition wait := Nat.add time(* c *)out.",
                "Definition cap := alloc_limit_words 1.", "Definition wait' := timeout' 5.",
-               "Record Budget := { timeout : nat }.", "Definition get (b : Budget) := b.(timeout).",
+               "Definition timeouts := 5.", "Definition timeoutf' := 5.",
                "(* timeout 5 (exact I) *) Definition x := 0.",
                'Definition label := "timeout 5".', 'Definition label := "a. timeout 5 b".',
                "Lemma a : True. Proof. exact I. Qed. (* alloc_limit 1 Mw (exact I). *)")

@@ -60,25 +60,29 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
 # a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
 # vernac_control grammar lets precede a command: control flags, quoted attributes and
 # legacy attributes, Program among them, plus the Export locality of option commands.
-# A lexical reading anchored after them sees the command however it is decorated.
+# A lexical reading anchored after them sees the command however it is decorated. An
+# attribute's quoted value is read whole, since a bracket inside it closes nothing; an
+# unquoted bracket is Rocq's syntax error, and stopping there keeps each read linear.
+_ATTRIBUTE = r'#\[(?:[^\[\]"]|"[^"]*")*'
 CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
                     r'|(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
                     r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
-                    r'|#\[[^\]]*\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic'
-                    r'|Cumulative|NonCumulative|Private|Program)\s+)*')
+                    r"|" + _ATTRIBUTE + r"\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic"
+                    r"|Cumulative|NonCumulative|Private|Program)\s+)*")
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or
 # an allocation limit makes a verdict depend on the machine that ran it.
-_PINNED_ATTRIBUTE = re.compile(r"#\[[^\]]*\b(?:warnings?|bypass_check)\b")
+_PINNED_ATTRIBUTE = re.compile(_ATTRIBUTE + r"\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
-# The Ltac tactical `timeout` and Rocq 9.3's `alloc_limit` bind a verdict to the machine
-# in the same way, and stand anywhere in a sentence. Either word is refused before its
-# argument: a numeral, an identifier that a Tactic Notation's int_or_var or a `let`
-# binds, or the parenthesised term Ltac2's `Control.timeout` takes. A Gallina term that
-# applies an identifier named exactly `timeout` or `alloc_limit` is refused too, which is
-# loud and costs a rename; an identifier that only contains either word is read whole.
-_TACTICAL = re.compile(r"(?<![\w'])(?:timeout|alloc_limit)\s+[\w(]")
+# The Ltac tactical `timeout`, Rocq 9.3's `alloc_limit`, and Ltac2's `Control.timeout` and
+# its float twin `Control.timeoutf` bind a verdict to the machine in the same way, and
+# stand anywhere in a sentence. Ltac2's two are first-class values, which an alias, a
+# parenthesis or `Import Ltac2.Control` lets a proof apply with no argument beside the
+# word, so each word is refused wherever it stands as a whole identifier. A Gallina
+# identifier named exactly after one, a record field among them, is refused too, which is
+# loud and costs a rename; an identifier that only contains one is read whole.
+_TACTICAL = re.compile(r"(?<![\w'])(?:timeoutf?|alloc_limit)(?![\w'])")
 # Once comments are blanked, every remaining quote opens or closes a string literal.
 _STRING = re.compile(r'"[^"]*"')
 # A module command's head: whether it declares a module, and whether it opens a signature.
@@ -246,13 +250,16 @@ def pinned_overrides(text: str) -> list[str]:
     """Sentences that would change a gate-pinned setting for their own source.
 
     The tactical reading empties string literals before it splits sentences, so neither
-    a quoted tactic nor a quoted full stop is read as code.
+    a quoted tactic nor a quoted full stop is read as code. It keeps a comment as the
+    separator Rocq's lexer reads it as: strip_comments drops a comment that holds no
+    newline, which would join `timeout(* c *)5` into one identifier.
     """
     found = [sentence for sentence in sentences(text)
              if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
              or _TIMEOUT.match(sentence)]
     if "timeout" in text or "alloc_limit" in text:
-        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(text)))
+        spaced = text.replace("*)", "*) ")
+        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(spaced)))
         found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
     return found
 
