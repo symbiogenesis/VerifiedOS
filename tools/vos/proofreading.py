@@ -86,6 +86,10 @@ _EXPANDS = re.compile(r"Expands to: (\w+) (\S+)")
 _UNIVERSES = re.compile(r"\S+ is (not universe polymorphic|universe polymorphic"
                         r"|template universe polymorphic(?: .*)?)")
 _OPACITY = re.compile(r"\S+ is (transparent|opaque)")
+# The opacity sentences Rocq 9.3 prints instead for a reduction strategy other than the
+# default, which a `Global Opaque` or `Global Strategy` leaves on a transparent constant.
+_STRATEGY = re.compile(r"\S+ is (?:opaque but may be made transparent"
+                       r"|transparent \((?:level -?\d+|expand)\))")
 
 # The fields a comparison reads, in the order it reports them.
 FIELDS = ("kind", "opacity", "universes", "check", "about", "print")
@@ -266,8 +270,11 @@ def parse_about(name: str, text: str) -> About:
     fact. The sentences are read only after that blank line, so a type that wraps
     cannot be taken for one. Each fact must be stated exactly once, the expansion must
     name the constant asked about, and a constant must state its opacity where nothing
-    else may: a missing, doubled or unexpected sentence is a printer this parse has not
-    read, and it refuses rather than defaulting.
+    else may. Two constants this reading does not place refuse by name: one with no
+    body, an axiom, a parameter, an admitted proof or a primitive, for which About
+    states no opacity, and one given a reduction strategy other than the default. Any
+    other missing, doubled or unexpected sentence is a printer this parse has not read,
+    and it refuses rather than defaulting.
     """
     lines = text.splitlines()
     gap = next((index for index, line in enumerate(lines) if not line.strip()), None)
@@ -283,6 +290,9 @@ def parse_about(name: str, text: str) -> About:
             universes.append(found.group(1))
         elif found := _OPACITY.fullmatch(line):
             opacity.append(found.group(1))
+        elif _STRATEGY.fullmatch(line):
+            raise ReadingError(f"About {name} states a reduction strategy this reading "
+                               f"does not place: {line}")
     if len(expands) != 1:
         raise ReadingError(f"About {name} stated {len(expands)} expansions, not one")
     kind, target = expands[0]
@@ -294,6 +304,10 @@ def parse_about(name: str, text: str) -> About:
     if len(universes) != 1:
         raise ReadingError(f"About {name} stated {len(universes)} universe sentences, "
                            "not one")
+    if kind == "Constant" and not opacity:
+        raise ReadingError(f"About {name} states no opacity, as for a constant with no "
+                           "body: an axiom, a parameter, an admitted proof or a primitive, "
+                           "which this reading does not place")
     if len(opacity) != (1 if kind == "Constant" else 0):
         raise ReadingError(f"About {name}, a {kind}, stated {len(opacity)} opacity "
                            "sentences")
