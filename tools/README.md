@@ -390,13 +390,14 @@ the entry is deleted. An entry's cutoff is the first whole second after the uplo
 its release's last file: uv compares each file's upload time at the index's
 microsecond precision, and a cutoff copied from uv.lock's millisecond `upload-time`
 excludes a file uploaded within that millisecond and silently drops it from the lock.
-An entry can be deleted once its release has aged past the cooldown, three days after
-its cutoff: filelock's after 2026-10-02T23:04:06Z, platformdirs's after
-2026-10-02T18:27:57Z and virtualenv's after 2026-10-02T20:25:32Z. After deleting one
-from the manifest, `uv lock --project tools` must remove only that package's line
-from uv.lock's `[options.exclude-newer-package]`, and the table's header with its
-last line, leaving every `[[package]]` entry byte-identical; a changed package means
-the entry went before its date.
+An entry can be deleted once three days have passed since its cutoff, when its
+release has aged past the cooldown; the comment on each manifest line gives that
+moment. After deleting one from the manifest, `uv lock --project tools` should remove
+only that package's line from uv.lock's `[options.exclude-newer-package]`, and the
+table's header with its last line, leaving every `[[package]]` entry byte-identical.
+A changed version of the deleted entry's own package means the entry went before its
+date; any other `[[package]]` change is index drift from the re-resolution and is
+reviewed on its own.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
@@ -892,9 +893,14 @@ with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run
 `uv lock --project tools`. After changing pins, run
 the Windows and Linux gates. Review and commit the manifest and lockfile together.
 To refresh resolution within the declared constraints and the
-[release cooldown](#running-them), use `uv lock --project tools --upgrade`. Normal
-commands synchronize each checkout on its next invocation, so no manual reinstall
-window exists across worktrees or OSes.
+[release cooldown](#running-them), use `uv lock --project tools --upgrade`. The
+cooldown binds the dependency groups' exact `==` pins too: a pin to a release
+uploaded within the cooldown does not resolve, and uv reports the requirement
+unsatisfiable because the release was published after the cutoff. Move such a pin
+once its release has aged past the cooldown, and never by adding an
+`exclude-newer-package` entry, which is reserved for the releases grandfathered when
+the cooldown was adopted. Normal commands synchronize each checkout on its next
+invocation, so no manual reinstall window exists across worktrees or OSes.
 
 The manifest sets `no-build = true`, so uv installs published wheels only and
 refuses a package that would need a source build instead of running its build
@@ -947,11 +953,16 @@ every commit to the repository.
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
 the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
 nobody transcribed. The gate also passes `--error all`, which overrides the `[rules]`
-table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself: a `[rules]`
-table other than exactly `all = "error"` is a ty finding, because an editor's ty
-server reads that table without the flag, and so is an `[[overrides]]` entry carrying
-`rules`, because such an entry would lower the flag's severities for the files it
-matches. An unreadable ty.toml is a finding too. What ruff is *not*
+table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself. Each of
+these is a ty finding: a `[rules]` table other than exactly `all = "error"`, because
+an editor's ty server reads that table without the flag; an `[[overrides]]` entry
+carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
+severities and its `analysis` can suppress diagnostics for the files it matches; an
+`[analysis]` key outside the ones the gate admits as suppressing nothing, which
+refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
+table other than exactly `exclude = ["**/__pycache__/**"]`, because an `include`, a
+further `exclude` or `exclude-scripts` takes files out of the run. An unreadable
+ty.toml is a finding too. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and

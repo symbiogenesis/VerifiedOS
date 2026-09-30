@@ -9,8 +9,9 @@ truncation, and, through a stub executable, the unified runner's wave-1 contract
 that a returncode outside (0, 1) is reported as a checker error even when findings
 parsed, because a checker that died partway has not cleared the files it never
 reached. The ty.toml cases hold the settings the gate refuses: a `[rules]` table
-other than exactly `all = "error"`, an `[[overrides]]` entry carrying rules, and a
-file it cannot read.
+other than exactly `all = "error"`, an `[[overrides]]` entry carrying any key but
+`include` and `exclude`, an `[analysis]` key outside the ones that suppress nothing,
+a `[src]` table other than exactly the committed one, and a file it cannot read.
 """
 
 import tempfile
@@ -246,6 +247,9 @@ def _pin_gate_refusals() -> None:
 # The ty.toml this tree carries, which the gate reads from the same place.
 _TY_TOML = Path(typecheck.__file__).resolve().parents[2] / "ty.toml"
 _ALL_ERROR = '[rules]\nall = "error"\n'
+_SRC = '\n[src]\nexclude = ["**/__pycache__/**"]\n'
+# The smallest ty.toml the gate admits: the two tables it holds exactly.
+_ADMITTED = _ALL_ERROR + _SRC
 
 
 def _settings(text: str | None) -> list[str]:
@@ -260,9 +264,19 @@ def _settings(text: str | None) -> list[str]:
 def _ty_settings_admitted() -> None:
     ensure(typecheck._ty_settings(_TY_TOML) == [],
            f"the committed ty.toml must pass its own gate: {typecheck._ty_settings(_TY_TOML)!r}")
-    for text in (_ALL_ERROR,
-                 # An override that changes no severity is admitted.
-                 _ALL_ERROR + '\n[[overrides]]\ninclude = ["tests/**"]\n'):
+    for text in (_ADMITTED,
+                 # An override that only selects files does nothing to them.
+                 _ADMITTED + '\n[[overrides]]\ninclude = ["tests/**"]\n',
+                 _ADMITTED + '\n[[overrides]]\ninclude = ["tests/**"]\n'
+                             'exclude = ["tests/data/**"]\n',
+                 _ADMITTED + '\n[[overrides]]\n',
+                 # The analysis settings that only make ty stricter, or restate its
+                 # default, are admitted, the alias among them.
+                 _ADMITTED + '\n[analysis]\nrespect-type-ignore-comments = false\n'
+                             'strict-equality-semantics = true\n'
+                             'strict-generic-narrowing = true\n',
+                 _ADMITTED + '\n[analysis]\nstrict-literal-narrowing = true\n',
+                 _ADMITTED + '\n[analysis]\n'):
         ensure(_settings(text) == [], f"an admissible ty.toml was refused: {text!r}")
 
 
@@ -270,12 +284,12 @@ def _ty_settings_refuse_rules() -> None:
     # The table is held exactly: a lowered `all`, an entry beside it, and no table are
     # each one finding, even the entry that restates what `all` already says.
     for text, expected in (
-            ('[rules]\nall = "warn"\n', "sets [rules] to {'all': 'warn'}"),
-            (_ALL_ERROR + 'unresolved-import = "ignore"\n',
+            ('[rules]\nall = "warn"\n' + _SRC, "sets [rules] to {'all': 'warn'}"),
+            (_ALL_ERROR + 'unresolved-import = "ignore"\n' + _SRC,
              "'unresolved-import': 'ignore'"),
-            (_ALL_ERROR + 'unresolved-import = "error"\n',
+            (_ALL_ERROR + 'unresolved-import = "error"\n' + _SRC,
              "'unresolved-import': 'error'"),
-            ('[environment]\npython-version = "3.14"\n', "carries no [rules] table")):
+            ('[environment]\npython-version = "3.14"\n' + _SRC, "carries no [rules] table")):
         found = _settings(text)
         ensure(len(found) == 1 and expected in found[0]
                and "exactly {'all': 'error'}" in found[0],
@@ -286,23 +300,89 @@ def _ty_settings_refuse_overrides() -> None:
     carrying = ('\n[[overrides]]\ninclude = ["vos/**"]\n'
                 '\n[[overrides]]\ninclude = ["tests/**"]\n'
                 '\n[overrides.rules]\nunresolved-import = "ignore"\n')
-    found = _settings(_ALL_ERROR + carrying)
+    found = _settings(_ADMITTED + carrying)
     ensure(len(found) == 1 and "[[overrides]] entry 2" in found[0]
-           and "unresolved-import" in found[0] and "tests/**" in found[0],
+           and "unresolved-import" in found[0] and "tests/**" in found[0]
+           and "can lower --error all" in found[0],
            f"an override carrying rules must be named by its entry: {found!r}")
     # The gate holds the shape, not the severity: an override carrying rules is
     # refused even when every rule it names stays at error.
-    raised = _settings(_ALL_ERROR + '\n[[overrides]]\ninclude = ["x/**"]\n'
+    raised = _settings(_ADMITTED + '\n[[overrides]]\ninclude = ["x/**"]\n'
                        '\n[overrides.rules]\nall = "error"\n')
     ensure(len(raised) == 1 and "entry 1" in raised[0],
            f"any override carrying rules must be refused: {raised!r}")
-    for text in ('overrides = "tests"\n' + _ALL_ERROR,
-                 _ALL_ERROR + '\n[overrides]\ninclude = ["tests/**"]\n'):
+    # An override's analysis suppresses diagnostics that no severity restores, and a
+    # key the gate has not admitted is refused beside the two it knows.
+    for table, key in (('\n[overrides.analysis]\nallowed-unresolved-imports = ["x.**"]\n',
+                        "allowed-unresolved-imports"),
+                       ('\n[overrides.analysis]\nreplace-imports-with-any = ["x.**"]\n',
+                        "replace-imports-with-any"),
+                       ('\n[overrides.analysis]\nstrict-generic-narrowing = true\n',
+                        "strict-generic-narrowing"),
+                       ('future-setting = 1\n', "future-setting")):
+        carried = _settings(_ADMITTED + '\n[[overrides]]\ninclude = ["x/**"]\n' + table)
+        ensure(len(carried) == 1 and "entry 1" in carried[0] and key in carried[0]
+               and "only include and exclude" in carried[0],
+               f"an override carrying {key} must be refused: {carried!r}")
+    # One entry carrying both is one finding naming both.
+    two = _settings(_ADMITTED + '\n[[overrides]]\ninclude = ["x/**"]\n'
+                    '\n[overrides.rules]\nall = "error"\n'
+                    '\n[overrides.analysis]\nallowed-unresolved-imports = ["x.**"]\n')
+    ensure(len(two) == 1 and "carries analysis" in two[0] and "rules {" in two[0],
+           f"an entry carrying rules and analysis must be one finding: {two!r}")
+    for text in ('overrides = "tests"\n' + _ADMITTED,
+                 _ADMITTED + '\n[overrides]\ninclude = ["tests/**"]\n'):
         shaped = _settings(text)
         ensure(len(shaped) == 1 and "must be an array of tables" in shaped[0],
                f"an overrides value of another shape must be refused: {shaped!r}")
-    both = _settings('[rules]\nall = "warn"\n' + carrying)
+    both = _settings('[rules]\nall = "warn"\n' + _SRC + carrying)
     ensure(len(both) == 2, f"each refused half must be its own finding: {both!r}")
+
+
+def _ty_settings_refuse_analysis() -> None:
+    # The two tree-wide suppressions are refused whatever they list, the empty list
+    # included, and so is a key the gate has not admitted.
+    for table, key in (('allowed-unresolved-imports = ["x.**"]\n',
+                        "allowed-unresolved-imports ['x.**']"),
+                       ('allowed-unresolved-imports = []\n', "allowed-unresolved-imports []"),
+                       ('replace-imports-with-any = ["x.**"]\n',
+                        "replace-imports-with-any ['x.**']"),
+                       ('future-setting = true\n', "future-setting True")):
+        found = _settings(_ADMITTED + '\n[analysis]\n' + table)
+        ensure(len(found) == 1 and f"[analysis] carries {key}" in found[0]
+               and "strict-generic-narrowing" in found[0],
+               f"an [analysis] key outside the admitted ones must be refused: {found!r}")
+    # Several refused keys in the table are one finding, and an admitted key beside
+    # them is not named.
+    several = _settings(_ADMITTED + '\n[analysis]\nstrict-equality-semantics = true\n'
+                        'replace-imports-with-any = ["y"]\n'
+                        'allowed-unresolved-imports = ["x"]\n')
+    ensure(len(several) == 1
+           and "carries allowed-unresolved-imports ['x'], replace-imports-with-any ['y'];"
+           in several[0],
+           f"one [analysis] table must be one finding naming each refused key: {several!r}")
+    shaped = _settings('analysis = "none"\n' + _ADMITTED)
+    ensure(len(shaped) == 1 and "analysis must be a table" in shaped[0],
+           f"an analysis value of another shape must be refused: {shaped!r}")
+
+
+def _ty_settings_refuse_src() -> None:
+    # The table is held exactly: each way of taking files out of the run, a changed
+    # glob, and no table at all are each one finding.
+    for text, expected in (
+            (_ALL_ERROR, "carries no [src] table"),
+            (_ALL_ERROR + '\n[src]\nexclude = ["**/__pycache__/**", "vos/**"]\n',
+             "'vos/**'"),
+            (_ALL_ERROR + '\n[src]\nexclude = ["vos/**"]\n', "'vos/**'"),
+            (_ALL_ERROR + _SRC + 'include = ["tests"]\n', "'include': ['tests']"),
+            (_ALL_ERROR + _SRC + 'exclude-scripts = true\n', "'exclude-scripts': True"),
+            (_ALL_ERROR + _SRC + 'respect-ignore-files = false\n',
+             "'respect-ignore-files': False"),
+            (_ALL_ERROR + '\n[src]\n', "sets [src] to {}")):
+        found = _settings(text)
+        ensure(len(found) == 1 and expected in found[0]
+               and "exactly {'exclude': ['**/__pycache__/**']}" in found[0],
+               f"a [src] table other than the committed one must be one finding: {found!r}")
 
 
 def _ty_settings_fail_closed() -> None:
@@ -314,7 +394,7 @@ def _ty_settings_fail_closed() -> None:
 
 def _ty_settings_reported_beside_the_run() -> None:
     # The refusal is a ty finding in the gate's own report, and the checker still runs.
-    for text, refused in ((_ALL_ERROR, False), ('[rules]\nall = "warn"\n', True)):
+    for text, refused in ((_ADMITTED, False), ('[rules]\nall = "warn"\n' + _SRC, True)):
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             root = Path(td)
@@ -356,6 +436,8 @@ def cases() -> list[Case]:
         Case("ty-settings-admitted", _ty_settings_admitted),
         Case("ty-settings-refuse-rules", _ty_settings_refuse_rules),
         Case("ty-settings-refuse-overrides", _ty_settings_refuse_overrides),
+        Case("ty-settings-refuse-analysis", _ty_settings_refuse_analysis),
+        Case("ty-settings-refuse-src", _ty_settings_refuse_src),
         Case("ty-settings-fail-closed", _ty_settings_fail_closed),
         Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
     ]

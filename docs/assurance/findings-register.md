@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 829 of them across 141 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 834 of them across 143 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -198,7 +198,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-198b** owed-act: three classes of fact a workflow must state have no owner in this tree, the runner label, the action references it pins, and the bootstrap route
 · Raised: S14
-· Disposition: open, reported and not closed, and the rule this item was priced for is left unwritten with its id unspent: what a rule would hold does not exist until an owner does
+· Disposition: open for the bootstrap route alone. The action references are closed by K-115, which holds every workflow `uses:` line to a full commit with its release in a comment, and both to the action's reviewed THIRD-PARTY.md development-tools row, in both directions. The runner label is narrowed rather than owned: every workflow names an explicit runner image, and test_fanout_ci's `workflow-host-job-names` case refuses a `-latest` label in host-gates.yml and holds its aggregate job names to `fanout_ci.HOST_JOBS`; nothing holds the guest and campaign labels, and `.github/actionlint.yml`'s label list is a lint allowance, not an owner
 
 **F-198c** measurement: the provisioner's apply arm ended in a traceback rather than a verdict where an installer was absent, found by pointing it at a host that is not the lane
 · Raised: S14
@@ -1704,7 +1704,15 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-128** upstream-defect: the pin's generated configuration puts an ABI flag on three tools and no cross toolchain is installed, and the assembly output reaches the non-capability backend
 · Raised: M1.2, in prose
-· Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two waiting on M1.4's toolchain
+· Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two unused, the backend's assembly going through M1.4′'s in-tree assembler and composer
+
+**F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof rests on an admitted lemma that is false
+· Raised: M1.2
+· Disposition: open, the SECOMP proof-reuse record restating its use and limits, and R-05-024's deferred proof taking none of those axioms or that lemma as a start-from
+
+**F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, no manifest binding the compiler records those identities, and its source's only copy has no remote
+· Raised: M1.2
+· Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user
 
 **F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
 · Raised: M1.2a
@@ -1983,6 +1991,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-323** method: the lane's own build script emitted the header "`.v` of `FILES` with no `.vo`" and then ran a loop over a command substitution whose stdout was discarded, so it captured nothing and the loop body was `:`; the log showed the header followed by no lines at all, which a later reader takes as "every member built". That is the fourth shape of a check that decides nothing, a count with no predicate, and it is how the figure "203 of the 204 `.v` of `FILES`" stood in the note, the checklist cell and the gate block, wrong in both numerator and denominator: `$(FILES)` has 203 members at this branch and 202 at the pin, 202 of them build in each tree, and the 203 `.vo` the script did count is a `find` over the whole tree that includes `security/Tactics.vo`, which the Makefile comments out of `SECURITY` and builds only as a dependency
 · Raised: M1.2b
 · Disposition: closed; the stub is replaced by a census that expands `$(FILES)` with `make --eval` and tests each member against the `.vo` basenames present, `FILES` naming bare basenames resolved through the Makefile's VPATH, and every restatement of the figure is corrected to 202 of 203.
+
+**F-522** upstream-defect: the pin's `common/Events.v` declares an unused axiom that implies `False`, which `Print Assumptions` on the compiler's theorems cannot report and only a whole-environment summary names
+· Raised: M1.2g
+· Disposition: open, M1.2g reading the contained file, removing the axiom where it stands, and stating whether each contained proof receipt's assumption audit reads the whole environment
+
+**F-523** upstream-defect: the pin's `riscV/TargetPrinter.ml` has no arm for the load that reads a stack-passed parameter, so `ccomp` fails on any function reading an argument past the eighth, and M1.2b's float deletion edited that file
+· Raised: M1.2d
+· Disposition: open, M1.2d naming the contained printer's arm for that load and a replay reading a parameter past the eighth before it closes
+
+**F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every builtin argument in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which only interpretation and the back-translation produce
+· Raised: M1.2d
+· Disposition: open, owed only if the contained compiler takes `-interp-asm` or the back-translation, or rebases onto a SECOMP revision carrying SECOMP#32, which then merges against M1.2b's edit of the same file
 
 **F-449** measurement: the typed backend refuses a narrowing program whose allocation places the length register on the capability's register, "typed narrowing: length register aliases capability", 2 of the default campaign's 70 members and 4 of 30 narrowing draws
 · Raised: M1.2f, in prose
