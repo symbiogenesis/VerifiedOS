@@ -15,14 +15,21 @@ the `RegionKind` constructors. A list this reader cannot find or cannot read is
 `PlanError` and never an empty roster, on the fail-closed ground the generated group
 states (K-67, K-75): a regex that stops matching would otherwise yield zero regions and
 a green report about nothing. A declaration under an attribute or a locality is read as
-the bare one, and a list or a `build_plan` variant spelled where no head reads it, or a
-value of any written type completed from a base with `with` that assigns a field of
-`Plan`, is `PlanError` too, since the export would otherwise lack it with only a floor
-on its plan count to notice. Those audits read the file with its comments blanked, so
-a comment's `match` or full stop hides nothing from them. `emit` writes the
-export K-88 holds byte-identical to what this reader writes, so a hand edit of the
-artifact is a finding at the next gate and an edit of the `.v` that this reader no
-longer follows is a raise at the same gate.
+the bare one, and a list or an application of `build_plan` to bare words spelled where
+no head reads it, or a value of any written type completed from a base with `with` that
+assigns a field of `Plan`, is `PlanError` too, since the export would otherwise lack it
+with only a floor on its plan count to notice. Those audits read the file with its
+comments blanked, so a comment's `match` or full stop hides nothing from them.
+
+**What the export does not carry, knowingly.** A variant is carried by the lists it
+names, so an application of `build_plan` to an inline term names no list to carry it
+by and is neither read nor refused: `interior_empty_region_plan` applies it to two
+`cons` chains, and the export lacks it without a finding. The audits above hold every
+other spelling of a variant.
+
+`emit` writes the export K-88 holds byte-identical to what this reader writes, so a
+hand edit of the artifact is a finding at the next gate and an edit of the `.v` that
+this reader no longer follows is a raise at the same gate.
 
 **The check is a port and it admits nothing.** Each predicate below is one Gallina
 definition of the `.v`, named in its docstring, re-implemented over Python integers so
@@ -65,8 +72,9 @@ ARTIFACT = "tools/generated/memory-plan.json"
 REPAIR = "python tools/run.py placement export"
 
 # The plan the `.v` names as the specification's own instance, and the one this export
-# carries whole. Every other `: Plan :=` definition is a variant moving one declared
-# quantity and is carried by name and by the lists it is built from.
+# carries whole. Every other `: Plan :=` definition applying `build_plan` to bare words
+# is a variant moving one declared quantity and is carried by name and by the lists it
+# is built from.
 STANDING = "demo_plan"
 
 # The two class constructors, spelled as the `.v` spells them. They are the register's
@@ -164,13 +172,15 @@ _PLAN_RE = re.compile(
 
 # The typed lists and the values as the file spells them, at any column, under any
 # prefix, at any spacing and with any binders or none, read over the file with its
-# comments blanked. A list or a `build_plan` application found here and not by the heads
-# above is one the export would silently lack, so it is `PlanError` rather than a shorter
-# `lists_read` or one variant fewer, which only a floor on the plan count would notice.
-# `Example` is `Definition` by another name and `Let` is one inside a section, so each
-# is read as one. The keyword's own boundary is checked on the hits rather than written
-# into the pattern, a leading lookbehind being re-decided at every position of a file
-# this size.
+# comments blanked. A list, or an application of `build_plan` to bare words, found here
+# and not by the heads above is one the export would silently lack, so it is `PlanError`
+# rather than a shorter `lists_read` or one variant fewer, which only a floor on the plan
+# count would notice. An application to an inline term is no variant the export can
+# name by its lists, and `_APPLIED_RE` leaves it outside the audit as it is outside the
+# export. `Example` is `Definition` by another name and `Let` is one inside a section, so
+# each is read as one. The keyword's own boundary is checked on the hits rather than
+# written into the pattern, a leading lookbehind being re-decided at every position of a
+# file this size.
 _LIST_SPELLED_RE = re.compile(
     r"(?:Definition|Example)\s+(\w+)\s*:\s*list\s+(?:nat|bool|RegionKind)\s*:=")
 _VALUE_SPELLED_RE = re.compile(r"(?:Definition|Example|Let)\s+(\w+)")
