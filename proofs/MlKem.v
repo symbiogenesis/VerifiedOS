@@ -647,11 +647,72 @@ Definition demo_tampered : list Z :=
   | b :: rest => ((b + 1) mod 256) :: rest
   end.
 
+(* The values the examples below share, each evaluated once into a literal
+   and equated to its source. The compiling machine keeps a constant's value
+   from one example to the next, and the kernel's recheck does not: each
+   example rewritten through these lemmas reads the literal where it would
+   otherwise run the key generation, the encapsulation or a decapsulation
+   again. Each lemma is proved from the ones before it, so the recheck runs
+   each of them once, and unfolds its literal before the cast: the recheck
+   compares a computation with an unfolded literal several times faster
+   than with the constant that names it. *)
+Definition demo_ek_literal : list Z := Eval vm_compute in demo_ek.
+Definition demo_dk_literal : list Z := Eval vm_compute in demo_dk.
+Definition demo_ct_literal : list Z := Eval vm_compute in demo_ct.
+Definition demo_key_literal : list Z := Eval vm_compute in demo_key.
+Definition demo_tampered_literal : list Z := Eval vm_compute in demo_tampered.
+Definition demo_ct_decapsulated_literal : list Z :=
+  Eval vm_compute in kem_decaps demo_p demo_o demo_dk demo_ct.
+Definition demo_tampered_decapsulated_literal : list Z :=
+  Eval vm_compute in kem_decaps demo_p demo_o demo_dk demo_tampered.
+
+Lemma demo_ek_is_its_literal : demo_ek = demo_ek_literal.
+Proof. unfold demo_ek_literal. vm_reflexivity. Qed.
+
+Lemma demo_dk_is_its_literal : demo_dk = demo_dk_literal.
+Proof. unfold demo_dk_literal. vm_reflexivity. Qed.
+
+Lemma demo_ct_is_its_literal : demo_ct = demo_ct_literal.
+Proof.
+  unfold demo_ct. rewrite demo_ek_is_its_literal.
+  unfold demo_ct_literal. vm_reflexivity.
+Qed.
+
+Lemma demo_key_is_its_literal : demo_key = demo_key_literal.
+Proof.
+  unfold demo_key. rewrite demo_ek_is_its_literal.
+  unfold demo_key_literal. vm_reflexivity.
+Qed.
+
+Lemma demo_tampered_is_its_literal : demo_tampered = demo_tampered_literal.
+Proof.
+  unfold demo_tampered. rewrite demo_ct_is_its_literal.
+  unfold demo_tampered_literal. vm_reflexivity.
+Qed.
+
+Lemma demo_ct_decapsulated_is_its_literal :
+  kem_decaps demo_p demo_o demo_dk demo_ct = demo_ct_decapsulated_literal.
+Proof.
+  rewrite demo_dk_is_its_literal, demo_ct_is_its_literal.
+  unfold demo_ct_decapsulated_literal. vm_reflexivity.
+Qed.
+
+Lemma demo_tampered_decapsulated_is_its_literal :
+  kem_decaps demo_p demo_o demo_dk demo_tampered = demo_tampered_decapsulated_literal.
+Proof.
+  rewrite demo_dk_is_its_literal, demo_tampered_is_its_literal.
+  unfold demo_tampered_decapsulated_literal. vm_reflexivity.
+Qed.
+
 Example the_generated_keys_have_the_sizes_the_parameters_give :
   (length demo_ek, length demo_dk, length demo_ct, length demo_key)
   = (kem_ek_bytes demo_p, kem_dk_bytes demo_p, kem_ct_bytes demo_p,
      kem_seed_bytes demo_p).
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_ek_is_its_literal, demo_dk_is_its_literal, demo_ct_is_its_literal,
+    demo_key_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* The public key inside the decapsulation key is the encapsulation key, and
    the digest field is its hash, which is what makes the re-encryption above
@@ -661,7 +722,7 @@ Example the_decapsulation_key_carries_its_own_public_key_and_digest :
    poly_eqb (dk_digest demo_p demo_dk) (kem_h demo_o demo_ek),
    poly_eqb (dk_reject demo_p demo_dk) demo_z)
   = (true, true, true).
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_ek_is_its_literal, demo_dk_is_its_literal. vm_reflexivity. Qed.
 
 (* The encryption recovers its message, which is the bound PqArith.v's
    one-bit compression states and this file does not prove: at this
@@ -670,19 +731,22 @@ Proof. vm_reflexivity. Qed.
 (*| discharges: R-05-059 |*)
 Example the_encryption_recovers_its_message :
   poly_eqb (decaps_message demo_p demo_dk demo_ct) demo_m = true.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_dk_is_its_literal, demo_ct_is_its_literal. vm_reflexivity. Qed.
 
 (*| discharges: R-05-058 |*)
 Example decapsulation_returns_the_encapsulated_key :
   poly_eqb (kem_decaps demo_p demo_o demo_dk demo_ct) demo_key = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_ct_decapsulated_is_its_literal, demo_key_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* And on a ciphertext one byte different the re-encryption does not
    reproduce it, so the transform takes its other branch. *)
 Example a_tampered_ciphertext_fails_the_re_encryption_check :
   poly_eqb (decaps_reencryption demo_p demo_o demo_dk demo_tampered)
            demo_tampered = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_dk_is_its_literal, demo_tampered_is_its_literal. vm_reflexivity. Qed.
 
 (*| discharges: R-05-058 |*)
 Example a_tampered_ciphertext_decapsulates_to_the_rejection_value :
@@ -690,7 +754,11 @@ Example a_tampered_ciphertext_decapsulates_to_the_rejection_value :
             (decaps_rejection demo_p demo_o demo_dk demo_tampered),
    poly_eqb (kem_decaps demo_p demo_o demo_dk demo_tampered) demo_key)
   = (true, false).
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_tampered_decapsulated_is_its_literal, demo_dk_is_its_literal,
+    demo_tampered_is_its_literal, demo_key_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* The refutations, at that same ciphertext. Each construction keeps every
    clause it does not break and answers differently exactly where the
@@ -699,14 +767,22 @@ Proof. vm_reflexivity. Qed.
 Example a_decapsulation_with_no_re_encryption_check_is_refused :
   poly_eqb (decaps_without_the_reencryption_check demo_p demo_o demo_dk demo_tampered)
            (kem_decaps demo_p demo_o demo_dk demo_tampered) = false.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_tampered_decapsulated_is_its_literal, demo_dk_is_its_literal,
+    demo_tampered_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* It agrees with the transform wherever the check passes, which holds it to
    that single difference. *)
 Example the_unchecked_decapsulation_agrees_on_an_honest_ciphertext :
   poly_eqb (decaps_without_the_reencryption_check demo_p demo_o demo_dk demo_ct)
            (kem_decaps demo_p demo_o demo_dk demo_ct) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_ct_decapsulated_is_its_literal, demo_dk_is_its_literal,
+    demo_ct_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (*| discharges: R-05-165 |*)
 Example a_distinguishable_refusal_is_refused :
@@ -715,7 +791,11 @@ Example a_distinguishable_refusal_is_refused :
    poly_eqb (kem_decaps demo_p demo_o demo_dk demo_tampered)
             (zero_poly (kem_seed_bytes demo_p)))
   = (true, false).
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_tampered_decapsulated_is_its_literal, demo_dk_is_its_literal,
+    demo_tampered_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* And the conflation: a check that accepts a ciphertext near the
    re-encrypted one accepts this one, where the equality refuses it. That is
@@ -728,7 +808,11 @@ Example a_bounded_check_accepts_what_the_equality_refuses :
    poly_eqb (kem_decaps demo_p demo_o demo_dk demo_tampered)
             (fst (decaps_pair demo_p demo_o demo_dk demo_tampered)))
   = (true, false).
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite demo_tampered_decapsulated_is_its_literal, demo_dk_is_its_literal,
+    demo_tampered_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (*| discharges: R-05-165 |*)
 Example an_encryption_that_omits_the_message_is_refused :
@@ -739,7 +823,7 @@ Example an_encryption_that_omits_the_message_is_refused :
                (snd (kem_encaps_pair demo_p demo_o demo_ek demo_m)))
             demo_ct)
   = (true, false).
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_ek_is_its_literal, demo_ct_is_its_literal. vm_reflexivity. Qed.
 
 (* The two matrix readings are different matrices, which is what makes the
    transposition at encryption a decision rather than a spelling. *)
@@ -747,7 +831,7 @@ Example the_matrix_and_its_transpose_are_different_matrices :
   poly_eqb (concat (concat (matrix_at demo_p demo_o (ek_seed demo_p demo_ek))))
            (concat (concat (matrix_transposed demo_p demo_o
                               (ek_seed demo_p demo_ek)))) = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_ek_is_its_literal. vm_reflexivity. Qed.
 
 (* The two noise widths at one seed and two counters are two draws, as a
    local check of the deterministic demonstration oracle. *)
@@ -803,7 +887,7 @@ Example the_tampered_ciphertext_differs_in_one_byte :
    Nat.eqb (length (filter (fun pr => negb (Z.eqb (fst pr) (snd pr)))
                            (combine demo_ct demo_tampered))) 1)
   = (true, true).
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_tampered_is_its_literal, demo_ct_is_its_literal. vm_reflexivity. Qed.
 
 Example the_demonstration_seeds_are_these :
   (digest_of 3329 demo_d, digest_of 3329 demo_z, digest_of 3329 demo_m)
@@ -826,7 +910,7 @@ Example the_key_fields_cover_the_decapsulation_key :
    length (dk_digest demo_p demo_dk), length (dk_reject demo_p demo_dk),
    length demo_dk)
   = (1536%nat, 1568%nat, 32%nat, 32%nat, 3168%nat).
-Proof. vm_reflexivity. Qed.
+Proof. rewrite demo_dk_is_its_literal. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
