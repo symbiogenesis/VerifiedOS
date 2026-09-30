@@ -286,9 +286,9 @@ claim that none exists. The selected source readings and licenses are recorded i
 
 | Candidate | Repository integration |
 | --- | --- |
-| Compiler documentation bundle | Adopt its existing structured declarations and references now. The [pinned emitter](https://github.com/rems-project/sail/blob/3b7af38d66466ecadad563158b07ce2f82fe05da/src/sail_doc_backend/docinfo.ml) supplies this data without another parser or server. |
+| Compiler documentation bundle | Adopt its existing structured declarations and references now. The [pinned emitter](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/sail_doc_backend/docinfo.ml) supplies this data without another parser or server. |
 | Native Sail LSP | `sail-lsp` builds a separately pinned [server](https://github.com/rems-project/sail/tree/ce60ba570b4402a42431bc5033145d9aeb327f20/src/sail_lsp), Libsail and protocol dependencies in the assigned native lane. A tracked BSD-2-Clause patch refreshes compiler-owned dependency files on watched-file/save notifications and invalidates typed state when dependencies are unreadable. The locked acceptance compiler remains unchanged. |
-| Structured typecheck feedback | `sail-assist` wraps the existing strict command and preserves raw diagnostics in a versioned process envelope. The [pinned reporting API](https://github.com/rems-project/sail/blob/3b7af38d66466ecadad563158b07ce2f82fe05da/src/lib/reporting.mli) remains an OCaml API; the wrapper invents no diagnostic locations. |
+| Structured typecheck feedback | `sail-assist` wraps the existing strict command and preserves raw diagnostics in a versioned process envelope. The [pinned reporting API](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/reporting.mli) remains an OCaml API; the wrapper invents no diagnostic locations. |
 | Isla and generated tests | `sail-isla` pins [Isla](https://github.com/rems-project/isla/tree/bf1a42f8a6097089fba4810fccc73dcc640267ab) and [isla-testgen](https://github.com/rems-project/isla-testgen/tree/ee2d7efcec993fdb364bd74788b4fd39e857d151), generates cases from actual curated capability helpers and replays them against the baseline oracle, with explicit negative controls. |
 
 All optional commands run through WSL on Windows and directly on Linux. They
