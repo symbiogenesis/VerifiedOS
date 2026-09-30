@@ -71,11 +71,19 @@ a run's log does not name is a finding under that run's checker. The log is the
 pinned version's verbose output: a log of another shape names no file, and every
 tracked module then reads as unchecked.
 
+`ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
+both, and ruff's TID253 refuses an import of one only where it is unnested at module
+level; with the module listed, PLC0415 no longer reports it in a class body. So the
+gate reads the same list and refuses an import of a listed module in any tracked module
+anywhere outside a function body, in a class body or a module-level block alike, unless
+an enclosing `if` reads `sys.platform`.
+
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
 
 import argparse
+import ast
 import os
 import re
 import subprocess
@@ -163,6 +171,10 @@ RUFF_CHECKED = re.compile(r"\[ruff::diagnostics\]\[DEBUG\] Checking: (.+)$")
 # under `tools/`, where both checkers run.
 TOOLS = "tools/"
 MODULE_SUFFIXES = (".py", ".pyi")
+
+# Where `ruff.toml` lists the modules TID253 refuses an unnested module-level import of,
+# the list the gate holds every import outside a function body to.
+BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
 
 
 def _tool(name: str) -> str | None:
@@ -600,18 +612,128 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
         tools, with_stderr=False, parse=_parse_ruff)
 
 
+def _banned(config: Path) -> tuple[frozenset[str], list[str]]:
+    """The modules `ruff.toml` bans at module level, or none and why, as findings.
+
+    Fail-closed: a file that cannot be read or parsed, and a list that is absent, empty
+    or holds anything but module names, is a finding, since the scan would then hold no
+    import to anything."""
+    name = f"tools/{config.name}"
+    none = frozenset[str]()
+    try:
+        settings = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
+        return none, [f"{name} cannot be read: {err}"]
+    listed: object = settings
+    for key in BANNED:
+        listed = listed.get(key) if isinstance(listed, dict) else None
+    modules = [module for module in listed if isinstance(module, str) and module] \
+        if isinstance(listed, list) else []
+    if not modules or not isinstance(listed, list) or len(modules) != len(listed):
+        return none, [f"{name} sets {'.'.join(BANNED)} to {listed!r}; the gate holds "
+                      "imports to a non-empty list of module names"]
+    return frozenset(modules), []
+
+
+def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> list[str]:
+    """The modules `node` imports that `banned` names or is a parent of, matched as
+    TID253 matches them: each name an `import` gives, and a `from` import's module or,
+    where that is not banned, each member it names, since a member can be a submodule.
+    A relative import names the tools' own packages and never a banned module."""
+    def listed(module: str) -> bool:
+        return any(module == ban or module.startswith(ban + ".") for ban in banned)
+
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names if listed(alias.name)]
+    if node.level or node.module is None:
+        return []
+    if listed(node.module):
+        return [node.module]
+    return [member for alias in node.names
+            if alias.name != "*" and listed(member := f"{node.module}.{alias.name}")]
+
+
+def _reads_platform(test: ast.expr) -> bool:
+    """Whether an `if` condition reads `sys.platform`."""
+    return any(isinstance(node, ast.Attribute) and node.attr == "platform"
+               and isinstance(node.value, ast.Name) and node.value.id == "sys"
+               for node in ast.walk(test))
+
+
+def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[tuple[int, list[str]]]:
+    """Each import of a module `banned` names, with its line and the modules it names,
+    that runs outside a function body with no enclosing `if` reading `sys.platform`.
+
+    A function body runs only when the function is called, and an `if` that reads
+    `sys.platform` keeps both its branches off the platform its test excludes, so the
+    walk does not descend into either. Everything else it descends into: an unnested
+    module-level statement, a class body, and any module-level or class-level block."""
+    found: list[tuple[int, list[str]]] = []
+    stack: list[ast.AST] = [tree]
+    while stack:
+        for child in ast.iter_child_nodes(stack.pop()):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)) or (
+                    isinstance(child, ast.If) and _reads_platform(child.test)):
+                continue
+            if isinstance(child, (ast.Import, ast.ImportFrom)):
+                if names := _banned_names(child, banned):
+                    found.append((child.lineno, names))
+            else:
+                stack.append(child)
+    return sorted(found)
+
+
+def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
+    """Every tracked module, against an import of a module `ruff.toml` bans at module
+    level anywhere outside a function body with no enclosing `if` reading `sys.platform`.
+
+    TID253 refuses such an import only where it is unnested at module level, and with
+    the module banned PLC0415 no longer reports it in a class body; neither reads a
+    module-level block. A module whose text never spells the last component of a banned
+    name as a word cannot import it, so only the rest are parsed. Fail-closed: a module
+    that cannot be read or parsed is a finding."""
+    tools = root / "tools"
+    banned, unread = _banned(tools / "ruff.toml")
+    if unread:
+        rep.report("imports", "ruff.toml list(s) the gate cannot read:", unread)
+        return
+    spelled = re.compile(r"\b(?:" + "|".join(sorted(re.escape(ban.rpartition(".")[2])
+                                                    for ban in banned)) + r")\b")
+    findings: list[str] = []
+    for module in sorted(tracked):
+        try:
+            text = (tools / module).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as err:
+            findings.append(f"{module} cannot be read: {err}")
+            continue
+        if not spelled.search(text):
+            continue
+        try:
+            tree = ast.parse(text, module)
+        except (SyntaxError, ValueError) as err:
+            findings.append(f"{module} cannot be parsed: {err}")
+            continue
+        findings.extend(f"{module}:{line} imports {', '.join(names)} outside a function "
+                        "body, behind no sys.platform check"
+                        for line, names in _platform_imports(tree, banned))
+    rep.report("imports", "import(s) of a module ruff.toml bans at module level outside a "
+               "function body:", findings,
+               "every import of a module ruff.toml bans at module level sits in a function "
+               "body or behind a sys.platform check")
+
+
 def run(root: Path) -> Reporter:
     """One whole run, as data, on the convention `check.py` set: the caller decides
     what to do with the verdict rather than parsing what was printed.
 
     The two checkers are separate processes over the same tree and neither reads the
-    other's result, so they run concurrently. Each accumulates onto its own slate and
-    the slates are merged ty-then-ruff, so the report reads the same however the two
-    finished.
+    other's result, so they run concurrently, and the import scan beside them. Each
+    accumulates onto its own slate and the slates are merged ty, ruff, then the scan,
+    so the report reads the same however they finished.
 
-    The tracked modules are read once for both. An index that cannot be read is a
+    The tracked modules are read once for all three. An index that cannot be read is a
     finding, and the runs then go ahead held to nothing, since no floor can be
-    decided without it."""
+    decided without it, and the scan, which has no modules to read, does not run."""
     rep = Reporter()
     rep.line("=== tools ===")
 
@@ -623,12 +745,15 @@ def run(root: Path) -> Reporter:
                    [f"the index cannot be read, so no run is held to the modules it "
                     f"tracks: {err}"])
 
-    ty_rep, ruff_rep = Reporter(), Reporter()
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        for done in (pool.submit(_run_ty, ty_rep, root, tracked),
-                     pool.submit(_run_ruff, ruff_rep, root, tracked)):
+    ty_rep, ruff_rep, imports_rep = Reporter(), Reporter(), Reporter()
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        tasks = [pool.submit(_run_ty, ty_rep, root, tracked),
+                 pool.submit(_run_ruff, ruff_rep, root, tracked)]
+        if tracked is not None:
+            tasks.append(pool.submit(_run_imports, imports_rep, root, tracked))
+        for done in tasks:
             done.result()
-    for part in (ty_rep, ruff_rep):
+    for part in (ty_rep, ruff_rep, imports_rep):
         rep.out.extend(part.out)
         rep.findings += part.findings
 

@@ -21,7 +21,12 @@ The coverage cases hold the floor under both checkers: the log read out of stder
 and the files it names, each tracked module a run's log does not name reported
 under its checker and a crash not held to it, the real ruff and ty each reporting a
 module a default exclusion or a ruff.toml exclusion drops, the index read for the
-tracked modules, and the live tree reaching every module it tracks.
+tracked modules, and the live tree reaching every module it tracks. The import cases
+hold the scan beside the checkers: an import of a module ruff.toml bans at module level
+refused outside a function body, in a class body, a module-level block or the main
+guard, and admitted in a function body or behind a `sys.platform` check, a ruff.toml or
+module the scan cannot read refused, and the real ruff leaving open what the scan
+refuses.
 """
 
 import os
@@ -918,6 +923,155 @@ def _ty_coverage_floor() -> None:
            f"only the skipped modules may be findings: {rep.out!r}")
 
 
+# A ruff.toml banning two modules at module level, one of them dotted.
+_BANNING = ('[lint.flake8-tidy-imports]\n'
+            'banned-module-level-imports = ["fcntl", "asyncio.unix_events"]\n')
+_SCAN_OK = ("ok imports: every import of a module ruff.toml bans at module level sits in a "
+            "function body or behind a sys.platform check")
+_SCAN_FAIL = ("import(s) of a module ruff.toml bans at module level outside a function "
+              "body:")
+
+
+def _write_tools(root: Path, modules: dict[str, str], config: str | None) -> None:
+    """A tools tree under `root` holding `modules`, under a ruff.toml holding `config`,
+    or none at all."""
+    tools = root / "tools"
+    tools.mkdir()
+    if config is not None:
+        (tools / "ruff.toml").write_text(config, encoding="utf-8", newline="")
+    for name, text in modules.items():
+        path = tools / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="")
+
+
+def _scan(modules: dict[str, str], config: str | None = _BANNING) -> Reporter:
+    """`_run_imports` over a tools tree holding `modules`, each tracked."""
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), modules, config)
+        typecheck._run_imports(rep, Path(td), frozenset(modules))
+    return rep
+
+
+def _refused(site: str, names: str = "fcntl") -> str:
+    return (f"       {site} imports {names} outside a function body, behind no sys.platform "
+            "check")
+
+
+def _imports_refused_outside_functions() -> None:
+    # An import of a banned module, or of a banned submodule by its parent, that runs
+    # outside a function body is refused wherever it sits: unnested at module level, in
+    # a class body at any depth, and in a module-level block such as the main guard.
+    refused = {
+        "toplevel.py": "import os, fcntl\n",
+        "classbody.py": "class Locks:\n    import fcntl\n",
+        "nested.py": "class Outer:\n    class Inner:\n        import fcntl\n",
+        "moduleif.py": "import os\n\nif os.name == 'posix':\n    import fcntl\n",
+        "mainblock.py": "if __name__ == '__main__':\n    import fcntl\n",
+        "tryblock.py": "try:\n    from fcntl import flock\nexcept ImportError:\n    pass\n",
+        "member.py": "class Loop:\n    from asyncio import events, unix_events\n",
+        "dotted.py": "with open(__file__):\n    import asyncio.unix_events as ue\n",
+    }
+    rep = _scan(refused)
+    ensure(rep.findings == len(refused) and rep.out == [
+        f"FAIL imports: {len(refused)} {_SCAN_FAIL}",
+        _refused("classbody.py:2"), _refused("dotted.py:2", "asyncio.unix_events"),
+        _refused("mainblock.py:2"), _refused("member.py:2", "asyncio.unix_events"),
+        _refused("moduleif.py:4"), _refused("nested.py:3"), _refused("toplevel.py:1"),
+        _refused("tryblock.py:2")], f"each import outside a function body must be refused: "
+                                    f"{rep.out!r}")
+
+
+def _imports_admitted_in_functions_and_platform_blocks() -> None:
+    # A function body runs only when called, and an if reading sys.platform keeps both
+    # its branches off the platform its test excludes, at module level or in a class
+    # body. A name that only begins like a banned one, a banned module's parent, a
+    # relative import and a string are none of them an import of a banned module.
+    admitted = {
+        "function.py": "def lock() -> None:\n    import fcntl\n",
+        "coroutine.py": "async def lock() -> None:\n    from fcntl import flock\n",
+        "method.py": "class Locks:\n    def lock(self) -> None:\n        import fcntl\n",
+        "classinfunction.py": "def make() -> None:\n    class Locks:\n        import fcntl\n",
+        "platformif.py": "import sys\n\nif sys.platform != 'win32':\n    import fcntl\n",
+        "platformelse.py": ("import sys\n\nif sys.platform == 'win32':\n    pass\n"
+                            "elif __name__ == '__main__':\n    import fcntl\n"),
+        "platformclass.py": ("import sys\n\nclass Locks:\n    if sys.platform != 'win32':\n"
+                             "        import fcntl\n"),
+        "unrelated.py": ("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
+                         "from . import fcntl\nTEXT = 'import fcntl'\n"),
+    }
+    rep = _scan(admitted)
+    ensure(rep.findings == 0 and rep.out == [_SCAN_OK],
+           f"an import in a function body or behind sys.platform must be admitted: {rep.out!r}")
+
+
+def _imports_fail_closed() -> None:
+    # A ruff.toml the scan cannot read a non-empty list of module names from is one
+    # finding and scans nothing; a module that spells a banned name and cannot be read
+    # or parsed is a finding. A module spelling no banned name is not parsed, its syntax
+    # being ruff's E9 finding.
+    for config, expected in ((None, "cannot be read"),
+                             ('[lint\n', "cannot be read"),
+                             ('[lint]\nselect = ["ANN"]\n', "to None;"),
+                             ('[lint]\nflake8-tidy-imports = 1\n', "to None;"),
+                             ('[lint.flake8-tidy-imports]\nbanned-module-level-imports = []\n',
+                              "to [];"),
+                             ('[lint.flake8-tidy-imports]\n'
+                              'banned-module-level-imports = ["fcntl", 1]\n', "to ['fcntl', 1];"),
+                             ('[lint.flake8-tidy-imports]\n'
+                              'banned-module-level-imports = ["fcntl", ""]\n', "to ['fcntl', ''];")):
+        rep = _scan({"classbody.py": "class Locks:\n    import fcntl\n"}, config)
+        ensure(rep.findings == 1 and rep.out[0] == "FAIL imports: 1 ruff.toml list(s) the gate "
+                                                   "cannot read:" and expected in rep.out[1],
+               f"a ruff.toml without a list of module names must be one finding: {rep.out!r}")
+    rep = _scan({"broken.py": "import fcntl\ndef (:\n", "quiet.py": "def (:\n"})
+    ensure(rep.findings == 1 and rep.out[1].startswith("       broken.py cannot be parsed: "),
+           f"a module spelling a banned name that cannot be parsed must be refused: {rep.out!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {}, _BANNING)
+        (Path(td) / "tools" / "latin.py").write_bytes(b"# \xe9\nimport fcntl\n")
+        unread = Reporter()
+        typecheck._run_imports(unread, Path(td), frozenset({"latin.py"}))
+    ensure(unread.findings == 1 and unread.out[1].startswith("       latin.py cannot be read: "),
+           f"a module that cannot be read must be refused: {unread.out!r}")
+
+
+def _imports_close_what_ruff_leaves_open() -> None:
+    # The positive control. Under the committed ruff.toml, whose list the scan reads,
+    # the real ruff reports TID253 for an unnested module-level import of a banned
+    # module and nothing, neither TID253 nor PLC0415, for one in a class body, a
+    # module-level block or the main guard; the scan refuses all four.
+    committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
+    banned, unread = typecheck._banned(committed)
+    ensure(not unread and {"fcntl", "curses", "readline", "nt", "_winapi"} <= banned,
+           f"the committed ruff.toml must list the platform-only modules: {unread!r}")
+    modules = {
+        "toplevel.py": "import fcntl\n\nLOCK = fcntl.LOCK_EX\n",
+        "classbody.py": "class Locks:\n    import fcntl\n\n    LOCK = fcntl.LOCK_EX\n",
+        "moduleif.py": ('import os\n\nif os.name == "posix":\n    import fcntl\n\n'
+                        '    LOCK = fcntl.LOCK_EX\n'),
+        "mainblock.py": ('if __name__ == "__main__":\n    import fcntl\n\n'
+                         '    fcntl.flock(0, fcntl.LOCK_EX)\n'),
+    }
+    config = committed.read_text(encoding="utf-8")
+    lint, scan = Reporter(), Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), modules, config)
+        typecheck._run_ruff(lint, Path(td), frozenset(modules))
+        typecheck._run_imports(scan, Path(td), frozenset(modules))
+    codes = [line.strip() for line in lint.out if line.startswith("       ")
+             and not line.startswith("         ")]
+    banned_sites = [line.strip() for line in lint.out if "is banned at the module level" in line]
+    ensure("TID253: 1" in codes and not any(code.startswith("PLC0415") for code in codes)
+           and len(banned_sites) == 1 and banned_sites[0].startswith("toplevel.py:1:"),
+           f"ruff must report only the unnested import: {lint.out!r}")
+    ensure(scan.out == [f"FAIL imports: 4 {_SCAN_FAIL}", _refused("classbody.py:2"),
+                        _refused("mainblock.py:2"), _refused("moduleif.py:4"),
+                        _refused("toplevel.py:1")],
+           f"the scan must refuse every import ruff leaves open: {scan.out!r}")
+
+
 def _git(root: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=root, capture_output=True, check=True)
 
@@ -994,6 +1148,11 @@ def cases() -> list[Case]:
         Case("coverage-read-from-the-run", _coverage_read_from_the_run, lane="host"),
         Case("ruff-coverage-floor", _ruff_coverage_floor),
         Case("ty-coverage-floor", _ty_coverage_floor),
+        Case("imports-refused-outside-functions", _imports_refused_outside_functions),
+        Case("imports-admitted-in-functions-and-platform-blocks",
+             _imports_admitted_in_functions_and_platform_blocks),
+        Case("imports-fail-closed", _imports_fail_closed),
+        Case("imports-close-what-ruff-leaves-open", _imports_close_what_ruff_leaves_open),
         Case("tracked-reads-the-index", _tracked_reads_the_index),
         Case("live-tree-reaches-every-tracked-module", _live_tree_reaches_every_tracked_module),
     ]

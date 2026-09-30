@@ -98,7 +98,9 @@ mypy-init-return = false
 # typeshed stubs it for both: neither ty run sees an import of one fail, and it fails at
 # run time on the platform that lacks it. A banned name covers its submodules. A module
 # ty resolves under neither platform, such as `_overlapped` or `_posixshmem`, is ty's own
-# `unresolved-import` finding and is not listed.
+# `unresolved-import` finding and is not listed. TID253 refuses an unnested module-level
+# import of a listed module, and `vos/cli/typecheck.py` reads this list and refuses one
+# anywhere else outside a function body unless an enclosing `if` reads `sys.platform`.
 banned-module-level-imports = [
     # Windows lacks these.
     "_curses", "_curses_panel", "_dbm", "_gdbm", "_posixsubprocess", "asyncio.unix_events",

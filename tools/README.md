@@ -1044,9 +1044,13 @@ neither run sees an import of one fail on the other platform. ruff.toml's
 `banned-module-level-imports` lists each standard-library module the interpreter cannot
 import on Windows or on Linux that ty resolves under both platforms, a listed name
 covering its submodules; a module ty resolves under neither is ty's own
-`unresolved-import` finding. ruff refuses an unnested module-level import of a listed
-module, and each is imported inside the function that uses it, behind a `sys.platform`
-check.
+`unresolved-import` finding. ruff's TID253 refuses an import of a listed module only
+where it is unnested at module level, and with the module listed, PLC0415 no longer
+reports one in a class body. So the gate reads the same list and refuses an import of a
+listed module in a tracked module anywhere else outside a function body, in a class body
+or a module-level block such as `if __name__ == "__main__":`, unless an enclosing `if`
+reads `sys.platform`. Each is imported inside the function that uses it, behind a
+`sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
