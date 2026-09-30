@@ -7,6 +7,7 @@ owns persistent journals and compiler logs so both entry paths share one lane.
 """
 
 import base64
+import ctypes
 import json
 import math
 import os
@@ -304,6 +305,45 @@ def _stop(process: subprocess.Popen[bytes]) -> None:
         process.wait()
 
 
+# CreateFileW arguments for a probe that succeeds only while no other handle to the
+# file is open: read access, no sharing, the file must already exist.
+_GENERIC_READ = 0x80000000
+_NO_SHARING = 0
+_OPEN_EXISTING = 3
+_FILE_ATTRIBUTE_NORMAL = 0x80
+
+
+def _released(path: Path) -> bool:
+    """Whether no other process still holds a handle to `path`.
+
+    Windows only: `taskkill /F` starts each descendant's termination and returns,
+    and the launcher's exit says nothing about a child still tearing down, so a
+    killed interpreter can keep the diagnostic logs open for a moment after its
+    launcher is reaped. An open without sharing fails while any handle remains."""
+    if sys.platform != "win32":
+        return True
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    create = kernel32.CreateFileW
+    create.argtypes = (ctypes.c_wchar_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p,
+                       ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
+    create.restype = ctypes.c_void_p
+    handle = create(str(path), _GENERIC_READ, _NO_SHARING, None, _OPEN_EXISTING,
+                    _FILE_ATTRIBUTE_NORMAL, None)
+    if handle is None or handle == ctypes.c_void_p(-1).value:
+        return False
+    kernel32.CloseHandle(ctypes.c_void_p(handle))
+    return True
+
+
+def _await_release(paths: tuple[Path, ...], seconds: float = 10.0) -> None:
+    """Hold the report until every stopped descendant has let go of the logs."""
+    deadline = time.monotonic() + seconds
+    while not all(_released(path) for path in paths):
+        if time.monotonic() >= deadline:
+            raise OSError(f"a stopped child still holds {', '.join(map(str, paths))}")
+        time.sleep(0.05)
+
+
 def process(argv: list[str], cwd: Path, logs: Path, timeout: float) -> dict[str, Any]:
     """Run a fixed command, retaining exact bytes even on timeout/cancellation."""
     logs.mkdir(parents=True, exist_ok=False)
@@ -328,6 +368,10 @@ def process(argv: list[str], cwd: Path, logs: Path, timeout: float) -> dict[str,
             except KeyboardInterrupt:
                 _stop(child)
                 outcome, code = "cancelled", child.wait()
+    if outcome in {"timeout", "cancelled"}:
+        # Only after this process's own handles close: the bytes read below are
+        # final once no stopped descendant can still write them.
+        _await_release((logs / "stdout.bin", logs / "stderr.bin"))
     elapsed = time.perf_counter() - start
     streams: dict[str, Any] = {}
     for name in ("stdout", "stderr"):
